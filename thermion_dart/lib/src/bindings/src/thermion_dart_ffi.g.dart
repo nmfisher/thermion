@@ -2935,18 +2935,50 @@ external void AnimationManager_update(
   int frameTimeInNanos,
 );
 
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external bool AnimationManager_addGltfAnimationComponent(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+);
+
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external bool AnimationManager_removeGltfAnimationComponent(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(
     isLeaf: true)
-external void AnimationManager_addAnimationComponent(
+external void AnimationManager_addMorphAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   int entityId,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(
     isLeaf: true)
-external void AnimationManager_removeAnimationComponent(
+external void AnimationManager_removeMorphAnimationComponent(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   int entityId,
+);
+
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external bool AnimationManager_addBoneAnimationComponent(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+);
+
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external bool AnimationManager_removeBoneAnimationComponent(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
 @ffi.Native<
@@ -2984,7 +3016,7 @@ external void AnimationManager_resetToRestPose(
 );
 
 @ffi.Native<
-    ffi.Void Function(
+    ffi.Bool Function(
         ffi.Pointer<TAnimationManager>,
         ffi.Pointer<TSceneAsset>,
         ffi.Int,
@@ -2995,7 +3027,7 @@ external void AnimationManager_resetToRestPose(
         ffi.Float,
         ffi.Float,
         ffi.Float)>(isLeaf: true)
-external void AnimationManager_addBoneAnimation(
+external bool AnimationManager_addBoneAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int skinIndex,
@@ -3041,7 +3073,7 @@ external void AnimationManager_getInverseBindMatrix(
 );
 
 @ffi.Native<
-    ffi.Void Function(
+    ffi.Bool Function(
         ffi.Pointer<TAnimationManager>,
         ffi.Pointer<TSceneAsset>,
         ffi.Int,
@@ -3050,9 +3082,9 @@ external void AnimationManager_getInverseBindMatrix(
         ffi.Bool,
         ffi.Float,
         ffi.Float)>(isLeaf: true)
-external void AnimationManager_playAnimation(
+external bool AnimationManager_playGltfAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
-  ffi.Pointer<TSceneAsset> sceneAsset,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
   int index,
   bool loop,
   bool reverse,
@@ -3062,9 +3094,9 @@ external void AnimationManager_playAnimation(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
+    ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
         ffi.Int)>(isLeaf: true)
-external void AnimationManager_stopAnimation(
+external bool AnimationManager_stopGltfAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   int index,
@@ -3073,7 +3105,7 @@ external void AnimationManager_stopAnimation(
 @ffi.Native<
     ffi.Float Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
         ffi.Int)>(isLeaf: true)
-external double AnimationManager_getAnimationDuration(
+external double AnimationManager_getGltfAnimationDuration(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   int animationIndex,
@@ -3082,7 +3114,7 @@ external double AnimationManager_getAnimationDuration(
 @ffi.Native<
     ffi.Int Function(
         ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
-external int AnimationManager_getAnimationCount(
+external int AnimationManager_getGltfAnimationCount(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
 );
@@ -3090,7 +3122,7 @@ external int AnimationManager_getAnimationCount(
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
         ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
-external void AnimationManager_getAnimationName(
+external void AnimationManager_getGltfAnimationName(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   ffi.Pointer<ffi.Char> outPtr,

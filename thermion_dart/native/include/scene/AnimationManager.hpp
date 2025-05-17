@@ -31,7 +31,7 @@ namespace thermion
         AnimationManager(
             Engine *engine,
             Scene *scene);
-        ~AnimationManager();
+        ~AnimationManager() = default;
 
         /// @brief 
         ///
@@ -158,18 +158,39 @@ namespace thermion
         float getGltfAnimationDuration(GltfSceneAssetInstance *instance, int animationIndex);
 
         /// @brief
-        /// @param entity
+        /// @param instance
         /// @return
-        bool addAnimationComponent(EntityId entity);
+        bool addGltfAnimationComponent(GltfSceneAssetInstance *instance);
 
         /// @brief
-        /// @param entity
-        void removeAnimationComponent(EntityId entity);
+        /// @param instance
+        void removeGltfAnimationComponent(GltfSceneAssetInstance *instance);
+
+        /// @brief
+        /// @param instance
+        /// @return
+        bool addBoneAnimationComponent(GltfSceneAssetInstance *instance);
+
+        /// @brief
+        /// @param instance
+        void removeBoneAnimationComponent(GltfSceneAssetInstance *instance);
+
+        /// @brief
+        /// @param asset
+        /// @return
+        bool addMorphAnimationComponent(utils::Entity entity);
+
+        /// @brief
+        /// @param asset
+        void removeMorphAnimationComponent(utils::Entity entity);
+            
 
     private:
         Engine *_engine = nullptr;
         Scene *_scene = nullptr;
         std::mutex _mutex;
-        std::unique_ptr<AnimationComponentManager> _animationComponentManager = std::nullptr_t();
+        std::unique_ptr<GltfAnimationComponentManager> _gltfAnimationComponentManager = std::nullptr_t();
+        std::unique_ptr<MorphAnimationComponentManager> _morphAnimationComponentManager = std::nullptr_t();
+        std::unique_ptr<BoneAnimationComponentManager> _boneAnimationComponentManager = std::nullptr_t();
     };
 }

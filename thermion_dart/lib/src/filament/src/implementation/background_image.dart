@@ -1,9 +1,6 @@
-import 'dart:typed_data';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/src/bone_animation_data.dart';
 import 'package:animation_tools_dart/src/morph_animation_data.dart';
-import 'package:thermion_dart/src/filament/src/interface/layers.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
@@ -159,7 +156,7 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future addAnimationComponent(ThermionEntity entity) {
+  Future addAnimationComponent() {
     // TODO: implement addAnimationComponent
     throw UnimplementedError();
   }
@@ -256,7 +253,7 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future removeAnimationComponent(ThermionEntity entity) {
+  Future removeAnimationComponent() {
     // TODO: implement removeAnimationComponent
     throw UnimplementedError();
   }
@@ -355,4 +352,6 @@ class BackgroundImage extends ThermionAsset {
   Future<v64.Aabb3> getBoundingBox() {
     throw UnimplementedError();
   }
+  
+  
 }

@@ -493,16 +493,13 @@ class FFIAsset extends ThermionAsset {
     if (weights.isEmpty) {
       throw Exception("Weights must not be empty");
     }
-    var weightsPtr = allocate<Float>(weights.length);
+    var weightsF32 = Float32List.fromList(weights);
 
-    for (int i = 0; i < weights.length; i++) {
-      weightsPtr[i] = weights[i];
-    }
     var success = await withBoolCallback((cb) {
       AnimationManager_setMorphTargetWeightsRenderThread(
-          animationManager, entity, weightsPtr, weights.length, cb);
+          animationManager, entity, weightsF32.address, weights.length, cb);
     });
-    free(weightsPtr);
+    weightsF32.free();
 
     if (!success) {
       throw Exception(
@@ -521,6 +518,10 @@ class FFIAsset extends ThermionAsset {
 
     var count = AnimationManager_getMorphTargetNameCount(
         animationManager, asset, entity);
+
+    if (count < 0) {
+      throw Exception("Failed to retrieve morph target name count");
+    }
     var outPtr = allocate<Char>(255);
     for (int i = 0; i < count; i++) {
       AnimationManager_getMorphTargetName(
@@ -559,13 +560,17 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future<List<String>> getAnimationNames() async {
+  Future<List<String>> getGltfAnimationNames() async {
     var animationCount =
-        AnimationManager_getAnimationCount(animationManager, asset);
+        AnimationManager_getGltfAnimationCount(animationManager, asset);
+    if (animationCount == -1) {
+      throw Exception("This is not a glTF asset");
+    }
+
     var names = <String>[];
     var outPtr = allocate<Char>(255);
     for (int i = 0; i < animationCount; i++) {
-      AnimationManager_getAnimationName(animationManager, asset, outPtr, i);
+      AnimationManager_getGltfAnimationName(animationManager, asset, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     free(outPtr);
@@ -577,8 +582,8 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future<double> getAnimationDuration(int animationIndex) async {
-    return AnimationManager_getAnimationDuration(
+  Future<double> getGltfAnimationDuration(int animationIndex) async {
+    return AnimationManager_getGltfAnimationDuration(
         animationManager, asset, animationIndex);
   }
 
@@ -586,12 +591,12 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future<double> getAnimationDurationByName(String name) async {
-    var animations = await getAnimationNames();
+    var animations = await getGltfAnimationNames();
     var index = animations.indexOf(name);
     if (index == -1) {
       throw Exception("Failed to find animation $name");
     }
-    return getAnimationDuration(index);
+    return getGltfAnimationDuration(index);
   }
 
   ///
@@ -904,47 +909,52 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future playAnimation(int index,
+  Future playGltfAnimation(int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
       double startOffset = 0.0}) async {
-    AnimationManager_playAnimation(animationManager, asset, index, loop,
-        reverse, replaceActive, crossfade, startOffset);
+    if (!AnimationManager_playGltfAnimation(animationManager, asset, index,
+        loop, reverse, replaceActive, crossfade, startOffset)) {
+      throw Exception("Failed to play glTF animation. Check logs for details");
+    }
   }
 
   ///
   ///
   ///
   @override
-  Future stopAnimation(int animationIndex) async {
-    AnimationManager_stopAnimation(animationManager, asset, animationIndex);
+  Future stopGltfAnimation(int animationIndex) async {
+    if (!AnimationManager_stopGltfAnimation(
+        animationManager, asset, animationIndex)) {
+      throw Exception("Failed to stop glTF animation. Check logs for details");
+    }
   }
 
   ///
   ///
   ///
   @override
-  Future stopAnimationByName(String name) async {
-    var animations = await getAnimationNames();
-    await stopAnimation(animations.indexOf(name));
+  Future stopGltfAnimationByName(String name) async {
+    var animations = await getGltfAnimationNames();
+    await stopGltfAnimation(animations.indexOf(name));
   }
 
   ///
   ///
   ///
   @override
-  Future playAnimationByName(String name,
+  Future playGltfAnimationByName(String name,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
       bool wait = false}) async {
-    var animations = await getAnimationNames();
+    var animations = await getGltfAnimationNames();
     var index = animations.indexOf(name);
-    var duration = await getAnimationDuration(index);
-    await playAnimation(index,
+    var duration = await getGltfAnimationDuration(index);
+    await playGltfAnimation(index,
         loop: loop,
         reverse: reverse,
         replaceActive: replaceActive,
@@ -967,14 +977,14 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future addAnimationComponent(ThermionEntity entity) async {
-    AnimationManager_addAnimationComponent(animationManager, entity);
+  Future addAnimationComponent() async {
+    AnimationManager_addGltfAnimationComponent(animationManager, this.asset);
   }
 
   ///
   ///
   ///
-  Future removeAnimationComponent(ThermionEntity entity) async {
-    AnimationManager_removeAnimationComponent(animationManager, entity);
+  Future removeAnimationComponent() async {
+    AnimationManager_removeGltfAnimationComponent(animationManager, this.asset);
   }
 }

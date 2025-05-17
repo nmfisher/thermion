@@ -66,8 +66,8 @@ abstract class ThermionAsset {
 
   ///
   /// The dimensions of the bounding box for this asset.
-  /// This is independent of the boundingBoxAsset (which is used to visualize 
-  /// the bounding box in the scene); you do not need to call 
+  /// This is independent of the boundingBoxAsset (which is used to visualize
+  /// the bounding box in the scene); you do not need to call
   /// [createBoundingBoxAsset] before this method.
   Future<Aabb3> getBoundingBox();
 
@@ -153,36 +153,46 @@ abstract class ThermionAsset {
   ///
   /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
   ///
-  Future playAnimation(int index,
+  Future playGltfAnimation(int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
-      double startOffset = 0.0});
+      double startOffset = 0.0}) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
   ///
-  Future playAnimationByName(String name,
+  Future playGltfAnimationByName(String name,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
-      double crossfade = 0.0});
+      double crossfade = 0.0}) {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future setGltfAnimationFrame(int index, int animationFrame);
+  Future setGltfAnimationFrame(int index, int animationFrame) {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future stopAnimation(int animationIndex);
+  Future stopGltfAnimation(int animationIndex) {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future stopAnimationByName(String name);
+  Future stopGltfAnimationByName(String name) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Set the weights for all morph targets in [entity] to [weights].
@@ -191,27 +201,37 @@ abstract class ThermionAsset {
   /// IMPORTANT - this accepts the actual ThermionEntity with the relevant morph targets (unlike [getMorphTargetNames], which uses the parent entity and the child mesh name).
   /// Use [getChildEntityByName] if you are setting the weights for a child mesh.
   ///
-  Future setMorphTargetWeights(ThermionEntity entity, List<double> weights);
+  Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Gets the names of all morph targets for [entity] (which must be a renderable entity)
   ///
-  Future<List<String>> getMorphTargetNames({ThermionEntity? entity});
+  Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Gets the names of all bones for the skin at [skinIndex].
   ///
-  Future<List<String>> getBoneNames({int skinIndex = 0});
+  Future<List<String>> getBoneNames({int skinIndex = 0}) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Gets the names of all glTF animations embedded in the specified entity.
   ///
-  Future<List<String>> getAnimationNames();
+  Future<List<String>> getGltfAnimationNames() {
+    throw UnimplementedError();
+  }
 
   ///
   /// Returns the length (in seconds) of the animation at the given index.
   ///
-  Future<double> getAnimationDuration(int animationIndex);
+  Future<double> getGltfAnimationDuration(int animationIndex) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Construct animation(s) for every entity under [asset]. If [targetMeshNames] is provided, only entities with matching names will be animated.
@@ -221,12 +241,16 @@ abstract class ThermionAsset {
   /// It is permissible for [animation] to omit any targets that do exist under [meshName]; these simply won't be animated.
   ///
   Future setMorphAnimationData(MorphAnimationData animation,
-      {List<String>? targetMeshNames});
+      {List<String>? targetMeshNames}) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Clear all current morph animations for [entity].
   ///
-  Future clearMorphAnimationData(ThermionEntity entity);
+  Future clearMorphAnimationData(ThermionEntity entity) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Resets all bones in the given entity to their rest pose.
@@ -307,10 +331,10 @@ abstract class ThermionAsset {
   /// An [entity] will only be animatable after an animation component is attached.
   /// Any calls to [playAnimation]/[setBoneAnimation]/[setMorphAnimation] will have no visual effect until [addAnimationComponent] has been called on the instance.
   ///
-  Future addAnimationComponent(ThermionEntity entity);
+  Future addAnimationComponent();
 
   ///
   /// Removes an animation component from [entity].
   ///
-  Future removeAnimationComponent(ThermionEntity entity);
+  Future removeAnimationComponent();
 }

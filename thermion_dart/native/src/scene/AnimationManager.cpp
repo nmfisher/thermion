@@ -11,6 +11,8 @@
 
 #include "Log.hpp"
 
+#include "components/AnimationComponentManager.hpp"
+#include "components/AnimationComponentManager.hpp"
 #include "scene/AnimationManager.hpp"
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
@@ -25,12 +27,9 @@ namespace thermion
     {
         auto &transformManager = _engine->getTransformManager();
         auto &renderableManager = _engine->getRenderableManager();
-        _animationComponentManager = std::make_unique<AnimationComponentManager>(transformManager, renderableManager);
-    }
-
-    AnimationManager::~AnimationManager()
-    {
-        _animationComponentManager = std::nullptr_t();
+        _gltfAnimationComponentManager = std::make_unique<GltfAnimationComponentManager>(transformManager, renderableManager);
+        _morphAnimationComponentManager = std::make_unique<MorphAnimationComponentManager>(transformManager, renderableManager);
+        _boneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(transformManager, renderableManager);
     }
 
     bool AnimationManager::setMorphAnimationBuffer(
@@ -41,16 +40,20 @@ namespace thermion
         int numFrames,
         float frameLengthInMs)
     {
+
         std::lock_guard lock(_mutex);
 
-        if (!_animationComponentManager->hasComponent(entity))
+        if (!_morphAnimationComponentManager->hasComponent(entity))
         {
-            _animationComponentManager->addAnimationComponent(entity);
+            _morphAnimationComponentManager->addAnimationComponent(entity);
         }
+
+        auto animationComponentInstance = _morphAnimationComponentManager->getInstance(entity);
+        auto &animationComponent = _morphAnimationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &morphAnimations = animationComponent.animations;
 
         MorphAnimation morphAnimation;
 
-        morphAnimation.meshTarget = entity;
         morphAnimation.frameData.clear();
         morphAnimation.frameData.insert(
             morphAnimation.frameData.begin(),
@@ -65,15 +68,12 @@ namespace thermion
         morphAnimation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
 
         morphAnimation.start = high_resolution_clock::now();
-        morphAnimation.lengthInFrames = static_cast<int>(
-            morphAnimation.durationInSecs * 1000.0f /
-            frameLengthInMs);
-
-        auto animationComponentInstance = _animationComponentManager->getInstance(entity);
-        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
-        auto &morphAnimations = animationComponent.morphAnimations;
+        morphAnimation.lengthInFrames = numFrames;
 
         morphAnimations.emplace_back(morphAnimation);
+
+        auto& foo = morphAnimations[morphAnimations.size() - 1];
+
         return true;
     }
 
@@ -82,9 +82,9 @@ namespace thermion
     {
         std::lock_guard lock(_mutex);
 
-        auto animationComponentInstance = _animationComponentManager->getInstance(entity);
-        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
-        auto &morphAnimations = animationComponent.morphAnimations;
+        auto animationComponentInstance = _morphAnimationComponentManager->getInstance(entity);
+        auto &animationComponent = _morphAnimationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &morphAnimations = animationComponent.animations;
         morphAnimations.clear();
     }
 
@@ -309,17 +309,17 @@ namespace thermion
         animation.fadeInInSecs = fadeInInSecs;
         animation.maxDelta = maxDelta;
         animation.skinIndex = skinIndex;
-        if (!_animationComponentManager->hasComponent(instance->getInstance()->getRoot()))
+        if (!_boneAnimationComponentManager->hasComponent(instance->getInstance()->getRoot()))
         {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return false;
         }
-        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getInstance()->getRoot());
+        auto animationComponentInstance = _boneAnimationComponentManager->getInstance(instance->getInstance()->getRoot());
 
-        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
-        auto &boneAnimations = animationComponent.boneAnimations;
+        auto &animationComponent = _boneAnimationComponentManager->elementAt<0>(animationComponentInstance);
+        // auto &boneAnimations = animationComponent.boneAnimations;
 
-        boneAnimations.emplace_back(animation);
+        // boneAnimations.emplace_back(animation);
 
         return true;
     }
@@ -334,27 +334,30 @@ namespace thermion
             return;
         }
 
-        if (!_animationComponentManager->hasComponent(instance->getEntity()))
+        if (!_gltfAnimationComponentManager->hasComponent(instance->getEntity()))
         {
+            _gltfAnimationComponentManager->addComponent(instance->getEntity());
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return;
         }
 
-        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getEntity());
+        auto animationComponentInstance = _gltfAnimationComponentManager->getInstance(instance->getEntity());
 
-        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &animationComponent = _gltfAnimationComponentManager->elementAt<0>(animationComponentInstance);
+
+        animationComponent.target = instance->getInstance();
 
         if (replaceActive)
         {
-            if (animationComponent.gltfAnimations.size() > 0)
+            if (animationComponent.animations.size() > 0)
             {
-                auto &last = animationComponent.gltfAnimations.back();
+                auto &last = animationComponent.animations.back();
                 animationComponent.fadeGltfAnimationIndex = last.index;
                 animationComponent.fadeDuration = crossfade;
                 auto now = high_resolution_clock::now();
                 auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last.start).count()) / 1000.0f;
                 animationComponent.fadeOutAnimationStart = elapsedInSecs;
-                animationComponent.gltfAnimations.clear();
+                animationComponent.animations.clear();
             }
             else
             {
@@ -384,9 +387,9 @@ namespace thermion
         bool found = false;
 
         // don't play the animation if it's already running
-        for (int i = 0; i < animationComponent.gltfAnimations.size(); i++)
+        for (int i = 0; i < animationComponent.animations.size(); i++)
         {
-            if (animationComponent.gltfAnimations[i].index == index)
+            if (animationComponent.animations[i].index == index)
             {
                 found = true;
                 break;
@@ -394,22 +397,22 @@ namespace thermion
         }
         if (!found)
         {
-            animationComponent.gltfAnimations.push_back(animation);
+            animationComponent.animations.push_back(animation);
         }
     }
 
     void AnimationManager::stopGltfAnimation(GltfSceneAssetInstance *instance, int index)
     {
 
-        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getEntity());
-        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto animationComponentInstance = _gltfAnimationComponentManager->getInstance(instance->getEntity());
+        auto &animationComponent = _gltfAnimationComponentManager->elementAt<0>(animationComponentInstance);
 
-        auto erased = std::remove_if(animationComponent.gltfAnimations.begin(),
-                                     animationComponent.gltfAnimations.end(),
+        auto erased = std::remove_if(animationComponent.animations.begin(),
+                                     animationComponent.animations.end(),
                                      [=](GltfAnimation &anim)
                                      { return anim.index == index; });
-        animationComponent.gltfAnimations.erase(erased,
-                                                animationComponent.gltfAnimations.end());
+        animationComponent.animations.erase(erased,
+                                                animationComponent.animations.end());
         return;
     }
 
@@ -417,6 +420,7 @@ namespace thermion
     {
         RenderableManager &rm = _engine->getRenderableManager();
         auto renderableInstance = rm.getInstance(entity);
+
         rm.setMorphWeights(
             renderableInstance,
             weights,
@@ -477,7 +481,9 @@ namespace thermion
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(_mutex);
-        _animationComponentManager->update();
+        _gltfAnimationComponentManager->update();
+        _morphAnimationComponentManager->update();
+        _boneAnimationComponentManager->update();
     }
 
     math::mat4f AnimationManager::getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex)
@@ -507,15 +513,37 @@ namespace thermion
         return true;
     }
 
-    bool AnimationManager::addAnimationComponent(EntityId entity)
+    bool AnimationManager::addGltfAnimationComponent(GltfSceneAssetInstance *instance)
     {
-        _animationComponentManager->addAnimationComponent(utils::Entity::import(entity));
+        _gltfAnimationComponentManager->addAnimationComponent(instance->getInstance());
         return true;
     }
 
-    void AnimationManager::removeAnimationComponent(EntityId entity)
+    void AnimationManager::removeGltfAnimationComponent(GltfSceneAssetInstance *instance)
     {
-        _animationComponentManager->removeComponent(utils::Entity::import(entity));
+        _gltfAnimationComponentManager->removeAnimationComponent(instance->getInstance());
+    }
+
+    bool AnimationManager::addBoneAnimationComponent(GltfSceneAssetInstance *instance)
+    {
+        _boneAnimationComponentManager->addAnimationComponent(instance->getInstance());
+        return true;
+    }
+
+    void AnimationManager::removeBoneAnimationComponent(GltfSceneAssetInstance *instance)
+    {
+        _boneAnimationComponentManager->removeAnimationComponent(instance->getInstance());
+    }
+
+    bool AnimationManager::addMorphAnimationComponent(utils::Entity entity)
+    {
+        _morphAnimationComponentManager->addAnimationComponent(entity);
+        return true;
+    }
+
+    void AnimationManager::removeMorphAnimationComponent(utils::Entity entity)
+    {
+        _morphAnimationComponentManager->removeAnimationComponent(entity);
     }
 
 }
