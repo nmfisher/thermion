@@ -128,16 +128,37 @@ abstract class ThermionViewer {
   Future destroyLights();
 
   ///
-  /// Load the .glb asset at the given path, adding all entities to the scene.
-  /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
-  /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
-  /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
+  /// Load the glTF asset at the given path (.glb or .gltf)
+  /// 
+  /// If the file is a .gltf and [resourceUri] is not specified, 
+  /// all resources will be loaded relative to the URI of the file (so if 
+  /// [uri] is asset://assets/scene.gltf, the loader will attempt to load 
+  /// asset://assets/scene.bin, asset://assets/texture.png, and so on).
+  /// 
+  /// If [resourceUri] is specified, resources will be loaded relative to 
+  /// that path.
+  /// 
+  /// If [addToScene] is [true], all renderable entities (including lights)
+  /// in the asset will be added to the scene.
+  /// 
+  /// If you want to dynamically create instances of this asset after it is 
+  /// instantiated, pass [kee]
+
+  /// Alternatively, specifying [numInstances] will pre-allocate the specified 
+  /// number of instances. This is more efficient than dynamically instantating at a later time. 
+  /// You can then retrieve the created instances with [getInstances].
+  /// 
+  /// If [keepData] is false and [numInstances] is 1, 
+  /// the source glTF data will be released and [createInstance] 
+  /// will throw an exception.
   ///
-  Future<ThermionAsset> loadGltf(String path,
-      { bool addToScene=true,
+  ///
+  Future<ThermionAsset> loadGltf(String uri,
+      { bool addToScene = true,
         int numInstances = 1,
       bool keepData = false,
-      String? relativeResourcePath});
+      String? resourceUri,
+      bool loadAsync = false});
 
   ///
   /// Load the .glb asset from the specified buffer, adding all entities to the scene.
@@ -150,7 +171,7 @@ abstract class ThermionViewer {
   ///
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {
-        String? relativeResourcePath,
+        String? resourceUri,
         int numInstances = 1,
         bool keepData = false,
         int priority = 4,

@@ -5,7 +5,7 @@ class FilamentConfig<T, U> {
   final Backend backend;
   final T? renderCallback;
   final U? renderCallbackOwner;
-  Future<Uint8List> Function(String)? resourceLoader;
+  Future<Uint8List> Function(String)? loadResource;
   final U? platform;
   final U? sharedContext;
   final String? uberArchivePath;
@@ -14,7 +14,7 @@ class FilamentConfig<T, U> {
 
   FilamentConfig(
       {required this.backend,
-      required this.resourceLoader,
+      required this.loadResource,
       this.uberArchivePath,
       this.renderCallback,
       this.renderCallbackOwner,
@@ -43,6 +43,11 @@ abstract class FilamentApp<T> {
       required this.lightManager,
       required this.renderableManager,
       required this.ubershaderMaterialProvider});
+
+  ///
+  ///
+  ///
+  Future<Uint8List> loadResource(String uri);
 
   ///
   ///
@@ -277,7 +282,7 @@ abstract class FilamentApp<T> {
       int priority = 4,
       int layer = 0,
       bool loadResourcesAsync = false,
-      String? relativeResourcePath});
+      String? resourceUri});
 
   ///
   ///

@@ -27,12 +27,11 @@ class ThermionViewerFFI extends ThermionViewer {
   late final FFIView view;
   late final FFIScene scene;
   late final Pointer<TAnimationManager> animationManager;
-  late final Future<Uint8List> Function(String path) loadAssetFromUri;
 
   ///
   ///
   ///
-  ThermionViewerFFI({required this.loadAssetFromUri}) {
+  ThermionViewerFFI() {
     if (FilamentApp.instance == null) {
       throw Exception("FilamentApp has not been created");
     }
@@ -200,7 +199,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
-    final imageData = await loadAssetFromUri(path);
+    final imageData = await FilamentApp.instance!.loadResource(path);
     _backgroundImage ??= await BackgroundImage.create(this, scene);
     await _backgroundImage!.setImage(imageData);
   }
@@ -233,7 +232,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future loadSkybox(String skyboxPath) async {
-    var data = await loadAssetFromUri(skyboxPath);
+    var data = await FilamentApp.instance!.loadResource(skyboxPath);
 
     skybox = await withPointerCallback<TSkybox>((cb) {
       Engine_buildSkyboxRenderThread(
@@ -255,7 +254,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (FILAMENT_WASM) {
       //stackPtr = stackSave();
     }
-    var data = await loadAssetFromUri(lightingPath);
+    var data = await FilamentApp.instance!.loadResource(lightingPath);
 
     indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightRenderThread(
@@ -386,14 +385,24 @@ class ThermionViewerFFI extends ThermionViewer {
       {bool addToScene = true,
       int numInstances = 1,
       bool keepData = false,
-      String? relativeResourcePath}) async {
-    final data = await loadAssetFromUri(path);
+      String? resourceUri,
+      bool loadAsync = false}) async {
+    final data = await FilamentApp.instance!.loadResource(path);
+    if (resourceUri == null) {
+      var split = path.split("/");
+      resourceUri ??= split.take(split.length - 1).join("/");
+    }
+
+    if (!resourceUri.endsWith("/")) {
+      resourceUri = "${resourceUri}/";
+    }
 
     return loadGltfFromBuffer(data,
         addToScene: addToScene,
         numInstances: numInstances,
         keepData: keepData,
-        relativeResourcePath: relativeResourcePath);
+        resourceUri: resourceUri,
+        loadResourcesAsync: loadAsync);
   }
 
   ///
@@ -407,7 +416,7 @@ class ThermionViewerFFI extends ThermionViewer {
       int priority = 4,
       int layer = 0,
       bool loadResourcesAsync = false,
-      String? relativeResourcePath}) async {
+      String? resourceUri}) async {
     var asset = await FilamentApp.instance!.loadGltfFromBuffer(
         data, animationManager,
         numInstances: numInstances,
@@ -415,7 +424,7 @@ class ThermionViewerFFI extends ThermionViewer {
         priority: priority,
         layer: layer,
         loadResourcesAsync: loadResourcesAsync,
-        relativeResourcePath: relativeResourcePath) as FFIAsset;
+        resourceUri: resourceUri) as FFIAsset;
 
     _assets.add(asset);
     if (addToScene) {
