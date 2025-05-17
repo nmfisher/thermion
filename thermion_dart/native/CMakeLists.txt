@@ -25,7 +25,9 @@ add_definitions(-DENABLE_TRACING=1)
 # Locate source files
 file(GLOB_RECURSE SOURCES 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*.cpp"
 )
+
 
 # Exclude specific files
 list(FILTER SOURCES EXCLUDE REGEX "CMakeLists.txt|main.cpp|windows")
