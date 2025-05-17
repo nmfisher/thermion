@@ -17,7 +17,7 @@ typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
 class FFIFilamentConfig extends FilamentConfig<RenderCallback, Pointer<Void>> {
   FFIFilamentConfig(
-      {super.resourceLoader = null,
+      {super.loadResource = null,
       super.backend = Backend.DEFAULT,
       super.platform = null,
       super.sharedContext = null,
@@ -35,7 +35,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TRenderTicker> renderTicker;
   final Pointer<TNameComponentManager> nameComponentManager;
 
-  late final Future<Uint8List> Function(String uri) resourceLoader;
+  late final Future<Uint8List> Function(String uri) _loadResource;
 
   static final _logger = Logger("FFIFilamentApp");
 
@@ -49,7 +49,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       this.ubershaderMaterialProvider,
       this.renderTicker,
       this.nameComponentManager,
-      Future<Uint8List> Function(String uri)? resourceLoader)
+      Future<Uint8List> Function(String uri)? loadResource)
       : super(
             engine: engine,
             gltfAssetLoader: gltfAssetLoader,
@@ -58,7 +58,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             lightManager: lightManager,
             renderableManager: renderableManager,
             ubershaderMaterialProvider: ubershaderMaterialProvider) {
-    this.resourceLoader = resourceLoader ?? defaultResourceLoader;
+    this._loadResource = loadResource ?? defaultResourceLoader;
+  }
+
+  Future<Uint8List> loadResource(String uri) {
+    return _loadResource(uri);
   }
 
   static Future create({FFIFilamentConfig? config}) async {
@@ -107,7 +111,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         ubershaderMaterialProvider,
         renderTicker,
         nameComponentManager,
-        config.resourceLoader);
+        config.loadResource);
     _logger.info("Initialization complete");
   }
 
@@ -782,9 +786,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool keepData = false,
       int priority = 4,
       int layer = 0,
-      String? relativeResourcePath,
-      bool loadResourcesAsync = false}) async {
+      bool loadResourcesAsync = false,
+      String? resourceUri}) async {
     final resources = <FinalizableUint8List>[];
+
+    if (resourceUri != null && !resourceUri.endsWith("/")) {
+      resourceUri = "${resourceUri}/";
+    }
     try {
       late Pointer stackPtr;
       if (FILAMENT_WASM) {
@@ -793,14 +801,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       loadResourcesAsync = FILAMENT_SINGLE_THREADED;
 
-      if (relativeResourcePath != null && !relativeResourcePath.endsWith("/")) {
-        relativeResourcePath = "$relativeResourcePath/";
-      }
       var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-          (cb) => GltfResourceLoader_createRenderThread(
-              engine,
-              relativeResourcePath?.toNativeUtf8().cast<Char>() ?? nullptr,
-              cb));
+          (cb) => GltfResourceLoader_createRenderThread(engine, cb));
 
       var filamentAsset = await withPointerCallback<TFilamentAsset>((cb) =>
           GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader,
@@ -815,9 +817,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       for (int i = 0; i < resourceUriCount; i++) {
         final resourceUriDart = resourceUris[i].cast<Utf8>().toDartString();
-        final resourceData = await resourceLoader(relativeResourcePath == null
-            ? resourceUriDart
-            : "$relativeResourcePath/$resourceUriDart");
+
+        final resourceData =
+            await loadResource("${resourceUri ?? ""}${resourceUriDart}");
 
         resources.add(FinalizableUint8List(resourceUris[i], resourceData));
 
@@ -829,6 +831,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
                 resourceData.lengthInBytes,
                 cb));
       }
+
       if (loadResourcesAsync) {
         final result = await withBoolCallback((cb) =>
             GltfResourceLoader_asyncBeginLoadRenderThread(
