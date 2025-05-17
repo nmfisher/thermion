@@ -260,7 +260,7 @@ namespace thermion
         void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, EntityId entityId, VoidCallback onComplete);
 
         void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *));
-        void GltfResourceLoader_createRenderThread(TEngine *tEngine, const char* relativeResourcePath, void (*callback)(TGltfResourceLoader *));
+        void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *));
         void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, VoidCallback onComplete);
         void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
         void GltfResourceLoader_addResourceDataRenderThread(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length, VoidCallback onComplete);

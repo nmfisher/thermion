@@ -1018,11 +1018,11 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, const char* relativeResourcePath, void (*callback)(TGltfResourceLoader *)) {
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto loader = GltfResourceLoader_create(tEngine, relativeResourcePath);
+        auto loader = GltfResourceLoader_create(tEngine);
         PROXY(callback(loader));
       });
     auto fut = _renderThread->add_task(lambda);

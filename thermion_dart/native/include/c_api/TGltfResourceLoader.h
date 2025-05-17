@@ -8,7 +8,7 @@ extern "C"
 {
 #endif
 
-EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine, const char *relativeResourcePath);
+EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfResourceLoader *tGltfResourceLoader);
 EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_asyncBeginLoad(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset);
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoad(TGltfResourceLoader *tGltfResourceLoader);

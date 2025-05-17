@@ -37,11 +37,10 @@ namespace thermion
         
 #endif
 
-EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine, const char *relativeResourcePath) {
+EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine) {
     auto *engine = reinterpret_cast<Engine *>(tEngine);
     auto *gltfResourceLoader = new gltfio::ResourceLoader({
         .engine = engine,
-        .gltfPath = relativeResourcePath
     });
     auto stbDecoder = gltfio::createStbProvider(engine);
     auto ktxDecoder = gltfio::createKtx2Provider(engine);
@@ -60,7 +59,9 @@ EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfReso
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length) {
     TRACE("Adding data (length %d) for glTF resource URI %s", length, uri);
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
-    gltfResourceLoader->addResourceData(uri, { data, length});
+    gltfResourceLoader->addResourceData(uri, { 
+        data,
+        length});
 }
 
 EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {    

@@ -923,8 +923,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-        (cb) =>
-            GltfResourceLoader_createRenderThread(engine, nullptr.cast(), cb));
+        (cb) => GltfResourceLoader_createRenderThread(engine, cb));
 
     final gizmo = await withPointerCallback<TGizmo>((cb) {
       Gizmo_createRenderThread(
