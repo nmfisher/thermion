@@ -12,9 +12,12 @@ extern "C"
 	
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_update(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos);
 
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_addAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);
-
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_removeAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
+	EMSCRIPTEN_KEEPALIVE void AnimationManager_addMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);
+	EMSCRIPTEN_KEEPALIVE void AnimationManager_removeMorphAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
 
 	EMSCRIPTEN_KEEPALIVE bool AnimationManager_setMorphAnimation(
 		TAnimationManager *tAnimationManager,
@@ -29,7 +32,7 @@ extern "C"
 
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPose(TAnimationManager *tAnimationManager, TSceneAsset *sceneAsset);
 
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_addBoneAnimation(
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimation(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *tSceneAsset,
 		int skinIndex,
@@ -61,9 +64,9 @@ extern "C"
 		int boneIndex,
 		float *const out);
 
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_playAnimation(
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_playGltfAnimation(
 		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset,
+		TSceneAsset *tSceneAsset,
 		int index,
 		bool loop,
 		bool reverse,
@@ -71,22 +74,22 @@ extern "C"
 		float crossfade,
 		float startOffset);
 
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_stopAnimation(
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_stopGltfAnimation(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset,
 		int index);
 
 	// Additional methods found in implementation
-	EMSCRIPTEN_KEEPALIVE float AnimationManager_getAnimationDuration(
+	EMSCRIPTEN_KEEPALIVE float AnimationManager_getGltfAnimationDuration(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset,
 		int animationIndex);
 
-	EMSCRIPTEN_KEEPALIVE int AnimationManager_getAnimationCount(
+	EMSCRIPTEN_KEEPALIVE int AnimationManager_getGltfAnimationCount(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset);
 
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_getAnimationName(
+	EMSCRIPTEN_KEEPALIVE void AnimationManager_getGltfAnimationName(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset,
 		char *const outPtr,
