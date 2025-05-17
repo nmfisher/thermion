@@ -7,10 +7,24 @@ This is only for developers extending the Thermion package itself; if you are si
 ## MacOS (arm64/x64)
 
 ```
+mkdir -p out/cmake-release
+cd out/cmake-release
 ./build.sh -l -i -f -p desktop release
 ./build.sh -l -i -f -t -d -p desktop debug # build with the framegraph viewer/material debug server enabled
 ```
 
+(Currently we can't pass -DGLTFIO_USE_FILESYSTEM=0, but if/when we can, will look like this:)
+```
+cmake -G Ninja \
+        "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" \
+        -DIMPORT_EXECUTABLES_DIR=out \
+        -DCMAKE_BUILD_TYPE="Release" \
+        -DCMAKE_INSTALL_PREFIX="../release/filament" \
+        -DGLTFIO_USE_FILESYSTEM=0 \
+        ../..
+ninja
+ninja install
+```
 # iOS
 
 ```
@@ -117,6 +131,10 @@ cd ..
 mkdir thirdparty/
 cd thirdparty/
 #find . -type f -exec file {} \; | grep "text" | cut -d: -f1 | xargs dos2unix
+# for zlib, replace this:
+#-   set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)
+# with this:
+#+   set_target_properties(zlib PROPERTIES OUTPUT_NAME z)
 for lib in tinyexr libpng libz; do 
     mkdir -p $lib;
     pushd $lib;
