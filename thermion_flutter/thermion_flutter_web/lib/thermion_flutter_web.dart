@@ -93,14 +93,14 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
 
       final config = FFIFilamentConfig(
           backend: Backend.OPENGL,
-          resourceLoader: loadAsset,
+          loadResource: loadAsset,
           platform: nullptr,
           sharedContext: nullptr,
           uberArchivePath: options.uberarchivePath);
       await FFIFilamentApp.create(config: config);
     }
 
-    final viewer = ThermionViewerFFI(loadAssetFromUri: loadAsset);
+    final viewer = ThermionViewerFFI();
     await viewer.initialized;
     await viewer.setViewport(canvas!.width, canvas.height);
 
