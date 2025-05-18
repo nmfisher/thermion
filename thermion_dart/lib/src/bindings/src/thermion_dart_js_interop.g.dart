@@ -364,7 +364,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     if (lib == null) {
       throw Exception("Failed to find JS module ${moduleName}");
     }
-    ;
     _lib = lib as NativeLibrary;
   }
 
@@ -372,6 +371,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external Pointer<T> _stackAlloc<T extends NativeType>(int numBytes);
 
   external Pointer<T> _malloc<T extends NativeType>(int numBytes);
+
   external void _free(Pointer ptr);
 
   @JS('stackSave')
@@ -401,8 +401,12 @@ extension type NativeLibrary(JSObject _) implements JSObject {
       JSFunction f, String signature);
   external void removeFunction<T>(Pointer<NativeFunction<T>> f);
   external JSUint8Array get HEAPU8;
-  external void _Thermion_resizeCanvas(int width, int height);
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext();
+
+  external void _Thermion_resizeCanvas(
+    int width,
+    int height,
+  );
+  external int _Thermion_createGLContext();
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
@@ -535,6 +539,203 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _MaterialInstance_setTransparencyMode(
     Pointer<TMaterialInstance> materialInstance,
     int transparencyMode,
+  );
+  external void _LightManager_setPosition(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    double x,
+    double y,
+    double z,
+  );
+  external void _LightManager_setDirection(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    double x,
+    double y,
+    double z,
+  );
+  external int _LightManager_createLight(
+    Pointer<TEngine> tEngine,
+    Pointer<TLightManager> tLightManager,
+    int tLightTtype,
+  );
+  external void _LightManager_destroyLight(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setColor(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double colorTemperature,
+  );
+  external void _LightManager_setIntensity(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double intensity,
+  );
+  external void _LightManager_setFalloff(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double falloff,
+  );
+  external void _LightManager_setSpotLightCone(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double inner,
+    double outer,
+  );
+  external void _LightManager_setShadowCaster(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    bool enabled,
+  );
+  external int _FilamentAsset_getEntityCount(
+    Pointer<TFilamentAsset> filamentAsset,
+  );
+  external void _FilamentAsset_getEntities(
+    Pointer<TFilamentAsset> filamentAsset,
+    Pointer<Int32> out,
+  );
+  external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
+    Pointer<TEngine> tEngine,
+    Pointer<TMaterialProvider> tMaterialProvider,
+  );
+  external Pointer<TFilamentAsset> _GltfAssetLoader_load(
+    Pointer<TEngine> tEngine,
+    Pointer<TGltfAssetLoader> tAssetLoader,
+    Pointer<Uint8> data,
+    size_t length,
+    int numInstances,
+  );
+  external Pointer<TMaterialInstance> _GltfAssetLoader_getMaterialInstance(
+    Pointer<TRenderableManager> tRenderableManager,
+    Pointer<TFilamentAsset> tAsset,
+  );
+  external Pointer<TMaterialProvider> _GltfAssetLoader_getMaterialProvider(
+    Pointer<TGltfAssetLoader> tAssetLoader,
+  );
+  external int _FilamentAsset_getResourceUriCount(
+    Pointer<TFilamentAsset> tFilamentAsset,
+  );
+  external Pointer<self.PointerClass<Char>> _FilamentAsset_getResourceUris(
+    Pointer<TFilamentAsset> tFilamentAsset,
+  );
+  external void _View_getViewport(
+    Pointer<TViewport> TViewport_out,
+    Pointer<TView> view,
+  );
+  external Pointer<TColorGrading> _ColorGrading_create(
+    Pointer<TEngine> tEngine,
+    int toneMapping,
+  );
+  external void _View_setColorGrading(
+    Pointer<TView> tView,
+    Pointer<TColorGrading> tColorGrading,
+  );
+  external void _View_setBlendMode(
+    Pointer<TView> view,
+    int blendMode,
+  );
+  external void _View_setViewport(
+    Pointer<TView> view,
+    int width,
+    int height,
+  );
+  external void _View_setRenderTarget(
+    Pointer<TView> view,
+    Pointer<TRenderTarget> renderTarget,
+  );
+  external void _View_setFrustumCullingEnabled(
+    Pointer<TView> view,
+    bool enabled,
+  );
+  external Pointer<TRenderTarget> _View_getRenderTarget(
+    Pointer<TView> tView,
+  );
+  external void _View_setPostProcessing(
+    Pointer<TView> tView,
+    bool enabled,
+  );
+  external void _View_setShadowsEnabled(
+    Pointer<TView> tView,
+    bool enabled,
+  );
+  external void _View_setShadowType(
+    Pointer<TView> tView,
+    int shadowType,
+  );
+  external void _View_setSoftShadowOptions(
+    Pointer<TView> tView,
+    double penumbraScale,
+    double penumbraRatioScale,
+  );
+  external void _View_setBloom(
+    Pointer<TView> tView,
+    bool enabled,
+    double strength,
+  );
+  external void _View_setRenderQuality(
+    Pointer<TView> tView,
+    int qualityLevel,
+  );
+  external void _View_setAntiAliasing(
+    Pointer<TView> tView,
+    bool msaa,
+    bool fxaa,
+    bool taa,
+  );
+  external void _View_setLayerEnabled(
+    Pointer<TView> tView,
+    int layer,
+    bool visible,
+  );
+  external void _View_setCamera(
+    Pointer<TView> tView,
+    Pointer<TCamera> tCamera,
+  );
+  external Pointer<TScene> _View_getScene(
+    Pointer<TView> tView,
+  );
+  external Pointer<TCamera> _View_getCamera(
+    Pointer<TView> tView,
+  );
+  external void _View_setStencilBufferEnabled(
+    Pointer<TView> tView,
+    bool enabled,
+  );
+  external bool _View_isStencilBufferEnabled(
+    Pointer<TView> tView,
+  );
+  external void _View_setDitheringEnabled(
+    Pointer<TView> tView,
+    bool enabled,
+  );
+  external bool _View_isDitheringEnabled(
+    Pointer<TView> tView,
+  );
+  external void _View_setScene(
+    Pointer<TView> tView,
+    Pointer<TScene> tScene,
+  );
+  external void _View_setFrontFaceWindingInverted(
+    Pointer<TView> tView,
+    bool inverted,
+  );
+  external void _View_pick(
+    Pointer<TView> tView,
+    int requestId,
+    int x,
+    int y,
+    PickCallback callback,
+  );
+  external Pointer<TNameComponentManager> _NameComponentManager_create();
+  external Pointer<Char> _NameComponentManager_getName(
+    Pointer<TNameComponentManager> tNameComponentManager,
+    EntityId entity,
+  );
+  external void _IndirectLight_setRotation(
+    Pointer<TIndirectLight> tIndirectLight,
+    Pointer<Float64> rotation,
   );
   external Pointer<TTexture> _Texture_build(
     Pointer<TEngine> engine,
@@ -673,6 +874,263 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _TextureSampler_destroy(
     Pointer<TTextureSampler> sampler,
   );
+  external void _Gizmo_dummy(
+    int t,
+  );
+  external Pointer<TGizmo> _Gizmo_create(
+    Pointer<TEngine> tEngine,
+    Pointer<TGltfAssetLoader> assetLoader,
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+    Pointer<TNameComponentManager> tNameComponentManager,
+    Pointer<TView> tView,
+    Pointer<TMaterial> tMaterial,
+    int tGizmoType,
+  );
+  external void _Gizmo_pick(
+    Pointer<TGizmo> tGizmo,
+    int x,
+    int y,
+    GizmoPickCallback callback,
+  );
+  external void _Gizmo_highlight(
+    Pointer<TGizmo> tGizmo,
+    int axis,
+  );
+  external void _Gizmo_unhighlight(
+    Pointer<TGizmo> tGizmo,
+  );
+  external Pointer<TMaterialInstance> _MaterialProvider_createMaterialInstance(
+    Pointer<TMaterialProvider> provider,
+    Pointer<TMaterialKey> key,
+  );
+  external Pointer<TRenderTarget> _RenderTarget_create(
+    Pointer<TEngine> tEngine,
+    int width,
+    int height,
+    Pointer<TTexture> color,
+    Pointer<TTexture> depth,
+  );
+  external void _RenderTarget_destroy(
+    Pointer<TEngine> tEngine,
+    Pointer<TRenderTarget> tRenderTarget,
+  );
+  external void _Scene_addEntity(
+    Pointer<TScene> tScene,
+    EntityId entityId,
+  );
+  external void _Scene_removeEntity(
+    Pointer<TScene> tScene,
+    EntityId entityId,
+  );
+  external void _Scene_setSkybox(
+    Pointer<TScene> tScene,
+    Pointer<TSkybox> skybox,
+  );
+  external void _Scene_setIndirectLight(
+    Pointer<TScene> tScene,
+    Pointer<TIndirectLight> tIndirectLight,
+  );
+  external void _Scene_addFilamentAsset(
+    Pointer<TScene> tScene,
+    Pointer<TFilamentAsset> asset,
+  );
+  external void _Camera_setExposure(
+    Pointer<TCamera> camera,
+    double aperture,
+    double shutterSpeed,
+    double sensitivity,
+  );
+  external void _Camera_getModelMatrix(
+    Pointer<double4x4> double4x4_out,
+    Pointer<TCamera> camera,
+  );
+  external void _Camera_getViewMatrix(
+    Pointer<double4x4> double4x4_out,
+    Pointer<TCamera> camera,
+  );
+  external void _Camera_getProjectionMatrix(
+    Pointer<double4x4> double4x4_out,
+    Pointer<TCamera> camera,
+  );
+  external void _Camera_getCullingProjectionMatrix(
+    Pointer<double4x4> double4x4_out,
+    Pointer<TCamera> camera,
+  );
+  external void _Camera_getFrustum(
+    Pointer<TCamera> camera,
+    Pointer<Float64> out,
+  );
+  external void _Camera_setProjectionMatrix(
+    Pointer<TCamera> camera,
+    Pointer<Float64> matrix,
+    double near,
+    double far,
+  );
+  external void _Camera_setProjectionFromFov(
+    Pointer<TCamera> camera,
+    double fovInDegrees,
+    double aspect,
+    double near,
+    double far,
+    bool horizontal,
+  );
+  external double _Camera_getFocalLength(
+    Pointer<TCamera> camera,
+  );
+  external void _Camera_lookAt(
+    Pointer<TCamera> camera,
+    Pointer<double3> eyePtr,
+    Pointer<double3> focusPtr,
+    Pointer<double3> upPtr,
+  );
+  external double _Camera_getNear(
+    Pointer<TCamera> camera,
+  );
+  external double _Camera_getCullingFar(
+    Pointer<TCamera> camera,
+  );
+  external double _Camera_getFov(
+    Pointer<TCamera> camera,
+    bool horizontal,
+  );
+  external double _Camera_getFocusDistance(
+    Pointer<TCamera> camera,
+  );
+  external void _Camera_setFocusDistance(
+    Pointer<TCamera> camera,
+    double focusDistance,
+  );
+  external void _Camera_setCustomProjectionWithCulling(
+    Pointer<TCamera> camera,
+    Pointer<double4x4> projectionMatrixPtr,
+    double near,
+    double far,
+  );
+  external void _Camera_setModelMatrix(
+    Pointer<TCamera> camera,
+    Pointer<Float64> tModelMatrix,
+  );
+  external void _Camera_setLensProjection(
+    Pointer<TCamera> camera,
+    double near,
+    double far,
+    double aspect,
+    double focalLength,
+  );
+  external EntityId _Camera_getEntity(
+    Pointer<TCamera> camera,
+  );
+  external void _Camera_setProjection(
+    Pointer<TCamera> tCamera,
+    int projection,
+    double left,
+    double right,
+    double bottom,
+    double top,
+    double near,
+    double far,
+  );
+  external void _TransformManager_getLocalTransform(
+    Pointer<double4x4> double4x4_out,
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+  );
+  external void _TransformManager_getWorldTransform(
+    Pointer<double4x4> double4x4_out,
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+  );
+  external void _TransformManager_setTransform(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+    Pointer<double4x4> transformPtr,
+  );
+  external bool _TransformManager_transformToUnitCube(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+    Pointer<Aabb3> boundingBoxPtr,
+  );
+  external void _TransformManager_setParent(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId child,
+    EntityId parent,
+    bool preserveScaling,
+  );
+  external EntityId _TransformManager_getParent(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId child,
+  );
+  external EntityId _TransformManager_getAncestor(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId childEntityId,
+  );
+  external void _Renderer_setClearOptions(
+    Pointer<TRenderer> tRenderer,
+    double clearR,
+    double clearG,
+    double clearB,
+    double clearA,
+    int clearStencil,
+    bool clear,
+    bool discard,
+  );
+  external bool _Renderer_beginFrame(
+    Pointer<TRenderer> tRenderer,
+    Pointer<TSwapChain> tSwapChain,
+    JSBigInt frameTimeInNanos,
+  );
+  external void _Renderer_endFrame(
+    Pointer<TRenderer> tRenderer,
+  );
+  external void _Renderer_render(
+    Pointer<TRenderer> tRenderer,
+    Pointer<TView> tView,
+  );
+  external void _Renderer_renderStandaloneView(
+    Pointer<TRenderer> tRenderer,
+    Pointer<TView> tView,
+  );
+  external void _Renderer_readPixels(
+    Pointer<TRenderer> tRenderer,
+    Pointer<TView> tView,
+    Pointer<TRenderTarget> tRenderTarget,
+    int tPixelBufferFormat,
+    int tPixelDataType,
+    Pointer<Uint8> out,
+    size_t outLength,
+  );
+  external void _Renderer_setFrameInterval(
+    Pointer<TRenderer> tRenderer,
+    double headRoomRatio,
+    double scaleRate,
+    int history,
+    int interval,
+  );
+  external Pointer<TRenderTicker> _RenderTicker_create(
+    Pointer<TEngine> tEngine,
+    Pointer<TRenderer> tRenderer,
+  );
+  external void _RenderTicker_destroy(
+    Pointer<TRenderTicker> tRenderTicker,
+  );
+  external void _RenderTicker_addAnimationManager(
+    Pointer<TRenderTicker> tRenderTicker,
+    Pointer<TAnimationManager> tAnimationManager,
+  );
+  external void _RenderTicker_removeAnimationManager(
+    Pointer<TRenderTicker> tRenderTicker,
+    Pointer<TAnimationManager> tAnimationManager,
+  );
+  external void _RenderTicker_render(
+    Pointer<TRenderTicker> tRenderTicker,
+    JSBigInt frameTimeInNanos,
+  );
+  external void _RenderTicker_setRenderable(
+    Pointer<TRenderTicker> tRenderTicker,
+    Pointer<TSwapChain> swapChain,
+    Pointer<self.PointerClass<TView>> views,
+    int numViews,
+  );
   external Pointer<TEngine> _Engine_create(
     int backend,
     Pointer<Void> platform,
@@ -793,118 +1251,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<TIndirectLight> tIndirectLight,
   );
-  external void _View_getViewport(
-    Pointer<TViewport> TViewport_out,
-    Pointer<TView> view,
-  );
-  external Pointer<TColorGrading> _ColorGrading_create(
-    Pointer<TEngine> tEngine,
-    int toneMapping,
-  );
-  external void _View_setColorGrading(
-    Pointer<TView> tView,
-    Pointer<TColorGrading> tColorGrading,
-  );
-  external void _View_setBlendMode(
-    Pointer<TView> view,
-    int blendMode,
-  );
-  external void _View_setViewport(
-    Pointer<TView> view,
-    int width,
-    int height,
-  );
-  external void _View_setRenderTarget(
-    Pointer<TView> view,
-    Pointer<TRenderTarget> renderTarget,
-  );
-  external void _View_setFrustumCullingEnabled(
-    Pointer<TView> view,
-    bool enabled,
-  );
-  external Pointer<TRenderTarget> _View_getRenderTarget(
-    Pointer<TView> tView,
-  );
-  external void _View_setPostProcessing(
-    Pointer<TView> tView,
-    bool enabled,
-  );
-  external void _View_setShadowsEnabled(
-    Pointer<TView> tView,
-    bool enabled,
-  );
-  external void _View_setShadowType(
-    Pointer<TView> tView,
-    int shadowType,
-  );
-  external void _View_setSoftShadowOptions(
-    Pointer<TView> tView,
-    double penumbraScale,
-    double penumbraRatioScale,
-  );
-  external void _View_setBloom(
-    Pointer<TView> tView,
-    bool enabled,
-    double strength,
-  );
-  external void _View_setRenderQuality(
-    Pointer<TView> tView,
-    int qualityLevel,
-  );
-  external void _View_setAntiAliasing(
-    Pointer<TView> tView,
-    bool msaa,
-    bool fxaa,
-    bool taa,
-  );
-  external void _View_setLayerEnabled(
-    Pointer<TView> tView,
-    int layer,
-    bool visible,
-  );
-  external void _View_setCamera(
-    Pointer<TView> tView,
-    Pointer<TCamera> tCamera,
-  );
-  external Pointer<TScene> _View_getScene(
-    Pointer<TView> tView,
-  );
-  external Pointer<TCamera> _View_getCamera(
-    Pointer<TView> tView,
-  );
-  external void _View_setStencilBufferEnabled(
-    Pointer<TView> tView,
-    bool enabled,
-  );
-  external bool _View_isStencilBufferEnabled(
-    Pointer<TView> tView,
-  );
-  external void _View_setDitheringEnabled(
-    Pointer<TView> tView,
-    bool enabled,
-  );
-  external bool _View_isDitheringEnabled(
-    Pointer<TView> tView,
-  );
-  external void _View_setScene(
-    Pointer<TView> tView,
-    Pointer<TScene> tScene,
-  );
-  external void _View_setFrontFaceWindingInverted(
-    Pointer<TView> tView,
-    bool inverted,
-  );
-  external void _View_pick(
-    Pointer<TView> tView,
-    int requestId,
-    int x,
-    int y,
-    PickCallback callback,
-  );
-  external Pointer<TMaterialInstance> _MaterialProvider_createMaterialInstance(
-    Pointer<TMaterialProvider> provider,
-    Pointer<TMaterialKey> key,
-  );
   external void _RenderThread_create();
   external void _RenderThread_destroy();
   external void _RenderThread_requestFrameAsync();
@@ -917,7 +1263,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _RenderTicker_renderRenderThread(
     Pointer<TRenderTicker> tRenderTicker,
     JSBigInt frameTimeInNanos,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _AnimationManager_createRenderThread(
     Pointer<TEngine> tEngine,
@@ -972,47 +1318,47 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _Engine_destroyRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroySwapChainRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TSwapChain> tSwapChain,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroyViewRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TView> tView,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroySceneRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TScene> tScene,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroyColorGradingRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TColorGrading> tColorGrading,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroyMaterialRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TMaterial> tMaterial,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroyMaterialInstanceRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialInstance> tMaterialInstance,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroySkyboxRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TSkybox> tSkybox,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_destroyIndirectLightRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TIndirectLight> tIndirectLight,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Texture_buildRenderThread(
     Pointer<TEngine> engine,
@@ -1030,7 +1376,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _Engine_destroyTextureRenderThread(
     Pointer<TEngine> engine,
     Pointer<TTexture> tTexture,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_createFenceRenderThread(
     Pointer<TEngine> tEngine,
@@ -1040,15 +1386,15 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _Engine_destroyFenceRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TFence> tFence,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_flushAndWaitRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_executeRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Engine_buildSkyboxRenderThread(
     Pointer<TEngine> tEngine,
@@ -1076,7 +1422,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int clearStencil,
     bool clear,
     bool discard,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Renderer_beginFrameRenderThread(
     Pointer<TRenderer> tRenderer,
@@ -1086,17 +1432,17 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _Renderer_endFrameRenderThread(
     Pointer<TRenderer> tRenderer,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Renderer_renderRenderThread(
     Pointer<TRenderer> tRenderer,
     Pointer<TView> tView,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Renderer_renderStandaloneViewRenderThread(
     Pointer<TRenderer> tRenderer,
     Pointer<TView> tView,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Renderer_readPixelsRenderThread(
     Pointer<TRenderer> tRenderer,
@@ -1106,7 +1452,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int tPixelDataType,
     Pointer<Uint8> out,
     size_t outLength,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Material_createInstanceRenderThread(
     Pointer<TMaterial> tMaterial,
@@ -1132,22 +1478,22 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _View_setColorGradingRenderThread(
     Pointer<TView> tView,
     Pointer<TColorGrading> tColorGrading,
-    Pointer<self.NativeFunction<void Function()>> callback,
+    VoidCallback onComplete,
   );
   external void _View_setBloomRenderThread(
     Pointer<TView> tView,
     bool enabled,
     double strength,
-    Pointer<self.NativeFunction<void Function()>> callback,
+    VoidCallback onComplete,
   );
   external void _View_setCameraRenderThread(
     Pointer<TView> tView,
     Pointer<TCamera> tCamera,
-    Pointer<self.NativeFunction<void Function()>> callback,
+    VoidCallback onComplete,
   );
   external void _SceneAsset_destroyRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _SceneAsset_createFromFilamentAssetRenderThread(
     Pointer<TEngine> tEngine,
@@ -1219,7 +1565,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _Image_destroyRenderThread(
     Pointer<TLinearImage> tLinearImage,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _Image_getWidthRenderThread(
     Pointer<TLinearImage> tLinearImage,
@@ -1288,7 +1634,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _RenderTarget_destroyRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TRenderTarget> tRenderTarget,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_createRenderThread(
     Pointer<self.NativeFunction<void Function(PointerClass<TTextureSampler>)>>
@@ -1312,42 +1658,42 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _TextureSampler_setMinFilterRenderThread(
     Pointer<TTextureSampler> sampler,
     int filter,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_setMagFilterRenderThread(
     Pointer<TTextureSampler> sampler,
     int filter,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_setWrapModeSRenderThread(
     Pointer<TTextureSampler> sampler,
     int mode,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_setWrapModeTRenderThread(
     Pointer<TTextureSampler> sampler,
     int mode,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_setWrapModeRRenderThread(
     Pointer<TTextureSampler> sampler,
     int mode,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_setAnisotropyRenderThread(
     Pointer<TTextureSampler> sampler,
     double anisotropy,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_setCompareModeRenderThread(
     Pointer<TTextureSampler> sampler,
     int mode,
     int func,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _TextureSampler_destroyRenderThread(
     Pointer<TTextureSampler> sampler,
-    Pointer<self.NativeFunction<void Function()>> onComplete,
+    VoidCallback onComplete,
   );
   external void _AnimationManager_setBoneTransformRenderThread(
     Pointer<TAnimationManager> tAnimationManager,
@@ -1360,7 +1706,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _AnimationManager_resetToRestPoseRenderThread(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
-    Pointer<self.NativeFunction<void Function()>> callback,
+    VoidCallback onComplete,
   );
   external void _GltfAssetLoader_createRenderThread(
     Pointer<TEngine> tEngine,
@@ -1370,7 +1716,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _GltfResourceLoader_createRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<Char> relativeResourcePath,
     Pointer<
             self
             .NativeFunction<void Function(PointerClass<TGltfResourceLoader>)>>
@@ -1379,7 +1724,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _GltfResourceLoader_destroyRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TGltfResourceLoader> tResourceLoader,
-    Pointer<self.NativeFunction<void Function()>> callback,
+    VoidCallback onComplete,
   );
   external void _GltfResourceLoader_loadResourcesRenderThread(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
@@ -1391,7 +1736,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Char> uri,
     Pointer<Uint8> data,
     size_t length,
-    Pointer<self.NativeFunction<void Function()>> callback,
+    VoidCallback onComplete,
   );
   external void _GltfResourceLoader_asyncBeginLoadRenderThread(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
@@ -1417,7 +1762,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _Scene_addFilamentAssetRenderThread(
     Pointer<TScene> tScene,
     Pointer<TFilamentAsset> tAsset,
-    Pointer<self.NativeFunction<void Function()>> callback,
+    VoidCallback onComplete,
   );
   external void _Gizmo_createRenderThread(
     Pointer<TEngine> tEngine,
@@ -1428,6 +1773,33 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TMaterial> tMaterial,
     int tGizmoType,
     Pointer<self.NativeFunction<void Function(PointerClass<TGizmo>)>> callback,
+  );
+  external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
+    Pointer<TEngine> tEngine,
+  );
+  external void _GltfResourceLoader_destroy(
+    Pointer<TEngine> tEngine,
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  );
+  external bool _GltfResourceLoader_asyncBeginLoad(
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+    Pointer<TFilamentAsset> tFilamentAsset,
+  );
+  external void _GltfResourceLoader_asyncUpdateLoad(
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  );
+  external double _GltfResourceLoader_asyncGetLoadProgress(
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  );
+  external void _GltfResourceLoader_addResourceData(
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+    Pointer<Char> uri,
+    Pointer<Uint8> data,
+    size_t length,
+  );
+  external bool _GltfResourceLoader_loadResources(
+    Pointer<TGltfResourceLoader> tGltfResourceLoader,
+    Pointer<TFilamentAsset> tFilamentAsset,
   );
   external void _RenderableManager_setMaterialInstanceAt(
     Pointer<TRenderableManager> tRenderableManager,
@@ -1492,40 +1864,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     int priority,
-  );
-  external void _TransformManager_getLocalTransform(
-    Pointer<double4x4> double4x4_out,
-    Pointer<TTransformManager> tTransformManager,
-    EntityId entityId,
-  );
-  external void _TransformManager_getWorldTransform(
-    Pointer<double4x4> double4x4_out,
-    Pointer<TTransformManager> tTransformManager,
-    EntityId entityId,
-  );
-  external void _TransformManager_setTransform(
-    Pointer<TTransformManager> tTransformManager,
-    EntityId entityId,
-    Pointer<double4x4> transform_structPtr,
-  );
-  external bool _TransformManager_transformToUnitCube(
-    Pointer<TTransformManager> tTransformManager,
-    EntityId entityId,
-    Pointer<Aabb3> boundingBox_structPtr,
-  );
-  external void _TransformManager_setParent(
-    Pointer<TTransformManager> tTransformManager,
-    EntityId child,
-    EntityId parent,
-    bool preserveScaling,
-  );
-  external EntityId _TransformManager_getParent(
-    Pointer<TTransformManager> tTransformManager,
-    EntityId child,
-  );
-  external EntityId _TransformManager_getAncestor(
-    Pointer<TTransformManager> tTransformManager,
-    EntityId childEntityId,
   );
   external Pointer<TSceneAsset> _SceneAsset_createGeometry(
     Pointer<TEngine> tEngine,
@@ -1603,62 +1941,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Aabb3> Aabb3_out,
     Pointer<TSceneAsset> asset,
   );
-  external void _LightManager_setPosition(
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-    double x,
-    double y,
-    double z,
-  );
-  external void _LightManager_setDirection(
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-    double x,
-    double y,
-    double z,
-  );
-  external int _LightManager_createLight(
-    Pointer<TEngine> tEngine,
-    Pointer<TLightManager> tLightManager,
-    int tLightTtype,
-  );
-  external void _LightManager_destroyLight(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-  );
-  external void _LightManager_setColor(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double colorTemperature,
-  );
-  external void _LightManager_setIntensity(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double intensity,
-  );
-  external void _LightManager_setFalloff(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double falloff,
-  );
-  external void _LightManager_setSpotLightCone(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double inner,
-    double outer,
-  );
-  external void _LightManager_setShadowCaster(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    bool enabled,
-  );
-  external int _FilamentAsset_getEntityCount(
-    Pointer<TFilamentAsset> filamentAsset,
-  );
-  external void _FilamentAsset_getEntities(
-    Pointer<TFilamentAsset> filamentAsset,
-    Pointer<Int32> out,
-  );
   external Pointer<TAnimationManager> _AnimationManager_create(
     Pointer<TEngine> tEngine,
     Pointer<TScene> tScene,
@@ -1667,13 +1949,29 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     JSBigInt frameTimeInNanos,
   );
-  external void _AnimationManager_addAnimationComponent(
+  external bool _AnimationManager_addGltfAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external bool _AnimationManager_removeGltfAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external void _AnimationManager_addMorphAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
   );
-  external void _AnimationManager_removeAnimationComponent(
+  external void _AnimationManager_removeMorphAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
+  );
+  external bool _AnimationManager_addBoneAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external bool _AnimationManager_removeBoneAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
   );
   external bool _AnimationManager_setMorphAnimation(
     Pointer<TAnimationManager> tAnimationManager,
@@ -1692,7 +1990,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
   );
-  external void _AnimationManager_addBoneAnimation(
+  external bool _AnimationManager_addBoneAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int skinIndex,
@@ -1724,9 +2022,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int boneIndex,
     Pointer<Float32> out,
   );
-  external void _AnimationManager_playAnimation(
+  external bool _AnimationManager_playGltfAnimation(
     Pointer<TAnimationManager> tAnimationManager,
-    Pointer<TSceneAsset> sceneAsset,
+    Pointer<TSceneAsset> tSceneAsset,
     int index,
     bool loop,
     bool reverse,
@@ -1734,21 +2032,21 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double crossfade,
     double startOffset,
   );
-  external void _AnimationManager_stopAnimation(
+  external bool _AnimationManager_stopGltfAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     int index,
   );
-  external double _AnimationManager_getAnimationDuration(
+  external double _AnimationManager_getGltfAnimationDuration(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     int animationIndex,
   );
-  external int _AnimationManager_getAnimationCount(
+  external int _AnimationManager_getGltfAnimationCount(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
   );
-  external void _AnimationManager_getAnimationName(
+  external void _AnimationManager_getGltfAnimationName(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     Pointer<Char> outPtr,
@@ -1793,293 +2091,17 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int animationIndex,
     int frame,
   );
-  external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
-    Pointer<TEngine> tEngine,
-    Pointer<Char> relativeResourcePath,
-  );
-  external void _GltfResourceLoader_destroy(
-    Pointer<TEngine> tEngine,
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  );
-  external bool _GltfResourceLoader_asyncBeginLoad(
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-    Pointer<TFilamentAsset> tFilamentAsset,
-  );
-  external void _GltfResourceLoader_asyncUpdateLoad(
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  );
-  external double _GltfResourceLoader_asyncGetLoadProgress(
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  );
-  external void _GltfResourceLoader_addResourceData(
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-    Pointer<Char> uri,
-    Pointer<Uint8> data,
-    size_t length,
-  );
-  external bool _GltfResourceLoader_loadResources(
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-    Pointer<TFilamentAsset> tFilamentAsset,
-  );
-  external Pointer<TRenderTarget> _RenderTarget_create(
-    Pointer<TEngine> tEngine,
-    int width,
-    int height,
-    Pointer<TTexture> color,
-    Pointer<TTexture> depth,
-  );
-  external void _RenderTarget_destroy(
-    Pointer<TEngine> tEngine,
-    Pointer<TRenderTarget> tRenderTarget,
-  );
-  external void _Gizmo_dummy(
-    int t,
-  );
-  external Pointer<TGizmo> _Gizmo_create(
-    Pointer<TEngine> tEngine,
-    Pointer<TGltfAssetLoader> assetLoader,
-    Pointer<TGltfResourceLoader> tGltfResourceLoader,
-    Pointer<TNameComponentManager> tNameComponentManager,
-    Pointer<TView> tView,
-    Pointer<TMaterial> tMaterial,
-    int tGizmoType,
-  );
-  external void _Gizmo_pick(
-    Pointer<TGizmo> tGizmo,
-    int x,
-    int y,
-    GizmoPickCallback callback,
-  );
-  external void _Gizmo_highlight(
-    Pointer<TGizmo> tGizmo,
-    int axis,
-  );
-  external void _Gizmo_unhighlight(
-    Pointer<TGizmo> tGizmo,
-  );
-  external void _Camera_setExposure(
-    Pointer<TCamera> camera,
-    double aperture,
-    double shutterSpeed,
-    double sensitivity,
-  );
-  external void _Camera_getModelMatrix(
-    Pointer<double4x4> double4x4_out,
-    Pointer<TCamera> camera,
-  );
-  external void _Camera_getViewMatrix(
-    Pointer<double4x4> double4x4_out,
-    Pointer<TCamera> camera,
-  );
-  external void _Camera_getProjectionMatrix(
-    Pointer<double4x4> double4x4_out,
-    Pointer<TCamera> camera,
-  );
-  external void _Camera_getCullingProjectionMatrix(
-    Pointer<double4x4> double4x4_out,
-    Pointer<TCamera> camera,
-  );
-  external void _Camera_getFrustum(
-    Pointer<TCamera> camera,
-    Pointer<Float64> out,
-  );
-  external void _Camera_setProjectionMatrix(
-    Pointer<TCamera> camera,
-    Pointer<Float64> matrix,
-    double near,
-    double far,
-  );
-  external void _Camera_setProjectionFromFov(
-    Pointer<TCamera> camera,
-    double fovInDegrees,
-    double aspect,
-    double near,
-    double far,
-    bool horizontal,
-  );
-  external double _Camera_getFocalLength(
-    Pointer<TCamera> camera,
-  );
-  external void _Camera_lookAt(
-    Pointer<TCamera> camera,
-    Pointer<double3> eye_structPtr,
-    Pointer<double3> focus_structPtr,
-    Pointer<double3> up_structPtr,
-  );
-  external double _Camera_getNear(
-    Pointer<TCamera> camera,
-  );
-  external double _Camera_getCullingFar(
-    Pointer<TCamera> camera,
-  );
-  external double _Camera_getFov(
-    Pointer<TCamera> camera,
-    bool horizontal,
-  );
-  external double _Camera_getFocusDistance(
-    Pointer<TCamera> camera,
-  );
-  external void _Camera_setFocusDistance(
-    Pointer<TCamera> camera,
-    double focusDistance,
-  );
-  external void _Camera_setCustomProjectionWithCulling(
-    Pointer<TCamera> camera,
-    Pointer<double4x4> projectionMatrix_structPtr,
-    double near,
-    double far,
-  );
-  external void _Camera_setModelMatrix(
-    Pointer<TCamera> camera,
-    Pointer<Float64> tModelMatrix,
-  );
-  external void _Camera_setLensProjection(
-    Pointer<TCamera> camera,
-    double near,
-    double far,
-    double aspect,
-    double focalLength,
-  );
-  external EntityId _Camera_getEntity(
-    Pointer<TCamera> camera,
-  );
-  external void _Camera_setProjection(
-    Pointer<TCamera> tCamera,
-    int projection,
-    double left,
-    double right,
-    double bottom,
-    double top,
-    double near,
-    double far,
-  );
-  external Pointer<TNameComponentManager> _NameComponentManager_create();
-  external Pointer<Char> _NameComponentManager_getName(
-    Pointer<TNameComponentManager> tNameComponentManager,
-    EntityId entity,
-  );
-  external Pointer<TRenderTicker> _RenderTicker_create(
-    Pointer<TEngine> tEngine,
-    Pointer<TRenderer> tRenderer,
-  );
-  external void _RenderTicker_destroy(
-    Pointer<TRenderTicker> tRenderTicker,
-  );
-  external void _RenderTicker_addAnimationManager(
-    Pointer<TRenderTicker> tRenderTicker,
-    Pointer<TAnimationManager> tAnimationManager,
-  );
-  external void _RenderTicker_removeAnimationManager(
-    Pointer<TRenderTicker> tRenderTicker,
-    Pointer<TAnimationManager> tAnimationManager,
-  );
-  external void _RenderTicker_render(
-    Pointer<TRenderTicker> tRenderTicker,
-    JSBigInt frameTimeInNanos,
-  );
-  external void _RenderTicker_setRenderable(
-    Pointer<TRenderTicker> tRenderTicker,
-    Pointer<TSwapChain> swapChain,
-    Pointer<self.PointerClass<TView>> views,
-    int numViews,
-  );
-  external void _Renderer_setClearOptions(
-    Pointer<TRenderer> tRenderer,
-    double clearR,
-    double clearG,
-    double clearB,
-    double clearA,
-    int clearStencil,
-    bool clear,
-    bool discard,
-  );
-  external bool _Renderer_beginFrame(
-    Pointer<TRenderer> tRenderer,
-    Pointer<TSwapChain> tSwapChain,
-    JSBigInt frameTimeInNanos,
-  );
-  external void _Renderer_endFrame(
-    Pointer<TRenderer> tRenderer,
-  );
-  external void _Renderer_render(
-    Pointer<TRenderer> tRenderer,
-    Pointer<TView> tView,
-  );
-  external void _Renderer_renderStandaloneView(
-    Pointer<TRenderer> tRenderer,
-    Pointer<TView> tView,
-  );
-  external void _Renderer_readPixels(
-    Pointer<TRenderer> tRenderer,
-    Pointer<TView> tView,
-    Pointer<TRenderTarget> tRenderTarget,
-    int tPixelBufferFormat,
-    int tPixelDataType,
-    Pointer<Uint8> out,
-    size_t outLength,
-  );
-  external void _Renderer_setFrameInterval(
-    Pointer<TRenderer> tRenderer,
-    double headRoomRatio,
-    double scaleRate,
-    int history,
-    int interval,
-  );
-  external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
-    Pointer<TEngine> tEngine,
-    Pointer<TMaterialProvider> tMaterialProvider,
-  );
-  external Pointer<TFilamentAsset> _GltfAssetLoader_load(
-    Pointer<TEngine> tEngine,
-    Pointer<TGltfAssetLoader> tAssetLoader,
-    Pointer<Uint8> data,
-    size_t length,
-    int numInstances,
-  );
-  external Pointer<TMaterialInstance> _GltfAssetLoader_getMaterialInstance(
-    Pointer<TRenderableManager> tRenderableManager,
-    Pointer<TFilamentAsset> tAsset,
-  );
-  external Pointer<TMaterialProvider> _GltfAssetLoader_getMaterialProvider(
-    Pointer<TGltfAssetLoader> tAssetLoader,
-  );
-  external int _FilamentAsset_getResourceUriCount(
-    Pointer<TFilamentAsset> tFilamentAsset,
-  );
-  external Pointer<self.PointerClass<Char>> _FilamentAsset_getResourceUris(
-    Pointer<TFilamentAsset> tFilamentAsset,
-  );
-  external void _IndirectLight_setRotation(
-    Pointer<TIndirectLight> tIndirectLight,
-    Pointer<Float64> rotation,
-  );
-  external void _Scene_addEntity(
-    Pointer<TScene> tScene,
-    EntityId entityId,
-  );
-  external void _Scene_removeEntity(
-    Pointer<TScene> tScene,
-    EntityId entityId,
-  );
-  external void _Scene_setSkybox(
-    Pointer<TScene> tScene,
-    Pointer<TSkybox> skybox,
-  );
-  external void _Scene_setIndirectLight(
-    Pointer<TScene> tScene,
-    Pointer<TIndirectLight> tIndirectLight,
-  );
-  external void _Scene_addFilamentAsset(
-    Pointer<TScene> tScene,
-    Pointer<TFilamentAsset> asset,
-  );
 }
 
-void Thermion_resizeCanvas(int width, int height) {
-  _lib._Thermion_resizeCanvas(width, height);
+void Thermion_resizeCanvas(
+  int width,
+  int height,
+) {
+  final result = _lib._Thermion_resizeCanvas(width, height);
+  return result;
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext() {
+int Thermion_createGLContext() {
   final result = _lib._Thermion_createGLContext();
   return result;
 }
@@ -2110,28 +2132,28 @@ BigInt get TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER {
 self.Pointer<TMaterialInstance> Material_createInstance(
   self.Pointer<TMaterial> tMaterial,
 ) {
-  final result = _lib._Material_createInstance(tMaterial);
+  final result = _lib._Material_createInstance(tMaterial.cast());
   return self.Pointer<TMaterialInstance>(result);
 }
 
 self.Pointer<TMaterial> Material_createImageMaterial(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Material_createImageMaterial(tEngine);
+  final result = _lib._Material_createImageMaterial(tEngine.cast());
   return self.Pointer<TMaterial>(result);
 }
 
 self.Pointer<TMaterial> Material_createGridMaterial(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Material_createGridMaterial(tEngine);
+  final result = _lib._Material_createGridMaterial(tEngine.cast());
   return self.Pointer<TMaterial>(result);
 }
 
 self.Pointer<TMaterial> Material_createGizmoMaterial(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Material_createGizmoMaterial(tEngine);
+  final result = _lib._Material_createGizmoMaterial(tEngine.cast());
   return self.Pointer<TMaterial>(result);
 }
 
@@ -2139,14 +2161,15 @@ bool Material_hasParameter(
   self.Pointer<TMaterial> tMaterial,
   self.Pointer<Char> propertyName,
 ) {
-  final result = _lib._Material_hasParameter(tMaterial, propertyName);
+  final result = _lib._Material_hasParameter(tMaterial.cast(), propertyName);
   return result;
 }
 
 bool MaterialInstance_isStencilWriteEnabled(
   self.Pointer<TMaterialInstance> materialInstance,
 ) {
-  final result = _lib._MaterialInstance_isStencilWriteEnabled(materialInstance);
+  final result =
+      _lib._MaterialInstance_isStencilWriteEnabled(materialInstance.cast());
   return result;
 }
 
@@ -2155,7 +2178,7 @@ void MaterialInstance_setStencilWrite(
   bool enabled,
 ) {
   final result =
-      _lib._MaterialInstance_setStencilWrite(materialInstance, enabled);
+      _lib._MaterialInstance_setStencilWrite(materialInstance.cast(), enabled);
   return result;
 }
 
@@ -2164,7 +2187,7 @@ void MaterialInstance_setCullingMode(
   int culling,
 ) {
   final result =
-      _lib._MaterialInstance_setCullingMode(materialInstance, culling);
+      _lib._MaterialInstance_setCullingMode(materialInstance.cast(), culling);
   return result;
 }
 
@@ -2173,7 +2196,7 @@ void MaterialInstance_setDepthWrite(
   bool enabled,
 ) {
   final result =
-      _lib._MaterialInstance_setDepthWrite(materialInstance, enabled);
+      _lib._MaterialInstance_setDepthWrite(materialInstance.cast(), enabled);
   return result;
 }
 
@@ -2182,7 +2205,7 @@ void MaterialInstance_setDepthCulling(
   bool enabled,
 ) {
   final result =
-      _lib._MaterialInstance_setDepthCulling(materialInstance, enabled);
+      _lib._MaterialInstance_setDepthCulling(materialInstance.cast(), enabled);
   return result;
 }
 
@@ -2192,7 +2215,7 @@ void MaterialInstance_setParameterFloat(
   double value,
 ) {
   final result = _lib._MaterialInstance_setParameterFloat(
-      materialInstance, propertyName, value);
+      materialInstance.cast(), propertyName, value);
   return result;
 }
 
@@ -2203,7 +2226,7 @@ void MaterialInstance_setParameterFloat2(
   double y,
 ) {
   final result = _lib._MaterialInstance_setParameterFloat2(
-      materialInstance, propertyName, x, y);
+      materialInstance.cast(), propertyName, x, y);
   return result;
 }
 
@@ -2215,7 +2238,7 @@ void MaterialInstance_setParameterFloat3(
   double z,
 ) {
   final result = _lib._MaterialInstance_setParameterFloat3(
-      materialInstance, propertyName, x, y, z);
+      materialInstance.cast(), propertyName, x, y, z);
   return result;
 }
 
@@ -2226,7 +2249,7 @@ void MaterialInstance_setParameterFloat3Array(
   int length,
 ) {
   final result = _lib._MaterialInstance_setParameterFloat3Array(
-      tMaterialInstance, propertyName, raw, length);
+      tMaterialInstance.cast(), propertyName, raw, length);
   return result;
 }
 
@@ -2239,7 +2262,7 @@ void MaterialInstance_setParameterFloat4(
   double z,
 ) {
   final result = _lib._MaterialInstance_setParameterFloat4(
-      materialInstance, propertyName, x, y, w, z);
+      materialInstance.cast(), propertyName, x, y, w, z);
   return result;
 }
 
@@ -2249,7 +2272,7 @@ void MaterialInstance_setParameterMat4(
   self.Pointer<Float64> matrix,
 ) {
   final result = _lib._MaterialInstance_setParameterMat4(
-      materialInstance, propertyName, matrix);
+      materialInstance.cast(), propertyName, matrix);
   return result;
 }
 
@@ -2259,7 +2282,7 @@ void MaterialInstance_setParameterInt(
   int value,
 ) {
   final result = _lib._MaterialInstance_setParameterInt(
-      materialInstance, propertyName, value);
+      materialInstance.cast(), propertyName, value);
   return result;
 }
 
@@ -2269,7 +2292,7 @@ void MaterialInstance_setParameterBool(
   bool value,
 ) {
   final result = _lib._MaterialInstance_setParameterBool(
-      materialInstance, propertyName, value);
+      materialInstance.cast(), propertyName, value);
   return result;
 }
 
@@ -2280,7 +2303,7 @@ void MaterialInstance_setParameterTexture(
   self.Pointer<TTextureSampler> sampler,
 ) {
   final result = _lib._MaterialInstance_setParameterTexture(
-      materialInstance, propertyName, texture, sampler);
+      materialInstance.cast(), propertyName, texture.cast(), sampler.cast());
   return result;
 }
 
@@ -2289,7 +2312,7 @@ void MaterialInstance_setDepthFunc(
   int depthFunc,
 ) {
   final result =
-      _lib._MaterialInstance_setDepthFunc(materialInstance, depthFunc);
+      _lib._MaterialInstance_setDepthFunc(materialInstance.cast(), depthFunc);
   return result;
 }
 
@@ -2299,7 +2322,7 @@ void MaterialInstance_setStencilOpStencilFail(
   int face,
 ) {
   final result = _lib._MaterialInstance_setStencilOpStencilFail(
-      materialInstance, op, face);
+      materialInstance.cast(), op, face);
   return result;
 }
 
@@ -2308,8 +2331,8 @@ void MaterialInstance_setStencilOpDepthFail(
   int op,
   int face,
 ) {
-  final result =
-      _lib._MaterialInstance_setStencilOpDepthFail(materialInstance, op, face);
+  final result = _lib._MaterialInstance_setStencilOpDepthFail(
+      materialInstance.cast(), op, face);
   return result;
 }
 
@@ -2319,7 +2342,7 @@ void MaterialInstance_setStencilOpDepthStencilPass(
   int face,
 ) {
   final result = _lib._MaterialInstance_setStencilOpDepthStencilPass(
-      materialInstance, op, face);
+      materialInstance.cast(), op, face);
   return result;
 }
 
@@ -2329,7 +2352,7 @@ void MaterialInstance_setStencilCompareFunction(
   int face,
 ) {
   final result = _lib._MaterialInstance_setStencilCompareFunction(
-      materialInstance, func, face);
+      materialInstance.cast(), func, face);
   return result;
 }
 
@@ -2339,7 +2362,7 @@ void MaterialInstance_setStencilReferenceValue(
   int face,
 ) {
   final result = _lib._MaterialInstance_setStencilReferenceValue(
-      materialInstance, value, face);
+      materialInstance.cast(), value, face);
   return result;
 }
 
@@ -2348,7 +2371,7 @@ void MaterialInstance_setStencilReadMask(
   int mask,
 ) {
   final result =
-      _lib._MaterialInstance_setStencilReadMask(materialInstance, mask);
+      _lib._MaterialInstance_setStencilReadMask(materialInstance.cast(), mask);
   return result;
 }
 
@@ -2357,7 +2380,7 @@ void MaterialInstance_setStencilWriteMask(
   int mask,
 ) {
   final result =
-      _lib._MaterialInstance_setStencilWriteMask(materialInstance, mask);
+      _lib._MaterialInstance_setStencilWriteMask(materialInstance.cast(), mask);
   return result;
 }
 
@@ -2366,7 +2389,403 @@ void MaterialInstance_setTransparencyMode(
   int transparencyMode,
 ) {
   final result = _lib._MaterialInstance_setTransparencyMode(
-      materialInstance, transparencyMode);
+      materialInstance.cast(), transparencyMode);
+  return result;
+}
+
+void LightManager_setPosition(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId light,
+  double x,
+  double y,
+  double z,
+) {
+  final result =
+      _lib._LightManager_setPosition(tLightManager.cast(), light, x, y, z);
+  return result;
+}
+
+void LightManager_setDirection(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId light,
+  double x,
+  double y,
+  double z,
+) {
+  final result =
+      _lib._LightManager_setDirection(tLightManager.cast(), light, x, y, z);
+  return result;
+}
+
+int LightManager_createLight(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TLightManager> tLightManager,
+  int tLightTtype,
+) {
+  final result = _lib._LightManager_createLight(
+      tEngine.cast(), tLightManager.cast(), tLightTtype);
+  return result;
+}
+
+void LightManager_destroyLight(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_destroyLight(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setColor(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double colorTemperature,
+) {
+  final result = _lib._LightManager_setColor(
+      tLightManager.cast(), entity, colorTemperature);
+  return result;
+}
+
+void LightManager_setIntensity(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double intensity,
+) {
+  final result =
+      _lib._LightManager_setIntensity(tLightManager.cast(), entity, intensity);
+  return result;
+}
+
+void LightManager_setFalloff(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double falloff,
+) {
+  final result =
+      _lib._LightManager_setFalloff(tLightManager.cast(), entity, falloff);
+  return result;
+}
+
+void LightManager_setSpotLightCone(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double inner,
+  double outer,
+) {
+  final result = _lib._LightManager_setSpotLightCone(
+      tLightManager.cast(), entity, inner, outer);
+  return result;
+}
+
+void LightManager_setShadowCaster(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  bool enabled,
+) {
+  final result =
+      _lib._LightManager_setShadowCaster(tLightManager.cast(), entity, enabled);
+  return result;
+}
+
+int FilamentAsset_getEntityCount(
+  self.Pointer<TFilamentAsset> filamentAsset,
+) {
+  final result = _lib._FilamentAsset_getEntityCount(filamentAsset.cast());
+  return result;
+}
+
+void FilamentAsset_getEntities(
+  self.Pointer<TFilamentAsset> filamentAsset,
+  self.Pointer<Int32> out,
+) {
+  final result = _lib._FilamentAsset_getEntities(filamentAsset.cast(), out);
+  return result;
+}
+
+self.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TMaterialProvider> tMaterialProvider,
+) {
+  final result =
+      _lib._GltfAssetLoader_create(tEngine.cast(), tMaterialProvider.cast());
+  return self.Pointer<TGltfAssetLoader>(result);
+}
+
+self.Pointer<TFilamentAsset> GltfAssetLoader_load(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TGltfAssetLoader> tAssetLoader,
+  self.Pointer<Uint8> data,
+  Dart__darwin_size_t length,
+  int numInstances,
+) {
+  final result = _lib._GltfAssetLoader_load(
+      tEngine.cast(), tAssetLoader.cast(), data, length, numInstances);
+  return self.Pointer<TFilamentAsset>(result);
+}
+
+self.Pointer<TMaterialInstance> GltfAssetLoader_getMaterialInstance(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  self.Pointer<TFilamentAsset> tAsset,
+) {
+  final result = _lib._GltfAssetLoader_getMaterialInstance(
+      tRenderableManager.cast(), tAsset.cast());
+  return self.Pointer<TMaterialInstance>(result);
+}
+
+self.Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(
+  self.Pointer<TGltfAssetLoader> tAssetLoader,
+) {
+  final result = _lib._GltfAssetLoader_getMaterialProvider(tAssetLoader.cast());
+  return self.Pointer<TMaterialProvider>(result);
+}
+
+int FilamentAsset_getResourceUriCount(
+  self.Pointer<TFilamentAsset> tFilamentAsset,
+) {
+  final result = _lib._FilamentAsset_getResourceUriCount(tFilamentAsset.cast());
+  return result;
+}
+
+self.Pointer<self.PointerClass<Char>> FilamentAsset_getResourceUris(
+  self.Pointer<TFilamentAsset> tFilamentAsset,
+) {
+  final result = _lib._FilamentAsset_getResourceUris(tFilamentAsset.cast());
+  return self.Pointer<self.PointerClass<Char>>(result);
+}
+
+TViewport View_getViewport(
+  self.Pointer<TView> view,
+) {
+  final TViewport_out = TViewport.stackAlloc();
+  final result = _lib._View_getViewport(TViewport_out.cast(), view.cast());
+  return TViewport_out.toDart();
+}
+
+self.Pointer<TColorGrading> ColorGrading_create(
+  self.Pointer<TEngine> tEngine,
+  int toneMapping,
+) {
+  final result = _lib._ColorGrading_create(tEngine.cast(), toneMapping);
+  return self.Pointer<TColorGrading>(result);
+}
+
+void View_setColorGrading(
+  self.Pointer<TView> tView,
+  self.Pointer<TColorGrading> tColorGrading,
+) {
+  final result = _lib._View_setColorGrading(tView.cast(), tColorGrading.cast());
+  return result;
+}
+
+void View_setBlendMode(
+  self.Pointer<TView> view,
+  int blendMode,
+) {
+  final result = _lib._View_setBlendMode(view.cast(), blendMode);
+  return result;
+}
+
+void View_setViewport(
+  self.Pointer<TView> view,
+  int width,
+  int height,
+) {
+  final result = _lib._View_setViewport(view.cast(), width, height);
+  return result;
+}
+
+void View_setRenderTarget(
+  self.Pointer<TView> view,
+  self.Pointer<TRenderTarget> renderTarget,
+) {
+  final result = _lib._View_setRenderTarget(view.cast(), renderTarget.cast());
+  return result;
+}
+
+void View_setFrustumCullingEnabled(
+  self.Pointer<TView> view,
+  bool enabled,
+) {
+  final result = _lib._View_setFrustumCullingEnabled(view.cast(), enabled);
+  return result;
+}
+
+self.Pointer<TRenderTarget> View_getRenderTarget(
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._View_getRenderTarget(tView.cast());
+  return self.Pointer<TRenderTarget>(result);
+}
+
+void View_setPostProcessing(
+  self.Pointer<TView> tView,
+  bool enabled,
+) {
+  final result = _lib._View_setPostProcessing(tView.cast(), enabled);
+  return result;
+}
+
+void View_setShadowsEnabled(
+  self.Pointer<TView> tView,
+  bool enabled,
+) {
+  final result = _lib._View_setShadowsEnabled(tView.cast(), enabled);
+  return result;
+}
+
+void View_setShadowType(
+  self.Pointer<TView> tView,
+  int shadowType,
+) {
+  final result = _lib._View_setShadowType(tView.cast(), shadowType);
+  return result;
+}
+
+void View_setSoftShadowOptions(
+  self.Pointer<TView> tView,
+  double penumbraScale,
+  double penumbraRatioScale,
+) {
+  final result = _lib._View_setSoftShadowOptions(
+      tView.cast(), penumbraScale, penumbraRatioScale);
+  return result;
+}
+
+void View_setBloom(
+  self.Pointer<TView> tView,
+  bool enabled,
+  double strength,
+) {
+  final result = _lib._View_setBloom(tView.cast(), enabled, strength);
+  return result;
+}
+
+void View_setRenderQuality(
+  self.Pointer<TView> tView,
+  int qualityLevel,
+) {
+  final result = _lib._View_setRenderQuality(tView.cast(), qualityLevel);
+  return result;
+}
+
+void View_setAntiAliasing(
+  self.Pointer<TView> tView,
+  bool msaa,
+  bool fxaa,
+  bool taa,
+) {
+  final result = _lib._View_setAntiAliasing(tView.cast(), msaa, fxaa, taa);
+  return result;
+}
+
+void View_setLayerEnabled(
+  self.Pointer<TView> tView,
+  int layer,
+  bool visible,
+) {
+  final result = _lib._View_setLayerEnabled(tView.cast(), layer, visible);
+  return result;
+}
+
+void View_setCamera(
+  self.Pointer<TView> tView,
+  self.Pointer<TCamera> tCamera,
+) {
+  final result = _lib._View_setCamera(tView.cast(), tCamera.cast());
+  return result;
+}
+
+self.Pointer<TScene> View_getScene(
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._View_getScene(tView.cast());
+  return self.Pointer<TScene>(result);
+}
+
+self.Pointer<TCamera> View_getCamera(
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._View_getCamera(tView.cast());
+  return self.Pointer<TCamera>(result);
+}
+
+void View_setStencilBufferEnabled(
+  self.Pointer<TView> tView,
+  bool enabled,
+) {
+  final result = _lib._View_setStencilBufferEnabled(tView.cast(), enabled);
+  return result;
+}
+
+bool View_isStencilBufferEnabled(
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._View_isStencilBufferEnabled(tView.cast());
+  return result;
+}
+
+void View_setDitheringEnabled(
+  self.Pointer<TView> tView,
+  bool enabled,
+) {
+  final result = _lib._View_setDitheringEnabled(tView.cast(), enabled);
+  return result;
+}
+
+bool View_isDitheringEnabled(
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._View_isDitheringEnabled(tView.cast());
+  return result;
+}
+
+void View_setScene(
+  self.Pointer<TView> tView,
+  self.Pointer<TScene> tScene,
+) {
+  final result = _lib._View_setScene(tView.cast(), tScene.cast());
+  return result;
+}
+
+void View_setFrontFaceWindingInverted(
+  self.Pointer<TView> tView,
+  bool inverted,
+) {
+  final result = _lib._View_setFrontFaceWindingInverted(tView.cast(), inverted);
+  return result;
+}
+
+void View_pick(
+  self.Pointer<TView> tView,
+  int requestId,
+  int x,
+  int y,
+  DartPickCallback callback,
+) {
+  final result = _lib._View_pick(tView.cast(), requestId, x, y,
+      callback as Pointer<self.NativeFunction<PickCallbackFunction>>);
+  return result;
+}
+
+self.Pointer<TNameComponentManager> NameComponentManager_create() {
+  final result = _lib._NameComponentManager_create();
+  return self.Pointer<TNameComponentManager>(result);
+}
+
+self.Pointer<Char> NameComponentManager_getName(
+  self.Pointer<TNameComponentManager> tNameComponentManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._NameComponentManager_getName(tNameComponentManager.cast(), entity);
+  return self.Pointer<Char>(result);
+}
+
+void IndirectLight_setRotation(
+  self.Pointer<TIndirectLight> tIndirectLight,
+  self.Pointer<Float64> rotation,
+) {
+  final result =
+      _lib._IndirectLight_setRotation(tIndirectLight.cast(), rotation);
   return result;
 }
 
@@ -2381,8 +2800,8 @@ self.Pointer<TTexture> Texture_build(
   int sampler,
   int format,
 ) {
-  final result = _lib._Texture_build(
-      engine, width, height, depth, levels, tUsage, import1, sampler, format);
+  final result = _lib._Texture_build(engine.cast(), width, height, depth,
+      levels, tUsage, import1, sampler, format);
   return self.Pointer<TTexture>(result);
 }
 
@@ -2393,8 +2812,8 @@ bool Texture_loadImage(
   int bufferFormat,
   int pixelDataType,
 ) {
-  final result = _lib._Texture_loadImage(
-      tEngine, tTexture, tImage, bufferFormat, pixelDataType);
+  final result = _lib._Texture_loadImage(tEngine.cast(), tTexture.cast(),
+      tImage.cast(), bufferFormat, pixelDataType);
   return result;
 }
 
@@ -2403,15 +2822,15 @@ bool Texture_setImage(
   self.Pointer<TTexture> tTexture,
   int level,
   self.Pointer<Uint8> data,
-  Dartsize_t size,
+  Dart__darwin_size_t size,
   int width,
   int height,
   int channels,
   int bufferFormat,
   int pixelDataType,
 ) {
-  final result = _lib._Texture_setImage(tEngine, tTexture, level, data, size,
-      width, height, channels, bufferFormat, pixelDataType);
+  final result = _lib._Texture_setImage(tEngine.cast(), tTexture.cast(), level,
+      data, size, width, height, channels, bufferFormat, pixelDataType);
   return result;
 }
 
@@ -2420,7 +2839,7 @@ bool Texture_setImageWithDepth(
   self.Pointer<TTexture> tTexture,
   int level,
   self.Pointer<Uint8> data,
-  Dartsize_t size,
+  Dart__darwin_size_t size,
   int x_offset,
   int y_offset,
   int z_offset,
@@ -2432,8 +2851,8 @@ bool Texture_setImageWithDepth(
   int pixelDataType,
 ) {
   final result = _lib._Texture_setImageWithDepth(
-      tEngine,
-      tTexture,
+      tEngine.cast(),
+      tTexture.cast(),
       level,
       data,
       size,
@@ -2453,7 +2872,7 @@ int Texture_getWidth(
   self.Pointer<TTexture> tTexture,
   int level,
 ) {
-  final result = _lib._Texture_getWidth(tTexture, level);
+  final result = _lib._Texture_getWidth(tTexture.cast(), level);
   return result;
 }
 
@@ -2461,7 +2880,7 @@ int Texture_getHeight(
   self.Pointer<TTexture> tTexture,
   int level,
 ) {
-  final result = _lib._Texture_getHeight(tTexture, level);
+  final result = _lib._Texture_getHeight(tTexture.cast(), level);
   return result;
 }
 
@@ -2469,7 +2888,7 @@ int Texture_getDepth(
   self.Pointer<TTexture> tTexture,
   int level,
 ) {
-  final result = _lib._Texture_getDepth(tTexture, level);
+  final result = _lib._Texture_getDepth(tTexture.cast(), level);
   return result;
 }
 
@@ -2477,7 +2896,7 @@ int Texture_getUsage(
   self.Pointer<TTexture> tTexture,
   int level,
 ) {
-  final result = _lib._Texture_getUsage(tTexture, level);
+  final result = _lib._Texture_getUsage(tTexture.cast(), level);
   return result;
 }
 
@@ -2492,7 +2911,7 @@ self.Pointer<TLinearImage> Image_createEmpty(
 
 self.Pointer<TLinearImage> Image_decode(
   self.Pointer<Uint8> data,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   self.Pointer<Char> name,
 ) {
   final result = _lib._Image_decode(data, length, name);
@@ -2502,49 +2921,49 @@ self.Pointer<TLinearImage> Image_decode(
 self.Pointer<Float32> Image_getBytes(
   self.Pointer<TLinearImage> tLinearImage,
 ) {
-  final result = _lib._Image_getBytes(tLinearImage);
+  final result = _lib._Image_getBytes(tLinearImage.cast());
   return self.Pointer<Float32>(result);
 }
 
 void Image_destroy(
   self.Pointer<TLinearImage> tLinearImage,
 ) {
-  final result = _lib._Image_destroy(tLinearImage);
+  final result = _lib._Image_destroy(tLinearImage.cast());
   return result;
 }
 
 int Image_getWidth(
   self.Pointer<TLinearImage> tLinearImage,
 ) {
-  final result = _lib._Image_getWidth(tLinearImage);
+  final result = _lib._Image_getWidth(tLinearImage.cast());
   return result;
 }
 
 int Image_getHeight(
   self.Pointer<TLinearImage> tLinearImage,
 ) {
-  final result = _lib._Image_getHeight(tLinearImage);
+  final result = _lib._Image_getHeight(tLinearImage.cast());
   return result;
 }
 
 int Image_getChannels(
   self.Pointer<TLinearImage> tLinearImage,
 ) {
-  final result = _lib._Image_getChannels(tLinearImage);
+  final result = _lib._Image_getChannels(tLinearImage.cast());
   return result;
 }
 
 self.Pointer<TTexture> RenderTarget_getColorTexture(
   self.Pointer<TRenderTarget> tRenderTarget,
 ) {
-  final result = _lib._RenderTarget_getColorTexture(tRenderTarget);
+  final result = _lib._RenderTarget_getColorTexture(tRenderTarget.cast());
   return self.Pointer<TTexture>(result);
 }
 
 self.Pointer<TTexture> RenderTarget_getDepthTexture(
   self.Pointer<TRenderTarget> tRenderTarget,
 ) {
-  final result = _lib._RenderTarget_getDepthTexture(tRenderTarget);
+  final result = _lib._RenderTarget_getDepthTexture(tRenderTarget.cast());
   return self.Pointer<TTexture>(result);
 }
 
@@ -2578,7 +2997,7 @@ void TextureSampler_setMinFilter(
   self.Pointer<TTextureSampler> sampler,
   int filter,
 ) {
-  final result = _lib._TextureSampler_setMinFilter(sampler, filter);
+  final result = _lib._TextureSampler_setMinFilter(sampler.cast(), filter);
   return result;
 }
 
@@ -2586,7 +3005,7 @@ void TextureSampler_setMagFilter(
   self.Pointer<TTextureSampler> sampler,
   int filter,
 ) {
-  final result = _lib._TextureSampler_setMagFilter(sampler, filter);
+  final result = _lib._TextureSampler_setMagFilter(sampler.cast(), filter);
   return result;
 }
 
@@ -2594,7 +3013,7 @@ void TextureSampler_setWrapModeS(
   self.Pointer<TTextureSampler> sampler,
   int mode,
 ) {
-  final result = _lib._TextureSampler_setWrapModeS(sampler, mode);
+  final result = _lib._TextureSampler_setWrapModeS(sampler.cast(), mode);
   return result;
 }
 
@@ -2602,7 +3021,7 @@ void TextureSampler_setWrapModeT(
   self.Pointer<TTextureSampler> sampler,
   int mode,
 ) {
-  final result = _lib._TextureSampler_setWrapModeT(sampler, mode);
+  final result = _lib._TextureSampler_setWrapModeT(sampler.cast(), mode);
   return result;
 }
 
@@ -2610,7 +3029,7 @@ void TextureSampler_setWrapModeR(
   self.Pointer<TTextureSampler> sampler,
   int mode,
 ) {
-  final result = _lib._TextureSampler_setWrapModeR(sampler, mode);
+  final result = _lib._TextureSampler_setWrapModeR(sampler.cast(), mode);
   return result;
 }
 
@@ -2618,7 +3037,7 @@ void TextureSampler_setAnisotropy(
   self.Pointer<TTextureSampler> sampler,
   double anisotropy,
 ) {
-  final result = _lib._TextureSampler_setAnisotropy(sampler, anisotropy);
+  final result = _lib._TextureSampler_setAnisotropy(sampler.cast(), anisotropy);
   return result;
 }
 
@@ -2627,14 +3046,529 @@ void TextureSampler_setCompareMode(
   int mode,
   int func,
 ) {
-  final result = _lib._TextureSampler_setCompareMode(sampler, mode, func);
+  final result =
+      _lib._TextureSampler_setCompareMode(sampler.cast(), mode, func);
   return result;
 }
 
 void TextureSampler_destroy(
   self.Pointer<TTextureSampler> sampler,
 ) {
-  final result = _lib._TextureSampler_destroy(sampler);
+  final result = _lib._TextureSampler_destroy(sampler.cast());
+  return result;
+}
+
+void Gizmo_dummy(
+  int t,
+) {
+  final result = _lib._Gizmo_dummy(t);
+  return result;
+}
+
+self.Pointer<TGizmo> Gizmo_create(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TGltfAssetLoader> assetLoader,
+  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  self.Pointer<TNameComponentManager> tNameComponentManager,
+  self.Pointer<TView> tView,
+  self.Pointer<TMaterial> tMaterial,
+  int tGizmoType,
+) {
+  final result = _lib._Gizmo_create(
+      tEngine.cast(),
+      assetLoader.cast(),
+      tGltfResourceLoader.cast(),
+      tNameComponentManager.cast(),
+      tView.cast(),
+      tMaterial.cast(),
+      tGizmoType);
+  return self.Pointer<TGizmo>(result);
+}
+
+void Gizmo_pick(
+  self.Pointer<TGizmo> tGizmo,
+  int x,
+  int y,
+  DartGizmoPickCallback callback,
+) {
+  final result = _lib._Gizmo_pick(tGizmo.cast(), x, y,
+      callback as Pointer<self.NativeFunction<GizmoPickCallbackFunction>>);
+  return result;
+}
+
+void Gizmo_highlight(
+  self.Pointer<TGizmo> tGizmo,
+  int axis,
+) {
+  final result = _lib._Gizmo_highlight(tGizmo.cast(), axis);
+  return result;
+}
+
+void Gizmo_unhighlight(
+  self.Pointer<TGizmo> tGizmo,
+) {
+  final result = _lib._Gizmo_unhighlight(tGizmo.cast());
+  return result;
+}
+
+self.Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
+  self.Pointer<TMaterialProvider> provider,
+  self.Pointer<TMaterialKey> key,
+) {
+  final result = _lib._MaterialProvider_createMaterialInstance(
+      provider.cast(), key.cast());
+  return self.Pointer<TMaterialInstance>(result);
+}
+
+self.Pointer<TRenderTarget> RenderTarget_create(
+  self.Pointer<TEngine> tEngine,
+  int width,
+  int height,
+  self.Pointer<TTexture> color,
+  self.Pointer<TTexture> depth,
+) {
+  final result = _lib._RenderTarget_create(
+      tEngine.cast(), width, height, color.cast(), depth.cast());
+  return self.Pointer<TRenderTarget>(result);
+}
+
+void RenderTarget_destroy(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TRenderTarget> tRenderTarget,
+) {
+  final result =
+      _lib._RenderTarget_destroy(tEngine.cast(), tRenderTarget.cast());
+  return result;
+}
+
+void Scene_addEntity(
+  self.Pointer<TScene> tScene,
+  DartEntityId entityId,
+) {
+  final result = _lib._Scene_addEntity(tScene.cast(), entityId);
+  return result;
+}
+
+void Scene_removeEntity(
+  self.Pointer<TScene> tScene,
+  DartEntityId entityId,
+) {
+  final result = _lib._Scene_removeEntity(tScene.cast(), entityId);
+  return result;
+}
+
+void Scene_setSkybox(
+  self.Pointer<TScene> tScene,
+  self.Pointer<TSkybox> skybox,
+) {
+  final result = _lib._Scene_setSkybox(tScene.cast(), skybox.cast());
+  return result;
+}
+
+void Scene_setIndirectLight(
+  self.Pointer<TScene> tScene,
+  self.Pointer<TIndirectLight> tIndirectLight,
+) {
+  final result =
+      _lib._Scene_setIndirectLight(tScene.cast(), tIndirectLight.cast());
+  return result;
+}
+
+void Scene_addFilamentAsset(
+  self.Pointer<TScene> tScene,
+  self.Pointer<TFilamentAsset> asset,
+) {
+  final result = _lib._Scene_addFilamentAsset(tScene.cast(), asset.cast());
+  return result;
+}
+
+void Camera_setExposure(
+  self.Pointer<TCamera> camera,
+  double aperture,
+  double shutterSpeed,
+  double sensitivity,
+) {
+  final result = _lib._Camera_setExposure(
+      camera.cast(), aperture, shutterSpeed, sensitivity);
+  return result;
+}
+
+double4x4 Camera_getModelMatrix(
+  self.Pointer<TCamera> camera,
+) {
+  final double4x4_out = double4x4.stackAlloc();
+  final result =
+      _lib._Camera_getModelMatrix(double4x4_out.cast(), camera.cast());
+  return double4x4_out.toDart();
+}
+
+double4x4 Camera_getViewMatrix(
+  self.Pointer<TCamera> camera,
+) {
+  final double4x4_out = double4x4.stackAlloc();
+  final result =
+      _lib._Camera_getViewMatrix(double4x4_out.cast(), camera.cast());
+  return double4x4_out.toDart();
+}
+
+double4x4 Camera_getProjectionMatrix(
+  self.Pointer<TCamera> camera,
+) {
+  final double4x4_out = double4x4.stackAlloc();
+  final result =
+      _lib._Camera_getProjectionMatrix(double4x4_out.cast(), camera.cast());
+  return double4x4_out.toDart();
+}
+
+double4x4 Camera_getCullingProjectionMatrix(
+  self.Pointer<TCamera> camera,
+) {
+  final double4x4_out = double4x4.stackAlloc();
+  final result = _lib._Camera_getCullingProjectionMatrix(
+      double4x4_out.cast(), camera.cast());
+  return double4x4_out.toDart();
+}
+
+void Camera_getFrustum(
+  self.Pointer<TCamera> camera,
+  self.Pointer<Float64> out,
+) {
+  final result = _lib._Camera_getFrustum(camera.cast(), out);
+  return result;
+}
+
+void Camera_setProjectionMatrix(
+  self.Pointer<TCamera> camera,
+  self.Pointer<Float64> matrix,
+  double near,
+  double far,
+) {
+  final result =
+      _lib._Camera_setProjectionMatrix(camera.cast(), matrix, near, far);
+  return result;
+}
+
+void Camera_setProjectionFromFov(
+  self.Pointer<TCamera> camera,
+  double fovInDegrees,
+  double aspect,
+  double near,
+  double far,
+  bool horizontal,
+) {
+  final result = _lib._Camera_setProjectionFromFov(
+      camera.cast(), fovInDegrees, aspect, near, far, horizontal);
+  return result;
+}
+
+double Camera_getFocalLength(
+  self.Pointer<TCamera> camera,
+) {
+  final result = _lib._Camera_getFocalLength(camera.cast());
+  return result;
+}
+
+void Camera_lookAt(
+  self.Pointer<TCamera> camera,
+  double3 eye,
+  double3 focus,
+  double3 up,
+) {
+  final eyePtr = eye._address;
+  final focusPtr = focus._address;
+  final upPtr = up._address;
+  final result = _lib._Camera_lookAt(
+      camera.cast(), eyePtr.cast(), focusPtr.cast(), upPtr.cast());
+  return result;
+}
+
+double Camera_getNear(
+  self.Pointer<TCamera> camera,
+) {
+  final result = _lib._Camera_getNear(camera.cast());
+  return result;
+}
+
+double Camera_getCullingFar(
+  self.Pointer<TCamera> camera,
+) {
+  final result = _lib._Camera_getCullingFar(camera.cast());
+  return result;
+}
+
+double Camera_getFov(
+  self.Pointer<TCamera> camera,
+  bool horizontal,
+) {
+  final result = _lib._Camera_getFov(camera.cast(), horizontal);
+  return result;
+}
+
+double Camera_getFocusDistance(
+  self.Pointer<TCamera> camera,
+) {
+  final result = _lib._Camera_getFocusDistance(camera.cast());
+  return result;
+}
+
+void Camera_setFocusDistance(
+  self.Pointer<TCamera> camera,
+  double focusDistance,
+) {
+  final result = _lib._Camera_setFocusDistance(camera.cast(), focusDistance);
+  return result;
+}
+
+void Camera_setCustomProjectionWithCulling(
+  self.Pointer<TCamera> camera,
+  double4x4 projectionMatrix,
+  double near,
+  double far,
+) {
+  final projectionMatrixPtr = projectionMatrix._address;
+  final result = _lib._Camera_setCustomProjectionWithCulling(
+      camera.cast(), projectionMatrixPtr.cast(), near, far);
+  return result;
+}
+
+void Camera_setModelMatrix(
+  self.Pointer<TCamera> camera,
+  self.Pointer<Float64> tModelMatrix,
+) {
+  final result = _lib._Camera_setModelMatrix(camera.cast(), tModelMatrix);
+  return result;
+}
+
+void Camera_setLensProjection(
+  self.Pointer<TCamera> camera,
+  double near,
+  double far,
+  double aspect,
+  double focalLength,
+) {
+  final result = _lib._Camera_setLensProjection(
+      camera.cast(), near, far, aspect, focalLength);
+  return result;
+}
+
+DartEntityId Camera_getEntity(
+  self.Pointer<TCamera> camera,
+) {
+  final result = _lib._Camera_getEntity(camera.cast());
+  return result;
+}
+
+void Camera_setProjection(
+  self.Pointer<TCamera> tCamera,
+  int projection,
+  double left,
+  double right,
+  double bottom,
+  double top,
+  double near,
+  double far,
+) {
+  final result = _lib._Camera_setProjection(
+      tCamera.cast(), projection, left, right, bottom, top, near, far);
+  return result;
+}
+
+double4x4 TransformManager_getLocalTransform(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+) {
+  final double4x4_out = double4x4.stackAlloc();
+  final result = _lib._TransformManager_getLocalTransform(
+      double4x4_out.cast(), tTransformManager.cast(), entityId);
+  return double4x4_out.toDart();
+}
+
+double4x4 TransformManager_getWorldTransform(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+) {
+  final double4x4_out = double4x4.stackAlloc();
+  final result = _lib._TransformManager_getWorldTransform(
+      double4x4_out.cast(), tTransformManager.cast(), entityId);
+  return double4x4_out.toDart();
+}
+
+void TransformManager_setTransform(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+  double4x4 transform,
+) {
+  final transformPtr = transform._address;
+  final result = _lib._TransformManager_setTransform(
+      tTransformManager.cast(), entityId, transformPtr.cast());
+  return result;
+}
+
+bool TransformManager_transformToUnitCube(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+  Aabb3 boundingBox,
+) {
+  final boundingBoxPtr = boundingBox._address;
+  final result = _lib._TransformManager_transformToUnitCube(
+      tTransformManager.cast(), entityId, boundingBoxPtr.cast());
+  return result;
+}
+
+void TransformManager_setParent(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId child,
+  DartEntityId parent,
+  bool preserveScaling,
+) {
+  final result = _lib._TransformManager_setParent(
+      tTransformManager.cast(), child, parent, preserveScaling);
+  return result;
+}
+
+DartEntityId TransformManager_getParent(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId child,
+) {
+  final result =
+      _lib._TransformManager_getParent(tTransformManager.cast(), child);
+  return result;
+}
+
+DartEntityId TransformManager_getAncestor(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId childEntityId,
+) {
+  final result = _lib._TransformManager_getAncestor(
+      tTransformManager.cast(), childEntityId);
+  return result;
+}
+
+void Renderer_setClearOptions(
+  self.Pointer<TRenderer> tRenderer,
+  double clearR,
+  double clearG,
+  double clearB,
+  double clearA,
+  int clearStencil,
+  bool clear,
+  bool discard,
+) {
+  final result = _lib._Renderer_setClearOptions(tRenderer.cast(), clearR,
+      clearG, clearB, clearA, clearStencil, clear, discard);
+  return result;
+}
+
+bool Renderer_beginFrame(
+  self.Pointer<TRenderer> tRenderer,
+  self.Pointer<TSwapChain> tSwapChain,
+  BigInt frameTimeInNanos,
+) {
+  final result = _lib._Renderer_beginFrame(
+      tRenderer.cast(), tSwapChain.cast(), frameTimeInNanos.toJSBigInt);
+  return result;
+}
+
+void Renderer_endFrame(
+  self.Pointer<TRenderer> tRenderer,
+) {
+  final result = _lib._Renderer_endFrame(tRenderer.cast());
+  return result;
+}
+
+void Renderer_render(
+  self.Pointer<TRenderer> tRenderer,
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._Renderer_render(tRenderer.cast(), tView.cast());
+  return result;
+}
+
+void Renderer_renderStandaloneView(
+  self.Pointer<TRenderer> tRenderer,
+  self.Pointer<TView> tView,
+) {
+  final result =
+      _lib._Renderer_renderStandaloneView(tRenderer.cast(), tView.cast());
+  return result;
+}
+
+void Renderer_readPixels(
+  self.Pointer<TRenderer> tRenderer,
+  self.Pointer<TView> tView,
+  self.Pointer<TRenderTarget> tRenderTarget,
+  int tPixelBufferFormat,
+  int tPixelDataType,
+  self.Pointer<Uint8> out,
+  Dart__darwin_size_t outLength,
+) {
+  final result = _lib._Renderer_readPixels(tRenderer.cast(), tView.cast(),
+      tRenderTarget.cast(), tPixelBufferFormat, tPixelDataType, out, outLength);
+  return result;
+}
+
+void Renderer_setFrameInterval(
+  self.Pointer<TRenderer> tRenderer,
+  double headRoomRatio,
+  double scaleRate,
+  int history,
+  int interval,
+) {
+  final result = _lib._Renderer_setFrameInterval(
+      tRenderer.cast(), headRoomRatio, scaleRate, history, interval);
+  return result;
+}
+
+self.Pointer<TRenderTicker> RenderTicker_create(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TRenderer> tRenderer,
+) {
+  final result = _lib._RenderTicker_create(tEngine.cast(), tRenderer.cast());
+  return self.Pointer<TRenderTicker>(result);
+}
+
+void RenderTicker_destroy(
+  self.Pointer<TRenderTicker> tRenderTicker,
+) {
+  final result = _lib._RenderTicker_destroy(tRenderTicker.cast());
+  return result;
+}
+
+void RenderTicker_addAnimationManager(
+  self.Pointer<TRenderTicker> tRenderTicker,
+  self.Pointer<TAnimationManager> tAnimationManager,
+) {
+  final result = _lib._RenderTicker_addAnimationManager(
+      tRenderTicker.cast(), tAnimationManager.cast());
+  return result;
+}
+
+void RenderTicker_removeAnimationManager(
+  self.Pointer<TRenderTicker> tRenderTicker,
+  self.Pointer<TAnimationManager> tAnimationManager,
+) {
+  final result = _lib._RenderTicker_removeAnimationManager(
+      tRenderTicker.cast(), tAnimationManager.cast());
+  return result;
+}
+
+void RenderTicker_render(
+  self.Pointer<TRenderTicker> tRenderTicker,
+  BigInt frameTimeInNanos,
+) {
+  final result = _lib._RenderTicker_render(
+      tRenderTicker.cast(), frameTimeInNanos.toJSBigInt);
+  return result;
+}
+
+void RenderTicker_setRenderable(
+  self.Pointer<TRenderTicker> tRenderTicker,
+  self.Pointer<TSwapChain> swapChain,
+  self.Pointer<self.PointerClass<TView>> views,
+  int numViews,
+) {
+  final result = _lib._RenderTicker_setRenderable(
+      tRenderTicker.cast(), swapChain.cast(), views.cast(), numViews);
   return result;
 }
 
@@ -2653,14 +3587,14 @@ self.Pointer<TEngine> Engine_create(
 void Engine_destroy(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_destroy(tEngine);
+  final result = _lib._Engine_destroy(tEngine.cast());
   return result;
 }
 
 self.Pointer<TRenderer> Engine_createRenderer(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_createRenderer(tEngine);
+  final result = _lib._Engine_createRenderer(tEngine.cast());
   return self.Pointer<TRenderer>(result);
 }
 
@@ -2670,7 +3604,7 @@ self.Pointer<TSwapChain> Engine_createSwapChain(
   BigInt flags,
 ) {
   final result =
-      _lib._Engine_createSwapChain(tEngine, window, flags.toJSBigInt);
+      _lib._Engine_createSwapChain(tEngine.cast(), window, flags.toJSBigInt);
   return self.Pointer<TSwapChain>(result);
 }
 
@@ -2681,7 +3615,7 @@ self.Pointer<TSwapChain> Engine_createHeadlessSwapChain(
   BigInt flags,
 ) {
   final result = _lib._Engine_createHeadlessSwapChain(
-      tEngine, width, height, flags.toJSBigInt);
+      tEngine.cast(), width, height, flags.toJSBigInt);
   return self.Pointer<TSwapChain>(result);
 }
 
@@ -2689,7 +3623,8 @@ void Engine_destroySwapChain(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TSwapChain> tSwapChain,
 ) {
-  final result = _lib._Engine_destroySwapChain(tEngine, tSwapChain);
+  final result =
+      _lib._Engine_destroySwapChain(tEngine.cast(), tSwapChain.cast());
   return result;
 }
 
@@ -2697,7 +3632,7 @@ void Engine_destroyView(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TView> tView,
 ) {
-  final result = _lib._Engine_destroyView(tEngine, tView);
+  final result = _lib._Engine_destroyView(tEngine.cast(), tView.cast());
   return result;
 }
 
@@ -2705,7 +3640,7 @@ void Engine_destroyScene(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TScene> tScene,
 ) {
-  final result = _lib._Engine_destroyScene(tEngine, tScene);
+  final result = _lib._Engine_destroyScene(tEngine.cast(), tScene.cast());
   return result;
 }
 
@@ -2713,14 +3648,15 @@ void Engine_destroyColorGrading(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TColorGrading> tColorGrading,
 ) {
-  final result = _lib._Engine_destroyColorGrading(tEngine, tColorGrading);
+  final result =
+      _lib._Engine_destroyColorGrading(tEngine.cast(), tColorGrading.cast());
   return result;
 }
 
 self.Pointer<TCamera> Engine_createCamera(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_createCamera(tEngine);
+  final result = _lib._Engine_createCamera(tEngine.cast());
   return self.Pointer<TCamera>(result);
 }
 
@@ -2728,14 +3664,14 @@ void Engine_destroyCamera(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TCamera> tCamera,
 ) {
-  final result = _lib._Engine_destroyCamera(tEngine, tCamera);
+  final result = _lib._Engine_destroyCamera(tEngine.cast(), tCamera.cast());
   return result;
 }
 
 self.Pointer<TView> Engine_createView(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_createView(tEngine);
+  final result = _lib._Engine_createView(tEngine.cast());
   return self.Pointer<TView>(result);
 }
 
@@ -2743,35 +3679,35 @@ self.Pointer<TCamera> Engine_getCameraComponent(
   self.Pointer<TEngine> tEngine,
   DartEntityId entityId,
 ) {
-  final result = _lib._Engine_getCameraComponent(tEngine, entityId);
+  final result = _lib._Engine_getCameraComponent(tEngine.cast(), entityId);
   return self.Pointer<TCamera>(result);
 }
 
 self.Pointer<TTransformManager> Engine_getTransformManager(
   self.Pointer<TEngine> engine,
 ) {
-  final result = _lib._Engine_getTransformManager(engine);
+  final result = _lib._Engine_getTransformManager(engine.cast());
   return self.Pointer<TTransformManager>(result);
 }
 
 self.Pointer<TRenderableManager> Engine_getRenderableManager(
   self.Pointer<TEngine> engine,
 ) {
-  final result = _lib._Engine_getRenderableManager(engine);
+  final result = _lib._Engine_getRenderableManager(engine.cast());
   return self.Pointer<TRenderableManager>(result);
 }
 
 self.Pointer<TLightManager> Engine_getLightManager(
   self.Pointer<TEngine> engine,
 ) {
-  final result = _lib._Engine_getLightManager(engine);
+  final result = _lib._Engine_getLightManager(engine.cast());
   return self.Pointer<TLightManager>(result);
 }
 
 self.Pointer<TEntityManager> Engine_getEntityManager(
   self.Pointer<TEngine> engine,
 ) {
-  final result = _lib._Engine_getEntityManager(engine);
+  final result = _lib._Engine_getEntityManager(engine.cast());
   return self.Pointer<TEntityManager>(result);
 }
 
@@ -2779,14 +3715,14 @@ void Engine_destroyTexture(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TTexture> tTexture,
 ) {
-  final result = _lib._Engine_destroyTexture(tEngine, tTexture);
+  final result = _lib._Engine_destroyTexture(tEngine.cast(), tTexture.cast());
   return result;
 }
 
 self.Pointer<TFence> Engine_createFence(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_createFence(tEngine);
+  final result = _lib._Engine_createFence(tEngine.cast());
   return self.Pointer<TFence>(result);
 }
 
@@ -2794,30 +3730,31 @@ void Engine_destroyFence(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TFence> tFence,
 ) {
-  final result = _lib._Engine_destroyFence(tEngine, tFence);
+  final result = _lib._Engine_destroyFence(tEngine.cast(), tFence.cast());
   return result;
 }
 
 void Engine_flushAndWait(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_flushAndWait(tEngine);
+  final result = _lib._Engine_flushAndWait(tEngine.cast());
   return result;
 }
 
 void Engine_execute(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_execute(tEngine);
+  final result = _lib._Engine_execute(tEngine.cast());
   return result;
 }
 
 self.Pointer<TMaterial> Engine_buildMaterial(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Uint8> materialData,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
 ) {
-  final result = _lib._Engine_buildMaterial(tEngine, materialData, length);
+  final result =
+      _lib._Engine_buildMaterial(tEngine.cast(), materialData, length);
   return self.Pointer<TMaterial>(result);
 }
 
@@ -2825,7 +3762,7 @@ void Engine_destroyMaterial(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TMaterial> tMaterial,
 ) {
-  final result = _lib._Engine_destroyMaterial(tEngine, tMaterial);
+  final result = _lib._Engine_destroyMaterial(tEngine.cast(), tMaterial.cast());
   return result;
 }
 
@@ -2833,38 +3770,38 @@ void Engine_destroyMaterialInstance(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TMaterialInstance> tMaterialInstance,
 ) {
-  final result =
-      _lib._Engine_destroyMaterialInstance(tEngine, tMaterialInstance);
+  final result = _lib._Engine_destroyMaterialInstance(
+      tEngine.cast(), tMaterialInstance.cast());
   return result;
 }
 
 self.Pointer<TScene> Engine_createScene(
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Engine_createScene(tEngine);
+  final result = _lib._Engine_createScene(tEngine.cast());
   return self.Pointer<TScene>(result);
 }
 
 self.Pointer<TSkybox> Engine_buildSkybox(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Uint8> ktxData,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   self.Pointer<self.NativeFunction<void Function()>> onTextureUploadComplete,
 ) {
   final result = _lib._Engine_buildSkybox(
-      tEngine, ktxData, length, onTextureUploadComplete.cast());
+      tEngine.cast(), ktxData, length, onTextureUploadComplete.cast());
   return self.Pointer<TSkybox>(result);
 }
 
 self.Pointer<TIndirectLight> Engine_buildIndirectLight(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Uint8> ktxData,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   double intensity,
   self.Pointer<self.NativeFunction<void Function()>> onTextureUploadComplete,
 ) {
-  final result = _lib._Engine_buildIndirectLight(
-      tEngine, ktxData, length, intensity, onTextureUploadComplete.cast());
+  final result = _lib._Engine_buildIndirectLight(tEngine.cast(), ktxData,
+      length, intensity, onTextureUploadComplete.cast());
   return self.Pointer<TIndirectLight>(result);
 }
 
@@ -2872,7 +3809,7 @@ void Engine_destroySkybox(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TSkybox> tSkybox,
 ) {
-  final result = _lib._Engine_destroySkybox(tEngine, tSkybox);
+  final result = _lib._Engine_destroySkybox(tEngine.cast(), tSkybox.cast());
   return result;
 }
 
@@ -2880,230 +3817,9 @@ void Engine_destroyIndirectLight(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TIndirectLight> tIndirectLight,
 ) {
-  final result = _lib._Engine_destroyIndirectLight(tEngine, tIndirectLight);
-  return result;
-}
-
-TViewport View_getViewport(
-  self.Pointer<TView> view,
-) {
-  final TViewport_out = TViewport.stackAlloc();
-  final result = _lib._View_getViewport(TViewport_out, view);
-  return TViewport_out.toDart();
-}
-
-self.Pointer<TColorGrading> ColorGrading_create(
-  self.Pointer<TEngine> tEngine,
-  int toneMapping,
-) {
-  final result = _lib._ColorGrading_create(tEngine, toneMapping);
-  return self.Pointer<TColorGrading>(result);
-}
-
-void View_setColorGrading(
-  self.Pointer<TView> tView,
-  self.Pointer<TColorGrading> tColorGrading,
-) {
-  final result = _lib._View_setColorGrading(tView, tColorGrading);
-  return result;
-}
-
-void View_setBlendMode(
-  self.Pointer<TView> view,
-  int blendMode,
-) {
-  final result = _lib._View_setBlendMode(view, blendMode);
-  return result;
-}
-
-void View_setViewport(
-  self.Pointer<TView> view,
-  int width,
-  int height,
-) {
-  final result = _lib._View_setViewport(view, width, height);
-  return result;
-}
-
-void View_setRenderTarget(
-  self.Pointer<TView> view,
-  self.Pointer<TRenderTarget> renderTarget,
-) {
-  final result = _lib._View_setRenderTarget(view, renderTarget);
-  return result;
-}
-
-void View_setFrustumCullingEnabled(
-  self.Pointer<TView> view,
-  bool enabled,
-) {
-  final result = _lib._View_setFrustumCullingEnabled(view, enabled);
-  return result;
-}
-
-self.Pointer<TRenderTarget> View_getRenderTarget(
-  self.Pointer<TView> tView,
-) {
-  final result = _lib._View_getRenderTarget(tView);
-  return self.Pointer<TRenderTarget>(result);
-}
-
-void View_setPostProcessing(
-  self.Pointer<TView> tView,
-  bool enabled,
-) {
-  final result = _lib._View_setPostProcessing(tView, enabled);
-  return result;
-}
-
-void View_setShadowsEnabled(
-  self.Pointer<TView> tView,
-  bool enabled,
-) {
-  final result = _lib._View_setShadowsEnabled(tView, enabled);
-  return result;
-}
-
-void View_setShadowType(
-  self.Pointer<TView> tView,
-  int shadowType,
-) {
-  final result = _lib._View_setShadowType(tView, shadowType);
-  return result;
-}
-
-void View_setSoftShadowOptions(
-  self.Pointer<TView> tView,
-  double penumbraScale,
-  double penumbraRatioScale,
-) {
   final result =
-      _lib._View_setSoftShadowOptions(tView, penumbraScale, penumbraRatioScale);
+      _lib._Engine_destroyIndirectLight(tEngine.cast(), tIndirectLight.cast());
   return result;
-}
-
-void View_setBloom(
-  self.Pointer<TView> tView,
-  bool enabled,
-  double strength,
-) {
-  final result = _lib._View_setBloom(tView, enabled, strength);
-  return result;
-}
-
-void View_setRenderQuality(
-  self.Pointer<TView> tView,
-  int qualityLevel,
-) {
-  final result = _lib._View_setRenderQuality(tView, qualityLevel);
-  return result;
-}
-
-void View_setAntiAliasing(
-  self.Pointer<TView> tView,
-  bool msaa,
-  bool fxaa,
-  bool taa,
-) {
-  final result = _lib._View_setAntiAliasing(tView, msaa, fxaa, taa);
-  return result;
-}
-
-void View_setLayerEnabled(
-  self.Pointer<TView> tView,
-  int layer,
-  bool visible,
-) {
-  final result = _lib._View_setLayerEnabled(tView, layer, visible);
-  return result;
-}
-
-void View_setCamera(
-  self.Pointer<TView> tView,
-  self.Pointer<TCamera> tCamera,
-) {
-  final result = _lib._View_setCamera(tView, tCamera);
-  return result;
-}
-
-self.Pointer<TScene> View_getScene(
-  self.Pointer<TView> tView,
-) {
-  final result = _lib._View_getScene(tView);
-  return self.Pointer<TScene>(result);
-}
-
-self.Pointer<TCamera> View_getCamera(
-  self.Pointer<TView> tView,
-) {
-  final result = _lib._View_getCamera(tView);
-  return self.Pointer<TCamera>(result);
-}
-
-void View_setStencilBufferEnabled(
-  self.Pointer<TView> tView,
-  bool enabled,
-) {
-  final result = _lib._View_setStencilBufferEnabled(tView, enabled);
-  return result;
-}
-
-bool View_isStencilBufferEnabled(
-  self.Pointer<TView> tView,
-) {
-  final result = _lib._View_isStencilBufferEnabled(tView);
-  return result;
-}
-
-void View_setDitheringEnabled(
-  self.Pointer<TView> tView,
-  bool enabled,
-) {
-  final result = _lib._View_setDitheringEnabled(tView, enabled);
-  return result;
-}
-
-bool View_isDitheringEnabled(
-  self.Pointer<TView> tView,
-) {
-  final result = _lib._View_isDitheringEnabled(tView);
-  return result;
-}
-
-void View_setScene(
-  self.Pointer<TView> tView,
-  self.Pointer<TScene> tScene,
-) {
-  final result = _lib._View_setScene(tView, tScene);
-  return result;
-}
-
-void View_setFrontFaceWindingInverted(
-  self.Pointer<TView> tView,
-  bool inverted,
-) {
-  final result = _lib._View_setFrontFaceWindingInverted(tView, inverted);
-  return result;
-}
-
-void View_pick(
-  self.Pointer<TView> tView,
-  int requestId,
-  int x,
-  int y,
-  DartPickCallback callback,
-) {
-  final result = _lib._View_pick(tView, requestId, x, y,
-      callback as Pointer<self.NativeFunction<PickCallbackFunction>>);
-  return result;
-}
-
-self.Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
-  self.Pointer<TMaterialProvider> provider,
-  self.Pointer<TMaterialKey> key,
-) {
-  final result = _lib._MaterialProvider_createMaterialInstance(provider, key);
-  return self.Pointer<TMaterialInstance>(result);
 }
 
 void RenderThread_create() {
@@ -3124,7 +3840,7 @@ void RenderThread_requestFrameAsync() {
 void RenderThread_setRenderTicker(
   self.Pointer<TRenderTicker> tRenderTicker,
 ) {
-  final result = _lib._RenderThread_setRenderTicker(tRenderTicker);
+  final result = _lib._RenderThread_setRenderTicker(tRenderTicker.cast());
   return result;
 }
 
@@ -3138,10 +3854,12 @@ void RenderThread_addTask(
 void RenderTicker_renderRenderThread(
   self.Pointer<TRenderTicker> tRenderTicker,
   BigInt frameTimeInNanos,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._RenderTicker_renderRenderThread(
-      tRenderTicker, frameTimeInNanos.toJSBigInt, onComplete.cast());
+      tRenderTicker.cast(),
+      frameTimeInNanos.toJSBigInt,
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3152,7 +3870,7 @@ void AnimationManager_createRenderThread(
       onComplete,
 ) {
   final result = _lib._AnimationManager_createRenderThread(
-      tEngine, tScene, onComplete.cast());
+      tEngine.cast(), tScene.cast(), onComplete.cast());
   return result;
 }
 
@@ -3179,8 +3897,8 @@ void Engine_createRendererRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TRenderer>)>>
       onComplete,
 ) {
-  final result =
-      _lib._Engine_createRendererRenderThread(tEngine, onComplete.cast());
+  final result = _lib._Engine_createRendererRenderThread(
+      tEngine.cast(), onComplete.cast());
   return result;
 }
 
@@ -3192,7 +3910,7 @@ void Engine_createSwapChainRenderThread(
       onComplete,
 ) {
   final result = _lib._Engine_createSwapChainRenderThread(
-      tEngine, window, flags.toJSBigInt, onComplete.cast());
+      tEngine.cast(), window, flags.toJSBigInt, onComplete.cast());
   return result;
 }
 
@@ -3205,7 +3923,7 @@ void Engine_createHeadlessSwapChainRenderThread(
       onComplete,
 ) {
   final result = _lib._Engine_createHeadlessSwapChainRenderThread(
-      tEngine, width, height, flags.toJSBigInt, onComplete.cast());
+      tEngine.cast(), width, height, flags.toJSBigInt, onComplete.cast());
   return result;
 }
 
@@ -3214,7 +3932,7 @@ void Engine_createCameraRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TCamera>)>> onComplete,
 ) {
   final result =
-      _lib._Engine_createCameraRenderThread(tEngine, onComplete.cast());
+      _lib._Engine_createCameraRenderThread(tEngine.cast(), onComplete.cast());
   return result;
 }
 
@@ -3223,107 +3941,124 @@ void Engine_createViewRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TView>)>> onComplete,
 ) {
   final result =
-      _lib._Engine_createViewRenderThread(tEngine, onComplete.cast());
+      _lib._Engine_createViewRenderThread(tEngine.cast(), onComplete.cast());
   return result;
 }
 
 void Engine_buildMaterialRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Uint8> materialData,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   self.Pointer<self.NativeFunction<void Function(Pointer<TMaterial>)>>
       onComplete,
 ) {
   final result = _lib._Engine_buildMaterialRenderThread(
-      tEngine, materialData, length, onComplete.cast());
+      tEngine.cast(), materialData, length, onComplete.cast());
   return result;
 }
 
 void Engine_destroyRenderThread(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._Engine_destroyRenderThread(tEngine, onComplete.cast());
+  final result = _lib._Engine_destroyRenderThread(tEngine.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroySwapChainRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TSwapChain> tSwapChain,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Engine_destroySwapChainRenderThread(
-      tEngine, tSwapChain, onComplete.cast());
+      tEngine.cast(),
+      tSwapChain.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroyViewRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TView> tView,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Engine_destroyViewRenderThread(tEngine, tView, onComplete.cast());
+  final result = _lib._Engine_destroyViewRenderThread(
+      tEngine.cast(),
+      tView.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroySceneRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TScene> tScene,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Engine_destroySceneRenderThread(tEngine, tScene, onComplete.cast());
+  final result = _lib._Engine_destroySceneRenderThread(
+      tEngine.cast(),
+      tScene.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroyColorGradingRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TColorGrading> tColorGrading,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Engine_destroyColorGradingRenderThread(
-      tEngine, tColorGrading, onComplete.cast());
+      tEngine.cast(),
+      tColorGrading.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroyMaterialRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TMaterial> tMaterial,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Engine_destroyMaterialRenderThread(
-      tEngine, tMaterial, onComplete.cast());
+      tEngine.cast(),
+      tMaterial.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroyMaterialInstanceRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TMaterialInstance> tMaterialInstance,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Engine_destroyMaterialInstanceRenderThread(
-      tEngine, tMaterialInstance, onComplete.cast());
+      tEngine.cast(),
+      tMaterialInstance.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroySkyboxRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TSkybox> tSkybox,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Engine_destroySkyboxRenderThread(
-      tEngine, tSkybox, onComplete.cast());
+      tEngine.cast(),
+      tSkybox.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_destroyIndirectLightRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TIndirectLight> tIndirectLight,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Engine_destroyIndirectLightRenderThread(
-      tEngine, tIndirectLight, onComplete.cast());
+      tEngine.cast(),
+      tIndirectLight.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3340,18 +4075,20 @@ void Texture_buildRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TTexture>)>>
       onComplete,
 ) {
-  final result = _lib._Texture_buildRenderThread(engine, width, height, depth,
-      levels, tUsage, import1, sampler, format, onComplete.cast());
+  final result = _lib._Texture_buildRenderThread(engine.cast(), width, height,
+      depth, levels, tUsage, import1, sampler, format, onComplete.cast());
   return result;
 }
 
 void Engine_destroyTextureRenderThread(
   self.Pointer<TEngine> engine,
   self.Pointer<TTexture> tTexture,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Engine_destroyTextureRenderThread(
-      engine, tTexture, onComplete.cast());
+      engine.cast(),
+      tTexture.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3360,60 +4097,68 @@ void Engine_createFenceRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TFence>)>> onComplete,
 ) {
   final result =
-      _lib._Engine_createFenceRenderThread(tEngine, onComplete.cast());
+      _lib._Engine_createFenceRenderThread(tEngine.cast(), onComplete.cast());
   return result;
 }
 
 void Engine_destroyFenceRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TFence> tFence,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Engine_destroyFenceRenderThread(tEngine, tFence, onComplete.cast());
+  final result = _lib._Engine_destroyFenceRenderThread(
+      tEngine.cast(),
+      tFence.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_flushAndWaitRenderThread(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Engine_flushAndWaitRenderThread(tEngine, onComplete.cast());
+  final result = _lib._Engine_flushAndWaitRenderThread(tEngine.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_executeRenderThread(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._Engine_executeRenderThread(tEngine, onComplete.cast());
+  final result = _lib._Engine_executeRenderThread(tEngine.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Engine_buildSkyboxRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Uint8> skyboxData,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   self.Pointer<self.NativeFunction<void Function(Pointer<TSkybox>)>> onComplete,
   self.Pointer<self.NativeFunction<void Function()>> onTextureUploadComplete,
 ) {
-  final result = _lib._Engine_buildSkyboxRenderThread(tEngine, skyboxData,
-      length, onComplete.cast(), onTextureUploadComplete.cast());
+  final result = _lib._Engine_buildSkyboxRenderThread(tEngine.cast(),
+      skyboxData, length, onComplete.cast(), onTextureUploadComplete.cast());
   return result;
 }
 
 void Engine_buildIndirectLightRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Uint8> iblData,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   double intensity,
   self.Pointer<self.NativeFunction<void Function(Pointer<TIndirectLight>)>>
       onComplete,
   self.Pointer<self.NativeFunction<void Function()>> onTextureUploadComplete,
 ) {
-  final result = _lib._Engine_buildIndirectLightRenderThread(tEngine, iblData,
-      length, intensity, onComplete.cast(), onTextureUploadComplete.cast());
+  final result = _lib._Engine_buildIndirectLightRenderThread(
+      tEngine.cast(),
+      iblData,
+      length,
+      intensity,
+      onComplete.cast(),
+      onTextureUploadComplete.cast());
   return result;
 }
 
@@ -3426,10 +4171,18 @@ void Renderer_setClearOptionsRenderThread(
   int clearStencil,
   bool clear,
   bool discard,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._Renderer_setClearOptionsRenderThread(tRenderer, clearR,
-      clearG, clearB, clearA, clearStencil, clear, discard, onComplete.cast());
+  final result = _lib._Renderer_setClearOptionsRenderThread(
+      tRenderer.cast(),
+      clearR,
+      clearG,
+      clearB,
+      clearA,
+      clearStencil,
+      clear,
+      discard,
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3439,37 +4192,41 @@ void Renderer_beginFrameRenderThread(
   BigInt frameTimeInNanos,
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
 ) {
-  final result = _lib._Renderer_beginFrameRenderThread(
-      tRenderer, tSwapChain, frameTimeInNanos.toJSBigInt, onComplete.cast());
+  final result = _lib._Renderer_beginFrameRenderThread(tRenderer.cast(),
+      tSwapChain.cast(), frameTimeInNanos.toJSBigInt, onComplete.cast());
   return result;
 }
 
 void Renderer_endFrameRenderThread(
   self.Pointer<TRenderer> tRenderer,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Renderer_endFrameRenderThread(tRenderer, onComplete.cast());
+  final result = _lib._Renderer_endFrameRenderThread(tRenderer.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Renderer_renderRenderThread(
   self.Pointer<TRenderer> tRenderer,
   self.Pointer<TView> tView,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Renderer_renderRenderThread(tRenderer, tView, onComplete.cast());
+  final result = _lib._Renderer_renderRenderThread(
+      tRenderer.cast(),
+      tView.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void Renderer_renderStandaloneViewRenderThread(
   self.Pointer<TRenderer> tRenderer,
   self.Pointer<TView> tView,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Renderer_renderStandaloneViewRenderThread(
-      tRenderer, tView, onComplete.cast());
+      tRenderer.cast(),
+      tView.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3480,18 +4237,18 @@ void Renderer_readPixelsRenderThread(
   int tPixelBufferFormat,
   int tPixelDataType,
   self.Pointer<Uint8> out,
-  Dartsize_t outLength,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  Dart__darwin_size_t outLength,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._Renderer_readPixelsRenderThread(
-      tRenderer,
-      tView,
-      tRenderTarget,
+      tRenderer.cast(),
+      tView.cast(),
+      tRenderTarget.cast(),
       tPixelBufferFormat,
       tPixelDataType,
       out,
       outLength,
-      onComplete.cast());
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3500,8 +4257,8 @@ void Material_createInstanceRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TMaterialInstance>)>>
       onComplete,
 ) {
-  final result =
-      _lib._Material_createInstanceRenderThread(tMaterial, onComplete.cast());
+  final result = _lib._Material_createInstanceRenderThread(
+      tMaterial.cast(), onComplete.cast());
   return result;
 }
 
@@ -3511,7 +4268,7 @@ void Material_createImageMaterialRenderThread(
       onComplete,
 ) {
   final result = _lib._Material_createImageMaterialRenderThread(
-      tEngine, onComplete.cast());
+      tEngine.cast(), onComplete.cast());
   return result;
 }
 
@@ -3521,7 +4278,7 @@ void Material_createGizmoMaterialRenderThread(
       onComplete,
 ) {
   final result = _lib._Material_createGizmoMaterialRenderThread(
-      tEngine, onComplete.cast());
+      tEngine.cast(), onComplete.cast());
   return result;
 }
 
@@ -3532,17 +4289,19 @@ void ColorGrading_createRenderThread(
       callback,
 ) {
   final result = _lib._ColorGrading_createRenderThread(
-      tEngine, toneMapping, callback.cast());
+      tEngine.cast(), toneMapping, callback.cast());
   return result;
 }
 
 void View_setColorGradingRenderThread(
   self.Pointer<TView> tView,
   self.Pointer<TColorGrading> tColorGrading,
-  self.Pointer<self.NativeFunction<void Function()>> callback,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._View_setColorGradingRenderThread(
-      tView, tColorGrading, callback.cast());
+      tView.cast(),
+      tColorGrading.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3550,29 +4309,32 @@ void View_setBloomRenderThread(
   self.Pointer<TView> tView,
   bool enabled,
   double strength,
-  self.Pointer<self.NativeFunction<void Function()>> callback,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._View_setBloomRenderThread(
-      tView, enabled, strength, callback.cast());
+      tView.cast(),
+      enabled,
+      strength,
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void View_setCameraRenderThread(
   self.Pointer<TView> tView,
   self.Pointer<TCamera> tCamera,
-  self.Pointer<self.NativeFunction<void Function()>> callback,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._View_setCameraRenderThread(tView, tCamera, callback.cast());
+  final result = _lib._View_setCameraRenderThread(tView.cast(), tCamera.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void SceneAsset_destroyRenderThread(
   self.Pointer<TSceneAsset> tSceneAsset,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._SceneAsset_destroyRenderThread(tSceneAsset, onComplete.cast());
+  final result = _lib._SceneAsset_destroyRenderThread(tSceneAsset.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3584,8 +4346,12 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TSceneAsset>)>>
       onComplete,
 ) {
-  final result = _lib._SceneAsset_createFromFilamentAssetRenderThread(tEngine,
-      tAssetLoader, tNameComponentManager, tFilamentAsset, onComplete.cast());
+  final result = _lib._SceneAsset_createFromFilamentAssetRenderThread(
+      tEngine.cast(),
+      tAssetLoader.cast(),
+      tNameComponentManager.cast(),
+      tFilamentAsset.cast(),
+      onComplete.cast());
   return result;
 }
 
@@ -3596,8 +4362,8 @@ void SceneAsset_createInstanceRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TSceneAsset>)>>
       callback,
 ) {
-  final result = _lib._SceneAsset_createInstanceRenderThread(
-      asset, tMaterialInstances, materialInstanceCount, callback.cast());
+  final result = _lib._SceneAsset_createInstanceRenderThread(asset.cast(),
+      tMaterialInstances.cast(), materialInstanceCount, callback.cast());
   return result;
 }
 
@@ -3618,7 +4384,7 @@ void SceneAsset_createGeometryRenderThread(
       callback,
 ) {
   final result = _lib._SceneAsset_createGeometryRenderThread(
-      tEngine,
+      tEngine.cast(),
       vertices,
       numVertices,
       normals,
@@ -3628,7 +4394,7 @@ void SceneAsset_createGeometryRenderThread(
       indices,
       numIndices,
       tPrimitiveType,
-      materialInstances,
+      materialInstances.cast(),
       materialInstanceCount,
       callback.cast());
   return result;
@@ -3641,7 +4407,7 @@ void MaterialProvider_createMaterialInstanceRenderThread(
       callback,
 ) {
   final result = _lib._MaterialProvider_createMaterialInstanceRenderThread(
-      tMaterialProvider, tKey, callback.cast());
+      tMaterialProvider.cast(), tKey.cast(), callback.cast());
   return result;
 }
 
@@ -3651,7 +4417,7 @@ void AnimationManager_updateBoneMatricesRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> callback,
 ) {
   final result = _lib._AnimationManager_updateBoneMatricesRenderThread(
-      tAnimationManager, sceneAsset, callback.cast());
+      tAnimationManager.cast(), sceneAsset.cast(), callback.cast());
   return result;
 }
 
@@ -3663,7 +4429,11 @@ void AnimationManager_setMorphTargetWeightsRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> callback,
 ) {
   final result = _lib._AnimationManager_setMorphTargetWeightsRenderThread(
-      tAnimationManager, entityId, morphData, numWeights, callback.cast());
+      tAnimationManager.cast(),
+      entityId,
+      morphData,
+      numWeights,
+      callback.cast());
   return result;
 }
 
@@ -3681,7 +4451,7 @@ void Image_createEmptyRenderThread(
 
 void Image_decodeRenderThread(
   self.Pointer<Uint8> data,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   self.Pointer<Char> name,
   self.Pointer<self.NativeFunction<void Function(Pointer<TLinearImage>)>>
       onComplete,
@@ -3696,16 +4466,16 @@ void Image_getBytesRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<Float32>)>> onComplete,
 ) {
   final result =
-      _lib._Image_getBytesRenderThread(tLinearImage, onComplete.cast());
+      _lib._Image_getBytesRenderThread(tLinearImage.cast(), onComplete.cast());
   return result;
 }
 
 void Image_destroyRenderThread(
   self.Pointer<TLinearImage> tLinearImage,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Image_destroyRenderThread(tLinearImage, onComplete.cast());
+  final result = _lib._Image_destroyRenderThread(tLinearImage.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3714,7 +4484,7 @@ void Image_getWidthRenderThread(
   self.Pointer<self.NativeFunction<void Function(int)>> onComplete,
 ) {
   final result =
-      _lib._Image_getWidthRenderThread(tLinearImage, onComplete.cast());
+      _lib._Image_getWidthRenderThread(tLinearImage.cast(), onComplete.cast());
   return result;
 }
 
@@ -3723,7 +4493,7 @@ void Image_getHeightRenderThread(
   self.Pointer<self.NativeFunction<void Function(int)>> onComplete,
 ) {
   final result =
-      _lib._Image_getHeightRenderThread(tLinearImage, onComplete.cast());
+      _lib._Image_getHeightRenderThread(tLinearImage.cast(), onComplete.cast());
   return result;
 }
 
@@ -3731,8 +4501,8 @@ void Image_getChannelsRenderThread(
   self.Pointer<TLinearImage> tLinearImage,
   self.Pointer<self.NativeFunction<void Function(int)>> onComplete,
 ) {
-  final result =
-      _lib._Image_getChannelsRenderThread(tLinearImage, onComplete.cast());
+  final result = _lib._Image_getChannelsRenderThread(
+      tLinearImage.cast(), onComplete.cast());
   return result;
 }
 
@@ -3744,8 +4514,13 @@ void Texture_loadImageRenderThread(
   int pixelDataType,
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
 ) {
-  final result = _lib._Texture_loadImageRenderThread(tEngine, tTexture, tImage,
-      bufferFormat, pixelDataType, onComplete.cast());
+  final result = _lib._Texture_loadImageRenderThread(
+      tEngine.cast(),
+      tTexture.cast(),
+      tImage.cast(),
+      bufferFormat,
+      pixelDataType,
+      onComplete.cast());
   return result;
 }
 
@@ -3754,7 +4529,7 @@ void Texture_setImageRenderThread(
   self.Pointer<TTexture> tTexture,
   int level,
   self.Pointer<Uint8> data,
-  Dartsize_t size,
+  Dart__darwin_size_t size,
   int width,
   int height,
   int channels,
@@ -3763,8 +4538,8 @@ void Texture_setImageRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = _lib._Texture_setImageRenderThread(
-      tEngine,
-      tTexture,
+      tEngine.cast(),
+      tTexture.cast(),
       level,
       data,
       size,
@@ -3782,7 +4557,7 @@ void Texture_setImageWithDepthRenderThread(
   self.Pointer<TTexture> tTexture,
   int level,
   self.Pointer<Uint8> data,
-  Dartsize_t size,
+  Dart__darwin_size_t size,
   int x_offset,
   int y_offset,
   int z_offset,
@@ -3795,8 +4570,8 @@ void Texture_setImageWithDepthRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = _lib._Texture_setImageWithDepthRenderThread(
-      tEngine,
-      tTexture,
+      tEngine.cast(),
+      tTexture.cast(),
       level,
       data,
       size,
@@ -3819,7 +4594,7 @@ void RenderTarget_getColorTextureRenderThread(
       onComplete,
 ) {
   final result = _lib._RenderTarget_getColorTextureRenderThread(
-      tRenderTarget, onComplete.cast());
+      tRenderTarget.cast(), onComplete.cast());
   return result;
 }
 
@@ -3832,18 +4607,20 @@ void RenderTarget_createRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TRenderTarget>)>>
       onComplete,
 ) {
-  final result = _lib._RenderTarget_createRenderThread(
-      tEngine, width, height, color, depth, onComplete.cast());
+  final result = _lib._RenderTarget_createRenderThread(tEngine.cast(), width,
+      height, color.cast(), depth.cast(), onComplete.cast());
   return result;
 }
 
 void RenderTarget_destroyRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TRenderTarget> tRenderTarget,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._RenderTarget_destroyRenderThread(
-      tEngine, tRenderTarget, onComplete.cast());
+      tEngine.cast(),
+      tRenderTarget.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3883,60 +4660,62 @@ void TextureSampler_createWithComparisonRenderThread(
 void TextureSampler_setMinFilterRenderThread(
   self.Pointer<TTextureSampler> sampler,
   int filter,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._TextureSampler_setMinFilterRenderThread(
-      sampler, filter, onComplete.cast());
+  final result = _lib._TextureSampler_setMinFilterRenderThread(sampler.cast(),
+      filter, onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void TextureSampler_setMagFilterRenderThread(
   self.Pointer<TTextureSampler> sampler,
   int filter,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._TextureSampler_setMagFilterRenderThread(
-      sampler, filter, onComplete.cast());
+  final result = _lib._TextureSampler_setMagFilterRenderThread(sampler.cast(),
+      filter, onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void TextureSampler_setWrapModeSRenderThread(
   self.Pointer<TTextureSampler> sampler,
   int mode,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._TextureSampler_setWrapModeSRenderThread(
-      sampler, mode, onComplete.cast());
+  final result = _lib._TextureSampler_setWrapModeSRenderThread(sampler.cast(),
+      mode, onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void TextureSampler_setWrapModeTRenderThread(
   self.Pointer<TTextureSampler> sampler,
   int mode,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._TextureSampler_setWrapModeTRenderThread(
-      sampler, mode, onComplete.cast());
+  final result = _lib._TextureSampler_setWrapModeTRenderThread(sampler.cast(),
+      mode, onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void TextureSampler_setWrapModeRRenderThread(
   self.Pointer<TTextureSampler> sampler,
   int mode,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result = _lib._TextureSampler_setWrapModeRRenderThread(
-      sampler, mode, onComplete.cast());
+  final result = _lib._TextureSampler_setWrapModeRRenderThread(sampler.cast(),
+      mode, onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void TextureSampler_setAnisotropyRenderThread(
   self.Pointer<TTextureSampler> sampler,
   double anisotropy,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._TextureSampler_setAnisotropyRenderThread(
-      sampler, anisotropy, onComplete.cast());
+      sampler.cast(),
+      anisotropy,
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3944,19 +4723,22 @@ void TextureSampler_setCompareModeRenderThread(
   self.Pointer<TTextureSampler> sampler,
   int mode,
   int func,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._TextureSampler_setCompareModeRenderThread(
-      sampler, mode, func, onComplete.cast());
+      sampler.cast(),
+      mode,
+      func,
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
 void TextureSampler_destroyRenderThread(
   self.Pointer<TTextureSampler> sampler,
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._TextureSampler_destroyRenderThread(sampler, onComplete.cast());
+  final result = _lib._TextureSampler_destroyRenderThread(sampler.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3969,7 +4751,7 @@ void AnimationManager_setBoneTransformRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> callback,
 ) {
   final result = _lib._AnimationManager_setBoneTransformRenderThread(
-      tAnimationManager,
+      tAnimationManager.cast(),
       asset,
       skinIndex,
       boneIndex,
@@ -3981,10 +4763,12 @@ void AnimationManager_setBoneTransformRenderThread(
 void AnimationManager_resetToRestPoseRenderThread(
   self.Pointer<TAnimationManager> tAnimationManager,
   DartEntityId entityId,
-  self.Pointer<self.NativeFunction<void Function()>> callback,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._AnimationManager_resetToRestPoseRenderThread(
-      tAnimationManager, entityId, callback.cast());
+      tAnimationManager.cast(),
+      entityId,
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -3995,28 +4779,29 @@ void GltfAssetLoader_createRenderThread(
       callback,
 ) {
   final result = _lib._GltfAssetLoader_createRenderThread(
-      tEngine, tMaterialProvider, callback.cast());
+      tEngine.cast(), tMaterialProvider.cast(), callback.cast());
   return result;
 }
 
 void GltfResourceLoader_createRenderThread(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<Char> relativeResourcePath,
   self.Pointer<self.NativeFunction<void Function(Pointer<TGltfResourceLoader>)>>
       callback,
 ) {
   final result = _lib._GltfResourceLoader_createRenderThread(
-      tEngine, relativeResourcePath, callback.cast());
+      tEngine.cast(), callback.cast());
   return result;
 }
 
 void GltfResourceLoader_destroyRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TGltfResourceLoader> tResourceLoader,
-  self.Pointer<self.NativeFunction<void Function()>> callback,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._GltfResourceLoader_destroyRenderThread(
-      tEngine, tResourceLoader, callback.cast());
+      tEngine.cast(),
+      tResourceLoader.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -4026,7 +4811,7 @@ void GltfResourceLoader_loadResourcesRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> callback,
 ) {
   final result = _lib._GltfResourceLoader_loadResourcesRenderThread(
-      tGltfResourceLoader, tFilamentAsset, callback.cast());
+      tGltfResourceLoader.cast(), tFilamentAsset.cast(), callback.cast());
   return result;
 }
 
@@ -4034,11 +4819,15 @@ void GltfResourceLoader_addResourceDataRenderThread(
   self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
   self.Pointer<Char> uri,
   self.Pointer<Uint8> data,
-  Dartsize_t length,
-  self.Pointer<self.NativeFunction<void Function()>> callback,
+  Dart__darwin_size_t length,
+  DartVoidCallback onComplete,
 ) {
   final result = _lib._GltfResourceLoader_addResourceDataRenderThread(
-      tGltfResourceLoader, uri, data, length, callback.cast());
+      tGltfResourceLoader.cast(),
+      uri,
+      data,
+      length,
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -4048,15 +4837,15 @@ void GltfResourceLoader_asyncBeginLoadRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> callback,
 ) {
   final result = _lib._GltfResourceLoader_asyncBeginLoadRenderThread(
-      tGltfResourceLoader, tFilamentAsset, callback.cast());
+      tGltfResourceLoader.cast(), tFilamentAsset.cast(), callback.cast());
   return result;
 }
 
 void GltfResourceLoader_asyncUpdateLoadRenderThread(
   self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
 ) {
-  final result =
-      _lib._GltfResourceLoader_asyncUpdateLoadRenderThread(tGltfResourceLoader);
+  final result = _lib._GltfResourceLoader_asyncUpdateLoadRenderThread(
+      tGltfResourceLoader.cast());
   return result;
 }
 
@@ -4065,7 +4854,7 @@ void GltfResourceLoader_asyncGetLoadProgressRenderThread(
   self.Pointer<self.NativeFunction<void Function(double)>> callback,
 ) {
   final result = _lib._GltfResourceLoader_asyncGetLoadProgressRenderThread(
-      tGltfResourceLoader, callback.cast());
+      tGltfResourceLoader.cast(), callback.cast());
   return result;
 }
 
@@ -4073,23 +4862,25 @@ void GltfAssetLoader_loadRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TGltfAssetLoader> tAssetLoader,
   self.Pointer<Uint8> data,
-  Dartsize_t length,
+  Dart__darwin_size_t length,
   int numInstances,
   self.Pointer<self.NativeFunction<void Function(Pointer<TFilamentAsset>)>>
       callback,
 ) {
-  final result = _lib._GltfAssetLoader_loadRenderThread(
-      tEngine, tAssetLoader, data, length, numInstances, callback.cast());
+  final result = _lib._GltfAssetLoader_loadRenderThread(tEngine.cast(),
+      tAssetLoader.cast(), data, length, numInstances, callback.cast());
   return result;
 }
 
 void Scene_addFilamentAssetRenderThread(
   self.Pointer<TScene> tScene,
   self.Pointer<TFilamentAsset> tAsset,
-  self.Pointer<self.NativeFunction<void Function()>> callback,
+  DartVoidCallback onComplete,
 ) {
-  final result =
-      _lib._Scene_addFilamentAssetRenderThread(tScene, tAsset, callback.cast());
+  final result = _lib._Scene_addFilamentAssetRenderThread(
+      tScene.cast(),
+      tAsset.cast(),
+      onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -4104,14 +4895,75 @@ void Gizmo_createRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TGizmo>)>> callback,
 ) {
   final result = _lib._Gizmo_createRenderThread(
-      tEngine,
-      tAssetLoader,
-      tGltfResourceLoader,
-      tNameComponentManager,
-      tView,
-      tMaterial,
+      tEngine.cast(),
+      tAssetLoader.cast(),
+      tGltfResourceLoader.cast(),
+      tNameComponentManager.cast(),
+      tView.cast(),
+      tMaterial.cast(),
       tGizmoType,
       callback.cast());
+  return result;
+}
+
+self.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
+  self.Pointer<TEngine> tEngine,
+) {
+  final result = _lib._GltfResourceLoader_create(tEngine.cast());
+  return self.Pointer<TGltfResourceLoader>(result);
+}
+
+void GltfResourceLoader_destroy(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+) {
+  final result = _lib._GltfResourceLoader_destroy(
+      tEngine.cast(), tGltfResourceLoader.cast());
+  return result;
+}
+
+bool GltfResourceLoader_asyncBeginLoad(
+  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  self.Pointer<TFilamentAsset> tFilamentAsset,
+) {
+  final result = _lib._GltfResourceLoader_asyncBeginLoad(
+      tGltfResourceLoader.cast(), tFilamentAsset.cast());
+  return result;
+}
+
+void GltfResourceLoader_asyncUpdateLoad(
+  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+) {
+  final result =
+      _lib._GltfResourceLoader_asyncUpdateLoad(tGltfResourceLoader.cast());
+  return result;
+}
+
+double GltfResourceLoader_asyncGetLoadProgress(
+  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+) {
+  final result =
+      _lib._GltfResourceLoader_asyncGetLoadProgress(tGltfResourceLoader.cast());
+  return result;
+}
+
+void GltfResourceLoader_addResourceData(
+  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  self.Pointer<Char> uri,
+  self.Pointer<Uint8> data,
+  Dart__darwin_size_t length,
+) {
+  final result = _lib._GltfResourceLoader_addResourceData(
+      tGltfResourceLoader.cast(), uri, data, length);
+  return result;
+}
+
+bool GltfResourceLoader_loadResources(
+  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  self.Pointer<TFilamentAsset> tFilamentAsset,
+) {
+  final result = _lib._GltfResourceLoader_loadResources(
+      tGltfResourceLoader.cast(), tFilamentAsset.cast());
   return result;
 }
 
@@ -4122,7 +4974,10 @@ void RenderableManager_setMaterialInstanceAt(
   self.Pointer<TMaterialInstance> tMaterialInstance,
 ) {
   final result = _lib._RenderableManager_setMaterialInstanceAt(
-      tRenderableManager, entityId, primitiveIndex, tMaterialInstance);
+      tRenderableManager.cast(),
+      entityId,
+      primitiveIndex,
+      tMaterialInstance.cast());
   return result;
 }
 
@@ -4132,7 +4987,7 @@ self.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
   int primitiveIndex,
 ) {
   final result = _lib._RenderableManager_getMaterialInstanceAt(
-      tRenderableManager, entityId, primitiveIndex);
+      tRenderableManager.cast(), entityId, primitiveIndex);
   return self.Pointer<TMaterialInstance>(result);
 }
 
@@ -4141,7 +4996,7 @@ bool RenderableManager_isRenderable(
   DartEntityId entityId,
 ) {
   final result =
-      _lib._RenderableManager_isRenderable(tRenderableManager, entityId);
+      _lib._RenderableManager_isRenderable(tRenderableManager.cast(), entityId);
   return result;
 }
 
@@ -4150,14 +5005,14 @@ bool RenderableManager_hasComponent(
   DartEntityId entityId,
 ) {
   final result =
-      _lib._RenderableManager_hasComponent(tRenderableManager, entityId);
+      _lib._RenderableManager_hasComponent(tRenderableManager.cast(), entityId);
   return result;
 }
 
 bool RenderableManager_empty(
   self.Pointer<TRenderableManager> tRenderableManager,
 ) {
-  final result = _lib._RenderableManager_empty(tRenderableManager);
+  final result = _lib._RenderableManager_empty(tRenderableManager.cast());
   return result;
 }
 
@@ -4167,7 +5022,7 @@ bool RenderableManager_getLightChannel(
   int channel,
 ) {
   final result = _lib._RenderableManager_getLightChannel(
-      tRenderableManager, entityId, channel);
+      tRenderableManager.cast(), entityId, channel);
   return result;
 }
 
@@ -4175,8 +5030,8 @@ bool RenderableManager_isShadowCaster(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
 ) {
-  final result =
-      _lib._RenderableManager_isShadowCaster(tRenderableManager, entityId);
+  final result = _lib._RenderableManager_isShadowCaster(
+      tRenderableManager.cast(), entityId);
   return result;
 }
 
@@ -4186,7 +5041,7 @@ void RenderableManager_setCastShadows(
   bool castShadows,
 ) {
   final result = _lib._RenderableManager_setCastShadows(
-      tRenderableManager, entityId, castShadows);
+      tRenderableManager.cast(), entityId, castShadows);
   return result;
 }
 
@@ -4196,7 +5051,7 @@ void RenderableManager_setReceiveShadows(
   bool receiveShadows,
 ) {
   final result = _lib._RenderableManager_setReceiveShadows(
-      tRenderableManager, entityId, receiveShadows);
+      tRenderableManager.cast(), entityId, receiveShadows);
   return result;
 }
 
@@ -4204,8 +5059,8 @@ bool RenderableManager_isShadowReceiver(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
 ) {
-  final result =
-      _lib._RenderableManager_isShadowReceiver(tRenderableManager, entityId);
+  final result = _lib._RenderableManager_isShadowReceiver(
+      tRenderableManager.cast(), entityId);
   return result;
 }
 
@@ -4213,8 +5068,8 @@ bool RenderableManager_getFogEnabled(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
 ) {
-  final result =
-      _lib._RenderableManager_getFogEnabled(tRenderableManager, entityId);
+  final result = _lib._RenderableManager_getFogEnabled(
+      tRenderableManager.cast(), entityId);
   return result;
 }
 
@@ -4223,8 +5078,8 @@ Aabb3 RenderableManager_getAabb(
   DartEntityId entityId,
 ) {
   final Aabb3_out = Aabb3.stackAlloc();
-  final result =
-      _lib._RenderableManager_getAabb(Aabb3_out, tRenderableManager, entityId);
+  final result = _lib._RenderableManager_getAabb(
+      Aabb3_out.cast(), tRenderableManager.cast(), entityId);
   return Aabb3_out.toDart();
 }
 
@@ -4234,7 +5089,7 @@ void RenderableManager_setVisibilityLayer(
   int layer,
 ) {
   final result = _lib._RenderableManager_setVisibilityLayer(
-      tRenderableManager, entityId, layer);
+      tRenderableManager.cast(), entityId, layer);
   return result;
 }
 
@@ -4244,86 +5099,7 @@ void RenderableManager_setPriority(
   int priority,
 ) {
   final result = _lib._RenderableManager_setPriority(
-      tRenderableManager, entityId, priority);
-  return result;
-}
-
-double4x4 TransformManager_getLocalTransform(
-  self.Pointer<TTransformManager> tTransformManager,
-  DartEntityId entityId,
-) {
-  final double4x4_out = double4x4.stackAlloc();
-  final result = _lib._TransformManager_getLocalTransform(
-      double4x4_out, tTransformManager, entityId);
-  return double4x4_out.toDart();
-}
-
-double4x4 TransformManager_getWorldTransform(
-  self.Pointer<TTransformManager> tTransformManager,
-  DartEntityId entityId,
-) {
-  final double4x4_out = double4x4.stackAlloc();
-  final result = _lib._TransformManager_getWorldTransform(
-      double4x4_out, tTransformManager, entityId);
-  return double4x4_out.toDart();
-}
-
-void TransformManager_setTransform(
-  self.Pointer<TTransformManager> tTransformManager,
-  DartEntityId entityId,
-  double4x4 transform,
-) {
-  final result = _lib._TransformManager_setTransform(
-      tTransformManager, entityId, transform._address.cast());
-  return result;
-}
-
-bool TransformManager_transformToUnitCube(
-  self.Pointer<TTransformManager> tTransformManager,
-  DartEntityId entityId,
-  Aabb3 boundingBox,
-) {
-  final boundingBox_structPtr = Aabb3.stackAlloc();
-  _lib.setValue(boundingBox_structPtr + 0, boundingBox.centerX.toJS, 'float');
-  _lib.setValue(boundingBox_structPtr + 4, boundingBox.centerY.toJS, 'float');
-  _lib.setValue(boundingBox_structPtr + 8, boundingBox.centerZ.toJS, 'float');
-  _lib.setValue(
-      boundingBox_structPtr + 12, boundingBox.halfExtentX.toJS, 'float');
-  _lib.setValue(
-      boundingBox_structPtr + 16, boundingBox.halfExtentY.toJS, 'float');
-  _lib.setValue(
-      boundingBox_structPtr + 20, boundingBox.halfExtentZ.toJS, 'float');
-
-  final result = _lib._TransformManager_transformToUnitCube(
-      tTransformManager, entityId, boundingBox_structPtr);
-  return result;
-}
-
-void TransformManager_setParent(
-  self.Pointer<TTransformManager> tTransformManager,
-  DartEntityId child,
-  DartEntityId parent,
-  bool preserveScaling,
-) {
-  final result = _lib._TransformManager_setParent(
-      tTransformManager, child, parent, preserveScaling);
-  return result;
-}
-
-DartEntityId TransformManager_getParent(
-  self.Pointer<TTransformManager> tTransformManager,
-  DartEntityId child,
-) {
-  final result = _lib._TransformManager_getParent(tTransformManager, child);
-  return result;
-}
-
-DartEntityId TransformManager_getAncestor(
-  self.Pointer<TTransformManager> tTransformManager,
-  DartEntityId childEntityId,
-) {
-  final result =
-      _lib._TransformManager_getAncestor(tTransformManager, childEntityId);
+      tRenderableManager.cast(), entityId, priority);
   return result;
 }
 
@@ -4342,7 +5118,7 @@ self.Pointer<TSceneAsset> SceneAsset_createGeometry(
   int materialInstanceCount,
 ) {
   final result = _lib._SceneAsset_createGeometry(
-      tEngine,
+      tEngine.cast(),
       vertices,
       numVertices,
       normals,
@@ -4352,7 +5128,7 @@ self.Pointer<TSceneAsset> SceneAsset_createGeometry(
       indices,
       numIndices,
       tPrimitiveType,
-      materialInstances,
+      materialInstances.cast(),
       materialInstanceCount);
   return self.Pointer<TSceneAsset>(result);
 }
@@ -4363,15 +5139,15 @@ self.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   self.Pointer<TNameComponentManager> tNameComponentManager,
   self.Pointer<TFilamentAsset> tFilamentAsset,
 ) {
-  final result = _lib._SceneAsset_createFromFilamentAsset(
-      tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset);
+  final result = _lib._SceneAsset_createFromFilamentAsset(tEngine.cast(),
+      tAssetLoader.cast(), tNameComponentManager.cast(), tFilamentAsset.cast());
   return self.Pointer<TSceneAsset>(result);
 }
 
 self.Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getFilamentAsset(tSceneAsset);
+  final result = _lib._SceneAsset_getFilamentAsset(tSceneAsset.cast());
   return self.Pointer<TFilamentAsset>(result);
 }
 
@@ -4379,14 +5155,14 @@ self.Pointer<TSceneAsset> SceneAsset_createGrid(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TMaterial> tMaterial,
 ) {
-  final result = _lib._SceneAsset_createGrid(tEngine, tMaterial);
+  final result = _lib._SceneAsset_createGrid(tEngine.cast(), tMaterial.cast());
   return self.Pointer<TSceneAsset>(result);
 }
 
 void SceneAsset_destroy(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_destroy(tSceneAsset);
+  final result = _lib._SceneAsset_destroy(tSceneAsset.cast());
   return result;
 }
 
@@ -4394,7 +5170,7 @@ void SceneAsset_addToScene(
   self.Pointer<TSceneAsset> tSceneAsset,
   self.Pointer<TScene> tScene,
 ) {
-  final result = _lib._SceneAsset_addToScene(tSceneAsset, tScene);
+  final result = _lib._SceneAsset_addToScene(tSceneAsset.cast(), tScene.cast());
   return result;
 }
 
@@ -4402,21 +5178,22 @@ void SceneAsset_removeFromScene(
   self.Pointer<TSceneAsset> tSceneAsset,
   self.Pointer<TScene> tScene,
 ) {
-  final result = _lib._SceneAsset_removeFromScene(tSceneAsset, tScene);
+  final result =
+      _lib._SceneAsset_removeFromScene(tSceneAsset.cast(), tScene.cast());
   return result;
 }
 
 DartEntityId SceneAsset_getEntity(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getEntity(tSceneAsset);
+  final result = _lib._SceneAsset_getEntity(tSceneAsset.cast());
   return result;
 }
 
 int SceneAsset_getChildEntityCount(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getChildEntityCount(tSceneAsset);
+  final result = _lib._SceneAsset_getChildEntityCount(tSceneAsset.cast());
   return result;
 }
 
@@ -4424,35 +5201,35 @@ void SceneAsset_getChildEntities(
   self.Pointer<TSceneAsset> tSceneAsset,
   self.Pointer<Int32> out,
 ) {
-  final result = _lib._SceneAsset_getChildEntities(tSceneAsset, out);
+  final result = _lib._SceneAsset_getChildEntities(tSceneAsset.cast(), out);
   return result;
 }
 
 self.Pointer<Int32> SceneAsset_getCameraEntities(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getCameraEntities(tSceneAsset);
+  final result = _lib._SceneAsset_getCameraEntities(tSceneAsset.cast());
   return self.Pointer<Int32>(result);
 }
 
-Dartsize_t SceneAsset_getCameraEntityCount(
+Dart__darwin_size_t SceneAsset_getCameraEntityCount(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getCameraEntityCount(tSceneAsset);
+  final result = _lib._SceneAsset_getCameraEntityCount(tSceneAsset.cast());
   return result;
 }
 
 self.Pointer<Int32> SceneAsset_getLightEntities(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getLightEntities(tSceneAsset);
+  final result = _lib._SceneAsset_getLightEntities(tSceneAsset.cast());
   return self.Pointer<Int32>(result);
 }
 
-Dartsize_t SceneAsset_getLightEntityCount(
+Dart__darwin_size_t SceneAsset_getLightEntityCount(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getLightEntityCount(tSceneAsset);
+  final result = _lib._SceneAsset_getLightEntityCount(tSceneAsset.cast());
   return result;
 }
 
@@ -4460,14 +5237,14 @@ self.Pointer<TSceneAsset> SceneAsset_getInstance(
   self.Pointer<TSceneAsset> tSceneAsset,
   int index,
 ) {
-  final result = _lib._SceneAsset_getInstance(tSceneAsset, index);
+  final result = _lib._SceneAsset_getInstance(tSceneAsset.cast(), index);
   return self.Pointer<TSceneAsset>(result);
 }
 
-Dartsize_t SceneAsset_getInstanceCount(
+Dart__darwin_size_t SceneAsset_getInstanceCount(
   self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result = _lib._SceneAsset_getInstanceCount(tSceneAsset);
+  final result = _lib._SceneAsset_getInstanceCount(tSceneAsset.cast());
   return result;
 }
 
@@ -4477,7 +5254,7 @@ self.Pointer<TSceneAsset> SceneAsset_createInstance(
   int materialInstanceCount,
 ) {
   final result = _lib._SceneAsset_createInstance(
-      asset, materialInstances, materialInstanceCount);
+      asset.cast(), materialInstances.cast(), materialInstanceCount);
   return self.Pointer<TSceneAsset>(result);
 }
 
@@ -4485,120 +5262,16 @@ Aabb3 SceneAsset_getBoundingBox(
   self.Pointer<TSceneAsset> asset,
 ) {
   final Aabb3_out = Aabb3.stackAlloc();
-  final result = _lib._SceneAsset_getBoundingBox(Aabb3_out, asset);
+  final result =
+      _lib._SceneAsset_getBoundingBox(Aabb3_out.cast(), asset.cast());
   return Aabb3_out.toDart();
-}
-
-void LightManager_setPosition(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId light,
-  double x,
-  double y,
-  double z,
-) {
-  final result = _lib._LightManager_setPosition(tLightManager, light, x, y, z);
-  return result;
-}
-
-void LightManager_setDirection(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId light,
-  double x,
-  double y,
-  double z,
-) {
-  final result = _lib._LightManager_setDirection(tLightManager, light, x, y, z);
-  return result;
-}
-
-int LightManager_createLight(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TLightManager> tLightManager,
-  int tLightTtype,
-) {
-  final result =
-      _lib._LightManager_createLight(tEngine, tLightManager, tLightTtype);
-  return result;
-}
-
-void LightManager_destroyLight(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-) {
-  final result = _lib._LightManager_destroyLight(tLightManager, entity);
-  return result;
-}
-
-void LightManager_setColor(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  double colorTemperature,
-) {
-  final result =
-      _lib._LightManager_setColor(tLightManager, entity, colorTemperature);
-  return result;
-}
-
-void LightManager_setIntensity(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  double intensity,
-) {
-  final result =
-      _lib._LightManager_setIntensity(tLightManager, entity, intensity);
-  return result;
-}
-
-void LightManager_setFalloff(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  double falloff,
-) {
-  final result = _lib._LightManager_setFalloff(tLightManager, entity, falloff);
-  return result;
-}
-
-void LightManager_setSpotLightCone(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  double inner,
-  double outer,
-) {
-  final result =
-      _lib._LightManager_setSpotLightCone(tLightManager, entity, inner, outer);
-  return result;
-}
-
-void LightManager_setShadowCaster(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  bool enabled,
-) {
-  final result =
-      _lib._LightManager_setShadowCaster(tLightManager, entity, enabled);
-  return result;
-}
-
-int FilamentAsset_getEntityCount(
-  self.Pointer<TFilamentAsset> filamentAsset,
-) {
-  final result = _lib._FilamentAsset_getEntityCount(filamentAsset);
-  return result;
-}
-
-void FilamentAsset_getEntities(
-  self.Pointer<TFilamentAsset> filamentAsset,
-  self.Pointer<Int32> out,
-) {
-  final result = _lib._FilamentAsset_getEntities(filamentAsset, out);
-  return result;
 }
 
 self.Pointer<TAnimationManager> AnimationManager_create(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TScene> tScene,
 ) {
-  final result = _lib._AnimationManager_create(tEngine, tScene);
+  final result = _lib._AnimationManager_create(tEngine.cast(), tScene.cast());
   return self.Pointer<TAnimationManager>(result);
 }
 
@@ -4607,25 +5280,61 @@ void AnimationManager_update(
   BigInt frameTimeInNanos,
 ) {
   final result = _lib._AnimationManager_update(
-      tAnimationManager, frameTimeInNanos.toJSBigInt);
+      tAnimationManager.cast(), frameTimeInNanos.toJSBigInt);
   return result;
 }
 
-void AnimationManager_addAnimationComponent(
+bool AnimationManager_addGltfAnimationComponent(
   self.Pointer<TAnimationManager> tAnimationManager,
-  DartEntityId entityId,
+  self.Pointer<TSceneAsset> tSceneAsset,
 ) {
-  final result =
-      _lib._AnimationManager_addAnimationComponent(tAnimationManager, entityId);
+  final result = _lib._AnimationManager_addGltfAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
   return result;
 }
 
-void AnimationManager_removeAnimationComponent(
+bool AnimationManager_removeGltfAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = _lib._AnimationManager_removeGltfAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
+  return result;
+}
+
+void AnimationManager_addMorphAnimationComponent(
   self.Pointer<TAnimationManager> tAnimationManager,
   DartEntityId entityId,
 ) {
-  final result = _lib._AnimationManager_removeAnimationComponent(
-      tAnimationManager, entityId);
+  final result = _lib._AnimationManager_addMorphAnimationComponent(
+      tAnimationManager.cast(), entityId);
+  return result;
+}
+
+void AnimationManager_removeMorphAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  DartEntityId entityId,
+) {
+  final result = _lib._AnimationManager_removeMorphAnimationComponent(
+      tAnimationManager.cast(), entityId);
+  return result;
+}
+
+bool AnimationManager_addBoneAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = _lib._AnimationManager_addBoneAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
+  return result;
+}
+
+bool AnimationManager_removeBoneAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = _lib._AnimationManager_removeBoneAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
   return result;
 }
 
@@ -4639,7 +5348,7 @@ bool AnimationManager_setMorphAnimation(
   double frameLengthInMs,
 ) {
   final result = _lib._AnimationManager_setMorphAnimation(
-      tAnimationManager,
+      tAnimationManager.cast(),
       entityId,
       morphData,
       morphIndices,
@@ -4653,8 +5362,8 @@ bool AnimationManager_clearMorphAnimation(
   self.Pointer<TAnimationManager> tAnimationManager,
   DartEntityId entityId,
 ) {
-  final result =
-      _lib._AnimationManager_clearMorphAnimation(tAnimationManager, entityId);
+  final result = _lib._AnimationManager_clearMorphAnimation(
+      tAnimationManager.cast(), entityId);
   return result;
 }
 
@@ -4662,12 +5371,12 @@ void AnimationManager_resetToRestPose(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
 ) {
-  final result =
-      _lib._AnimationManager_resetToRestPose(tAnimationManager, sceneAsset);
+  final result = _lib._AnimationManager_resetToRestPose(
+      tAnimationManager.cast(), sceneAsset.cast());
   return result;
 }
 
-void AnimationManager_addBoneAnimation(
+bool AnimationManager_addBoneAnimation(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> tSceneAsset,
   int skinIndex,
@@ -4680,8 +5389,8 @@ void AnimationManager_addBoneAnimation(
   double maxDelta,
 ) {
   final result = _lib._AnimationManager_addBoneAnimation(
-      tAnimationManager,
-      tSceneAsset,
+      tAnimationManager.cast(),
+      tSceneAsset.cast(),
       skinIndex,
       boneIndex,
       frameData,
@@ -4700,7 +5409,7 @@ DartEntityId AnimationManager_getBone(
   int boneIndex,
 ) {
   final result = _lib._AnimationManager_getBone(
-      tAnimationManager, sceneAsset, skinIndex, boneIndex);
+      tAnimationManager.cast(), sceneAsset.cast(), skinIndex, boneIndex);
   return result;
 }
 
@@ -4712,7 +5421,7 @@ void AnimationManager_getRestLocalTransforms(
   int numBones,
 ) {
   final result = _lib._AnimationManager_getRestLocalTransforms(
-      tAnimationManager, sceneAsset, skinIndex, out, numBones);
+      tAnimationManager.cast(), sceneAsset.cast(), skinIndex, out, numBones);
   return result;
 }
 
@@ -4724,13 +5433,13 @@ void AnimationManager_getInverseBindMatrix(
   self.Pointer<Float32> out,
 ) {
   final result = _lib._AnimationManager_getInverseBindMatrix(
-      tAnimationManager, sceneAsset, skinIndex, boneIndex, out);
+      tAnimationManager.cast(), sceneAsset.cast(), skinIndex, boneIndex, out);
   return result;
 }
 
-void AnimationManager_playAnimation(
+bool AnimationManager_playGltfAnimation(
   self.Pointer<TAnimationManager> tAnimationManager,
-  self.Pointer<TSceneAsset> sceneAsset,
+  self.Pointer<TSceneAsset> tSceneAsset,
   int index,
   bool loop,
   bool reverse,
@@ -4738,48 +5447,55 @@ void AnimationManager_playAnimation(
   double crossfade,
   double startOffset,
 ) {
-  final result = _lib._AnimationManager_playAnimation(tAnimationManager,
-      sceneAsset, index, loop, reverse, replaceActive, crossfade, startOffset);
+  final result = _lib._AnimationManager_playGltfAnimation(
+      tAnimationManager.cast(),
+      tSceneAsset.cast(),
+      index,
+      loop,
+      reverse,
+      replaceActive,
+      crossfade,
+      startOffset);
   return result;
 }
 
-void AnimationManager_stopAnimation(
+bool AnimationManager_stopGltfAnimation(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
   int index,
 ) {
-  final result = _lib._AnimationManager_stopAnimation(
-      tAnimationManager, sceneAsset, index);
+  final result = _lib._AnimationManager_stopGltfAnimation(
+      tAnimationManager.cast(), sceneAsset.cast(), index);
   return result;
 }
 
-double AnimationManager_getAnimationDuration(
+double AnimationManager_getGltfAnimationDuration(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
   int animationIndex,
 ) {
-  final result = _lib._AnimationManager_getAnimationDuration(
-      tAnimationManager, sceneAsset, animationIndex);
+  final result = _lib._AnimationManager_getGltfAnimationDuration(
+      tAnimationManager.cast(), sceneAsset.cast(), animationIndex);
   return result;
 }
 
-int AnimationManager_getAnimationCount(
+int AnimationManager_getGltfAnimationCount(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
 ) {
-  final result =
-      _lib._AnimationManager_getAnimationCount(tAnimationManager, sceneAsset);
+  final result = _lib._AnimationManager_getGltfAnimationCount(
+      tAnimationManager.cast(), sceneAsset.cast());
   return result;
 }
 
-void AnimationManager_getAnimationName(
+void AnimationManager_getGltfAnimationName(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
   self.Pointer<Char> outPtr,
   int index,
 ) {
-  final result = _lib._AnimationManager_getAnimationName(
-      tAnimationManager, sceneAsset, outPtr, index);
+  final result = _lib._AnimationManager_getGltfAnimationName(
+      tAnimationManager.cast(), sceneAsset.cast(), outPtr, index);
   return result;
 }
 
@@ -4789,7 +5505,7 @@ int AnimationManager_getBoneCount(
   int skinIndex,
 ) {
   final result = _lib._AnimationManager_getBoneCount(
-      tAnimationManager, sceneAsset, skinIndex);
+      tAnimationManager.cast(), sceneAsset.cast(), skinIndex);
   return result;
 }
 
@@ -4800,7 +5516,7 @@ void AnimationManager_getBoneNames(
   int skinIndex,
 ) {
   final result = _lib._AnimationManager_getBoneNames(
-      tAnimationManager, sceneAsset, out, skinIndex);
+      tAnimationManager.cast(), sceneAsset.cast(), out, skinIndex);
   return result;
 }
 
@@ -4810,7 +5526,7 @@ int AnimationManager_getMorphTargetNameCount(
   DartEntityId childEntity,
 ) {
   final result = _lib._AnimationManager_getMorphTargetNameCount(
-      tAnimationManager, sceneAsset, childEntity);
+      tAnimationManager.cast(), sceneAsset.cast(), childEntity);
   return result;
 }
 
@@ -4822,7 +5538,7 @@ void AnimationManager_getMorphTargetName(
   int index,
 ) {
   final result = _lib._AnimationManager_getMorphTargetName(
-      tAnimationManager, sceneAsset, childEntity, outPtr, index);
+      tAnimationManager.cast(), sceneAsset.cast(), childEntity, outPtr, index);
   return result;
 }
 
@@ -4830,8 +5546,8 @@ bool AnimationManager_updateBoneMatrices(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
 ) {
-  final result =
-      _lib._AnimationManager_updateBoneMatrices(tAnimationManager, sceneAsset);
+  final result = _lib._AnimationManager_updateBoneMatrices(
+      tAnimationManager.cast(), sceneAsset.cast());
   return result;
 }
 
@@ -4842,7 +5558,7 @@ bool AnimationManager_setMorphTargetWeights(
   int numWeights,
 ) {
   final result = _lib._AnimationManager_setMorphTargetWeights(
-      tAnimationManager, entityId, morphData, numWeights);
+      tAnimationManager.cast(), entityId, morphData, numWeights);
   return result;
 }
 
@@ -4853,584 +5569,9 @@ void AnimationManager_setGltfAnimationFrame(
   int frame,
 ) {
   final result = _lib._AnimationManager_setGltfAnimationFrame(
-      tAnimationManager, tSceneAsset, animationIndex, frame);
+      tAnimationManager.cast(), tSceneAsset.cast(), animationIndex, frame);
   return result;
 }
-
-self.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<Char> relativeResourcePath,
-) {
-  final result = _lib._GltfResourceLoader_create(tEngine, relativeResourcePath);
-  return self.Pointer<TGltfResourceLoader>(result);
-}
-
-void GltfResourceLoader_destroy(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-) {
-  final result = _lib._GltfResourceLoader_destroy(tEngine, tGltfResourceLoader);
-  return result;
-}
-
-bool GltfResourceLoader_asyncBeginLoad(
-  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  self.Pointer<TFilamentAsset> tFilamentAsset,
-) {
-  final result = _lib._GltfResourceLoader_asyncBeginLoad(
-      tGltfResourceLoader, tFilamentAsset);
-  return result;
-}
-
-void GltfResourceLoader_asyncUpdateLoad(
-  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-) {
-  final result = _lib._GltfResourceLoader_asyncUpdateLoad(tGltfResourceLoader);
-  return result;
-}
-
-double GltfResourceLoader_asyncGetLoadProgress(
-  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-) {
-  final result =
-      _lib._GltfResourceLoader_asyncGetLoadProgress(tGltfResourceLoader);
-  return result;
-}
-
-void GltfResourceLoader_addResourceData(
-  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  self.Pointer<Char> uri,
-  self.Pointer<Uint8> data,
-  Dartsize_t length,
-) {
-  final result = _lib._GltfResourceLoader_addResourceData(
-      tGltfResourceLoader, uri, data, length);
-  return result;
-}
-
-bool GltfResourceLoader_loadResources(
-  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  self.Pointer<TFilamentAsset> tFilamentAsset,
-) {
-  final result = _lib._GltfResourceLoader_loadResources(
-      tGltfResourceLoader, tFilamentAsset);
-  return result;
-}
-
-self.Pointer<TRenderTarget> RenderTarget_create(
-  self.Pointer<TEngine> tEngine,
-  int width,
-  int height,
-  self.Pointer<TTexture> color,
-  self.Pointer<TTexture> depth,
-) {
-  final result =
-      _lib._RenderTarget_create(tEngine, width, height, color, depth);
-  return self.Pointer<TRenderTarget>(result);
-}
-
-void RenderTarget_destroy(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TRenderTarget> tRenderTarget,
-) {
-  final result = _lib._RenderTarget_destroy(tEngine, tRenderTarget);
-  return result;
-}
-
-void Gizmo_dummy(
-  int t,
-) {
-  final result = _lib._Gizmo_dummy(t);
-  return result;
-}
-
-self.Pointer<TGizmo> Gizmo_create(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TGltfAssetLoader> assetLoader,
-  self.Pointer<TGltfResourceLoader> tGltfResourceLoader,
-  self.Pointer<TNameComponentManager> tNameComponentManager,
-  self.Pointer<TView> tView,
-  self.Pointer<TMaterial> tMaterial,
-  int tGizmoType,
-) {
-  final result = _lib._Gizmo_create(tEngine, assetLoader, tGltfResourceLoader,
-      tNameComponentManager, tView, tMaterial, tGizmoType);
-  return self.Pointer<TGizmo>(result);
-}
-
-void Gizmo_pick(
-  self.Pointer<TGizmo> tGizmo,
-  int x,
-  int y,
-  DartGizmoPickCallback callback,
-) {
-  final result = _lib._Gizmo_pick(tGizmo, x, y,
-      callback as Pointer<self.NativeFunction<GizmoPickCallbackFunction>>);
-  return result;
-}
-
-void Gizmo_highlight(
-  self.Pointer<TGizmo> tGizmo,
-  int axis,
-) {
-  final result = _lib._Gizmo_highlight(tGizmo, axis);
-  return result;
-}
-
-void Gizmo_unhighlight(
-  self.Pointer<TGizmo> tGizmo,
-) {
-  final result = _lib._Gizmo_unhighlight(tGizmo);
-  return result;
-}
-
-void Camera_setExposure(
-  self.Pointer<TCamera> camera,
-  double aperture,
-  double shutterSpeed,
-  double sensitivity,
-) {
-  final result =
-      _lib._Camera_setExposure(camera, aperture, shutterSpeed, sensitivity);
-  return result;
-}
-
-double4x4 Camera_getModelMatrix(
-  self.Pointer<TCamera> camera,
-) {
-  final double4x4_out = double4x4.stackAlloc();
-  final result = _lib._Camera_getModelMatrix(double4x4_out, camera);
-  return double4x4_out.toDart();
-}
-
-double4x4 Camera_getViewMatrix(
-  self.Pointer<TCamera> camera,
-) {
-  final double4x4_out = double4x4.stackAlloc();
-  final result = _lib._Camera_getViewMatrix(double4x4_out, camera);
-  return double4x4_out.toDart();
-}
-
-double4x4 Camera_getProjectionMatrix(
-  self.Pointer<TCamera> camera,
-) {
-  final double4x4_out = double4x4.stackAlloc();
-  final result = _lib._Camera_getProjectionMatrix(double4x4_out, camera);
-  return double4x4_out.toDart();
-}
-
-double4x4 Camera_getCullingProjectionMatrix(
-  self.Pointer<TCamera> camera,
-) {
-  final double4x4_out = double4x4.stackAlloc();
-  final result = _lib._Camera_getCullingProjectionMatrix(double4x4_out, camera);
-  return double4x4_out.toDart();
-}
-
-void Camera_getFrustum(
-  self.Pointer<TCamera> camera,
-  self.Pointer<Float64> out,
-) {
-  final result = _lib._Camera_getFrustum(camera, out);
-  return result;
-}
-
-void Camera_setProjectionMatrix(
-  self.Pointer<TCamera> camera,
-  self.Pointer<Float64> matrix,
-  double near,
-  double far,
-) {
-  final result = _lib._Camera_setProjectionMatrix(camera, matrix, near, far);
-  return result;
-}
-
-void Camera_setProjectionFromFov(
-  self.Pointer<TCamera> camera,
-  double fovInDegrees,
-  double aspect,
-  double near,
-  double far,
-  bool horizontal,
-) {
-  final result = _lib._Camera_setProjectionFromFov(
-      camera, fovInDegrees, aspect, near, far, horizontal);
-  return result;
-}
-
-double Camera_getFocalLength(
-  self.Pointer<TCamera> camera,
-) {
-  final result = _lib._Camera_getFocalLength(camera);
-  return result;
-}
-
-void Camera_lookAt(
-  self.Pointer<TCamera> camera,
-  double3 eye,
-  double3 focus,
-  double3 up,
-) {
-  final eye_structPtr = double3.stackAlloc();
-  _lib.setValue(eye_structPtr + 0, eye.x.toJS, 'double');
-  _lib.setValue(eye_structPtr + 8, eye.y.toJS, 'double');
-  _lib.setValue(eye_structPtr + 16, eye.z.toJS, 'double');
-
-  final focus_structPtr = double3.stackAlloc();
-  _lib.setValue(focus_structPtr + 0, focus.x.toJS, 'double');
-  _lib.setValue(focus_structPtr + 8, focus.y.toJS, 'double');
-  _lib.setValue(focus_structPtr + 16, focus.z.toJS, 'double');
-
-  final up_structPtr = double3.stackAlloc();
-  _lib.setValue(up_structPtr + 0, up.x.toJS, 'double');
-  _lib.setValue(up_structPtr + 8, up.y.toJS, 'double');
-  _lib.setValue(up_structPtr + 16, up.z.toJS, 'double');
-
-  final result =
-      _lib._Camera_lookAt(camera, eye_structPtr, focus_structPtr, up_structPtr);
-  return result;
-}
-
-double Camera_getNear(
-  self.Pointer<TCamera> camera,
-) {
-  final result = _lib._Camera_getNear(camera);
-  return result;
-}
-
-double Camera_getCullingFar(
-  self.Pointer<TCamera> camera,
-) {
-  final result = _lib._Camera_getCullingFar(camera);
-  return result;
-}
-
-double Camera_getFov(
-  self.Pointer<TCamera> camera,
-  bool horizontal,
-) {
-  final result = _lib._Camera_getFov(camera, horizontal);
-  return result;
-}
-
-double Camera_getFocusDistance(
-  self.Pointer<TCamera> camera,
-) {
-  final result = _lib._Camera_getFocusDistance(camera);
-  return result;
-}
-
-void Camera_setFocusDistance(
-  self.Pointer<TCamera> camera,
-  double focusDistance,
-) {
-  final result = _lib._Camera_setFocusDistance(camera, focusDistance);
-  return result;
-}
-
-void Camera_setCustomProjectionWithCulling(
-  self.Pointer<TCamera> camera,
-  double4x4 projectionMatrix,
-  double near,
-  double far,
-) {
-  final projectionMatrix_structPtr = double4x4.stackAlloc();
-  _lib.writeArrayToMemory(
-      projectionMatrix.col1.asUint8List().toJS, projectionMatrix_structPtr + 0);
-  _lib.writeArrayToMemory(projectionMatrix.col2.asUint8List().toJS,
-      projectionMatrix_structPtr + 32);
-  _lib.writeArrayToMemory(projectionMatrix.col3.asUint8List().toJS,
-      projectionMatrix_structPtr + 64);
-  _lib.writeArrayToMemory(projectionMatrix.col4.asUint8List().toJS,
-      projectionMatrix_structPtr + 96);
-  final result = _lib._Camera_setCustomProjectionWithCulling(
-      camera, projectionMatrix_structPtr, near, far);
-  return result;
-}
-
-void Camera_setModelMatrix(
-  self.Pointer<TCamera> camera,
-  self.Pointer<Float64> tModelMatrix,
-) {
-  final result = _lib._Camera_setModelMatrix(camera, tModelMatrix);
-  return result;
-}
-
-void Camera_setLensProjection(
-  self.Pointer<TCamera> camera,
-  double near,
-  double far,
-  double aspect,
-  double focalLength,
-) {
-  final result =
-      _lib._Camera_setLensProjection(camera, near, far, aspect, focalLength);
-  return result;
-}
-
-DartEntityId Camera_getEntity(
-  self.Pointer<TCamera> camera,
-) {
-  final result = _lib._Camera_getEntity(camera);
-  return result;
-}
-
-void Camera_setProjection(
-  self.Pointer<TCamera> tCamera,
-  int projection,
-  double left,
-  double right,
-  double bottom,
-  double top,
-  double near,
-  double far,
-) {
-  final result = _lib._Camera_setProjection(
-      tCamera, projection, left, right, bottom, top, near, far);
-  return result;
-}
-
-self.Pointer<TNameComponentManager> NameComponentManager_create() {
-  final result = _lib._NameComponentManager_create();
-  return self.Pointer<TNameComponentManager>(result);
-}
-
-self.Pointer<Char> NameComponentManager_getName(
-  self.Pointer<TNameComponentManager> tNameComponentManager,
-  DartEntityId entity,
-) {
-  final result =
-      _lib._NameComponentManager_getName(tNameComponentManager, entity);
-  return self.Pointer<Char>(result);
-}
-
-self.Pointer<TRenderTicker> RenderTicker_create(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TRenderer> tRenderer,
-) {
-  final result = _lib._RenderTicker_create(tEngine, tRenderer);
-  return self.Pointer<TRenderTicker>(result);
-}
-
-void RenderTicker_destroy(
-  self.Pointer<TRenderTicker> tRenderTicker,
-) {
-  final result = _lib._RenderTicker_destroy(tRenderTicker);
-  return result;
-}
-
-void RenderTicker_addAnimationManager(
-  self.Pointer<TRenderTicker> tRenderTicker,
-  self.Pointer<TAnimationManager> tAnimationManager,
-) {
-  final result =
-      _lib._RenderTicker_addAnimationManager(tRenderTicker, tAnimationManager);
-  return result;
-}
-
-void RenderTicker_removeAnimationManager(
-  self.Pointer<TRenderTicker> tRenderTicker,
-  self.Pointer<TAnimationManager> tAnimationManager,
-) {
-  final result = _lib._RenderTicker_removeAnimationManager(
-      tRenderTicker, tAnimationManager);
-  return result;
-}
-
-void RenderTicker_render(
-  self.Pointer<TRenderTicker> tRenderTicker,
-  BigInt frameTimeInNanos,
-) {
-  final result =
-      _lib._RenderTicker_render(tRenderTicker, frameTimeInNanos.toJSBigInt);
-  return result;
-}
-
-void RenderTicker_setRenderable(
-  self.Pointer<TRenderTicker> tRenderTicker,
-  self.Pointer<TSwapChain> swapChain,
-  self.Pointer<self.PointerClass<TView>> views,
-  int numViews,
-) {
-  final result = _lib._RenderTicker_setRenderable(
-      tRenderTicker, swapChain, views, numViews);
-  return result;
-}
-
-void Renderer_setClearOptions(
-  self.Pointer<TRenderer> tRenderer,
-  double clearR,
-  double clearG,
-  double clearB,
-  double clearA,
-  int clearStencil,
-  bool clear,
-  bool discard,
-) {
-  final result = _lib._Renderer_setClearOptions(
-      tRenderer, clearR, clearG, clearB, clearA, clearStencil, clear, discard);
-  return result;
-}
-
-bool Renderer_beginFrame(
-  self.Pointer<TRenderer> tRenderer,
-  self.Pointer<TSwapChain> tSwapChain,
-  BigInt frameTimeInNanos,
-) {
-  final result = _lib._Renderer_beginFrame(
-      tRenderer, tSwapChain, frameTimeInNanos.toJSBigInt);
-  return result;
-}
-
-void Renderer_endFrame(
-  self.Pointer<TRenderer> tRenderer,
-) {
-  final result = _lib._Renderer_endFrame(tRenderer);
-  return result;
-}
-
-void Renderer_render(
-  self.Pointer<TRenderer> tRenderer,
-  self.Pointer<TView> tView,
-) {
-  final result = _lib._Renderer_render(tRenderer, tView);
-  return result;
-}
-
-void Renderer_renderStandaloneView(
-  self.Pointer<TRenderer> tRenderer,
-  self.Pointer<TView> tView,
-) {
-  final result = _lib._Renderer_renderStandaloneView(tRenderer, tView);
-  return result;
-}
-
-void Renderer_readPixels(
-  self.Pointer<TRenderer> tRenderer,
-  self.Pointer<TView> tView,
-  self.Pointer<TRenderTarget> tRenderTarget,
-  int tPixelBufferFormat,
-  int tPixelDataType,
-  self.Pointer<Uint8> out,
-  Dartsize_t outLength,
-) {
-  final result = _lib._Renderer_readPixels(tRenderer, tView, tRenderTarget,
-      tPixelBufferFormat, tPixelDataType, out, outLength);
-  return result;
-}
-
-void Renderer_setFrameInterval(
-  self.Pointer<TRenderer> tRenderer,
-  double headRoomRatio,
-  double scaleRate,
-  int history,
-  int interval,
-) {
-  final result = _lib._Renderer_setFrameInterval(
-      tRenderer, headRoomRatio, scaleRate, history, interval);
-  return result;
-}
-
-self.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TMaterialProvider> tMaterialProvider,
-) {
-  final result = _lib._GltfAssetLoader_create(tEngine, tMaterialProvider);
-  return self.Pointer<TGltfAssetLoader>(result);
-}
-
-self.Pointer<TFilamentAsset> GltfAssetLoader_load(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TGltfAssetLoader> tAssetLoader,
-  self.Pointer<Uint8> data,
-  Dartsize_t length,
-  int numInstances,
-) {
-  final result = _lib._GltfAssetLoader_load(
-      tEngine, tAssetLoader, data, length, numInstances);
-  return self.Pointer<TFilamentAsset>(result);
-}
-
-self.Pointer<TMaterialInstance> GltfAssetLoader_getMaterialInstance(
-  self.Pointer<TRenderableManager> tRenderableManager,
-  self.Pointer<TFilamentAsset> tAsset,
-) {
-  final result =
-      _lib._GltfAssetLoader_getMaterialInstance(tRenderableManager, tAsset);
-  return self.Pointer<TMaterialInstance>(result);
-}
-
-self.Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(
-  self.Pointer<TGltfAssetLoader> tAssetLoader,
-) {
-  final result = _lib._GltfAssetLoader_getMaterialProvider(tAssetLoader);
-  return self.Pointer<TMaterialProvider>(result);
-}
-
-int FilamentAsset_getResourceUriCount(
-  self.Pointer<TFilamentAsset> tFilamentAsset,
-) {
-  final result = _lib._FilamentAsset_getResourceUriCount(tFilamentAsset);
-  return result;
-}
-
-self.Pointer<self.PointerClass<Char>> FilamentAsset_getResourceUris(
-  self.Pointer<TFilamentAsset> tFilamentAsset,
-) {
-  final result = _lib._FilamentAsset_getResourceUris(tFilamentAsset);
-  return self.Pointer<self.PointerClass<Char>>(result);
-}
-
-void IndirectLight_setRotation(
-  self.Pointer<TIndirectLight> tIndirectLight,
-  self.Pointer<Float64> rotation,
-) {
-  final result = _lib._IndirectLight_setRotation(tIndirectLight, rotation);
-  return result;
-}
-
-void Scene_addEntity(
-  self.Pointer<TScene> tScene,
-  DartEntityId entityId,
-) {
-  final result = _lib._Scene_addEntity(tScene, entityId);
-  return result;
-}
-
-void Scene_removeEntity(
-  self.Pointer<TScene> tScene,
-  DartEntityId entityId,
-) {
-  final result = _lib._Scene_removeEntity(tScene, entityId);
-  return result;
-}
-
-void Scene_setSkybox(
-  self.Pointer<TScene> tScene,
-  self.Pointer<TSkybox> skybox,
-) {
-  final result = _lib._Scene_setSkybox(tScene, skybox);
-  return result;
-}
-
-void Scene_setIndirectLight(
-  self.Pointer<TScene> tScene,
-  self.Pointer<TIndirectLight> tIndirectLight,
-) {
-  final result = _lib._Scene_setIndirectLight(tScene, tIndirectLight);
-  return result;
-}
-
-void Scene_addFilamentAsset(
-  self.Pointer<TScene> tScene,
-  self.Pointer<TFilamentAsset> asset,
-) {
-  final result = _lib._Scene_addFilamentAsset(tScene, asset);
-  return result;
-}
-
-typedef EMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
-typedef DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE = int;
 
 extension TMaterialInstanceExt on Pointer<TMaterialInstance> {
   TMaterialInstance toDart() {
@@ -5574,6 +5715,278 @@ sealed class TTransparencyMode {
   /// first with back faces only, then with front faces; the culling
   /// mode is ignored. Can be combined with two-sided lighting
   static const TWO_PASSES_TWO_SIDES = 2;
+}
+
+extension TLightManagerExt on Pointer<TLightManager> {
+  TLightManager toDart() {
+    return TLightManager(this);
+  }
+
+  void setFrom(TLightManager dartType) {}
+}
+
+final class TLightManager extends self.Struct {
+  TLightManager(super._address);
+
+  static Pointer<TLightManager> stackAlloc() {
+    return Pointer<TLightManager>(_lib._stackAlloc<TLightManager>(0));
+  }
+}
+
+typedef EntityId = int;
+typedef DartEntityId = int;
+
+sealed class TLightType {
+  static const LIGHT_TYPE_SUN = 0;
+  static const LIGHT_TYPE_DIRECTIONAL = 1;
+  static const LIGHT_TYPE_POINT = 2;
+  static const LIGHT_TYPE_FOCUSED_SPOT = 3;
+  static const LIGHT_TYPE_SPOT = 4;
+}
+
+extension TFilamentAssetExt on Pointer<TFilamentAsset> {
+  TFilamentAsset toDart() {
+    return TFilamentAsset(this);
+  }
+
+  void setFrom(TFilamentAsset dartType) {}
+}
+
+final class TFilamentAsset extends self.Struct {
+  TFilamentAsset(super._address);
+
+  static Pointer<TFilamentAsset> stackAlloc() {
+    return Pointer<TFilamentAsset>(_lib._stackAlloc<TFilamentAsset>(0));
+  }
+}
+
+extension TGltfAssetLoaderExt on Pointer<TGltfAssetLoader> {
+  TGltfAssetLoader toDart() {
+    return TGltfAssetLoader(this);
+  }
+
+  void setFrom(TGltfAssetLoader dartType) {}
+}
+
+final class TGltfAssetLoader extends self.Struct {
+  TGltfAssetLoader(super._address);
+
+  static Pointer<TGltfAssetLoader> stackAlloc() {
+    return Pointer<TGltfAssetLoader>(_lib._stackAlloc<TGltfAssetLoader>(0));
+  }
+}
+
+extension TMaterialProviderExt on Pointer<TMaterialProvider> {
+  TMaterialProvider toDart() {
+    return TMaterialProvider(this);
+  }
+
+  void setFrom(TMaterialProvider dartType) {}
+}
+
+final class TMaterialProvider extends self.Struct {
+  TMaterialProvider(super._address);
+
+  static Pointer<TMaterialProvider> stackAlloc() {
+    return Pointer<TMaterialProvider>(_lib._stackAlloc<TMaterialProvider>(0));
+  }
+}
+
+typedef size_t = __darwin_size_t;
+typedef __darwin_size_t = int;
+typedef Dart__darwin_size_t = int;
+
+extension TRenderableManagerExt on Pointer<TRenderableManager> {
+  TRenderableManager toDart() {
+    return TRenderableManager(this);
+  }
+
+  void setFrom(TRenderableManager dartType) {}
+}
+
+final class TRenderableManager extends self.Struct {
+  TRenderableManager(super._address);
+
+  static Pointer<TRenderableManager> stackAlloc() {
+    return Pointer<TRenderableManager>(_lib._stackAlloc<TRenderableManager>(0));
+  }
+}
+
+extension TViewportExt on Pointer<TViewport> {
+  TViewport toDart() {
+    var left = _lib.getValue(this + 0, "i32").toDartInt;
+    var bottom = _lib.getValue(this + 4, "i32").toDartInt;
+    var width = _lib.getValue(this + 8, "i32").toDartInt;
+    var height = _lib.getValue(this + 12, "i32").toDartInt;
+    return TViewport(left, bottom, width, height, this);
+  }
+
+  void setFrom(TViewport dartType) {
+    _lib.setValue(this + 0, dartType.left.toJS, "i32");
+    _lib.setValue(this + 4, dartType.bottom.toJS, "i32");
+    _lib.setValue(this + 8, dartType.width.toJS, "i32");
+    _lib.setValue(this + 12, dartType.height.toJS, "i32");
+  }
+}
+
+final class TViewport extends self.Struct {
+  final int left;
+
+  final int bottom;
+
+  final int width;
+
+  final int height;
+
+  TViewport(this.left, this.bottom, this.width, this.height, super._address);
+
+  static Pointer<TViewport> stackAlloc() {
+    return Pointer<TViewport>(_lib._stackAlloc<TViewport>(16));
+  }
+}
+
+extension TViewExt on Pointer<TView> {
+  TView toDart() {
+    return TView(this);
+  }
+
+  void setFrom(TView dartType) {}
+}
+
+final class TView extends self.Struct {
+  TView(super._address);
+
+  static Pointer<TView> stackAlloc() {
+    return Pointer<TView>(_lib._stackAlloc<TView>(0));
+  }
+}
+
+extension TColorGradingExt on Pointer<TColorGrading> {
+  TColorGrading toDart() {
+    return TColorGrading(this);
+  }
+
+  void setFrom(TColorGrading dartType) {}
+}
+
+final class TColorGrading extends self.Struct {
+  TColorGrading(super._address);
+
+  static Pointer<TColorGrading> stackAlloc() {
+    return Pointer<TColorGrading>(_lib._stackAlloc<TColorGrading>(0));
+  }
+}
+
+sealed class TToneMapping {
+  static const ACES = 0;
+  static const FILMIC = 1;
+  static const LINEAR = 2;
+}
+
+sealed class TBlendMode {
+  static const OPAQUE = 0;
+  static const TRANSLUCENT = 1;
+}
+
+extension TRenderTargetExt on Pointer<TRenderTarget> {
+  TRenderTarget toDart() {
+    return TRenderTarget(this);
+  }
+
+  void setFrom(TRenderTarget dartType) {}
+}
+
+final class TRenderTarget extends self.Struct {
+  TRenderTarget(super._address);
+
+  static Pointer<TRenderTarget> stackAlloc() {
+    return Pointer<TRenderTarget>(_lib._stackAlloc<TRenderTarget>(0));
+  }
+}
+
+sealed class TQualityLevel {
+  static const LOW = 0;
+  static const MEDIUM = 1;
+  static const HIGH = 2;
+  static const ULTRA = 3;
+}
+
+extension TCameraExt on Pointer<TCamera> {
+  TCamera toDart() {
+    return TCamera(this);
+  }
+
+  void setFrom(TCamera dartType) {}
+}
+
+final class TCamera extends self.Struct {
+  TCamera(super._address);
+
+  static Pointer<TCamera> stackAlloc() {
+    return Pointer<TCamera>(_lib._stackAlloc<TCamera>(0));
+  }
+}
+
+extension TSceneExt on Pointer<TScene> {
+  TScene toDart() {
+    return TScene(this);
+  }
+
+  void setFrom(TScene dartType) {}
+}
+
+final class TScene extends self.Struct {
+  TScene(super._address);
+
+  static Pointer<TScene> stackAlloc() {
+    return Pointer<TScene>(_lib._stackAlloc<TScene>(0));
+  }
+}
+
+typedef PickCallback = Pointer<self.NativeFunction<PickCallbackFunction>>;
+typedef DartPickCallback
+    = self.Pointer<self.NativeFunction<PickCallbackFunction>>;
+typedef PickCallbackFunction = void Function(int requestId, EntityId entityId,
+    double depth, double fragX, double fragY, double fragZ);
+typedef DartPickCallbackFunction = void Function(
+    int requestId,
+    DartEntityId entityId,
+    double depth,
+    double fragX,
+    double fragY,
+    double fragZ);
+
+extension TNameComponentManagerExt on Pointer<TNameComponentManager> {
+  TNameComponentManager toDart() {
+    return TNameComponentManager(this);
+  }
+
+  void setFrom(TNameComponentManager dartType) {}
+}
+
+final class TNameComponentManager extends self.Struct {
+  TNameComponentManager(super._address);
+
+  static Pointer<TNameComponentManager> stackAlloc() {
+    return Pointer<TNameComponentManager>(
+        _lib._stackAlloc<TNameComponentManager>(0));
+  }
+}
+
+extension TIndirectLightExt on Pointer<TIndirectLight> {
+  TIndirectLight toDart() {
+    return TIndirectLight(this);
+  }
+
+  void setFrom(TIndirectLight dartType) {}
+}
+
+final class TIndirectLight extends self.Struct {
+  TIndirectLight(super._address);
+
+  static Pointer<TIndirectLight> stackAlloc() {
+    return Pointer<TIndirectLight>(_lib._stackAlloc<TIndirectLight>(0));
+  }
 }
 
 sealed class TTextureSamplerType {
@@ -5786,9 +6199,6 @@ sealed class TPixelDataType {
   static const PIXELDATATYPE_UINT_2_10_10_10_REV = 11;
 }
 
-typedef size_t = int;
-typedef Dartsize_t = int;
-
 sealed class TTextureUsage {
   static const TEXTURE_USAGE_NONE = 0;
 
@@ -5823,22 +6233,6 @@ sealed class TTextureUsage {
   static const TEXTURE_USAGE_DEFAULT = 24;
 }
 
-extension TRenderTargetExt on Pointer<TRenderTarget> {
-  TRenderTarget toDart() {
-    return TRenderTarget(this);
-  }
-
-  void setFrom(TRenderTarget dartType) {}
-}
-
-final class TRenderTarget extends self.Struct {
-  TRenderTarget(super._address);
-
-  static Pointer<TRenderTarget> stackAlloc() {
-    return Pointer<TRenderTarget>(_lib._stackAlloc<TRenderTarget>(0));
-  }
-}
-
 sealed class TSamplerMinFilter {
   static const FILTER_NEAREST = 0;
   static const FILTER_LINEAR = 1;
@@ -5864,450 +6258,28 @@ sealed class TSamplerCompareMode {
   static const COMPARE_MODE_COMPARE_TO_TEXTURE = 1;
 }
 
-sealed class TBackend {
-  /// !< Automatically selects an appropriate driver for the platform.
-  static const BACKEND_DEFAULT = 0;
-
-  /// !< Selects the OpenGL/ES driver (default on Android)
-  static const BACKEND_OPENGL = 1;
-
-  /// !< Selects the Vulkan driver if the platform supports it (default on Linux/Windows)
-  static const BACKEND_VULKAN = 2;
-
-  /// !< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
-  static const BACKEND_METAL = 3;
-
-  /// !< Selects the no-op driver for testing purposes.
-  static const BACKEND_NOOP = 4;
+sealed class TGizmoPickResultType {
+  static const AxisX = 0;
+  static const AxisY = 1;
+  static const AxisZ = 2;
+  static const Parent = 3;
+  static const None = 4;
 }
 
-extension TRendererExt on Pointer<TRenderer> {
-  TRenderer toDart() {
-    return TRenderer(this);
+extension TGizmoExt on Pointer<TGizmo> {
+  TGizmo toDart() {
+    return TGizmo(this);
   }
 
-  void setFrom(TRenderer dartType) {}
+  void setFrom(TGizmo dartType) {}
 }
 
-final class TRenderer extends self.Struct {
-  TRenderer(super._address);
+final class TGizmo extends self.Struct {
+  TGizmo(super._address);
 
-  static Pointer<TRenderer> stackAlloc() {
-    return Pointer<TRenderer>(_lib._stackAlloc<TRenderer>(0));
+  static Pointer<TGizmo> stackAlloc() {
+    return Pointer<TGizmo>(_lib._stackAlloc<TGizmo>(0));
   }
-}
-
-extension TSwapChainExt on Pointer<TSwapChain> {
-  TSwapChain toDart() {
-    return TSwapChain(this);
-  }
-
-  void setFrom(TSwapChain dartType) {}
-}
-
-final class TSwapChain extends self.Struct {
-  TSwapChain(super._address);
-
-  static Pointer<TSwapChain> stackAlloc() {
-    return Pointer<TSwapChain>(_lib._stackAlloc<TSwapChain>(0));
-  }
-}
-
-extension TViewExt on Pointer<TView> {
-  TView toDart() {
-    return TView(this);
-  }
-
-  void setFrom(TView dartType) {}
-}
-
-final class TView extends self.Struct {
-  TView(super._address);
-
-  static Pointer<TView> stackAlloc() {
-    return Pointer<TView>(_lib._stackAlloc<TView>(0));
-  }
-}
-
-extension TSceneExt on Pointer<TScene> {
-  TScene toDart() {
-    return TScene(this);
-  }
-
-  void setFrom(TScene dartType) {}
-}
-
-final class TScene extends self.Struct {
-  TScene(super._address);
-
-  static Pointer<TScene> stackAlloc() {
-    return Pointer<TScene>(_lib._stackAlloc<TScene>(0));
-  }
-}
-
-extension TColorGradingExt on Pointer<TColorGrading> {
-  TColorGrading toDart() {
-    return TColorGrading(this);
-  }
-
-  void setFrom(TColorGrading dartType) {}
-}
-
-final class TColorGrading extends self.Struct {
-  TColorGrading(super._address);
-
-  static Pointer<TColorGrading> stackAlloc() {
-    return Pointer<TColorGrading>(_lib._stackAlloc<TColorGrading>(0));
-  }
-}
-
-extension TCameraExt on Pointer<TCamera> {
-  TCamera toDart() {
-    return TCamera(this);
-  }
-
-  void setFrom(TCamera dartType) {}
-}
-
-final class TCamera extends self.Struct {
-  TCamera(super._address);
-
-  static Pointer<TCamera> stackAlloc() {
-    return Pointer<TCamera>(_lib._stackAlloc<TCamera>(0));
-  }
-}
-
-typedef EntityId = int;
-typedef DartEntityId = int;
-
-extension TTransformManagerExt on Pointer<TTransformManager> {
-  TTransformManager toDart() {
-    return TTransformManager(this);
-  }
-
-  void setFrom(TTransformManager dartType) {}
-}
-
-final class TTransformManager extends self.Struct {
-  TTransformManager(super._address);
-
-  static Pointer<TTransformManager> stackAlloc() {
-    return Pointer<TTransformManager>(_lib._stackAlloc<TTransformManager>(0));
-  }
-}
-
-extension TRenderableManagerExt on Pointer<TRenderableManager> {
-  TRenderableManager toDart() {
-    return TRenderableManager(this);
-  }
-
-  void setFrom(TRenderableManager dartType) {}
-}
-
-final class TRenderableManager extends self.Struct {
-  TRenderableManager(super._address);
-
-  static Pointer<TRenderableManager> stackAlloc() {
-    return Pointer<TRenderableManager>(_lib._stackAlloc<TRenderableManager>(0));
-  }
-}
-
-extension TLightManagerExt on Pointer<TLightManager> {
-  TLightManager toDart() {
-    return TLightManager(this);
-  }
-
-  void setFrom(TLightManager dartType) {}
-}
-
-final class TLightManager extends self.Struct {
-  TLightManager(super._address);
-
-  static Pointer<TLightManager> stackAlloc() {
-    return Pointer<TLightManager>(_lib._stackAlloc<TLightManager>(0));
-  }
-}
-
-extension TEntityManagerExt on Pointer<TEntityManager> {
-  TEntityManager toDart() {
-    return TEntityManager(this);
-  }
-
-  void setFrom(TEntityManager dartType) {}
-}
-
-final class TEntityManager extends self.Struct {
-  TEntityManager(super._address);
-
-  static Pointer<TEntityManager> stackAlloc() {
-    return Pointer<TEntityManager>(_lib._stackAlloc<TEntityManager>(0));
-  }
-}
-
-extension TFenceExt on Pointer<TFence> {
-  TFence toDart() {
-    return TFence(this);
-  }
-
-  void setFrom(TFence dartType) {}
-}
-
-final class TFence extends self.Struct {
-  TFence(super._address);
-
-  static Pointer<TFence> stackAlloc() {
-    return Pointer<TFence>(_lib._stackAlloc<TFence>(0));
-  }
-}
-
-extension TSkyboxExt on Pointer<TSkybox> {
-  TSkybox toDart() {
-    return TSkybox(this);
-  }
-
-  void setFrom(TSkybox dartType) {}
-}
-
-final class TSkybox extends self.Struct {
-  TSkybox(super._address);
-
-  static Pointer<TSkybox> stackAlloc() {
-    return Pointer<TSkybox>(_lib._stackAlloc<TSkybox>(0));
-  }
-}
-
-extension TIndirectLightExt on Pointer<TIndirectLight> {
-  TIndirectLight toDart() {
-    return TIndirectLight(this);
-  }
-
-  void setFrom(TIndirectLight dartType) {}
-}
-
-final class TIndirectLight extends self.Struct {
-  TIndirectLight(super._address);
-
-  static Pointer<TIndirectLight> stackAlloc() {
-    return Pointer<TIndirectLight>(_lib._stackAlloc<TIndirectLight>(0));
-  }
-}
-
-extension TViewportExt on Pointer<TViewport> {
-  TViewport toDart() {
-    var left = _lib.getValue(this + 0, "i32").toDartInt;
-    var bottom = _lib.getValue(this + 4, "i32").toDartInt;
-    var width = _lib.getValue(this + 8, "i32").toDartInt;
-    var height = _lib.getValue(this + 12, "i32").toDartInt;
-    return TViewport(left, bottom, width, height, this);
-  }
-
-  void setFrom(TViewport dartType) {
-    _lib.setValue(this + 0, dartType.left.toJS, "i32");
-    _lib.setValue(this + 4, dartType.bottom.toJS, "i32");
-    _lib.setValue(this + 8, dartType.width.toJS, "i32");
-    _lib.setValue(this + 12, dartType.height.toJS, "i32");
-  }
-}
-
-final class TViewport extends self.Struct {
-  final int left;
-
-  final int bottom;
-
-  final int width;
-
-  final int height;
-
-  TViewport(this.left, this.bottom, this.width, this.height, super._address);
-
-  static Pointer<TViewport> stackAlloc() {
-    return Pointer<TViewport>(_lib._stackAlloc<TViewport>(16));
-  }
-}
-
-sealed class TToneMapping {
-  static const ACES = 0;
-  static const FILMIC = 1;
-  static const LINEAR = 2;
-}
-
-sealed class TBlendMode {
-  static const OPAQUE = 0;
-  static const TRANSLUCENT = 1;
-}
-
-sealed class TQualityLevel {
-  static const LOW = 0;
-  static const MEDIUM = 1;
-  static const HIGH = 2;
-  static const ULTRA = 3;
-}
-
-typedef PickCallback = Pointer<self.NativeFunction<PickCallbackFunction>>;
-typedef DartPickCallback
-    = self.Pointer<self.NativeFunction<PickCallbackFunction>>;
-typedef PickCallbackFunction = void Function(int requestId, EntityId entityId,
-    double depth, double fragX, double fragY, double fragZ);
-typedef DartPickCallbackFunction = void Function(
-    int requestId,
-    DartEntityId entityId,
-    double depth,
-    double fragX,
-    double fragY,
-    double fragZ);
-
-extension TMaterialProviderExt on Pointer<TMaterialProvider> {
-  TMaterialProvider toDart() {
-    return TMaterialProvider(this);
-  }
-
-  void setFrom(TMaterialProvider dartType) {}
-}
-
-final class TMaterialProvider extends self.Struct {
-  TMaterialProvider(super._address);
-
-  static Pointer<TMaterialProvider> stackAlloc() {
-    return Pointer<TMaterialProvider>(_lib._stackAlloc<TMaterialProvider>(0));
-  }
-}
-
-extension TMaterialKeyExt on Pointer<TMaterialKey> {
-  TMaterialKey toDart() {
-    return TMaterialKey(this);
-  }
-
-  void setFrom(TMaterialKey dartType) {}
-}
-
-final class TMaterialKey extends self.Struct {
-  TMaterialKey(super._address);
-
-  static Pointer<TMaterialKey> stackAlloc() {
-    return Pointer<TMaterialKey>(_lib._stackAlloc<TMaterialKey>(0));
-  }
-}
-
-extension TRenderTickerExt on Pointer<TRenderTicker> {
-  TRenderTicker toDart() {
-    return TRenderTicker(this);
-  }
-
-  void setFrom(TRenderTicker dartType) {}
-}
-
-final class TRenderTicker extends self.Struct {
-  TRenderTicker(super._address);
-
-  static Pointer<TRenderTicker> stackAlloc() {
-    return Pointer<TRenderTicker>(_lib._stackAlloc<TRenderTicker>(0));
-  }
-}
-
-extension TAnimationManagerExt on Pointer<TAnimationManager> {
-  TAnimationManager toDart() {
-    return TAnimationManager(this);
-  }
-
-  void setFrom(TAnimationManager dartType) {}
-}
-
-final class TAnimationManager extends self.Struct {
-  TAnimationManager(super._address);
-
-  static Pointer<TAnimationManager> stackAlloc() {
-    return Pointer<TAnimationManager>(_lib._stackAlloc<TAnimationManager>(0));
-  }
-}
-
-typedef FilamentRenderCallback
-    = Pointer<self.NativeFunction<FilamentRenderCallbackFunction>>;
-typedef DartFilamentRenderCallback
-    = self.Pointer<self.NativeFunction<FilamentRenderCallbackFunction>>;
-typedef FilamentRenderCallbackFunction = void Function(Pointer<Void> owner);
-typedef DartFilamentRenderCallbackFunction = void Function(
-    self.Pointer<Void> owner);
-
-extension TSceneAssetExt on Pointer<TSceneAsset> {
-  TSceneAsset toDart() {
-    return TSceneAsset(this);
-  }
-
-  void setFrom(TSceneAsset dartType) {}
-}
-
-final class TSceneAsset extends self.Struct {
-  TSceneAsset(super._address);
-
-  static Pointer<TSceneAsset> stackAlloc() {
-    return Pointer<TSceneAsset>(_lib._stackAlloc<TSceneAsset>(0));
-  }
-}
-
-extension TGltfAssetLoaderExt on Pointer<TGltfAssetLoader> {
-  TGltfAssetLoader toDart() {
-    return TGltfAssetLoader(this);
-  }
-
-  void setFrom(TGltfAssetLoader dartType) {}
-}
-
-final class TGltfAssetLoader extends self.Struct {
-  TGltfAssetLoader(super._address);
-
-  static Pointer<TGltfAssetLoader> stackAlloc() {
-    return Pointer<TGltfAssetLoader>(_lib._stackAlloc<TGltfAssetLoader>(0));
-  }
-}
-
-extension TNameComponentManagerExt on Pointer<TNameComponentManager> {
-  TNameComponentManager toDart() {
-    return TNameComponentManager(this);
-  }
-
-  void setFrom(TNameComponentManager dartType) {}
-}
-
-final class TNameComponentManager extends self.Struct {
-  TNameComponentManager(super._address);
-
-  static Pointer<TNameComponentManager> stackAlloc() {
-    return Pointer<TNameComponentManager>(
-        _lib._stackAlloc<TNameComponentManager>(0));
-  }
-}
-
-extension TFilamentAssetExt on Pointer<TFilamentAsset> {
-  TFilamentAsset toDart() {
-    return TFilamentAsset(this);
-  }
-
-  void setFrom(TFilamentAsset dartType) {}
-}
-
-final class TFilamentAsset extends self.Struct {
-  TFilamentAsset(super._address);
-
-  static Pointer<TFilamentAsset> stackAlloc() {
-    return Pointer<TFilamentAsset>(_lib._stackAlloc<TFilamentAsset>(0));
-  }
-}
-
-sealed class TPrimitiveType {
-  /// !< points
-  static const PRIMITIVETYPE_POINTS = 0;
-
-  /// !< lines
-  static const PRIMITIVETYPE_LINES = 1;
-
-  /// !< line strip
-  static const PRIMITIVETYPE_LINE_STRIP = 3;
-
-  /// !< triangles
-  static const PRIMITIVETYPE_TRIANGLES = 4;
-
-  /// !< triangle strip
-  static const PRIMITIVETYPE_TRIANGLE_STRIP = 5;
 }
 
 extension TGltfResourceLoaderExt on Pointer<TGltfResourceLoader> {
@@ -6332,19 +6304,137 @@ sealed class TGizmoType {
   static const GIZMO_TYPE_ROTATION = 1;
 }
 
-extension TGizmoExt on Pointer<TGizmo> {
-  TGizmo toDart() {
-    return TGizmo(this);
-  }
+typedef GizmoPickCallback
+    = Pointer<self.NativeFunction<GizmoPickCallbackFunction>>;
+typedef DartGizmoPickCallback
+    = self.Pointer<self.NativeFunction<GizmoPickCallbackFunction>>;
+typedef GizmoPickCallbackFunction = void Function(
+    int resultType, double x, double y, double z);
+typedef DartGizmoPickCallbackFunction = void Function(
+    int resultType, double x, double y, double z);
 
-  void setFrom(TGizmo dartType) {}
+sealed class TGizmoAxis {
+  static const X = 0;
+  static const Y = 1;
+  static const Z = 2;
 }
 
-final class TGizmo extends self.Struct {
-  TGizmo(super._address);
+extension TMaterialKeyExt on Pointer<TMaterialKey> {
+  TMaterialKey toDart() {
+    return TMaterialKey(this);
+  }
 
-  static Pointer<TGizmo> stackAlloc() {
-    return Pointer<TGizmo>(_lib._stackAlloc<TGizmo>(0));
+  void setFrom(TMaterialKey dartType) {}
+}
+
+final class TMaterialKey extends self.Struct {
+  TMaterialKey(super._address);
+
+  static Pointer<TMaterialKey> stackAlloc() {
+    return Pointer<TMaterialKey>(_lib._stackAlloc<TMaterialKey>(0));
+  }
+}
+
+extension TSkyboxExt on Pointer<TSkybox> {
+  TSkybox toDart() {
+    return TSkybox(this);
+  }
+
+  void setFrom(TSkybox dartType) {}
+}
+
+final class TSkybox extends self.Struct {
+  TSkybox(super._address);
+
+  static Pointer<TSkybox> stackAlloc() {
+    return Pointer<TSkybox>(_lib._stackAlloc<TSkybox>(0));
+  }
+}
+
+extension double4x4Ext on Pointer<double4x4> {
+  double4x4 toDart() {
+    var col1 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 0, numElements: 4));
+    var col2 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 32, numElements: 4));
+    var col3 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 64, numElements: 4));
+    var col4 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 96, numElements: 4));
+    return double4x4(col1.cast(), col2.cast(), col3.cast(), col4.cast(), this);
+  }
+
+  void setFrom(double4x4 dartType) {
+    _lib.setValue(this + 0, dartType.col1._.addr.addr.toJS, "*");
+    _lib.setValue(this + 32, dartType.col2._.addr.addr.toJS, "*");
+    _lib.setValue(this + 64, dartType.col3._.addr.addr.toJS, "*");
+    _lib.setValue(this + 96, dartType.col4._.addr.addr.toJS, "*");
+  }
+}
+
+final class double4x4 extends self.Struct {
+  Array<Float64> col1;
+
+  Array<Float64> col2;
+
+  Array<Float64> col3;
+
+  Array<Float64> col4;
+
+  double4x4(this.col1, this.col2, this.col3, this.col4, super._address);
+
+  static Pointer<double4x4> stackAlloc() {
+    return Pointer<double4x4>(_lib._stackAlloc<double4x4>(128));
+  }
+}
+
+extension double3Ext on Pointer<double3> {
+  double3 toDart() {
+    var x = _lib.getValue(this + 0, "double").toDartDouble;
+    var y = _lib.getValue(this + 8, "double").toDartDouble;
+    var z = _lib.getValue(this + 16, "double").toDartDouble;
+    return double3(x, y, z, this);
+  }
+
+  void setFrom(double3 dartType) {
+    _lib.setValue(this + 0, dartType.x.toJS, "double");
+    _lib.setValue(this + 8, dartType.y.toJS, "double");
+    _lib.setValue(this + 16, dartType.z.toJS, "double");
+  }
+}
+
+final class double3 extends self.Struct {
+  final double x;
+
+  final double y;
+
+  final double z;
+
+  double3(this.x, this.y, this.z, super._address);
+
+  static Pointer<double3> stackAlloc() {
+    return Pointer<double3>(_lib._stackAlloc<double3>(24));
+  }
+}
+
+sealed class TProjection {
+  static const Perspective = 0;
+  static const Orthographic = 1;
+}
+
+extension TTransformManagerExt on Pointer<TTransformManager> {
+  TTransformManager toDart() {
+    return TTransformManager(this);
+  }
+
+  void setFrom(TTransformManager dartType) {}
+}
+
+final class TTransformManager extends self.Struct {
+  TTransformManager(super._address);
+
+  static Pointer<TTransformManager> stackAlloc() {
+    return Pointer<TTransformManager>(_lib._stackAlloc<TTransformManager>(0));
   }
 }
 
@@ -6391,106 +6481,156 @@ final class Aabb3 extends self.Struct {
   }
 }
 
-extension double4x4Ext on Pointer<double4x4> {
-  double4x4 toDart() {
-    var col1 =
-        Array<Float64>._((addr: Pointer<Float64>(addr) + 0, numElements: 4));
-    var col2 =
-        Array<Float64>._((addr: Pointer<Float64>(addr) + 32, numElements: 4));
-    var col3 =
-        Array<Float64>._((addr: Pointer<Float64>(addr) + 64, numElements: 4));
-    var col4 =
-        Array<Float64>._((addr: Pointer<Float64>(addr) + 96, numElements: 4));
-    return double4x4(col1.cast(), col2.cast(), col3.cast(), col4.cast(), this);
+extension TRendererExt on Pointer<TRenderer> {
+  TRenderer toDart() {
+    return TRenderer(this);
   }
 
-  void setFrom(double4x4 dartType) {
-    _lib.setValue(this + 0, dartType.col1._.addr.addr.toJS, "*");
-    _lib.setValue(this + 32, dartType.col2._.addr.addr.toJS, "*");
-    _lib.setValue(this + 64, dartType.col3._.addr.addr.toJS, "*");
-    _lib.setValue(this + 96, dartType.col4._.addr.addr.toJS, "*");
+  void setFrom(TRenderer dartType) {}
+}
+
+final class TRenderer extends self.Struct {
+  TRenderer(super._address);
+
+  static Pointer<TRenderer> stackAlloc() {
+    return Pointer<TRenderer>(_lib._stackAlloc<TRenderer>(0));
   }
 }
 
-final class double4x4 extends self.Struct {
-  Array<Float64> col1;
+extension TSwapChainExt on Pointer<TSwapChain> {
+  TSwapChain toDart() {
+    return TSwapChain(this);
+  }
 
-  Array<Float64> col2;
+  void setFrom(TSwapChain dartType) {}
+}
 
-  Array<Float64> col3;
+final class TSwapChain extends self.Struct {
+  TSwapChain(super._address);
 
-  Array<Float64> col4;
-
-  double4x4(this.col1, this.col2, this.col3, this.col4, super._address);
-
-  static Pointer<double4x4> stackAlloc() {
-    return Pointer<double4x4>(_lib._stackAlloc<double4x4>(128));
+  static Pointer<TSwapChain> stackAlloc() {
+    return Pointer<TSwapChain>(_lib._stackAlloc<TSwapChain>(0));
   }
 }
 
-sealed class TLightType {
-  static const LIGHT_TYPE_SUN = 0;
-  static const LIGHT_TYPE_DIRECTIONAL = 1;
-  static const LIGHT_TYPE_POINT = 2;
-  static const LIGHT_TYPE_FOCUSED_SPOT = 3;
-  static const LIGHT_TYPE_SPOT = 4;
-}
-
-sealed class TGizmoPickResultType {
-  static const AxisX = 0;
-  static const AxisY = 1;
-  static const AxisZ = 2;
-  static const Parent = 3;
-  static const None = 4;
-}
-
-typedef GizmoPickCallback
-    = Pointer<self.NativeFunction<GizmoPickCallbackFunction>>;
-typedef DartGizmoPickCallback
-    = self.Pointer<self.NativeFunction<GizmoPickCallbackFunction>>;
-typedef GizmoPickCallbackFunction = void Function(
-    int resultType, double x, double y, double z);
-typedef DartGizmoPickCallbackFunction = void Function(
-    int resultType, double x, double y, double z);
-
-sealed class TGizmoAxis {
-  static const X = 0;
-  static const Y = 1;
-  static const Z = 2;
-}
-
-extension double3Ext on Pointer<double3> {
-  double3 toDart() {
-    var x = _lib.getValue(this + 0, "double").toDartDouble;
-    var y = _lib.getValue(this + 8, "double").toDartDouble;
-    var z = _lib.getValue(this + 16, "double").toDartDouble;
-    return double3(x, y, z, this);
+extension TRenderTickerExt on Pointer<TRenderTicker> {
+  TRenderTicker toDart() {
+    return TRenderTicker(this);
   }
 
-  void setFrom(double3 dartType) {
-    _lib.setValue(this + 0, dartType.x.toJS, "double");
-    _lib.setValue(this + 8, dartType.y.toJS, "double");
-    _lib.setValue(this + 16, dartType.z.toJS, "double");
+  void setFrom(TRenderTicker dartType) {}
+}
+
+final class TRenderTicker extends self.Struct {
+  TRenderTicker(super._address);
+
+  static Pointer<TRenderTicker> stackAlloc() {
+    return Pointer<TRenderTicker>(_lib._stackAlloc<TRenderTicker>(0));
   }
 }
 
-final class double3 extends self.Struct {
-  final double x;
+extension TAnimationManagerExt on Pointer<TAnimationManager> {
+  TAnimationManager toDart() {
+    return TAnimationManager(this);
+  }
 
-  final double y;
+  void setFrom(TAnimationManager dartType) {}
+}
 
-  final double z;
+final class TAnimationManager extends self.Struct {
+  TAnimationManager(super._address);
 
-  double3(this.x, this.y, this.z, super._address);
-
-  static Pointer<double3> stackAlloc() {
-    return Pointer<double3>(_lib._stackAlloc<double3>(24));
+  static Pointer<TAnimationManager> stackAlloc() {
+    return Pointer<TAnimationManager>(_lib._stackAlloc<TAnimationManager>(0));
   }
 }
 
-sealed class TProjection {
-  static const Perspective = 0;
-  static const Orthographic = 1;
+sealed class TBackend {
+  /// !< Automatically selects an appropriate driver for the platform.
+  static const BACKEND_DEFAULT = 0;
+
+  /// !< Selects the OpenGL/ES driver (default on Android)
+  static const BACKEND_OPENGL = 1;
+
+  /// !< Selects the Vulkan driver if the platform supports it (default on Linux/Windows)
+  static const BACKEND_VULKAN = 2;
+
+  /// !< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
+  static const BACKEND_METAL = 3;
+
+  /// !< Selects the no-op driver for testing purposes.
+  static const BACKEND_NOOP = 4;
+}
+
+extension TEntityManagerExt on Pointer<TEntityManager> {
+  TEntityManager toDart() {
+    return TEntityManager(this);
+  }
+
+  void setFrom(TEntityManager dartType) {}
+}
+
+final class TEntityManager extends self.Struct {
+  TEntityManager(super._address);
+
+  static Pointer<TEntityManager> stackAlloc() {
+    return Pointer<TEntityManager>(_lib._stackAlloc<TEntityManager>(0));
+  }
+}
+
+extension TFenceExt on Pointer<TFence> {
+  TFence toDart() {
+    return TFence(this);
+  }
+
+  void setFrom(TFence dartType) {}
+}
+
+final class TFence extends self.Struct {
+  TFence(super._address);
+
+  static Pointer<TFence> stackAlloc() {
+    return Pointer<TFence>(_lib._stackAlloc<TFence>(0));
+  }
+}
+
+typedef VoidCallback = Pointer<self.NativeFunction<VoidCallbackFunction>>;
+typedef DartVoidCallback
+    = self.Pointer<self.NativeFunction<VoidCallbackFunction>>;
+typedef VoidCallbackFunction = void Function();
+typedef DartVoidCallbackFunction = void Function();
+
+extension TSceneAssetExt on Pointer<TSceneAsset> {
+  TSceneAsset toDart() {
+    return TSceneAsset(this);
+  }
+
+  void setFrom(TSceneAsset dartType) {}
+}
+
+final class TSceneAsset extends self.Struct {
+  TSceneAsset(super._address);
+
+  static Pointer<TSceneAsset> stackAlloc() {
+    return Pointer<TSceneAsset>(_lib._stackAlloc<TSceneAsset>(0));
+  }
+}
+
+sealed class TPrimitiveType {
+  /// !< points
+  static const PRIMITIVETYPE_POINTS = 0;
+
+  /// !< lines
+  static const PRIMITIVETYPE_LINES = 1;
+
+  /// !< line strip
+  static const PRIMITIVETYPE_LINE_STRIP = 3;
+
+  /// !< triangles
+  static const PRIMITIVETYPE_TRIANGLES = 4;
+
+  /// !< triangle strip
+  static const PRIMITIVETYPE_TRIANGLE_STRIP = 5;
 }
 
 const int __bool_true_false_are_defined = 1;
@@ -6505,7 +6645,7 @@ extension NativeFunctionPointer0<T extends NativeType> on void Function() {
   }
 }
 
-extension NativeFunctionPointer5<T extends NativeType> on void Function(
+extension NativeFunctionPointer3<T extends NativeType> on void Function(
     self.Pointer<TAnimationManager>) {
   // orignal type void Function(self.Pointer<TAnimationManager> ) void Function(Pointer<TAnimationManager> ) dart type void Function(self.Pointer<TAnimationManager> )
 
@@ -6519,7 +6659,7 @@ extension NativeFunctionPointer5<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer6<T extends NativeType> on void Function(
+extension NativeFunctionPointer4<T extends NativeType> on void Function(
     self.Pointer<TEngine>) {
   // orignal type void Function(self.Pointer<TEngine> ) void Function(Pointer<TEngine> ) dart type void Function(self.Pointer<TEngine> )
 
@@ -6530,7 +6670,7 @@ extension NativeFunctionPointer6<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer7<T extends NativeType> on void Function(
+extension NativeFunctionPointer5<T extends NativeType> on void Function(
     self.Pointer<TRenderer>) {
   // orignal type void Function(self.Pointer<TRenderer> ) void Function(Pointer<TRenderer> ) dart type void Function(self.Pointer<TRenderer> )
 
@@ -6543,7 +6683,7 @@ extension NativeFunctionPointer7<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer8<T extends NativeType> on void Function(
+extension NativeFunctionPointer6<T extends NativeType> on void Function(
     self.Pointer<TSwapChain>) {
   // orignal type void Function(self.Pointer<TSwapChain> ) void Function(Pointer<TSwapChain> ) dart type void Function(self.Pointer<TSwapChain> )
 
@@ -6556,7 +6696,7 @@ extension NativeFunctionPointer8<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer10<T extends NativeType> on void Function(
+extension NativeFunctionPointer8<T extends NativeType> on void Function(
     self.Pointer<TCamera>) {
   // orignal type void Function(self.Pointer<TCamera> ) void Function(Pointer<TCamera> ) dart type void Function(self.Pointer<TCamera> )
 
@@ -6567,7 +6707,7 @@ extension NativeFunctionPointer10<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer11<T extends NativeType> on void Function(
+extension NativeFunctionPointer9<T extends NativeType> on void Function(
     self.Pointer<TView>) {
   // orignal type void Function(self.Pointer<TView> ) void Function(Pointer<TView> ) dart type void Function(self.Pointer<TView> )
 
@@ -6578,7 +6718,7 @@ extension NativeFunctionPointer11<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer12<T extends NativeType> on void Function(
+extension NativeFunctionPointer10<T extends NativeType> on void Function(
     self.Pointer<TMaterial>) {
   // orignal type void Function(self.Pointer<TMaterial> ) void Function(Pointer<TMaterial> ) dart type void Function(self.Pointer<TMaterial> )
 
@@ -6591,7 +6731,7 @@ extension NativeFunctionPointer12<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer22<T extends NativeType> on void Function(
+extension NativeFunctionPointer11<T extends NativeType> on void Function(
     self.Pointer<TTexture>) {
   // orignal type void Function(self.Pointer<TTexture> ) void Function(Pointer<TTexture> ) dart type void Function(self.Pointer<TTexture> )
 
@@ -6603,7 +6743,7 @@ extension NativeFunctionPointer22<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer24<T extends NativeType> on void Function(
+extension NativeFunctionPointer12<T extends NativeType> on void Function(
     self.Pointer<TFence>) {
   // orignal type void Function(self.Pointer<TFence> ) void Function(Pointer<TFence> ) dart type void Function(self.Pointer<TFence> )
 
@@ -6614,7 +6754,7 @@ extension NativeFunctionPointer24<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer28<T extends NativeType> on void Function(
+extension NativeFunctionPointer13<T extends NativeType> on void Function(
     self.Pointer<TSkybox>) {
   // orignal type void Function(self.Pointer<TSkybox> ) void Function(Pointer<TSkybox> ) dart type void Function(self.Pointer<TSkybox> )
 
@@ -6625,7 +6765,7 @@ extension NativeFunctionPointer28<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer30<T extends NativeType> on void Function(
+extension NativeFunctionPointer15<T extends NativeType> on void Function(
     self.Pointer<TIndirectLight>) {
   // orignal type void Function(self.Pointer<TIndirectLight> ) void Function(Pointer<TIndirectLight> ) dart type void Function(self.Pointer<TIndirectLight> )
 
@@ -6638,7 +6778,7 @@ extension NativeFunctionPointer30<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer33<T extends NativeType> on void Function(bool) {
+extension NativeFunctionPointer17<T extends NativeType> on void Function(bool) {
   // orignal type void Function(bool ) void Function(bool ) dart type void Function(bool )
 
   Pointer<NativeFunction<void Function(bool)>> addFunction() {
@@ -6648,7 +6788,7 @@ extension NativeFunctionPointer33<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer38<T extends NativeType> on void Function(
+extension NativeFunctionPointer18<T extends NativeType> on void Function(
     self.Pointer<TMaterialInstance>) {
   // orignal type void Function(self.Pointer<TMaterialInstance> ) void Function(Pointer<TMaterialInstance> ) dart type void Function(self.Pointer<TMaterialInstance> )
 
@@ -6662,7 +6802,7 @@ extension NativeFunctionPointer38<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer41<T extends NativeType> on void Function(
+extension NativeFunctionPointer21<T extends NativeType> on void Function(
     self.Pointer<TColorGrading>) {
   // orignal type void Function(self.Pointer<TColorGrading> ) void Function(Pointer<TColorGrading> ) dart type void Function(self.Pointer<TColorGrading> )
 
@@ -6675,7 +6815,7 @@ extension NativeFunctionPointer41<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer46<T extends NativeType> on void Function(
+extension NativeFunctionPointer22<T extends NativeType> on void Function(
     self.Pointer<TSceneAsset>) {
   // orignal type void Function(self.Pointer<TSceneAsset> ) void Function(Pointer<TSceneAsset> ) dart type void Function(self.Pointer<TSceneAsset> )
 
@@ -6688,7 +6828,7 @@ extension NativeFunctionPointer46<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer52<T extends NativeType> on void Function(
+extension NativeFunctionPointer28<T extends NativeType> on void Function(
     self.Pointer<TLinearImage>) {
   // orignal type void Function(self.Pointer<TLinearImage> ) void Function(Pointer<TLinearImage> ) dart type void Function(self.Pointer<TLinearImage> )
 
@@ -6701,7 +6841,7 @@ extension NativeFunctionPointer52<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer54<T extends NativeType> on void Function(
+extension NativeFunctionPointer30<T extends NativeType> on void Function(
     self.Pointer<Float32>) {
   // orignal type void Function(self.Pointer<Float32> ) void Function(Pointer<Float32> ) dart type void Function(self.Pointer<Float32> )
 
@@ -6712,7 +6852,7 @@ extension NativeFunctionPointer54<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer56<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer31<T extends NativeType> on void Function(int) {
   // orignal type void Function(int ) void Function(int ) dart type void Function(int )
 
   Pointer<NativeFunction<void Function(int)>> addFunction() {
@@ -6722,7 +6862,7 @@ extension NativeFunctionPointer56<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer63<T extends NativeType> on void Function(
+extension NativeFunctionPointer38<T extends NativeType> on void Function(
     self.Pointer<TRenderTarget>) {
   // orignal type void Function(self.Pointer<TRenderTarget> ) void Function(Pointer<TRenderTarget> ) dart type void Function(self.Pointer<TRenderTarget> )
 
@@ -6735,7 +6875,7 @@ extension NativeFunctionPointer63<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer65<T extends NativeType> on void Function(
+extension NativeFunctionPointer39<T extends NativeType> on void Function(
     self.Pointer<TTextureSampler>) {
   // orignal type void Function(self.Pointer<TTextureSampler> ) void Function(Pointer<TTextureSampler> ) dart type void Function(self.Pointer<TTextureSampler> )
 
@@ -6749,7 +6889,7 @@ extension NativeFunctionPointer65<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer78<T extends NativeType> on void Function(
+extension NativeFunctionPointer43<T extends NativeType> on void Function(
     self.Pointer<TGltfAssetLoader>) {
   // orignal type void Function(self.Pointer<TGltfAssetLoader> ) void Function(Pointer<TGltfAssetLoader> ) dart type void Function(self.Pointer<TGltfAssetLoader> )
 
@@ -6763,7 +6903,7 @@ extension NativeFunctionPointer78<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer79<T extends NativeType> on void Function(
+extension NativeFunctionPointer44<T extends NativeType> on void Function(
     self.Pointer<TGltfResourceLoader>) {
   // orignal type void Function(self.Pointer<TGltfResourceLoader> ) void Function(Pointer<TGltfResourceLoader> ) dart type void Function(self.Pointer<TGltfResourceLoader> )
 
@@ -6778,7 +6918,7 @@ extension NativeFunctionPointer79<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer84<T extends NativeType> on void Function(
+extension NativeFunctionPointer47<T extends NativeType> on void Function(
     double) {
   // orignal type void Function(double ) void Function(double ) dart type void Function(double )
 
@@ -6789,7 +6929,7 @@ extension NativeFunctionPointer84<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer85<T extends NativeType> on void Function(
+extension NativeFunctionPointer48<T extends NativeType> on void Function(
     self.Pointer<TFilamentAsset>) {
   // orignal type void Function(self.Pointer<TFilamentAsset> ) void Function(Pointer<TFilamentAsset> ) dart type void Function(self.Pointer<TFilamentAsset> )
 
@@ -6802,7 +6942,7 @@ extension NativeFunctionPointer85<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer87<T extends NativeType> on void Function(
+extension NativeFunctionPointer49<T extends NativeType> on void Function(
     self.Pointer<TGizmo>) {
   // orignal type void Function(self.Pointer<TGizmo> ) void Function(Pointer<TGizmo> ) dart type void Function(self.Pointer<TGizmo> )
 
