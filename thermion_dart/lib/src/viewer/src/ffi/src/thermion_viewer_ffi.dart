@@ -116,14 +116,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future render() async {
-    await withVoidCallback((requestId,cb) =>
-        RenderTicker_renderRenderThread(app.renderTicker, 0.toBigInt, requestId,cb));
+    await withVoidCallback((requestId, cb) => RenderTicker_renderRenderThread(
+        app.renderTicker, 0.toBigInt, requestId, cb));
     if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback(
-          (requestId,cb) => Engine_executeRenderThread(app.engine, requestId,cb));
+      await withVoidCallback((requestId, cb) =>
+          Engine_executeRenderThread(app.engine, requestId, cb));
     } else {
-      await withVoidCallback(
-          (requestId,cb) => Engine_flushAndWaitRenderThread(app.engine, requestId,cb));
+      await withVoidCallback((requestId, cb) =>
+          Engine_flushAndWaitRenderThread(app.engine, requestId, cb));
     }
   }
 
@@ -300,8 +300,8 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     if (skybox != null) {
-      await withVoidCallback(
-          (requestId,cb) => Engine_destroySkyboxRenderThread(app.engine, skybox!, requestId,cb));
+      await withVoidCallback((requestId, cb) =>
+          Engine_destroySkyboxRenderThread(app.engine, skybox!, requestId, cb));
       skybox = null;
     }
   }
@@ -313,8 +313,9 @@ class ThermionViewerFFI extends ThermionViewer {
   Future removeIbl() async {
     if (indirectLight != null) {
       Scene_setIndirectLight(scene.scene, nullptr);
-      await withVoidCallback((requestId,cb) => Engine_destroyIndirectLightRenderThread(
-          app.engine, indirectLight!, requestId,cb));
+      await withVoidCallback((requestId, cb) =>
+          Engine_destroyIndirectLightRenderThread(
+              app.engine, indirectLight!, requestId, cb));
       indirectLight = null;
     }
   }
@@ -439,7 +440,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
+    await asset.removeAnimationComponent();    
     await scene.remove(asset);
+
     if (asset.boundingBoxAsset != null) {
       await scene.remove(asset.boundingBoxAsset! as FFIAsset);
       await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);

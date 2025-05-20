@@ -12,18 +12,17 @@
 #include <filament/VertexBuffer.h>
 #include <filament/IndexBuffer.h>
 #include <gltfio/AssetLoader.h>
+#include <gltfio/Animator.h>
 #include <gltfio/FilamentAsset.h>
+#include <gltfio/FilamentInstance.h>
 #include <gltfio/MaterialProvider.h>
 
 #include <utils/NameComponentManager.h>
 
 #include "scene/GltfSceneAssetInstance.hpp"
-#include "components/AnimationComponentManager.hpp"
 #include "components/CollisionComponentManager.hpp"
 
 #include "scene/SceneAsset.hpp"
-
-
 
 namespace thermion
 {

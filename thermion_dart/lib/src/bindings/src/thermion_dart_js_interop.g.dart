@@ -255,7 +255,7 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static create<T extends Struct>() {
-        switch (T) {
+    switch (T) {
       case double4x4:
         final ptr = double4x4.stackAlloc();
         final arr1 =
@@ -267,7 +267,7 @@ sealed class Struct extends NativeType {
         final arr4 =
             Array<Float64>._((numElements: 4, addr: ptr.cast<Float64>() + 96));
         return double4x4(arr1, arr2, arr3, arr4, ptr) as T;
-   }
+    }
   }
 }
 
@@ -1831,7 +1831,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _GltfResourceLoader_createRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<Char> relativeResourcePath,
     Pointer<
             self
             .NativeFunction<void Function(PointerClass<TGltfResourceLoader>)>>
@@ -1895,7 +1894,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
     Pointer<TEngine> tEngine,
-    Pointer<Char> relativeResourcePath,
   );
   external void _GltfResourceLoader_destroy(
     Pointer<TEngine> tEngine,
@@ -2069,13 +2067,29 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     JSBigInt frameTimeInNanos,
   );
-  external void _AnimationManager_addAnimationComponent(
+  external bool _AnimationManager_addGltfAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external bool _AnimationManager_removeGltfAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external void _AnimationManager_addMorphAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
   );
-  external void _AnimationManager_removeAnimationComponent(
+  external void _AnimationManager_removeMorphAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
+  );
+  external bool _AnimationManager_addBoneAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external bool _AnimationManager_removeBoneAnimationComponent(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
   );
   external bool _AnimationManager_setMorphAnimation(
     Pointer<TAnimationManager> tAnimationManager,
@@ -2094,7 +2108,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
   );
-  external void _AnimationManager_addBoneAnimation(
+  external bool _AnimationManager_addBoneAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int skinIndex,
@@ -2126,9 +2140,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int boneIndex,
     Pointer<Float32> out,
   );
-  external void _AnimationManager_playAnimation(
+  external bool _AnimationManager_playGltfAnimation(
     Pointer<TAnimationManager> tAnimationManager,
-    Pointer<TSceneAsset> sceneAsset,
+    Pointer<TSceneAsset> tSceneAsset,
     int index,
     bool loop,
     bool reverse,
@@ -2136,21 +2150,21 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double crossfade,
     double startOffset,
   );
-  external void _AnimationManager_stopAnimation(
+  external bool _AnimationManager_stopGltfAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     int index,
   );
-  external double _AnimationManager_getAnimationDuration(
+  external double _AnimationManager_getGltfAnimationDuration(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     int animationIndex,
   );
-  external int _AnimationManager_getAnimationCount(
+  external int _AnimationManager_getGltfAnimationCount(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
   );
-  external void _AnimationManager_getAnimationName(
+  external void _AnimationManager_getGltfAnimationName(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     Pointer<Char> outPtr,
@@ -2189,7 +2203,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Float32> morphData,
     int numWeights,
   );
-  external void _AnimationManager_setGltfAnimationFrame(
+  external bool _AnimationManager_setGltfAnimationFrame(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int animationIndex,
@@ -5133,12 +5147,11 @@ void GltfAssetLoader_createRenderThread(
 
 void GltfResourceLoader_createRenderThread(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<Char> relativeResourcePath,
   self.Pointer<self.NativeFunction<void Function(Pointer<TGltfResourceLoader>)>>
       callback,
 ) {
   final result = _lib._GltfResourceLoader_createRenderThread(
-      tEngine.cast(), relativeResourcePath, callback.cast());
+      tEngine.cast(), callback.cast());
   return result;
 }
 
@@ -5263,10 +5276,8 @@ void Gizmo_createRenderThread(
 
 self.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<Char> relativeResourcePath,
 ) {
-  final result =
-      _lib._GltfResourceLoader_create(tEngine.cast(), relativeResourcePath);
+  final result = _lib._GltfResourceLoader_create(tEngine.cast());
   return self.Pointer<TGltfResourceLoader>(result);
 }
 
@@ -5641,21 +5652,57 @@ void AnimationManager_update(
   return result;
 }
 
-void AnimationManager_addAnimationComponent(
+bool AnimationManager_addGltfAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = _lib._AnimationManager_addGltfAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
+  return result;
+}
+
+bool AnimationManager_removeGltfAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = _lib._AnimationManager_removeGltfAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
+  return result;
+}
+
+void AnimationManager_addMorphAnimationComponent(
   self.Pointer<TAnimationManager> tAnimationManager,
   DartEntityId entityId,
 ) {
-  final result = _lib._AnimationManager_addAnimationComponent(
+  final result = _lib._AnimationManager_addMorphAnimationComponent(
       tAnimationManager.cast(), entityId);
   return result;
 }
 
-void AnimationManager_removeAnimationComponent(
+void AnimationManager_removeMorphAnimationComponent(
   self.Pointer<TAnimationManager> tAnimationManager,
   DartEntityId entityId,
 ) {
-  final result = _lib._AnimationManager_removeAnimationComponent(
+  final result = _lib._AnimationManager_removeMorphAnimationComponent(
       tAnimationManager.cast(), entityId);
+  return result;
+}
+
+bool AnimationManager_addBoneAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = _lib._AnimationManager_addBoneAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
+  return result;
+}
+
+bool AnimationManager_removeBoneAnimationComponent(
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = _lib._AnimationManager_removeBoneAnimationComponent(
+      tAnimationManager.cast(), tSceneAsset.cast());
   return result;
 }
 
@@ -5697,7 +5744,7 @@ void AnimationManager_resetToRestPose(
   return result;
 }
 
-void AnimationManager_addBoneAnimation(
+bool AnimationManager_addBoneAnimation(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> tSceneAsset,
   int skinIndex,
@@ -5758,9 +5805,9 @@ void AnimationManager_getInverseBindMatrix(
   return result;
 }
 
-void AnimationManager_playAnimation(
+bool AnimationManager_playGltfAnimation(
   self.Pointer<TAnimationManager> tAnimationManager,
-  self.Pointer<TSceneAsset> sceneAsset,
+  self.Pointer<TSceneAsset> tSceneAsset,
   int index,
   bool loop,
   bool reverse,
@@ -5768,9 +5815,9 @@ void AnimationManager_playAnimation(
   double crossfade,
   double startOffset,
 ) {
-  final result = _lib._AnimationManager_playAnimation(
+  final result = _lib._AnimationManager_playGltfAnimation(
       tAnimationManager.cast(),
-      sceneAsset.cast(),
+      tSceneAsset.cast(),
       index,
       loop,
       reverse,
@@ -5780,42 +5827,42 @@ void AnimationManager_playAnimation(
   return result;
 }
 
-void AnimationManager_stopAnimation(
+bool AnimationManager_stopGltfAnimation(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
   int index,
 ) {
-  final result = _lib._AnimationManager_stopAnimation(
+  final result = _lib._AnimationManager_stopGltfAnimation(
       tAnimationManager.cast(), sceneAsset.cast(), index);
   return result;
 }
 
-double AnimationManager_getAnimationDuration(
+double AnimationManager_getGltfAnimationDuration(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
   int animationIndex,
 ) {
-  final result = _lib._AnimationManager_getAnimationDuration(
+  final result = _lib._AnimationManager_getGltfAnimationDuration(
       tAnimationManager.cast(), sceneAsset.cast(), animationIndex);
   return result;
 }
 
-int AnimationManager_getAnimationCount(
+int AnimationManager_getGltfAnimationCount(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
 ) {
-  final result = _lib._AnimationManager_getAnimationCount(
+  final result = _lib._AnimationManager_getGltfAnimationCount(
       tAnimationManager.cast(), sceneAsset.cast());
   return result;
 }
 
-void AnimationManager_getAnimationName(
+void AnimationManager_getGltfAnimationName(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> sceneAsset,
   self.Pointer<Char> outPtr,
   int index,
 ) {
-  final result = _lib._AnimationManager_getAnimationName(
+  final result = _lib._AnimationManager_getGltfAnimationName(
       tAnimationManager.cast(), sceneAsset.cast(), outPtr, index);
   return result;
 }
@@ -5883,7 +5930,7 @@ bool AnimationManager_setMorphTargetWeights(
   return result;
 }
 
-void AnimationManager_setGltfAnimationFrame(
+bool AnimationManager_setGltfAnimationFrame(
   self.Pointer<TAnimationManager> tAnimationManager,
   self.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,

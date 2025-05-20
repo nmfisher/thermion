@@ -1,7 +1,7 @@
 #include <chrono>
 #include <variant>
 
-#include "components/AnimationComponentManager.hpp"
+#include "components/BoneAnimationComponentManager.hpp"
 
 #include "Log.hpp"
 

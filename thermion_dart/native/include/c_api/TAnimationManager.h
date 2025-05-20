@@ -129,7 +129,7 @@ extern "C"
 		const float *const morphData,
 		int numWeights);
 
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationFrame(
+	EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationFrame(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *tSceneAsset,
 		int animationIndex,

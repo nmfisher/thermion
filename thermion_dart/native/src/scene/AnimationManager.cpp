@@ -11,8 +11,6 @@
 
 #include "Log.hpp"
 
-#include "components/AnimationComponentManager.hpp"
-#include "components/AnimationComponentManager.hpp"
 #include "scene/AnimationManager.hpp"
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
@@ -334,71 +332,7 @@ namespace thermion
             return;
         }
 
-        if (!_gltfAnimationComponentManager->hasComponent(instance->getEntity()))
-        {
-            _gltfAnimationComponentManager->addComponent(instance->getEntity());
-            Log("ERROR: specified entity is not animatable (has no animation component attached).");
-            return;
-        }
-
-        auto animationComponentInstance = _gltfAnimationComponentManager->getInstance(instance->getEntity());
-
-        auto &animationComponent = _gltfAnimationComponentManager->elementAt<0>(animationComponentInstance);
-
-        animationComponent.target = instance->getInstance();
-
-        if (replaceActive)
-        {
-            if (animationComponent.animations.size() > 0)
-            {
-                auto &last = animationComponent.animations.back();
-                animationComponent.fadeGltfAnimationIndex = last.index;
-                animationComponent.fadeDuration = crossfade;
-                auto now = high_resolution_clock::now();
-                auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last.start).count()) / 1000.0f;
-                animationComponent.fadeOutAnimationStart = elapsedInSecs;
-                animationComponent.animations.clear();
-            }
-            else
-            {
-                animationComponent.fadeGltfAnimationIndex = -1;
-                animationComponent.fadeDuration = 0.0f;
-            }
-        }
-        else if (crossfade > 0)
-        {
-            Log("ERROR: crossfade only supported when replaceActive is true.");
-            return;
-        }
-        else
-        {
-            animationComponent.fadeGltfAnimationIndex = -1;
-            animationComponent.fadeDuration = 0.0f;
-        }
-
-        GltfAnimation animation;
-        animation.startOffset = startOffset;
-        animation.index = index;
-        animation.start = std::chrono::high_resolution_clock::now();
-        animation.loop = loop;
-        animation.reverse = reverse;
-        animation.durationInSecs = instance->getInstance()->getAnimator()->getAnimationDuration(index);
-
-        bool found = false;
-
-        // don't play the animation if it's already running
-        for (int i = 0; i < animationComponent.animations.size(); i++)
-        {
-            if (animationComponent.animations[i].index == index)
-            {
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-        {
-            animationComponent.animations.push_back(animation);
-        }
+        _gltfAnimationComponentManager->addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset);
     }
 
     void AnimationManager::stopGltfAnimation(GltfSceneAssetInstance *instance, int index)
@@ -515,35 +449,47 @@ namespace thermion
 
     bool AnimationManager::addGltfAnimationComponent(GltfSceneAssetInstance *instance)
     {
+        std::lock_guard lock(_mutex);
         _gltfAnimationComponentManager->addAnimationComponent(instance->getInstance());
+        TRACE("Added glTF animation component");
         return true;
     }
 
     void AnimationManager::removeGltfAnimationComponent(GltfSceneAssetInstance *instance)
     {
+        std::lock_guard lock(_mutex);
         _gltfAnimationComponentManager->removeAnimationComponent(instance->getInstance());
+        TRACE("Removed glTF animation component");
     }
 
     bool AnimationManager::addBoneAnimationComponent(GltfSceneAssetInstance *instance)
     {
+        std::lock_guard lock(_mutex);
         _boneAnimationComponentManager->addAnimationComponent(instance->getInstance());
+        TRACE("Added bone animation component");
         return true;
     }
 
     void AnimationManager::removeBoneAnimationComponent(GltfSceneAssetInstance *instance)
     {
+        std::lock_guard lock(_mutex);
         _boneAnimationComponentManager->removeAnimationComponent(instance->getInstance());
+        TRACE("Removed bone animation component");
     }
 
     bool AnimationManager::addMorphAnimationComponent(utils::Entity entity)
     {
+        std::lock_guard lock(_mutex);
         _morphAnimationComponentManager->addAnimationComponent(entity);
+        TRACE("Added morph animation component");
         return true;
     }
 
     void AnimationManager::removeMorphAnimationComponent(utils::Entity entity)
     {
+        std::lock_guard lock(_mutex);
         _morphAnimationComponentManager->removeAnimationComponent(entity);
+        TRACE("Removed morph animation component");
     }
 
 }

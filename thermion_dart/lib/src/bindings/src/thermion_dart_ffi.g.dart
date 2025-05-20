@@ -3394,9 +3394,9 @@ external bool AnimationManager_setMorphTargetWeights(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
+    ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
         ffi.Int, ffi.Int)>(isLeaf: true)
-external void AnimationManager_setGltfAnimationFrame(
+external bool AnimationManager_setGltfAnimationFrame(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,

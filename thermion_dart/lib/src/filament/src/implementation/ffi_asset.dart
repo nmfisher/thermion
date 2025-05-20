@@ -621,8 +621,12 @@ class FFIAsset extends ThermionAsset {
   ///
   @override
   Future<double> getGltfAnimationDuration(int animationIndex) async {
-    return AnimationManager_getGltfAnimationDuration(
+    final duration = AnimationManager_getGltfAnimationDuration(
         animationManager, asset, animationIndex);
+    if (duration < 0) {
+      throw Exception("Failed to get glTF animation duration");
+    }
+    return duration;
   }
 
   ///
@@ -1030,6 +1034,18 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future removeAnimationComponent() async {
-    AnimationManager_removeGltfAnimationComponent(animationManager, this.asset);
+    if (!AnimationManager_removeGltfAnimationComponent(
+        animationManager, asset)) {
+      throw Exception("Failed to remove glTF animation component");
+    }
+    if (!AnimationManager_removeBoneAnimationComponent(
+        animationManager, asset)) {
+      throw Exception("Failed to remove bone animation component");
+    }
+    AnimationManager_removeMorphAnimationComponent(animationManager, entity);
+
+    for (final child in await getChildEntities()) {
+      AnimationManager_removeMorphAnimationComponent(animationManager, child);
+    }
   }
 }

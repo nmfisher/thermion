@@ -9,10 +9,12 @@
 #include "c_api/APIBoundaryTypes.h"
 
 #include "components/CollisionComponentManager.hpp"
-#include "components/AnimationComponentManager.hpp"
-#include "GltfSceneAssetInstance.hpp"
-#include "GltfSceneAsset.hpp"
-#include "SceneAsset.hpp"
+#include "components/GltfAnimationComponentManager.hpp"
+#include "components/MorphAnimationComponentManager.hpp"
+#include "components/BoneAnimationComponentManager.hpp"
+#include "scene/GltfSceneAssetInstance.hpp"
+#include "scene/GltfSceneAsset.hpp"
+#include "scene/SceneAsset.hpp"
 
 namespace thermion
 {

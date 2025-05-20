@@ -51,24 +51,25 @@ class _MyHomePageState extends State<MyHomePage> {
       await _thermionViewer!.destroyAsset(_asset!);
       _asset = null;
     }
-    if (uri == null) {
-      return;
-    }
-    _asset = await _thermionViewer!.loadGltf(uri);
-    await _asset!.transformToUnitCube();
-    final animations = await _asset!.getGltfAnimationNames();
-    final durations = await Future.wait(List.generate(
-        animations.length, (i) => _asset!.getGltfAnimationDuration(i)));
 
-    final labels = animations
-        .asMap()
-        .map((index, animation) =>
-            MapEntry(index, "$animation (${durations[index]}s"))
-        .values;
-    gltfAnimations.clear();
-    gltfAnimations.addAll(labels);
-    selectedGltfAnimation = 0;
     _loaded = uri;
+    if (uri != null) {
+      _asset = await _thermionViewer!.loadGltf(uri);
+      await _asset!.transformToUnitCube();
+      final animations = await _asset!.getGltfAnimationNames();
+      final durations = await Future.wait(List.generate(
+          animations.length, (i) => _asset!.getGltfAnimationDuration(i)));
+
+      final labels = animations
+          .asMap()
+          .map((index, animation) =>
+              MapEntry(index, "$animation (${durations[index]}s"))
+          .values;
+      gltfAnimations.clear();
+      gltfAnimations.addAll(labels);
+      selectedGltfAnimation = 0;
+      
+    }
     setState(() {});
   }
 
@@ -123,19 +124,19 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Row(children: [
-                Text("Asset: "),
-                DropdownButton<String>(
+                const Text("Asset: "),
+                DropdownButton<String?>(
                     value: _loaded,
-                    items: [_droneUri, _cubeUri]
-                        .map((uri) => DropdownMenuItem<String>(
+                    items: [_droneUri, _cubeUri, null]
+                        .map((uri) => DropdownMenuItem<String?>(
                             value: uri,
                             child: Text(
-                              uri,
-                              style: TextStyle(fontSize: 12),
+                              uri ?? "None",
+                              style: const TextStyle(fontSize: 12),
                             )))
                         .toList(),
                     onChanged: _load),
-                Text("Animation: "),
+                const Text("Animation: "),
                 DropdownButton<String>(
                     value: selectedGltfAnimation == -1
                         ? null
@@ -143,9 +144,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     items: gltfAnimations
                         .map((animation) => DropdownMenuItem<String>(
                             value: animation,
-                                child: Text(
+                            child: Text(
                               animation,
-                              style: TextStyle(fontSize: 12),
+                              style: const TextStyle(fontSize: 12),
                             )))
                         .toList(),
                     onChanged: (value) {
@@ -160,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     icon: const Icon(Icons.play_arrow)),
                 IconButton(
                     onPressed: _stopGltfAnimation, icon: const Icon(Icons.stop))
-              ])))
+              ]))),
     ]);
   }
 }

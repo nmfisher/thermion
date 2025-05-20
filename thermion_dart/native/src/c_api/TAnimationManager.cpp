@@ -31,49 +31,93 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf || !sceneAsset->isInstance()) {
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
+        }
+
+        GltfSceneAssetInstance *instance;
+
+        if (sceneAsset->isInstance())
+        {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
+        } else {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
         }
         
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
 
-        animationManager->addGltfAnimationComponent(reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset));
+        animationManager->addGltfAnimationComponent(instance);
         return true;
     }
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf || !sceneAsset->isInstance()) {
+        
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
         }
 
+        GltfSceneAssetInstance *instance;
+
+        if (sceneAsset->isInstance())
+        {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
+        } else {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
+        }
+        
+
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        animationManager->removeGltfAnimationComponent(reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset));
+        animationManager->removeGltfAnimationComponent(instance);
         return true;
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf || !sceneAsset->isInstance()) {
+  
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
+        }
+
+        GltfSceneAssetInstance *instance;
+
+        if (sceneAsset->isInstance())
+        {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
+        } else {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
         }
         
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
 
-        animationManager->addBoneAnimationComponent(reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset));
+        animationManager->addBoneAnimationComponent(instance);
         return true;
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_removeBoneAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf || !sceneAsset->isInstance()) {
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
         }
 
+          
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            return false;
+        }
+
+        GltfSceneAssetInstance *instance;
+
+        if (sceneAsset->isInstance())
+        {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
+        } else {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
+        }
+
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        animationManager->removeBoneAnimationComponent(reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset));
+        animationManager->removeBoneAnimationComponent(instance);
         return true;
     }
 
@@ -124,15 +168,27 @@ extern "C"
         return true;
     }
 
-    EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPose(TAnimationManager *tAnimationManager, TSceneAsset *sceneAsset)
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPose(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset)
     {
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
-        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
-        {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
-            animationManager->resetToRestPose(instance);
+        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("Error - incorrect asset type, cannot reset to reset pose");
+            return;
         }
+
+          
+        GltfSceneAssetInstance *instance;
+
+        if (sceneAsset->isInstance())
+        {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
+        } else {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
+        }
+
+        animationManager->resetToRestPose(instance);
+        
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_addBoneAnimation(
@@ -297,19 +353,31 @@ extern "C"
         return true;
     }
 
-    EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationFrame(
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationFrame(
         TAnimationManager *tAnimationManager,
         TSceneAsset *tSceneAsset,
         int animationIndex,
         int frame)
     {
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto asset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
-        {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
-            animationManager->setGltfAnimationFrame(instance, animationIndex, frame);
+        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            return false;
         }
+        
+        GltfSceneAssetInstance *instance;
+
+        if (sceneAsset->isInstance())
+        {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
+        } else {
+            instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
+        }
+        
+        animationManager->setGltfAnimationFrame(instance, animationIndex, frame);
+
+        return true;
+
     }
 
     EMSCRIPTEN_KEEPALIVE float AnimationManager_getGltfAnimationDuration(
@@ -320,7 +388,7 @@ extern "C"
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            return false;
+            return -1.0;
         }
         
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
