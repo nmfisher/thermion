@@ -119,56 +119,56 @@ void main() async {
         }
 
 // Improved blending - treating black pixels as transparent
-final blendedImage = Float32List(width * height * 4);
-final weightSums = List<double>.filled(width * height, 0.0);
+        final blendedImage = Float32List(width * height * 4);
+        final weightSums = List<double>.filled(width * height, 0.0);
 
 // For each image
-for (final image in images) {
-  // For each pixel in the image
-  for (int p = 0; p < width * height; p++) {
-    final baseIdx = p * 4;
-    final r = image[baseIdx];
-    final g = image[baseIdx + 1];
-    final b = image[baseIdx + 2];
-    final alpha = image[baseIdx + 3];
-    
-    // Check if pixel is black (all color channels near zero)
-    final isBlack = (r < 0.01 && g < 0.01 && b < 0.01);
-    
-    // Only include pixels that are non-black AND have non-zero alpha
-    if (!isBlack && alpha > 0) {
-      // Weight contribution by alpha value
-      final weight = alpha;
-      blendedImage[baseIdx] += r * weight;
-      blendedImage[baseIdx + 1] += g * weight;
-      blendedImage[baseIdx + 2] += b * weight;
-      blendedImage[baseIdx + 3] += weight;
-      
-      // Track total weights for normalization
-      weightSums[p] += weight;
-    }
-  }
-}
+        for (final image in images) {
+          // For each pixel in the image
+          for (int p = 0; p < width * height; p++) {
+            final baseIdx = p * 4;
+            final r = image[baseIdx];
+            final g = image[baseIdx + 1];
+            final b = image[baseIdx + 2];
+            final alpha = image[baseIdx + 3];
+
+            // Check if pixel is black (all color channels near zero)
+            final isBlack = (r < 0.01 && g < 0.01 && b < 0.01);
+
+            // Only include pixels that are non-black AND have non-zero alpha
+            if (!isBlack && alpha > 0) {
+              // Weight contribution by alpha value
+              final weight = alpha;
+              blendedImage[baseIdx] += r * weight;
+              blendedImage[baseIdx + 1] += g * weight;
+              blendedImage[baseIdx + 2] += b * weight;
+              blendedImage[baseIdx + 3] += weight;
+
+              // Track total weights for normalization
+              weightSums[p] += weight;
+            }
+          }
+        }
 
 // Normalize by the accumulated weights
-for (int p = 0; p < width * height; p++) {
-  final baseIdx = p * 4;
-  final weightSum = weightSums[p];
-  
-  if (weightSum > 0) {
-    blendedImage[baseIdx] /= weightSum;
-    blendedImage[baseIdx + 1] /= weightSum;
-    blendedImage[baseIdx + 2] /= weightSum;
-    // Set alpha to full for pixels that had contributions
-    blendedImage[baseIdx + 3] = 1.0;
-  } else {
-    // For pixels with no contributions, ensure they're fully transparent
-    blendedImage[baseIdx] = 0;
-    blendedImage[baseIdx + 1] = 0;
-    blendedImage[baseIdx + 2] = 0;
-    blendedImage[baseIdx + 3] = 0;
-  }
-}
+        for (int p = 0; p < width * height; p++) {
+          final baseIdx = p * 4;
+          final weightSum = weightSums[p];
+
+          if (weightSum > 0) {
+            blendedImage[baseIdx] /= weightSum;
+            blendedImage[baseIdx + 1] /= weightSum;
+            blendedImage[baseIdx + 2] /= weightSum;
+            // Set alpha to full for pixels that had contributions
+            blendedImage[baseIdx + 3] = 1.0;
+          } else {
+            // For pixels with no contributions, ensure they're fully transparent
+            blendedImage[baseIdx] = 0;
+            blendedImage[baseIdx + 1] = 0;
+            blendedImage[baseIdx + 2] = 0;
+            blendedImage[baseIdx + 3] = 0;
+          }
+        }
         // Set the blended data to the projectedImage
         final data = await projectedImage.getData();
         data.setRange(0, data.length, blendedImage);
