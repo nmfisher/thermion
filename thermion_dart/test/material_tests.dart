@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 Future<
@@ -13,17 +11,18 @@ Future<
       ThermionAsset greenCube,
       MaterialInstance greenMaterialInstance
     })> setup(ThermionViewer viewer) async {
-  var blueMaterialInstance = await viewer.createUnlitMaterialInstance();
+  var blueMaterialInstance =
+      await FilamentApp.instance!.createUnlitMaterialInstance();
   final blueCube = await viewer.createGeometry(GeometryHelper.cube(),
       materialInstances: [blueMaterialInstance]);
   await blueMaterialInstance.setParameterFloat4(
       "baseColorFactor", 0.0, 0.0, 1.0, 1.0);
 
   // Position blue cube slightly behind and to the right
-  await viewer.setTransform(
-      blueCube.entity, Matrix4.translation(Vector3(1.0, 0.0, -1.0)));
+  await blueCube.setTransform(Matrix4.translation(Vector3(1.0, 0.0, -1.0)));
 
-  var greenMaterialInstance = await viewer.createUnlitMaterialInstance();
+  var greenMaterialInstance =
+      await FilamentApp.instance!.createUnlitMaterialInstance();
   final greenCube = await viewer.createGeometry(GeometryHelper.cube(),
       materialInstances: [greenMaterialInstance]);
   await greenMaterialInstance.setParameterFloat4(
@@ -40,13 +39,16 @@ Future<
 void main() async {
   final testHelper = TestHelper("material");
 
+  await testHelper.setup();
+
   group("unlit material", () {
     test('unlit + baseColorFactor', () async {
       await testHelper.withViewer((viewer) async {
         await viewer.setPostProcessing(true);
         await viewer.setToneMapping(ToneMapper.LINEAR);
 
-        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUnlitMaterialInstance();
         var cube = await viewer.createGeometry(
             GeometryHelper.cube(normals: false, uvs: false),
             materialInstances: [materialInstance]);
@@ -54,44 +56,46 @@ void main() async {
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
         await materialInstance.setParameterInt("baseColorIndex", -1);
-        await testHelper.capture(viewer, "unlit_material_base_color");
-        await viewer.destroyMaterialInstance(materialInstance);
+        await testHelper.capture(viewer.view, "unlit_material_base_color");
+        await materialInstance.destroy();
       }, bg: kRed);
     });
 
     test('unlit + baseColorMap', () async {
       await testHelper.withViewer((viewer) async {
-        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var materialInstance =
+            await await FilamentApp.instance!.createUnlitMaterialInstance();
         var cube = await viewer.createGeometry(GeometryHelper.cube(),
             materialInstances: [materialInstance]);
 
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
-        await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
+        // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
         await materialInstance.setParameterInt("baseColorIndex", 0);
 
         var data =
             File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
                 .readAsBytesSync();
-        final image = await viewer.decodeImage(data);
+        final image = await await FilamentApp.instance!.decodeImage(data);
 
-        final texture = await viewer.createTexture(
+        final texture = await await FilamentApp.instance!.createTexture(
             await image.getWidth(), await image.getHeight(),
             textureFormat: TextureFormat.RGBA32F);
         await texture.setLinearImage(
             image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
-        final sampler = await viewer.createTextureSampler();
+        final sampler =
+            await await FilamentApp.instance!.createTextureSampler();
 
         await materialInstance.setParameterTexture(
             "baseColorMap", texture, sampler);
 
-        await testHelper.capture(viewer, "unlit_baseColorMap");
+        await testHelper.capture(viewer.view, "unlit_baseColorMap");
 
         await image.destroy();
         await texture.dispose();
         await sampler.dispose();
 
-        await viewer.destroyMaterialInstance(materialInstance);
+        await materialInstance.destroy();
       });
     });
 
@@ -99,45 +103,47 @@ void main() async {
       await testHelper.withViewer((viewer) async {
         var cube = await viewer
             .createGeometry(GeometryHelper.cube(), materialInstances: []);
-        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUnlitMaterialInstance();
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
-        await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
+        // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
         await materialInstance.setParameterInt("baseColorIndex", 0);
 
         var data =
             File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
                 .readAsBytesSync();
-        final image = await viewer.decodeImage(data);
+        final image = await FilamentApp.instance!.decodeImage(data);
 
-        final texture = await viewer.createTexture(
+        final texture = await FilamentApp.instance!.createTexture(
             await image.getWidth(), await image.getHeight(),
             textureFormat: TextureFormat.RGBA32F);
         await texture.setLinearImage(
             image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
-        final sampler = await viewer.createTextureSampler();
+        final sampler = await FilamentApp.instance!.createTextureSampler();
 
         await materialInstance.setParameterTexture(
             "baseColorMap", texture, sampler);
         await cube.setMaterialInstanceAt(materialInstance);
         await testHelper.capture(
-            viewer, "unlit_baseColorMap_material_created_after");
+            viewer.view, "unlit_baseColorMap_material_created_after");
 
         await image.destroy();
         await texture.dispose();
         await sampler.dispose();
 
-        await viewer.destroyMaterialInstance(materialInstance);
+        await materialInstance.destroy();
       });
     });
 
     test('unlit + baseColorMap (fetch material after creation)', () async {
       await testHelper.withViewer((viewer) async {
-        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUnlitMaterialInstance();
         var cube = await viewer.createGeometry(GeometryHelper.cube(),
             materialInstances: [materialInstance]);
 
-        materialInstance = await viewer.getMaterialInstanceAt(cube.entity, 0);
+        materialInstance = await cube.getMaterialInstanceAt(index: 0);
 
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
@@ -146,26 +152,26 @@ void main() async {
         var data =
             File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
                 .readAsBytesSync();
-        final image = await viewer.decodeImage(data);
+        final image = await FilamentApp.instance!.decodeImage(data);
 
-        final texture = await viewer.createTexture(
+        final texture = await FilamentApp.instance!.createTexture(
             await image.getWidth(), await image.getHeight(),
             textureFormat: TextureFormat.RGBA32F);
         await texture.setLinearImage(
             image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
-        final sampler = await viewer.createTextureSampler();
+        final sampler = await FilamentApp.instance!.createTextureSampler();
 
         await materialInstance.setParameterTexture(
             "baseColorMap", texture, sampler);
         await cube.setMaterialInstanceAt(materialInstance);
         await testHelper.capture(
-            viewer, "unlit_baseColorMap_fetch_material");
+            viewer.view, "unlit_baseColorMap_fetch_material");
 
         await image.destroy();
         await texture.dispose();
         await sampler.dispose();
 
-        await viewer.destroyMaterialInstance(materialInstance);
+        await materialInstance.destroy();
       });
     });
 
@@ -174,7 +180,8 @@ void main() async {
         await viewer.setPostProcessing(true);
         await viewer.setToneMapping(ToneMapper.LINEAR);
 
-        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUnlitMaterialInstance();
         var cube = await viewer.createGeometry(
             GeometryHelper.cube(normals: false, uvs: false),
             materialInstances: [materialInstance]);
@@ -182,8 +189,9 @@ void main() async {
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 0.0, 1.0, 0.0, 0.1);
         await materialInstance.setParameterInt("baseColorIndex", -1);
-        await testHelper.capture(viewer, "unlit_material_base_color_alpha");
-        await viewer.destroyMaterialInstance(materialInstance);
+        await testHelper.capture(
+            viewer.view, "unlit_material_base_color_alpha");
+        await materialInstance.destroy();
       }, bg: kRed);
     });
 
@@ -202,11 +210,11 @@ void main() async {
       await materialInstance.setParameterFloat4(
           "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
 
-      await testHelper.capture(viewer, "unlit_fixed_size_default_scale");
+      await testHelper.capture(viewer.view, "unlit_fixed_size_default_scale");
 
       await materialInstance.setParameterFloat("scale", 10.0);
 
-      await testHelper.capture(viewer, "unlit_fixed_size_scale_10");
+      await testHelper.capture(viewer.view, "unlit_fixed_size_scale_10");
 
       await viewer.dispose();
     });
@@ -215,7 +223,8 @@ void main() async {
   group("ubershader material tests", () {
     test('ubershader material with color only', () async {
       await testHelper.withViewer((viewer) async {
-        var materialInstance = await viewer.createUbershaderMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUbershaderMaterialInstance();
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
         var cube = await viewer.createGeometry(
@@ -225,36 +234,37 @@ void main() async {
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
         await materialInstance.setParameterInt("baseColorIndex", -1);
-        await testHelper.capture(viewer, "ubershader_material_base_color");
-        await viewer.destroyMaterialInstance(materialInstance);
+        await testHelper.capture(viewer.view, "ubershader_material_base_color");
+        await materialInstance.destroy();
       }, bg: kRed, postProcessing: true);
     });
 
     test('ubershader + baseColorMap texture', () async {
       await testHelper.withViewer((viewer) async {
-        var materialInstance = await viewer.createUbershaderMaterialInstance(unlit: true);
-        final cube = await viewer.createGeometry(
-            GeometryHelper.cube(),
+        var materialInstance = await FilamentApp.instance!
+            .createUbershaderMaterialInstance(unlit: true);
+        final cube = await viewer.createGeometry(GeometryHelper.cube(),
             materialInstances: [materialInstance]);
-        var data = File("${testHelper.testDir}/assets/cube_texture2_512x512_flipped.png")
+        var data = File(
+                "${testHelper.testDir}/assets/cube_texture2_512x512_flipped.png")
             .readAsBytesSync();
-        final image = await viewer.decodeImage(data);
-        final texture = await viewer.createTexture(
+        final image = await FilamentApp.instance!.decodeImage(data);
+        final texture = await FilamentApp.instance!.createTexture(
             await image.getWidth(), await image.getHeight(),
             textureFormat: TextureFormat.RGBA32F);
         await texture.setLinearImage(
             image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
-        final sampler = await viewer.createTextureSampler();
+        final sampler = await FilamentApp.instance!.createTextureSampler();
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 1.0, 1.0, 0.0);
         await materialInstance.setParameterInt("baseColorIndex", 0);
         await materialInstance.setParameterTexture(
             "baseColorMap", texture, sampler);
 
-        await testHelper.capture(
-            viewer, "geometry_cube_with_custom_material_ubershader_texture");
+        await testHelper.capture(viewer.view,
+            "geometry_cube_with_custom_material_ubershader_texture");
         await viewer.destroyAsset(cube);
-        await viewer.destroyMaterialInstance(materialInstance);
+        await materialInstance.destroy();
         await texture.dispose();
       });
     });
@@ -268,7 +278,8 @@ void main() async {
       await viewer.setPostProcessing(true);
       await viewer.setToneMapping(ToneMapper.LINEAR);
 
-      var materialInstance = await viewer.createUnlitMaterialInstance();
+      var materialInstance =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(GeometryHelper.cube(),
           materialInstances: [materialInstance]);
 
@@ -276,7 +287,7 @@ void main() async {
           File("${testHelper.testDir}/assets/cube_texture_512x512.png")
               .readAsBytesSync();
       throw UnimplementedError();
-      // var texture = await viewer.createTexture(textureData);
+      // var texture = await FilamentApp.instance!.createTexture(textureData);
       // await viewer.applyTexture(texture, cube.entity);
       // await testHelper.capture(
       //     viewer, "geometry_cube_with_custom_material_unlit_texture_only");
@@ -306,7 +317,7 @@ void main() async {
       // await viewer.destroyAsset(cube);
 
       // await viewer.destroyTexture(texture);
-      // await viewer.destroyMaterialInstance(materialInstance);
+      // await materialInstance.destroy();
       // await viewer.dispose();
     });
   });
@@ -322,12 +333,13 @@ void main() async {
 
         // with default depth func, blue cube renders behind the green cube
         await testHelper.capture(
-            viewer, "material_instance_depth_func_default");
+            viewer.view, "material_instance_depth_func_default");
 
         await greenMaterialInstance.setDepthFunc(SamplerCompareFunction.A);
 
         // with green material depth func set to always pass, green cube will render in front of blue cube
-        await testHelper.capture(viewer, "material_instance_depth_func_always");
+        await testHelper.capture(
+            viewer.view, "material_instance_depth_func_always");
       });
     });
 
@@ -342,17 +354,17 @@ void main() async {
 
         // With depth write enabled on both materials, green cube renders behind the blue cube
         await testHelper.capture(
-            viewer, "material_instance_depth_write_enabled");
+            viewer.view, "material_instance_depth_write_enabled");
 
         // Disable depth write on green cube, blue cube will always appear in front (green cube renders behind everything, including the image material, so not it's not visible at all)
         await greenMaterialInstance.setDepthWriteEnabled(false);
         await testHelper.capture(
-            viewer, "material_instance_depth_write_disabled");
+            viewer.view, "material_instance_depth_write_disabled");
 
         // Set priority for greenCube to render last, making it appear in front
         await viewer.setPriority(greenCube.entity, 7);
-        await testHelper.capture(
-            viewer, "material_instance_depth_write_disabled_with_priority");
+        await testHelper.capture(viewer.view,
+            "material_instance_depth_write_disabled_with_priority");
       });
     });
 
@@ -370,7 +382,7 @@ void main() async {
         await blueMaterialInstance.setDepthFunc(SamplerCompareFunction.A);
 
         await testHelper.capture(
-            viewer, "material_instance_depth_pass_stencil_disabled");
+            viewer.view, "material_instance_depth_pass_stencil_disabled");
 
         assert(await greenMaterialInstance.isStencilWriteEnabled() == false);
         assert(await blueMaterialInstance.isStencilWriteEnabled() == false);
@@ -383,7 +395,7 @@ void main() async {
 
         // just a sanity check, no difference from the last
         await testHelper.capture(
-            viewer, "material_instance_depth_pass_stencil_enabled");
+            viewer.view, "material_instance_depth_pass_stencil_enabled");
       }, postProcessing: true, bg: null);
     });
 
@@ -409,7 +421,7 @@ void main() async {
 
         // green cube isn't rendered
         await testHelper.capture(
-            viewer, "material_instance_stencil_always_fail");
+            viewer.view, "material_instance_stencil_always_fail");
       }, postProcessing: true, bg: null);
     });
 
@@ -438,7 +450,7 @@ void main() async {
             .setStencilCompareFunction(SamplerCompareFunction.E);
 
         // green cube is only rendered where it intersects with the blue cube
-        await testHelper.capture(viewer, "fail_stencil_ne");
+        await testHelper.capture(viewer.view, "fail_stencil_ne");
       }, postProcessing: true);
     });
   });
@@ -526,7 +538,7 @@ Float32List unprojectTexture({
         //   await viewer.setCameraModelMatrix4(matrix);
 
         //   // Take a snapshot at this position
-        //   await testHelper.capture(viewer, "projection_${i}deg");
+        //   await testHelper.capture(viewer.view, "projection_${i}deg");
         // }
 
   // group("MaterialInstance", () {
@@ -549,7 +561,7 @@ Float32List unprojectTexture({
   //     expect(materialInstance, isNotNull);
 
   //     // with depth write enabled on both materials, cube2 renders behind the white cube
-  //     await testHelper.capture(viewer, "material_instance_depth_write_enabled");
+  //     await testHelper.capture(viewer.view, "material_instance_depth_write_enabled");
 
   //     // if we disable depth write on cube1, then cube2 will always appear in front
   //     // (relying on insertion order)
@@ -571,7 +583,7 @@ Float32List unprojectTexture({
   //     await viewer.addDirectLight(
   //         DirectLight.sun(direction: Vector3(0, 0, -1)..normalize()));
 
-  //     final unlitMaterialInstance = await viewer.createUnlitMaterialInstance();
+  //     final unlitMaterialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
   //     final cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstance: unlitMaterialInstance);
   //     await viewer.setMaterialPropertyFloat4(
@@ -582,9 +594,9 @@ Float32List unprojectTexture({
   //     var textureData =
   //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
   //             .readAsBytesSync();
-  //     var texture = await viewer.createTexture(textureData);
+  //     var texture = await FilamentApp.instance!.createTexture(textureData);
   //     await viewer.applyTexture(texture, cube);
-  //     await testHelper.capture(viewer, "set_uv_scaling");
+  //     await testHelper.capture(viewer.view, "set_uv_scaling");
   //     await viewer.dispose();
   //   });
   // });
@@ -597,7 +609,7 @@ Float32List unprojectTexture({
   //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
   //             .readAsBytesSync();
 
-  //     var texture = await viewer.createTexture(textureData);
+  //     var texture = await FilamentApp.instance!.createTexture(textureData);
   //     await viewer.setBackgroundColor(0.0, 0.0, 0.0, 1.0);
   //     await viewer.addDirectLight(
   //         DirectLight.sun(direction: Vector3(0, -10, -1)..normalize()));
@@ -612,7 +624,7 @@ Float32List unprojectTexture({
   //     await viewer
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
   //     var materialInstance =
-  //         await viewer.createUbershaderMaterialInstance(unlit: true);
+  //         await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: true);
   //     var cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstances: [materialInstance]);
 
@@ -622,7 +634,7 @@ Float32List unprojectTexture({
   //     await viewer.applyTexture(texture, cube,
   //         materialIndex: 0, parameterName: "baseColorMap");
 
-  //     await testHelper.capture(viewer, "texture_applied_to_geometry");
+  //     await testHelper.capture(viewer.view, "texture_applied_to_geometry");
 
   //     await viewer.destroyAsset(cube);
   //     await viewer.destroyTexture(texture);
@@ -653,7 +665,7 @@ Float32List unprojectTexture({
   //         cube, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1.0);
   //     var textureData =
   //         File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
-  //     var texture = await viewer.createTexture(textureData);
+  //     var texture = await FilamentApp.instance!.createTexture(textureData);
   //     await viewer.applyTexture(texture, cube,
   //         materialIndex: 0, parameterName: "baseColorMap");
 
@@ -668,7 +680,7 @@ Float32List unprojectTexture({
   //               Quaternion.axisAngle(
   //                   Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
 
-  //       var rendered = await testHelper.capture(viewer, "unproject_render$i");
+  //       var rendered = await testHelper.capture(viewer.view, "unproject_render$i");
   //       var renderPng =
   //           await pixelsToPng(rendered, dimensions.width, dimensions.height);
 
@@ -732,17 +744,17 @@ Float32List unprojectTexture({
   //     await viewer.setPostProcessing(true);
   //     await viewer.setToneMapping(ToneMapper.LINEAR);
 
-  //     final unlit = await viewer.createUnlitMaterialInstance();
+  //     final unlit = await FilamentApp.instance!.createUnlitMaterialInstance();
   //     await viewer.destroyAsset(cube);
   //     cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstance: unlit);
-  //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);
+  //     var reconstructedTexture = await FilamentApp.instance!.createTexture(pixelBufferPng);
   //     await viewer.applyTexture(reconstructedTexture, cube);
 
   //     await viewer.setCameraRotation(
   //         Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
   //             Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
-  //     await testHelper.capture(viewer, "unproject_reconstruct");
+  //     await testHelper.capture(viewer.view, "unproject_reconstruct");
 
   //     // now re-render
   //     for (int i = 0; i < numFrames; i++) {
@@ -753,7 +765,7 @@ Float32List unprojectTexture({
   //               Quaternion.axisAngle(
   //                   Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
 
-  //       var rendered = await testHelper.capture(viewer, "unproject_rerender$i");
+  //       var rendered = await testHelper.capture(viewer.view, "unproject_rerender$i");
   //       var renderPng =
   //           await pixelsToPng(rendered, dimensions.width, dimensions.height);
 

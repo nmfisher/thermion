@@ -29,7 +29,6 @@ void main() async {
         await FilamentApp.instance!.requestFrame();
         await testHelper.capture(viewer.view, "render_thread_2");
 
-        await viewer.dispose();
       });
     });
   });
