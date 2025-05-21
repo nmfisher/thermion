@@ -64,16 +64,16 @@ class DelegateInputHandler implements InputHandler {
     _processing = true;
 
     final delegate = delegates.first;
-    final keyUp = <PhysicalKey, KeyEvent>{};
-    final keyDown = <PhysicalKey, KeyEvent>{};
+    final keyUp = <LogicalKey, KeyEvent>{};
+    final keyDown = <LogicalKey, KeyEvent>{};
 
     for (final event in _events) {
       if (event is KeyEvent) {
         switch (event.type) {
           case KeyEventType.up:
-            keyUp[event.key] = event;
+            keyUp[event.logicalKey] = event;
           case KeyEventType.down:
-            keyDown[event.key] = event;
+            keyDown[event.logicalKey] = event;
         }
       }
     }

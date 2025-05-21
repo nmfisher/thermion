@@ -88,17 +88,19 @@ class WebInputHandler {
   }
 
   void _onKeyDown(web.KeyboardEvent event) {
-    PhysicalKey? key = _getPhysicalKeyFromEvent(event);
-    if (key != null) {
-      inputHandler.handle(KeyEvent(KeyEventType.down, key));
+    PhysicalKey? physicalKey = _getPhysicalKeyFromEvent(event);
+    LogicalKey? logicalKey = _getLogicalKeyFromEvent(event);
+    if (physicalKey != null && logicalKey != null) {
+      inputHandler.handle(KeyEvent(KeyEventType.down, logicalKey, physicalKey));
     }
     event.preventDefault();
   }
 
   void _onKeyUp(web.KeyboardEvent event) {
-    PhysicalKey? key = _getPhysicalKeyFromEvent(event);
-    if (key != null) {
-      inputHandler.handle(KeyEvent(KeyEventType.up, key));
+    LogicalKey? logicalKey = _getLogicalKeyFromEvent(event);
+    PhysicalKey? physicalKey = _getPhysicalKeyFromEvent(event);
+    if (physicalKey != null && logicalKey != null) {
+      inputHandler.handle(KeyEvent(KeyEventType.up, logicalKey, physicalKey));
     }
     event.preventDefault();
   }
@@ -210,16 +212,31 @@ class WebInputHandler {
     return null;
   }
 
-  PhysicalKey? _getPhysicalKeyFromEvent(web.KeyboardEvent event) {
+    PhysicalKey? _getPhysicalKeyFromEvent(web.KeyboardEvent event) {
     switch (event.code) {
       case 'KeyW':
-        return PhysicalKey.W;
+        return PhysicalKey.w;
       case 'KeyA':
-        return PhysicalKey.A;
+        return PhysicalKey.a;
       case 'KeyS':
-        return PhysicalKey.S;
+        return PhysicalKey.s;
       case 'KeyD':
-        return PhysicalKey.D;
+        return PhysicalKey.d;
+      default:
+        return null;
+    }
+  }
+
+  LogicalKey? _getLogicalKeyFromEvent(web.KeyboardEvent event) {
+    switch (event.key) {
+      case 'KeyW':
+        return LogicalKey.w;
+      case 'KeyA':
+        return LogicalKey.a;
+      case 'KeyS':
+        return LogicalKey.s;
+      case 'KeyD':
+        return LogicalKey.d;
       default:
         return null;
     }

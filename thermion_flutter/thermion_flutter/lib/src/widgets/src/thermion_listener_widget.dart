@@ -61,24 +61,40 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
   }
 
-  final _keyMap = {
-    PhysicalKeyboardKey.keyW: PhysicalKey.W,
-    PhysicalKeyboardKey.keyA: PhysicalKey.A,
-    PhysicalKeyboardKey.keyS: PhysicalKey.S,
-    PhysicalKeyboardKey.keyD: PhysicalKey.D,
+  final _physicalKeyMap = {
+    PhysicalKeyboardKey.keyW: PhysicalKey.w,
+    PhysicalKeyboardKey.keyA: PhysicalKey.a,
+    PhysicalKeyboardKey.keyS: PhysicalKey.s,
+    PhysicalKeyboardKey.keyD: PhysicalKey.d,
+    PhysicalKeyboardKey.escape: PhysicalKey.esc,
+    PhysicalKeyboardKey.delete: PhysicalKey.del,
+    PhysicalKeyboardKey.keyG: PhysicalKey.g,
+    PhysicalKeyboardKey.keyR: PhysicalKey.r,
+  };
+
+  final _logicalKeyMap = {
+    LogicalKeyboardKey.keyW: LogicalKey.w,
+    LogicalKeyboardKey.keyA: LogicalKey.a,
+    LogicalKeyboardKey.keyS: LogicalKey.s,
+    LogicalKeyboardKey.keyD: LogicalKey.d,
+    LogicalKeyboardKey.escape: LogicalKey.esc,
+    LogicalKeyboardKey.delete: LogicalKey.del,
+    LogicalKeyboardKey.keyG: LogicalKey.g,
+    LogicalKeyboardKey.keyR: LogicalKey.r,
   };
 
   bool _handleKeyEvent(KeyEvent event) {
-    PhysicalKey? key = _keyMap[event.physicalKey];
+    final physicalKey = _physicalKeyMap[event.physicalKey];
+    final logicalKey = _logicalKeyMap[event.logicalKey];
 
-    if (key == null) {
+    if (physicalKey == null || logicalKey == null) {
       return false;
     }
 
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      widget.inputHandler.handle(t.KeyEvent(KeyEventType.down, key));
+      widget.inputHandler.handle(t.KeyEvent(KeyEventType.down, logicalKey, physicalKey));
     } else if (event is KeyUpEvent) {
-      widget.inputHandler.handle(t.KeyEvent(KeyEventType.up, key));
+      widget.inputHandler.handle(t.KeyEvent(KeyEventType.up, logicalKey, physicalKey));
       return true;
     }
     return false;
@@ -189,12 +205,6 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
   Widget build(BuildContext context) {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
-        // onPanDown: (event) {
-        //   print("PAN DOWN");
-        // },
-        // onTapMove: (event) {
-        //   print("TAP MOVE");
-        // },
         onTapDown: (details) {
           widget.inputHandler.handle(TouchEvent(TouchEventType.tap,
               details.localPosition.toVector2() * widget.pixelRatio, null));

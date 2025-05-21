@@ -69,32 +69,33 @@ class FreeFlightInputHandlerDelegateV2 implements InputHandlerDelegate {
           break;
         case ScaleEndEvent(numPointers: final numPointers):
           break;
-        case KeyEvent(type: final type, key: var key):
-          switch (key) {
-            case PhysicalKey.A:
+        case KeyEvent(type: final type, logicalKey: var logicalKey, physicalKey: var physicalKey  ):
+          switch (physicalKey) {
+            case PhysicalKey.a:
               translation += Vector3(
                 -sensitivity.keySensitivity,
                 0,
                 0,
               );
               break;
-            case PhysicalKey.S:
+            case PhysicalKey.s:
               translation += Vector3(0, 0, sensitivity.keySensitivity);
               break;
-            case PhysicalKey.D:
+            case PhysicalKey.d:
               translation += Vector3(
                 sensitivity.keySensitivity,
                 0,
                 0,
               );
               break;
-            case PhysicalKey.W:
+            case PhysicalKey.w:
               translation += Vector3(
                 0,
                 0,
                 -sensitivity.keySensitivity,
               );
               break;
+            default:
           }
           break;
       }

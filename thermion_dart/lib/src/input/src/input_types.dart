@@ -80,13 +80,16 @@ class ScrollEvent extends InputEvent {
 
 class KeyEvent extends InputEvent {
   final KeyEventType type;
-  final PhysicalKey key;
+  final LogicalKey logicalKey;
+  final PhysicalKey physicalKey;
 
-  KeyEvent(this.type, this.key);
+  KeyEvent(this.type, this.logicalKey, this.physicalKey);
 }
 
 enum KeyEventType { down, up }
 
-enum PhysicalKey { W, A, S, D }
+enum LogicalKey { w, a, s, d, g, r, shift, esc, del }
+
+enum PhysicalKey { w, a, s, d, g, r, shift, esc, del }
 
 enum InputAction { TRANSLATE, ROTATE, PICK, ZOOM, NONE }
