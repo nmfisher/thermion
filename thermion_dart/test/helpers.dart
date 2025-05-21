@@ -83,7 +83,8 @@ class TestHelper {
     outDir = Directory("$testDir/output/${dir}");
     outDir.createSync(recursive: true);
     if (Platform.isMacOS) {
-      DynamicLibrary.open('${testDir}/libThermionTextureSwift.dylib');
+      DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
+      DynamicLibrary.open('${testDir}/generated/libThermionTextureSwift.dylib');
     }
   }
 
@@ -190,7 +191,7 @@ class TestHelper {
   ///
   Future<ThermionTextureSwift> createTexture(int width, int height,
       {bool depth = false}) async {
-    final object = ThermionTextureSwift.new$();
+    final object = ThermionTextureSwift();
     object.initWithWidth_height_isDepth_(width, height, depth);
     return object;
   }
