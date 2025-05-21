@@ -66,42 +66,36 @@ extern "C"
   emscripten::val emscripten_make_uint8_buffer(int ptr, int length) {
     uint8_t *buffer = (uint8_t*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
     return v;
   }
 
   emscripten::val emscripten_make_int16_buffer(int ptr, int length) {
     int16_t *buffer = (int16_t*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
     return v;
   }
 
   emscripten::val emscripten_make_uint16_buffer(int ptr, int length) {
     uint16_t *buffer = (uint16_t*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
     return v;
   }
 
   emscripten::val emscripten_make_int32_buffer(int ptr, int length) {
     int32_t *buffer = (int32_t*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
     return v;
   }
 
   emscripten::val emscripten_make_f32_buffer(int ptr, int length) {
     float *buffer = (float*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
     return v;
   }
 
   emscripten::val emscripten_make_f64_buffer(int ptr, int length) {
     double *buffer = (double*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
     return v;
   }
 
