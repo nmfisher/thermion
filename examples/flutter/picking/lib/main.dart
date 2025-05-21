@@ -94,20 +94,22 @@ class _MyHomePageState extends State<MyHomePage> {
 
       var delegate = _InputHandlerDelegate(_thermionViewer!.view,
           (ThermionEntity entity, int x, int y) async {
+        int picked = -1;
         for (int i = 0; i < instances.length; i++) {
           var instance = instances[i];
           var children = await instance.getChildEntities();
           if (entity == instance.entity || children.contains(entity)) {
-            overlay = "Instance ${i} selected at viewport coordinates ($x, $y)";
-            setState(() {
-              
-            });
-          } else {
-            setState(() {
-              
-            });
+            picked = i;
+            break;
           }
         }
+        if (picked != -1) {
+          overlay =
+              "Instance $picked selected at viewport coordinates ($x, $y)";
+        } else {
+          overlay = null;
+        }
+        setState(() {});
       });
       _inputHandler =
           DelegateInputHandler(viewer: _thermionViewer!, delegates: [delegate]);
