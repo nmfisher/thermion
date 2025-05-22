@@ -1,22 +1,287 @@
-// // ignore_for_file: unused_local_variable
+// ignore_for_file: unused_local_variable
+import 'dart:io';
 
-// import 'dart:async';
+import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
+import 'package:test/test.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
+import 'package:thermion_dart/thermion_dart.dart';
+import 'helpers.dart';
 
-// import 'package:test/test.dart';
-// import 'package:thermion_dart/thermion_dart.dart';
-// import 'package:vector_math/vector_math_64.dart';
-// import 'helpers.dart';
+void main() async {
+  Logger.root.onRecord.listen((record) {
+    print(record);
+  });
 
-// void main() async {
-//   final testHelper = TestHelper("view");
+  final testHelper = TestHelper("view");
+  await testHelper.setup();
 
-//   group('view tests', () {
-//     test('get camera from view', () async {
-//       await testHelper.withViewer((viewer) async {
-//         var view = await viewer.getViewAt(0);
-//         expect(await view.getCamera(), isNotNull);
-//       });
-//     });
+  test('get camera from view', () async {
+    await testHelper.withViewer((viewer) async {
+      final camera = await viewer.view.getCamera();
+      expect(camera, isNotNull);
+    });
+  });
+
+  test('render to multiple views, same camera', () async {
+    final viewportDimensions = (width: 500, height: 500);
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height);
+    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
+    final views = [];
+    final scene = await FilamentApp.instance!.createScene() as FFIScene;
+    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+    await camera.setLensProjection();
+    for (int i = 0; i < 2; i++) {
+      final view = await FilamentApp.instance!.createView() as FFIView;
+      await view.setScene(scene);
+      await view.setCamera(camera);
+      await view.setRenderable(true);
+      await view.setViewport(
+          viewportDimensions.width, viewportDimensions.height);
+      await view.setFrustumCullingEnabled(false);
+      await view.setPostProcessing(false);
+      await FilamentApp.instance!.register(swapChain, view);
+      views.add(view);
+      await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
+        viewportDimensions.width,
+        viewportDimensions.height,
+      ) as FFIRenderTarget);
+    }
+
+    await camera.lookAt(Vector3(0, 0, 10));
+
+    var materialInstance =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
+    await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
+
+    var cube = await FilamentApp.instance!.createGeometry(
+        GeometryHelper.cube(flipUvs: true), nullptr,
+        materialInstances: [materialInstance]) as FFIAsset;
+
+    await scene.add(cube);
+    final results = await FilamentApp.instance!.capture(swapChain);
+
+    await savePixelBufferToBmp(
+        results.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "multi_view_same_camera_0.bmp"),
+        isFloat: true);
+    await savePixelBufferToBmp(
+        results.last.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "multi_view_same_camera_1.bmp"),
+        isFloat: true);
+  });
+
+  test('render to multiple views, same scene, different camera', () async {
+    final viewportDimensions = (width: 500, height: 500);
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height);
+    final views = <FFIView>[];
+    final scene = await FilamentApp.instance!.createScene() as FFIScene;
+    final camera1 = await FilamentApp.instance!.createCamera() as FFICamera;
+    await camera1.setLensProjection();
+    final camera2 = await FilamentApp.instance!.createCamera() as FFICamera;
+    await camera2.setLensProjection();
+    for (int i = 0; i < 2; i++) {
+      final view = await FilamentApp.instance!.createView() as FFIView;
+      await view.setScene(scene);
+      await view.setRenderable(true);
+      await view.setViewport(
+          viewportDimensions.width, viewportDimensions.height);
+      await view.setFrustumCullingEnabled(false);
+      await view.setPostProcessing(false);
+      await FilamentApp.instance!.register(swapChain, view);
+      views.add(view);
+    }
+
+    await camera1.lookAt(Vector3(-5, 0, 10));
+    await camera2.lookAt(Vector3(5, 0, 10));
+
+    await views.first.setCamera(camera1);
+    await views.last.setCamera(camera2);
+
+    var materialInstance =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
+    await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
+
+    var cube = await FilamentApp.instance!.createGeometry(
+        GeometryHelper.cube(flipUvs: true), nullptr,
+        materialInstances: [materialInstance]) as FFIAsset;
+
+    await scene.add(cube);
+
+    await testHelper.capture(null, "multiple_view_different_camera");
+  });
+
+  test('render view to render target, used as input for another', () async {
+    final viewportDimensions = (width: 500, height: 500);
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height);
+    final views = <FFIView>[];
+    final scene = await FilamentApp.instance!.createScene() as FFIScene;
+    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+    await camera.setLensProjection();
+
+    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
+
+    for (int i = 0; i < 2; i++) {
+      final view = await FilamentApp.instance!.createView() as FFIView;
+      await view.setScene(scene);
+      await view.setRenderable(true);
+      await view.setViewport(
+          viewportDimensions.width, viewportDimensions.height);
+      await view.setFrustumCullingEnabled(false);
+      await view.setPostProcessing(false);
+      await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
+              viewportDimensions.width, viewportDimensions.height)
+          as FFIRenderTarget);
+      await FilamentApp.instance!.register(swapChain, view);
+      await view.setCamera(camera);
+      views.add(view);
+    }
+
+    await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
+
+    var materialInstance1 =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
+    await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
+
+    var cube = await FilamentApp.instance!.createGeometry(
+        GeometryHelper.cube(flipUvs: true), nullptr,
+        materialInstances: [materialInstance1]) as FFIAsset;
+
+    await scene.add(cube);
+
+    var result =
+        await FilamentApp.instance!.capture(swapChain, view: views.first);
+
+    await savePixelBufferToBmp(
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "render_target_output.bmp"),
+        isFloat: true);
+
+    var materialInstance2 = await FilamentApp.instance!
+        .createUbershaderMaterialInstance(
+            hasBaseColorTexture: true, unlit: false);
+
+    var light = await FilamentApp.instance!.createDirectLight(DirectLight(
+        type: LightType.SUN,
+        color: 6500,
+        intensity: 100000000,
+        direction: Vector3(0,0,-1),
+        position: Vector3.zero()));
+    await scene.addEntity(light);
+
+    final texture =
+        await (await views.first.getRenderTarget())!.getColorTexture();
+
+    await materialInstance2.setParameterTexture("baseColorMap", texture,
+        await FilamentApp.instance!.createTextureSampler());
+    await materialInstance2.setParameterInt("baseColorIndex",0);
+    await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
+    await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
+
+    result = await FilamentApp.instance!.capture(swapChain, view: views.last);
+
+    await savePixelBufferToBmp(
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
+        isFloat: true);
+  });
+
+  test('render depth buffer to render target', () async {
+    final viewportDimensions = (width: 500, height: 500);
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height);
+    final views = <FFIView>[];
+    final scene = await FilamentApp.instance!.createScene() as FFIScene;
+    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+    await camera.setLensProjection();
+
+    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
+
+    for (int i = 0; i < 2; i++) {
+      final view = await FilamentApp.instance!.createView() as FFIView;
+      await view.setScene(scene);
+      await view.setRenderable(true);
+      await view.setViewport(
+          viewportDimensions.width, viewportDimensions.height);
+      await view.setFrustumCullingEnabled(false);
+      await view.setPostProcessing(false);
+      await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
+              viewportDimensions.width, viewportDimensions.height)
+          as FFIRenderTarget);
+      await FilamentApp.instance!.register(swapChain, view);
+      await view.setCamera(camera);
+      views.add(view);
+    }
+
+    await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
+
+    var materialInstance1 =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
+    await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
+
+    var cube = await FilamentApp.instance!.createGeometry(
+        GeometryHelper.cube(flipUvs: true), nullptr,
+        materialInstances: [materialInstance1]) as FFIAsset;
+
+    await scene.add(cube);
+
+    var result =
+        await FilamentApp.instance!.capture(swapChain, view: views.first);
+
+    await savePixelBufferToBmp(
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "render_target_output.bmp"),
+        isFloat: true);
+
+    var materialInstance2 = await FilamentApp.instance!
+        .createUbershaderMaterialInstance(
+            hasBaseColorTexture: true, unlit: false);
+
+    var light = await FilamentApp.instance!.createDirectLight(DirectLight(
+        type: LightType.SUN,
+        color: 6500,
+        intensity: 100000000,
+        direction: Vector3(0,0,-1),
+        position: Vector3.zero()));
+    await scene.addEntity(light);
+
+    final texture =
+        await (await views.first.getRenderTarget())!.getColorTexture();
+
+    await materialInstance2.setParameterTexture("baseColorMap", texture,
+        await FilamentApp.instance!.createTextureSampler());
+    await materialInstance2.setParameterInt("baseColorIndex",0);
+    await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
+    await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
+
+    result = await FilamentApp.instance!.capture(swapChain, view: views.last);
+
+    await savePixelBufferToBmp(
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
+        isFloat: true);
+  });
+}
 
 //     test('one swapchain, render view to render target', () async {
 //       await testHelper.withViewer((viewer) async {
