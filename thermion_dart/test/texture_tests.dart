@@ -1,9 +1,5 @@
-@Timeout(const Duration(seconds: 600))
-import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
