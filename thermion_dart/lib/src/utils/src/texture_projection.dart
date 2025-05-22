@@ -86,11 +86,6 @@ class TextureProjection {
     await projectionView.setViewport(viewport.width, viewport.height);
     await projectionView.setRenderTarget(projectionRenderTarget);
 
-    final swapChain = await FilamentApp.instance!.getSwapChain(sourceView);
-
-    await FilamentApp.instance!.register(swapChain, depthView);
-    await FilamentApp.instance!.register(swapChain, projectionView);
-
     return TextureProjection._(
         sourceView: sourceView as FFIView,
         depthView: depthView,
@@ -104,10 +99,6 @@ class TextureProjection {
   }
 
   Future destroy() async {
-    final swapChain = await FilamentApp.instance!.getSwapChain(sourceView);
-
-    await FilamentApp.instance!.unregister(swapChain, depthView);
-    await FilamentApp.instance!.unregister(swapChain, projectionView);
     await projectionMaterialInstance.destroy();
     await projectionMaterial.destroy();
     await FilamentApp.instance!.destroyView(depthView);
