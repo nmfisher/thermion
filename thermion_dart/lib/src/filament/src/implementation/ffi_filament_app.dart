@@ -558,13 +558,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Renderer_endFrameRenderThread(renderer, requestId, cb);
     });
 
-    if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback(
-          (requestId, cb) => Engine_executeRenderThread(engine, requestId, cb));
-    } else {
-      await withVoidCallback((requestId, cb) =>
-          Engine_flushAndWaitRenderThread(engine, requestId, cb));
-    }
+    await flush();
   }
 
   ///
