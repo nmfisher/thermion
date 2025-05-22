@@ -151,7 +151,7 @@ class TestHelper {
     final cubeGeometry = GeometryHelper.cube(flipUvs: true);
     var asset = await viewer
         .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
-    print(cubeGeometry);
+    
     await fn(asset);
     await viewer.destroyAsset(asset);
   }
@@ -231,7 +231,7 @@ class TestHelper {
                 TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
                 TextureUsage.TEXTURE_USAGE_SAMPLEABLE
               },
-              textureFormat: TextureFormat.RGB32F,
+              textureFormat: TextureFormat.RGBA32F,
               importedTextureHandle: metalColorTexture.metalTextureAddress);
       var width = await color.getWidth();
       var height = await color.getHeight();
