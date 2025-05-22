@@ -68,7 +68,6 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future _initialize() async {
-    _logger.info("Initializing ThermionViewerFFI");
     view = await FilamentApp.instance!.createView() as FFIView;
 
     await view.setRenderable(true);
