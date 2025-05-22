@@ -24,10 +24,6 @@ material {
         {
             name : screenPos,
             precision : high
-         },
-         { 
-            name: sampledDepth,
-            precision : high
          }
     ],
     requires : [ position, uv0 ],
