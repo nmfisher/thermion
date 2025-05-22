@@ -115,13 +115,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future render() async {
     await withVoidCallback((requestId, cb) => RenderTicker_renderRenderThread(
         app.renderTicker, 0.toBigInt, requestId, cb));
-    if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback((requestId, cb) =>
-          Engine_executeRenderThread(app.engine, requestId, cb));
-    } else {
-      await withVoidCallback((requestId, cb) =>
-          Engine_flushAndWaitRenderThread(app.engine, requestId, cb));
-    }
+    await FilamentApp.instance!.flush();
   }
 
   double _msPerFrame = 1000.0 / 60.0;
