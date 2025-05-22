@@ -2,7 +2,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:thermion_dart/src/utils/src/texture_projection.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -43,7 +42,7 @@ void main() async {
         await camera.setLensProjection(near: 0.75, far: 100);
         final vp = await viewer.view.getViewport();
         final (width, height) = (vp.width, vp.height);
-        final dist = 5.0;
+        final dist = 2.5;
         await camera.lookAt(
           Vector3(
             -0.5,
@@ -60,8 +59,7 @@ void main() async {
         await ubershader.setParameterTexture(
             "baseColorMap", originalTexture, sampler);
 
-        var textureProjection =
-            await TextureProjection.create(viewer.view, testHelper.swapChain);
+        var textureProjection = await TextureProjection.create(viewer.view);
 
         await FilamentApp.instance!.setClearOptions(0, 0, 0, 1,
             clearStencil: 0, discard: false, clear: true);
@@ -86,11 +84,12 @@ void main() async {
             ),
           );
 
-          await textureProjection.project(cube);
-          final depth = textureProjection.getDepthWritePixelBuffer();
+          final result = await textureProjection.project(
+              await (await viewer.view.getRenderTarget())!.getColorTexture(), cube);
+          final depth = result.depth;
           await savePixelBufferToBmp(
               depth, width, height, "${testHelper.outDir.path}/depth_$i.bmp");
-          final projected = textureProjection.getProjectedPixelBuffer();
+          final projected = result.projected;
           await savePixelBufferToBmp(projected, width, height,
               "${testHelper.outDir.path}/projected_$i.bmp");
           await cube.setMaterialInstanceAt(ubershader);

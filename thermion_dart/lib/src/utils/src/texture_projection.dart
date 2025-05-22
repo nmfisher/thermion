@@ -1,35 +1,37 @@
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class TextureProjection {
-  final SwapChain swapChain;
   final Material projectionMaterial;
-  final MaterialInstance projectionMaterialInstance;
+  final FFIMaterialInstance projectionMaterialInstance;
   final Material depthWriteMaterial;
-  final MaterialInstance depthWriteMaterialInstance;
-  final Texture texture;
-  final View sourceView;
-  final View depthView;
-  final View projectionView;
+  final FFIMaterialInstance depthWriteMaterialInstance;
+  final FFIView sourceView;
+  final FFIView depthView;
+  final FFIView projectionView;
+  final Texture depthWriteColorTexture;
+  final FFITextureSampler sampler;
 
   TextureProjection._(
-      {required this.swapChain,
-      required this.projectionMaterial,
+      {required this.projectionMaterial,
       required this.projectionMaterialInstance,
       required this.depthWriteMaterial,
       required this.depthWriteMaterialInstance,
-      required this.texture,
       required this.sourceView,
       required this.depthView,
-      required this.projectionView}) {}
+      required this.projectionView,
+      required this.depthWriteColorTexture,
+      required this.sampler}) {}
 
-  static Future<TextureProjection> create(
-      View sourceView, SwapChain swapChain) async {
+  static Future<TextureProjection> create(View sourceView) async {
     final viewport = await sourceView.getViewport();
     var depthWriteMat = await FilamentApp.instance!.createMaterial(
       File(
@@ -38,11 +40,11 @@ class TextureProjection {
     );
     var depthWriteMi = await depthWriteMat.createInstance();
 
-    final depthWriteView = await FilamentApp.instance!.createView() as FFIView;
-    await depthWriteView.setFrustumCullingEnabled(false);
-    await depthWriteView.setPostProcessing(false);
-    await depthWriteView.setViewport(viewport.width, viewport.height);
-    await depthWriteView.setBlendMode(BlendMode.transparent);
+    final depthView = await FilamentApp.instance!.createView() as FFIView;
+    await depthView.setRenderable(true);
+    await depthView.setFrustumCullingEnabled(false);
+    await depthView.setPostProcessing(false);
+    await depthView.setViewport(viewport.width, viewport.height);
 
     final depthWriteColorTexture = await FilamentApp.instance!
         .createTexture(viewport.width, viewport.height,
@@ -51,100 +53,137 @@ class TextureProjection {
               TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
               TextureUsage.TEXTURE_USAGE_BLIT_SRC
             },
-            textureFormat: TextureFormat.R32F);
-    await depthWriteView
-        .setRenderTarget(await FilamentApp.instance!.createRenderTarget(
+            textureFormat: TextureFormat.R32F) as FFITexture;
+    final depthWriteRenderTarget =
+        await FilamentApp.instance!.createRenderTarget(
       viewport.width,
       viewport.height,
       color: depthWriteColorTexture,
-    ) as FFIRenderTarget);
+    ) as FFIRenderTarget;
+    await depthView.setRenderTarget(depthWriteRenderTarget);
 
-    final color = await (await sourceView.getRenderTarget())!.getColorTexture();
-    final depth =
-        await (await depthWriteView.getRenderTarget())!.getColorTexture();
-
-    var captureMat = await FilamentApp.instance!.createMaterial(
+    final captureMat = await FilamentApp.instance!.createMaterial(
       File(
         "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat",
       ).readAsBytesSync(),
-    );
-    var captureMi = await captureMat.createInstance();
+    ) as FFIMaterial;
+    var captureMi = await captureMat.createInstance() as FFIMaterialInstance;
     await captureMi.setParameterBool("flipUVs", true);
+
+    final sampler =
+        await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
+
     await captureMi.setParameterTexture(
-        "color", color, await FilamentApp.instance!.createTextureSampler());
-    await captureMi.setParameterTexture(
-        "depth", depth, await FilamentApp.instance!.createTextureSampler());
+        "depth", depthWriteColorTexture, sampler);
     await captureMi.setParameterBool("useDepth", true);
 
     final projectionView = await FilamentApp.instance!.createView() as FFIView;
+
+    final projectionRenderTarget = await FilamentApp.instance!
+        .createRenderTarget(viewport.width, viewport.height) as FFIRenderTarget;
     await projectionView.setFrustumCullingEnabled(false);
     await projectionView.setPostProcessing(false);
     await projectionView.setViewport(viewport.width, viewport.height);
+    await projectionView.setRenderTarget(projectionRenderTarget);
+
+    final swapChain = await FilamentApp.instance!.getSwapChain(sourceView);
+
+    await FilamentApp.instance!.register(swapChain, depthView);
+    await FilamentApp.instance!.register(swapChain, projectionView);
 
     return TextureProjection._(
-        sourceView: sourceView,
-        swapChain: swapChain,
-        depthView: depthWriteView,
+        sourceView: sourceView as FFIView,
+        depthView: depthView,
         projectionView: projectionView,
         projectionMaterial: captureMat,
         projectionMaterialInstance: captureMi,
         depthWriteMaterial: depthWriteMat,
-        depthWriteMaterialInstance: depthWriteMi,
-        texture: depthWriteColorTexture);
+        depthWriteMaterialInstance: depthWriteMi as FFIMaterialInstance,
+        depthWriteColorTexture: depthWriteColorTexture,
+        sampler: sampler);
   }
 
   Future destroy() async {
+    final swapChain = await FilamentApp.instance!.getSwapChain(sourceView);
+
+    await FilamentApp.instance!.unregister(swapChain, depthView);
+    await FilamentApp.instance!.unregister(swapChain, projectionView);
     await projectionMaterialInstance.destroy();
     await projectionMaterial.destroy();
     await FilamentApp.instance!.destroyView(depthView);
     await FilamentApp.instance!.destroyView(projectionView);
   }
 
-  var _pixelBuffers = <View, Uint8List>{};
-  Uint8List getColorBuffer() => _pixelBuffers[sourceView]!;
-  Uint8List getDepthWritePixelBuffer() => _pixelBuffers[depthView]!;
-  Uint8List getProjectedPixelBuffer() => _pixelBuffers[projectionView]!;
+  /// Projects/unwraps [texture] onto [target] based on the current view/camera
+  /// and the UV coordinates for [target].
+  ///
+  /// 1) Create a new scene only containing the target asset
+  /// 2) Assign a material to the target asset that writes the depth of each
+  ///    fragment to an output texture
+  /// 3) Render this "depth view" to a render target
+  /// 4) Assign a material to the target asset that:
+  ///   a) transforms each vertex position to its UV coordinates
+  ///   b) colors each fragment blue
+  /// 5) Use the render target color buffer as the input to a
+  /// 6) Render this "projection view" and capture the output
+  Future<TextureProjectionResult> project(Texture texture, ThermionAsset target,
+      {bool renderSourceView = true}) async {
+    await FilamentApp.instance!.setClearOptions(0, 0, 0, 1,
+        clearStencil: 0, discard: false, clear: true);
 
-  Future project(ThermionAsset target) async {
+    final viewport = await sourceView.getViewport();
+
     final originalMi = await target.getMaterialInstanceAt();
 
-    await FilamentApp.instance!.register(swapChain, depthView);
-    await FilamentApp.instance!.register(swapChain, projectionView);
+    final camera = (await sourceView.getCamera()) as FFICamera;
+    final originalScene = await sourceView.getScene() as FFIScene;
 
-    final camera = await sourceView.getCamera();
+    final projectionScene =
+        (await FilamentApp.instance!.createScene()) as FFIScene;
+    await projectionScene.add(target as FFIAsset);
+
+    await sourceView.setScene(projectionScene);
+
     await depthView.setCamera(camera);
+    await depthView.setScene(projectionScene);
+    await depthView.setViewport(viewport.width, viewport.height);
+
     await projectionView.setCamera(camera);
-    await (depthView as FFIView)
-        .setScene(await sourceView.getScene() as FFIScene);
-    await (projectionView as FFIView)
-        .setScene(await sourceView.getScene() as FFIScene);
+    await projectionView.setScene(projectionScene);
 
-    await sourceView.setRenderOrder(0);
-    await depthView.setRenderOrder(1);
-    await projectionView.setRenderOrder(2);
+    var _pixelBuffers = <View, Uint8List>{};
 
-    var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
-        beforeRender: (view) async {
-      if (view == depthView) {
-        await target.setMaterialInstanceAt(depthWriteMaterialInstance);
-      } else if (view == projectionView) {
-        await target.setMaterialInstanceAt(projectionMaterialInstance);
-      }
-    },
-        pixelDataFormat: PixelDataFormat.RGBA,
-        pixelDataType: PixelDataType.FLOAT);
-
-    await target.setMaterialInstanceAt(originalMi);
-
-    _pixelBuffers.clear();
-
-    for (final (view, pixelBuffer) in pixelBuffers) {
-      _pixelBuffers[view] = pixelBuffer;
+    if (renderSourceView) {
+      _pixelBuffers[sourceView] =
+          (await FilamentApp.instance!.capture(null, view: sourceView))
+              .first
+              .$2;
     }
 
-    await FilamentApp.instance!.unregister(swapChain, depthView);
-    await FilamentApp.instance!.unregister(swapChain, projectionView);
+    await target.setMaterialInstanceAt(depthWriteMaterialInstance);
+    _pixelBuffers[depthView] =
+        (await FilamentApp.instance!.capture(null, view: depthView)).first.$2;
 
-    await target.setMaterialInstanceAt(originalMi);
+    await projectionMaterialInstance.setParameterTexture(
+        "color", texture as FFITexture, sampler);
+    await target.setMaterialInstanceAt(projectionMaterialInstance);
+
+    _pixelBuffers[projectionView] =
+        (await FilamentApp.instance!.capture(null, view: projectionView)).first.$2;
+
+
+    await target.setMaterialInstanceAt(originalMi as FFIMaterialInstance);
+
+    await sourceView.setScene(originalScene);
+    return TextureProjectionResult(_pixelBuffers[sourceView],
+        _pixelBuffers[depthView]!, _pixelBuffers[projectionView]!);
   }
+}
+
+class TextureProjectionResult {
+  final Uint8List? sourceView;
+  final Uint8List depth;
+  final Uint8List projected;
+
+  TextureProjectionResult(this.sourceView, this.depth, this.projected);
 }
