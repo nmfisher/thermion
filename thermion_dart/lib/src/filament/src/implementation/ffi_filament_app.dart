@@ -710,69 +710,84 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     await updateRenderOrder();
 
-    await withBoolCallback((cb) {
+    final beginFrame = await withBoolCallback((cb) {
       Renderer_beginFrameRenderThread(
           renderer, swapChain!.swapChain, 0.toBigInt, cb);
     });
-    final views = <FFIView>[];
-    if (view != null) {
-      views.add(view);
-    } else {
-      views.addAll(_swapChains[swapChain]!);
-    }
 
     final pixelBuffers = <(View, Uint8List)>[];
 
-    for (final view in views) {
-      beforeRender?.call(view);
-
-      final viewport = await view.getViewport();
-      final pixelBuffer =
-          Uint8List(viewport.width * viewport.height * 4 * sizeOf<Float>());
-      await withVoidCallback((requestId, cb) {
-        Renderer_renderRenderThread(
-          renderer,
-          view.view,
-          requestId,
-          cb,
-        );
-      });
-
-      if (captureRenderTarget && view.renderTarget == null) {
-        throw Exception();
+    if (beginFrame) {
+      final views = <FFIView>[];
+      if (view != null) {
+        views.add(view);
+      } else {
+        views.addAll(_swapChains[swapChain]!.where((v) => v.renderable));
       }
-      await withVoidCallback((requestId, cb) {
-        Renderer_readPixelsRenderThread(
+
+      _logger.info("Capturing ${views.length} views");
+
+      for (final view in views) {
+        beforeRender?.call(view);
+
+        final viewport = await view.getViewport();
+
+        int numChannels = switch (pixelDataFormat) {
+          PixelDataFormat.RGBA => 4,
+          PixelDataFormat.RGB => 3,
+          _ => throw UnsupportedError(pixelDataFormat.toString())
+        };
+
+        int channelSizeInBytes = switch (pixelDataType) {
+          PixelDataType.FLOAT => sizeOf<Float>(),
+          PixelDataType.UBYTE || PixelDataType.BYTE => 1,
+          _ => throw UnsupportedError(pixelDataFormat.toString())
+        };
+        final pixelBuffer = Uint8List(viewport.width *
+            viewport.height *
+            numChannels *
+            channelSizeInBytes);
+        await withVoidCallback((requestId, cb) {
+          Renderer_renderRenderThread(
             renderer,
             view.view,
-            view.renderTarget == null
-                ? nullptr
-                : view.renderTarget!.renderTarget,
-            // TPixelDataFormat.PIXELDATAFORMAT_RGBA,
-            // TPixelDataType.PIXELDATATYPE_UBYTE,
-            // TPixelDataFormat.fromValue(pixelDataFormat.value),
-            // TPixelDataType.fromValue(pixelDataType.value),
-            pixelDataFormat.value,
-            pixelDataType.value,
-            pixelBuffer.address,
-            pixelBuffer.length,
             requestId,
-            cb);
-      });
-      pixelBuffers.add((view, pixelBuffer));
+            cb,
+          );
+        });
+
+        if (captureRenderTarget && view.renderTarget == null) {
+          throw Exception();
+        }
+        await withVoidCallback((requestId, cb) {
+          Renderer_readPixelsRenderThread(
+              renderer,
+              view.view,
+              view.renderTarget == null
+                  ? nullptr
+                  : view.renderTarget!.renderTarget,
+              // TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+              // TPixelDataType.PIXELDATATYPE_UBYTE,
+              // TPixelDataFormat.fromValue(pixelDataFormat.value),
+              // TPixelDataType.fromValue(pixelDataType.value),
+              pixelDataFormat.value,
+              pixelDataType.value,
+              pixelBuffer.address,
+              pixelBuffer.length,
+              requestId,
+              cb);
+        });
+        pixelBuffers.add((view, pixelBuffer));
+      }
+    } else {
+      _logger.severe("beginFrame returned false");
     }
 
     await withVoidCallback((requestId, cb) {
       Renderer_endFrameRenderThread(renderer, requestId, cb);
     });
 
-    await withVoidCallback((requestId, cb) {
-      if (FILAMENT_SINGLE_THREADED) {
-        Engine_executeRenderThread(engine, requestId, cb);
-      } else {
-        Engine_flushAndWaitRenderThread(engine, requestId, cb);
-      }
-    });
+    await flush();
     return pixelBuffers;
   }
 
