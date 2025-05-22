@@ -309,6 +309,11 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
+  Future<ThermionEntity> createDirectLight(DirectLight directLight);
+
+  ///
+  ///
+  ///
   Future flush();
 
   ///

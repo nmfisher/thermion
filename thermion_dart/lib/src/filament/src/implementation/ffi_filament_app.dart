@@ -1039,6 +1039,32 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
+  Future<ThermionEntity> createDirectLight(DirectLight directLight) async {
+    var entity =
+        LightManager_createLight(engine, lightManager, directLight.type.index);
+    if (entity == FILAMENT_ASSET_ERROR) {
+      throw Exception("Failed to add light to scene");
+    }
+
+    LightManager_setColor(lightManager, entity, directLight.color);
+    LightManager_setIntensity(lightManager, entity, directLight.intensity);
+    LightManager_setPosition(lightManager, entity, directLight.position.x,
+        directLight.position.y, directLight.position.z);
+    LightManager_setDirection(lightManager, entity, directLight.direction.x,
+        directLight.direction.y, directLight.direction.z);
+    LightManager_setFalloff(lightManager, entity, directLight.falloffRadius);
+    LightManager_setSpotLightCone(lightManager, entity,
+        directLight.spotLightConeInner, directLight.spotLightConeOuter);
+    // LightManager_setSunAngularRadius(lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
+    // LightManager_setSunHaloSize(lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
+    // LightManager_setSunHaloFalloff(lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
+    LightManager_setShadowCaster(lightManager, entity, directLight.castShadows);
+    return entity;
+  }
+
+  ///
+  ///
+  ///
   Future flush() async {
     if (FILAMENT_SINGLE_THREADED) {
       await withVoidCallback(

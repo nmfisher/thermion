@@ -318,32 +318,13 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var entity = LightManager_createLight(
-        app.engine, app.lightManager, directLight.type.index);
-    if (entity == FILAMENT_ASSET_ERROR) {
-      throw Exception("Failed to add light to scene");
-    }
-    LightManager_setColor(app.lightManager, entity, directLight.color);
-    LightManager_setIntensity(app.lightManager, entity, directLight.intensity);
-    LightManager_setPosition(app.lightManager, entity, directLight.position.x,
-        directLight.position.y, directLight.position.z);
-    LightManager_setDirection(app.lightManager, entity, directLight.direction.x,
-        directLight.direction.y, directLight.direction.z);
-    LightManager_setFalloff(
-        app.lightManager, entity, directLight.falloffRadius);
-    LightManager_setSpotLightCone(app.lightManager, entity,
-        directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    // LightManager_setSunAngularRadius(app.lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    // LightManager_setSunHaloSize(app.lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    // LightManager_setSunHaloFalloff(app.lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    LightManager_setShadowCaster(
-        app.lightManager, entity, directLight.castShadows);
+    var light = await FilamentApp.instance!.createDirectLight(directLight);
 
-    Scene_addEntity(scene.scene, entity);
+    await scene.addEntity(light);
 
-    _lights.add(entity);
+    _lights.add(light);
 
-    return entity;
+    return light;
   }
 
   ///
