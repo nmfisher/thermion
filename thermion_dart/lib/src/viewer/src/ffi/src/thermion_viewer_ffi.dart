@@ -76,10 +76,8 @@ class ThermionViewerFFI extends ThermionViewer {
     scene = await FilamentApp.instance!.createScene() as FFIScene;
 
     await view.setScene(scene);
-    final camera = FFICamera(
-        await withPointerCallback<TCamera>(
-            (cb) => Engine_createCameraRenderThread(app.engine, cb)),
-        app);
+    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+
     _cameras.add(camera);
     await camera.setLensProjection();
 

@@ -73,6 +73,11 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
+  Future<Camera> createCamera();
+
+  ///
+  ///
+  ///
   Future destroySwapChain(SwapChain swapChain);
 
   ///

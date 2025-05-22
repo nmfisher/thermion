@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -194,8 +195,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return view;
   }
 
+  ///
+  ///
+  ///
   Future<Scene> createScene() async {
     return FFIScene(Engine_createScene(engine));
+  }
+
+  ///
+  ///
+  ///
+  Future<Camera> createCamera() async {
+    return FFICamera(
+        await withPointerCallback<TCamera>(
+            (cb) => Engine_createCameraRenderThread(engine, cb)),
+        this);
   }
 
   ///
