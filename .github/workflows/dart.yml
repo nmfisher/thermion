@@ -26,15 +26,15 @@ jobs:
         run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
 
       # Upload logs on failure
-      - name: Upload logs
-        if: failure() || steps.build.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: |
-            /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
-            #D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
-          retention-days: 5
+      #- name: Upload logs
+      #  if: failure() || steps.build.outcome == 'failure'
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: build-logs
+      #    path: |
+      #      /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
+      #      #D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
+      #    retention-days: 5
 
       # Capture crash dumps if they exist
       - name: Collect crash dumps
