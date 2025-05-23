@@ -37,15 +37,15 @@ jobs:
       #    retention-days: 5
 
       # Capture crash dumps if they exist
-      - name: Collect crash dumps
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: crash-dumps
-          path: |
-            ${{ runner.temp }}/*.dmp
-            ${{ env.LOCALAPPDATA }}/Temp/*.dmp
-            ${{ env.LOCALAPPDATA }}/CrashDumps/*.dmp
+      #- name: Collect crash dumps
+      #  if: failure()
+      #  uses: actions/upload-artifact@v3
+      #  with:
+      #    name: crash-dumps
+      #    path: |
+      #      ${{ runner.temp }}/*.dmp
+      #      ${{ env.LOCALAPPDATA }}/Temp/*.dmp
+      #      ${{ env.LOCALAPPDATA }}/CrashDumps/*.dmp
 
   # thermion_flutter:
   #   name: thermion_flutter
