@@ -19,11 +19,11 @@ jobs:
         working-directory: thermion_dart 
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: flutter pub get # even though this is a Dart package, it has as dev_dependency on objective_c for testing which for some reason has a Flutter dependency
-      - name: Build and Test
-        shell: cmd
-        run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+      - run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
 
       # Upload logs on failure
       #- name: Upload logs
