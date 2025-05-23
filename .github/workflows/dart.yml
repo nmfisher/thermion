@@ -7,64 +7,42 @@ on:
     branches: [ "develop" ]
 
 jobs:
-  thermion_dart:
-    name: thermion_dart
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: thermion_dart 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: master
-      - run: flutter pub get
-      - run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
-
-      # Upload logs on failure
-      #- name: Upload logs
-      #  if: failure() || steps.build.outcome == 'failure'
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: build-logs
-      #    path: |
-      #      /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
-      #      #D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
-      #    retention-days: 5
-
-      # Capture crash dumps if they exist
-      #- name: Collect crash dumps
-      #  if: failure()
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    name: crash-dumps
-      #    path: |
-      #      ${{ runner.temp }}/*.dmp
-      #      ${{ env.LOCALAPPDATA }}/Temp/*.dmp
-      #      ${{ env.LOCALAPPDATA }}/CrashDumps/*.dmp
-
+  # thermion_dart:
+  #   name: thermion_dart
+  #   runs-on: macos-latest
+  #   defaults:
+  #     run:
+  #       working-directory: thermion_dart 
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: master
+  #     - run: flutter pub get
+  #     - run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
   # thermion_flutter:
   #   name: thermion_flutter
   #   runs-on: macos-13
   #   defaults:
   #     run:
   #       working-directory: thermion_flutter/thermion_flutter  # Adjust this path
-
   #   steps:
   #     - uses: actions/checkout@v4
-      
   #     - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
-
   #     - name: Install dependencies
   #       run: dart pub get
-
-  #     # Uncomment this step to verify the use of 'dart format' on each commit.
-  #     # - name: Verify formatting
-  #     #   run: dart format --output=none --set-exit-if-changed .
-
-  #     - name: Analyze project source
-  #       run: dart analyze
-
-  #     - name: Run tests
-  #       run: dart --enable-experiment=native-assets test
+  flutter_examples:
+    name: flutter_examples
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: examples/flutter 
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+      - run: cd quickstart && flutter pub get && flutter build macos && flutter build web 
+      - run: cd picking && flutter pub get && flutter build macos && flutter build web 
