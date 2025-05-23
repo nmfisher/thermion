@@ -273,7 +273,7 @@ class TestHelper {
     final camera = await viewer.getActiveCamera();
 
     await camera.setLensProjection(
-        near: kNear, far: kFar, aspect: 1.0, focalLength: kFocalLength);
+        near: kNear, far: kFar, aspect: viewportDimensions.width / viewportDimensions.height, focalLength: kFocalLength);
 
     await camera.lookAt(cameraPosition);
 
