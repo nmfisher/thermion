@@ -16,13 +16,27 @@ namespace thermion
         using namespace filament;
         using namespace utils;
 
-        EMSCRIPTEN_KEEPALIVE void RenderableManager_setMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex, TMaterialInstance *tMaterialInstance)
+        EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getPrimitiveCount(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if(!renderableInstance.isValid()) {
+                return 0;
+            }
+            return renderableManager->getPrimitiveCount(renderableInstance);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool RenderableManager_setMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex, TMaterialInstance *tMaterialInstance)
         {
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
+            if(!renderableInstance.isValid()) {
+                return false;
+            }
             auto materialInstance = reinterpret_cast<MaterialInstance *>(tMaterialInstance);
             renderableManager->setMaterialInstanceAt(renderableInstance, primitiveIndex, materialInstance);
+            return true;
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *RenderableManager_getMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex) {

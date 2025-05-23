@@ -444,9 +444,29 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<MaterialInstance> getMaterialInstanceAt(
       {ThermionEntity? entity, int index = 0}) async {
-    entity ??= this.entity;
+    
+    if (entity == null) {
+      if (RenderableManager_isRenderable(app.renderableManager, this.entity)) {
+        entity ??= this.entity;
+      } else {
+        for (final child in await getChildEntities()) {
+          if (RenderableManager_isRenderable(app.renderableManager, child)) {
+            entity = child;
+            break;
+          }
+        }
+      }
+    }
+
+    if (entity == null) {
+      throw Exception("Failed to find renderable entity");
+    }
+
     var ptr = RenderableManager_getMaterialInstanceAt(
         Engine_getRenderableManager(app.engine), entity, 0);
+    if (ptr == nullptr) {
+      throw Exception("Failed to get material instance for asset");
+    }
     return FFIMaterialInstance(ptr, app);
   }
 
@@ -454,12 +474,34 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future setMaterialInstanceAt(FFIMaterialInstance instance) async {
-    var childEntities = await getChildEntities();
-    final entities = <ThermionEntity>[entity, ...childEntities];
-    for (final entity in entities) {
-      RenderableManager_setMaterialInstanceAt(
-          Engine_getRenderableManager(app.engine), entity, 0, instance.pointer);
+  Future setMaterialInstanceAt(FFIMaterialInstance instance,
+      {int? entity = null, int primitiveIndex = 0}) async {
+
+     if (entity == null) {
+      if (RenderableManager_isRenderable(app.renderableManager, this.entity)) {
+        entity ??= this.entity;
+      } else {
+        for (final child in await getChildEntities()) {
+          if (RenderableManager_isRenderable(app.renderableManager, child)) {
+            entity = child;
+            break;
+          }
+        }
+      }
+    }
+
+    if (entity == null) {
+      throw Exception("Failed to find renderable entity");
+    }
+    
+    if (!RenderableManager_setMaterialInstanceAt(
+          Engine_getRenderableManager(app.engine),
+          entity,
+          primitiveIndex,
+          instance.pointer)) {
+        _logger.warning(
+            "Failed to set material instance for entity $entity at primitive index ${primitiveIndex}");
+      
     }
   }
 

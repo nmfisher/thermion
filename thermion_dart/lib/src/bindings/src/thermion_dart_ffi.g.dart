@@ -2876,9 +2876,9 @@ external bool GltfResourceLoader_loadResources(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int,
+    ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int,
         ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
-external void RenderableManager_setMaterialInstanceAt(
+external bool RenderableManager_setMaterialInstanceAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int primitiveIndex,
@@ -2892,6 +2892,13 @@ external ffi.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int primitiveIndex,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external int RenderableManager_getPrimitiveCount(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
 );
 
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(

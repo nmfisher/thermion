@@ -128,13 +128,7 @@ class BackgroundImage extends ThermionAsset {
   Future setCastShadows(bool castShadows) {
     // TODO: implement setCastShadows
     throw UnimplementedError();
-  }
-
-  @override
-  Future setMaterialInstanceAt(covariant MaterialInstance instance) {
-    // TODO: implement setMaterialInstanceAt
-    throw UnimplementedError();
-  }
+  }  
 
   @override
   Future setReceiveShadows(bool castShadows) {

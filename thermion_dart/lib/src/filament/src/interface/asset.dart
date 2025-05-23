@@ -51,7 +51,10 @@ abstract class ThermionAsset {
   ///
   ///
   ///
-  Future setMaterialInstanceAt(covariant MaterialInstance instance);
+  Future setMaterialInstanceAt(covariant MaterialInstance instance,
+      {int? entity = null, int primitiveIndex = 0}) {
+    throw UnimplementedError();
+  }
 
   ///
   /// Renders an outline around [entity] with the given color.
