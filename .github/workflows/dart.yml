@@ -44,6 +44,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: master
+          architecture: ARM64
       - run: cd quickstart && flutter pub get && flutter build macos && flutter build web 
       - run: cd picking && flutter pub get && flutter build macos && flutter build web 
       - name: Upload logs
