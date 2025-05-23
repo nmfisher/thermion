@@ -46,3 +46,12 @@ jobs:
           channel: master
       - run: cd quickstart && flutter pub get && flutter build macos && flutter build web 
       - run: cd picking && flutter pub get && flutter build macos && flutter build web 
+      - name: Upload logs
+        if: failure() || steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            # D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
+            /Users/runner/work/thermion/thermion/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
