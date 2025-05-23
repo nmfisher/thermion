@@ -174,16 +174,16 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
           .createTexture(descriptor.width, descriptor.height,
               importedTextureHandle: descriptor.hardwareId,
               flags: {
-                // TextureUsage.TEXTURE_USAGE_BLIT_DST,
+                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
                 TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
                 TextureUsage.TEXTURE_USAGE_SAMPLEABLE
               },
-              textureFormat: TextureFormat.RGBA8,
+              textureFormat: TextureFormat.RGBA32F,
               textureSamplerType: TextureSamplerType.SAMPLER_2D);
       final depth = await FilamentApp.instance!
           .createTexture(descriptor.width, descriptor.height,
               flags: {
-                // TextureUsage.TEXTURE_USAGE_BLIT_DST,
+                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
                 TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
                 TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
               },
