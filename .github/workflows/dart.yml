@@ -19,7 +19,8 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: master
-      - run: $(dirname $(which flutter))/dart --enable-experiment=native-assets test -j1 test/light_tests.dart
+      - run: flutter pub get
+      - run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
 
       # Upload logs on failure
       #- name: Upload logs
