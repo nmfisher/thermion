@@ -1,7 +1,3 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
 name: Dart
 
 on:
@@ -23,7 +19,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: master
-      - run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
+      - run: $CACHE_PATH/bin/dart --enable-experiment=native-assets test -j1 test/light_tests.dart
 
       # Upload logs on failure
       #- name: Upload logs
