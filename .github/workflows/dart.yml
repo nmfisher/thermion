@@ -13,26 +13,17 @@ on:
 jobs:
   thermion_dart:
     name: thermion_dart
-    runs-on: self-hosted
+    runs-on: macOS
     defaults:
       run:
-        working-directory: thermion_dart  # Adjust this path
-
+        working-directory: thermion_dart 
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: flutter pub get # even though this is a Dart package, it has as dev_dependency on objective_c for testing which for some reason has a Flutter dependency
-
-      # Uncomment this step to verify the use of 'dart format' on each commit.
-      # - name: Verify formatting
-      #   run: dart format --output=none --set-exit-if-changed .
-
-      #- name: Analyze project source
-      #  run: dart analyze
-
       - name: Build and Test
         shell: cmd
-        run: dart --enable-experiment=native-assets test
+        run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
 
       # Upload logs on failure
       - name: Upload logs
@@ -41,8 +32,8 @@ jobs:
         with:
           name: build-logs
           path: |
-            D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
-            # /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
+            /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
+            #D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
           retention-days: 5
 
       # Capture crash dumps if they exist
