@@ -552,6 +552,12 @@ external void View_setFrontFaceWindingInverted(
   bool inverted,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TFogOptions>)>(isLeaf: true)
+external void View_setFogOptions(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TFogOptions> tFogOptions,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
         PickCallback)>(isLeaf: true)
@@ -3666,6 +3672,43 @@ final class TViewport extends ffi.Struct {
 
   @ffi.Uint32()
   external int height;
+}
+
+/// Copied from FogOptions in View.h
+final class TFogOptions extends ffi.Struct {
+  @ffi.Float()
+  external double distance;
+
+  @ffi.Float()
+  external double cutOffDistance;
+
+  @ffi.Float()
+  external double maximumOpacity;
+
+  @ffi.Float()
+  external double height;
+
+  @ffi.Float()
+  external double heightFalloff;
+
+  external double3 linearColor;
+
+  @ffi.Float()
+  external double density;
+
+  @ffi.Float()
+  external double inScatteringStart;
+
+  @ffi.Float()
+  external double inScatteringSize;
+
+  @ffi.Bool()
+  external bool fogColorFromIbl;
+
+  external ffi.Pointer<TTexture> skyColor;
+
+  @ffi.Bool()
+  external bool enabled;
 }
 
 sealed class TToneMapping {

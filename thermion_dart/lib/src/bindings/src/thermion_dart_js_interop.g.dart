@@ -253,7 +253,7 @@ sealed class Struct extends NativeType {
   final Pointer _address;
 
   Struct(this._address);
-   
+
   static create<T extends Struct>() {
     switch (T) {
       case double4x4:
@@ -269,7 +269,7 @@ sealed class Struct extends NativeType {
         return double4x4(arr1, arr2, arr3, arr4, ptr) as T;
     }
     throw Exception();
-   }
+  }
 }
 
 extension StructPointer<T extends Struct> on T {
@@ -2883,10 +2883,9 @@ void View_setFrontFaceWindingInverted(
 
 void View_setFogOptions(
   self.Pointer<TView> tView,
-  TFogOptions tFogOptions,
+  self.Pointer<TFogOptions> tFogOptions,
 ) {
-  final tFogOptionsPtr = tFogOptions._address;
-  final result = _lib._View_setFogOptions(tView.cast(), tFogOptionsPtr.cast());
+  final result = _lib._View_setFogOptions(tView.cast(), tFogOptions.cast());
   return result;
 }
 
@@ -6348,6 +6347,7 @@ extension TFogOptionsExt on Pointer<TFogOptions> {
     var height = _lib.getValue(this + 12, "float").toDartDouble;
     var heightFalloff = _lib.getValue(this + 16, "float").toDartDouble;
     var linearColor = _lib.getValue(this + 20, "*").toDartInt;
+    final linearColorPtr = Pointer<double3>(linearColor);
     var density = _lib.getValue(this + 44, "float").toDartDouble;
     var inScatteringStart = _lib.getValue(this + 48, "float").toDartDouble;
     var inScatteringSize = _lib.getValue(this + 52, "float").toDartDouble;
@@ -6361,13 +6361,13 @@ extension TFogOptionsExt on Pointer<TFogOptions> {
         maximumOpacity,
         height,
         heightFalloff,
-        linearColor,
+        linearColorPtr.toDart(),
         density,
         inScatteringStart,
         inScatteringSize,
-        fogColorFromIbl,
+        fogColorFromIbl == 1,
         skyColor.cast(),
-        enabled,
+        enabled == 1,
         this);
   }
 
@@ -6377,13 +6377,15 @@ extension TFogOptionsExt on Pointer<TFogOptions> {
     _lib.setValue(this + 8, dartType.maximumOpacity.toJS, "float");
     _lib.setValue(this + 12, dartType.height.toJS, "float");
     _lib.setValue(this + 16, dartType.heightFalloff.toJS, "float");
-    _lib.setValue(this + 20, dartType.linearColor.toJS, "*");
+    _lib.setValue(this + 20, dartType.linearColor.x.toJS, "double");
+    _lib.setValue(this + 28, dartType.linearColor.y.toJS, "double");
+    _lib.setValue(this + 36, dartType.linearColor.z.toJS, "double");
     _lib.setValue(this + 44, dartType.density.toJS, "float");
     _lib.setValue(this + 48, dartType.inScatteringStart.toJS, "float");
     _lib.setValue(this + 52, dartType.inScatteringSize.toJS, "float");
-    _lib.setValue(this + 56, dartType.fogColorFromIbl.toJS, "i8");
+    _lib.setValue(this + 56, dartType.fogColorFromIbl ? 1.toJS : 0.toJS, "i8");
     _lib.setValue(this + 57, dartType.skyColor.addr.toJS, "*");
-    _lib.setValue(this + 61, dartType.enabled.toJS, "i8");
+    _lib.setValue(this + 61, dartType.enabled ? 1.toJS : 0.toJS, "i8");
   }
 }
 
