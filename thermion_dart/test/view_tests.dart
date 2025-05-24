@@ -179,7 +179,7 @@ void main() async {
         type: LightType.SUN,
         color: 6500,
         intensity: 100000000,
-        direction: Vector3(0,0,-1),
+        direction: Vector3(0, 0, -1),
         position: Vector3.zero()));
     await scene.addEntity(light);
 
@@ -188,7 +188,7 @@ void main() async {
 
     await materialInstance2.setParameterTexture("baseColorMap", texture,
         await FilamentApp.instance!.createTextureSampler());
-    await materialInstance2.setParameterInt("baseColorIndex",0);
+    await materialInstance2.setParameterInt("baseColorIndex", 0);
     await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
     await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
 
@@ -259,7 +259,7 @@ void main() async {
         type: LightType.SUN,
         color: 6500,
         intensity: 100000000,
-        direction: Vector3(0,0,-1),
+        direction: Vector3(0, 0, -1),
         position: Vector3.zero()));
     await scene.addEntity(light);
 
@@ -268,7 +268,7 @@ void main() async {
 
     await materialInstance2.setParameterTexture("baseColorMap", texture,
         await FilamentApp.instance!.createTextureSampler());
-    await materialInstance2.setParameterInt("baseColorIndex",0);
+    await materialInstance2.setParameterInt("baseColorIndex", 0);
     await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
     await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
 
@@ -280,6 +280,24 @@ void main() async {
         viewportDimensions.height,
         p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
         isFloat: true);
+  });
+
+  test('fog tests', () async {
+    await testHelper.withViewer((viewer) async {
+      var cube = await FilamentApp.instance!
+          .createGeometry(GeometryHelper.cube(flipUvs: true), nullptr);
+      await viewer.addToScene(cube);
+
+      final camera = await viewer.getActiveCamera();
+      await camera.lookAt(Vector3(1, 3, 5), focus: Vector3.zero());
+
+      await testHelper.capture(viewer.view, "fog_options_disabled");
+
+      await viewer.view.setFogOptions(FogOptions(
+          enabled: true, distance: 0, density: 0.5));
+      await testHelper.capture(viewer.view, "fog_options_enabled");
+
+    }, addSkybox: true, postProcessing: true);
   });
 }
 

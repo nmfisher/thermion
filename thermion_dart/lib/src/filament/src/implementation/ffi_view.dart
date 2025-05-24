@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
@@ -189,7 +190,8 @@ class FFIView extends View {
     var viewport = await getViewport();
     y = viewport.height - y;
     if (FILAMENT_WASM) {
-      View_pickRenderThread(view, pickRequestId, x, y, _onPickResultHolder.pointer);
+      View_pickRenderThread(
+          view, pickRequestId, x, y, _onPickResultHolder.pointer);
     } else {
       View_pick(view, pickRequestId, x, y, _onPickResultHolder.pointer);
     }
@@ -217,5 +219,26 @@ class FFIView extends View {
       fragY: viewport.height - fragY,
       fragZ: fragZ,
     ));
+  }
+
+  @override
+  Future setFogOptions(FogOptions options) async {
+    final tFogOptions = Struct.create<TFogOptions>();
+    tFogOptions.cutOffDistance = options.cutOffDistance;
+    tFogOptions.enabled = options.enabled;
+    tFogOptions.density = options.density;
+    tFogOptions.distance = options.distance;
+    tFogOptions.fogColorFromIbl = options.fogColorFromIbl;
+    tFogOptions.height = options.height;
+    tFogOptions.heightFalloff = options.heightFalloff;
+    tFogOptions.inScatteringSize = options.inScatteringSize;
+    tFogOptions.inScatteringStart = options.inScatteringStart;
+    tFogOptions.maximumOpacity = options.maximumOpacity;
+    tFogOptions.skyColor =
+        (options.skyColor as FFITexture?)?.pointer ?? nullptr;
+    tFogOptions.linearColor.x = options.linearColor.r;
+    tFogOptions.linearColor.y = options.linearColor.x;
+    tFogOptions.linearColor.z = options.linearColor.x;
+    View_setFogOptions(this.view, tFogOptions.address);
   }
 }

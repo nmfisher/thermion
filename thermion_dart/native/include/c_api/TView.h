@@ -17,6 +17,24 @@ struct TViewport {
 };
 typedef struct TViewport TViewport;
 
+/**
+ * Copied from FogOptions in View.h
+ */
+struct TFogOptions {
+    float distance = 0.0f;
+    float cutOffDistance = INFINITY;
+    float maximumOpacity = 1.0f;
+    float height = 0.0f;
+    float heightFalloff = 1.0f;
+    double3 linearColor = { 1.0f, 1.0f, 1.0f };
+    float density = 0.1f;
+    float inScatteringStart = 0.0f;
+    float inScatteringSize = -1.0f;
+    bool fogColorFromIbl = false;
+    TTexture* skyColor = nullptr;
+    bool enabled = false;
+};
+
 enum TToneMapping
 {
     ACES,
@@ -68,6 +86,7 @@ EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabled(TView *tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE bool View_isDitheringEnabled(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setScene(TView *tView, TScene *tScene);
 EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInverted(TView *tView, bool inverted);
+EMSCRIPTEN_KEEPALIVE void View_setFogOptions(TView *tView, TFogOptions *tFogOptions);
 
 typedef void (*PickCallback)(uint32_t requestId, EntityId entityId, float depth, float fragX, float fragY, float fragZ);
 EMSCRIPTEN_KEEPALIVE void View_pick(TView* tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);
