@@ -724,7 +724,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _View_setFogOptions(
     Pointer<TView> tView,
-    Pointer<TFogOptions> tFogOptionsPtr,
+    Pointer<TFogOptions> tFogOptions,
   );
   external void _View_pick(
     Pointer<TView> tView,
@@ -1106,6 +1106,10 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
     EntityId childEntityId,
   );
+  external void _TransformManager_createComponent(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entity,
+  );
   external void _Renderer_setClearOptions(
     Pointer<TRenderer> tRenderer,
     double clearR,
@@ -1292,6 +1296,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _Engine_destroyIndirectLight(
     Pointer<TEngine> tEngine,
     Pointer<TIndirectLight> tIndirectLight,
+  );
+  external EntityId _EntityManager_createEntity(
+    Pointer<TEntityManager> tEntityManager,
   );
   external void _RenderThread_create();
   external void _RenderThread_destroy();
@@ -3654,6 +3661,15 @@ DartEntityId TransformManager_getAncestor(
   return result;
 }
 
+void TransformManager_createComponent(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._TransformManager_createComponent(tTransformManager.cast(), entity);
+  return result;
+}
+
 void Renderer_setClearOptions(
   self.Pointer<TRenderer> tRenderer,
   double clearR,
@@ -4029,6 +4045,13 @@ void Engine_destroyIndirectLight(
 ) {
   final result =
       _lib._Engine_destroyIndirectLight(tEngine.cast(), tIndirectLight.cast());
+  return result;
+}
+
+DartEntityId EntityManager_createEntity(
+  self.Pointer<TEntityManager> tEntityManager,
+) {
+  final result = _lib._EntityManager_createEntity(tEntityManager.cast());
   return result;
 }
 

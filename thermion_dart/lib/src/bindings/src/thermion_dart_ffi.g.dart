@@ -1238,6 +1238,13 @@ external int TransformManager_getAncestor(
   int childEntityId,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId)>(
+    isLeaf: true)
+external void TransformManager_createComponent(
+  ffi.Pointer<TTransformManager> tTransformManager,
+  int entityId,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TRenderer>, ffi.Double, ffi.Double,
         ffi.Double, ffi.Double, ffi.Uint8, ffi.Bool, ffi.Bool)>(isLeaf: true)
@@ -1572,6 +1579,13 @@ external void Engine_destroySkybox(
 external void Engine_destroyIndirectLight(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TIndirectLight> tIndirectLight,
+);
+
+@ffi.Native<
+    ffi.Int Function(
+        ffi.Pointer<TEntityManager>)>(isLeaf: true)
+external int EntityManager_createEntity(
+  ffi.Pointer<TEntityManager> tEngine
 );
 
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
