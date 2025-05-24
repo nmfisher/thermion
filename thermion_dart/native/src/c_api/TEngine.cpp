@@ -183,6 +183,12 @@ namespace thermion
             return reinterpret_cast<TLightManager *>(&lightManager);
         }
 
+        EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto &entityManager = engine->getEntityManager();
+            return reinterpret_cast<TEntityManager *>(&entityManager);
+        }
+
         EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
@@ -402,6 +408,11 @@ namespace thermion
                 engine->destroy(indirectLight->getIrradianceTexture());
             }
             engine->destroy(indirectLight);
+        }
+
+        EMSCRIPTEN_KEEPALIVE EntityId EntityManager_createEntity(TEntityManager *tEntityManager) {
+            auto entityManager = reinterpret_cast<utils::EntityManager *>(tEntityManager);
+            auto entity = entityManager->create();
         }
 
 #ifdef __cplusplus

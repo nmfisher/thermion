@@ -10,6 +10,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
+import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
 import 'resource_loader.dart';
@@ -1091,5 +1092,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   void onDestroy(Future Function() callback) {
     _onDestroy.add(callback);
+  }
+
+  ///
+  ///
+  ///
+  Future<ThermionEntity> createEntity(
+      {bool createTransformComponent = true}) async {
+    final entity = EntityManager_createEntity(Engine_getEntityManager(engine));
+    if (createTransformComponent) {
+      TransformManager_createComponent(transformManager, entity);
+    }
+    return entity;
+  }
+
+  ///
+  ///
+  ///
+  Future setTransform(ThermionEntity entity, Matrix4 transform) async {
+    TransformManager_setTransform(transformManager, entity, matrix4ToDouble4x4(transform));
   }
 }

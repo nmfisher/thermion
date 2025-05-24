@@ -168,4 +168,14 @@ extern "C"
 
         return Entity::smuggle(parent);
     }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_createComponent(TTransformManager *tTransformManager, EntityId entityId) {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        auto entity = Entity::import(entityId);
+        if(tm->hasComponent(entity)) {
+            Log("Entity already has transform component");
+            return;
+        }
+        tm->create(entity);
+    }
 }

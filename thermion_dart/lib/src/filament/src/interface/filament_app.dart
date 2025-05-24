@@ -320,4 +320,14 @@ abstract class FilamentApp<T> {
   ///
   ///
   void onDestroy(Future Function() callback);
+
+  ///
+  ///
+  ///
+  Future<ThermionEntity> createEntity({bool createTransformComponent = true});
+
+  ///
+  ///
+  ///
+  Future setTransform(ThermionEntity entity, Matrix4 transform);
 }
