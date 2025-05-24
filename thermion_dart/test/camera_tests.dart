@@ -1,6 +1,5 @@
 // ignore_for_file: unused_local_variable
 
-import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
@@ -8,7 +7,7 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("camera");
   await testHelper.setup();
-  group('camera', () {
+    
     test('create/destroy camera', () async {
       await testHelper.withViewer((viewer) async {
         final camera = await viewer.createCamera();
@@ -16,7 +15,7 @@ void main() async {
       });
     });
 
-    test('model matrix', () async {
+    test('set model matrix', () async {
       await testHelper.withViewer((viewer) async {
         final camera = await viewer.getActiveCamera();
         await camera.setModelMatrix(Matrix4.translation(Vector3.all(4.0)));
@@ -29,6 +28,15 @@ void main() async {
         expect(position.y, 2.0);
         expect(position.z, 2.0);
       });
+    });
+
+    test('set exposure', () async {
+      await testHelper.withViewer((viewer) async {
+        final camera = await viewer.getActiveCamera();
+        await testHelper.capture(viewer.view, "camera_default_exposure");
+        await camera.setExposure(16.0, 1.0 / 125.0, 200.0);
+        await testHelper.capture(viewer.view, "camera_iso_200");
+      }, addSkybox: true);
     });
 
     // test('getCameraViewMatrix', () async {
@@ -55,48 +63,49 @@ void main() async {
     //   });
     // });
 
-    // test('getCameraProjectionMatrix', () async {
-    //   await testHelper.withViewer((viewer) async {
-    //     var projectionMatrix = await viewer.getCameraProjectionMatrix();
-    //     print(projectionMatrix);
-    //   });
-    // });
+    test('getCameraProjectionMatrix', () async {
+      await testHelper.withViewer((viewer) async {
+        var camera = await viewer.getActiveCamera();
+        var projectionMatrix = await camera.getProjectionMatrix();
+        print(projectionMatrix);
+      });
+    });
 
-    // test('getCameraCullingProjectionMatrix', () async {
-    //   await testHelper.withViewer((viewer) async {
-    //     // ignore: dead_code
-    //     var viewer = await testHelper.createViewer();
-    //     var matrix = await viewer.getCameraCullingProjectionMatrix();
-    //     print(matrix);
-    //   });
-    // });
+    test('getCameraCullingProjectionMatrix', () async {
+      await testHelper.withViewer((viewer) async {
+        var camera = await viewer.getActiveCamera();
+        var matrix = await camera.getCullingProjectionMatrix();
+        print(matrix);
+      });
+    });
 
-    // test('getCameraFrustum', () async {
-    //   await testHelper.withViewer((viewer) async {
-    //     var frustum = await viewer.getCameraFrustum();
-    //     print(frustum.plane5.normal);
-    //     print(frustum.plane5.constant);
+    test('getCameraFrustum', () async {
+      await testHelper.withViewer((viewer) async {
+        var camera = await viewer.getActiveCamera();
+        var frustum = await camera.getFrustum();
 
-    //     var camera = await viewer.getMainCamera();
+        print(frustum.plane5.normal);
+        print(frustum.plane5.constant);
 
-    //     await camera.setLensProjection(
-    //         near: 10.0, far: 1000.0, aspect: 1.0, focalLength: 28.0);
-    //     frustum = await viewer.getCameraFrustum();
-    //     print(frustum.plane5.normal);
-    //     print(frustum.plane5.constant);
-    //   });
-    // });
+        await camera.setLensProjection(
+            near: 10.0, far: 1000.0, aspect: 1.0, focalLength: 28.0);
+        frustum = await camera.getFrustum();
+        print(frustum.plane5.normal);
+        print(frustum.plane5.constant);
+      });
+    });
 
-    // test('set orthographic projection', () async {
-    //   await testHelper.withViewer((viewer) async {
-    //     var camera = await viewer.getMainCamera();
-    //     await viewer.createGeometry(GeometryHelper.cube());
+    test('set orthographic projection', () async {
+      await testHelper.withViewer((viewer) async {
+        var camera = await viewer.getActiveCamera();
 
-    //     await camera.setProjection(
-    //         Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
-    //     await testHelper.capture(viewer, "camera_set_orthographic_projection");
-    //   });
-    // });
+        await viewer.createGeometry(GeometryHelper.cube());
+
+        await camera.setProjection(
+            Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
+        await testHelper.capture(viewer.view, "camera_set_orthographic_projection");
+      });
+    });
 
     // test('set perspective projection/culling matrix', () async {
     //   await testHelper.withViewer((viewer) async {
@@ -237,5 +246,5 @@ void main() async {
     //         () => viewer.getCameraAt(2), throwsA(isA<Exception>()));
     //   });
     // });
-  });
+
 }

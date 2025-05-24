@@ -195,7 +195,7 @@ class FFICamera extends Camera {
     Engine_destroyCamera(app.engine, camera);
   }
 
-  Future setCameraExposure(
+  Future setExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     Camera_setExposure(camera, aperture, shutterSpeed, sensitivity);
   }

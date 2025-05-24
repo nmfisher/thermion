@@ -52,6 +52,12 @@ namespace thermion
             camera->setLensProjection(focalLength, aspect, near, far);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Camera_setExposure(TCamera *tCamera, float aperture, float shutterSpeed, float sensitivity) {
+            TRACE("Setting exposure %f %f %f", aperture, shutterSpeed, sensitivity);
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            camera->setExposure(aperture, shutterSpeed, sensitivity);
+        }
+
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double *tModelMatrix) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             auto modelMatrix = convert_double_to_mat4f(tModelMatrix);

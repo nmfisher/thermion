@@ -4,12 +4,17 @@ import 'package:thermion_dart/thermion_dart.dart';
 enum Projection { Perspective, Orthographic }
 
 abstract class Camera {
-  
+  ///
+  ///
+  ///
   Future<Vector3> getPosition() async {
     final modelMatrix = await getModelMatrix();
     return modelMatrix.getTranslation();
   }
 
+  ///
+  ///
+  ///
   Future lookAt(Vector3 position, {Vector3? focus, Vector3? up}) async {
     focus ??= Vector3.zero();
     up ??= Vector3(0, 1, 0);
@@ -19,9 +24,30 @@ abstract class Camera {
   }
 
   ///
-  /// Sets the camera exposure.
+  /// From Camera.h:
   ///
-  Future setCameraExposure(
+  /// Sets this camera's exposure (default is f/16, 1/125s, 100 ISO)
+  ///
+  /// The exposure ultimately controls the scene's brightness, just like with a real camera.
+  /// The default values provide adequate exposure for a camera placed outdoors on a sunny day
+  /// with the sun at the zenith.
+  ///
+  /// @param aperture      Aperture in f-stops, clamped between 0.5 and 64.
+  ///                      A lower \p aperture value ///increases/// the exposure, leading to
+  ///                      a brighter scene. Realistic values are between 0.95 and 32.
+  ///
+  /// @param shutterSpeed  Shutter speed in seconds, clamped between 1/25,000 and 60.
+  ///                      A lower shutter speed increases the exposure. Realistic values are
+  ///                      between 1/8000 and 30.
+  ///
+  /// @param sensitivity   Sensitivity in ISO, clamped between 10 and 204,800.
+  ///                      A higher \p sensitivity increases the exposure. Realistic values are
+  ///                      between 50 and 25600.
+  ///
+  /// @note
+  /// With the default parameters, the scene must contain at least one Light of intensity
+  /// similar to the sun (e.g.: a 100,000 lux directional light).
+  Future setExposure(
       double aperture, double shutterSpeed, double sensitivity);
 
   Future setProjection(Projection projection, double left, double right,
@@ -52,5 +78,7 @@ abstract class Camera {
   Future setFocusDistance(double focusDistance);
   Future<double> getHorizontalFieldOfView();
   Future<double> getVerticalFieldOfView();
+  Future<Frustum> getFrustum();
+
   Future destroy();
 }
