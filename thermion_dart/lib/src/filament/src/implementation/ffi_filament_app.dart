@@ -1110,6 +1110,32 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future setTransform(ThermionEntity entity, Matrix4 transform) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      stackPtr = stackSave();
+    }
     TransformManager_setTransform(transformManager, entity, matrix4ToDouble4x4(transform));
+    if (FILAMENT_WASM) {
+      stackRestore(stackPtr);
+    }
+    
   }
+
+  ///
+  ///
+  ///
+  Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      stackPtr = stackSave();
+    }
+    
+    var transform = double4x4ToMatrix4(
+        TransformManager_getWorldTransform(transformManager, entity));
+    if (FILAMENT_WASM) {
+      stackRestore(stackPtr);
+    }
+    return transform;
+  }
+
 }

@@ -330,4 +330,9 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future setTransform(ThermionEntity entity, Matrix4 transform);
+
+  ///
+  ///
+  ///
+  Future<Matrix4> getWorldTransform(ThermionEntity entity);
 }
