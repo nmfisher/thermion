@@ -412,6 +412,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
+    _assets.remove(asset);
     await asset.removeAnimationComponent();    
     await scene.remove(asset);
 
@@ -420,7 +421,7 @@ class ThermionViewerFFI extends ThermionViewer {
       await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);
     }
     await FilamentApp.instance!.destroyAsset(asset);
-    _assets.remove(asset);
+    
   }
 
   ///
