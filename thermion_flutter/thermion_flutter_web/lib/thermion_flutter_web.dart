@@ -86,8 +86,10 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
       // canvas.style.display = "none";
       document.body!.appendChild(canvas);
 
-      (canvas as HTMLElement).style.position = "fixed";
-      (canvas as HTMLElement).style.zIndex = "-1";
+      if (options.createCanvas) {
+        (canvas as HTMLElement).style.position = "fixed";
+        (canvas as HTMLElement).style.zIndex = "-1";
+      }
 
       final config = FFIFilamentConfig(
           backend: Backend.OPENGL,
