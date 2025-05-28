@@ -413,6 +413,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE EntityId EntityManager_createEntity(TEntityManager *tEntityManager) {
             auto entityManager = reinterpret_cast<utils::EntityManager *>(tEntityManager);
             auto entity = entityManager->create();
+            return utils::Entity::smuggle(entity);
         }
 
 #ifdef __cplusplus
