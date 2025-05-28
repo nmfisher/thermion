@@ -212,13 +212,16 @@ extension Float64ListExtension on Float64List {
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
+}
 
-  // static Float64List create(int length) {
-  //   final ptr = malloc(length * 8);
-  //   final buffer = _NativeLibrary.instance._emscripten_make_f64_buffer(ptr.cast(), length).toDart;
-  //   _allocated.add(buffer);
-  //   return buffer;
-  // }
+extension AsFloat32List on Pointer<Float> {
+  Float32List asTypedList(int length) {
+    final start = addr;
+    final wrapper =
+        Float32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, start, length)
+            as JSFloat32Array;
+    return wrapper.toDart;
+  }
 }
 
 int sizeOf<T extends NativeType>() {
