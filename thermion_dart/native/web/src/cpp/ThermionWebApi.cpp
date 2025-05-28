@@ -52,11 +52,11 @@ extern "C"
       std::cout << "Failed to make WebGL context current"<< std::endl;
     } else { 
       std::cout << "Made WebGL context current"<< std::endl;
-      try {
-        glClearColor(0.0, 0.0, 1.0, 1.0);
-      } catch(...) {
-        std::cout << "Caught err"<< std::endl;
-      }
+      // try {
+      //   glClearColor(0.0, 0.0, 1.0, 1.0);
+      // } catch(...) {
+      //   std::cout << "Caught err"<< std::endl;
+      // }
       glClear(GL_COLOR_BUFFER_BIT);
     }
     std::cout << "Returning context" << std::endl;
