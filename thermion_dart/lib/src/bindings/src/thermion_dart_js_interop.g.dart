@@ -184,12 +184,6 @@ extension Float32Pointer on Pointer<Float32> {
     return _lib.getValue(this, llvmType).toDartDouble;
   }
 
-  Float32List asTypedList(int length) {
-    final start = addr;
-    final end = addr + (length * 4);
-    return Float32List.sublistView(_lib.HEAPU8.toDart, start, end);
-  }
-
   double operator [](int i) {
     return _lib.getValue(this + (i * 4), 'f').toDartDouble;
   }
@@ -210,12 +204,6 @@ extension Float64Pointer on Pointer<Float64> {
 
   double getValue() {
     return _lib.getValue(this, llvmType).toDartDouble;
-  }
-
-  Float64List asTypedList(int length) {
-    final start = addr;
-    final end = addr + (length * 8);
-    return Float64List.sublistView(_lib.HEAPU8.toDart, start, end);
   }
 
   static Pointer<Float64> fromAddress(int addr) => Pointer<Float64>(addr);
