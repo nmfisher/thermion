@@ -2,7 +2,6 @@
 #include <emscripten.h>
 #endif 
 
-#include <sstream>
 #include <vector>
 
 #include <filament/Engine.h>
@@ -15,12 +14,15 @@
 #include <filament/TransformManager.h>
 #include <filament/View.h>
 #include <filament/image/LinearImage.h>
-#include <filament/imageio/ImageDecoder.h>
+#include <filament/image/ColorTransform.h>
 #include <filament/backend/DriverEnums.h>
 
 #include "c_api/TTexture.h"
 
 #include "Log.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <filament/third_party/stb/stb_image.h>
 
 #ifdef __cplusplus
 namespace thermion
@@ -28,22 +30,61 @@ namespace thermion
     extern "C"
     {
         using namespace filament::backend;
+        using namespace image;
+
 
 #endif
 
-        EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t *data, size_t length, const char *name = "image")
-        {
-            std::istringstream stream(std::string(reinterpret_cast<const char *>(data), length));
+    inline float to_float(uint8_t v) {
+        return float(v);
+    }
 
-            auto *linearImage = new image::LinearImage(::image::ImageDecoder::decode(stream, name, ::image::ImageDecoder::ColorSpace::SRGB));
 
-            if (!linearImage->isValid())
-            {
-                Log("Failed to decode image.");
-                return nullptr;
-            }
-            return reinterpret_cast<TLinearImage *>(linearImage);
+    EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t *data, size_t length, const char *name = "image")
+    {
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        int width, height, channels;
+        
+        uint8_t *imgData = stbi_load_from_memory(data, length, &width, &height, &channels, 0);
+        
+        if (!imgData) {
+            ERROR("Failed to decode image");
+            return nullptr;
         }
+        
+        LinearImage *linearImage;
+        
+        if(channels == 4) {
+            linearImage = new LinearImage(toLinearWithAlpha<uint8_t>(
+                width,
+                height, 
+                width * 4,
+                imgData,
+                to_float, sRGBToLinear<filament::math::float4>));
+        } else {
+            linearImage = new LinearImage(toLinear<uint8_t>(
+                width,
+                height,
+                width * 3,
+                imgData,
+                to_float, sRGBToLinear<filament::math::float3>));
+        }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+        TRACE("Image decoded successfully in %lld ms", duration.count());        
+        
+        if (!linearImage->isValid())
+        {
+            Log("Failed to decode image.");
+            return nullptr;
+        }
+                
+        return reinterpret_cast<TLinearImage *>(linearImage);
+    }
 
         EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage)
         {
@@ -343,7 +384,7 @@ namespace thermion
                 size_t expectedSize = width * height * channels * sizeof(float);
                 if (size != expectedSize)
                 {
-                    Log("Size mismatch (expected %d, got %d)", expectedSize, size);
+                    Log("Size mismatch (expected %lu, got %lu)", expectedSize, size);
                     return false;
                 }
                 break;
@@ -418,7 +459,7 @@ namespace thermion
                 size_t expectedSize = width * height * channels * sizeof(float);
                 if (size != expectedSize)
                 {
-                    Log("Size mismatch (expected %d, got %d)", expectedSize, size);
+                    Log("Size mismatch (expected %lu, got %lu)", expectedSize, size);
                     return false;
                 }
                 break;
