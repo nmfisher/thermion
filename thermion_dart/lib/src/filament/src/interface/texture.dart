@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:thermion_dart/thermion_dart.dart';
+
 /// Defines the type of sampler to use with a texture
 enum TextureSamplerType {
   SAMPLER_2D,
@@ -479,5 +481,27 @@ abstract class LinearImage {
   Future<int> getWidth();
   Future<int> getHeight();
   Future<int> getChannels();
+  
+  ///
+  ///
+  ///
+  static Future<Texture> decodeToTexture(Uint8List data, { TextureFormat textureFormat = TextureFormat.RGB32F, PixelDataFormat pixelDataFormat = PixelDataFormat.RGB, PixelDataType pixelDataType = PixelDataType.FLOAT}) async {
+    final decodedImage = await FilamentApp.instance!.decodeImage(data);
+    
+    final texture = await FilamentApp.instance!.createTexture(
+      await decodedImage.getWidth(),
+      await decodedImage.getHeight(),
+      textureFormat: textureFormat,
+    );
+
+    await texture.setLinearImage(
+      decodedImage,
+      pixelDataFormat,
+      pixelDataType
+    );
+
+    return texture;
+  }
+
 }
 
