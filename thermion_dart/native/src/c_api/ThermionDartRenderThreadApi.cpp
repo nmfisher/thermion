@@ -744,9 +744,6 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  // Add these implementations to your ThermionDartRenderThreadApi.cpp file
-
-  // Image methods
   EMSCRIPTEN_KEEPALIVE void Image_createEmptyRenderThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *))
   {
     std::packaged_task<void()> lambda(
