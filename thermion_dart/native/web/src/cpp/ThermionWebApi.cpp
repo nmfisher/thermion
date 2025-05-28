@@ -44,6 +44,11 @@ extern "C"
     attr.majorVersion = 2;
     
     auto context = emscripten_webgl_create_context("#thermion_canvas", &attr);
+
+    if(!context) {
+      std::cout << "Failed to create WebGL context" << std::endl;  
+      return context;
+    }
     
     std::cout << "Created WebGL context " << attr.majorVersion << "." << attr.minorVersion << std::endl;
 
