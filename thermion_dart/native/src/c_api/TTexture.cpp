@@ -295,7 +295,7 @@ namespace thermion
                 TRACE("BLIT_SRC");
             }
             
-            auto &builder = ::filament::Texture::Builder()
+            auto builder = ::filament::Texture::Builder()
                 .width(width)
                 .height(height)
                 .depth(depth)
