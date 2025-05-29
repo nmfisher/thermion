@@ -45,8 +45,10 @@ jobs:
         with:
           channel: master
           architecture: ARM64
-      - run: cd quickstart && flutter pub get && flutter build macos && flutter build web 
-      - run: cd picking && flutter pub get && flutter build macos && flutter build web 
+      - run: cd quickstart && flutter pub get && flutter build macos 
+      - run: cd quickstart && flutter build web 
+      - run: cd picking && flutter pub get && flutter build macos 
+      - run: cd picking && flutter build web 
       - name: Upload logs
         if: failure() || steps.build.outcome == 'failure'
         uses: actions/upload-artifact@v4
