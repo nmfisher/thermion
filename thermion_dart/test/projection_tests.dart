@@ -9,7 +9,7 @@ import 'helpers.dart';
 
 Future<Texture> createTextureFromImage(TestHelper testHelper) async {
   final image = await FilamentApp.instance!.decodeImage(
-      File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
+      File("${testHelper.testDir}/assets/cube_texture_512x512.png")
           .readAsBytesSync());
   final texture = await FilamentApp.instance!
       .createTexture(await image.getWidth(), await image.getHeight());
@@ -39,8 +39,10 @@ void main() async {
       await testHelper.withViewer((viewer) async {
         final camera = await viewer.getActiveCamera();
         await viewer.view.setFrustumCullingEnabled(false);
-        await camera.setLensProjection(near: 0.75, far: 100);
         final vp = await viewer.view.getViewport();
+        await camera.setLensProjection(
+            near: 0.75, far: 100, aspect: vp.width / vp.height);
+
         final (width, height) = (vp.width, vp.height);
         final dist = 2.5;
         await camera.lookAt(
@@ -85,7 +87,11 @@ void main() async {
           );
 
           final result = await textureProjection.project(
-              await (await viewer.view.getRenderTarget())!.getColorTexture(), cube);
+              await (await viewer.view.getRenderTarget())!.getColorTexture(),
+              cube);
+          final color = result.sourceView!;
+          await savePixelBufferToBmp(
+              color, width, height, "${testHelper.outDir.path}/color_$i.bmp");
           final depth = result.depth;
           await savePixelBufferToBmp(
               depth, width, height, "${testHelper.outDir.path}/depth_$i.bmp");
@@ -117,11 +123,11 @@ void main() async {
               "baseColorMap", originalTexture, sampler);
         }
 
-// Improved blending - treating black pixels as transparent
+        // Improved blending - treating black pixels as transparent
         final blendedImage = Float32List(width * height * 4);
         final weightSums = List<double>.filled(width * height, 0.0);
 
-// For each image
+        // For each image
         for (final image in images) {
           // For each pixel in the image
           for (int p = 0; p < width * height; p++) {
@@ -149,7 +155,7 @@ void main() async {
           }
         }
 
-// Normalize by the accumulated weights
+        // Normalize by the accumulated weights
         for (int p = 0; p < width * height; p++) {
           final baseIdx = p * 4;
           final weightSum = weightSums[p];
@@ -207,7 +213,9 @@ void main() async {
           await testHelper.capture(viewer.view,
               "capture_uv_blended_orbit_${frame.toString().padLeft(3, '0')}");
         }
-      }, createRenderTarget: true);
+      },
+          createRenderTarget: true,
+          viewportDimensions: (height: 512, width: 1024));
     });
   });
 }
