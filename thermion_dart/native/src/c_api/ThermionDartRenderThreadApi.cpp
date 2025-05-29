@@ -844,12 +844,13 @@ extern "C"
   // Texture methods
   EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
                                                           TPixelDataFormat bufferFormat, TPixelDataType pixelDataType,
+                                                          int level,
                                                           void (*onComplete)(bool))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          bool result = Texture_loadImage(tEngine, tTexture, tImage, bufferFormat, pixelDataType);
+          bool result = Texture_loadImage(tEngine, tTexture, tImage, bufferFormat, pixelDataType, level);
           PROXY(onComplete(result));
         });
     auto fut = _renderThread->add_task(lambda);

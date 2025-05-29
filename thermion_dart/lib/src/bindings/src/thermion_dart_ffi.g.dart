@@ -617,6 +617,7 @@ external ffi.Pointer<TTexture> Texture_build(
         ffi.Pointer<TTexture>,
         ffi.Pointer<TLinearImage>,
         ffi.UnsignedInt,
+        ffi.UnsignedInt,
         ffi.UnsignedInt)>(isLeaf: true)
 external bool Texture_loadImage(
   ffi.Pointer<TEngine> tEngine,
@@ -624,6 +625,7 @@ external bool Texture_loadImage(
   ffi.Pointer<TLinearImage> tImage,
   int bufferFormat,
   int pixelDataType,
+  int level,
 );
 
 @ffi.Native<
@@ -684,6 +686,12 @@ external bool Texture_setImageWithDepth(
   int pixelDataType,
 );
 
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>)>(
+    isLeaf: true)
+external int Texture_getLevels(
+  ffi.Pointer<TTexture> tTexture,
+);
+
 @ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>(
     isLeaf: true)
 external int Texture_getWidth(
@@ -703,6 +711,13 @@ external int Texture_getHeight(
 external int Texture_getDepth(
   ffi.Pointer<TTexture> tTexture,
   int level,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>,)>(
+    isLeaf: true)
+external void Texture_generateMipMaps(
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TEngine> tEngine,
 );
 
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TTexture>, ffi.Uint32)>(
@@ -2419,6 +2434,7 @@ external void Image_getChannelsRenderThread(
             ffi.Pointer<TLinearImage>,
             ffi.UnsignedInt,
             ffi.UnsignedInt,
+            ffi.UnsignedInt,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void Texture_loadImageRenderThread(
@@ -2427,6 +2443,7 @@ external void Texture_loadImageRenderThread(
   ffi.Pointer<TLinearImage> tImage,
   int bufferFormat,
   int pixelDataType,
+  int level,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 

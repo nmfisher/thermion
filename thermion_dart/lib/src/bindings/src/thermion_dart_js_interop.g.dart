@@ -242,7 +242,7 @@ sealed class Struct extends NativeType {
 
   Struct(this._address);
 
-  static create<T extends Struct>() {
+  static T create<T extends Struct>() {
     switch (T) {
       case double4x4:
         final ptr = double4x4.stackAlloc();
@@ -255,6 +255,9 @@ sealed class Struct extends NativeType {
         final arr4 =
             Array<Float64>._((numElements: 4, addr: ptr.cast<Float64>() + 96));
         return double4x4(arr1, arr2, arr3, arr4, ptr) as T;
+      case TFogOptions:
+        final ptr = TFogOptions.stackAlloc();
+        return ptr.toDart() as T;
     }
     throw Exception();
   }
@@ -412,11 +415,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external Pointer<TMaterial> _Material_createGizmoMaterial(
     Pointer<TEngine> tEngine,
   );
-  external bool _Material_hasParameter(
+  external int _Material_hasParameter(
     Pointer<TMaterial> tMaterial,
     Pointer<Char> propertyName,
   );
-  external bool _MaterialInstance_isStencilWriteEnabled(
+  external int _MaterialInstance_isStencilWriteEnabled(
     Pointer<TMaterialInstance> materialInstance,
   );
   external void _MaterialInstance_setStencilWrite(
@@ -692,14 +695,14 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TView> tView,
     bool enabled,
   );
-  external bool _View_isStencilBufferEnabled(
+  external int _View_isStencilBufferEnabled(
     Pointer<TView> tView,
   );
   external void _View_setDitheringEnabled(
     Pointer<TView> tView,
     bool enabled,
   );
-  external bool _View_isDitheringEnabled(
+  external int _View_isDitheringEnabled(
     Pointer<TView> tView,
   );
   external void _View_setScene(
@@ -741,14 +744,15 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int sampler,
     int format,
   );
-  external bool _Texture_loadImage(
+  external int _Texture_loadImage(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     Pointer<TLinearImage> tImage,
     int bufferFormat,
     int pixelDataType,
+    int level
   );
-  external bool _Texture_setImage(
+  external int _Texture_setImage(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     int level,
@@ -760,7 +764,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int bufferFormat,
     int pixelDataType,
   );
-  external bool _Texture_setImageWithDepth(
+  external int _Texture_setImageWithDepth(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     int level,
@@ -776,6 +780,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int bufferFormat,
     int pixelDataType,
   );
+  external int _Texture_getLevels(
+    Pointer<TTexture> tTexture,
+  );
   external int _Texture_getWidth(
     Pointer<TTexture> tTexture,
     int level,
@@ -783,6 +790,10 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external int _Texture_getHeight(
     Pointer<TTexture> tTexture,
     int level,
+  );
+  external void _Texture_generateMipmaps(
+    Pointer<TTexture> tTexture,
+    Pointer<TEngine> tEngine
   );
   external int _Texture_getDepth(
     Pointer<TTexture> tTexture,
@@ -1075,7 +1086,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     EntityId entityId,
     Pointer<double4x4> transformPtr,
   );
-  external bool _TransformManager_transformToUnitCube(
+  external int _TransformManager_transformToUnitCube(
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
     Pointer<Aabb3> boundingBoxPtr,
@@ -1108,7 +1119,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     bool clear,
     bool discard,
   );
-  external bool _Renderer_beginFrame(
+  external int _Renderer_beginFrame(
     Pointer<TRenderer> tRenderer,
     Pointer<TSwapChain> tSwapChain,
     JSBigInt frameTimeInNanos,
@@ -1690,6 +1701,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TLinearImage> tImage,
     int bufferFormat,
     int pixelDataType,
+    int level,
     Pointer<self.NativeFunction<void Function(bool)>> onComplete,
   );
   external void _Texture_setImageRenderThread(
@@ -1899,7 +1911,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
   );
-  external bool _GltfResourceLoader_asyncBeginLoad(
+  external int _GltfResourceLoader_asyncBeginLoad(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<TFilamentAsset> tFilamentAsset,
   );
@@ -1915,11 +1927,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Uint8> data,
     size_t length,
   );
-  external bool _GltfResourceLoader_loadResources(
+  external int _GltfResourceLoader_loadResources(
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<TFilamentAsset> tFilamentAsset,
   );
-  external bool _RenderableManager_setMaterialInstanceAt(
+  external int _RenderableManager_setMaterialInstanceAt(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     int primitiveIndex,
@@ -1934,23 +1946,23 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external bool _RenderableManager_isRenderable(
+  external int _RenderableManager_isRenderable(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external bool _RenderableManager_hasComponent(
+  external int _RenderableManager_hasComponent(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external bool _RenderableManager_empty(
+  external int _RenderableManager_empty(
     Pointer<TRenderableManager> tRenderableManager,
   );
-  external bool _RenderableManager_getLightChannel(
+  external int _RenderableManager_getLightChannel(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
     int channel,
   );
-  external bool _RenderableManager_isShadowCaster(
+  external int _RenderableManager_isShadowCaster(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
@@ -1964,11 +1976,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     EntityId entityId,
     bool receiveShadows,
   );
-  external bool _RenderableManager_isShadowReceiver(
+  external int _RenderableManager_isShadowReceiver(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external bool _RenderableManager_getFogEnabled(
+  external int _RenderableManager_getFogEnabled(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
@@ -2071,11 +2083,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     JSBigInt frameTimeInNanos,
   );
-  external bool _AnimationManager_addGltfAnimationComponent(
+  external int _AnimationManager_addGltfAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
   );
-  external bool _AnimationManager_removeGltfAnimationComponent(
+  external int _AnimationManager_removeGltfAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
   );
@@ -2087,15 +2099,15 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
   );
-  external bool _AnimationManager_addBoneAnimationComponent(
+  external int _AnimationManager_addBoneAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
   );
-  external bool _AnimationManager_removeBoneAnimationComponent(
+  external int _AnimationManager_removeBoneAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
   );
-  external bool _AnimationManager_setMorphAnimation(
+  external int _AnimationManager_setMorphAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
     Pointer<Float32> morphData,
@@ -2104,7 +2116,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int numFrames,
     double frameLengthInMs,
   );
-  external bool _AnimationManager_clearMorphAnimation(
+  external int _AnimationManager_clearMorphAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
   );
@@ -2112,7 +2124,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
   );
-  external bool _AnimationManager_addBoneAnimation(
+  external int _AnimationManager_addBoneAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int skinIndex,
@@ -2144,7 +2156,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int boneIndex,
     Pointer<Float32> out,
   );
-  external bool _AnimationManager_playGltfAnimation(
+  external int _AnimationManager_playGltfAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int index,
@@ -2154,7 +2166,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double crossfade,
     double startOffset,
   );
-  external bool _AnimationManager_stopGltfAnimation(
+  external int _AnimationManager_stopGltfAnimation(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
     int index,
@@ -2197,17 +2209,17 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Char> outPtr,
     int index,
   );
-  external bool _AnimationManager_updateBoneMatrices(
+  external int _AnimationManager_updateBoneMatrices(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
   );
-  external bool _AnimationManager_setMorphTargetWeights(
+  external int _AnimationManager_setMorphTargetWeights(
     Pointer<TAnimationManager> tAnimationManager,
     EntityId entityId,
     Pointer<Float32> morphData,
     int numWeights,
   );
-  external bool _AnimationManager_setGltfAnimationFrame(
+  external int _AnimationManager_setGltfAnimationFrame(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int animationIndex,
@@ -2284,7 +2296,7 @@ bool Material_hasParameter(
   self.Pointer<Char> propertyName,
 ) {
   final result = _lib._Material_hasParameter(tMaterial.cast(), propertyName);
-  return result;
+  return result == 1;
 }
 
 bool MaterialInstance_isStencilWriteEnabled(
@@ -2292,7 +2304,7 @@ bool MaterialInstance_isStencilWriteEnabled(
 ) {
   final result =
       _lib._MaterialInstance_isStencilWriteEnabled(materialInstance.cast());
-  return result;
+  return result == 1;
 }
 
 void MaterialInstance_setStencilWrite(
@@ -2842,7 +2854,7 @@ bool View_isStencilBufferEnabled(
   self.Pointer<TView> tView,
 ) {
   final result = _lib._View_isStencilBufferEnabled(tView.cast());
-  return result;
+  return result == 1;
 }
 
 void View_setDitheringEnabled(
@@ -2857,7 +2869,7 @@ bool View_isDitheringEnabled(
   self.Pointer<TView> tView,
 ) {
   final result = _lib._View_isDitheringEnabled(tView.cast());
-  return result;
+  return result == 1;
 }
 
 void View_setScene(
@@ -2941,10 +2953,11 @@ bool Texture_loadImage(
   self.Pointer<TLinearImage> tImage,
   int bufferFormat,
   int pixelDataType,
+  int level,
 ) {
   final result = _lib._Texture_loadImage(tEngine.cast(), tTexture.cast(),
-      tImage.cast(), bufferFormat, pixelDataType);
-  return result;
+      tImage.cast(), bufferFormat, pixelDataType, level);
+  return result == 1;
 }
 
 bool Texture_setImage(
@@ -2961,7 +2974,7 @@ bool Texture_setImage(
 ) {
   final result = _lib._Texture_setImage(tEngine.cast(), tTexture.cast(), level,
       data, size, width, height, channels, bufferFormat, pixelDataType);
-  return result;
+  return result == 1;
 }
 
 bool Texture_setImageWithDepth(
@@ -2995,6 +3008,13 @@ bool Texture_setImageWithDepth(
       depth,
       bufferFormat,
       pixelDataType);
+  return result == 1;
+}
+
+int Texture_getLevels(
+  self.Pointer<TTexture> tTexture,
+) {
+  final result = _lib._Texture_getLevels(tTexture.cast());
   return result;
 }
 
@@ -3011,6 +3031,14 @@ int Texture_getHeight(
   int level,
 ) {
   final result = _lib._Texture_getHeight(tTexture.cast(), level);
+  return result;
+}
+
+void Texture_generateMipmaps(
+  self.Pointer<TTexture> tTexture,
+  self.Pointer<TEngine> tEngine,
+) {
+  final result = _lib._Texture_generateMipmaps(tTexture.cast(), tEngine.cast());
   return result;
 }
 
@@ -3617,7 +3645,7 @@ bool TransformManager_transformToUnitCube(
   final boundingBoxPtr = boundingBox._address;
   final result = _lib._TransformManager_transformToUnitCube(
       tTransformManager.cast(), entityId, boundingBoxPtr.cast());
-  return result;
+  return result == 1;
 }
 
 void TransformManager_setParent(
@@ -3680,7 +3708,7 @@ bool Renderer_beginFrame(
 ) {
   final result = _lib._Renderer_beginFrame(
       tRenderer.cast(), tSwapChain.cast(), frameTimeInNanos.toJSBigInt);
-  return result;
+  return result == 1;
 }
 
 void Renderer_endFrame(
@@ -4871,6 +4899,7 @@ void Texture_loadImageRenderThread(
   self.Pointer<TLinearImage> tImage,
   int bufferFormat,
   int pixelDataType,
+  int level,
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = _lib._Texture_loadImageRenderThread(
@@ -4879,6 +4908,7 @@ void Texture_loadImageRenderThread(
       tImage.cast(),
       bufferFormat,
       pixelDataType,
+      level,
       onComplete.cast());
   return result;
 }
@@ -5324,7 +5354,7 @@ bool GltfResourceLoader_asyncBeginLoad(
 ) {
   final result = _lib._GltfResourceLoader_asyncBeginLoad(
       tGltfResourceLoader.cast(), tFilamentAsset.cast());
-  return result;
+  return result == 1;
 }
 
 void GltfResourceLoader_asyncUpdateLoad(
@@ -5360,7 +5390,7 @@ bool GltfResourceLoader_loadResources(
 ) {
   final result = _lib._GltfResourceLoader_loadResources(
       tGltfResourceLoader.cast(), tFilamentAsset.cast());
-  return result;
+  return result == 1;
 }
 
 bool RenderableManager_setMaterialInstanceAt(
@@ -5374,7 +5404,7 @@ bool RenderableManager_setMaterialInstanceAt(
       entityId,
       primitiveIndex,
       tMaterialInstance.cast());
-  return result;
+  return result == 1;
 }
 
 self.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
@@ -5402,7 +5432,7 @@ bool RenderableManager_isRenderable(
 ) {
   final result =
       _lib._RenderableManager_isRenderable(tRenderableManager.cast(), entityId);
-  return result;
+  return result == 1;
 }
 
 bool RenderableManager_hasComponent(
@@ -5411,14 +5441,14 @@ bool RenderableManager_hasComponent(
 ) {
   final result =
       _lib._RenderableManager_hasComponent(tRenderableManager.cast(), entityId);
-  return result;
+  return result == 1;
 }
 
 bool RenderableManager_empty(
   self.Pointer<TRenderableManager> tRenderableManager,
 ) {
   final result = _lib._RenderableManager_empty(tRenderableManager.cast());
-  return result;
+  return result == 1;
 }
 
 bool RenderableManager_getLightChannel(
@@ -5428,7 +5458,7 @@ bool RenderableManager_getLightChannel(
 ) {
   final result = _lib._RenderableManager_getLightChannel(
       tRenderableManager.cast(), entityId, channel);
-  return result;
+  return result == 1;
 }
 
 bool RenderableManager_isShadowCaster(
@@ -5437,7 +5467,7 @@ bool RenderableManager_isShadowCaster(
 ) {
   final result = _lib._RenderableManager_isShadowCaster(
       tRenderableManager.cast(), entityId);
-  return result;
+  return result == 1;
 }
 
 void RenderableManager_setCastShadows(
@@ -5466,7 +5496,7 @@ bool RenderableManager_isShadowReceiver(
 ) {
   final result = _lib._RenderableManager_isShadowReceiver(
       tRenderableManager.cast(), entityId);
-  return result;
+  return result == 1;
 }
 
 bool RenderableManager_getFogEnabled(
@@ -5475,7 +5505,7 @@ bool RenderableManager_getFogEnabled(
 ) {
   final result = _lib._RenderableManager_getFogEnabled(
       tRenderableManager.cast(), entityId);
-  return result;
+  return result == 1;
 }
 
 Aabb3 RenderableManager_getAabb(
@@ -5695,7 +5725,7 @@ bool AnimationManager_addGltfAnimationComponent(
 ) {
   final result = _lib._AnimationManager_addGltfAnimationComponent(
       tAnimationManager.cast(), tSceneAsset.cast());
-  return result;
+  return result == 1;
 }
 
 bool AnimationManager_removeGltfAnimationComponent(
@@ -5704,7 +5734,7 @@ bool AnimationManager_removeGltfAnimationComponent(
 ) {
   final result = _lib._AnimationManager_removeGltfAnimationComponent(
       tAnimationManager.cast(), tSceneAsset.cast());
-  return result;
+  return result == 1;
 }
 
 void AnimationManager_addMorphAnimationComponent(
@@ -5731,7 +5761,7 @@ bool AnimationManager_addBoneAnimationComponent(
 ) {
   final result = _lib._AnimationManager_addBoneAnimationComponent(
       tAnimationManager.cast(), tSceneAsset.cast());
-  return result;
+  return result == 1;
 }
 
 bool AnimationManager_removeBoneAnimationComponent(
@@ -5740,7 +5770,7 @@ bool AnimationManager_removeBoneAnimationComponent(
 ) {
   final result = _lib._AnimationManager_removeBoneAnimationComponent(
       tAnimationManager.cast(), tSceneAsset.cast());
-  return result;
+  return result == 1;
 }
 
 bool AnimationManager_setMorphAnimation(
@@ -5760,7 +5790,7 @@ bool AnimationManager_setMorphAnimation(
       numMorphTargets,
       numFrames,
       frameLengthInMs);
-  return result;
+  return result == 1;
 }
 
 bool AnimationManager_clearMorphAnimation(
@@ -5769,7 +5799,7 @@ bool AnimationManager_clearMorphAnimation(
 ) {
   final result = _lib._AnimationManager_clearMorphAnimation(
       tAnimationManager.cast(), entityId);
-  return result;
+  return result == 1;
 }
 
 void AnimationManager_resetToRestPose(
@@ -5804,7 +5834,7 @@ bool AnimationManager_addBoneAnimation(
       fadeOutInSecs,
       fadeInInSecs,
       maxDelta);
-  return result;
+  return result == 1;
 }
 
 DartEntityId AnimationManager_getBone(
@@ -5861,7 +5891,7 @@ bool AnimationManager_playGltfAnimation(
       replaceActive,
       crossfade,
       startOffset);
-  return result;
+  return result == 1;
 }
 
 bool AnimationManager_stopGltfAnimation(
@@ -5871,7 +5901,7 @@ bool AnimationManager_stopGltfAnimation(
 ) {
   final result = _lib._AnimationManager_stopGltfAnimation(
       tAnimationManager.cast(), sceneAsset.cast(), index);
-  return result;
+  return result == 1;
 }
 
 double AnimationManager_getGltfAnimationDuration(
@@ -5953,7 +5983,7 @@ bool AnimationManager_updateBoneMatrices(
 ) {
   final result = _lib._AnimationManager_updateBoneMatrices(
       tAnimationManager.cast(), sceneAsset.cast());
-  return result;
+  return result == 1;
 }
 
 bool AnimationManager_setMorphTargetWeights(
@@ -5964,7 +5994,7 @@ bool AnimationManager_setMorphTargetWeights(
 ) {
   final result = _lib._AnimationManager_setMorphTargetWeights(
       tAnimationManager.cast(), entityId, morphData, numWeights);
-  return result;
+  return result == 1;
 }
 
 bool AnimationManager_setGltfAnimationFrame(
@@ -5975,7 +6005,7 @@ bool AnimationManager_setGltfAnimationFrame(
 ) {
   final result = _lib._AnimationManager_setGltfAnimationFrame(
       tAnimationManager.cast(), tSceneAsset.cast(), animationIndex, frame);
-  return result;
+  return result == 1;
 }
 
 extension TMaterialInstanceExt on Pointer<TMaterialInstance> {
@@ -6349,7 +6379,6 @@ final class TScene extends self.Struct {
 }
 
 /// Copied from FogOptions in View.h
-
 extension TFogOptionsExt on Pointer<TFogOptions> {
   TFogOptions toDart() {
     var distance = _lib.getValue(this + 0, "float").toDartDouble;
@@ -6401,76 +6430,109 @@ extension TFogOptionsExt on Pointer<TFogOptions> {
 }
 
 final class TFogOptions extends self.Struct {
-  final double distance;
+  double _distance = 0.0;
+  double get distance => _distance;
+  set distance(double val) {
+    _distance = val;
+    _lib.setValue(_address, val.toJS, "double");
+  }
 
-  final double cutOffDistance;
+  double _cutOffDistance = 0.0;
+  double get cutOffDistance => _cutOffDistance;
+  set cutOffDistance(double val) {
+    _cutOffDistance = val;
+    _lib.setValue(_address + 8, val.toJS, "double");
+  }
 
-  final double maximumOpacity;
+  double _maximumOpacity = 0.0;
+  double get maximumOpacity => _maximumOpacity;
+  set maximumOpacity(double val) {
+    _maximumOpacity = val;
+    _lib.setValue(_address + 16, val.toJS, "double");
+  }
 
-  final double height;
+  double _height = 0.0;
+  double get height => _height;
+  set height(double val) {
+    _height = val;
+    _lib.setValue(_address + 24, val.toJS, "double");
+  }
 
-  final double heightFalloff;
+  double _heightFalloff = 0.0;
+  double get heightFalloff => _heightFalloff;
+  set heightFalloff(double val) {
+    _heightFalloff = val;
+    _lib.setValue(_address + 32, val.toJS, "double");
+  }
 
-  final double3 linearColor;
+  late double3 _linearColor = double3(0.0, 0.0, 0.0, _address + 40);
+  double3 get linearColor => _linearColor;
+  set linearColor(double3 val) {
+    _linearColor = val;
+    // Assuming double3 is stored as 24 bytes (3 * 8 bytes)
+    _lib.setValue(_address + 40, val._address.toJS, "pointer");
+  }
 
-  final double density;
+  double _density = 0.0;
+  double get density => _density;
+  set density(double val) {
+    _density = val;
+    _lib.setValue(_address + 64, val.toJS, "double");
+  }
 
-  final double inScatteringStart;
+  double _inScatteringStart = 0.0;
+  double get inScatteringStart => _inScatteringStart;
+  set inScatteringStart(double val) {
+    _inScatteringStart = val;
+    _lib.setValue(_address + 72, val.toJS, "double");
+  }
 
-  final double inScatteringSize;
+  double _inScatteringSize = 0.0;
+  double get inScatteringSize => _inScatteringSize;
+  set inScatteringSize(double val) {
+    _inScatteringSize = val;
+    _lib.setValue(_address + 80, val.toJS, "double");
+  }
 
-  final bool fogColorFromIbl;
+  bool _fogColorFromIbl = false;
+  bool get fogColorFromIbl => _fogColorFromIbl;
+  set fogColorFromIbl(bool val) {
+    _fogColorFromIbl = val;
+    _lib.setValue(_address + 88, (val ? 1 : 0).toJS, "i8");
+  }
 
-  final self.Pointer<TTexture> skyColor;
+  self.Pointer<TTexture> _skyColor = self.Pointer<TTexture>(0);
+  self.Pointer<TTexture> get skyColor => _skyColor;
+  set skyColor(self.Pointer<TTexture> val) {
+    _skyColor = val;
+    _lib.setValue(_address + 96, val.toJS, "*");
+  }
 
-  final bool enabled;
+  bool _enabled = false;
+  bool get enabled => _enabled;
+  set enabled(bool val) {
+    _enabled = val;
+    _lib.setValue(_address + 104, (val ? 1 : 0).toJS, "i8");
+  }
 
   TFogOptions(
-      this.distance,
-      this.cutOffDistance,
-      this.maximumOpacity,
-      this.height,
-      this.heightFalloff,
-      this.linearColor,
-      this.density,
-      this.inScatteringStart,
-      this.inScatteringSize,
-      this.fogColorFromIbl,
-      this.skyColor,
-      this.enabled,
+      this._distance,
+      this._cutOffDistance,
+      this._maximumOpacity,
+      this._height,
+      this._heightFalloff,
+      this._linearColor,
+      this._density,
+      this._inScatteringStart,
+      this._inScatteringSize,
+      this._fogColorFromIbl,
+      this._skyColor,
+      this._enabled,
       super._address);
 
   static Pointer<TFogOptions> stackAlloc() {
-    return Pointer<TFogOptions>(_lib._stackAlloc<TFogOptions>(62));
-  }
-}
-
-extension double3Ext on Pointer<double3> {
-  double3 toDart() {
-    var x = _lib.getValue(this + 0, "double").toDartDouble;
-    var y = _lib.getValue(this + 8, "double").toDartDouble;
-    var z = _lib.getValue(this + 16, "double").toDartDouble;
-    return double3(x, y, z, this);
-  }
-
-  void setFrom(double3 dartType) {
-    _lib.setValue(this + 0, dartType.x.toJS, "double");
-    _lib.setValue(this + 8, dartType.y.toJS, "double");
-    _lib.setValue(this + 16, dartType.z.toJS, "double");
-  }
-}
-
-final class double3 extends self.Struct {
-  final double x;
-
-  final double y;
-
-  final double z;
-
-  double3(this.x, this.y, this.z, super._address);
-
-  static Pointer<double3> stackAlloc() {
-    return Pointer<double3>(_lib._stackAlloc<double3>(24));
+    return Pointer<TFogOptions>(
+        _lib._stackAlloc<TFogOptions>(112)); // Updated size
   }
 }
 
@@ -6900,6 +6962,50 @@ final class double4x4 extends self.Struct {
 
   static Pointer<double4x4> stackAlloc() {
     return Pointer<double4x4>(_lib._stackAlloc<double4x4>(128));
+  }
+}
+
+extension double3Ext on Pointer<double3> {
+  double3 toDart() {
+    var x = _lib.getValue(this + 0, "double").toDartDouble;
+    var y = _lib.getValue(this + 8, "double").toDartDouble;
+    var z = _lib.getValue(this + 16, "double").toDartDouble;
+    return double3(x, y, z, this);
+  }
+
+  void setFrom(double3 dartType) {
+    _lib.setValue(this + 0, dartType.x.toJS, "double");
+    _lib.setValue(this + 8, dartType.y.toJS, "double");
+    _lib.setValue(this + 16, dartType.z.toJS, "double");
+  }
+}
+
+final class double3 extends self.Struct {
+  double _x = 0.0;
+  double get x => _x;
+  set x(double val) {
+    _x = val;
+    _lib.setValue(_address, x.toJS, "double");
+  }
+
+  double _y = 0.0;
+  double get y => _y;
+  set y(double val) {
+    _y = val;
+    _lib.setValue(_address + 8, x.toJS, "double");
+  }
+
+  double _z = 0.0;
+  double get z => _z;
+  set z(double val) {
+    _z = val;
+    _lib.setValue(_address + 16, x.toJS, "double");
+  }
+
+  double3(this._x, this._y, this._z, super._address);
+
+  static Pointer<double3> stackAlloc() {
+    return Pointer<double3>(_lib._stackAlloc<double3>(24));
   }
 }
 

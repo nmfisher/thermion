@@ -186,6 +186,7 @@ namespace thermion
             TLinearImage *tImage,
             TPixelDataFormat bufferFormat,
             TPixelDataType pixelDataType,
+            int level,
             void (*onComplete)(bool)
         );
         void Texture_setImageRenderThread(

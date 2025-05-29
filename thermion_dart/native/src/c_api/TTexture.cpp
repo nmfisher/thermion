@@ -269,7 +269,7 @@ namespace thermion
             TTextureFormat tFormat
         )
         {
-            TRACE("Creating texture %dx%d (depth %d), sampler type %d, format %d tUsage %d", width, height, depth, static_cast<int>(tSamplerType), static_cast<int>(tFormat), tUsage);
+            TRACE("Creating texture %dx%d (depth %d), sampler type %d, format %d tUsage %d, %d levels", width, height, depth, static_cast<int>(tSamplerType), static_cast<int>(tFormat), tUsage, levels);
             auto *engine = reinterpret_cast<::filament::Engine *>(tEngine);
             auto format = convertToFilamentFormat(tFormat);
             auto samplerType = static_cast<::filament::Texture::Sampler>(static_cast<int>(tSamplerType));
@@ -295,7 +295,7 @@ namespace thermion
                 TRACE("BLIT_SRC");
             }
             
-            auto builder = ::filament::Texture::Builder()
+            auto &builder = ::filament::Texture::Builder()
                 .width(width)
                 .height(height)
                 .depth(depth)
@@ -310,7 +310,7 @@ namespace thermion
             auto *texture = builder
                 .build(*engine);
             if(texture) {
-                TRACE("Texture successfully created");
+                TRACE("Texture successfully created with %d levels", texture->getLevels());
             } else { 
                 Log("Error: failed to created texture");
             }
@@ -318,7 +318,12 @@ namespace thermion
             return reinterpret_cast<TTexture *>(texture);
         }
 
-        EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat tBufferFormat, TPixelDataType tPixelDataType)
+        EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture) {
+            auto texture = reinterpret_cast<filament::Texture *>(tTexture);
+            return texture->getLevels();
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat tBufferFormat, TPixelDataType tPixelDataType, int level)
         {
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto image = reinterpret_cast<::image::LinearImage *>(tImage);
@@ -354,7 +359,7 @@ namespace thermion
                 bufferFormat,
                 pixelDataType);
 
-            texture->setImage(*engine, 0, std::move(buffer));
+            texture->setImage(*engine, level, std::move(buffer));
             return true;
         }
 
@@ -531,6 +536,12 @@ namespace thermion
             return texture->getDepth();
         }
 
+        EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine) {
+            auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            texture->generateMipmaps(*engine);
+        }
+
         EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width, uint32_t height, uint32_t channel)
         {
             auto *image = new ::image::LinearImage(width, height, channel);
@@ -588,12 +599,9 @@ namespace thermion
             TTextureSampler *sampler,
             TSamplerMinFilter filter)
         {
-
-            if (sampler)
-            {
-                auto *textureSampler = reinterpret_cast<filament::TextureSampler *>(sampler);
-                textureSampler->setMinFilter(static_cast<filament::TextureSampler::MinFilter>(filter));
-            }
+            auto *textureSampler = reinterpret_cast<filament::TextureSampler *>(sampler);
+            textureSampler->setMinFilter(static_cast<filament::TextureSampler::MinFilter>(filter));
+            TRACE("Set TextureSampler min filter to %d", filter);
         }
 
         EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropy(

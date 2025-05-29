@@ -218,12 +218,14 @@ EMSCRIPTEN_KEEPALIVE TTexture *Texture_build(TEngine *engine,
     intptr_t import,
     TTextureSamplerType sampler, 
     TTextureFormat format);
+EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture);
 EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(
     TEngine *tEngine,
     TTexture *tTexture,
     TLinearImage *tImage,
     TPixelDataFormat bufferFormat,
-    TPixelDataType pixelDataType
+    TPixelDataType pixelDataType,
+    int level
 );
 EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
     TEngine *tEngine,
@@ -257,6 +259,7 @@ EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t leve
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE TTextureUsage Texture_getUsage(TTexture *tTexture, uint32_t level);
+EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine);
 
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name);

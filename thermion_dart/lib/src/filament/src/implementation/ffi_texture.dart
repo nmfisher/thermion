@@ -10,17 +10,13 @@ class FFITexture extends Texture {
   FFITexture(this._engine, this.pointer);
 
   Future<void> setLinearImage(covariant FFILinearImage image,
-      PixelDataFormat format, PixelDataType type) async {
+      PixelDataFormat format, PixelDataType type,
+      {int level = 0}) async {
     final tPixelDataFormat = format.value;
     final tPixelDataType = type.value;
     final result = await withBoolCallback((cb) {
-      Texture_loadImageRenderThread(
-          _engine,
-          pointer,
-          image.pointer,
-          tPixelDataFormat,
-          tPixelDataType,
-          cb);
+      Texture_loadImageRenderThread(_engine, pointer, image.pointer,
+          tPixelDataFormat, tPixelDataType, level, cb);
     });
 
     if (!result) {
@@ -31,14 +27,13 @@ class FFITexture extends Texture {
   @override
   Future<void> dispose() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyTextureRenderThread(_engine, pointer, requestId,cb);
+      Engine_destroyTextureRenderThread(_engine, pointer, requestId, cb);
     });
   }
 
   @override
-  Future<void> generateMipmaps() {
-    // TODO: implement generateMipmaps
-    throw UnimplementedError();
+  Future<void> generateMipmaps() async {
+    Texture_generateMipMaps(pointer, _engine);
   }
 
   @override
@@ -58,9 +53,8 @@ class FFITexture extends Texture {
   }
 
   @override
-  Future<int> getLevels() {
-    // TODO: implement getLevels
-    throw UnimplementedError();
+  Future<int> getLevels() async {
+    return Texture_getLevels(pointer);
   }
 
   @override
@@ -116,7 +110,7 @@ class FFITexture extends Texture {
       Uint8List buffer,
       PixelDataFormat format,
       PixelDataType type) async {
-        throw UnimplementedError();
+    throw UnimplementedError();
     // final success = await withBoolCallback((cb) {
     //   Texture_setImageWithDepthRenderThread(
     //       _engine,
@@ -316,8 +310,9 @@ class FFITextureSampler extends TextureSampler {
   // }
 
   Future<void> setAnisotropy(double anisotropy) async {
-    await withVoidCallback((requestId,cb) {
-      TextureSampler_setAnisotropyRenderThread(pointer, anisotropy, requestId,cb);
+    await withVoidCallback((requestId, cb) {
+      TextureSampler_setAnisotropyRenderThread(
+          pointer, anisotropy, requestId, cb);
     });
   }
 
@@ -334,8 +329,8 @@ class FFITextureSampler extends TextureSampler {
 
   @override
   Future dispose() async {
-    await withVoidCallback((requestId,cb) {
-      TextureSampler_destroyRenderThread(pointer, requestId,cb);
+    await withVoidCallback((requestId, cb) {
+      TextureSampler_destroyRenderThread(pointer, requestId, cb);
     });
   }
 }

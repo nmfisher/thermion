@@ -330,8 +330,10 @@ abstract class Texture {
   /// Returns the internal format of this texture
   Future<TextureFormat> getFormat();
 
+  /// Sets the given [image] as the source data for this texture.
+  ///
   Future setLinearImage(
-      covariant LinearImage image, PixelDataFormat format, PixelDataType type);
+      covariant LinearImage image, PixelDataFormat format, PixelDataType type, {int level = 0});
 
   /// Sets the image data for a 2D texture or a texture level
   Future setImage(int level, Uint8List buffer, int width, int height, 
@@ -485,13 +487,14 @@ abstract class LinearImage {
   ///
   ///
   ///
-  static Future<Texture> decodeToTexture(Uint8List data, { TextureFormat textureFormat = TextureFormat.RGB32F, PixelDataFormat pixelDataFormat = PixelDataFormat.RGB, PixelDataType pixelDataType = PixelDataType.FLOAT}) async {
+  static Future<Texture> decodeToTexture(Uint8List data, { TextureFormat textureFormat = TextureFormat.RGB32F, PixelDataFormat pixelDataFormat = PixelDataFormat.RGB, PixelDataType pixelDataType = PixelDataType.FLOAT, int levels = 1}) async {
     final decodedImage = await FilamentApp.instance!.decodeImage(data);
     
     final texture = await FilamentApp.instance!.createTexture(
       await decodedImage.getWidth(),
       await decodedImage.getHeight(),
       textureFormat: textureFormat,
+      levels:levels
     );
 
     await texture.setLinearImage(
