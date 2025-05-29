@@ -791,7 +791,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TTexture> tTexture,
     int level,
   );
-  external void _Texture_generateMipmaps(
+  external void _Texture_generateMipMaps(
     Pointer<TTexture> tTexture,
     Pointer<TEngine> tEngine
   );
@@ -3034,11 +3034,11 @@ int Texture_getHeight(
   return result;
 }
 
-void Texture_generateMipmaps(
+void Texture_generateMipMaps(
   self.Pointer<TTexture> tTexture,
   self.Pointer<TEngine> tEngine,
 ) {
-  final result = _lib._Texture_generateMipmaps(tTexture.cast(), tEngine.cast());
+  final result = _lib._Texture_generateMipMaps(tTexture.cast(), tEngine.cast());
   return result;
 }
 
