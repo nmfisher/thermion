@@ -16,7 +16,7 @@ void main() async {
 
     test('set background image', () async {
       await testHelper.withViewer((viewer) async {
-        await viewer.setBackgroundImage("file://${testHelper.testDir}/assets/cube_texture2_512x512.png");
+        await viewer.setBackgroundImage("file://${testHelper.testDir}/assets/cube_texture_512x512.png");
         await testHelper.capture(viewer.view, "background_image");
       });
     });

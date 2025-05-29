@@ -93,7 +93,7 @@ class TestHelper {
   ///
   Future<Texture> createTextureFromImage(TestHelper testHelper) async {
     final image = await FilamentApp.instance!.decodeImage(
-        File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
+        File("${testHelper.testDir}/assets/cube_texture_512x512.png")
             .readAsBytesSync());
     final texture = await FilamentApp.instance!
         .createTexture(await image.getWidth(), await image.getHeight());
