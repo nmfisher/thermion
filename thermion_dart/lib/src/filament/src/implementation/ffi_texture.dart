@@ -212,8 +212,6 @@ class FFILinearImage extends LinearImage {
   }
 }
 
-// Add these to access TextureSampler functionality:
-
 class FFITextureSampler extends TextureSampler {
   final Pointer<TTextureSampler> pointer;
 
