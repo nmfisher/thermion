@@ -310,6 +310,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
       TextureFormat textureFormat = TextureFormat.RGBA16F,
       int? importedTextureHandle}) async {
+    
     var bitmask = flags.fold(0, (a, b) => a | b.value);
 
     final texturePtr = await withPointerCallback<TTexture>((cb) {
@@ -362,19 +363,28 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFITextureSampler(samplerPtr);
   }
 
+  /// Decodes the image data into a native LinearImage (floating point).
+  /// If [requireAlpha] is true, the decoded image will always contain an 
+  /// alpha channel (even if the original image did not contain one). 
   ///
-  ///
-  ///
-  Future<LinearImage> decodeImage(Uint8List data) async {
-    final name = "image";
+  Future<LinearImage> decodeImage(Uint8List data, { String name = "image", bool requireAlpha = false}) async {
+    
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       //stackPtr = stackSave();
     }
+    var now = DateTime.now();
+
     var ptr = Image_decode(
       data.address,
       data.length,
       name.toNativeUtf8().cast<Char>(),
+      requireAlpha
+    );
+
+    var finished = DateTime.now();
+    print(
+      "Image_decode (render thread) finished in ${finished.millisecondsSinceEpoch - now.millisecondsSinceEpoch}ms",
     );
 
     if (FILAMENT_WASM) {
@@ -1114,11 +1124,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
     }
-    TransformManager_setTransform(transformManager, entity, matrix4ToDouble4x4(transform));
+    TransformManager_setTransform(
+        transformManager, entity, matrix4ToDouble4x4(transform));
     if (FILAMENT_WASM) {
       stackRestore(stackPtr);
     }
-    
   }
 
   ///
@@ -1129,7 +1139,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
     }
-    
+
     var transform = double4x4ToMatrix4(
         TransformManager_getWorldTransform(transformManager, entity));
     if (FILAMENT_WASM) {
@@ -1137,5 +1147,4 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     return transform;
   }
-
 }

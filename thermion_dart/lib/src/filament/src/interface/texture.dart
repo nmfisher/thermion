@@ -484,11 +484,17 @@ abstract class LinearImage {
   Future<int> getHeight();
   Future<int> getChannels();
   
+  /// Decodes the image contained in [data] and returns a texture of 
+  /// the corresponding size with the image set as mip-level 0. 
   ///
   ///
-  ///
-  static Future<Texture> decodeToTexture(Uint8List data, { TextureFormat textureFormat = TextureFormat.RGB32F, PixelDataFormat pixelDataFormat = PixelDataFormat.RGB, PixelDataType pixelDataType = PixelDataType.FLOAT, int levels = 1}) async {
-    final decodedImage = await FilamentApp.instance!.decodeImage(data);
+  static Future<Texture> decodeToTexture(Uint8List data, { 
+    TextureFormat textureFormat = TextureFormat.RGB32F,
+    PixelDataFormat pixelDataFormat = PixelDataFormat.RGB,
+    PixelDataType pixelDataType = PixelDataType.FLOAT,
+    int levels = 1, 
+    bool requireAlpha = false}) async {
+    final decodedImage = await FilamentApp.instance!.decodeImage(data, requireAlpha: requireAlpha);
     
     final texture = await FilamentApp.instance!.createTexture(
       await decodedImage.getWidth(),

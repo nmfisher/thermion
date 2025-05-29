@@ -165,15 +165,10 @@ class FFILinearImage extends LinearImage {
   }
 
   static Future<FFILinearImage> decode(Uint8List data,
-      [String name = "image"]) async {
-    final namePtr = name.toNativeUtf8();
-
-    final imagePtr = await withPointerCallback<TLinearImage>((cb) {
-      Image_decodeRenderThread(
-          data.address, data.lengthInBytes, namePtr.cast(), cb);
-    });
-
-    return FFILinearImage(imagePtr);
+      {String name = "image", bool requireAlpha = false}) async {
+    final image = await FilamentApp.instance!
+        .decodeImage(data, name: name, requireAlpha: requireAlpha);
+    return image as FFILinearImage;
   }
 
   Future<void> destroy() async {

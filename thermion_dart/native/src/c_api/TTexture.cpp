@@ -40,14 +40,16 @@ namespace thermion
     }
 
 
-    EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t *data, size_t length, const char *name = "image")
+    EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t *data, size_t length, const char *name = "image", bool alpha = true)
     {
 
         auto start = std::chrono::high_resolution_clock::now();
 
         int width, height, channels;
+
+        TRACE("Loading image from buffer of length %lu bytes (alpha : %s)", length, alpha ? "true" : "false");
         
-        uint8_t *imgData = stbi_load_from_memory(data, length, &width, &height, &channels, 0);
+        uint8_t *imgData = stbi_load_from_memory(data, length, &width, &height, &channels, alpha ? 4 : 3);
         
         if (!imgData) {
             ERROR("Failed to decode image");
@@ -56,7 +58,7 @@ namespace thermion
         
         LinearImage *linearImage;
         
-        if(channels == 4) {
+        if(alpha) {
             linearImage = new LinearImage(toLinearWithAlpha<uint8_t>(
                 width,
                 height, 
@@ -75,7 +77,7 @@ namespace thermion
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-        TRACE("Image decoded successfully in %lld ms", duration.count());        
+        TRACE("Image decoded successfully in %lld ms (%dx%dx%d)", duration.count(), width, height, channels);        
         
         if (!linearImage->isValid())
         {
@@ -383,28 +385,14 @@ namespace thermion
 
             switch (bufferFormat)
             {
-            case PixelBufferDescriptor::PixelDataFormat::RGB:
-            case PixelBufferDescriptor::PixelDataFormat::RGBA:
-            {
-                size_t expectedSize = width * height * channels * sizeof(float);
-                if (size != expectedSize)
-                {
-                    Log("Size mismatch (expected %lu, got %lu)", expectedSize, size);
+                case PixelBufferDescriptor::PixelDataFormat::RGB:
+                case PixelBufferDescriptor::PixelDataFormat::RGBA:
+                case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
+                case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
+                    break;
+                default:
+                    Log("Unsupported buffer format type : %d", bufferFormat);
                     return false;
-                }
-                break;
-            }
-            case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
-            case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
-                if (size != width * height * channels * sizeof(uint8_t))
-                {
-                    Log("Size mismatch");
-                    // return false;
-                }
-                break;
-            default:
-                Log("Unsupported buffer format type : %d", bufferFormat);
-                return false;
             }
 
             // the texture upload is async, so we need to copy the buffer

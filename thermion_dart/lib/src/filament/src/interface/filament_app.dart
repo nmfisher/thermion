@@ -133,7 +133,7 @@ abstract class FilamentApp<T> {
   ///
   /// Decodes the specified image data.
   ///
-  Future<LinearImage> decodeImage(Uint8List data);
+  Future<LinearImage> decodeImage(Uint8List data, { String name = "image", bool requireAlpha = false});
 
   ///
   /// Creates an (empty) imge with the given dimensions.

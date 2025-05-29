@@ -215,3 +215,10 @@ extension DartBigIntExtension on int {
     return this;
   }
 }
+
+extension Float32ListExtension on Float32List {
+
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}

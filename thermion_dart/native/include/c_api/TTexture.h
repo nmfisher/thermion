@@ -262,7 +262,7 @@ EMSCRIPTEN_KEEPALIVE TTextureUsage Texture_getUsage(TTexture *tTexture, uint32_t
 EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine);
 
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
-EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name);
+EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name, bool alpha);
 EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage);
 EMSCRIPTEN_KEEPALIVE void Image_destroy(TLinearImage *tLinearImage);
 EMSCRIPTEN_KEEPALIVE uint32_t Image_getWidth(TLinearImage *tLinearImage);

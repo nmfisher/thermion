@@ -393,6 +393,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
       JSFunction f, String signature);
   external void removeFunction<T>(Pointer<NativeFunction<T>> f);
   external JSUint8Array get HEAPU8;
+  external JSFloat32Array get HEAPF32;
 
   external void _Thermion_resizeCanvas(
     int width,
@@ -812,6 +813,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Uint8> data,
     size_t length,
     Pointer<Char> name,
+    bool alpha
   );
   external Pointer<Float32> _Image_getBytes(
     Pointer<TLinearImage> tLinearImage,
@@ -1670,6 +1672,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Uint8> data,
     size_t length,
     Pointer<Char> name,
+    bool alpha,
     Pointer<self.NativeFunction<void Function(PointerClass<TLinearImage>)>>
         onComplete,
   );
@@ -3071,8 +3074,9 @@ self.Pointer<TLinearImage> Image_decode(
   self.Pointer<Uint8> data,
   Dart__darwin_size_t length,
   self.Pointer<Char> name,
+  bool alpha
 ) {
-  final result = _lib._Image_decode(data, length, name);
+  final result = _lib._Image_decode(data, length, name, alpha);
   return self.Pointer<TLinearImage>(result);
 }
 
@@ -4839,11 +4843,12 @@ void Image_decodeRenderThread(
   self.Pointer<Uint8> data,
   Dart__darwin_size_t length,
   self.Pointer<Char> name,
+  bool alpha,
   self.Pointer<self.NativeFunction<void Function(Pointer<TLinearImage>)>>
       onComplete,
 ) {
   final result =
-      _lib._Image_decodeRenderThread(data, length, name, onComplete.cast());
+      _lib._Image_decodeRenderThread(data, length, name, alpha, onComplete.cast());
   return result;
 }
 

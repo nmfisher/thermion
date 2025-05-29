@@ -10,10 +10,22 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
+final _allocations = <TypedData>{};
+
 Int32List makeInt32List(int length) {
-  var ptr = malloc<Int32>(length * 4);
+  var ptr = stackAlloc<Int32>(length * 4);
   var buf = _NativeLibrary.instance._emscripten_make_int32_buffer(ptr, length);
-  return buf.toDart;
+  var int32List = buf.toDart;
+  _allocations.add(int32List);
+  return int32List;
+}
+
+Float32List makeFloat32List(int length) {
+  var ptr = stackAlloc<Float32>(length * 4);
+  var buf = _NativeLibrary.instance._emscripten_make_f32_buffer(ptr, length);
+  var f32List = buf.toDart;
+  _allocations.add(f32List);
+  return f32List;
 }
 
 extension type _NativeLibrary(JSObject _) implements JSObject {
@@ -34,6 +46,8 @@ extension type _NativeLibrary(JSObject _) implements JSObject {
       Pointer<Float64> ptr, int length);
   external Pointer _emscripten_get_byte_offset(JSObject obj);
 
+  external int _emscripten_stack_get_base();
+  external Pointer _emscripten_stack_get_current();
   external int _emscripten_stack_get_free();
 
   external void _execute_queue();
@@ -47,8 +61,8 @@ extension type _NativeLibrary(JSObject _) implements JSObject {
 
 extension FreeTypedData<T> on TypedData {
   void free() {
-    final ptr = Pointer<Void>(this.offsetInBytes);
-    ptr.free();
+    Pointer<Void>(this.offsetInBytes).free();
+    _allocations.remove(this);
   }
 }
 
@@ -64,7 +78,12 @@ Pointer<T> getPointer<T extends NativeType>(TypedData data, JSObject obj) {
   return ptr;
 }
 
-extension JSBackingBuffer on JSUint8Array {
+extension JSUint8BackingBuffer on JSUint8Array {
+  @JS('buffer')
+  external JSObject buffer;
+}
+
+extension JSFloat32BackingBuffer on JSFloat32Array {
   @JS('buffer')
   external JSObject buffer;
 }
@@ -117,7 +136,11 @@ extension Uint8ListExtension on Uint8List {
     final bar =
         Uint8ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
             as JSUint8Array;
+    var now = DateTime.now();
     bar.toDart.setRange(0, length, this);
+    var finished = DateTime.now();
+    print(
+        "uint8list copy finished in ${finished.millisecondsSinceEpoch - now.millisecondsSinceEpoch}ms");
     return ptr;
   }
 }
@@ -130,6 +153,11 @@ extension Float32ListExtension on Float32List {
             as JSFloat32Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
+  }
+
+  Uint8List asUint8List() {
+    var ptr = Pointer<Uint8>(_NativeLibrary.instance._emscripten_get_byte_offset(this.toJS));
+    return ptr.asTypedList(length * 4);
   }
 }
 
@@ -176,6 +204,10 @@ extension Int32ListExtension on Int32List {
     if (this.lengthInBytes == 0) {
       return nullptr;
     }
+    if (_allocations.contains(this)) {
+      return Pointer<Int32>(
+          _NativeLibrary.instance._emscripten_get_byte_offset(this.toJS));
+    }
     try {
       this.buffer.asUint8List(this.offsetInBytes);
       final ptr = getPointer<Int32>(this, this.toJS);
@@ -214,12 +246,21 @@ extension Float64ListExtension on Float64List {
   }
 }
 
+extension AsUint8List on Pointer<Uint8> {
+  Uint8List asTypedList(int length) {
+    final start = addr;
+    final wrapper =
+        Uint8ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, start, length)
+            as JSUint8Array;
+    return wrapper.toDart;
+  }
+}
+
 extension AsFloat32List on Pointer<Float> {
   Float32List asTypedList(int length) {
     final start = addr;
-    final wrapper =
-        Float32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, start, length)
-            as JSFloat32Array;
+    final wrapper = Float32ArrayWrapper(
+        NativeLibrary.instance.HEAPF32.buffer, start, length) as JSFloat32Array;
     return wrapper.toDart;
   }
 }

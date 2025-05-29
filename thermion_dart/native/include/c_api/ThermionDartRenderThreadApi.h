@@ -172,7 +172,7 @@ namespace thermion
 
         // Image methods
         void Image_createEmptyRenderThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *));
-        void Image_decodeRenderThread(uint8_t* data, size_t length, const char* name, void (*onComplete)(TLinearImage *));
+        void Image_decodeRenderThread(uint8_t* data, size_t length, const char* name, bool alpha, void (*onComplete)(TLinearImage *));
         void Image_getBytesRenderThread(TLinearImage *tLinearImage, void (*onComplete)(float *));
         void Image_destroyRenderThread(TLinearImage *tLinearImage, uint32_t requestId, VoidCallback onComplete);
         void Image_getWidthRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));

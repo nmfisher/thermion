@@ -738,11 +738,12 @@ external ffi.Pointer<TLinearImage> Image_createEmpty(
 
 @ffi.Native<
     ffi.Pointer<TLinearImage> Function(
-        ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+        ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>, ffi.Bool alpha)>(isLeaf: true)
 external ffi.Pointer<TLinearImage> Image_decode(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   ffi.Pointer<ffi.Char> name,
+  bool alpha
 );
 
 @ffi.Native<ffi.Pointer<ffi.Float> Function(ffi.Pointer<TLinearImage>)>(
@@ -2367,6 +2368,7 @@ external void Image_createEmptyRenderThread(
         ffi.Pointer<ffi.Uint8>,
         ffi.Size,
         ffi.Pointer<ffi.Char>,
+        ffi.Bool,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(ffi.Pointer<TLinearImage>)>>)>(isLeaf: true)
@@ -2374,6 +2376,7 @@ external void Image_decodeRenderThread(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   ffi.Pointer<ffi.Char> name,
+  bool alpha,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TLinearImage>)>>
       onComplete,
 );

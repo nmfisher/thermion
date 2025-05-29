@@ -755,12 +755,12 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_decodeRenderThread(uint8_t *data, size_t length, const char *name, void (*onComplete)(TLinearImage *))
+  EMSCRIPTEN_KEEPALIVE void Image_decodeRenderThread(uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto image = Image_decode(data, length, name);
+          auto image = Image_decode(data, length, name, alpha);
           PROXY(onComplete(image));
         });
     auto fut = _renderThread->add_task(lambda);
