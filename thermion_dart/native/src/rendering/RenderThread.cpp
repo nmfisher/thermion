@@ -106,7 +106,7 @@ void RenderThread::requestFrame()
         return;
     }
     if(mRender) {
-        Log("Warning - frame requested before previous frame has completed rendering");
+        TRACE("Warning - frame requested before previous frame has completed rendering");
     }
     mRender = true;
     _cv.notify_one();
