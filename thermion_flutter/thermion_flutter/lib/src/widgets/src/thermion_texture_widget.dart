@@ -5,7 +5,6 @@ import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
 class ThermionTextureWidget extends StatefulWidget {
-  
   ///
   ///
   ///
@@ -45,23 +44,21 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
   static final _views = <View>[];
 
-  final _logger = Logger("_ThermionTextureWidgetState");
+  late final _logger = Logger(this.runtimeType.toString());
 
   int _fps = 0;
   int _frameCount = 0;
-  int _frameRequestCount = 0;
   int _frameRequestPercentage = 0;
-  int _lastFpsUpdateTime = 0;
   Timer? _fpsUpdateTimer;
 
   @override
   void dispose() {
+    _views.remove(widget.viewer.view);
     final texture = _texture;
     _texture = null;
     super.dispose();
-    _views.remove(widget.viewer.view);
     if (texture != null) {
-      ThermionFlutterPlatform.instance.destroyTextureDescriptor(texture!);
+      ThermionFlutterPlatform.instance.destroyTextureDescriptor(texture);
     }
     _fpsUpdateTimer?.cancel();
     _states.remove(this);
@@ -69,9 +66,9 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
   @override
   void initState() {
-    if (_views.contains(widget.viewer.view)) {
-      throw Exception("View already embedded in a widget");
-    }
+    // if (_views.contains(widget.viewer.view)) {
+    //   throw Exception("View already embedded in a widget");
+    // }
     _views.add(widget.viewer.view);
 
     // Start FPS counter update timer if enabled
@@ -80,18 +77,13 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         if (mounted) {
           setState(() {
             _fps = _frameCount;
-            _frameRequestPercentage = _frameCount > 0
-                ? (_frameCount / _frameRequestCount * 100).round()
-                : 0;
             _frameCount = 0;
-            _frameRequestCount = 0;
           });
         }
       });
     }
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-
       var dpr = MediaQuery.of(context).devicePixelRatio;
 
       var size = ((context.findRenderObject()) as RenderBox).size;
@@ -147,12 +139,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     super.initState();
   }
 
-  bool _rendering = false;
-
   static final _states = <_ThermionTextureWidgetState>{};
-
-  int lastRender = 0;
-  int _headroomInMs = 5;
 
   ///
   /// Each instance of ThermionTextureWidget in the widget hierarchy must
@@ -167,42 +154,48 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
   /// [_ThermionTextureWidgetState] in a static set, and allowing the first
   /// instance to call [requestFrame].
   ///
-  void _requestFrame() {
+
+  DateTime _deadline = DateTime.now();
+  Completer? _frameCompleter;
+
+  void _requestFrame() async {
     if (!mounted) {
       return;
     }
 
-    if (widget.showFpsCounter) {
-      _frameRequestCount++;
+    await _frameCompleter?.future;
+
+    _frameCompleter = Completer();
+
+    var headroom = _deadline.difference(DateTime.now());
+    
+    if (headroom.inMilliseconds > 5) {
+      var waitForNs = headroom.inMicroseconds - 5000;
+          await Future.delayed(Duration(microseconds: waitForNs));
     }
 
-    WidgetsBinding.instance.scheduleFrameCallback((d) async {
+    if (widget.viewer.rendering && _resizing.isEmpty) {
+      if (_states.isNotEmpty && this == _states.first && _texture != null) {
+        await FilamentApp.instance!.requestFrame();
 
-      if (!mounted) {
-        return;
+        if (widget.showFpsCounter) {
+          _frameCount++;
+        }
       }
-      if (widget.viewer.rendering &&
-          !_rendering &&
-          _resizing.isEmpty &&
-          (d.inMilliseconds - lastRender >
-              widget.viewer.msPerFrame - _headroomInMs)) {
-        _rendering = true;
-        if (this == _states.first && _texture != null) {
-          await FilamentApp.instance!.requestFrame();
-          lastRender = d.inMilliseconds;
+    }
 
-          if (widget.showFpsCounter) {
-            _frameCount++;
-          }
-        }
-        if (_texture != null) {
-          await ThermionFlutterPlatform.instance
-              .markTextureFrameAvailable(_texture!);
-        }
-        _rendering = false;
+    WidgetsBinding.instance.scheduleFrameCallback((Duration d) async {
+      if (_texture != null) {
+        await ThermionFlutterPlatform.instance
+            .markTextureFrameAvailable(_texture!);
       }
-      _requestFrame();
+      _frameCompleter?.complete();
     });
+    
+    var deadlineInMicros = (widget.viewer.msPerFrame * 1000).toInt();
+    _deadline = DateTime.now().add(Duration(microseconds: deadlineInMicros));
+
+    Timer.run(_requestFrame);
   }
 
   final _resizing = <Future>[];
