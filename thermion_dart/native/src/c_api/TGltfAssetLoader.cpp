@@ -38,8 +38,9 @@ namespace thermion
 #endif
 
 
-EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider) {
+EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager) {
     auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+    auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
     auto *materialProvider = reinterpret_cast<gltfio::MaterialProvider *>(tMaterialProvider);
 
     if(!materialProvider) {
@@ -52,8 +53,7 @@ EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, 
     }
 
     utils::EntityManager &em = utils::EntityManager::get();
-    auto ncm = new utils::NameComponentManager(em);    
-    auto *assetLoader = gltfio::AssetLoader::create({engine, materialProvider, ncm, &em});
+    auto *assetLoader = gltfio::AssetLoader::create({engine, materialProvider, nameComponentManager, &em});
     return reinterpret_cast<TGltfAssetLoader *>(assetLoader);
 }
 

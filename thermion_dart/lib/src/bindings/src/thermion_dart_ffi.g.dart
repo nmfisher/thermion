@@ -339,10 +339,11 @@ external void FilamentAsset_getEntities(
 
 @ffi.Native<
     ffi.Pointer<TGltfAssetLoader> Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<TMaterialProvider>)>(isLeaf: true)
+        ffi.Pointer<TEngine>, ffi.Pointer<TMaterialProvider>, ffi.Pointer<TNameComponentManager> )>(isLeaf: true)
 external ffi.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TMaterialProvider> tMaterialProvider,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
 );
 
 @ffi.Native<
@@ -2718,6 +2719,7 @@ external void AnimationManager_resetToRestPoseRenderThread(
     ffi.Void Function(
         ffi.Pointer<TEngine>,
         ffi.Pointer<TMaterialProvider>,
+        ffi.Pointer<TNameComponentManager>,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(
@@ -2725,6 +2727,7 @@ external void AnimationManager_resetToRestPoseRenderThread(
 external void GltfAssetLoader_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TMaterialProvider> tMaterialProvider,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGltfAssetLoader>)>>
       callback,

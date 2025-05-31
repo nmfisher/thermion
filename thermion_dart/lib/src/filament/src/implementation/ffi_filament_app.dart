@@ -85,9 +85,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.stereoscopicEyeCount,
             config.disableHandleUseAfterFreeCheck,
             cb));
-
+    final nameComponentManager = NameComponentManager_create();
     final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
-        (cb) => GltfAssetLoader_createRenderThread(engine, nullptr, cb));
+        (cb) => GltfAssetLoader_createRenderThread(engine, nullptr, nameComponentManager, cb));
     final renderer = await withPointerCallback<TRenderer>(
         (cb) => Engine_createRendererRenderThread(engine, cb));
     final ubershaderMaterialProvider =
@@ -101,7 +101,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     RenderThread_setRenderTicker(renderTicker);
 
-    final nameComponentManager = NameComponentManager_create();
+    
 
     FilamentApp.instance = FFIFilamentApp(
         engine,

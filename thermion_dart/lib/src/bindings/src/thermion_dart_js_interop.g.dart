@@ -592,6 +592,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
+    self.Pointer<TNameComponentManager> tNameComponentManager
   );
   external Pointer<TFilamentAsset> _GltfAssetLoader_load(
     Pointer<TEngine> tEngine,
@@ -1841,6 +1842,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _GltfAssetLoader_createRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
+    Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<self.NativeFunction<void Function(PointerClass<TGltfAssetLoader>)>>
         callback,
   );
@@ -2641,9 +2643,10 @@ void FilamentAsset_getEntities(
 self.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TMaterialProvider> tMaterialProvider,
+  self.Pointer<TNameComponentManager> tNameComponentManager
 ) {
   final result =
-      _lib._GltfAssetLoader_create(tEngine.cast(), tMaterialProvider.cast());
+      _lib._GltfAssetLoader_create(tEngine.cast(), tMaterialProvider.cast(), tNameComponentManager.cast());
   return self.Pointer<TGltfAssetLoader>(result);
 }
 
@@ -5200,11 +5203,12 @@ void AnimationManager_resetToRestPoseRenderThread(
 void GltfAssetLoader_createRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TMaterialProvider> tMaterialProvider,
+  self.Pointer<TNameComponentManager> tNameComponentManager,
   self.Pointer<self.NativeFunction<void Function(Pointer<TGltfAssetLoader>)>>
       callback,
 ) {
   final result = _lib._GltfAssetLoader_createRenderThread(
-      tEngine.cast(), tMaterialProvider.cast(), callback.cast());
+      tEngine.cast(), tMaterialProvider.cast(), tNameComponentManager.cast(), callback.cast());
   return result;
 }
 

@@ -1118,12 +1118,16 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *))
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(
+    TEngine *tEngine,
+    TMaterialProvider *tMaterialProvider,
+    TNameComponentManager *tNameComponentManager,
+    void (*callback)(TGltfAssetLoader *))
   {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider);
+        auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider, tNameComponentManager);
         PROXY(callback(loader));
       });
     auto fut = _renderThread->add_task(lambda);

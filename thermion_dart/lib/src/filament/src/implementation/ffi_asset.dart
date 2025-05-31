@@ -82,12 +82,9 @@ class FFIAsset extends ThermionAsset {
     final childEntities = await getChildEntities();
     var names = <String?>[];
     for (final entity in childEntities) {
-      var name = NameComponentManager_getName(app.nameComponentManager, entity);
-      if (name == nullptr) {
-        names.add(null);
-      } else {
-        names.add(name.cast<Utf8>().toDartString());
-      }
+      var name = await FilamentApp.instance!.getNameForEntity(entity);
+      names.add(name);
+
     }
     return names;
   }
