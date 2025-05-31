@@ -1057,11 +1057,11 @@ class FFIAsset extends ThermionAsset {
   Future removeAnimationComponent() async {
     if (!AnimationManager_removeGltfAnimationComponent(
         animationManager, asset)) {
-      throw Exception("Failed to remove glTF animation component");
+      _logger.warning("Failed to remove glTF animation component");
     }
     if (!AnimationManager_removeBoneAnimationComponent(
         animationManager, asset)) {
-      throw Exception("Failed to remove bone animation component");
+      _logger.warning("Failed to remove bone animation component");
     }
     AnimationManager_removeMorphAnimationComponent(animationManager, entity);
 
