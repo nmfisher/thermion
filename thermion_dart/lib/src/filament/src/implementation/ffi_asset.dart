@@ -96,7 +96,7 @@ class FFIAsset extends ThermionAsset {
   Future<ThermionEntity?> getChildEntity(String childName) async {
     final childEntities = await getChildEntities();
     for (final entity in childEntities) {
-      var name = NameComponentManager_getName(app.nameComponentManager, entity);
+      var name = FilamentApp.instance!.getNameForEntity(entity);
       if (name == childName) {
         return entity;
       }
