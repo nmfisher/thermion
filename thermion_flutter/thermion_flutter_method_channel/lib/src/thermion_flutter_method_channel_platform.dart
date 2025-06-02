@@ -87,11 +87,12 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     }
 
     final config = FFIFilamentConfig(
-        backend: backend,
-        loadResource: loadAsset,
-        platform: platformPtr,
-        sharedContext: sharedContextPtr,
-        uberArchivePath: options.uberarchivePath);
+      backend: backend,
+      loadResource: loadAsset,
+      platform: platformPtr,
+      sharedContext: sharedContextPtr,
+      uberArchivePath: options.uberarchivePath,
+    );
 
     if (FilamentApp.instance == null) {
       await FFIFilamentApp.create(config: config);
@@ -122,9 +123,20 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   }
 
   Future<PlatformTextureDescriptor> createTextureDescriptor(
-      int width, int height) async {
-    var result =
-        await channel.invokeMethod("createTexture", [width, height, 0, 0]);
+    int width,
+    int height,
+  ) async {
+    if (width == 0 || height == 0) {
+      throw Exception(
+        "Invalid dimensions for texture descriptor : ${width}x${height}",
+      );
+    }
+    var result = await channel.invokeMethod("createTexture", [
+      width,
+      height,
+      0,
+      0,
+    ]);
     if (result == null || (result[0] == -1)) {
       throw Exception("Failed to create texture");
     }
@@ -133,7 +145,12 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     var window = result[2] as int?; // usually 0 for nullptr
 
     return PlatformTextureDescriptor(
-        flutterId, hardwareId, window, width, height);
+      flutterId,
+      hardwareId,
+      window,
+      width,
+      height,
+    );
   }
 
   @override
@@ -145,7 +162,10 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   ///
   ///
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
-      View view, int width, int height) async {
+    View view,
+    int width,
+    int height,
+  ) async {
     var descriptor = await createTextureDescriptor(width, height);
 
     if (Platform.isWindows) {
@@ -154,11 +174,14 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
 
-      _swapChain = await FilamentApp.instance!
-          .createHeadlessSwapChain(descriptor.width, descriptor.height);
+      _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        descriptor.width,
+        descriptor.height,
+      );
 
       _logger.info(
-          "Created headless swapchain ${descriptor.width}x${descriptor.height}");
+        "Created headless swapchain ${descriptor.width}x${descriptor.height}",
+      );
 
       await FilamentApp.instance!.register(_swapChain!, view);
     } else if (Platform.isAndroid) {
@@ -166,33 +189,41 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
         await FilamentApp.instance!.unregister(_swapChain!, view);
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
-      _swapChain = await FilamentApp.instance!
-          .createSwapChain(Pointer<Void>.fromAddress(descriptor.windowHandle!));
+      _swapChain = await FilamentApp.instance!.createSwapChain(
+        Pointer<Void>.fromAddress(descriptor.windowHandle!),
+      );
       await FilamentApp.instance!.register(_swapChain!, view);
     } else {
-      final color = await FilamentApp.instance!
-          .createTexture(descriptor.width, descriptor.height,
-              importedTextureHandle: descriptor.hardwareId,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE
-              },
-              textureFormat: TextureFormat.RGBA32F,
-              textureSamplerType: TextureSamplerType.SAMPLER_2D);
-      final depth = await FilamentApp.instance!
-          .createTexture(descriptor.width, descriptor.height,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-              },
-              textureFormat: TextureFormat.DEPTH32F,
-              textureSamplerType: TextureSamplerType.SAMPLER_2D);
+      final color = await FilamentApp.instance!.createTexture(
+        descriptor.width,
+        descriptor.height,
+        importedTextureHandle: descriptor.hardwareId,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        },
+        textureFormat: TextureFormat.RGBA32F,
+        textureSamplerType: TextureSamplerType.SAMPLER_2D,
+      );
+      final depth = await FilamentApp.instance!.createTexture(
+        descriptor.width,
+        descriptor.height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        },
+        textureFormat: TextureFormat.DEPTH32F,
+        textureSamplerType: TextureSamplerType.SAMPLER_2D,
+      );
 
       var renderTarget = await FilamentApp.instance!.createRenderTarget(
-          descriptor.width, descriptor.height,
-          color: color, depth: depth);
+        descriptor.width,
+        descriptor.height,
+        color: color,
+        depth: depth,
+      );
 
       await view.setRenderTarget(renderTarget);
     }
@@ -204,16 +235,19 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   Future markTextureFrameAvailable(PlatformTextureDescriptor texture) async {
     if (!Platform.isAndroid) {
       await channel.invokeMethod(
-          "markTextureFrameAvailable", texture.flutterTextureId);
+        "markTextureFrameAvailable",
+        texture.flutterTextureId,
+      );
     }
   }
 
   @override
   Future<PlatformTextureDescriptor> resizeTexture(
-      PlatformTextureDescriptor texture,
-      View view,
-      int width,
-      int height) async {
+    PlatformTextureDescriptor texture,
+    View view,
+    int width,
+    int height,
+  ) async {
     var newTexture = await createTextureAndBindToView(view, width, height);
     if (newTexture == null) {
       throw Exception();
