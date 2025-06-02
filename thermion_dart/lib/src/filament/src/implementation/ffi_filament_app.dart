@@ -262,6 +262,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future destroyAsset(covariant FFIAsset asset) async {
+    await asset.removeAnimationComponent();
     await withVoidCallback((requestId, cb) =>
         SceneAsset_destroyRenderThread(asset.asset, requestId, cb));
     await asset.dispose();
