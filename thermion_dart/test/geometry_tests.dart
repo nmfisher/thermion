@@ -10,14 +10,25 @@ void main() async {
   final testHelper = TestHelper("geometry");
   await testHelper.setup();
   group("custom geometry", () {
-    test('add geometry', () async {
+    test('add/remove geometry', () async {
       await testHelper.withViewer((viewer) async {
         final asset = await viewer.createGeometry(GeometryHelper.cube());
         await viewer.addToScene(asset);
         await testHelper.capture(viewer.view, "add_geometry");
         await viewer.removeFromScene(asset);
         await testHelper.capture(viewer.view, "remove_geometry");
+        await viewer.addToScene(asset);
         await viewer.destroyAsset(asset);
+        await testHelper.capture(viewer.view, "destroy_geometry");
+      }, bg: kRed);
+    });
+
+    test('ensure geometry is removed when destroyAll is called ', () async {
+      await testHelper.withViewer((viewer) async {
+        final asset = await viewer.createGeometry(GeometryHelper.cube());
+        await viewer.addToScene(asset);
+        await viewer.destroyAssets();
+        await testHelper.capture(viewer.view, "destroyAssets_geometry");
       }, bg: kRed);
     });
 
@@ -32,12 +43,9 @@ void main() async {
       });
     });
 
-    test('geometry with unlit (ubershader) material',
-        () async {
+    test('geometry with unlit (ubershader) material', () async {
       await testHelper.withViewer((viewer) async {
-        
-        final materialInstance =
-            await FilamentApp.instance!
+        final materialInstance = await FilamentApp.instance!
             .createUbershaderMaterialInstance(unlit: true);
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
