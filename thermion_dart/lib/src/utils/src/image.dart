@@ -64,16 +64,32 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
 }
 
 Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
-    {bool linearToSrgb = false, bool invertAces = false}) async {
+    {bool hasAlpha = true, bool isFloat = false, bool linearToSrgb = false, bool invertAces = false}) async {
   final image = img.Image(width: width, height: height);
+
+  Float32List? floatData;
+  if (isFloat) {
+    floatData = pixelBuffer.buffer.asFloat32List(
+        pixelBuffer.offsetInBytes, width * height * (hasAlpha ? 4 : 3));
+  }
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      final int pixelIndex = (y * width + x) * 4;
-      double r = pixelBuffer[pixelIndex] / 255.0;
-      double g = pixelBuffer[pixelIndex + 1] / 255.0;
-      double b = pixelBuffer[pixelIndex + 2] / 255.0;
-      double a = pixelBuffer[pixelIndex + 3] / 255.0;
+      final int pixelIndex = (y * width + x) * (hasAlpha ? 4 : 3);
+      
+      double r, g, b, a;
+      
+      if (isFloat) {
+        r = floatData![pixelIndex];
+        g = floatData[pixelIndex + 1];
+        b = floatData[pixelIndex + 2];
+        a = hasAlpha ? floatData[pixelIndex + 3] : 1.0;
+      } else {
+        r = pixelBuffer[pixelIndex] / 255.0;
+        g = pixelBuffer[pixelIndex + 1] / 255.0;
+        b = pixelBuffer[pixelIndex + 2] / 255.0;
+        a = hasAlpha ? pixelBuffer[pixelIndex + 3] / 255.0 : 1.0;
+      }
 
       // Apply inverse ACES tone mapping
       if (invertAces) {
@@ -84,7 +100,6 @@ Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
 
       if (linearToSrgb) {
         // Convert from linear to sRGB
-
         image.setPixel(
             x,
             y,
