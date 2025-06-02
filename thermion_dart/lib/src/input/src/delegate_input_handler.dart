@@ -7,7 +7,13 @@ import 'package:thermion_dart/thermion_dart.dart';
 typedef PointerEventDetails = (Vector2 localPosition, Vector2 delta);
 
 abstract class InputHandlerDelegate {
-  Future handle(List<InputEvent> events);
+  
+  Future handle(List<InputEvent> events) async {
+    // noop, override to implement
+  }
+  Future dispose() async {
+    // noop, override if you need
+  }
 }
 
 ///
@@ -98,6 +104,9 @@ class DelegateInputHandler implements InputHandler {
   @override
   Future dispose() async {
     FilamentApp.instance!.unregisterRequestFrameHook(process);
+    for (final delegate in delegates) {
+      delegate.dispose();
+    }
   }
 
   @override
