@@ -4,7 +4,7 @@ import 'package:vector_math/vector_math_64.dart';
 import '../../../viewer/viewer.dart';
 import '../../input.dart';
 
-class OrbitInputHandlerDelegate implements InputHandlerDelegate {
+class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   final View view;
   final InputSensitivityOptions sensitivity;
   final Vector3 targetPoint;
