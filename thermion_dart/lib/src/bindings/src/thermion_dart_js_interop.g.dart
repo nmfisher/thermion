@@ -1317,6 +1317,12 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _AnimationManager_resetToResetPoseRenderThread(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _AnimationManager_createRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TScene> tScene,
@@ -4137,6 +4143,16 @@ void AnimationManager_createRenderThread(
       tEngine.cast(), tScene.cast(), onComplete.cast());
   return result;
 }
+
+void AnimationManager_resetToResetPoseRenderThread(
+    self.Pointer<TAnimationManager> tAnimationManager,
+    self.Pointer<TSceneAsset> tSceneAsset,
+    int requestId,
+    VoidCallback onComplete,
+  ) {
+    final result = _lib._AnimationManager_resetToRestPoseRenderThread(tAnimationManager, tSceneAsset, requestId, onComplete);
+  return result;
+  }
 
 void Engine_createRenderThread(
   int backend,

@@ -2333,6 +2333,20 @@ external void MaterialProvider_createMaterialInstanceRenderThread(
         ffi.Void Function(
             ffi.Pointer<TAnimationManager>,
             ffi.Pointer<TSceneAsset>,
+            ffi.Uint32 requestId,
+            VoidCallback onComplete)>(
+    isLeaf: true)
+external void AnimationManager_resetToRestPoseRenderThread(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  VoidCallback onComplete
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TAnimationManager>,
+            ffi.Pointer<TSceneAsset>,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void AnimationManager_updateBoneMatricesRenderThread(
@@ -2712,16 +2726,6 @@ external void AnimationManager_setBoneTransformRenderThread(
   int boneIndex,
   ffi.Pointer<ffi.Float> transform,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId, ffi.Uint32,
-        VoidCallback)>(isLeaf: true)
-external void AnimationManager_resetToRestPoseRenderThread(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-  int entityId,
-  int requestId,
-  VoidCallback onComplete,
 );
 
 @ffi.Native<
