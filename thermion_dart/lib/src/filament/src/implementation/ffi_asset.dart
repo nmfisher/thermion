@@ -972,7 +972,7 @@ class FFIAsset extends ThermionAsset {
   ///
   @override
   Future resetBones() async {
-    AnimationManager_resetToRestPose(animationManager, asset);
+    await withVoidCallback((requestId, cb) => AnimationManager_resetToRestPoseRenderThread(animationManager, asset, requestId, cb));
   }
 
   ///
