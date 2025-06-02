@@ -94,25 +94,29 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       var width = (size.width * dpr).ceil();
       var height = (size.height * dpr).ceil();
 
-      _logger.info(
-          "Target texture dimensions ${width}x${height} (pixel ratio : $dpr)");
+      if (width > 0 && height > 0) {
+        _logger.info(
+            "Target texture dimensions ${width}x${height} (pixel ratio : $dpr)");
 
-      _texture = await ThermionFlutterPlatform.instance
-          .createTextureAndBindToView(widget.viewer.view, width, height);
+        _texture = await ThermionFlutterPlatform.instance
+            .createTextureAndBindToView(widget.viewer.view, width, height);
 
-      _logger.info(
-          "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
+        _logger.info(
+            "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
-      await widget.viewer.view.setViewport(_texture!.width, _texture!.height);
+        await widget.viewer.view.setViewport(_texture!.width, _texture!.height);
 
-      try {
-        await widget.onResize?.call(
-            Size(_texture!.width.toDouble(), _texture!.height.toDouble()),
-            widget.viewer.view,
-            dpr);
-      } catch (err, st) {
-        _logger.severe(err);
-        _logger.severe(st);
+        try {
+          await widget.onResize?.call(
+              Size(_texture!.width.toDouble(), _texture!.height.toDouble()),
+              widget.viewer.view,
+              dpr);
+        } catch (err, st) {
+          _logger.severe(err);
+          _logger.severe(st);
+        }
+      } else {
+        _logger.warning("Widget has zero width or height");
       }
 
       if (mounted) {
@@ -168,10 +172,10 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     _frameCompleter = Completer();
 
     var headroom = _deadline.difference(DateTime.now());
-    
+
     if (headroom.inMilliseconds > 5) {
       var waitForNs = headroom.inMicroseconds - 5000;
-          await Future.delayed(Duration(microseconds: waitForNs));
+      await Future.delayed(Duration(microseconds: waitForNs));
     }
 
     if (widget.viewer.rendering && _resizing.isEmpty) {
@@ -191,7 +195,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       }
       _frameCompleter?.complete();
     });
-    
+
     var deadlineInMicros = (widget.viewer.msPerFrame * 1000).toInt();
     _deadline = DateTime.now().add(Duration(microseconds: deadlineInMicros));
 
