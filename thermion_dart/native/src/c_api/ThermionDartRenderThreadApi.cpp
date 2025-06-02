@@ -703,6 +703,16 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          AnimationManager_resetToRestPose(tAnimationManager, tSceneAsset);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *))
   {
     std::packaged_task<void()> lambda(
@@ -841,7 +851,16 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  // Texture methods
+  void Texture_generateMipMapsRenderThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Texture_generateMipMaps(tTexture, tEngine);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
                                                           TPixelDataFormat bufferFormat, TPixelDataType pixelDataType,
                                                           int level,
