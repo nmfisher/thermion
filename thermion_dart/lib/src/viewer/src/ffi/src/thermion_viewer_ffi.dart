@@ -647,17 +647,24 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances,
-      bool keepData = false,
-      bool addToScene = true}) async {
-    final asset = await FilamentApp.instance!.createGeometry(
-            geometry, animationManager, materialInstances: materialInstances)
-        as FFIAsset;
-
+  Future<ThermionAsset> createGeometry(
+    Geometry geometry, {
+    List<MaterialInstance>? materialInstances,
+    bool keepData = false,
+    bool addToScene = true,
+  }) async {
+    final asset =
+        await FilamentApp.instance!.createGeometry(
+              geometry,
+              animationManager,
+              materialInstances: materialInstances,
+            )
+            as FFIAsset;
+    _assets.add(asset);
     if (addToScene) {
       await scene.add(asset);
     }
+    
     return asset;
   }
 
