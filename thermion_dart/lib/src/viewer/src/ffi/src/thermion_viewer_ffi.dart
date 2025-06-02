@@ -63,7 +63,11 @@ class ThermionViewerFFI extends ThermionViewer {
         focalLength = kFocalLength;
       }
       await camera.setLensProjection(
-          near: near, far: far, aspect: aspect, focalLength: focalLength);
+        near: near,
+        far: far,
+        aspect: aspect,
+        focalLength: focalLength,
+      );
     }
   }
 
@@ -83,8 +87,9 @@ class ThermionViewerFFI extends ThermionViewer {
 
     await view.setCamera(camera);
 
-    animationManager = await withPointerCallback<TAnimationManager>((cb) =>
-        AnimationManager_createRenderThread(app.engine, scene.scene, cb));
+    animationManager = await withPointerCallback<TAnimationManager>(
+      (cb) => AnimationManager_createRenderThread(app.engine, scene.scene, cb),
+    );
 
     RenderTicker_addAnimationManager(app.renderTicker, animationManager);
 
@@ -113,8 +118,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future render() async {
-    await withVoidCallback((requestId, cb) => RenderTicker_renderRenderThread(
-        app.renderTicker, 0.toBigInt, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => RenderTicker_renderRenderThread(
+        app.renderTicker,
+        0.toBigInt,
+        requestId,
+        cb,
+      ),
+    );
     await FilamentApp.instance!.flush();
   }
 
@@ -213,8 +224,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setBackgroundImagePosition(double x, double y,
-      {bool clamp = false}) async {
+  Future setBackgroundImagePosition(
+    double x,
+    double y, {
+    bool clamp = false,
+  }) async {
     throw UnimplementedError();
   }
 
@@ -227,7 +241,12 @@ class ThermionViewerFFI extends ThermionViewer {
 
     skybox = await withPointerCallback<TSkybox>((cb) {
       Engine_buildSkyboxRenderThread(
-          app.engine, data.address, data.length, cb, nullptr);
+        app.engine,
+        data.address,
+        data.length,
+        cb,
+        nullptr,
+      );
     });
     Scene_setSkybox(scene.scene, skybox!);
   }
@@ -249,7 +268,13 @@ class ThermionViewerFFI extends ThermionViewer {
 
     indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightRenderThread(
-          app.engine, data.address, data.length, intensity, cb, nullptr);
+        app.engine,
+        data.address,
+        data.length,
+        intensity,
+        cb,
+        nullptr,
+      );
     });
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
@@ -291,8 +316,14 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     if (skybox != null) {
-      await withVoidCallback((requestId, cb) =>
-          Engine_destroySkyboxRenderThread(app.engine, skybox!, requestId, cb));
+      await withVoidCallback(
+        (requestId, cb) => Engine_destroySkyboxRenderThread(
+          app.engine,
+          skybox!,
+          requestId,
+          cb,
+        ),
+      );
       skybox = null;
     }
   }
@@ -304,9 +335,14 @@ class ThermionViewerFFI extends ThermionViewer {
   Future removeIbl() async {
     if (indirectLight != null) {
       Scene_setIndirectLight(scene.scene, nullptr);
-      await withVoidCallback((requestId, cb) =>
-          Engine_destroyIndirectLightRenderThread(
-              app.engine, indirectLight!, requestId, cb));
+      await withVoidCallback(
+        (requestId, cb) => Engine_destroyIndirectLightRenderThread(
+          app.engine,
+          indirectLight!,
+          requestId,
+          cb,
+        ),
+      );
       indirectLight = null;
     }
   }
@@ -354,12 +390,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future<ThermionAsset> loadGltf(String path,
-      {bool addToScene = true,
-      int numInstances = 1,
-      bool keepData = false,
-      String? resourceUri,
-      bool loadAsync = false}) async {
+  Future<ThermionAsset> loadGltf(
+    String path, {
+    bool addToScene = true,
+    int numInstances = 1,
+    bool keepData = false,
+    String? resourceUri,
+    bool loadAsync = false,
+  }) async {
     final data = await FilamentApp.instance!.loadResource(path);
     if (resourceUri == null) {
       var split = path.split("/");
@@ -370,34 +408,42 @@ class ThermionViewerFFI extends ThermionViewer {
       resourceUri = "${resourceUri}/";
     }
 
-    return loadGltfFromBuffer(data,
-        addToScene: addToScene,
-        numInstances: numInstances,
-        keepData: keepData,
-        resourceUri: resourceUri,
-        loadResourcesAsync: loadAsync);
+    return loadGltfFromBuffer(
+      data,
+      addToScene: addToScene,
+      numInstances: numInstances,
+      keepData: keepData,
+      resourceUri: resourceUri,
+      loadResourcesAsync: loadAsync,
+    );
   }
 
   ///
   ///
   ///
   @override
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
-      {bool addToScene = true,
-      int numInstances = 1,
-      bool keepData = false,
-      int priority = 4,
-      int layer = 0,
-      bool loadResourcesAsync = false,
-      String? resourceUri}) async {
-    var asset = await FilamentApp.instance!.loadGltfFromBuffer(
-        data, animationManager,
-        numInstances: numInstances,
-        keepData: keepData,
-        priority: priority,
-        layer: layer,
-        loadResourcesAsync: loadResourcesAsync,
-        resourceUri: resourceUri) as FFIAsset;
+  Future<ThermionAsset> loadGltfFromBuffer(
+    Uint8List data, {
+    bool addToScene = true,
+    int numInstances = 1,
+    bool keepData = false,
+    int priority = 4,
+    int layer = 0,
+    bool loadResourcesAsync = false,
+    String? resourceUri,
+  }) async {
+    var asset =
+        await FilamentApp.instance!.loadGltfFromBuffer(
+              data,
+              animationManager,
+              numInstances: numInstances,
+              keepData: keepData,
+              priority: priority,
+              layer: layer,
+              loadResourcesAsync: loadResourcesAsync,
+              resourceUri: resourceUri,
+            )
+            as FFIAsset;
 
     _assets.add(asset);
     if (addToScene) {
@@ -413,7 +459,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
     _assets.remove(asset);
-    await asset.removeAnimationComponent();    
+    await asset.removeAnimationComponent();
     await scene.remove(asset);
 
     if (asset.boundingBoxAsset != null) {
@@ -421,7 +467,6 @@ class ThermionViewerFFI extends ThermionViewer {
       await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);
     }
     await FilamentApp.instance!.destroyAsset(asset);
-    
   }
 
   ///
@@ -476,7 +521,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setSoftShadowOptions(
-      double penumbraScale, double penumbraRatioScale) async {
+    double penumbraScale,
+    double penumbraRatioScale,
+  ) async {
     View_setSoftShadowOptions(view.view, penumbraScale, penumbraRatioScale);
   }
 
@@ -512,7 +559,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setLightPosition(
-      ThermionEntity lightEntity, double x, double y, double z) async {
+    ThermionEntity lightEntity,
+    double x,
+    double y,
+    double z,
+  ) async {
     LightManager_setPosition(app.lightManager, lightEntity, x, y, z);
   }
 
@@ -521,10 +572,17 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setLightDirection(
-      ThermionEntity lightEntity, Vector3 direction) async {
+    ThermionEntity lightEntity,
+    Vector3 direction,
+  ) async {
     direction.normalize();
     LightManager_setPosition(
-        app.lightManager, lightEntity, direction.x, direction.y, direction.z);
+      app.lightManager,
+      lightEntity,
+      direction.x,
+      direction.y,
+      direction.z,
+    );
   }
 
   ///
@@ -542,8 +600,9 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
     final result = RenderableManager_getAabb(app.renderableManager, entityId);
     return v64.Aabb3.centerAndHalfExtents(
-        Vector3(result.centerX, result.centerY, result.centerZ),
-        Vector3(result.halfExtentX, result.halfExtentY, result.halfExtentZ));
+      Vector3(result.centerX, result.centerY, result.centerZ),
+      Vector3(result.halfExtentX, result.halfExtentY, result.halfExtentZ),
+    );
   }
 
   ///
@@ -676,8 +735,11 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<GizmoAsset> getGizmo(GizmoType gizmoType) async {
     if (_gizmos[gizmoType] == null) {
-      _gizmos[gizmoType] = await FilamentApp.instance!
-          .createGizmo(view, animationManager, gizmoType);
+      _gizmos[gizmoType] = await FilamentApp.instance!.createGizmo(
+        view,
+        animationManager,
+        gizmoType,
+      );
     }
     return _gizmos[gizmoType]!;
   }
