@@ -33,7 +33,7 @@ class FFITexture extends Texture {
 
   @override
   Future<void> generateMipmaps() async {
-    Texture_generateMipMaps(pointer, _engine);
+    await withVoidCallback((requestId, cb) => Texture_generateMipMapsRenderThread(pointer, _engine, requestId, cb));
   }
 
   @override

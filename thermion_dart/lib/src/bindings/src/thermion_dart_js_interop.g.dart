@@ -1434,6 +1434,12 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<self.NativeFunction<void Function(PointerClass<TTexture>)>>
         onComplete,
   );
+  external void _Texture_generateMipMapsRenderThread(
+    Pointer<TTexture> tTexture,
+    Pointer<TEngine> tEngine,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _Engine_destroyTextureRenderThread(
     Pointer<TEngine> engine,
     Pointer<TTexture> tTexture,
@@ -4352,6 +4358,16 @@ void Texture_buildRenderThread(
 ) {
   final result = _lib._Texture_buildRenderThread(engine.cast(), width, height,
       depth, levels, tUsage, import1, sampler, format, onComplete.cast());
+  return result;
+}
+
+void Texture_generateMipMapsRenderThread(
+  self.Pointer<TTexture> tTexture,
+  self.Pointer<TEngine> tEngine,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = _lib._Texture_generateMipMapsRenderThread(tTexture.cast(), tEngine.cast(), requestId, onComplete);
   return result;
 }
 

@@ -1878,6 +1878,15 @@ external void Texture_buildRenderThread(
       onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>, ffi.Uint32, VoidCallback)>(
+    isLeaf: true)
+external void Texture_generateMipMapsRenderThread(
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TEngine> tEngine,
+  int requestId,
+  VoidCallback onComplete
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Uint32,
         VoidCallback)>(isLeaf: true)
