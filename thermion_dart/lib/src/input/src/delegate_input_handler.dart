@@ -60,32 +60,38 @@ class DelegateInputHandler implements InputHandler {
       ]);
 
   Future<void> process() async {
-    
     _processing = true;
 
     final delegate = delegates.first;
-    final keyUp = <LogicalKey, KeyEvent>{};
-    final keyDown = <LogicalKey, KeyEvent>{};
 
-    for (final event in _events) {
-      if (event is KeyEvent) {
-        switch (event.type) {
-          case KeyEventType.up:
-            keyUp[event.logicalKey] = event;
-          case KeyEventType.down:
-            keyDown[event.logicalKey] = event;
+    late final Map<LogicalKey, KeyEvent> keyDown;
+    // if batch is true, we treat any tick containing keydown/keyup for the same key as a keydown
+    if (batch) {
+      late final Map<LogicalKey, KeyEvent> keyUp = {};
+      keyDown = {};
+
+      for (final event in _events) {
+        if (event is KeyEvent) {
+          switch (event.type) {
+            case KeyEventType.up:
+              keyUp[event.logicalKey] = event;
+            case KeyEventType.down:
+              keyDown[event.logicalKey] = event;
+          }
         }
       }
-    }
-    for (final key in keyUp.keys) {
-      _events.remove(keyDown[key]);
-      _events.remove(keyUp[key]);
+      for (final key in keyUp.keys) {
+        _events.remove(keyDown[key]);
+        _events.remove(keyUp[key]);
+      }
     }
 
     await delegate.handle(_events.sublist(0));
-
     _events.clear();
-    _events.addAll(keyDown.values);
+    if (batch) {
+      _events.addAll(keyDown.values);
+    }
+
     _processing = false;
   }
 
