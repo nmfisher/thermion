@@ -79,7 +79,6 @@ extern "C"
 		TSceneAsset *sceneAsset,
 		int index);
 
-	// Additional methods found in implementation
 	EMSCRIPTEN_KEEPALIVE float AnimationManager_getGltfAnimationDuration(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset,
