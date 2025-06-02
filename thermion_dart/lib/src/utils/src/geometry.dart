@@ -504,143 +504,188 @@ class GeometryHelper {
   }
 
   static Geometry wireframeCamera({
-    double sphereRadius = 0.2,
-    double frustumDistance = 1.0,
-    double frustumNear = 0.5,
-    double frustumFar = 1.0,
-    double fov = pi / 3,
-    bool normals = true,
-    bool uvs = true,
-  }) {
-    List<double> verticesList = [];
-    List<double> normalsList = [];
-    List<double> uvsList = [];
-    List<int> indices = [];
+  double sphereRadius = 0.2,
+  double frustumDistance = 1.0,
+  double frustumNear = 0.5,
+  double frustumFar = 1.0,
+  double fov = pi / 3,
+  bool normals = true,
+  bool uvs = true,
+  double wireThickness = 0.01, // Thickness of the wireframe edges
+}) {
+  List<double> verticesList = [];
+  List<double> normalsList = [];
+  List<double> uvsList = [];
+  List<int> indices = [];
 
-    // Create sphere vertices - keeping bands low for wireframe and to stay within Uint16 limits
-    int latitudeBands = 6; // Reduced bands for simpler wireframe
-    int longitudeBands = 6;
-
-    // Generate sphere vertices
-    for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
-      double theta = latNumber * pi / latitudeBands;
-      double sinTheta = sin(theta);
-      double cosTheta = cos(theta);
-
-      for (int longNumber = 0; longNumber <= longitudeBands; longNumber++) {
-        double phi = longNumber * 2 * pi / longitudeBands;
-        double sinPhi = sin(phi);
-        double cosPhi = cos(phi);
-
-        double x = sphereRadius * cosPhi * sinTheta;
-        double y = sphereRadius * cosTheta;
-        double z = sphereRadius * sinPhi * sinTheta;
-
-        verticesList.addAll([x, y, z]);
-        normalsList
-            .addAll([x / sphereRadius, y / sphereRadius, z / sphereRadius]);
-        uvsList
-            .addAll([longNumber / longitudeBands, latNumber / latitudeBands]);
-      }
+  // Helper function to create a thin triangular tube between two points
+  void addWireSegment(List<double> start, List<double> end) {
+    int baseIndex = verticesList.length ~/ 3;
+    
+    // Calculate direction vector
+    double dx = end[0] - start[0];
+    double dy = end[1] - start[1];
+    double dz = end[2] - start[2];
+    double length = sqrt(dx * dx + dy * dy + dz * dz);
+    
+    // Create perpendicular vectors for thickness
+    List<double> perp1, perp2;
+    if (dx.abs() < 0.9) {
+      perp1 = [0, -dz, dy];
+    } else {
+      perp1 = [-dy, dx, 0];
     }
-
-    // Generate sphere line indices
-    for (int latNumber = 0; latNumber < latitudeBands; latNumber++) {
-      for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
-        int first = (latNumber * (longitudeBands + 1)) + longNumber;
-        int second = first + longitudeBands + 1;
-        int third = first + 1;
-
-        // Add vertical lines
-        indices.addAll([first, second]);
-
-        // Add horizontal lines
-        if (longNumber < longitudeBands - 1) {
-          indices.addAll([first, third]);
-        } else {
-          // Connect back to first vertex of this latitude
-          indices.addAll([first, latNumber * (longitudeBands + 1)]);
-        }
-      }
+    
+    // Normalize perpendicular vector
+    double perpLength = sqrt(perp1[0] * perp1[0] + perp1[1] * perp1[1] + perp1[2] * perp1[2]);
+    if (perpLength > 0) {
+      perp1 = [perp1[0] / perpLength * wireThickness, 
+               perp1[1] / perpLength * wireThickness, 
+               perp1[2] / perpLength * wireThickness];
     }
-
-    // Add center point of sphere for frustum lines
-    int sphereCenterIndex = verticesList.length ~/ 3;
-    verticesList.addAll([0, 0, 0]); // Sphere center at origin
-    normalsList.addAll([0, 0, -1]); // Backward-facing normal
-    uvsList.addAll([0.5, 0.5]); // Center UV coordinate
-
-    // Calculate frustum corners
-    double nearHeight = 2.0 * frustumNear * tan(fov / 2);
-    double nearWidth = nearHeight * 1.333; // Assuming 4:3 aspect ratio
-    double farHeight = 2.0 * frustumFar * tan(fov / 2);
-    double farWidth = farHeight * 1.333;
-
-    // Store starting index for frustum vertices
-    int nearBaseIndex = verticesList.length ~/ 3;
-
-    // Add near rectangle vertices (negative z)
-    verticesList.addAll([
-      -nearWidth / 2, -nearHeight / 2, -frustumNear, // Bottom-left
-      nearWidth / 2, -nearHeight / 2, -frustumNear, // Bottom-right
-      nearWidth / 2, nearHeight / 2, -frustumNear, // Top-right
-      -nearWidth / 2, nearHeight / 2, -frustumNear, // Top-left
-    ]);
-
-    // Add far rectangle vertices (negative z)
-    int farBaseIndex = verticesList.length ~/ 3;
-    verticesList.addAll([
-      -farWidth / 2, -farHeight / 2, -frustumFar, // Bottom-left
-      farWidth / 2, -farHeight / 2, -frustumFar, // Bottom-right
-      farWidth / 2, farHeight / 2, -frustumFar, // Top-right
-      -farWidth / 2, farHeight / 2, -frustumFar, // Top-left
-    ]);
-
-    // Add normals and UVs for frustum vertices
-    for (int i = 0; i < 8; i++) {
-      normalsList.addAll([0, 0, -1]); // Backward-facing normal
+    
+    // Second perpendicular (cross product)
+    perp2 = [dy * perp1[2] - dz * perp1[1],
+             dz * perp1[0] - dx * perp1[2],
+             dx * perp1[1] - dy * perp1[0]];
+    
+    // Create 4 vertices around each end point (rectangular cross-section)
+    List<List<double>> startVerts = [
+      [start[0] + perp1[0], start[1] + perp1[1], start[2] + perp1[2]],
+      [start[0] - perp1[0], start[1] - perp1[1], start[2] - perp1[2]],
+      [start[0] + perp2[0], start[1] + perp2[1], start[2] + perp2[2]],
+      [start[0] - perp2[0], start[1] - perp2[1], start[2] - perp2[2]],
+    ];
+    
+    List<List<double>> endVerts = [
+      [end[0] + perp1[0], end[1] + perp1[1], end[2] + perp1[2]],
+      [end[0] - perp1[0], end[1] - perp1[1], end[2] - perp1[2]],
+      [end[0] + perp2[0], end[1] + perp2[1], end[2] + perp2[2]],
+      [end[0] - perp2[0], end[1] - perp2[1], end[2] - perp2[2]],
+    ];
+    
+    // Add vertices
+    for (var vert in startVerts) {
+      verticesList.addAll(vert);
+      normalsList.addAll([vert[0], vert[1], vert[2]]); // Simple normal
       uvsList.addAll([0, 0]);
     }
-
-    // Add line indices for near rectangle
-    indices.addAll([
-      nearBaseIndex, nearBaseIndex + 1, // Bottom
-      nearBaseIndex + 1, nearBaseIndex + 2, // Right
-      nearBaseIndex + 2, nearBaseIndex + 3, // Top
-      nearBaseIndex + 3, nearBaseIndex // Left
-    ]);
-
-    // Add line indices for far rectangle
-    indices.addAll([
-      farBaseIndex, farBaseIndex + 1, // Bottom
-      farBaseIndex + 1, farBaseIndex + 2, // Right
-      farBaseIndex + 2, farBaseIndex + 3, // Top
-      farBaseIndex + 3, farBaseIndex // Left
-    ]);
-
-    // Add lines connecting near and far rectangles
-    indices.addAll([
-      nearBaseIndex, farBaseIndex, // Bottom-left
-      nearBaseIndex + 1, farBaseIndex + 1, // Bottom-right
-      nearBaseIndex + 2, farBaseIndex + 2, // Top-right
-      nearBaseIndex + 3, farBaseIndex + 3 // Top-left
-    ]);
-
-    // Add lines from sphere center to near corners
-    indices.addAll([
-      sphereCenterIndex, nearBaseIndex, // To near bottom-left
-      sphereCenterIndex, nearBaseIndex + 1, // To near bottom-right
-      sphereCenterIndex, nearBaseIndex + 2, // To near top-right
-      sphereCenterIndex, nearBaseIndex + 3 // To near top-left
-    ]);
-
-    Float32List vertices = Float32List.fromList(verticesList);
-    Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
-    Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
-
-    return Geometry(vertices, Uint16List.fromList(indices),
-        normals: _normals, uvs: _uvs, primitiveType: PrimitiveType.LINES);
+    for (var vert in endVerts) {
+      verticesList.addAll(vert);
+      normalsList.addAll([vert[0], vert[1], vert[2]]); // Simple normal
+      uvsList.addAll([1, 0]);
+    }
+    
+    // Create triangular faces for the tube (4 sides, 2 triangles each)
+    for (int i = 0; i < 4; i++) {
+      int next = (i + 1) % 4;
+      int startCurrent = baseIndex + i;
+      int startNext = baseIndex + next;
+      int endCurrent = baseIndex + 4 + i;
+      int endNext = baseIndex + 4 + next;
+      
+      // Two triangles per side
+      indices.addAll([startCurrent, endCurrent, startNext]);
+      indices.addAll([startNext, endCurrent, endNext]);
+    }
   }
+
+  // Create sphere wireframe edges
+  int latitudeBands = 6;
+  int longitudeBands = 6;
+  
+  // Store sphere points as a flat list for easier access
+  List<List<double>> allSpherePoints = [];
+  
+  // Generate sphere vertices and store them
+  for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
+    double theta = latNumber * pi / latitudeBands;
+    double sinTheta = sin(theta);
+    double cosTheta = cos(theta);
+
+    for (int longNumber = 0; longNumber <= longitudeBands; longNumber++) {
+      double phi = longNumber * 2 * pi / longitudeBands;
+      double sinPhi = sin(phi);
+      double cosPhi = cos(phi);
+
+      double x = sphereRadius * cosPhi * sinTheta;
+      double y = sphereRadius * cosTheta;
+      double z = sphereRadius * sinPhi * sinTheta;
+
+      allSpherePoints.add([x, y, z]);
+    }
+  }
+
+  // Helper function to get sphere point by lat/long indices
+  List<double> getSpherePoint(int lat, int long) {
+    int index = lat * (longitudeBands + 1) + long;
+    return allSpherePoints[index];
+  }
+
+  // Add sphere wireframe edges
+  for (int latNumber = 0; latNumber < latitudeBands; latNumber++) {
+    for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
+      // Vertical lines
+      addWireSegment(getSpherePoint(latNumber, longNumber), 
+                    getSpherePoint(latNumber + 1, longNumber));
+      
+      // Horizontal lines
+      addWireSegment(getSpherePoint(latNumber, longNumber), 
+                    getSpherePoint(latNumber, (longNumber + 1) % longitudeBands));
+    }
+  }
+
+  // Calculate frustum corners
+  double nearHeight = 2.0 * frustumNear * tan(fov / 2);
+  double nearWidth = nearHeight * 1.333;
+  double farHeight = 2.0 * frustumFar * tan(fov / 2);
+  double farWidth = farHeight * 1.333;
+
+  // Frustum corner points
+  List<double> sphereCenter = [0, 0, 0];
+  List<List<double>> nearCorners = [
+    [-nearWidth / 2, -nearHeight / 2, -frustumNear], // Bottom-left
+    [nearWidth / 2, -nearHeight / 2, -frustumNear],  // Bottom-right
+    [nearWidth / 2, nearHeight / 2, -frustumNear],   // Top-right
+    [-nearWidth / 2, nearHeight / 2, -frustumNear],  // Top-left
+  ];
+
+  List<List<double>> farCorners = [
+    [-farWidth / 2, -farHeight / 2, -frustumFar], // Bottom-left
+    [farWidth / 2, -farHeight / 2, -frustumFar],  // Bottom-right
+    [farWidth / 2, farHeight / 2, -frustumFar],   // Top-right
+    [-farWidth / 2, farHeight / 2, -frustumFar],  // Top-left
+  ];
+
+  // Add frustum wireframe edges
+  
+  // Near rectangle edges
+  for (int i = 0; i < 4; i++) {
+    addWireSegment(nearCorners[i], nearCorners[(i + 1) % 4]);
+  }
+
+  // Far rectangle edges
+  for (int i = 0; i < 4; i++) {
+    addWireSegment(farCorners[i], farCorners[(i + 1) % 4]);
+  }
+
+  // Connecting edges between near and far
+  for (int i = 0; i < 4; i++) {
+    addWireSegment(nearCorners[i], farCorners[i]);
+  }
+
+  // Lines from sphere center to near corners
+  for (int i = 0; i < 4; i++) {
+    addWireSegment(sphereCenter, nearCorners[i]);
+  }
+
+  Float32List vertices = Float32List.fromList(verticesList);
+  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+  return Geometry(vertices, Uint16List.fromList(indices),
+      normals: _normals, uvs: _uvs, primitiveType: PrimitiveType.TRIANGLES);
+}
 
   static Geometry fromAabb3(Aabb3 aabb,
       {bool normals = true, bool uvs = true}) {
