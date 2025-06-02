@@ -3,7 +3,7 @@ import 'package:vector_math/vector_math_64.dart';
 import '../../../viewer/viewer.dart';
 import '../../input.dart';
 
-class FreeFlightInputHandlerDelegateV2 implements InputHandlerDelegate {
+class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
   final View view;
 
   final InputSensitivityOptions sensitivity;
