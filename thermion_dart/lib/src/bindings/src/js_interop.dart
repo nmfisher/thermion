@@ -407,6 +407,8 @@ Pointer<T> allocate<T extends NativeType>(int count) {
   switch (T) {
     case PointerClass:
       return malloc(count * 4);
+    case Char:
+      return malloc(count);
     default:
       throw Exception(T.toString());
   }
