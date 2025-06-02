@@ -254,6 +254,7 @@ namespace thermion
 
     void AnimationManager::updateBoneMatrices(GltfSceneAssetInstance *instance)
     {
+        std::lock_guard lock(_mutex);
         instance->getInstance()->getAnimator()->updateBoneMatrices();
     }
 
@@ -337,7 +338,7 @@ namespace thermion
 
     void AnimationManager::stopGltfAnimation(GltfSceneAssetInstance *instance, int index)
     {
-
+        std::lock_guard lock(_mutex);
         auto animationComponentInstance = _gltfAnimationComponentManager->getInstance(instance->getEntity());
         auto &animationComponent = _gltfAnimationComponentManager->elementAt<0>(animationComponentInstance);
 
@@ -352,6 +353,7 @@ namespace thermion
 
     void AnimationManager::setMorphTargetWeights(utils::Entity entity, const float *const weights, const int count)
     {
+        std::lock_guard lock(_mutex);
         RenderableManager &rm = _engine->getRenderableManager();
         auto renderableInstance = rm.getInstance(entity);
 
@@ -363,6 +365,7 @@ namespace thermion
 
     void AnimationManager::setGltfAnimationFrame(GltfSceneAssetInstance *instance, int animationIndex, int animationFrame)
     {
+        std::lock_guard lock(_mutex);
         auto offset = 60 * animationFrame * 1000; // TODO - don't hardcore 60fps framerate
         instance->getInstance()->getAnimator()->applyAnimation(animationIndex, offset);
         instance->getInstance()->getAnimator()->updateBoneMatrices();
