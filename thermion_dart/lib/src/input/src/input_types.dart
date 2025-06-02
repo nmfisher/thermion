@@ -82,14 +82,15 @@ class KeyEvent extends InputEvent {
   final KeyEventType type;
   final LogicalKey logicalKey;
   final PhysicalKey physicalKey;
+  final bool synthesized;
 
-  KeyEvent(this.type, this.logicalKey, this.physicalKey);
+  KeyEvent(this.type, this.logicalKey, this.physicalKey, { this.synthesized = false});
 }
 
 enum KeyEventType { down, up }
 
-enum LogicalKey { w, a, s, d, g, r, shift, esc, del }
+enum LogicalKey { w, a, s, d, g, r, shift, esc, del, space }
 
-enum PhysicalKey { w, a, s, d, g, r, shift, esc, del }
+enum PhysicalKey { w, a, s, d, g, r, shift, esc, del, space }
 
 enum InputAction { TRANSLATE, ROTATE, PICK, ZOOM, NONE }
