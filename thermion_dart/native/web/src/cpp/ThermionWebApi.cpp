@@ -24,7 +24,13 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void Thermion_resizeCanvas(int width, int height) {
     emscripten_set_canvas_element_size("#thermion_canvas", width, height);
   }
-  
+
+  static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _context;
+
+  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE EMSCRIPTEN_KEEPALIVE Thermion_getGLContext() {
+    return _context;
+  }
+
   EMSCRIPTEN_WEBGL_CONTEXT_HANDLE EMSCRIPTEN_KEEPALIVE Thermion_createGLContext() {
     
     std::cout << "Creating WebGL context." << std::endl;
@@ -43,16 +49,16 @@ extern "C"
     attr.renderViaOffscreenBackBuffer = EM_FALSE;
     attr.majorVersion = 2;
     
-    auto context = emscripten_webgl_create_context("#thermion_canvas", &attr);
+    _context = emscripten_webgl_create_context("#thermion_canvas", &attr);
 
-    if(!context) {
+    if(!_context) {
       std::cout << "Failed to create WebGL context" << std::endl;  
-      return context;
+      return _context;
     }
     
     std::cout << "Created WebGL context " << attr.majorVersion << "." << attr.minorVersion << std::endl;
 
-    auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
+    auto success = emscripten_webgl_make_context_current(_context);
     if(success != EMSCRIPTEN_RESULT_SUCCESS) {
       std::cout << "Failed to make WebGL context current"<< std::endl;
     } else { 
@@ -65,7 +71,7 @@ extern "C"
       glClear(GL_COLOR_BUFFER_BIT);
     }
     std::cout << "Returning context" << std::endl;
-    return context;
+    return _context;
   }
 
   emscripten::val emscripten_make_uint8_buffer(int ptr, int length) {

@@ -65,16 +65,19 @@ namespace thermion
   bool RenderTicker::render(uint64_t frameTimeInNanos)
   {
     auto startTime = std::chrono::high_resolution_clock::now();
-    bool rendered = false;
+    
     std::lock_guard lock(mMutex);
 
     for (auto animationManager : mAnimationManagers) {
       animationManager->update(frameTimeInNanos);
-      TRACE("Updated AnimationManager");
     }
+
+    auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+    TRACE("Updated animations in %.3f ms", durationNs);
+    
+    int numRendered = 0;
     
     #ifdef ENABLE_TRACING
-    int numRendered = 0;
     TRACE("%d swapchains", mRenderable.size());
     #endif
     
@@ -87,22 +90,21 @@ namespace thermion
         bool beginFrame = mRenderer->beginFrame(swapChain, frameTimeInNanos);
         if (beginFrame)
         {
-          rendered = true;
-          auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+          numRendered++;        
+          durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
           TRACE("Beginning frame (%.3f ms since last endFrame())", durationNs);
           for (auto view : views)
           {
             mRenderer->render(view);
           }
-          mLastRender = std::chrono::high_resolution_clock::now();
+          mLastRender = std::chrono::high_resolution_clock::now();          
+          mRenderer->endFrame();
         } else {
-          auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+          durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
           TRACE("Skipping frame (%.3f ms since last endFrame())", durationNs);
         }
-        mRenderer->endFrame();
-        
+
     #ifdef ENABLE_TRACING
-        numRendered++;
       } else {
         TRACE("No views for swapchain");
       }
@@ -115,11 +117,11 @@ namespace thermion
     mEngine->execute();
     #endif
     auto endTime = std::chrono::high_resolution_clock::now();
-    auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+    durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
     float durationMs = durationNs / 1e6f;
 
     TRACE("Total render() time: %.3f ms", durationMs);
-    return rendered;
+    return numRendered > 0;
   }
 
   void RenderTicker::addAnimationManager(AnimationManager* animationManager) {

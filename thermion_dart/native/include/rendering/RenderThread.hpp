@@ -75,10 +75,8 @@ public:
     #endif
 
     bool mRendered = false;
-
-private:
-
     bool mRender = false;
+private:
     std::mutex _taskMutex;
     std::condition_variable _cv;
     std::deque<std::function<void()>> _tasks;
@@ -106,8 +104,9 @@ auto RenderThread::add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
     _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
                          std::move(pt))]
                     { (*pt)(); });
-    
+    #ifndef __EMSCRIPTEN__
     _cv.notify_one();
+    #endif
     
     
     return ret;

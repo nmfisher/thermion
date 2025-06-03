@@ -27,20 +27,23 @@ static void mainLoop(void* arg) {
     auto startTime = std::chrono::high_resolution_clock::now();
 
     auto timeSinceLastLoopStart = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - loopStart).count();
-    if(timeSinceLastLoopStart > 20) {
-        Log("%dms elapsed since last loop", timeSinceLastLoopStart);
-    }
+    // if(timeSinceLastLoopStart > 20) {
+    //     Log("%dms elapsed since last loop", timeSinceLastLoopStart);
+    // }
+
     loopStart = startTime;
     rt->mRendered = false;
     long long elapsed = 0;
     int numIters = 0;
-    while (!rt->_stop && elapsed < 10) {
+    while (!rt->_stop && elapsed < 12) {
         rt->iter();
         numIters++;
         auto now = std::chrono::high_resolution_clock::now();
         elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
     } 
-    // Log("Spent %lldms processing, %d iters", elapsed, numIters);
+    // if(!rt->mRendered) {
+    //     Log("Spent %lldms processing, %d iters, rendered %s, render requested %s, context lost %s", elapsed, numIters, rt->mRendered ? "true" : "false", rt->mRender ? "true" : "false", emscripten_is_webgl_context_lost(Thermion_getGLContext()) ? "yes" : "no");
+    // }
     if(rt->_stop) {
         Log("RenderThread stopped")
         emscripten_set_main_loop_arg(nullptr, nullptr, 0, true);
@@ -109,7 +112,9 @@ void RenderThread::requestFrame()
         TRACE("Warning - frame requested before previous frame has completed rendering");
     }
     mRender = true;
+    #ifndef __EMSCRIPTEN__
     _cv.notify_one();
+    #endif
 }
 
 void RenderThread::iter()
