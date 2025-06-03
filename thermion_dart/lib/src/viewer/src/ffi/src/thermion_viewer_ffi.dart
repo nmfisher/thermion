@@ -459,7 +459,6 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
     _assets.remove(asset);
-    await asset.removeAnimationComponent();
     await scene.remove(asset);
 
     if (asset.boundingBoxAsset != null) {
