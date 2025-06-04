@@ -480,7 +480,11 @@ class ThermionViewerFFI extends ThermionViewer {
         await scene.remove(asset.boundingBoxAsset! as FFIAsset);
         await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);
       }
+      for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
+        await scene.remove(instance);
+      }
       await FilamentApp.instance!.destroyAsset(asset);
+      _logger.info("Destroyed asset");
     }
     _assets.clear();
   }
