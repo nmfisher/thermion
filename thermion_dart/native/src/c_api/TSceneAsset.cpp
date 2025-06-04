@@ -112,7 +112,11 @@ extern "C"
     
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) { 
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
-        delete asset;
+        if(asset->isInstance()) {
+            asset->getInstanceOwner()->destroyInstance(asset);
+        } else {
+            delete asset;
+        }
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene) {
