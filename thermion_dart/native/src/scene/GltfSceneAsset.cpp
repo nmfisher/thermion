@@ -50,7 +50,6 @@ namespace thermion
         _instances.clear();
         _asset->releaseSourceData();
         _assetLoader->destroyAsset(_asset);    
-        TRACE("Destroyed");
     }
 
     void GltfSceneAsset::destroyInstance(SceneAsset *asset) {
