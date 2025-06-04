@@ -8,7 +8,7 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("assets");
   await testHelper.setup();
-  group("assets", () {
+
     test('load/clear skybox', () async {
       await testHelper.withViewer((viewer) async {
         await viewer.loadSkybox(
@@ -114,5 +114,5 @@ void main() async {
         await testHelper.capture(viewer.view, "assets_destroyed");
       }, cameraPosition: Vector3(0, 0, 5));
     });
-  });
+
 }
