@@ -619,6 +619,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future registerRequestFrameHook(Future Function() hook) async {
+    while (_requesting) {
+      await Future.delayed(Duration(milliseconds: 1));
+    }
     if (!_hooks.contains(hook)) {
       _hooks.add(hook);
     }
@@ -629,20 +632,30 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future unregisterRequestFrameHook(Future Function() hook) async {
+    while (_requesting) {
+      await Future.delayed(Duration(milliseconds: 1));
+    }
     if (_hooks.contains(hook)) {
       _hooks.remove(hook);
     }
   }
+
+  bool _requesting = false;
 
   ///
   ///
   ///
   @override
   Future requestFrame() async {
-    for (final hook in _hooks) {
-      await hook.call();
+    _requesting = true;
+    try {
+      for (final hook in _hooks) {
+        await hook.call();
+      }
+    } catch (err) {
+      _logger.severe(err);
     }
-
+    _requesting = false;
     RenderThread_requestFrameAsync();
   }
 
