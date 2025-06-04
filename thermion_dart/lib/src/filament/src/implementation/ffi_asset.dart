@@ -644,26 +644,30 @@ class FFIAsset extends ThermionAsset {
     return names;
   }
 
+  List<String>? _gltfAnimationNames;
+
   ///
   ///
   ///
   @override
   Future<List<String>> getGltfAnimationNames() async {
-    var animationCount =
-        AnimationManager_getGltfAnimationCount(animationManager, asset);
-    if (animationCount == -1) {
-      throw Exception("This is not a glTF asset");
+    if (_gltfAnimationNames == null) {
+      var animationCount =
+          AnimationManager_getGltfAnimationCount(animationManager, asset);
+      if (animationCount == -1) {
+        throw Exception("This is not a glTF asset");
+      }
+      _gltfAnimationNames = [];
+      var outPtr = allocate<Char>(255);
+      for (int i = 0; i < animationCount; i++) {
+        AnimationManager_getGltfAnimationName(
+            animationManager, asset, outPtr, i);
+        _gltfAnimationNames!.add(outPtr.cast<Utf8>().toDartString());
+      }
+      free(outPtr);
     }
 
-    var names = <String>[];
-    var outPtr = allocate<Char>(255);
-    for (int i = 0; i < animationCount; i++) {
-      AnimationManager_getGltfAnimationName(animationManager, asset, outPtr, i);
-      names.add(outPtr.cast<Utf8>().toDartString());
-    }
-    free(outPtr);
-
-    return names;
+    return _gltfAnimationNames!;
   }
 
   ///
