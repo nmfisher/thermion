@@ -1071,17 +1071,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
-      ptrList?.free();
+      ptrList.free();
       geometry.vertices.free();
-      geometry.normals?.free();
-      geometry.uvs?.free();
+      geometry.normals.free();
+      geometry.uvs.free();
     }
 
     if (assetPtr == nullptr) {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr, this, animationManager.cast<TAnimationManager>());
+    return FFIAsset(assetPtr, this, animationManager.cast<TAnimationManager>(),
+        keepData: keepData);
   }
 
   ///
