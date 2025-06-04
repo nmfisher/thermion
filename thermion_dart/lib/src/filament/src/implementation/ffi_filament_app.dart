@@ -922,6 +922,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           SceneAsset_createFromFilamentAssetRenderThread(engine,
               gltfAssetLoader, nameComponentManager, filamentAsset, cb));
 
+      if (asset == nullptr) {
+        throw Exception(
+            "Unknown error loading glTF asset. See logs for details.");
+      }
+
       await withVoidCallback((requestId, cb) =>
           GltfResourceLoader_destroyRenderThread(
               engine, gltfResourceLoader, requestId, cb));
