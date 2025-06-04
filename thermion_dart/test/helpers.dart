@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:image/image.dart' as img;
 import 'package:image/image.dart';
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
@@ -202,6 +203,10 @@ class TestHelper {
   }
 
   Future setup() async {
+    Logger.root.onRecord.listen((record) {
+      print(record);
+    });
+
     await FFIFilamentApp.create(config: FFIFilamentConfig(loadResource: _loadResource));
   }
 
