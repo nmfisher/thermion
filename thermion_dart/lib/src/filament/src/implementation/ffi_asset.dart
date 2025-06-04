@@ -39,11 +39,13 @@ class FFIAsset extends ThermionAsset {
 
   late final _logger = Logger(this.runtimeType.toString());
 
+  final bool keepData;
+
   ///
   ///
   ///
   FFIAsset(this.asset, this.app, this.animationManager,
-      {this.isInstance = false}) {
+      {this.isInstance = false, this.keepData = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -126,6 +128,10 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<FFIAsset> createInstance(
       {covariant List<MaterialInstance>? materialInstances = null}) async {
+    if (!keepData) {
+      throw Exception(
+          "keepData must have been specified as true when this asset was created");
+    }
     var ptrList = IntPtrList(materialInstances?.length ?? 0);
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
@@ -152,7 +158,7 @@ class FFIAsset extends ThermionAsset {
       ptrList.free();
     }
 
-    if (created == FILAMENT_ASSET_ERROR) {
+    if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
     return FFIAsset(created, app, animationManager);
@@ -173,7 +179,12 @@ class FFIAsset extends ThermionAsset {
   Future<List<ThermionAsset>> getInstances() async {
     var count = await getInstanceCount();
     final result = List<ThermionAsset>.generate(count, (i) {
-      return FFIAsset(SceneAsset_getInstance(asset, i), app, animationManager);
+      _logger.fine("Getting instance at index $i");
+      final instance = SceneAsset_getInstance(asset, i);
+      if (instance == nullptr) {
+        throw Exception("Failed to get asset instance at index $i");
+      }
+      return FFIAsset(instance, app, animationManager);
     });
 
     return result;
