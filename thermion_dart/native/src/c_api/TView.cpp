@@ -256,27 +256,26 @@ namespace thermion
             auto *view = reinterpret_cast<View *>(tView);
             view->setFrontFaceWindingInverted(inverted);
         }
-
-        EMSCRIPTEN_KEEPALIVE void View_setFogOptions(TView *tView, TFogOptions *tFogOptions)
+        EMSCRIPTEN_KEEPALIVE void View_setFogOptions(TView *tView, TFogOptions tFogOptions)
         {
             auto view = reinterpret_cast<View *>(tView);
+
             FogOptions fogOptions {
-                .distance = tFogOptions->distance,
-                .cutOffDistance = tFogOptions->cutOffDistance,
-                .maximumOpacity = tFogOptions->maximumOpacity,
-                .height = tFogOptions->height,
-                .heightFalloff = tFogOptions->heightFalloff,
-                .color = LinearColor(tFogOptions->linearColor.x, tFogOptions->linearColor.y, tFogOptions->linearColor.z),
-                .density = tFogOptions->density,
-                .inScatteringStart = tFogOptions->inScatteringStart,
-                .inScatteringSize = tFogOptions->inScatteringSize,
-                .fogColorFromIbl = tFogOptions->fogColorFromIbl,
-                .skyColor = reinterpret_cast<Texture *>(tFogOptions->skyColor),
-                .enabled = tFogOptions->enabled
+                .distance = tFogOptions.distance,
+                .cutOffDistance = tFogOptions.cutOffDistance,
+                .maximumOpacity = tFogOptions.maximumOpacity,
+                .height = tFogOptions.height,
+                .heightFalloff = tFogOptions.heightFalloff,
+                .color = LinearColor(tFogOptions.linearColorR, tFogOptions.linearColorG, tFogOptions.linearColorB),
+                .density = tFogOptions.density,
+                .inScatteringStart = tFogOptions.inScatteringStart,
+                .inScatteringSize = tFogOptions.inScatteringSize,
+                .fogColorFromIbl = tFogOptions.fogColorFromIbl == 1,
+                .skyColor = reinterpret_cast<Texture *>(tFogOptions.skyColor),
+                .enabled = tFogOptions.enabled == 1
             };
-            
-        
-            TRACE("Setting fog enabled to %d (tFogOptions->cutOffDistance %f)", fogOptions.enabled, tFogOptions->cutOffDistance);
+
+            TRACE("Setting fog enabled to %d (tFogOptions.cutOffDistance %f)", fogOptions.enabled, tFogOptions.cutOffDistance);
             view->setFogOptions(fogOptions);
         }
 
