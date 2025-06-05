@@ -106,7 +106,6 @@ void main(List<String> args) async {
       "dracodec",
       "ibl",
       "ktxreader",
-      "png",
       "z",
       "stb",
       "uberzlib",
