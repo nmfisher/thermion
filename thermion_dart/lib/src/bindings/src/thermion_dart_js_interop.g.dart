@@ -257,7 +257,8 @@ sealed class Struct extends NativeType {
         return double4x4(arr1, arr2, arr3, arr4, ptr) as T;
       case TFogOptions:
         final ptr = TFogOptions.stackAlloc();
-        return ptr.toDart() as T;
+        final fogOptions = ptr.toDart();
+        return fogOptions as T;
     }
     throw Exception();
   }
@@ -590,10 +591,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Int32> out,
   );
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
-    Pointer<TEngine> tEngine,
-    Pointer<TMaterialProvider> tMaterialProvider,
-    self.Pointer<TNameComponentManager> tNameComponentManager
-  );
+      Pointer<TEngine> tEngine,
+      Pointer<TMaterialProvider> tMaterialProvider,
+      self.Pointer<TNameComponentManager> tNameComponentManager);
   external Pointer<TFilamentAsset> _GltfAssetLoader_load(
     Pointer<TEngine> tEngine,
     Pointer<TGltfAssetLoader> tAssetLoader,
@@ -747,13 +747,12 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int format,
   );
   external int _Texture_loadImage(
-    Pointer<TEngine> tEngine,
-    Pointer<TTexture> tTexture,
-    Pointer<TLinearImage> tImage,
-    int bufferFormat,
-    int pixelDataType,
-    int level
-  );
+      Pointer<TEngine> tEngine,
+      Pointer<TTexture> tTexture,
+      Pointer<TLinearImage> tImage,
+      int bufferFormat,
+      int pixelDataType,
+      int level);
   external int _Texture_setImage(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
@@ -794,9 +793,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int level,
   );
   external void _Texture_generateMipMaps(
-    Pointer<TTexture> tTexture,
-    Pointer<TEngine> tEngine
-  );
+      Pointer<TTexture> tTexture, Pointer<TEngine> tEngine);
   external int _Texture_getDepth(
     Pointer<TTexture> tTexture,
     int level,
@@ -811,11 +808,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int channel,
   );
   external Pointer<TLinearImage> _Image_decode(
-    Pointer<Uint8> data,
-    size_t length,
-    Pointer<Char> name,
-    bool alpha
-  );
+      Pointer<Uint8> data, size_t length, Pointer<Char> name, bool alpha);
   external Pointer<Float32> _Image_getBytes(
     Pointer<TLinearImage> tLinearImage,
   );
@@ -2653,12 +2646,11 @@ void FilamentAsset_getEntities(
 }
 
 self.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TMaterialProvider> tMaterialProvider,
-  self.Pointer<TNameComponentManager> tNameComponentManager
-) {
-  final result =
-      _lib._GltfAssetLoader_create(tEngine.cast(), tMaterialProvider.cast(), tNameComponentManager.cast());
+    self.Pointer<TEngine> tEngine,
+    self.Pointer<TMaterialProvider> tMaterialProvider,
+    self.Pointer<TNameComponentManager> tNameComponentManager) {
+  final result = _lib._GltfAssetLoader_create(
+      tEngine.cast(), tMaterialProvider.cast(), tNameComponentManager.cast());
   return self.Pointer<TGltfAssetLoader>(result);
 }
 
@@ -2908,9 +2900,10 @@ void View_setFrontFaceWindingInverted(
 
 void View_setFogOptions(
   self.Pointer<TView> tView,
-  self.Pointer<TFogOptions> tFogOptions,
+  TFogOptions tFogOptions,
 ) {
-  final result = _lib._View_setFogOptions(tView.cast(), tFogOptions.cast());
+  final tFogOptionsPtr = tFogOptions._address;
+  final result = _lib._View_setFogOptions(tView.cast(), tFogOptionsPtr.cast());
   return result;
 }
 
@@ -3085,12 +3078,8 @@ self.Pointer<TLinearImage> Image_createEmpty(
   return self.Pointer<TLinearImage>(result);
 }
 
-self.Pointer<TLinearImage> Image_decode(
-  self.Pointer<Uint8> data,
-  Dart__darwin_size_t length,
-  self.Pointer<Char> name,
-  bool alpha
-) {
+self.Pointer<TLinearImage> Image_decode(self.Pointer<Uint8> data,
+    Dart__darwin_size_t length, self.Pointer<Char> name, bool alpha) {
   final result = _lib._Image_decode(data, length, name, alpha);
   return self.Pointer<TLinearImage>(result);
 }
@@ -4145,14 +4134,15 @@ void AnimationManager_createRenderThread(
 }
 
 void AnimationManager_resetToResetPoseRenderThread(
-    self.Pointer<TAnimationManager> tAnimationManager,
-    self.Pointer<TSceneAsset> tSceneAsset,
-    int requestId,
-    VoidCallback onComplete,
-  ) {
-    final result = _lib._AnimationManager_resetToRestPoseRenderThread(tAnimationManager, tSceneAsset, requestId, onComplete);
+  self.Pointer<TAnimationManager> tAnimationManager,
+  self.Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  VoidCallback onComplete,
+) {
+  final result = _lib._AnimationManager_resetToRestPoseRenderThread(
+      tAnimationManager, tSceneAsset, requestId, onComplete);
   return result;
-  }
+}
 
 void Engine_createRenderThread(
   int backend,
@@ -4383,7 +4373,8 @@ void Texture_generateMipMapsRenderThread(
   int requestId,
   DartVoidCallback onComplete,
 ) {
-  final result = _lib._Texture_generateMipMapsRenderThread(tTexture.cast(), tEngine.cast(), requestId, onComplete);
+  final result = _lib._Texture_generateMipMapsRenderThread(
+      tTexture.cast(), tEngine.cast(), requestId, onComplete);
   return result;
 }
 
@@ -4882,8 +4873,8 @@ void Image_decodeRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TLinearImage>)>>
       onComplete,
 ) {
-  final result =
-      _lib._Image_decodeRenderThread(data, length, name, alpha, onComplete.cast());
+  final result = _lib._Image_decodeRenderThread(
+      data, length, name, alpha, onComplete.cast());
   return result;
 }
 
@@ -5239,8 +5230,8 @@ void GltfAssetLoader_createRenderThread(
   self.Pointer<self.NativeFunction<void Function(Pointer<TGltfAssetLoader>)>>
       callback,
 ) {
-  final result = _lib._GltfAssetLoader_createRenderThread(
-      tEngine.cast(), tMaterialProvider.cast(), tNameComponentManager.cast(), callback.cast());
+  final result = _lib._GltfAssetLoader_createRenderThread(tEngine.cast(),
+      tMaterialProvider.cast(), tNameComponentManager.cast(), callback.cast());
   return result;
 }
 
@@ -6422,158 +6413,131 @@ final class TScene extends self.Struct {
 /// Copied from FogOptions in View.h
 extension TFogOptionsExt on Pointer<TFogOptions> {
   TFogOptions toDart() {
-    var distance = _lib.getValue(this + 0, "float").toDartDouble;
-    var cutOffDistance = _lib.getValue(this + 4, "float").toDartDouble;
-    var maximumOpacity = _lib.getValue(this + 8, "float").toDartDouble;
-    var height = _lib.getValue(this + 12, "float").toDartDouble;
-    var heightFalloff = _lib.getValue(this + 16, "float").toDartDouble;
-    var linearColor = _lib.getValue(this + 20, "*").toDartInt;
-    final linearColorPtr = Pointer<double3>(linearColor);
-    var density = _lib.getValue(this + 44, "float").toDartDouble;
-    var inScatteringStart = _lib.getValue(this + 48, "float").toDartDouble;
-    var inScatteringSize = _lib.getValue(this + 52, "float").toDartDouble;
-    var fogColorFromIbl = _lib.getValue(this + 56, "i8").toDartInt;
-    final skyColor =
-        self.Pointer<TTexture>(_lib.getValue(this + 57, "i32").toDartInt);
-    var enabled = _lib.getValue(this + 61, "i8").toDartInt;
-    return TFogOptions(
-        distance,
-        cutOffDistance,
-        maximumOpacity,
-        height,
-        heightFalloff,
-        linearColorPtr.toDart(),
-        density,
-        inScatteringStart,
-        inScatteringSize,
-        fogColorFromIbl == 1,
-        skyColor.cast(),
-        enabled == 1,
-        this);
-  }
-
-  void setFrom(TFogOptions dartType) {
-    _lib.setValue(this + 0, dartType.distance.toJS, "float");
-    _lib.setValue(this + 4, dartType.cutOffDistance.toJS, "float");
-    _lib.setValue(this + 8, dartType.maximumOpacity.toJS, "float");
-    _lib.setValue(this + 12, dartType.height.toJS, "float");
-    _lib.setValue(this + 16, dartType.heightFalloff.toJS, "float");
-    _lib.setValue(this + 20, dartType.linearColor.x.toJS, "double");
-    _lib.setValue(this + 28, dartType.linearColor.y.toJS, "double");
-    _lib.setValue(this + 36, dartType.linearColor.z.toJS, "double");
-    _lib.setValue(this + 44, dartType.density.toJS, "float");
-    _lib.setValue(this + 48, dartType.inScatteringStart.toJS, "float");
-    _lib.setValue(this + 52, dartType.inScatteringSize.toJS, "float");
-    _lib.setValue(this + 56, dartType.fogColorFromIbl ? 1.toJS : 0.toJS, "i8");
-    _lib.setValue(this + 57, dartType.skyColor.addr.toJS, "*");
-    _lib.setValue(this + 61, dartType.enabled ? 1.toJS : 0.toJS, "i8");
+    return TFogOptions(this);
   }
 }
 
 final class TFogOptions extends self.Struct {
-  double _distance = 0.0;
-  double get distance => _distance;
+  double get distance {
+    return _lib.getValue(_address, "float").toDartDouble;
+  }
+
   set distance(double val) {
-    _distance = val;
-    _lib.setValue(_address, val.toJS, "double");
+    _lib.setValue(_address, val.toJS, "float");
   }
 
-  double _cutOffDistance = 0.0;
-  double get cutOffDistance => _cutOffDistance;
+  double get cutOffDistance {
+    return _lib.getValue(_address + 4, "float").toDartDouble;
+  }
+
   set cutOffDistance(double val) {
-    _cutOffDistance = val;
-    _lib.setValue(_address + 8, val.toJS, "double");
+    _lib.setValue(_address + 4, val.toJS, "float");
   }
 
-  double _maximumOpacity = 0.0;
-  double get maximumOpacity => _maximumOpacity;
+  double get maximumOpacity {
+    return _lib.getValue(_address + 8, "float").toDartDouble;
+  }
+
   set maximumOpacity(double val) {
-    _maximumOpacity = val;
-    _lib.setValue(_address + 16, val.toJS, "double");
+    _lib.setValue(_address + 8, val.toJS, "float");
   }
 
-  double _height = 0.0;
-  double get height => _height;
+  double get height {
+    return _lib.getValue(_address + 12, "float").toDartDouble;
+  }
+
   set height(double val) {
-    _height = val;
-    _lib.setValue(_address + 24, val.toJS, "double");
+    _lib.setValue(_address + 12, val.toJS, "float");
   }
 
-  double _heightFalloff = 0.0;
-  double get heightFalloff => _heightFalloff;
+  double get heightFalloff {
+    return _lib.getValue(_address + 16, "float").toDartDouble;
+  }
+
   set heightFalloff(double val) {
-    _heightFalloff = val;
-    _lib.setValue(_address + 32, val.toJS, "double");
+    _lib.setValue(_address + 16, val.toJS, "float");
   }
 
-  late double3 _linearColor = double3(0.0, 0.0, 0.0, _address + 40);
-  double3 get linearColor => _linearColor;
-  set linearColor(double3 val) {
-    _linearColor = val;
-    // Assuming double3 is stored as 24 bytes (3 * 8 bytes)
-    _lib.setValue(_address + 40, val._address.toJS, "pointer");
+  double get density {
+    return _lib.getValue(_address + 20, "float").toDartDouble;
   }
 
-  double _density = 0.0;
-  double get density => _density;
   set density(double val) {
-    _density = val;
-    _lib.setValue(_address + 64, val.toJS, "double");
+    _lib.setValue(_address + 20, val.toJS, "float");
   }
 
-  double _inScatteringStart = 0.0;
-  double get inScatteringStart => _inScatteringStart;
+  double get inScatteringStart {
+    return _lib.getValue(_address + 24, "float").toDartDouble;
+  }
+
   set inScatteringStart(double val) {
-    _inScatteringStart = val;
-    _lib.setValue(_address + 72, val.toJS, "double");
+    _lib.setValue(_address + 24, val.toJS, "float");
   }
 
-  double _inScatteringSize = 0.0;
-  double get inScatteringSize => _inScatteringSize;
+  double get inScatteringSize {
+    return _lib.getValue(_address + 28, "float").toDartDouble;
+  }
+
   set inScatteringSize(double val) {
-    _inScatteringSize = val;
-    _lib.setValue(_address + 80, val.toJS, "double");
+    _lib.setValue(_address + 28, val.toJS, "float");
   }
 
-  bool _fogColorFromIbl = false;
-  bool get fogColorFromIbl => _fogColorFromIbl;
-  set fogColorFromIbl(bool val) {
-    _fogColorFromIbl = val;
-    _lib.setValue(_address + 88, (val ? 1 : 0).toJS, "i8");
+  self.Pointer<TTexture> get skyColor {
+    return self.Pointer<TTexture>(_lib.getValue(_address + 32, "*").toDartInt);
   }
 
-  self.Pointer<TTexture> _skyColor = self.Pointer<TTexture>(0);
-  self.Pointer<TTexture> get skyColor => _skyColor;
   set skyColor(self.Pointer<TTexture> val) {
-    _skyColor = val;
-    _lib.setValue(_address + 96, val.toJS, "*");
+    _lib.setValue(_address + 32, val.toJS, "*");
   }
 
-  bool _enabled = false;
-  bool get enabled => _enabled;
+  double get linearColorR {
+    return _lib.getValue(_address + 36, "float").toDartDouble;
+  }
+
+  set linearColorR(double val) {
+    _lib.setValue(_address + 36, val.toJS, "float");
+  }
+
+  double get linearColorG {
+    return _lib.getValue(_address + 40, "float").toDartDouble;
+  }
+
+  set linearColorG(double val) {
+    _lib.setValue(_address + 40, val.toJS, "float");
+  }
+
+  double get linearColorB {
+    return _lib.getValue(_address + 44, "float").toDartDouble;
+  }
+
+  set linearColorB(double val) {
+    _lib.setValue(_address + 44, val.toJS, "float");
+  }
+
+  bool get fogColorFromIbl {
+    return _lib.getValue(_address + 48, "i8").toDartInt != 0;
+  }
+
+  set fogColorFromIbl(bool val) {
+    _lib.setValue(_address + 48, (val ? 1 : 0).toJS, "i8");
+  }
+
+  bool get enabled {
+    return _lib.getValue(_address + 49, "i8").toDartInt != 0;
+  }
+
   set enabled(bool val) {
-    _enabled = val;
-    _lib.setValue(_address + 104, (val ? 1 : 0).toJS, "i8");
+    _lib.setValue(_address + 49, (val ? 1 : 0).toJS, "i8");
   }
 
-  TFogOptions(
-      this._distance,
-      this._cutOffDistance,
-      this._maximumOpacity,
-      this._height,
-      this._heightFalloff,
-      this._linearColor,
-      this._density,
-      this._inScatteringStart,
-      this._inScatteringSize,
-      this._fogColorFromIbl,
-      this._skyColor,
-      this._enabled,
-      super._address);
+  TFogOptions(super._address);
+
+  static Pointer<TFogOptions> malloc() {
+    return Pointer<TFogOptions>(_lib._malloc<TFogOptions>(50));
+  }
 
   static Pointer<TFogOptions> stackAlloc() {
-    return Pointer<TFogOptions>(
-        _lib._stackAlloc<TFogOptions>(112)); // Updated size
+    return Pointer<TFogOptions>(_lib._stackAlloc<TFogOptions>(50));
   }
 }
 
@@ -7008,45 +6972,48 @@ final class double4x4 extends self.Struct {
 
 extension double3Ext on Pointer<double3> {
   double3 toDart() {
-    var x = _lib.getValue(this + 0, "double").toDartDouble;
-    var y = _lib.getValue(this + 8, "double").toDartDouble;
-    var z = _lib.getValue(this + 16, "double").toDartDouble;
-    return double3(x, y, z, this);
-  }
-
-  void setFrom(double3 dartType) {
-    _lib.setValue(this + 0, dartType.x.toJS, "double");
-    _lib.setValue(this + 8, dartType.y.toJS, "double");
-    _lib.setValue(this + 16, dartType.z.toJS, "double");
+    return double3(this);
   }
 }
 
 final class double3 extends self.Struct {
-  double _x = 0.0;
-  double get x => _x;
+  double get x {
+    return _lib.getValue(_address, "double").toDartDouble;
+  }
+
   set x(double val) {
-    _x = val;
-    _lib.setValue(_address, x.toJS, "double");
+    _lib.setValue(_address, val.toJS, "double");
   }
 
-  double _y = 0.0;
-  double get y => _y;
+  double get y {
+    return _lib.getValue(_address + 8, "double").toDartDouble;
+  }
+
   set y(double val) {
-    _y = val;
-    _lib.setValue(_address + 8, x.toJS, "double");
+    _lib.setValue(_address + 8, val.toJS, "double");
   }
 
-  double _z = 0.0;
-  double get z => _z;
+  double get z {
+    return _lib.getValue(_address + 16, "double").toDartDouble;
+  }
+
   set z(double val) {
-    _z = val;
-    _lib.setValue(_address + 16, x.toJS, "double");
+    _lib.setValue(_address + 16, val.toJS, "double");
   }
 
-  double3(this._x, this._y, this._z, super._address);
+  double3(super._address);
 
   static Pointer<double3> stackAlloc() {
     return Pointer<double3>(_lib._stackAlloc<double3>(24));
+  }
+
+  static Pointer<double3> create(double x, double y, double z) {
+    final ptr = stackAlloc();
+    final instance = ptr.toDart();
+    instance.x = x;
+    instance.y = y;
+    instance.z = z;
+    return ptr;
   }
 }
 
