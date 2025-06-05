@@ -224,21 +224,22 @@ class FFIView extends View {
   @override
   Future setFogOptions(FogOptions options) async {
     final tFogOptions = Struct.create<TFogOptions>();
-    tFogOptions.cutOffDistance = options.cutOffDistance;
-    tFogOptions.enabled = options.enabled;
-    tFogOptions.density = options.density;
+
     tFogOptions.distance = options.distance;
-    tFogOptions.fogColorFromIbl = options.fogColorFromIbl;
+    tFogOptions.cutOffDistance = options.cutOffDistance;
+    tFogOptions.maximumOpacity = options.maximumOpacity;
     tFogOptions.height = options.height;
     tFogOptions.heightFalloff = options.heightFalloff;
-    tFogOptions.inScatteringSize = options.inScatteringSize;
+    tFogOptions.density = options.density;
     tFogOptions.inScatteringStart = options.inScatteringStart;
-    tFogOptions.maximumOpacity = options.maximumOpacity;
+    tFogOptions.inScatteringSize = options.inScatteringSize;
+    tFogOptions.fogColorFromIbl = options.fogColorFromIbl;
     tFogOptions.skyColor =
         (options.skyColor as FFITexture?)?.pointer ?? nullptr;
-    tFogOptions.linearColor.x = options.linearColor.r;
-    tFogOptions.linearColor.y = options.linearColor.x;
-    tFogOptions.linearColor.z = options.linearColor.x;
-    View_setFogOptions(this.view, tFogOptions.address);
+    tFogOptions.linearColorR = options.linearColor.r;
+    tFogOptions.linearColorG = options.linearColor.g;
+    tFogOptions.linearColorB = options.linearColor.b;
+    tFogOptions.enabled = options.enabled;
+    View_setFogOptions(this.view, tFogOptions);
   }
 }
