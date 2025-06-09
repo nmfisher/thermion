@@ -242,4 +242,8 @@ class FFIView extends View {
     tFogOptions.enabled = options.enabled;
     View_setFogOptions(this.view, tFogOptions);
   }
+
+  Future setShadowsEnabled(bool enabled) async {
+    View_setShadowsEnabled(this.view, enabled);
+  }
 }

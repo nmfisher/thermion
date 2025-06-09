@@ -76,7 +76,7 @@ abstract class View {
   Future setBloom(bool enabled, double strength);
   Future setBlendMode(BlendMode blendMode);
   Future setRenderQuality(QualityLevel quality);
-
+  Future setShadowsEnabled(bool enabled);
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
 
   /// Sets the fog options for this view. 
