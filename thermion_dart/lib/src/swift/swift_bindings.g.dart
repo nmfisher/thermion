@@ -133,9 +133,9 @@ final _objc_msgSend_4sp4xj = objc.msgSendPointer
 typedef instancetype = ffi.Pointer<objc.ObjCObject>;
 typedef Dartinstancetype = objc.ObjCObjectBase;
 late final _sel_init = objc.registerName("init");
-late final _sel_initWithWidth_height_isDepth_ =
-    objc.registerName("initWithWidth:height:isDepth:");
-final _objc_msgSend_1gtkwyl = objc.msgSendPointer
+late final _sel_initWithWidth_height_isDepth_isStencil_ =
+    objc.registerName("initWithWidth:height:isDepth:isStencil:");
+final _objc_msgSend_1v8gk45 = objc.msgSendPointer
     .cast<
         ffi.NativeFunction<
             ffi.Pointer<objc.ObjCObject> Function(
@@ -143,10 +143,11 @@ final _objc_msgSend_1gtkwyl = objc.msgSendPointer
                 ffi.Pointer<objc.ObjCSelector>,
                 ffi.Int64,
                 ffi.Int64,
+                ffi.Bool,
                 ffi.Bool)>>()
     .asFunction<
         ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<objc.ObjCObject>,
-            ffi.Pointer<objc.ObjCSelector>, int, int, bool)>();
+            ffi.Pointer<objc.ObjCSelector>, int, int, bool, bool)>();
 late final _sel_destroyTexture = objc.registerName("destroyTexture");
 final _objc_msgSend_1pl9qdv = objc.msgSendPointer
     .cast<
@@ -362,11 +363,16 @@ class ThermionTextureSwift extends objc.NSObject {
         retain: false, release: true);
   }
 
-  /// initWithWidth:height:isDepth:
-  ThermionTextureSwift initWithWidth_height_isDepth_(
-      int width, int height, bool isDepth) {
-    final _ret = _objc_msgSend_1gtkwyl(this.ref.retainAndReturnPointer(),
-        _sel_initWithWidth_height_isDepth_, width, height, isDepth);
+  /// initWithWidth:height:isDepth:isStencil:
+  ThermionTextureSwift initWithWidth_height_isDepth_isStencil_(
+      int width, int height, bool isDepth, bool isStencil) {
+    final _ret = _objc_msgSend_1v8gk45(
+        this.ref.retainAndReturnPointer(),
+        _sel_initWithWidth_height_isDepth_isStencil_,
+        width,
+        height,
+        isDepth,
+        isStencil);
     return ThermionTextureSwift.castFromPointer(_ret,
         retain: false, release: true);
   }
