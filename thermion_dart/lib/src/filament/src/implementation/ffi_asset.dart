@@ -481,11 +481,73 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
+  Future setMaterialInstanceForAll(FFIMaterialInstance instance) async {
+    for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
+      if (RenderableManager_isRenderable(app.renderableManager, entity)) {
+        await setMaterialInstanceAt(instance,
+            entity: entity, primitiveIndex: i);
+      }
+    }
+    for (final entity in await getChildEntities()) {
+      if (!RenderableManager_isRenderable(app.renderableManager, entity)) {
+        continue;
+      }
+      for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
+        await setMaterialInstanceAt(instance,
+            entity: entity, primitiveIndex: i);
+      }
+    }
+  }
+
+  ///
+  ///
+  ///
+  Future<Map<ThermionEntity, List<MaterialInstance>>>
+      getMaterialInstancesAsMap() async {
+    final result = <ThermionEntity, List<MaterialInstance>>{};
+    var entities = [entity, ...await getChildEntities()];
+
+    for (final entity in entities) {
+      if (RenderableManager_isRenderable(app.renderableManager, entity)) {
+        result[entity] = [];
+        for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
+          result[entity]!
+              .add(await getMaterialInstanceAt(entity: entity, index: i));
+        }
+      }
+    }
+    return result;
+  }
+
+  ///
+  ///
+  ///
+  Future setMaterialInstancesFromMap(
+      Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
+    for (final entity in materialInstances.keys) {
+      if (RenderableManager_isRenderable(app.renderableManager, entity)) {
+        for (int i = 0; i < materialInstances[entity]!.length; i++) {
+          final mi = materialInstances[entity]![i];
+          await setMaterialInstanceAt(mi as FFIMaterialInstance,
+              entity: entity, primitiveIndex: i);
+        }
+      }
+    }
+  }
+
+  ///
+  ///
+  ///
   @override
   Future setMaterialInstanceAt(FFIMaterialInstance instance,
       {int? entity = null, int primitiveIndex = 0}) async {
-
-     if (entity == null) {
+    if (entity != null &&
+        !RenderableManager_isRenderable(app.renderableManager, entity)) {
+      _logger.warning("Provided entity is not renderable");
+      return;
+    }
+    
+    if (entity == null) {
       if (RenderableManager_isRenderable(app.renderableManager, this.entity)) {
         entity ??= this.entity;
       } else {
@@ -501,15 +563,14 @@ class FFIAsset extends ThermionAsset {
     if (entity == null) {
       throw Exception("Failed to find renderable entity");
     }
-    
+
     if (!RenderableManager_setMaterialInstanceAt(
-          Engine_getRenderableManager(app.engine),
-          entity,
-          primitiveIndex,
-          instance.pointer)) {
-        _logger.warning(
-            "Failed to set material instance for entity $entity at primitive index ${primitiveIndex}");
-      
+        Engine_getRenderableManager(app.engine),
+        entity,
+        primitiveIndex,
+        instance.pointer)) {
+      _logger.warning(
+          "Failed to set material instance for entity $entity at primitive index ${primitiveIndex}");
     }
   }
 
@@ -907,8 +968,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
-    await FilamentApp.instance!.setTransform(
-      entity ?? this.entity, transform);
+    await FilamentApp.instance!.setTransform(entity ?? this.entity, transform);
   }
 
   ///
@@ -987,7 +1047,9 @@ class FFIAsset extends ThermionAsset {
   ///
   @override
   Future resetBones() async {
-    await withVoidCallback((requestId, cb) => AnimationManager_resetToRestPoseRenderThread(animationManager, asset, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        AnimationManager_resetToRestPoseRenderThread(
+            animationManager, asset, requestId, cb));
   }
 
   ///
@@ -1083,5 +1145,10 @@ class FFIAsset extends ThermionAsset {
     for (final child in await getChildEntities()) {
       AnimationManager_removeMorphAnimationComponent(animationManager, child);
     }
+  }
+
+  Future<int> getPrimitiveCount({ThermionEntity? entity}) async {
+    entity ??= this.entity;
+    return RenderableManager_getPrimitiveCount(app.renderableManager, entity);
   }
 }
