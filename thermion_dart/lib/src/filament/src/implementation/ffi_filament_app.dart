@@ -187,12 +187,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             (cb) => Engine_createViewRenderThread(engine, cb)),
         this);
     await view.setFrustumCullingEnabled(true);
-    View_setBlendMode(view.view, TBlendMode.TRANSLUCENT);
-    View_setShadowsEnabled(view.view, false);
-    View_setStencilBufferEnabled(view.view, false);
-    View_setAntiAliasing(view.view, false, false, false);
-    View_setDitheringEnabled(view.view, false);
-    View_setRenderQuality(view.view, TQualityLevel.MEDIUM);
+    await view.setBloom(false, 0.0);
+    await view.setBlendMode(BlendMode.transparent);
+    await view.setShadowsEnabled(false);
+    await view.setStencilBufferEnabled(false);
+    await view.setAntiAliasing(false, false, false);
+    await view.setDithering(false);
+    await view.setRenderQuality(QualityLevel.MEDIUM);
     return view;
   }
 
