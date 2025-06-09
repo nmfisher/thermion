@@ -21,7 +21,7 @@ import GLKit
         
     }
 
-    @objc public init(width:Int64, height:Int64, isDepth:Bool) {
+    @objc public init(width:Int64, height:Int64, isDepth:Bool, isStencil:Bool) {
         if(self.metalDevice == nil) {
             self.metalDevice = MTLCreateSystemDefaultDevice()!
         }
@@ -30,7 +30,7 @@ import GLKit
             print("Creating depth texture")
             // Create a proper depth texture without IOSurface backing
             let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
-                pixelFormat: .depth32Float,
+                pixelFormat: isStencil ? .depth24Unorm_stencil8 : .depth32Float_stencil8,
                 width: Int(width),
                 height: Int(height),
                 mipmapped: false)
@@ -45,9 +45,6 @@ import GLKit
 
         print("Creating color texture")
 
-
-        // let pixelFormat: MTLPixelFormat = isDepth ? .depth32Float : .bgra8Unorm
-        // let cvPixelFormat = isDepth ? kCVPixelFormatType_DepthFloat32 : kCVPixelFormatType_32BGRA
     
         if(CVPixelBufferCreate(kCFAllocatorDefault, Int(width), Int(height),
                            kCVPixelFormatType_32BGRA, pixelBufferAttrs, &pixelBuffer) != kCVReturnSuccess) {
