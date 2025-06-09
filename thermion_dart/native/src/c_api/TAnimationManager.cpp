@@ -411,17 +411,21 @@ extern "C"
 
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("Incorrect asset type, gltf expected");
             return -1;
         }
+
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
+
         GltfSceneAssetInstance *instance;
         if(sceneAsset->isInstance()) {
             instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset);
         } else {
             instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
         }
+
         auto names = animationManager->getGltfAnimationNames(instance);
-        TRACE("Animation count : %d", names.size());
+
         return (int)names.size();
     }
 
