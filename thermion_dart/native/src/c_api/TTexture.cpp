@@ -277,26 +277,6 @@ namespace thermion
             auto samplerType = static_cast<::filament::Texture::Sampler>(static_cast<int>(tSamplerType));
             auto usage = static_cast<TextureUsage>(tUsage);
             
-            if ((usage & TextureUsage::UPLOADABLE) == TextureUsage::UPLOADABLE) {
-                TRACE("UPLOADABLE");
-            }
-
-            if ((usage & TextureUsage::SAMPLEABLE) == TextureUsage::SAMPLEABLE) {
-                TRACE("SAMPLEABLE");
-            }
-
-            if ((usage & TextureUsage::COLOR_ATTACHMENT) == TextureUsage::COLOR_ATTACHMENT) {
-                TRACE("COLOR_ATTACHMENT");
-            }
-
-            if ((usage & TextureUsage::DEPTH_ATTACHMENT) == TextureUsage::DEPTH_ATTACHMENT) {
-                TRACE("DEPTH_ATTACHMENT");
-            }
-
-            if ((usage & TextureUsage::BLIT_SRC) == TextureUsage::BLIT_SRC) {
-                TRACE("BLIT_SRC");
-            }
-            
             auto builder = ::filament::Texture::Builder()
                 .width(width)
                 .height(height)
@@ -306,7 +286,7 @@ namespace thermion
                 .format(format) 
                 .usage(usage);
             if(import) {
-                TRACE("IMPORTING");
+                TRACE("Importing texture with handle : %d", import);
                 builder.import(import);
             }
             auto *texture = builder
