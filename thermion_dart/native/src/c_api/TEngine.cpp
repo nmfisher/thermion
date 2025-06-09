@@ -122,7 +122,10 @@ namespace thermion
                 TRACE("SWAP_CHAIN_CONFIG_READABLE");
             }
             if((flags & filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER) == filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER) {
-                TRACE("SWAP_CHAIN_CONFIG_READABLE");
+                TRACE("SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER");
+            }
+            if((flags & filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER) == filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER) {
+                TRACE("SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER");
             }
             #endif
             return reinterpret_cast<TSwapChain *>(swapChain);
