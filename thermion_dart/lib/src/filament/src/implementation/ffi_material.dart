@@ -113,32 +113,33 @@ class FFIMaterialInstance extends MaterialInstance {
   @override
   Future setStencilCompareFunction(SamplerCompareFunction func,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
-    MaterialInstance_setStencilCompareFunction(pointer, func.index, face.index);
+    MaterialInstance_setStencilCompareFunction(
+        pointer, func.index, face.toFFI());
   }
 
   @override
   Future setStencilOpDepthFail(StencilOperation op,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
-    MaterialInstance_setStencilOpDepthFail(pointer, op.index, face.index);
+    MaterialInstance_setStencilOpDepthFail(pointer, op.index, face.toFFI());
   }
 
   @override
   Future setStencilOpDepthStencilPass(StencilOperation op,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
     MaterialInstance_setStencilOpDepthStencilPass(
-        pointer, op.index, face.index);
+        pointer, op.index, face.toFFI());
   }
 
   @override
   Future setStencilOpStencilFail(StencilOperation op,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
-    MaterialInstance_setStencilOpStencilFail(pointer, op.index, face.index);
+    MaterialInstance_setStencilOpStencilFail(pointer, op.index, face.toFFI());
   }
 
   @override
   Future setStencilReferenceValue(int value,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
-    MaterialInstance_setStencilReferenceValue(pointer, value, face.index);
+    MaterialInstance_setStencilReferenceValue(pointer, value, face.toFFI());
   }
 
   @override
@@ -169,7 +170,8 @@ class FFIMaterialInstance extends MaterialInstance {
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialInstanceRenderThread(app.engine, this.pointer, requestId, cb);
+      Engine_destroyMaterialInstanceRenderThread(
+          app.engine, this.pointer, requestId, cb);
     });
   }
 
@@ -195,5 +197,15 @@ class FFIMaterialInstance extends MaterialInstance {
   Future setParameterMat4(String name, Matrix4 matrix) async {
     MaterialInstance_setParameterMat4(
         pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+  }
+}
+
+extension TStencilFaceExt on StencilFace {
+  int toFFI() {
+    return switch (this) {
+      StencilFace.FRONT => TStencilFace.STENCIL_FACE_FRONT,
+      StencilFace.BACK => TStencilFace.STENCIL_FACE_BACK,
+      StencilFace.FRONT_AND_BACK => TStencilFace.STENCIL_FACE_FRONT_AND_BACK
+    };
   }
 }
