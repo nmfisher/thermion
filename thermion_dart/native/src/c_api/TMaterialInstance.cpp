@@ -176,13 +176,25 @@ namespace thermion
             materialInstance->setStencilOpDepthStencilPass(op, face);
         }
 
+        filament::MaterialInstance::StencilFace toStencilFace(TStencilFace tface) {
+            switch(tface) {
+                case STENCIL_FACE_FRONT: return filament::MaterialInstance::StencilFace::FRONT;
+                case STENCIL_FACE_BACK: return filament::MaterialInstance::StencilFace::BACK;
+                case STENCIL_FACE_FRONT_AND_BACK: return filament::MaterialInstance::StencilFace::FRONT_AND_BACK;
+                default: throw std::invalid_argument("Invalid TStencilFace value");
+            }
+        }
+
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilCompareFunction(TMaterialInstance *tMaterialInstance,
                                                                              TSamplerCompareFunc tFunc, TStencilFace tFace)
         {
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto func = static_cast<filament::MaterialInstance::StencilCompareFunc>(tFunc);
-            auto face = static_cast<filament::MaterialInstance::StencilFace>(tFace);
-            materialInstance->setStencilCompareFunction(func, face);
+            auto face = toStencilFace(tFace);
+
+            materialInstance->setStencilCompareFunction(
+                func,
+                face);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilReferenceValue(TMaterialInstance *tMaterialInstance,
