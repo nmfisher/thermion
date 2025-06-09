@@ -48,7 +48,10 @@ abstract class ThermionAsset {
   Future<MaterialInstance> getMaterialInstanceAt(
       {ThermionEntity? entity, int index = 0});
 
+  /// Sets the material instance for the primitive at [primitiveIndex] in
+  /// [entity].
   ///
+  /// If [entity] is null, the top-most parent for this asset will be used.
   ///
   ///
   Future setMaterialInstanceAt(covariant MaterialInstance instance,
@@ -56,8 +59,36 @@ abstract class ThermionAsset {
     throw UnimplementedError();
   }
 
+  /// Sets the material instance for all primitives in all entities to
+  /// [instance].
   ///
+  Future setMaterialInstanceForAll(covariant MaterialInstance instance) {
+    throw UnimplementedError();
+  }
+
+  /// Returns a map of all renderable entities attached to this asset, and
+  /// a list of material instances for each primitive for the respective
+  /// entity.
+  ///
+  Future<Map<ThermionEntity, List<MaterialInstance>>>
+      getMaterialInstancesAsMap() {
+    throw UnimplementedError();
+  }
+
+
+  /// For each entity in the given map, set the material instance 
+  /// for the respective primitive.
+  /// 
+  /// Mainly intended for use with [getMaterialInstancesAsMap] so you can 
+  /// easily save/restore an asset's material instances.  
+  ///
+  Future setMaterialInstancesFromMap(
+      Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
+      throw UnimplementedError();
+  }
+
   /// Renders an outline around [entity] with the given color.
+  ///
   ///
   Future setStencilHighlight(
       {double r = 1.0, double g = 0.0, double b = 0.0, int? entityIndex});
@@ -340,4 +371,12 @@ abstract class ThermionAsset {
   /// Removes an animation component from [entity].
   ///
   Future removeAnimationComponent();
+
+  /// Returns the number of primitives in [entity] (which is assumed to have
+  /// a Renderable component attached).
+  ///
+  ///
+  Future<int> getPrimitiveCount({ThermionEntity? entity}) async {
+    throw UnimplementedError();
+  }
 }
