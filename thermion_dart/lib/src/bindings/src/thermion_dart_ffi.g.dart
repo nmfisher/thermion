@@ -339,7 +339,9 @@ external void FilamentAsset_getEntities(
 
 @ffi.Native<
     ffi.Pointer<TGltfAssetLoader> Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<TMaterialProvider>, ffi.Pointer<TNameComponentManager> )>(isLeaf: true)
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TMaterialProvider>,
+        ffi.Pointer<TNameComponentManager>)>(isLeaf: true)
 external ffi.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TMaterialProvider> tMaterialProvider,
@@ -553,10 +555,10 @@ external void View_setFrontFaceWindingInverted(
   bool inverted,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TFogOptions>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TFogOptions)>(isLeaf: true)
 external void View_setFogOptions(
   ffi.Pointer<TView> tView,
-  ffi.Pointer<TFogOptions> tFogOptions,
+  TFogOptions tFogOptions,
 );
 
 @ffi.Native<
@@ -612,6 +614,11 @@ external ffi.Pointer<TTexture> Texture_build(
   int format,
 );
 
+@ffi.Native<ffi.Size Function(ffi.Pointer<TTexture>)>(isLeaf: true)
+external int Texture_getLevels(
+  ffi.Pointer<TTexture> tTexture,
+);
+
 @ffi.Native<
     ffi.Bool Function(
         ffi.Pointer<TEngine>,
@@ -619,7 +626,7 @@ external ffi.Pointer<TTexture> Texture_build(
         ffi.Pointer<TLinearImage>,
         ffi.UnsignedInt,
         ffi.UnsignedInt,
-        ffi.UnsignedInt)>(isLeaf: true)
+        ffi.Int)>(isLeaf: true)
 external bool Texture_loadImage(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
@@ -687,12 +694,6 @@ external bool Texture_setImageWithDepth(
   int pixelDataType,
 );
 
-@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>)>(
-    isLeaf: true)
-external int Texture_getLevels(
-  ffi.Pointer<TTexture> tTexture,
-);
-
 @ffi.Native<ffi.Uint32 Function(ffi.Pointer<TTexture>, ffi.Uint32)>(
     isLeaf: true)
 external int Texture_getWidth(
@@ -714,18 +715,18 @@ external int Texture_getDepth(
   int level,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>,)>(
-    isLeaf: true)
-external void Texture_generateMipMaps(
-  ffi.Pointer<TTexture> tTexture,
-  ffi.Pointer<TEngine> tEngine,
-);
-
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TTexture>, ffi.Uint32)>(
     isLeaf: true)
 external int Texture_getUsage(
   ffi.Pointer<TTexture> tTexture,
   int level,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external void Texture_generateMipMaps(
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TEngine> tEngine,
 );
 
 @ffi.Native<
@@ -738,13 +739,13 @@ external ffi.Pointer<TLinearImage> Image_createEmpty(
 );
 
 @ffi.Native<
-    ffi.Pointer<TLinearImage> Function(
-        ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>, ffi.Bool alpha)>(isLeaf: true)
+    ffi.Pointer<TLinearImage> Function(ffi.Pointer<ffi.Uint8>, ffi.Size,
+        ffi.Pointer<ffi.Char>, ffi.Bool)>(isLeaf: true)
 external ffi.Pointer<TLinearImage> Image_decode(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   ffi.Pointer<ffi.Char> name,
-  bool alpha
+  bool alpha,
 );
 
 @ffi.Native<ffi.Pointer<ffi.Float> Function(ffi.Pointer<TLinearImage>)>(
@@ -1259,7 +1260,7 @@ external int TransformManager_getAncestor(
     isLeaf: true)
 external void TransformManager_createComponent(
   ffi.Pointer<TTransformManager> tTransformManager,
-  int entityId,
+  int entity,
 );
 
 @ffi.Native<
@@ -1598,11 +1599,9 @@ external void Engine_destroyIndirectLight(
   ffi.Pointer<TIndirectLight> tIndirectLight,
 );
 
-@ffi.Native<
-    ffi.Int Function(
-        ffi.Pointer<TEntityManager>)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TEntityManager>)>(isLeaf: true)
 external int EntityManager_createEntity(
-  ffi.Pointer<TEntityManager> tEngine
+  ffi.Pointer<TEntityManager> tEntityManager,
 );
 
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
@@ -1878,13 +1877,14 @@ external void Texture_buildRenderThread(
       onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>, ffi.Uint32, VoidCallback)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TTexture>, ffi.Pointer<TEngine>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
 external void Texture_generateMipMapsRenderThread(
   ffi.Pointer<TTexture> tTexture,
   ffi.Pointer<TEngine> tEngine,
   int requestId,
-  VoidCallback onComplete
+  VoidCallback onComplete,
 );
 
 @ffi.Native<
@@ -2333,20 +2333,6 @@ external void MaterialProvider_createMaterialInstanceRenderThread(
         ffi.Void Function(
             ffi.Pointer<TAnimationManager>,
             ffi.Pointer<TSceneAsset>,
-            ffi.Uint32 requestId,
-            VoidCallback onComplete)>(
-    isLeaf: true)
-external void AnimationManager_resetToRestPoseRenderThread(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-  int requestId,
-  VoidCallback onComplete
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TAnimationManager>,
-            ffi.Pointer<TSceneAsset>,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void AnimationManager_updateBoneMatricesRenderThread(
@@ -2461,7 +2447,7 @@ external void Image_getChannelsRenderThread(
             ffi.Pointer<TLinearImage>,
             ffi.UnsignedInt,
             ffi.UnsignedInt,
-            ffi.UnsignedInt,
+            ffi.Int,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void Texture_loadImageRenderThread(
@@ -2726,6 +2712,16 @@ external void AnimationManager_setBoneTransformRenderThread(
   int boneIndex,
   ffi.Pointer<ffi.Float> transform,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
+        ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void AnimationManager_resetToRestPoseRenderThread(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  VoidCallback onComplete,
 );
 
 @ffi.Native<
@@ -3741,8 +3737,6 @@ final class TFogOptions extends ffi.Struct {
   @ffi.Float()
   external double heightFalloff;
 
-  external double3 linearColor;
-
   @ffi.Float()
   external double density;
 
@@ -3752,10 +3746,19 @@ final class TFogOptions extends ffi.Struct {
   @ffi.Float()
   external double inScatteringSize;
 
+  external ffi.Pointer<TTexture> skyColor;
+
+  @ffi.Float()
+  external double linearColorR;
+
+  @ffi.Float()
+  external double linearColorG;
+
+  @ffi.Float()
+  external double linearColorB;
+
   @ffi.Bool()
   external bool fogColorFromIbl;
-
-  external ffi.Pointer<TTexture> skyColor;
 
   @ffi.Bool()
   external bool enabled;
