@@ -121,11 +121,8 @@ class TestHelper {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC
         },
         textureFormat: textureFormat);
-    await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
-      512,
-      512,
-      color: color,
-    ) as FFIRenderTarget);
+    await view.setRenderTarget(await FilamentApp.instance!
+        .createRenderTarget(512, 512, color: color) as FFIRenderTarget);
 
     await FilamentApp.instance!.register(swapChain, view);
 
@@ -152,7 +149,7 @@ class TestHelper {
     final cubeGeometry = GeometryHelper.cube(flipUvs: true);
     var asset = await viewer
         .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
-    
+
     await fn(asset);
     await viewer.destroyAsset(asset);
   }
@@ -164,13 +161,15 @@ class TestHelper {
       {Future Function(View view)? beforeRender,
       SwapChain? swapChain,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
-      PixelDataType pixelDataType = PixelDataType.FLOAT}) async {
+      PixelDataType pixelDataType = PixelDataType.FLOAT,
+      bool captureRenderTarget = false}) async {
     swapChain ??= this.swapChain;
     var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
         view: view,
         beforeRender: beforeRender,
         pixelDataFormat: pixelDataFormat,
-        pixelDataType: pixelDataType);
+        pixelDataType: pixelDataType,
+        captureRenderTarget: captureRenderTarget);
     var retval = <View, Uint8List>{};
     int i = 0;
     for (final (view, pixelBuffer) in pixelBuffers) {
@@ -191,9 +190,10 @@ class TestHelper {
   ///
   ///
   Future<ThermionTextureSwift> createTexture(int width, int height,
-      {bool depth = false}) async {
+      {bool depth = false, bool stencil = false}) async {
     final object = ThermionTextureSwift();
-    object.initWithWidth_height_isDepth_(width, height, depth);
+    object.initWithWidth_height_isDepth_isStencil_(
+        width, height, depth, stencil);
     return object;
   }
 
@@ -207,7 +207,8 @@ class TestHelper {
       print(record);
     });
 
-    await FFIFilamentApp.create(config: FFIFilamentConfig(loadResource: _loadResource));
+    await FFIFilamentApp.create(
+        config: FFIFilamentConfig(loadResource: _loadResource));
   }
 
   Future createViewer(
@@ -216,11 +217,13 @@ class TestHelper {
       ({int width, int height}) viewportDimensions = (width: 512, height: 512),
       bool postProcessing = false,
       bool addSkybox = false,
-      bool createRenderTarget = false}) async {
+      bool createRenderTarget = false,
+      bool createStencilBuffer = false}) async {
     cameraPosition ??= Vector3(0, 5, 5);
 
     swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-        viewportDimensions.width, viewportDimensions.height) as FFISwapChain;
+        viewportDimensions.width, viewportDimensions.height,
+        hasStencilBuffer: createStencilBuffer) as FFISwapChain;
 
     FFIRenderTarget? renderTarget;
     if (createRenderTarget) {
@@ -240,15 +243,18 @@ class TestHelper {
               importedTextureHandle: metalColorTexture.metalTextureAddress);
       var width = await color.getWidth();
       var height = await color.getHeight();
-      var depth = await FilamentApp.instance!
-          .createTexture(viewportDimensions.width, viewportDimensions.height,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-              },
-              textureFormat: TextureFormat.DEPTH32F,
-              importedTextureHandle: metalDepthTexture.metalTextureAddress);
+      var depth = await FilamentApp.instance!.createTexture(
+          viewportDimensions.width, viewportDimensions.height,
+          flags: {
+            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+            if (createStencilBuffer)
+              TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+          },
+          textureFormat: createStencilBuffer
+              ? TextureFormat.DEPTH32F_STENCIL8
+              : TextureFormat.DEPTH32F,
+          importedTextureHandle: metalDepthTexture.metalTextureAddress);
 
       renderTarget = await FilamentApp.instance!.createRenderTarget(
           viewportDimensions.width, viewportDimensions.height,
@@ -265,6 +271,10 @@ class TestHelper {
     await viewer.view
         .setViewport(viewportDimensions.width, viewportDimensions.height);
 
+    if (createStencilBuffer) {
+      await viewer.view.setStencilBufferEnabled(true);
+    }
+
     if (addSkybox) {
       await viewer
           .loadSkybox("file://${testDir}/assets/default_env_skybox.ktx");
@@ -278,7 +288,10 @@ class TestHelper {
     final camera = await viewer.getActiveCamera();
 
     await camera.setLensProjection(
-        near: kNear, far: kFar, aspect: viewportDimensions.width / viewportDimensions.height, focalLength: kFocalLength);
+        near: kNear,
+        far: kFar,
+        aspect: viewportDimensions.width / viewportDimensions.height,
+        focalLength: kFocalLength);
 
     await camera.lookAt(cameraPosition);
 
@@ -299,6 +312,7 @@ class TestHelper {
     bool postProcessing = false,
     bool addSkybox = false,
     bool createRenderTarget = false,
+    bool createStencilBuffer = false,
   }) async {
     final viewer = await createViewer(
         bg: bg,
@@ -306,7 +320,8 @@ class TestHelper {
         viewportDimensions: viewportDimensions,
         postProcessing: postProcessing,
         addSkybox: addSkybox,
-        createRenderTarget: createRenderTarget);
+        createRenderTarget: createRenderTarget,
+        createStencilBuffer: createStencilBuffer);
     await fn.call(viewer);
     await viewer.dispose();
   }
