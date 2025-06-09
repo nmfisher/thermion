@@ -70,7 +70,7 @@ void main() async {
       // just a sanity check, output should be the same as above
       await testHelper.capture(
           viewer.view, "material_instance_depth_pass_stencil_enabled");
-    }, postProcessing: true, bg: null);
+    }, postProcessing: true, bg: null, createStencilBuffer: true);
   });
 
   test('set stencil compare function to never/always/lt/gt)', () async {
