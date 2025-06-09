@@ -39,8 +39,15 @@ void main() async {
 
       await viewer.addToScene(instance);
       await instance.setTransform(Matrix4.translation(Vector3(1, 0, 0)));
-      await testHelper.capture(viewer.view, "geometry_with_instance");
+      await testHelper.capture(viewer.view, "geometry_with_one_instance");
 
+      var instance2 = await asset.createInstance();
+      await viewer.addToScene(instance2);
+      await instance2.setTransform(Matrix4.translation(Vector3(-1, 0, 0)));
+      expect(await asset.getInstanceCount(), 2);
+      await testHelper.capture(viewer.view, "geometry_with_two_instances");
+
+      await viewer.destroyAsset(instance2);
       await viewer.destroyAsset(instance);
       await testHelper.capture(viewer.view, "geometry_instance_destroyed");
 
