@@ -335,4 +335,11 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future<Matrix4> getWorldTransform(ThermionEntity entity);
+
+  ///
+  ///
+  ///
+  Future setPriority(ThermionEntity entity, int priority);
+
+
 }
