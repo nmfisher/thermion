@@ -202,6 +202,64 @@ void main() async {
         isFloat: true);
   });
 
+  ///
+  ///
+  ///
+  test('render two views to same render target', () async {
+    final viewportDimensions = (width: 500, height: 500);
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height);
+    final views = <FFIView>[];
+
+    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0,
+        clear: false, clearStencil: 0, discard: false);
+
+    final renderTarget = await FilamentApp.instance!.createRenderTarget(
+        viewportDimensions.width, viewportDimensions.height) as FFIRenderTarget;
+
+    for (int i = 0; i < 2; i++) {
+      final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+      await camera.setLensProjection();
+      final view = await FilamentApp.instance!.createView() as FFIView;
+      final scene = await FilamentApp.instance!.createScene() as FFIScene;
+      await view.setScene(scene);
+      await view.setRenderable(true);
+      await view.setViewport(
+          viewportDimensions.width, viewportDimensions.height);
+      await view.setFrustumCullingEnabled(false);
+      await view.setPostProcessing(false);
+
+      await view.setRenderTarget(renderTarget);
+
+      await FilamentApp.instance!.register(swapChain, view);
+      await view.setCamera(camera);
+      views.add(view);
+
+      await camera.lookAt(Vector3(0, 4, 12),
+          focus: Vector3(i == 0 ? -2 : 2, 0, 0));
+
+      var cube = await FilamentApp.instance!.createGeometry(
+          GeometryHelper.cube(flipUvs: true), nullptr) as FFIAsset;
+
+      await scene.add(cube);
+    }
+    var result = await FilamentApp.instance!
+        .capture(swapChain, captureRenderTarget: true);
+
+    await savePixelBufferToBmp(
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "two_views_same_render_target1.bmp"),
+        isFloat: true);
+    await savePixelBufferToBmp(
+        result.last.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
+        p.join(testHelper.outDir.path, "two_views_same_render_target2.bmp"),
+        isFloat: true);
+  });
+
   test('render depth buffer to render target', () async {
     final viewportDimensions = (width: 500, height: 500);
     final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
@@ -293,10 +351,9 @@ void main() async {
 
       await testHelper.capture(viewer.view, "fog_options_disabled");
 
-      await viewer.view.setFogOptions(FogOptions(
-          enabled: true, distance: 0, density: 0.5));
+      await viewer.view
+          .setFogOptions(FogOptions(enabled: true, distance: 0, density: 0.5));
       await testHelper.capture(viewer.view, "fog_options_enabled");
-
     }, addSkybox: true, postProcessing: true);
   });
 }
