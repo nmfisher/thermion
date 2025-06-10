@@ -1,8 +1,12 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:logging/logging.dart';
 
 class FFIScene extends Scene {
+  
+  late final _logger = Logger(this.runtimeType.toString());
+
   final Pointer<TScene> scene;
 
   FFIScene(this.scene);
@@ -12,28 +16,47 @@ class FFIScene extends Scene {
     SceneAsset_addToScene(asset.asset, scene);
   }
 
+  ///
+  ///
+  ///
   @override
   Future addEntity(ThermionEntity entity) async {
     Scene_addEntity(scene, entity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future remove(covariant FFIAsset asset) async {
     SceneAsset_removeFromScene(asset.asset, scene);
   }
-
-  final _outlines = <ThermionAsset, FFIAsset>{};
 
   ///
   ///
   ///
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
-    if (_outlines.containsKey(asset)) {
-      final highlight = _outlines[asset]!;
-      await remove(highlight);
+    if (!_highlighted.contains(asset)) {
+      _logger
+          .warning("No stencil highlight for asset (entity ${asset.entity})");
+      return;
     }
+    _logger.info(
+        "Removing stencil highlight for asset (entity ${asset.entity})");
+    _highlighted.remove(asset);
+    final highlight = _highlightInstances[asset]!;
+    
+    await remove(highlight);
+    await FilamentApp.instance!.destroyAsset(highlight);
+
+    _logger.info(
+        "Removed stencil highlight for asset (entity ${asset.entity})");
   }
+
+  static MaterialInstance? _highlightMaterialInstance;
+  final _highlightInstances = <ThermionAsset, FFIAsset>{};
+  final _highlighted = <ThermionAsset>{};
 
   ///
   ///
@@ -47,7 +70,18 @@ class FFIScene extends Scene {
       int primitiveIndex = 0}) async {
     entity ??= asset.entity;
 
-    if (!_outlines.containsKey(asset)) {
+    if (_highlighted.contains(asset)) {
+      _logger
+        .info("Stencil highlight exists for asset (entity ${asset.entity})");
+    } else {
+
+      _highlighted.add(asset);
+      _highlightMaterialInstance ??=
+          await FilamentApp.instance!.createUnlitMaterialInstance();
+      var highlightInstance = await asset
+          .createInstance(materialInstances: [_highlightMaterialInstance!]);
+      _highlightInstances[asset] = highlightInstance as FFIAsset;
+
       var sourceMaterialInstance =
           await asset.getMaterialInstanceAt(entity: entity);
       await sourceMaterialInstance.setStencilWriteEnabled(true);
@@ -60,21 +94,15 @@ class FFIScene extends Scene {
       await sourceMaterialInstance
           .setStencilReferenceValue(View.STENCIL_HIGHLIGHT_REFERENCE_VALUE);
 
-      var highlightMaterialInstance =
-          await FilamentApp.instance!.createUnlitMaterialInstance();
-
-      await highlightMaterialInstance
+      await _highlightMaterialInstance!
           .setStencilCompareFunction(SamplerCompareFunction.NE);
-      await highlightMaterialInstance
+      await _highlightMaterialInstance!
           .setStencilReferenceValue(View.STENCIL_HIGHLIGHT_REFERENCE_VALUE);
-      await highlightMaterialInstance.setDepthCullingEnabled(false);
-      await highlightMaterialInstance.setParameterFloat4(
-          "baseColorFactor", r, g, b, 1.0);
+      await _highlightMaterialInstance!.setDepthCullingEnabled(true);
+      await _highlightMaterialInstance!
+          .setParameterFloat4("baseColorFactor", r, g, b, 1.0);
 
-      var highlightInstance = await asset
-          .createInstance(materialInstances: [highlightMaterialInstance]);
       await add(highlightInstance as FFIAsset);
-      _outlines[asset] = highlightInstance as FFIAsset;
 
       var transform = await FilamentApp.instance!
           .getWorldTransform(highlightInstance.entity);
@@ -85,6 +113,11 @@ class FFIScene extends Scene {
       await FilamentApp.instance!.setPriority(highlightInstance.entity, 7);
 
       await FilamentApp.instance!.setParent(highlightInstance.entity, entity);
+      
+      _logger
+        .info("Added stencil highlight for asset (entity ${asset.entity})");
     }
+
+
   }
 }

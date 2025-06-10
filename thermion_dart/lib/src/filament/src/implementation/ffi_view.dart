@@ -163,10 +163,14 @@ class FFIView extends View {
     View_setBlendMode(view, blendMode.index);
   }
 
+  FFIScene? _scene;
+
   @override
   Future<Scene> getScene() async {
-    final ptr = View_getScene(view);
-    return FFIScene(ptr);
+    if (_scene == null) {
+      _scene = FFIScene(View_getScene(view));
+    }
+    return _scene!;
   }
 
   int _pickRequestId = -1;
