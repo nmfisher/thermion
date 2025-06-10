@@ -98,7 +98,7 @@ void main() async {
         await mi.setStencilCompareFunction(
             SamplerCompareFunction.N, StencilFace.FRONT_AND_BACK);
       }
-      
+
       // should be totally empty
       await testHelper.capture(viewer.view, "stencil_never");
 
@@ -113,30 +113,30 @@ void main() async {
 
       // set the blue cube to always pass the stencil test
       await blueMaterialInstance.setStencilCompareFunction(
-            SamplerCompareFunction.A, StencilFace.FRONT_AND_BACK);
+          SamplerCompareFunction.A, StencilFace.FRONT_AND_BACK);
       // when blue cube passes depth + stencil, replace the default stencil value (0) with 1
-      await blueMaterialInstance.setStencilOpDepthStencilPass(StencilOperation.REPLACE);
+      await blueMaterialInstance
+          .setStencilOpDepthStencilPass(StencilOperation.REPLACE);
       await blueMaterialInstance.setStencilReferenceValue(1);
-      
-      // set the green cube to only pass the stencil test where stencil value is 
+
+      // set the green cube to only pass the stencil test where stencil value is
       // not equal to 0
       await greenMaterialInstance.setStencilCompareFunction(
-            SamplerCompareFunction.NE, StencilFace.FRONT_AND_BACK);      
+          SamplerCompareFunction.NE, StencilFace.FRONT_AND_BACK);
       await greenMaterialInstance.setStencilReferenceValue(0);
 
-      // green cube will only be rendered where it overlaps with blue cube 
+      // green cube will only be rendered where it overlaps with blue cube
       await testHelper.capture(viewer.view, "stencil_ne");
 
-      // set the green cube to only pass the stencil test where stencil value is 
+      // set the green cube to only pass the stencil test where stencil value is
       // equal to 0
       await greenMaterialInstance.setStencilCompareFunction(
-            SamplerCompareFunction.E, StencilFace.FRONT_AND_BACK);      
-      
-      // green cube renders where it does not overlap with blue cube (same as if 
-      // we had disabled depth writes and rendered the green cube, then the blue 
+          SamplerCompareFunction.E, StencilFace.FRONT_AND_BACK);
+
+      // green cube renders where it does not overlap with blue cube (same as if
+      // we had disabled depth writes and rendered the green cube, then the blue
       // cube)
       await testHelper.capture(viewer.view, "stencil_eq");
-
     },
         bg: null,
         postProcessing: true,
@@ -144,32 +144,5 @@ void main() async {
         createRenderTarget: false);
   });
 
-  // test('fail stencil not equal', () async {
-  //   await testHelper.withViewer((viewer) async {
-  //     final (
-  //       :blueCube,
-  //       :blueMaterialInstance,
-  //       :greenCube,
-  //       :greenMaterialInstance
-  //     ) = await setup(viewer);
 
-  //     // this ensures the blue cube is rendered before the green cube
-  //     await viewer.setPriority(blueCube.entity, 0);
-  //     await viewer.setPriority(greenCube.entity, 1);
-
-  //     await blueMaterialInstance.setStencilWriteEnabled(true);
-  //     await blueMaterialInstance.setStencilReferenceValue(1);
-  //     await blueMaterialInstance
-  //         .setStencilCompareFunction(SamplerCompareFunction.A);
-  //     await blueMaterialInstance
-  //         .setStencilOpDepthStencilPass(StencilOperation.REPLACE);
-
-  //     await greenMaterialInstance.setStencilReferenceValue(1);
-  //     await greenMaterialInstance
-  //         .setStencilCompareFunction(SamplerCompareFunction.E);
-
-  //     // green cube is only rendered where it intersects with the blue cube
-  //     await testHelper.capture(viewer.view, "fail_stencil_ne");
-  //   }, postProcessing: true);
-  // });
 }

@@ -53,6 +53,8 @@ enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
 abstract class View {
   
+  static int STENCIL_HIGHLIGHT_REFERENCE_VALUE = 1;
+
   /// Gets the scene currently associated with this View.
   ///
   ///
@@ -79,7 +81,7 @@ abstract class View {
   Future setShadowsEnabled(bool enabled);
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
 
-  /// Sets the fog options for this view. 
+  /// Sets the fog options for this view.
   /// Fog is disabled by default
   ///
   Future setFogOptions(FogOptions options);

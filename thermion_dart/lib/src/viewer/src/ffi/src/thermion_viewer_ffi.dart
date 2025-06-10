@@ -592,8 +592,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setPriority(ThermionEntity entityId, int priority) async {
-    RenderableManager_setPriority(app.renderableManager, entityId, priority);
+  Future setPriority(ThermionEntity entity, int priority) async {
+    return FilamentApp.instance!.setPriority(entity, priority);
   }
 
   ///

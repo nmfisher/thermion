@@ -1177,4 +1177,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     return transform;
   }
+
+  ///
+  ///
+  ///
+  @override
+  Future setPriority(ThermionEntity entity, int priority) async {
+    RenderableManager_setPriority(renderableManager, entity, priority);
+  }
 }

@@ -87,17 +87,6 @@ abstract class ThermionAsset {
       throw UnimplementedError();
   }
 
-  /// Renders an outline around [entity] with the given color.
-  ///
-  ///
-  Future setStencilHighlight(
-      {double r = 1.0, double g = 0.0, double b = 0.0, int? entityIndex});
-
-  ///
-  /// Removes the outline around [entity]. Noop if there was no highlight.
-  ///
-  Future removeStencilHighlight();
-
   ///
   /// The dimensions of the bounding box for this asset.
   /// This is independent of the boundingBoxAsset (which is used to visualize
