@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
@@ -37,6 +38,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      ThermionFlutterPlatform.instance
+          .setOptions(const ThermionFlutterWebOptions(importCanvasAsWidget: true));
+    }
   }
 
   bool _showViewer = false;
