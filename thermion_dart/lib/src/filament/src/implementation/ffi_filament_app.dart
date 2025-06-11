@@ -560,6 +560,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
+  Future setMaterialInstanceAt(ThermionEntity entity, int index,
+      MaterialInstance materialInstance) async {
+    RenderableManager_setMaterialInstanceAt(renderableManager, entity, index,
+        (materialInstance as FFIMaterialInstance).pointer);
+  }
+
+  ///
+  ///
+  ///
   @override
   Future render() async {
     final swapchain = _swapChains.keys.first;

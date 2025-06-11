@@ -196,7 +196,13 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future<MaterialInstance> getMaterialInstanceAt(
-      ThermionEntity entity, int index);
+      ThermionEntity entity, int primitiveIndex);
+
+  ///
+  ///
+  ///
+  Future setMaterialInstanceAt(
+      ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
 
   ///
   ///
