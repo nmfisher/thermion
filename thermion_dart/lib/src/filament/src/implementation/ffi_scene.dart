@@ -4,7 +4,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
 
 class FFIScene extends Scene {
-  
   late final _logger = Logger(this.runtimeType.toString());
 
   final Pointer<TScene> scene;
@@ -36,22 +35,30 @@ class FFIScene extends Scene {
   ///
   ///
   @override
+  Future removeEntity(ThermionEntity entity) async {
+    Scene_removeEntity(scene, entity);
+  }
+
+  ///
+  ///
+  ///
+  @override
   Future removeStencilHighlight(ThermionAsset asset) async {
     if (!_highlighted.contains(asset)) {
       _logger
           .warning("No stencil highlight for asset (entity ${asset.entity})");
       return;
     }
-    _logger.info(
-        "Removing stencil highlight for asset (entity ${asset.entity})");
+    _logger
+        .info("Removing stencil highlight for asset (entity ${asset.entity})");
     _highlighted.remove(asset);
     final highlight = _highlightInstances[asset]!;
-    
+
     await remove(highlight);
     await FilamentApp.instance!.destroyAsset(highlight);
 
-    _logger.info(
-        "Removed stencil highlight for asset (entity ${asset.entity})");
+    _logger
+        .info("Removed stencil highlight for asset (entity ${asset.entity})");
   }
 
   static MaterialInstance? _highlightMaterialInstance;
@@ -72,9 +79,8 @@ class FFIScene extends Scene {
 
     if (_highlighted.contains(asset)) {
       _logger
-        .info("Stencil highlight exists for asset (entity ${asset.entity})");
+          .info("Stencil highlight exists for asset (entity ${asset.entity})");
     } else {
-
       _highlighted.add(asset);
       _highlightMaterialInstance ??=
           await FilamentApp.instance!.createUnlitMaterialInstance();
@@ -102,7 +108,7 @@ class FFIScene extends Scene {
       await _highlightMaterialInstance!
           .setParameterFloat4("baseColorFactor", r, g, b, 1.0);
 
-      await add(highlightInstance as FFIAsset);
+      await add(highlightInstance);
 
       var transform = await FilamentApp.instance!
           .getWorldTransform(highlightInstance.entity);
@@ -113,11 +119,9 @@ class FFIScene extends Scene {
       await FilamentApp.instance!.setPriority(highlightInstance.entity, 7);
 
       await FilamentApp.instance!.setParent(highlightInstance.entity, entity);
-      
+
       _logger
-        .info("Added stencil highlight for asset (entity ${asset.entity})");
+          .info("Added stencil highlight for asset (entity ${asset.entity})");
     }
-
-
   }
 }
