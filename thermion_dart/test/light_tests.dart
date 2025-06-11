@@ -1,11 +1,12 @@
 import 'package:thermion_dart/src/filament/src/interface/light_options.dart';
 import 'package:test/test.dart';
+import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("lights");
   await testHelper.setup();
-  group("lights", () {
+  
     test('add/clear point light', () async {
       await testHelper.withViewer((viewer) async {
         await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
@@ -22,5 +23,15 @@ void main() async {
     });
 
 
-  });
+      test('load/remove ibl', () async {
+      await testHelper.withViewer((viewer) async {
+        var asset = await viewer
+            .loadGltf("file://${testHelper.testDir}/assets/cube.glb");
+        await viewer
+            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+        await testHelper.capture(viewer.view, "ibl_loaded");
+        await viewer.removeIbl();
+        await testHelper.capture(viewer.view, "ibl_removed");
+      }, cameraPosition: Vector3(0, 0, 5));
+    });
 }

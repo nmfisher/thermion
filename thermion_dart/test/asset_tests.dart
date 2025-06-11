@@ -29,18 +29,6 @@ void main() async {
       }, createRenderTarget: true);
     });
 
-    test('load/remove ibl', () async {
-      await testHelper.withViewer((viewer) async {
-        var asset = await viewer
-            .loadGltf("file://${testHelper.testDir}/assets/cube.glb");
-        await viewer
-            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
-        await testHelper.capture(viewer.view, "ibl_loaded");
-        await viewer.removeIbl();
-        await testHelper.capture(viewer.view, "ibl_removed");
-      }, cameraPosition: Vector3(0, 0, 5));
-    });
-
     test('sync load/remove gltf from uri', () async {
       await testHelper.withViewer((viewer) async {
         var asset = await viewer.loadGltf(
