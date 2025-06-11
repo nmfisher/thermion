@@ -350,23 +350,23 @@ extern "C"
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length, void (*onComplete)(TSkybox *), void (*onTextureUploadComplete)())
+  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, TTexture *tTexture, void (*onComplete)(TSkybox *))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *skybox = Engine_buildSkybox(tEngine, skyboxData, length, onTextureUploadComplete);
+          auto *skybox = Engine_buildSkybox(tEngine, tTexture);
           PROXY(onComplete(skybox));
         });
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightRenderThread(TEngine *tEngine, uint8_t *iblData, size_t length, float intensity, void (*onComplete)(TIndirectLight *), void (*onTextureUploadComplete)())
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightRenderThread(TEngine *tEngine, TTexture *tTexture, float intensity, float *harmonics, void (*onComplete)(TIndirectLight *))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *indirectLight = Engine_buildIndirectLight(tEngine, iblData, length, intensity, onTextureUploadComplete);
+          auto *indirectLight = Engine_buildIndirectLight(tEngine, tTexture, intensity, harmonics);
           PROXY(onComplete(indirectLight));
         });
     auto fut = _renderThread->add_task(lambda);
@@ -860,6 +860,18 @@ extern "C"
         });
     auto fut = _renderThread->add_task(lambda);
   }
+
+  EMSCRIPTEN_KEEPALIVE void Texture_decodeKtxRenderThread(
+    TEngine *tEngine, uint8_t *ktxData, size_t length, float *sphericalHarmonics, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *texture = Texture_decodeKtx(tEngine, ktxData, length, sphericalHarmonics, requestId, onTextureUploadComplete);
+          PROXY(onComplete(texture));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
 
   EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
                                                           TPixelDataFormat bufferFormat, TPixelDataType pixelDataType,

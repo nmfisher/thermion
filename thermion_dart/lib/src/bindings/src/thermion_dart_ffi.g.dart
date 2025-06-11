@@ -730,6 +730,23 @@ external void Texture_generateMipMaps(
 );
 
 @ffi.Native<
+    ffi.Pointer<TTexture> Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Pointer<ffi.Float>,
+        ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external ffi.Pointer<TTexture> Texture_decodeKtx(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Uint8> ktxData,
+  int length,
+  ffi.Pointer<ffi.Float> sphericalHarmonics,
+  int requestId,
+  VoidCallback onTextureUploadComplete,
+);
+
+@ffi.Native<
     ffi.Pointer<TLinearImage> Function(
         ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
 external ffi.Pointer<TLinearImage> Image_createEmpty(
@@ -1558,30 +1575,20 @@ external ffi.Pointer<TScene> Engine_createScene(
 
 @ffi.Native<
     ffi.Pointer<TSkybox> Function(
-        ffi.Pointer<TEngine>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+        ffi.Pointer<TEngine>, ffi.Pointer<TTexture>)>(isLeaf: true)
 external ffi.Pointer<TSkybox> Engine_buildSkybox(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Uint8> ktxData,
-  int length,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onTextureUploadComplete,
+  ffi.Pointer<TTexture> tTexture,
 );
 
 @ffi.Native<
-    ffi.Pointer<TIndirectLight> Function(
-        ffi.Pointer<TEngine>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Float,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+    ffi.Pointer<TIndirectLight> Function(ffi.Pointer<TEngine>,
+        ffi.Pointer<TTexture>, ffi.Float, ffi.Pointer<ffi.Float>)>(isLeaf: true)
 external ffi.Pointer<TIndirectLight> Engine_buildIndirectLight(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Uint8> ktxData,
-  int length,
+  ffi.Pointer<TTexture> tTexture,
   double intensity,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onTextureUploadComplete,
+  ffi.Pointer<ffi.Float> harmonics,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TSkybox>)>(
@@ -1888,6 +1895,28 @@ external void Texture_generateMipMapsRenderThread(
 );
 
 @ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Pointer<ffi.Float>,
+            ffi.Uint32,
+            VoidCallback,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>)>(
+    isLeaf: true)
+external void Texture_decodeKtxRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Uint8> ktxData,
+  int length,
+  ffi.Pointer<ffi.Float> sphericalHarmonics,
+  int requestId,
+  VoidCallback onTextureUploadComplete,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>
+      onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Uint32,
         VoidCallback)>(isLeaf: true)
 external void Engine_destroyTextureRenderThread(
@@ -1936,40 +1965,36 @@ external void Engine_executeRenderThread(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TEngine>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Pointer<
-            ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TTexture>,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>)>(
+    isLeaf: true)
 external void Engine_buildSkyboxRenderThread(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Uint8> skyboxData,
-  int length,
+  ffi.Pointer<TTexture> tTexture,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>
       onComplete,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onTextureUploadComplete,
 );
 
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TEngine>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
+        ffi.Pointer<TTexture>,
         ffi.Float,
+        ffi.Pointer<ffi.Float>,
         ffi.Pointer<
-            ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TIndirectLight>)>>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TIndirectLight>)>>)>(isLeaf: true)
 external void Engine_buildIndirectLightRenderThread(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Uint8> iblData,
-  int length,
+  ffi.Pointer<TTexture> tTexture,
   double intensity,
+  ffi.Pointer<ffi.Float> harmonics,
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TIndirectLight>)>>
       onComplete,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onTextureUploadComplete,
 );
 
 @ffi.Native<
@@ -3045,6 +3070,13 @@ external void RenderableManager_setPriority(
   int priority,
 );
 
+@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external Aabb3 RenderableManager_getBoundingBox(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
 @ffi.Native<
     ffi.Pointer<TSceneAsset> Function(
         ffi.Pointer<TEngine>,
@@ -3462,6 +3494,9 @@ external bool AnimationManager_setGltfAnimationFrame(
   int frame,
 );
 
+typedef VoidCallbackFunction = ffi.Void Function(ffi.Int32 requestId);
+typedef DartVoidCallbackFunction = void Function(int requestId);
+typedef VoidCallback = ffi.Pointer<ffi.NativeFunction<VoidCallbackFunction>>;
 typedef EntityId = ffi.Int32;
 typedef DartEntityId = int;
 
@@ -4094,9 +4129,6 @@ sealed class TBackend {
   static const BACKEND_NOOP = 4;
 }
 
-typedef VoidCallbackFunction = ffi.Void Function(ffi.Int32 requestId);
-typedef DartVoidCallbackFunction = void Function(int requestId);
-typedef VoidCallback = ffi.Pointer<ffi.NativeFunction<VoidCallbackFunction>>;
 typedef FilamentRenderCallbackFunction = ffi.Void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef DartFilamentRenderCallbackFunction = void Function(

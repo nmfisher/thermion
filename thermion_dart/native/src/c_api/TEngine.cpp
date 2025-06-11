@@ -303,40 +303,11 @@ namespace thermion
             return reinterpret_cast<TScene *>(scene);
         }
 
-        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, uint8_t *ktxData, size_t length, void (*onTextureUploadComplete)())
+        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, TTexture *tTexture)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-            auto copy = new std::vector<uint8_t>(ktxData, ktxData + length);
-            image::Ktx1Bundle *skyboxBundle =
-                new image::Ktx1Bundle(static_cast<const uint8_t *>(copy->data()),
-                                      static_cast<uint32_t>(length));
-
-            std::vector<void *> *callbackData = new std::vector<void *>{
-                reinterpret_cast<void *>(onTextureUploadComplete),
-                reinterpret_cast<void *>(skyboxBundle),
-                reinterpret_cast<void *>(copy)};
-
-            auto *texture =
-                ktxreader::Ktx1Reader::createTexture(
-                    engine, *skyboxBundle, false, [](void *userdata)
-                    {
-                        std::vector<void*>* vec = (std::vector<void*>*)userdata;
-                        
-                        void *callbackPtr = vec->at(0);
-                        image::Ktx1Bundle *skyboxBundle = reinterpret_cast<image::Ktx1Bundle *>(vec->at(1));
-                        std::vector<uint8_t> *copy = reinterpret_cast<std::vector<uint8_t>*>(vec->at(2));
-
-                        delete vec;
-                        
-                        if (callbackPtr)
-                        {
-                          void (*callback)(void) = (void (*)(void))callbackPtr;
-                          callback();
-                        } 
-                        delete skyboxBundle;
-                        delete copy; 
-                    },
-                    (void *)callbackData);
+            auto *texture = reinterpret_cast<Texture *>(tTexture);
+            
             auto *skybox =
                 filament::Skybox::Builder()
                     .environment(texture)
@@ -345,48 +316,17 @@ namespace thermion
             return reinterpret_cast<TSkybox *>(skybox);
         }
 
-        EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLight(TEngine *tEngine, uint8_t *ktxData, size_t length, float intensity, void (*onTextureUploadComplete)())
+        EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLight(TEngine *tEngine, TTexture *tTexture, float intensity, float *harmonics)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-            auto copy = new std::vector<uint8_t>(ktxData, ktxData + length);
+            auto *texture = reinterpret_cast<Texture *>(tTexture);
 
-            image::Ktx1Bundle *iblBundle =
-                new image::Ktx1Bundle(static_cast<const uint8_t *>(copy->data()),
-                                      static_cast<uint32_t>(length));
-            filament::math::float3 harmonics[9];
-            iblBundle->getSphericalHarmonics(harmonics);
+            filament::math::float3 sphericalHarmonics[9];
+            memcpy(sphericalHarmonics, harmonics, 27 * sizeof(float));
 
-
-            std::vector<void *> *callbackData = new std::vector<void *>{
-                reinterpret_cast<void *>(onTextureUploadComplete),
-                reinterpret_cast<void *>(iblBundle),
-                reinterpret_cast<void *>(copy)};
-
-            auto *texture =
-                ktxreader::Ktx1Reader::createTexture(
-                    engine, *iblBundle, false, [](void *userdata)
-                    {
-                        std::vector<void*>* vec = (std::vector<void*>*)userdata;
-                        
-                        void *callbackPtr = vec->at(0);
-                        image::Ktx1Bundle *iblBundle = reinterpret_cast<image::Ktx1Bundle *>(vec->at(1));
-                        std::vector<uint8_t> *copy = reinterpret_cast<std::vector<uint8_t>*>(vec->at(2));
-
-                        delete vec;
-                        
-                        if (callbackPtr)
-                        {
-                          void (*callback)(void) = (void (*)(void))callbackPtr;
-                          callback();
-                        } 
-                        delete iblBundle;
-                        delete copy;                     
-                },
-
-                (void *)callbackData);
             auto *indirectLight = filament::IndirectLight::Builder()
                                       .reflections(texture)
-                                      .irradiance(3, harmonics)
+                                      .irradiance(3, sphericalHarmonics)
                                       .intensity(intensity)
                                       .build(*engine);
             return reinterpret_cast<TIndirectLight *>(indirectLight);

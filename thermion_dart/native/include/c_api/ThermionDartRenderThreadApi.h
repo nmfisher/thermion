@@ -1,5 +1,7 @@
 #pragma once
 
+#include "APIBoundaryTypes.h"
+
 #include "TEngine.h"
 #include "TView.h"
 #include "TTexture.h"
@@ -11,7 +13,6 @@ namespace thermion
     extern "C"
     {
 #endif
-        typedef void (*VoidCallback)(int32_t requestId);
         typedef int32_t EntityId;
         typedef void (*FilamentRenderCallback)(void *const owner);
 
@@ -59,14 +60,15 @@ namespace thermion
             void (*onComplete)(TTexture*)
         );
         void Texture_generateMipMapsRenderThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete);
+        void Texture_decodeKtxRenderThread(TEngine *tEngine, uint8_t *ktxData, size_t length, float *sphericalHarmonics, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *));
 
         void Engine_destroyTextureRenderThread(TEngine *engine, TTexture* tTexture, uint32_t requestId,  VoidCallback onComplete);
         void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence*));
         void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, uint32_t requestId,  VoidCallback onComplete);
         void Engine_flushAndWaitRenderThread(TEngine *tEngine, uint32_t requestId,  VoidCallback onComplete);
         void Engine_executeRenderThread(TEngine *tEngine, uint32_t requestId,  VoidCallback onComplete);
-        void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length, void (*onComplete)(TSkybox *), void (*onTextureUploadComplete)());
-        void Engine_buildIndirectLightRenderThread(TEngine *tEngine, uint8_t *iblData, size_t length, float intensity, void (*onComplete)(TIndirectLight *), void (*onTextureUploadComplete)());
+        void Engine_buildSkyboxRenderThread(TEngine *tEngine, TTexture *tTexture, void (*onComplete)(TSkybox *));
+        void Engine_buildIndirectLightRenderThread(TEngine *tEngine, TTexture *tTexture, float intensity, float *harmonics, void (*onComplete)(TIndirectLight *));
 
         void Renderer_setClearOptionsRenderThread(TRenderer *tRenderer, double clearR, double clearG, double clearB, double clearA, uint8_t clearStencil, bool clear, bool discard, uint32_t requestId,  VoidCallback onComplete);
         void Renderer_beginFrameRenderThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool));

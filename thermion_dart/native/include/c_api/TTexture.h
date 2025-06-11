@@ -260,7 +260,14 @@ EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t lev
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE TTextureUsage Texture_getUsage(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine);
-
+EMSCRIPTEN_KEEPALIVE TTexture* Texture_decodeKtx(
+    TEngine *tEngine,
+    uint8_t *ktxData,
+    size_t length,
+    float *sphericalHarmonics,
+    uint32_t requestId,
+    VoidCallback onTextureUploadComplete
+);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name, bool alpha);
 EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage);
