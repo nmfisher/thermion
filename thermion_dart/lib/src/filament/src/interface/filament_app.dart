@@ -342,10 +342,19 @@ abstract class FilamentApp<T> {
   ///
   Future<Matrix4> getWorldTransform(ThermionEntity entity);
 
-  ///
-  ///
+  /// Sets the render priority for [entity].
+  /// [priority] should be be between 0 and 7, with 0 meaning highest priority 
+  /// (rendered first) and 7 meaning lowest priority (rendered last).
   ///
   Future setPriority(ThermionEntity entity, int priority);
 
+  /// Gets the number of primitives for [entity] (which is assumed to be 
+  /// have a renderable component attached)
+  ///
+  Future<int> getPrimitiveCount(ThermionEntity entity);
 
+  /// Gets the bounding box for [entity] (which is assumed to be 
+  /// have a renderable component attached).
+  ///
+  Future<Aabb3> getBoundingBox(ThermionEntity entity);
 }

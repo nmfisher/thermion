@@ -1194,4 +1194,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future setPriority(ThermionEntity entity, int priority) async {
     RenderableManager_setPriority(renderableManager, entity, priority);
   }
+
+  ///
+  ///
+  ///
+  Future<int> getPrimitiveCount(ThermionEntity entity) async {
+    return RenderableManager_getPrimitiveCount(renderableManager, entity);
+  }
+
+  ///
+  ///
+  ///
+  Future<Aabb3> getBoundingBox(ThermionEntity entity) async {
+    final bb = RenderableManager_getBoundingBox(renderableManager, entity);
+    return Aabb3.centerAndHalfExtents(
+        Vector3(bb.centerX, bb.centerY, bb.centerZ),
+        Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ));
+  }
 }
