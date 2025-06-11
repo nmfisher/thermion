@@ -22,4 +22,22 @@ void main() async {
     var childNames = await asset.getChildEntityNames();
     expect("Cube", childNames.first);
   });
+
+  test('get entity bounding boxes', () async {
+    var cube = await FilamentApp.instance!
+        .createGeometry(GeometryHelper.cube(), nullptr);
+    var bb = await FilamentApp.instance!.getBoundingBox(cube.entity);
+
+    expect(bb.center.x, 0.0);
+    expect(bb.center.y, 0.0);
+    expect(bb.center.z, 0.0);
+    
+    expect(bb.max.x, 1);
+    expect(bb.max.y, 1);
+    expect(bb.max.z, 1);
+
+    expect(bb.min.x, -1);
+    expect(bb.min.y, -1);
+    expect(bb.min.z, -1);
+  });
 }
