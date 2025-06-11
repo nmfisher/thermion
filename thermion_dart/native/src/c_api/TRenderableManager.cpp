@@ -166,5 +166,20 @@ namespace thermion
             renderableManager->setPriority(renderableInstance, priority);
         }
 
+        EMSCRIPTEN_KEEPALIVE Aabb3 RenderableManager_getBoundingBox(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            
+            if (!renderableManager->hasComponent(entity)) {
+                Log("Not renderable");
+                return Aabb3{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+            }
+            auto renderableInstance = renderableManager->getInstance(entity);
+            auto boundingBox = renderableManager->getAxisAlignedBoundingBox(renderableInstance);
+            
+            return Aabb3{boundingBox.center.x, boundingBox.center.y, boundingBox.center.z, boundingBox.halfExtent.x, boundingBox.halfExtent.y, boundingBox.halfExtent.z};
+
+        }
+
     }
 }
