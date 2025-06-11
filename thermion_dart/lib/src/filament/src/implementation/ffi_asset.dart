@@ -1064,8 +1064,10 @@ class FFIAsset extends ThermionAsset {
     }
   }
 
+  ///
+  ///
+  ///
   Future<int> getPrimitiveCount({ThermionEntity? entity}) async {
-    entity ??= this.entity;
-    return RenderableManager_getPrimitiveCount(app.renderableManager, entity);
+    return FilamentApp.instance!.getPrimitiveCount(entity ??= this.entity);
   }
 }
