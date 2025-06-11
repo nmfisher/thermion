@@ -861,12 +861,35 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
+  #ifdef EMSCRIPTEN
+  static std::unordered_map<uint32_t, std::function<void(int32_t)>> _emscriptenWrappers;
+
+  static void Emscripten_voidCallback(int32_t requestId) {
+      auto it = _emscriptenWrappers.find(requestId);
+      if (it != _emscriptenWrappers.end()) {
+          it->second(requestId);
+          _emscriptenWrappers.erase(it);
+      } else {
+        Log("SEVERE: failed to find request id %d", requestId);
+      }
+  }
+  #endif
+
+  
   EMSCRIPTEN_KEEPALIVE void Texture_decodeKtxRenderThread(
     TEngine *tEngine, uint8_t *ktxData, size_t length, float *sphericalHarmonics, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *)) {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *texture = Texture_decodeKtx(tEngine, ktxData, length, sphericalHarmonics, requestId, onTextureUploadComplete);
+          #ifdef EMSCRIPTEN
+            std::function<void(int32_t)> wrapper = [=](int32_t requestId) {
+                PROXY(onTextureUploadComplete(requestId));
+            };
+            _emscriptenWrappers[requestId] = wrapper;
+            auto *texture = Texture_decodeKtx(tEngine, ktxData, length, sphericalHarmonics, requestId, Emscripten_voidCallback);
+          #else
+            auto *texture = Texture_decodeKtx(tEngine, ktxData, length, sphericalHarmonics, requestId, onTextureUploadComplete);
+          #endif          
           PROXY(onComplete(texture));
         });
     auto fut = _renderThread->add_task(lambda);
