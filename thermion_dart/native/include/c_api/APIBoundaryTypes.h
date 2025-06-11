@@ -9,6 +9,8 @@ extern "C"
 #include <stdint.h>
 
 #include "APIExport.h"
+
+	typedef void (*VoidCallback)(int32_t requestId);
 	
 	typedef int32_t EntityId;
 	typedef struct TCamera TCamera;
