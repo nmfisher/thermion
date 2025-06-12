@@ -5,7 +5,7 @@ headers:
   include-directives:
     - '../native/include/c_api/*.h'
 ffi-native:
-  assetId: package:thermion_dart/thermion_dart.dart
+  asset-id: package:thermion_dart/thermion_dart.dart
 ignore-source-errors: true
 functions:
   leaf:
