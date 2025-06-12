@@ -1,6 +1,3 @@
-import 'dart:typed_data';
-
-import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFITexture extends Texture {

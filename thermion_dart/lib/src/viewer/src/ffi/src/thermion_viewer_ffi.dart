@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/background_image.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
+import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
 import '../../../../filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../../filament/src/implementation/ffi_scene.dart';
@@ -204,7 +208,14 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await FilamentApp.instance!.loadResource(path);
     _backgroundImage ??= await BackgroundImage.create(this, scene);
-    await _backgroundImage!.setImage(imageData);
+    bool isKtx = path.endsWith(".ktx");
+    if (isKtx) {
+      final bundle = await FFIKtx1Bundle.create(imageData);
+      await _backgroundImage!.setImageFromKtxBundle(bundle);
+    } else {
+      await _backgroundImage!.setImage(imageData);
+    }
+    return (_backgroundImage!.width!, _backgroundImage!.height!);
   }
 
   ///
@@ -250,11 +261,9 @@ class ThermionViewerFFI extends ThermionViewer {
 
     _skyboxTextureUploadComplete =
         withVoidCallback((requestId, onTextureUploadComplete) async {
-      var skyboxTexturePointer = await withPointerCallback<TTexture>((cb) {
-        Texture_decodeKtxRenderThread(app.engine, data.address, data.length,
-            nullptr, requestId, onTextureUploadComplete, cb);
-      });
-      _skyboxTexture = FFITexture(app.engine, skyboxTexturePointer);
+      var bundle = await FFIKtx1Bundle.create(data);
+
+      _skyboxTexture = await bundle.createTexture() as FFITexture;
 
       _skybox = await withPointerCallback<TSkybox>((cb) {
         Engine_buildSkyboxRenderThread(app.engine, _skyboxTexture!.pointer, cb);
@@ -267,8 +276,6 @@ class ThermionViewerFFI extends ThermionViewer {
     await completer.future;
   }
 
-  Pointer<TTexture>? _iblTexture;
-  Pointer<TIndirectLight>? _indirectLight;
   Future? _iblTextureUploadComplete;
 
   ///
@@ -288,23 +295,22 @@ class ThermionViewerFFI extends ThermionViewer {
 
       var data = await FilamentApp.instance!.loadResource(lightingPath);
 
-      var harmonics = Float32List(27);
+      final bundle = await FFIKtx1Bundle.create(data);
 
-      _iblTexture = await withPointerCallback<TTexture>((cb) {
-        Texture_decodeKtxRenderThread(app.engine, data.address, data.length,
-            harmonics.address, requestId, onTextureUploadComplete, cb);
-      });
+      final texture = await bundle.createTexture();
+      final harmonics = bundle.getSphericalHarmonics();
 
-      _indirectLight = await withPointerCallback<TIndirectLight>((cb) {
-        Engine_buildIndirectLightRenderThread(
-            app.engine, _iblTexture!, intensity, harmonics.address, cb);
-      });
+      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(harmonics,
+          reflectionsTexture: texture, intensity: intensity);
+
+      await scene.setIndirectLight(ibl);
+
       if (FILAMENT_WASM) {
         //stackRestore(stackPtr);
         data.free();
       }
       data.free();
-      Scene_setIndirectLight(scene.scene, _indirectLight!);
+
       completer.complete();
     }).then((_) {
       _iblTextureUploadComplete = null;
@@ -317,20 +323,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future rotateIbl(Matrix3 rotationMatrix) async {
-    if (_indirectLight == null) {
-      throw Exception("No IBL loaded");
-    }
-
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
-    }
-
-    IndirectLight_setRotation(_indirectLight!, rotationMatrix.storage.address);
-
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      rotationMatrix.storage.free();
+    var ibl = await scene.getIndirectLight();
+    if (ibl != null) {
+      await ibl.rotate(rotationMatrix);
     }
   }
 
@@ -366,23 +361,15 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future removeIbl() async {
+  Future removeIbl({bool destroy = true}) async {
+    var ibl = await scene.getIndirectLight();
+    await scene.setIndirectLight(null);
+    if (ibl != null && destroy) {
+      await ibl.destroy();
+    }
     if (_iblTextureUploadComplete != null) {
       await _iblTextureUploadComplete!;
       _iblTextureUploadComplete = null;
-    }
-    if (_indirectLight != null) {
-      Scene_setIndirectLight(scene.scene, nullptr);
-      await withVoidCallback(
-        (requestId, cb) => Engine_destroyIndirectLightRenderThread(
-          app.engine,
-          _indirectLight!,
-          requestId,
-          cb,
-        ),
-      );
-      _indirectLight = null;
-      _iblTexture = null;
     }
   }
 

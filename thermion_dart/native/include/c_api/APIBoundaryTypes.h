@@ -46,6 +46,7 @@ extern "C"
 	typedef struct TGltfResourceLoader TGltfResourceLoader;
 	typedef struct TFilamentAsset TFilamentAsset;
 	typedef struct TColorGrading TColorGrading;
+	typedef struct TKtx1Bundle TKtx1Bundle;
 
 	typedef struct { 
 		double x;

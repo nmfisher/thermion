@@ -864,7 +864,9 @@ extern "C"
   #ifdef EMSCRIPTEN
   static std::unordered_map<uint32_t, std::function<void(int32_t)>> _emscriptenWrappers;
 
-  static void Emscripten_voidCallback(int32_t requestId) {
+  EMSCRIPTEN_KEEPALIVE static void Emscripten_voidCallback(int32_t requestId) {
+      Log("Emscripten_voidCallback: requestId %d", requestId);
+
       auto it = _emscriptenWrappers.find(requestId);
       if (it != _emscriptenWrappers.end()) {
           it->second(requestId);
@@ -876,19 +878,23 @@ extern "C"
   #endif
 
   
-  EMSCRIPTEN_KEEPALIVE void Texture_decodeKtxRenderThread(
-    TEngine *tEngine, uint8_t *ktxData, size_t length, float *sphericalHarmonics, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *)) {
+  EMSCRIPTEN_KEEPALIVE void Ktx1Reader_createTextureRenderThread(
+    TEngine *tEngine, TKtx1Bundle *tBundle, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *)) {
+
+      #ifdef EMSCRIPTEN
+        if(onTextureUploadComplete) {
+            _emscriptenWrappers[requestId] = [=](int32_t requestId) {
+                PROXY(onTextureUploadComplete(requestId));
+            };
+        }
+      #endif
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           #ifdef EMSCRIPTEN
-            std::function<void(int32_t)> wrapper = [=](int32_t requestId) {
-                PROXY(onTextureUploadComplete(requestId));
-            };
-            _emscriptenWrappers[requestId] = wrapper;
-            auto *texture = Texture_decodeKtx(tEngine, ktxData, length, sphericalHarmonics, requestId, Emscripten_voidCallback);
+            auto *texture = Ktx1Reader_createTexture(tEngine, tBundle, requestId, onTextureUploadComplete ? Emscripten_voidCallback : nullptr);
           #else
-            auto *texture = Texture_decodeKtx(tEngine, ktxData, length, sphericalHarmonics, requestId, onTextureUploadComplete);
+            auto *texture = Ktx1Reader_createTexture(tEngine, tBundle, requestId, onTextureUploadComplete);
           #endif          
           PROXY(onComplete(texture));
         });

@@ -1,4 +1,5 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
@@ -123,5 +124,28 @@ class FFIScene extends Scene {
       _logger
           .info("Added stencil highlight for asset (entity ${asset.entity})");
     }
+  }
+
+  IndirectLight? _indirectLight;
+
+  ///
+  ///
+  ///
+  Future setIndirectLight(IndirectLight? indirectLight) async {
+    if (indirectLight == null) {
+      Scene_setIndirectLight(scene, nullptr);
+      _indirectLight = null;
+    } else {
+      Scene_setIndirectLight(
+          scene, (indirectLight as FFIIndirectLight).pointer);
+      _indirectLight = indirectLight;
+    }
+  }
+
+  ///
+  ///
+  ///
+  Future<IndirectLight?> getIndirectLight() async {
+    return _indirectLight;
   }
 }

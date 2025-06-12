@@ -94,33 +94,49 @@ namespace thermion
             return reinterpret_cast<TLinearImage *>(linearImage);
         }
 
-        EMSCRIPTEN_KEEPALIVE TTexture *Texture_decodeKtx(
-            TEngine *tEngine,
-            uint8_t *ktxData,
-            size_t length,
-            float *sphericalHarmonics,
-            uint32_t requestId,
-            VoidCallback onTextureUploadComplete)
+        EMSCRIPTEN_KEEPALIVE TKtx1Bundle *Ktx1Bundle_create(uint8_t *ktxData, size_t length)
         {
+            auto *bundle = new image::Ktx1Bundle(ktxData, static_cast<uint32_t>(length));
+            return reinterpret_cast<TKtx1Bundle *>(bundle);
+        }
 
-            auto engine = reinterpret_cast<filament::Engine *>(tEngine);
+        EMSCRIPTEN_KEEPALIVE bool Ktx1Bundle_isCubemap(TKtx1Bundle *tBundle)
+        {
+            auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
+            return bundle->isCubemap();
+        }
 
-            auto copy = new std::vector<uint8_t>(ktxData, ktxData + length);
-            image::Ktx1Bundle *bundle =
-                new image::Ktx1Bundle(static_cast<const uint8_t *>(copy->data()),
-                                      static_cast<uint32_t>(length));
+        EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_destroy(
+            TKtx1Bundle *tBundle)
+        {
+            auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
+            delete bundle;
+        }
 
+        EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_getSphericalHarmonics(TKtx1Bundle *tBundle, float *sphericalHarmonics)
+        {
+            auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
             filament::math::float3 harmonics[9];
             if (sphericalHarmonics)
             {
                 bundle->getSphericalHarmonics(harmonics);
                 memcpy(sphericalHarmonics, harmonics, 27 * sizeof(float));
             }
+        }
+
+        EMSCRIPTEN_KEEPALIVE TTexture *Ktx1Reader_createTexture(
+            TEngine *tEngine,
+            TKtx1Bundle *tBundle,
+            uint32_t requestId,
+            VoidCallback onTextureUploadComplete)
+        {
+
+            auto engine = reinterpret_cast<filament::Engine *>(tEngine);
+
+            auto *bundle = reinterpret_cast<image::Ktx1Bundle *>(tBundle);
 
             std::vector<void *> *callbackData = new std::vector<void *>{
                 reinterpret_cast<void *>(onTextureUploadComplete),
-                reinterpret_cast<void *>(bundle),
-                reinterpret_cast<void *>(copy),
                 reinterpret_cast<void *>(requestId)};
 
             auto *texture =
@@ -130,9 +146,7 @@ namespace thermion
                         std::vector<void*>* vec = (std::vector<void*>*)userdata;
                         
                         void *callbackPtr = vec->at(0);
-                        image::Ktx1Bundle *bundle = reinterpret_cast<image::Ktx1Bundle *>(vec->at(1));
-                        std::vector<uint8_t> *copy = reinterpret_cast<std::vector<uint8_t>*>(vec->at(2));
-                        uintptr_t requestId = (uintptr_t)vec->at(3);
+                        uintptr_t requestId = (uintptr_t)vec->at(2);
 
                         delete vec;
                         
@@ -140,9 +154,7 @@ namespace thermion
                         {
                             auto callback = ((VoidCallback)callbackPtr);
                             callback(requestId);
-                        } 
-                        delete bundle;
-                        delete copy; },
+                        } },
                     (void *)callbackData);
             return reinterpret_cast<TTexture *>(texture);
         }

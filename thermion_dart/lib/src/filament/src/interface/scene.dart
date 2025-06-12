@@ -21,18 +21,32 @@ abstract class Scene {
   ///
   Future removeEntity(ThermionEntity entity);
 
-  
   /// Renders an outline around [entity] with the given color.
-  /// 
   ///
-  Future setStencilHighlight(ThermionAsset asset,{double r = 1.0,
+  ///
+  Future setStencilHighlight(ThermionAsset asset,
+      {double r = 1.0,
       double g = 0.0,
       double b = 0.0,
       int? entity,
       int primitiveIndex = 0});
-  
+
   /// Removes the outline around [entity]. Noop if there was no highlight.
-  /// 
-  /// 
+  ///
+  ///
   Future removeStencilHighlight(ThermionAsset asset);
+
+  ///
+  ///
+  ///
+  Future setIndirectLight(IndirectLight? indirectLight) {
+    throw UnimplementedError();
+  }
+
+  ///
+  ///
+  ///
+  Future<IndirectLight?> getIndirectLight() {
+    throw UnimplementedError();
+  }
 }

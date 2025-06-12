@@ -60,7 +60,7 @@ namespace thermion
             void (*onComplete)(TTexture*)
         );
         void Texture_generateMipMapsRenderThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete);
-        void Texture_decodeKtxRenderThread(TEngine *tEngine, uint8_t *ktxData, size_t length, float *sphericalHarmonics, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *));
+        void Ktx1Reader_createTextureRenderThread(TEngine *tEngine, TKtx1Bundle *tBundle, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *));
 
         void Engine_destroyTextureRenderThread(TEngine *engine, TTexture* tTexture, uint32_t requestId,  VoidCallback onComplete);
         void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence*));

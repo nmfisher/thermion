@@ -89,7 +89,7 @@ abstract class ThermionViewer {
   Future loadSkybox(String skyboxPath);
 
   ///
-  /// Removes the skybox from the scene.
+  /// Removes the skybox from the scene and destroys all associated resources.
   ///
   Future removeSkybox();
 
@@ -106,8 +106,10 @@ abstract class ThermionViewer {
 
   ///
   /// Removes the image-based light from the scene.
+  /// If [destroy] is true, the indirect light and all associated resources
+  /// (irradiance/reflection textures) will be destroyed.
   ///
-  Future removeIbl();
+  Future removeIbl({bool destroy = true});
 
   ///
   /// Adds a direct light to the scene.
@@ -123,7 +125,7 @@ abstract class ThermionViewer {
   Future removeLight(ThermionEntity light);
 
   ///
-  /// Remove all lights (excluding IBL) from the scene.
+  /// Remove all direct lights from the scene.
   ///
   Future destroyLights();
 

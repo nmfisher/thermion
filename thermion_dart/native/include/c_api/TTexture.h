@@ -260,11 +260,24 @@ EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t lev
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE TTextureUsage Texture_getUsage(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine);
-EMSCRIPTEN_KEEPALIVE TTexture* Texture_decodeKtx(
-    TEngine *tEngine,
+EMSCRIPTEN_KEEPALIVE TKtx1Bundle* Ktx1Bundle_create(
     uint8_t *ktxData,
-    size_t length,
-    float *sphericalHarmonics,
+    size_t length
+);
+EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_getSphericalHarmonics(
+    TKtx1Bundle *tBundle,
+    float *harmonics
+);
+EMSCRIPTEN_KEEPALIVE bool Ktx1Bundle_isCubemap(
+    TKtx1Bundle *tBundle
+);
+EMSCRIPTEN_KEEPALIVE void Ktx1Bundle_destroy(
+    TKtx1Bundle *tBundle
+);
+
+EMSCRIPTEN_KEEPALIVE TTexture* Ktx1Reader_createTexture(
+    TEngine *tEngine,
+    TKtx1Bundle *tBundle,
     uint32_t requestId,
     VoidCallback onTextureUploadComplete
 );
