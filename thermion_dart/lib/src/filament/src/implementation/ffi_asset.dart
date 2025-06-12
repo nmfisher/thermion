@@ -58,16 +58,17 @@ class FFIAsset extends ThermionAsset {
   Future<List<ThermionEntity>> getChildEntities() async {
     if (_childEntities == null) {
       var count = SceneAsset_getChildEntityCount(asset);
-      var childEntities = makeInt32List(count);
+
       late Pointer stackPtr;
       if (FILAMENT_WASM) {
         stackPtr = stackSave();
       }
+      var childEntities = makeInt32List(count);
       if (count > 0) {
         SceneAsset_getChildEntities(asset, childEntities.address);
       }
       _childEntities = Int32List.fromList(childEntities);
-      childEntities.free();
+
       if (FILAMENT_WASM) {
         stackRestore(stackPtr);
       }
@@ -86,7 +87,6 @@ class FFIAsset extends ThermionAsset {
     for (final entity in childEntities) {
       var name = await FilamentApp.instance!.getNameForEntity(entity);
       names.add(name);
-
     }
     return names;
   }
@@ -369,7 +369,6 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<MaterialInstance> getMaterialInstanceAt(
       {ThermionEntity? entity, int index = 0}) async {
-    
     if (entity == null) {
       if (RenderableManager_isRenderable(app.renderableManager, this.entity)) {
         entity ??= this.entity;
@@ -463,7 +462,7 @@ class FFIAsset extends ThermionAsset {
       _logger.warning("Provided entity is not renderable");
       return;
     }
-    
+
     if (entity == null) {
       if (RenderableManager_isRenderable(app.renderableManager, this.entity)) {
         entity ??= this.entity;
