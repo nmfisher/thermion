@@ -26,9 +26,6 @@
 #include <gltfio/math.h>
 #include <gltfio/materials/uberarchive.h>
 
-#include <ktxreader/Ktx1Reader.h>
-#include <ktxreader/Ktx2Reader.h>
-
 #include <imageio/ImageDecoder.h>
 #include <imageio/ImageEncoder.h>
 #include <image/ColorTransform.h>
