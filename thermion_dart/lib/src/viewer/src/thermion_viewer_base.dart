@@ -42,7 +42,7 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame immediately.
   ///
-  Future render();
+  Future render(SwapChain swapChain);
 
   ///
   ///

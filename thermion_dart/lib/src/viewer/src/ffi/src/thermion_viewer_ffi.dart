@@ -122,15 +122,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future render() async {
-    await withVoidCallback(
-      (requestId, cb) => RenderTicker_renderRenderThread(
-        app.renderTicker,
-        0.toBigInt,
-        requestId,
-        cb,
-      ),
-    );
+  Future render(SwapChain swapchain) async {
+    await withBoolCallback((cb) => Renderer_beginFrameRenderThread(
+        app.renderer, (swapchain as FFISwapChain).swapChain, 0.toBigInt, cb));
+
+    await withVoidCallback((requestId, cb) =>
+        Renderer_renderRenderThread(app.renderer, view.view, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        Renderer_endFrameRenderThread(app.renderer, requestId, cb));
     await FilamentApp.instance!.flush();
   }
 
