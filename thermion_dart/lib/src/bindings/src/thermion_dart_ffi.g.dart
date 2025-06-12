@@ -730,18 +730,37 @@ external void Texture_generateMipMaps(
 );
 
 @ffi.Native<
-    ffi.Pointer<TTexture> Function(
-        ffi.Pointer<TEngine>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Pointer<ffi.Float>,
-        ffi.Uint32,
-        VoidCallback)>(isLeaf: true)
-external ffi.Pointer<TTexture> Texture_decodeKtx(
-  ffi.Pointer<TEngine> tEngine,
+    ffi.Pointer<TKtx1Bundle> Function(
+        ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TKtx1Bundle> Ktx1Bundle_create(
   ffi.Pointer<ffi.Uint8> ktxData,
   int length,
-  ffi.Pointer<ffi.Float> sphericalHarmonics,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TKtx1Bundle>, ffi.Pointer<ffi.Float>)>(isLeaf: true)
+external void Ktx1Bundle_getSphericalHarmonics(
+  ffi.Pointer<TKtx1Bundle> tBundle,
+  ffi.Pointer<ffi.Float> harmonics,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TKtx1Bundle>)>(isLeaf: true)
+external bool Ktx1Bundle_isCubemap(
+  ffi.Pointer<TKtx1Bundle> tBundle,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TKtx1Bundle>)>(isLeaf: true)
+external void Ktx1Bundle_destroy(
+  ffi.Pointer<TKtx1Bundle> tBundle,
+);
+
+@ffi.Native<
+    ffi.Pointer<TTexture> Function(ffi.Pointer<TEngine>,
+        ffi.Pointer<TKtx1Bundle>, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external ffi.Pointer<TTexture> Ktx1Reader_createTexture(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TKtx1Bundle> tBundle,
   int requestId,
   VoidCallback onTextureUploadComplete,
 );
@@ -1583,12 +1602,24 @@ external ffi.Pointer<TSkybox> Engine_buildSkybox(
 
 @ffi.Native<
     ffi.Pointer<TIndirectLight> Function(ffi.Pointer<TEngine>,
-        ffi.Pointer<TTexture>, ffi.Float, ffi.Pointer<ffi.Float>)>(isLeaf: true)
-external ffi.Pointer<TIndirectLight> Engine_buildIndirectLight(
+        ffi.Pointer<TTexture>, ffi.Pointer<TTexture>, ffi.Float)>(isLeaf: true)
+external ffi.Pointer<TIndirectLight>
+    Engine_buildIndirectLightFromIrradianceTexture(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TTexture> tReflectionsTexture,
+  ffi.Pointer<TTexture> tIrradianceTexture,
   double intensity,
-  ffi.Pointer<ffi.Float> harmonics,
+);
+
+@ffi.Native<
+    ffi.Pointer<TIndirectLight> Function(ffi.Pointer<TEngine>,
+        ffi.Pointer<TTexture>, ffi.Pointer<ffi.Float>, ffi.Float)>(isLeaf: true)
+external ffi.Pointer<TIndirectLight>
+    Engine_buildIndirectLightFromIrradianceHarmonics(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tReflectionsTexture,
+  ffi.Pointer<ffi.Float> irradianceHarmonics,
+  double intensity,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TSkybox>)>(
@@ -1897,19 +1928,15 @@ external void Texture_generateMipMapsRenderThread(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TEngine>,
-            ffi.Pointer<ffi.Uint8>,
-            ffi.Size,
-            ffi.Pointer<ffi.Float>,
+            ffi.Pointer<TKtx1Bundle>,
             ffi.Uint32,
             VoidCallback,
             ffi.Pointer<
                 ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>)>(
     isLeaf: true)
-external void Texture_decodeKtxRenderThread(
+external void Ktx1Reader_createTextureRenderThread(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Uint8> ktxData,
-  int length,
-  ffi.Pointer<ffi.Float> sphericalHarmonics,
+  ffi.Pointer<TKtx1Bundle> tBundle,
   int requestId,
   VoidCallback onTextureUploadComplete,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>
@@ -1982,16 +2009,35 @@ external void Engine_buildSkyboxRenderThread(
     ffi.Void Function(
         ffi.Pointer<TEngine>,
         ffi.Pointer<TTexture>,
+        ffi.Pointer<TTexture>,
         ffi.Float,
-        ffi.Pointer<ffi.Float>,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(ffi.Pointer<TIndirectLight>)>>)>(isLeaf: true)
-external void Engine_buildIndirectLightRenderThread(
+external void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TTexture> tReflectionsTexture,
+  ffi.Pointer<TTexture> tIrradianceTexture,
   double intensity,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TIndirectLight>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TTexture>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Float,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TIndirectLight>)>>)>(isLeaf: true)
+external void Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tReflectionsTexture,
   ffi.Pointer<ffi.Float> harmonics,
+  double intensity,
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TIndirectLight>)>>
       onComplete,
@@ -3565,6 +3611,8 @@ final class TGltfResourceLoader extends ffi.Opaque {}
 final class TFilamentAsset extends ffi.Opaque {}
 
 final class TColorGrading extends ffi.Opaque {}
+
+final class TKtx1Bundle extends ffi.Opaque {}
 
 final class double3 extends ffi.Struct {
   @ffi.Double()

@@ -800,11 +800,23 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TTexture> tTexture,
     Pointer<TEngine> tEngine,
   );
-  external Pointer<TTexture> _Texture_decodeKtx(
-    Pointer<TEngine> tEngine,
+  external Pointer<TKtx1Bundle> _Ktx1Bundle_create(
     Pointer<Uint8> ktxData,
     size_t length,
-    Pointer<Float32> sphericalHarmonics,
+  );
+  external void _Ktx1Bundle_getSphericalHarmonics(
+    Pointer<TKtx1Bundle> tBundle,
+    Pointer<Float32> harmonics,
+  );
+  external int _Ktx1Bundle_isCubemap(
+    Pointer<TKtx1Bundle> tBundle,
+  );
+  external void _Ktx1Bundle_destroy(
+    Pointer<TKtx1Bundle> tBundle,
+  );
+  external Pointer<TTexture> _Ktx1Reader_createTexture(
+    Pointer<TEngine> tEngine,
+    Pointer<TKtx1Bundle> tBundle,
     int requestId,
     VoidCallback onTextureUploadComplete,
   );
@@ -1285,11 +1297,19 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
   );
-  external Pointer<TIndirectLight> _Engine_buildIndirectLight(
+  external Pointer<TIndirectLight>
+      _Engine_buildIndirectLightFromIrradianceTexture(
     Pointer<TEngine> tEngine,
-    Pointer<TTexture> tTexture,
+    Pointer<TTexture> tReflectionsTexture,
+    Pointer<TTexture> tIrradianceTexture,
     double intensity,
-    Pointer<Float32> harmonics,
+  );
+  external Pointer<TIndirectLight>
+      _Engine_buildIndirectLightFromIrradianceHarmonics(
+    Pointer<TEngine> tEngine,
+    Pointer<TTexture> tReflectionsTexture,
+    Pointer<Float32> irradianceHarmonics,
+    double intensity,
   );
   external void _Engine_destroySkybox(
     Pointer<TEngine> tEngine,
@@ -1440,11 +1460,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external void _Texture_decodeKtxRenderThread(
+  external void _Ktx1Reader_createTextureRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<Uint8> ktxData,
-    size_t length,
-    Pointer<Float32> sphericalHarmonics,
+    Pointer<TKtx1Bundle> tBundle,
     int requestId,
     VoidCallback onTextureUploadComplete,
     Pointer<self.NativeFunction<void Function(PointerClass<TTexture>)>>
@@ -1483,11 +1501,19 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<self.NativeFunction<void Function(PointerClass<TSkybox>)>>
         onComplete,
   );
-  external void _Engine_buildIndirectLightRenderThread(
+  external void _Engine_buildIndirectLightFromIrradianceTextureRenderThread(
     Pointer<TEngine> tEngine,
-    Pointer<TTexture> tTexture,
+    Pointer<TTexture> tReflectionsTexture,
+    Pointer<TTexture> tIrradianceTexture,
     double intensity,
+    Pointer<self.NativeFunction<void Function(PointerClass<TIndirectLight>)>>
+        onComplete,
+  );
+  external void _Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TTexture> tReflectionsTexture,
     Pointer<Float32> harmonics,
+    double intensity,
     Pointer<self.NativeFunction<void Function(PointerClass<TIndirectLight>)>>
         onComplete,
   );
@@ -3088,19 +3114,46 @@ void Texture_generateMipMaps(
   return result;
 }
 
-self.Pointer<TTexture> Texture_decodeKtx(
-  self.Pointer<TEngine> tEngine,
+self.Pointer<TKtx1Bundle> Ktx1Bundle_create(
   self.Pointer<Uint8> ktxData,
   Dart__darwin_size_t length,
-  self.Pointer<Float32> sphericalHarmonics,
+) {
+  final result = _lib._Ktx1Bundle_create(ktxData, length);
+  return self.Pointer<TKtx1Bundle>(result);
+}
+
+void Ktx1Bundle_getSphericalHarmonics(
+  self.Pointer<TKtx1Bundle> tBundle,
+  self.Pointer<Float32> harmonics,
+) {
+  final result =
+      _lib._Ktx1Bundle_getSphericalHarmonics(tBundle.cast(), harmonics);
+  return result;
+}
+
+bool Ktx1Bundle_isCubemap(
+  self.Pointer<TKtx1Bundle> tBundle,
+) {
+  final result = _lib._Ktx1Bundle_isCubemap(tBundle.cast());
+  return result == 1;
+}
+
+void Ktx1Bundle_destroy(
+  self.Pointer<TKtx1Bundle> tBundle,
+) {
+  final result = _lib._Ktx1Bundle_destroy(tBundle.cast());
+  return result;
+}
+
+self.Pointer<TTexture> Ktx1Reader_createTexture(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TKtx1Bundle> tBundle,
   int requestId,
   DartVoidCallback onTextureUploadComplete,
 ) {
-  final result = _lib._Texture_decodeKtx(
+  final result = _lib._Ktx1Reader_createTexture(
       tEngine.cast(),
-      ktxData,
-      length,
-      sphericalHarmonics,
+      tBundle.cast(),
       requestId,
       onTextureUploadComplete
           as Pointer<self.NativeFunction<VoidCallbackFunction>>);
@@ -4082,14 +4135,31 @@ self.Pointer<TSkybox> Engine_buildSkybox(
   return self.Pointer<TSkybox>(result);
 }
 
-self.Pointer<TIndirectLight> Engine_buildIndirectLight(
+self.Pointer<TIndirectLight> Engine_buildIndirectLightFromIrradianceTexture(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<TTexture> tTexture,
+  self.Pointer<TTexture> tReflectionsTexture,
+  self.Pointer<TTexture> tIrradianceTexture,
   double intensity,
-  self.Pointer<Float32> harmonics,
 ) {
-  final result = _lib._Engine_buildIndirectLight(
-      tEngine.cast(), tTexture.cast(), intensity, harmonics);
+  final result = _lib._Engine_buildIndirectLightFromIrradianceTexture(
+      tEngine.cast(),
+      tReflectionsTexture.cast(),
+      tIrradianceTexture.cast(),
+      intensity);
+  return self.Pointer<TIndirectLight>(result);
+}
+
+self.Pointer<TIndirectLight> Engine_buildIndirectLightFromIrradianceHarmonics(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TTexture> tReflectionsTexture,
+  self.Pointer<Float32> irradianceHarmonics,
+  double intensity,
+) {
+  final result = _lib._Engine_buildIndirectLightFromIrradianceHarmonics(
+      tEngine.cast(),
+      tReflectionsTexture.cast(),
+      irradianceHarmonics,
+      intensity);
   return self.Pointer<TIndirectLight>(result);
 }
 
@@ -4408,21 +4478,17 @@ void Texture_generateMipMapsRenderThread(
   return result;
 }
 
-void Texture_decodeKtxRenderThread(
+void Ktx1Reader_createTextureRenderThread(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<Uint8> ktxData,
-  Dart__darwin_size_t length,
-  self.Pointer<Float32> sphericalHarmonics,
+  self.Pointer<TKtx1Bundle> tBundle,
   int requestId,
   DartVoidCallback onTextureUploadComplete,
   self.Pointer<self.NativeFunction<void Function(Pointer<TTexture>)>>
       onComplete,
 ) {
-  final result = _lib._Texture_decodeKtxRenderThread(
+  final result = _lib._Ktx1Reader_createTextureRenderThread(
       tEngine.cast(),
-      ktxData,
-      length,
-      sphericalHarmonics,
+      tBundle.cast(),
       requestId,
       onTextureUploadComplete
           as Pointer<self.NativeFunction<VoidCallbackFunction>>,
@@ -4499,16 +4565,39 @@ void Engine_buildSkyboxRenderThread(
   return result;
 }
 
-void Engine_buildIndirectLightRenderThread(
+void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
   self.Pointer<TEngine> tEngine,
-  self.Pointer<TTexture> tTexture,
+  self.Pointer<TTexture> tReflectionsTexture,
+  self.Pointer<TTexture> tIrradianceTexture,
   double intensity,
-  self.Pointer<Float32> harmonics,
   self.Pointer<self.NativeFunction<void Function(Pointer<TIndirectLight>)>>
       onComplete,
 ) {
-  final result = _lib._Engine_buildIndirectLightRenderThread(
-      tEngine.cast(), tTexture.cast(), intensity, harmonics, onComplete.cast());
+  final result =
+      _lib._Engine_buildIndirectLightFromIrradianceTextureRenderThread(
+          tEngine.cast(),
+          tReflectionsTexture.cast(),
+          tIrradianceTexture.cast(),
+          intensity,
+          onComplete.cast());
+  return result;
+}
+
+void Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TTexture> tReflectionsTexture,
+  self.Pointer<Float32> harmonics,
+  double intensity,
+  self.Pointer<self.NativeFunction<void Function(Pointer<TIndirectLight>)>>
+      onComplete,
+) {
+  final result =
+      _lib._Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
+          tEngine.cast(),
+          tReflectionsTexture.cast(),
+          harmonics,
+          intensity,
+          onComplete.cast());
   return result;
 }
 
@@ -6877,6 +6966,20 @@ sealed class TTextureUsage {
   static const TEXTURE_USAGE_DEFAULT = 24;
 }
 
+extension TKtx1BundleExt on Pointer<TKtx1Bundle> {
+  TKtx1Bundle toDart() {
+    return TKtx1Bundle(this);
+  }
+}
+
+final class TKtx1Bundle extends self.Struct {
+  TKtx1Bundle(super._address);
+
+  static Pointer<TKtx1Bundle> stackAlloc() {
+    return Pointer<TKtx1Bundle>(_lib._stackAlloc<TKtx1Bundle>(0));
+  }
+}
+
 typedef VoidCallback = Pointer<self.NativeFunction<VoidCallbackFunction>>;
 typedef DartVoidCallback
     = self.Pointer<self.NativeFunction<VoidCallbackFunction>>;
@@ -7438,7 +7541,7 @@ extension NativeFunctionPointer13<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer14<T extends NativeType> on void Function(bool) {
+extension NativeFunctionPointer15<T extends NativeType> on void Function(bool) {
   // orignal type void Function(bool ) void Function(bool ) dart type void Function(bool )
 
   Pointer<NativeFunction<void Function(bool)>> addFunction() {
@@ -7448,7 +7551,7 @@ extension NativeFunctionPointer14<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer15<T extends NativeType> on void Function(
+extension NativeFunctionPointer16<T extends NativeType> on void Function(
     self.Pointer<TMaterialInstance>) {
   // orignal type void Function(self.Pointer<TMaterialInstance> ) void Function(Pointer<TMaterialInstance> ) dart type void Function(self.Pointer<TMaterialInstance> )
 
@@ -7462,7 +7565,7 @@ extension NativeFunctionPointer15<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer18<T extends NativeType> on void Function(
+extension NativeFunctionPointer19<T extends NativeType> on void Function(
     self.Pointer<TColorGrading>) {
   // orignal type void Function(self.Pointer<TColorGrading> ) void Function(Pointer<TColorGrading> ) dart type void Function(self.Pointer<TColorGrading> )
 
@@ -7475,7 +7578,7 @@ extension NativeFunctionPointer18<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer19<T extends NativeType> on void Function(
+extension NativeFunctionPointer20<T extends NativeType> on void Function(
     self.Pointer<TSceneAsset>) {
   // orignal type void Function(self.Pointer<TSceneAsset> ) void Function(Pointer<TSceneAsset> ) dart type void Function(self.Pointer<TSceneAsset> )
 
@@ -7488,7 +7591,7 @@ extension NativeFunctionPointer19<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer25<T extends NativeType> on void Function(
+extension NativeFunctionPointer26<T extends NativeType> on void Function(
     self.Pointer<TLinearImage>) {
   // orignal type void Function(self.Pointer<TLinearImage> ) void Function(Pointer<TLinearImage> ) dart type void Function(self.Pointer<TLinearImage> )
 
@@ -7501,7 +7604,7 @@ extension NativeFunctionPointer25<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer27<T extends NativeType> on void Function(
+extension NativeFunctionPointer28<T extends NativeType> on void Function(
     self.Pointer<Float32>) {
   // orignal type void Function(self.Pointer<Float32> ) void Function(Pointer<Float32> ) dart type void Function(self.Pointer<Float32> )
 
@@ -7512,7 +7615,7 @@ extension NativeFunctionPointer27<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer28<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer29<T extends NativeType> on void Function(int) {
   // orignal type void Function(int ) void Function(int ) dart type void Function(int )
 
   Pointer<NativeFunction<void Function(int)>> addFunction() {
@@ -7522,7 +7625,7 @@ extension NativeFunctionPointer28<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer35<T extends NativeType> on void Function(
+extension NativeFunctionPointer36<T extends NativeType> on void Function(
     self.Pointer<TRenderTarget>) {
   // orignal type void Function(self.Pointer<TRenderTarget> ) void Function(Pointer<TRenderTarget> ) dart type void Function(self.Pointer<TRenderTarget> )
 
@@ -7535,7 +7638,7 @@ extension NativeFunctionPointer35<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer36<T extends NativeType> on void Function(
+extension NativeFunctionPointer37<T extends NativeType> on void Function(
     self.Pointer<TTextureSampler>) {
   // orignal type void Function(self.Pointer<TTextureSampler> ) void Function(Pointer<TTextureSampler> ) dart type void Function(self.Pointer<TTextureSampler> )
 
@@ -7549,7 +7652,7 @@ extension NativeFunctionPointer36<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer40<T extends NativeType> on void Function(
+extension NativeFunctionPointer41<T extends NativeType> on void Function(
     self.Pointer<TGltfAssetLoader>) {
   // orignal type void Function(self.Pointer<TGltfAssetLoader> ) void Function(Pointer<TGltfAssetLoader> ) dart type void Function(self.Pointer<TGltfAssetLoader> )
 
@@ -7563,7 +7666,7 @@ extension NativeFunctionPointer40<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer41<T extends NativeType> on void Function(
+extension NativeFunctionPointer42<T extends NativeType> on void Function(
     self.Pointer<TGltfResourceLoader>) {
   // orignal type void Function(self.Pointer<TGltfResourceLoader> ) void Function(Pointer<TGltfResourceLoader> ) dart type void Function(self.Pointer<TGltfResourceLoader> )
 
@@ -7578,7 +7681,7 @@ extension NativeFunctionPointer41<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer44<T extends NativeType> on void Function(
+extension NativeFunctionPointer45<T extends NativeType> on void Function(
     double) {
   // orignal type void Function(double ) void Function(double ) dart type void Function(double )
 
@@ -7589,7 +7692,7 @@ extension NativeFunctionPointer44<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer45<T extends NativeType> on void Function(
+extension NativeFunctionPointer46<T extends NativeType> on void Function(
     self.Pointer<TFilamentAsset>) {
   // orignal type void Function(self.Pointer<TFilamentAsset> ) void Function(Pointer<TFilamentAsset> ) dart type void Function(self.Pointer<TFilamentAsset> )
 
@@ -7602,7 +7705,7 @@ extension NativeFunctionPointer45<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer46<T extends NativeType> on void Function(
+extension NativeFunctionPointer47<T extends NativeType> on void Function(
     self.Pointer<TGizmo>) {
   // orignal type void Function(self.Pointer<TGizmo> ) void Function(Pointer<TGizmo> ) dart type void Function(self.Pointer<TGizmo> )
 
