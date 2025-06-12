@@ -4,7 +4,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
-import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
 import '../../../../filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../../filament/src/implementation/ffi_scene.dart';
@@ -49,7 +48,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setViewport(int width, int height) async {
-    print("Setting viewport to ${width}x${height}");
+
     await view.setViewport(width.toInt(), height.toInt());
 
     for (final camera in _cameras) {
@@ -457,18 +456,16 @@ class ThermionViewerFFI extends ThermionViewer {
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
-    var asset =
-        await FilamentApp.instance!.loadGltfFromBuffer(
-              data,
-              animationManager,
-              numInstances: numInstances,
-              keepData: keepData,
-              priority: priority,
-              layer: layer,
-              loadResourcesAsync: loadResourcesAsync,
-              resourceUri: resourceUri,
-            )
-            as FFIAsset;
+    var asset = await FilamentApp.instance!.loadGltfFromBuffer(
+      data,
+      animationManager,
+      numInstances: numInstances,
+      keepData: keepData,
+      priority: priority,
+      layer: layer,
+      loadResourcesAsync: loadResourcesAsync,
+      resourceUri: resourceUri,
+    ) as FFIAsset;
 
     _assets.add(asset);
     if (addToScene) {
