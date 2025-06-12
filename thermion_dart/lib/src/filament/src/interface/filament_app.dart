@@ -133,7 +133,8 @@ abstract class FilamentApp<T> {
   ///
   /// Decodes the specified image data.
   ///
-  Future<LinearImage> decodeImage(Uint8List data, { String name = "image", bool requireAlpha = false});
+  Future<LinearImage> decodeImage(Uint8List data,
+      {String name = "image", bool requireAlpha = false});
 
   ///
   /// Creates an (empty) imge with the given dimensions.
@@ -357,4 +358,5 @@ abstract class FilamentApp<T> {
   /// have a renderable component attached).
   ///
   Future<Aabb3> getBoundingBox(ThermionEntity entity);
+
 }
