@@ -30,24 +30,22 @@ ninja install
 ```
 ./build.sh -l -i -f -p ios release
 cd out/cmake-ios-release-arm64/third_party
-mkdir -p libpng
-cd libpng
-cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release  -DZLIB_INCLUDE_DIR=../../../../third_party/libz ../../../../third_party/libpng 
-cd ..
 mkdir -p libz && cd libz
 cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release  ../../../../third_party/libz
-mkdir imageio
-cd imageio
-cmake -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DWEBGL=1 \
-        -DWEBGL_PTHREADS=1 \
-        -DFILAMENT_SKIP_SAMPLES=1 \
-        -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
-        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../libs/image/include -I../../../libs/utils/include -I../../../libs/math/include -I../../../third_party/tinyexr -I../../../third_party/libpng -I../../../third_party/basisu/encoder" \
-        ../../../libs/imageio
 ninja
-
+mkdir -p imageio && cd imageio
+cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
+        -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
+        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../../libs/image/include -I../../../../libs/utils/include -I../../../../libs/math/include -I../../../../third_party/tinyexr -I../../../../third_party/libpng -I../../../../third_party/basisu/encoder" \
+        ../../../../libs/imageio
+ninja
+cd .. && mkdir -p tinyexr && cd tinyexr
+cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
+        -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
+        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../../libs/image/include -I../../../../libs/utils/include -I../../../../libs/math/include -I../../../../third_party/tinyexr -I../../../../third_party/libpng -I../../../../third_party/basisu/encoder" \
+        ../../../../libs/tinyexr
 ./build.sh -l -i -f -p desktop debug 
 ```
 
@@ -104,7 +102,7 @@ ln -s ../cmake-release/tools
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DWEBGL=1 \
-        -DWEBGL_PTHREADS=1 \
+        -DWEBGL_PTHREADS=0 \
         -DFILAMENT_SKIP_SAMPLES=1 \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
@@ -113,19 +111,18 @@ cmake -G Ninja \
         -DIS_HOST_PLATFORM=0 -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
         ../../ 
 ninja;
+cd libs
 mkdir imageio
 cd imageio
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
-        -DWEBGL=1 \
-        -DWEBGL_PTHREADS=1 \
         -DFILAMENT_SKIP_SAMPLES=1 \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
-        -DCMAKE_C_FLAGS="-pthread" \
-        -DCMAKE_CXX_FLAGS="-pthread" \
-        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../libs/image/include -I../../../libs/utils/include -I../../../libs/math/include -I../../../third_party/tinyexr -I../../../third_party/libpng -I../../../third_party/basisu/encoder" \
-        ../../../libs/imageio
+        -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
+        -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
+        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../../libs/image/include -I../../../../libs/utils/include -I../../../../libs/math/include -I../../../../third_party/tinyexr -I../../../../third_party/libpng -I../../../../third_party/basisu/encoder" \
+        ../../../../libs/imageio
 ninja
 cd ..
 mkdir third_party/
@@ -137,30 +134,25 @@ cd third_party/
 #+   set_target_properties(zlib PROPERTIES OUTPUT_NAME z)
 # libz 
 #sed -i 's/set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)/set_target_properties(zlib PROPERTIES OUTPUT_NAME z)\n set_target_properties(zlibstatic PROPERTIES OUTPUT_NAME zstatic)/#g' ../../../../third_party/libz/CMakeLists.txt
-for lib in tinyexr libpng libz; do 
 mkdir -p libz;
 pushd libz;
+lib=libz
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
-        -DWEBGL=1 \
-        -DWEBGL_PTHREADS=1 \
-        -DFILAMENT_SKIP_SAMPLES=1 \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
-        -DCMAKE_C_FLAGS="-pthread -Wno-reserved-identifier" \
-        -DCMAKE_CXX_FLAGS="-pthread -Wno-reserved-identifier" \
+        -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
+        -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
         ../../../../third_party/$lib;
+ninja
 popd
 for lib in tinyexr libpng; do 
     mkdir -p $lib;
     pushd $lib;
     cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
-        -DWEBGL=1 \
-        -DWEBGL_PTHREADS=1 \
-        -DFILAMENT_SKIP_SAMPLES=1 \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
-        -DCMAKE_C_FLAGS="-pthread -Wno-reserved-identifier -I../libz" \
-        -DCMAKE_CXX_FLAGS="-pthread -Wno-reserved-identifier -I../libz -Wno-reserved-identifier -I../libz -Wno-switch-default -Wno-unsafe-buffer-usage -Wno-sign-conversion -Wno-tautological-type-limit-compar" \
+        -DCMAKE_C_FLAGS="-pthread -I../libz" \
+        -DCMAKE_CXX_FLAGS="-pthread -I../libz -matomics -mbulk-memory" \
         -DPNG_SHARED=OFF \
         -DZLIB_ROOT=../../../../third_party/libz \
         -DZLIB_LIBRARY=../../../../third_party/libz/libz.a \
