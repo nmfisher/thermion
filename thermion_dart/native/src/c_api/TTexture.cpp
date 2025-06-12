@@ -146,7 +146,7 @@ namespace thermion
                         std::vector<void*>* vec = (std::vector<void*>*)userdata;
                         
                         void *callbackPtr = vec->at(0);
-                        uintptr_t requestId = (uintptr_t)vec->at(2);
+                        uintptr_t requestId = (uintptr_t)vec->at(1);
 
                         delete vec;
                         
