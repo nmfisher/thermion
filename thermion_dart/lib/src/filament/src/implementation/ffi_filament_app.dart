@@ -86,8 +86,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.disableHandleUseAfterFreeCheck,
             cb));
     final nameComponentManager = NameComponentManager_create();
-    final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
-        (cb) => GltfAssetLoader_createRenderThread(engine, nullptr, nameComponentManager, cb));
+    final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>((cb) =>
+        GltfAssetLoader_createRenderThread(
+            engine, nullptr, nameComponentManager, cb));
     final renderer = await withPointerCallback<TRenderer>(
         (cb) => Engine_createRendererRenderThread(engine, cb));
     final ubershaderMaterialProvider =
@@ -100,8 +101,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final renderTicker = RenderTicker_create(engine, renderer);
 
     RenderThread_setRenderTicker(renderTicker);
-
-    
 
     FilamentApp.instance = FFIFilamentApp(
         engine,
@@ -153,6 +152,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<SwapChain> createHeadlessSwapChain(int width, int height,
       {bool hasStencilBuffer = false}) async {
     var flags = TSWAP_CHAIN_CONFIG_TRANSPARENT | TSWAP_CHAIN_CONFIG_READABLE;
+
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
@@ -321,7 +321,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
       TextureFormat textureFormat = TextureFormat.RGBA16F,
       int? importedTextureHandle}) async {
-    
     var bitmask = flags.fold(0, (a, b) => a | b.value);
 
     final texturePtr = await withPointerCallback<TTexture>((cb) {
@@ -375,23 +374,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   /// Decodes the image data into a native LinearImage (floating point).
-  /// If [requireAlpha] is true, the decoded image will always contain an 
-  /// alpha channel (even if the original image did not contain one). 
+  /// If [requireAlpha] is true, the decoded image will always contain an
+  /// alpha channel (even if the original image did not contain one).
   ///
-  Future<LinearImage> decodeImage(Uint8List data, { String name = "image", bool requireAlpha = false}) async {
-    
+  Future<LinearImage> decodeImage(Uint8List data,
+      {String name = "image", bool requireAlpha = false}) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       //stackPtr = stackSave();
     }
     var now = DateTime.now();
 
-    var ptr = Image_decode(
-      data.address,
-      data.length,
-      name.toNativeUtf8().cast<Char>(),
-      requireAlpha
-    );
+    var ptr = Image_decode(data.address, data.length,
+        name.toNativeUtf8().cast<Char>(), requireAlpha);
 
     var finished = DateTime.now();
     print(
@@ -1211,4 +1206,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         Vector3(bb.centerX, bb.centerY, bb.centerZ),
         Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ));
   }
+
+
 }
