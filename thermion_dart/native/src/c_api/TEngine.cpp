@@ -316,19 +316,46 @@ namespace thermion
             return reinterpret_cast<TSkybox *>(skybox);
         }
 
-        EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLight(TEngine *tEngine, TTexture *tTexture, float intensity, float *harmonics)
+        EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLightFromIrradianceTexture(TEngine *tEngine, TTexture *tReflectionsTexture, TTexture* tIrradianceTexture, float intensity)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-            auto *texture = reinterpret_cast<Texture *>(tTexture);
+            auto *reflectionsTexture = reinterpret_cast<Texture *>(tReflectionsTexture);
+            auto *irradianceTexture = reinterpret_cast<Texture *>(tIrradianceTexture);
 
-            filament::math::float3 sphericalHarmonics[9];
-            memcpy(sphericalHarmonics, harmonics, 27 * sizeof(float));
+            auto indirectLightBuilder = filament::IndirectLight::Builder().intensity(intensity);
 
-            auto *indirectLight = filament::IndirectLight::Builder()
-                                      .reflections(texture)
-                                      .irradiance(3, sphericalHarmonics)
-                                      .intensity(intensity)
-                                      .build(*engine);
+            if(!irradianceTexture) {
+                Log("Irradiance texture must not be empty");
+                return std::nullptr_t();
+            }
+            
+            if(reflectionsTexture) {
+                indirectLightBuilder.reflections(reflectionsTexture);
+            }
+
+                                                                            
+            auto *indirectLight = indirectLightBuilder.build(*engine);
+            return reinterpret_cast<TIndirectLight *>(indirectLight);
+        }
+
+         EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLightFromIrradianceHarmonics(TEngine *tEngine, TTexture *tReflectionsTexture, float *harmonics, float intensity)
+        {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *reflectionsTexture = reinterpret_cast<Texture *>(tReflectionsTexture);
+
+            auto indirectLightBuilder = filament::IndirectLight::Builder().intensity(intensity);
+
+            if(reflectionsTexture) {
+                indirectLightBuilder.reflections(reflectionsTexture);
+            }
+            
+            if(harmonics) {
+                filament::math::float3 sphericalHarmonics[9];
+                memcpy(sphericalHarmonics, harmonics, 27 * sizeof(float));
+                indirectLightBuilder.irradiance(3, sphericalHarmonics);
+            }
+                                                                            
+            auto *indirectLight = indirectLightBuilder.build(*engine);
             return reinterpret_cast<TIndirectLight *>(indirectLight);
         }
 
@@ -344,12 +371,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLight(TEngine *tEngine, TIndirectLight *tIndirectLight) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *indirectLight = reinterpret_cast<filament::IndirectLight *>(tIndirectLight);
-            if(indirectLight->getReflectionsTexture()) {
-                engine->destroy(indirectLight->getReflectionsTexture());
-            }
-            if(indirectLight->getIrradianceTexture()) {
-                engine->destroy(indirectLight->getIrradianceTexture());
-            }
             engine->destroy(indirectLight);
         }
 

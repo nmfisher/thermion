@@ -361,16 +361,36 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightRenderThread(TEngine *tEngine, TTexture *tTexture, float intensity, float *harmonics, void (*onComplete)(TIndirectLight *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *indirectLight = Engine_buildIndirectLight(tEngine, tTexture, intensity, harmonics);
-          PROXY(onComplete(indirectLight));
-        });
-    auto fut = _renderThread->add_task(lambda);
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
+    TEngine *tEngine,
+    TTexture *tReflectionsTexture,
+    TTexture* tIrradianceTexture,
+    float intensity,
+    void (*onComplete)(TIndirectLight *)) {
+      std::packaged_task<void()> lambda(
+          [=]() mutable
+          {
+            auto *indirectLight = Engine_buildIndirectLightFromIrradianceTexture(tEngine, tReflectionsTexture, tIrradianceTexture, intensity);
+            PROXY(onComplete(indirectLight));
+          });
+      auto fut = _renderThread->add_task(lambda);
   }
+  
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
+    TEngine *tEngine,
+    TTexture *tReflectionsTexture,
+    float *harmonics,
+    float intensity,
+    void (*onComplete)(TIndirectLight *)) {
+      std::packaged_task<void()> lambda(
+          [=]() mutable
+          {
+            auto *indirectLight = Engine_buildIndirectLightFromIrradianceHarmonics(tEngine, tReflectionsTexture, harmonics, intensity);
+            PROXY(onComplete(indirectLight));
+          });
+      auto fut = _renderThread->add_task(lambda);
+  }
+
 
   EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameRenderThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool))
   {
