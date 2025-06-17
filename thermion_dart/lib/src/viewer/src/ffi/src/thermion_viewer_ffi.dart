@@ -202,6 +202,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
+  Future<BackgroundImage> getBackgroundImage() async {
+    _backgroundImage ??= await BackgroundImage.create(this, scene);
+    return _backgroundImage!;
+  }
+
+  ///
+  ///
+  ///
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await FilamentApp.instance!.loadResource(path);
