@@ -75,19 +75,29 @@ class BackgroundImage extends ThermionAsset {
   ///
   ///
   ///
+  Future setCubemapFace(int index) async {
+    if (index < 0 || index > 5) {
+      throw Exception("Incorrect cubemap face index");
+    }
+    await mi.setParameterInt("cubeMapFace", index);
+  }
+
+  ///
+  ///
+  ///
   Future setImageFromKtxBundle(Ktx1Bundle bundle) async {
     final texture = await bundle.createTexture();
 
     if (bundle.isCubemap()) {
-      sampler ??=
-        await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
+      sampler ??= await FilamentApp.instance!.createTextureSampler()
+          as FFITextureSampler;
       this.texture = texture;
       await mi.setParameterTexture(
           "cubeMap", texture as FFITexture, sampler as FFITextureSampler);
       await setBackgroundColor(1, 1, 1, 0);
       await mi.setParameterInt("showImage", 1);
       await mi.setParameterInt("isCubeMap", 1);
-
+      await setCubemapFace(0);
       width = await texture.getWidth();
       height = await texture.getHeight();
     } else {
