@@ -333,29 +333,17 @@ abstract class Texture {
   /// Sets the given [image] as the source data for this texture.
   ///
   Future setLinearImage(
-      covariant LinearImage image, PixelDataFormat format, PixelDataType type, {int level = 0});
+      covariant LinearImage image, PixelDataFormat format, PixelDataType type,
+      {int level = 0});
 
   /// Sets the image data for a 2D texture or a texture level
-  Future setImage(int level, Uint8List buffer, int width, int height, 
-      int channels, PixelDataFormat format, PixelDataType type);
+  Future<void> setImage(int level, Uint8List buffer, int width, int height,
+      PixelDataFormat format, PixelDataType type,
+      {int depth = 1, int xOffset = 0, int yOffset = 0, int zOffset = 0});
 
   /// Sets the image data for a region of a 2D texture
   Future setSubImage(int level, int xOffset, int yOffset, int width, int height,
       Uint8List buffer, PixelDataFormat format, PixelDataType type);
-
-  /// Sets the image data for a 3D texture or cubemap
-  Future setImage3D(
-      int level,
-      int xOffset,
-      int yOffset,
-      int zOffset,
-      int width,
-      int height,
-      int channels,
-      int depth,
-      Uint8List buffer,
-      PixelDataFormat format,
-      PixelDataType type);
 
   /// Sets an external image (like a video or camera frame) as the texture source
   Future setExternalImage(dynamic externalImage);
@@ -407,15 +395,16 @@ enum PixelDataFormat {
 
   /// The integer value of the enum
   final int value;
-  
+
   /// Constructor with the integer value
   const PixelDataFormat(this.value);
-  
+
   /// Factory constructor to create a PixelDataFormat from an integer value
   factory PixelDataFormat.fromValue(int value) {
     return PixelDataFormat.values.firstWhere(
       (format) => format.value == value,
-      orElse: () => throw ArgumentError('Invalid PixelDataFormat value: $value'),
+      orElse: () =>
+          throw ArgumentError('Invalid PixelDataFormat value: $value'),
     );
   }
 }
@@ -460,10 +449,10 @@ enum PixelDataType {
 
   /// The integer value of the enum
   final int value;
-  
+
   /// Constructor with the integer value
   const PixelDataType(this.value);
-  
+
   /// Factory constructor to create a PixelDataType from an integer value
   factory PixelDataType.fromValue(int value) {
     return PixelDataType.values.firstWhere(
@@ -472,7 +461,6 @@ enum PixelDataType {
     );
   }
 }
-
 
 @deprecated
 typedef ThermionTexture = Texture;
@@ -483,34 +471,26 @@ abstract class LinearImage {
   Future<int> getWidth();
   Future<int> getHeight();
   Future<int> getChannels();
-  
-  /// Decodes the image contained in [data] and returns a texture of 
-  /// the corresponding size with the image set as mip-level 0. 
-  ///
-  ///
-  static Future<Texture> decodeToTexture(Uint8List data, { 
-    TextureFormat textureFormat = TextureFormat.RGB32F,
-    PixelDataFormat pixelDataFormat = PixelDataFormat.RGB,
-    PixelDataType pixelDataType = PixelDataType.FLOAT,
-    int levels = 1, 
-    bool requireAlpha = false}) async {
-    final decodedImage = await FilamentApp.instance!.decodeImage(data, requireAlpha: requireAlpha);
-    
-    final texture = await FilamentApp.instance!.createTexture(
-      await decodedImage.getWidth(),
-      await decodedImage.getHeight(),
-      textureFormat: textureFormat,
-      levels:levels
-    );
 
-    await texture.setLinearImage(
-      decodedImage,
-      pixelDataFormat,
-      pixelDataType
-    );
+  /// Decodes the image contained in [data] and returns a texture of
+  /// the corresponding size with the image set as mip-level 0.
+  ///
+  ///
+  static Future<Texture> decodeToTexture(Uint8List data,
+      {TextureFormat textureFormat = TextureFormat.RGB32F,
+      PixelDataFormat pixelDataFormat = PixelDataFormat.RGB,
+      PixelDataType pixelDataType = PixelDataType.FLOAT,
+      int levels = 1,
+      bool requireAlpha = false}) async {
+    final decodedImage = await FilamentApp.instance!
+        .decodeImage(data, requireAlpha: requireAlpha);
+
+    final texture = await FilamentApp.instance!.createTexture(
+        await decodedImage.getWidth(), await decodedImage.getHeight(),
+        textureFormat: textureFormat, levels: levels);
+
+    await texture.setLinearImage(decodedImage, pixelDataFormat, pixelDataType);
 
     return texture;
   }
-
 }
-

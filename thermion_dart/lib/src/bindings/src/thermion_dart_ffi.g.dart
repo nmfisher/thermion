@@ -636,30 +636,6 @@ external bool Texture_loadImage(
   int level,
 );
 
-@ffi.Native<
-    ffi.Bool Function(
-        ffi.Pointer<TEngine>,
-        ffi.Pointer<TTexture>,
-        ffi.Uint32,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Uint32,
-        ffi.Uint32,
-        ffi.Uint32,
-        ffi.Uint32,
-        ffi.Uint32)>(isLeaf: true)
-external bool Texture_setImage(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TTexture> tTexture,
-  int level,
-  ffi.Pointer<ffi.Uint8> data,
-  int size,
-  int width,
-  int height,
-  int channels,
-  int bufferFormat,
-  int pixelDataType,
-);
 
 @ffi.Native<
     ffi.Bool Function(
@@ -677,7 +653,7 @@ external bool Texture_setImage(
         ffi.Uint32,
         ffi.Uint32,
         ffi.Uint32)>(isLeaf: true)
-external bool Texture_setImageWithDepth(
+external bool Texture_setImage(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
   int level,
@@ -2531,33 +2507,6 @@ external void Texture_loadImageRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TEngine>,
-            ffi.Pointer<TTexture>,
-            ffi.Uint32,
-            ffi.Pointer<ffi.Uint8>,
-            ffi.Size,
-            ffi.Uint32,
-            ffi.Uint32,
-            ffi.Uint32,
-            ffi.Uint32,
-            ffi.Uint32,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
-    isLeaf: true)
-external void Texture_setImageRenderThread(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TTexture> tTexture,
-  int level,
-  ffi.Pointer<ffi.Uint8> data,
-  int size,
-  int width,
-  int height,
-  int channels,
-  int bufferFormat,
-  int pixelDataType,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
-);
 
 @ffi.Native<
         ffi.Void Function(
@@ -2574,10 +2523,9 @@ external void Texture_setImageRenderThread(
             ffi.Uint32,
             ffi.Uint32,
             ffi.Uint32,
-            ffi.Uint32,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
-external void Texture_setImageWithDepthRenderThread(
+external void Texture_setImageRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
   int level,
@@ -2588,7 +2536,6 @@ external void Texture_setImageWithDepthRenderThread(
   int z_offset,
   int width,
   int height,
-  int channels,
   int depth,
   int bufferFormat,
   int pixelDataType,

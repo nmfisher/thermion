@@ -942,35 +942,11 @@ extern "C"
       uint32_t level,
       uint8_t *data,
       size_t size,
-      uint32_t width,
-      uint32_t height,
-      uint32_t channels,
-      uint32_t bufferFormat,
-      uint32_t pixelDataType,
-      void (*onComplete)(bool))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          bool result = Texture_setImage(tEngine, tTexture, level, data, size, width, height, channels,
-                                         bufferFormat, pixelDataType);
-          PROXY(onComplete(result));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Texture_setImageWithDepthRenderThread(
-      TEngine *tEngine,
-      TTexture *tTexture,
-      uint32_t level,
-      uint8_t *data,
-      size_t size,
       uint32_t x_offset,
       uint32_t y_offset,
       uint32_t z_offset,
       uint32_t width,
       uint32_t height,
-      uint32_t channels,
       uint32_t depth,
       uint32_t bufferFormat,
       uint32_t pixelDataType,
@@ -979,7 +955,7 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          bool result = Texture_setImageWithDepth(
+          bool result = Texture_setImage(
               tEngine,
               tTexture,
               level,
@@ -990,7 +966,6 @@ extern "C"
               z_offset,
               width,
               height,
-              channels,
               depth,
               bufferFormat,
               pixelDataType);

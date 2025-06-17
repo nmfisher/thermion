@@ -30,7 +30,8 @@ class FFITexture extends Texture {
 
   @override
   Future<void> generateMipmaps() async {
-    await withVoidCallback((requestId, cb) => Texture_generateMipMapsRenderThread(pointer, _engine, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        Texture_generateMipMapsRenderThread(pointer, _engine, requestId, cb));
   }
 
   @override
@@ -73,7 +74,8 @@ class FFITexture extends Texture {
 
   @override
   Future<void> setImage(int level, Uint8List buffer, int width, int height,
-      int channels, PixelDataFormat format, PixelDataType type) async {
+      PixelDataFormat format, PixelDataType type,
+      {int depth = 1, int xOffset = 0, int yOffset = 0, int zOffset = 0 }) async {
     final success = await withBoolCallback((cb) {
       Texture_setImageRenderThread(
           _engine,
@@ -81,9 +83,10 @@ class FFITexture extends Texture {
           level,
           buffer.address,
           buffer.lengthInBytes,
+          xOffset, yOffset, zOffset,
           width,
           height,
-          channels,
+          depth,
           format.index,
           type.index,
           cb);
@@ -92,44 +95,6 @@ class FFITexture extends Texture {
     if (!success) {
       throw Exception("Failed to set image");
     }
-  }
-
-  @override
-  Future<void> setImage3D(
-      int level,
-      int xOffset,
-      int yOffset,
-      int zOffset,
-      int width,
-      int height,
-      int channels,
-      int depth,
-      Uint8List buffer,
-      PixelDataFormat format,
-      PixelDataType type) async {
-    throw UnimplementedError();
-    // final success = await withBoolCallback((cb) {
-    //   Texture_setImageWithDepthRenderThread(
-    //       _engine,
-    //       pointer,
-    //       level,
-    //       buffer.address,
-    //       buffer.lengthInBytes,
-    //       0,
-    //       0,
-    //       zOffset,
-    //       width,
-    //       height,
-    //       channels,
-    //       depth,
-    //       format.index,
-    //       type.index,
-    //       cb);
-    // });
-
-    // if (!success) {
-    //   throw Exception("Failed to set image");
-    // }
   }
 
   @override

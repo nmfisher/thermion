@@ -752,19 +752,8 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int pixelDataType,
     int level,
   );
+ 
   external int _Texture_setImage(
-    Pointer<TEngine> tEngine,
-    Pointer<TTexture> tTexture,
-    int level,
-    Pointer<Uint8> data,
-    size_t size,
-    int width,
-    int height,
-    int channels,
-    int bufferFormat,
-    int pixelDataType,
-  );
-  external int _Texture_setImageWithDepth(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
     int level,
@@ -775,7 +764,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int z_offset,
     int width,
     int height,
-    int channels,
     int depth,
     int bufferFormat,
     int pixelDataType,
@@ -1753,25 +1741,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int level,
     Pointer<Uint8> data,
     size_t size,
-    int width,
-    int height,
-    int channels,
-    int bufferFormat,
-    int pixelDataType,
-    Pointer<self.NativeFunction<void Function(bool)>> onComplete,
-  );
-  external void _Texture_setImageWithDepthRenderThread(
-    Pointer<TEngine> tEngine,
-    Pointer<TTexture> tTexture,
-    int level,
-    Pointer<Uint8> data,
-    size_t size,
     int x_offset,
     int y_offset,
     int z_offset,
     int width,
     int height,
-    int channels,
     int depth,
     int bufferFormat,
     int pixelDataType,
@@ -3029,34 +3003,16 @@ bool Texture_setImage(
   int level,
   self.Pointer<Uint8> data,
   Dart__darwin_size_t size,
-  int width,
-  int height,
-  int channels,
-  int bufferFormat,
-  int pixelDataType,
-) {
-  final result = _lib._Texture_setImage(tEngine.cast(), tTexture.cast(), level,
-      data, size, width, height, channels, bufferFormat, pixelDataType);
-  return result == 1;
-}
-
-bool Texture_setImageWithDepth(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TTexture> tTexture,
-  int level,
-  self.Pointer<Uint8> data,
-  Dart__darwin_size_t size,
   int x_offset,
   int y_offset,
   int z_offset,
   int width,
   int height,
-  int channels,
   int depth,
   int bufferFormat,
   int pixelDataType,
 ) {
-  final result = _lib._Texture_setImageWithDepth(
+  final result = _lib._Texture_setImage(
       tEngine.cast(),
       tTexture.cast(),
       level,
@@ -3067,7 +3023,6 @@ bool Texture_setImageWithDepth(
       z_offset,
       width,
       height,
-      channels,
       depth,
       bufferFormat,
       pixelDataType);
@@ -5083,9 +5038,12 @@ void Texture_setImageRenderThread(
   int level,
   self.Pointer<Uint8> data,
   Dart__darwin_size_t size,
+  int x_offset,
+  int y_offset,
+  int z_offset,
   int width,
   int height,
-  int channels,
+  int depth,
   int bufferFormat,
   int pixelDataType,
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
@@ -5096,44 +5054,11 @@ void Texture_setImageRenderThread(
       level,
       data,
       size,
-      width,
-      height,
-      channels,
-      bufferFormat,
-      pixelDataType,
-      onComplete.cast());
-  return result;
-}
-
-void Texture_setImageWithDepthRenderThread(
-  self.Pointer<TEngine> tEngine,
-  self.Pointer<TTexture> tTexture,
-  int level,
-  self.Pointer<Uint8> data,
-  Dart__darwin_size_t size,
-  int x_offset,
-  int y_offset,
-  int z_offset,
-  int width,
-  int height,
-  int channels,
-  int depth,
-  int bufferFormat,
-  int pixelDataType,
-  self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
-) {
-  final result = _lib._Texture_setImageWithDepthRenderThread(
-      tEngine.cast(),
-      tTexture.cast(),
-      level,
-      data,
-      size,
       x_offset,
       y_offset,
       z_offset,
       width,
       height,
-      channels,
       depth,
       bufferFormat,
       pixelDataType,

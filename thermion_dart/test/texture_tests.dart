@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:image/image.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
@@ -8,12 +9,13 @@ void main() async {
   await testHelper.setup();
 
   group("image", () {
-    test('create 2D texture & set from decoded image', () async {
+    test('set 2D texture from decoded image', () async {
       await testHelper.withViewer((viewer) async {
         var imageData = File(
           "${testHelper.testDir}/assets/cube_texture_512x512.png",
         ).readAsBytesSync();
-        final image = await FilamentApp.instance!.decodeImage(imageData);
+        final image = await FilamentApp.instance!
+            .decodeImage(imageData, requireAlpha: true);
         expect(await image.getChannels(), 4);
         expect(await image.getWidth(), 512);
         expect(await image.getHeight(), 512);
@@ -28,6 +30,36 @@ void main() async {
           PixelDataFormat.RGBA,
           PixelDataType.FLOAT,
         );
+        await texture.dispose();
+      }, bg: kRed);
+    });
+
+    test('set cubemap texture from pixel buffer', () async {
+      await testHelper.withViewer((viewer) async {
+        final texture = await FilamentApp.instance!.createTexture(
+          1,
+          1,
+          depth: 6,
+          textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
+          textureFormat: TextureFormat.RGBA32F,
+        );
+        final byteBuffer = Float32List.fromList([
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+        ]);
+        for (int i = 0; i < 6; i++) {
+          await texture.setImage(
+            0,
+            byteBuffer.asUint8List(),
+            1,
+            1,
+            zOffset: i,
+            PixelDataFormat.RGBA,
+            PixelDataType.FLOAT,
+          );
+        }
         await texture.dispose();
       }, bg: kRed);
     });
@@ -49,7 +81,8 @@ void main() async {
         var imageData = File(
           "${testHelper.testDir}/assets/cube_texture_512x512.png",
         ).readAsBytesSync();
-        final image = await FilamentApp.instance!.decodeImage(imageData);
+        final image = await FilamentApp.instance!
+            .decodeImage(imageData, requireAlpha: true);
         expect(await image.getChannels(), 4);
         expect(await image.getWidth(), 512);
         expect(await image.getHeight(), 512);
@@ -66,7 +99,6 @@ void main() async {
           data.buffer.asUint8List(data.offsetInBytes),
           512,
           512,
-          4,
           PixelDataFormat.RGBA,
           PixelDataType.FLOAT,
         );
@@ -90,18 +122,14 @@ void main() async {
 
         for (int i = 0; i < depth; i++) {
           final buffer = Uint8List(width * height * channels * sizeOf<Float>());
-          await texture.setImage3D(
+          await texture.setImage(
             0,
-            0,
-            0,
-            i,
+            buffer,
             width,
             height,
-            channels,
-            1,
-            buffer,
             PixelDataFormat.RGBA,
             PixelDataType.FLOAT,
+            zOffset: i,
           );
         }
         await texture.dispose();
@@ -145,18 +173,14 @@ void main() async {
             pixelBuffer.offsetInBytes,
           );
 
-          await texture.setImage3D(
+          await texture.setImage(
             0,
-            0,
-            0,
-            i,
+            byteBuffer,
             width,
             height,
-            channels,
-            1,
-            byteBuffer,
             PixelDataFormat.RGBA,
             PixelDataType.FLOAT,
+            zOffset: i,
           );
         }
 
