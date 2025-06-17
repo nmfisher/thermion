@@ -97,7 +97,14 @@ abstract class ThermionViewer {
   /// Creates an indirect light by loading the reflections/irradiance from the KTX file.
   /// Only one indirect light can be active at any given time; if an indirect light has already been loaded, it will be replaced.
   ///
-  Future loadIbl(String lightingPath, {double intensity = 30000});
+  Future loadIbl(String lightingPath,
+      {double intensity = 30000, bool destroyExisting = true});
+
+  ///
+  ///
+  ///
+  Future loadIblFromTexture(Texture texture,
+      {double intensity = 30000, bool destroyExisting = true});
 
   ///
   /// Rotates the IBL & skybox.

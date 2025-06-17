@@ -288,40 +288,55 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future loadIbl(String lightingPath, {double intensity = 30000}) async {
-    await removeIbl();
+  Future loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting= true}) async {
+    await removeIbl(destroy:destroyExisting);
 
     final completer = Completer();
     _iblTextureUploadComplete =
         withVoidCallback((requestId, onTextureUploadComplete) async {
-      late Pointer stackPtr;
-      if (FILAMENT_WASM) {
-        //stackPtr = stackSave();
-      }
+          late Pointer stackPtr;
+          if (FILAMENT_WASM) {
+            //stackPtr = stackSave();
+          }
 
-      var data = await FilamentApp.instance!.loadResource(lightingPath);
+          var data = await FilamentApp.instance!.loadResource(lightingPath);
 
-      final bundle = await FFIKtx1Bundle.create(data);
+          final bundle = await FFIKtx1Bundle.create(data);
 
-      final texture = await bundle.createTexture();
-      final harmonics = bundle.getSphericalHarmonics();
+          final texture = await bundle.createTexture();
+          final harmonics = bundle.getSphericalHarmonics();
 
-      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(harmonics,
+          final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
+            harmonics,
+            reflectionsTexture: texture,
+            intensity: intensity,
+          );
+
+          await scene.setIndirectLight(ibl);
+
+          if (FILAMENT_WASM) {
+            //stackRestore(stackPtr);
+            data.free();
+          }
+          data.free();
+
+          completer.complete();
+        }).then((_) {
+          _iblTextureUploadComplete = null;
+        });
+    await completer.future;
+  }
+
+  ///
+  ///
+  ///
+  Future loadIblFromTexture(Texture texture, { double intensity = 30000, bool destroyExisting = true}) async {
+    await removeIbl(destroy: destroyExisting);
+
+    final ibl = await FFIIndirectLight.fromIrradianceTexture(texture,
           reflectionsTexture: texture, intensity: intensity);
 
-      await scene.setIndirectLight(ibl);
-
-      if (FILAMENT_WASM) {
-        //stackRestore(stackPtr);
-        data.free();
-      }
-      data.free();
-
-      completer.complete();
-    }).then((_) {
-      _iblTextureUploadComplete = null;
-    });
-    await completer.future;
+    await scene.setIndirectLight(ibl);
   }
 
   ///
