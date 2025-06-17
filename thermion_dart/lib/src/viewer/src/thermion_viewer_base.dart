@@ -103,7 +103,7 @@ abstract class ThermionViewer {
   ///
   ///
   Future loadIblFromTexture(Texture texture,
-      {double intensity = 30000, bool destroyExisting = true});
+      {Texture? reflectionsTexture, double intensity = 30000, bool destroyExisting = true});
 
   ///
   /// Rotates the IBL & skybox.

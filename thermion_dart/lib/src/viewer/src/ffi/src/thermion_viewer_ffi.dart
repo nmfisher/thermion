@@ -330,11 +330,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future loadIblFromTexture(Texture texture, { double intensity = 30000, bool destroyExisting = true}) async {
+  Future loadIblFromTexture(Texture texture, { Texture? reflectionsTexture = null, double intensity = 30000, bool destroyExisting = true}) async {
     await removeIbl(destroy: destroyExisting);
 
     final ibl = await FFIIndirectLight.fromIrradianceTexture(texture,
-          reflectionsTexture: texture, intensity: intensity);
+          reflectionsTexture: reflectionsTexture, intensity: intensity);
 
     await scene.setIndirectLight(ibl);
   }
