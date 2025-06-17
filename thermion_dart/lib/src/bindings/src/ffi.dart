@@ -11,6 +11,10 @@ const FILAMENT_SINGLE_THREADED = false;
 const FILAMENT_WASM = false;
 bool get IS_WINDOWS => Platform.isWindows;
 
+Uint8List makeUint8List(int length) {
+  return Uint8List(length);
+}
+
 Int32List makeInt32List(int length) {
   return Int32List(length);
 }

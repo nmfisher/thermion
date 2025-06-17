@@ -12,6 +12,14 @@ const IS_WINDOWS = false;
 
 final _allocations = <TypedData>{};
 
+Uint8List makeUint8List(int length) {
+  var ptr = malloc<Uint8>(length);
+  var buf = _NativeLibrary.instance._emscripten_make_uint8_buffer(ptr, length);
+  var uint8List = buf.toDart;
+  _allocations.add(uint8List);
+  return uint8List;
+}
+
 Int32List makeInt32List(int length) {
   var ptr = stackAlloc<Int32>(length * 4);
   var buf = _NativeLibrary.instance._emscripten_make_int32_buffer(ptr, length);
@@ -132,6 +140,10 @@ extension Uint8ListExtension on Uint8List {
     if (this.lengthInBytes == 0) {
       return nullptr;
     }
+    if (_allocations.contains(this)) {
+      return Pointer<Uint8>(
+          _NativeLibrary.instance._emscripten_get_byte_offset(this.toJS));
+    }
     final ptr = getPointer<Uint8>(this, this.toJS);
     final bar =
         Uint8ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
@@ -139,14 +151,13 @@ extension Uint8ListExtension on Uint8List {
     var now = DateTime.now();
     bar.toDart.setRange(0, length, this);
     var finished = DateTime.now();
-    print(
-        "uint8list copy finished in ${finished.millisecondsSinceEpoch - now.millisecondsSinceEpoch}ms");
     return ptr;
   }
 }
 
 extension Float32ListExtension on Float32List {
   Pointer<Float32> get address {
+
     final ptr = getPointer<Float32>(this, this.toJS);
     final bar =
         Float32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
