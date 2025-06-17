@@ -87,7 +87,12 @@ class FFIScene extends Scene {
           await FilamentApp.instance!.createUnlitMaterialInstance();
       var highlightInstance = await asset
           .createInstance(materialInstances: [_highlightMaterialInstance!]);
+      
+      await highlightInstance.setCastShadows(false);
+      await highlightInstance.setReceiveShadows(false);
+      
       _highlightInstances[asset] = highlightInstance as FFIAsset;
+
 
       var sourceMaterialInstance =
           await asset.getMaterialInstanceAt(entity: entity);
