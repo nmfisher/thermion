@@ -265,6 +265,11 @@ namespace thermion
             return reinterpret_cast<TFence *>(fence);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Fence_waitAndDestroy(TFence *tFence) {
+            auto *fence = reinterpret_cast<filament::Fence *>(tFence);
+            Fence::waitAndDestroy(fence);
+        }
+
         EMSCRIPTEN_KEEPALIVE void Engine_destroyFence(TEngine *tEngine, TFence *tFence)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
@@ -280,14 +285,8 @@ namespace thermion
         
         EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine) {
             #ifdef __EMSCRIPTEN__
-                // auto startTime = std::chrono::high_resolution_clock::now();
                 auto *engine = reinterpret_cast<Engine *>(tEngine);
                 engine->execute();
-                // auto endTime = std::chrono::high_resolution_clock::now();
-                // auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
-                // float durationMs = durationNs / 1e6f;
-
-                // Log("Total Engine_execute() time: %.3f ms", durationMs);
             #else
                 Log("WARNING - ignored on non-WASM");
             #endif
