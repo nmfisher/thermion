@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/background_image.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import '../../../../filament/src/implementation/ffi_asset.dart';
@@ -229,13 +230,10 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setBackgroundColor(double r, double g, double b, double a) async {
-    // we don't want to use the Renderer clearColor, because this only applies
-    // to clearing the swapchain. Even if this Viewer is rendered into the
-    // swapchain, we don't necessarily (?) want to set the clear color,
-    // because that will affect other views.
-    // We therefore use the background image as the color;
-    _backgroundImage ??= await BackgroundImage.create(this, scene);
-    await _backgroundImage!.setBackgroundColor(r, g, b, a);
+    await removeSkybox();
+    _skybox = await FilamentApp.instance!.buildSkybox() as FFISkybox;
+    await scene.setSkybox(_skybox!);
+    await _skybox!.setColor(r, g, b, a);
   }
 
   ///
@@ -252,7 +250,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future? _skyboxTextureUploadComplete;
   FFITexture? _skyboxTexture;
-  Pointer<TSkybox>? _skybox;
+  FFISkybox? _skybox;
 
   ///
   ///
@@ -271,10 +269,11 @@ class ThermionViewerFFI extends ThermionViewer {
 
       _skyboxTexture = await bundle.createTexture() as FFITexture;
 
-      _skybox = await withPointerCallback<TSkybox>((cb) {
-        Engine_buildSkyboxRenderThread(app.engine, _skyboxTexture!.pointer, cb);
-      });
-      Scene_setSkybox(scene.scene, _skybox!);
+      _skybox = await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
+          as FFISkybox;
+
+      await scene.setSkybox(_skybox!);
+
       completer.complete();
     }).then((_) async {
       _skyboxTextureUploadComplete = null;
@@ -364,16 +363,7 @@ class ThermionViewerFFI extends ThermionViewer {
       _skyboxTextureUploadComplete = null;
     }
 
-    if (_skybox != null) {
-      await withVoidCallback(
-        (requestId, cb) => Engine_destroySkyboxRenderThread(
-          app.engine,
-          _skybox!,
-          requestId,
-          cb,
-        ),
-      );
-    }
+    await _skybox?.destroy();
     _skybox = null;
     _skyboxTexture = null;
   }

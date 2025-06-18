@@ -636,7 +636,6 @@ external bool Texture_loadImage(
   int level,
 );
 
-
 @ffi.Native<
     ffi.Bool Function(
         ffi.Pointer<TEngine>,
@@ -644,7 +643,6 @@ external bool Texture_loadImage(
         ffi.Uint32,
         ffi.Pointer<ffi.Uint8>,
         ffi.Size,
-        ffi.Uint32,
         ffi.Uint32,
         ffi.Uint32,
         ffi.Uint32,
@@ -664,7 +662,6 @@ external bool Texture_setImage(
   int z_offset,
   int width,
   int height,
-  int channels,
   int depth,
   int bufferFormat,
   int pixelDataType,
@@ -1618,6 +1615,11 @@ external int EntityManager_createEntity(
   ffi.Pointer<TEntityManager> tEntityManager,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TFence>)>(isLeaf: true)
+external void Fence_waitAndDestroy(
+  ffi.Pointer<TFence> tFence,
+);
+
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void RenderThread_create();
 
@@ -1939,6 +1941,14 @@ external void Engine_createFenceRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TFence>)>>
       onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TFence>, ffi.Uint32, VoidCallback)>(
+    isLeaf: true)
+external void Fence_waitAndDestroyRenderThread(
+  ffi.Pointer<TFence> tFence,
+  int requestId,
+  VoidCallback onComplete,
 );
 
 @ffi.Native<
@@ -2507,7 +2517,6 @@ external void Texture_loadImageRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
 );
 
-
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TEngine>,
@@ -2943,6 +2952,17 @@ external void GltfResourceLoader_addResourceData(
 external bool GltfResourceLoader_loadResources(
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Double, ffi.Double, ffi.Double,
+        ffi.Double)>(isLeaf: true)
+external void Skybox_setColor(
+  ffi.Pointer<TSkybox> tSkybox,
+  double r,
+  double g,
+  double b,
+  double a,
 );
 
 @ffi.Native<

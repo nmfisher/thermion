@@ -1956,6 +1956,13 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<TFilamentAsset> tFilamentAsset,
   );
+  external void _Skybox_setColor(
+    Pointer<TSkybox> tSkybox,
+    double r,
+    double g,
+    double b,
+    double a,
+  );
   external int _RenderableManager_setMaterialInstanceAt(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
@@ -5507,6 +5514,17 @@ bool GltfResourceLoader_loadResources(
   final result = _lib._GltfResourceLoader_loadResources(
       tGltfResourceLoader.cast(), tFilamentAsset.cast());
   return result == 1;
+}
+
+void Skybox_setColor(
+  self.Pointer<TSkybox> tSkybox,
+  double r,
+  double g,
+  double b,
+  double a,
+) {
+  final result = _lib._Skybox_setColor(tSkybox.cast(), r, g, b, a);
+  return result;
 }
 
 bool RenderableManager_setMaterialInstanceAt(

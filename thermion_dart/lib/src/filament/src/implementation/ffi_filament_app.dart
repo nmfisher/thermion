@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -10,6 +11,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
+import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
@@ -1207,5 +1209,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ));
   }
 
-
+  /// Builds an (empty) [Skybox] instance. This will not be attached to any scene until
+  /// [setSkybox] is called.
+  ///
+  Future<Skybox> buildSkybox({Texture? texture = null}) async {
+    final ptr = await withPointerCallback<TSkybox>((cb) {
+      Engine_buildSkyboxRenderThread(
+        engine,
+        (texture as FFITexture?)?.pointer ?? nullptr,
+        cb,
+      );
+    });
+    return FFISkybox(ptr);
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
+import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FilamentConfig<T, U> {
@@ -344,19 +345,23 @@ abstract class FilamentApp<T> {
   Future<Matrix4> getWorldTransform(ThermionEntity entity);
 
   /// Sets the render priority for [entity].
-  /// [priority] should be be between 0 and 7, with 0 meaning highest priority 
+  /// [priority] should be be between 0 and 7, with 0 meaning highest priority
   /// (rendered first) and 7 meaning lowest priority (rendered last).
   ///
   Future setPriority(ThermionEntity entity, int priority);
 
-  /// Gets the number of primitives for [entity] (which is assumed to be 
+  /// Gets the number of primitives for [entity] (which is assumed to be
   /// have a renderable component attached)
   ///
   Future<int> getPrimitiveCount(ThermionEntity entity);
 
-  /// Gets the bounding box for [entity] (which is assumed to be 
+  /// Gets the bounding box for [entity] (which is assumed to be
   /// have a renderable component attached).
   ///
   Future<Aabb3> getBoundingBox(ThermionEntity entity);
 
+  /// Builds a [Skybox] instance. This will not be attached to any scene until
+  /// [setSkybox] is called.
+  ///
+  Future<Skybox> buildSkybox({Texture? texture = null});
 }
