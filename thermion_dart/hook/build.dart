@@ -88,16 +88,14 @@ void main(List<String> args) async {
       "backend",
       "filameshio",
       "viewer",
-      if(targetOS != OS.iOS)
-      "filamat",
+      if (targetOS != OS.iOS) "filamat",
       "meshoptimizer",
       "mikktspace",
       "geometry",
       "utils",
       "filabridge",
       "gltfio_core",
-      if(targetOS != OS.android && targetOS != OS.iOS)
-      "gltfio",
+      if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
       "filament-iblprefilter",
       "image",
       "imageio",
@@ -129,8 +127,10 @@ void main(List<String> args) async {
 
     final defines = <String, String?>{
       // uncomment this to enable (very verbose) trace logging
-      // "ENABLE_TRACING": "1"
+      "ENABLE_TRACING": input.userDefines["tracing"] == null ? "0" : "1"
     };
+
+    
 
     var frameworks = [];
     if (platform != "windows") {
@@ -200,8 +200,8 @@ void main(List<String> args) async {
           : ['native/include', 'native/include/filament'],
       defines: platform == "windows" ? {} : defines,
       flags: [
-        if (platform == "macos") '-mmacosx-version-min=13.0',
-        if (platform == "ios") '-mios-version-min=13.0',
+        if (targetOS == OS.macOS) ...['-mmacosx-version-min=13.0'],
+        if (targetOS == OS.iOS) '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
         if (platform != "windows") ...[
@@ -258,11 +258,11 @@ void main(List<String> args) async {
           "libc++_shared.so"
         ].join(Platform.pathSeparator));
         final libcpp = CodeAsset(
-            package: "thermion_dart",
-            name: "libc++_shared.so",
-            linkMode: DynamicLoadingBundled(),
-            file: stlPath.uri,
-            );
+          package: "thermion_dart",
+          name: "libc++_shared.so",
+          linkMode: DynamicLoadingBundled(),
+          file: stlPath.uri,
+        );
 
         output.assets.addEncodedAsset(libcpp.encode());
       }
@@ -273,11 +273,11 @@ void main(List<String> args) async {
           outputDirectory.path.substring(1).replaceAll("/", "\\"),
           "thermion_dart.lib"));
       final libthermion = CodeAsset(
-          package: packageName,
-          name: "thermion_dart.lib",
-          linkMode: DynamicLoadingBundled(),
-          file: importLib.uri,
-          );
+        package: packageName,
+        name: "thermion_dart.lib",
+        linkMode: DynamicLoadingBundled(),
+        file: importLib.uri,
+      );
       output.assets.addEncodedAsset(libthermion.encode());
 
       for (final dir in ["windows/vulkan"]) {
@@ -296,11 +296,11 @@ void main(List<String> args) async {
                 path.join(targetSubdir, path.basename(file.path));
             file.copySync(targetPath);
             final include = CodeAsset(
-                package: packageName,
-                name: "include/$dir/${path.basename(file.path)}",
-                linkMode: DynamicLoadingBundled(),
-                file: file.uri,
-                );
+              package: packageName,
+              name: "include/$dir/${path.basename(file.path)}",
+              linkMode: DynamicLoadingBundled(),
+              file: file.uri,
+            );
             output.assets.addEncodedAsset(include.encode());
           }
         }
