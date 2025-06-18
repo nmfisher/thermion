@@ -310,6 +310,18 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Fence_waitAndDestroyRenderThread(TFence *tFence, uint32_t requestId, VoidCallback onComplete)
+  {
+    
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Fence_waitAndDestroy(tFence);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, uint32_t requestId, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
