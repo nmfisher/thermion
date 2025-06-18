@@ -2,11 +2,54 @@
 
 ### Min iOS version
 
-Thermion requires a minimum iOS version of 13.0
-
-In your application's `ios/Podfile`, make sure the following line is present (and not commented out):
+Thermion requires a minimum iOS version of 13.0. When building a Flutter application, ensure your application's `ios/Podfile` contains the following:
 
 ```ruby
 platform :ios, '13.0'
+```
+
+and in ios/Info.plist:
+
+```xml
+<key>LSMinimumSystemVersion</key>
+<string>13.0</string>
+```
+
+When submitting to the App Store, you may encounter an error saying `thermion_dart.framework does not supported the minimum deployment target in Info.plist`. 
+
+This is because Flutter hardcodes a deployment target of iOS 12.0 when invoking the native assets build, which conflicts with actual requirement.
+
+After running `flutter build ios` (but before archiving the build and submitting to the App Store), run the following script to replace the `MinimumOSVersion`:
+
+```
+#!/bin/zsh
+
+# Array of directories containing Info.plist files
+directories=(
+    "./build/ios/iphoneos/Runner.app/Frameworks/thermion_dart.framework"
+    "./build/ios/Release-iphoneos/Runner.app/Frameworks/thermion_dart.framework"
+    "./build/native_assets/ios/thermion_dart.framework"
+)
+
+# Loop through each directory
+for dir in "${directories[@]}"; do
+    plist_path="$dir/Info.plist"
+    
+    # Check if Info.plist exists in the directory
+    if [[ -f "$plist_path" ]]; then
+        echo "Processing: $plist_path"
+        
+        # Use PlistBuddy to change the MinimumOSVersion
+        /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 13.0" "$plist_path" 2>/dev/null
+        
+        if [[ $? -eq 0 ]]; then
+            echo "✓ Successfully updated version to 13.0"
+        else
+            echo "✗ Failed to update version in $plist_path"
+        fi
+    else
+        echo "✗ Info.plist not found in $dir"
+    fi
+done
 ```
 

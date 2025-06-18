@@ -1,0 +1,31 @@
+# Debugging
+
+If something is crashing or not working as expected, you can enable verbose logging and/or debug builds (particularly useful for debugging with lldb or getting legible stack traces):
+
+Add a `hooks` section to your app's `pubspec.yaml`, e.g.
+```
+name: example_cli
+description: A sample command-line application.
+version: 1.0.0
+
+environment:
+  sdk: ^3.3.0
+
+hooks:
+  user_defines:
+    thermion_dart: 
+      mode: debug
+      tracing: enabled
+
+# Add the below
+hooks:
+  user_defines:
+    thermion_dart: 
+      mode: debug
+      tracing: enabled
+```
+
+> [!CAUTION]
+> Debug builds won't work for Android. This is a known upstream issue with Filament.
+
+Unless `mode: debug` is specified in your `pubspec.yaml`, Thermion will use release builds under the hood, even if your app is compiled/runing in debug mode.
