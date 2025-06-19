@@ -267,7 +267,7 @@ class ThermionViewerFFI extends ThermionViewer {
         withVoidCallback((requestId, onTextureUploadComplete) async {
       var bundle = await FFIKtx1Bundle.create(data);
 
-      _skyboxTexture = await bundle.createTexture() as FFITexture;
+      _skyboxTexture = await bundle.createTexture(onTextureUploadComplete: onTextureUploadComplete, requestId: requestId) as FFITexture;
 
       _skybox = await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
           as FFISkybox;
@@ -287,53 +287,61 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting= true}) async {
-    await removeIbl(destroy:destroyExisting);
+  Future loadIbl(String lightingPath,
+      {double intensity = 30000, bool destroyExisting = true}) async {
+    await removeIbl(destroy: destroyExisting);
 
     final completer = Completer();
     _iblTextureUploadComplete =
         withVoidCallback((requestId, onTextureUploadComplete) async {
-          late Pointer stackPtr;
-          if (FILAMENT_WASM) {
-            //stackPtr = stackSave();
-          }
+      late Pointer stackPtr;
+      if (FILAMENT_WASM) {
+        //stackPtr = stackSave();
+      }
 
-          var data = await FilamentApp.instance!.loadResource(lightingPath);
+      var data = await FilamentApp.instance!.loadResource(lightingPath);
 
-          final bundle = await FFIKtx1Bundle.create(data);
+      final bundle = await FFIKtx1Bundle.create(data);
 
-          final texture = await bundle.createTexture();
-          final harmonics = bundle.getSphericalHarmonics();
+      final texture = await bundle.createTexture(onTextureUploadComplete: onTextureUploadComplete, requestId: requestId);
+      final harmonics = bundle.getSphericalHarmonics();
 
-          final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
-            harmonics,
-            reflectionsTexture: texture,
-            intensity: intensity,
-          );
+      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
+        harmonics,
+        reflectionsTexture: texture,
+        intensity: intensity,
+      );
 
-          await scene.setIndirectLight(ibl);
+      await scene.setIndirectLight(ibl);
 
-          if (FILAMENT_WASM) {
-            //stackRestore(stackPtr);
-            data.free();
-          }
-          data.free();
+      if (FILAMENT_WASM) {
+        //stackRestore(stackPtr);
+        data.free();
+      }
+      data.free();
 
-          completer.complete();
-        }).then((_) {
-          _iblTextureUploadComplete = null;
-        });
+      completer.complete();
+      _logger.info("IBL texture upload complete");
+    }).then((_) {
+      _logger.info("IBL texture upload complete");
+      _iblTextureUploadComplete = null;
+    }).onError((err, st) {
+      _logger.severe(err.toString());
+    });
     await completer.future;
   }
 
   ///
   ///
   ///
-  Future loadIblFromTexture(Texture texture, { Texture? reflectionsTexture = null, double intensity = 30000, bool destroyExisting = true}) async {
+  Future loadIblFromTexture(Texture texture,
+      {Texture? reflectionsTexture = null,
+      double intensity = 30000,
+      bool destroyExisting = true}) async {
     await removeIbl(destroy: destroyExisting);
 
     final ibl = await FFIIndirectLight.fromIrradianceTexture(texture,
-          reflectionsTexture: reflectionsTexture, intensity: intensity);
+        reflectionsTexture: reflectionsTexture, intensity: intensity);
 
     await scene.setIndirectLight(ibl);
   }

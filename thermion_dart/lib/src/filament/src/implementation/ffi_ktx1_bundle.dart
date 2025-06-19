@@ -44,13 +44,13 @@ class FFIKtx1Bundle extends Ktx1Bundle {
     return FFIKtx1Bundle(bundle);
   }
 
-  Future<Texture> createTexture() async {
+  Future<Texture> createTexture({VoidCallback? onTextureUploadComplete, int? requestId}) async {
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Ktx1Reader_createTextureRenderThread(
           (FilamentApp.instance as FFIFilamentApp).engine,
           pointer,
-          0,
-          nullptr,
+          requestId ?? 0,
+          onTextureUploadComplete ?? nullptr,
           cb);
     });
     return FFITexture(FilamentApp.instance!.engine, texturePtr);

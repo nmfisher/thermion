@@ -1,7 +1,6 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
 abstract class Ktx1Bundle {
-  
   ///
   ///
   ///
@@ -10,7 +9,8 @@ abstract class Ktx1Bundle {
   ///
   ///
   ///
-  Future<Texture> createTexture();
+  Future<Texture> createTexture(
+      {VoidCallback? onTextureUploadComplete, int? requestId});
 
   ///
   ///
