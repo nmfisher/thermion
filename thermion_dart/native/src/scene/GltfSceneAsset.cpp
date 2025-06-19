@@ -90,8 +90,8 @@ namespace thermion
                     TRACE("Instance child entity %d not renderable", i);
                 } else {
                     TRACE("Instance child entity %d renderable", i);
-                    for(int i = 0; i < materialInstanceCount; i++) {
-                        rm.setMaterialInstanceAt(renderableInstance, i, materialInstances[i]);
+                    for(int j = 0; j < materialInstanceCount; j++) {
+                        rm.setMaterialInstanceAt(renderableInstance, i, materialInstances[j]);
                     }
                 }                
             }

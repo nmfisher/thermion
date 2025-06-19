@@ -758,14 +758,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final pixelBuffers = <(View, Uint8List)>[];
 
-    if (beginFrame) {
-      final views = <FFIView>[];
-      if (view != null) {
-        views.add(view);
-      } else {
-        views.addAll(_swapChains[swapChain]!.where((v) => v.renderable));
-      }
+    final views = <FFIView>[];
+    if (view != null) {
+      views.add(view);
+    } else {
+      views.addAll(_swapChains[swapChain]!.where((v) => v.renderable));
+    }
 
+    if (beginFrame) {
       _logger.info("Capturing ${views.length} views");
 
       for (final view in views) {
@@ -784,7 +784,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           PixelDataType.UBYTE || PixelDataType.BYTE => 1,
           _ => throw UnsupportedError(pixelDataFormat.toString())
         };
-        final pixelBuffer = Uint8List(viewport.width *
+
+        final pixelBuffer = makeUint8List(viewport.width *
             viewport.height *
             numChannels *
             channelSizeInBytes);
@@ -807,10 +808,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               view.renderTarget == null
                   ? nullptr
                   : view.renderTarget!.renderTarget,
-              // TPixelDataFormat.PIXELDATAFORMAT_RGBA,
-              // TPixelDataType.PIXELDATATYPE_UBYTE,
-              // TPixelDataFormat.fromValue(pixelDataFormat.value),
-              // TPixelDataType.fromValue(pixelDataType.value),
               pixelDataFormat.value,
               pixelDataType.value,
               pixelBuffer.address,
@@ -829,6 +826,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     });
 
     await flush();
+
     return pixelBuffers;
   }
 
