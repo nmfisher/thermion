@@ -84,7 +84,7 @@ void main() async {
       var asset = await viewer.loadGltf(
           "file://${testHelper.testDir}/assets/cube.glb",
           addToScene: false,
-          numInstances: 2);
+          numInstances: 2, keepData: true);
       var defaultInstance = await asset.getInstance(0);
       await viewer.addToScene(defaultInstance);
       await testHelper.capture(viewer.view, "gltf_without_instance");
@@ -118,7 +118,7 @@ void main() async {
       var asset = await viewer.loadGltf(
           "file://${testHelper.testDir}/assets/cube.glb",
           numInstances: numInstances,
-          addToScene: false);
+          addToScene: false, keepData: true);
 
       print("Creating 100 instances...");
       List<PhysicsState> instanceStates = [];
