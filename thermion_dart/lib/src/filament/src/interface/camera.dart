@@ -67,15 +67,41 @@ abstract class Camera {
   Future<Matrix4> getCullingProjectionMatrix();
   Future setModelMatrix(Matrix4 matrix);
 
+  /// Get the entity that has the underlying Camera component attached.
+  ///
+  ///
   ThermionEntity getEntity();
 
+  /// Set the transform for this entity.
+  ///
+  ///
   Future setTransform(Matrix4 transform);
 
+  /// Gets the distance to the near plane.
+  ///
+  ///
   Future<double> getNear();
+  
+  /// Gets the distance to the far plane used for culling.
+  ///
+  ///
   Future<double> getCullingFar();
+  
+  ///
+  ///
+  ///
   Future<double> getFocalLength();
+  
+  /// Get the focus distance for depth-of-field postprocessing effect. 
+  /// If DoF is not enabled, this does nothing.
+  ///
   Future<double> getFocusDistance();
+  
+  /// Set the focus distance for depth-of-field postprocessing effect. 
+  /// If DoF is not enabled, this does nothing.
+  ///
   Future setFocusDistance(double focusDistance);
+  
   Future<double> getHorizontalFieldOfView();
   Future<double> getVerticalFieldOfView();
   Future<Frustum> getFrustum();
