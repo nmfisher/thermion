@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-
+import '../interface/axis.dart';
 import 'ffi_view.dart';
 
 class FFIGizmo extends FFIAsset implements GizmoAsset {
@@ -14,15 +14,13 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
 
   late FFIView view;
 
-    FFIGizmo(
-      super.asset,
-      super.app,
-      super.animationManager,
-      {
+  FFIGizmo(
+    super.asset,
+    super.app,
+    super.animationManager, {
     required this.view,
     required this.entities,
   }) {
-    
     _callbackHolder = _onPickResult.asCallback();
   }
 
@@ -33,10 +31,8 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
     _callbackHolder.dispose();
   }
 
-  
   void _onPickResult(int resultType, double x, double y, double z) {
-    
-    final type = switch(resultType) {
+    final type = switch (resultType) {
       TGizmoPickResultType.AxisX => GizmoPickResultType.AxisX,
       TGizmoPickResultType.AxisY => GizmoPickResultType.AxisY,
       TGizmoPickResultType.AxisZ => GizmoPickResultType.AxisZ,
@@ -82,7 +78,7 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
   @override
   Future highlight(Axis axis) async {
     Gizmo_unhighlight(asset.cast<TGizmo>());
-    final tAxis = switch(axis) {
+    final tAxis = switch (axis) {
       Axis.X => TGizmoAxis.X,
       Axis.Y => TGizmoAxis.Y,
       Axis.Z => TGizmoAxis.Z
