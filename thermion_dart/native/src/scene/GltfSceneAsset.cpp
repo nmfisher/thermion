@@ -63,12 +63,12 @@ namespace thermion
     {
         auto instanceNumber = _instances.size();
         
-        if (instanceNumber > _asset->getAssetInstanceCount() - 1)
+        if (instanceNumber >= _asset->getAssetInstanceCount() - 1)
         {
-            Log("glTF asset was created with %d instances reserved, and %d instances have been used. Increase the number of instances pre-allocated when the asset is loaded.",
-            _asset->getAssetInstanceCount(), _instances.size()
+            TRACE("Warning: %d/%d pre-allocated instances already consumed. You may wish to pre-allocate a larger number.",
+                _asset->getAssetInstanceCount(), _instances.size()
             );
-            return std::nullptr_t();
+            _assetLoader->createInstance(_asset);
         }
         TRACE("Creating instance %d", instanceNumber);
         auto instance = _asset->getAssetInstances()[instanceNumber];

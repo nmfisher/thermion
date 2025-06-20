@@ -64,15 +64,8 @@ void main() async {
     });
   });
 
-  test('create gltf instance', () async {
+  test('create pre-allocated gltf instance', () async {
     await testHelper.withViewer((viewer) async {
-      await viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
-      await viewer.loadSkybox(
-          "file://${testHelper.testDir}/assets/default_env_skybox.ktx");
-      await viewer.setPostProcessing(true);
-      await viewer.setAntiAliasing(false, true, false);
-
       // Loading a glTF asset always creates a single instance behind the scenes,
       // but the entities exposed by the asset are used to manipulate all
       // instances as a group, not the singular "default" instance.
@@ -88,7 +81,7 @@ void main() async {
       var defaultInstance = await asset.getInstance(0);
       await viewer.addToScene(defaultInstance);
       await testHelper.capture(viewer.view, "gltf_without_instance");
-
+      
       var instance = await asset.createInstance();
       await instance.setTransform(Matrix4.translation(Vector3(1, 0, 0)));
       await testHelper.capture(viewer.view, "gltf_instance_created");
@@ -96,7 +89,16 @@ void main() async {
       await testHelper.capture(viewer.view, "gltf_instance_add_to_scene");
       await viewer.removeFromScene(instance);
       await testHelper.capture(viewer.view, "gltf_instance_remove_from_scene");
-    });
+
+      // above, we pre-allocated two instances and have used all of them
+      // calling createInstance now will still create another instance, but will be slower than allocating.
+      var instance2 = await asset.createInstance();
+      await instance2.setTransform(Matrix4.translation(Vector3(-1, 0, 0)));
+      await viewer.addToScene(instance2);
+      await testHelper.capture(viewer.view, "gltf_instance2_add_to_scene");
+
+
+    }, addSkybox: true);
   });
 
   test('physics simulation with 100 instances', () async {
