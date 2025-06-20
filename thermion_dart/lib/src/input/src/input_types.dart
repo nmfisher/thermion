@@ -89,8 +89,8 @@ class KeyEvent extends InputEvent {
 
 enum KeyEventType { down, up }
 
-enum LogicalKey { w, a, s, d, g, r, shift, esc, del, space }
+enum LogicalKey { w, a, s, d, g, r, x, y, z, shift, esc, del, space, backtick }
 
-enum PhysicalKey { w, a, s, d, g, r, shift, esc, del, space }
+enum PhysicalKey { w, a, s, d, g, r, x, y, z, shift, esc, del, space, backtick }
 
 enum InputAction { TRANSLATE, ROTATE, PICK, ZOOM, NONE }
