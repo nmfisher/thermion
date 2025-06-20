@@ -86,6 +86,10 @@ namespace thermion
             return convert_mat4_to_double4x4(camera->getProjectionMatrix());
         }
 
+        EMSCRIPTEN_KEEPALIVE double4x4 Camera_getCullingProjectionMatrix(TCamera *const tCamera) { 
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return convert_mat4_to_double4x4(camera->getCullingProjectionMatrix());
+        }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setFocusDistance(TCamera *tCamera, float distance) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
