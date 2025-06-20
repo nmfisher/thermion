@@ -14,12 +14,46 @@ extension OffsetExtension on Offset {
   }
 }
 
+final physicalKeyMap = {
+  PhysicalKeyboardKey.keyW: PhysicalKey.w,
+  PhysicalKeyboardKey.keyA: PhysicalKey.a,
+  PhysicalKeyboardKey.keyS: PhysicalKey.s,
+  PhysicalKeyboardKey.keyD: PhysicalKey.d,
+  PhysicalKeyboardKey.escape: PhysicalKey.esc,
+  PhysicalKeyboardKey.delete: PhysicalKey.del,
+  PhysicalKeyboardKey.keyG: PhysicalKey.g,
+  PhysicalKeyboardKey.keyR: PhysicalKey.r,
+  PhysicalKeyboardKey.keyX: PhysicalKey.x,
+  PhysicalKeyboardKey.keyY: PhysicalKey.y,
+  PhysicalKeyboardKey.keyZ: PhysicalKey.z,
+  PhysicalKeyboardKey.shiftLeft: PhysicalKey.shift,
+  PhysicalKeyboardKey.space: PhysicalKey.space,
+  PhysicalKeyboardKey.backquote: PhysicalKey.backtick
+};
+
+final logicalKeyMap = {
+  LogicalKeyboardKey.keyW: LogicalKey.w,
+  LogicalKeyboardKey.keyA: LogicalKey.a,
+  LogicalKeyboardKey.keyS: LogicalKey.s,
+  LogicalKeyboardKey.keyD: LogicalKey.d,
+  LogicalKeyboardKey.escape: LogicalKey.esc,
+  LogicalKeyboardKey.delete: LogicalKey.del,
+  LogicalKeyboardKey.keyG: LogicalKey.g,
+  LogicalKeyboardKey.keyR: LogicalKey.r,
+  LogicalKeyboardKey.keyX: LogicalKey.x,
+  LogicalKeyboardKey.keyY: LogicalKey.y,
+  LogicalKeyboardKey.keyZ: LogicalKey.z,
+  LogicalKeyboardKey.shift: LogicalKey.shift,
+  LogicalKeyboardKey.shiftLeft: LogicalKey.shift,
+  LogicalKeyboardKey.space: LogicalKey.space,
+  LogicalKeyboardKey.backquote: LogicalKey.backtick
+};
+
 ///
 /// Forwards cross-platform touch/mouse events to an
 /// [InputHandler].
 ///
 class ThermionListenerWidget extends StatefulWidget {
-  
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly
   /// interacting with the viewport), but this is not necessary. It is equally
@@ -40,12 +74,24 @@ class ThermionListenerWidget extends StatefulWidget {
   ///
   ///
   ///
-  const ThermionListenerWidget({
-    Key? key,
-    required this.inputHandler,
-    this.focusNode,
-    this.child,
-  }) : super(key: key);
+  final bool addKeyboardListener;
+
+  ///
+  ///
+  ///
+  final bool propagateEvents;
+
+  ///
+  ///
+  ///
+  const ThermionListenerWidget(
+      {Key? key,
+      required this.inputHandler,
+      this.focusNode,
+      this.child,
+      this.addKeyboardListener = true,
+      this.propagateEvents = true})
+      : super(key: key);
 
   @override
   State<ThermionListenerWidget> createState() => _ThermionListenerWidgetState();
@@ -58,52 +104,37 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
   @override
   void initState() {
     super.initState();
-    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    if (widget.addKeyboardListener) {
+      HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    }
   }
 
-  final _physicalKeyMap = {
-    PhysicalKeyboardKey.keyW: PhysicalKey.w,
-    PhysicalKeyboardKey.keyA: PhysicalKey.a,
-    PhysicalKeyboardKey.keyS: PhysicalKey.s,
-    PhysicalKeyboardKey.keyD: PhysicalKey.d,
-    PhysicalKeyboardKey.escape: PhysicalKey.esc,
-    PhysicalKeyboardKey.delete: PhysicalKey.del,
-    PhysicalKeyboardKey.keyG: PhysicalKey.g,
-    PhysicalKeyboardKey.keyR: PhysicalKey.r,
-  };
-
-  final _logicalKeyMap = {
-    LogicalKeyboardKey.keyW: LogicalKey.w,
-    LogicalKeyboardKey.keyA: LogicalKey.a,
-    LogicalKeyboardKey.keyS: LogicalKey.s,
-    LogicalKeyboardKey.keyD: LogicalKey.d,
-    LogicalKeyboardKey.escape: LogicalKey.esc,
-    LogicalKeyboardKey.delete: LogicalKey.del,
-    LogicalKeyboardKey.keyG: LogicalKey.g,
-    LogicalKeyboardKey.keyR: LogicalKey.r,
-  };
-
   bool _handleKeyEvent(KeyEvent event) {
-    final physicalKey = _physicalKeyMap[event.physicalKey];
-    final logicalKey = _logicalKeyMap[event.logicalKey];
+    final physicalKey = physicalKeyMap[event.physicalKey];
+    final logicalKey = logicalKeyMap[event.logicalKey];
 
     if (physicalKey == null || logicalKey == null) {
       return false;
     }
 
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      widget.inputHandler.handle(t.KeyEvent(KeyEventType.down, logicalKey, physicalKey));
+      widget.inputHandler.handle(t.KeyEvent(
+          KeyEventType.down, logicalKey, physicalKey,
+          synthesized: event.synthesized));
     } else if (event is KeyUpEvent) {
-      widget.inputHandler.handle(t.KeyEvent(KeyEventType.up, logicalKey, physicalKey));
-      return true;
+      widget.inputHandler.handle(t.KeyEvent(
+          KeyEventType.up, logicalKey, physicalKey,
+          synthesized: event.synthesized));
     }
-    return false;
+    return !widget.propagateEvents;
   }
 
   @override
   void dispose() {
     super.dispose();
-    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    if (widget.addKeyboardListener) {
+      HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    }
   }
 
   t.MouseButton? _mouseButtonFromEvent(PointerEvent event) {
@@ -124,7 +155,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
         focusNode: widget.focusNode,
         child: Listener(
           onPointerHover: (event) async {
-            await widget.inputHandler.handle(MouseEvent(
+            widget.inputHandler.handle(MouseEvent(
                 MouseEventType.hover,
                 _mouseButtonFromEvent(event),
                 event.localPosition.toVector2() * pixelRatio,
@@ -132,7 +163,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
           },
           onPointerSignal: (PointerSignalEvent pointerSignal) async {
             if (pointerSignal is PointerScrollEvent) {
-              await widget.inputHandler.handle(ScrollEvent(
+              widget.inputHandler.handle(ScrollEvent(
                   localPosition:
                       pointerSignal.localPosition.toVector2() * pixelRatio,
                   delta: pointerSignal.scrollDelta.dy * pixelRatio));
@@ -144,7 +175,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
           onPointerDown: (event) async {
             widget.focusNode?.requestFocus();
 
-            await widget.inputHandler.handle(MouseEvent(
+            widget.inputHandler.handle(MouseEvent(
                 MouseEventType.buttonDown,
                 _mouseButtonFromEvent(event),
                 event.localPosition.toVector2() * pixelRatio,
@@ -239,7 +270,7 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
           ));
         },
         onScaleEnd: (details) async {
-          await widget.inputHandler
+          widget.inputHandler
               .handle(ScaleEndEvent(numPointers: details.pointerCount));
         },
         child: widget.child);
