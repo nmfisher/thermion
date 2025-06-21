@@ -185,6 +185,7 @@ abstract class ThermionViewer {
     int priority = 4,
     int layer = 0,
     bool loadResourcesAsync = false,
+    bool addToScene = true
   });
 
   ///
