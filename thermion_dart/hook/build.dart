@@ -26,7 +26,7 @@ void main(List<String> args) async {
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
     final targetOS = config.code.targetOS;
-   
+
     final targetArchitecture = config.code.targetArchitecture;
     var logPath = path.join(
         pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
@@ -125,12 +125,11 @@ void main(List<String> args) async {
 
     final flags = []; //"-fsanitize=address"];
 
-    final defines = <String, String?>{
-      // uncomment this to enable (very verbose) trace logging
-      "ENABLE_TRACING": input.userDefines["tracing"] == null ? "0" : "1"
-    };
+    final defines = <String, String?>{};
 
-    
+    if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
+      defines["ENABLE_TRACING"] = "1";
+    }
 
     var frameworks = [];
     if (platform != "windows") {
