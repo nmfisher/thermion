@@ -939,7 +939,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           GltfResourceLoader_destroyRenderThread(
               engine, gltfResourceLoader, requestId, cb));
 
-      return FFIAsset(asset, this, animationManager.cast<TAnimationManager>(), keepData:keepData);
+      return FFIAsset(asset, this, animationManager.cast<TAnimationManager>(),
+          keepData: keepData);
     } finally {
       if (FILAMENT_WASM) {
         //stackRestore(stackPtr);
