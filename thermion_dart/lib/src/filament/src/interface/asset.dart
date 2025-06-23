@@ -2,26 +2,34 @@ library;
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/src/filament/src/interface/layers.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 export 'gltf.dart';
 
 ///
-/// Represents a renderable object (i.e. not cameras or lights).
+/// A high-level interface for a renderable object
+/// (i.e. not a camera or light).
 ///
-/// At a low level, Filament works with entities. In practice,
-/// it can be difficult to work directly with these at a higher level
-/// because:
-/// a) certain objects don't map exactly to entities (e.g. glTF assets, which
-/// are represented by a hierarchy of entities).
-/// b) it is not trivial to create instances directly from entities
+/// Filament represents most "objects" with an integer handle (in C++,
+/// filament::Entity).
 ///
-/// [ThermionAsset] is intended to provide a unified high-level interface
-/// for working with renderable objects.
+/// In practice, working with filament::Entity at a higher level is difficult
+/// because certain objects don't map exactly to entities (e.g. glTF assets, which
+/// are represented by a hierarchy of entities) and creating instances
+/// directly from entities is not possible.
 ///
 ///
 abstract class ThermionAsset {
+
+  ///
+  ///
+  ///
+  T getHandle<T>() {
+    throw UnimplementedError();
+  }
+
   ///
   /// The top-most entity in the hierarchy. If this is a glTF asset
   ///
@@ -75,16 +83,15 @@ abstract class ThermionAsset {
     throw UnimplementedError();
   }
 
-
-  /// For each entity in the given map, set the material instance 
+  /// For each entity in the given map, set the material instance
   /// for the respective primitive.
-  /// 
-  /// Mainly intended for use with [getMaterialInstancesAsMap] so you can 
-  /// easily save/restore an asset's material instances.  
+  ///
+  /// Mainly intended for use with [getMaterialInstancesAsMap] so you can
+  /// easily save/restore an asset's material instances.
   ///
   Future setMaterialInstancesFromMap(
       Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
-      throw UnimplementedError();
+    throw UnimplementedError();
   }
 
   ///
@@ -96,18 +103,21 @@ abstract class ThermionAsset {
 
   ///
   /// The bounding box for this asset, as an actual renderable asset.
-  /// Null by default; call [createBoundingBoxAsset] first to create.
-  ///
-  ThermionAsset? get boundingBoxAsset;
-
-  ///
-  /// Creates the renderable bounding box for this asset.
   /// This is safe to call multiple times; if [boundingBoxAsset] is non-null,
   /// this will simply return the existing bounding box asset.
   ///
   /// You will still need to call [Scene.add] to add this to the scene.
   ///
-  Future<ThermionAsset> createBoundingBoxAsset();
+  Future<ThermionAsset> getBoundingBoxAsset() {
+    throw UnimplementedError();
+  }
+
+  ///
+  ///
+  ///
+  Future destroyBoundingBoxAsset(Scene scene) {
+    throw UnimplementedError();
+  }
 
   ///
   ///

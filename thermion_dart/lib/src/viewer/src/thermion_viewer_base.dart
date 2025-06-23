@@ -290,6 +290,17 @@ abstract class ThermionViewer {
   ///
   Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity);
 
+  /// Render the bounding box for [asset] with an unlit material.
+  ///
+  Future showBoundingBox(ThermionAsset asset);
+
+  /// Removes the bounding box for [asset] from the scene.
+  /// 
+  /// If [destroy] is true, the geometry and material instance for the asset
+  /// will also be destroyed.
+  ///
+  Future hideBoundingBox(ThermionAsset asset, { bool destroy = false});
+
   ///
   /// Gets the 2D bounding box (in viewport coordinates) for the given entity.
   ///
