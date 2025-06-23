@@ -8,6 +8,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class BackgroundImage extends ThermionAsset {
+  
   final ThermionAsset asset;
 
   ThermionEntity get entity => asset.entity;
@@ -307,13 +308,11 @@ class BackgroundImage extends ThermionAsset {
 
   @override
   Future removeAnimationComponent() {
-    // TODO: implement removeAnimationComponent
     throw UnimplementedError();
   }
 
   @override
   Future resetBones() {
-    // TODO: implement resetBones
     throw UnimplementedError();
   }
 
@@ -321,7 +320,6 @@ class BackgroundImage extends ThermionAsset {
   Future setBoneTransform(
       ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) {
-    // TODO: implement setBoneTransform
     throw UnimplementedError();
   }
 

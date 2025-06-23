@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
@@ -7,6 +9,10 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
 class FFIAsset extends ThermionAsset {
+  T getHandle<T>() {
+    return asset as T;
+  }
+
   ///
   ///
   ///
@@ -193,11 +199,6 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  ThermionAsset? boundingBoxAsset;
-
-  ///
-  ///
-  ///
   Future dispose() async {
     _childEntities?.free();
   }
@@ -224,143 +225,6 @@ class FFIAsset extends ThermionAsset {
       boundingBox.hull(entityBB);
     }
     return boundingBox;
-  }
-
-  ///
-  ///
-  ///
-  Future<ThermionAsset> createBoundingBoxAsset() async {
-    if (boundingBoxAsset == null) {
-      final boundingBox = await SceneAsset_getBoundingBox(asset);
-
-      final min = [
-        boundingBox.centerX - boundingBox.halfExtentX,
-        boundingBox.centerY - boundingBox.halfExtentY,
-        boundingBox.centerZ - boundingBox.halfExtentZ
-      ];
-      final max = [
-        boundingBox.centerX + boundingBox.halfExtentX,
-        boundingBox.centerY + boundingBox.halfExtentY,
-        boundingBox.centerZ + boundingBox.halfExtentZ
-      ];
-
-      // Create vertices for the bounding box wireframe
-      // 8 vertices for a cube
-      final vertices = Float32List(8 * 3);
-
-      // Bottom vertices
-      vertices[0] = min[0];
-      vertices[1] = min[1];
-      vertices[2] = min[2]; // v0
-      vertices[3] = max[0];
-      vertices[4] = min[1];
-      vertices[5] = min[2]; // v1
-      vertices[6] = max[0];
-      vertices[7] = min[1];
-      vertices[8] = max[2]; // v2
-      vertices[9] = min[0];
-      vertices[10] = min[1];
-      vertices[11] = max[2]; // v3
-
-      // Top vertices
-      vertices[12] = min[0];
-      vertices[13] = max[1];
-      vertices[14] = min[2]; // v4
-      vertices[15] = max[0];
-      vertices[16] = max[1];
-      vertices[17] = min[2]; // v5
-      vertices[18] = max[0];
-      vertices[19] = max[1];
-      vertices[20] = max[2]; // v6
-      vertices[21] = min[0];
-      vertices[22] = max[1];
-      vertices[23] = max[2]; // v7
-
-      // Indices for lines (24 indices for 12 lines)
-      final indices = Uint16List.fromList([
-        // Bottom face
-        0, 1, 1, 2, 2, 3, 3, 0,
-        // Top face
-        4, 5, 5, 6, 6, 7, 7, 4,
-        // Vertical edges
-        0, 4, 1, 5, 2, 6, 3, 7
-      ]);
-
-      // Create unlit material instance for the wireframe
-      final materialInstancePtr =
-          await withPointerCallback<TMaterialInstance>((cb) {
-        MaterialProvider_createMaterialInstanceRenderThread(
-            app.ubershaderMaterialProvider,
-            false,
-            true,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            0,
-            false,
-            false,
-            0,
-            false,
-            0,
-            0,
-            false,
-            0,
-            false,
-            0,
-            false,
-            0,
-            false,
-            false,
-            false,
-            0,
-            0,
-            0,
-            false,
-            0,
-            false,
-            0,
-            false,
-            0,
-            false,
-            0,
-            false,
-            false,
-            false,
-            cb);
-      });
-
-      final material = FFIMaterialInstance(materialInstancePtr, app);
-      await material.setParameterFloat4(
-          "baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
-
-      // Create geometry for the bounding box
-      final geometry = Geometry(
-        vertices,
-        indices,
-        primitiveType: PrimitiveType.LINES,
-      );
-
-      boundingBoxAsset = await FilamentApp.instance!.createGeometry(
-        geometry,
-        animationManager,
-        materialInstances: [material],
-        keepData: false,
-      ) as FFIAsset;
-
-      await boundingBoxAsset!.setCastShadows(false);
-      await boundingBoxAsset!.setReceiveShadows(false);
-
-      TransformManager_setParent(Engine_getTransformManager(app.engine),
-          boundingBoxAsset!.entity, entity, false);
-      geometry.uvs?.free();
-      geometry.normals?.free();
-      geometry.vertices.free();
-      geometry.indices.free();
-    }
-    return boundingBoxAsset!;
   }
 
   ///

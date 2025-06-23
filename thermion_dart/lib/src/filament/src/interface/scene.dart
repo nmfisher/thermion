@@ -15,7 +15,7 @@ abstract class Scene {
   /// Removes all renderable entities in [asset] from this scene.
   ///
   ///
-  Future remove(covariant ThermionAsset asset);
+  Future remove(ThermionAsset asset);
 
   /// Removes [entity] from this scene.
   ///

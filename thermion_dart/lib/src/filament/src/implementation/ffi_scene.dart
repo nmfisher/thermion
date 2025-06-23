@@ -14,8 +14,8 @@ class FFIScene extends Scene {
   FFIScene(this.scene);
 
   @override
-  Future add(covariant FFIAsset asset) async {
-    SceneAsset_addToScene(asset.asset, scene);
+  Future add(ThermionAsset asset) async {
+    SceneAsset_addToScene(asset.getHandle(), scene);
   }
 
   ///
@@ -30,8 +30,8 @@ class FFIScene extends Scene {
   ///
   ///
   @override
-  Future remove(covariant FFIAsset asset) async {
-    SceneAsset_removeFromScene(asset.asset, scene);
+  Future remove(ThermionAsset asset) async {
+    SceneAsset_removeFromScene(asset.getHandle(), scene);
   }
 
   ///
