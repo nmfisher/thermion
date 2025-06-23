@@ -103,7 +103,9 @@ abstract class ThermionViewer {
   ///
   ///
   Future loadIblFromTexture(Texture texture,
-      {Texture? reflectionsTexture, double intensity = 30000, bool destroyExisting = true});
+      {Texture? reflectionsTexture,
+      double intensity = 30000,
+      bool destroyExisting = true});
 
   ///
   /// Rotates the IBL & skybox.
@@ -177,16 +179,14 @@ abstract class ThermionViewer {
   /// be loaded asynchronously (so expect some material/texture pop-in);
   ///
   ///
-  Future<ThermionAsset> loadGltfFromBuffer(
-    Uint8List data, {
-    String? resourceUri,
-    int numInstances = 1,
-    bool keepData = false,
-    int priority = 4,
-    int layer = 0,
-    bool loadResourcesAsync = false,
-    bool addToScene = true
-  });
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
+      {String? resourceUri,
+      int numInstances = 1,
+      bool keepData = false,
+      int priority = 4,
+      int layer = 0,
+      bool loadResourcesAsync = false,
+      bool addToScene = true});
 
   ///
   /// Destroys [asset] and all underlying resources
