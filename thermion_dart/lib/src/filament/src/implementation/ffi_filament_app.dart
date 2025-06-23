@@ -261,7 +261,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _onDestroy.clear();
   }
 
-  ///
+  /// If [asset] is actually an instance (i.e. was created via createInstance), 
+  /// its resources may not actually be destroyed until the parent asset is 
+  /// destroyed. It may be marked as unused, and recycled the next time 
+  /// createInstance is called.
   ///
   ///
   Future destroyAsset(covariant FFIAsset asset) async {
