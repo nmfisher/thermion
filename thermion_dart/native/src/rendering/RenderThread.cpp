@@ -27,24 +27,20 @@ static void mainLoop(void* arg) {
     auto startTime = std::chrono::high_resolution_clock::now();
 
     auto timeSinceLastLoopStart = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - loopStart).count();
-    // if(timeSinceLastLoopStart > 20) {
-    //     Log("%dms elapsed since last loop", timeSinceLastLoopStart);
-    // }
 
     loopStart = startTime;
+    rt->mRestart = false;
     rt->mRendered = false;
     long long elapsed = 0;
     int numIters = 0;
-    while (!rt->_stop && elapsed < 12) {
+    while (!rt->mStop && !rt->mRestart && elapsed < 12) {
         rt->iter();
         numIters++;
         auto now = std::chrono::high_resolution_clock::now();
         elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
     } 
-    // if(!rt->mRendered) {
-    //     Log("Spent %lldms processing, %d iters, rendered %s, render requested %s, context lost %s", elapsed, numIters, rt->mRendered ? "true" : "false", rt->mRender ? "true" : "false", emscripten_is_webgl_context_lost(Thermion_getGLContext()) ? "yes" : "no");
-    // }
-    if(rt->_stop) {
+
+    if(rt->mStop) {
         Log("RenderThread stopped")
         emscripten_set_main_loop_arg(nullptr, nullptr, 0, true);
     }
@@ -59,6 +55,12 @@ static void *startHelper(void * parm) {
 
 #endif
 
+void RenderThread::restart() { 
+    #ifdef __EMSCRIPTEN__
+    mRestart = true;
+    #endif
+}
+
 RenderThread::RenderThread()
 {
     srand(time(NULL));
@@ -70,7 +72,7 @@ RenderThread::RenderThread()
     pthread_create(&t, &attr, startHelper, this);
     #else
     t = new std::thread([this]() { 
-        while (!_stop) {
+        while (!mStop) {
             iter();
             mRendered = false;
         }
@@ -83,7 +85,7 @@ RenderThread::RenderThread()
 RenderThread::~RenderThread()
 {
     Log("Destroying RenderThread (%d tasks remaining)", _tasks.size());
-    _stop = true;
+    mStop = true;
     _cv.notify_one();
     TRACE("Joining RenderThread thread..");    
     
@@ -154,7 +156,7 @@ void RenderThread::iter()
     }
     #ifndef __EMSCRIPTEN__
     _cv.wait_for(taskLock, std::chrono::microseconds(2000), [this]
-                { return !_tasks.empty() || _stop; });
+                { return !_tasks.empty() || mStop; });
     #endif
 
 }
