@@ -140,6 +140,8 @@ namespace thermion
             return _instance->getBoundingBox();
         }
 
+        bool inUse = true;
+
     private:
         filament::Engine *_engine;
         utils::NameComponentManager *_ncm;

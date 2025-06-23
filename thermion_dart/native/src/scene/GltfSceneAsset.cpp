@@ -53,25 +53,37 @@ namespace thermion
     }
 
     void GltfSceneAsset::destroyInstance(SceneAsset *asset) {
-        auto it = std::remove_if(_instances.begin(), _instances.end(), [=](auto &sceneAsset)
-                                { return sceneAsset.get() == asset; });
-        _instances.erase(it, _instances.end());
+        for(auto& instance : _instances) {
+            if(instance.get() == asset) {
+                instance->inUse = false;      
+                return;  
+            }
+        }
     };
 
 
     SceneAsset *GltfSceneAsset::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)
     {
-        auto instanceNumber = _instances.size();
-        
-        if (instanceNumber >= _asset->getAssetInstanceCount() - 1)
+
+        // first, see if we can recycled any "unused" instances.
+        for(auto &instance : _instances) {
+            if(!instance->inUse) {
+                instance->inUse = true;
+                return instance.get();
+            }
+        }
+
+        if(_instances.size() == _asset->getAssetInstanceCount())
         {
-            TRACE("Warning: %d/%d pre-allocated instances already consumed. You may wish to pre-allocate a larger number.",
-                _asset->getAssetInstanceCount(), _instances.size()
+            TRACE("Warning: %d pre-allocated instances already consumed. A new instance will be allocated internally, but in future you may wish to pre-allocate a larger number.",
+                _asset->getAssetInstanceCount() 
             );
             _assetLoader->createInstance(_asset);
+        } else {
+            TRACE("Returning pre-allocated instance at index %d", _instances.size());
         }
-        TRACE("Creating instance %d", instanceNumber);
-        auto instance = _asset->getAssetInstances()[instanceNumber];
+        
+        auto instance = _asset->getAssetInstances()[_instances.size()];
         
         instance->recomputeBoundingBoxes();
         auto bb = instance->getBoundingBox();
