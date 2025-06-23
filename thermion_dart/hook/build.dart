@@ -126,8 +126,9 @@ void main(List<String> args) async {
     final flags = []; //"-fsanitize=address"];
 
     final defines = <String, String?>{};
-
+    logger.info("User defines : ${input.userDefines}");
     if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
+      logger.info("Enabling tracing");
       defines["ENABLE_TRACING"] = "1";
     }
 
