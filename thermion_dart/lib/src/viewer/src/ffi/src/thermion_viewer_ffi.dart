@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/background_image.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import '../../../../filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../../filament/src/implementation/ffi_scene.dart';
@@ -504,10 +506,8 @@ class ThermionViewerFFI extends ThermionViewer {
     _assets.remove(asset);
     await scene.remove(asset);
 
-    if (asset.boundingBoxAsset != null) {
-      await scene.remove(asset.boundingBoxAsset! as FFIAsset);
-      await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);
-    }
+    await hideBoundingBox(asset, destroy: true);
+
     await FilamentApp.instance!.destroyAsset(asset);
   }
 
@@ -519,10 +519,8 @@ class ThermionViewerFFI extends ThermionViewer {
     _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
       await scene.remove(asset);
-      if (asset.boundingBoxAsset != null) {
-        await scene.remove(asset.boundingBoxAsset! as FFIAsset);
-        await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);
-      }
+      await hideBoundingBox(asset, destroy: true);
+
       for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
         await scene.remove(instance);
       }
@@ -790,6 +788,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future addToScene(covariant FFIAsset asset) async {
+    _assets.add(asset);
     await scene.add(asset);
   }
 
@@ -797,7 +796,178 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future removeFromScene(covariant FFIAsset asset) async {
+    if (!_assets.contains(asset)) {
+      throw Exception("Asset is not attached to this viewer");
+    }
     await scene.remove(asset);
+  }
+
+  final _boundingBoxAssets = <ThermionAsset, Completer<ThermionAsset>>{};
+
+  ///
+  ///
+  ///
+  Future showBoundingBox(ThermionAsset asset) async {
+    if (_boundingBoxAssets.containsKey(asset)) {
+      final bbAsset = await _boundingBoxAssets[asset]!.future;
+      await scene.add(bbAsset);
+      return;
+    }
+
+    var completer = Completer<ThermionAsset>();
+    _boundingBoxAssets[asset] = completer;
+
+    final boundingBox = await asset.getBoundingBox();
+
+    final min = [
+      boundingBox.center.x + boundingBox.min.x,
+      boundingBox.center.y + boundingBox.min.y,
+      boundingBox.center.z + boundingBox.min.z
+    ];
+    final max = [
+      boundingBox.center.x + boundingBox.max.x,
+      boundingBox.center.y + boundingBox.max.y,
+      boundingBox.center.z + boundingBox.max.z
+    ];
+
+    // Create vertices for the bounding box wireframe
+    // 8 vertices for a cube
+    final vertices = Float32List(8 * 3);
+
+    // Bottom vertices
+    vertices[0] = min[0];
+    vertices[1] = min[1];
+    vertices[2] = min[2]; // v0
+    vertices[3] = max[0];
+    vertices[4] = min[1];
+    vertices[5] = min[2]; // v1
+    vertices[6] = max[0];
+    vertices[7] = min[1];
+    vertices[8] = max[2]; // v2
+    vertices[9] = min[0];
+    vertices[10] = min[1];
+    vertices[11] = max[2]; // v3
+
+    // Top vertices
+    vertices[12] = min[0];
+    vertices[13] = max[1];
+    vertices[14] = min[2]; // v4
+    vertices[15] = max[0];
+    vertices[16] = max[1];
+    vertices[17] = min[2]; // v5
+    vertices[18] = max[0];
+    vertices[19] = max[1];
+    vertices[20] = max[2]; // v6
+    vertices[21] = min[0];
+    vertices[22] = max[1];
+    vertices[23] = max[2]; // v7
+
+    // Indices for lines (24 indices for 12 lines)
+    final indices = Uint16List.fromList([
+      // Bottom face
+      0, 1, 1, 2, 2, 3, 3, 0,
+      // Top face
+      4, 5, 5, 6, 6, 7, 7, 4,
+      // Vertical edges
+      0, 4, 1, 5, 2, 6, 3, 7
+    ]);
+
+    // Create unlit material instance for the wireframe
+    final materialInstancePtr =
+        await withPointerCallback<TMaterialInstance>((cb) {
+      MaterialProvider_createMaterialInstanceRenderThread(
+          app.ubershaderMaterialProvider,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          0,
+          false,
+          false,
+          0,
+          false,
+          0,
+          0,
+          false,
+          0,
+          false,
+          0,
+          false,
+          0,
+          false,
+          false,
+          false,
+          0,
+          0,
+          0,
+          false,
+          0,
+          false,
+          0,
+          false,
+          0,
+          false,
+          0,
+          false,
+          false,
+          false,
+          cb);
+    });
+
+    final material = FFIMaterialInstance(materialInstancePtr, app);
+    await material.setParameterFloat4(
+        "baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
+
+    // Create geometry for the bounding box
+    final geometry = Geometry(
+      vertices,
+      indices,
+      primitiveType: PrimitiveType.LINES,
+    );
+
+    final bbAsset = await FilamentApp.instance!.createGeometry(
+      geometry,
+      animationManager,
+      materialInstances: [material],
+      keepData: false,
+    ) as FFIAsset;
+
+    await bbAsset.setCastShadows(false);
+    await bbAsset.setReceiveShadows(false);
+
+    TransformManager_setParent(Engine_getTransformManager(app.engine),
+        bbAsset.entity, asset.entity, false);
+    geometry.uvs.free();
+    geometry.normals.free();
+    geometry.vertices.free();
+    geometry.indices.free();
+    completer.complete(bbAsset);
+
+    await scene.add(bbAsset);
+
+    return bbAsset;
+  }
+
+  Future hideBoundingBox(ThermionAsset asset, {bool destroy = false}) async {
+    if (_boundingBoxAssets.containsKey(asset)) {
+      final completer = _boundingBoxAssets[asset]!;
+      final bbAsset = await completer.future;
+
+      await scene.remove(bbAsset);
+      if (destroy) {
+        _boundingBoxAssets.remove(asset);
+        await FilamentApp.instance!.destroyAsset(bbAsset);
+        _logger.info("Bounding box destroyed");
+      } else {
+        _logger.info("Bounding box hidden");
+      }
+    } else {
+      _logger.warning("Warning - no bounding box for asset created");
+    }
   }
 }
 
