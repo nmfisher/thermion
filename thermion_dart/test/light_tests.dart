@@ -1,11 +1,6 @@
-import 'dart:io';
-
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
-import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
-import 'package:thermion_dart/src/filament/src/interface/light_options.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -44,28 +39,24 @@ void main() async {
       var asset =
           await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
 
-
-      final (texture: reflectionsTexture, :harmonics) =
-          await FilamentApp.instance!.decodeKtx(await File("${testHelper.testDir}/assets/default_env_ibl.ktx").readAsBytesSync());
-          
-
       final texture = await FilamentApp.instance!.createTexture(1, 1,
           textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
           flags: {
-            
             TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-            
           });
       await texture.setImage(
           0,
-          Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0)).asUint8List(),
+          Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0))
+              .asUint8List(),
           1,
           1,
-          4,
           PixelDataFormat.RGBA,
           PixelDataType.FLOAT);
 
-      var indirectLight = await FFIIndirectLight.fromIrradianceTexture(reflectionsTexture, reflectionsTexture: reflectionsTexture, intensity: 30000.0);
+      var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
+          texture,
+          reflectionsTexture: texture,
+          intensity: 30000.0);
       final scene = await viewer.view.getScene();
       await scene.setIndirectLight(indirectLight);
 
