@@ -830,6 +830,42 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     await flush();
 
+    // on web/WebGL backend, the callback in readPixels isn't actually
+    // fired until a subsequent render call (and possibly the presentation to the
+    // canvas when the render thread yields).
+    // We need to wait at least one frame before the pixel buffer is populated;
+    // by this point, we've called setRendering(true), but this is actually
+    // synchronous, so we'll add a ~2 frame delay to wait for this to be available.
+    if (FILAMENT_SINGLE_THREADED) {
+      await withBoolCallback((cb) => Renderer_beginFrameRenderThread(
+          renderer, swapChain!.swapChain, 0.toBigInt, cb));
+      for (final view in views) {
+        await withVoidCallback((requestId, cb) {
+          Renderer_renderRenderThread(
+            renderer,
+            view.view,
+            requestId,
+            cb,
+          );
+        });
+      }
+      await withVoidCallback((requestId, cb) {
+        Renderer_endFrameRenderThread(renderer, requestId, cb);
+      });
+      await flush();
+
+      await Future.delayed(Duration(milliseconds: 33));
+
+      // now copy the pixel buffer into a GC'd Uint8List and destroy the manually
+      // allocated buffer so invokers don't have to worry about taking ownership
+      // of malloc memory
+      return pixelBuffers.map((element) {
+        final wrapped = (element.$1, Uint8List.fromList(element.$2));
+        element.$2.free();
+        return wrapped;
+      }).toList();
+    }
+
     return pixelBuffers;
   }
 
