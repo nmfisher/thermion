@@ -40,6 +40,12 @@ namespace thermion
 
         SceneAsset *createInstance(MaterialInstance **materialInstances = nullptr, size_t materialInstanceCount = 0) override;
 
+        /// @brief 
+        /// @param asset the instance to be destroyed
+        ///
+        /// Note that instances are not actually destroyed until the parent asset is destroyed. 
+        /// When this method is called, @param asset will be marked as inactive 
+        /// and recycled whenever createInstance is called again.
         void destroyInstance(SceneAsset *asset) override;
 
         SceneAssetType getType() override
