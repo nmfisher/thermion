@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
@@ -34,10 +31,7 @@ class TextureProjection {
   static Future<TextureProjection> create(View sourceView, Uint8List depthWriteMaterial, Uint8List captureUvMaterial) async {
     final viewport = await sourceView.getViewport();
     var depthWriteMat = await FilamentApp.instance!.createMaterial(depthWriteMaterial);
-    //   File(
-    //     "/Users/nickfisher/Documents/thermion/materials/linear_depth.filamat",
-    //   ).readAsBytesSync(),
-    // );
+
     var depthWriteMi = await depthWriteMat.createInstance();
 
     final depthView = await FilamentApp.instance!.createView() as FFIView;
@@ -63,9 +57,6 @@ class TextureProjection {
     await depthView.setRenderTarget(depthWriteRenderTarget);
 
     final captureMat = await FilamentApp.instance!.createMaterial(captureUvMaterial)
-      // File(
-      //   "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat",
-      // ).readAsBytesSync(),
     as FFIMaterial;
     var captureMi = await captureMat.createInstance() as FFIMaterialInstance;
     await captureMi.setParameterBool("flipUVs", true);
