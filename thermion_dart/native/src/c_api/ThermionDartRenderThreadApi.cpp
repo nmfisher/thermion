@@ -350,7 +350,13 @@ extern "C"
         [=]() mutable
         {
           Engine_execute(tEngine);
-          PROXY(onComplete(requestId));
+          std::packaged_task<void()> callback(
+          [=]() mutable
+          { 
+            PROXY(onComplete(requestId));
+          });
+          _renderThread->add_task(callback);
+          _renderThread->restart();
         });
     auto fut = _renderThread->add_task(lambda);
   }
