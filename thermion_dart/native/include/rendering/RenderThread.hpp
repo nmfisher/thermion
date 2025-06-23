@@ -64,10 +64,21 @@ public:
     void iter();
 
     /**
+     * On emscripten builds, this breaks the current loop and
+     * immediately exits, yielding to the main browser loop.
+     * On other builds, this does nothing.
+     */
+    void restart();
+
+    /**
      * 
      */
-    bool _stop = false;
+    bool mStop = false;
 
+    /**
+     * 
+     */
+    bool mRestart = false;
     
     #ifdef __EMSCRIPTEN__
     emscripten::ProxyingQueue queue;
@@ -76,6 +87,7 @@ public:
 
     bool mRendered = false;
     bool mRender = false;
+
 private:
     std::mutex _taskMutex;
     std::condition_variable _cv;
@@ -84,6 +96,7 @@ private:
     int _frameCount = 0;
     float _accumulatedTime = 0.0f;
     float _fps = 0.0f;
+
     
 #ifdef __EMSCRIPTEN__
     pthread_t t;
