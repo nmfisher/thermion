@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
@@ -39,12 +38,12 @@ class _ThermionWidgetWebState extends State<ThermionWidgetWeb> {
 
       var elapsed = DateTime.now().microsecondsSinceEpoch -
           lastRender.microsecondsSinceEpoch;
-      // if (elapsed > 1667) {
+
       lastRender = DateTime.now();
       if (widget.viewer.rendering) {
         await FilamentApp.instance!.requestFrame();
       }
-      // }
+
       stackPtr = stackSave();
       _requestFrame();
     });
@@ -78,7 +77,6 @@ class _PlatformView extends StatefulWidget {
 }
 
 class _PlatformViewState extends State<_PlatformView> {
-  
   void initState() {
     super.initState();
     ui_web.platformViewRegistry.registerViewFactory(
@@ -93,12 +91,12 @@ class _PlatformViewState extends State<_PlatformView> {
   @override
   Widget build(BuildContext context) {
     return HtmlElementView(
-          viewType: 'imported-canvas',
-          onPlatformViewCreated: (i) {},
-          creationParams: <String, Object?>{
-            'key': 'someValue',
-          },
-        );
+      viewType: 'imported-canvas',
+      onPlatformViewCreated: (i) {},
+      creationParams: <String, Object?>{
+        'key': 'someValue',
+      },
+    );
   }
 }
 
