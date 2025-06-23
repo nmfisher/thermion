@@ -23,7 +23,7 @@
     } catch(err) {
         console.error(err);
     }
-    const dartModulePromise = WebAssembly.compileStreaming(fetch('example.wasm'));
+    const dartModulePromise = WebAssembly.compileStreaming(fetch('./example.wasm'));
     const imports = {};
     const dart2wasm_runtime = await import('./example.mjs');
     const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, imports);
