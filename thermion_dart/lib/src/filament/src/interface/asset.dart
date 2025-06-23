@@ -102,24 +102,6 @@ abstract class ThermionAsset {
   Future<Aabb3> getBoundingBox();
 
   ///
-  /// The bounding box for this asset, as an actual renderable asset.
-  /// This is safe to call multiple times; if [boundingBoxAsset] is non-null,
-  /// this will simply return the existing bounding box asset.
-  ///
-  /// You will still need to call [Scene.add] to add this to the scene.
-  ///
-  Future<ThermionAsset> getBoundingBoxAsset() {
-    throw UnimplementedError();
-  }
-
-  ///
-  ///
-  ///
-  Future destroyBoundingBoxAsset(Scene scene) {
-    throw UnimplementedError();
-  }
-
-  ///
   ///
   ///
   Future<ThermionAsset> getInstance(int index);
