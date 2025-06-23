@@ -42,15 +42,15 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
       final srcIndex = (y * width + x) * (hasAlpha ? 4 : 3); // RGBA format
       final dstIndex = 54 + y * rowSize + x * 3; // BGR format
 
-        data[dstIndex] = isFloat
-            ? (floatData![srcIndex + 2] * 255).toInt()
-            : pixelBuffer[srcIndex + 2]; // Blue
-        data[dstIndex + 1] = isFloat
-            ? (floatData![srcIndex + 1] * 255).toInt()
-            : pixelBuffer[srcIndex + 1]; // Green
-        data[dstIndex + 2] = isFloat
-            ? (floatData![srcIndex] * 255).toInt()
-            : pixelBuffer[srcIndex]; // Red
+      data[dstIndex] = isFloat
+          ? (floatData![srcIndex + 2] * 255).toInt()
+          : pixelBuffer[srcIndex + 2]; // Blue
+      data[dstIndex + 1] = isFloat
+          ? (floatData![srcIndex + 1] * 255).toInt()
+          : pixelBuffer[srcIndex + 1]; // Green
+      data[dstIndex + 2] = isFloat
+          ? (floatData![srcIndex] * 255).toInt()
+          : pixelBuffer[srcIndex]; // Red
 
       // Alpha channel is discarded
     }
@@ -64,7 +64,11 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
 }
 
 Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
-    {bool hasAlpha = true, bool isFloat = false, bool linearToSrgb = false, bool invertAces = false}) async {
+    {bool hasAlpha = true,
+    bool isFloat = false,
+    bool linearToSrgb = false,
+    bool invertAces = false,
+    bool flipY = false}) async {
   final image = img.Image(width: width, height: height);
 
   Float32List? floatData;
@@ -75,10 +79,15 @@ Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      final int pixelIndex = (y * width + x) * (hasAlpha ? 4 : 3);
-      
+      late int pixelIndex;
+      if (flipY) {
+        pixelIndex = ((height - 1 - y) * width + x) * (hasAlpha ? 4 : 3);
+      } else {
+        pixelIndex = (y * width + x) * (hasAlpha ? 4 : 3);
+      }
+
       double r, g, b, a;
-      
+
       if (isFloat) {
         r = floatData![pixelIndex];
         g = floatData[pixelIndex + 1];
