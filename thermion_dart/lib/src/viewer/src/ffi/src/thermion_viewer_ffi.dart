@@ -51,7 +51,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setViewport(int width, int height) async {
-
     await view.setViewport(width.toInt(), height.toInt());
 
     for (final camera in _cameras) {
@@ -125,13 +124,23 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future render(SwapChain swapchain) async {
-    await withBoolCallback((cb) => Renderer_beginFrameRenderThread(
-        app.renderer, (swapchain as FFISwapChain).swapChain, 0.toBigInt, cb));
+    await withBoolCallback(
+      (cb) => Renderer_beginFrameRenderThread(
+        app.renderer,
+        (swapchain as FFISwapChain).swapChain,
+        0.toBigInt,
+        cb,
+      ),
+    );
 
-    await withVoidCallback((requestId, cb) =>
-        Renderer_renderRenderThread(app.renderer, view.view, requestId, cb));
-    await withVoidCallback((requestId, cb) =>
-        Renderer_endFrameRenderThread(app.renderer, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) =>
+          Renderer_renderRenderThread(app.renderer, view.view, requestId, cb),
+    );
+    await withVoidCallback(
+      (requestId, cb) =>
+          Renderer_endFrameRenderThread(app.renderer, requestId, cb),
+    );
     await FilamentApp.instance!.flush();
   }
 
@@ -269,7 +278,9 @@ class ThermionViewerFFI extends ThermionViewer {
         withVoidCallback((requestId, onTextureUploadComplete) async {
       var bundle = await FFIKtx1Bundle.create(data);
 
-      _skyboxTexture = await bundle.createTexture(onTextureUploadComplete: onTextureUploadComplete, requestId: requestId) as FFITexture;
+      _skyboxTexture = await bundle.createTexture(
+          onTextureUploadComplete: onTextureUploadComplete,
+          requestId: requestId) as FFITexture;
 
       _skybox = await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
           as FFISkybox;
@@ -305,7 +316,9 @@ class ThermionViewerFFI extends ThermionViewer {
 
       final bundle = await FFIKtx1Bundle.create(data);
 
-      final texture = await bundle.createTexture(onTextureUploadComplete: onTextureUploadComplete, requestId: requestId);
+      final texture = await bundle.createTexture(
+          onTextureUploadComplete: onTextureUploadComplete,
+          requestId: requestId);
       final harmonics = bundle.getSphericalHarmonics();
 
       final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
@@ -757,8 +770,11 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
   }) async {
     final asset = await FilamentApp.instance!.createGeometry(
-        geometry, animationManager,
-        materialInstances: materialInstances, keepData: keepData) as FFIAsset;
+      geometry,
+      animationManager,
+      materialInstances: materialInstances,
+      keepData: keepData,
+    ) as FFIAsset;
     _assets.add(asset);
     if (addToScene) {
       await scene.add(asset);
