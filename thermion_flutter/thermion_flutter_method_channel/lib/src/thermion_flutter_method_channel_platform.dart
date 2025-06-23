@@ -213,8 +213,9 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT
         },
-        textureFormat: TextureFormat.DEPTH32F,
+        textureFormat: TextureFormat.DEPTH24_STENCIL8, // TextureFormat.DEPTH32F,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
 
