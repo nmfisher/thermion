@@ -23,7 +23,9 @@ class ThermionWidgetWeb extends StatefulWidget {
 class _ThermionWidgetWebState extends State<ThermionWidgetWeb> {
   void initState() {
     super.initState();
-    _requestFrame();
+    if (!widget.options.importCanvasAsWidget) {
+      _requestFrame();
+    }
   }
 
   DateTime lastRender = DateTime.now();
