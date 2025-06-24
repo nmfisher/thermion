@@ -134,6 +134,10 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<FFIAsset> createInstance(
       {covariant List<MaterialInstance>? materialInstances = null}) async {
+    if(!isInstance) {
+      throw Exception(
+          "createInstance cannot be called on an instance. Make sure you are all calling the method on the original asset");
+    }
     if (!keepData) {
       throw Exception(
           "keepData must have been specified as true when this asset was created");
@@ -167,7 +171,7 @@ class FFIAsset extends ThermionAsset {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, app, animationManager);
+    return FFIAsset(created, app, animationManager, isInstance: true, keepData: keepData);
   }
 
   ///
