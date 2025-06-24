@@ -16,7 +16,7 @@ jobs:
         with:
           channel: master
           architecture: X64
-      - run: cd thermion_dart && dart pub get && dart--enable-experiment=native-assets test  
+      - run: cd thermion_dart && dart pub get && dart --enable-experiment=native-assets test  
       - name: Zip goldens
         run: zip -r goldens.zip ./thermion_dart/test/output
       - name: Upload golden images
