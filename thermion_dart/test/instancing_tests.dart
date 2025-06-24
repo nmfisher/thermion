@@ -77,7 +77,9 @@ void main() async {
       var asset = await viewer.loadGltf(
           "file://${testHelper.testDir}/assets/cube.glb",
           addToScene: false,
-          numInstances: 2, keepData: true);
+          numInstances: 2,
+          keepData: true
+        );
       var defaultInstance = await asset.getInstance(0);
       await viewer.addToScene(defaultInstance);
       await testHelper.capture(viewer.view, "gltf_without_instance");

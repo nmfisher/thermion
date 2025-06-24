@@ -31,12 +31,10 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  FFIAsset? _highlight;
+  bool get isInstance => instanceOwner != null;
+  final FFIAsset? instanceOwner;
 
-  ///
-  ///
-  ///
-  final bool isInstance;
+
 
   ///
   ///
@@ -51,7 +49,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   FFIAsset(this.asset, this.app, this.animationManager,
-      {this.isInstance = false, this.keepData = false}) {
+      {this.instanceOwner = null, this.keepData = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -134,9 +132,8 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<FFIAsset> createInstance(
       {covariant List<MaterialInstance>? materialInstances = null}) async {
-    if(!isInstance) {
-      throw Exception(
-          "createInstance cannot be called on an instance. Make sure you are all calling the method on the original asset");
+    if(isInstance) {
+      return instanceOwner!.createInstance(materialInstances: materialInstances);
     }
     if (!keepData) {
       throw Exception(
@@ -171,7 +168,7 @@ class FFIAsset extends ThermionAsset {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, app, animationManager, isInstance: true, keepData: keepData);
+    return FFIAsset(created, app, animationManager, instanceOwner: this, keepData: keepData);
   }
 
   ///
