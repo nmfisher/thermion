@@ -7,31 +7,23 @@ on:
     branches: [ "develop" ]
 
 jobs:
-  # thermion_dart:
-  #   name: thermion_dart
-  #   runs-on: macos-latest
-  #   defaults:
-  #     run:
-  #       working-directory: thermion_dart 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Set up Flutter
-  #       uses: subosito/flutter-action@v2
-  #       with:
-  #         channel: master
-  #     - run: flutter pub get
-  #     - run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
-  # thermion_flutter:
-  #   name: thermion_flutter
-  #   runs-on: macos-13
-  #   defaults:
-  #     run:
-  #       working-directory: thermion_flutter/thermion_flutter  # Adjust this path
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
-  #     - name: Install dependencies
-  #       run: dart pub get
+  update-goldens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+          architecture: X64
+      - run: cd thermion_dart && dart pub get && dart--enable-experiment=native-assets test  
+      - name: Zip goldens
+        run: zip -r goldens.zip ./thermion_dart/test/output
+      - name: Upload golden images
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-images-${{ github.sha }}
+          path: goldens.zip
   flutter_examples:
     name: flutter_examples
     runs-on: macos-latest
@@ -58,3 +50,30 @@ jobs:
             # D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
             /Users/runner/work/thermion/thermion/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
+
+
+            # thermion_dart:
+  #   name: thermion_dart
+  #   runs-on: macos-latest
+  #   defaults:
+  #     run:
+  #       working-directory: thermion_dart 
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: master
+  #     - run: flutter pub get
+  #     - run: dart --enable-experiment=native-assets test -j1 test/light_tests.dart
+  # thermion_flutter:
+  #   name: thermion_flutter
+  #   runs-on: macos-13
+  #   defaults:
+  #     run:
+  #       working-directory: thermion_flutter/thermion_flutter  # Adjust this path
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
+  #     - name: Install dependencies
+  #       run: dart pub get
