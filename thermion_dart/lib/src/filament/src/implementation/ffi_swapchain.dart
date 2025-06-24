@@ -1,7 +1,11 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
-class FFISwapChain extends SwapChain {
-  final Pointer<TSwapChain> swapChain;
+class FFISwapChain extends SwapChain<Pointer> {
+  
+  final Pointer<TSwapChain> pointer;
 
-  FFISwapChain(this.swapChain);
+  T getNativeHandle<T>() => pointer as T;
+
+  FFISwapChain(this.pointer);
+  
 }

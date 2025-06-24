@@ -1,3 +1,5 @@
-abstract class SwapChain {
+import 'native_handle.dart';
+
+abstract class SwapChain<T> extends NativeHandle<T> {
   
 }

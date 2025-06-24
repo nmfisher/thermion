@@ -145,7 +145,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         }
       }
       RenderTicker_setRenderable(
-          renderTicker, swapChain.swapChain, viewsPtr, numRenderable);
+          renderTicker, swapChain.getNativeHandle(), viewsPtr, numRenderable);
       _logger.info("Updated render order, $numRenderable renderable views");
     }
   }
@@ -223,7 +223,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _logger.info("Destroying swapchain");
     await withVoidCallback((requestId, callback) {
       Engine_destroySwapChainRenderThread(
-          engine, (swapChain as FFISwapChain).swapChain, requestId, callback);
+          engine, swapChain.getNativeHandle(), requestId, callback);
     });
     _swapChains.remove(swapChain);
     _logger.info("Destroyed swapchain");
@@ -575,7 +575,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final view = _swapChains[swapchain]!.first;
     await withBoolCallback((cb) {
       Renderer_beginFrameRenderThread(
-          renderer, swapchain.swapChain, 0.toBigInt, cb);
+          renderer, swapchain.getNativeHandle(), 0.toBigInt, cb);
     });
     await withVoidCallback((requestId, cb) {
       Renderer_renderRenderThread(
@@ -620,6 +620,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _swapChains[swapChain]!
         .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
     await updateRenderOrder();
+  }
+
+  ///
+  ///
+  ///
+  Future<Iterable<SwapChain>> getSwapChains() async {
+    return _swapChains.keys;
   }
 
   final _hooks = <Future Function()>[];
@@ -756,7 +763,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final beginFrame = await withBoolCallback((cb) {
       Renderer_beginFrameRenderThread(
-          renderer, swapChain!.swapChain, 0.toBigInt, cb);
+          renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb);
     });
 
     final pixelBuffers = <(View, Uint8List)>[];
@@ -838,7 +845,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // synchronous, so we'll add a ~2 frame delay to wait for this to be available.
     if (FILAMENT_SINGLE_THREADED) {
       await withBoolCallback((cb) => Renderer_beginFrameRenderThread(
-          renderer, swapChain!.swapChain, 0.toBigInt, cb));
+          renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb));
       for (final view in views) {
         await withVoidCallback((requestId, cb) {
           Renderer_renderRenderThread(
