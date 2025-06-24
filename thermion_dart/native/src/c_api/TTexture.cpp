@@ -25,7 +25,6 @@
 
 #include "Log.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <filament/third_party/stb/stb_image.h>
 
 #ifdef __cplusplus
