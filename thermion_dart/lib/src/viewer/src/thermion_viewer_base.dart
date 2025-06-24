@@ -39,9 +39,9 @@ abstract class ThermionViewer {
   Future setRendering(bool render);
 
   ///
-  /// Render a single frame immediately.
+  /// Render a single frame immediately into all registered swapchains.
   ///
-  Future render(SwapChain swapChain);
+  Future render();
 
   ///
   ///

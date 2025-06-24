@@ -203,8 +203,8 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future setMaterialInstanceAt(
-      ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
+  Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
+      MaterialInstance materialInstance);
 
   ///
   ///
@@ -215,6 +215,11 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future unregister(covariant SwapChain swapChain, covariant View view);
+
+  ///
+  ///
+  ///
+  Future<Iterable<SwapChain>> getSwapChains();
 
   ///
   ///
