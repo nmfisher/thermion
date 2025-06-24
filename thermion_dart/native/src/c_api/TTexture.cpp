@@ -2,6 +2,7 @@
 #include <emscripten.h>
 #endif
 
+#include <chrono>
 #include <vector>
 
 #include <filament/Engine.h>

@@ -1,5 +1,6 @@
 #include "math.h"
 
+#include <cstring>
 #include <vector>
 
 #include <filament/Engine.h>
