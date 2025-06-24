@@ -22,7 +22,6 @@ void main(List<String> args) async {
     // However, if you know what you're doing, you can change "release" to "debug" .
     final buildMode = BuildMode.release;
 
-    final dryRun = false;
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
     final targetOS = config.code.targetOS;
@@ -44,18 +43,8 @@ void main(List<String> args) async {
 
     var platform = targetOS.toString().toLowerCase();
 
-    if (!dryRun) {
-      logger
+    logger
           .info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
-    }
-
-    // We don't support Linux (yet), so the native/Filament libraries won't be
-    // compiled/available. However, we still want to be able to run the Dart
-    // package itself on a Linux host (e.g. for a wasm/dartdev backend compiler).
-    //  TODO
-    if (platform == "linux") {
-      throw Exception("TODO");
-    }
 
     var libDir = (await getLibDir(
             packageRoot, targetOS, targetArchitecture, logger, buildMode))
@@ -135,7 +124,7 @@ void main(List<String> args) async {
     var frameworks = [];
     if (platform != "windows") {
       flags.addAll(['-std=c++17']);
-    } else if (!dryRun) {
+    } else {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
       if (buildMode == BuildMode.debug) {
@@ -171,7 +160,7 @@ void main(List<String> args) async {
         "Metal",
       ]);
 
-      if (!dryRun && buildMode == BuildMode.debug) {
+      if (buildMode == BuildMode.debug) {
         flags.addAll([
           "-g",
           "-O0",
@@ -228,7 +217,7 @@ void main(List<String> args) async {
       logger: logger,
     );
     if (targetOS == OS.android) {
-      if (!dryRun) {
+      
         final archExtension = switch (targetArchitecture) {
           Architecture.arm => "arm-linux-androideabi",
           Architecture.arm64 => "aarch64-linux-android",
@@ -265,7 +254,7 @@ void main(List<String> args) async {
         );
 
         output.assets.addEncodedAsset(libcpp.encode());
-      }
+      
     }
 
     if (targetOS == OS.windows) {
