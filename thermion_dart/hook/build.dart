@@ -98,6 +98,8 @@ void main(List<String> args) async {
       "basis_transcoder",
       "uberarchive",
       "zstd",
+      if(targetOS != OS.linux)
+      ...["meshoptimizer","mikktspace", "geometry"],
       if (targetOS == OS.macOS) ...["matdbg", "fgviewer"]
     ];
 
@@ -196,6 +198,7 @@ void main(List<String> args) async {
           ...[ "-stdlib=libc++", "-Wl,--whole-archive" ],
         if (targetOS != OS.windows)...[
               ...libs.map((lib) => "-l$lib"),
+              if(targetOS == OS.linux)
               "-Wl,--no-whole-archive",
               if(targetOS != OS.linux)
                   "-lstdc++",
