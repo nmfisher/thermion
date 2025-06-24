@@ -25,6 +25,22 @@ cmake -G Ninja \
 ninja
 ninja install
 ```
+
+## Linux (x64)
+
+Edit `third_party/basisu/tnt/CMakeLists.txt`:
+```
+project(basisu)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON) // ADD THIS LINE 
+```
+
+```
+./build.sh -l -i -f -p desktop release
+./build.sh -l -i -f -p desktop release zstd
+./build.sh -l -i -f -p desktop release tinyexr
+./build.sh -l -i -f -p desktop release imageio
+```
+
 # iOS
 
 ```
