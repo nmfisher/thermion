@@ -76,11 +76,9 @@ void main(List<String> args) async {
       "filament",
       "backend",
       "filameshio",
-      "viewer",
       if (targetOS != OS.iOS) "filamat",
-      "meshoptimizer",
-      "mikktspace",
-      "geometry",
+      if (targetOS == OS.linux) "shaders",
+      //"geometry",
       "utils",
       "filabridge",
       "gltfio_core",
@@ -97,22 +95,18 @@ void main(List<String> args) async {
       "stb",
       "uberzlib",
       "smol-v",
+      "basis_transcoder",
       "uberarchive",
       "zstd",
-      "basis_transcoder",
       if (targetOS == OS.macOS) ...["matdbg", "fgviewer"]
     ];
 
-    if (platform == "windows") {
+    if (targetOS == OS.windows) {
       // we just need the libDir and don't need to explicitly link the actual libs
       // (these are linked via ThermionWin32.h)
       libDir =
           Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
-    } else {
-      libs.add("stdc++");
-    }
-
-    final flags = []; //"-fsanitize=address"];
+    } 
 
     final defines = <String, String?>{};
     logger.info("User defines : ${input.userDefines}");
@@ -121,7 +115,10 @@ void main(List<String> args) async {
       defines["ENABLE_TRACING"] = "1";
     }
 
+    final flags = [ ]; //"-fsanitize=address"];
+    
     var frameworks = [];
+    
     if (platform != "windows") {
       flags.addAll(['-std=c++17']);
     } else {
@@ -170,6 +167,8 @@ void main(List<String> args) async {
       libs.addAll(["bluegl", "bluevk"]);
     } else if (platform == "android") {
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
+    } else if (targetOS == OS.linux) {
+      libs.addAll(["bluevk","bluegl"]);
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
@@ -189,12 +188,17 @@ void main(List<String> args) async {
           : ['native/include', 'native/include/filament'],
       defines: platform == "windows" ? {} : defines,
       flags: [
-        if (targetOS == OS.macOS) ...['-mmacosx-version-min=13.0'],
+        if (targetOS == OS.macOS) '-mmacosx-version-min=13.0',
         if (targetOS == OS.iOS) '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        if (platform != "windows") ...[
-          ...libs.map((lib) => "-l$lib"),
+        if(targetOS == OS.linux)
+          ...[ "-stdlib=libc++", "-Wl,--whole-archive" ],
+        if (targetOS != OS.windows)...[
+              ...libs.map((lib) => "-l$lib"),
+              "-Wl,--no-whole-archive",
+              if(targetOS != OS.linux)
+                  "-lstdc++",
           "-L$libDir"
         ],
         if (platform == "windows") ...[
