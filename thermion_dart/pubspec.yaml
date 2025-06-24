@@ -24,7 +24,6 @@ dependencies:
 
 dev_dependencies:
   ffigen: ^18.1.0
-  objective_c: ^8.0.0
   test:  
   mockito: ^5.0.0
   build_runner: ^2.0.0
