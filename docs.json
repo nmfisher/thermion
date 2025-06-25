@@ -20,6 +20,7 @@
       ["Android", "/android"],
       ["iOS", "/ios"],
       ["Web", "/web"],
+      ["Linux", "/linux"],
       ["Contributing", "/contributing"],
       ["Discord", "https://discord.gg/h2VdDK3EAQ"]
       ]]
