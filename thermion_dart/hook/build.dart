@@ -98,7 +98,7 @@ void main(List<String> args) async {
       "basis_transcoder",
       "uberarchive",
       "zstd",
-      "mikktspace",
+      //"mikktspace",
       "geometry",
       if (targetOS == OS.macOS) ...["matdbg", "fgviewer"]
     ];
