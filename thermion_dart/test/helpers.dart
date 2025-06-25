@@ -207,7 +207,7 @@ class TestHelper {
     });
 
     await FFIFilamentApp.create(
-        config: FFIFilamentConfig(loadResource: _loadResource));
+        config: FFIFilamentConfig(loadResource: _loadResource, backend: Platform.isLinux ? Backend.OPENGL : Backend.DEFAULT));
   }
 
   Future createViewer(
