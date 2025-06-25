@@ -10,43 +10,9 @@ jobs:
   update-goldens:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4  # This must come first!
+      - uses: actions/checkout@v4  
       - uses: ./.github/actions/setup-build-env
-      #- uses: actions/checkout@v4
-      #- name: Setup LLVM
-      #  uses: KyleMayes/install-llvm-action@v1
-      #  with:
-      #    version: "16"  
-      #- name: Add LLVM to PATH
-      #  run: |
-      #    echo "${{ github.workspace }}/llvm/bin" >> $GITHUB_PATH
-      #    echo "LD_LIBRARY_PATH=${{ github.workspace }}/llvm/lib/x86_64-unknown-linux-gnu/" >> $GITHUB_ENV
-      #- name: Verify installation
-      #  run: clang --version
-      #- name: Install MESA
-      #  run: |
-      #    sudo apt-get update
-      #    sudo apt-get install -y xvfb
-      #    sudo apt-get install -y libosmesa6-dev
-      #    #sudo apt-get -y build-dep mesa
-      #    #git clone https://gitlab.freedesktop.org/mesa/mesa.git
-      #    #cd mesa
-      #    #git checkout mesa-23.2.1
-      #    #mkdir -p out
-      #    #meson setup builddir/ -Dprefix="$(pwd)/out" -Dosmesa=true -Dglx=xlib -Dgallium-drivers=swrast -Dvulkan-drivers=swrast
-      #    #meson install -C builddir/
-      #- name: Install Vulkan SDK and dependencies
-      #  run: |
-      #    wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-      #    sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-      #    sudo apt-get update
-      #    sudo apt-get install -y vulkan-sdk
-      #- name: Set up Flutter
-      #  uses: subosito/flutter-action@v2
-      #  with:
-      #    channel: master
-      #    architecture: X64
-      - run: cd thermion_dart && dart pub get && xvfb-run dart --enable-experiment=native-assets test test/asset_tests.dart 
+      - run: cd thermion_dart && dart pub get && xvfb-run dart --enable-experiment=native-assets test test/asset_tests.dart test/instancing_tests.dart
       - name: Zip goldens
         run: zip -r goldens.zip ./thermion_dart/test/output
       - name: Upload golden images
@@ -54,6 +20,29 @@ jobs:
         with:
           name: golden-images-${{ github.sha }}
           path: goldens.zip
+      - name: Upload logs
+        if: failure() || steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+  dart-tests:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-build-env
+      - run: cd thermion_dart && dart pub get && xvfb-run dart --enable-experiment=native-assets test test/asset_tests.dart test/instancing_tests.dart 
+      - name: Download golden images
+        uses: actions/download-artifact@v4
+        with:
+          name: golden-images-f0cf20d904f67e03c7ae247d18287b7f8a053cd2
+          path: ./golden-downloads
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Pillow numpy
       - name: Upload logs
         if: failure() || steps.build.outcome == 'failure'
         uses: actions/upload-artifact@v4
@@ -116,3 +105,40 @@ jobs:
   #     - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
   #     - name: Install dependencies
   #       run: dart pub get
+  #
+  #
+  ##- uses: actions/checkout@v4
+      #- name: Setup LLVM
+      #  uses: KyleMayes/install-llvm-action@v1
+      #  with:
+      #    version: "16"  
+      #- name: Add LLVM to PATH
+      #  run: |
+      #    echo "${{ github.workspace }}/llvm/bin" >> $GITHUB_PATH
+      #    echo "LD_LIBRARY_PATH=${{ github.workspace }}/llvm/lib/x86_64-unknown-linux-gnu/" >> $GITHUB_ENV
+      #- name: Verify installation
+      #  run: clang --version
+      #- name: Install MESA
+      #  run: |
+      #    sudo apt-get update
+      #    sudo apt-get install -y xvfb
+      #    sudo apt-get install -y libosmesa6-dev
+      #    #sudo apt-get -y build-dep mesa
+      #    #git clone https://gitlab.freedesktop.org/mesa/mesa.git
+      #    #cd mesa
+      #    #git checkout mesa-23.2.1
+      #    #mkdir -p out
+      #    #meson setup builddir/ -Dprefix="$(pwd)/out" -Dosmesa=true -Dglx=xlib -Dgallium-drivers=swrast -Dvulkan-drivers=swrast
+      #    #meson install -C builddir/
+      #- name: Install Vulkan SDK and dependencies
+      #  run: |
+      #    wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+      #    sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+      #    sudo apt-get update
+      #    sudo apt-get install -y vulkan-sdk
+      #- name: Set up Flutter
+      #  uses: subosito/flutter-action@v2
+      #  with:
+      #    channel: master
+      #    architecture: X64
+
