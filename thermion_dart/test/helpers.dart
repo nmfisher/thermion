@@ -65,8 +65,8 @@ Future<Uint8List> savePixelBufferToBmp(
 }
 
 Future<Uint8List> savePixelBufferToPng(
-    Uint8List pixelBuffer, int width, int height, String outputPath) async {
-  var data = await pixelBufferToPng(pixelBuffer, width, height);
+    Uint8List pixelBuffer, int width, int height, String outputPath, { bool hasAlpha = true, bool isFloat =true}) async {
+  var data = await pixelBufferToPng(pixelBuffer, width, height, hasAlpha: hasAlpha, isFloat: isFloat);
   File(outputPath).writeAsBytesSync(data);
   print("Wrote bitmap to ${outputPath}");
   return data;
@@ -174,9 +174,9 @@ class TestHelper {
     for (final (view, pixelBuffer) in pixelBuffers) {
       var vp = await view.getViewport();
       if (outputFilename != null) {
-        var outPath = p.join(outDir.path, "${outputFilename}_view${i}.bmp");
-        await savePixelBufferToBmp(pixelBuffer, vp.width, vp.height, outPath,
-            isFloat: pixelDataType == PixelDataType.FLOAT);
+        var outPath = p.join(outDir.path, "${outputFilename}_view${i}.png");
+        await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
+        isFloat: pixelDataType == PixelDataType.FLOAT, hasAlpha: pixelDataFormat == PixelDataFormat.RGBA);
       }
       i++;
       retval[view] = pixelBuffer;
