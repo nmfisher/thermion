@@ -535,11 +535,13 @@ class ThermionViewerFFI extends ThermionViewer {
   Future destroyAssets() async {
     _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
+      _logger.info("Destroying asset ${asset.getHandle()}");
       await scene.remove(asset);
       await hideBoundingBox(asset, destroy: true);
 
       for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
         await scene.remove(instance);
+        await hideBoundingBox(instance, destroy: true);
       }
       await FilamentApp.instance!.destroyAsset(asset);
       _logger.info("Destroyed asset");
@@ -808,7 +810,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future addToScene(covariant FFIAsset asset) async {
-    _assets.add(asset);
     await scene.add(asset);
   }
 
@@ -816,9 +817,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future removeFromScene(covariant FFIAsset asset) async {
-    if (!_assets.contains(asset)) {
-      throw Exception("Asset is not attached to this viewer");
-    }
     await scene.remove(asset);
   }
 
