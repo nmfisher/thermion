@@ -98,8 +98,8 @@ void main(List<String> args) async {
       "basis_transcoder",
       "uberarchive",
       "zstd",
-      if(targetOS != OS.linux)
-      ...["meshoptimizer","mikktspace", "geometry"],
+      "mikktspace",
+      "geometry",
       if (targetOS == OS.macOS) ...["matdbg", "fgviewer"]
     ];
 
