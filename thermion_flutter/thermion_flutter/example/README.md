@@ -1,6 +1,6 @@
-For a more thorough example with both Flutter and pure Dart, see the [example repository](https://github.com/nmfisher/thermion_examples).
+For a more thorough example with both Flutter and pure Dart, see the [examples folder in the repository](https://github.com/nmfisher/thermion/tree/develop/examples).
 
-[flutter/quickstart/lib/main.dart](https://github.com/nmfisher/thermion_examples/blob/master/flutter/quickstart/lib/main.dart)
+[flutter/quickstart/lib/main.dart](https://github.com/nmfisher/thermion/tree/develop/examples)
 
 ```dart
 import 'package:flutter/material.dart';
