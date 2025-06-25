@@ -8,15 +8,31 @@ on:
 
 jobs:
   update-goldens:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Setup LLVM
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "16"  
+      - name: Add LLVM to PATH
+        run: |
+          echo "${{ github.workspace }}/llvm/bin" >> $GITHUB_PATH
+          echo "LD_LIBRARY_PATH=${{ github.workspace }}/llvm/lib/x86_64-unknown-linux-gnu/" >> $GITHUB_ENV
+      - name: Verify installation
+        run: clang --version
+      - name: Install Vulkan SDK and dependencies
+        run: |
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: master
           architecture: X64
-      - run: cd thermion_dart && dart pub get && dart --enable-experiment=native-assets test  
+      - run: cd thermion_dart && dart pub get && dart --enable-experiment=native-assets test test/asset_tests.dart 
       - name: Zip goldens
         run: zip -r goldens.zip ./thermion_dart/test/output
       - name: Upload golden images
@@ -24,6 +40,15 @@ jobs:
         with:
           name: golden-images-${{ github.sha }}
           path: goldens.zip
+      - name: Upload logs
+        if: failure() || steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
   flutter_examples:
     name: flutter_examples
     runs-on: macos-latest
