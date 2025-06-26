@@ -24,6 +24,7 @@ void main() async {
 
       await testHelper.capture(viewer.view, "stencil_highlight");
       await scene.removeStencilHighlight(cube);
+
       await testHelper.capture(viewer.view, "stencil_highlight_removed");
     }, createStencilBuffer: true);
   });

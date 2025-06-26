@@ -47,26 +47,42 @@ class FFIScene extends Scene {
   ///
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
-    if (!_highlighted.contains(asset)) {
+    if (!_highlightInstances.containsKey(asset)) {
       _logger
           .warning("No stencil highlight for asset (entity ${asset.entity})");
       return;
     }
     _logger
         .info("Removing stencil highlight for asset (entity ${asset.entity})");
-    _highlighted.remove(asset);
+
     final highlight = _highlightInstances[asset]!;
+    _highlightInstances.remove(asset);
 
     await remove(highlight);
+    final materialInstance = await highlight.getMaterialInstanceAt();
     await FilamentApp.instance!.destroyAsset(highlight);
+    await materialInstance.destroy();
 
     _logger
         .info("Removed stencil highlight for asset (entity ${asset.entity})");
   }
 
-  static MaterialInstance? _highlightMaterialInstance;
-  final _highlightInstances = <ThermionAsset, FFIAsset>{};
-  final _highlighted = <ThermionAsset>{};
+  final _highlightInstances = <ThermionAsset, ThermionAsset>{};
+
+  Future<ThermionAsset?> getAssetForHighlight(ThermionEntity entity) async {
+    for (final asset in _highlightInstances.keys) {
+      var highlightAsset = _highlightInstances[asset]!;
+      if (highlightAsset.entity == entity) {
+        return asset;
+      }
+      for (final child in await highlightAsset.getChildEntities()) {
+        if (child == entity) {
+          return asset;
+        }
+      }
+    }
+    return null;
+  }
 
   ///
   ///
@@ -80,21 +96,21 @@ class FFIScene extends Scene {
       int primitiveIndex = 0}) async {
     entity ??= asset.entity;
 
-    if (_highlighted.contains(asset)) {
+    if (_highlightInstances.containsKey(asset)) {
       _logger
           .info("Stencil highlight exists for asset (entity ${asset.entity})");
+      var instance = _highlightInstances[asset];
+      var highlightMaterialInstance = await instance!.getMaterialInstanceAt();
+      await highlightMaterialInstance.setParameterFloat4(
+          "baseColorFactor", r, g, b, 1.0);
     } else {
-      _highlighted.add(asset);
-      _highlightMaterialInstance ??=
+      var highlightMaterialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
       var highlightInstance = await asset
-          .createInstance(materialInstances: [_highlightMaterialInstance!]);
-      
+          .createInstance(materialInstances: [highlightMaterialInstance]);
+      _highlightInstances[asset] = highlightInstance as FFIAsset;
       await highlightInstance.setCastShadows(false);
       await highlightInstance.setReceiveShadows(false);
-      
-      _highlightInstances[asset] = highlightInstance as FFIAsset;
-
 
       var sourceMaterialInstance =
           await asset.getMaterialInstanceAt(entity: entity);
@@ -108,13 +124,13 @@ class FFIScene extends Scene {
       await sourceMaterialInstance
           .setStencilReferenceValue(View.STENCIL_HIGHLIGHT_REFERENCE_VALUE);
 
-      await _highlightMaterialInstance!
+      await highlightMaterialInstance
           .setStencilCompareFunction(SamplerCompareFunction.NE);
-      await _highlightMaterialInstance!
+      await highlightMaterialInstance
           .setStencilReferenceValue(View.STENCIL_HIGHLIGHT_REFERENCE_VALUE);
-      await _highlightMaterialInstance!.setDepthCullingEnabled(true);
-      await _highlightMaterialInstance!
-          .setParameterFloat4("baseColorFactor", r, g, b, 1.0);
+      await highlightMaterialInstance.setDepthCullingEnabled(true);
+      await highlightMaterialInstance.setParameterFloat4(
+          "baseColorFactor", r, g, b, 1.0);
 
       await add(highlightInstance);
 

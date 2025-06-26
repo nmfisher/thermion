@@ -22,6 +22,11 @@ abstract class Scene {
   ///
   Future removeEntity(ThermionEntity entity);
 
+  ///
+  ///
+  ///
+  Future<ThermionAsset?> getAssetForHighlight(ThermionEntity entity);
+
   /// Renders an outline around [entity] with the given color.
   ///
   ///
