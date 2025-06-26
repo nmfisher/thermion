@@ -7,13 +7,6 @@ on:
     branches: [ "develop" ]
 
 jobs:
-  update-goldens:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4  
-      - uses: ./.github/actions/setup-build-env
-      - run: cd thermion_dart && dart pub get && xvfb-run dart --enable-experiment=native-assets test test/asset_tests.dart test/instancing_tests.dart
-
   dart-tests:
     runs-on: ubuntu-22.04
     steps:
