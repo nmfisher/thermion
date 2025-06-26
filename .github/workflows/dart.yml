@@ -37,8 +37,12 @@ jobs:
       - name: Download golden images
         uses: actions/download-artifact@v4
         with:
-          name: golden-images-ced0667a217ce2272dcdfc8e779f37147893dcc6
+          #name: golden-images-ced0667a217ce2272dcdfc8e779f37147893dcc6
+          artifact-ids: 3406427625
           path: ./thermion_dart/test/golden-downloads
+      - name: Unzip golden images
+        run: |
+          cd thermion_dart/test/golden-downloads && unzip goldens.zip
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
