@@ -12,7 +12,9 @@ void main() async {
           
           await viewer.setGridOverlayVisibility(true);
           await testHelper.capture(viewer.view, "grid_visible");
+          await testHelper.capture(viewer.view, "grid_visible");
           await viewer.setGridOverlayVisibility(false);
+          await testHelper.capture(viewer.view, "grid_hidden");          
           await testHelper.capture(viewer.view, "grid_hidden");          
         },
         postProcessing: true,
