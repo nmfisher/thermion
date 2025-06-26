@@ -21,7 +21,6 @@ export 'geometry.dart';
 ///
 ///
 abstract class ThermionAsset {
-
   ///
   ///
   ///
@@ -38,6 +37,13 @@ abstract class ThermionAsset {
   ///
   ///
   Future<List<ThermionEntity>> getChildEntities();
+
+  ///
+  ///
+  ///
+  Future<bool> containsChild(ThermionEntity entity) {
+    throw UnimplementedError();
+  }
 
   ///
   ///
