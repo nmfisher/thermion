@@ -37,7 +37,7 @@ jobs:
       - name: Download golden images
         uses: actions/download-artifact@v4
         with:
-          name: golden-images-${{ github.sha }}
+          name: golden-images-ced0667a217ce2272dcdfc8e779f37147893dcc6
           path: ./thermion_dart/test/golden-downloads
       - name: Install Python dependencies
         run: |
