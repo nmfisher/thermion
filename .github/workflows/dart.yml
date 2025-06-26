@@ -34,12 +34,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build-env
       - run: cd thermion_dart && dart pub get && xvfb-run dart --enable-experiment=native-assets test test/asset_tests.dart test/instancing_tests.dart 
-      - name: Download golden images
-        uses: actions/download-artifact@v4
-        with:
-          #name: golden-images-ced0667a217ce2272dcdfc8e779f37147893dcc6
-          artifact-ids: 3406427625
-          path: ./thermion_dart/test/golden-downloads
+      - name: Download golden images from previous run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download 15890516535 \
+            --name golden-images-ca110b2b01f5f1a296bcd7270da36e3cf296d8b3 \
+            --dir ./thermion_dart/test/golden-downloads
       - name: Unzip golden images
         run: |
           cd thermion_dart/test/golden-downloads && unzip goldens.zip
