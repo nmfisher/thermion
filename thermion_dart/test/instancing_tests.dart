@@ -56,11 +56,20 @@ void main() async {
     }, bg: kRed);
   });
 
-  test('gltf assets always create one instance', () async {
+  test('gltf assets are created with initialInstances instances', () async {
     await testHelper.withViewer((viewer) async {
-      var asset =
-          await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
+      var asset = await viewer.loadGltf(
+          "file://${testHelper.testDir}/assets/cube.glb",
+          initialInstances: 1);
       expect(await asset.getInstanceCount(), 1);
+
+      asset = await viewer.loadGltf(
+          "file://${testHelper.testDir}/assets/cube.glb",
+          initialInstances: 2);
+      expect(await asset.getInstanceCount(), 2);
+
+      await expectLater(asset.createInstance(), throwsA(isA<Exception>()));
+
     });
   });
 
@@ -77,11 +86,12 @@ void main() async {
       var asset = await viewer.loadGltf(
           "file://${testHelper.testDir}/assets/cube.glb",
           addToScene: false,
-          numInstances: 2, keepData: true);
+          initialInstances: 2,
+          keepData: true);
       var defaultInstance = await asset.getInstance(0);
       await viewer.addToScene(defaultInstance);
       await testHelper.capture(viewer.view, "gltf_without_instance");
-      
+
       var instance = await asset.createInstance();
       await instance.setTransform(Matrix4.translation(Vector3(1, 0, 0)));
       await testHelper.capture(viewer.view, "gltf_instance_created");
@@ -91,13 +101,12 @@ void main() async {
       await testHelper.capture(viewer.view, "gltf_instance_remove_from_scene");
 
       // above, we pre-allocated two instances and have used all of them
-      // calling createInstance now will still create another instance, but will be slower than allocating.
+      // calling createInstance now will still create another instance, but 
+      // will be slower than specifying initialInstances on load.
       var instance2 = await asset.createInstance();
       await instance2.setTransform(Matrix4.translation(Vector3(-1, 0, 0)));
       await viewer.addToScene(instance2);
       await testHelper.capture(viewer.view, "gltf_instance2_add_to_scene");
-
-
     }, addSkybox: true);
   });
 

@@ -151,37 +151,38 @@ abstract class ThermionViewer {
   /// If [addToScene] is [true], all renderable entities (including lights)
   /// in the asset will be added to the scene.
   ///
-  /// If you want to dynamically create instances of this asset after it is
-  /// instantiated, pass [kee]
-
-  /// Alternatively, specifying [numInstances] will pre-allocate the specified
-  /// number of instances. This is more efficient than dynamically instantating at a later time.
-  /// You can then retrieve the created instances with [getInstances].
+  /// The [initialInstances] argument determines the number of 
+  /// instances created when the asset is first instantiated. If [keepData] is 
+  /// false, no further instances will be able to be created. 
+  /// 
+  /// If [keepData] is true, additional instances can be created by calling 
+  /// [createInstance] on the returned asset. 
+  /// 
+  /// Creating instances at asset load time is more efficient than dynamically 
+  /// instantating at a later time.
   ///
-  /// If [keepData] is false and [numInstances] is 1,
-  /// the source glTF data will be released and [createInstance]
-  /// will throw an exception.
-  ///
+  /// Instances can be retrieved with [getInstances].
+  /// 
+  /// If [loadResourcesAsync] is true, resources (textures, materials, etc) will
+  /// be loaded asynchronously. Some material/texture pop-in is expected.
   ///
   Future<ThermionAsset> loadGltf(String uri,
       {bool addToScene = true,
-      int numInstances = 1,
+      int initialInstances = 1,
       bool keepData = false,
       String? resourceUri,
       bool loadAsync = false});
 
   ///
-  /// Load the .glb asset from the specified buffer, adding all entities to the scene.
-  /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
-  /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
-  /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
-  /// If [loadResourcesAsync] is true, resources (textures, materials, etc) will
-  /// be loaded asynchronously (so expect some material/texture pop-in);
+  /// Loads a gltf asset from the specified buffer (which contains the contents 
+  /// of a .glb file).
+  ///
+  /// See the [loadGltf] method for documentation on arguments.
   ///
   ///
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {String? resourceUri,
-      int numInstances = 1,
+      int initialInstances = 1,
       bool keepData = false,
       int priority = 4,
       int layer = 0,

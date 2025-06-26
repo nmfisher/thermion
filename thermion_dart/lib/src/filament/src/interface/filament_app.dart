@@ -291,11 +291,11 @@ abstract class FilamentApp<T> {
   Future setClearOptions(double r, double g, double b, double a,
       {int clearStencil = 0, bool discard = false, bool clear = true});
 
-  ///
+  /// See [FilamentViewerFFI.loadGltf] for details.
   ///
   ///
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, T animationManager,
-      {int numInstances = 1,
+      {int initialInstances = 1,
       bool keepData = false,
       int priority = 4,
       int layer = 0,

@@ -890,7 +890,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<ThermionAsset> loadGltfFromBuffer(
       Uint8List data, Pointer animationManager,
-      {int numInstances = 1,
+      {int initialInstances = 1,
       bool keepData = false,
       int priority = 4,
       int layer = 0,
@@ -914,7 +914,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       var filamentAsset = await withPointerCallback<TFilamentAsset>((cb) =>
           GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader,
-              data.address, data.length, numInstances, cb));
+              data.address, data.length, initialInstances, cb));
 
       if (filamentAsset == nullptr) {
         throw Exception("An error occurred loading the asset");

@@ -457,7 +457,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<ThermionAsset> loadGltf(
     String path, {
     bool addToScene = true,
-    int numInstances = 1,
+    int initialInstances = 1,
     bool keepData = false,
     String? resourceUri,
     bool loadAsync = false,
@@ -475,7 +475,7 @@ class ThermionViewerFFI extends ThermionViewer {
     return loadGltfFromBuffer(
       data,
       addToScene: addToScene,
-      numInstances: numInstances,
+      initialInstances: initialInstances,
       keepData: keepData,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
@@ -489,7 +489,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<ThermionAsset> loadGltfFromBuffer(
     Uint8List data, {
     bool addToScene = true,
-    int numInstances = 1,
+    int initialInstances = 1,
     bool keepData = false,
     int priority = 4,
     int layer = 0,
@@ -499,7 +499,7 @@ class ThermionViewerFFI extends ThermionViewer {
     var asset = await FilamentApp.instance!.loadGltfFromBuffer(
       data,
       animationManager,
-      numInstances: numInstances,
+      initialInstances: initialInstances,
       keepData: keepData,
       priority: priority,
       layer: layer,

@@ -33,8 +33,7 @@ namespace thermion
             Engine *engine,
             utils::NameComponentManager* ncm,
             MaterialInstance **materialInstances = nullptr,
-            size_t materialInstanceCount = 0,
-            int instanceIndex = 0);
+            size_t materialInstanceCount = 0);
 
         ~GltfSceneAsset();
 

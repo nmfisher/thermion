@@ -6,7 +6,6 @@ import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
-export 'gltf.dart';
 
 ///
 /// A high-level interface for a renderable object

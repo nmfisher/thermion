@@ -33,15 +33,16 @@ namespace thermion
         Engine *engine,
         utils::NameComponentManager* ncm,
         MaterialInstance **materialInstances,
-        size_t materialInstanceCount,
-        int instanceIndex) : _asset(asset),
+        size_t materialInstanceCount) : _asset(asset),
                                   _assetLoader(assetLoader),
                                   _engine(engine),
                                   _ncm(ncm),
                                   _materialInstances(materialInstances),
                                   _materialInstanceCount(materialInstanceCount)
     {
-        createInstance();
+        for(int i = 0; i < asset->getAssetInstanceCount(); i++) {
+            createInstance();
+        }
         TRACE("Created GltfSceneAsset from FilamentAsset %d with %d reserved instances", asset, asset->getAssetInstanceCount());
     }
 
