@@ -100,6 +100,11 @@ Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
         a = hasAlpha ? pixelBuffer[pixelIndex + 3] / 255.0 : 1.0;
       }
 
+      r = r.clamp(0, 1);
+      g = g.clamp(0, 1);
+      b = b.clamp(0, 1);
+      a = a.clamp(0, 1);
+
       // Apply inverse ACES tone mapping
       if (invertAces) {
         r = _inverseACESToneMapping(r);
