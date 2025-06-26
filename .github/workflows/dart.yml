@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build-env
-      - run: cd thermion_dart && dart pub get && xvfb-run dart --enable-experiment=native-assets test test/asset_tests.dart test/instancing_tests.dart test/light_tests.dart test/entity_tests.dart test/geometry_tests.dart test/view_tests.dart test/postprocessing_tests.dart --concurrency=1
+      - run: cd thermion_dart && dart pub get && xvfb-run dart --enable-experiment=native-assets test test/asset_tests.dart test/instancing_tests.dart test/light_tests.dart test/entity_tests.dart test/geometry_tests.dart test/view_tests.dart test/postprocessing_tests.dart test/scene_tests.dart --concurrency=1
       - name: Zip output
         run: zip -r output.zip ./thermion_dart/test/output
       - name: Upload golden images
