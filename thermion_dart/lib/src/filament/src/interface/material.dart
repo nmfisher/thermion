@@ -1,3 +1,4 @@
+import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
@@ -98,7 +99,7 @@ abstract class Material {
   Future destroy();
 }
 
-abstract class MaterialInstance {
+abstract class MaterialInstance<T> extends NativeHandle<T> {
   Future<bool> isStencilWriteEnabled();
   Future setDepthWriteEnabled(bool enabled);
   Future setDepthFunc(SamplerCompareFunction depthFunc);

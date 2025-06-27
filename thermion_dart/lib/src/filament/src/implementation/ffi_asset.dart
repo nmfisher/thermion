@@ -321,7 +321,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future setMaterialInstanceAt(FFIMaterialInstance instance,
+  Future setMaterialInstanceAt(MaterialInstance instance,
       {int? entity = null, int primitiveIndex = 0}) async {
     if (entity != null &&
         !RenderableManager_isRenderable(app.renderableManager, entity)) {
@@ -350,7 +350,7 @@ class FFIAsset extends ThermionAsset {
         Engine_getRenderableManager(app.engine),
         entity,
         primitiveIndex,
-        instance.pointer)) {
+        instance.getNativeHandle())) {
       _logger.warning(
           "Failed to set material instance for entity $entity at primitive index ${primitiveIndex}");
     }

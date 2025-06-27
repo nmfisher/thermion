@@ -30,7 +30,7 @@ class FFIMaterial extends Material {
   }
 }
 
-class FFIMaterialInstance extends MaterialInstance {
+class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   final Pointer<TMaterialInstance> pointer;
   final FFIFilamentApp app;
 
@@ -197,6 +197,11 @@ class FFIMaterialInstance extends MaterialInstance {
   Future setParameterMat4(String name, Matrix4 matrix) async {
     MaterialInstance_setParameterMat4(
         pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+  }
+
+  @override
+  T getNativeHandle<T>() {
+    return pointer as T;
   }
 }
 
