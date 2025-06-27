@@ -36,7 +36,7 @@ void main() async {
         await view.setDithering(false);
         expect(await view.isDitheringEnabled(), false);
         await testHelper.capture(viewer.view, "dithering_disabled");
-      }, cameraPosition: Vector3(0, 0, 3));
+      });
     });
 
     test('bloom', () async {
