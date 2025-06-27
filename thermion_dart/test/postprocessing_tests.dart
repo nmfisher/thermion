@@ -18,6 +18,27 @@ void main() async {
       }, postProcessing: false, createRenderTarget: true);
     });
 
+    test('enable/disable dithering', () async {
+      await testHelper.withViewer((viewer) async {
+        final view = await viewer.view;
+
+        // dithering is disabled by default
+        expect(await view.isDitheringEnabled(), false);
+        
+        await view.setDithering(true);
+        expect(await view.isDitheringEnabled(), true);
+
+        final cube = await viewer
+            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+
+        await testHelper.capture(viewer.view, "dithering_enabled");
+
+        await view.setDithering(false);
+        expect(await view.isDitheringEnabled(), false);
+        await testHelper.capture(viewer.view, "dithering_disabled");
+      }, cameraPosition: Vector3(0, 0, 3));
+    });
+
     test('bloom', () async {
       await testHelper.withViewer((viewer) async {
         await FilamentApp.instance!.setClearOptions(1, 1, 1, 1, clear: false);
@@ -34,7 +55,5 @@ void main() async {
         await testHelper.capture(viewer.view, "postprocessing_bloom_1.0");
       }, postProcessing: true, createRenderTarget: true, bg: kBlue);
     });
-
-    
   });
 }
