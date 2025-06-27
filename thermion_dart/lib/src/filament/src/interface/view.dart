@@ -59,6 +59,12 @@ abstract class View {
   ///
   ///
   Future<Scene> getScene();
+  
+  /// Sets the scene currently associated with this View.
+  ///
+  ///
+  Future setScene(Scene scene);
+
   Future<Viewport> getViewport();
   Future setViewport(int width, int height);
   Future<RenderTarget?> getRenderTarget();
