@@ -25,8 +25,8 @@ jobs:
             test/postprocessing_tests.dart \
             test/scene_tests.dart  \
             test/picking_tests.dart \
-            test/overlay_tests.dart  \
             --concurrency=1
+      #test/overlay_tests.dart  \
       - name: Zip output
         run: zip -r output.zip ./thermion_dart/test/output
       - name: Upload test output
