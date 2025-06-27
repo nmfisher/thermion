@@ -200,8 +200,8 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   }
 
   @override
-  T getNativeHandle<T>() {
-    return pointer as T;
+  Pointer<TMaterialInstance> getNativeHandle() {
+    return pointer;
   }
 }
 

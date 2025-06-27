@@ -6,12 +6,16 @@ import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
 
-class FFIScene extends Scene {
+class FFIScene extends Scene<Pointer<TScene>> {
   late final _logger = Logger(this.runtimeType.toString());
 
   final Pointer<TScene> scene;
 
   FFIScene(this.scene);
+
+  Pointer<TScene> getNativeHandle() {
+    return scene;
+  }
 
   @override
   Future add(ThermionAsset asset) async {

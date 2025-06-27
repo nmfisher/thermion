@@ -7,5 +7,5 @@
 /// not a compile-time error). 
 ///
 abstract class NativeHandle<T> {
-  T getNativeHandle<T>();
+  T getNativeHandle();
 }

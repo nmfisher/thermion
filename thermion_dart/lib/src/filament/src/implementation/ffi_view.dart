@@ -150,8 +150,8 @@ class FFIView extends View {
     View_setRenderQuality(view, quality.index);
   }
 
-  Future setScene(covariant FFIScene scene) async {
-    View_setScene(view, scene.scene);
+  Future setScene(Scene scene) async {
+    View_setScene(view, scene.getNativeHandle());
   }
 
   @override
