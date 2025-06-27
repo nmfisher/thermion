@@ -524,6 +524,16 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createGridRenderThread(TEngine *tEngine, TMaterial * tMaterial, void (*onComplete)(TSceneAsset *)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *asset = SceneAsset_createGrid(tEngine, tMaterial);
+          PROXY(onComplete(asset));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+  
   EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(

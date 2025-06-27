@@ -8,7 +8,7 @@ class GridOverlay extends FFIAsset {
 
   static Future<GridOverlay> create(FFIFilamentApp app, Pointer<TAnimationManager> animationManager) async {
     final gridMaterial = await app.gridMaterial;
-    final asset = SceneAsset_createGrid(app.engine, gridMaterial.pointer);
+    final asset = await withPointerCallback<TSceneAsset>((cb) => SceneAsset_createGridRenderThread(app.engine, gridMaterial.pointer, cb));
     return GridOverlay(asset, app, animationManager);
   }
 }

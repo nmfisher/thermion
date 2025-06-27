@@ -1391,6 +1391,15 @@ external void RenderTicker_setRenderable(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderTicker>, ffi.Pointer<TView>,
+        ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+external void RenderTicker_foo(
+  ffi.Pointer<TRenderTicker> tRenderTicker,
+  ffi.Pointer<TView> tOverlayView,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+);
+
+@ffi.Native<
     ffi.Pointer<TEngine> Function(ffi.UnsignedInt, ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>, ffi.Uint8, ffi.Bool)>(isLeaf: true)
 external ffi.Pointer<TEngine> Engine_create(
@@ -2214,6 +2223,21 @@ external void View_setCameraRenderThread(
   ffi.Pointer<TCamera> tCamera,
   int requestId,
   VoidCallback onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TMaterial>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
+    isLeaf: true)
+external void SceneAsset_createGridRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterial> tMaterial,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
+      callback,
 );
 
 @ffi.Native<

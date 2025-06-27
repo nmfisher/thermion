@@ -1181,6 +1181,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<self.PointerClass<TView>> views,
     int numViews,
   );
+  external void _RenderTicker_foo(
+    Pointer<TRenderTicker> tRenderTicker,
+    Pointer<TView> tOverlayView,
+    Pointer<TMaterialInstance> tMaterialInstance,
+  );
   external Pointer<TEngine> _Engine_create(
     int backend,
     Pointer<Void> platform,
@@ -1604,6 +1609,12 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TCamera> tCamera,
     int requestId,
     VoidCallback onComplete,
+  );
+  external void _SceneAsset_createGridRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TMaterial> tMaterial,
+    Pointer<self.NativeFunction<void Function(PointerClass<TSceneAsset>)>>
+        callback,
   );
   external void _SceneAsset_destroyRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
@@ -3886,6 +3897,16 @@ void RenderTicker_setRenderable(
   return result;
 }
 
+void RenderTicker_foo(
+  self.Pointer<TRenderTicker> tRenderTicker,
+  self.Pointer<TView> tOverlayView,
+  self.Pointer<TMaterialInstance> tMaterialInstance,
+) {
+  final result = _lib._RenderTicker_foo(
+      tRenderTicker.cast(), tOverlayView.cast(), tMaterialInstance.cast());
+  return result;
+}
+
 self.Pointer<TEngine> Engine_create(
   int backend,
   self.Pointer<Void> platform,
@@ -4784,6 +4805,17 @@ void View_setCameraRenderThread(
       tCamera.cast(),
       requestId,
       onComplete as Pointer<self.NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void SceneAsset_createGridRenderThread(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TMaterial> tMaterial,
+  self.Pointer<self.NativeFunction<void Function(Pointer<TSceneAsset>)>>
+      callback,
+) {
+  final result = _lib._SceneAsset_createGridRenderThread(
+      tEngine.cast(), tMaterial.cast(), callback.cast());
   return result;
 }
 
@@ -7560,7 +7592,7 @@ extension NativeFunctionPointer20<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer26<T extends NativeType> on void Function(
+extension NativeFunctionPointer27<T extends NativeType> on void Function(
     self.Pointer<TLinearImage>) {
   // orignal type void Function(self.Pointer<TLinearImage> ) void Function(Pointer<TLinearImage> ) dart type void Function(self.Pointer<TLinearImage> )
 
@@ -7573,7 +7605,7 @@ extension NativeFunctionPointer26<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer28<T extends NativeType> on void Function(
+extension NativeFunctionPointer29<T extends NativeType> on void Function(
     self.Pointer<Float32>) {
   // orignal type void Function(self.Pointer<Float32> ) void Function(Pointer<Float32> ) dart type void Function(self.Pointer<Float32> )
 
@@ -7584,7 +7616,7 @@ extension NativeFunctionPointer28<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer29<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer30<T extends NativeType> on void Function(int) {
   // orignal type void Function(int ) void Function(int ) dart type void Function(int )
 
   Pointer<NativeFunction<void Function(int)>> addFunction() {
@@ -7594,7 +7626,7 @@ extension NativeFunctionPointer29<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer35<T extends NativeType> on void Function(
+extension NativeFunctionPointer36<T extends NativeType> on void Function(
     self.Pointer<TRenderTarget>) {
   // orignal type void Function(self.Pointer<TRenderTarget> ) void Function(Pointer<TRenderTarget> ) dart type void Function(self.Pointer<TRenderTarget> )
 
@@ -7607,7 +7639,7 @@ extension NativeFunctionPointer35<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer36<T extends NativeType> on void Function(
+extension NativeFunctionPointer37<T extends NativeType> on void Function(
     self.Pointer<TTextureSampler>) {
   // orignal type void Function(self.Pointer<TTextureSampler> ) void Function(Pointer<TTextureSampler> ) dart type void Function(self.Pointer<TTextureSampler> )
 
@@ -7621,7 +7653,7 @@ extension NativeFunctionPointer36<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer40<T extends NativeType> on void Function(
+extension NativeFunctionPointer41<T extends NativeType> on void Function(
     self.Pointer<TGltfAssetLoader>) {
   // orignal type void Function(self.Pointer<TGltfAssetLoader> ) void Function(Pointer<TGltfAssetLoader> ) dart type void Function(self.Pointer<TGltfAssetLoader> )
 
@@ -7635,7 +7667,7 @@ extension NativeFunctionPointer40<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer41<T extends NativeType> on void Function(
+extension NativeFunctionPointer42<T extends NativeType> on void Function(
     self.Pointer<TGltfResourceLoader>) {
   // orignal type void Function(self.Pointer<TGltfResourceLoader> ) void Function(Pointer<TGltfResourceLoader> ) dart type void Function(self.Pointer<TGltfResourceLoader> )
 
@@ -7650,7 +7682,7 @@ extension NativeFunctionPointer41<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer44<T extends NativeType> on void Function(
+extension NativeFunctionPointer45<T extends NativeType> on void Function(
     double) {
   // orignal type void Function(double ) void Function(double ) dart type void Function(double )
 
@@ -7661,7 +7693,7 @@ extension NativeFunctionPointer44<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer45<T extends NativeType> on void Function(
+extension NativeFunctionPointer46<T extends NativeType> on void Function(
     self.Pointer<TFilamentAsset>) {
   // orignal type void Function(self.Pointer<TFilamentAsset> ) void Function(Pointer<TFilamentAsset> ) dart type void Function(self.Pointer<TFilamentAsset> )
 
@@ -7674,7 +7706,7 @@ extension NativeFunctionPointer45<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer46<T extends NativeType> on void Function(
+extension NativeFunctionPointer47<T extends NativeType> on void Function(
     self.Pointer<TGizmo>) {
   // orignal type void Function(self.Pointer<TGizmo> ) void Function(Pointer<TGizmo> ) dart type void Function(self.Pointer<TGizmo> )
 
