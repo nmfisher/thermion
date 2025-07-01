@@ -93,7 +93,7 @@ class CaptureCallbackHandler : public filament::backend::CallbackHandler
 
 EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     TRenderer *tRenderer,
-    TView *tView,
+    uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
     TRenderTarget *tRenderTarget,
     TPixelDataFormat tPixelBufferFormat,
     TPixelDataType tPixelDataType,
@@ -102,9 +102,6 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
-    auto *view = reinterpret_cast<filament::View *>(tView);
-
-    filament::Viewport const &vp = view->getViewport();
 
     filament::backend::PixelDataFormat pixelBufferFormat = static_cast<filament::backend::PixelDataFormat>(tPixelBufferFormat);
     filament::backend::PixelDataType pixelDataType = static_cast<filament::backend::PixelDataType>(tPixelDataType);
@@ -126,9 +123,9 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     );
 
     if(renderTarget) {
-        renderer->readPixels(renderTarget, 0, 0, vp.width, vp.height, std::move(pbd));
+        renderer->readPixels(renderTarget, xOffset, yOffset, width, height, std::move(pbd));
     } else {
-        renderer->readPixels(0, 0, vp.width, vp.height, std::move(pbd));
+        renderer->readPixels(xOffset, yOffset, width, height, std::move(pbd));
     }
 
 }

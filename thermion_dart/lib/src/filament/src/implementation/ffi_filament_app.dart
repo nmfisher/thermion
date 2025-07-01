@@ -800,10 +800,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         if (captureRenderTarget && view.renderTarget == null) {
           throw Exception();
         }
+
         await withVoidCallback((requestId, cb) {
           Renderer_readPixelsRenderThread(
               renderer,
-              view.view,
+              viewport.width, viewport.height, 0, 0,
               view.renderTarget == null
                   ? nullptr
                   : view.renderTarget!.getNativeHandle(),

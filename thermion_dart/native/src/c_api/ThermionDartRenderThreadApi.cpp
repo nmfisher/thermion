@@ -474,7 +474,7 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsRenderThread(
       TRenderer *tRenderer,
-      TView *tView,
+      uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
       TRenderTarget *tRenderTarget,
       TPixelDataFormat tPixelBufferFormat,
       TPixelDataType tPixelDataType,
@@ -485,7 +485,7 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          Renderer_readPixels(tRenderer, tView, tRenderTarget, tPixelBufferFormat, tPixelDataType, out, outLength);
+          Renderer_readPixels(tRenderer, width, height, xOffset, yOffset, tRenderTarget, tPixelBufferFormat, tPixelDataType, out, outLength);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->add_task(lambda);

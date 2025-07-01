@@ -79,7 +79,7 @@ namespace thermion
         void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, uint32_t requestId,  VoidCallback onComplete);
         void Renderer_readPixelsRenderThread(
             TRenderer *tRenderer,
-            TView *tView,
+            uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
             TRenderTarget *tRenderTarget,
             TPixelDataFormat tPixelBufferFormat,
             TPixelDataType tPixelDataType,

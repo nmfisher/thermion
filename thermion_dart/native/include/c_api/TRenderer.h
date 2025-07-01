@@ -17,7 +17,7 @@ EMSCRIPTEN_KEEPALIVE void Renderer_render(TRenderer *tRenderer, TView *tView);
 EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneView(TRenderer *tRenderer, TView *tView);
 EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     TRenderer *tRenderer,
-    TView *tView,
+    uint32_t width, uint32_t height, uint32_t xOffset, uint32_t yOffset,
     TRenderTarget *tRenderTarget,
     TPixelDataFormat tPixelBufferFormat,
     TPixelDataType tPixelDataType,
