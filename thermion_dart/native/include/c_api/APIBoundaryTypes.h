@@ -47,7 +47,8 @@ extern "C"
 	typedef struct TFilamentAsset TFilamentAsset;
 	typedef struct TColorGrading TColorGrading;
 	typedef struct TKtx1Bundle TKtx1Bundle;
-
+	typedef struct TOverlayManager TOverlayManager;
+	
 	typedef struct { 
 		double x;
 		double y; 
