@@ -59,12 +59,17 @@ abstract class ThermionViewer {
   Future dispose();
 
   ///
-  /// Set the background image to [path] (which should have a file extension .png, .jpg, or .ktx).
-  /// This will be rendered at the maximum depth (i.e. behind all other objects including the skybox).
+  /// Set the background image to [path] (which should be .png, .jpg, or .ktx 
+  /// file). This will be rendered at the maximum depth (i.e. behind all other objects including the skybox).
   /// If [fillHeight] is false, the image will be rendered at its original size. Note this may cause issues with pixel density so be sure to specify the correct resolution
   /// If [fillHeight] is true, the image will be stretched/compressed to fit the height of the viewport.
   ///
   Future setBackgroundImage(String path, {bool fillHeight = false});
+
+  ///
+  /// Set the background image from [texture].
+  /// 
+  Future setBackgroundImageFromTexture(Texture texture);
 
   ///
   /// Moves the background image to the relative offset from the origin (bottom-left) specified by [x] and [y].
@@ -151,18 +156,18 @@ abstract class ThermionViewer {
   /// If [addToScene] is [true], all renderable entities (including lights)
   /// in the asset will be added to the scene.
   ///
-  /// The [initialInstances] argument determines the number of 
-  /// instances created when the asset is first instantiated. If [keepData] is 
-  /// false, no further instances will be able to be created. 
-  /// 
-  /// If [keepData] is true, additional instances can be created by calling 
-  /// [createInstance] on the returned asset. 
-  /// 
-  /// Creating instances at asset load time is more efficient than dynamically 
+  /// The [initialInstances] argument determines the number of
+  /// instances created when the asset is first instantiated. If [keepData] is
+  /// false, no further instances will be able to be created.
+  ///
+  /// If [keepData] is true, additional instances can be created by calling
+  /// [createInstance] on the returned asset.
+  ///
+  /// Creating instances at asset load time is more efficient than dynamically
   /// instantating at a later time.
   ///
   /// Instances can be retrieved with [getInstances].
-  /// 
+  ///
   /// If [loadResourcesAsync] is true, resources (textures, materials, etc) will
   /// be loaded asynchronously. Some material/texture pop-in is expected.
   ///
@@ -174,7 +179,7 @@ abstract class ThermionViewer {
       bool loadAsync = false});
 
   ///
-  /// Loads a gltf asset from the specified buffer (which contains the contents 
+  /// Loads a gltf asset from the specified buffer (which contains the contents
   /// of a .glb file).
   ///
   /// See the [loadGltf] method for documentation on arguments.
@@ -296,11 +301,11 @@ abstract class ThermionViewer {
   Future showBoundingBox(ThermionAsset asset);
 
   /// Removes the bounding box for [asset] from the scene.
-  /// 
+  ///
   /// If [destroy] is true, the geometry and material instance for the asset
   /// will also be destroyed.
   ///
-  Future hideBoundingBox(ThermionAsset asset, { bool destroy = false});
+  Future hideBoundingBox(ThermionAsset asset, {bool destroy = false});
 
   ///
   /// Gets the 2D bounding box (in viewport coordinates) for the given entity.

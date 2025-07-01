@@ -226,6 +226,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
+  Future setBackgroundImageFromTexture(Texture texture) async {
+    var backgroundImage = await getBackgroundImage();
+    await backgroundImage.setImageFromTexture(texture);
+  }
+
+  ///
+  ///
+  ///
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await FilamentApp.instance!.loadResource(path);
@@ -683,6 +691,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setGridOverlayVisibility(bool visible) async {
     _grid ??= _grid = await GridOverlay.create(app, animationManager);
+
     if (visible) {
       await scene.add(_grid!);
       await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
