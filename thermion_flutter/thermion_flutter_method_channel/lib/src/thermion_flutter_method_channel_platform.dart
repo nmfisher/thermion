@@ -181,6 +181,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
         descriptor.width,
         descriptor.height,
+        hasStencilBuffer: true
       );
 
       _logger.info(
