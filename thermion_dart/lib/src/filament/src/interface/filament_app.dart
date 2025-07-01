@@ -28,22 +28,13 @@ class FilamentConfig<T, U> {
 abstract class FilamentApp<T> {
   static FilamentApp? instance;
 
-  final T engine;
-  final T gltfAssetLoader;
-  final T renderer;
-  final T transformManager;
-  final T lightManager;
-  final T renderableManager;
-  final T ubershaderMaterialProvider;
-
-  FilamentApp(
-      {required this.engine,
-      required this.gltfAssetLoader,
-      required this.renderer,
-      required this.transformManager,
-      required this.lightManager,
-      required this.renderableManager,
-      required this.ubershaderMaterialProvider});
+  T get engine;
+  T get gltfAssetLoader;
+  T get renderer;
+  T get transformManager;
+  T get lightManager;
+  T get renderableManager;
+  T get ubershaderMaterialProvider;
 
   ///
   ///
@@ -369,4 +360,6 @@ abstract class FilamentApp<T> {
   /// [setSkybox] is called.
   ///
   Future<Skybox> buildSkybox({Texture? texture = null});
+
+
 }

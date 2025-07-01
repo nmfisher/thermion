@@ -53,15 +53,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       this.ubershaderMaterialProvider,
       this.renderTicker,
       this.nameComponentManager,
-      Future<Uint8List> Function(String uri)? loadResource)
-      : super(
-            engine: engine,
-            gltfAssetLoader: gltfAssetLoader,
-            renderer: renderer,
-            transformManager: transformManager,
-            lightManager: lightManager,
-            renderableManager: renderableManager,
-            ubershaderMaterialProvider: ubershaderMaterialProvider) {
+      Future<Uint8List> Function(String uri)? loadResource) {
     this._loadResource = loadResource ?? defaultResourceLoader;
   }
 
