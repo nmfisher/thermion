@@ -161,14 +161,14 @@ class TestHelper {
       SwapChain? swapChain,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,
-      bool captureRenderTarget = false}) async {
+      bool captureRenderTarget = false, bool render=true}) async {
     swapChain ??= this.swapChain;
     var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
         view: view,
         beforeRender: beforeRender,
         pixelDataFormat: pixelDataFormat,
         pixelDataType: pixelDataType,
-        captureRenderTarget: captureRenderTarget);
+        captureRenderTarget: captureRenderTarget, render:render);
     var retval = <View, Uint8List>{};
     int i = 0;
     for (final (view, pixelBuffer) in pixelBuffers) {
