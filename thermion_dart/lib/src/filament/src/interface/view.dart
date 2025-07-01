@@ -92,6 +92,9 @@ abstract class View<T> extends NativeHandle<T> {
   Future setShadowsEnabled(bool enabled);
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
 
+  Future setTransparentPickingEnabled(bool enabled);
+  Future<bool> isTransparentPickingEnabled();
+
   /// Renders an outline around [entity] with the given color.
   Future setStencilHighlight(ThermionAsset asset,
       {double r = 1.0,

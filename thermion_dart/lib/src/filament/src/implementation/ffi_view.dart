@@ -335,4 +335,12 @@ class FFIView extends View<Pointer<TView>> {
   void setName(String name) {
     View_setName(getNativeHandle(), name.toNativeUtf8().cast());
   }
+
+  Future setTransparentPickingEnabled(bool enabled) async {
+    View_setTransparentPickingEnabled(getNativeHandle(), enabled);
+  }
+
+  Future<bool> isTransparentPickingEnabled() async {
+    return View_isTransparentPickingEnabled(getNativeHandle());
+  }
 }

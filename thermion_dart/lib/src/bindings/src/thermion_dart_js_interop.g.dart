@@ -720,6 +720,13 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TView> tView,
     Pointer<TFogOptions> tFogOptionsPtr,
   );
+  external void _View_setTransparentPickingEnabled(
+    Pointer<TView> tView,
+    bool enabled,
+  );
+  external int _View_isTransparentPickingEnabled(
+    Pointer<TView> tView,
+  );
   external void _View_pick(
     Pointer<TView> tView,
     int requestId,
@@ -3006,6 +3013,21 @@ void View_setFogOptions(
   final tFogOptionsPtr = tFogOptions._address;
   final result = _lib._View_setFogOptions(tView.cast(), tFogOptionsPtr.cast());
   return result;
+}
+
+void View_setTransparentPickingEnabled(
+  self.Pointer<TView> tView,
+  bool enabled,
+) {
+  final result = _lib._View_setTransparentPickingEnabled(tView.cast(), enabled);
+  return result;
+}
+
+bool View_isTransparentPickingEnabled(
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._View_isTransparentPickingEnabled(tView.cast());
+  return result == 1;
 }
 
 void View_pick(

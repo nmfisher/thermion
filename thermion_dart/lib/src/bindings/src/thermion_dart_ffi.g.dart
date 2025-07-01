@@ -571,6 +571,17 @@ external void View_setFogOptions(
   TFogOptions tFogOptions,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setTransparentPickingEnabled(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
+external bool View_isTransparentPickingEnabled(
+  ffi.Pointer<TView> tView,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
         PickCallback)>(isLeaf: true)

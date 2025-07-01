@@ -89,6 +89,8 @@ EMSCRIPTEN_KEEPALIVE bool View_isDitheringEnabled(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setScene(TView *tView, TScene *tScene);
 EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInverted(TView *tView, bool inverted);
 EMSCRIPTEN_KEEPALIVE void View_setFogOptions(TView *tView, TFogOptions tFogOptions);
+EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabled(TView *tView, bool enabled);
+EMSCRIPTEN_KEEPALIVE bool View_isTransparentPickingEnabled(TView *tView);
 
 typedef void (*PickCallback)(uint32_t requestId, EntityId entityId, float depth, float fragX, float fragY, float fragZ);
 EMSCRIPTEN_KEEPALIVE void View_pick(TView* tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);

@@ -284,6 +284,16 @@ namespace thermion
             view->setName(name);
         }
 
+        EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabled(TView* tView, bool enabled) {
+            auto view = reinterpret_cast<View *>(tView);
+            view->setTransparentPickingEnabled(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool View_isTransparentPickingEnabled(TView* tView) {
+            auto view = reinterpret_cast<View *>(tView);
+            return view->isTransparentPickingEnabled();
+        }
+
 #ifdef __cplusplus
     }
 }
