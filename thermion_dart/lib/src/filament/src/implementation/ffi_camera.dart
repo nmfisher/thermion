@@ -3,8 +3,15 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 import '../../../utils/src/matrix.dart';
 
-class FFICamera extends Camera {
+class FFICamera extends Camera<Pointer<TCamera>> {
   final Pointer<TCamera> camera;
+  
+  @override
+  Pointer<TCamera> getNativeHandle() {
+    return camera;
+
+  }
+
   final FFIFilamentApp app;
   late ThermionEntity _entity;
 
