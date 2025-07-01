@@ -22,6 +22,10 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
   static SwapChain? _swapChain;
 
+  SwapChain? getActiveSwapchain() {
+    return _swapChain;
+  }
+
   ThermionFlutterMethodChannelPlatform._();
 
   static ThermionFlutterMethodChannelPlatform? instance;
@@ -114,7 +118,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
     if (Platform.isMacOS || Platform.isIOS) {
-      _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1);
+      _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
       await FilamentApp.instance!.register(_swapChain!, viewer.view);
       await viewer.view.setRenderable(true);
     }
@@ -215,7 +219,8 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
           TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT
         },
-        textureFormat: TextureFormat.DEPTH24_STENCIL8, // TextureFormat.DEPTH32F,
+        textureFormat:
+            TextureFormat.DEPTH24_STENCIL8, // TextureFormat.DEPTH32F,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
 

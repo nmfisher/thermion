@@ -52,6 +52,12 @@ namespace thermion
         void setRenderable(filament::SwapChain *swapChain, filament::View **view, uint8_t numViews);
 
         /// @brief 
+        /// @param swapChain 
+        /// @param view 
+        /// @param numViews 
+        void removeSwapChain(filament::SwapChain *swapChain);
+
+        /// @brief 
         /// @param animationManager 
         void addAnimationManager(AnimationManager* animationManager);
         
