@@ -3,7 +3,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-class FFIMaterial extends Material {
+class FFIMaterial extends Material<Pointer<TMaterial>> {
   final FFIFilamentApp app;
   final Pointer<TMaterial> pointer;
 
@@ -27,6 +27,11 @@ class FFIMaterial extends Material {
   Future<bool> hasParameter(String propertyName) async {
     return Material_hasParameter(
         pointer, propertyName.toNativeUtf8().cast<Char>());
+  }
+
+  @override
+  Pointer<TMaterial> getNativeHandle() {
+    return pointer;
   }
 }
 

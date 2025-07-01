@@ -93,7 +93,7 @@ enum TransparencyMode {
   TWO_PASSES_TWO_SIDES
 }
 
-abstract class Material {
+abstract class Material<T> extends NativeHandle<T> {
   Future<MaterialInstance> createInstance();
   Future<bool> hasParameter(String propertyName);
   Future destroy();
