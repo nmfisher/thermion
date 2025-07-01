@@ -529,13 +529,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<FFIMaterialInstance> createUnlitMaterialInstance() async {
+  Future<MaterialInstance> createUnlitMaterialInstance() async {
     final instance = await createUbershaderMaterialInstance(unlit: true);
-    return instance as FFIMaterialInstance;
+    return instance;
   }
 
-  FFIMaterial? _gridMaterial;
-  Future<FFIMaterial> get gridMaterial async {
+  Material? _gridMaterial;
+  Future<Material> get gridMaterial async {
     _gridMaterial ??= FFIMaterial(Material_createGridMaterial(engine), this);
     return _gridMaterial!;
   }
@@ -812,7 +812,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               view.view,
               view.renderTarget == null
                   ? nullptr
-                  : view.renderTarget!.renderTarget,
+                  : view.renderTarget!.getNativeHandle(),
               pixelDataFormat.value,
               pixelDataType.value,
               pixelBuffer.address,
