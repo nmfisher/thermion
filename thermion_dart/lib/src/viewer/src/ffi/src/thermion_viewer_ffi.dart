@@ -530,6 +530,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future destroyAsset(covariant FFIAsset asset) async {
     _assets.remove(asset);
     await scene.remove(asset);
+    await view.removeStencilHighlight(asset);
 
     await hideBoundingBox(asset, destroy: true);
 
@@ -827,6 +828,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future removeFromScene(covariant FFIAsset asset) async {
     await scene.remove(asset);
+    await view.removeStencilHighlight(asset);
   }
 
   final _boundingBoxAssets = <ThermionAsset, Completer<ThermionAsset>>{};
