@@ -25,6 +25,11 @@ external ffi.Pointer<TMaterialInstance> Material_createInstance(
   ffi.Pointer<TMaterial> tMaterial,
 );
 
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
+external int Material_getFeatureLevel(
+  ffi.Pointer<TMaterial> tMaterial,
+);
+
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createImageMaterial(
   ffi.Pointer<TEngine> tEngine,
@@ -37,6 +42,11 @@ external ffi.Pointer<TMaterial> Material_createGridMaterial(
 
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createGizmoMaterial(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createOutlineMaterial(
   ffi.Pointer<TEngine> tEngine,
 );
 
@@ -570,6 +580,13 @@ external void View_pick(
   int x,
   int y,
   PickCallback callback,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<ffi.Char>)>(
+    isLeaf: true)
+external void View_setName(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<ffi.Char> name,
 );
 
 @ffi.Native<ffi.Pointer<TNameComponentManager> Function()>(isLeaf: true)
@@ -1317,7 +1334,10 @@ external void Renderer_renderStandaloneView(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TRenderer>,
-        ffi.Pointer<TView>,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
         ffi.Pointer<TRenderTarget>,
         ffi.UnsignedInt,
         ffi.UnsignedInt,
@@ -1325,7 +1345,10 @@ external void Renderer_renderStandaloneView(
         ffi.Size)>(isLeaf: true)
 external void Renderer_readPixels(
   ffi.Pointer<TRenderer> tRenderer,
-  ffi.Pointer<TView> tView,
+  int width,
+  int height,
+  int xOffset,
+  int yOffset,
   ffi.Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
@@ -1342,6 +1365,37 @@ external void Renderer_setFrameInterval(
   double scaleRate,
   int history,
   int interval,
+);
+
+@ffi.Native<
+    ffi.Pointer<TOverlayManager> Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TRenderer>,
+        ffi.Pointer<TView>,
+        ffi.Pointer<TScene>,
+        ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+external ffi.Pointer<TOverlayManager> OverlayManager_create(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TRenderer> tRenderer,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TOverlayManager>, EntityId,
+        ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+external void OverlayManager_addComponent(
+  ffi.Pointer<TOverlayManager> tOverlayManager,
+  int entityId,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TOverlayManager>, EntityId)>(
+    isLeaf: true)
+external void OverlayManager_removeComponent(
+  ffi.Pointer<TOverlayManager> tOverlayManager,
+  int entityId,
 );
 
 @ffi.Native<
@@ -1391,12 +1445,19 @@ external void RenderTicker_setRenderable(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TRenderTicker>, ffi.Pointer<TView>,
-        ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
-external void RenderTicker_foo(
+    ffi.Void Function(
+        ffi.Pointer<TRenderTicker>, ffi.Pointer<TSwapChain>)>(isLeaf: true)
+external void RenderTicker_removeSwapChain(
   ffi.Pointer<TRenderTicker> tRenderTicker,
-  ffi.Pointer<TView> tOverlayView,
-  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+  ffi.Pointer<TSwapChain> swapChain,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderTicker>, ffi.Pointer<TOverlayManager>)>(isLeaf: true)
+external void RenderTicker_setOverlayManager(
+  ffi.Pointer<TRenderTicker> tRenderTicker,
+  ffi.Pointer<TOverlayManager> tOverlayManager,
 );
 
 @ffi.Native<
@@ -1408,6 +1469,11 @@ external ffi.Pointer<TEngine> Engine_create(
   ffi.Pointer<ffi.Void> sharedContext,
   int stereoscopicEyeCount,
   bool disableHandleUseAfterFreeCheck,
+);
+
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external int Engine_getSupportedFeatureLevel(
+  ffi.Pointer<TEngine> tEngine,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>(isLeaf: true)
@@ -2109,7 +2175,10 @@ external void Renderer_renderStandaloneViewRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TRenderer>,
-        ffi.Pointer<TView>,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
         ffi.Pointer<TRenderTarget>,
         ffi.UnsignedInt,
         ffi.UnsignedInt,
@@ -2119,7 +2188,10 @@ external void Renderer_renderStandaloneViewRenderThread(
         VoidCallback)>(isLeaf: true)
 external void Renderer_readPixelsRenderThread(
   ffi.Pointer<TRenderer> tRenderer,
-  ffi.Pointer<TView> tView,
+  int width,
+  int height,
+  int xOffset,
+  int yOffset,
   ffi.Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
@@ -2164,6 +2236,19 @@ external void Material_createImageMaterialRenderThread(
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
     isLeaf: true)
 external void Material_createGizmoMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
+    isLeaf: true)
+external void Material_createOutlineMaterialRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
       onComplete,
@@ -3605,6 +3690,8 @@ final class TColorGrading extends ffi.Opaque {}
 
 final class TKtx1Bundle extends ffi.Opaque {}
 
+final class TOverlayManager extends ffi.Opaque {}
+
 final class double3 extends ffi.Struct {
   @ffi.Double()
   external double x;
@@ -3689,6 +3776,13 @@ final class Aabb3 extends ffi.Struct {
 sealed class TGizmoType {
   static const GIZMO_TYPE_TRANSLATION = 0;
   static const GIZMO_TYPE_ROTATION = 1;
+}
+
+sealed class TFeatureLevel {
+  static const FEATURE_LEVEL_0 = 0;
+  static const FEATURE_LEVEL_1 = 1;
+  static const FEATURE_LEVEL_2 = 2;
+  static const FEATURE_LEVEL_3 = 3;
 }
 
 sealed class TPrimitiveType {

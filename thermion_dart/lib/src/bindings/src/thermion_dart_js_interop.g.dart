@@ -402,6 +402,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external Pointer<TMaterialInstance> _Material_createInstance(
     Pointer<TMaterial> tMaterial,
   );
+  external int _Material_getFeatureLevel(
+    Pointer<TMaterial> tMaterial,
+  );
   external Pointer<TMaterial> _Material_createImageMaterial(
     Pointer<TEngine> tEngine,
   );
@@ -409,6 +412,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TEngine> tEngine,
   );
   external Pointer<TMaterial> _Material_createGizmoMaterial(
+    Pointer<TEngine> tEngine,
+  );
+  external Pointer<TMaterial> _Material_createOutlineMaterial(
     Pointer<TEngine> tEngine,
   );
   external int _Material_hasParameter(
@@ -720,6 +726,10 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int x,
     int y,
     PickCallback callback,
+  );
+  external void _View_setName(
+    Pointer<TView> tView,
+    Pointer<Char> name,
   );
   external Pointer<TNameComponentManager> _NameComponentManager_create();
   external Pointer<Char> _NameComponentManager_getName(
@@ -1142,7 +1152,10 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _Renderer_readPixels(
     Pointer<TRenderer> tRenderer,
-    Pointer<TView> tView,
+    int width,
+    int height,
+    int xOffset,
+    int yOffset,
     Pointer<TRenderTarget> tRenderTarget,
     int tPixelBufferFormat,
     int tPixelDataType,
@@ -1155,6 +1168,22 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double scaleRate,
     int history,
     int interval,
+  );
+  external Pointer<TOverlayManager> _OverlayManager_create(
+    Pointer<TEngine> tEngine,
+    Pointer<TRenderer> tRenderer,
+    Pointer<TView> tView,
+    Pointer<TScene> tScene,
+    Pointer<TRenderTarget> tRenderTarget,
+  );
+  external void _OverlayManager_addComponent(
+    Pointer<TOverlayManager> tOverlayManager,
+    EntityId entityId,
+    Pointer<TMaterialInstance> tMaterialInstance,
+  );
+  external void _OverlayManager_removeComponent(
+    Pointer<TOverlayManager> tOverlayManager,
+    EntityId entityId,
   );
   external Pointer<TRenderTicker> _RenderTicker_create(
     Pointer<TEngine> tEngine,
@@ -1181,10 +1210,13 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<self.PointerClass<TView>> views,
     int numViews,
   );
-  external void _RenderTicker_foo(
+  external void _RenderTicker_removeSwapChain(
     Pointer<TRenderTicker> tRenderTicker,
-    Pointer<TView> tOverlayView,
-    Pointer<TMaterialInstance> tMaterialInstance,
+    Pointer<TSwapChain> swapChain,
+  );
+  external void _RenderTicker_setOverlayManager(
+    Pointer<TRenderTicker> tRenderTicker,
+    Pointer<TOverlayManager> tOverlayManager,
   );
   external Pointer<TEngine> _Engine_create(
     int backend,
@@ -1192,6 +1224,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<Void> sharedContext,
     int stereoscopicEyeCount,
     bool disableHandleUseAfterFreeCheck,
+  );
+  external int _Engine_getSupportedFeatureLevel(
+    Pointer<TEngine> tEngine,
   );
   external void _Engine_destroy(
     Pointer<TEngine> tEngine,
@@ -1554,7 +1589,10 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _Renderer_readPixelsRenderThread(
     Pointer<TRenderer> tRenderer,
-    Pointer<TView> tView,
+    int width,
+    int height,
+    int xOffset,
+    int yOffset,
     Pointer<TRenderTarget> tRenderTarget,
     int tPixelBufferFormat,
     int tPixelDataType,
@@ -1574,6 +1612,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
         onComplete,
   );
   external void _Material_createGizmoMaterialRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<self.NativeFunction<void Function(PointerClass<TMaterial>)>>
+        onComplete,
+  );
+  external void _Material_createOutlineMaterialRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<self.NativeFunction<void Function(PointerClass<TMaterial>)>>
         onComplete,
@@ -2323,6 +2366,13 @@ self.Pointer<TMaterialInstance> Material_createInstance(
   return self.Pointer<TMaterialInstance>(result);
 }
 
+int Material_getFeatureLevel(
+  self.Pointer<TMaterial> tMaterial,
+) {
+  final result = _lib._Material_getFeatureLevel(tMaterial.cast());
+  return result;
+}
+
 self.Pointer<TMaterial> Material_createImageMaterial(
   self.Pointer<TEngine> tEngine,
 ) {
@@ -2341,6 +2391,13 @@ self.Pointer<TMaterial> Material_createGizmoMaterial(
   self.Pointer<TEngine> tEngine,
 ) {
   final result = _lib._Material_createGizmoMaterial(tEngine.cast());
+  return self.Pointer<TMaterial>(result);
+}
+
+self.Pointer<TMaterial> Material_createOutlineMaterial(
+  self.Pointer<TEngine> tEngine,
+) {
+  final result = _lib._Material_createOutlineMaterial(tEngine.cast());
   return self.Pointer<TMaterial>(result);
 }
 
@@ -2960,6 +3017,14 @@ void View_pick(
 ) {
   final result = _lib._View_pick(tView.cast(), requestId, x, y,
       callback as Pointer<self.NativeFunction<PickCallbackFunction>>);
+  return result;
+}
+
+void View_setName(
+  self.Pointer<TView> tView,
+  self.Pointer<Char> name,
+) {
+  final result = _lib._View_setName(tView.cast(), name);
   return result;
 }
 
@@ -3820,15 +3885,27 @@ void Renderer_renderStandaloneView(
 
 void Renderer_readPixels(
   self.Pointer<TRenderer> tRenderer,
-  self.Pointer<TView> tView,
+  int width,
+  int height,
+  int xOffset,
+  int yOffset,
   self.Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
   self.Pointer<Uint8> out,
   Dart__darwin_size_t outLength,
 ) {
-  final result = _lib._Renderer_readPixels(tRenderer.cast(), tView.cast(),
-      tRenderTarget.cast(), tPixelBufferFormat, tPixelDataType, out, outLength);
+  final result = _lib._Renderer_readPixels(
+      tRenderer.cast(),
+      width,
+      height,
+      xOffset,
+      yOffset,
+      tRenderTarget.cast(),
+      tPixelBufferFormat,
+      tPixelDataType,
+      out,
+      outLength);
   return result;
 }
 
@@ -3841,6 +3918,37 @@ void Renderer_setFrameInterval(
 ) {
   final result = _lib._Renderer_setFrameInterval(
       tRenderer.cast(), headRoomRatio, scaleRate, history, interval);
+  return result;
+}
+
+self.Pointer<TOverlayManager> OverlayManager_create(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<TRenderer> tRenderer,
+  self.Pointer<TView> tView,
+  self.Pointer<TScene> tScene,
+  self.Pointer<TRenderTarget> tRenderTarget,
+) {
+  final result = _lib._OverlayManager_create(tEngine.cast(), tRenderer.cast(),
+      tView.cast(), tScene.cast(), tRenderTarget.cast());
+  return self.Pointer<TOverlayManager>(result);
+}
+
+void OverlayManager_addComponent(
+  self.Pointer<TOverlayManager> tOverlayManager,
+  DartEntityId entityId,
+  self.Pointer<TMaterialInstance> tMaterialInstance,
+) {
+  final result = _lib._OverlayManager_addComponent(
+      tOverlayManager.cast(), entityId, tMaterialInstance.cast());
+  return result;
+}
+
+void OverlayManager_removeComponent(
+  self.Pointer<TOverlayManager> tOverlayManager,
+  DartEntityId entityId,
+) {
+  final result =
+      _lib._OverlayManager_removeComponent(tOverlayManager.cast(), entityId);
   return result;
 }
 
@@ -3897,13 +4005,21 @@ void RenderTicker_setRenderable(
   return result;
 }
 
-void RenderTicker_foo(
+void RenderTicker_removeSwapChain(
   self.Pointer<TRenderTicker> tRenderTicker,
-  self.Pointer<TView> tOverlayView,
-  self.Pointer<TMaterialInstance> tMaterialInstance,
+  self.Pointer<TSwapChain> swapChain,
 ) {
-  final result = _lib._RenderTicker_foo(
-      tRenderTicker.cast(), tOverlayView.cast(), tMaterialInstance.cast());
+  final result = _lib._RenderTicker_removeSwapChain(
+      tRenderTicker.cast(), swapChain.cast());
+  return result;
+}
+
+void RenderTicker_setOverlayManager(
+  self.Pointer<TRenderTicker> tRenderTicker,
+  self.Pointer<TOverlayManager> tOverlayManager,
+) {
+  final result = _lib._RenderTicker_setOverlayManager(
+      tRenderTicker.cast(), tOverlayManager.cast());
   return result;
 }
 
@@ -3917,6 +4033,13 @@ self.Pointer<TEngine> Engine_create(
   final result = _lib._Engine_create(backend, platform, sharedContext,
       stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
   return self.Pointer<TEngine>(result);
+}
+
+int Engine_getSupportedFeatureLevel(
+  self.Pointer<TEngine> tEngine,
+) {
+  final result = _lib._Engine_getSupportedFeatureLevel(tEngine.cast());
+  return result;
 }
 
 void Engine_destroy(
@@ -4689,7 +4812,10 @@ void Renderer_renderStandaloneViewRenderThread(
 
 void Renderer_readPixelsRenderThread(
   self.Pointer<TRenderer> tRenderer,
-  self.Pointer<TView> tView,
+  int width,
+  int height,
+  int xOffset,
+  int yOffset,
   self.Pointer<TRenderTarget> tRenderTarget,
   int tPixelBufferFormat,
   int tPixelDataType,
@@ -4700,7 +4826,10 @@ void Renderer_readPixelsRenderThread(
 ) {
   final result = _lib._Renderer_readPixelsRenderThread(
       tRenderer.cast(),
-      tView.cast(),
+      width,
+      height,
+      xOffset,
+      yOffset,
       tRenderTarget.cast(),
       tPixelBufferFormat,
       tPixelDataType,
@@ -4737,6 +4866,16 @@ void Material_createGizmoMaterialRenderThread(
       onComplete,
 ) {
   final result = _lib._Material_createGizmoMaterialRenderThread(
+      tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void Material_createOutlineMaterialRenderThread(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<self.NativeFunction<void Function(Pointer<TMaterial>)>>
+      onComplete,
+) {
+  final result = _lib._Material_createOutlineMaterialRenderThread(
       tEngine.cast(), onComplete.cast());
   return result;
 }
@@ -6212,6 +6351,13 @@ final class TMaterial extends self.Struct {
   }
 }
 
+sealed class TFeatureLevel {
+  static const FEATURE_LEVEL_0 = 0;
+  static const FEATURE_LEVEL_1 = 1;
+  static const FEATURE_LEVEL_2 = 2;
+  static const FEATURE_LEVEL_3 = 3;
+}
+
 extension TEngineExt on Pointer<TEngine> {
   TEngine toDart() {
     return TEngine(this);
@@ -7293,6 +7439,20 @@ final class TSwapChain extends self.Struct {
   }
 }
 
+extension TOverlayManagerExt on Pointer<TOverlayManager> {
+  TOverlayManager toDart() {
+    return TOverlayManager(this);
+  }
+}
+
+final class TOverlayManager extends self.Struct {
+  TOverlayManager(super._address);
+
+  static Pointer<TOverlayManager> stackAlloc() {
+    return Pointer<TOverlayManager>(_lib._stackAlloc<TOverlayManager>(0));
+  }
+}
+
 extension TRenderTickerExt on Pointer<TRenderTicker> {
   TRenderTicker toDart() {
     return TRenderTicker(this);
@@ -7566,7 +7726,7 @@ extension NativeFunctionPointer16<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer19<T extends NativeType> on void Function(
+extension NativeFunctionPointer20<T extends NativeType> on void Function(
     self.Pointer<TColorGrading>) {
   // orignal type void Function(self.Pointer<TColorGrading> ) void Function(Pointer<TColorGrading> ) dart type void Function(self.Pointer<TColorGrading> )
 
@@ -7579,7 +7739,7 @@ extension NativeFunctionPointer19<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer20<T extends NativeType> on void Function(
+extension NativeFunctionPointer21<T extends NativeType> on void Function(
     self.Pointer<TSceneAsset>) {
   // orignal type void Function(self.Pointer<TSceneAsset> ) void Function(Pointer<TSceneAsset> ) dart type void Function(self.Pointer<TSceneAsset> )
 
@@ -7592,7 +7752,7 @@ extension NativeFunctionPointer20<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer27<T extends NativeType> on void Function(
+extension NativeFunctionPointer28<T extends NativeType> on void Function(
     self.Pointer<TLinearImage>) {
   // orignal type void Function(self.Pointer<TLinearImage> ) void Function(Pointer<TLinearImage> ) dart type void Function(self.Pointer<TLinearImage> )
 
@@ -7605,7 +7765,7 @@ extension NativeFunctionPointer27<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer29<T extends NativeType> on void Function(
+extension NativeFunctionPointer30<T extends NativeType> on void Function(
     self.Pointer<Float32>) {
   // orignal type void Function(self.Pointer<Float32> ) void Function(Pointer<Float32> ) dart type void Function(self.Pointer<Float32> )
 
@@ -7616,7 +7776,7 @@ extension NativeFunctionPointer29<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer30<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer31<T extends NativeType> on void Function(int) {
   // orignal type void Function(int ) void Function(int ) dart type void Function(int )
 
   Pointer<NativeFunction<void Function(int)>> addFunction() {
@@ -7626,7 +7786,7 @@ extension NativeFunctionPointer30<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer36<T extends NativeType> on void Function(
+extension NativeFunctionPointer37<T extends NativeType> on void Function(
     self.Pointer<TRenderTarget>) {
   // orignal type void Function(self.Pointer<TRenderTarget> ) void Function(Pointer<TRenderTarget> ) dart type void Function(self.Pointer<TRenderTarget> )
 
@@ -7639,7 +7799,7 @@ extension NativeFunctionPointer36<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer37<T extends NativeType> on void Function(
+extension NativeFunctionPointer38<T extends NativeType> on void Function(
     self.Pointer<TTextureSampler>) {
   // orignal type void Function(self.Pointer<TTextureSampler> ) void Function(Pointer<TTextureSampler> ) dart type void Function(self.Pointer<TTextureSampler> )
 
@@ -7653,7 +7813,7 @@ extension NativeFunctionPointer37<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer41<T extends NativeType> on void Function(
+extension NativeFunctionPointer42<T extends NativeType> on void Function(
     self.Pointer<TGltfAssetLoader>) {
   // orignal type void Function(self.Pointer<TGltfAssetLoader> ) void Function(Pointer<TGltfAssetLoader> ) dart type void Function(self.Pointer<TGltfAssetLoader> )
 
@@ -7667,7 +7827,7 @@ extension NativeFunctionPointer41<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer42<T extends NativeType> on void Function(
+extension NativeFunctionPointer43<T extends NativeType> on void Function(
     self.Pointer<TGltfResourceLoader>) {
   // orignal type void Function(self.Pointer<TGltfResourceLoader> ) void Function(Pointer<TGltfResourceLoader> ) dart type void Function(self.Pointer<TGltfResourceLoader> )
 
@@ -7682,7 +7842,7 @@ extension NativeFunctionPointer42<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer45<T extends NativeType> on void Function(
+extension NativeFunctionPointer46<T extends NativeType> on void Function(
     double) {
   // orignal type void Function(double ) void Function(double ) dart type void Function(double )
 
@@ -7693,7 +7853,7 @@ extension NativeFunctionPointer45<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer46<T extends NativeType> on void Function(
+extension NativeFunctionPointer47<T extends NativeType> on void Function(
     self.Pointer<TFilamentAsset>) {
   // orignal type void Function(self.Pointer<TFilamentAsset> ) void Function(Pointer<TFilamentAsset> ) dart type void Function(self.Pointer<TFilamentAsset> )
 
@@ -7706,7 +7866,7 @@ extension NativeFunctionPointer46<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer47<T extends NativeType> on void Function(
+extension NativeFunctionPointer48<T extends NativeType> on void Function(
     self.Pointer<TGizmo>) {
   // orignal type void Function(self.Pointer<TGizmo> ) void Function(Pointer<TGizmo> ) dart type void Function(self.Pointer<TGizmo> )
 
