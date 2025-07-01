@@ -26,3 +26,13 @@ enum Backend {
         _ => throw ArgumentError("Unknown value for TBackend: $value"),
       };
 }
+
+enum FeatureLevel {
+  FeatureLevel0(0),
+  FeatureLevel1(1),
+  FeatureLevel2(2),
+  FeatureLevel3(3);
+
+  final int value;
+  const FeatureLevel(this.value);
+}

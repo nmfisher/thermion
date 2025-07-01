@@ -100,6 +100,14 @@ extern "C"
 	};
 	typedef enum TGizmoType TGizmoType;
 
+	enum TFeatureLevel {
+		FEATURE_LEVEL_0 = 0,
+		FEATURE_LEVEL_1 = 1,
+		FEATURE_LEVEL_2 = 2,
+		FEATURE_LEVEL_3 = 3
+	};
+	typedef enum TFeatureLevel TFeatureLevel;
+
 	enum TPrimitiveType {
 		// don't change the enums values (made to match GL)
 		PRIMITIVETYPE_POINTS         = 0,    //!< points
