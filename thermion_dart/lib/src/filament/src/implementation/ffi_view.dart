@@ -61,10 +61,25 @@ class FFIView extends View<Pointer<TView>> {
     await FilamentApp.instance!.updateRenderOrder();
   }
 
+  Timer? _overlayResize;
+
   @override
   Future setViewport(int width, int height) async {
     View_setViewport(view, width, height);
-    // await overlayView?.setViewport(width, height);
+
+    if (overlayManager != null) {
+      _overlayResize?.cancel();
+      _overlayResize = Timer(Duration(milliseconds: 33), () async {
+        var oldRenderTarget = overlayRenderTarget;
+        overlayRenderTarget =
+            await FilamentApp.instance!.createRenderTarget(width, height);
+        OverlayManager_setRenderTarget(
+            overlayManager!, overlayRenderTarget!.getNativeHandle());
+        await oldRenderTarget!.destroy();
+        print("Resized render target to ${width}x${height}");
+        print(StackTrace.current);
+      });
+    }
   }
 
   Future<RenderTarget?> getRenderTarget() async {

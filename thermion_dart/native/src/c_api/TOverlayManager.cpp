@@ -29,12 +29,17 @@ EMSCRIPTEN_KEEPALIVE TOverlayManager *OverlayManager_create(TEngine *tEngine, TR
     return reinterpret_cast<TOverlayManager *>(overlayManager);
 }
 
+EMSCRIPTEN_KEEPALIVE void OverlayManager_setRenderTarget(TOverlayManager *tOverlayManager, TRenderTarget *tRenderTarget) {
+    auto *overlayManager = reinterpret_cast<OverlayComponentManager *>(tOverlayManager);
+    auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
+    overlayManager->setRenderTarget(renderTarget);
+}
+
 EMSCRIPTEN_KEEPALIVE void OverlayManager_addComponent(TOverlayManager *tOverlayManager, EntityId entityId, TMaterialInstance *tMaterialInstance) {
     auto *overlayManager = reinterpret_cast<OverlayComponentManager *>(tOverlayManager);
     auto *materialInstance = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
     overlayManager->addOverlayComponent(utils::Entity::import(entityId), materialInstance);
 }
-
 
 EMSCRIPTEN_KEEPALIVE void OverlayManager_removeComponent(TOverlayManager *tOverlayManager, EntityId entityId) {
     auto *overlayManager = reinterpret_cast<OverlayComponentManager *>(tOverlayManager);

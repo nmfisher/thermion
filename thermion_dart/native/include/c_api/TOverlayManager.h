@@ -28,6 +28,10 @@ EMSCRIPTEN_KEEPALIVE void OverlayManager_removeComponent(
     EntityId entityId
 );
 
+EMSCRIPTEN_KEEPALIVE void OverlayManager_setRenderTarget(
+    TOverlayManager *tOverlayManager,
+    TRenderTarget *tRenderTarget
+);
 
 #ifdef __cplusplus
 }

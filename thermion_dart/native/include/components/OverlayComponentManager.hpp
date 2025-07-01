@@ -1,8 +1,11 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <vector>
+
 #include <math/mat4.h>
+
 #include <filament/Engine.h>
 #include <filament/Material.h>
 #include <filament/MaterialInstance.h>
@@ -44,8 +47,24 @@ namespace thermion
             mEngine->destroy(mDepthMaterial);
         }
 
+        void setRenderTarget(filament::RenderTarget *renderTarget) {
+            std::lock_guard lock(mMutex);
+            mRenderTarget = renderTarget;
+            auto *color = mRenderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR);
+            for (auto it = begin(); it < end(); it++)
+            {
+                const auto &entity = getEntity(it);
+                auto componentInstance = getInstance(entity);
+                auto &materialInstance = elementAt<0>(componentInstance);    
+                materialInstance->setParameter("depth", color, mDepthSampler);
+            }
+
+        }
+
         void addOverlayComponent(utils::Entity target, filament::MaterialInstance *materialInstance)
         {
+            std::lock_guard lock(mMutex);
+
             auto *color = mRenderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR);
             materialInstance->setParameter("depth", color, mDepthSampler);
             if (!hasComponent(target))
@@ -58,6 +77,8 @@ namespace thermion
 
         void removeOverlayComponent(utils::Entity target)
         {
+            std::lock_guard lock(mMutex);
+
             if (hasComponent(target))
             {
                 removeComponent(target);
@@ -67,10 +88,12 @@ namespace thermion
 
         void update()
         {
-            if (!mView || !mScene || getComponentCount() == 0)
+            if (!mView || !mScene || !mRenderTarget || getComponentCount() == 0)
             {
                 return;
             }
+
+            std::lock_guard lock(mMutex);
             auto &rm = mEngine->getRenderableManager();
             std::map<utils::Entity, std::vector<filament::MaterialInstance *>> materials;
             auto *scene = mView->getScene();
@@ -138,6 +161,7 @@ namespace thermion
         }
 
     private:
+        std::mutex mMutex;
         filament::Engine *mEngine = std::nullptr_t();
         filament::View *mView = std::nullptr_t();
         filament::Scene *mScene = std::nullptr_t();
