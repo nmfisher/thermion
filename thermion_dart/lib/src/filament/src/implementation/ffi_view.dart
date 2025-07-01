@@ -276,6 +276,7 @@ class FFIView extends View<Pointer<TView>> {
       double g = 0.0,
       double b = 0.0,
       int? entity,
+      double scale = 1.05,
       int primitiveIndex = 0}) async {
     entity ??= asset.entity;
 
@@ -297,6 +298,7 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     var highlightMaterialInstance = await highlightMaterial!.createInstance();
+    await highlightMaterialInstance.setParameterFloat("scale", scale);
 
     await highlightMaterialInstance.setDepthCullingEnabled(true);
     await highlightMaterialInstance.setDepthWriteEnabled(true);

@@ -28,6 +28,16 @@ void main() async {
     });
   });
 
+  test('toggle transparent picking', () async {
+    await testHelper.withViewer((viewer) async {
+      expect(await viewer.view.isTransparentPickingEnabled(), false);
+      await viewer.view.setTransparentPickingEnabled(true);
+      expect(await viewer.view.isTransparentPickingEnabled(), true);
+      await viewer.view.setTransparentPickingEnabled(false);
+      expect(await viewer.view.isTransparentPickingEnabled(), false);
+    });
+  });
+
   test('render two views, change material instance in between', () async {
     final viewportDimensions = (width: 500, height: 500);
     final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
@@ -402,24 +412,24 @@ void main() async {
 
   test('show/hide stencil highlight', () async {
     await testHelper.withViewer((viewer) async {
-
       var cube = await FilamentApp.instance!
           .createGeometry(GeometryHelper.cube(flipUvs: true), nullptr);
       await viewer.addToScene(cube);
       await viewer.view.setStencilHighlight(cube);
-      await FilamentApp.instance!.setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await FilamentApp.instance!
+          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
       await FilamentApp.instance!.requestFrame();
 
-      await testHelper.capture(
-          null, "stencil_highlight_enabled", render:false);
-      
-      await FilamentApp.instance!.setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await testHelper.capture(null, "stencil_highlight_enabled",
+          render: false);
+
+      await FilamentApp.instance!
+          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
       await viewer.view.removeStencilHighlight(cube);
       await FilamentApp.instance!.requestFrame();
 
-     
-      await testHelper.capture(
-          null, "stencil_highlight_removed", render:false);
+      await testHelper.capture(null, "stencil_highlight_removed",
+          render: false);
     }, postProcessing: false);
   });
 }

@@ -101,6 +101,7 @@ abstract class View<T> extends NativeHandle<T> {
       double g = 0.0,
       double b = 0.0,
       int? entity,
+      double scale = 1.05,
       int primitiveIndex = 0});
 
   /// Removes the outline around [entity]. Noop if there was no highlight.
