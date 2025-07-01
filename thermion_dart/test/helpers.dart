@@ -252,7 +252,7 @@ class TestHelper {
               TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
           },
           textureFormat: createStencilBuffer
-              ? TextureFormat.DEPTH32F_STENCIL8
+              ? TextureFormat.DEPTH24_STENCIL8
               : TextureFormat.DEPTH32F,
           // importedTextureHandle: metalDepthTexture.metalTextureAddress
           );
