@@ -1,6 +1,6 @@
 material {
     name : Unlit,
-    requires : [ position, uv0 ],
+    requires : [ position ],
     parameters : [
         {
             type : sampler2d,
@@ -28,7 +28,7 @@ material {
     instanced: false,
     vertexDomain: object,
 }
-   
+  
 fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);           
