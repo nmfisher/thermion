@@ -1,5 +1,4 @@
-// ignore_for_file: unused_local_variable
-import 'dart:io';
+@Timeout(const Duration(seconds: 600))
 
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
@@ -10,6 +9,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart'
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
+import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
@@ -25,6 +25,49 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       final camera = await viewer.view.getCamera();
       expect(camera, isNotNull);
+    });
+  });
+
+  test('render two views, change material instance in between', () async {
+    final viewportDimensions = (width: 500, height: 500);
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height);
+    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
+    final views = [];
+    final scene = await FilamentApp.instance!.createScene() as FFIScene;
+    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+    await camera.setLensProjection();
+    for (int i = 0; i < 2; i++) {
+      final view = await FilamentApp.instance!.createView() as FFIView;
+      await view.setScene(scene);
+      await view.setCamera(camera);
+      await view.setRenderable(true);
+      await view.setViewport(
+          viewportDimensions.width, viewportDimensions.height);
+      await view.setFrustumCullingEnabled(false);
+      await FilamentApp.instance!.register(swapChain, view);
+      views.add(view);
+    }
+
+    var red = await FilamentApp.instance!.createUnlitMaterialInstance();
+    await red.setParameterFloat4("baseColorFactor", 1, 0, 0, 1);
+
+    var green = await FilamentApp.instance!.createUnlitMaterialInstance();
+    await green.setParameterFloat4("baseColorFactor", 0, 1, 0, 1);
+
+    var cube = await FilamentApp.instance!.createGeometry(
+        GeometryHelper.cube(flipUvs: true), nullptr,
+        materialInstances: [red]) as FFIAsset;
+
+    await scene.add(cube);
+
+    await camera.lookAt(Vector3(0, 0, 10));
+
+    await testHelper.capture(null, "multiview_change_material_instance",
+        swapChain: swapChain, beforeRender: (view) async {
+      if (view == views.last) {
+        await cube.setMaterialInstanceAt(green);
+      }
     });
   });
 
@@ -356,7 +399,126 @@ void main() async {
       await testHelper.capture(viewer.view, "fog_options_enabled");
     }, addSkybox: true, postProcessing: true);
   });
+
+  test('show/hide stencil highlight', () async {
+    await testHelper.withViewer((viewer) async {
+
+      var cube = await FilamentApp.instance!
+          .createGeometry(GeometryHelper.cube(flipUvs: true), nullptr);
+      await viewer.addToScene(cube);
+      await viewer.view.setStencilHighlight(cube);
+      await FilamentApp.instance!.setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await FilamentApp.instance!.requestFrame();
+
+      await testHelper.capture(
+          null, "stencil_highlight_enabled", render:false);
+      
+      await FilamentApp.instance!.setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await viewer.view.removeStencilHighlight(cube);
+      await FilamentApp.instance!.requestFrame();
+
+     
+      await testHelper.capture(
+          null, "stencil_highlight_removed", render:false);
+    }, postProcessing: false);
+  });
 }
+// manually construct two views with stencil buffer
+// final viewportDimensions = (width: 500, height: 500);
+//       final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+//           viewportDimensions.width, viewportDimensions.height,
+//           hasStencilBuffer: true);
+//       final renderTarget = await FilamentApp.instance!.createRenderTarget(
+//           viewportDimensions.width, viewportDimensions.height);
+//       await FilamentApp.instance!.setClearOptions(1, 1, 0, 0);
+//       final views = <View>[];
+//       final scene = await FilamentApp.instance!.createScene();
+//       final camera = await FilamentApp.instance!.createCamera();
+//       await camera.setLensProjection();
+//       await camera.lookAt(Vector3(0, 0, 10));
+//       for (int i = 0; i < 2; i++) {
+//         final view = await FilamentApp.instance!.createView() as FFIView;
+//         await view.setScene(scene);
+//         await view.setCamera(camera);
+//         await view.setStencilBufferEnabled(true);
+//         await view.setBlendMode(BlendMode.transparent);
+//         await view.setViewport(
+//             viewportDimensions.width, viewportDimensions.height);
+//         await view.setFrustumCullingEnabled(false);
+//         await view.setPostProcessing(true);
+//         await view.setRenderTarget(renderTarget);
+//         views.add(view);
+//       }
+
+//       var green = await FilamentApp.instance!.createUnlitMaterialInstance();
+//       await green.setParameterFloat4("baseColorFactor", 0, 1, 0, 1);
+//       await green.setStencilCompareFunction(SamplerCompareFunction.A);
+//       await green.setStencilOpDepthStencilPass(StencilOperation.REPLACE);
+//       await green.setStencilReferenceValue(11);
+//       await green.setDepthCullingEnabled(false);
+//       await green.setStencilWriteEnabled(true);
+
+//       var red = await FilamentApp.instance!.createUnlitMaterialInstance();
+//       await red.setParameterFloat4("baseColorFactor", 1, 0, 0, 1);
+//       await red.setDepthCullingEnabled(false);
+//       await red.setDepthFunc(SamplerCompareFunction.E);
+//       await red.setStencilCompareFunction(SamplerCompareFunction.A);
+//       await red.setStencilReferenceValue(11);
+
+//       var cube = await FilamentApp.instance!.createGeometry(
+//           GeometryHelper.cube(), nullptr,
+//           materialInstances: [green]);
+//       // var cube2 = await FilamentApp.instance!.createGeometry(
+//       //     GeometryHelper.cube(), nullptr,
+//       //     materialInstances: [red]);
+//       await scene.add(cube);
+//       // await scene.add(cube2);
+//       await FilamentApp.instance!.setPriority(cube.entity, 0);
+//       // await FilamentApp.instance!.setPriority(cube2.entity, 1);
+
+//       final renderer = FilamentApp.instance!.renderer;
+
+//       final beginFrame = await withBoolCallback((cb) {
+//         Renderer_beginFrameRenderThread(
+//             renderer, swapChain.getNativeHandle(), 0.toBigInt, cb);
+//       });
+//       await withVoidCallback((requestId, cb) {
+//         Renderer_renderRenderThread(
+//             renderer, views[0].getNativeHandle(), requestId, cb);
+//       });
+
+//       await cube.setMaterialInstanceAt(red);
+
+//       await FilamentApp.instance!.flush;
+
+//       await withVoidCallback((requestId, cb) {
+//         Renderer_renderRenderThread(
+//             renderer, views[1].getNativeHandle(), requestId, cb);
+//       });
+//       var out = Uint8List(500 * 500 * 4 * 4);
+
+//       await withVoidCallback((requestId, cb) {
+//         Renderer_readPixelsRenderThread(
+//             renderer,
+//             views[0].getNativeHandle(),
+//             renderTarget.getNativeHandle(),
+//             PixelDataFormat.RGBA.value,
+//             PixelDataType.FLOAT.value,
+//             out.address,
+//             out.length,
+//             requestId,
+//             cb);
+//       });
+
+//       await withVoidCallback((requestId, cb) {
+//         Renderer_endFrameRenderThread(renderer, requestId, cb);
+//       });
+
+//       await FilamentApp.instance!.flush();
+
+//       await savePixelBufferToPng(out, 500, 500, "/tmp/foo.png",
+//           hasAlpha: true, isFloat: true);
+//     }, createStencilBuffer: true);
 
 //     test('one swapchain, render view to render target', () async {
 //       await testHelper.withViewer((viewer) async {
@@ -446,52 +608,4 @@ void main() async {
 //       });
 //     });
 
-//     test('pick', () async {
-//       await testHelper.withViewer((viewer) async {
-//         final view = await viewer.getViewAt(0);
-
-//         await view.setRenderable(true, testHelper.swapChain);
-
-//         final cube = await viewer
-//             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
-
-//         await testHelper.capture(viewer, "view_pick");
-
-//         final completer = Completer();
-
-//         await viewer.pick(250, 250, (result) {
-//           completer.complete(result.entity);
-//           print(
-//               "Pick result : ${result.fragX} ${result.fragY} ${result.fragZ}");
-//         });
-
-//         for (int i = 0; i < 10; i++) {
-//           await testHelper.capture(viewer, "view_pick");
-//           if (completer.isCompleted) {
-//             break;
-//           }
-//         }
-
-//         expect(completer.isCompleted, true);
-//         expect(await completer.future, cube.entity);
-//       }, cameraPosition: Vector3(0, 0, 3));
-//     });
-
-//     test('dithering', () async {
-//       await testHelper.withViewer((viewer) async {
-//         final view = await viewer.getViewAt(0);
-
-//         expect(await view.isDitheringEnabled(), true);
-
-//         final cube = await viewer
-//             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
-
-//         await testHelper.capture(viewer, "dithering_enabled");
-
-//         await view.setDithering(false);
-//         expect(await view.isDitheringEnabled(), false);
-//         await testHelper.capture(viewer, "dithering_disabled");
-//       }, cameraPosition: Vector3(0, 0, 3));
-//     });
-//   });
 // }
