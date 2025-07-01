@@ -9,14 +9,17 @@ material {
         {
             type: float,
             name: lineSize
+        },
+        {
+            type: float3,
+            name: gridColor
         }
     ],
     depthWrite : true,
     depthCulling : true,
-    doubleSided: true,
+    doubleSided: false,
     shadingModel : unlit,
     blending : transparent,
-    transparency: twoPassesOneSide,
     variantFilter : [ dynamicLighting, directionalLighting, shadowReceiver, skinning, ssr, stereo ],
     culling : none,
     instanced : false,
@@ -80,7 +83,8 @@ fragment {
         float fade = 1.0 - angle;
         fade *= 0.5 - smoothstep(0.0, materialParams.distance, dist - materialParams.distance); 
 
-        float gridA = getGrid(P.xz, fwidthPos.xz, vec2(1.0, 1.0), materialParams.lineSize);
+        float gridA = 1.0f - getGrid(P.xz, fwidthPos.xz, vec2(1, 1), materialParams.lineSize);
+        gridA *= gridA;
 
         vec3 planeAxes = vec3(1.0f, 0.0f, 1.0f);
 
@@ -99,23 +103,18 @@ fragment {
         vec3 axes = getAxes(distanceToAxes, dAxes, 0.1);
 
         vec4 color = vec4(
-            0.1f,
-            0.1f,
-            0.1f,
-            gridA
+            materialParams.gridColor.r,
+            materialParams.gridColor.g,
+            materialParams.gridColor.b,
+            gridA * fade
         );  
 
-        color.a = max(color.a, axes.x);
         color.rgb = (axes.x < 1e-8) ? color.rgb : AXIS_COLOR_X;
-
-        color.a = max(color.a, axes.z);
         color.rgb = (axes.z < 1e-8) ? color.rgb : AXIS_COLOR_Z;
-
-        color.a *= fade;
         
-        material.baseColor = color;
+        material.baseColor = color; 
 
-        gl_FragDepth = 0.00001f;
+        gl_FragDepth = 1e-8;
         
     }
 }
