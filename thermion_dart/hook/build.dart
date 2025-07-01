@@ -19,8 +19,14 @@ void main(List<String> args) async {
     // Also note that there are known driver issues with Android debug builds, e.g.:
     // https://github.com/google/filament/issues/7162
     // (these aren't present in Filament release builds).
-    // However, if you know what you're doing, you can change "release" to "debug" .
-    final buildMode = BuildMode.release;
+    // However, if you know what you're doing, you can change "mode" to "debug" in the
+    // `hooks` section of pubspec.yaml.
+    var buildMode = BuildMode.release;
+
+    if (input.userDefines["mode"] == "debug") {
+      buildMode = BuildMode.debug;
+    }
+    
 
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
@@ -43,8 +49,7 @@ void main(List<String> args) async {
 
     var platform = targetOS.toString().toLowerCase();
 
-    logger
-          .info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
+    logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
     var libDir = (await getLibDir(
             packageRoot, targetOS, targetArchitecture, logger, buildMode))
@@ -110,19 +115,21 @@ void main(List<String> args) async {
       // (these are linked via ThermionWin32.h)
       libDir =
           Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
-    } 
+    }
 
     final defines = <String, String?>{};
-    logger.info("User defines : ${input.userDefines}");
+
     if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
       logger.info("Enabling tracing");
       defines["ENABLE_TRACING"] = "1";
     }
 
-    final flags = [ ]; //"-fsanitize=address"];
-    
+    logger.info("Defines : ${defines}");
+
+    final flags = []; //"-fsanitize=address"];
+
     var frameworks = [];
-    
+
     if (platform != "windows") {
       flags.addAll(['-std=c++17']);
     } else {
