@@ -255,9 +255,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _onDestroy.clear();
   }
 
-  /// If [asset] is actually an instance (i.e. was created via createInstance), 
-  /// its resources may not actually be destroyed until the parent asset is 
-  /// destroyed. It may be marked as unused, and recycled the next time 
+  /// If [asset] is actually an instance (i.e. was created via createInstance),
+  /// its resources may not actually be destroyed until the parent asset is
+  /// destroyed. It may be marked as unused, and recycled the next time
   /// createInstance is called.
   ///
   ///
@@ -295,9 +295,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       depth = await createTexture(width, height,
           flags: {
             TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT
+            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           },
-          textureFormat: TextureFormat.DEPTH32F) as FFITexture;
+          textureFormat: TextureFormat.DEPTH24_STENCIL8) as FFITexture;
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
       RenderTarget_createRenderThread(
