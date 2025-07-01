@@ -94,9 +94,9 @@ namespace thermion
 
         _materialInstance = _material->createInstance();
 
-        // Set material parameters to match Dart implementation
         _materialInstance->setParameter("distance", 10000.0f);
         _materialInstance->setParameter("lineSize", 0.01f);
+        _materialInstance->setParameter("gridColor", filament::math::float3 { 0.15f, 0.15f, 0.15f});
 
         RenderableManager::Builder(1)
             .boundingBox({{-1.0f, -1.0f, -1.0f}, // Min point
