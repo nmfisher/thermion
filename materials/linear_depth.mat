@@ -1,7 +1,7 @@
 material {
     name : LinearDepth,
     shadingModel : unlit,
-    requires : [ position, uv0 ],
+    requires : [ position ],
     shadingModel : unlit,
     doubleSided : false,
     blending: opaque,

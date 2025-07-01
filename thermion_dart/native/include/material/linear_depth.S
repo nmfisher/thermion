@@ -1,0 +1,12 @@
+    .global LINEAR_DEPTH_LINEAR_DEPTH_OFFSET;
+    .global LINEAR_DEPTH_LINEAR_DEPTH_SIZE;
+
+    .global LINEAR_DEPTH_PACKAGE
+    .section .rodata
+LINEAR_DEPTH_PACKAGE:
+    .incbin "linear_depth.bin"
+LINEAR_DEPTH_LINEAR_DEPTH_OFFSET:
+    .int 0
+LINEAR_DEPTH_LINEAR_DEPTH_SIZE:
+    .int 144758
+

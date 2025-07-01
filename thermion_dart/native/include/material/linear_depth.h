@@ -1,0 +1,13 @@
+#ifndef LINEAR_DEPTH_H_
+#define LINEAR_DEPTH_H_
+
+#include <stdint.h>
+
+extern "C" {
+    extern const uint8_t LINEAR_DEPTH_PACKAGE[];
+    extern int LINEAR_DEPTH_LINEAR_DEPTH_OFFSET;
+    extern int LINEAR_DEPTH_LINEAR_DEPTH_SIZE;
+}
+#define LINEAR_DEPTH_LINEAR_DEPTH_DATA (LINEAR_DEPTH_PACKAGE + LINEAR_DEPTH_LINEAR_DEPTH_OFFSET)
+
+#endif

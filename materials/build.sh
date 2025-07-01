@@ -1,4 +1,4 @@
-for material in image unlit_fixed_size grid; do \
+for material in image unlit_fixed_size grid linear_depth; do \
     echo $material
     ${FILAMENT_PATH}/matc -a opengl -a metal -a vulkan -o materials/$material.filamat materials/$material.mat || exit 1; \
 	${FILAMENT_PATH}/resgen -c -p $material -x thermion_dart/native/include/material/ materials/$material.filamat || exit 1; \

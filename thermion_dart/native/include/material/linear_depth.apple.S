@@ -1,0 +1,12 @@
+    .global _LINEAR_DEPTH_LINEAR_DEPTH_OFFSET;
+    .global _LINEAR_DEPTH_LINEAR_DEPTH_SIZE;
+
+    .global _LINEAR_DEPTH_PACKAGE
+    .section __TEXT,__const
+_LINEAR_DEPTH_PACKAGE:
+    .incbin "linear_depth.bin"
+_LINEAR_DEPTH_LINEAR_DEPTH_OFFSET:
+    .int 0
+_LINEAR_DEPTH_LINEAR_DEPTH_SIZE:
+    .int 144758
+
