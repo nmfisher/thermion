@@ -34,6 +34,21 @@ namespace thermion
             return reinterpret_cast<TMaterialInstance *>(instance);
         }
 
+        EMSCRIPTEN_KEEPALIVE TFeatureLevel Material_getFeatureLevel(TMaterial *tMaterial) {
+            auto *material = reinterpret_cast<filament::Material *>(tMaterial);
+            auto featureLevel = material->getFeatureLevel();
+             switch(featureLevel) {
+                case filament::backend::FeatureLevel::FEATURE_LEVEL_0:
+                    return FEATURE_LEVEL_0;
+                case filament::backend::FeatureLevel::FEATURE_LEVEL_1:
+                    return FEATURE_LEVEL_1;
+                case filament::backend::FeatureLevel::FEATURE_LEVEL_2:
+                    return FEATURE_LEVEL_2;
+                case filament::backend::FeatureLevel::FEATURE_LEVEL_3:
+                    return FEATURE_LEVEL_3;
+            }
+        }
+
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()

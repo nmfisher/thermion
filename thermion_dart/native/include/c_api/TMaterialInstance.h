@@ -73,6 +73,7 @@ extern "C"
 	typedef enum TTransparencyMode TTransparencyMode;
 
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial);
+	EMSCRIPTEN_KEEPALIVE TFeatureLevel Material_getFeatureLevel(TMaterial *tMaterial);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine);
