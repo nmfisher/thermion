@@ -737,7 +737,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,
-      Future Function(View)? beforeRender}) async {
+      Future Function(View)? beforeRender,
+      bool render = true}) async {
     if (swapChain == null) {
       if (_swapChains.isEmpty) {
         throw Exception("No swapchains registered");
@@ -788,14 +789,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             viewport.height *
             numChannels *
             channelSizeInBytes);
-        await withVoidCallback((requestId, cb) {
-          Renderer_renderRenderThread(
-            renderer,
-            view.view,
-            requestId,
-            cb,
-          );
-        });
+
+        if (render) {
+          await withVoidCallback((requestId, cb) {
+            Renderer_renderRenderThread(
+              renderer,
+              view.view,
+              requestId,
+              cb,
+            );
+          });
+        }
 
         if (captureRenderTarget && view.renderTarget == null) {
           throw Exception();
@@ -804,7 +808,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         await withVoidCallback((requestId, cb) {
           Renderer_readPixelsRenderThread(
               renderer,
-              viewport.width, viewport.height, 0, 0,
+              viewport.width,
+              viewport.height,
+              0,
+              0,
               view.renderTarget == null
                   ? nullptr
                   : view.renderTarget!.getNativeHandle(),
