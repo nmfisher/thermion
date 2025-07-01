@@ -47,14 +47,6 @@ fragment {
     #define GRID_END (0.5 - RADIUS)
     #define GRID_STEP(dist) smoothstep(GRID_START, GRID_END, dist)
 
-    float getGrid(vec2 point, vec2 fwidthCos, vec2 gridScale, float lineSize) {
-        vec2 halfSize = gridScale / 2.0;
-        vec2 gridDomain = abs(mod(point + halfSize, gridScale) - halfSize);
-        gridDomain /= fwidthCos;
-        float lineDist = min(gridDomain.x, gridDomain.y);
-        return GRID_STEP(lineDist - lineSize);
-    }
-
     vec3 getAxes(vec3 point, vec3 fwidthCos, float line_size)
     {
         vec3 axes_domain = abs(point);
@@ -65,26 +57,33 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec3 P = getWorldPosition().xyz;
-        vec3 dFdxPos = dFdx(P);
-        vec3 dFdyPos = dFdy(P);
-        vec3 fwidthPos = abs(dFdxPos) + abs(dFdyPos);
 
-        P += mulMat4x4Float3(getUserWorldFromWorldMatrix(),	getWorldCameraPosition()).xyz;
-
+        // fade fragments close together 
+        // (i.e. where camera is at a steep angle to the ground plane)
+        
+        // calculate fragment normal and distance from origin
         vec3 V = getWorldPosition().xyz;
         float dist = length(V);
         V /= dist;
         
-        float angle = V.y;
-
+        float angle = V.y; 
         angle = 1.0 - abs(angle);
         angle *= angle;
-        float fade = 1.0 - angle;
-        fade *= 0.5 - smoothstep(0.0, materialParams.distance, dist - materialParams.distance); 
+        float fade = (1.0 - angle) * 0.5 - smoothstep(0.0, materialParams.distance, dist - materialParams.distance); 
 
-        float gridA = 1.0f - getGrid(P.xz, fwidthPos.xz, vec2(1, 1), materialParams.lineSize);
-        gridA *= gridA;
+        // now calculate the distance of the fragment 
+        // to the "grid" line 
+        vec3 P = getWorldPosition().xyz;
+        vec3 fwidthPos = fwidth(P); // world units covered by 1px in X direction + 1px in Y direction
+        P += mulMat4x4Float3(getUserWorldFromWorldMatrix(),	getWorldCameraPosition()).xyz;
+
+        vec2 halfSize = vec2(0.5f, 0.5f);        
+        vec2 gridDomain = abs(mod(P.xz + halfSize, vec2(1,1)) - halfSize);
+        gridDomain /= fwidthPos.xz;
+        float lineDist = min(gridDomain.x, gridDomain.y);
+        float gridAlpha = GRID_STEP(lineDist - materialParams.lineSize);
+
+        gridAlpha *= fade;
 
         vec3 planeAxes = vec3(1.0f, 0.0f, 1.0f);
 
@@ -106,15 +105,13 @@ fragment {
             materialParams.gridColor.r,
             materialParams.gridColor.g,
             materialParams.gridColor.b,
-            gridA * fade
+            1.0
         );  
 
         color.rgb = (axes.x < 1e-8) ? color.rgb : AXIS_COLOR_X;
         color.rgb = (axes.z < 1e-8) ? color.rgb : AXIS_COLOR_Z;
         
-        material.baseColor = color; 
-
-        gl_FragDepth = 1e-8;
+        material.baseColor = color * gridAlpha; 
         
     }
 }
