@@ -1192,6 +1192,10 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TOverlayManager> tOverlayManager,
     EntityId entityId,
   );
+  external void _OverlayManager_setRenderTarget(
+    Pointer<TOverlayManager> tOverlayManager,
+    Pointer<TRenderTarget> tRenderTarget,
+  );
   external Pointer<TRenderTicker> _RenderTicker_create(
     Pointer<TEngine> tEngine,
     Pointer<TRenderer> tRenderer,
@@ -3971,6 +3975,15 @@ void OverlayManager_removeComponent(
 ) {
   final result =
       _lib._OverlayManager_removeComponent(tOverlayManager.cast(), entityId);
+  return result;
+}
+
+void OverlayManager_setRenderTarget(
+  self.Pointer<TOverlayManager> tOverlayManager,
+  self.Pointer<TRenderTarget> tRenderTarget,
+) {
+  final result = _lib._OverlayManager_setRenderTarget(
+      tOverlayManager.cast(), tRenderTarget.cast());
   return result;
 }
 

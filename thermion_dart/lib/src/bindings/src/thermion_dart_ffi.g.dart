@@ -1410,6 +1410,14 @@ external void OverlayManager_removeComponent(
 );
 
 @ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TOverlayManager>, ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+external void OverlayManager_setRenderTarget(
+  ffi.Pointer<TOverlayManager> tOverlayManager,
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+);
+
+@ffi.Native<
     ffi.Pointer<TRenderTicker> Function(
         ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>(isLeaf: true)
 external ffi.Pointer<TRenderTicker> RenderTicker_create(
