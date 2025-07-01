@@ -534,12 +534,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return instance;
   }
 
-  Material? _gridMaterial;
-  Future<Material> get gridMaterial async {
-    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(engine), this);
-    return _gridMaterial!;
-  }
-
   ///
   ///
   ///
