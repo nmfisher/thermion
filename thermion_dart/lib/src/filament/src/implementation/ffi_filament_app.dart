@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
@@ -79,6 +78,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.stereoscopicEyeCount,
             config.disableHandleUseAfterFreeCheck,
             cb));
+    final featureLevel = Engine_getSupportedFeatureLevel(engine);
+    _logger.info("Created engine with feature level ${featureLevel}");
     final nameComponentManager = NameComponentManager_create();
     final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>((cb) =>
         GltfAssetLoader_createRenderThread(
