@@ -39,6 +39,11 @@ namespace thermion
             mDepthMaterialInstance = mDepthMaterial->createInstance();
         }
 
+        ~OverlayComponentManager() {
+            mEngine->destroy(mDepthMaterialInstance);
+            mEngine->destroy(mDepthMaterial);
+        }
+
         void addOverlayComponent(utils::Entity target, filament::MaterialInstance *materialInstance)
         {
             auto *color = mRenderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR);
