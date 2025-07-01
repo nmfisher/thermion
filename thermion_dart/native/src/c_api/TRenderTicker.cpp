@@ -55,4 +55,11 @@ EMSCRIPTEN_KEEPALIVE void RenderTicker_setRenderable(TRenderTicker *tRenderTicke
     renderTicker->setRenderable(swapChain, views, numViews);
 }
 
+EMSCRIPTEN_KEEPALIVE void RenderTicker_setOverlayManager(TRenderTicker *tRenderTicker, TOverlayManager *tOverlayManager) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
+    auto *overlayManager = reinterpret_cast<OverlayComponentManager *>(tOverlayManager);
+    renderTicker->addOverlayManager(overlayManager);
+}
+
+
 }

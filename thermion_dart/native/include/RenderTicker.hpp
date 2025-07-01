@@ -3,7 +3,7 @@
 #include <chrono>
 #include <mutex>
 #include <vector>
-#include <utility> // for std::pair
+#include <utility> 
 
 #include <filament/Renderer.h>
 #include <filament/SwapChain.h>
@@ -21,12 +21,17 @@
 #include <filament/VertexBuffer.h>
 
 #include "scene/AnimationManager.hpp"
+#include "components/OverlayComponentManager.hpp"
 
 namespace thermion
 {
 
+
+
     class RenderTicker
     {
+
+        using ViewAttachment = std::pair<filament::SwapChain*, std::vector<filament::View*>>;
 
     public:
         RenderTicker(
@@ -54,14 +59,21 @@ namespace thermion
         /// @param animationManager 
         void removeAnimationManager(AnimationManager* animationManager);
 
+        /// @brief 
+        /// @param overlayComponentManager 
+        void addOverlayManager(OverlayComponentManager *overlayComponentManager) {
+            mOverlayComponentManager = overlayComponentManager;
+        }
 
     private:
         std::mutex mMutex;
-        filament::Engine *mEngine = nullptr;
-        filament::Renderer *mRenderer = nullptr;
+        filament::Engine *mEngine = std::nullptr_t();
+        filament::Renderer *mRenderer = std::nullptr_t();
         std::vector<AnimationManager*> mAnimationManagers;
-        std::vector<std::pair<filament::SwapChain*, std::vector<filament::View*>>> mRenderable;
+        OverlayComponentManager *mOverlayComponentManager = std::nullptr_t();
+        std::vector<ViewAttachment> mRenderable;
         std::chrono::high_resolution_clock::time_point mLastRender;
+
     };
 
 }

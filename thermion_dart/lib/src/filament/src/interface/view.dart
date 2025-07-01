@@ -1,4 +1,5 @@
 import 'package:thermion_dart/src/filament/src/interface/layers.dart';
+import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -51,19 +52,23 @@ class Viewport {
 
 enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
-abstract class View {
-  
+abstract class View<T> extends NativeHandle<T> {
   static int STENCIL_HIGHLIGHT_REFERENCE_VALUE = 1;
 
   /// Gets the scene currently associated with this View.
   ///
   ///
   Future<Scene> getScene();
-  
+
   /// Sets the scene currently associated with this View.
   ///
   ///
   Future setScene(Scene scene);
+
+  /// Sets the (debug) name for this View.
+  ///
+  ///
+  void setName(String name);
 
   Future<Viewport> getViewport();
   Future setViewport(int width, int height);
@@ -86,6 +91,17 @@ abstract class View {
   Future setRenderQuality(QualityLevel quality);
   Future setShadowsEnabled(bool enabled);
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
+
+  /// Renders an outline around [entity] with the given color.
+  Future setStencilHighlight(ThermionAsset asset,
+      {double r = 1.0,
+      double g = 0.0,
+      double b = 0.0,
+      int? entity,
+      int primitiveIndex = 0});
+
+  /// Removes the outline around [entity]. Noop if there was no highlight.
+  Future removeStencilHighlight(ThermionAsset asset);
 
   /// Sets the fog options for this view.
   /// Fog is disabled by default

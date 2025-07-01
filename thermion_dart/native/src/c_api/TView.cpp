@@ -279,6 +279,11 @@ namespace thermion
             view->setFogOptions(fogOptions);
         }
 
+        EMSCRIPTEN_KEEPALIVE void View_setName(TView* tView, const char *name) {
+            auto view = reinterpret_cast<View *>(tView);
+            view->setName(name);
+        }
+
 #ifdef __cplusplus
     }
 }

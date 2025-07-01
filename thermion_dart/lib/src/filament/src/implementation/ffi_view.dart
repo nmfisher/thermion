@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
@@ -9,18 +10,21 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 import 'ffi_camera.dart';
 
-class FFIView extends View {
+class FFIView extends View<Pointer<TView>> {
   late final _logger = Logger(this.runtimeType.toString());
   int _renderOrder = 0;
   int get renderOrder => _renderOrder;
 
   final Pointer<TView> view;
+
+  Pointer<TView> getNativeHandle() => view;
+
   final FFIFilamentApp app;
 
   bool _renderable = false;
   bool get renderable => _renderable;
 
-  FFIRenderTarget? renderTarget;
+  RenderTarget? renderTarget;
 
   late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
 
@@ -59,6 +63,7 @@ class FFIView extends View {
   @override
   Future setViewport(int width, int height) async {
     View_setViewport(view, width, height);
+    // await overlayView?.setViewport(width, height);
   }
 
   Future<RenderTarget?> getRenderTarget() async {
@@ -66,18 +71,20 @@ class FFIView extends View {
   }
 
   @override
-  Future setRenderTarget(covariant FFIRenderTarget? renderTarget) async {
+  Future setRenderTarget(RenderTarget? renderTarget) async {
     if (renderTarget != null) {
-      View_setRenderTarget(view, renderTarget.renderTarget);
+      View_setRenderTarget(view, renderTarget.getNativeHandle());
       this.renderTarget = renderTarget;
     } else {
       View_setRenderTarget(view, nullptr);
     }
+    // await overlayView?.setRenderTarget(renderTarget);
   }
 
   @override
-  Future setCamera(FFICamera camera) async {
-    View_setCamera(view, camera.camera);
+  Future setCamera(Camera camera) async {
+    View_setCamera(view, camera.getNativeHandle());
+    // await overlayView?.setCamera(camera.getNativeHandle());
   }
 
   @override
@@ -249,5 +256,103 @@ class FFIView extends View {
 
   Future setShadowsEnabled(bool enabled) async {
     View_setShadowsEnabled(this.view, enabled);
+  }
+
+  Pointer<TOverlayManager>? overlayManager;
+  View? overlayView;
+  Scene? overlayScene;
+  RenderTarget? overlayRenderTarget;
+  Material? highlightMaterial;
+
+  final _highlighted = <ThermionAsset, MaterialInstance>{};
+
+  ///
+  ///
+  ///
+  @override
+  Future setStencilHighlight(ThermionAsset asset,
+      {double r = 1.0,
+      double g = 0.0,
+      double b = 0.0,
+      int? entity,
+      int primitiveIndex = 0}) async {
+    entity ??= asset.entity;
+
+
+    if (overlayScene == null) {
+      // overlayView = await FilamentApp.instance!.createView();
+      overlayScene = await FilamentApp.instance!.createScene();
+      // await overlayView!.setScene(overlayScene!);
+      // await overlayView!.setRenderTarget(await this.getRenderTarget());
+
+      final vp = await getViewport();
+      overlayRenderTarget =
+          await FilamentApp.instance!.createRenderTarget(vp.width, vp.height);
+      overlayManager = OverlayManager_create(
+          app.engine,
+          app.renderer,
+          getNativeHandle(),
+          overlayScene!.getNativeHandle(),
+          overlayRenderTarget!.getNativeHandle());
+      // await setBlendMode(BlendMode.transparent);
+      // await overlayView!.setBlendMode(BlendMode.transparent);
+      // await overlayView!.setCamera(await getCamera());
+      // await overlayView!.setViewport(vp.width, vp.height);
+      // await setStencilBufferEnabled(true);
+      // await overlayView!.setStencilBufferEnabled(true);
+      RenderTicker_setOverlayManager(app.renderTicker, overlayManager!);
+      highlightMaterial ??= await FilamentApp.instance!.createMaterial(
+          File("/Users/nickfisher/Documents/thermion/materials/outline.filamat")
+              .readAsBytesSync());
+    }
+
+    // await sourceMaterialInstance.setStencilWriteEnabled(true);
+    // await sourceMaterialInstance
+    //     .setStencilOpDepthStencilPass(StencilOperation.REPLACE);
+    // await sourceMaterialInstance
+    //     .setStencilReferenceValue(View.STENCIL_HIGHLIGHT_REFERENCE_VALUE);
+    // await sourceMaterialInstance.setDepthCullingEnabled(false);
+    // await sourceMaterialInstance.setDepthFunc(SamplerCompareFunction.A);
+    // await sourceMaterialInstance
+    //     .setStencilCompareFunction(SamplerCompareFunction.A);
+
+    var highlightMaterialInstance = await highlightMaterial!.createInstance();
+
+    await highlightMaterialInstance.setDepthCullingEnabled(true);
+    await highlightMaterialInstance.setDepthWriteEnabled(true);
+
+    OverlayManager_addComponent(
+        overlayManager!, entity, highlightMaterialInstance.getNativeHandle());
+
+    _highlighted[asset] = highlightMaterialInstance;
+
+    _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future removeStencilHighlight(ThermionAsset asset) async {
+    if (!_highlighted.containsKey(asset)) {
+      _logger
+          .warning("No stencil highlight for asset (entity ${asset.entity})");
+      return;
+    }
+    final materialInstance = _highlighted[asset]!;
+    _highlighted.remove(asset);
+    _logger
+        .info("Removing stencil highlight for asset (entity ${asset.entity})");
+
+    OverlayManager_removeComponent(overlayManager!, asset.entity);
+
+    await materialInstance.destroy();
+
+    _logger
+        .info("Removed stencil highlight for asset (entity ${asset.entity})");
+  }
+
+  void setName(String name) {
+    View_setName(getNativeHandle(), name.toNativeUtf8().cast());
   }
 }
