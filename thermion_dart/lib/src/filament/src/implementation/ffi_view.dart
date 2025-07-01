@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:logging/logging.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
@@ -278,13 +279,8 @@ class FFIView extends View<Pointer<TView>> {
       int primitiveIndex = 0}) async {
     entity ??= asset.entity;
 
-
     if (overlayScene == null) {
-      // overlayView = await FilamentApp.instance!.createView();
       overlayScene = await FilamentApp.instance!.createScene();
-      // await overlayView!.setScene(overlayScene!);
-      // await overlayView!.setRenderTarget(await this.getRenderTarget());
-
       final vp = await getViewport();
       overlayRenderTarget =
           await FilamentApp.instance!.createRenderTarget(vp.width, vp.height);
@@ -294,27 +290,11 @@ class FFIView extends View<Pointer<TView>> {
           getNativeHandle(),
           overlayScene!.getNativeHandle(),
           overlayRenderTarget!.getNativeHandle());
-      // await setBlendMode(BlendMode.transparent);
-      // await overlayView!.setBlendMode(BlendMode.transparent);
-      // await overlayView!.setCamera(await getCamera());
-      // await overlayView!.setViewport(vp.width, vp.height);
-      // await setStencilBufferEnabled(true);
-      // await overlayView!.setStencilBufferEnabled(true);
       RenderTicker_setOverlayManager(app.renderTicker, overlayManager!);
-      highlightMaterial ??= await FilamentApp.instance!.createMaterial(
-          File("/Users/nickfisher/Documents/thermion/materials/outline.filamat")
-              .readAsBytesSync());
+      final highlightMaterialPtr = await withPointerCallback<TMaterial>(
+          (cb) => Material_createOutlineMaterialRenderThread(app.engine, cb));
+      highlightMaterial = FFIMaterial(highlightMaterialPtr, app);
     }
-
-    // await sourceMaterialInstance.setStencilWriteEnabled(true);
-    // await sourceMaterialInstance
-    //     .setStencilOpDepthStencilPass(StencilOperation.REPLACE);
-    // await sourceMaterialInstance
-    //     .setStencilReferenceValue(View.STENCIL_HIGHLIGHT_REFERENCE_VALUE);
-    // await sourceMaterialInstance.setDepthCullingEnabled(false);
-    // await sourceMaterialInstance.setDepthFunc(SamplerCompareFunction.A);
-    // await sourceMaterialInstance
-    //     .setStencilCompareFunction(SamplerCompareFunction.A);
 
     var highlightMaterialInstance = await highlightMaterial!.createInstance();
 

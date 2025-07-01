@@ -66,6 +66,8 @@ void main(List<String> args) async {
           "unlit_fixed_size.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
+      path.join(pkgRootFilePath, "native", "include", "material", "linear_depth.c"),
+      path.join(pkgRootFilePath, "native", "include", "material", "outline.c"),
       path.join(pkgRootFilePath, "native", "include", "resources",
           "translation_gizmo_glb.c"),
       path.join(pkgRootFilePath, "native", "include", "resources",

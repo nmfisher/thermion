@@ -17,6 +17,7 @@
 #include "material/image.h"
 #include "material/grid.h"
 #include "material/unlit_fixed_size.h"
+#include "material/outline.h"
 
 #include "c_api/TMaterialInstance.h"
 
@@ -70,6 +71,14 @@ namespace thermion
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createOutlineMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(OUTLINE_OUTLINE_DATA, OUTLINE_OUTLINE_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
