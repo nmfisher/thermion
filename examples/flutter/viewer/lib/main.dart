@@ -80,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
     await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
 
-    await _thermionViewer!.setBackgroundColor(0, 0, 1, 1);
+    // await _thermionViewer!.setBackgroundColor(0, 0, 1, 1);
 
     // The underlying Filament rendering engine exposes a number of
     // post-processing options (anti-aliasing, bloom, etc).
@@ -92,13 +92,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // Finally, you need to explicitly enable rendering. Setting rendering to
     // false is designed to allow you to pause rendering to conserve battery life
     await _thermionViewer!.setRendering(true);
-
-    // Timer.periodic(Duration(seconds: 1), (_) async {
-    //     final rnd = Random();
-              
-    //           await camera.setLensProjection();
-    //           await _thermionViewer!.setBackgroundColor(rnd.nextDouble(),rnd.nextDouble(), 0, 1.0);
-    // });
 
     setState(() {});
   }
@@ -120,25 +113,16 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ElevatedButton(onPressed: _load, child: const Text("Load")));
   }
 
-  Widget _renderButton() {
+  Widget _changeBgColor() {
     return Center(
         child: ElevatedButton(
             onPressed: () async {
-              // final rnd = Random();
-              // await FilamentApp.instance!.setClearColor(
-              //     rnd.nextDouble(), rnd.nextDouble(), rnd.nextDouble(), 1.0);
-              // final camera = await _thermionViewer!.getActiveCamera();
-              // await _thermionViewer!.setRendering(false);
-
-              // // await camera.setLensProjection();
-              // await _thermionViewer!.removeSkybox();
-              // // await _thermionViewer!.setBackgroundColor(rnd.nextDouble(), 1.0, 0, 1.0);
-              // await _thermionViewer!.clearBackgroundImage(destroy: true);
-              // // await _thermionViewer!.setBackgroundImage("/Users/nickfisher/Documents/thermion/thermion_dart/test/assets/cube_texture_512x512.png");
-
-              // await FilamentApp.instance!.render();
+              final rnd = Random();
+              await _thermionViewer!.removeSkybox();
+              await _thermionViewer!.setBackgroundColor(
+                  rnd.nextDouble(), rnd.nextDouble(), rnd.nextDouble(), 1.0);
             },
-            child: const Text("Render")));
+            child: const Text("Change background color")));
   }
 
   Widget _unloadButton() {
@@ -153,9 +137,9 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Stack(children: [
       if (_thermionViewer != null)
         Positioned.fill(
-            child: ThermionWidget(
+            child: ThermionListenerWidget(inputHandler: DelegateInputHandler.fixedOrbit(_thermionViewer!), child:ThermionWidget(
           viewer: _thermionViewer!,
-        )),
+        ))),
       Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
@@ -165,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (_thermionViewer == null) _loadButton(),
-                    if (_thermionViewer != null) _renderButton(),
+                    if (_thermionViewer != null) _changeBgColor(),
                     if (_thermionViewer != null) _unloadButton(),
                   ])))
     ]));

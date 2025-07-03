@@ -1,6 +1,6 @@
 ## Quickstart (Flutter)
 
-> You can find the entire project below in the [examples/flutter/quickstart](https://github.com/nmfisher/thermion/tree/master/examples/flutter/quickstart) folder of the repository.
+> You can find the entire project below in the [examples/flutter/viewer](https://github.com/nmfisher/thermion/tree/master/examples/flutter/viewer) folder of the repository.
 
 1. Switch to Flutter master channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
 
@@ -53,11 +53,11 @@ flutter
 ```dart
 
 class _MyAppState extends State<MyApp> {
-  late ThermionFlutterPlugin _thermionFlutterPlugin;  
   late Future<ThermionViewer> _thermionViewer;
   void initState() {    
-    _thermionFlutterPlugin = ThermionFlutterPlugin();    
-    _thermionViewer = _thermionFlutterPlugin.createViewer();  
+    ThermionFlutterPlugin.createViewer().then((viewer) {
+        _thermionViewer = viewer;
+    });
   }
 }
 
