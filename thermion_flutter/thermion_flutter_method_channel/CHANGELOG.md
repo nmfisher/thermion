@@ -1,3 +1,10 @@
+## 0.3.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
+ - **BREAKING** **FEAT**: rename thermion_flutter_ffi package to thermion_flutter_method_channel.
+
 ## 0.2.1-dev.20.0
 
  - Bump "thermion_flutter_ffi" to `0.2.1-dev.20.0`.

@@ -1,3 +1,15 @@
+## 0.3.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
+ - **FIX**: rename msPerFrame property.
+ - **FEAT**: add FocusNode to ThermionListenerWidget.
+ - **FEAT**: use new createTextureAndBindToView in ThermionTextureWidget.
+ - **BREAKING** **REFACTOR**: move light methods from FilamentViewer to SceneManager/TLightManager and rename clearLights/clearAssets to destroyLights/destroyAssets.
+ - **BREAKING** **FEAT**: remove superseded ThermionWindows widget.
+ - **BREAKING** **FEAT**: rename thermion_flutter_ffi package to thermion_flutter_method_channel.
+
 ## 0.2.1-dev.20.0
 
  - Bump "thermion_flutter" to `0.2.1-dev.20.0`.

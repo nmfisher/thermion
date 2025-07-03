@@ -1,3 +1,7 @@
+## 0.3.0
+
+ - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
+
 ## 0.2.0+11
 
  - Update a dependency to the latest release.
