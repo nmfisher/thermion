@@ -1,26 +1,41 @@
 ## Web
 
-First, you must manually compile the wasm+javascript module. This requires:
+Web support is still experimental and currently requires you to manually compile Thermion to WASM first.
+
+Requirements:
 
 1) GNU Make
 2) CMake
 3) Emscripten 
 
+From the project root directory 
+
 ```
-make wasm
+thermion % ls -l 
+total 272
+drwxr-xr-x   4 nickfisher  staff    128 Jul  3 14:06 assets
+-rw-r--r--   1 nickfisher  staff  84532 Jul  3 14:06 CHANGELOG.md
+-rw-r--r--   1 nickfisher  staff   2349 Jul  3 14:06 Dockerfile
+drwxr-xr-x  19 nickfisher  staff    608 Jul  3 14:06 docs
+-rw-r--r--   1 nickfisher  staff    748 Jul  3 14:06 docs.json
+drwxr-xr-x   7 nickfisher  staff    224 Jan  8 17:01 examples
+-rw-r--r--   1 nickfisher  staff  11341 Oct 23  2024 LICENSE
+-rw-r--r--   1 nickfisher  staff   2161 Jul  3 14:06 Makefile
+drwxr-xr-x@ 13 nickfisher  staff    416 Jul  3 14:06 materials
+-rw-r--r--@  1 nickfisher  staff    517 Oct 23  2024 melos_thermion_workspace.iml
+-rw-r--r--   1 nickfisher  staff     77 Oct 23  2024 melos.yaml
+-rw-r--r--@  1 nickfisher  staff   9865 Jul  1 13:03 pubspec.lock
+-rw-r--r--   1 nickfisher  staff     97 Jun 12 11:38 pubspec.yaml
+-rw-r--r--   1 nickfisher  staff   3355 Jul  3 14:06 README.md
+drwxr-xr-x@ 22 nickfisher  staff    704 Jul  3 14:06 thermion_dart
+drwxr-xr-x   7 nickfisher  staff    224 Jul  3 14:06 thermion_flutter
+thermion % make wasm 
 ```
 
 ### Flutter
 
-Thermion requires Android SDK version 22, so change your `app/android/build.gradle` to match this version or higher：
+Copy thermion_dart.js and thermion_dart.wasm to the `/web` folder for your target app.
 
-```groovy
- defaultConfig {
-    ...
-        minSdk = 22
-    ...
-    }
-```
 
 ```
 flutter run -d chrome --web-header Cross-Origin-Embedder-Policy=require-corp --web-header Cross-Origin-Opener-Policy=same-origin
