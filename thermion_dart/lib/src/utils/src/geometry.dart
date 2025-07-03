@@ -502,8 +502,171 @@ class GeometryHelper {
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
+static Geometry camera({
+  double bodyWidth = 0.6,    // X-axis (medium width)
+  double bodyHeight = 0.7,   // Y-axis (medium height)  
+  double bodyDepth = 1.4,    // Z-axis (LONG dimension - camera body extends back)
+  double lensRadius = 0.3,
+  double lensLength = 0.4,
+  bool normals = true,
+  bool uvs = true,
+}) {
+  List<double> verticesList = [];
+  List<double> normalsList = [];
+  List<double> uvsList = [];
+  List<int> indices = [];
 
-  static Geometry wireframeCamera({
+  // Helper function to add a vertex with normal and UV
+  void addVertex(double x, double y, double z, double nx, double ny, double nz, double u, double v) {
+    verticesList.addAll([x, y, z]);
+    if (normals) normalsList.addAll([nx, ny, nz]);
+    if (uvs) uvsList.addAll([u, v]);
+  }
+
+  int currentIndex = 0;
+
+  // === CAMERA BODY (Rectangular box) ===
+  // Now: width=1.0, height=0.6, depth=1.4 (long)
+  // The front face (Z=+halfDepth) is the short face where lens attaches
+  double halfWidth = bodyWidth / 2;   // 0.5 (medium)
+  double halfHeight = bodyHeight / 2; // 0.3 (short)
+  double halfDepth = bodyDepth / 2;   // 0.7 (long - extends backward)
+
+  // Front face (SHORT face - where lens attaches) - Z = +halfDepth
+  addVertex(-halfWidth, -halfHeight, halfDepth, 0, 0, 1, 0, 0);  // 0
+  addVertex(halfWidth, -halfHeight, halfDepth, 0, 0, 1, 1, 0);   // 1
+  addVertex(halfWidth, halfHeight, halfDepth, 0, 0, 1, 1, 1);    // 2
+  addVertex(-halfWidth, halfHeight, halfDepth, 0, 0, 1, 0, 1);   // 3
+
+  // Back face (SHORT face) - Z = -halfDepth
+  addVertex(halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 0, 0); // 4
+  addVertex(-halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 1, 0); // 5
+  addVertex(-halfWidth, halfHeight, -halfDepth, 0, 0, -1, 1, 1); // 6
+  addVertex(halfWidth, halfHeight, -halfDepth, 0, 0, -1, 0, 1);  // 7
+
+  // Top face (LONG face) - Y = +halfHeight
+  addVertex(-halfWidth, halfHeight, halfDepth, 0, 1, 0, 0, 0);   // 8
+  addVertex(halfWidth, halfHeight, halfDepth, 0, 1, 0, 1, 0);    // 9
+  addVertex(halfWidth, halfHeight, -halfDepth, 0, 1, 0, 1, 1);   // 10
+  addVertex(-halfWidth, halfHeight, -halfDepth, 0, 1, 0, 0, 1);  // 11
+
+  // Bottom face (LONG face) - Y = -halfHeight
+  addVertex(-halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 0, 0); // 12
+  addVertex(halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 1, 0);  // 13
+  addVertex(halfWidth, -halfHeight, halfDepth, 0, -1, 0, 1, 1);   // 14
+  addVertex(-halfWidth, -halfHeight, halfDepth, 0, -1, 0, 0, 1);  // 15
+
+  // Right face (LONG face) - X = +halfWidth
+  addVertex(halfWidth, -halfHeight, halfDepth, 1, 0, 0, 0, 0);   // 16
+  addVertex(halfWidth, -halfHeight, -halfDepth, 1, 0, 0, 1, 0);  // 17
+  addVertex(halfWidth, halfHeight, -halfDepth, 1, 0, 0, 1, 1);   // 18
+  addVertex(halfWidth, halfHeight, halfDepth, 1, 0, 0, 0, 1);    // 19
+
+  // Left face (LONG face) - X = -halfWidth
+  addVertex(-halfWidth, -halfHeight, -halfDepth, -1, 0, 0, 0, 0); // 20
+  addVertex(-halfWidth, -halfHeight, halfDepth, -1, 0, 0, 1, 0);  // 21
+  addVertex(-halfWidth, halfHeight, halfDepth, -1, 0, 0, 1, 1);   // 22
+  addVertex(-halfWidth, halfHeight, -halfDepth, -1, 0, 0, 0, 1);  // 23
+
+  // Body indices
+  List<int> bodyIndices = [
+    // Front face
+    0, 1, 2, 0, 2, 3,
+    // Back face
+    4, 5, 6, 4, 6, 7,
+    // Top face
+    8, 9, 10, 8, 10, 11,
+    // Bottom face
+    12, 13, 14, 12, 14, 15,
+    // Right face
+    16, 17, 18, 16, 18, 19,
+    // Left face
+    20, 21, 22, 20, 22, 23
+  ];
+  
+  indices.addAll(bodyIndices);
+  currentIndex = 24;
+
+  // === CONICAL LENS ===
+  int segments = 16;
+  double lensApexZ = halfDepth;  // Apex touches the front face (short face)
+  double lensBaseZ = halfDepth + lensLength;  // Base extends outward along Z-axis
+
+  // Lens apex (tip of the cone - touching the camera body at center of front face)
+  addVertex(0, 0, lensApexZ, 0, 0, -1, 0.5, 0);
+  int apexIndex = currentIndex;
+  currentIndex++;
+
+  // Lens base circle (the wide part extending outward)
+  List<int> baseIndices = [];
+  for (int i = 0; i < segments; i++) {
+    double theta = i * 2 * pi / segments;
+    double x = lensRadius * cos(theta);
+    double y = lensRadius * sin(theta);
+
+    // Calculate normal for cone side (pointing outward from cone surface)
+    double normalX = x / lensRadius;  // Normalized radial component
+    double normalY = y / lensRadius;
+    double normalZ = lensRadius / lensLength;  // Axial component based on cone slope
+    
+    // Normalize the normal vector
+    double normalLength = sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+    normalX /= normalLength;
+    normalY /= normalLength;
+    normalZ /= normalLength;
+
+    addVertex(x, y, lensBaseZ, normalX, normalY, normalZ, i / segments, 1);
+    baseIndices.add(currentIndex);
+    currentIndex++;
+  }
+
+  // Create cone side triangles
+  for (int i = 0; i < segments; i++) {
+    int current = baseIndices[i];
+    int next = baseIndices[(i + 1) % segments];
+    
+    // Triangle from apex to base edge (counter-clockwise when viewed from outside)
+    indices.addAll([apexIndex, next, current]);
+  }
+
+  // === LENS BASE (flat circular face at the wide end) ===
+  // Center of lens base
+  addVertex(0, 0, lensBaseZ, 0, 0, 1, 0.5, 0.5);
+  int baseCenterIndex = currentIndex;
+  currentIndex++;
+
+  // Base circle vertices (separate from cone vertices for proper normals)
+  List<int> baseFaceIndices = [];
+  for (int i = 0; i < segments; i++) {
+    double theta = i * 2 * pi / segments;
+    double x = lensRadius * cos(theta);
+    double y = lensRadius * sin(theta);
+    
+    double u = 0.5 + 0.5 * cos(theta);
+    double v = 0.5 + 0.5 * sin(theta);
+    
+    addVertex(x, y, lensBaseZ, 0, 0, 1, u, v);
+    baseFaceIndices.add(currentIndex);
+    currentIndex++;
+  }
+
+  // Create base face triangles (facing outward from camera)
+  for (int i = 0; i < segments; i++) {
+    int current = baseFaceIndices[i];
+    int next = baseFaceIndices[(i + 1) % segments];
+    
+    // Triangle from center to edge (counter-clockwise when viewed from outside)
+    indices.addAll([baseCenterIndex, current, next]);
+  }
+
+  Float32List vertices = Float32List.fromList(verticesList);
+  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+  return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
+}
+
+static Geometry wireframeCamera({
   double sphereRadius = 0.2,
   double frustumDistance = 1.0,
   double frustumNear = 0.5,
