@@ -274,7 +274,7 @@ abstract class FilamentApp<T> {
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,
-      Future Function(View)? beforeRender, 
+      Future Function(View)? beforeRender,
       bool render = true});
 
   ///
@@ -362,5 +362,5 @@ abstract class FilamentApp<T> {
   ///
   Future<Skybox> buildSkybox({Texture? texture = null});
 
-
+  Future<bool> isRenderable(ThermionEntity entity);
 }

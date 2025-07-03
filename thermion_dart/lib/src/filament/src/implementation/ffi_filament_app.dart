@@ -1264,4 +1264,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     });
     return FFISkybox(ptr);
   }
+
+  Future<bool> isRenderable(ThermionEntity entity) async {
+    return RenderableManager_isRenderable(renderableManager, entity);
+  }
 }
