@@ -72,9 +72,28 @@ jobs:
         with:
           channel: master
           architecture: ARM64
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+          cmake-version: 3.22.1
+          ndk-version: 25.1.893739
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
       - run: cd quickstart && flutter pub get && flutter build macos 
+      - run: cd quickstart && flutter pub get && flutter build ios 
+      - run: cd quickstart && flutter pub get && flutter build android
       - run: cd quickstart && flutter build web 
       - run: cd picking && flutter pub get && flutter build macos 
+      - run: cd picking && flutter pub get && flutter build ios 
+      - run: cd picking && flutter pub get && flutter build android
       - run: cd picking && flutter build web 
       - name: Upload logs
         if: failure() || steps.build.outcome == 'failure'
