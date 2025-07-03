@@ -157,7 +157,6 @@ extension Uint8ListExtension on Uint8List {
 
 extension Float32ListExtension on Float32List {
   Pointer<Float32> get address {
-
     final ptr = getPointer<Float32>(this, this.toJS);
     final bar =
         Float32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
@@ -167,7 +166,8 @@ extension Float32ListExtension on Float32List {
   }
 
   Uint8List asUint8List() {
-    var ptr = Pointer<Uint8>(_NativeLibrary.instance._emscripten_get_byte_offset(this.toJS));
+    var ptr = Pointer<Uint8>(
+        _NativeLibrary.instance._emscripten_get_byte_offset(this.toJS));
     return ptr.asTypedList(length * 4);
   }
 }
@@ -467,4 +467,8 @@ void stackRestore(Pointer ptr) =>
 
 void getStackFree() {
   print(_NativeLibrary.instance._emscripten_stack_get_free());
+}
+
+void resizeWebCanvas(int width, int height) {
+  Thermion_resizeCanvas(width, height);
 }

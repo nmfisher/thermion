@@ -117,7 +117,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   ///
   void resizeCanvas(double width, double height) async {
     _logger.info("Resizing canvas to ${width}x${height}");
-    Thermion_resizeCanvas((window.devicePixelRatio * width).ceil(),
+    resizeWebCanvas((window.devicePixelRatio * width).ceil(),
         (window.devicePixelRatio * height).ceil());
   }
 }

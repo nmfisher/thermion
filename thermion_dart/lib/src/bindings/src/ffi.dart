@@ -221,8 +221,11 @@ extension DartBigIntExtension on int {
 }
 
 extension Float32ListExtension on Float32List {
-
   Uint8List asUint8List() {
     return this.buffer.asUint8List(this.offsetInBytes);
   }
+}
+
+void resizeWebCanvas(int width, int height) {
+  throw UnsupportedError("Not supported on non-web platforms");
 }
