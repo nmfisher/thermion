@@ -25,6 +25,37 @@ Packages with other changes:
 
 #### `thermion_dart` - `v0.3.0`
 
+#### `thermion_flutter` - `v0.3.0`
+
+#### `thermion_flutter_method_channel` - `v0.3.0`
+
+#### `thermion_flutter_web` - `v0.3.0`
+
+#### `thermion_flutter_platform_interface` - `v0.3.0`
+
+
+## 2025-07-03
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.3.0`](#thermion_dart---v030)
+ - [`thermion_flutter` - `v0.3.0`](#thermion_flutter---v030)
+ - [`thermion_flutter_method_channel` - `v0.3.0`](#thermion_flutter_method_channel---v030)
+ - [`thermion_flutter_web` - `v0.3.0`](#thermion_flutter_web---v030)
+ - [`thermion_flutter_platform_interface` - `v0.3.0`](#thermion_flutter_platform_interface---v030)
+
+---
+
+#### `thermion_dart` - `v0.3.0`
+
  - n
 
 #### `thermion_flutter` - `v0.3.0`
