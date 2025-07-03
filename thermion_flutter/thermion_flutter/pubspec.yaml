@@ -19,8 +19,7 @@ dependencies:
   animation_tools_dart: ^0.1.0
   thermion_dart: ^0.3.0
   thermion_flutter_platform_interface: ^0.3.0
-  thermion_flutter_method_channel: 
-    path: ../thermion_flutter_method_channel
+  thermion_flutter_method_channel: ^0.3.0
   thermion_flutter_web: ^0.3.0
   logging: ^1.2.0
   web: ^1.0.0
