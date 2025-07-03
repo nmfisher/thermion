@@ -1,5 +1,9 @@
 ## 0.3.0
 
+ - Bump "thermion_flutter_platform_interface" to `0.3.0`.
+
+## 0.3.0
+
  - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
  - **FEAT**: create separate createTexture and createTextureAndBindToView interface methods.
 

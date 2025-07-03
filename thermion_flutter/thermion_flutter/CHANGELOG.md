@@ -1,5 +1,9 @@
 ## 0.3.0
 
+ - Bump "thermion_flutter" to `0.3.0`.
+
+## 0.3.0
+
 > Note: This release has breaking changes.
 
  - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
