@@ -51,7 +51,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
   }
 
   Future _set() async {
-    await widget.camera.setCameraExposure(
+    await widget.camera.setExposure(
         double.parse(_apertureController.text),
         double.parse(_speedController.text),
         double.parse(_sensitivityController.text));
