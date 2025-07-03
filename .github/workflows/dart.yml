@@ -58,6 +58,16 @@ jobs:
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.0'  # or 'latest'
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.45'  # or 'latest'
+      - name: Compile web
+        run: make wasm
 
   flutter_examples:
     name: flutter_examples
