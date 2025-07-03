@@ -64,9 +64,19 @@ namespace thermion
         void addOverlayComponent(utils::Entity target, filament::MaterialInstance *materialInstance)
         {
             std::lock_guard lock(mMutex);
+            
+            auto &rm = mEngine->getRenderableManager();
+            auto ri = rm.getInstance(target);
+
+            if(!ri.isValid()) {
+                return;
+            }
+
+            auto bb = rm.getAxisAlignedBoundingBox(ri);
 
             auto *color = mRenderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR);
             materialInstance->setParameter("depth", color, mDepthSampler);
+            materialInstance->setParameter("bbCenter", bb.center);
             if (!hasComponent(target))
             {
                 utils::EntityInstanceBase::Type componentInstance = addComponent(target);

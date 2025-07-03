@@ -1,0 +1,82 @@
+material {
+    name : Highlight,
+    requires : [ position ],
+    parameters : [
+    {
+        type : sampler2d,
+        name : depth,
+        precision: high
+    },
+    {
+        type : float,
+        name : scale
+    },
+    {
+        type : float3,
+        name : bbCenter
+    },
+    {
+        type : float3,
+        name : color
+    }
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending: transparent,
+    culling: none,
+    instanced: false,
+    vertexDomain: object,
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        vec3 position = getPosition().xyz;
+        mat4 transform = getWorldFromModelMatrix();
+        vec4 bbCenter = mulMat4x4Float3(transform, materialParams.bbCenter);
+          // Transform position to world space first
+        vec4 worldPos = mulMat4x4Float3(transform, position);
+        
+        // Translate to bbCenter, scale, then translate back
+        vec3 relativePos = worldPos.xyz - bbCenter.xyz;
+        vec3 scaledPos = relativePos * materialParams.scale;
+        material.worldPosition = vec4(bbCenter.xyz + scaledPos, worldPos.w);
+    }
+}
+   
+fragment {
+    void material(inout MaterialInputs material) {
+        float2 vp = uvToRenderTargetUV( getNormalizedViewportCoord().xy );
+        prepareMaterial(material);           
+       
+        float depth = texture( materialParams_depth, vp ).r;
+        float dDepthDx = dFdx(depth);
+        float dDepthDy = dFdy(depth);
+
+        vec2 texelSize = 1.0f / float2(textureSize(materialParams_depth, 0));
+        
+        float depth_up = texture(materialParams_depth, vp + vec2(0.0, texelSize.y)).r;
+        float depth_down = texture(materialParams_depth, vp - vec2(0.0, texelSize.y)).r;
+        float depth_left = texture(materialParams_depth, vp - vec2(texelSize.x, 0.0)).r;
+        float depth_right = texture(materialParams_depth, vp + vec2(texelSize.x, 0.0)).r;
+        
+        // Check if any neighbor is background (edge detection)
+        bool isEdge = (depth_up >= 1.0) || (depth_down >= 1.0) || 
+                      (depth_left >= 1.0) || (depth_right >= 1.0);
+        
+        if (isEdge) {
+            material.baseColor.rgb = materialParams.color;
+            material.baseColor.a = 1.0f;
+        } else {
+            // Interior pixel - discard or make transparent
+            discard;
+        }
+           
+        //if(depth == 1.0f) {
+        //    material.baseColor = vec4(depth, 0.0f, 0.0f, 1.0f);
+        //} else { 
+        //    discard;
+        //}
+    }
+}
+
