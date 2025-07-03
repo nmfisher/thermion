@@ -76,8 +76,6 @@ class FFIView extends View<Pointer<TView>> {
         OverlayManager_setRenderTarget(
             overlayManager!, overlayRenderTarget!.getNativeHandle());
         await oldRenderTarget!.destroy();
-        print("Resized render target to ${width}x${height}");
-        print(StackTrace.current);
       });
     }
   }
@@ -280,7 +278,7 @@ class FFIView extends View<Pointer<TView>> {
   RenderTarget? overlayRenderTarget;
   Material? highlightMaterial;
 
-  final _highlighted = <ThermionAsset, MaterialInstance>{};
+  final _highlighted = <ThermionEntity, MaterialInstance>{};
 
   ///
   ///
@@ -293,8 +291,6 @@ class FFIView extends View<Pointer<TView>> {
       int? entity,
       double scale = 1.05,
       int primitiveIndex = 0}) async {
-    entity ??= asset.entity;
-
     if (overlayScene == null) {
       overlayScene = await FilamentApp.instance!.createScene();
       final vp = await getViewport();
@@ -309,19 +305,36 @@ class FFIView extends View<Pointer<TView>> {
       RenderTicker_setOverlayManager(app.renderTicker, overlayManager!);
       final highlightMaterialPtr = await withPointerCallback<TMaterial>(
           (cb) => Material_createOutlineMaterialRenderThread(app.engine, cb));
-      highlightMaterial = FFIMaterial(highlightMaterialPtr, app);
+      highlightMaterial =
+          FFIMaterial(highlightMaterialPtr, app);
     }
 
-    var highlightMaterialInstance = await highlightMaterial!.createInstance();
-    await highlightMaterialInstance.setParameterFloat("scale", scale);
+    MaterialInstance? highlightMaterialInstance;
 
-    await highlightMaterialInstance.setDepthCullingEnabled(true);
-    await highlightMaterialInstance.setDepthWriteEnabled(true);
+    entity ??= asset.entity;
+    final entities = [entity, ...await asset.getChildEntities()];
 
-    OverlayManager_addComponent(
-        overlayManager!, entity, highlightMaterialInstance.getNativeHandle());
+    for (final entity in entities) {
+      if (!await FilamentApp.instance!.isRenderable(entity)) {
+        continue;
+      }
+      if (_highlighted.containsKey(entity)) {
+        _highlighted[entity]!.setParameterFloat4("color", r, g, b, 1.0);
+      } else {
+        if (highlightMaterialInstance == null) {
+          highlightMaterialInstance = await highlightMaterial!.createInstance();
+          await highlightMaterialInstance!.setParameterFloat("scale", scale);
+          await highlightMaterialInstance!
+              .setParameterFloat4("color", r, g, b, 1.0);
 
-    _highlighted[asset] = highlightMaterialInstance;
+          await highlightMaterialInstance!.setDepthCullingEnabled(true);
+          await highlightMaterialInstance!.setDepthWriteEnabled(true);
+        }
+        OverlayManager_addComponent(overlayManager!, entity,
+            highlightMaterialInstance.getNativeHandle());
+        _highlighted[entity] = highlightMaterialInstance!;
+      }
+    }
 
     _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
   }
@@ -331,22 +344,29 @@ class FFIView extends View<Pointer<TView>> {
   ///
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
-    if (!_highlighted.containsKey(asset)) {
-      _logger
-          .warning("No stencil highlight for asset (entity ${asset.entity})");
+    if (overlayManager == null) {
       return;
     }
-    final materialInstance = _highlighted[asset]!;
-    _highlighted.remove(asset);
-    _logger
-        .info("Removing stencil highlight for asset (entity ${asset.entity})");
+    final entities = [asset.entity, ...await asset.getChildEntities()];
 
-    OverlayManager_removeComponent(overlayManager!, asset.entity);
+    for (final entity in entities) {
+      OverlayManager_removeComponent(overlayManager!, entity);
+    }
 
-    await materialInstance.destroy();
+    final destroyed = <MaterialInstance>{};
+    for (final entity in entities) {
+      final materialInstance = _highlighted[entity];
+      if (!await FilamentApp.instance!.isRenderable(entity) ||
+          materialInstance == null) {
+        continue;
+      }
 
-    _logger
-        .info("Removed stencil highlight for asset (entity ${asset.entity})");
+      _highlighted.remove(entity);
+      if (!destroyed.contains(materialInstance)) {
+        await materialInstance.destroy();
+        destroyed.add(materialInstance);
+      }
+    }
   }
 
   void setName(String name) {
