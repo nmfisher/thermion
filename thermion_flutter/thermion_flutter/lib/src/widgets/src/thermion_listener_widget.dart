@@ -156,6 +156,14 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     }
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+    if (widget.addKeyboardListener) {
+      HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    }
+  }
+
   bool _handleKeyEvent(KeyEvent event) {
     final physicalKey = physicalKeyMap[event.physicalKey];
     final logicalKey = logicalKeyMap[event.logicalKey];
@@ -172,16 +180,9 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
       widget.inputHandler.handle(t.KeyEvent(
           KeyEventType.up, logicalKey, physicalKey,
           synthesized: event.synthesized));
+      return true;
     }
     return !widget.propagateEvents;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    if (widget.addKeyboardListener) {
-      HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
-    }
   }
 
   t.MouseButton? _mouseButtonFromEvent(PointerEvent event) {
