@@ -2,8 +2,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:flutter/material.dart';
 import '../../../utils/camera_orientation.dart';
 
-import 'dart:math';
-
 class CameraOptionsWidget extends StatefulWidget {
   final Camera camera;
   final CameraOrientation cameraOrientation;
@@ -59,9 +57,6 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
     setState(() {});
   }
 
-  double _bloom = 0.0;
-
-  double _focalLength = 26.0;
   @override
   Widget build(BuildContext context) {
     return Theme(

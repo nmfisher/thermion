@@ -140,13 +140,13 @@ class _ViewerWidgetState extends State<ViewerWidget> {
         viewport = thermionWidget;
       case ManipulatorType.ORBIT:
         viewport = ThermionListenerWidget(
-            key: ObjectKey(ManipulatorType.ORBIT),
+            key: const ObjectKey(ManipulatorType.ORBIT),
             inputHandler: DelegateInputHandler.fixedOrbit(viewer!,
                 minimumDistance: widget.initialCameraPosition.length),
             child: thermionWidget);
       case ManipulatorType.FREE_FLIGHT:
         viewport = ThermionListenerWidget(
-            key: ObjectKey(ManipulatorType.FREE_FLIGHT),
+            key: const ObjectKey(ManipulatorType.FREE_FLIGHT),
             inputHandler: DelegateInputHandler.flight(viewer!),
             child: thermionWidget);
     }
