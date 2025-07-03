@@ -1,0 +1,40 @@
+## Getting Started
+
+Thermion currently requires the Flutter `master` channel with the `native-assets` experiment enabled.
+
+1. Switch to Flutter master channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
+
+```bash
+$ flutter channel master
+$ flutter upgrade
+$ flutter config --enable-native-assets  
+$ cd your_flutter_project
+$ flutter pub add thermion_flutter
+```
+
+2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
+
+<Accordion title="Click to open iOS/MacOS instructions">
+
+Make sure the `platform` entry refers to `13.0` in your Podfile.
+
+In `macos/Podfile` (for macOS):
+```
+platform :osx, '13.0'
+```
+
+In `ios/Podfile`, (for iOS):
+```
+platform :ios, '13.0'
+```
+
+Then open XCode:
+```
+open macos/Runner.xcworkspace
+```
+
+and change the minimum deployment target to 13.0:
+
+![XCode screenshot](images/macos_min_deployment.png)
+
+</Accordion>

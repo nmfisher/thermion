@@ -1,43 +1,14 @@
-## Quickstart (Flutter)
+## ThermionViewer (Flutter)
+
+If you just want to display a 3D object in the viewport with some basic camera controls, use the [ViewerWidget described in the Quickstart section](./quickstart).
+
+If you need want more fine-grained control 
 
 > You can find the entire project below in the [examples/flutter/viewer](https://github.com/nmfisher/thermion/tree/master/examples/flutter/viewer) folder of the repository.
 
-1. Switch to Flutter master channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
 
-```bash
-$ flutter channel master
-$ flutter upgrade
-$ flutter config --enable-native-assets  
-$ flutter create thermion_sample_project && cd thermion_sample_project
-$ flutter pub add thermion_flutter
-```
 
-2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
 
-<Accordion title="Click to open iOS/MacOS instructions">
-
-Make sure the `platform` entry refers to `13.0` in your Podfile.
-
-In `macos/Podfile` (for macOS):
-```
-platform :osx, '13.0'
-```
-
-In `ios/Podfile`, (for iOS):
-```
-platform :ios, '13.0'
-```
-
-Then open XCode:
-```
-open macos/Runner.xcworkspace
-```
-
-and change the minimum deployment target to 13.0:
-
-![XCode screenshot](images/macos_min_deployment.png)
-
-</Accordion>
 
 2. Add a folder containing your assets (glTF model + skybox ktx) to your `pubspec.yaml` asset list
 

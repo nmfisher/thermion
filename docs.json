@@ -7,6 +7,7 @@
       "Getting Started",
       [
         ["Overview", "/"],
+        ["Getting Started", "/gettingstarted"],
         ["Quick Start", "/quickstart"],
         ["Viewer", "/viewer"],
         ["Camera Manipulation", "/camera_manipulation"]
