@@ -1,174 +1,22 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+#### v0.3.0
 
-## 2025-07-03
+This release involved considerable internal refactoring, allowing us to expose more Filament functionality on the Dart side. Previously, most of this functionality was 
+rigidly implemented in C++ and didn't allow for end-users to take advantage of Filament directly.
 
-### Changes
+This also means there are a number of breaking changes from `0.2.1`. To summarize:
 
----
-
-Packages with breaking changes:
-
- - There are no breaking changes in this release.
-
-Packages with other changes:
-
- - [`thermion_dart` - `v0.3.0`](#thermion_dart---v030)
- - [`thermion_flutter` - `v0.3.0`](#thermion_flutter---v030)
- - [`thermion_flutter_method_channel` - `v0.3.0`](#thermion_flutter_method_channel---v030)
- - [`thermion_flutter_web` - `v0.3.0`](#thermion_flutter_web---v030)
- - [`thermion_flutter_platform_interface` - `v0.3.0`](#thermion_flutter_platform_interface---v030)
-
----
-
-#### `thermion_dart` - `v0.3.0`
-
-#### `thermion_flutter` - `v0.3.0`
-
-#### `thermion_flutter_method_channel` - `v0.3.0`
-
-#### `thermion_flutter_web` - `v0.3.0`
-
-#### `thermion_flutter_platform_interface` - `v0.3.0`
-
-
-## 2025-07-03
-
-### Changes
-
----
-
-Packages with breaking changes:
-
- - There are no breaking changes in this release.
-
-Packages with other changes:
-
- - [`thermion_dart` - `v0.3.0`](#thermion_dart---v030)
- - [`thermion_flutter` - `v0.3.0`](#thermion_flutter---v030)
- - [`thermion_flutter_method_channel` - `v0.3.0`](#thermion_flutter_method_channel---v030)
- - [`thermion_flutter_web` - `v0.3.0`](#thermion_flutter_web---v030)
- - [`thermion_flutter_platform_interface` - `v0.3.0`](#thermion_flutter_platform_interface---v030)
-
----
-
-#### `thermion_dart` - `v0.3.0`
-
- - n
-
-#### `thermion_flutter` - `v0.3.0`
-
- - Bump "thermion_flutter" to `0.3.0`.
-
-#### `thermion_flutter_method_channel` - `v0.3.0`
-
- - Bump "thermion_flutter_method_channel" to `0.3.0`.
-
-#### `thermion_flutter_web` - `v0.3.0`
-
-#### `thermion_flutter_platform_interface` - `v0.3.0`
-
- - Bump "thermion_flutter_platform_interface" to `0.3.0`.
-
-
-## 2025-07-03
-
-### Changes
-
----
-
-Packages with breaking changes:
-
- - [`thermion_dart` - `v0.3.0`](#thermion_dart---v030)
- - [`thermion_flutter` - `v0.3.0`](#thermion_flutter---v030)
- - [`thermion_flutter_method_channel` - `v0.3.0`](#thermion_flutter_method_channel---v030)
-
-Packages with other changes:
-
- - [`thermion_flutter_web` - `v0.3.0`](#thermion_flutter_web---v030)
- - [`thermion_flutter_platform_interface` - `v0.3.0`](#thermion_flutter_platform_interface---v030)
-
----
-
-#### `thermion_dart` - `v0.3.0`
-
- - **REFACTOR**: gizmo/input handler improvements.
- - **REFACTOR**: add createGizmoRenderThread.
- - **REFACTOR**: Gizmo internals.
- - **REFACTOR**: dont require GizmoInputHandler to wrap an existing InputHandler (you can do this by creating your own InputHandler that wraps two children.
- - **FIX**: glTF instancing when loaded via buffer.
- - **FIX**: don't return entity from SceneManager_addLightRenderThread.
- - **FIX**: return light entity from SceneManager.
- - **FIX**: store reference to material instances in ThermionViewer so they can be cleaned up on dispose.
- - **FIX**: remove MaterialInstance from SceneManager storage when destroyed.
- - **FIX**: add destroyCamera to ThermionViewer interface.
- - **FIX**: UV calculation for geometry.
- - **FIX**: use createGizmoRenderThread.
- - **FIX**: remove MaterialInstance from SceneManager storage when destroyed.
- - **FIX**: move removeIbl to render thread.
- - **FIX**: move material/instance creation to render thread.
- - **FIX**: allow destroying instances independently of owner.
- - **FIX**: remove MaterialInstance from SceneManager storage when destroyed.
- - **FIX**: use render thread methods for grid overlay creation and create ubershader instance.
- - **FIX**: only use Windows-style ndkRoot when building on Windows.
- - **FIX**: set overlay layer visibility when adding grid.
- - **FIX**: only use Windows-style ndkRoot when building on Windows.
- - **FIX**: when creating geometry, normals/uvs are set to false by default. remove wirefame camera container (can now be replaced by bounding box methods.
- - **FIX**: fix highlights after first.
- - **FEAT**: remove bounding box from SceneAsset and create renderable wireframe bounding box in ThermionAsset.
- - **FEAT**: add setTransparencyMode to Dart Material class.
- - **FEAT**: expose attached entity as Stream on GizmoInputHandler.
- - **FEAT**: allow custom material for grid overlay, and material creation from Uint8List.
- - **FEAT**: allow setting material instance directly on ThermionAsset.
- - **FEAT**: allow passing custom material for grid overlay.
- - **FEAT**: allow passing custom material for grid overlay.
- - **FEAT**: allow passing custom material for grid overlay.
- - **FEAT**: more rotation gizmo improvements.
- - **FEAT**: rotation gizmo improvements.
- - **FEAT**: add rotation gizmo.
- - **FEAT**: add rotation gizmo asset + resource file.
- - **FEAT**: add rotation gizmo asset + resource file.
- - **FEAT**: use existing material instances when creating an instance of GeometrySceneAsset and no material instance is passed.
- - **FEAT**: re-implement grid overlay.
- - **FEAT**: add gizmo.glb to assets/resources.
- - **FEAT**: add TRACE macro.
- - **FEAT**: update Filament to v1.56.4.
- - **FEAT**: expose setCastShadows/setReceiveShadows.
- - **FEAT**: re-add uvScale, vertexScale to unlit material.
- - **FEAT**: re-add uvScale, vertexScale to unlit material.
- - **BREAKING** **REFACTOR**: move light methods from FilamentViewer to SceneManager/TLightManager and rename clearLights/clearAssets to destroyLights/destroyAssets.
- - **BREAKING** **REFACTOR**: rename removeAsset to destroyAsset.
- - **BREAKING** **FIX**: rename removeEntity to removeAsset.
- - **BREAKING** **FEAT**: change default near/far to 0.1/100.0.
- - **BREAKING** **FEAT**: use raw pointer scale (>1 meaning zoom in, <1 meaning zoom out) rather than binary -1/1 for DelegateInputHandler.
- - **BREAKING** **FEAT**: remove Viewer setRenderTarget method (use the View method instead).
-
-#### `thermion_flutter` - `v0.3.0`
-
- - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
- - **FIX**: rename msPerFrame property.
- - **FEAT**: add FocusNode to ThermionListenerWidget.
- - **FEAT**: use new createTextureAndBindToView in ThermionTextureWidget.
- - **BREAKING** **REFACTOR**: move light methods from FilamentViewer to SceneManager/TLightManager and rename clearLights/clearAssets to destroyLights/destroyAssets.
- - **BREAKING** **FEAT**: remove superseded ThermionWindows widget.
- - **BREAKING** **FEAT**: rename thermion_flutter_ffi package to thermion_flutter_method_channel.
-
-#### `thermion_flutter_method_channel` - `v0.3.0`
-
- - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
- - **BREAKING** **FEAT**: rename thermion_flutter_ffi package to thermion_flutter_method_channel.
-
-#### `thermion_flutter_web` - `v0.3.0`
-
- - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
-
-#### `thermion_flutter_platform_interface` - `v0.3.0`
-
- - **REFACTOR**: rename ThermionFlutterTexture->PlatformTextureDescriptor.
- - **FEAT**: create separate createTexture and createTextureAndBindToView interface methods.
-
+- `ViewerWidget` has been introduced. This is a Flutter widget for users who only need basic rendering and don't need/want to deal with camera/materials/etc directly.
+- Users who want more fine-grained control than a `ViewerWidget` can still work with `ThermionViewer` and `ThermionWidget`.
+- The singleton `FilamentApp.instance` exposes methods for working almost directly with the underlying Filament engine (e.g. loading custom materials from `Uint8List`, creating textures, etc).
+- New interfaces have been added for `Material`, `MaterialInstance`, `Texture`, `View`, `Scene` and `Camera`.
+- `ThermionAsset` replaces `ThermionEntity` as the main interface for scene objects.
+- Transforms/material instances should be set directly by `asset.setTransform`, `asset.setMaterialInstanceAt`
+- Material properties can be set directly on the `MaterialInstance`, e.g. `materialInstance.setParameterFloat4("baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+- Linux binaries have been added to `thermion_dart`. This package can be run on Linux (which we are using for CI and automated testing) but there are not yet any Flutter bindings, so `thermion_flutter` cannot run on Linux yet.
+- On Windows, `thermion_flutter` now uses the Vulkan backend. This is still experimental and will have limited supported on older hardware (pre-2018).
+-  Web support for `thermion_dart` has now reached parity with other platforms, though should still be considered experimental. Some manual steps are required to run in a Flutter app or a Dart web app.  
 
 ## 2025-01-08
 
