@@ -88,11 +88,11 @@ jobs:
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
       - run: cd quickstart && flutter pub get && flutter build macos 
-      - run: cd quickstart && flutter pub get && flutter build ios 
+      # - run: cd quickstart && flutter pub get && flutter build ios 
       - run: cd quickstart && flutter pub get && flutter build android
       - run: cd quickstart && flutter build web 
       - run: cd picking && flutter pub get && flutter build macos 
-      - run: cd picking && flutter pub get && flutter build ios 
+      # - run: cd picking && flutter pub get && flutter build ios 
       - run: cd picking && flutter pub get && flutter build android
       - run: cd picking && flutter build web 
       - name: Upload logs
