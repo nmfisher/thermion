@@ -1,8 +1,17 @@
 wasm:
-	cd thermion_dart/native/web &&\
-    mkdir -p build &&\
-	cd build &&\
-	emcmake cmake .. &&\
+	@if [ ! -f thermion_dart/native/web/lib/release/filament-v1.58.0-web-release.zip ]; then \
+		echo "Downloading filament-v1.58.0-web-release.zip..."; \
+		mkdir -p thermion_dart/native/web/lib/release; \
+		curl -L -o thermion_dart/native/web/lib/release/filament-v1.58.0-web-release.zip \
+			https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.58.0-web-release.zip; \
+		echo "Extracting filament-v1.58.0-web-release.zip..."; \
+		cd thermion_dart/native/web/lib/release && \
+		unzip filament-v1.58.0-web-release.zip; \
+	fi
+	cd thermion_dart/native/web && \
+	mkdir -p build && \
+	cd build && \
+	emcmake cmake .. && \
 	emmake make
 wasm-clean:
 	cd thermion_dart/native/web && rm -rf build
