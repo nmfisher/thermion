@@ -8,7 +8,7 @@ on:
 
 jobs:
   compile-web-wasm:
-    runs-on: ubuntu-22.04
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Setup CMake
