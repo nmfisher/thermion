@@ -117,7 +117,7 @@ abstract class ThermionAsset {
   /// call [Scene.add].
   ///
   Future<ThermionAsset> createInstance(
-      {covariant List<MaterialInstance>? materialInstances = null});
+      {List<MaterialInstance>? materialInstances = null});
 
   ///
   /// Returns the number of instances associated with this asset.

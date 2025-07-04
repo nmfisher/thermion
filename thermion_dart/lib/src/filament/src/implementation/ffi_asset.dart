@@ -132,7 +132,7 @@ class FFIAsset extends ThermionAsset {
   ///
   @override
   Future<FFIAsset> createInstance(
-      {covariant List<MaterialInstance>? materialInstances = null}) async {
+      {List<MaterialInstance>? materialInstances = null}) async {
     if(isInstance) {
       return instanceOwner!.createInstance(materialInstances: materialInstances);
     }
