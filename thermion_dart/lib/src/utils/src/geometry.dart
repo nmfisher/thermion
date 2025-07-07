@@ -589,8 +589,8 @@ static Geometry camera({
 
   // === CONICAL LENS ===
   int segments = 16;
-  double lensApexZ = halfDepth;  // Apex touches the front face (short face)
-  double lensBaseZ = halfDepth + lensLength;  // Base extends outward along Z-axis
+  double lensApexZ = -halfDepth;  // Apex touches the front face (short face)
+  double lensBaseZ = -halfDepth - lensLength;  // Base extends outward along Z-axis
 
   // Lens apex (tip of the cone - touching the camera body at center of front face)
   addVertex(0, 0, lensApexZ, 0, 0, -1, 0.5, 0);
