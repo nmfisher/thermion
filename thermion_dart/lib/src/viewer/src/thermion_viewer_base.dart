@@ -83,7 +83,8 @@ abstract class ThermionViewer {
   Future clearBackgroundImage({bool destroy = false});
 
   ///
-  /// Sets the color for the background plane (positioned at the maximum depth, i.e. behind all other objects including the skybox).
+  /// Sets the color for the background plane (positioned at the maximum depth,
+  /// i.e. behind all other objects including the skybox).
   ///
   Future setBackgroundColor(double r, double g, double b, double alpha);
 
