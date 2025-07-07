@@ -394,6 +394,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     if (_skyboxTextureUploadComplete != null) {
+      await FilamentApp.instance!.flush();
       await _skyboxTextureUploadComplete;
       _skyboxTextureUploadComplete = null;
     }
@@ -414,6 +415,7 @@ class ThermionViewerFFI extends ThermionViewer {
       await ibl.destroy();
     }
     if (_iblTextureUploadComplete != null) {
+      await FilamentApp.instance!.flush();
       await _iblTextureUploadComplete!;
       _iblTextureUploadComplete = null;
     }
