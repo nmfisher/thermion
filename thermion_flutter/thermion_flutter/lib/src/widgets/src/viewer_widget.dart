@@ -112,6 +112,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     });
   }
 
+  @override
   void didUpdateWidget(ViewerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.manipulatorType != widget.manipulatorType) {
@@ -178,12 +179,12 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     await camera.lookAt(widget.initialCameraPosition);
 
+    await viewer!.setRendering(true);
+
     if (widget.background != null) {
       await viewer!.setBackgroundColor(widget.background!.r,
           widget.background!.g, widget.background!.b, widget.background!.a);
     }
-
-    await viewer!.setRendering(true);
 
     thermionWidget = ThermionWidget(
       key: ObjectKey(DateTime.now()),
