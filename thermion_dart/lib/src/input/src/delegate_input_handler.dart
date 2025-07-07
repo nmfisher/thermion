@@ -7,7 +7,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 typedef PointerEventDetails = (Vector2 localPosition, Vector2 delta);
 
 abstract class InputHandlerDelegate {
-  
   Future handle(List<InputEvent> events) async {
     // noop, override to implement
   }
@@ -36,34 +35,48 @@ class DelegateInputHandler implements InputHandler {
   bool _ready = false;
   bool _processing = false;
 
-  DelegateInputHandler(
-      {required this.viewer, required this.delegates, this.batch = true}) {
+  DelegateInputHandler({
+    required this.viewer,
+    required this.delegates,
+    this.batch = true,
+  }) {
     FilamentApp.instance!.registerRequestFrameHook(process);
     viewer.initialized.then((_) {
       this._ready = true;
     });
   }
 
-  factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
-      {double minimumDistance = 0.1,
-      Vector3? target,
-      InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
-      ThermionEntity? entity}) {
-    return DelegateInputHandler(viewer: viewer, delegates: [
-      OrbitInputHandlerDelegate(viewer.view,
+  factory DelegateInputHandler.fixedOrbit(
+    ThermionViewer viewer, {
+    double minimumDistance = 0.1,
+    Vector3? target,
+    InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
+    ThermionEntity? entity,
+  }) {
+    return DelegateInputHandler(
+      viewer: viewer,
+      delegates: [
+        OrbitInputHandlerDelegate(
+          viewer.view,
           sensitivity: sensitivity,
           minZoomDistance: minimumDistance,
-          maxZoomDistance: 1000.0)
-    ]);
+          maxZoomDistance: 1000.0,
+        ),
+      ],
+    );
   }
 
-  factory DelegateInputHandler.flight(ThermionViewer viewer,
-          {bool freeLook = false,
-          InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
-          ThermionEntity? entity}) =>
-      DelegateInputHandler(viewer: viewer, delegates: [
-        FreeFlightInputHandlerDelegateV2(viewer.view, sensitivity: sensitivity)
-      ]);
+  factory DelegateInputHandler.flight(
+    ThermionViewer viewer, {
+    bool freeLook = false,
+    InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
+    ThermionEntity? entity,
+  }) => DelegateInputHandler(
+    viewer: viewer,
+    delegates: [
+      FreeFlightInputHandlerDelegateV2(viewer.view, sensitivity: sensitivity),
+    ],
+  );
 
   Future<void> process() async {
     _processing = true;
