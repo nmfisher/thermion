@@ -209,10 +209,7 @@ namespace thermion
 
     SceneAsset *GridOverlay::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)
     {
-        auto instance = std::make_unique<GridOverlay>(_engine, _material);
-        auto *raw = instance.get();
-        _instances.push_back(std::move(instance));
-        return reinterpret_cast<SceneAsset *>(raw);
+        return nullptr;
     }
 
     void GridOverlay::addAllEntities(Scene *scene)
@@ -250,7 +247,7 @@ namespace thermion
     }
 
     size_t GridOverlay::getChildEntityCount() { 
-        return 1; 
+        return 0; 
     }
 
     Entity GridOverlay::findEntityByName(const char *name)

@@ -37,6 +37,10 @@ public:
     MaterialInstance** getMaterialInstances() override { return &_materialInstance; }
     size_t getMaterialInstanceCount() override { return 1; }
     
+    utils::Entity getEntity() override {
+        return _gridEntity;
+    }
+
     void addAllEntities(Scene* scene) override;
     void removeAllEntities(Scene* scene) override;
     
