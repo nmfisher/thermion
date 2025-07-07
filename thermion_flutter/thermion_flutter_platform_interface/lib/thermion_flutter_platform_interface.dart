@@ -65,7 +65,7 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   ///
   ///
   ///
-  Future<ThermionViewer> createViewer() {
+  Future<ThermionViewer> createViewer({bool destroySwapchain = true}) {
     throw UnimplementedError();
   }
 

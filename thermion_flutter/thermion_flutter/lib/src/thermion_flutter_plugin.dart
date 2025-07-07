@@ -11,8 +11,8 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_in
 class ThermionFlutterPlugin {
   ThermionFlutterPlugin._();
 
-  static Future<ThermionViewer> createViewer() {
-    return ThermionFlutterPlatform.instance.createViewer();
+  static Future<ThermionViewer> createViewer({bool destroySwapchain = true}) {
+    return ThermionFlutterPlatform.instance.createViewer(destroySwapchain: destroySwapchain);
   }
 
 }

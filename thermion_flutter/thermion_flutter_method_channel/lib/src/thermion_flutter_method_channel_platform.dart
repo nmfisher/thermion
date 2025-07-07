@@ -46,7 +46,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     return asset.buffer.asUint8List(asset.offsetInBytes);
   }
 
-  Future<ThermionViewer> createViewer() async {
+  Future<ThermionViewer> createViewer({bool destroySwapchain = true}) async {
     var driverPlatform = await channel.invokeMethod("getDriverPlatform");
 
     var platformPtr = driverPlatform == null
@@ -118,7 +118,13 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
     if (Platform.isMacOS || Platform.isIOS) {
-      _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
+      if(destroySwapchain && _swapChain != null) {
+        await FilamentApp.instance!.destroySwapChain(_swapChain!);
+        _swapChain = null;
+      }
+
+      _swapChain ??= await FilamentApp.instance!
+          .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
       await FilamentApp.instance!.register(_swapChain!, viewer.view);
       await viewer.view.setRenderable(true);
     }
@@ -179,10 +185,8 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       }
 
       _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-        descriptor.width,
-        descriptor.height,
-        hasStencilBuffer: true
-      );
+          descriptor.width, descriptor.height,
+          hasStencilBuffer: true);
 
       _logger.info(
         "Created headless swapchain ${descriptor.width}x${descriptor.height}",
