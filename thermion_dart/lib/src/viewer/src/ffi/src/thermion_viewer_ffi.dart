@@ -691,7 +691,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setGridOverlayVisibility(bool visible) async {
-    _grid ??= _grid = await GridOverlay.create(app, animationManager);
+    _grid ??= await GridOverlay.create(app, animationManager);
 
     if (visible) {
       await scene.add(_grid!);
