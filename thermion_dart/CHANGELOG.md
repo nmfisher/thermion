@@ -1,3 +1,7 @@
+## 0.3.2
+
+ - Bump "thermion_dart" to `0.3.2`.
+
 ## 0.3.1
 
  - **REFACTOR**: remove covariant keyword from createInstance args.

@@ -15,6 +15,47 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`thermion_dart` - `v0.3.2`](#thermion_dart---v032)
+ - [`thermion_flutter` - `v0.3.2`](#thermion_flutter---v032)
+ - [`thermion_flutter_method_channel` - `v0.3.2`](#thermion_flutter_method_channel---v032)
+ - [`thermion_flutter_web` - `v0.3.2`](#thermion_flutter_web---v032)
+ - [`thermion_flutter_platform_interface` - `v0.3.2`](#thermion_flutter_platform_interface---v032)
+
+---
+
+#### `thermion_dart` - `v0.3.2`
+
+ - Bump "thermion_dart" to `0.3.2`.
+
+#### `thermion_flutter` - `v0.3.2`
+
+ - Bump "thermion_flutter" to `0.3.2`.
+
+#### `thermion_flutter_method_channel` - `v0.3.2`
+
+ - Bump "thermion_flutter_method_channel" to `0.3.2`.
+
+#### `thermion_flutter_web` - `v0.3.2`
+
+ - **FIX**: add missing destroySwapchain argument for web.
+
+#### `thermion_flutter_platform_interface` - `v0.3.2`
+
+ - Bump "thermion_flutter_platform_interface" to `0.3.2`.
+
+
+## 2025-07-08
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`thermion_dart` - `v0.3.1`](#thermion_dart---v031)
  - [`thermion_flutter` - `v0.3.1`](#thermion_flutter---v031)
  - [`thermion_flutter_method_channel` - `v0.3.1`](#thermion_flutter_method_channel---v031)

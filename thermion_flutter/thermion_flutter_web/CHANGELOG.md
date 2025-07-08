@@ -1,3 +1,7 @@
+## 0.3.2
+
+ - **FIX**: add missing destroySwapchain argument for web.
+
 ## 0.3.1
 
 ## 0.3.0

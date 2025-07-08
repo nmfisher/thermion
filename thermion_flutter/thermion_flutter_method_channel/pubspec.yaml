@@ -1,7 +1,7 @@
 name: thermion_flutter_method_channel
 description: Desktop + mobile implementation for texture creation + registration with Flutter.
 repository: https://github.com/nmfisher/thermion_flutter/thermion_flutter
-version: 0.3.1
+version: 0.3.2
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -23,8 +23,8 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.0
-  thermion_flutter_platform_interface: ^0.3.1
-  thermion_dart: ^0.3.1
+  thermion_flutter_platform_interface: ^0.3.2
+  thermion_dart: ^0.3.2
   logging: ^1.2.0
 dependency_overrides:
   thermion_dart:
