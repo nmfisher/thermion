@@ -40,7 +40,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     return asset.buffer.asUint8List(asset.offsetInBytes);
   }
 
-  Future<ThermionViewer> createViewer() async {
+  Future<ThermionViewer> createViewer({bool destroySwapchain = true}) async {
     HTMLCanvasElement? canvas;
     if (FilamentApp.instance == null) {
       // first, try and initialize bindings to see if the user has included thermion_dart.js manually in index.html
