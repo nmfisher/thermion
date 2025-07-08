@@ -1,5 +1,52 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## 2025-07-08
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.3.1`](#thermion_dart---v031)
+ - [`thermion_flutter` - `v0.3.1`](#thermion_flutter---v031)
+ - [`thermion_flutter_method_channel` - `v0.3.1`](#thermion_flutter_method_channel---v031)
+ - [`thermion_flutter_web` - `v0.3.1`](#thermion_flutter_web---v031)
+ - [`thermion_flutter_platform_interface` - `v0.3.1`](#thermion_flutter_platform_interface---v031)
+
+---
+
+#### `thermion_dart` - `v0.3.1`
+
+ - **REFACTOR**: remove covariant keyword from createInstance args.
+ - **FIX**: add flush() to skybox/IBL destroy methods to ensure that textre upload callbacks are completed to avoid stalling.
+ - **FIX**: duplicate setting for _grid.
+
+#### `thermion_flutter` - `v0.3.1`
+
+ - **FIX**: addDestroySwapchain argument to createViewer() (true by default). This is only used on iOS/macOS where a single swapchain is shared between all render targets.
+ - **DOCS**: fix typo in link.
+ - **DOCS**: remove code from thermion_flutter README.md and point to docs/repository example instead.
+
+#### `thermion_flutter_method_channel` - `v0.3.1`
+
+ - **FIX**: addDestroySwapchain argument to createViewer() (true by default). This is only used on iOS/macOS where a single swapchain is shared between all render targets.
+
+#### `thermion_flutter_web` - `v0.3.1`
+
+#### `thermion_flutter_platform_interface` - `v0.3.1`
+
+ - **FIX**: addDestroySwapchain argument to createViewer() (true by default). This is only used on iOS/macOS where a single swapchain is shared between all render targets.
+
+# Change Log
+
 #### v0.3.0
 
 This release involved considerable internal refactoring, allowing us to expose more Filament functionality on the Dart side. Previously, most of this functionality was 

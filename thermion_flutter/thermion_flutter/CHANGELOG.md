@@ -1,3 +1,9 @@
+## 0.3.1
+
+ - **FIX**: addDestroySwapchain argument to createViewer() (true by default). This is only used on iOS/macOS where a single swapchain is shared between all render targets.
+ - **DOCS**: fix typo in link.
+ - **DOCS**: remove code from thermion_flutter README.md and point to docs/repository example instead.
+
 ## 0.3.0
 
  - Bump "thermion_flutter" to `0.3.0`.

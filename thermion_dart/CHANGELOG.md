@@ -1,3 +1,9 @@
+## 0.3.1
+
+ - **REFACTOR**: remove covariant keyword from createInstance args.
+ - **FIX**: add flush() to skybox/IBL destroy methods to ensure that textre upload callbacks are completed to avoid stalling.
+ - **FIX**: duplicate setting for _grid.
+
 ## 0.3.0
 
  - n
