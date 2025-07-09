@@ -1,4 +1,8 @@
 name: thermion_workspace
 packages:
   - thermion_dart
-  - thermion_flutter/**
+  - thermion_flutter/thermion_flutter_platform_interface
+  - thermion_flutter/thermion_flutter_method_channel
+  - thermion_flutter/thermion_flutter_web
+  - thermion_flutter/thermion_flutter
+  
