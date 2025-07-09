@@ -108,10 +108,13 @@ fragment {
             1.0
         );  
 
-        color.rgb = (axes.x < 1e-8) ? color.rgb : AXIS_COLOR_X;
-        color.rgb = (axes.z < 1e-8) ? color.rgb : AXIS_COLOR_Z;
-        
-        material.baseColor = color * gridAlpha; 
-        
+        if(axes.x > 1e-8) {
+            material.baseColor = vec4(AXIS_COLOR_X, 1.0);
+        } else if(axes.z > 1e-8) {
+            material.baseColor = vec4(AXIS_COLOR_Z, 1.0);
+        } else {
+            material.baseColor = color * gridAlpha; 
+        }
+
     }
 }
