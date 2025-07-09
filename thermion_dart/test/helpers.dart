@@ -82,10 +82,6 @@ class TestHelper {
     testDir = Directory("${packageUri}test").path;
     outDir = Directory("$testDir/output/${dir}");
     outDir.createSync(recursive: true);
-    if (Platform.isMacOS) {
-      DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
-      DynamicLibrary.open('${testDir}/generated/libThermionTextureSwift.dylib');
-    }
   }
 
   ///
@@ -226,6 +222,10 @@ class TestHelper {
 
     FFIRenderTarget? renderTarget;
     if (createRenderTarget) {
+    //   if (Platform.isMacOS) {
+    //   DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
+    //   DynamicLibrary.open('${testDir}/generated/libThermionTextureSwift.dylib');
+    // }
       // var metalColorTexture = await createTexture(
       //     viewportDimensions.width, viewportDimensions.height);
       // var metalDepthTexture = await createTexture(
