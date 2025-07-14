@@ -5,11 +5,10 @@ import '../../../utils/src/matrix.dart';
 
 class FFICamera extends Camera<Pointer<TCamera>> {
   final Pointer<TCamera> camera;
-  
+
   @override
   Pointer<TCamera> getNativeHandle() {
     return camera;
-
   }
 
   final FFIFilamentApp app;
@@ -92,6 +91,16 @@ class FFICamera extends Camera<Pointer<TCamera>> {
       double far = kFar,
       double aspect = 1.0,
       double focalLength = kFocalLength}) async {
+    if (near.isNaN ||
+        far.isNaN ||
+        aspect.isNaN ||
+        focalLength.isNaN ||
+        near.isNegative ||
+        far.isNegative ||
+        aspect.isNegative ||
+        focalLength.isNegative) {
+      throw FormatException();
+    }
     Camera_setLensProjection(camera, near, far, aspect, focalLength);
   }
 
