@@ -344,13 +344,14 @@ abstract class ThermionViewer {
   int getCameraCount();
 
   ///
-  /// Adds the asset to the scene, meaning the asset will be rendered/visible.
+  /// Adds the asset to the scene. All renderable entities attached to  
+  /// the asset will be visible.
   ///
   Future addToScene(covariant ThermionAsset asset);
 
   ///
-  /// Removes the asset from the scene, meaning the asset will not be rendered/visible.
-  /// The asset itself will remain valid.
+  /// Removes the asset from the scene. None of the renderable entities 
+  /// attached to the asset will be visible, but the asset itself remains valid.
   ///
   Future removeFromScene(covariant ThermionAsset asset);
 }
