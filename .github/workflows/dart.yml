@@ -117,8 +117,28 @@ jobs:
             # D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
             /Users/runner/work/thermion/thermion/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
-
-
+  flutter_examples_windows:
+    name: flutter_examples_windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: examples/flutter 
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+      - run: cd quickstart && flutter pub get && flutter build windows 
+      - run: cd picking && flutter pub get && flutter build windows
+      - name: Upload logs
+        if: failure() || steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
+          retention-days: 5
             # thermion_dart:
   #   name: thermion_dart
   #   runs-on: macos-latest
