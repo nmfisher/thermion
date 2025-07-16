@@ -85,10 +85,10 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     const char *const *const resourceUris = asset->getResourceUris();
     const size_t resourceUriCount = asset->getResourceUriCount();
 
-    Log("glTF asset : %d resource URIs, %d instances", resourceUriCount, numInstances);
+    TRACE("Loading glTF asset with %d resource URIs (allocating %d reserved instances", resourceUriCount, numInstances);
 
     for(int i = 0; i < resourceUriCount; i++) {
-        Log("%s", resourceUris[i]);
+        TRACE("%s", resourceUris[i]);
     }
 
     return reinterpret_cast<TFilamentAsset *>(asset);
