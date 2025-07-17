@@ -212,7 +212,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
         },
-        textureFormat: TextureFormat.RGBA32F,
+        textureFormat: options.renderTargetColorTextureFormat,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
       final depth = await FilamentApp.instance!.createTexture(
@@ -225,7 +225,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
           TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT
         },
         textureFormat:
-            TextureFormat.DEPTH24_STENCIL8, // TextureFormat.DEPTH32F,
+            options.renderTargetDepthTextureFormat,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
 

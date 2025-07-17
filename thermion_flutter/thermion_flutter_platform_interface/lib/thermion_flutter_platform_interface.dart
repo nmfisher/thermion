@@ -7,13 +7,25 @@ import 'thermion_flutter_texture.dart';
 class ThermionFlutterOptions {
   final String? uberarchivePath;
   final Backend? backend;
+  
+  /// The format to use for the default render target color attachment.
+  /// Currently only applicable on iOS/macOS.
+  ///
+  final TextureFormat renderTargetColorTextureFormat;
+
+  /// The format to use for the default render target depth attachment.
+  /// Currently only applicable on iOS/macOS.
+  ///
+  final TextureFormat renderTargetDepthTextureFormat;
 
   const ThermionFlutterOptions(
-      {this.uberarchivePath = null, this.backend = null});
+      {this.uberarchivePath = null,
+      this.backend = null,
+      this.renderTargetColorTextureFormat = TextureFormat.RGBA32F,
+      this.renderTargetDepthTextureFormat = TextureFormat.DEPTH24_STENCIL8});
 }
 
 class ThermionFlutterWebOptions extends ThermionFlutterOptions {
-  
   final bool createCanvas;
   final bool importCanvasAsWidget;
 
@@ -22,8 +34,6 @@ class ThermionFlutterWebOptions extends ThermionFlutterOptions {
       this.createCanvas = true,
       String? uberarchivePath})
       : super(uberarchivePath: uberarchivePath);
-
-
 }
 
 abstract class ThermionFlutterPlatform extends PlatformInterface {
@@ -42,15 +52,11 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
     _options ??= const ThermionFlutterOptions();
     return _options!;
   }
-  
+
   ///
   ///
   ///
   void setOptions(covariant ThermionFlutterOptions options) {
-    if (_options != null) {
-      throw Exception(
-          "Options can only be set once for the entire app lifecycle.");
-    }
     _options = options;
   }
 
