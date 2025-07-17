@@ -1,3 +1,7 @@
+## 0.3.3-pre
+
+ - **FEAT**: allow passing renderTargetColorTextureFormat via ThermionFlutterOptions.
+
 ## 0.3.2
 
  - Bump "thermion_flutter_platform_interface" to `0.3.2`.

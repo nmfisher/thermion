@@ -3,6 +3,48 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-07-17
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.3.3-pre`](#thermion_dart---v033-pre)
+ - [`thermion_flutter` - `v0.3.3-pre`](#thermion_flutter---v033-pre)
+ - [`thermion_flutter_method_channel` - `v0.3.3-pre`](#thermion_flutter_method_channel---v033-pre)
+ - [`thermion_flutter_platform_interface` - `v0.3.3-pre`](#thermion_flutter_platform_interface---v033-pre)
+ - [`thermion_flutter_web` - `v0.3.3-pre`](#thermion_flutter_web---v033-pre)
+
+---
+
+#### `thermion_dart` - `v0.3.3-pre`
+
+ - **FIX**: fix Windows build.dart.
+ - **FIX**: add nan/negative checks inside setLensProjection.
+
+#### `thermion_flutter` - `v0.3.3-pre`
+
+ - **DOCS**: replace thermion_flutter README with symlink to thermion_dart README.
+
+#### `thermion_flutter_method_channel` - `v0.3.3-pre`
+
+ - **FEAT**: allow passing renderTargetColorTextureFormat via ThermionFlutterOptions.
+
+#### `thermion_flutter_platform_interface` - `v0.3.3-pre`
+
+ - **FEAT**: allow passing renderTargetColorTextureFormat via ThermionFlutterOptions.
+
+#### `thermion_flutter_web` - `v0.3.3-pre`
+
+ - Bump "thermion_flutter_web" to `0.3.3-pre`.
+
+
 ## 2025-07-08
 
 ### Changes

@@ -1,3 +1,8 @@
+## 0.3.3-pre
+
+ - **FIX**: fix Windows build.dart.
+ - **FIX**: add nan/negative checks inside setLensProjection.
+
 ## 0.3.2
 
  - Bump "thermion_dart" to `0.3.2`.
