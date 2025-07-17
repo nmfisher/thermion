@@ -131,7 +131,7 @@ void main(List<String> args) async {
 
     var frameworks = [];
 
-    if (platform != "windows") {
+    if (targetOS != OS.windows) {
       flags.addAll(['-std=c++17']);
     } else {
       defines["WIN32"] = "1";
@@ -194,7 +194,7 @@ void main(List<String> args) async {
       name: packageName,
       language: Language.cpp,
       assetName: 'thermion_dart.dart',
-      sources: platform == "windows" ? [] : sources,
+      sources: targetOS == OS.windows ? [] : sources,
       includes: platform == "windows"
           ? []
           : ['native/include', 'native/include/filament'],
@@ -220,12 +220,12 @@ void main(List<String> args) async {
           "/I${path.join(pkgRootFilePath, "native", "include", "windows", "vulkan")}",
           "@${srcs.uri.toFilePath(windows: true)}",
           // ...sources,
-          '/link',
-          "/LIBPATH:$libDir",
-          '/DLL',
+          // '/link',
+          // "/LIBPATH:$libDir",
+          // '/DLL',
         ]
       ],
-      dartBuildFiles: ['hook/build.dart'],
+      libraryDirectories: [libDir],
     );
 
     await cbuilder.run(

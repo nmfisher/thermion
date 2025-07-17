@@ -25,7 +25,6 @@
 #pragma comment(lib, "dracodec.lib")
 #pragma comment(lib, "ibl.lib")
 #pragma comment(lib, "ktxreader.lib")
-#pragma comment(lib, "png.lib")
 #pragma comment(lib, "z.lib")
 #pragma comment(lib, "stb.lib")
 #pragma comment(lib, "uberzlib.lib")

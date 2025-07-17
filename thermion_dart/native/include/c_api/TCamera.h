@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef _WIN32
+#include "ThermionWin32.h"
+#endif
+
 #ifdef __cplusplus
 namespace thermion {
 extern "C"
