@@ -295,7 +295,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
       _skyboxTexture = await bundle.createTexture(
           onTextureUploadComplete: onTextureUploadComplete,
-          requestId: requestId) as FFITexture;
+          textureUploadCompleteRequestId: requestId) as FFITexture;
 
       _skybox = await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
           as FFISkybox;
@@ -333,7 +333,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
       final texture = await bundle.createTexture(
           onTextureUploadComplete: onTextureUploadComplete,
-          requestId: requestId);
+          textureUploadCompleteRequestId: requestId);
       final harmonics = bundle.getSphericalHarmonics();
 
       final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
