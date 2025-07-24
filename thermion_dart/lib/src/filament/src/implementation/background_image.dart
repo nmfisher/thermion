@@ -8,7 +8,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class BackgroundImage extends ThermionAsset {
-  
   final ThermionAsset asset;
 
   ThermionEntity get entity => asset.entity;
@@ -48,6 +47,7 @@ class BackgroundImage extends ThermionAsset {
 
     var backgroundImage =
         await viewer.createGeometry(GeometryHelper.fullscreenQuad());
+    await imageMaterialInstance.setParameterInt("isCubeMap", 0);
     await imageMaterialInstance.setParameterInt("showImage", 0);
     var transform = Matrix4.identity();
 
