@@ -268,6 +268,9 @@ EMSCRIPTEN_KEEPALIVE TTexture* Ktx1Reader_createTexture(
     uint32_t requestId,
     VoidCallback onTextureUploadComplete
 );
+
+EMSCRIPTEN_KEEPALIVE TTexture *Ktx2Reader_createTexture(TEngine *tEngine, uint8_t *data, size_t size);
+
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name, bool alpha);
 EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage);

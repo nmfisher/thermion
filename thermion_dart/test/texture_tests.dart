@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:image/image.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
@@ -202,6 +201,17 @@ void main() async {
         await material.destroy();
         await texture.dispose();
       });
+    });
+
+    test('load KTX2 texture ', () async {
+      await testHelper.withViewer((viewer) async {
+        final data = File("${testHelper.testDir}/assets/2d_uastc.ktx2")
+            .readAsBytesSync();
+        final texture = await FilamentApp.instance!.loadKtx2(data);
+        expect(await texture.getHeight(), 40);
+        expect(await texture.getWidth(), 40);
+        
+      }, bg: kRed);
     });
   });
 

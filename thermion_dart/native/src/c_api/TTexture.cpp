@@ -124,6 +124,53 @@ namespace thermion
             }
         }
 
+        EMSCRIPTEN_KEEPALIVE TTexture *Ktx2Reader_createTexture(TEngine *tEngine, uint8_t* data, size_t size) {
+            Log("Size %d Data : %d %d %d %d %d %d %d %d", size, data[0], data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
+            std::vector<uint8_t> copy(data, data + size);
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto reader = new ktxreader::Ktx2Reader(*engine);
+            auto result = reader->requestFormat(filament::Texture::InternalFormat::RGBA_ASTC_4x4);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_R11);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_R11_SIGNED);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_RG11);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_RG11_SIGNED);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_RGB8);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_SRGB8);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_RGB8_A1);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_SRGB8_A1);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_EAC_RGBA8);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_EAC_SRGBA8);
+            Log("Result : %d", result);
+            result = reader->requestFormat(filament::Texture::InternalFormat::RGBA8);
+            Log("Result : %d", result);
+
+            Log("Finished requesting KTX2 formats, loading KTX2 data of length %d bytes", size);
+                
+            auto *texture = reader->load(copy.data(), size, ktxreader::Ktx2Reader::TransferFunction::sRGB);
+
+            if(!texture) {
+                Log("Failed to load with sRGB transfer function");
+                texture = reader->load(copy.data(), size, ktxreader::Ktx2Reader::TransferFunction::LINEAR);
+                if(!texture) {
+                    Log("Failed to load with LINEAR transfer function");
+                }
+            }
+
+            delete reader;
+            return reinterpret_cast<TTexture *>(texture);
+
+        }
+
         EMSCRIPTEN_KEEPALIVE TTexture *Ktx1Reader_createTexture(
             TEngine *tEngine,
             TKtx1Bundle *tBundle,

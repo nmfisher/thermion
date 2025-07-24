@@ -47,8 +47,7 @@ base class PointerClass<T extends NativeType> extends NativeType {
   int size() => 4;
 
   static PointerClass<PointerClass<T>> stackAlloc<T extends NativeType>(
-    int count,
-  ) {
+      int count) {
     return _lib._stackAlloc<T>(4 * count) as PointerClass<PointerClass<T>>;
   }
 
@@ -244,15 +243,6 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static T create<T extends Struct>() {
-    switch (T) {
-      case double4x4:
-        final ptr = double4x4.stackAlloc();
-        return ptr.toDart() as T;
-      case TFogOptions:
-        final ptr = TFogOptions.stackAlloc();
-        final fogOptions = ptr.toDart();
-        return fogOptions as T;
-    }
     throw Exception();
   }
 }
@@ -823,6 +813,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TKtx1Bundle> tBundle,
     int requestId,
     VoidCallback onTextureUploadComplete,
+  );
+  external Pointer<TTexture> _Ktx2Reader_createTexture(
+    Pointer<TEngine> tEngine,
+    Pointer<Uint8> data,
+    size_t size,
   );
   external Pointer<TLinearImage> _Image_createEmpty(
     int width,
@@ -3228,6 +3223,15 @@ self.Pointer<TTexture> Ktx1Reader_createTexture(
       requestId,
       onTextureUploadComplete
           as Pointer<self.NativeFunction<VoidCallbackFunction>>);
+  return self.Pointer<TTexture>(result);
+}
+
+self.Pointer<TTexture> Ktx2Reader_createTexture(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<Uint8> data,
+  Dart__darwin_size_t size,
+) {
+  final result = _lib._Ktx2Reader_createTexture(tEngine.cast(), data, size);
   return self.Pointer<TTexture>(result);
 }
 

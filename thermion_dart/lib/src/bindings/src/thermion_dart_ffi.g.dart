@@ -767,6 +767,15 @@ external ffi.Pointer<TTexture> Ktx1Reader_createTexture(
 );
 
 @ffi.Native<
+    ffi.Pointer<TTexture> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TTexture> Ktx2Reader_createTexture(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Uint8> data,
+  int size,
+);
+
+@ffi.Native<
     ffi.Pointer<TLinearImage> Function(
         ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
 external ffi.Pointer<TLinearImage> Image_createEmpty(

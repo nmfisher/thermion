@@ -1265,7 +1265,23 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFISkybox(ptr);
   }
 
+  ///
+  ///
+  ///
   Future<bool> isRenderable(ThermionEntity entity) async {
     return RenderableManager_isRenderable(renderableManager, entity);
+  }
+
+  ///
+  ///
+  ///
+  Future<Texture> loadKtx2(Uint8List data) async {
+    _logger.info("Loading KTX2 from ${data.length} bytes");
+    var texturePtr =
+        Ktx2Reader_createTexture(engine, data.address, data.length);
+    if (texturePtr == nullptr) {
+      throw Exception("Failed to load KTX2 texture");
+    }
+    return FFITexture(engine, texturePtr);
   }
 }
