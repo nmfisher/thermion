@@ -733,8 +733,11 @@ class ThermionViewerFFI extends ThermionViewer {
     });
     var camera = FFICamera(cameraPtr, app);
     final viewport = await view.getViewport();
-
-    await camera.setLensProjection(aspect: viewport.width / viewport.height);
+    var aspect = viewport.width / viewport.height;
+    if(viewport.width == 0 || viewport.height == 0) {
+      aspect = 1.0;
+    }
+    await camera.setLensProjection(aspect: aspect);
     _cameras.add(camera);
     return camera;
   }
