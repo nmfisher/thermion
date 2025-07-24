@@ -126,6 +126,9 @@ class ThermionViewerFFI extends ThermionViewer {
   Future render() async {
     final swapChains =
         await (FilamentApp.instance as FFIFilamentApp).getSwapChains();
+    if (swapChains.isEmpty) {
+      throw Exception("No swapchain available");
+    }
     for (final swapChain in swapChains) {
       await withBoolCallback(
         (cb) => Renderer_beginFrameRenderThread(
@@ -734,7 +737,7 @@ class ThermionViewerFFI extends ThermionViewer {
     var camera = FFICamera(cameraPtr, app);
     final viewport = await view.getViewport();
     var aspect = viewport.width / viewport.height;
-    if(viewport.width == 0 || viewport.height == 0) {
+    if (viewport.width == 0 || viewport.height == 0) {
       aspect = 1.0;
     }
     await camera.setLensProjection(aspect: aspect);
