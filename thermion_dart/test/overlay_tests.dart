@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -10,11 +11,13 @@ void main() async {
       (viewer) async {
         await viewer.setGridOverlayVisibility(true);
         await testHelper.capture(viewer.view, "grid_visible");
+        final camera = await viewer.getActiveCamera();
+        await camera.lookAt(Vector3(0, 5, 10));
+        await testHelper.capture(viewer.view, "grid_visible_angle");
         await viewer.setGridOverlayVisibility(false);
-        await testHelper.capture(viewer.view, "grid_hidden");          
+        await testHelper.capture(viewer.view, "grid_hidden");
       },
       postProcessing: true,
     );
   });
-
 }
