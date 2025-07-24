@@ -1,3 +1,7 @@
+## 0.3.3
+
+ - Bump "thermion_dart" to `0.3.3`.
+
 ## 0.3.3-pre
 
  - **FIX**: fix Windows build.dart.

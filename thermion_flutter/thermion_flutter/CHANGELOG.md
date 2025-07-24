@@ -1,3 +1,7 @@
+## 0.3.3
+
+ - Bump "thermion_flutter" to `0.3.3`.
+
 ## 0.3.3-pre
 
  - **DOCS**: replace thermion_flutter README with symlink to thermion_dart README.

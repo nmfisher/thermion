@@ -1,3 +1,7 @@
+## 0.3.3
+
+ - Bump "thermion_flutter_web" to `0.3.3`.
+
 ## 0.3.3-pre
 
  - Bump "thermion_flutter_web" to `0.3.3-pre`.
