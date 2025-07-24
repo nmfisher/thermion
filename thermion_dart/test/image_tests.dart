@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -9,8 +9,10 @@ void main() async {
   await testHelper.setup();
   test('decode KTX', () async {
     await testHelper.withViewer((viewer) async {
-      await FilamentApp.instance!.decodeKtx(
-          File("${testHelper.testDir}/assets/default_env_skybox.ktx").readAsBytesSync());
+      final ktx1Data =
+          File("${testHelper.testDir}/assets/default_env_skybox.ktx")
+              .readAsBytesSync();
+      final bundle = await FFIKtx1Bundle.create(ktx1Data);
     });
   });
 
@@ -23,11 +25,19 @@ void main() async {
     });
   });
 
-  test('set background image', () async {
+  test('set background image from PNG', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setBackgroundImage(
           "file://${testHelper.testDir}/assets/cube_texture_512x512.png");
-      await testHelper.capture(viewer.view, "background_image");
+      await testHelper.capture(viewer.view, "background_png_image");
+    });
+  });
+
+  test('set background image from KTX', () async {
+    await testHelper.withViewer((viewer) async {
+      await viewer.setBackgroundImage(
+          "file://${testHelper.testDir}/assets/background.ktx");
+      await testHelper.capture(viewer.view, "background_ktx_image");
     });
   });
 }
