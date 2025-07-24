@@ -110,7 +110,7 @@ jobs:
       - run: cd picking && flutter pub get && flutter build appbundle
       - run: cd picking && flutter build web 
       - run: cd viewer && flutter pub get && flutter build appbundle
-      - run: cd viewer && flutter build viewer
+      - run: cd viewer && flutter build web
       - name: Upload logs
         if: failure() || steps.build.outcome == 'failure'
         uses: actions/upload-artifact@v4
