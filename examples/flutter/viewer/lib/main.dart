@@ -113,7 +113,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ElevatedButton(onPressed: _load, child: const Text("Load")));
   }
 
-  Widget _changeBgColor() {
+  Widget _randomizeBgColor() {
     return Center(
         child: ElevatedButton(
             onPressed: () async {
@@ -122,7 +122,18 @@ class _MyHomePageState extends State<MyHomePage> {
               await _thermionViewer!.setBackgroundColor(
                   rnd.nextDouble(), rnd.nextDouble(), rnd.nextDouble(), 1.0);
             },
-            child: const Text("Change background color")));
+            child: const Text("Randomize background color")));
+  }
+
+  Widget _setBgImage() {
+    return Center(
+        child: ElevatedButton(
+            onPressed: () async {
+              await _thermionViewer!.removeSkybox();
+              await _thermionViewer!.setBackgroundImage(
+                  "assets/background.ktx");
+            },
+            child: const Text("Set background image")));
   }
 
   Widget _unloadButton() {
@@ -134,12 +145,15 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
         body: Stack(children: [
       if (_thermionViewer != null)
         Positioned.fill(
-            child: ThermionListenerWidget(inputHandler: DelegateInputHandler.fixedOrbit(_thermionViewer!), child:ThermionWidget(
-          viewer: _thermionViewer!,
-        ))),
+            child: ThermionListenerWidget(
+                inputHandler: DelegateInputHandler.fixedOrbit(_thermionViewer!),
+                child: ThermionWidget(
+                  viewer: _thermionViewer!,
+                ))),
       Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
@@ -148,9 +162,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    if (_thermionViewer == null) _loadButton(),
-                    if (_thermionViewer != null) _changeBgColor(),
-                    if (_thermionViewer != null) _unloadButton(),
+                    if(_thermionViewer == null)
+                      _loadButton(),
+                    if (_thermionViewer != null) ...[
+                      _randomizeBgColor(),
+                      _setBgImage(),
+                      _unloadButton()
+                    ],
                   ])))
     ]));
   }
