@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
