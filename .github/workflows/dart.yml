@@ -39,6 +39,7 @@ jobs:
             test/postprocessing_tests.dart \
             test/scene_tests.dart  \
             test/picking_tests.dart \
+            test/image_tests.dart \
             --concurrency=1
       #test/overlay_tests.dart  \
       - name: Zip output
@@ -108,6 +109,8 @@ jobs:
       # - run: cd picking && flutter pub get && flutter build ios 
       - run: cd picking && flutter pub get && flutter build appbundle
       - run: cd picking && flutter build web 
+      - run: cd viewer && flutter pub get && flutter build appbundle
+      - run: cd viewer && flutter build viewer
       - name: Upload logs
         if: failure() || steps.build.outcome == 'failure'
         uses: actions/upload-artifact@v4
