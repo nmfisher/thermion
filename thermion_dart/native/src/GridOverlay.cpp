@@ -7,7 +7,6 @@ namespace thermion
     GridOverlay::GridOverlay(Engine &engine, Material *material) : _engine(engine), _material(material)
     {
         createGrid();
-        //createSphere();
     }
 
     GridOverlay::~GridOverlay()
@@ -15,15 +14,10 @@ namespace thermion
         auto &rm = _engine.getRenderableManager();
         auto &tm = _engine.getTransformManager();
 
-        
         rm.destroy(_gridEntity);
         tm.destroy(_gridEntity);
         _engine.destroy(_gridEntity);
-        
-        // rm.destroy(_sphereEntity);
-        // tm.destroy(_sphereEntity);
-        // _engine.destroy(_sphereEntity);
-        
+                
         _engine.destroy(_materialInstance);
         _engine.destroy(_material);
     }
@@ -95,9 +89,16 @@ namespace thermion
         _materialInstance = _material->createInstance();
 
         _materialInstance->setParameter("distance", 10000.0f);
+        _materialInstance->setParameter("interval", 1.0f);
+        _materialInstance->setParameter("fadeInStart", 0.0f);
+        _materialInstance->setParameter("fadeInEnd", 0.0f);
+        _materialInstance->setParameter("fadeOutStart", 90.0f);
+        _materialInstance->setParameter("fadeOutEnd", 100.0f);
         _materialInstance->setParameter("lineSize", 0.01f);
         _materialInstance->setParameter("gridColor", filament::math::float3 { 0.15f, 0.15f, 0.15f});
-
+        _materialInstance->setTransparencyMode(filament::MaterialInstance::TransparencyMode::TWO_PASSES_TWO_SIDES);
+        _materialInstance->setCullingMode(filament::MaterialInstance::CullingMode::NONE);
+            
         RenderableManager::Builder(1)
             .boundingBox({{-1.0f, -1.0f, -1.0f}, // Min point
                           {1.0f, 1.0f, 1.0f}})   // Max point
@@ -116,96 +117,8 @@ namespace thermion
             .castShadows(false)
             .build(_engine, _gridEntity);
 
-        _childEntities[0] = _gridEntity;
     }
 
-    void GridOverlay::createSphere()
-    {
-        const float sphereRadius = 1.05f;
-        const int sphereSegments = 16;
-        const int sphereRings = 16;
-
-        int vertexCount = (sphereRings + 1) * (sphereSegments + 1);
-        int indexCount = sphereRings * sphereSegments * 6;
-
-        math::float3 *vertices = new math::float3[vertexCount];
-        uint32_t *indices = new uint32_t[indexCount];
-
-        int vertexIndex = 0;
-        // Generate sphere vertices
-        for (int ring = 0; ring <= sphereRings; ++ring)
-        {
-            float theta = ring * M_PI / sphereRings;
-            float sinTheta = std::sin(theta);
-            float cosTheta = std::cos(theta);
-
-            for (int segment = 0; segment <= sphereSegments; ++segment)
-            {
-                float phi = segment * 2 * M_PI / sphereSegments;
-                float sinPhi = std::sin(phi);
-                float cosPhi = std::cos(phi);
-
-                float x = cosPhi * sinTheta;
-                float y = cosTheta;
-                float z = sinPhi * sinTheta;
-
-                vertices[vertexIndex++] = {x * sphereRadius, y * sphereRadius, z * sphereRadius};
-            }
-        }
-
-        int indexIndex = 0;
-        // Generate sphere indices
-        for (int ring = 0; ring < sphereRings; ++ring)
-        {
-            for (int segment = 0; segment < sphereSegments; ++segment)
-            {
-                uint32_t current = ring * (sphereSegments + 1) + segment;
-                uint32_t next = current + sphereSegments + 1;
-
-                indices[indexIndex++] = current;
-                indices[indexIndex++] = next;
-                indices[indexIndex++] = current + 1;
-
-                indices[indexIndex++] = current + 1;
-                indices[indexIndex++] = next;
-                indices[indexIndex++] = next + 1;
-            }
-        }
-
-        auto sphereVb = VertexBuffer::Builder()
-                            .vertexCount(vertexCount)
-                            .bufferCount(1)
-                            .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-                            .build(_engine);
-
-        sphereVb->setBufferAt(_engine, 0, VertexBuffer::BufferDescriptor(vertices, vertexCount * sizeof(math::float3), [](void *buffer, size_t size, void *)
-                                                                         { delete[] static_cast<math::float3 *>(buffer); }));
-
-        auto sphereIb = IndexBuffer::Builder()
-                            .indexCount(indexCount)
-                            .bufferType(IndexBuffer::IndexType::UINT)
-                            .build(_engine);
-
-        sphereIb->setBuffer(_engine, IndexBuffer::BufferDescriptor(
-                                         indices,
-                                         indexCount * sizeof(uint32_t),
-                                         [](void *buffer, size_t size, void *)
-                                         { delete[] static_cast<uint32_t *>(buffer); }));
-
-        _sphereEntity = utils::EntityManager::get().create();
-
-        RenderableManager::Builder(1)
-            .boundingBox({{-sphereRadius, -sphereRadius, -sphereRadius},
-                          {sphereRadius, sphereRadius, sphereRadius}})
-            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, sphereVb, sphereIb, 0, indexCount)
-            .priority(7)
-            .layerMask(0xFF, 1u << SceneLayer::Overlay)
-            .culling(true)
-            .receiveShadows(false)
-            .castShadows(false)
-            .build(_engine, _sphereEntity);
-        _childEntities[1] = _sphereEntity;
-    }
 
     SceneAsset *GridOverlay::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)
     {
@@ -215,20 +128,18 @@ namespace thermion
     void GridOverlay::addAllEntities(Scene *scene)
     {
         scene->addEntity(_gridEntity);
-        // scene->addEntity(_sphereEntity);
     }
 
     void GridOverlay::removeAllEntities(Scene *scene)
     {
         scene->remove(_gridEntity);
-        // scene->remove(_sphereEntity);
     }
     
     SceneAsset *GridOverlay::getInstanceByEntity(utils::Entity entity)
     {
         for (auto &instance : _instances)
         {
-            if (instance->_gridEntity == entity || instance->_sphereEntity == entity)
+            if (instance->_gridEntity == entity)
             {
                 return instance.get();
             }
@@ -243,7 +154,7 @@ namespace thermion
 
     const Entity *GridOverlay::getChildEntities()
     {
-        return _childEntities;
+        return nullptr;
     }
 
     size_t GridOverlay::getChildEntityCount() { 

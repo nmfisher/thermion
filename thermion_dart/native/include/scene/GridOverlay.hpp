@@ -58,8 +58,6 @@ public:
 private:
     Engine& _engine;
     utils::Entity _gridEntity;
-    utils::Entity _sphereEntity;
-    Entity _childEntities[2];
     Material* _material;
     MaterialInstance* _materialInstance;
     std::vector<std::unique_ptr<GridOverlay>> _instances;

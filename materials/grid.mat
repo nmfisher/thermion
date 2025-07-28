@@ -8,11 +8,36 @@ material {
         },
         {
             type: float,
+            name: interval,
+        },
+        {
+            type: float,
+            name: fadeInStart
+        },
+        {
+            type: float,
+            name: fadeInEnd
+        },
+        {
+            type: float,
+            name: fadeOutStart
+        },
+        {
+            type: float,
+            name: fadeOutEnd
+        },
+        {
+            type: float,
             name: lineSize
         },
         {
             type: float3,
             name: gridColor
+        },
+        {
+            type: bool,
+            name: showAxes,
+            default : false
         }
     ],
     depthWrite : true,
@@ -57,7 +82,6 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-
         // fade fragments close together 
         // (i.e. where camera is at a steep angle to the ground plane)
         
@@ -77,14 +101,22 @@ fragment {
         vec3 fwidthPos = fwidth(P); // world units covered by 1px in X direction + 1px in Y direction
         P += mulMat4x4Float3(getUserWorldFromWorldMatrix(),	getWorldCameraPosition()).xyz;
 
-        vec2 halfSize = vec2(0.5f, 0.5f);        
-        vec2 gridDomain = abs(mod(P.xz + halfSize, vec2(1,1)) - halfSize);
+        vec2 halfSize = vec2(materialParams.interval / 2.0f, materialParams.interval/2.0f);        
+        vec2 gridDomain = abs(mod(P.xz + halfSize, vec2(materialParams.interval,materialParams.interval)) - halfSize);
         gridDomain /= fwidthPos.xz;
         float lineDist = min(gridDomain.x, gridDomain.y);
         float gridAlpha = GRID_STEP(lineDist - materialParams.lineSize);
 
-        gridAlpha *= fade;
+        float4 cameraWorld = getUserWorldFromWorldMatrix() * vec4(getWorldCameraPosition(), 1.0f);
+        float cameraDistFromOrigin = length(cameraWorld.xyz);
 
+        float distanceFade = 1.0f;
+        if(cameraDistFromOrigin > materialParams.fadeOutStart) {
+            distanceFade = 1.0f - smoothstep(materialParams.fadeOutStart, materialParams.fadeOutEnd, cameraDistFromOrigin);
+        } else if(cameraDistFromOrigin < materialParams.fadeInEnd) {
+            distanceFade = smoothstep(materialParams.fadeInStart, materialParams.fadeInEnd, cameraDistFromOrigin);
+        } 
+        
         vec3 planeAxes = vec3(1.0f, 0.0f, 1.0f);
 
         vec3 distanceToAxes = vec3(
@@ -108,12 +140,21 @@ fragment {
             1.0
         );  
 
+        
         if(axes.x > 1e-8) {
-            material.baseColor = vec4(AXIS_COLOR_X, 1.0);
+            if(!materialParams.showAxes) {
+                material.baseColor = color * gridAlpha * fade * distanceFade; 
+            } else {
+                material.baseColor = vec4(AXIS_COLOR_X * gridAlpha * fade, gridAlpha * fade);
+            }
         } else if(axes.z > 1e-8) {
-            material.baseColor = vec4(AXIS_COLOR_Z, 1.0);
+            if(!materialParams.showAxes) {
+                material.baseColor = color * gridAlpha * fade * distanceFade; 
+            } else {
+                material.baseColor = vec4(AXIS_COLOR_Z * gridAlpha * fade, gridAlpha * fade);
+            }
         } else {
-            material.baseColor = color * gridAlpha; 
+            material.baseColor = color * gridAlpha * fade * distanceFade; 
         }
 
     }

@@ -699,10 +699,10 @@ class ThermionViewerFFI extends ThermionViewer {
     _grid ??= await GridOverlay.create(app, animationManager);
 
     if (visible) {
-      await scene.add(_grid!);
+      await _grid!.addToScene(scene);
       await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
     } else {
-      await scene.remove(_grid!);
+      await _grid!.removeFromScene(scene);
       await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
     }
   }
@@ -719,9 +719,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future removeGridOverlay({bool destroy = false}) async {
     if (_grid != null) {
-      await scene.remove(_grid!);
+      await _grid!.removeFromScene(scene);
       if (destroy) {
-        await destroyAsset(_grid!);
+        await _grid!.destroy();
         _grid = null;
       }
     }
