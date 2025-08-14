@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'package:thermion_dart/src/filament/src/implementation/textured_quad.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
-import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import '../../../../filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../../filament/src/implementation/ffi_scene.dart';
@@ -211,6 +209,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future clearBackgroundImage({bool destroy = false}) async {
     if (destroy) {
+      await scene.remove(_backgroundImage!);
       await _backgroundImage?.destroy();
       _backgroundImage = null;
     } else {
@@ -222,7 +221,10 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<TexturedQuad> getBackgroundImage() async {
-    _backgroundImage ??= await TexturedQuad.create(this, scene);
+    if (_backgroundImage == null) {
+      _backgroundImage ??= await FilamentApp.instance!.createTexturedQuad();
+      await scene.add(_backgroundImage!);
+    }
     return _backgroundImage!;
   }
 
@@ -240,7 +242,8 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await FilamentApp.instance!.loadResource(path);
-    _backgroundImage ??= await TexturedQuad.create(this, scene);
+    await getBackgroundImage();
+
     bool isKtx = path.endsWith(".ktx");
     if (isKtx) {
       final bundle = await FFIKtx1Bundle.create(imageData);

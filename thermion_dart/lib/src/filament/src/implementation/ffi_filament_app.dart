@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -1283,5 +1284,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to load KTX2 texture");
     }
     return FFITexture(engine, texturePtr);
+  }
+
+  @override
+  Future<TexturedQuad> createTexturedQuad() async {
+    var mi = await createImageMaterialInstance();
+    var quad = await createGeometry(GeometryHelper.fullscreenQuad(), nullptr);
+    await mi.setParameterInt("isCubeMap", 0);
+    await mi.setParameterInt("showImage", 0);
+    var transform = Matrix4.identity();
+
+    await mi.setParameterMat4("transform", transform);
+
+    await quad.setMaterialInstanceAt(mi);
+    return FFITexturedQuad(asset: quad, mi:  mi);
   }
 }

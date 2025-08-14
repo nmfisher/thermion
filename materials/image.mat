@@ -29,6 +29,10 @@ material {
         {
             type : int,
             name : cubeMapFace
+        },
+        {
+            type : float,
+            name : depth
         }
     ],
     variables : [
@@ -91,5 +95,6 @@ fragment {
             // Manual, pre-multiplied srcOver with opaque destination optimization
             material.baseColor.rgb = color.rgb + materialParams.backgroundColor.rgb * (1.0 - color.a);
         }
+        gl_FragDepth = materialParams.depth;
     }
 }

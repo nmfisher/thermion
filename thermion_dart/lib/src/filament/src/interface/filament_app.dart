@@ -368,9 +368,12 @@ abstract class FilamentApp<T> {
   Future<bool> isRenderable(ThermionEntity entity);
 
   /// Create a [Texture] from the content of a KTX2 file containing
-  /// BasisU-encoded data. Even though the KTX2 format does not mandate BasisU 
+  /// BasisU-encoded data. Even though the KTX2 format does not mandate BasisU
   /// compression, the Filament implementation uses BasisU to decode KTX2 data
   /// (which will fail if you pass an uncompressed KTX2 file).
   ///
   Future<Texture> loadKtx2(Uint8List data);
+
+  /// Create a textured quad in screenspace. This can be used as an image or a solid block.
+  Future<TexturedQuad> createTexturedQuad();
 }

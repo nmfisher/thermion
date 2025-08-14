@@ -2,12 +2,10 @@ import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/src/bone_animation_data.dart';
 import 'package:animation_tools_dart/src/morph_animation_data.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-class TexturedQuad extends ThermionAsset {
+class FFITexturedQuad extends TexturedQuad {
   final ThermionAsset asset;
 
   ThermionEntity get entity => asset.entity;
@@ -18,45 +16,23 @@ class TexturedQuad extends ThermionAsset {
 
   final MaterialInstance mi;
 
-  final FFIScene scene;
-
   int? width;
   int? height;
 
-  TexturedQuad._(
-      this.asset, this.scene, this.texture, this.sampler, this.mi);
+  FFITexturedQuad(
+      {required this.asset, this.texture, this.sampler, required this.mi});
 
-  ///
-  ///
-  ///
-  Future destroy() async {
-    Scene_removeEntity(scene.scene, entity);
-
-    await texture?.dispose();
-    await sampler?.dispose();
-    await mi.destroy();
+  T getHandle<T>() {
+    return asset.getHandle() as T;
   }
 
   ///
   ///
   ///
-  static Future<TexturedQuad> create(
-      ThermionViewer viewer, FFIScene scene) async {
-    var imageMaterialInstance =
-        await FilamentApp.instance!.createImageMaterialInstance();
-
-    var backgroundImage =
-        await viewer.createGeometry(GeometryHelper.fullscreenQuad());
-    await imageMaterialInstance.setParameterInt("isCubeMap", 0);
-    await imageMaterialInstance.setParameterInt("showImage", 0);
-    var transform = Matrix4.identity();
-
-    await imageMaterialInstance.setParameterMat4("transform", transform);
-
-    await backgroundImage.setMaterialInstanceAt(imageMaterialInstance);
-    await scene.add(backgroundImage as FFIAsset);
-    return TexturedQuad._(
-        backgroundImage, scene, null, null, imageMaterialInstance);
+  Future destroy() async {
+    await texture?.dispose();
+    await sampler?.dispose();
+    await mi.destroy();
   }
 
   ///
@@ -179,12 +155,6 @@ class TexturedQuad extends ThermionAsset {
   }
 
   @override
-  Future removeStencilHighlight() {
-    // TODO: implement removeStencilHighlight
-    throw UnimplementedError();
-  }
-
-  @override
   Future setCastShadows(bool castShadows) {
     // TODO: implement setCastShadows
     throw UnimplementedError();
@@ -193,13 +163,6 @@ class TexturedQuad extends ThermionAsset {
   @override
   Future setReceiveShadows(bool castShadows) {
     // TODO: implement setReceiveShadows
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setStencilHighlight(
-      {double r = 1.0, double g = 0.0, double b = 0.0, int? entityIndex}) {
-    // TODO: implement setStencilHighlight
     throw UnimplementedError();
   }
 
@@ -228,18 +191,6 @@ class TexturedQuad extends ThermionAsset {
   @override
   Future clearMorphAnimationData(ThermionEntity entity) {
     // TODO: implement clearMorphAnimationData
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<double> getAnimationDuration(int animationIndex) {
-    // TODO: implement getAnimationDuration
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> getAnimationNames() {
-    // TODO: implement getAnimationNames
     throw UnimplementedError();
   }
 
@@ -282,27 +233,6 @@ class TexturedQuad extends ThermionAsset {
   @override
   Future<Matrix4> getWorldTransform({ThermionEntity? entity}) {
     // TODO: implement getWorldTransform
-    throw UnimplementedError();
-  }
-
-  @override
-  Future playAnimation(int index,
-      {bool loop = false,
-      bool reverse = false,
-      bool replaceActive = true,
-      double crossfade = 0.0,
-      double startOffset = 0.0}) {
-    // TODO: implement playAnimation
-    throw UnimplementedError();
-  }
-
-  @override
-  Future playAnimationByName(String name,
-      {bool loop = false,
-      bool reverse = false,
-      bool replaceActive = true,
-      double crossfade = 0.0}) {
-    // TODO: implement playAnimationByName
     throw UnimplementedError();
   }
 
@@ -395,12 +325,13 @@ class TexturedQuad extends ThermionAsset {
 
   ThermionAsset? get boundingBoxAsset => throw UnimplementedError();
 
-  @override
-  Future<ThermionAsset> createBoundingBoxAsset() {
+  Future<v64.Aabb3> getBoundingBox() {
     throw UnimplementedError();
   }
 
-  Future<v64.Aabb3> getBoundingBox() {
-    throw UnimplementedError();
+  @override
+  Future setDepth(double depth) async {
+    await mi.setDepthWriteEnabled(true);
+    await mi.setParameterFloat("depth", depth);
   }
 }

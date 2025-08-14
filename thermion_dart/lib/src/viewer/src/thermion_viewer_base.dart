@@ -1,5 +1,6 @@
 import 'package:thermion_dart/src/filament/src/interface/layers.dart';
 import 'package:thermion_dart/src/filament/src/interface/light_options.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 
 import '../../filament/src/interface/shared_types.dart';
 import 'dart:typed_data';
@@ -57,6 +58,11 @@ abstract class ThermionViewer {
   /// Destroys/disposes the viewer (including the entire scene). You cannot use the viewer after calling this method.
   ///
   Future dispose();
+
+  // Return the textured quad used for the background image.
+  //
+  //
+  Future<TexturedQuad> getBackgroundImage();
 
   ///
   /// Set the background image to [path] (which should be .png, .jpg, or .ktx 
