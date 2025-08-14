@@ -36,7 +36,9 @@ abstract class ThermionAsset {
   ///
   ///
   ///
-  Future<List<ThermionEntity>> getChildEntities();
+  Future<List<ThermionEntity>> getChildEntities()  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
@@ -48,18 +50,24 @@ abstract class ThermionAsset {
   ///
   ///
   ///
-  Future<List<String?>> getChildEntityNames();
+  Future<List<String?>> getChildEntityNames()  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future<ThermionEntity?> getChildEntity(String childName);
+  Future<ThermionEntity?> getChildEntity(String childName)  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
   Future<MaterialInstance> getMaterialInstanceAt(
-      {ThermionEntity? entity, int index = 0});
+      {ThermionEntity? entity, int index = 0})  async {
+    throw UnimplementedError();
+  }
 
   /// Sets the material instance for the primitive at [primitiveIndex] in
   /// [entity].
@@ -104,12 +112,16 @@ abstract class ThermionAsset {
   /// This is independent of the boundingBoxAsset (which is used to visualize
   /// the bounding box in the scene); you do not need to call
   /// [createBoundingBoxAsset] before this method.
-  Future<Aabb3> getBoundingBox();
+  Future<Aabb3> getBoundingBox()  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future<ThermionAsset> getInstance(int index);
+  Future<ThermionAsset> getInstance(int index)  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Create a new instance of [entity].
@@ -122,37 +134,51 @@ abstract class ThermionAsset {
   ///
   /// Returns the number of instances associated with this asset.
   ///
-  Future<int> getInstanceCount();
+  Future<int> getInstanceCount()  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Returns all instances of associated with this asset.
   ///
-  Future<List<ThermionAsset>> getInstances();
+  Future<List<ThermionAsset>> getInstances()  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future setCastShadows(bool castShadows);
+  Future setCastShadows(bool castShadows)  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future setReceiveShadows(bool castShadows);
+  Future setReceiveShadows(bool castShadows)  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future<bool> isCastShadowsEnabled({ThermionEntity? entity});
+  Future<bool> isCastShadowsEnabled({ThermionEntity? entity})  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity});
+  Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity})  async {
+    throw UnimplementedError();
+  }
 
   ///
   ///
   ///
-  Future transformToUnitCube();
+  Future transformToUnitCube()  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// All renderable entities are assigned a layer mask.
@@ -168,7 +194,9 @@ abstract class ThermionAsset {
   /// and the world grid to layer 2 (disabled by default). We suggest you avoid
   /// using these layers.
   ///
-  Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer);
+  Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer)  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
@@ -276,7 +304,9 @@ abstract class ThermionAsset {
   /// Resets all bones in the given entity to their rest pose.
   /// This should be done before every call to addBoneAnimation.
   ///
-  Future resetBones();
+  Future resetBones()  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Enqueues and plays the [animation] for the specified bone(s).
@@ -300,35 +330,47 @@ abstract class ThermionAsset {
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
       double fadeOutInSecs = 0.0,
-      double maxDelta = 1.0});
+      double maxDelta = 1.0})  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Gets the entity representing the bone at [boneIndex]/[skinIndex].
   /// The returned entity is only intended for use with [getWorldTransform].
   ///
-  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0});
+  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0})  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Gets the local (relative to parent) transform for [entity].
   ///
-  Future<Matrix4> getLocalTransform({ThermionEntity? entity});
+  Future<Matrix4> getLocalTransform({ThermionEntity? entity})  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Gets the world transform for [entity].
   ///
-  Future<Matrix4> getWorldTransform({ThermionEntity? entity});
+  Future<Matrix4> getWorldTransform({ThermionEntity? entity})  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Gets the inverse bind (pose) matrix for the bone.
   /// Note that [parent] must be the ThermionEntity returned by [loadGlb/loadGltf], not any other method ([getChildEntity] etc).
   /// This is because all joint information is internally stored with the parent entity.
   ///
-  Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0});
+  Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0})  async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Sets the transform (relative to its parent) for [entity].
   ///
-  Future setTransform(Matrix4 transform, {ThermionEntity? entity});
+  Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Updates the bone matrices for [entity] (which must be the ThermionEntity
@@ -337,7 +379,9 @@ abstract class ThermionAsset {
   /// instance of the relevant FilamentInstance (which uses the local
   /// bone transform and the inverse bind matrix to set the bone matrix).
   ///
-  Future updateBoneMatrices(ThermionEntity entity);
+  Future updateBoneMatrices(ThermionEntity entity) async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Directly set the bone matrix for the bone at the given index.
@@ -345,18 +389,24 @@ abstract class ThermionAsset {
   ///
   Future setBoneTransform(
       ThermionEntity entity, int boneIndex, Matrix4 transform,
-      {int skinIndex = 0});
+      {int skinIndex = 0}) async {
+    throw UnimplementedError();
+  }
 
   ///
   /// An [entity] will only be animatable after an animation component is attached.
   /// Any calls to [playAnimation]/[setBoneAnimation]/[setMorphAnimation] will have no visual effect until [addAnimationComponent] has been called on the instance.
   ///
-  Future addAnimationComponent();
+  Future addAnimationComponent() async {
+    throw UnimplementedError();
+  }
 
   ///
   /// Removes an animation component from [entity].
   ///
-  Future removeAnimationComponent();
+  Future removeAnimationComponent() async {
+    throw UnimplementedError();
+  }
 
   /// Returns the number of primitives in [entity] (which is assumed to have
   /// a Renderable component attached).
