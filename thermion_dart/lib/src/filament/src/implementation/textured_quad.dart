@@ -7,7 +7,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-class BackgroundImage extends ThermionAsset {
+class TexturedQuad extends ThermionAsset {
   final ThermionAsset asset;
 
   ThermionEntity get entity => asset.entity;
@@ -23,7 +23,7 @@ class BackgroundImage extends ThermionAsset {
   int? width;
   int? height;
 
-  BackgroundImage._(
+  TexturedQuad._(
       this.asset, this.scene, this.texture, this.sampler, this.mi);
 
   ///
@@ -40,7 +40,7 @@ class BackgroundImage extends ThermionAsset {
   ///
   ///
   ///
-  static Future<BackgroundImage> create(
+  static Future<TexturedQuad> create(
       ThermionViewer viewer, FFIScene scene) async {
     var imageMaterialInstance =
         await FilamentApp.instance!.createImageMaterialInstance();
@@ -55,7 +55,7 @@ class BackgroundImage extends ThermionAsset {
 
     await backgroundImage.setMaterialInstanceAt(imageMaterialInstance);
     await scene.add(backgroundImage as FFIAsset);
-    return BackgroundImage._(
+    return TexturedQuad._(
         backgroundImage, scene, null, null, imageMaterialInstance);
   }
 

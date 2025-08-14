@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:thermion_dart/src/filament/src/implementation/background_image.dart';
+import 'package:thermion_dart/src/filament/src/implementation/textured_quad.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
@@ -203,7 +203,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _onDispose.add(callback);
   }
 
-  BackgroundImage? _backgroundImage;
+  TexturedQuad? _backgroundImage;
 
   ///
   ///
@@ -221,8 +221,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future<BackgroundImage> getBackgroundImage() async {
-    _backgroundImage ??= await BackgroundImage.create(this, scene);
+  Future<TexturedQuad> getBackgroundImage() async {
+    _backgroundImage ??= await TexturedQuad.create(this, scene);
     return _backgroundImage!;
   }
 
@@ -240,7 +240,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await FilamentApp.instance!.loadResource(path);
-    _backgroundImage ??= await BackgroundImage.create(this, scene);
+    _backgroundImage ??= await TexturedQuad.create(this, scene);
     bool isKtx = path.endsWith(".ktx");
     if (isKtx) {
       final bundle = await FFIKtx1Bundle.create(imageData);
