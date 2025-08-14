@@ -8,5 +8,5 @@ IMAGE_PACKAGE:
 IMAGE_IMAGE_OFFSET:
     .int 0
 IMAGE_IMAGE_SIZE:
-    .int 78666
+    .int 86374
 
