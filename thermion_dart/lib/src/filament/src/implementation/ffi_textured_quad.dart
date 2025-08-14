@@ -92,7 +92,7 @@ class FFITexturedQuad extends TexturedQuad {
         ? TextureFormat.RGBA32F
         : channels == 3
             ? TextureFormat.RGB32F
-            : throw UnimplementedError();
+            : throw UnimplementedError("Currently only 3 or 4 channels are supported");
     final pixelFormat = channels == 4
         ? PixelDataFormat.RGBA
         : channels == 3

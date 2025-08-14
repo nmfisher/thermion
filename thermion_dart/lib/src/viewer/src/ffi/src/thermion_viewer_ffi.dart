@@ -535,7 +535,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future destroyAsset(covariant FFIAsset asset) async {
+  Future destroyAsset(ThermionAsset asset) async {
     _assets.remove(asset);
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
@@ -830,14 +830,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future addToScene(covariant FFIAsset asset) async {
+  Future addToScene(ThermionAsset asset) async {
     await scene.add(asset);
   }
 
   ///
   ///
   ///
-  Future removeFromScene(covariant FFIAsset asset) async {
+  Future removeFromScene(ThermionAsset asset) async {
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
   }
