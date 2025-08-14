@@ -86,21 +86,38 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   }
 
   @override
-  Future setLensProjection(
+  Future<void> setLensProjection(
       {double near = kNear,
       double far = kFar,
       double aspect = 1.0,
       double focalLength = kFocalLength}) async {
-    if (near.isNaN ||
-        far.isNaN ||
-        aspect.isNaN ||
-        focalLength.isNaN ||
-        near.isNegative ||
-        far.isNegative ||
-        aspect.isNegative ||
-        focalLength.isNegative) {
-      throw FormatException();
+    if (near.isNaN) {
+      throw FormatException('near must not be NaN, but was $near.');
     }
+    if (far.isNaN) {
+      throw FormatException('far must not be NaN, but was $far.');
+    }
+    if (aspect.isNaN) {
+      throw FormatException('aspect must not be NaN, but was $aspect.');
+    }
+    if (focalLength.isNaN) {
+      throw FormatException(
+          'focalLength must not be NaN, but was $focalLength.');
+    }
+    if (near.isNegative) {
+      throw FormatException('near must not be negative, but was $near.');
+    }
+    if (far.isNegative) {
+      throw FormatException('far must not be negative, but was $far.');
+    }
+    if (aspect.isNegative) {
+      throw FormatException('aspect must not be negative, but was $aspect.');
+    }
+    if (focalLength.isNegative) {
+      throw FormatException(
+          'focalLength must not be negative, but was $focalLength.');
+    }
+
     Camera_setLensProjection(camera, near, far, aspect, focalLength);
   }
 
