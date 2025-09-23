@@ -1,7 +1,5 @@
 import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
-import 'package:animation_tools_dart/src/bone_animation_data.dart';
-import 'package:animation_tools_dart/src/morph_animation_data.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -92,7 +90,8 @@ class FFITexturedQuad extends TexturedQuad {
         ? TextureFormat.RGBA32F
         : channels == 3
             ? TextureFormat.RGB32F
-            : throw UnimplementedError("Currently only 3 or 4 channels are supported");
+            : throw UnimplementedError(
+                "Currently only 3 or 4 channels are supported");
     final pixelFormat = channels == 4
         ? PixelDataFormat.RGBA
         : channels == 3
@@ -154,146 +153,10 @@ class FFITexturedQuad extends TexturedQuad {
     return [];
   }
 
-  @override
-  Future setCastShadows(bool castShadows) {
-    // TODO: implement setCastShadows
-    throw UnimplementedError();
-  }
 
   @override
-  Future setReceiveShadows(bool castShadows) {
-    // TODO: implement setReceiveShadows
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer) {
-    // TODO: implement setVisibilityLayer
-    throw UnimplementedError();
-  }
-
-  @override
-  Future addAnimationComponent() {
-    // TODO: implement addAnimationComponent
-    throw UnimplementedError();
-  }
-
-  @override
-  Future addBoneAnimation(BoneAnimationData animation,
-      {int skinIndex = 0,
-      double fadeInInSecs = 0.0,
-      double fadeOutInSecs = 0.0,
-      double maxDelta = 1.0}) {
-    // TODO: implement addBoneAnimation
-    throw UnimplementedError();
-  }
-
-  @override
-  Future clearMorphAnimationData(ThermionEntity entity) {
-    // TODO: implement clearMorphAnimationData
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0}) {
-    // TODO: implement getBone
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> getBoneNames({int skinIndex = 0}) {
-    // TODO: implement getBoneNames
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionEntity?> getChildEntity(String childName) {
-    // TODO: implement getChildEntity
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0}) {
-    // TODO: implement getInverseBindMatrix
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Matrix4> getLocalTransform({ThermionEntity? entity}) {
-    // TODO: implement getLocalTransform
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) {
-    // TODO: implement getMorphTargetNames
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Matrix4> getWorldTransform({ThermionEntity? entity}) {
-    // TODO: implement getWorldTransform
-    throw UnimplementedError();
-  }
-
-  @override
-  Future removeAnimationComponent() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future resetBones() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setBoneTransform(
-      ThermionEntity entity, int boneIndex, Matrix4 transform,
-      {int skinIndex = 0}) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setGltfAnimationFrame(int index, int animationFrame) {
-    // TODO: implement setGltfAnimationFrame
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setMorphAnimationData(MorphAnimationData animation,
-      {List<String>? targetMeshNames}) {
-    // TODO: implement setMorphAnimationData
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) {
-    // TODO: implement setMorphTargetWeights
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setTransform(Matrix4 transform, {ThermionEntity? entity}) {
-    // TODO: implement setTransform
-    throw UnimplementedError();
-  }
-
-  @override
-  Future stopAnimation(int animationIndex) {
-    // TODO: implement stopAnimation
-    throw UnimplementedError();
-  }
-
-  @override
-  Future stopAnimationByName(String name) {
-    // TODO: implement stopAnimationByName
-    throw UnimplementedError();
-  }
-
-  @override
-  Future updateBoneMatrices(ThermionEntity entity) {
-    // TODO: implement updateBoneMatrices
-    throw UnimplementedError();
+  Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
+    await mi.setParameterMat4("transform", transform);
   }
 
   @override
@@ -309,12 +172,6 @@ class FFITexturedQuad extends TexturedQuad {
   @override
   Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity}) async {
     return false;
-  }
-
-  @override
-  Future transformToUnitCube() {
-    // TODO: implement transformToUnitCube
-    throw UnimplementedError();
   }
 
   @override
