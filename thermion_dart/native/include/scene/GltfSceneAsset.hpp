@@ -14,7 +14,6 @@
 #include <utils/NameComponentManager.h>
 
 #include "scene/GltfSceneAssetInstance.hpp"
-#include "components/CollisionComponentManager.hpp"
 
 #include "scene/SceneAsset.hpp"
 
