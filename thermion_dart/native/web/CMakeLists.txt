@@ -68,15 +68,30 @@ link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
-file(GLOB SOURCES 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp" 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/**/*.cpp" 
+file(GLOB SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/**/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp"
-   # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp" 
+   # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp"
   )
 
+# Add plugin sources if provided
+if(DEFINED PLUGIN_SOURCES)
+  message(STATUS "PLUGIN_SOURCES variable is defined!")
+  message(STATUS "Raw PLUGIN_SOURCES value: ${PLUGIN_SOURCES}")
+  # Plugin sources are now absolute paths, add them directly
+  foreach(plugin_source ${PLUGIN_SOURCES})
+    message(STATUS "Adding plugin source: ${plugin_source}")
+    list(APPEND SOURCES "${plugin_source}")
+  endforeach()
+  message(STATUS "Final SOURCES list now has plugin sources included")
+else()
+  message(STATUS "PLUGIN_SOURCES variable is NOT defined - no plugins will be included")
+endif()
+
+message(STATUS "Total source files being compiled: ${SOURCES}")
 add_executable(${MODULE_NAME} ${SOURCES})
 
 set_target_properties(${MODULE_NAME} PROPERTIES
@@ -89,6 +104,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament)
+
+# Add plugin include directory if it exists
+if(DEFINED PLUGIN_INCLUDE_DIR)
+  message(STATUS "Adding plugin include directory: ${PLUGIN_INCLUDE_DIR}")
+  include_directories(${PLUGIN_INCLUDE_DIR})
+endif()
 
 add_library(backend STATIC IMPORTED)
 set_property(TARGET backend PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libbackend.a")
