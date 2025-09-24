@@ -22,16 +22,12 @@
 
 #include "scene/AnimationManager.hpp"
 #include "components/OverlayComponentManager.hpp"
+#include "PluginAPI.hpp"
 
 
 namespace thermion
 {
 
-    #ifdef __EMSCRIPTEN__
-    extern "C" {
-      void on_frame_update(float delta_time);
-    }
-    #endif
 
     class RenderTicker
     {
@@ -41,7 +37,9 @@ namespace thermion
     public:
         RenderTicker(
             filament::Engine *engine,
-            filament::Renderer *renderer) : mEngine(engine), mRenderer(renderer) { }
+            filament::Renderer *renderer) : mEngine(engine), mRenderer(renderer) { 
+                RegisterPluginComponentManagers();
+            }
         ~RenderTicker();
         
         /// @brief 

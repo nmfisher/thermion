@@ -35,6 +35,7 @@
 
 #include "Log.hpp"
 #include "RenderTicker.hpp"
+#include "PluginAPI.hpp"
 
 namespace thermion
 {
@@ -92,10 +93,10 @@ namespace thermion
       animationManager->update(frameTimeInNanos);
     }
 
-    // Call plugin function if defined
+    // Update plugin component managers
     #ifdef __EMSCRIPTEN__
     float deltaTimeSeconds = frameTimeInNanos / 1000000000.0f;
-    on_frame_update(deltaTimeSeconds);
+    thermion::UpdatePluginComponentManagers(deltaTimeSeconds);
     #endif
 
     auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
