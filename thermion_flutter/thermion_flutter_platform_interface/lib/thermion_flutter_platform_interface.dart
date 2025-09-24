@@ -7,7 +7,7 @@ import 'thermion_flutter_texture.dart';
 class ThermionFlutterOptions {
   final String? uberarchivePath;
   final Backend? backend;
-  
+
   /// The format to use for the default render target color attachment.
   /// Currently only applicable on iOS/macOS.
   ///
@@ -28,10 +28,13 @@ class ThermionFlutterOptions {
 class ThermionFlutterWebOptions extends ThermionFlutterOptions {
   final bool createCanvas;
   final bool importCanvasAsWidget;
+  final String jsPath;
 
   const ThermionFlutterWebOptions(
       {this.importCanvasAsWidget = false,
       this.createCanvas = true,
+      this.jsPath = "./thermion_dart.js",
+
       String? uberarchivePath})
       : super(uberarchivePath: uberarchivePath);
 }
