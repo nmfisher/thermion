@@ -92,6 +92,12 @@ namespace thermion
       animationManager->update(frameTimeInNanos);
     }
 
+    // Call plugin function if defined
+    #ifdef __EMSCRIPTEN__
+    float deltaTimeSeconds = frameTimeInNanos / 1000000000.0f;
+    on_frame_update(deltaTimeSeconds);
+    #endif
+
     auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
     TRACE("Updated animations in %.3f ms", durationNs);
 

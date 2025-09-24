@@ -23,10 +23,15 @@
 #include "scene/AnimationManager.hpp"
 #include "components/OverlayComponentManager.hpp"
 
+
 namespace thermion
 {
 
-
+    #ifdef __EMSCRIPTEN__
+    extern "C" {
+      void on_frame_update(float delta_time);
+    }
+    #endif
 
     class RenderTicker
     {
