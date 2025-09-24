@@ -52,7 +52,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
         // if not, manually add the script to the DOM
         var scriptElement =
             document.createElement("script") as HTMLScriptElement;
-        scriptElement.src = "./thermion_dart.js";
+        scriptElement.src = options.jsPath;
         document.head!.appendChild(scriptElement);
         final completer = Completer<JSObject?>();
         scriptElement.addEventListener(
