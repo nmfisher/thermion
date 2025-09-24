@@ -125,7 +125,6 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TTexture *Ktx2Reader_createTexture(TEngine *tEngine, uint8_t* data, size_t size) {
-            Log("Size %d Data : %d %d %d %d %d %d %d %d", size, data[0], data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
             std::vector<uint8_t> copy(data, data + size);
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto reader = new ktxreader::Ktx2Reader(*engine);
