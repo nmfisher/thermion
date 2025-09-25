@@ -57,6 +57,12 @@ void main(List<String> args) async {
 
     final targetArchitecture = config.code.targetArchitecture;
 
+    logger.info(packageRoot);
+
+    // Extract consuming package root for plugin support
+    final consumingPackageRoot = _extractConsumingPackageRoot(
+        input.outputDirectory.toString(), logger);
+
     var platform = targetOS.toString().toLowerCase();
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
@@ -135,9 +141,18 @@ void main(List<String> args) async {
       defines["ENABLE_TRACING"] = "1";
     }
 
+    // Check for plugin configuration
+    final pluginDir = input.userDefines["plugin_dir"] as String?;
+
     logger.info("Defines : ${defines}");
 
-    final flags = []; //"-fsanitize=address"];
+    final flags = <String>[]; //"-fsanitize=address"];
+
+    // Process plugins after flags is declared
+    if (pluginDir != null && consumingPackageRoot != null) {
+      await _discoverAndProcessPlugins(pluginDir, sources, libs, defines, flags,
+          targetOS, logger, consumingPackageRoot, input);
+    }
 
     var frameworks = [];
 
@@ -196,6 +211,30 @@ void main(List<String> args) async {
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
 
+    // Collect include directories including plugin includes
+    final includeDirs = <String>[
+      'native/include',
+      'native/include/filament',
+    ];
+
+    // Add plugin include directories
+    if (pluginDir != null && consumingPackageRoot != null) {
+      final pluginRootPath = path.join(consumingPackageRoot, pluginDir);
+      final pluginRootDir = Directory(pluginRootPath);
+
+      if (await pluginRootDir.exists()) {
+        await for (final entity in pluginRootDir.list()) {
+          if (entity is Directory) {
+            final includeDir = Directory(path.join(entity.path, "include"));
+            if (await includeDir.exists()) {
+              includeDirs.add(includeDir.path);
+              logger.info("Added plugin include directory: ${includeDir.path}");
+            }
+          }
+        }
+      }
+    }
+
     var srcs = File(Directory.systemTemp.path +
         Platform.pathSeparator +
         "thermion_sources.rsp");
@@ -206,9 +245,7 @@ void main(List<String> args) async {
       language: Language.cpp,
       assetName: 'thermion_dart.dart',
       sources: targetOS == OS.windows ? [] : sources,
-      includes: platform == "windows"
-          ? []
-          : ['native/include', 'native/include/filament'],
+      includes: platform == "windows" ? [] : includeDirs,
       defines: platform == "windows" ? {} : defines,
       flags: [
         if (targetOS == OS.macOS) '-mmacosx-version-min=13.0',
@@ -409,4 +446,135 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
     successToken.writeAsStringSync("SUCCESS");
   }
   return libDir;
+}
+
+//
+// Plugin discovery and processing functions
+//
+
+String? _extractConsumingPackageRoot(String outputDirUri, Logger logger) {
+  try {
+    // Parse the URI to get file path
+    final uri = Uri.parse(outputDirUri);
+    final outputPath = uri.toFilePath();
+
+    logger.info("Extracting consuming package root from output directory: $outputPath");
+
+    // Navigate up the directory tree to find the consuming package root
+    // The path typically looks like: /path/to/consuming_package/.dart_tool/hooks_runner/shared/thermion_dart/build/hash/
+    var currentPath = outputPath;
+
+    while (currentPath != path.dirname(currentPath)) {  // Stop at filesystem root
+      final pubspecFile = File(path.join(currentPath, 'pubspec.yaml'));
+
+      if (pubspecFile.existsSync()) {
+        logger.info("Found pubspec.yaml at: ${pubspecFile.path}");
+
+        // Verify this is a consuming package (not thermion_dart itself)
+        final pubspecContent = pubspecFile.readAsStringSync();
+
+        // Check if this is thermion_dart package itself (avoid self-detection)
+        if (pubspecContent.contains('name: thermion_dart')) {
+          logger.info("Skipping thermion_dart package itself");
+        } else if (pubspecContent.contains('thermion_dart')) {
+          logger.info("Found consuming package root: $currentPath");
+          return currentPath;
+        }
+      }
+
+      // Move up one directory level
+      currentPath = path.dirname(currentPath);
+    }
+
+    logger.info("Could not find consuming package root from output directory");
+    return null;
+  } catch (e) {
+    logger.info("Error extracting consuming package root: $e");
+    return null;
+  }
+}
+
+Future<void> _discoverAndProcessPlugins(
+  String pluginDirConfig,
+  List<String> sources,
+  List<String> libs,
+  Map<String, String?> defines,
+  List<String> flags,
+  OS targetOS,
+  Logger logger,
+  String consumingPackageRoot,
+  BuildInput input,
+) async {
+  // Use consuming package root that was passed in
+  final pluginRootPath = path.join(consumingPackageRoot, pluginDirConfig);
+  logger.info("Using consuming package plugin path: $pluginRootPath");
+
+  final pluginRootDir = Directory(pluginRootPath);
+
+  if (!await pluginRootDir.exists()) {
+    logger.info("Plugin directory not found: $pluginRootPath");
+    return;
+  }
+
+  logger.info("Discovering plugins in: $pluginRootPath");
+
+  // Scan for plugin subdirectories
+  await for (final entity in pluginRootDir.list()) {
+    if (entity is Directory) {
+      await _processPluginDirectory(
+          entity, sources, libs, defines, flags, targetOS, logger);
+    }
+  }
+}
+
+Future<void> _processPluginDirectory(
+  Directory pluginDir,
+  List<String> sources,
+  List<String> libs,
+  Map<String, String?> defines,
+  List<String> flags,
+  OS targetOS,
+  Logger logger,
+) async {
+  final pluginName = path.basename(pluginDir.path);
+  logger.info("Processing plugin: $pluginName");
+
+  // 1. Add plugin sources
+  final srcDir = Directory(path.join(pluginDir.path, "src"));
+  if (await srcDir.exists()) {
+    await for (final entity in srcDir.list(recursive: true)) {
+      if (entity is File &&
+          (entity.path.endsWith('.cpp') || entity.path.endsWith('.c'))) {
+        sources.add(entity.path);
+        logger.fine("Added plugin source: ${entity.path}");
+      }
+    }
+  }
+
+  // 2. Add plugin include directories
+  final includeDir = Directory(path.join(pluginDir.path, "include"));
+  if (await includeDir.exists()) {
+    logger.fine("Found plugin include directory: ${includeDir.path}");
+  }
+
+  // 3. Add platform-specific libraries
+  final platformLibDir = Directory(
+      path.join(pluginDir.path, "lib", targetOS.toString().toLowerCase()));
+
+  if (await platformLibDir.exists()) {
+    await for (final entity in platformLibDir.list()) {
+      if (entity is File) {
+        if (entity.path.endsWith('.a') || entity.path.endsWith('.lib')) {
+          final libName = path.basenameWithoutExtension(entity.path);
+          libs.add(libName);
+          logger.fine("Added plugin library: $libName");
+        }
+      }
+    }
+  }
+
+  // 4. Add plugin compile definition
+  defines["${pluginName.toUpperCase()}_ENABLED"] = "1";
+
+  logger.info("Successfully processed plugin: $pluginName");
 }
