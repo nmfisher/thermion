@@ -5,7 +5,9 @@
 #include <map>
 #include <functional>
 #include <string>
+#ifdef __EMSCRIPTEN__
 #include <emscripten/console.h>
+#endif
 
 namespace thermion {
 
@@ -25,17 +27,23 @@ namespace {
  */
 bool RegisterComponentManager(const std::string& name, IPluginComponentManager* instance) {
     if (!instance) {
+#ifdef __EMSCRIPTEN__
         emscripten_console_logf("[PLUGIN] Error: Cannot register null component manager for '%s'", name.c_str());
+#endif
         return false;
     }
 
     if (g_registeredComponentManagers.find(name) != g_registeredComponentManagers.end()) {
+#ifdef __EMSCRIPTEN__
         emscripten_console_logf("[PLUGIN] Warning: Component manager '%s' already registered, ignoring duplicate", name.c_str());
+#endif
         return false;
     }
 
     g_registeredComponentManagers[name] = instance;
+#ifdef __EMSCRIPTEN__
     emscripten_console_logf("[PLUGIN] Registered component manager instance: %s", name.c_str());
+#endif
     return true;
 }
 
@@ -45,12 +53,16 @@ bool RegisterComponentManager(const std::string& name, IPluginComponentManager* 
  */
 void RegisterPluginComponentManagers() {
     if (g_initialized) {
+#ifdef __EMSCRIPTEN__
         emscripten_console_logf("[PLUGIN] Component managers already registered, skipping");
+#endif
         return;
     }
 
+#ifdef __EMSCRIPTEN__
     emscripten_console_logf("[PLUGIN] Activating %d registered component managers...",
                            (int)g_registeredComponentManagers.size());
+#endif
 
     // Move all registered instances to active registry
     for (const auto& pair : g_registeredComponentManagers) {
@@ -58,15 +70,21 @@ void RegisterPluginComponentManagers() {
         IPluginComponentManager* manager = pair.second;
 
         if (manager) {
+#ifdef __EMSCRIPTEN__
             emscripten_console_logf("[PLUGIN] Activating component manager: %s", name.c_str());
+#endif
             g_pluginComponentManagers.push_back(manager);
         } else {
+#ifdef __EMSCRIPTEN__
             emscripten_console_logf("[PLUGIN] Warning: Null component manager for '%s'", name.c_str());
+#endif
         }
     }
 
+#ifdef __EMSCRIPTEN__
     emscripten_console_logf("[PLUGIN] Successfully activated %d plugin component managers",
                            (int)g_pluginComponentManagers.size());
+#endif
 
     g_initialized = true;
 }
