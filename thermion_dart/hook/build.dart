@@ -142,22 +142,31 @@ void main(List<String> args) async {
     }
 
     // Check for plugin configuration
-    final pluginDir = input.userDefines["plugin_dir"] as String?;
+    final pluginConfigs = input.userDefines["plugins"] as List<dynamic>?;
 
     logger.info("Defines : ${defines}");
 
     final flags = <String>[]; //"-fsanitize=address"];
 
-    // Process plugins after flags is declared
-    if (pluginDir != null && consumingPackageRoot != null) {
-      await _discoverAndProcessPlugins(pluginDir, sources, libs, defines, flags,
-          targetOS, logger, consumingPackageRoot, input);
+    // Collect include directories including plugin includes
+    final includeDirs = <String>[
+      'native/include',
+      'native/include/filament',
+    ];
+
+    // Process plugins after flags and includeDirs are declared
+    if (pluginConfigs != null && consumingPackageRoot != null) {
+      await _processDeclarativePlugins(pluginConfigs, sources, libs, defines, flags,
+          includeDirs, targetOS, logger, consumingPackageRoot);
     }
 
     var frameworks = [];
 
     if (targetOS != OS.windows) {
-      flags.addAll(['-std=c++17']);
+      if(!flags.any((f) => f.contains("-std=c++"))) {
+        flags.addAll(['-std=c++17']);
+      }
+
     } else {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
@@ -210,30 +219,6 @@ void main(List<String> args) async {
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
-
-    // Collect include directories including plugin includes
-    final includeDirs = <String>[
-      'native/include',
-      'native/include/filament',
-    ];
-
-    // Add plugin include directories
-    if (pluginDir != null && consumingPackageRoot != null) {
-      final pluginRootPath = path.join(consumingPackageRoot, pluginDir);
-      final pluginRootDir = Directory(pluginRootPath);
-
-      if (await pluginRootDir.exists()) {
-        await for (final entity in pluginRootDir.list()) {
-          if (entity is Directory) {
-            final includeDir = Directory(path.join(entity.path, "include"));
-            if (await includeDir.exists()) {
-              includeDirs.add(includeDir.path);
-              logger.info("Added plugin include directory: ${includeDir.path}");
-            }
-          }
-        }
-      }
-    }
 
     var srcs = File(Directory.systemTemp.path +
         Platform.pathSeparator +
@@ -449,7 +434,7 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
 }
 
 //
-// Plugin discovery and processing functions
+// Plugin configuration processing functions
 //
 
 String? _extractConsumingPackageRoot(String outputDirUri, Logger logger) {
@@ -494,87 +479,112 @@ String? _extractConsumingPackageRoot(String outputDirUri, Logger logger) {
   }
 }
 
-Future<void> _discoverAndProcessPlugins(
-  String pluginDirConfig,
+Future<void> _processDeclarativePlugins(
+  List<dynamic> pluginConfigs,
   List<String> sources,
   List<String> libs,
   Map<String, String?> defines,
   List<String> flags,
+  List<String> includeDirs,
   OS targetOS,
   Logger logger,
   String consumingPackageRoot,
-  BuildInput input,
 ) async {
-  // Use consuming package root that was passed in
-  final pluginRootPath = path.join(consumingPackageRoot, pluginDirConfig);
-  logger.info("Using consuming package plugin path: $pluginRootPath");
-
-  final pluginRootDir = Directory(pluginRootPath);
-
-  if (!await pluginRootDir.exists()) {
-    logger.info("Plugin directory not found: $pluginRootPath");
-    return;
-  }
-
-  logger.info("Discovering plugins in: $pluginRootPath");
-
-  // Scan for plugin subdirectories
-  await for (final entity in pluginRootDir.list()) {
-    if (entity is Directory) {
-      await _processPluginDirectory(
-          entity, sources, libs, defines, flags, targetOS, logger);
+  for (final pluginConfig in pluginConfigs) {
+    if (pluginConfig is! Map<String, dynamic>) {
+      logger.warning("Invalid plugin configuration, expected Map but got ${pluginConfig.runtimeType}");
+      continue;
     }
-  }
-}
 
-Future<void> _processPluginDirectory(
-  Directory pluginDir,
-  List<String> sources,
-  List<String> libs,
-  Map<String, String?> defines,
-  List<String> flags,
-  OS targetOS,
-  Logger logger,
-) async {
-  final pluginName = path.basename(pluginDir.path);
-  logger.info("Processing plugin: $pluginName");
-
-  // 1. Add plugin sources
-  final srcDir = Directory(path.join(pluginDir.path, "src"));
-  if (await srcDir.exists()) {
-    await for (final entity in srcDir.list(recursive: true)) {
-      if (entity is File &&
-          (entity.path.endsWith('.cpp') || entity.path.endsWith('.c'))) {
-        sources.add(entity.path);
-        logger.fine("Added plugin source: ${entity.path}");
-      }
+    final pluginName = pluginConfig['name'] as String?;
+    if (pluginName == null) {
+      logger.warning("Plugin configuration missing 'name' field");
+      continue;
     }
-  }
 
-  // 2. Add plugin include directories
-  final includeDir = Directory(path.join(pluginDir.path, "include"));
-  if (await includeDir.exists()) {
-    logger.fine("Found plugin include directory: ${includeDir.path}");
-  }
+    logger.info("Processing plugin: $pluginName");
 
-  // 3. Add platform-specific libraries
-  final platformLibDir = Directory(
-      path.join(pluginDir.path, "lib", targetOS.toString().toLowerCase()));
-
-  if (await platformLibDir.exists()) {
-    await for (final entity in platformLibDir.list()) {
-      if (entity is File) {
-        if (entity.path.endsWith('.a') || entity.path.endsWith('.lib')) {
-          final libName = path.basenameWithoutExtension(entity.path);
-          libs.add(libName);
-          logger.fine("Added plugin library: $libName");
+    // Process sources
+    final pluginSources = pluginConfig['sources'] as List<dynamic>?;
+    if (pluginSources != null) {
+      for (final source in pluginSources) {
+        if (source is String) {
+          final sourcePath = path.join(consumingPackageRoot, source);
+          sources.add(sourcePath);
+          logger.fine("Added plugin source: $sourcePath");
         }
       }
     }
+
+    // Process include directories
+    final pluginIncludeDirs = pluginConfig['include_dirs'] as List<dynamic>?;
+    if (pluginIncludeDirs != null) {
+      for (final includeDir in pluginIncludeDirs) {
+        if (includeDir is String) {
+          final includePath = path.join(consumingPackageRoot, includeDir);
+          includeDirs.add(includePath);
+          logger.fine("Added plugin include directory: $includePath");
+        }
+      }
+    }
+
+    // Process library directories (as -L flags)
+    final pluginLibraryDirs = pluginConfig['library_dirs'] as Map<String, dynamic>?;
+    if (pluginLibraryDirs != null) {
+      final targetOSString = targetOS.toString().split('.').last;
+      final platformLibraryDirs = pluginLibraryDirs[targetOSString] as List<dynamic>?;
+      if (platformLibraryDirs != null) {
+        for (final libraryDir in platformLibraryDirs) {
+          if (libraryDir is String) {
+            final libraryPath = path.join(consumingPackageRoot, libraryDir);
+            flags.add("-L$libraryPath");
+            logger.fine("Added plugin library directory: -L$libraryPath");
+          }
+        }
+      }
+    }
+
+    // Process link libraries (as -l flags)
+    final pluginLinkLibraries = pluginConfig['link_libraries'] as List<dynamic>?;
+    if (pluginLinkLibraries != null) {
+      for (final library in pluginLinkLibraries) {
+        if (library is String) {
+          libs.add(library);
+          logger.fine("Added plugin link library: $library");
+        }
+      }
+    }
+
+    // Process defines
+    final pluginDefines = pluginConfig['defines'] as List<dynamic>?;
+    if (pluginDefines != null) {
+      for (final define in pluginDefines) {
+        if (define is String) {
+          if (define.contains('=')) {
+            final parts = define.split('=');
+            defines[parts[0]] = parts[1];
+          } else {
+            defines[define] = "1";
+          }
+          logger.fine("Added plugin define: $define");
+        }
+      }
+    }
+
+    // Process compile options
+    final pluginCompileOptions = pluginConfig['compile_options'] as List<dynamic>?;
+    if (pluginCompileOptions != null) {
+      for (final option in pluginCompileOptions) {
+        if (option is String) {
+          flags.add(option);
+          logger.fine("Added plugin compile option: $option");
+        }
+      }
+    }
+
+    // Add plugin enabled define
+    defines["${pluginName.toUpperCase()}_ENABLED"] = "1";
+
+    logger.info("Successfully processed plugin: $pluginName");
   }
-
-  // 4. Add plugin compile definition
-  defines["${pluginName.toUpperCase()}_ENABLED"] = "1";
-
-  logger.info("Successfully processed plugin: $pluginName");
 }
