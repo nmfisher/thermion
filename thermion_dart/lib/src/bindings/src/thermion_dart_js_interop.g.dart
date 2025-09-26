@@ -243,7 +243,16 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static T create<T extends Struct>() {
-    throw Exception();
+    switch (T) {
+      case double4x4:
+        final ptr = double4x4.stackAlloc();
+        return ptr.toDart() as T;
+      case TFogOptions:
+        final ptr = TFogOptions.stackAlloc();
+        final fogOptions = ptr.toDart();
+        return fogOptions as T;
+    }
+    throw Exception("Unsupported struct");
   }
 }
 
