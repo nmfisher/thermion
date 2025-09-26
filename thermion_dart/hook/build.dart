@@ -8,10 +8,34 @@ import 'package:logging/logging.dart';
 
 import 'package:path/path.dart' as path;
 
+Logger createLogger(String packageRoot) {
+  var logPath =
+      path.join(packageRoot, ".dart_tool", "thermion_dart", "log", "build.log");
+  var logFile = File(logPath);
+  if (!logFile.parent.existsSync()) {
+    logFile.parent.createSync(recursive: true);
+  }
+
+  final logger = Logger("")
+    ..level = Level.ALL
+    ..onRecord.listen((record) => logFile.writeAsStringSync(
+        record.message + "\n",
+        mode: FileMode.append,
+        flush: true));
+  return logger;
+}
+
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
+
+    final logger = createLogger(pkgRootFilePath);
+
+    if (!input.config.buildCodeAssets) {
+      logger.info("buildCodeAssets is false, assumed to be building for web");
+      return;
+    }
 
     final config = input.config;
 
@@ -27,26 +51,13 @@ void main(List<String> args) async {
     if (input.userDefines["mode"] == "debug") {
       buildMode = BuildMode.debug;
     }
-    
 
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
+
     final targetOS = config.code.targetOS;
 
     final targetArchitecture = config.code.targetArchitecture;
-    var logPath = path.join(
-        pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
-    var logFile = File(logPath);
-    if (!logFile.parent.existsSync()) {
-      logFile.parent.createSync(recursive: true);
-    }
-
-    final logger = Logger("")
-      ..level = Level.ALL
-      ..onRecord.listen((record) => logFile.writeAsStringSync(
-          record.message + "\n",
-          mode: FileMode.append,
-          flush: true));
 
     var platform = targetOS.toString().toLowerCase();
 
@@ -72,7 +83,8 @@ void main(List<String> args) async {
           "unlit_fixed_size.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
-      path.join(pkgRootFilePath, "native", "include", "material", "linear_depth.c"),
+      path.join(
+          pkgRootFilePath, "native", "include", "material", "linear_depth.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "outline.c"),
       path.join(pkgRootFilePath, "native", "include", "resources",
           "translation_gizmo_glb.c"),
@@ -180,7 +192,7 @@ void main(List<String> args) async {
     } else if (platform == "android") {
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
     } else if (targetOS == OS.linux) {
-      libs.addAll(["bluevk","bluegl"]);
+      libs.addAll(["bluevk", "bluegl"]);
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
@@ -204,14 +216,11 @@ void main(List<String> args) async {
         if (targetOS == OS.iOS) '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        if(targetOS == OS.linux)
-          ...[ "-stdlib=libc++", "-Wl,--whole-archive" ],
-        if (targetOS != OS.windows)...[
-              ...libs.map((lib) => "-l$lib"),
-              if(targetOS == OS.linux)
-              "-Wl,--no-whole-archive",
-              if(targetOS != OS.linux)
-                  "-lstdc++",
+        if (targetOS == OS.linux) ...["-stdlib=libc++", "-Wl,--whole-archive"],
+        if (targetOS != OS.windows) ...[
+          ...libs.map((lib) => "-l$lib"),
+          if (targetOS == OS.linux) "-Wl,--no-whole-archive",
+          if (targetOS != OS.linux) "-lstdc++",
           "-L$libDir"
         ],
         if (platform == "windows") ...[
@@ -234,44 +243,42 @@ void main(List<String> args) async {
       logger: logger,
     );
     if (targetOS == OS.android) {
-      
-        final archExtension = switch (targetArchitecture) {
-          Architecture.arm => "arm-linux-androideabi",
-          Architecture.arm64 => "aarch64-linux-android",
-          Architecture.x64 => "x86_64-linux-android",
-          Architecture.ia32 => "i686-linux-android",
-          _ => throw FormatException('Invalid')
-        };
+      final archExtension = switch (targetArchitecture) {
+        Architecture.arm => "arm-linux-androideabi",
+        Architecture.arm64 => "aarch64-linux-android",
+        Architecture.x64 => "x86_64-linux-android",
+        Architecture.ia32 => "i686-linux-android",
+        _ => throw FormatException('Invalid')
+      };
 
-        var compilerPath = config.code.cCompiler!.compiler.path;
+      var compilerPath = config.code.cCompiler!.compiler.path;
 
-        if (Platform.isWindows && compilerPath.startsWith("/")) {
-          compilerPath = compilerPath.substring(1);
-        }
+      if (Platform.isWindows && compilerPath.startsWith("/")) {
+        compilerPath = compilerPath.substring(1);
+      }
 
-        var ndkRoot = File(compilerPath)
-            .parent
-            .parent
-            .uri
-            .toFilePath(windows: Platform.isWindows);
+      var ndkRoot = File(compilerPath)
+          .parent
+          .parent
+          .uri
+          .toFilePath(windows: Platform.isWindows);
 
-        var stlPath = File([
-          ndkRoot,
-          "sysroot",
-          "usr",
-          "lib",
-          archExtension,
-          "libc++_shared.so"
-        ].join(Platform.pathSeparator));
-        final libcpp = CodeAsset(
-          package: "thermion_dart",
-          name: "libc++_shared.so",
-          linkMode: DynamicLoadingBundled(),
-          file: stlPath.uri,
-        );
+      var stlPath = File([
+        ndkRoot,
+        "sysroot",
+        "usr",
+        "lib",
+        archExtension,
+        "libc++_shared.so"
+      ].join(Platform.pathSeparator));
+      final libcpp = CodeAsset(
+        package: "thermion_dart",
+        name: "libc++_shared.so",
+        linkMode: DynamicLoadingBundled(),
+        file: stlPath.uri,
+      );
 
-        output.assets.addEncodedAsset(libcpp.encode());
-      
+      output.assets.addEncodedAsset(libcpp.encode());
     }
 
     if (targetOS == OS.windows) {
