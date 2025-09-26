@@ -2,6 +2,12 @@
 
 Web support is still experimental and currently requires you to manually compile Thermion to WASM first.
 
+To run from Flutter:
+
+```
+flutter run -d chrome --wasm --web-header=Cross-Origin-Opener-Policy=same-origin --web-header=Cross-Origin-Embedder-Policy=require-corp
+```
+
 Requirements:
 
 1) GNU Make
