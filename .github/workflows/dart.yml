@@ -29,7 +29,7 @@ jobs:
       - run: |
           cd thermion_dart
           dart pub get 
-          xvfb-run dart --enable-experiment=native-assets test \
+          xvfb-run dart test \
             test/asset_tests.dart \
             test/instancing_tests.dart \
             test/light_tests.dart \
