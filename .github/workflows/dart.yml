@@ -84,7 +84,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: master
+          channel: beta
           architecture: ARM64
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -131,7 +131,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: master
+          channel: beta
       - run: cd quickstart && flutter pub get && flutter build windows 
       - run: cd picking && flutter pub get && flutter build windows
       - name: Upload logs
