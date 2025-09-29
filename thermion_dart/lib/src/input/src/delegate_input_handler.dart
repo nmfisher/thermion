@@ -51,7 +51,6 @@ class DelegateInputHandler implements InputHandler {
     double minimumDistance = 0.1,
     Vector3? target,
     InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
-    ThermionEntity? entity,
   }) {
     return DelegateInputHandler(
       viewer: viewer,
@@ -70,7 +69,6 @@ class DelegateInputHandler implements InputHandler {
     ThermionViewer viewer, {
     bool freeLook = false,
     InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
-    ThermionEntity? entity,
   }) => DelegateInputHandler(
     viewer: viewer,
     delegates: [
