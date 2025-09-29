@@ -5,35 +5,21 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
-
-Logger createLogger(String packageRoot) {
-  var logPath =
-      path.join(packageRoot, ".dart_tool", "thermion_dart", "log", "build.log");
-  var logFile = File(logPath);
-  if (!logFile.parent.existsSync()) {
-    logFile.parent.createSync(recursive: true);
-  }
-
-  final logger = Logger("")
-    ..level = Level.ALL
-    ..onRecord.listen((record) => logFile.writeAsStringSync(
-        record.message + "\n",
-        mode: FileMode.append,
-        flush: true));
-  return logger;
-}
+import 'log.dart';
 
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
 
-    final logger = createLogger(pkgRootFilePath);
+    final logger = createLogger(pkgRootFilePath, "build.log");
 
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
       return;
     }
+
+    logger.info(input.assets.encodedAssets.keys.toList());
 
     final config = input.config;
 
@@ -57,11 +43,14 @@ void main(List<String> args) async {
 
     final targetArchitecture = config.code.targetArchitecture;
 
-    logger.info(packageRoot);
+    logger.info("""
+packageRoot : $packageRoot
+outputDirectory : ${outputDirectory.path}
+""");
 
     // Extract consuming package root for plugin support
-    final consumingPackageRoot = _extractConsumingPackageRoot(
-        input.outputDirectory.toString(), logger);
+    final consumingPackageRoot =
+        _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
 
     var platform = targetOS.toString().toLowerCase();
 
@@ -156,17 +145,16 @@ void main(List<String> args) async {
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {
-      await _processDeclarativePlugins(pluginConfigs, sources, libs, defines, flags,
-          includeDirs, targetOS, logger, consumingPackageRoot);
+      await _processDeclarativePlugins(pluginConfigs, sources, libs, defines,
+          flags, includeDirs, targetOS, logger, consumingPackageRoot);
     }
 
     var frameworks = [];
 
     if (targetOS != OS.windows) {
-      if(!flags.any((f) => f.contains("-std=c++"))) {
+      if (!flags.any((f) => f.contains("-std=c++"))) {
         flags.addAll(['-std=c++17']);
       }
-
     } else {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
@@ -301,18 +289,22 @@ void main(List<String> args) async {
 
       output.assets.addEncodedAsset(libcpp.encode());
     }
+        
+    output.metadata.addAll({"includeDirs":includeDirs.map((dir) => path.join(pkgRootFilePath,dir)).toList()});
+    output.metadata.addAll({"outputDir":outputDirectory.path});
+   
 
     if (targetOS == OS.windows) {
       var importLib = File(path.join(
           outputDirectory.path.substring(1).replaceAll("/", "\\"),
           "thermion_dart.lib"));
-      final libthermion = CodeAsset(
+
+      output.assets.code.add(CodeAsset(
         package: packageName,
         name: "thermion_dart.lib",
         linkMode: DynamicLoadingBundled(),
         file: importLib.uri,
-      );
-      output.assets.addEncodedAsset(libthermion.encode());
+      ));
 
       for (final dir in ["windows/vulkan"]) {
         // , "filament/bluevk", "filament/vulkan"
@@ -443,13 +435,15 @@ String? _extractConsumingPackageRoot(String outputDirUri, Logger logger) {
     final uri = Uri.parse(outputDirUri);
     final outputPath = uri.toFilePath();
 
-    logger.info("Extracting consuming package root from output directory: $outputPath");
+    logger.info(
+        "Extracting consuming package root from output directory: $outputPath");
 
     // Navigate up the directory tree to find the consuming package root
     // The path typically looks like: /path/to/consuming_package/.dart_tool/hooks_runner/shared/thermion_dart/build/hash/
     var currentPath = outputPath;
 
-    while (currentPath != path.dirname(currentPath)) {  // Stop at filesystem root
+    while (currentPath != path.dirname(currentPath)) {
+      // Stop at filesystem root
       final pubspecFile = File(path.join(currentPath, 'pubspec.yaml'));
 
       if (pubspecFile.existsSync()) {
@@ -492,7 +486,8 @@ Future<void> _processDeclarativePlugins(
 ) async {
   for (final pluginConfig in pluginConfigs) {
     if (pluginConfig is! Map<String, dynamic>) {
-      logger.warning("Invalid plugin configuration, expected Map but got ${pluginConfig.runtimeType}");
+      logger.warning(
+          "Invalid plugin configuration, expected Map but got ${pluginConfig.runtimeType}");
       continue;
     }
 
@@ -529,10 +524,12 @@ Future<void> _processDeclarativePlugins(
     }
 
     // Process library directories (as -L flags)
-    final pluginLibraryDirs = pluginConfig['library_dirs'] as Map<String, dynamic>?;
+    final pluginLibraryDirs =
+        pluginConfig['library_dirs'] as Map<String, dynamic>?;
     if (pluginLibraryDirs != null) {
       final targetOSString = targetOS.toString().split('.').last;
-      final platformLibraryDirs = pluginLibraryDirs[targetOSString] as List<dynamic>?;
+      final platformLibraryDirs =
+          pluginLibraryDirs[targetOSString] as List<dynamic>?;
       if (platformLibraryDirs != null) {
         for (final libraryDir in platformLibraryDirs) {
           if (libraryDir is String) {
@@ -545,7 +542,8 @@ Future<void> _processDeclarativePlugins(
     }
 
     // Process link libraries (as -l flags)
-    final pluginLinkLibraries = pluginConfig['link_libraries'] as List<dynamic>?;
+    final pluginLinkLibraries =
+        pluginConfig['link_libraries'] as List<dynamic>?;
     if (pluginLinkLibraries != null) {
       for (final library in pluginLinkLibraries) {
         if (library is String) {
@@ -572,7 +570,8 @@ Future<void> _processDeclarativePlugins(
     }
 
     // Process compile options
-    final pluginCompileOptions = pluginConfig['compile_options'] as List<dynamic>?;
+    final pluginCompileOptions =
+        pluginConfig['compile_options'] as List<dynamic>?;
     if (pluginCompileOptions != null) {
       for (final option in pluginCompileOptions) {
         if (option is String) {
