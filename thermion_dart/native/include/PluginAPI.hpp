@@ -2,10 +2,7 @@
 
 // C++ API for plugin system
 namespace thermion {
-    /**
-     * Initialize all discovered plugin component managers.
-     */
-    void RegisterPluginComponentManagers();
+
 
     /**
      * Update all registered plugin component managers.

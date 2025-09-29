@@ -38,7 +38,7 @@ namespace thermion
         RenderTicker(
             filament::Engine *engine,
             filament::Renderer *renderer) : mEngine(engine), mRenderer(renderer) { 
-                RegisterPluginComponentManagers();
+                
             }
         ~RenderTicker();
         
