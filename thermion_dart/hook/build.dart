@@ -163,7 +163,7 @@ void main(List<String> args) async {
       ]);
     }
 
-    if (platform == "ios") {
+    if (targetOS == OS.iOS) {
       frameworks.addAll([
         'Foundation',
         'CoreGraphics',
@@ -173,7 +173,7 @@ void main(List<String> args) async {
         'CoreVideo',
         'OpenGLES'
       ]);
-    } else if (platform == "macos") {
+    } else if (targetOS == OS.macOS) {
       frameworks.addAll([
         'Foundation',
         'CoreVideo',
@@ -189,7 +189,7 @@ void main(List<String> args) async {
       }
 
       libs.addAll(["bluegl", "bluevk"]);
-    } else if (platform == "android") {
+    } else if (targetOS == OS.android) {
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
     } else if (targetOS == OS.linux) {
       libs.addAll(["bluevk", "bluegl"]);
