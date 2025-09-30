@@ -1,3 +1,21 @@
+## 0.3.4
+
+ - **REFACTOR**: rename requestId to textureUploadCompleteRequestId in KTX texture methods.
+ - **FIX**: only add matdb to macos builds in debug mode.
+ - **FIX**: add 16kb page size flags for Android builds and pin the ndkVersion for thermion_flutter to 28.2.13676358.
+ - **FIX**: (build) use targetOS rather than platform string.
+ - **FIX**: update code_assets, hooks and native_toolchain_c dependecies, and add check for buildCodeAssets (which throws an exception building for web).
+ - **FIX**: update code_assets, hooks and native_toolchain_c dependecies, and add check for buildCodeAssets (which throws an exception building for web).
+ - **FIX**: reinstate missing Struct.create.
+ - **FIX**: throw separate exceptions for invalid near/far/aspect/focalLength in FFICamera.setLensProjection.
+ - **FIX**: initialize isCubeMap in background image material to 0.
+ - **FIX**: throw Exception if render() is called when no swapchain.
+ - **FIX**: remove errant 'dart:io' import from FFIView.
+ - **FIX**: use aspect ratio of 1.0 if initial viewport width/height is 0.
+ - **FEAT**: update image material with depth parameter.
+ - **FEAT**: add TexturedQuad class (and refactor internally so the viewer uses this to implement the background image.
+ - **FEAT**: add blending for grid lines.
+
 ## 0.3.3
 
  - Bump "thermion_dart" to `0.3.3`.
