@@ -4,6 +4,7 @@ include_directories(src/main/include)
 include_directories(src/main/cpp)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 set(ANDROID_STL c++_shared)
+add_compile_definitions(ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES ON)
 
 add_library(thermion_flutter_android SHARED
   "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/ThermionFlutterAndroid.cpp"
@@ -13,4 +14,10 @@ target_link_libraries(
   thermion_flutter_android
   -landroid
   -llog
+)
+
+target_link_options(
+  thermion_flutter_android
+  PRIVATE
+  -Wl,-z,max-page-size=16384
 )

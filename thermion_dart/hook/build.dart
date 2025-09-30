@@ -191,6 +191,7 @@ void main(List<String> args) async {
       libs.addAll(["bluegl", "bluevk"]);
     } else if (targetOS == OS.android) {
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
+      flags.add("-Wl,-z,max-page-size=16384");
     } else if (targetOS == OS.linux) {
       libs.addAll(["bluevk", "bluegl"]);
     }
