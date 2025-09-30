@@ -15,6 +15,40 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`thermion_dart` - `v0.3.4+1`](#thermion_dart---v0341)
+ - [`thermion_flutter_platform_interface` - `v0.3.3+2`](#thermion_flutter_platform_interface---v0332)
+ - [`thermion_flutter_web` - `v0.3.3+2`](#thermion_flutter_web---v0332)
+ - [`thermion_flutter_method_channel` - `v0.3.3+2`](#thermion_flutter_method_channel---v0332)
+ - [`thermion_flutter` - `v0.3.3+2`](#thermion_flutter---v0332)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_platform_interface` - `v0.3.3+2`
+ - `thermion_flutter_web` - `v0.3.3+2`
+ - `thermion_flutter_method_channel` - `v0.3.3+2`
+ - `thermion_flutter` - `v0.3.3+2`
+
+---
+
+#### `thermion_dart` - `v0.3.4+1`
+
+ - **FIX**: loosen dependency versions for code_assets, hooks and native_toolchain_c.
+
+
+## 2025-09-30
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`thermion_dart` - `v0.3.4`](#thermion_dart---v034)
  - [`thermion_flutter` - `v0.3.3+1`](#thermion_flutter---v0331)
  - [`thermion_flutter_method_channel` - `v0.3.3+1`](#thermion_flutter_method_channel---v0331)

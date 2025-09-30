@@ -1,3 +1,7 @@
+## 0.3.4+1
+
+ - **FIX**: loosen dependency versions for code_assets, hooks and native_toolchain_c.
+
 ## 0.3.4
 
  - **REFACTOR**: rename requestId to textureUploadCompleteRequestId in KTX texture methods.

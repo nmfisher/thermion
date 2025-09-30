@@ -1,3 +1,7 @@
+## 0.3.3+2
+
+ - Update a dependency to the latest release.
+
 ## 0.3.3+1
 
  - **FIX**: add 16kb page size flags for Android builds and pin the ndkVersion for thermion_flutter to 28.2.13676358.
