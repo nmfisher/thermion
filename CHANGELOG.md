@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`thermion_flutter` - `v0.3.4`](#thermion_flutter---v034)
+
+---
+
+#### `thermion_flutter` - `v0.3.4`
+
+ - Bump "thermion_flutter" to `0.3.4`.
+
+
+## 2025-09-30
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`thermion_dart` - `v0.3.4+1`](#thermion_dart---v0341)
  - [`thermion_flutter_platform_interface` - `v0.3.3+2`](#thermion_flutter_platform_interface---v0332)
  - [`thermion_flutter_web` - `v0.3.3+2`](#thermion_flutter_web---v0332)

@@ -1,3 +1,7 @@
+## 0.3.4
+
+ - Bump "thermion_flutter" to `0.3.4`.
+
 ## 0.3.3+2
 
  - Update a dependency to the latest release.
