@@ -120,7 +120,7 @@ void main(List<String> args) async {
       "zstd",
       //"mikktspace",
       "geometry",
-      if (targetOS == OS.macOS) ...["matdbg", "fgviewer"]
+      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"]
     ];
 
     if (targetOS == OS.windows) {
