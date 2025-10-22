@@ -374,6 +374,6 @@ abstract class FilamentApp<T> {
   ///
   Future<Texture> loadKtx2(Uint8List data);
 
-  /// Create a textured quad in screenspace. This can be used as an image or a solid block.
+  /// Create a screenspace quad. This can be used as an image or a solid block.
   Future<TexturedQuad> createTexturedQuad();
 }
