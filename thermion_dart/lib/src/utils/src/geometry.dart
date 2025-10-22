@@ -1,12 +1,40 @@
-import 'dart:math' ;
+import 'dart:math';
 
 import '../../../thermion_dart.dart';
 
 class GeometryHelper {
+  /// Actually a triangle. When used as a background in screenspace,
+  /// transform/UVs are set so that only the bottom-left quad is rendered.
   static Geometry fullscreenQuad() {
-    final vertices = Float32List.fromList([-1.0, -1.0, 1.0, 3.0, -1.0, 1.0, -1.0, 3.0, 1.0]);
+    final vertices =
+        Float32List.fromList([-1.0, -1.0, 1.0, 3.0, -1.0, 1.0, -1.0, 3.0, 1.0]);
     final indices = Uint16List.fromList([0, 1, 2]);
     return Geometry(vertices, indices);
+  }
+
+  static Geometry quad() {
+    final vertices = Float32List.fromList([
+      -1, -1, 1, // 0
+      1, -1, 1, // 1
+      1, 1, 1, // 2
+      -1, 1, 1, // 3
+    ]);
+    final normals = Float32List.fromList([0, 0, 1, 0, 0, 1]);
+    final indices = Uint16List.fromList([
+      0,
+      1,
+      2,
+      0,
+      2,
+      3,
+    ]);
+    final uvs = Float32List.fromList([
+      0, 1, 1, 1, 1, 0, 0, 0
+    ]);
+    return Geometry(vertices, indices,
+      // normals: normals, 
+      uvs: uvs
+    );
   }
 
   static Geometry sphere({bool normals = true, bool uvs = true}) {
@@ -54,7 +82,8 @@ class GeometryHelper {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices),
+        normals: _normals, uvs: _uvs);
   }
 
   static Geometry cube(
@@ -234,7 +263,8 @@ class GeometryHelper {
       20, 21, 22, 20, 22, 23 // 4,0,3,4,3,7
     ];
 
-    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices),
+        normals: _normals, uvs: _uvs);
   }
 
 // Helper function to flip the Y coordinate of UV coordinates (y = 1.0 - y)
@@ -314,7 +344,8 @@ class GeometryHelper {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices),
+        normals: _normals, uvs: _uvs);
   }
 
   static Geometry conic(
@@ -438,7 +469,8 @@ class GeometryHelper {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices),
+        normals: _normals, uvs: _uvs);
   }
 
   static Geometry plane(
@@ -502,353 +534,365 @@ class GeometryHelper {
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
-static Geometry camera({
-  double bodyWidth = 0.6,    // X-axis (medium width)
-  double bodyHeight = 0.7,   // Y-axis (medium height)  
-  double bodyDepth = 1.4,    // Z-axis (LONG dimension - camera body extends back)
-  double lensRadius = 0.3,
-  double lensLength = 0.4,
-  bool normals = true,
-  bool uvs = true,
-}) {
-  List<double> verticesList = [];
-  List<double> normalsList = [];
-  List<double> uvsList = [];
-  List<int> indices = [];
 
-  // Helper function to add a vertex with normal and UV
-  void addVertex(double x, double y, double z, double nx, double ny, double nz, double u, double v) {
-    verticesList.addAll([x, y, z]);
-    if (normals) normalsList.addAll([nx, ny, nz]);
-    if (uvs) uvsList.addAll([u, v]);
-  }
+  static Geometry camera({
+    double bodyWidth = 0.6, // X-axis (medium width)
+    double bodyHeight = 0.7, // Y-axis (medium height)
+    double bodyDepth =
+        1.4, // Z-axis (LONG dimension - camera body extends back)
+    double lensRadius = 0.3,
+    double lensLength = 0.4,
+    bool normals = true,
+    bool uvs = true,
+  }) {
+    List<double> verticesList = [];
+    List<double> normalsList = [];
+    List<double> uvsList = [];
+    List<int> indices = [];
 
-  int currentIndex = 0;
-
-  // === CAMERA BODY (Rectangular box) ===
-  // Now: width=1.0, height=0.6, depth=1.4 (long)
-  // The front face (Z=+halfDepth) is the short face where lens attaches
-  double halfWidth = bodyWidth / 2;   // 0.5 (medium)
-  double halfHeight = bodyHeight / 2; // 0.3 (short)
-  double halfDepth = bodyDepth / 2;   // 0.7 (long - extends backward)
-
-  // Front face (SHORT face - where lens attaches) - Z = +halfDepth
-  addVertex(-halfWidth, -halfHeight, halfDepth, 0, 0, 1, 0, 0);  // 0
-  addVertex(halfWidth, -halfHeight, halfDepth, 0, 0, 1, 1, 0);   // 1
-  addVertex(halfWidth, halfHeight, halfDepth, 0, 0, 1, 1, 1);    // 2
-  addVertex(-halfWidth, halfHeight, halfDepth, 0, 0, 1, 0, 1);   // 3
-
-  // Back face (SHORT face) - Z = -halfDepth
-  addVertex(halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 0, 0); // 4
-  addVertex(-halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 1, 0); // 5
-  addVertex(-halfWidth, halfHeight, -halfDepth, 0, 0, -1, 1, 1); // 6
-  addVertex(halfWidth, halfHeight, -halfDepth, 0, 0, -1, 0, 1);  // 7
-
-  // Top face (LONG face) - Y = +halfHeight
-  addVertex(-halfWidth, halfHeight, halfDepth, 0, 1, 0, 0, 0);   // 8
-  addVertex(halfWidth, halfHeight, halfDepth, 0, 1, 0, 1, 0);    // 9
-  addVertex(halfWidth, halfHeight, -halfDepth, 0, 1, 0, 1, 1);   // 10
-  addVertex(-halfWidth, halfHeight, -halfDepth, 0, 1, 0, 0, 1);  // 11
-
-  // Bottom face (LONG face) - Y = -halfHeight
-  addVertex(-halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 0, 0); // 12
-  addVertex(halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 1, 0);  // 13
-  addVertex(halfWidth, -halfHeight, halfDepth, 0, -1, 0, 1, 1);   // 14
-  addVertex(-halfWidth, -halfHeight, halfDepth, 0, -1, 0, 0, 1);  // 15
-
-  // Right face (LONG face) - X = +halfWidth
-  addVertex(halfWidth, -halfHeight, halfDepth, 1, 0, 0, 0, 0);   // 16
-  addVertex(halfWidth, -halfHeight, -halfDepth, 1, 0, 0, 1, 0);  // 17
-  addVertex(halfWidth, halfHeight, -halfDepth, 1, 0, 0, 1, 1);   // 18
-  addVertex(halfWidth, halfHeight, halfDepth, 1, 0, 0, 0, 1);    // 19
-
-  // Left face (LONG face) - X = -halfWidth
-  addVertex(-halfWidth, -halfHeight, -halfDepth, -1, 0, 0, 0, 0); // 20
-  addVertex(-halfWidth, -halfHeight, halfDepth, -1, 0, 0, 1, 0);  // 21
-  addVertex(-halfWidth, halfHeight, halfDepth, -1, 0, 0, 1, 1);   // 22
-  addVertex(-halfWidth, halfHeight, -halfDepth, -1, 0, 0, 0, 1);  // 23
-
-  // Body indices
-  List<int> bodyIndices = [
-    // Front face
-    0, 1, 2, 0, 2, 3,
-    // Back face
-    4, 5, 6, 4, 6, 7,
-    // Top face
-    8, 9, 10, 8, 10, 11,
-    // Bottom face
-    12, 13, 14, 12, 14, 15,
-    // Right face
-    16, 17, 18, 16, 18, 19,
-    // Left face
-    20, 21, 22, 20, 22, 23
-  ];
-  
-  indices.addAll(bodyIndices);
-  currentIndex = 24;
-
-  // === CONICAL LENS ===
-  int segments = 16;
-  double lensApexZ = -halfDepth;  // Apex touches the front face (short face)
-  double lensBaseZ = -halfDepth - lensLength;  // Base extends outward along Z-axis
-
-  // Lens apex (tip of the cone - touching the camera body at center of front face)
-  addVertex(0, 0, lensApexZ, 0, 0, -1, 0.5, 0);
-  int apexIndex = currentIndex;
-  currentIndex++;
-
-  // Lens base circle (the wide part extending outward)
-  List<int> baseIndices = [];
-  for (int i = 0; i < segments; i++) {
-    double theta = i * 2 * pi / segments;
-    double x = lensRadius * cos(theta);
-    double y = lensRadius * sin(theta);
-
-    // Calculate normal for cone side (pointing outward from cone surface)
-    double normalX = x / lensRadius;  // Normalized radial component
-    double normalY = y / lensRadius;
-    double normalZ = lensRadius / lensLength;  // Axial component based on cone slope
-    
-    // Normalize the normal vector
-    double normalLength = sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
-    normalX /= normalLength;
-    normalY /= normalLength;
-    normalZ /= normalLength;
-
-    addVertex(x, y, lensBaseZ, normalX, normalY, normalZ, i / segments, 1);
-    baseIndices.add(currentIndex);
-    currentIndex++;
-  }
-
-  // Create cone side triangles
-  for (int i = 0; i < segments; i++) {
-    int current = baseIndices[i];
-    int next = baseIndices[(i + 1) % segments];
-    
-    // Triangle from apex to base edge (counter-clockwise when viewed from outside)
-    indices.addAll([apexIndex, next, current]);
-  }
-
-  // === LENS BASE (flat circular face at the wide end) ===
-  // Center of lens base
-  addVertex(0, 0, lensBaseZ, 0, 0, 1, 0.5, 0.5);
-  int baseCenterIndex = currentIndex;
-  currentIndex++;
-
-  // Base circle vertices (separate from cone vertices for proper normals)
-  List<int> baseFaceIndices = [];
-  for (int i = 0; i < segments; i++) {
-    double theta = i * 2 * pi / segments;
-    double x = lensRadius * cos(theta);
-    double y = lensRadius * sin(theta);
-    
-    double u = 0.5 + 0.5 * cos(theta);
-    double v = 0.5 + 0.5 * sin(theta);
-    
-    addVertex(x, y, lensBaseZ, 0, 0, 1, u, v);
-    baseFaceIndices.add(currentIndex);
-    currentIndex++;
-  }
-
-  // Create base face triangles (facing outward from camera)
-  for (int i = 0; i < segments; i++) {
-    int current = baseFaceIndices[i];
-    int next = baseFaceIndices[(i + 1) % segments];
-    
-    // Triangle from center to edge (counter-clockwise when viewed from outside)
-    indices.addAll([baseCenterIndex, current, next]);
-  }
-
-  Float32List vertices = Float32List.fromList(verticesList);
-  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
-  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
-
-  return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
-}
-
-static Geometry wireframeCamera({
-  double sphereRadius = 0.2,
-  double frustumDistance = 1.0,
-  double frustumNear = 0.5,
-  double frustumFar = 1.0,
-  double fov = pi / 3,
-  bool normals = true,
-  bool uvs = true,
-  double wireThickness = 0.01, // Thickness of the wireframe edges
-}) {
-  List<double> verticesList = [];
-  List<double> normalsList = [];
-  List<double> uvsList = [];
-  List<int> indices = [];
-
-  // Helper function to create a thin triangular tube between two points
-  void addWireSegment(List<double> start, List<double> end) {
-    int baseIndex = verticesList.length ~/ 3;
-    
-    // Calculate direction vector
-    double dx = end[0] - start[0];
-    double dy = end[1] - start[1];
-    double dz = end[2] - start[2];
-    double length = sqrt(dx * dx + dy * dy + dz * dz);
-    
-    // Create perpendicular vectors for thickness
-    List<double> perp1, perp2;
-    if (dx.abs() < 0.9) {
-      perp1 = [0, -dz, dy];
-    } else {
-      perp1 = [-dy, dx, 0];
+    // Helper function to add a vertex with normal and UV
+    void addVertex(double x, double y, double z, double nx, double ny,
+        double nz, double u, double v) {
+      verticesList.addAll([x, y, z]);
+      if (normals) normalsList.addAll([nx, ny, nz]);
+      if (uvs) uvsList.addAll([u, v]);
     }
-    
-    // Normalize perpendicular vector
-    double perpLength = sqrt(perp1[0] * perp1[0] + perp1[1] * perp1[1] + perp1[2] * perp1[2]);
-    if (perpLength > 0) {
-      perp1 = [perp1[0] / perpLength * wireThickness, 
-               perp1[1] / perpLength * wireThickness, 
-               perp1[2] / perpLength * wireThickness];
-    }
-    
-    // Second perpendicular (cross product)
-    perp2 = [dy * perp1[2] - dz * perp1[1],
-             dz * perp1[0] - dx * perp1[2],
-             dx * perp1[1] - dy * perp1[0]];
-    
-    // Create 4 vertices around each end point (rectangular cross-section)
-    List<List<double>> startVerts = [
-      [start[0] + perp1[0], start[1] + perp1[1], start[2] + perp1[2]],
-      [start[0] - perp1[0], start[1] - perp1[1], start[2] - perp1[2]],
-      [start[0] + perp2[0], start[1] + perp2[1], start[2] + perp2[2]],
-      [start[0] - perp2[0], start[1] - perp2[1], start[2] - perp2[2]],
+
+    int currentIndex = 0;
+
+    // === CAMERA BODY (Rectangular box) ===
+    // Now: width=1.0, height=0.6, depth=1.4 (long)
+    // The front face (Z=+halfDepth) is the short face where lens attaches
+    double halfWidth = bodyWidth / 2; // 0.5 (medium)
+    double halfHeight = bodyHeight / 2; // 0.3 (short)
+    double halfDepth = bodyDepth / 2; // 0.7 (long - extends backward)
+
+    // Front face (SHORT face - where lens attaches) - Z = +halfDepth
+    addVertex(-halfWidth, -halfHeight, halfDepth, 0, 0, 1, 0, 0); // 0
+    addVertex(halfWidth, -halfHeight, halfDepth, 0, 0, 1, 1, 0); // 1
+    addVertex(halfWidth, halfHeight, halfDepth, 0, 0, 1, 1, 1); // 2
+    addVertex(-halfWidth, halfHeight, halfDepth, 0, 0, 1, 0, 1); // 3
+
+    // Back face (SHORT face) - Z = -halfDepth
+    addVertex(halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 0, 0); // 4
+    addVertex(-halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 1, 0); // 5
+    addVertex(-halfWidth, halfHeight, -halfDepth, 0, 0, -1, 1, 1); // 6
+    addVertex(halfWidth, halfHeight, -halfDepth, 0, 0, -1, 0, 1); // 7
+
+    // Top face (LONG face) - Y = +halfHeight
+    addVertex(-halfWidth, halfHeight, halfDepth, 0, 1, 0, 0, 0); // 8
+    addVertex(halfWidth, halfHeight, halfDepth, 0, 1, 0, 1, 0); // 9
+    addVertex(halfWidth, halfHeight, -halfDepth, 0, 1, 0, 1, 1); // 10
+    addVertex(-halfWidth, halfHeight, -halfDepth, 0, 1, 0, 0, 1); // 11
+
+    // Bottom face (LONG face) - Y = -halfHeight
+    addVertex(-halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 0, 0); // 12
+    addVertex(halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 1, 0); // 13
+    addVertex(halfWidth, -halfHeight, halfDepth, 0, -1, 0, 1, 1); // 14
+    addVertex(-halfWidth, -halfHeight, halfDepth, 0, -1, 0, 0, 1); // 15
+
+    // Right face (LONG face) - X = +halfWidth
+    addVertex(halfWidth, -halfHeight, halfDepth, 1, 0, 0, 0, 0); // 16
+    addVertex(halfWidth, -halfHeight, -halfDepth, 1, 0, 0, 1, 0); // 17
+    addVertex(halfWidth, halfHeight, -halfDepth, 1, 0, 0, 1, 1); // 18
+    addVertex(halfWidth, halfHeight, halfDepth, 1, 0, 0, 0, 1); // 19
+
+    // Left face (LONG face) - X = -halfWidth
+    addVertex(-halfWidth, -halfHeight, -halfDepth, -1, 0, 0, 0, 0); // 20
+    addVertex(-halfWidth, -halfHeight, halfDepth, -1, 0, 0, 1, 0); // 21
+    addVertex(-halfWidth, halfHeight, halfDepth, -1, 0, 0, 1, 1); // 22
+    addVertex(-halfWidth, halfHeight, -halfDepth, -1, 0, 0, 0, 1); // 23
+
+    // Body indices
+    List<int> bodyIndices = [
+      // Front face
+      0, 1, 2, 0, 2, 3,
+      // Back face
+      4, 5, 6, 4, 6, 7,
+      // Top face
+      8, 9, 10, 8, 10, 11,
+      // Bottom face
+      12, 13, 14, 12, 14, 15,
+      // Right face
+      16, 17, 18, 16, 18, 19,
+      // Left face
+      20, 21, 22, 20, 22, 23
     ];
-    
-    List<List<double>> endVerts = [
-      [end[0] + perp1[0], end[1] + perp1[1], end[2] + perp1[2]],
-      [end[0] - perp1[0], end[1] - perp1[1], end[2] - perp1[2]],
-      [end[0] + perp2[0], end[1] + perp2[1], end[2] + perp2[2]],
-      [end[0] - perp2[0], end[1] - perp2[1], end[2] - perp2[2]],
+
+    indices.addAll(bodyIndices);
+    currentIndex = 24;
+
+    // === CONICAL LENS ===
+    int segments = 16;
+    double lensApexZ = -halfDepth; // Apex touches the front face (short face)
+    double lensBaseZ =
+        -halfDepth - lensLength; // Base extends outward along Z-axis
+
+    // Lens apex (tip of the cone - touching the camera body at center of front face)
+    addVertex(0, 0, lensApexZ, 0, 0, -1, 0.5, 0);
+    int apexIndex = currentIndex;
+    currentIndex++;
+
+    // Lens base circle (the wide part extending outward)
+    List<int> baseIndices = [];
+    for (int i = 0; i < segments; i++) {
+      double theta = i * 2 * pi / segments;
+      double x = lensRadius * cos(theta);
+      double y = lensRadius * sin(theta);
+
+      // Calculate normal for cone side (pointing outward from cone surface)
+      double normalX = x / lensRadius; // Normalized radial component
+      double normalY = y / lensRadius;
+      double normalZ =
+          lensRadius / lensLength; // Axial component based on cone slope
+
+      // Normalize the normal vector
+      double normalLength =
+          sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+      normalX /= normalLength;
+      normalY /= normalLength;
+      normalZ /= normalLength;
+
+      addVertex(x, y, lensBaseZ, normalX, normalY, normalZ, i / segments, 1);
+      baseIndices.add(currentIndex);
+      currentIndex++;
+    }
+
+    // Create cone side triangles
+    for (int i = 0; i < segments; i++) {
+      int current = baseIndices[i];
+      int next = baseIndices[(i + 1) % segments];
+
+      // Triangle from apex to base edge (counter-clockwise when viewed from outside)
+      indices.addAll([apexIndex, next, current]);
+    }
+
+    // === LENS BASE (flat circular face at the wide end) ===
+    // Center of lens base
+    addVertex(0, 0, lensBaseZ, 0, 0, 1, 0.5, 0.5);
+    int baseCenterIndex = currentIndex;
+    currentIndex++;
+
+    // Base circle vertices (separate from cone vertices for proper normals)
+    List<int> baseFaceIndices = [];
+    for (int i = 0; i < segments; i++) {
+      double theta = i * 2 * pi / segments;
+      double x = lensRadius * cos(theta);
+      double y = lensRadius * sin(theta);
+
+      double u = 0.5 + 0.5 * cos(theta);
+      double v = 0.5 + 0.5 * sin(theta);
+
+      addVertex(x, y, lensBaseZ, 0, 0, 1, u, v);
+      baseFaceIndices.add(currentIndex);
+      currentIndex++;
+    }
+
+    // Create base face triangles (facing outward from camera)
+    for (int i = 0; i < segments; i++) {
+      int current = baseFaceIndices[i];
+      int next = baseFaceIndices[(i + 1) % segments];
+
+      // Triangle from center to edge (counter-clockwise when viewed from outside)
+      indices.addAll([baseCenterIndex, current, next]);
+    }
+
+    Float32List vertices = Float32List.fromList(verticesList);
+    Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+    Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+    return Geometry(vertices, Uint16List.fromList(indices),
+        normals: _normals, uvs: _uvs);
+  }
+
+  static Geometry wireframeCamera({
+    double sphereRadius = 0.2,
+    double frustumDistance = 1.0,
+    double frustumNear = 0.5,
+    double frustumFar = 1.0,
+    double fov = pi / 3,
+    bool normals = true,
+    bool uvs = true,
+    double wireThickness = 0.01, // Thickness of the wireframe edges
+  }) {
+    List<double> verticesList = [];
+    List<double> normalsList = [];
+    List<double> uvsList = [];
+    List<int> indices = [];
+
+    // Helper function to create a thin triangular tube between two points
+    void addWireSegment(List<double> start, List<double> end) {
+      int baseIndex = verticesList.length ~/ 3;
+
+      // Calculate direction vector
+      double dx = end[0] - start[0];
+      double dy = end[1] - start[1];
+      double dz = end[2] - start[2];
+      double length = sqrt(dx * dx + dy * dy + dz * dz);
+
+      // Create perpendicular vectors for thickness
+      List<double> perp1, perp2;
+      if (dx.abs() < 0.9) {
+        perp1 = [0, -dz, dy];
+      } else {
+        perp1 = [-dy, dx, 0];
+      }
+
+      // Normalize perpendicular vector
+      double perpLength =
+          sqrt(perp1[0] * perp1[0] + perp1[1] * perp1[1] + perp1[2] * perp1[2]);
+      if (perpLength > 0) {
+        perp1 = [
+          perp1[0] / perpLength * wireThickness,
+          perp1[1] / perpLength * wireThickness,
+          perp1[2] / perpLength * wireThickness
+        ];
+      }
+
+      // Second perpendicular (cross product)
+      perp2 = [
+        dy * perp1[2] - dz * perp1[1],
+        dz * perp1[0] - dx * perp1[2],
+        dx * perp1[1] - dy * perp1[0]
+      ];
+
+      // Create 4 vertices around each end point (rectangular cross-section)
+      List<List<double>> startVerts = [
+        [start[0] + perp1[0], start[1] + perp1[1], start[2] + perp1[2]],
+        [start[0] - perp1[0], start[1] - perp1[1], start[2] - perp1[2]],
+        [start[0] + perp2[0], start[1] + perp2[1], start[2] + perp2[2]],
+        [start[0] - perp2[0], start[1] - perp2[1], start[2] - perp2[2]],
+      ];
+
+      List<List<double>> endVerts = [
+        [end[0] + perp1[0], end[1] + perp1[1], end[2] + perp1[2]],
+        [end[0] - perp1[0], end[1] - perp1[1], end[2] - perp1[2]],
+        [end[0] + perp2[0], end[1] + perp2[1], end[2] + perp2[2]],
+        [end[0] - perp2[0], end[1] - perp2[1], end[2] - perp2[2]],
+      ];
+
+      // Add vertices
+      for (var vert in startVerts) {
+        verticesList.addAll(vert);
+        normalsList.addAll([vert[0], vert[1], vert[2]]); // Simple normal
+        uvsList.addAll([0, 0]);
+      }
+      for (var vert in endVerts) {
+        verticesList.addAll(vert);
+        normalsList.addAll([vert[0], vert[1], vert[2]]); // Simple normal
+        uvsList.addAll([1, 0]);
+      }
+
+      // Create triangular faces for the tube (4 sides, 2 triangles each)
+      for (int i = 0; i < 4; i++) {
+        int next = (i + 1) % 4;
+        int startCurrent = baseIndex + i;
+        int startNext = baseIndex + next;
+        int endCurrent = baseIndex + 4 + i;
+        int endNext = baseIndex + 4 + next;
+
+        // Two triangles per side
+        indices.addAll([startCurrent, endCurrent, startNext]);
+        indices.addAll([startNext, endCurrent, endNext]);
+      }
+    }
+
+    // Create sphere wireframe edges
+    int latitudeBands = 6;
+    int longitudeBands = 6;
+
+    // Store sphere points as a flat list for easier access
+    List<List<double>> allSpherePoints = [];
+
+    // Generate sphere vertices and store them
+    for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
+      double theta = latNumber * pi / latitudeBands;
+      double sinTheta = sin(theta);
+      double cosTheta = cos(theta);
+
+      for (int longNumber = 0; longNumber <= longitudeBands; longNumber++) {
+        double phi = longNumber * 2 * pi / longitudeBands;
+        double sinPhi = sin(phi);
+        double cosPhi = cos(phi);
+
+        double x = sphereRadius * cosPhi * sinTheta;
+        double y = sphereRadius * cosTheta;
+        double z = sphereRadius * sinPhi * sinTheta;
+
+        allSpherePoints.add([x, y, z]);
+      }
+    }
+
+    // Helper function to get sphere point by lat/long indices
+    List<double> getSpherePoint(int lat, int long) {
+      int index = lat * (longitudeBands + 1) + long;
+      return allSpherePoints[index];
+    }
+
+    // Add sphere wireframe edges
+    for (int latNumber = 0; latNumber < latitudeBands; latNumber++) {
+      for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
+        // Vertical lines
+        addWireSegment(getSpherePoint(latNumber, longNumber),
+            getSpherePoint(latNumber + 1, longNumber));
+
+        // Horizontal lines
+        addWireSegment(getSpherePoint(latNumber, longNumber),
+            getSpherePoint(latNumber, (longNumber + 1) % longitudeBands));
+      }
+    }
+
+    // Calculate frustum corners
+    double nearHeight = 2.0 * frustumNear * tan(fov / 2);
+    double nearWidth = nearHeight * 1.333;
+    double farHeight = 2.0 * frustumFar * tan(fov / 2);
+    double farWidth = farHeight * 1.333;
+
+    // Frustum corner points
+    List<double> sphereCenter = [0, 0, 0];
+    List<List<double>> nearCorners = [
+      [-nearWidth / 2, -nearHeight / 2, -frustumNear], // Bottom-left
+      [nearWidth / 2, -nearHeight / 2, -frustumNear], // Bottom-right
+      [nearWidth / 2, nearHeight / 2, -frustumNear], // Top-right
+      [-nearWidth / 2, nearHeight / 2, -frustumNear], // Top-left
     ];
-    
-    // Add vertices
-    for (var vert in startVerts) {
-      verticesList.addAll(vert);
-      normalsList.addAll([vert[0], vert[1], vert[2]]); // Simple normal
-      uvsList.addAll([0, 0]);
-    }
-    for (var vert in endVerts) {
-      verticesList.addAll(vert);
-      normalsList.addAll([vert[0], vert[1], vert[2]]); // Simple normal
-      uvsList.addAll([1, 0]);
-    }
-    
-    // Create triangular faces for the tube (4 sides, 2 triangles each)
+
+    List<List<double>> farCorners = [
+      [-farWidth / 2, -farHeight / 2, -frustumFar], // Bottom-left
+      [farWidth / 2, -farHeight / 2, -frustumFar], // Bottom-right
+      [farWidth / 2, farHeight / 2, -frustumFar], // Top-right
+      [-farWidth / 2, farHeight / 2, -frustumFar], // Top-left
+    ];
+
+    // Add frustum wireframe edges
+
+    // Near rectangle edges
     for (int i = 0; i < 4; i++) {
-      int next = (i + 1) % 4;
-      int startCurrent = baseIndex + i;
-      int startNext = baseIndex + next;
-      int endCurrent = baseIndex + 4 + i;
-      int endNext = baseIndex + 4 + next;
-      
-      // Two triangles per side
-      indices.addAll([startCurrent, endCurrent, startNext]);
-      indices.addAll([startNext, endCurrent, endNext]);
+      addWireSegment(nearCorners[i], nearCorners[(i + 1) % 4]);
     }
-  }
 
-  // Create sphere wireframe edges
-  int latitudeBands = 6;
-  int longitudeBands = 6;
-  
-  // Store sphere points as a flat list for easier access
-  List<List<double>> allSpherePoints = [];
-  
-  // Generate sphere vertices and store them
-  for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
-    double theta = latNumber * pi / latitudeBands;
-    double sinTheta = sin(theta);
-    double cosTheta = cos(theta);
-
-    for (int longNumber = 0; longNumber <= longitudeBands; longNumber++) {
-      double phi = longNumber * 2 * pi / longitudeBands;
-      double sinPhi = sin(phi);
-      double cosPhi = cos(phi);
-
-      double x = sphereRadius * cosPhi * sinTheta;
-      double y = sphereRadius * cosTheta;
-      double z = sphereRadius * sinPhi * sinTheta;
-
-      allSpherePoints.add([x, y, z]);
+    // Far rectangle edges
+    for (int i = 0; i < 4; i++) {
+      addWireSegment(farCorners[i], farCorners[(i + 1) % 4]);
     }
-  }
 
-  // Helper function to get sphere point by lat/long indices
-  List<double> getSpherePoint(int lat, int long) {
-    int index = lat * (longitudeBands + 1) + long;
-    return allSpherePoints[index];
-  }
-
-  // Add sphere wireframe edges
-  for (int latNumber = 0; latNumber < latitudeBands; latNumber++) {
-    for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
-      // Vertical lines
-      addWireSegment(getSpherePoint(latNumber, longNumber), 
-                    getSpherePoint(latNumber + 1, longNumber));
-      
-      // Horizontal lines
-      addWireSegment(getSpherePoint(latNumber, longNumber), 
-                    getSpherePoint(latNumber, (longNumber + 1) % longitudeBands));
+    // Connecting edges between near and far
+    for (int i = 0; i < 4; i++) {
+      addWireSegment(nearCorners[i], farCorners[i]);
     }
+
+    // Lines from sphere center to near corners
+    for (int i = 0; i < 4; i++) {
+      addWireSegment(sphereCenter, nearCorners[i]);
+    }
+
+    Float32List vertices = Float32List.fromList(verticesList);
+    Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+    Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+    return Geometry(vertices, Uint16List.fromList(indices),
+        normals: _normals, uvs: _uvs, primitiveType: PrimitiveType.TRIANGLES);
   }
-
-  // Calculate frustum corners
-  double nearHeight = 2.0 * frustumNear * tan(fov / 2);
-  double nearWidth = nearHeight * 1.333;
-  double farHeight = 2.0 * frustumFar * tan(fov / 2);
-  double farWidth = farHeight * 1.333;
-
-  // Frustum corner points
-  List<double> sphereCenter = [0, 0, 0];
-  List<List<double>> nearCorners = [
-    [-nearWidth / 2, -nearHeight / 2, -frustumNear], // Bottom-left
-    [nearWidth / 2, -nearHeight / 2, -frustumNear],  // Bottom-right
-    [nearWidth / 2, nearHeight / 2, -frustumNear],   // Top-right
-    [-nearWidth / 2, nearHeight / 2, -frustumNear],  // Top-left
-  ];
-
-  List<List<double>> farCorners = [
-    [-farWidth / 2, -farHeight / 2, -frustumFar], // Bottom-left
-    [farWidth / 2, -farHeight / 2, -frustumFar],  // Bottom-right
-    [farWidth / 2, farHeight / 2, -frustumFar],   // Top-right
-    [-farWidth / 2, farHeight / 2, -frustumFar],  // Top-left
-  ];
-
-  // Add frustum wireframe edges
-  
-  // Near rectangle edges
-  for (int i = 0; i < 4; i++) {
-    addWireSegment(nearCorners[i], nearCorners[(i + 1) % 4]);
-  }
-
-  // Far rectangle edges
-  for (int i = 0; i < 4; i++) {
-    addWireSegment(farCorners[i], farCorners[(i + 1) % 4]);
-  }
-
-  // Connecting edges between near and far
-  for (int i = 0; i < 4; i++) {
-    addWireSegment(nearCorners[i], farCorners[i]);
-  }
-
-  // Lines from sphere center to near corners
-  for (int i = 0; i < 4; i++) {
-    addWireSegment(sphereCenter, nearCorners[i]);
-  }
-
-  Float32List vertices = Float32List.fromList(verticesList);
-  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
-  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
-
-  return Geometry(vertices, Uint16List.fromList(indices),
-      normals: _normals, uvs: _uvs, primitiveType: PrimitiveType.TRIANGLES);
-}
 
   static Geometry fromAabb3(Aabb3 aabb,
       {bool normals = true, bool uvs = true}) {
