@@ -65,7 +65,7 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future<Camera> createCamera();
+  Future<Camera> createCamera({ThermionEntity? targetEntity});
 
   ///
   ///

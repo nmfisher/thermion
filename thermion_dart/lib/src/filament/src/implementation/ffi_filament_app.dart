@@ -203,10 +203,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<Camera> createCamera() async {
+  Future<Camera> createCamera({ThermionEntity? targetEntity}) async {
+    targetEntity ??= await createEntity(createTransformComponent: false);
     return FFICamera(
         await withPointerCallback<TCamera>(
-            (cb) => Engine_createCameraRenderThread(engine, cb)),
+            (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb)),
         this);
   }
 
