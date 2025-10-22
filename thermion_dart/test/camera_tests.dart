@@ -1,5 +1,7 @@
 // ignore_for_file: unused_local_variable
 
+import 'dart:math';
+
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
@@ -118,27 +120,27 @@ void main() async {
     });
   });
 
-  // test('set perspective projection/culling matrix', () async {
-  //   await testHelper.withViewer((viewer) async {
-  //     var camera = await viewer.getMainCamera();
-  //     final cube = await viewer.createGeometry(GeometryHelper.cube());
+  test('set perspective projection/culling matrix', () async {
+    await testHelper.withViewer((viewer) async {
+      var camera = await viewer.getActiveCamera();
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
 
-  //     var fovY = pi / 2;
-  //     await camera.setProjectionMatrixWithCulling(
-  //         makePerspectiveMatrix(fovY, 1.0, 0.05, 10000), 0.05, 10000);
+      var fovY = pi / 2;
+      await camera.setProjectionMatrixWithCulling(
+          makePerspectiveMatrix(fovY, 1.0, 0.05, 10000), 0.05, 10000);
 
-  //     await testHelper.capture(viewer,
-  //         "camera_set_perspective_projection_culling_matrix_object_fov90");
+      await testHelper.capture(viewer.view,
+          "camera_set_perspective_projection_culling_matrix_object_fov90");
 
-  //     // cube no longer visible when the far plane is moved closer to camera so cube is outside
-  //     fovY = 2 * (pi / 3);
-  //     await camera.setProjectionMatrixWithCulling(
-  //         makePerspectiveMatrix(fovY, 1.0, 0.05, 10000), 0.05, 10000);
+      // cube no longer visible when the far plane is moved closer to camera so cube is outside
+      fovY = 2 * (pi / 3);
+      await camera.setProjectionMatrixWithCulling(
+          makePerspectiveMatrix(fovY, 1.0, 0.05, 10000), 0.05, 10000);
 
-  //     await testHelper.capture(viewer,
-  //         "camera_set_perspective_projection_culling_matrix_object_fov120");
-  //   });
-  // });
+      await testHelper.capture(viewer.view,
+          "camera_set_perspective_projection_culling_matrix_object_fov120");
+    });
+  });
 
   // test('set custom projection/culling matrix (orthographic)', () async {
   //   await testHelper.withViewer((viewer) async {
