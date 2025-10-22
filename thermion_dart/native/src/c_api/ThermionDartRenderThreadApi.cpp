@@ -200,12 +200,12 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine *tEngine, void (*onComplete)(TCamera *))
+  EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine *tEngine, EntityId entityId, void (*onComplete)(TCamera *))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto camera = Engine_createCamera(tEngine);
+          auto camera = Engine_createCamera(tEngine, entityId);
           PROXY(onComplete(camera));
         });
     auto fut = _renderThread->add_task(lambda);

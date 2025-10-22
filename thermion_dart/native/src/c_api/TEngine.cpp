@@ -205,10 +205,10 @@ namespace thermion
             return reinterpret_cast<TEntityManager *>(&entityManager);
         }
 
-        EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine)
+        EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine, EntityId entityId)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-            utils::Entity entity = utils::EntityManager::get().create();
+            utils::Entity entity = utils::Entity::import(entityId);
             auto *camera = engine->createCamera(entity);
             return reinterpret_cast<TCamera *>(camera);
         }

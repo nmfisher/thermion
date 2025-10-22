@@ -1562,9 +1562,11 @@ external void Engine_destroyColorGrading(
   ffi.Pointer<TColorGrading> tColorGrading,
 );
 
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(
+    isLeaf: true)
 external ffi.Pointer<TCamera> Engine_createCamera(
   ffi.Pointer<TEngine> tEngine,
+  int entityId,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TCamera>)>(
@@ -1842,11 +1844,13 @@ external void Engine_createHeadlessSwapChainRenderThread(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TEngine>,
+            EntityId,
             ffi.Pointer<
                 ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>)>(
     isLeaf: true)
 external void Engine_createCameraRenderThread(
   ffi.Pointer<TEngine> tEngine,
+  int entityId,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>
       onComplete,
 );

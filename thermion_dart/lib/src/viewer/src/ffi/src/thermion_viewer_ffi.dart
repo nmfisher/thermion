@@ -734,17 +734,15 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<Camera> createCamera() async {
-    var cameraPtr = await withPointerCallback<TCamera>((cb) {
-      Engine_createCameraRenderThread(app.engine, cb);
-    });
-    var camera = FFICamera(cameraPtr, app);
+    var camera = await FilamentApp.instance!.createCamera();
+
     final viewport = await view.getViewport();
     var aspect = viewport.width / viewport.height;
     if (viewport.width == 0 || viewport.height == 0) {
       aspect = 1.0;
     }
     await camera.setLensProjection(aspect: aspect);
-    _cameras.add(camera);
+    _cameras.add(camera as FFICamera);
     return camera;
   }
 
