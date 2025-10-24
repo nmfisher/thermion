@@ -126,6 +126,7 @@ void RenderThread::iter()
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         auto frameStartInNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(currentTime.time_since_epoch()).count();
+        TRACE("Rendering at frame time nanos %lu", frameStartInNanos);
         if(mRenderTicker->render(frameStartInNanos)) {
             mRender = false;
             mRendered = true;

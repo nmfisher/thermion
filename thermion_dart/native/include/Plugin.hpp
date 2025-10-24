@@ -18,9 +18,9 @@ namespace thermion::plugin {
 
         /**
          * Called once per frame from the main animation update loop.
-         * @param deltaTime Time elapsed since last frame in seconds
+         * @param frameTimeInNanos Start time (in nanoseconds) of current frame
          */
-        virtual void update(float deltaTime) = 0;
+        virtual void update(uint64_t frameTimeInNanos) = 0;
 
         /**
          * Returns a unique name for this component manager.

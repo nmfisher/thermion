@@ -39,13 +39,13 @@ namespace thermion::plugin
      * Update all registered plugin component managers.
      * This is called from thermion's main render loop.
      */
-    void UpdatePlugins(float deltaTime)
+    void UpdatePlugins(uint64_t frameTimeInNanos)
     {
-        TRACE("Updating %d component managers", registeredPlugins.size());
         for (auto *manager : registeredPlugins)
         {
-            manager->update(deltaTime);
+            manager->update(frameTimeInNanos);
         }
+        TRACE("Updating %d plugins", registeredPlugins.size());
     }
 
     /**
