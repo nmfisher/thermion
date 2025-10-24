@@ -123,19 +123,20 @@ void RenderThread::iter()
 {
     if (mRender && !mRendered)
     {
-        if(mRenderTicker->render(0)) {
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto frameStartInNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(currentTime.time_since_epoch()).count();
+        if(mRenderTicker->render(frameStartInNanos)) {
             mRender = false;
             mRendered = true;
-        
-            // Calculate and print FPS
-            auto currentTime = std::chrono::high_resolution_clock::now();
+                    
             float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
             _lastFrameTime = currentTime;
 
             _frameCount++;
             _accumulatedTime += deltaTime;
 
-            if (_accumulatedTime >= 1.0f) // Update FPS every second
+            if (_accumulatedTime >= 1.0f) 
             {
                 _fps = _frameCount / _accumulatedTime;
                 _frameCount = 0;

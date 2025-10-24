@@ -1,5 +1,5 @@
 #include "PluginAPI.hpp"
-#include "IPluginComponentManager.hpp"
+#include "Plugin.hpp"
 #include <vector>
 #include <memory>
 #include <map>
@@ -8,32 +8,29 @@
 
 #include "Log.hpp"
 
-namespace thermion
+namespace thermion::plugin
 {
 
     namespace
     {
-        std::vector<IPluginComponentManager *> g_registeredComponentManagers;
+        std::vector<Plugin *> registeredPlugins;
     }
 
     /**
      * Register a component manager instance directly.
      * This is called by plugins during static initialization to register themselves.
      */
-    bool RegisterComponentManager(const std::string &name, IPluginComponentManager *instance)
+    bool RegisterPlugin(const std::string &name, Plugin *instance)
     {
         if (!instance)
         {
-
             Log("[PLUGIN] Error: Cannot register null component manager for '%s'", name.c_str());
-
             return false;
         }
 
+        registeredPlugins.push_back(instance);
 
-        g_registeredComponentManagers.push_back(instance);
-
-        Log("[PLUGIN] Registered component manager instance: %s (%d plugins total)", name.c_str(), g_registeredComponentManagers.size());
+        Log("[PLUGIN] Registered component manager instance: %s (%d plugins total)", name.c_str(), registeredPlugins.size());
 
         return true;
     }
@@ -42,10 +39,10 @@ namespace thermion
      * Update all registered plugin component managers.
      * This is called from thermion's main render loop.
      */
-    void UpdatePluginComponentManagers(float deltaTime)
+    void UpdatePlugins(float deltaTime)
     {
-        Log("Updating %d component managers", g_registeredComponentManagers.size());
-        for (auto *manager : g_registeredComponentManagers)
+        TRACE("Updating %d component managers", registeredPlugins.size());
+        for (auto *manager : registeredPlugins)
         {
             manager->update(deltaTime);
         }
@@ -54,13 +51,13 @@ namespace thermion
     /**
      * Cleanup all plugin component managers.
      */
-    void CleanupPluginComponentManagers()
+    void CleanupPlugins()
     {
-        for (auto *manager : g_registeredComponentManagers)
+        for (auto *manager : registeredPlugins)
         {
             manager->cleanup();
         }
-        g_registeredComponentManagers.clear();
+        registeredPlugins.clear();
     }
 
 } // namespace thermion

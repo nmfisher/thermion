@@ -5,16 +5,16 @@
 #include <functional>
 #include <string>
 
-namespace thermion {
+namespace thermion::plugin {
     /**
      * Abstract base interface for plugin component managers.
      * Plugin component managers should inherit from this interface alongside
      * utils::SingleInstanceComponentManager<ComponentType> to integrate with
      * the main animation update loop.
      */
-    class IPluginComponentManager {
+    class Plugin {
     public:
-        virtual ~IPluginComponentManager() = default;
+        virtual ~Plugin() = default;
 
         /**
          * Called once per frame from the main animation update loop.
@@ -44,7 +44,7 @@ namespace thermion {
      * @param instance Pointer to the component manager instance
      * @return true if registration succeeded, false if name already exists or instance is null
      */
-    bool RegisterComponentManager(const std::string& name, IPluginComponentManager* instance);
+    bool RegisterPlugin(const std::string& name, Plugin* instance);
 }
 
 /**
@@ -60,7 +60,7 @@ namespace thermion {
     namespace { \
         static std::unique_ptr<thermion::ClassName> g_##ClassName##_instance = \
             std::make_unique<thermion::ClassName>(); \
-        static bool g_##ClassName##_registered = thermion::RegisterComponentManager( \
+        static bool g_##ClassName##_registered = thermion::RegisterPlugin( \
             #ClassName, \
             g_##ClassName##_instance.get() \
         ); \
