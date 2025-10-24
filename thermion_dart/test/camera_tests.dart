@@ -165,22 +165,23 @@ void main() async {
   //   });
   // });
 
-  // test('setting transform on camera updates model matrix (no parent)',
-  //     () async {
-  //   await testHelper.withViewer((viewer) async {
-  //     var cameraEntity = await viewer.getMainCameraEntity();
-  //     var camera = await viewer.getMainCamera();
+  test('setting transform on camera updates model matrix', () async {
+    await testHelper.withViewer((viewer) async {
+      var camera = await viewer.getActiveCamera();
+      
+      // explicitly set the model matrix first so we can check that the
+      // transform is actually applied to the model matrix
+      await camera.setModelMatrix(Matrix4.translation(Vector3.all(3)));
+      
+      await camera.setTransform(Matrix4.translation(Vector3.all(1)));
 
-  //     await viewer.setTransform(
-  //         cameraEntity, Matrix4.translation(Vector3.all(1)));
-
-  //     var modelMatrix = await camera.getModelMatrix();
-  //     expect(modelMatrix.getColumn(3).x, 1.0);
-  //     expect(modelMatrix.getColumn(3).y, 1.0);
-  //     expect(modelMatrix.getColumn(3).z, 1.0);
-  //     expect(modelMatrix.getColumn(3).w, 1.0);
-  //   });
-  // });
+      var modelMatrix = await camera.getModelMatrix();
+      expect(modelMatrix.getColumn(3).x, 1.0);
+      expect(modelMatrix.getColumn(3).y, 1.0);
+      expect(modelMatrix.getColumn(3).z, 1.0);
+      expect(modelMatrix.getColumn(3).w, 1.0);
+    });
+  });
 
   // test('setting transform on camera updates model matrix (with parent)',
   //     () async {
