@@ -199,6 +199,22 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   }
 
   @override
+  Future setParameterMat3(String name, Matrix3 matrix) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+
+    MaterialInstance_setParameterMat3(
+        pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      matrix.storage.free();
+    }
+  }
+
+  @override
   Future setParameterMat4(String name, Matrix4 matrix) async {
     MaterialInstance_setParameterMat4(
         pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);

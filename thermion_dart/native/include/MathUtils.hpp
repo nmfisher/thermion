@@ -1,5 +1,6 @@
 #pragma once
 #include <math/mat4.h>
+#include <math/mat3.h>
 #include "c_api/APIBoundaryTypes.h"
 
 namespace thermion {
@@ -12,6 +13,15 @@ static filament::math::mat4f convert_double_to_mat4f(double* data)
         filament::math::float4{static_cast<float>(data[4]), static_cast<float>(data[5]), static_cast<float>(data[6]), static_cast<float>(data[7])},
         filament::math::float4{static_cast<float>(data[8]), static_cast<float>(data[9]), static_cast<float>(data[10]), static_cast<float>(data[11])},
         filament::math::float4{static_cast<float>(data[12]), static_cast<float>(data[13]), static_cast<float>(data[14]), static_cast<float>(data[15])}};
+}
+
+// Helper function to convert double* to filament::math::mat3f
+static filament::math::mat3f convert_double_to_mat3f(double* data)
+{
+    return filament::math::mat3f {
+        filament::math::float3{static_cast<float>(data[0]), static_cast<float>(data[1]), static_cast<float>(data[2])},
+        filament::math::float3{static_cast<float>(data[3]), static_cast<float>(data[4]), static_cast<float>(data[5])},
+        filament::math::float3{static_cast<float>(data[6]), static_cast<float>(data[7]), static_cast<float>(data[8])}};
 }
 
 // Helper function to convert filament::math::mat4 to double4x4
