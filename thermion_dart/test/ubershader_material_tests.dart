@@ -131,9 +131,10 @@ void main() async {
           textureFormat:
               channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F);
       await texture.setLinearImage(
-          image, channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB, PixelDataType.FLOAT);
+          image,
+          channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB,
+          PixelDataType.FLOAT);
       final sampler = await FilamentApp.instance!.createTextureSampler();
-
 
       await materialInstance.setParameterFloat4(
           "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
@@ -144,13 +145,12 @@ void main() async {
       await testHelper.capture(
           viewer.view, "ubershader_material_base_color_uv_matrix_identity");
 
-        // Create a 3x3 transformation matrix for UV coordinates
-      // This matrix will rotate the UV coordinates by 90 degrees
       final uvMatrix = Matrix3.fromList([
         0.0, -1.0, 1.0, // Rotate 90° and translate
         1.0, 0.0, 0.0, //
         0.0, 0.0, 1.0 // Homogeneous coordinate
       ]);
+      
       await materialInstance.setParameterMat3("baseColorUvMatrix", uvMatrix);
 
       await testHelper.capture(
