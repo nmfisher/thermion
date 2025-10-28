@@ -15,7 +15,7 @@ typedef struct TMovementIntentExecutor TMovementIntentExecutor;
 
 EMSCRIPTEN_KEEPALIVE TMovementIntentExecutor* MovementIntentExecutor_createDefault(void* engine);
 EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_destroy(TMovementIntentExecutor* processor);
-EMSCRIPTEN_KEEPALIVE void pipeline_register_movement_intent_executor(TMovementIntentExecutor* processor);
+EMSCRIPTEN_KEEPALIVE void Pipeline_registerMovementIntentExecutor(TMovementIntentExecutor* processor);
 EMSCRIPTEN_KEEPALIVE void movement_intent_executor_set_target_entity(TMovementIntentExecutor* processor, uint32_t entityId);
 
 #ifdef __cplusplus

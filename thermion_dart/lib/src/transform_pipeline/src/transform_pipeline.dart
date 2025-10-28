@@ -177,7 +177,7 @@ class InputPipeline {
   }
 
   void registerTransformExecutor(ffi.Pointer<bindings.TMovementIntentExecutor> executor) {
-      bindings.pipeline_register_movement_intent_executor(executor);
+      bindings.Pipeline_registerMovementIntentExecutor(executor);
   }
 
   /// Sets the target entity for movement processing.

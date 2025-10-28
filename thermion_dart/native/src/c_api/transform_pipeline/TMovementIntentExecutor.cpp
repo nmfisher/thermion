@@ -31,7 +31,7 @@ EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_destroy(TMovementIntentExecutor
     delete processor;
 }
 
-EMSCRIPTEN_KEEPALIVE void pipeline_register_movement_intent_executor(TMovementIntentExecutor* tProcessor) {
+EMSCRIPTEN_KEEPALIVE void Pipeline_registerMovementIntentExecutor(TMovementIntentExecutor* tProcessor) {
     auto pipeline = getPipeline();
     if (pipeline && tProcessor) {
         auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);

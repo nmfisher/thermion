@@ -3672,7 +3672,7 @@ external void MovementIntentExecutor_destroy(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
     isLeaf: true)
-external void pipeline_register_movement_intent_executor(
+external void Pipeline_registerMovementIntentExecutor(
   ffi.Pointer<TMovementIntentExecutor> processor,
 );
 
