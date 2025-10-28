@@ -3660,7 +3660,7 @@ external bool AnimationManager_setGltfAnimationFrame(
 @ffi.Native<
     ffi.Pointer<TMovementIntentExecutor> Function(
         ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external ffi.Pointer<TMovementIntentExecutor> movement_intent_executor_create(
+external ffi.Pointer<TMovementIntentExecutor> create_default_transform_executor(
   ffi.Pointer<ffi.Void> engine,
 );
 

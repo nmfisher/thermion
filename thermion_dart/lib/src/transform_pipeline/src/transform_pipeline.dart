@@ -34,7 +34,7 @@ class InputPipeline {
 
   bool _initialized = false;
   t.Pointer<ffi.Void>? _engine;
-  ffi.Pointer<bindings.TMovementIntentExecutor>? _movementProcessor;
+  ffi.Pointer<bindings.TMovementIntentExecutor>? _movementIntentExecutor;
 
   /// Initializes the Thermion Input Handler system with the given engine.
   ///
@@ -154,22 +154,19 @@ class InputPipeline {
   /// Returns the created processor instance.
   ///
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if creation fails.
-  ffi.Pointer<bindings.TMovementIntentExecutor> createMovementProcessor() {
+  ffi.Pointer<bindings.TMovementIntentExecutor> createDefaultTransformExecutor() {
     try {
-      final processor = bindings.movement_intent_executor_create(
+      final processor = bindings.create_default_transform_executor(
         FilamentApp.instance!.engine as Pointer<Void>,
       );
-      if (processor.address == 0) {
+      if (processor == nullptr) {
         throw InputHandlerManagerException(
           'Failed to create movement processor: null pointer returned',
         );
       }
 
-      // Register processor with pipeline
-      bindings.pipeline_register_movement_intent_executor(processor);
-
       // Store reference for cleanup
-      _movementProcessor = processor;
+      _movementIntentExecutor = processor;
 
       return processor;
     } catch (e) {
@@ -177,6 +174,10 @@ class InputPipeline {
         'Failed to create movement processor: $e',
       );
     }
+  }
+
+  void registerTransformExecutor(ffi.Pointer<bindings.TMovementIntentExecutor> executor) {
+      bindings.pipeline_register_movement_intent_executor(executor);
   }
 
   /// Sets the target entity for movement processing.
@@ -189,7 +190,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the manager is not initialized
   /// or if no movement processor has been created.
   void setMovementTarget(ThermionEntity entity) {
-    if (_movementProcessor == null) {
+    if (_movementIntentExecutor == null) {
       throw InputHandlerManagerException(
         'No movement processor available. Call createMovementProcessor() first.',
       );
@@ -197,7 +198,7 @@ class InputPipeline {
 
     try {
       bindings.movement_intent_executor_set_target_entity(
-        _movementProcessor!,
+        _movementIntentExecutor!,
         entity,
       );
     } catch (e) {
@@ -230,9 +231,9 @@ class InputPipeline {
 
     try {
       // Clean up movement processor if it exists
-      if (_movementProcessor != null) {
-        bindings.movement_intent_executor_destroy(_movementProcessor!);
-        _movementProcessor = null;
+      if (_movementIntentExecutor != null) {
+        bindings.movement_intent_executor_destroy(_movementIntentExecutor!);
+        _movementIntentExecutor = null;
       }
 
       bindings.input_pipeline_cleanup();

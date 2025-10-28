@@ -89,24 +89,6 @@ namespace thermion::plugin::input {
             TRACE("[MovementIntentExecutor] Entity %d: No movement intent", entity.getId());
         }
 
-        // Handle jump physics (simplified for new architecture - jump state should be managed by MovementIntentExecutor)
-        // This is a basic implementation - in practice, jump state would be managed by the processor
-        float verticalMovement = 0.0f;
-
-        // Simple jump handling - just apply upward velocity when jump intent is detected
-        if (intent.jumpIntent) {
-            // Calculate initial jump velocity using physics formula: v = sqrt(2 * g * h)
-            double jumpVelocity = std::sqrt(2.0 * config.gravity * config.jumpHeight);
-            verticalMovement = static_cast<float>(jumpVelocity * intent.deltaTime);
-            movementDelta.y += verticalMovement;
-
-            TRACE("[MovementIntentExecutor] Entity %d JUMP APPLIED:", entity.getId());
-            TRACE("[MovementIntentExecutor]   - jumpHeight: %.2f units", config.jumpHeight);
-            TRACE("[MovementIntentExecutor]   - gravity: %.2f units/s^2", config.gravity);
-            TRACE("[MovementIntentExecutor]   - initial jump velocity: %.6f units/s", jumpVelocity);
-            TRACE("[MovementIntentExecutor]   - vertical delta this frame: %.6f units", verticalMovement);
-        }
-
         // Calculate rotation from mouse delta
         filament::math::mat4f rotationMatrix = filament::math::mat4f{};
         if (intent.hasRotationIntent) {
