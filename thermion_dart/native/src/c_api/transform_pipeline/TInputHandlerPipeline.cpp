@@ -20,7 +20,7 @@ namespace thermion::plugin::input {
 
 using namespace thermion;
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_set_engine(void* enginePtr) {
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_engine(void* enginePtr) {
     auto pipeline = getPipeline();
     if (pipeline && enginePtr) {
         filament::Engine* engine = static_cast<filament::Engine*>(enginePtr);
@@ -30,7 +30,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_set_engine(void* enginePtr) {
 
 
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_on_mouse_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_mouse_event(
     int eventType, int button,
     double localX, double localY, double deltaX, double deltaY) {
     auto pipeline = getPipeline();
@@ -49,7 +49,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_on_mouse_event(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_on_key_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_key_event(
     int eventType, int logicalKey, int physicalKey, int synthesized) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -67,7 +67,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_on_key_event(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_on_scroll_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_scroll_event(
     double localX, double localY, double delta) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -83,7 +83,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_on_scroll_event(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_set_movement_space(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_space(
     uint32_t entityId, int movementSpace) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -93,7 +93,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_set_movement_space(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_set_invert_horizontal_movement(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_invert_horizontal_movement(
     uint32_t entityId, int invert) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -103,7 +103,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_set_invert_horizontal_movement(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_set_movement_speed(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_speed(
     uint32_t entityId, double speed) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -113,7 +113,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_set_movement_speed(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_set_mouse_sensitivity(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_mouse_sensitivity(
     uint32_t entityId, double sensitivity) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -124,7 +124,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_set_mouse_sensitivity(
 }
 
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_update_pipeline(float deltaTime) {
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_update_pipeline(float deltaTime) {
     TRACE("[C API] DELTA_TIME_DEBUG: update_pipeline called with deltaTime=%.6f", deltaTime);
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -135,7 +135,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_update_pipeline(float deltaTime) {
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_register_pipeline_stage(void* pipelineStageHandle, const char* name) {
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_registerPipelineStage(void* pipelineStageHandle, const char* name) {
     auto pipeline = getPipeline();
     if (pipeline && pipelineStageHandle) {
         // Cast the opaque handle to PipelineStage* - this works because
@@ -149,7 +149,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_register_pipeline_stage(void* pipelineS
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_unregister_pipeline_stage(void* pipelineStageHandle) {
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_unregisterPipelineStage(void* pipelineStageHandle) {
     auto pipeline = getPipeline();
     if (pipeline && pipelineStageHandle) {
         // Cast the opaque handle to PipelineStage*
@@ -162,7 +162,7 @@ EMSCRIPTEN_KEEPALIVE void input_pipeline_unregister_pipeline_stage(void* pipelin
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void input_pipeline_cleanup() {
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_cleanup() {
     TRACE("[C API] Cleaning up pipeline");
     auto pipeline = getPipeline();
     if (pipeline) {

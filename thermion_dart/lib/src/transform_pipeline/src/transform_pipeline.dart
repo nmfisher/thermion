@@ -18,6 +18,102 @@ enum MovementSpace {
   object,
 }
 
+/// Wrapper class for a TMovementIntentExecutor pointer.
+///
+/// This class encapsulates operations on a movement intent executor,
+/// providing a type-safe API for setting movement targets and managing
+/// the executor lifecycle.
+class TransformExecutor {
+  final ffi.Pointer<bindings.TMovementIntentExecutor> _pointer;
+  bool _disposed = false;
+
+  /// Creates a TransformExecutor wrapping the given native pointer.
+  ///
+  /// [pointer] - The native TMovementIntentExecutor pointer to wrap
+  TransformExecutor(this._pointer);
+
+  /// Gets the underlying native pointer.
+  ///
+  /// Throws [StateError] if the executor has been disposed.
+  ffi.Pointer<bindings.TMovementIntentExecutor> get pointer {
+    if (_disposed) {
+      throw StateError('TransformExecutor has been disposed');
+    }
+    return _pointer;
+  }
+
+  /// Sets the target entity for movement processing.
+  ///
+  /// This method controls which entity the movement executor will apply
+  /// movement to when processing input events.
+  ///
+  /// [entity] - The Thermion entity that should receive movement input
+  ///
+  /// Throws [InputHandlerManagerException] if the operation fails.
+  /// Throws [StateError] if the executor has been disposed.
+  void setMovementTarget(ThermionEntity entity) {
+    if (_disposed) {
+      throw StateError(
+          'Cannot set movement target: executor has been disposed');
+    }
+
+    try {
+      bindings.MovementIntentExecutor_setTargetEntity(_pointer, entity);
+    } catch (e) {
+      throw InputHandlerManagerException('Failed to set movement target: $e');
+    }
+  }
+
+  /// Disposes the executor and releases native resources.
+  ///
+  /// After calling this, the executor cannot be used anymore.
+  void dispose() {
+    if (_disposed) return;
+
+    try {
+      bindings.MovementIntentExecutor_destroy(_pointer);
+      _disposed = true;
+    } catch (e) {
+      throw InputHandlerManagerException('Failed to dispose executor: $e');
+    }
+  }
+
+  /// Checks if the executor has been disposed.
+  bool get isDisposed => _disposed;
+
+  // Movement Intent Processor methods
+
+  /// Creates a movement intent processor for handling the movement pipeline.
+  ///
+  /// This creates a processor that manages movement intents and executes them
+  /// through registered movement executors (transform, physics, character controllers, etc.).
+  ///
+  /// Returns the created processor instance wrapped in a TransformExecutor.
+  ///
+  /// Throws [InputHandlerManagerException] if the manager is not initialized or if creation fails.
+  static TransformExecutor createDefault() {
+    try {
+      final processor = bindings.MovementIntentExecutor_createDefault(
+        FilamentApp.instance!.engine as Pointer<Void>,
+      );
+      if (processor == nullptr) {
+        throw InputHandlerManagerException(
+          'Failed to create movement processor: null pointer returned',
+        );
+      }
+
+      // Create wrapper and store reference for cleanup
+      final executor = TransformExecutor(processor);
+
+      return executor;
+    } catch (e) {
+      throw InputHandlerManagerException(
+        'Failed to create movement processor: $e',
+      );
+    }
+  }
+}
+
 /// Singleton wrapper for Thermion Input Handler system functionality.
 ///
 /// This class provides a clean, type-safe API around the lower-level native bindings,
@@ -27,14 +123,12 @@ enum MovementSpace {
 class InputPipeline {
   static final InputPipeline _instance = InputPipeline._internal();
 
-  /// Gets the singleton instance of the input handler component manager.
   static InputPipeline get instance => _instance;
 
   InputPipeline._internal();
 
   bool _initialized = false;
   t.Pointer<ffi.Void>? _engine;
-  ffi.Pointer<bindings.TMovementIntentExecutor>? _movementIntentExecutor;
 
   /// Initializes the Thermion Input Handler system with the given engine.
   ///
@@ -49,7 +143,7 @@ class InputPipeline {
 
     try {
       _engine = engine;
-      bindings.input_pipeline_set_engine(engine);
+      bindings.TransformPipeline_set_engine(engine);
       _initialized = true;
     } catch (e) {
       throw InputHandlerManagerException(
@@ -66,7 +160,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
   void setMovementSpace(ThermionEntity entity, MovementSpace movementSpace) {
     try {
-      bindings.input_pipeline_set_movement_space(entity, movementSpace.index);
+      bindings.TransformPipeline_set_movement_space(entity, movementSpace.index);
     } catch (e) {
       throw InputHandlerManagerException(
         'Failed to set movement space for entity: $e',
@@ -88,7 +182,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
   void setInvertHorizontalMovement(ThermionEntity entity, bool invert) {
     try {
-      bindings.input_pipeline_set_invert_horizontal_movement(
+      bindings.TransformPipeline_set_invert_horizontal_movement(
         entity,
         invert ? 1 : 0,
       );
@@ -101,7 +195,7 @@ class InputPipeline {
 
   void registerPipelineStage(Pointer<Void> stage, String name) {
     try {
-      bindings.input_pipeline_register_pipeline_stage(
+      bindings.TransformPipeline_registerPipelineStage(
         stage,
         name.toNativeUtf8().cast(),
       );
@@ -120,7 +214,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
   void setMovementSpeed(ThermionEntity entity, double speed) {
     try {
-      bindings.input_pipeline_set_movement_speed(entity, speed);
+      bindings.TransformPipeline_set_movement_speed(entity, speed);
     } catch (e) {
       throw InputHandlerManagerException(
         'Failed to set movement speed for entity: $e',
@@ -136,7 +230,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
   void setMouseSensitivity(ThermionEntity entity, double sensitivity) {
     try {
-      bindings.input_pipeline_set_mouse_sensitivity(entity, sensitivity);
+      bindings.TransformPipeline_set_mouse_sensitivity(entity, sensitivity);
     } catch (e) {
       throw InputHandlerManagerException(
         'Failed to set mouse sensitivity for entity: $e',
@@ -144,65 +238,24 @@ class InputPipeline {
     }
   }
 
-  // Movement Intent Processor methods
-
-  /// Creates a movement intent processor for handling the movement pipeline.
-  ///
-  /// This creates a processor that manages movement intents and executes them
-  /// through registered movement executors (transform, physics, character controllers, etc.).
-  ///
-  /// Returns the created processor instance.
-  ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized or if creation fails.
-  ffi.Pointer<bindings.TMovementIntentExecutor> createDefaultTransformExecutor() {
-    try {
-      final processor = bindings.MovementIntentExecutor_createDefault(
-        FilamentApp.instance!.engine as Pointer<Void>,
-      );
-      if (processor == nullptr) {
-        throw InputHandlerManagerException(
-          'Failed to create movement processor: null pointer returned',
-        );
-      }
-
-      // Store reference for cleanup
-      _movementIntentExecutor = processor;
-
-      return processor;
-    } catch (e) {
-      throw InputHandlerManagerException(
-        'Failed to create movement processor: $e',
-      );
-    }
-  }
-
-  void registerTransformExecutor(ffi.Pointer<bindings.TMovementIntentExecutor> executor) {
-      bindings.Pipeline_registerMovementIntentExecutor(executor);
-  }
-
-  /// Sets the target entity for movement processing.
-  ///
-  /// This method controls which entity the movement processor will apply
-  /// movement to when processing input events.
-  ///
-  /// [entity] - The Thermion entity that should receive movement input
-  ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized
-  /// or if no movement processor has been created.
+  TransformExecutor? _executor;
   void setMovementTarget(ThermionEntity entity) {
-    if (_movementIntentExecutor == null) {
-      throw InputHandlerManagerException(
-        'No movement processor available. Call createMovementProcessor() first.',
-      );
-    }
+    _executor!.setMovementTarget(entity);
+  }
 
+  /// Registers a transform executor with the pipeline.
+  ///
+  /// [executor] - The TransformExecutor to register with the pipeline
+  ///
+  /// Throws [InputHandlerManagerException] if registration fails.
+  void registerTransformExecutor(TransformExecutor executor) {
     try {
-      bindings.MovementIntentExecutor_setTargetEntity(
-        _movementIntentExecutor!,
-        entity,
-      );
+      bindings.Pipeline_registerMovementIntentExecutor(executor.pointer);
+      _executor = executor;
     } catch (e) {
-      throw InputHandlerManagerException('Failed to set movement target: $e');
+      throw InputHandlerManagerException(
+        'Failed to register transform executor: $e',
+      );
     }
   }
 
@@ -216,7 +269,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the update fails.
   void updatePipeline(double deltaTime) {
     try {
-      bindings.input_pipeline_update_pipeline(deltaTime);
+      bindings.TransformPipeline_update_pipeline(deltaTime);
     } catch (e) {
       throw InputHandlerManagerException('Failed to update pipeline: $e');
     }
@@ -230,13 +283,7 @@ class InputPipeline {
     if (!_initialized) return;
 
     try {
-      // Clean up movement processor if it exists
-      if (_movementIntentExecutor != null) {
-        bindings.MovementIntentExecutor_destroy(_movementIntentExecutor!);
-        _movementIntentExecutor = null;
-      }
-
-      bindings.input_pipeline_cleanup();
+      bindings.TransformPipeline_cleanup();
       _initialized = false;
       _engine = null;
     } catch (e) {
@@ -259,7 +306,7 @@ class InputPipeline {
     try {
       switch (event) {
         case MouseEvent():
-          bindings.input_pipeline_on_mouse_event(
+          bindings.TransformPipeline_on_mouse_event(
             event.type.index,
             event.button?.index ?? -1,
             event.localPosition.x,
@@ -269,7 +316,7 @@ class InputPipeline {
           );
 
         case KeyEvent():
-          bindings.input_pipeline_on_key_event(
+          bindings.TransformPipeline_on_key_event(
             event.type.index,
             event.logicalKey.index,
             event.physicalKey.index,
@@ -277,7 +324,7 @@ class InputPipeline {
           );
 
         case ScrollEvent():
-          bindings.input_pipeline_on_scroll_event(
+          bindings.TransformPipeline_on_scroll_event(
             event.localPosition.x,
             event.localPosition.y,
             event.delta,
