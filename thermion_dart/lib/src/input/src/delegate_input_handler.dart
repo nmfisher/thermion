@@ -28,7 +28,7 @@ class DelegateInputHandler implements InputHandler {
 
   final _gesturesController = StreamController<List<InputEvent>>.broadcast();
   final _events = <InputEvent>[];
-  final List<InputHandlerDelegate> delegates;
+  InputHandlerDelegate? delegate;
 
   final bool batch;
 
@@ -37,8 +37,8 @@ class DelegateInputHandler implements InputHandler {
 
   DelegateInputHandler({
     required this.viewer,
-    required this.delegates,
-    this.batch = true,
+    this.delegate,
+    this.batch = false,
   }) {
     FilamentApp.instance!.registerRequestFrameHook(process);
     viewer.initialized.then((_) {
@@ -54,14 +54,13 @@ class DelegateInputHandler implements InputHandler {
   }) {
     return DelegateInputHandler(
       viewer: viewer,
-      delegates: [
-        OrbitInputHandlerDelegate(
-          viewer.view,
-          sensitivity: sensitivity,
-          minZoomDistance: minimumDistance,
-          maxZoomDistance: 1000.0,
-        ),
-      ],
+      delegate: OrbitInputHandlerDelegate(
+        viewer.view,
+        sensitivity: sensitivity,
+        minZoomDistance: minimumDistance,
+        maxZoomDistance: 1000.0,
+      ),
+      batch: true
     );
   }
 
@@ -69,17 +68,19 @@ class DelegateInputHandler implements InputHandler {
     ThermionViewer viewer, {
     bool freeLook = false,
     InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
-  }) => DelegateInputHandler(
-    viewer: viewer,
-    delegates: [
-      FreeFlightInputHandlerDelegateV2(viewer.view, sensitivity: sensitivity),
-    ],
-  );
+  }) =>
+      DelegateInputHandler(
+        batch: true,
+        viewer: viewer,
+        delegate: FreeFlightInputHandlerDelegateV2(viewer.view,
+            sensitivity: sensitivity),
+      );
 
   Future<void> process() async {
+    if (delegate == null) {
+      return;
+    }
     _processing = true;
-
-    final delegate = delegates.first;
 
     late final Map<LogicalKey, KeyEvent> keyDown;
     // if batch is true, we treat any tick containing keydown/keyup for the same key as a keydown
@@ -103,7 +104,7 @@ class DelegateInputHandler implements InputHandler {
       }
     }
 
-    await delegate.handle(_events.sublist(0));
+    await delegate!.handle(_events.sublist(0));
     _events.clear();
     if (batch) {
       _events.addAll(keyDown.values);
@@ -115,14 +116,12 @@ class DelegateInputHandler implements InputHandler {
   @override
   Future dispose() async {
     FilamentApp.instance!.unregisterRequestFrameHook(process);
-    for (final delegate in delegates) {
-      delegate.dispose();
-    }
+    delegate?.dispose();
   }
 
   @override
   Future handle(InputEvent event) async {
-    if (!_ready || _processing) {
+    if (!_ready || _processing || delegate == null) {
       return;
     }
 

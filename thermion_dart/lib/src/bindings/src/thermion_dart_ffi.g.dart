@@ -3657,6 +3657,109 @@ external bool AnimationManager_setGltfAnimationFrame(
   int frame,
 );
 
+@ffi.Native<
+    ffi.Pointer<TMovementIntentExecutor> Function(
+        ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external ffi.Pointer<TMovementIntentExecutor> movement_intent_executor_create(
+  ffi.Pointer<ffi.Void> engine,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
+    isLeaf: true)
+external void movement_intent_executor_destroy(
+  ffi.Pointer<TMovementIntentExecutor> processor,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
+    isLeaf: true)
+external void pipeline_register_movement_intent_executor(
+  ffi.Pointer<TMovementIntentExecutor> processor,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TMovementIntentExecutor>, ffi.Uint32)>(isLeaf: true)
+external void movement_intent_executor_set_target_entity(
+  ffi.Pointer<TMovementIntentExecutor> processor,
+  int entityId,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external void input_pipeline_set_engine(
+  ffi.Pointer<ffi.Void> enginePtr,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Int, ffi.Int, ffi.Double, ffi.Double, ffi.Double,
+        ffi.Double)>(isLeaf: true)
+external void input_pipeline_on_mouse_event(
+  int eventType,
+  int button,
+  double localX,
+  double localY,
+  double deltaX,
+  double deltaY,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Int, ffi.Int)>(isLeaf: true)
+external void input_pipeline_on_key_event(
+  int eventType,
+  int logicalKey,
+  int physicalKey,
+  int synthesized,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void input_pipeline_on_scroll_event(
+  double localX,
+  double localY,
+  double delta,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Int)>(isLeaf: true)
+external void input_pipeline_set_movement_space(
+  int entityId,
+  int movementSpace,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Int)>(isLeaf: true)
+external void input_pipeline_set_invert_horizontal_movement(
+  int entityId,
+  int invert,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Double)>(isLeaf: true)
+external void input_pipeline_set_movement_speed(
+  int entityId,
+  double speed,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Double)>(isLeaf: true)
+external void input_pipeline_set_mouse_sensitivity(
+  int entityId,
+  double sensitivity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Float)>(isLeaf: true)
+external void input_pipeline_update_pipeline(
+  double deltaTime,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(
+    isLeaf: true)
+external void input_pipeline_register_pipeline_stage(
+  ffi.Pointer<ffi.Void> pipelineStageHandle,
+  ffi.Pointer<ffi.Char> name,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external void input_pipeline_unregister_pipeline_stage(
+  ffi.Pointer<ffi.Void> pipelineStageHandle,
+);
+
+@ffi.Native<ffi.Void Function()>(isLeaf: true)
+external void input_pipeline_cleanup();
+
 typedef VoidCallbackFunction = ffi.Void Function(ffi.Int32 requestId);
 typedef DartVoidCallbackFunction = void Function(int requestId);
 typedef VoidCallback = ffi.Pointer<ffi.NativeFunction<VoidCallbackFunction>>;
@@ -4309,6 +4412,10 @@ typedef DartFilamentRenderCallbackFunction = void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef FilamentRenderCallback
     = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
+
+final class TMovementIntentExecutor extends ffi.Opaque {}
+
+final class TInputHandler extends ffi.Opaque {}
 
 const int __bool_true_false_are_defined = 1;
 
