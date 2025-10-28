@@ -19,7 +19,7 @@ namespace thermion::plugin::input {
 
 using namespace thermion;
 
-EMSCRIPTEN_KEEPALIVE TMovementIntentExecutor* create_default_transform_executor(void* tEngine) {
+EMSCRIPTEN_KEEPALIVE TMovementIntentExecutor* MovementIntentExecutor_createDefault(void* tEngine) {
     auto *engine = reinterpret_cast<filament::Engine*>(tEngine);
     auto *processor = new MovementIntentExecutor(engine);
     auto *tProcessor = reinterpret_cast<TMovementIntentExecutor*>(processor);

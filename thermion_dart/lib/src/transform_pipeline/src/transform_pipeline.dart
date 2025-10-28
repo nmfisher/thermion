@@ -156,7 +156,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if creation fails.
   ffi.Pointer<bindings.TMovementIntentExecutor> createDefaultTransformExecutor() {
     try {
-      final processor = bindings.create_default_transform_executor(
+      final processor = bindings.MovementIntentExecutor_createDefault(
         FilamentApp.instance!.engine as Pointer<Void>,
       );
       if (processor == nullptr) {
