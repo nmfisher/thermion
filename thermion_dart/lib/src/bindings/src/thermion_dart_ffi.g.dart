@@ -3666,7 +3666,7 @@ external ffi.Pointer<TMovementIntentExecutor> create_default_transform_executor(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
     isLeaf: true)
-external void movement_intent_executor_destroy(
+external void MovementIntentExecutor_destroy(
   ffi.Pointer<TMovementIntentExecutor> processor,
 );
 

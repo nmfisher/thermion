@@ -26,7 +26,7 @@ EMSCRIPTEN_KEEPALIVE TMovementIntentExecutor* create_default_transform_executor(
     return tProcessor;
 }
 
-EMSCRIPTEN_KEEPALIVE void movement_intent_executor_destroy(TMovementIntentExecutor* tProcessor) {
+EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_destroy(TMovementIntentExecutor* tProcessor) {
     auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);
     delete processor;
 }

@@ -232,7 +232,7 @@ class InputPipeline {
     try {
       // Clean up movement processor if it exists
       if (_movementIntentExecutor != null) {
-        bindings.movement_intent_executor_destroy(_movementIntentExecutor!);
+        bindings.MovementIntentExecutor_destroy(_movementIntentExecutor!);
         _movementIntentExecutor = null;
       }
 
