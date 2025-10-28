@@ -3679,7 +3679,7 @@ external void Pipeline_registerMovementIntentExecutor(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TMovementIntentExecutor>, ffi.Uint32)>(isLeaf: true)
-external void movement_intent_executor_set_target_entity(
+external void MovementIntentExecutor_setTargetEntity(
   ffi.Pointer<TMovementIntentExecutor> processor,
   int entityId,
 );

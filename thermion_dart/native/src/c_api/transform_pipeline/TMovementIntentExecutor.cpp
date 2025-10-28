@@ -42,7 +42,7 @@ EMSCRIPTEN_KEEPALIVE void Pipeline_registerMovementIntentExecutor(TMovementInten
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void movement_intent_executor_set_target_entity(TMovementIntentExecutor* tProcessor, uint32_t entityId) {
+EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_setTargetEntity(TMovementIntentExecutor* tProcessor, uint32_t entityId) {
     auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);
 
     auto targetEntity = utils::Entity::import(entityId);    

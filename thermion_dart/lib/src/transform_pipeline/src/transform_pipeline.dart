@@ -197,7 +197,7 @@ class InputPipeline {
     }
 
     try {
-      bindings.movement_intent_executor_set_target_entity(
+      bindings.MovementIntentExecutor_setTargetEntity(
         _movementIntentExecutor!,
         entity,
       );
