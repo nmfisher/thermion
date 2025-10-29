@@ -41,13 +41,7 @@ namespace thermion::plugin::input {
         TRACE("[Pipeline] Calculated delta time: %llu nanoseconds (%.6f seconds)", deltaTimeInNanos, deltaTimeInNanos / 1'000'000'000.0f);
         TRACE("[Pipeline] DELTA_TIME_DEBUG: frame_time=%llu, delta_time=%llu", frameTimeInNanos, deltaTimeInNanos);
 
-        // First, run all registered pipeline stages (physics, etc.)
-        for (auto* stage : mPipelineStages) {
-            stage->update(deltaTimeInNanos);
-            TRACE("[Pipeline] Executed pipeline stage: %s", stage->getName());
-        }
-
-        // Then update the event manager to process input events
+        // Process input events
         mEventManager->update();
         TRACE("[Pipeline] Event manager update completed");
 
@@ -63,13 +57,23 @@ namespace thermion::plugin::input {
               intent.hasMovementIntent ? "yes" : "no",
               intent.hasRotationIntent ? "yes" : "no");
 
-        // Process movement intent for all registered processors
-        for (auto* processor : mMovementProcessors) {
-            processor->process(intent, mMovementConfig, deltaTimeInNanos);
-            TRACE("[Pipeline] Processed movement intent in processor");
+        // First, run all registered pipeline stages
+        // This is currently disabled in favour of using a movement executor directly for physics
+        // I'm unsure if we even need a concept of "PipelineStage"
+        if(false) {
+            for (auto* stage : mPipelineStages) {
+                stage->update(deltaTimeInNanos);
+                TRACE("[Pipeline] Executed pipeline stage: %s", stage->getName());
+            }
         }
 
-        // Reset mouse delta after all processors have consumed it
+        // Process movement intent for all registered executors
+        for (auto* executor : mMovementIntentExecutors) {
+            executor->process(intent, mMovementConfig, deltaTimeInNanos);
+            TRACE("[Pipeline] Processed movement intent in executor");
+        }
+
+        // Reset mouse delta after all executors have consumed it
         if (mEventManager) {
             mEventManager->resetMouseDelta();
             TRACE("[Pipeline] Reset mouse delta after processing");
@@ -89,7 +93,7 @@ namespace thermion::plugin::input {
             mEventManager->cleanup();
         }
 
-        mMovementProcessors.clear();
+        mMovementIntentExecutors.clear();
         mPipelineStages.clear();
         mEngine = nullptr;
 
@@ -104,18 +108,18 @@ namespace thermion::plugin::input {
         TRACE("[Pipeline] Engine set for pipeline (calculator and event manager don't need engine)");
     }
 
-    void Pipeline::registerMovementIntentExecutor(MovementIntentExecutor* processor) {
-        if (processor && std::find(mMovementProcessors.begin(), mMovementProcessors.end(), processor) == mMovementProcessors.end()) {
-            mMovementProcessors.push_back(processor);
-            TRACE("[Pipeline] Registered movement intent processor (total: %zu)", mMovementProcessors.size());
+    void Pipeline::registerMovementIntentExecutor(MovementIntentExecutor* executor) {
+        if (executor && std::find(mMovementIntentExecutors.begin(), mMovementIntentExecutors.end(), executor) == mMovementIntentExecutors.end()) {
+            mMovementIntentExecutors.push_back(executor);
+            TRACE("[Pipeline] Registered movement intent executor (total: %zu)", mMovementIntentExecutors.size());
         }
     }
 
-    void Pipeline::unregisterMovementIntentExecutor(MovementIntentExecutor* processor) {
-        auto it = std::find(mMovementProcessors.begin(), mMovementProcessors.end(), processor);
-        if (it != mMovementProcessors.end()) {
-            mMovementProcessors.erase(it);
-            TRACE("[Pipeline] Unregistered movement intent processor (total: %zu)", mMovementProcessors.size());
+    void Pipeline::unregisterMovementIntentExecutor(MovementIntentExecutor* executor) {
+        auto it = std::find(mMovementIntentExecutors.begin(), mMovementIntentExecutors.end(), executor);
+        if (it != mMovementIntentExecutors.end()) {
+            mMovementIntentExecutors.erase(it);
+            TRACE("[Pipeline] Unregistered movement intent executor (total: %zu)", mMovementIntentExecutors.size());
         }
     }
 

@@ -3693,7 +3693,7 @@ external void TransformPipeline_set_engine(
 @ffi.Native<
     ffi.Void Function(ffi.Int, ffi.Int, ffi.Double, ffi.Double, ffi.Double,
         ffi.Double)>(isLeaf: true)
-external void TransformPipeline_on_mouse_event(
+external void TransformPipeline_onMouseEvent(
   int eventType,
   int button,
   double localX,
@@ -3703,7 +3703,7 @@ external void TransformPipeline_on_mouse_event(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Int, ffi.Int)>(isLeaf: true)
-external void TransformPipeline_on_key_event(
+external void TransformPipeline_onKeyEvent(
   int eventType,
   int logicalKey,
   int physicalKey,
@@ -3711,7 +3711,7 @@ external void TransformPipeline_on_key_event(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
-external void TransformPipeline_on_scroll_event(
+external void TransformPipeline_onScrollEvent(
   double localX,
   double localY,
   double delta,
@@ -3736,7 +3736,7 @@ external void TransformPipeline_set_movement_speed(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Double)>(isLeaf: true)
-external void TransformPipeline_set_mouse_sensitivity(
+external void TransformPipeline_setMouseSensitivity(
   int entityId,
   double sensitivity,
 );

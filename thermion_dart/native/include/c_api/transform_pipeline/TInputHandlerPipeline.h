@@ -17,16 +17,16 @@ typedef struct TInputHandler TInputHandler;
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_engine(void* enginePtr);
 
 // Input event functions (global - no entity ID required)
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_mouse_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_onMouseEvent(
     int eventType, int button,
     double localX, double localY, double deltaX, double deltaY
 );
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_key_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_onKeyEvent(
     int eventType, int logicalKey, int physicalKey, int synthesized
 );
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_scroll_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_onScrollEvent(
     double localX, double localY, double delta
 );
 
@@ -42,7 +42,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_speed(
     uint32_t entityId, double speed
 );
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_mouse_sensitivity(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(
     uint32_t entityId, double sensitivity
 );
 

@@ -193,6 +193,9 @@ class InputPipeline {
     }
   }
 
+  ///
+  ///
+  ///
   void registerPipelineStage(Pointer<Void> stage, String name) {
     try {
       bindings.TransformPipeline_registerPipelineStage(
@@ -230,7 +233,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
   void setMouseSensitivity(ThermionEntity entity, double sensitivity) {
     try {
-      bindings.TransformPipeline_set_mouse_sensitivity(entity, sensitivity);
+      bindings.TransformPipeline_setMouseSensitivity(entity, sensitivity);
     } catch (e) {
       throw InputHandlerManagerException(
         'Failed to set mouse sensitivity for entity: $e',
@@ -280,8 +283,6 @@ class InputPipeline {
   /// This should be called when the manager is no longer needed.
   /// After cleanup, the manager must be re-initialized before use.
   void cleanup() {
-    if (!_initialized) return;
-
     try {
       bindings.TransformPipeline_cleanup();
       _initialized = false;
@@ -306,7 +307,7 @@ class InputPipeline {
     try {
       switch (event) {
         case MouseEvent():
-          bindings.TransformPipeline_on_mouse_event(
+          bindings.TransformPipeline_onMouseEvent(
             event.type.index,
             event.button?.index ?? -1,
             event.localPosition.x,
@@ -316,7 +317,7 @@ class InputPipeline {
           );
 
         case KeyEvent():
-          bindings.TransformPipeline_on_key_event(
+          bindings.TransformPipeline_onKeyEvent(
             event.type.index,
             event.logicalKey.index,
             event.physicalKey.index,
@@ -324,7 +325,7 @@ class InputPipeline {
           );
 
         case ScrollEvent():
-          bindings.TransformPipeline_on_scroll_event(
+          bindings.TransformPipeline_onScrollEvent(
             event.localPosition.x,
             event.localPosition.y,
             event.delta,

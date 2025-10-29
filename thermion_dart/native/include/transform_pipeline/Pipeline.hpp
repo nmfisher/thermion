@@ -56,7 +56,7 @@ namespace thermion::plugin::input {
         // Core components
         std::unique_ptr<InputEventManager> mEventManager;
         std::unique_ptr<MovementIntentCalculator> mCalculator;
-        std::vector<MovementIntentExecutor*> mMovementProcessors;
+        std::vector<MovementIntentExecutor*> mMovementIntentExecutors;
 
         // Movement configuration (could be loaded from config file, UI, etc.)
         MovementConfig mMovementConfig;

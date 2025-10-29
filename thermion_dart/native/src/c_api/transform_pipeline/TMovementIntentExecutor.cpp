@@ -53,7 +53,7 @@ EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_setTargetEntity(TMovementIntent
 
     processor->setTargetEntity(targetEntity);
 
-    TRACE("Set target entiyt for movement executor to %d", entityId);
+    TRACE("Set target entity for movement executor to %d", entityId);
 }
 
 #ifdef __cplusplus

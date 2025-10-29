@@ -20,6 +20,7 @@ namespace thermion::plugin::input {
     void MovementIntentExecutor::setTargetEntity(utils::Entity entity)
     {
         mTargetEntity = entity;
+        TRACE("[MovementIntentExecutor] Set target entity to %d", utils::Entity::smuggle(entity));
     }
 
     void MovementIntentExecutor::process(const MovementIntent& intent, const MovementConfig& config, uint64_t deltaTimeInNanos)

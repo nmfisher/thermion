@@ -30,7 +30,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_engine(void* enginePtr) {
 
 
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_mouse_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_onMouseEvent(
     int eventType, int button,
     double localX, double localY, double deltaX, double deltaY) {
     auto pipeline = getPipeline();
@@ -49,7 +49,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_mouse_event(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_key_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_onKeyEvent(
     int eventType, int logicalKey, int physicalKey, int synthesized) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -67,7 +67,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_key_event(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_on_scroll_event(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_onScrollEvent(
     double localX, double localY, double delta) {
     auto pipeline = getPipeline();
     if (pipeline) {
@@ -113,7 +113,7 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_speed(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_mouse_sensitivity(
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(
     uint32_t entityId, double sensitivity) {
     auto pipeline = getPipeline();
     if (pipeline) {
