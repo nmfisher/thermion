@@ -8,7 +8,6 @@ namespace thermion::plugin::input
 
     MovementIntent MovementIntentCalculator::calculate(
         const InputState& inputState,
-        const MovementConfig& config,
         uint64_t deltaTimeInNanos
     ) const
     {
@@ -19,10 +18,6 @@ namespace thermion::plugin::input
 
         MovementIntent intent;
         intent.deltaTime = deltaTime;
-
-        // Note: Configuration values are NOT copied to MovementIntent
-        // MovementIntent only contains the calculated intent (what to do)
-        // Configuration stays with the MovementConfig and is used by MovementExecutor
 
         // Calculate movement direction from pressed keys
         float3 movementDirection = {0, 0, 0};

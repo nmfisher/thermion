@@ -20,7 +20,7 @@ namespace thermion::plugin::input {
 
 using namespace thermion;
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_engine(void* enginePtr) {
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setEngine(void* enginePtr) {
     auto pipeline = getPipeline();
     if (pipeline && enginePtr) {
         filament::Engine* engine = static_cast<filament::Engine*>(enginePtr);
@@ -83,48 +83,8 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_onScrollEvent(
     }
 }
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_space(
-    uint32_t entityId, int movementSpace) {
-    auto pipeline = getPipeline();
-    if (pipeline) {
-        auto& config = pipeline->getMovementConfig();
-        config.movementSpace = static_cast<MovementSpace>(movementSpace);
-        TRACE("[C API] Set movement space to %d", movementSpace);
-    }
-}
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_invert_horizontal_movement(
-    uint32_t entityId, int invert) {
-    auto pipeline = getPipeline();
-    if (pipeline) {
-        auto& config = pipeline->getMovementConfig();
-        config.invertHorizontalMovement = invert != 0;
-        TRACE("[C API] Set invert horizontal movement to %d", invert);
-    }
-}
-
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_speed(
-    uint32_t entityId, double speed) {
-    auto pipeline = getPipeline();
-    if (pipeline) {
-        auto& config = pipeline->getMovementConfig();
-        config.baseMoveSpeed = speed;
-        TRACE("[C API] Set movement speed to %.2f", speed);
-    }
-}
-
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(
-    uint32_t entityId, double sensitivity) {
-    auto pipeline = getPipeline();
-    if (pipeline) {
-        auto& config = pipeline->getMovementConfig();
-        config.mouseSensitivity = sensitivity;
-        TRACE("[C API] Set mouse sensitivity to %.6f", sensitivity);
-    }
-}
-
-
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_update_pipeline(float deltaTime) {
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_update(float deltaTime) {
     TRACE("[C API] DELTA_TIME_DEBUG: update_pipeline called with deltaTime=%.6f", deltaTime);
     auto pipeline = getPipeline();
     if (pipeline) {

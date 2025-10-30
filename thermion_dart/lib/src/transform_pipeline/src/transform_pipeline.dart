@@ -3,7 +3,6 @@ import 'package:thermion_dart/thermion_dart.dart' hide NativeLibrary;
 import 'package:thermion_dart/thermion_dart.dart' as t;
 
 import '../../bindings/bindings.dart' as bindings;
-// import 'bindings/src/input_handler_ffi.g.dart' as bindings;
 
 /// Movement space enumeration for input handler components.
 ///
@@ -18,26 +17,35 @@ enum MovementSpace {
   object,
 }
 
+class MovementConfig {
+  MovementSpace movementSpace = MovementSpace.world;
+  double baseMoveSpeed = 50.0;
+  double mouseSensitivity = 0.001;
+  bool invertHorizontalMovement = false;
+  double jumpHeight = 10.0; // How high to jump (units)
+  double groundLevel = 0.0; // Y position considered ground level
+}
+
 /// Wrapper class for a TMovementIntentExecutor pointer.
 ///
 /// This class encapsulates operations on a movement intent executor,
 /// providing a type-safe API for setting movement targets and managing
 /// the executor lifecycle.
-class TransformExecutor {
+class MovementIntentExecutor {
   final ffi.Pointer<bindings.TMovementIntentExecutor> _pointer;
   bool _disposed = false;
 
-  /// Creates a TransformExecutor wrapping the given native pointer.
+  /// Creates a MovementIntentExecutor wrapping the given native pointer.
   ///
   /// [pointer] - The native TMovementIntentExecutor pointer to wrap
-  TransformExecutor(this._pointer);
+  MovementIntentExecutor(this._pointer);
 
   /// Gets the underlying native pointer.
   ///
   /// Throws [StateError] if the executor has been disposed.
   ffi.Pointer<bindings.TMovementIntentExecutor> get pointer {
     if (_disposed) {
-      throw StateError('TransformExecutor has been disposed');
+      throw StateError('MovementIntentExecutor has been disposed');
     }
     return _pointer;
   }
@@ -88,10 +96,10 @@ class TransformExecutor {
   /// This creates a processor that manages movement intents and executes them
   /// through registered movement executors (transform, physics, character controllers, etc.).
   ///
-  /// Returns the created processor instance wrapped in a TransformExecutor.
+  /// Returns the created processor instance wrapped in a MovementIntentExecutor.
   ///
   /// Throws [InputHandlerManagerException] if the manager is not initialized or if creation fails.
-  static TransformExecutor createDefault() {
+  static MovementIntentExecutor createDefault() {
     try {
       final processor = bindings.MovementIntentExecutor_createDefault(
         FilamentApp.instance!.engine as Pointer<Void>,
@@ -103,7 +111,7 @@ class TransformExecutor {
       }
 
       // Create wrapper and store reference for cleanup
-      final executor = TransformExecutor(processor);
+      final executor = MovementIntentExecutor(processor);
 
       return executor;
     } catch (e) {
@@ -111,6 +119,18 @@ class TransformExecutor {
         'Failed to create movement processor: $e',
       );
     }
+  }
+
+  void setConfig(MovementConfig movementConfig) {
+    final struct = Struct.create<TMovementConfig>();
+    struct.baseMoveSpeed = movementConfig.baseMoveSpeed;
+    struct.groundLevel = movementConfig.groundLevel;
+    struct.invertHorizontalMovement =
+        movementConfig.invertHorizontalMovement ? 1 : 0;
+    struct.jumpHeight = movementConfig.jumpHeight;
+    struct.mouseSensitivity = movementConfig.mouseSensitivity;
+    struct.movementSpace = movementConfig.movementSpace.index;
+    bindings.MovementIntentExecutor_setConfig(_pointer, struct.address);
   }
 }
 
@@ -137,58 +157,18 @@ class InputPipeline {
   ///
   /// Throws [InputHandlerManagerException] if initialization fails.
   void initialize(t.Pointer<ffi.Void> engine) {
+
     if (_initialized) {
       throw StateError('InputPipeline is already initialized');
     }
 
     try {
       _engine = engine;
-      bindings.TransformPipeline_set_engine(engine);
+      bindings.TransformPipeline_setEngine(engine);
       _initialized = true;
     } catch (e) {
       throw InputHandlerManagerException(
         'Failed to initialize InputPipeline: $e',
-      );
-    }
-  }
-
-  /// Sets the movement space for the specified entity's input handler component.
-  ///
-  /// [entity] - The Thermion entity whose movement space should be set
-  /// [movementSpace] - The movement space to use (world or object space)
-  ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
-  void setMovementSpace(ThermionEntity entity, MovementSpace movementSpace) {
-    try {
-      bindings.TransformPipeline_set_movement_space(entity, movementSpace.index);
-    } catch (e) {
-      throw InputHandlerManagerException(
-        'Failed to set movement space for entity: $e',
-      );
-    }
-  }
-
-  /// Sets whether horizontal look movement should be inverted for the specified entity's input handler component.
-  ///
-  /// When enabled, horizontal mouse movement is reversed:
-  /// - Mouse moving right causes the entity to rotate left (counterclockwise)
-  /// - Mouse moving left causes the entity to rotate right (clockwise)
-  ///
-  /// This affects camera/look rotation, not translation movement. A/D keys always work normally.
-  ///
-  /// [entity] - The Thermion entity whose horizontal look inversion should be set
-  /// [invert] - Whether to invert horizontal look (true) or use normal direction (false)
-  ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
-  void setInvertHorizontalMovement(ThermionEntity entity, bool invert) {
-    try {
-      bindings.TransformPipeline_set_invert_horizontal_movement(
-        entity,
-        invert ? 1 : 0,
-      );
-    } catch (e) {
-      throw InputHandlerManagerException(
-        'Failed to set invert horizontal look for entity: $e',
       );
     }
   }
@@ -209,57 +189,15 @@ class InputPipeline {
     }
   }
 
-  /// Sets the movement speed for the specified entity's input handler component.
-  ///
-  /// [entity] - The Thermion entity whose movement speed should be set
-  /// [speed] - The movement speed multiplier (higher values = faster movement)
-  ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
-  void setMovementSpeed(ThermionEntity entity, double speed) {
-    try {
-      bindings.TransformPipeline_set_movement_speed(entity, speed);
-    } catch (e) {
-      throw InputHandlerManagerException(
-        'Failed to set movement speed for entity: $e',
-      );
-    }
-  }
-
-  /// Sets the mouse sensitivity for the specified entity's input handler component.
-  ///
-  /// [entity] - The Thermion entity whose mouse sensitivity should be set
-  /// [sensitivity] - The mouse sensitivity multiplier (higher values = faster rotation)
-  ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
-  void setMouseSensitivity(ThermionEntity entity, double sensitivity) {
-    try {
-      bindings.TransformPipeline_setMouseSensitivity(entity, sensitivity);
-    } catch (e) {
-      throw InputHandlerManagerException(
-        'Failed to set mouse sensitivity for entity: $e',
-      );
-    }
-  }
-
-  TransformExecutor? _executor;
-  void setMovementTarget(ThermionEntity entity) {
-    _executor!.setMovementTarget(entity);
-  }
 
   /// Registers a transform executor with the pipeline.
   ///
-  /// [executor] - The TransformExecutor to register with the pipeline
+  /// [executor] - The MovementIntentExecutor to register with the pipeline
   ///
   /// Throws [InputHandlerManagerException] if registration fails.
-  void registerTransformExecutor(TransformExecutor executor) {
-    try {
-      bindings.Pipeline_registerMovementIntentExecutor(executor.pointer);
-      _executor = executor;
-    } catch (e) {
-      throw InputHandlerManagerException(
-        'Failed to register transform executor: $e',
-      );
-    }
+  void registerMovementIntentExecutor(MovementIntentExecutor executor) {
+    bindings.Pipeline_registerMovementIntentExecutor(executor.pointer);
+
   }
 
   /// Updates the pipeline manually (fallback when automatic updates don't work).
@@ -272,7 +210,7 @@ class InputPipeline {
   /// Throws [InputHandlerManagerException] if the update fails.
   void updatePipeline(double deltaTime) {
     try {
-      bindings.TransformPipeline_update_pipeline(deltaTime);
+      bindings.TransformPipeline_update(deltaTime);
     } catch (e) {
       throw InputHandlerManagerException('Failed to update pipeline: $e');
     }

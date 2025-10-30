@@ -33,8 +33,8 @@ EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_destroy(TMovementIntentExecutor
 
 EMSCRIPTEN_KEEPALIVE void Pipeline_registerMovementIntentExecutor(TMovementIntentExecutor* tProcessor) {
     auto pipeline = getPipeline();
-    if (pipeline && tProcessor) {
-        auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);
+    auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);
+    if (pipeline) {
         pipeline->registerMovementIntentExecutor(processor);
         TRACE("[C API] Registered movement intent processor with pipeline");
     } else {
@@ -45,7 +45,7 @@ EMSCRIPTEN_KEEPALIVE void Pipeline_registerMovementIntentExecutor(TMovementInten
 EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_setTargetEntity(TMovementIntentExecutor* tProcessor, uint32_t entityId) {
     auto *processor = reinterpret_cast<MovementIntentExecutor *>(tProcessor);
 
-    auto targetEntity = utils::Entity::import(entityId);    
+    auto targetEntity = utils::Entity::import(entityId);
     if(targetEntity.isNull()) {
         ERROR("Target entity is null. This is a big problem");
         return;
@@ -55,6 +55,41 @@ EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_setTargetEntity(TMovementIntent
 
     TRACE("Set target entity for movement executor to %d", entityId);
 }
+
+EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_process(
+    TMovementIntentExecutor* tExecutor,
+    const TMovementIntent* tIntent,
+    uint64_t deltaTimeInNanos
+) {
+    auto *executor = reinterpret_cast<MovementIntentExecutor *>(tExecutor);
+
+    // Convert TMovementIntent C struct to C++ MovementIntent
+    MovementIntent intent;
+    intent.movementDirection = {tIntent->movementDirectionX, tIntent->movementDirectionY, tIntent->movementDirectionZ};
+    intent.movementSpeed = tIntent->movementSpeed;
+    intent.mouseDelta = {tIntent->mouseDeltaX, tIntent->mouseDeltaY};
+    intent.jumpIntent = tIntent->jumpIntent != 0;
+    intent.sprintIntent = tIntent->sprintIntent != 0;
+    intent.deltaTime = tIntent->deltaTime;
+    intent.hasMovementIntent = tIntent->hasMovementIntent != 0;
+    intent.hasRotationIntent = tIntent->hasRotationIntent != 0;
+
+    executor->process(intent, deltaTimeInNanos);
+}
+
+EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_setConfig(TMovementIntentExecutor* tExecutor, TMovementConfig *tConfig) {
+    auto *executor = reinterpret_cast<MovementIntentExecutor *>(tExecutor);
+    // Convert TMovementConfig C struct to C++ MovementConfig
+    MovementConfig config;
+    config.baseMoveSpeed = tConfig->baseMoveSpeed;
+    config.mouseSensitivity = tConfig->mouseSensitivity;
+    config.invertHorizontalMovement = tConfig->invertHorizontalMovement != 0;
+    config.movementSpace = static_cast<MovementSpace>(tConfig->movementSpace);
+    config.jumpHeight = tConfig->jumpHeight;
+    config.groundLevel = tConfig->groundLevel;
+    executor->setConfig(config);
+}
+
 
 #ifdef __cplusplus
 }

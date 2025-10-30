@@ -3668,25 +3668,42 @@ external ffi.Pointer<TMovementIntentExecutor>
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
     isLeaf: true)
 external void MovementIntentExecutor_destroy(
-  ffi.Pointer<TMovementIntentExecutor> processor,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
-    isLeaf: true)
-external void Pipeline_registerMovementIntentExecutor(
-  ffi.Pointer<TMovementIntentExecutor> processor,
+  ffi.Pointer<TMovementIntentExecutor> executor,
 );
 
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TMovementIntentExecutor>, ffi.Uint32)>(isLeaf: true)
 external void MovementIntentExecutor_setTargetEntity(
-  ffi.Pointer<TMovementIntentExecutor> processor,
+  ffi.Pointer<TMovementIntentExecutor> executor,
   int entityId,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>,
+        ffi.Pointer<TMovementConfig>)>(isLeaf: true)
+external void MovementIntentExecutor_setConfig(
+  ffi.Pointer<TMovementIntentExecutor> executor,
+  ffi.Pointer<TMovementConfig> tConfig,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>,
+        ffi.Pointer<TMovementIntent>, ffi.Uint64)>(isLeaf: true)
+external void MovementIntentExecutor_process(
+  ffi.Pointer<TMovementIntentExecutor> executor,
+  ffi.Pointer<TMovementIntent> intent,
+  int deltaTimeInNanos,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
+    isLeaf: true)
+external void Pipeline_registerMovementIntentExecutor(
+  ffi.Pointer<TMovementIntentExecutor> executor,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external void TransformPipeline_set_engine(
+external void TransformPipeline_setEngine(
   ffi.Pointer<ffi.Void> enginePtr,
 );
 
@@ -3717,32 +3734,8 @@ external void TransformPipeline_onScrollEvent(
   double delta,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Int)>(isLeaf: true)
-external void TransformPipeline_set_movement_space(
-  int entityId,
-  int movementSpace,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Int)>(isLeaf: true)
-external void TransformPipeline_set_invert_horizontal_movement(
-  int entityId,
-  int invert,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Double)>(isLeaf: true)
-external void TransformPipeline_set_movement_speed(
-  int entityId,
-  double speed,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Uint32, ffi.Double)>(isLeaf: true)
-external void TransformPipeline_setMouseSensitivity(
-  int entityId,
-  double sensitivity,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Float)>(isLeaf: true)
-external void TransformPipeline_update_pipeline(
+external void TransformPipeline_update(
   double deltaTime,
 );
 
@@ -4414,7 +4407,69 @@ typedef DartFilamentRenderCallbackFunction = void Function(
 typedef FilamentRenderCallback
     = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
 
+final class TMovementIntentCalculator extends ffi.Opaque {}
+
+final class TMovementIntent extends ffi.Struct {
+  @ffi.Float()
+  external double movementDirectionX;
+
+  @ffi.Float()
+  external double movementDirectionY;
+
+  @ffi.Float()
+  external double movementDirectionZ;
+
+  @ffi.Float()
+  external double movementSpeed;
+
+  @ffi.Float()
+  external double mouseDeltaX;
+
+  @ffi.Float()
+  external double mouseDeltaY;
+
+  @ffi.Int()
+  external int jumpIntent;
+
+  @ffi.Int()
+  external int sprintIntent;
+
+  @ffi.Float()
+  external double deltaTime;
+
+  @ffi.Int()
+  external int hasMovementIntent;
+
+  @ffi.Int()
+  external int hasRotationIntent;
+}
+
 final class TMovementIntentExecutor extends ffi.Opaque {}
+
+sealed class TMovementSpace {
+  static const MOVEMENT_SPACE_WORLD = 0;
+  static const MOVEMENT_SPACE_OBJECT = 1;
+}
+
+final class TMovementConfig extends ffi.Struct {
+  @ffi.Double()
+  external double baseMoveSpeed;
+
+  @ffi.Double()
+  external double mouseSensitivity;
+
+  @ffi.Int()
+  external int invertHorizontalMovement;
+
+  @ffi.UnsignedInt()
+  external int movementSpace;
+
+  @ffi.Double()
+  external double jumpHeight;
+
+  @ffi.Double()
+  external double groundLevel;
+}
 
 final class TInputHandler extends ffi.Opaque {}
 

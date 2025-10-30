@@ -52,7 +52,7 @@ namespace thermion::plugin::input {
         };
 
         // Calculate movement intent using the calculator
-        MovementIntent intent = mCalculator->calculate(inputState, mMovementConfig, deltaTimeInNanos);
+        MovementIntent intent = mCalculator->calculate(inputState, deltaTimeInNanos);
         TRACE("[Pipeline] Calculator completed, intent has movement: %s, rotation: %s",
               intent.hasMovementIntent ? "yes" : "no",
               intent.hasRotationIntent ? "yes" : "no");
@@ -69,7 +69,7 @@ namespace thermion::plugin::input {
 
         // Process movement intent for all registered executors
         for (auto* executor : mMovementIntentExecutors) {
-            executor->process(intent, mMovementConfig, deltaTimeInNanos);
+            executor->process(intent, deltaTimeInNanos);
             TRACE("[Pipeline] Processed movement intent in executor");
         }
 

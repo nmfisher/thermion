@@ -23,7 +23,7 @@ namespace thermion::plugin::input {
         TRACE("[MovementIntentExecutor] Set target entity to %d", utils::Entity::smuggle(entity));
     }
 
-    void MovementIntentExecutor::process(const MovementIntent& intent, const MovementConfig& config, uint64_t deltaTimeInNanos)
+    void MovementIntentExecutor::process(const MovementIntent& intent, uint64_t deltaTimeInNanos)
     {
         TRACE("[MovementIntentExecutor] Processing single movement intent with delta time: %llu nanoseconds", deltaTimeInNanos);
 
@@ -33,7 +33,7 @@ namespace thermion::plugin::input {
         }
 
         utils::Entity targetEntity = getTargetEntity();
-        executeMovement(targetEntity, intent, config);
+        executeMovement(targetEntity, intent);
     }
 
     bool MovementIntentExecutor::canExecuteMovement(utils::Entity entity) const
@@ -46,7 +46,7 @@ namespace thermion::plugin::input {
         return transformInstance.isValid();
     }
 
-    void MovementIntentExecutor::executeMovement(utils::Entity entity, const MovementIntent& intent, const MovementConfig& config)
+    void MovementIntentExecutor::executeMovement(utils::Entity entity, const MovementIntent& intent)
     {
         if (!mTransformManager) {
             Log("[MovementIntentExecutor] ERROR: No transform manager available");
@@ -73,7 +73,7 @@ namespace thermion::plugin::input {
         // Calculate movement delta
         float3 movementDelta = {0, 0, 0};
         if (intent.hasMovementIntent) {
-            float movementAmount = static_cast<float>(config.baseMoveSpeed * intent.movementSpeed * intent.deltaTime);
+            float movementAmount = static_cast<float>(mConfig.baseMoveSpeed * intent.movementSpeed * intent.deltaTime);
             movementDelta = intent.movementDirection * movementAmount;
 
             TRACE("[MovementIntentExecutor] Entity %d MOVEMENT CALCULATION:", entity.getId());
@@ -94,11 +94,11 @@ namespace thermion::plugin::input {
         filament::math::mat4f rotationMatrix = filament::math::mat4f{};
         if (intent.hasRotationIntent) {
             float horizontalMouseDelta = intent.mouseDelta.x;
-            if (config.invertHorizontalMovement) {
+            if (mConfig.invertHorizontalMovement) {
                 horizontalMouseDelta *= -1.0f;
             }
 
-            float yaw = horizontalMouseDelta * static_cast<float>(config.mouseSensitivity);
+            float yaw = horizontalMouseDelta * static_cast<float>(mConfig.mouseSensitivity);
             rotationMatrix = filament::math::mat4f::rotation(yaw, filament::math::float3{0, 1, 0});
 
             TRACE("[MovementIntentExecutor] Entity %d ROTATION:", entity.getId());

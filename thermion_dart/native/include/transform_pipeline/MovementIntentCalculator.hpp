@@ -10,25 +10,8 @@ namespace thermion::plugin::input {
     using namespace thermion;
     using namespace filament::math;
 
-    // Movement space enumeration
-    enum class MovementSpace {
-        world,
-        object
-    };
 
-    // Movement configuration structure (separate from intent)
-    struct MovementConfig {
-        // Movement settings
-        double baseMoveSpeed = 50.0;
-        double mouseSensitivity = 0.001;
-        bool invertHorizontalMovement = false;
-        MovementSpace movementSpace = MovementSpace::world;
 
-        // Jump configuration
-        double jumpHeight = 10.0;             // How high to jump (units)
-        double gravity = 98.0;                // Downward acceleration (units/s^2)
-        double groundLevel = 0.0;             // Y position considered ground level
-    };
 
     // Input state structure for read-only access
     struct InputState {
@@ -64,13 +47,11 @@ namespace thermion::plugin::input {
          * Calculate movement intent based on input state, configuration, and delta time.
          *
          * @param inputState Current input state (pressed keys, mouse delta)
-         * @param config Movement configuration (speed, sensitivity, etc.)
          * @param deltaTimeInNanos Time since last frame in nanoseconds
          * @return MovementIntent Calculated movement intent for this frame
          */
         MovementIntent calculate(
             const InputState& inputState,
-            const MovementConfig& config,
             uint64_t deltaTimeInNanos
         ) const;
     };

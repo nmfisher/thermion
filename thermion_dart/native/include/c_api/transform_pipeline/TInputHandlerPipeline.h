@@ -14,7 +14,7 @@ extern "C" {
 typedef struct TInputHandler TInputHandler;
 
 // Component manager functions
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_engine(void* enginePtr);
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setEngine(void* enginePtr);
 
 // Input event functions (global - no entity ID required)
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_onMouseEvent(
@@ -30,25 +30,8 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_onScrollEvent(
     double localX, double localY, double delta
 );
 
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_space(
-    uint32_t entityId, int movementSpace
-);
-
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_invert_horizontal_movement(
-    uint32_t entityId, int invert
-);
-
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_set_movement_speed(
-    uint32_t entityId, double speed
-);
-
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(
-    uint32_t entityId, double sensitivity
-);
-
-
 // Manual pipeline update (fallback for when automatic updates don't work)
-EMSCRIPTEN_KEEPALIVE void TransformPipeline_update_pipeline(float deltaTime);
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_update(float deltaTime);
 
 // Pipeline stage registration functions
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_registerPipelineStage(void* pipelineStageHandle, const char* name);

@@ -40,10 +40,6 @@ namespace thermion::plugin::input {
         InputEventManager* getEventManager() const { return mEventManager.get(); }
         MovementIntentCalculator* getCalculator() const { return mCalculator.get(); }
 
-        // Movement configuration management
-        MovementConfig& getMovementConfig() { return mMovementConfig; }
-        const MovementConfig& getMovementConfig() const { return mMovementConfig; }
-
         // Movement intent processor management
         void registerMovementIntentExecutor(MovementIntentExecutor* processor);
         void unregisterMovementIntentExecutor(MovementIntentExecutor* processor);
@@ -57,10 +53,7 @@ namespace thermion::plugin::input {
         std::unique_ptr<InputEventManager> mEventManager;
         std::unique_ptr<MovementIntentCalculator> mCalculator;
         std::vector<MovementIntentExecutor*> mMovementIntentExecutors;
-
-        // Movement configuration (could be loaded from config file, UI, etc.)
-        MovementConfig mMovementConfig;
-
+        
         // Pipeline stages (physics, animation, etc.)
         std::vector<PipelineStage*> mPipelineStages;
 
