@@ -301,6 +301,7 @@ abstract class ThermionViewer {
   ///
   /// Gets the 3D axis aligned bounding box for the given entity.
   ///
+  @Deprecated("Call FilamentApp.instance.getRenderableBoundingBox instead")
   Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity);
 
   /// Render the bounding box for [asset] with an unlit material.
