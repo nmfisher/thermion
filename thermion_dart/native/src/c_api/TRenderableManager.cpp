@@ -127,6 +127,7 @@ namespace thermion
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
             if (!renderableInstance.isValid()) {
+                TRACE("Cannot check fog for entity %d, entity has no renderable instance.", entityId);
                 return false;
             }
             return renderableManager->getFogEnabled(renderableInstance);
@@ -137,7 +138,7 @@ namespace thermion
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
             if (!renderableInstance.isValid()) {
-                ERROR("Cannot return renderable bounding box for entity %d, entity has no renderable instance.", entityId);
+                TRACE("Cannot return renderable bounding box for entity %d, entity has no renderable instance.", entityId);
                 return Aabb3 { };
             }
             auto box = renderableManager->getAxisAlignedBoundingBox(renderableInstance);

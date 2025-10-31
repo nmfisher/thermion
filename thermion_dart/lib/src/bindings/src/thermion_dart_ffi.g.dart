@@ -3657,34 +3657,10 @@ external bool AnimationManager_setGltfAnimationFrame(
   int frame,
 );
 
-@ffi.Native<
-    ffi.Pointer<TMovementIntentExecutor> Function(
-        ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external ffi.Pointer<TMovementIntentExecutor>
-    MovementIntentExecutor_createDefault(
-  ffi.Pointer<ffi.Void> engine,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
     isLeaf: true)
 external void MovementIntentExecutor_destroy(
   ffi.Pointer<TMovementIntentExecutor> executor,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TMovementIntentExecutor>, ffi.Uint32)>(isLeaf: true)
-external void MovementIntentExecutor_setTargetEntity(
-  ffi.Pointer<TMovementIntentExecutor> executor,
-  int entityId,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>,
-        ffi.Pointer<TMovementConfig>)>(isLeaf: true)
-external void MovementIntentExecutor_setConfig(
-  ffi.Pointer<TMovementIntentExecutor> executor,
-  ffi.Pointer<TMovementConfig> tConfig,
 );
 
 @ffi.Native<
@@ -4449,26 +4425,6 @@ final class TMovementIntentExecutor extends ffi.Opaque {}
 sealed class TMovementSpace {
   static const MOVEMENT_SPACE_WORLD = 0;
   static const MOVEMENT_SPACE_OBJECT = 1;
-}
-
-final class TMovementConfig extends ffi.Struct {
-  @ffi.Double()
-  external double baseMoveSpeed;
-
-  @ffi.Double()
-  external double mouseSensitivity;
-
-  @ffi.Int()
-  external int invertHorizontalMovement;
-
-  @ffi.UnsignedInt()
-  external int movementSpace;
-
-  @ffi.Double()
-  external double jumpHeight;
-
-  @ffi.Double()
-  external double groundLevel;
 }
 
 final class TInputHandler extends ffi.Opaque {}

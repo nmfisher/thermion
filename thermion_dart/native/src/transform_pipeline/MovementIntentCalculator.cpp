@@ -11,13 +11,8 @@ namespace thermion::plugin::input
         uint64_t deltaTimeInNanos
     ) const
     {
-        // Convert nanoseconds to seconds for MovementIntent
-        float deltaTime = deltaTimeInNanos / 1'000'000'000.0f;
-        TRACE("[MovementIntentCalculator] Creating intent with deltaTime=%.6f seconds (%llu nanoseconds)",
-              deltaTime, deltaTimeInNanos);
 
         MovementIntent intent;
-        intent.deltaTime = deltaTime;
 
         // Calculate movement direction from pressed keys
         float3 movementDirection = {0, 0, 0};
@@ -95,13 +90,6 @@ namespace thermion::plugin::input
         // Jump and sprint intent
         intent.jumpIntent = pressedKeys.count(LogicalKey::space) > 0;
         intent.sprintIntent = pressedKeys.count(LogicalKey::shift) > 0;
-
-        TRACE("[MovementIntentCalculator] Final intent - deltaTime=%.6f, hasMovement=%s, hasRotation=%s, jump=%s, sprint=%s",
-              deltaTime,
-              intent.hasMovementIntent ? "true" : "false",
-              intent.hasRotationIntent ? "true" : "false",
-              intent.jumpIntent ? "true" : "false",
-              intent.sprintIntent ? "true" : "false");
 
         return intent;
     }

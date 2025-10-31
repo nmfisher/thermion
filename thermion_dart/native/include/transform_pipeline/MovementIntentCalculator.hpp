@@ -10,9 +10,6 @@ namespace thermion::plugin::input {
     using namespace thermion;
     using namespace filament::math;
 
-
-
-
     // Input state structure for read-only access
     struct InputState {
         const std::unordered_set<LogicalKey>& pressedKeys;
@@ -21,15 +18,11 @@ namespace thermion::plugin::input {
 
     // Movement intent structure - represents what the player wants to do this frame
     struct MovementIntent {
-        // Movement intent (what the player wants to do)
         float3 movementDirection = {0, 0, 0};  // Normalized direction vector
         float movementSpeed = 0.0f;           // Current speed multiplier (0-1)
         float2 mouseDelta = {0, 0};          // Camera rotation intent
         bool jumpIntent = false;
         bool sprintIntent = false;
-
-        // Frame metadata
-        float deltaTime = 0.016f;
         bool hasMovementIntent = false;
         bool hasRotationIntent = false;
     };

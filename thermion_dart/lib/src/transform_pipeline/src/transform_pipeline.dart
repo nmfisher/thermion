@@ -22,8 +22,6 @@ class MovementConfig {
   double baseMoveSpeed = 50.0;
   double mouseSensitivity = 0.001;
   bool invertHorizontalMovement = false;
-  double jumpHeight = 10.0; // How high to jump (units)
-  double groundLevel = 0.0; // Y position considered ground level
 }
 
 /// Wrapper class for a TMovementIntentExecutor pointer.
@@ -31,7 +29,7 @@ class MovementConfig {
 /// This class encapsulates operations on a movement intent executor,
 /// providing a type-safe API for setting movement targets and managing
 /// the executor lifecycle.
-class MovementIntentExecutor {
+abstract class MovementIntentExecutor {
   final ffi.Pointer<bindings.TMovementIntentExecutor> _pointer;
   bool _disposed = false;
 
@@ -50,27 +48,6 @@ class MovementIntentExecutor {
     return _pointer;
   }
 
-  /// Sets the target entity for movement processing.
-  ///
-  /// This method controls which entity the movement executor will apply
-  /// movement to when processing input events.
-  ///
-  /// [entity] - The Thermion entity that should receive movement input
-  ///
-  /// Throws [InputHandlerManagerException] if the operation fails.
-  /// Throws [StateError] if the executor has been disposed.
-  void setMovementTarget(ThermionEntity entity) {
-    if (_disposed) {
-      throw StateError(
-          'Cannot set movement target: executor has been disposed');
-    }
-
-    try {
-      bindings.MovementIntentExecutor_setTargetEntity(_pointer, entity);
-    } catch (e) {
-      throw InputHandlerManagerException('Failed to set movement target: $e');
-    }
-  }
 
   /// Disposes the executor and releases native resources.
   ///
@@ -89,49 +66,7 @@ class MovementIntentExecutor {
   /// Checks if the executor has been disposed.
   bool get isDisposed => _disposed;
 
-  // Movement Intent Processor methods
 
-  /// Creates a movement intent processor for handling the movement pipeline.
-  ///
-  /// This creates a processor that manages movement intents and executes them
-  /// through registered movement executors (transform, physics, character controllers, etc.).
-  ///
-  /// Returns the created processor instance wrapped in a MovementIntentExecutor.
-  ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized or if creation fails.
-  static MovementIntentExecutor createDefault() {
-    try {
-      final processor = bindings.MovementIntentExecutor_createDefault(
-        FilamentApp.instance!.engine as Pointer<Void>,
-      );
-      if (processor == nullptr) {
-        throw InputHandlerManagerException(
-          'Failed to create movement processor: null pointer returned',
-        );
-      }
-
-      // Create wrapper and store reference for cleanup
-      final executor = MovementIntentExecutor(processor);
-
-      return executor;
-    } catch (e) {
-      throw InputHandlerManagerException(
-        'Failed to create movement processor: $e',
-      );
-    }
-  }
-
-  void setConfig(MovementConfig movementConfig) {
-    final struct = Struct.create<TMovementConfig>();
-    struct.baseMoveSpeed = movementConfig.baseMoveSpeed;
-    struct.groundLevel = movementConfig.groundLevel;
-    struct.invertHorizontalMovement =
-        movementConfig.invertHorizontalMovement ? 1 : 0;
-    struct.jumpHeight = movementConfig.jumpHeight;
-    struct.mouseSensitivity = movementConfig.mouseSensitivity;
-    struct.movementSpace = movementConfig.movementSpace.index;
-    bindings.MovementIntentExecutor_setConfig(_pointer, struct.address);
-  }
 }
 
 /// Singleton wrapper for Thermion Input Handler system functionality.
