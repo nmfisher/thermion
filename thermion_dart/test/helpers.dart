@@ -65,8 +65,10 @@ Future<Uint8List> savePixelBufferToBmp(
 }
 
 Future<Uint8List> savePixelBufferToPng(
-    Uint8List pixelBuffer, int width, int height, String outputPath, { bool hasAlpha = true, bool isFloat =true}) async {
-  var data = await pixelBufferToPng(pixelBuffer, width, height, hasAlpha: hasAlpha, isFloat: isFloat);
+    Uint8List pixelBuffer, int width, int height, String outputPath,
+    {bool hasAlpha = true, bool isFloat = true}) async {
+  var data = await pixelBufferToPng(pixelBuffer, width, height,
+      hasAlpha: hasAlpha, isFloat: isFloat);
   File(outputPath).writeAsBytesSync(data);
   print("Wrote bitmap to ${outputPath}");
   return data;
@@ -157,14 +159,16 @@ class TestHelper {
       SwapChain? swapChain,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,
-      bool captureRenderTarget = false, bool render=true}) async {
+      bool captureRenderTarget = false,
+      bool render = true}) async {
     swapChain ??= this.swapChain;
     var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
         view: view,
         beforeRender: beforeRender,
         pixelDataFormat: pixelDataFormat,
         pixelDataType: pixelDataType,
-        captureRenderTarget: captureRenderTarget, render:render);
+        captureRenderTarget: captureRenderTarget,
+        render: render);
     var retval = <View, Uint8List>{};
     int i = 0;
     for (final (view, pixelBuffer) in pixelBuffers) {
@@ -172,7 +176,8 @@ class TestHelper {
       if (outputFilename != null) {
         var outPath = p.join(outDir.path, "${outputFilename}_view${i}.png");
         await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
-        isFloat: pixelDataType == PixelDataType.FLOAT, hasAlpha: pixelDataFormat == PixelDataFormat.RGBA);
+            isFloat: pixelDataType == PixelDataType.FLOAT,
+            hasAlpha: pixelDataFormat == PixelDataFormat.RGBA);
       }
       i++;
       retval[view] = pixelBuffer;
@@ -203,7 +208,9 @@ class TestHelper {
     });
 
     await FFIFilamentApp.create(
-        config: FFIFilamentConfig(loadResource: _loadResource, backend: Platform.isLinux ? Backend.OPENGL : Backend.DEFAULT));
+        config: FFIFilamentConfig(
+            loadResource: _loadResource,
+            backend: Platform.isLinux ? Backend.OPENGL : Backend.DEFAULT));
   }
 
   Future createViewer(
@@ -214,48 +221,49 @@ class TestHelper {
       bool addSkybox = false,
       bool createRenderTarget = false,
       bool createStencilBuffer = false}) async {
+    
     cameraPosition ??= Vector3(0, 5, 5);
 
     swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height,
         hasStencilBuffer: createStencilBuffer) as FFISwapChain;
-
+    
     FFIRenderTarget? renderTarget;
     if (createRenderTarget) {
-    //   if (Platform.isMacOS) {
-    //   DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
-    //   DynamicLibrary.open('${testDir}/generated/libThermionTextureSwift.dylib');
-    // }
+      //   if (Platform.isMacOS) {
+      //   DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
+      //   DynamicLibrary.open('${testDir}/generated/libThermionTextureSwift.dylib');
+      // }
       // var metalColorTexture = await createTexture(
       //     viewportDimensions.width, viewportDimensions.height);
       // var metalDepthTexture = await createTexture(
       //     viewportDimensions.width, viewportDimensions.height,
       //     depth: true);
-      var color = await FilamentApp.instance!
-          .createTexture(viewportDimensions.width, viewportDimensions.height,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE
-              },
-              textureFormat: TextureFormat.RGBA32F,
-              // importedTextureHandle: metalColorTexture.metalTextureAddress
-              );
+      var color = await FilamentApp.instance!.createTexture(
+        viewportDimensions.width, viewportDimensions.height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+        },
+        textureFormat: TextureFormat.RGBA32F,
+        // importedTextureHandle: metalColorTexture.metalTextureAddress
+      );
       var width = await color.getWidth();
       var height = await color.getHeight();
       var depth = await FilamentApp.instance!.createTexture(
-          viewportDimensions.width, viewportDimensions.height,
-          flags: {
-            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-            if (createStencilBuffer)
-              TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-          },
-          textureFormat: createStencilBuffer
-              ? TextureFormat.DEPTH24_STENCIL8
-              : TextureFormat.DEPTH32F,
-          // importedTextureHandle: metalDepthTexture.metalTextureAddress
-          );
+        viewportDimensions.width, viewportDimensions.height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          if (createStencilBuffer)
+            TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+        },
+        textureFormat: createStencilBuffer
+            ? TextureFormat.DEPTH24_STENCIL8
+            : TextureFormat.DEPTH32F,
+        // importedTextureHandle: metalDepthTexture.metalTextureAddress
+      );
 
       renderTarget = await FilamentApp.instance!.createRenderTarget(
           viewportDimensions.width, viewportDimensions.height,
@@ -263,7 +271,6 @@ class TestHelper {
     }
 
     var viewer = ThermionViewerFFI();
-
     await viewer.initialized;
     await FilamentApp.instance!.register(swapChain, viewer.view);
     if (renderTarget != null) {
@@ -302,9 +309,6 @@ class TestHelper {
     return viewer;
   }
 
-  ///
-  ///
-  ///
   Future withViewer(
     Future Function(ThermionViewer viewer) fn, {
     img.Color? bg,
@@ -323,8 +327,350 @@ class TestHelper {
         addSkybox: addSkybox,
         createRenderTarget: createRenderTarget,
         createStencilBuffer: createStencilBuffer);
+
     await fn.call(viewer);
     await viewer.dispose();
+  }
+}
+
+class _CubeConfig {
+  final Vector3? position;
+  final Vector3? scale;
+  final Quaternion? rotation;
+  final bool castShadows;
+  final bool receiveShadows;
+  final Color? color;
+
+  _CubeConfig({
+    this.position,
+    this.scale,
+    this.rotation,
+    this.castShadows = true,
+    this.receiveShadows = true,
+    this.color,
+  });
+}
+
+class _PlaneConfig {
+  final Vector3? position;
+  final Vector3? scale;
+  final Quaternion? rotation;
+  final bool castShadows;
+  final bool receiveShadows;
+  final Color? color;
+
+  _PlaneConfig({
+    this.position,
+    this.scale,
+    this.rotation,
+    this.castShadows = true,
+    this.receiveShadows = true,
+    this.color,
+  });
+}
+
+class ViewerBuilder {
+  img.Color? _bg;
+  Vector3? _cameraPosition;
+  Vector3? _cameraLookAtPosition;
+  Vector3? _cameraLookAtFocus;
+  Vector3? _cameraLookAtUp;
+  ({int width, int height}) _viewportDimensions = (width: 512, height: 512);
+  bool _postProcessing = false;
+  bool _addSkybox = false;
+  bool _createRenderTarget = false;
+  bool _createStencilBuffer = false;
+  bool _shadowsEnabled = false;
+  ShadowType? _shadowType;
+  final List<DirectLight> _directLights = [];
+  ToneMapper? _toneMapper;
+  late TestHelper _testHelper;
+
+  // Store cube and plane configurations
+  final List<_CubeConfig> _cubes = [];
+  final List<_PlaneConfig> _planes = [];
+
+  ViewerBuilder(this._testHelper, {
+    img.Color? bg,
+    Vector3? cameraPosition,
+    ({int width, int height}) viewportDimensions = (width: 512, height: 512),
+    bool postProcessing = false,
+    bool addSkybox = false,
+    bool createRenderTarget = false,
+    bool createStencilBuffer = false,
+  })  : _bg = bg,
+        _cameraPosition = cameraPosition,
+        _viewportDimensions = viewportDimensions,
+        _postProcessing = postProcessing,
+        _addSkybox = addSkybox,
+        _createRenderTarget = createRenderTarget,
+        _createStencilBuffer = createStencilBuffer;
+
+  ViewerBuilder setBackgroundColor(img.Color color) {
+    _bg = color;
+    return this;
+  }
+
+  ViewerBuilder setCameraPosition(Vector3 position) {
+    _cameraPosition = position;
+    return this;
+  }
+
+  ViewerBuilder setCameraLookAt(
+    Vector3 position, {
+    Vector3? focus,
+    Vector3? up,
+  }) {
+    _cameraLookAtPosition = position;
+    _cameraLookAtFocus = focus;
+    _cameraLookAtUp = up;
+    return this;
+  }
+
+  ViewerBuilder setViewportDimensions(int width, int height) {
+    _viewportDimensions = (width: width, height: height);
+    return this;
+  }
+
+  ViewerBuilder setPostProcessing(bool enabled) {
+    _postProcessing = enabled;
+    return this;
+  }
+
+  ViewerBuilder addSkybox({String? path}) {
+    _addSkybox = true;
+    if (path != null) {
+      // Store custom skybox path if needed in the future
+    }
+    return this;
+  }
+
+  ViewerBuilder setRenderTargetEnabled(bool enabled) {
+    _createRenderTarget = enabled;
+    return this;
+  }
+
+  ViewerBuilder setStencilBufferEnabled(bool enabled) {
+    _createStencilBuffer = enabled;
+    return this;
+  }
+
+  ViewerBuilder setShadowsEnabled(bool enabled) {
+    _shadowsEnabled = enabled;
+    return this;
+  }
+
+  ViewerBuilder setShadowType(ShadowType type) {
+    _shadowType = type;
+    return this;
+  }
+
+  ViewerBuilder addDirectLight(DirectLight light) {
+    _directLights.add(light);
+    return this;
+  }
+
+  ViewerBuilder addSun({
+    double color = 6500,
+    double intensity = 100000,
+    bool castShadows = true,
+    Vector3? direction,
+    double sunAngularRadius = 0.545,
+    double sunHaloSize = 10.0,
+    double sunHaloFalloff = 80.0,
+  }) {
+    _directLights.add(DirectLight.sun(
+      color: color,
+      intensity: intensity,
+      castShadows: castShadows,
+      direction: direction,
+      sunAngularRadius: sunAngularRadius,
+      sunHaloSize: sunHaloSize,
+      sunHaloFalloff: sunHaloFalloff,
+    ));
+    return this;
+  }
+
+  ViewerBuilder setToneMapping(ToneMapper mapper) {
+    _toneMapper = mapper;
+    return this;
+  }
+
+  ViewerBuilder addCube({
+    Vector3? position,
+    Vector3? scale,
+    Quaternion? rotation,
+    bool castShadows = true,
+    bool receiveShadows = true,
+    Color? color,
+  }) {
+    _cubes.add(_CubeConfig(
+      position: position,
+      scale: scale,
+      rotation: rotation,
+      castShadows: castShadows,
+      receiveShadows: receiveShadows,
+      color: color,
+    ));
+    return this;
+  }
+
+  ViewerBuilder addPlane({
+    Vector3? position,
+    Vector3? scale,
+    Quaternion? rotation,
+    bool castShadows = true,
+    bool receiveShadows = true,
+    Color? color,
+  }) {
+    _planes.add(_PlaneConfig(
+      position: position,
+      scale: scale,
+      rotation: rotation,
+      castShadows: castShadows,
+      receiveShadows: receiveShadows,
+      color: color,
+    ));
+    return this;
+  }
+
+  Future withCube(Future Function(ThermionAsset cube) fn) async {
+    return await withViewer((viewer) async {
+      var materialInstance = await FilamentApp.instance!
+          .createUbershaderMaterialInstance(unlit: true);
+      await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
+
+      final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+      var asset = await viewer
+          .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
+
+      try {
+        await fn(asset);
+      } finally {
+        await viewer.destroyAsset(asset);
+      }
+    });
+  }
+
+  Future<ThermionViewer> build() async {
+    final viewer = await _testHelper.createViewer(
+      bg: _bg,
+      cameraPosition: _cameraPosition,
+      viewportDimensions: _viewportDimensions,
+      postProcessing: _postProcessing,
+      addSkybox: _addSkybox,
+      createRenderTarget: _createRenderTarget,
+      createStencilBuffer: _createStencilBuffer,
+    );
+
+    // Apply shadow settings
+    if (_shadowsEnabled) {
+      await viewer.setShadowsEnabled(true);
+      if (_shadowType != null) {
+        await viewer.setShadowType(_shadowType!);
+      }
+    }
+
+    // Add direct lights
+    for (final light in _directLights) {
+      await viewer.addDirectLight(light);
+    }
+
+    // Create and add configured planes
+    for (final planeConfig in _planes) {
+      final materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance();
+      await materialInstance.setCullingMode(CullingMode.NONE);
+
+      if (planeConfig.color != null) {
+        await materialInstance.setParameterFloat4("baseColorFactor",
+            planeConfig.color!.r.toDouble(), planeConfig.color!.g.toDouble(), planeConfig.color!.b.toDouble(), planeConfig.color!.a.toDouble());
+      } else {
+        await materialInstance.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+      }
+
+      final plane = await viewer.createGeometry(
+        GeometryHelper.plane(
+          normals: true,
+          uvs: true,
+          width: 10.0,
+          height: 10.0
+        ),
+        materialInstances: [materialInstance]
+      );
+
+      await plane.setCastShadows(planeConfig.castShadows);
+      await plane.setReceiveShadows(planeConfig.receiveShadows);
+
+      // Apply transform if specified
+      if (planeConfig.position != null || planeConfig.scale != null || planeConfig.rotation != null) {
+        final transform = Matrix4.compose(
+          planeConfig.position ?? Vector3.zero(),
+          planeConfig.rotation ?? Quaternion.identity(),
+          planeConfig.scale ?? Vector3.all(1.0),
+        );
+        await FilamentApp.instance!.setTransform(plane.entity, transform);
+      }
+
+      await viewer.addToScene(plane);
+    }
+
+    // Create and add configured cubes
+    for (final cubeConfig in _cubes) {
+      final materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance();
+
+      if (cubeConfig.color != null) {
+        await materialInstance.setParameterFloat4("baseColorFactor",
+            cubeConfig.color!.r.toDouble(), cubeConfig.color!.g.toDouble(), cubeConfig.color!.b.toDouble(), cubeConfig.color!.a.toDouble());
+      } else {
+        await materialInstance.setParameterFloat4("baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+      }
+
+      final cube = await viewer.createGeometry(
+        GeometryHelper.cube(flipUvs: true),
+        materialInstances: [materialInstance]
+      );
+
+      await cube.setCastShadows(cubeConfig.castShadows);
+      await cube.setReceiveShadows(cubeConfig.receiveShadows);
+
+      // Apply transform if specified
+      if (cubeConfig.position != null || cubeConfig.scale != null || cubeConfig.rotation != null) {
+        final transform = Matrix4.compose(
+          cubeConfig.position ?? Vector3.zero(),
+          cubeConfig.rotation ?? Quaternion.identity(),
+          cubeConfig.scale ?? Vector3.all(1.0),
+        );
+        await FilamentApp.instance!.setTransform(cube.entity, transform);
+      }
+
+      await viewer.addToScene(cube);
+    }
+
+    // Apply camera lookAt if specified
+    if (_cameraLookAtPosition != null) {
+      final camera = await viewer.getActiveCamera();
+      await camera.lookAt(
+        _cameraLookAtPosition!,
+        focus: _cameraLookAtFocus,
+        up: _cameraLookAtUp,
+      );
+    }
+
+    // Apply tone mapping if specified
+    if (_toneMapper != null) {
+      await viewer.setToneMapping(_toneMapper!);
+    }
+
+    return viewer;
+  }
+
+  Future withViewer(Future Function(ThermionViewer viewer) fn) async {
+    final viewer = await build();
+    try {
+      await fn.call(viewer);
+    } finally {
+      await viewer.dispose();
+    }
   }
 }
 
