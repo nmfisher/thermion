@@ -267,8 +267,23 @@ class FFIView extends View<Pointer<TView>> {
     View_setFogOptions(this.view, tFogOptions);
   }
 
+  @override
+  Future setFrontFaceWindingInverted(bool inverted) async {
+    View_setFrontFaceWindingInverted(view, inverted);
+  }
+
   Future setShadowsEnabled(bool enabled) async {
     View_setShadowsEnabled(this.view, enabled);
+  }
+
+  @override
+  Future setShadowType(ShadowType shadowType) async {
+    View_setShadowType(view, shadowType.index);
+  }
+
+  @override
+  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) async {
+    View_setSoftShadowOptions(view, penumbraScale, penumbraRatioScale);
   }
 
   Pointer<TOverlayManager>? overlayManager;

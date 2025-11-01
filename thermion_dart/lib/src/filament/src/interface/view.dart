@@ -90,6 +90,8 @@ abstract class View<T> extends NativeHandle<T> {
   Future setBlendMode(BlendMode blendMode);
   Future setRenderQuality(QualityLevel quality);
   Future setShadowsEnabled(bool enabled);
+  Future setShadowType(ShadowType shadowType);
+  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale);
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
 
   Future setTransparentPickingEnabled(bool enabled);
@@ -111,6 +113,10 @@ abstract class View<T> extends NativeHandle<T> {
   /// Fog is disabled by default
   ///
   Future setFogOptions(FogOptions options);
+
+  /// Inverts the winding order of front faces.
+  ///
+  Future setFrontFaceWindingInverted(bool inverted);
 
   ///
   /// Call [pick] to hit-test renderable entities at given viewport coordinates
