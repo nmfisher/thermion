@@ -449,7 +449,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future removeLight(ThermionEntity entity) async {
     Scene_removeEntity(scene.scene, entity);
-    LightManager_destroyLight(app.lightManager, entity);
+    app.lightManager.destroyLight(entity);
     _lights.remove(entity);
   }
 
@@ -644,7 +644,7 @@ class ThermionViewerFFI extends ThermionViewer {
     double y,
     double z,
   ) async {
-    LightManager_setPosition(app.lightManager, lightEntity, x, y, z);
+    app.lightManager.setPosition(lightEntity, x, y, z);
   }
 
   ///
@@ -656,13 +656,7 @@ class ThermionViewerFFI extends ThermionViewer {
     Vector3 direction,
   ) async {
     direction.normalize();
-    LightManager_setPosition(
-      app.lightManager,
-      lightEntity,
-      direction.x,
-      direction.y,
-      direction.z,
-    );
+    app.lightManager.setDirection(lightEntity, direction.x, direction.y, direction.z);
   }
 
   ///
