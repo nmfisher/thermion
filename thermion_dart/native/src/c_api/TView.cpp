@@ -85,13 +85,29 @@ namespace thermion
             view->setShadowType((ShadowType)shadowType);
         }
 
-        EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView *tView, float penumbraScale, float penumbraRatioScale)
+        EMSCRIPTEN_KEEPALIVE int View_getShadowType(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            return static_cast<int>(view->getShadowType());
+        }
+
+        EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView *tView, TSoftShadowOptions options)
         {
             auto view = reinterpret_cast<View *>(tView);
             SoftShadowOptions opts;
-            opts.penumbraRatioScale = penumbraRatioScale;
-            opts.penumbraScale = penumbraScale;
+            opts.penumbraRatioScale = options.penumbraRatioScale;
+            opts.penumbraScale = options.penumbraScale;
             view->setSoftShadowOptions(opts);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TSoftShadowOptions View_getSoftShadowOptions(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            auto options = view->getSoftShadowOptions();
+            TSoftShadowOptions tOptions;
+            tOptions.penumbraRatioScale = options.penumbraRatioScale;
+            tOptions.penumbraScale = options.penumbraScale;
+            return tOptions;
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptions(TView *tView, TVsmShadowOptions options)

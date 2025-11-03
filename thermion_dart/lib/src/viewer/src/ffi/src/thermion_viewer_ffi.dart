@@ -579,7 +579,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setPostProcessing(bool enabled) async {
-    View_setPostProcessing(view.view, enabled);
+    await view.setPostProcessing(enabled);
   }
 
   ///
@@ -587,24 +587,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setShadowsEnabled(bool enabled) async {
-    View_setShadowsEnabled(view.view, enabled);
+    await view.setShadowsEnabled(enabled);
   }
 
   ///
   ///
   ///
   Future setShadowType(ShadowType shadowType) async {
-    View_setShadowType(view.view, shadowType.index);
-  }
-
-  ///
-  ///
-  ///
-  Future setSoftShadowOptions(
-    double penumbraScale,
-    double penumbraRatioScale,
-  ) async {
-    View_setSoftShadowOptions(view.view, penumbraScale, penumbraRatioScale);
+    await view.setShadowType(shadowType);
   }
 
   ///
@@ -656,7 +646,8 @@ class ThermionViewerFFI extends ThermionViewer {
     Vector3 direction,
   ) async {
     direction.normalize();
-    app.lightManager.setDirection(lightEntity, direction.x, direction.y, direction.z);
+    app.lightManager
+        .setDirection(lightEntity, direction.x, direction.y, direction.z);
   }
 
   ///

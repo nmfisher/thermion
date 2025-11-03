@@ -282,8 +282,26 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   @override
-  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) async {
-    View_setSoftShadowOptions(view, penumbraScale, penumbraRatioScale);
+  Future<ShadowType> getShadowType() async {
+    final shadowTypeIndex = View_getShadowType(view);
+    return ShadowType.values[shadowTypeIndex];
+  }
+
+  @override
+  Future setSoftShadowOptions(SoftShadowOptions options) async {
+    final tSoftShadowOptions = Struct.create<TSoftShadowOptions>();
+    tSoftShadowOptions.penumbraScale = options.penumbraScale;
+    tSoftShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
+    View_setSoftShadowOptions(view, tSoftShadowOptions);
+  }
+
+  @override
+  SoftShadowOptions getSoftShadowOptions() {
+    final tSoftShadowOptions = View_getSoftShadowOptions(view);
+    return SoftShadowOptions(
+      penumbraScale: tSoftShadowOptions.penumbraScale,
+      penumbraRatioScale: tSoftShadowOptions.penumbraRatioScale,
+    );
   }
 
   @override
@@ -362,16 +380,16 @@ class FFIView extends View<Pointer<TView>> {
       } else {
         if (highlightMaterialInstance == null) {
           highlightMaterialInstance = await highlightMaterial!.createInstance();
-          await highlightMaterialInstance!.setParameterFloat("scale", scale);
-          await highlightMaterialInstance!
+          await highlightMaterialInstance.setParameterFloat("scale", scale);
+          await highlightMaterialInstance
               .setParameterFloat4("color", r, g, b, 1.0);
 
-          await highlightMaterialInstance!.setDepthCullingEnabled(true);
-          await highlightMaterialInstance!.setDepthWriteEnabled(true);
+          await highlightMaterialInstance.setDepthCullingEnabled(true);
+          await highlightMaterialInstance.setDepthWriteEnabled(true);
         }
         OverlayManager_addComponent(overlayManager!, entity,
             highlightMaterialInstance.getNativeHandle());
-        _highlighted[entity] = highlightMaterialInstance!;
+        _highlighted[entity] = highlightMaterialInstance;
       }
     }
 

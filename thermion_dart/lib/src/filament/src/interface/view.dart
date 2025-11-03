@@ -91,7 +91,9 @@ abstract class View<T> extends NativeHandle<T> {
   Future setRenderQuality(QualityLevel quality);
   Future setShadowsEnabled(bool enabled);
   Future setShadowType(ShadowType shadowType);
-  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale);
+  Future<ShadowType> getShadowType();
+  Future setSoftShadowOptions(SoftShadowOptions options);
+  SoftShadowOptions getSoftShadowOptions();
   Future setVsmShadowOptions(VsmShadowOptions options);
   VsmShadowOptions getVsmShadowOptions();
   Future setLayerVisibility(VisibilityLayers layer, bool visible);

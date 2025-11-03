@@ -74,7 +74,19 @@ EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView* tView, bool enabl
 EMSCRIPTEN_KEEPALIVE void View_setPostProcessing(TView* tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabled(TView* tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE void View_setShadowType(TView* tView, int shadowType);
-EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView* tView, float penumbraScale, float penumbraRatioScale);
+EMSCRIPTEN_KEEPALIVE int View_getShadowType(TView* tView);
+
+/**
+ * Options for DPCF and PCSS Shadowing.
+ */
+struct TSoftShadowOptions {
+    float penumbraScale;
+    float penumbraRatioScale;
+};
+typedef struct TSoftShadowOptions TSoftShadowOptions;
+
+EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView* tView, TSoftShadowOptions options);
+EMSCRIPTEN_KEEPALIVE TSoftShadowOptions View_getSoftShadowOptions(TView* tView);
 
 /**
  * Options for VSM Shadowing.

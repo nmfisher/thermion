@@ -16,8 +16,8 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   @override
   ThermionEntity createLight(LightType type) {
     final tLightType = _convertLightType(type);
-    final entityId = LightManager_createLight(
-        app.engine, lightManager, tLightType);
+    final entityId =
+        LightManager_createLight(app.engine, lightManager, tLightType);
 
     if (entityId == -1) {
       throw Exception("Failed to create light of type $type");
@@ -145,7 +145,8 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   }
 
   @override
-  void setIntensityWatts(ThermionEntity light, double watts, double efficiency) {
+  void setIntensityWatts(
+      ThermionEntity light, double watts, double efficiency) {
     LightManager_setIntensityWatts(lightManager, light, watts, efficiency);
   }
 
@@ -209,9 +210,18 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     final tShadowOptions = Struct.create<TShadowOptions>();
     tShadowOptions.mapSize = options.mapSize;
     tShadowOptions.shadowCascades = options.shadowCascades;
-    tShadowOptions.cascadeSplitPositions[0] = options.cascadeSplitPositions[0];
-    tShadowOptions.cascadeSplitPositions[1] = options.cascadeSplitPositions[1];
-    tShadowOptions.cascadeSplitPositions[2] = options.cascadeSplitPositions[2];
+
+    // For N cascades, N-1 split positions are used
+    final requiredSplits = tShadowOptions.shadowCascades - 1;
+    if (requiredSplits > 0) {
+      if (options.cascadeSplitPositions.length < requiredSplits) {
+        throw ArgumentError('cascadeSplitPositions must have at least $requiredSplits elements for ${tShadowOptions.shadowCascades} cascades');
+      }
+      // Copy the required split positions, ensuring we don't exceed array bounds
+      for (int i = 0; i < requiredSplits && i < 3; i++) {
+        tShadowOptions.cascadeSplitPositions[i] = options.cascadeSplitPositions[i];
+      }
+    }
     tShadowOptions.constantBias = options.constantBias;
     tShadowOptions.normalBias = options.normalBias;
     tShadowOptions.shadowFar = options.shadowFar;
@@ -221,7 +231,8 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     tShadowOptions.lispsm = options.lispsm;
     tShadowOptions.polygonOffsetConstant = options.polygonOffsetConstant;
     tShadowOptions.polygonOffsetSlope = options.polygonOffsetSlope;
-    tShadowOptions.screenSpaceContactShadows = options.screenSpaceContactShadows;
+    tShadowOptions.screenSpaceContactShadows =
+        options.screenSpaceContactShadows;
     tShadowOptions.stepCount = options.stepCount;
     tShadowOptions.maxShadowDistance = options.maxShadowDistance;
     tShadowOptions.vsmElvsm = options.vsmElvsm;
@@ -238,14 +249,18 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   @override
   ShadowOptions getShadowOptions(ThermionEntity light) {
     final tShadowOptions = LightManager_getShadowOptions(lightManager, light);
+
+    // For N cascades, N-1 split positions are used
+    final splits = tShadowOptions.shadowCascades - 1;
+    final positions = <double>[];
+    for (int i = 0; i < splits && i < 3; i++) {
+      positions.add(tShadowOptions.cascadeSplitPositions[i]);
+    }
+
     return ShadowOptions(
       mapSize: tShadowOptions.mapSize,
       shadowCascades: tShadowOptions.shadowCascades,
-      cascadeSplitPositions: [
-        tShadowOptions.cascadeSplitPositions[0],
-        tShadowOptions.cascadeSplitPositions[1],
-        tShadowOptions.cascadeSplitPositions[2],
-      ],
+      cascadeSplitPositions: positions,
       constantBias: tShadowOptions.constantBias,
       normalBias: tShadowOptions.normalBias,
       shadowFar: tShadowOptions.shadowFar,
