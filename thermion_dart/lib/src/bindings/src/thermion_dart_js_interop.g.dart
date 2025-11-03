@@ -243,7 +243,7 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static T create<T extends Struct>() {
-    switch (T) {
+   switch (T) {
       case double4x4:
         final ptr = double4x4.stackAlloc();
         return ptr.toDart() as T;
@@ -251,6 +251,15 @@ sealed class Struct extends NativeType {
         final ptr = TFogOptions.stackAlloc();
         final fogOptions = ptr.toDart();
         return fogOptions as T;
+      case TShadowOptions:
+        final ptr = TShadowOptions.stackAlloc();
+        return ptr.toDart() as T;
+      case TSoftShadowOptions:
+        final ptr = TSoftShadowOptions.stackAlloc();
+        return ptr.toDart() as T;
+      case TVsmShadowOptions:
+        final ptr = TVsmShadowOptions.stackAlloc();
+        return ptr.toDart() as T;
     }
     throw Exception("Unsupported struct");
   }
@@ -471,6 +480,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double w,
     double z,
   );
+  external void _MaterialInstance_setParameterMat3(
+    Pointer<TMaterialInstance> materialInstance,
+    Pointer<Char> propertyName,
+    Pointer<Float64> matrix,
+  );
   external void _MaterialInstance_setParameterMat4(
     Pointer<TMaterialInstance> materialInstance,
     Pointer<Char> propertyName,
@@ -533,20 +547,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TMaterialInstance> materialInstance,
     int transparencyMode,
   );
-  external void _LightManager_setPosition(
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-    double x,
-    double y,
-    double z,
-  );
-  external void _LightManager_setDirection(
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-    double x,
-    double y,
-    double z,
-  );
   external int _LightManager_createLight(
     Pointer<TEngine> tEngine,
     Pointer<TLightManager> tLightManager,
@@ -556,20 +556,94 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TLightManager> tLightManager,
     EntityId entity,
   );
+  external int _LightManager_hasComponent(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external int _LightManager_getType(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external int _LightManager_isDirectional(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external int _LightManager_isPointLight(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external int _LightManager_isSpotLight(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setPosition(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    double x,
+    double y,
+    double z,
+  );
+  external void _LightManager_getPosition(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    Pointer<Float32> outX,
+    Pointer<Float32> outY,
+    Pointer<Float32> outZ,
+  );
+  external void _LightManager_setDirection(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    double x,
+    double y,
+    double z,
+  );
+  external void _LightManager_getDirection(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    Pointer<Float32> outX,
+    Pointer<Float32> outY,
+    Pointer<Float32> outZ,
+  );
   external void _LightManager_setColor(
     Pointer<TLightManager> tLightManager,
     EntityId entity,
     double colorTemperature,
+  );
+  external void _LightManager_getColor(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    Pointer<Float32> outR,
+    Pointer<Float32> outG,
+    Pointer<Float32> outB,
   );
   external void _LightManager_setIntensity(
     Pointer<TLightManager> tLightManager,
     EntityId entity,
     double intensity,
   );
+  external void _LightManager_setIntensityCandela(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double intensity,
+  );
+  external void _LightManager_setIntensityWatts(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double watts,
+    double efficiency,
+  );
+  external double _LightManager_getIntensity(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
   external void _LightManager_setFalloff(
     Pointer<TLightManager> tLightManager,
     EntityId entity,
     double falloff,
+  );
+  external double _LightManager_getFalloff(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
   );
   external void _LightManager_setSpotLightCone(
     Pointer<TLightManager> tLightManager,
@@ -577,10 +651,70 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double inner,
     double outer,
   );
+  external double _LightManager_getSpotLightOuterCone(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external double _LightManager_getSpotLightInnerCone(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setSunAngularRadius(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double angularRadius,
+  );
+  external double _LightManager_getSunAngularRadius(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setSunHaloSize(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double haloSize,
+  );
+  external double _LightManager_getSunHaloSize(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setSunHaloFalloff(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double haloFalloff,
+  );
+  external double _LightManager_getSunHaloFalloff(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
   external void _LightManager_setShadowCaster(
     Pointer<TLightManager> tLightManager,
     EntityId entity,
     bool enabled,
+  );
+  external int _LightManager_isShadowCaster(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setShadowOptions(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    Pointer<TShadowOptions> optionsPtr,
+  );
+  external void _LightManager_getShadowOptions(
+    Pointer<TShadowOptions> TShadowOptions_out,
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setLightChannel(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    int channel,
+    bool enable,
+  );
+  external int _LightManager_getLightChannel(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    int channel,
   );
   external int _FilamentAsset_getEntityCount(
     Pointer<TFilamentAsset> filamentAsset,
@@ -658,10 +792,24 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TView> tView,
     int shadowType,
   );
+  external int _View_getShadowType(
+    Pointer<TView> tView,
+  );
   external void _View_setSoftShadowOptions(
     Pointer<TView> tView,
-    double penumbraScale,
-    double penumbraRatioScale,
+    Pointer<TSoftShadowOptions> optionsPtr,
+  );
+  external void _View_getSoftShadowOptions(
+    Pointer<TSoftShadowOptions> TSoftShadowOptions_out,
+    Pointer<TView> tView,
+  );
+  external void _View_setVsmShadowOptions(
+    Pointer<TView> tView,
+    Pointer<TVsmShadowOptions> optionsPtr,
+  );
+  external void _View_getVsmShadowOptions(
+    Pointer<TVsmShadowOptions> TVsmShadowOptions_out,
+    Pointer<TView> tView,
   );
   external void _View_setBloom(
     Pointer<TView> tView,
@@ -1278,6 +1426,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external Pointer<TCamera> _Engine_createCamera(
     Pointer<TEngine> tEngine,
+    EntityId entityId,
   );
   external void _Engine_destroyCamera(
     Pointer<TEngine> tEngine,
@@ -1419,6 +1568,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _Engine_createCameraRenderThread(
     Pointer<TEngine> tEngine,
+    EntityId entityId,
     Pointer<self.NativeFunction<void Function(PointerClass<TCamera>)>>
         onComplete,
   );
@@ -2525,6 +2675,16 @@ void MaterialInstance_setParameterFloat4(
   return result;
 }
 
+void MaterialInstance_setParameterMat3(
+  self.Pointer<TMaterialInstance> materialInstance,
+  self.Pointer<Char> propertyName,
+  self.Pointer<Float64> matrix,
+) {
+  final result = _lib._MaterialInstance_setParameterMat3(
+      materialInstance.cast(), propertyName, matrix);
+  return result;
+}
+
 void MaterialInstance_setParameterMat4(
   self.Pointer<TMaterialInstance> materialInstance,
   self.Pointer<Char> propertyName,
@@ -2652,30 +2812,6 @@ void MaterialInstance_setTransparencyMode(
   return result;
 }
 
-void LightManager_setPosition(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId light,
-  double x,
-  double y,
-  double z,
-) {
-  final result =
-      _lib._LightManager_setPosition(tLightManager.cast(), light, x, y, z);
-  return result;
-}
-
-void LightManager_setDirection(
-  self.Pointer<TLightManager> tLightManager,
-  DartEntityId light,
-  double x,
-  double y,
-  double z,
-) {
-  final result =
-      _lib._LightManager_setDirection(tLightManager.cast(), light, x, y, z);
-  return result;
-}
-
 int LightManager_createLight(
   self.Pointer<TEngine> tEngine,
   self.Pointer<TLightManager> tLightManager,
@@ -2694,6 +2830,94 @@ void LightManager_destroyLight(
   return result;
 }
 
+bool LightManager_hasComponent(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_hasComponent(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+int LightManager_getType(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_getType(tLightManager.cast(), entity);
+  return result;
+}
+
+bool LightManager_isDirectional(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_isDirectional(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+bool LightManager_isPointLight(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_isPointLight(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+bool LightManager_isSpotLight(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_isSpotLight(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+void LightManager_setPosition(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId light,
+  double x,
+  double y,
+  double z,
+) {
+  final result =
+      _lib._LightManager_setPosition(tLightManager.cast(), light, x, y, z);
+  return result;
+}
+
+void LightManager_getPosition(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId light,
+  self.Pointer<Float32> outX,
+  self.Pointer<Float32> outY,
+  self.Pointer<Float32> outZ,
+) {
+  final result = _lib._LightManager_getPosition(
+      tLightManager.cast(), light, outX, outY, outZ);
+  return result;
+}
+
+void LightManager_setDirection(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId light,
+  double x,
+  double y,
+  double z,
+) {
+  final result =
+      _lib._LightManager_setDirection(tLightManager.cast(), light, x, y, z);
+  return result;
+}
+
+void LightManager_getDirection(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId light,
+  self.Pointer<Float32> outX,
+  self.Pointer<Float32> outY,
+  self.Pointer<Float32> outZ,
+) {
+  final result = _lib._LightManager_getDirection(
+      tLightManager.cast(), light, outX, outY, outZ);
+  return result;
+}
+
 void LightManager_setColor(
   self.Pointer<TLightManager> tLightManager,
   DartEntityId entity,
@@ -2701,6 +2925,18 @@ void LightManager_setColor(
 ) {
   final result = _lib._LightManager_setColor(
       tLightManager.cast(), entity, colorTemperature);
+  return result;
+}
+
+void LightManager_getColor(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  self.Pointer<Float32> outR,
+  self.Pointer<Float32> outG,
+  self.Pointer<Float32> outB,
+) {
+  final result = _lib._LightManager_getColor(
+      tLightManager.cast(), entity, outR, outG, outB);
   return result;
 }
 
@@ -2714,6 +2950,35 @@ void LightManager_setIntensity(
   return result;
 }
 
+void LightManager_setIntensityCandela(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double intensity,
+) {
+  final result = _lib._LightManager_setIntensityCandela(
+      tLightManager.cast(), entity, intensity);
+  return result;
+}
+
+void LightManager_setIntensityWatts(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double watts,
+  double efficiency,
+) {
+  final result = _lib._LightManager_setIntensityWatts(
+      tLightManager.cast(), entity, watts, efficiency);
+  return result;
+}
+
+double LightManager_getIntensity(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_getIntensity(tLightManager.cast(), entity);
+  return result;
+}
+
 void LightManager_setFalloff(
   self.Pointer<TLightManager> tLightManager,
   DartEntityId entity,
@@ -2721,6 +2986,14 @@ void LightManager_setFalloff(
 ) {
   final result =
       _lib._LightManager_setFalloff(tLightManager.cast(), entity, falloff);
+  return result;
+}
+
+double LightManager_getFalloff(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result = _lib._LightManager_getFalloff(tLightManager.cast(), entity);
   return result;
 }
 
@@ -2735,6 +3008,81 @@ void LightManager_setSpotLightCone(
   return result;
 }
 
+double LightManager_getSpotLightOuterCone(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._LightManager_getSpotLightOuterCone(tLightManager.cast(), entity);
+  return result;
+}
+
+double LightManager_getSpotLightInnerCone(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._LightManager_getSpotLightInnerCone(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setSunAngularRadius(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double angularRadius,
+) {
+  final result = _lib._LightManager_setSunAngularRadius(
+      tLightManager.cast(), entity, angularRadius);
+  return result;
+}
+
+double LightManager_getSunAngularRadius(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._LightManager_getSunAngularRadius(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setSunHaloSize(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double haloSize,
+) {
+  final result =
+      _lib._LightManager_setSunHaloSize(tLightManager.cast(), entity, haloSize);
+  return result;
+}
+
+double LightManager_getSunHaloSize(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._LightManager_getSunHaloSize(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setSunHaloFalloff(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double haloFalloff,
+) {
+  final result = _lib._LightManager_setSunHaloFalloff(
+      tLightManager.cast(), entity, haloFalloff);
+  return result;
+}
+
+double LightManager_getSunHaloFalloff(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._LightManager_getSunHaloFalloff(tLightManager.cast(), entity);
+  return result;
+}
+
 void LightManager_setShadowCaster(
   self.Pointer<TLightManager> tLightManager,
   DartEntityId entity,
@@ -2743,6 +3091,57 @@ void LightManager_setShadowCaster(
   final result =
       _lib._LightManager_setShadowCaster(tLightManager.cast(), entity, enabled);
   return result;
+}
+
+bool LightManager_isShadowCaster(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._LightManager_isShadowCaster(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+void LightManager_setShadowOptions(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  TShadowOptions options,
+) {
+  final optionsPtr = options._address;
+  final result = _lib._LightManager_setShadowOptions(
+      tLightManager.cast(), entity, optionsPtr.cast());
+  return result;
+}
+
+TShadowOptions LightManager_getShadowOptions(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+) {
+  final TShadowOptions_out = TShadowOptions.stackAlloc();
+  final result = _lib._LightManager_getShadowOptions(
+      TShadowOptions_out.cast(), tLightManager.cast(), entity);
+  return TShadowOptions_out.toDart();
+}
+
+void LightManager_setLightChannel(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  int channel,
+  bool enable,
+) {
+  final result = _lib._LightManager_setLightChannel(
+      tLightManager.cast(), entity, channel, enable);
+  return result;
+}
+
+bool LightManager_getLightChannel(
+  self.Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  int channel,
+) {
+  final result =
+      _lib._LightManager_getLightChannel(tLightManager.cast(), entity, channel);
+  return result == 1;
 }
 
 int FilamentAsset_getEntityCount(
@@ -2900,14 +3299,49 @@ void View_setShadowType(
   return result;
 }
 
+int View_getShadowType(
+  self.Pointer<TView> tView,
+) {
+  final result = _lib._View_getShadowType(tView.cast());
+  return result;
+}
+
 void View_setSoftShadowOptions(
   self.Pointer<TView> tView,
-  double penumbraScale,
-  double penumbraRatioScale,
+  TSoftShadowOptions options,
 ) {
-  final result = _lib._View_setSoftShadowOptions(
-      tView.cast(), penumbraScale, penumbraRatioScale);
+  final optionsPtr = options._address;
+  final result =
+      _lib._View_setSoftShadowOptions(tView.cast(), optionsPtr.cast());
   return result;
+}
+
+TSoftShadowOptions View_getSoftShadowOptions(
+  self.Pointer<TView> tView,
+) {
+  final TSoftShadowOptions_out = TSoftShadowOptions.stackAlloc();
+  final result = _lib._View_getSoftShadowOptions(
+      TSoftShadowOptions_out.cast(), tView.cast());
+  return TSoftShadowOptions_out.toDart();
+}
+
+void View_setVsmShadowOptions(
+  self.Pointer<TView> tView,
+  TVsmShadowOptions options,
+) {
+  final optionsPtr = options._address;
+  final result =
+      _lib._View_setVsmShadowOptions(tView.cast(), optionsPtr.cast());
+  return result;
+}
+
+TVsmShadowOptions View_getVsmShadowOptions(
+  self.Pointer<TView> tView,
+) {
+  final TVsmShadowOptions_out = TVsmShadowOptions.stackAlloc();
+  final result = _lib._View_getVsmShadowOptions(
+      TVsmShadowOptions_out.cast(), tView.cast());
+  return TVsmShadowOptions_out.toDart();
 }
 
 void View_setBloom(
@@ -4161,8 +4595,9 @@ void Engine_destroyColorGrading(
 
 self.Pointer<TCamera> Engine_createCamera(
   self.Pointer<TEngine> tEngine,
+  DartEntityId entityId,
 ) {
-  final result = _lib._Engine_createCamera(tEngine.cast());
+  final result = _lib._Engine_createCamera(tEngine.cast(), entityId);
   return self.Pointer<TCamera>(result);
 }
 
@@ -4464,10 +4899,11 @@ void Engine_createHeadlessSwapChainRenderThread(
 
 void Engine_createCameraRenderThread(
   self.Pointer<TEngine> tEngine,
+  DartEntityId entityId,
   self.Pointer<self.NativeFunction<void Function(Pointer<TCamera>)>> onComplete,
 ) {
-  final result =
-      _lib._Engine_createCameraRenderThread(tEngine.cast(), onComplete.cast());
+  final result = _lib._Engine_createCameraRenderThread(
+      tEngine.cast(), entityId, onComplete.cast());
   return result;
 }
 
@@ -6526,15 +6962,228 @@ final class TLightManager extends self.Struct {
   }
 }
 
-typedef EntityId = int;
-typedef DartEntityId = int;
-
 sealed class TLightType {
   static const LIGHT_TYPE_SUN = 0;
   static const LIGHT_TYPE_DIRECTIONAL = 1;
   static const LIGHT_TYPE_POINT = 2;
   static const LIGHT_TYPE_FOCUSED_SPOT = 3;
   static const LIGHT_TYPE_SPOT = 4;
+}
+
+typedef EntityId = int;
+typedef DartEntityId = int;
+
+extension TShadowOptionsExt on Pointer<TShadowOptions> {
+  TShadowOptions toDart() {
+    return TShadowOptions(this);
+  }
+}
+
+final class TShadowOptions extends self.Struct {
+  int get mapSize {
+    final value = _lib.getValue(this._address + 0, 'i32').toDartInt;
+    return value;
+  }
+
+  set mapSize(int val) {
+    _lib.setValue(this._address + 0, val.toJS, 'i32');
+  }
+
+  int get shadowCascades {
+    final value = _lib.getValue(this._address + 4, 'i8').toDartInt;
+    return value;
+  }
+
+  set shadowCascades(int val) {
+    _lib.setValue(this._address + 4, val.toJS, 'i8');
+  }
+
+  Array<Float32> get cascadeSplitPositions {
+    final value = _lib.getValue(this._address + 5, '*');
+    return Array<Float32>._(
+        (numElements: 3, addr: Pointer<Float32>(this._address + 5)));
+  }
+
+  set cascadeSplitPositions(Array<Float32> val) {
+    _lib.setValue(this._address + 5, val._.addr.addr.toJS, '*');
+  }
+
+  double get constantBias {
+    final value = _lib.getValue(this._address + 17, 'float').toDartDouble;
+    return value;
+  }
+
+  set constantBias(double val) {
+    _lib.setValue(this._address + 17, val.toJS, 'float');
+  }
+
+  double get normalBias {
+    final value = _lib.getValue(this._address + 21, 'float').toDartDouble;
+    return value;
+  }
+
+  set normalBias(double val) {
+    _lib.setValue(this._address + 21, val.toJS, 'float');
+  }
+
+  double get shadowFar {
+    final value = _lib.getValue(this._address + 25, 'float').toDartDouble;
+    return value;
+  }
+
+  set shadowFar(double val) {
+    _lib.setValue(this._address + 25, val.toJS, 'float');
+  }
+
+  double get shadowNearHint {
+    final value = _lib.getValue(this._address + 29, 'float').toDartDouble;
+    return value;
+  }
+
+  set shadowNearHint(double val) {
+    _lib.setValue(this._address + 29, val.toJS, 'float');
+  }
+
+  double get shadowFarHint {
+    final value = _lib.getValue(this._address + 33, 'float').toDartDouble;
+    return value;
+  }
+
+  set shadowFarHint(double val) {
+    _lib.setValue(this._address + 33, val.toJS, 'float');
+  }
+
+  bool get stable {
+    final value = _lib.getValue(this._address + 37, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set stable(bool val) {
+    _lib.setValue(this._address + 37, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  bool get lispsm {
+    final value = _lib.getValue(this._address + 38, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set lispsm(bool val) {
+    _lib.setValue(this._address + 38, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  double get polygonOffsetConstant {
+    final value = _lib.getValue(this._address + 39, 'float').toDartDouble;
+    return value;
+  }
+
+  set polygonOffsetConstant(double val) {
+    _lib.setValue(this._address + 39, val.toJS, 'float');
+  }
+
+  double get polygonOffsetSlope {
+    final value = _lib.getValue(this._address + 43, 'float').toDartDouble;
+    return value;
+  }
+
+  set polygonOffsetSlope(double val) {
+    _lib.setValue(this._address + 43, val.toJS, 'float');
+  }
+
+  bool get screenSpaceContactShadows {
+    final value = _lib.getValue(this._address + 47, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set screenSpaceContactShadows(bool val) {
+    _lib.setValue(this._address + 47, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  int get stepCount {
+    final value = _lib.getValue(this._address + 48, 'i8').toDartInt;
+    return value;
+  }
+
+  set stepCount(int val) {
+    _lib.setValue(this._address + 48, val.toJS, 'i8');
+  }
+
+  double get maxShadowDistance {
+    final value = _lib.getValue(this._address + 49, 'float').toDartDouble;
+    return value;
+  }
+
+  set maxShadowDistance(double val) {
+    _lib.setValue(this._address + 49, val.toJS, 'float');
+  }
+
+  bool get vsmElvsm {
+    final value = _lib.getValue(this._address + 53, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set vsmElvsm(bool val) {
+    _lib.setValue(this._address + 53, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  double get vsmBlurWidth {
+    final value = _lib.getValue(this._address + 54, 'float').toDartDouble;
+    return value;
+  }
+
+  set vsmBlurWidth(double val) {
+    _lib.setValue(this._address + 54, val.toJS, 'float');
+  }
+
+  double get shadowBulbRadius {
+    final value = _lib.getValue(this._address + 58, 'float').toDartDouble;
+    return value;
+  }
+
+  set shadowBulbRadius(double val) {
+    _lib.setValue(this._address + 58, val.toJS, 'float');
+  }
+
+  double get transformX {
+    final value = _lib.getValue(this._address + 62, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformX(double val) {
+    _lib.setValue(this._address + 62, val.toJS, 'float');
+  }
+
+  double get transformY {
+    final value = _lib.getValue(this._address + 66, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformY(double val) {
+    _lib.setValue(this._address + 66, val.toJS, 'float');
+  }
+
+  double get transformZ {
+    final value = _lib.getValue(this._address + 70, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformZ(double val) {
+    _lib.setValue(this._address + 70, val.toJS, 'float');
+  }
+
+  double get transformW {
+    final value = _lib.getValue(this._address + 74, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformW(double val) {
+    _lib.setValue(this._address + 74, val.toJS, 'float');
+  }
+
+  TShadowOptions(super._address);
+
+  static Pointer<TShadowOptions> stackAlloc() {
+    return Pointer<TShadowOptions>(_lib._stackAlloc<TShadowOptions>(78));
+  }
 }
 
 extension TFilamentAssetExt on Pointer<TFilamentAsset> {
@@ -6712,6 +7361,110 @@ final class TRenderTarget extends self.Struct {
 
   static Pointer<TRenderTarget> stackAlloc() {
     return Pointer<TRenderTarget>(_lib._stackAlloc<TRenderTarget>(0));
+  }
+}
+
+/// Options for DPCF and PCSS Shadowing.
+
+extension TSoftShadowOptionsExt on Pointer<TSoftShadowOptions> {
+  TSoftShadowOptions toDart() {
+    return TSoftShadowOptions(this);
+  }
+}
+
+final class TSoftShadowOptions extends self.Struct {
+  double get penumbraScale {
+    final value = _lib.getValue(this._address + 0, 'float').toDartDouble;
+    return value;
+  }
+
+  set penumbraScale(double val) {
+    _lib.setValue(this._address + 0, val.toJS, 'float');
+  }
+
+  double get penumbraRatioScale {
+    final value = _lib.getValue(this._address + 4, 'float').toDartDouble;
+    return value;
+  }
+
+  set penumbraRatioScale(double val) {
+    _lib.setValue(this._address + 4, val.toJS, 'float');
+  }
+
+  TSoftShadowOptions(super._address);
+
+  static Pointer<TSoftShadowOptions> stackAlloc() {
+    return Pointer<TSoftShadowOptions>(_lib._stackAlloc<TSoftShadowOptions>(8));
+  }
+}
+
+/// Options for VSM Shadowing.
+
+extension TVsmShadowOptionsExt on Pointer<TVsmShadowOptions> {
+  TVsmShadowOptions toDart() {
+    return TVsmShadowOptions(this);
+  }
+}
+
+final class TVsmShadowOptions extends self.Struct {
+  int get anisotropy {
+    final value = _lib.getValue(this._address + 0, 'i8').toDartInt;
+    return value;
+  }
+
+  set anisotropy(int val) {
+    _lib.setValue(this._address + 0, val.toJS, 'i8');
+  }
+
+  bool get mipmapping {
+    final value = _lib.getValue(this._address + 1, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set mipmapping(bool val) {
+    _lib.setValue(this._address + 1, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  int get msaaSamples {
+    final value = _lib.getValue(this._address + 2, 'i8').toDartInt;
+    return value;
+  }
+
+  set msaaSamples(int val) {
+    _lib.setValue(this._address + 2, val.toJS, 'i8');
+  }
+
+  bool get highPrecision {
+    final value = _lib.getValue(this._address + 3, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set highPrecision(bool val) {
+    _lib.setValue(this._address + 3, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  double get minVarianceScale {
+    final value = _lib.getValue(this._address + 4, 'float').toDartDouble;
+    return value;
+  }
+
+  set minVarianceScale(double val) {
+    _lib.setValue(this._address + 4, val.toJS, 'float');
+  }
+
+  double get lightBleedReduction {
+    final value = _lib.getValue(this._address + 8, 'float').toDartDouble;
+    return value;
+  }
+
+  set lightBleedReduction(double val) {
+    _lib.setValue(this._address + 8, val.toJS, 'float');
+  }
+
+  TVsmShadowOptions(super._address);
+
+  static Pointer<TVsmShadowOptions> stackAlloc() {
+    return Pointer<TVsmShadowOptions>(_lib._stackAlloc<TVsmShadowOptions>(12));
   }
 }
 
