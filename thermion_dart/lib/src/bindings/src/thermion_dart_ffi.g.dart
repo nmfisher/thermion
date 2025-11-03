@@ -703,6 +703,18 @@ external void View_setSoftShadowOptions(
   double penumbraRatioScale,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TVsmShadowOptions)>(
+    isLeaf: true)
+external void View_setVsmShadowOptions(
+  ffi.Pointer<TView> tView,
+  TVsmShadowOptions options,
+);
+
+@ffi.Native<TVsmShadowOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TVsmShadowOptions View_getVsmShadowOptions(
+  ffi.Pointer<TView> tView,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Float)>(
     isLeaf: true)
 external void View_setBloom(
@@ -4344,6 +4356,27 @@ sealed class TQualityLevel {
 sealed class TBlendMode {
   static const OPAQUE = 0;
   static const TRANSLUCENT = 1;
+}
+
+/// Options for VSM Shadowing.
+final class TVsmShadowOptions extends ffi.Struct {
+  @ffi.Uint8()
+  external int anisotropy;
+
+  @ffi.Bool()
+  external bool mipmapping;
+
+  @ffi.Uint8()
+  external int msaaSamples;
+
+  @ffi.Bool()
+  external bool highPrecision;
+
+  @ffi.Float()
+  external double minVarianceScale;
+
+  @ffi.Float()
+  external double lightBleedReduction;
 }
 
 typedef PickCallbackFunction = ffi.Void Function(

@@ -94,6 +94,33 @@ namespace thermion
             view->setSoftShadowOptions(opts);
         }
 
+        EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptions(TView *tView, TVsmShadowOptions options)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            VsmShadowOptions opts;
+            opts.anisotropy = options.anisotropy;
+            opts.mipmapping = options.mipmapping;
+            opts.msaaSamples = options.msaaSamples;
+            opts.highPrecision = options.highPrecision;
+            opts.minVarianceScale = options.minVarianceScale;
+            opts.lightBleedReduction = options.lightBleedReduction;
+            view->setVsmShadowOptions(opts);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TVsmShadowOptions View_getVsmShadowOptions(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            auto options = view->getVsmShadowOptions();
+            TVsmShadowOptions tOptions;
+            tOptions.anisotropy = options.anisotropy;
+            tOptions.mipmapping = options.mipmapping;
+            tOptions.msaaSamples = options.msaaSamples;
+            tOptions.highPrecision = options.highPrecision;
+            tOptions.minVarianceScale = options.minVarianceScale;
+            tOptions.lightBleedReduction = options.lightBleedReduction;
+            return tOptions;
+        }
+
         EMSCRIPTEN_KEEPALIVE void View_setBloom(TView *tView, bool enabled, float strength)
         {
             auto view = reinterpret_cast<View *>(tView);

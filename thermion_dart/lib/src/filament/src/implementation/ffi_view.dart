@@ -286,6 +286,31 @@ class FFIView extends View<Pointer<TView>> {
     View_setSoftShadowOptions(view, penumbraScale, penumbraRatioScale);
   }
 
+  @override
+  Future setVsmShadowOptions(VsmShadowOptions options) async {
+    final tVsmShadowOptions = Struct.create<TVsmShadowOptions>();
+    tVsmShadowOptions.anisotropy = options.anisotropy;
+    tVsmShadowOptions.mipmapping = options.mipmapping;
+    tVsmShadowOptions.msaaSamples = options.msaaSamples;
+    tVsmShadowOptions.highPrecision = options.highPrecision;
+    tVsmShadowOptions.minVarianceScale = options.minVarianceScale;
+    tVsmShadowOptions.lightBleedReduction = options.lightBleedReduction;
+    View_setVsmShadowOptions(view, tVsmShadowOptions);
+  }
+
+  @override
+  VsmShadowOptions getVsmShadowOptions() {
+    final tVsmShadowOptions = View_getVsmShadowOptions(view);
+    return VsmShadowOptions(
+      anisotropy: tVsmShadowOptions.anisotropy,
+      mipmapping: tVsmShadowOptions.mipmapping,
+      msaaSamples: tVsmShadowOptions.msaaSamples,
+      highPrecision: tVsmShadowOptions.highPrecision,
+      minVarianceScale: tVsmShadowOptions.minVarianceScale,
+      lightBleedReduction: tVsmShadowOptions.lightBleedReduction,
+    );
+  }
+
   Pointer<TOverlayManager>? overlayManager;
   View? overlayView;
   Scene? overlayScene;

@@ -83,6 +83,42 @@ class ShadowOptions {
   });
 }
 
+/// View-level options for VSM Shadowing.
+/// This controls how variance shadow maps are rendered and sampled.
+class VsmShadowOptions {
+  /// Number of anisotropic samples to use when sampling a VSM shadow map.
+  /// If greater than 0, mipmaps will automatically be generated each frame.
+  /// The number of anisotropic samples = 2 ^ anisotropy.
+  final int anisotropy;
+
+  /// Whether to generate mipmaps for all VSM shadow maps.
+  final bool mipmapping;
+
+  /// Number of MSAA samples to use when rendering VSM shadow maps.
+  /// Must be a power-of-two and greater than or equal to 1.
+  /// A value of 1 effectively turns off MSAA.
+  final int msaaSamples;
+
+  /// Whether to use a 32-bits or 16-bits texture format for VSM shadow maps.
+  /// 32-bits precision reduces light leaks and "fading" shadows but doubles memory usage.
+  final bool highPrecision;
+
+  /// VSM minimum variance scale, must be positive.
+  final double minVarianceScale;
+
+  /// VSM light bleeding reduction amount, between 0 and 1.
+  final double lightBleedReduction;
+
+  const VsmShadowOptions({
+    this.anisotropy = 0,
+    this.mipmapping = false,
+    this.msaaSamples = 1,
+    this.highPrecision = false,
+    this.minVarianceScale = 0.5,
+    this.lightBleedReduction = 0.15,
+  });
+}
+
 abstract class LightManager<T> extends NativeHandle<T> {
   
   /// Creates a new light entity with the specified type.
