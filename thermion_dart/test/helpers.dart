@@ -535,7 +535,7 @@ class ViewerBuilder {
   }
 
   Future withCube(Future Function(ThermionAsset cube) fn) async {
-    return await withViewer((viewer) async {
+    return await _testHelper.withViewer((viewer) async {
       var materialInstance = await FilamentApp.instance!
           .createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
@@ -552,7 +552,7 @@ class ViewerBuilder {
     });
   }
 
-  Future<ThermionViewer> build() async {
+  Future<({ThermionViewer viewer, List<ThermionAsset> assets})> buildWithAssets() async {
     final viewer = await _testHelper.createViewer(
       bg: _bg,
       cameraPosition: _cameraPosition,
@@ -562,6 +562,8 @@ class ViewerBuilder {
       createRenderTarget: _createRenderTarget,
       createStencilBuffer: _createStencilBuffer,
     );
+
+    final List<ThermionAsset> createdAssets = [];
 
     // Apply shadow settings
     if (_shadowsEnabled) {
@@ -612,6 +614,7 @@ class ViewerBuilder {
       }
 
       await viewer.addToScene(plane);
+      createdAssets.add(plane);
     }
 
     // Create and add configured cubes
@@ -644,6 +647,7 @@ class ViewerBuilder {
       }
 
       await viewer.addToScene(cube);
+      createdAssets.add(cube);
     }
 
     // Apply camera lookAt if specified
@@ -661,15 +665,20 @@ class ViewerBuilder {
       await viewer.setToneMapping(_toneMapper!);
     }
 
-    return viewer;
+    return (viewer: viewer as ThermionViewer, assets: createdAssets);
   }
 
-  Future withViewer(Future Function(ThermionViewer viewer) fn) async {
-    final viewer = await build();
+  Future<ThermionViewer> build() async {
+    final result = await buildWithAssets();
+    return result.viewer;
+  }
+
+  Future execute(Future Function(ThermionViewer viewer, List<ThermionAsset> assets) fn) async {
+    final result = await buildWithAssets();
     try {
-      await fn.call(viewer);
+      await fn.call(result.viewer, result.assets);
     } finally {
-      await viewer.dispose();
+      await result.viewer.dispose();
     }
   }
 }

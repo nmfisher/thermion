@@ -105,4 +105,293 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCaster(TLightManager *tLightMana
     }
 }
 
+// Entity and light management
+EMSCRIPTEN_KEEPALIVE bool LightManager_hasComponent(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    return lm->hasComponent(utils::Entity::import(entity));
+}
+
+EMSCRIPTEN_KEEPALIVE int LightManager_getType(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (!instance.isValid()) {
+        return -1;
+    }
+    return static_cast<int>(lm->getType(instance));
+}
+
+EMSCRIPTEN_KEEPALIVE bool LightManager_isDirectional(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (!instance.isValid()) {
+        return false;
+    }
+    return lm->isDirectional(instance);
+}
+
+EMSCRIPTEN_KEEPALIVE bool LightManager_isPointLight(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (!instance.isValid()) {
+        return false;
+    }
+    return lm->isPointLight(instance);
+}
+
+EMSCRIPTEN_KEEPALIVE bool LightManager_isSpotLight(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (!instance.isValid()) {
+        return false;
+    }
+    return lm->isSpotLight(instance);
+}
+
+// Position and direction getters
+EMSCRIPTEN_KEEPALIVE void LightManager_getPosition(TLightManager *tLightManager, EntityId light, float *outX, float *outY, float *outZ) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(light));
+    if (instance.isValid()) {
+        const auto& pos = lm->getPosition(instance);
+        if (outX) *outX = pos.x;
+        if (outY) *outY = pos.y;
+        if (outZ) *outZ = pos.z;
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void LightManager_getDirection(TLightManager *tLightManager, EntityId light, float *outX, float *outY, float *outZ) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(light));
+    if (instance.isValid()) {
+        const auto& dir = lm->getDirection(instance);
+        if (outX) *outX = dir.x;
+        if (outY) *outY = dir.y;
+        if (outZ) *outZ = dir.z;
+    }
+}
+
+// Color getter
+EMSCRIPTEN_KEEPALIVE void LightManager_getColor(TLightManager *tLightManager, EntityId entity, float *outR, float *outG, float *outB) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        const auto& color = lm->getColor(instance);
+        if (outR) *outR = color.r;
+        if (outG) *outG = color.g;
+        if (outB) *outB = color.b;
+    }
+}
+
+// Intensity variants
+EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityCandela(TLightManager *tLightManager, EntityId entity, double intensity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        lm->setIntensityCandela(instance, static_cast<float>(intensity));
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityWatts(TLightManager *tLightManager, EntityId entity, double watts, double efficiency) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        lm->setIntensity(instance, static_cast<float>(watts), static_cast<float>(efficiency));
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE float LightManager_getIntensity(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getIntensity(instance);
+    }
+    return 0.0f;
+}
+
+// Falloff getter
+EMSCRIPTEN_KEEPALIVE float LightManager_getFalloff(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getFalloff(instance);
+    }
+    return 0.0f;
+}
+
+// Spot light cone getters
+EMSCRIPTEN_KEEPALIVE float LightManager_getSpotLightOuterCone(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getSpotLightOuterCone(instance);
+    }
+    return 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE float LightManager_getSpotLightInnerCone(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getSpotLightInnerCone(instance);
+    }
+    return 0.0f;
+}
+
+// Sun-specific methods
+EMSCRIPTEN_KEEPALIVE void LightManager_setSunAngularRadius(TLightManager *tLightManager, EntityId entity, float angularRadius) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        lm->setSunAngularRadius(instance, angularRadius);
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE float LightManager_getSunAngularRadius(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getSunAngularRadius(instance);
+    }
+    return 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE void LightManager_setSunHaloSize(TLightManager *tLightManager, EntityId entity, float haloSize) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        lm->setSunHaloSize(instance, haloSize);
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE float LightManager_getSunHaloSize(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getSunHaloSize(instance);
+    }
+    return 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE void LightManager_setSunHaloFalloff(TLightManager *tLightManager, EntityId entity, float haloFalloff) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        lm->setSunHaloFalloff(instance, haloFalloff);
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE float LightManager_getSunHaloFalloff(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getSunHaloFalloff(instance);
+    }
+    return 0.0f;
+}
+
+// Shadow caster getter
+EMSCRIPTEN_KEEPALIVE bool LightManager_isShadowCaster(TLightManager *tLightManager, EntityId entity) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->isShadowCaster(instance);
+    }
+    return false;
+}
+
+// Shadow options
+EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptions(TLightManager *tLightManager, EntityId entity, TShadowOptions options) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (!instance.isValid()) {
+        return;
+    }
+
+    filament::LightManager::ShadowOptions shadowOpts;
+    shadowOpts.mapSize = options.mapSize;
+    shadowOpts.shadowCascades = options.shadowCascades;
+    shadowOpts.cascadeSplitPositions[0] = options.cascadeSplitPositions[0];
+    shadowOpts.cascadeSplitPositions[1] = options.cascadeSplitPositions[1];
+    shadowOpts.cascadeSplitPositions[2] = options.cascadeSplitPositions[2];
+    shadowOpts.constantBias = options.constantBias;
+    shadowOpts.normalBias = options.normalBias;
+    shadowOpts.shadowFar = options.shadowFar;
+    shadowOpts.shadowNearHint = options.shadowNearHint;
+    shadowOpts.shadowFarHint = options.shadowFarHint;
+    shadowOpts.stable = options.stable;
+    shadowOpts.lispsm = options.lispsm;
+    shadowOpts.polygonOffsetConstant = options.polygonOffsetConstant;
+    shadowOpts.polygonOffsetSlope = options.polygonOffsetSlope;
+    shadowOpts.screenSpaceContactShadows = options.screenSpaceContactShadows;
+    shadowOpts.stepCount = options.stepCount;
+    shadowOpts.maxShadowDistance = options.maxShadowDistance;
+    shadowOpts.vsm.elvsm = options.vsmElvsm;
+    shadowOpts.vsm.blurWidth = options.vsmBlurWidth;
+    shadowOpts.shadowBulbRadius = options.shadowBulbRadius;
+    shadowOpts.transform = filament::math::quatf{
+        options.transformW,
+        options.transformX,
+        options.transformY,
+        options.transformZ
+    };
+
+    lm->setShadowOptions(instance, shadowOpts);
+}
+
+EMSCRIPTEN_KEEPALIVE TShadowOptions LightManager_getShadowOptions(TLightManager *tLightManager, EntityId entity) {
+    TShadowOptions outOptions = {};
+
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (!instance.isValid()) {
+        return outOptions;
+    }
+
+    const auto& shadowOpts = lm->getShadowOptions(instance);
+    outOptions.mapSize = shadowOpts.mapSize;
+    outOptions.shadowCascades = shadowOpts.shadowCascades;
+    outOptions.cascadeSplitPositions[0] = shadowOpts.cascadeSplitPositions[0];
+    outOptions.cascadeSplitPositions[1] = shadowOpts.cascadeSplitPositions[1];
+    outOptions.cascadeSplitPositions[2] = shadowOpts.cascadeSplitPositions[2];
+    outOptions.constantBias = shadowOpts.constantBias;
+    outOptions.normalBias = shadowOpts.normalBias;
+    outOptions.shadowFar = shadowOpts.shadowFar;
+    outOptions.shadowNearHint = shadowOpts.shadowNearHint;
+    outOptions.shadowFarHint = shadowOpts.shadowFarHint;
+    outOptions.stable = shadowOpts.stable;
+    outOptions.lispsm = shadowOpts.lispsm;
+    outOptions.polygonOffsetConstant = shadowOpts.polygonOffsetConstant;
+    outOptions.polygonOffsetSlope = shadowOpts.polygonOffsetSlope;
+    outOptions.screenSpaceContactShadows = shadowOpts.screenSpaceContactShadows;
+    outOptions.stepCount = shadowOpts.stepCount;
+    outOptions.maxShadowDistance = shadowOpts.maxShadowDistance;
+    outOptions.vsmElvsm = shadowOpts.vsm.elvsm;
+    outOptions.vsmBlurWidth = shadowOpts.vsm.blurWidth;
+    outOptions.shadowBulbRadius = shadowOpts.shadowBulbRadius;
+    outOptions.transformW = shadowOpts.transform.w;
+    outOptions.transformX = shadowOpts.transform.x;
+    outOptions.transformY = shadowOpts.transform.y;
+    outOptions.transformZ = shadowOpts.transform.z;
+
+    return outOptions;
+}
+
+// Light channels
+EMSCRIPTEN_KEEPALIVE void LightManager_setLightChannel(TLightManager *tLightManager, EntityId entity, unsigned int channel, bool enable) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        lm->setLightChannel(instance, channel, enable);
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE bool LightManager_getLightChannel(TLightManager *tLightManager, EntityId entity, unsigned int channel) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (instance.isValid()) {
+        return lm->getLightChannel(instance, channel);
+    }
+    return false;
+}
+
 } // extern "C"

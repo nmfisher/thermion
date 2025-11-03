@@ -262,28 +262,6 @@ external void MaterialInstance_setTransparencyMode(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
-        ffi.Double, ffi.Double)>(isLeaf: true)
-external void LightManager_setPosition(
-  ffi.Pointer<TLightManager> tLightManager,
-  int light,
-  double x,
-  double y,
-  double z,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
-        ffi.Double, ffi.Double)>(isLeaf: true)
-external void LightManager_setDirection(
-  ffi.Pointer<TLightManager> tLightManager,
-  int light,
-  double x,
-  double y,
-  double z,
-);
-
-@ffi.Native<
     ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>,
         ffi.UnsignedInt)>(isLeaf: true)
 external int LightManager_createLight(
@@ -299,12 +277,114 @@ external void LightManager_destroyLight(
   int entity,
 );
 
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external bool LightManager_hasComponent(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external int LightManager_getType(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external bool LightManager_isDirectional(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external bool LightManager_isPointLight(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external bool LightManager_isSpotLight(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setPosition(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>)>(isLeaf: true)
+external void LightManager_getPosition(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  ffi.Pointer<ffi.Float> outX,
+  ffi.Pointer<ffi.Float> outY,
+  ffi.Pointer<ffi.Float> outZ,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setDirection(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>)>(isLeaf: true)
+external void LightManager_getDirection(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  ffi.Pointer<ffi.Float> outX,
+  ffi.Pointer<ffi.Float> outY,
+  ffi.Pointer<ffi.Float> outZ,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(
     isLeaf: true)
 external void LightManager_setColor(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
   double colorTemperature,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>)>(isLeaf: true)
+external void LightManager_getColor(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  ffi.Pointer<ffi.Float> outR,
+  ffi.Pointer<ffi.Float> outG,
+  ffi.Pointer<ffi.Float> outB,
 );
 
 @ffi.Native<
@@ -319,10 +399,43 @@ external void LightManager_setIntensity(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+external void LightManager_setIntensityCandela(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double intensity,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double)>(isLeaf: true)
+external void LightManager_setIntensityWatts(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double watts,
+  double efficiency,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double LightManager_getIntensity(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
 external void LightManager_setFalloff(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
   double falloff,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double LightManager_getFalloff(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
 );
 
 @ffi.Native<
@@ -335,12 +448,113 @@ external void LightManager_setSpotLightCone(
   double outer,
 );
 
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double LightManager_getSpotLightOuterCone(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double LightManager_getSpotLightInnerCone(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(
+    isLeaf: true)
+external void LightManager_setSunAngularRadius(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double angularRadius,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double LightManager_getSunAngularRadius(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(
+    isLeaf: true)
+external void LightManager_setSunHaloSize(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double haloSize,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double LightManager_getSunHaloSize(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(
+    isLeaf: true)
+external void LightManager_setSunHaloFalloff(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double haloFalloff,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double LightManager_getSunHaloFalloff(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool)>(
     isLeaf: true)
 external void LightManager_setShadowCaster(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
   bool enabled,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external bool LightManager_isShadowCaster(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>, EntityId, TShadowOptions)>(isLeaf: true)
+external void LightManager_setShadowOptions(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  TShadowOptions options,
+);
+
+@ffi.Native<TShadowOptions Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external TShadowOptions LightManager_getShadowOptions(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt,
+        ffi.Bool)>(isLeaf: true)
+external void LightManager_setLightChannel(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  int channel,
+  bool enable,
+);
+
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt)>(isLeaf: true)
+external bool LightManager_getLightChannel(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  int channel,
 );
 
 @ffi.Native<ffi.Uint32 Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
@@ -3986,6 +4200,74 @@ sealed class TLightType {
   static const LIGHT_TYPE_POINT = 2;
   static const LIGHT_TYPE_FOCUSED_SPOT = 3;
   static const LIGHT_TYPE_SPOT = 4;
+}
+
+final class TShadowOptions extends ffi.Struct {
+  @ffi.Uint32()
+  external int mapSize;
+
+  @ffi.Uint8()
+  external int shadowCascades;
+
+  @ffi.Array.multi([3])
+  external ffi.Array<ffi.Float> cascadeSplitPositions;
+
+  @ffi.Float()
+  external double constantBias;
+
+  @ffi.Float()
+  external double normalBias;
+
+  @ffi.Float()
+  external double shadowFar;
+
+  @ffi.Float()
+  external double shadowNearHint;
+
+  @ffi.Float()
+  external double shadowFarHint;
+
+  @ffi.Bool()
+  external bool stable;
+
+  @ffi.Bool()
+  external bool lispsm;
+
+  @ffi.Float()
+  external double polygonOffsetConstant;
+
+  @ffi.Float()
+  external double polygonOffsetSlope;
+
+  @ffi.Bool()
+  external bool screenSpaceContactShadows;
+
+  @ffi.Uint8()
+  external int stepCount;
+
+  @ffi.Float()
+  external double maxShadowDistance;
+
+  @ffi.Bool()
+  external bool vsmElvsm;
+
+  @ffi.Float()
+  external double vsmBlurWidth;
+
+  @ffi.Float()
+  external double shadowBulbRadius;
+
+  @ffi.Float()
+  external double transformX;
+
+  @ffi.Float()
+  external double transformY;
+
+  @ffi.Float()
+  external double transformZ;
+
+  @ffi.Float()
+  external double transformW;
 }
 
 final class TViewport extends ffi.Struct {

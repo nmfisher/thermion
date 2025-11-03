@@ -53,10 +53,8 @@ void main() async {
           PixelDataFormat.RGBA,
           PixelDataType.FLOAT);
 
-      var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
-          texture,
-          reflectionsTexture: texture,
-          intensity: 30000.0);
+      var indirectLight = await FFIIndirectLight.fromIrradianceTexture(texture,
+          reflectionsTexture: texture, intensity: 30000.0);
       final scene = await viewer.view.getScene();
       await scene.setIndirectLight(indirectLight);
 
@@ -65,5 +63,311 @@ void main() async {
       await viewer.removeIbl();
       await testHelper.capture(viewer.view, "ibl_from_texture_removed");
     }, cameraPosition: Vector3(0, 0, 5), addSkybox: true);
+  });
+
+  test('LightManager type queries and component management', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null // Use default ubershader material
+            );
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      // Capture initial state
+      await testHelper.capture(viewer.view, "initial_scene");
+
+      // Create a SUN light
+      final sunLight = lightManager.createLight(LightType.SUN);
+      await scene.addEntity(sunLight);
+      expect(lightManager.hasComponent(sunLight), isTrue);
+      await testHelper.capture(viewer.view, "sun_light_created");
+
+      // Test type queries
+      expect(lightManager.getType(sunLight), equals(LightType.SUN));
+      expect(lightManager.isDirectional(sunLight), isTrue);
+      expect(lightManager.isPointLight(sunLight), isFalse);
+      expect(lightManager.isSpotLight(sunLight), isFalse);
+
+      // Test with a POINT light
+      final pointLight = lightManager.createLight(LightType.POINT);
+      await scene.addEntity(pointLight);
+      expect(lightManager.isPointLight(pointLight), isTrue);
+      expect(lightManager.isDirectional(pointLight), isFalse);
+      await testHelper.capture(viewer.view, "point_light_created");
+
+      // Test with a SPOT light
+      final spotLight = lightManager.createLight(LightType.SPOT);
+      await scene.addEntity(spotLight);
+      expect(lightManager.isSpotLight(spotLight), isTrue);
+      await testHelper.capture(viewer.view, "spot_light_created");
+
+      // Cleanup
+      await scene.removeEntity(sunLight);
+      await scene.removeEntity(pointLight);
+      await scene.removeEntity(spotLight);
+
+      lightManager.destroyLight(sunLight);
+      lightManager.destroyLight(pointLight);
+      lightManager.destroyLight(spotLight);
+
+      expect(lightManager.hasComponent(sunLight), isFalse);
+      await testHelper.capture(viewer.view, "all_lights_destroyed");
+    });
+  });
+
+  test('LightManager position and direction getters/setters', () async {
+    await ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(0, 15, 5), focus: Vector3.zero())
+        .setBackgroundColor(kRed)
+        .addCube(color: kBlue)
+        .setPostProcessing(true)
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            scale: Vector3(2, 1, 1),
+            color: kGreen)
+        .execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+
+      final sunLight = lightManager.createLight(LightType.SUN);
+      lightManager.setPosition(sunLight, 1.0, 2.0, 3.0);
+      lightManager.setDirection(sunLight, 0.0, -1.0, 0.0);
+      lightManager.setIntensity(sunLight, 50000);
+      final scene = await viewer.view.getScene();
+      await scene.addEntity(sunLight);
+      await testHelper.capture(viewer.view, "light_created");
+
+      final position = lightManager.getPosition(sunLight);
+      expect(position[0], closeTo(1.0, 0.001));
+      expect(position[1], closeTo(2.0, 0.001));
+      expect(position[2], closeTo(3.0, 0.001));
+      final direction = lightManager.getDirection(sunLight);
+      expect(direction[0], closeTo(0.0, 0.001));
+      expect(direction[1], closeTo(-1.0, 0.001));
+      expect(direction[2], closeTo(0.0, 0.001));
+
+      await scene.removeEntity(sunLight);
+
+      lightManager.destroyLight(sunLight);
+    });
+  });
+
+  test('LightManager intensity management', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      final sunLight = lightManager.createLight(LightType.SUN);
+      await scene.addEntity(sunLight);
+      await testHelper.capture(viewer.view, "light_created_default_intensity");
+
+      // Test intensity
+      lightManager.setIntensity(sunLight, 100000.0);
+      await testHelper.capture(viewer.view, "light_intensity_set");
+
+      expect(lightManager.getIntensity(sunLight), closeTo(100000.0, 0.001));
+
+      await scene.removeEntity(sunLight);
+      lightManager.destroyLight(sunLight);
+    });
+  });
+
+  test('LightManager sun-specific methods', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      final sunLight = lightManager.createLight(LightType.SUN);
+      await scene.addEntity(sunLight);
+      await testHelper.capture(viewer.view, "sun_light_created");
+
+      // Test sun-specific methods
+      lightManager.setSunAngularRadius(sunLight, 0.545);
+      await testHelper.capture(viewer.view, "sun_angular_radius_set");
+
+      expect(lightManager.getSunAngularRadius(sunLight), closeTo(0.545, 0.001));
+
+      lightManager.setSunHaloSize(sunLight, 15.0);
+      await testHelper.capture(viewer.view, "sun_halo_size_set");
+
+      expect(lightManager.getSunHaloSize(sunLight), closeTo(15.0, 0.001));
+
+      lightManager.setSunHaloFalloff(sunLight, 100.0);
+      await testHelper.capture(viewer.view, "sun_halo_falloff_set");
+
+      expect(lightManager.getSunHaloFalloff(sunLight), closeTo(100.0, 0.001));
+
+      await scene.removeEntity(sunLight);
+      lightManager.destroyLight(sunLight);
+    });
+  });
+
+  test('LightManager shadow management', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(0, 5, 15), focus: Vector3.zero())
+        .setShadowsEnabled(true)
+        .setShadowType(ShadowType.PCF)
+        .setBackgroundColor(kRed)
+        .addCube(castShadows: true, color: kBlue)
+        .addPlane(
+            scale: Vector3(10, 1, 10),
+            receiveShadows: true,
+            castShadows: false,
+            color: kGreen);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      final sunLight = lightManager.createLight(LightType.SUN);
+      lightManager.setDirection(sunLight, 1, -1, 0);
+      await scene.addEntity(sunLight);
+      await testHelper.capture(viewer.view, "sun_light_created_no_shadows");
+
+      // Test shadow caster
+      lightManager.setShadowCaster(sunLight, true);
+      await testHelper.capture(viewer.view, "shadow_caster_enabled");
+
+      expect(lightManager.isShadowCaster(sunLight), isTrue);
+
+      // Test shadow options
+      final shadowOptions = ShadowOptions(
+        mapSize: 2048,
+        shadowCascades: 2,
+        constantBias: 0.002,
+        normalBias: 2.0,
+        stable: true,
+      );
+      lightManager.setShadowOptions(sunLight, shadowOptions);
+      await testHelper.capture(viewer.view, "shadow_options_configured");
+
+      final retrievedOptions = lightManager.getShadowOptions(sunLight);
+      expect(retrievedOptions.mapSize, equals(2048));
+      expect(retrievedOptions.shadowCascades, equals(2));
+      expect(retrievedOptions.constantBias, closeTo(0.002, 0.0001));
+      expect(retrievedOptions.normalBias, closeTo(2.0, 0.0001));
+      expect(retrievedOptions.stable, isTrue);
+
+      await scene.removeEntity(sunLight);
+      lightManager.destroyLight(sunLight);
+    });
+  });
+
+  test('LightManager light channel management', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      final sunLight = lightManager.createLight(LightType.SUN);
+      await scene.addEntity(sunLight);
+      await testHelper.capture(viewer.view, "light_created_default_channels");
+
+      // Test light channels
+      lightManager.setLightChannel(sunLight, 1, true);
+      await testHelper.capture(viewer.view, "light_channel_1_enabled");
+
+      expect(lightManager.getLightChannel(sunLight, 1), isTrue);
+
+      lightManager.setLightChannel(sunLight, 1, false);
+      await testHelper.capture(viewer.view, "light_channel_1_disabled");
+
+      expect(lightManager.getLightChannel(sunLight, 1), isFalse);
+
+      await scene.removeEntity(sunLight);
+      lightManager.destroyLight(sunLight);
+    });
+  });
+
+  test('LightManager point light specific methods', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      final pointLight = lightManager.createLight(LightType.POINT);
+      await scene.addEntity(pointLight);
+      await testHelper.capture(viewer.view, "point_light_created");
+
+      // Test falloff
+      lightManager.setFalloff(pointLight, 5.0);
+      await testHelper.capture(viewer.view, "point_light_falloff_set");
+
+      expect(lightManager.getFalloff(pointLight), closeTo(5.0, 0.001));
+
+      await scene.removeEntity(pointLight);
+      lightManager.destroyLight(pointLight);
+    });
+  });
+
+  test('LightManager spot light specific methods', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      final spotLight = lightManager.createLight(LightType.SPOT);
+      await scene.addEntity(spotLight);
+      await testHelper.capture(viewer.view, "spot_light_created");
+
+      // Test spot light cone
+      lightManager.setSpotLightCone(spotLight, 0.5, 1.0);
+      await testHelper.capture(viewer.view, "spot_light_cone_set");
+
+      expect(lightManager.getSpotLightInnerCone(spotLight), greaterThan(0.0));
+      expect(
+          lightManager.getSpotLightOuterCone(spotLight), closeTo(1.0, 0.001));
+
+      await scene.removeEntity(spotLight);
+      lightManager.destroyLight(spotLight);
+    });
   });
 }
