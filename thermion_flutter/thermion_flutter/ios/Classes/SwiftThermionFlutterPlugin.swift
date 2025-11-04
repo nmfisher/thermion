@@ -10,8 +10,6 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
         
     var createdAt = Date()
         
-    var resources:NSMutableDictionary = [:]
-
     static var messenger : FlutterBinaryMessenger? = nil;
 
     var markTextureFrameAvailable: @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
@@ -37,10 +35,6 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
-            case "getRenderCallback":
-                let renderCallback = markTextureFrameAvailable
-                result([
-                    unsafeBitCast(renderCallback, to:Int64.self), unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self)])
             case "getDriverPlatform":
                 result(nil)
             case "getSharedContext":

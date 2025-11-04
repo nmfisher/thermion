@@ -10,51 +10,8 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     var createdAt = Date()
 
     var destroying = false
-    
-    var resources:[UInt32:NSData] = [:]
   
     static var messenger : FlutterBinaryMessenger? = nil;
-    
-    var loadResource : @convention(c) (UnsafePointer<Int8>?, UnsafeMutableRawPointer?) -> ResourceBuffer = { uri, resourcesPtr in
-        
-        let instance:SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
-        
-        var uriString = String(cString:uri!)
-        
-        var path:String? = nil
-
-        print("Received request to load \(uriString)")
-        
-        if(uriString.hasPrefix("file://")) {
-            path = String(uriString.dropFirst(7))
-        } else {
-            if(uriString.hasPrefix("asset://")) {
-                uriString = String(uriString.dropFirst(8))
-            }
-            let bundle = Bundle.init(identifier: "io.flutter.flutter.app")!
-            path = bundle.path(forResource:uriString, ofType: nil, inDirectory: "flutter_assets")
-        }
-
-        if(path != nil) {
-          do {
-                let data = try Data(contentsOf: URL(fileURLWithPath:path!))
-                let nsData = data as NSData 
-                let resId = UInt32(instance.resources.count)
-                instance.resources[resId] = nsData
-                let length = nsData.length
-                print("Resolved asset to file of length \(Int32(length)) at path \(path!)")
-                return ResourceBuffer(data:nsData.bytes, size:Int32(UInt32(nsData.length)), id:Int32(UInt32(resId)))
-          } catch {
-            print("ERROR LOADING RESOURCE")
-          }
-        }
-        return ResourceBuffer()
-    }
-    
-    var freeResource : @convention(c) (ResourceBuffer,UnsafeMutableRawPointer?) -> () = { rbuf, resourcesPtr in
-        let instance:SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
-        instance.resources.removeValue(forKey:UInt32(rbuf.id))
-    }
       
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -87,12 +44,6 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
                 let flutterTextureId = call.arguments as! Int64
                 registry.textureFrameAvailable(flutterTextureId)
                 result(nil)
-            case "getRenderCallback":
-                if(renderCallbackHolder.isEmpty) {
-                    renderCallbackHolder.append(unsafeBitCast(markTextureFrameAvailable, to:Int64.self))
-                    renderCallbackHolder.append(unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self))
-                }
-                result(renderCallbackHolder)
             case "getDriverPlatform":
                 result(nil)
             case "getSharedContext":
@@ -102,7 +53,7 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
                 let width = args[0] as! Int64
                 let height = args[1] as! Int64
             
-                let texture = ThermionFlutterTexture(registry: registry, width: width, height: height)
+            let texture = ThermionFlutterTexture(registry: registry, width: width, height: height)
 
                 if texture.texture.metalTextureAddress == -1 {
                     result(nil)
