@@ -23,13 +23,6 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
         self.registry = textureRegistry;
         self.registrar = registrar
     }
-
-    var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
-        let instance:SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
-        for (_, texture) in instance.textures {
-            instance.registry.textureFrameAvailable(texture.flutterTextureId)
-          }
-    }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
