@@ -44,8 +44,10 @@ flutter:
         package: dev.thermion.android
       ios:
         pluginClass: SwiftThermionFlutterPlugin
+        sharedDarwinSource: true
       macos:
         pluginClass: SwiftThermionFlutterPlugin
+        sharedDarwinSource: true
       windows:
         pluginClass: ThermionFlutterPluginCApi
       linux:
