@@ -7,6 +7,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
+import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:path/path.dart' as p;
 
@@ -79,10 +80,15 @@ class TestHelper {
   late Directory outDir;
   late String testDir;
 
-  TestHelper(String dir) {
-    final packageUri = findPackageRoot('thermion_dart').toFilePath();
-    testDir = Directory("${packageUri}test").path;
-    outDir = Directory("$testDir/output/${dir}");
+  TestHelper(String? subDir) {
+    if (subDir != null) {
+      final packageUri = findPackageRoot('thermion_dart').toFilePath();
+      testDir = Directory("${packageUri}test").path;
+      outDir = Directory("$testDir/output/${subDir}");
+    } else {
+      testDir = "/Users/nickfisher/Documents/thermion/thermion_dart/test";
+      outDir = Directory("${Directory.current.path}/test_output");
+    }
     outDir.createSync(recursive: true);
   }
 
@@ -186,16 +192,13 @@ class TestHelper {
     return retval;
   }
 
-  ///
-  ///
-  ///
-  // Future<ThermionTextureSwift> createTexture(int width, int height,
-  //     {bool depth = false, bool stencil = false}) async {
-  //   final object = ThermionTextureSwift();
-  //   object.initWithWidth_height_isDepth_isStencil_(
-  //       width, height, depth, stencil);
-  //   return object;
-  // }
+  Future<MetalTextureWrapper> createTexture(int width, int height,
+      {bool depth = false, bool stencil = false}) async {
+    final object =
+        MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
+            width, height, depth, stencil);
+    return object;
+  }
 
   Future<Uint8List> _loadResource(String uri) async {
     uri = uri.replaceAll("file://", "");
@@ -221,49 +224,48 @@ class TestHelper {
       bool addSkybox = false,
       bool createRenderTarget = false,
       bool createStencilBuffer = false}) async {
-    
     cameraPosition ??= Vector3(0, 5, 5);
 
     swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height,
         hasStencilBuffer: createStencilBuffer) as FFISwapChain;
-    
+
     FFIRenderTarget? renderTarget;
     if (createRenderTarget) {
-      //   if (Platform.isMacOS) {
-      //   DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
-      //   DynamicLibrary.open('${testDir}/generated/libThermionTextureSwift.dylib');
-      // }
-      // var metalColorTexture = await createTexture(
-      //     viewportDimensions.width, viewportDimensions.height);
-      // var metalDepthTexture = await createTexture(
-      //     viewportDimensions.width, viewportDimensions.height,
-      //     depth: true);
-      var color = await FilamentApp.instance!.createTexture(
-        viewportDimensions.width, viewportDimensions.height,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE
-        },
-        textureFormat: TextureFormat.RGBA32F,
-        // importedTextureHandle: metalColorTexture.metalTextureAddress
-      );
+      if (Platform.isMacOS) {
+        DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
+        DynamicLibrary.open(
+            '${testDir}/generated/libMetalTextureWrapper.dylib');
+      }
+      var metalColorTexture = await createTexture(
+          viewportDimensions.width, viewportDimensions.height);
+      var metalDepthTexture = await createTexture(
+          viewportDimensions.width, viewportDimensions.height,
+          depth: true);
+      print("Creating texture of size ${viewportDimensions}");
+      var color = await FilamentApp.instance!
+          .createTexture(viewportDimensions.width, viewportDimensions.height,
+              flags: {
+                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+                TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+              },
+              textureFormat: TextureFormat.RGBA32F,
+              importedTextureHandle: metalColorTexture.metalTextureAddress);
       var width = await color.getWidth();
       var height = await color.getHeight();
       var depth = await FilamentApp.instance!.createTexture(
-        viewportDimensions.width, viewportDimensions.height,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          if (createStencilBuffer)
-            TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-        },
-        textureFormat: createStencilBuffer
-            ? TextureFormat.DEPTH24_STENCIL8
-            : TextureFormat.DEPTH32F,
-        // importedTextureHandle: metalDepthTexture.metalTextureAddress
-      );
+          viewportDimensions.width, viewportDimensions.height,
+          flags: {
+            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+            if (createStencilBuffer)
+              TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+          },
+          textureFormat: createStencilBuffer
+              ? TextureFormat.DEPTH24_STENCIL8
+              : TextureFormat.DEPTH32F,
+          importedTextureHandle: metalDepthTexture.metalTextureAddress);
 
       renderTarget = await FilamentApp.instance!.createRenderTarget(
           viewportDimensions.width, viewportDimensions.height,
@@ -390,7 +392,8 @@ class ViewerBuilder {
   final List<_CubeConfig> _cubes = [];
   final List<_PlaneConfig> _planes = [];
 
-  ViewerBuilder(this._testHelper, {
+  ViewerBuilder(
+    this._testHelper, {
     img.Color? bg,
     Vector3? cameraPosition,
     ({int width, int height}) viewportDimensions = (width: 512, height: 512),
@@ -552,7 +555,8 @@ class ViewerBuilder {
     });
   }
 
-  Future<({ThermionViewer viewer, List<ThermionAsset> assets})> buildWithAssets() async {
+  Future<({ThermionViewer viewer, List<ThermionAsset> assets})>
+      buildWithAssets() async {
     final viewer = await _testHelper.createViewer(
       bg: _bg,
       cameraPosition: _cameraPosition,
@@ -580,31 +584,34 @@ class ViewerBuilder {
 
     // Create and add configured planes
     for (final planeConfig in _planes) {
-      final materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance();
+      final materialInstance =
+          await FilamentApp.instance!.createUbershaderMaterialInstance();
       await materialInstance.setCullingMode(CullingMode.NONE);
 
       if (planeConfig.color != null) {
-        await materialInstance.setParameterFloat4("baseColorFactor",
-            planeConfig.color!.r.toDouble(), planeConfig.color!.g.toDouble(), planeConfig.color!.b.toDouble(), planeConfig.color!.a.toDouble());
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor",
+            planeConfig.color!.r.toDouble(),
+            planeConfig.color!.g.toDouble(),
+            planeConfig.color!.b.toDouble(),
+            planeConfig.color!.a.toDouble());
       } else {
-        await materialInstance.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
       }
 
       final plane = await viewer.createGeometry(
-        GeometryHelper.plane(
-          normals: true,
-          uvs: true,
-          width: 10.0,
-          height: 10.0
-        ),
-        materialInstances: [materialInstance]
-      );
+          GeometryHelper.plane(
+              normals: true, uvs: true, width: 10.0, height: 10.0),
+          materialInstances: [materialInstance]);
 
       await plane.setCastShadows(planeConfig.castShadows);
       await plane.setReceiveShadows(planeConfig.receiveShadows);
 
       // Apply transform if specified
-      if (planeConfig.position != null || planeConfig.scale != null || planeConfig.rotation != null) {
+      if (planeConfig.position != null ||
+          planeConfig.scale != null ||
+          planeConfig.rotation != null) {
         final transform = Matrix4.compose(
           planeConfig.position ?? Vector3.zero(),
           planeConfig.rotation ?? Quaternion.identity(),
@@ -619,25 +626,32 @@ class ViewerBuilder {
 
     // Create and add configured cubes
     for (final cubeConfig in _cubes) {
-      final materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance();
+      final materialInstance =
+          await FilamentApp.instance!.createUbershaderMaterialInstance();
 
       if (cubeConfig.color != null) {
-        await materialInstance.setParameterFloat4("baseColorFactor",
-            cubeConfig.color!.r.toDouble(), cubeConfig.color!.g.toDouble(), cubeConfig.color!.b.toDouble(), cubeConfig.color!.a.toDouble());
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor",
+            cubeConfig.color!.r.toDouble(),
+            cubeConfig.color!.g.toDouble(),
+            cubeConfig.color!.b.toDouble(),
+            cubeConfig.color!.a.toDouble());
       } else {
-        await materialInstance.setParameterFloat4("baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
       }
 
       final cube = await viewer.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
-        materialInstances: [materialInstance]
-      );
+          GeometryHelper.cube(flipUvs: true),
+          materialInstances: [materialInstance]);
 
       await cube.setCastShadows(cubeConfig.castShadows);
       await cube.setReceiveShadows(cubeConfig.receiveShadows);
 
       // Apply transform if specified
-      if (cubeConfig.position != null || cubeConfig.scale != null || cubeConfig.rotation != null) {
+      if (cubeConfig.position != null ||
+          cubeConfig.scale != null ||
+          cubeConfig.rotation != null) {
         final transform = Matrix4.compose(
           cubeConfig.position ?? Vector3.zero(),
           cubeConfig.rotation ?? Quaternion.identity(),
@@ -673,7 +687,9 @@ class ViewerBuilder {
     return result.viewer;
   }
 
-  Future execute(Future Function(ThermionViewer viewer, List<ThermionAsset> assets) fn) async {
+  Future execute(
+      Future Function(ThermionViewer viewer, List<ThermionAsset> assets)
+          fn) async {
     final result = await buildWithAssets();
     try {
       await fn.call(result.viewer, result.assets);
