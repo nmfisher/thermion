@@ -23,6 +23,7 @@ dependencies:
   thermion_flutter_web: ^0.3.3+2
   logging: ^1.2.0
   web: ^1.0.0
+  ffigen: ^19.1.0
 
 dependency_overrides:
   thermion_dart:

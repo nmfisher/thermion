@@ -1,0 +1,17 @@
+name: SwiftThermionFlutterPluginObjCAPI
+description: Bindings for SwiftThermionFlutterPluginObjCAPI.
+language: objc
+output: '../lib/src/swift/swift_bindings.g.dart'
+exclude-all-by-default: true
+objc-interfaces:
+  include:
+    - 'SwiftThermionFlutterPluginObjCAPI'
+    - 'MetalTextureWrapper'
+  module:
+    'SwiftThermionFlutterPluginObjCAPI': 'thermion_flutter'
+    'MetalTextureWrapper': 'thermion_flutter'
+headers:
+  entry-points:
+    - '../darwin/include/SwiftThermionFlutterPluginObjCAPI.h'
+preamble: |
+  // ignore_for_file: camel_case_types, non_constant_identifier_names, unused_element, unused_field, return_of_invalid_type, void_checks, annotate_overrides, no_leading_underscores_for_local_identifiers, library_private_types_in_public_apia
