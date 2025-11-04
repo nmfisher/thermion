@@ -6,13 +6,10 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     var registrar : FlutterPluginRegistrar
     var registry: FlutterTextureRegistry
     var textures: [Int64: ThermionFlutterTexture] = [:]
-            
-    var createdAt = Date()
 
     var destroying = false
   
     static var messenger : FlutterBinaryMessenger? = nil;
-      
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let _messenger = registrar.messenger;
@@ -21,10 +18,7 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
         let instance = SwiftThermionFlutterPlugin(textureRegistry: registrar.textures, registrar:registrar)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
-    
-    var resourceLoaderWrapper:UnsafeMutablePointer<ResourceLoaderWrapper>? = nil
-    var renderCallbackHolder:[Any] = []
-    
+        
     init(textureRegistry: FlutterTextureRegistry, registrar:FlutterPluginRegistrar) {
         self.registry = textureRegistry;
         self.registrar = registrar
@@ -53,7 +47,7 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
                 let width = args[0] as! Int64
                 let height = args[1] as! Int64
             
-            let texture = ThermionFlutterTexture(registry: registry, width: width, height: height)
+                let texture = ThermionFlutterTexture(registry: registry, width: width, height: height)
 
                 if texture.texture.metalTextureAddress == -1 {
                     result(nil)
