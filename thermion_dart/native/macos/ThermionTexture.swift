@@ -7,7 +7,9 @@ import GLKit
     
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32ABGR ),
-        kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
+        kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary,
+        kCVPixelBufferMetalCompatibilityKey: kCFBooleanTrue!,
+        kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue!
     ] as [CFString : Any] as CFDictionary
 
     @objc public var cvMetalTextureCache:CVMetalTextureCache?
@@ -29,11 +31,21 @@ import GLKit
         if isDepth {
             print("Creating depth texture")
             // Create a proper depth texture without IOSurface backing
+            #if os(iOS)
+            
+            let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: isStencil ? .depth32Float_stencil8 : .depth32Float_stencil8,
+                width: Int(width),
+                height: Int(height),
+                mipmapped: false)
+            #else
             let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
                 pixelFormat: isStencil ? .depth24Unorm_stencil8 : .depth32Float_stencil8,
                 width: Int(width),
                 height: Int(height),
                 mipmapped: false)
+            #endif
+            
             textureDescriptor.usage = [.renderTarget, .shaderRead]
             textureDescriptor.storageMode = .private  // Best performance for GPU-only access
             
@@ -54,9 +66,14 @@ import GLKit
         }
     
         if self.cvMetalTextureCache == nil {
+            // Create texture cache attributes to enable render target usage
+            var cacheAttrs: [CFString: Any] = [
+                kCVMetalTextureCacheMaximumTextureAgeKey: 0 as NSNumber,  // Keep textures as long as possible
+            ]
+
             let cacheCreationResult = CVMetalTextureCacheCreate(
                 kCFAllocatorDefault,
-                nil,
+                cacheAttrs as CFDictionary,
                 self.metalDevice!,
                 nil,
                 &self.cvMetalTextureCache)
@@ -66,10 +83,14 @@ import GLKit
                 return
             }
         }
+        // Try to create texture with usage attributes
+        var textureAttrs: [CFString: Any] = [:]
+
         let cvret = CVMetalTextureCacheCreateTextureFromImage(
                     kCFAllocatorDefault,
                     self.cvMetalTextureCache!,
-                    pixelBuffer!, nil,
+                    pixelBuffer!,
+                    textureAttrs as CFDictionary,
                     MTLPixelFormat.bgra8Unorm,
                     Int(width), Int(height),
                     0,
@@ -82,6 +103,53 @@ import GLKit
         metalTexture = CVMetalTextureGetTexture(cvMetalTexture!)
         let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
         metalTextureAddress = Int(bitPattern:metalTexturePtr)
+
+        // Debug: Log texture usage capabilities
+        if let texture = metalTexture {
+            print("Color texture created with usage: \(texture.usage)")
+            print("Is render target supported: \(texture.usage.contains(.renderTarget))")
+            print("Is shader read supported: \(texture.usage.contains(.shaderRead))")
+            print("Is shader write supported: \(texture.usage.contains(.shaderWrite))")
+            print("Texture pixel format: \(texture.pixelFormat)")
+            print("Texture storage mode: \(texture.storageMode)")
+
+            // If render target is not supported, try to create a render target texture from IOSurface
+            if !texture.usage.contains(.renderTarget) {
+                print("Render target not supported, attempting IOSurface-based approach...")
+                if let iosurface = CVPixelBufferGetIOSurface(pixelBuffer!) {
+                    print("Got IOSurface, creating render target texture from it...")
+                    let iosurfaceRef = iosurface.takeRetainedValue()
+
+                    let rtDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+                        pixelFormat: .bgra8Unorm,
+                        width: Int(width),
+                        height: Int(height),
+                        mipmapped: false)
+                    rtDescriptor.usage = [.renderTarget, .shaderRead]
+                    rtDescriptor.storageMode = .private
+
+                    if let rtTexture = metalDevice?.makeTexture(descriptor: rtDescriptor, iosurface: iosurfaceRef, plane: 0) {
+                        print("Successfully created render target texture from IOSurface")
+                        // Replace the original texture with the render target version
+                        metalTexture = rtTexture
+                        let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
+                        metalTextureAddress = Int(bitPattern: metalTexturePtr)
+
+                        print("Render target texture usage: \(metalTexture!.usage)")
+                        print("Is render target now supported: \(metalTexture!.usage.contains(.renderTarget))")
+                    } else {
+                        print("Failed to create render target texture from IOSurface")
+                    }
+                } else {
+                    print("Failed to get IOSurface from pixel buffer")
+                }
+            }
+        }
+    }
+
+    @objc public func supportsRenderTarget() -> Bool {
+        guard let texture = metalTexture else { return false }
+        return texture.usage.contains(.renderTarget)
     }
 
     @objc public func destroyTexture()  {
@@ -92,72 +160,73 @@ import GLKit
        self.metalDevice = nil
        self.cvMetalTextureCache = nil
     }
-    @objc public func fillWithPNGImage(imageURL: URL) -> Bool {
-    // Make sure we have a pixel buffer to work with
-    guard let pixelBuffer = self.pixelBuffer else {
-        print("Error: No pixel buffer available")
-        return false
-    }
-    
-    // Try to load the image from the provided URL
-    guard let nsImage = NSImage(contentsOf: imageURL) else {
-        print("Error: Could not load image from \(imageURL.path)")
-        return false
-    }
-    
-    // Make sure we have a CGImage to work with
-    guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-        print("Error: Could not get CGImage from NSImage")
-        return false
-    }
-    
-    // Get pixel buffer dimensions
-    let width = CVPixelBufferGetWidth(pixelBuffer)
-    let height = CVPixelBufferGetHeight(pixelBuffer)
-    
-    // Lock the pixel buffer for writing
-    CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
-    
-    // Get the base address of the pixel buffer
-    guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-        print("Error: Could not get base address of pixel buffer")
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
-        return false
-    }
-    
-    // Create a graphics context in the pixel buffer
-    let colorSpace = CGColorSpaceCreateDeviceRGB()
-    let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-    let context = CGContext(
-        data: baseAddress,
-        width: width,
-        height: height,
-        bitsPerComponent: 8,
-        bytesPerRow: bytesPerRow,
-        space: colorSpace,
-        bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
-    )
-    
-    // Draw the image into the context (which is backed by our pixel buffer)
-    if let context = context {
-        // Flip the coordinate system to match Metal's coordinate system
-        context.translateBy(x: 0, y: CGFloat(height))
-        context.scaleBy(x: 1, y: -1)
+
+    // @objc public func fillWithPNGImage(imageURL: URL) -> Bool {
+    //     // Make sure we have a pixel buffer to work with
+    //     guard let pixelBuffer = self.pixelBuffer else {
+    //         print("Error: No pixel buffer available")
+    //         return false
+    //     }
         
-        // Draw the image to fill the entire texture
-        let rect = CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height))
-        context.draw(cgImage, in: rect)
-    } else {
-        print("Error: Could not create CGContext from pixel buffer")
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
-        return false
-    }
-    
-    // Unlock the pixel buffer
-    CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
-    
-    return true
-}
+    //     // Try to load the image from the provided URL
+    //     guard let nsImage = NSImage(contentsOf: imageURL) else {
+    //         print("Error: Could not load image from \(imageURL.path)")
+    //         return false
+    //     }
+        
+    //     // Make sure we have a CGImage to work with
+    //     guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+    //         print("Error: Could not get CGImage from NSImage")
+    //         return false
+    //     }
+        
+    //     // Get pixel buffer dimensions
+    //     let width = CVPixelBufferGetWidth(pixelBuffer)
+    //     let height = CVPixelBufferGetHeight(pixelBuffer)
+        
+    //     // Lock the pixel buffer for writing
+    //     CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
+        
+    //     // Get the base address of the pixel buffer
+    //     guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+    //         print("Error: Could not get base address of pixel buffer")
+    //         CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
+    //         return false
+    //     }
+        
+    //     // Create a graphics context in the pixel buffer
+    //     let colorSpace = CGColorSpaceCreateDeviceRGB()
+    //     let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+    //     let context = CGContext(
+    //         data: baseAddress,
+    //         width: width,
+    //         height: height,
+    //         bitsPerComponent: 8,
+    //         bytesPerRow: bytesPerRow,
+    //         space: colorSpace,
+    //         bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
+    //     )
+        
+    //     // Draw the image into the context (which is backed by our pixel buffer)
+    //     if let context = context {
+    //         // Flip the coordinate system to match Metal's coordinate system
+    //         context.translateBy(x: 0, y: CGFloat(height))
+    //         context.scaleBy(x: 1, y: -1)
+            
+    //         // Draw the image to fill the entire texture
+    //         let rect = CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height))
+    //         context.draw(cgImage, in: rect)
+    //     } else {
+    //         print("Error: Could not create CGContext from pixel buffer")
+    //         CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
+    //         return false
+    //     }
+        
+    //     // Unlock the pixel buffer
+    //     CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: 0))
+        
+    //     return true
+    // }
 
     @objc public func fillColor() { 
         CVPixelBufferLockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
