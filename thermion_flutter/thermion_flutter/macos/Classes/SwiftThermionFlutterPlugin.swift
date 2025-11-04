@@ -31,10 +31,6 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
                 let flutterTextureId = call.arguments as! Int64
                 registry.textureFrameAvailable(flutterTextureId)
                 result(nil)
-            case "getDriverPlatform":
-                result(nil)
-            case "getSharedContext":
-                result(nil)
             case "createTexture":
                 let args = call.arguments as! [Any]
                 let width = args[0] as! Int64

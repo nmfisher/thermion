@@ -47,17 +47,22 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   }
 
   Future<ThermionViewer> createViewer({bool destroySwapchain = true}) async {
-    var driverPlatform = await channel.invokeMethod("getDriverPlatform");
+    var driverPlatform;
+    Pointer<Void> platformPtr = nullptr;
+    var sharedContext;
+    Pointer<Void> sharedContextPtr = nullptr;
+    if (!Platform.isMacOS && !Platform.isIOS) {
+      driverPlatform = await channel.invokeMethod("getDriverPlatform");
+      platformPtr = driverPlatform == null
+          ? nullptr
+          : VoidPointerClass.fromAddress(driverPlatform);
 
-    var platformPtr = driverPlatform == null
-        ? nullptr
-        : VoidPointerClass.fromAddress(driverPlatform);
+      sharedContext = await channel.invokeMethod("getSharedContext");
 
-    var sharedContext = await channel.invokeMethod("getSharedContext");
-
-    var sharedContextPtr = sharedContext == null
-        ? nullptr
-        : VoidPointerClass.fromAddress(sharedContext);
+      sharedContextPtr = sharedContext == null
+          ? nullptr
+          : VoidPointerClass.fromAddress(sharedContext);
+    }
 
     late Backend backend;
     if (options.backend != null) {

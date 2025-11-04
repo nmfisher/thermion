@@ -7,17 +7,8 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     var registrar : FlutterPluginRegistrar
     var registry: FlutterTextureRegistry
     var textures: [Int64: ThermionFlutterTexture] = [:]
-        
-    var createdAt = Date()
-        
+                
     static var messenger : FlutterBinaryMessenger? = nil;
-
-    var markTextureFrameAvailable: @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
-        let instance: SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
-        for (_, texture) in instance.textures {
-            instance.registry.textureFrameAvailable(texture.flutterTextureId)
-        }
-    }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let _messenger = registrar.messenger();
@@ -35,10 +26,6 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
-            case "getDriverPlatform":
-                result(nil)
-            case "getSharedContext":
-                result(nil)
             case "markTextureFrameAvailable":
                 let flutterTextureId = call.arguments as! Int64
                 registry.textureFrameAvailable(flutterTextureId)
