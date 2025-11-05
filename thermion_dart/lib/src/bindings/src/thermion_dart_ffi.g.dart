@@ -323,19 +323,11 @@ external void LightManager_setPosition(
   double z,
 );
 
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TLightManager>,
-        EntityId,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Float>)>(isLeaf: true)
-external void LightManager_getPosition(
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double3 LightManager_getPosition(
   ffi.Pointer<TLightManager> tLightManager,
   int light,
-  ffi.Pointer<ffi.Float> outX,
-  ffi.Pointer<ffi.Float> outY,
-  ffi.Pointer<ffi.Float> outZ,
 );
 
 @ffi.Native<
@@ -349,19 +341,11 @@ external void LightManager_setDirection(
   double z,
 );
 
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TLightManager>,
-        EntityId,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Float>)>(isLeaf: true)
-external void LightManager_getDirection(
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double3 LightManager_getDirection(
   ffi.Pointer<TLightManager> tLightManager,
   int light,
-  ffi.Pointer<ffi.Float> outX,
-  ffi.Pointer<ffi.Float> outY,
-  ffi.Pointer<ffi.Float> outZ,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(
@@ -372,19 +356,11 @@ external void LightManager_setColor(
   double colorTemperature,
 );
 
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TLightManager>,
-        EntityId,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Float>)>(isLeaf: true)
-external void LightManager_getColor(
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external double3 LightManager_getColor(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
-  ffi.Pointer<ffi.Float> outR,
-  ffi.Pointer<ffi.Float> outG,
-  ffi.Pointer<ffi.Float> outB,
 );
 
 @ffi.Native<
@@ -695,12 +671,21 @@ external void View_setShadowType(
   int shadowType,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Float, ffi.Float)>(
+@ffi.Native<ffi.Int Function(ffi.Pointer<TView>)>(isLeaf: true)
+external int View_getShadowType(
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TSoftShadowOptions)>(
     isLeaf: true)
 external void View_setSoftShadowOptions(
   ffi.Pointer<TView> tView,
-  double penumbraScale,
-  double penumbraRatioScale,
+  TSoftShadowOptions options,
+);
+
+@ffi.Native<TSoftShadowOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TSoftShadowOptions View_getSoftShadowOptions(
+  ffi.Pointer<TView> tView,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TVsmShadowOptions)>(
@@ -4356,6 +4341,15 @@ sealed class TQualityLevel {
 sealed class TBlendMode {
   static const OPAQUE = 0;
   static const TRANSLUCENT = 1;
+}
+
+/// Options for DPCF and PCSS Shadowing.
+final class TSoftShadowOptions extends ffi.Struct {
+  @ffi.Float()
+  external double penumbraScale;
+
+  @ffi.Float()
+  external double penumbraRatioScale;
 }
 
 /// Options for VSM Shadowing.

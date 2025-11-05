@@ -243,7 +243,7 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static T create<T extends Struct>() {
-   switch (T) {
+    switch (T) {
       case double4x4:
         final ptr = double4x4.stackAlloc();
         return ptr.toDart() as T;
@@ -584,11 +584,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double z,
   );
   external void _LightManager_getPosition(
+    Pointer<double3> double3_out,
     Pointer<TLightManager> tLightManager,
     EntityId light,
-    Pointer<Float32> outX,
-    Pointer<Float32> outY,
-    Pointer<Float32> outZ,
   );
   external void _LightManager_setDirection(
     Pointer<TLightManager> tLightManager,
@@ -598,11 +596,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double z,
   );
   external void _LightManager_getDirection(
+    Pointer<double3> double3_out,
     Pointer<TLightManager> tLightManager,
     EntityId light,
-    Pointer<Float32> outX,
-    Pointer<Float32> outY,
-    Pointer<Float32> outZ,
   );
   external void _LightManager_setColor(
     Pointer<TLightManager> tLightManager,
@@ -610,11 +606,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double colorTemperature,
   );
   external void _LightManager_getColor(
+    Pointer<double3> double3_out,
     Pointer<TLightManager> tLightManager,
     EntityId entity,
-    Pointer<Float32> outR,
-    Pointer<Float32> outG,
-    Pointer<Float32> outB,
   );
   external void _LightManager_setIntensity(
     Pointer<TLightManager> tLightManager,
@@ -2882,16 +2876,14 @@ void LightManager_setPosition(
   return result;
 }
 
-void LightManager_getPosition(
+double3 LightManager_getPosition(
   self.Pointer<TLightManager> tLightManager,
   DartEntityId light,
-  self.Pointer<Float32> outX,
-  self.Pointer<Float32> outY,
-  self.Pointer<Float32> outZ,
 ) {
+  final double3_out = double3.stackAlloc();
   final result = _lib._LightManager_getPosition(
-      tLightManager.cast(), light, outX, outY, outZ);
-  return result;
+      double3_out.cast(), tLightManager.cast(), light);
+  return double3_out.toDart();
 }
 
 void LightManager_setDirection(
@@ -2906,16 +2898,14 @@ void LightManager_setDirection(
   return result;
 }
 
-void LightManager_getDirection(
+double3 LightManager_getDirection(
   self.Pointer<TLightManager> tLightManager,
   DartEntityId light,
-  self.Pointer<Float32> outX,
-  self.Pointer<Float32> outY,
-  self.Pointer<Float32> outZ,
 ) {
+  final double3_out = double3.stackAlloc();
   final result = _lib._LightManager_getDirection(
-      tLightManager.cast(), light, outX, outY, outZ);
-  return result;
+      double3_out.cast(), tLightManager.cast(), light);
+  return double3_out.toDart();
 }
 
 void LightManager_setColor(
@@ -2928,16 +2918,14 @@ void LightManager_setColor(
   return result;
 }
 
-void LightManager_getColor(
+double3 LightManager_getColor(
   self.Pointer<TLightManager> tLightManager,
   DartEntityId entity,
-  self.Pointer<Float32> outR,
-  self.Pointer<Float32> outG,
-  self.Pointer<Float32> outB,
 ) {
+  final double3_out = double3.stackAlloc();
   final result = _lib._LightManager_getColor(
-      tLightManager.cast(), entity, outR, outG, outB);
-  return result;
+      double3_out.cast(), tLightManager.cast(), entity);
+  return double3_out.toDart();
 }
 
 void LightManager_setIntensity(
@@ -6973,6 +6961,47 @@ sealed class TLightType {
 typedef EntityId = int;
 typedef DartEntityId = int;
 
+extension double3Ext on Pointer<double3> {
+  double3 toDart() {
+    return double3(this);
+  }
+}
+
+final class double3 extends self.Struct {
+  double get x {
+    final value = _lib.getValue(this._address + 0, 'double').toDartDouble;
+    return value;
+  }
+
+  set x(double val) {
+    _lib.setValue(this._address + 0, val.toJS, 'double');
+  }
+
+  double get y {
+    final value = _lib.getValue(this._address + 8, 'double').toDartDouble;
+    return value;
+  }
+
+  set y(double val) {
+    _lib.setValue(this._address + 8, val.toJS, 'double');
+  }
+
+  double get z {
+    final value = _lib.getValue(this._address + 16, 'double').toDartDouble;
+    return value;
+  }
+
+  set z(double val) {
+    _lib.setValue(this._address + 16, val.toJS, 'double');
+  }
+
+  double3(super._address);
+
+  static Pointer<double3> stackAlloc() {
+    return Pointer<double3>(_lib._stackAlloc<double3>(24));
+  }
+}
+
 extension TShadowOptionsExt on Pointer<TShadowOptions> {
   TShadowOptions toDart() {
     return TShadowOptions(this);
@@ -8081,47 +8110,6 @@ final class double4x4 extends self.Struct {
 
   static Pointer<double4x4> stackAlloc() {
     return Pointer<double4x4>(_lib._stackAlloc<double4x4>(128));
-  }
-}
-
-extension double3Ext on Pointer<double3> {
-  double3 toDart() {
-    return double3(this);
-  }
-}
-
-final class double3 extends self.Struct {
-  double get x {
-    final value = _lib.getValue(this._address + 0, 'double').toDartDouble;
-    return value;
-  }
-
-  set x(double val) {
-    _lib.setValue(this._address + 0, val.toJS, 'double');
-  }
-
-  double get y {
-    final value = _lib.getValue(this._address + 8, 'double').toDartDouble;
-    return value;
-  }
-
-  set y(double val) {
-    _lib.setValue(this._address + 8, val.toJS, 'double');
-  }
-
-  double get z {
-    final value = _lib.getValue(this._address + 16, 'double').toDartDouble;
-    return value;
-  }
-
-  set z(double val) {
-    _lib.setValue(this._address + 16, val.toJS, 'double');
-  }
-
-  double3(super._address);
-
-  static Pointer<double3> stackAlloc() {
-    return Pointer<double3>(_lib._stackAlloc<double3>(24));
   }
 }
 
