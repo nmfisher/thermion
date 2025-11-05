@@ -1,14 +1,26 @@
 ![Thermion Logo](logo.png)
 
-Thermion is a framework for creating cross-platform 3D applications with Dart and/or Flutter.
+### quickstart (Flutter)
 
-## Overview
+```bash
+git clone https://github.com/nmfisher/thermion && cd thermion/examples/flutter/quickstart
+flutter channel beta
+flutter upgrade
+flutter config --enable-native-assets  
+flutter run
+```
 
-Below is a general overview of how the Thermion packages are structured to ensure a clean separation between the general Dart components, and the Flutter specific components.
+### Overview
 
-If you want a more detailed explanation of how to start rendering 3D content inside a Flutter app, [click here to view the quickstart page](/quickstart).
+Thermion is a toolkit for creating cross-platform 3D PBR applications with Dart and/or Flutter. 
 
-### Package structure 
+It is mostly a thin wrapper and high-level abstraction over the [Filament engine](https://github.com/google/filament).
+
+You can choose to use the simplified high-level API, or work directly with the lower-level Filament API.
+
+*Thermion is not a game engine*.
+
+#### Package structure 
 
 Thermion is divided into two packages:
 - `thermion_flutter`, a Flutter package for creating/embedding a rendering surface inside a Flutter app. 
@@ -51,7 +63,7 @@ You will generally only need to interact with `ThermionFlutterPlugin` directly t
 It handles creating and managing the underlying platform-specific texture that Filament renders to, and provides a way to embed this texture within the Flutter widget tree.
 
 Key features of ThermionWidget include:
-- Texture Management: It creates, resizes, and destroys the ThermionFlutterTexture used to display the rendered content from the ThermionViewer.
+- Texture Management: It creates, resizes, and destroys the FlutterMetalTextureWrapper used to display the rendered content from the ThermionViewer.
 - Platform Adaption: It handles platform-specific differences, such as texture coordinate systems, to ensure consistent rendering across different platforms.
 - Initialization Handling: Displays a placeholder (configurable via the initial property) while the Filament texture is being initialized, providing a smoother user experience.
 - Seamless Integration: Integrates seamlessly within the Flutter widget tree, allowing developers to combine 2D and 3D content easily.

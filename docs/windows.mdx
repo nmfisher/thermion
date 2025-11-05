@@ -1,12 +1,32 @@
 ## Windows
 
-If you're not a Thermion developer, you can ignore this.
+2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
 
-## ANGLE build (not currently working)
-To support embedding GPU textures in Flutter (rather than copying to a CPU pixel buffer on every frame), we need to build a slightly customized version of Filament that uses GLES on Windows (rather than the default, which uses OpenGL).
+<Accordion title="Click to open iOS/MacOS instructions">
 
+Make sure the `platform` entry refers to `13.0` in your Podfile.
+
+In `macos/Podfile` (for macOS):
 ```
-git checkout flutter-filament-windows
-mkdir out && cd out
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build . --target gltf_viewer --config Debug
+platform :osx, '13.0'
 ```
+
+In `ios/Podfile`, (for iOS):
+```
+platform :ios, '13.0'
+```
+
+Then open XCode:
+```
+open macos/Runner.xcworkspace
+```
+
+and change the minimum deployment target to 13.0:
+
+![XCode screenshot](images/macos_min_deployment.png)
+
+</Accordion>
+
+<Accordion title="Click to open Windows instructions">
+If you're running Windows, delete the `examples/flutter/quickstart/assets` symlink and copy the `assets` folder from `examples/assets` to `examples/flutter/quickstart/assets`.
+</Accordion>
