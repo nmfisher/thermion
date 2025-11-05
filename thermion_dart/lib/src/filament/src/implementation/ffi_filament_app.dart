@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
@@ -61,6 +62,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   Future<Uint8List> loadResource(String uri) {
     return _loadResource(uri);
+  }
+
+  @override
+  DebugRegistry getDebugRegistry() {
+    final debugRegistryPtr = Engine_getDebugRegistry(engine);
+    return FFIDebugRegistry(debugRegistryPtr);
   }
 
   static Future create({FFIFilamentConfig? config}) async {
@@ -1208,7 +1215,20 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
+  Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      stackPtr = stackSave();
+    }
+
+    var transform = double4x4ToMatrix4(
+        TransformManager_getLocalTransform(transformManager, entity));
+    if (FILAMENT_WASM) {
+      stackRestore(stackPtr);
+    }
+    return transform;
+  }
+
   ///
   Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
     late Pointer stackPtr;

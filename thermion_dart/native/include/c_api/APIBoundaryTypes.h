@@ -48,6 +48,7 @@ extern "C"
 	typedef struct TColorGrading TColorGrading;
 	typedef struct TKtx1Bundle TKtx1Bundle;
 	typedef struct TOverlayManager TOverlayManager;
+	typedef struct TDebugRegistry TDebugRegistry;
 	
 	typedef struct { 
 		double x;

@@ -5,3 +5,4 @@ export 'src/interface/light_manager.dart';
 export 'src/interface/light_options.dart';
 export 'src/interface/axis.dart';
 export 'src/interface/textured_quad.dart';
+export 'src/interface/debug_registry.dart';

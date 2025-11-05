@@ -35,6 +35,7 @@ abstract class FilamentApp<T> {
   T get renderableManager;
   T get ubershaderMaterialProvider;
   LightManager get lightManager;
+  DebugRegistry getDebugRegistry();
 
   ///
   ///
@@ -336,9 +337,11 @@ abstract class FilamentApp<T> {
   ///
   Future setTransform(ThermionEntity entity, Matrix4 transform);
 
-  ///
-  ///
-  ///
+  /// Gets the current transform for [entity] in local space (relative to its
+  /// parent).
+  Future<Matrix4> getLocalTransform(ThermionEntity entity);
+
+  /// Gets the current transform for [entity] in world space.
   Future<Matrix4> getWorldTransform(ThermionEntity entity);
 
   /// Sets the render priority for [entity].
