@@ -171,16 +171,187 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE Aabb3 RenderableManager_getBoundingBox(TRenderableManager *tRenderableManager, EntityId entityId) {
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
-            
+
             if (!renderableManager->hasComponent(entity)) {
                 Log("Not renderable");
                 return Aabb3{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
             }
             auto renderableInstance = renderableManager->getInstance(entity);
             auto boundingBox = renderableManager->getAxisAlignedBoundingBox(renderableInstance);
-            
-            return Aabb3{boundingBox.center.x, boundingBox.center.y, boundingBox.center.z, boundingBox.halfExtent.x, boundingBox.halfExtent.y, boundingBox.halfExtent.z};
 
+            return Aabb3{boundingBox.center.x, boundingBox.center.y, boundingBox.center.z, boundingBox.halfExtent.x, boundingBox.halfExtent.y, boundingBox.halfExtent.z};
+        }
+
+        // Component queries
+        EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getComponentCount(TRenderableManager *tRenderableManager) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            return renderableManager->getComponentCount();
+        }
+
+        // Material instance management
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_clearMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if(!renderableInstance.isValid()) {
+                return;
+            }
+            renderableManager->clearMaterialInstanceAt(renderableInstance, primitiveIndex);
+        }
+
+        // Bounding box management
+        EMSCRIPTEN_KEEPALIVE Aabb3 RenderableManager_getAxisAlignedBoundingBox(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                return Aabb3{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+            }
+            auto box = renderableManager->getAxisAlignedBoundingBox(renderableInstance);
+            return Aabb3{box.center.x, box.center.y, box.center.z, box.halfExtent.x, box.halfExtent.y, box.halfExtent.z};
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setAxisAlignedBoundingBox(TRenderableManager *tRenderableManager, EntityId entityId, Aabb3 aabb) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            filament::Box box;
+            box.center = {aabb.centerX, aabb.centerY, aabb.centerZ};
+            box.halfExtent = {aabb.halfExtentX, aabb.halfExtentY, aabb.halfExtentZ};
+            renderableManager->setAxisAlignedBoundingBox(renderableInstance, box);
+        }
+
+        // Layer mask and visibility
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setLayerMask(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t select, uint8_t values) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setLayerMask(renderableInstance, select, values);
+        }
+
+        EMSCRIPTEN_KEEPALIVE uint8_t RenderableManager_getLayerMask(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return 0;
+            }
+            return renderableManager->getLayerMask(renderableInstance);
+        }
+
+        // Priority and channel
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setChannel(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t channel) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setChannel(renderableInstance, channel);
+        }
+
+        // Culling
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setCulling(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setCulling(renderableInstance, enabled);
+        }
+
+        // Fog
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setFogEnabled(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setFogEnabled(renderableInstance, enabled);
+        }
+
+        // Light channels
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setLightChannel(TRenderableManager *tRenderableManager, EntityId entityId, unsigned int channel, bool enable) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setLightChannel(renderableInstance, channel, enable);
+        }
+
+        // Shadow options
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setScreenSpaceContactShadows(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setScreenSpaceContactShadows(renderableInstance, enabled);
+        }
+
+        // Blend order
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setBlendOrderAt(TRenderableManager *tRenderableManager, EntityId entityId, size_t primitiveIndex, uint16_t order) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setBlendOrderAt(renderableInstance, primitiveIndex, order);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setGlobalBlendOrderEnabledAt(TRenderableManager *tRenderableManager, EntityId entityId, size_t primitiveIndex, bool enabled) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setGlobalBlendOrderEnabledAt(renderableInstance, primitiveIndex, enabled);
+        }
+
+        // Morph targets
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeights(TRenderableManager *tRenderableManager, EntityId entityId, const float *weights, size_t count, size_t offset) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            renderableManager->setMorphWeights(renderableInstance, weights, count, offset);
+        }
+
+        EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getMorphTargetCount(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return 0;
+            }
+            return renderableManager->getMorphTargetCount(renderableInstance);
         }
 
     }

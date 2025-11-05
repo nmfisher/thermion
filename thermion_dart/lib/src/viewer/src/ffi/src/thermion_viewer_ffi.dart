@@ -662,13 +662,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  @Deprecated("Call FilamentApp.instance.getRenderableBoundingBox instead")
+  @Deprecated("Call FilamentApp.instance!.renderableManager.getBoundingBox instead")
   Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
-    final result = RenderableManager_getAabb(app.renderableManager, entityId);
-    return v64.Aabb3.centerAndHalfExtents(
-      Vector3(result.centerX, result.centerY, result.centerZ),
-      Vector3(result.halfExtentX, result.halfExtentY, result.halfExtentZ),
-    );
+    return FilamentApp.instance!.renderableManager.getBoundingBox(entityId);
   }
 
   ///

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_renderable_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
@@ -35,13 +36,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
   final Pointer<TRenderer> renderer;
   final Pointer<TTransformManager> transformManager;
-  final Pointer<TRenderableManager> renderableManager;
   final Pointer<TMaterialProvider> ubershaderMaterialProvider;
   final Pointer<TRenderTicker> renderTicker;
   final Pointer<TNameComponentManager> nameComponentManager;
 
   late final Future<Uint8List> Function(String uri) _loadResource;
   late final FFILightManager lightManager;
+  late final FFIRenderableManager renderableManager;
 
   static final _logger = Logger("FFIFilamentApp");
 
@@ -50,14 +51,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       this.gltfAssetLoader,
       this.renderer,
       this.transformManager,
-      this.renderableManager,
       this.ubershaderMaterialProvider,
       this.renderTicker,
       this.nameComponentManager,
       Future<Uint8List> Function(String uri)? loadResource,
-      Pointer<TLightManager> lightManagerPointer) {
+      Pointer<TLightManager> lightManagerPointer,
+      Pointer<TRenderableManager> renderableManagerPointer) {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
+    this.renderableManager = FFIRenderableManager(renderableManagerPointer, this);
   }
 
   Future<Uint8List> loadResource(String uri) {
@@ -112,12 +114,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         gltfAssetLoader,
         renderer,
         transformManager,
-        renderableManager,
         ubershaderMaterialProvider,
         renderTicker,
         nameComponentManager,
         config.loadResource,
-        lightManager);
+        lightManager,
+        renderableManager);
     _logger.info("Initialization complete");
   }
 
@@ -550,10 +552,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int index) async {
-    final instancePtr = RenderableManager_getMaterialInstanceAt(
-        renderableManager, entity, index);
-
-    final instance = FFIMaterialInstance(instancePtr, this);
+    final instance = await renderableManager.getMaterialInstanceAt(entity, index);
+    if (instance == null) {
+      throw Exception("No material instance at index $index");
+    }
     return instance;
   }
 
@@ -562,8 +564,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future setMaterialInstanceAt(ThermionEntity entity, int index,
       MaterialInstance materialInstance) async {
-    RenderableManager_setMaterialInstanceAt(renderableManager, entity, index,
-        (materialInstance as FFIMaterialInstance).pointer);
+    await renderableManager.setMaterialInstanceAt(entity, index, materialInstance);
   }
 
   ///
@@ -1249,24 +1250,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future setPriority(ThermionEntity entity, int priority) async {
-    RenderableManager_setPriority(renderableManager, entity, priority);
+    await renderableManager.setPriority(entity, priority);
   }
 
   ///
   ///
   ///
   Future<int> getPrimitiveCount(ThermionEntity entity) async {
-    return RenderableManager_getPrimitiveCount(renderableManager, entity);
+    return renderableManager.getPrimitiveCount(entity);
   }
 
   ///
   ///
   ///
   Future<Aabb3> getBoundingBox(ThermionEntity entity) async {
-    final bb = RenderableManager_getBoundingBox(renderableManager, entity);
-    return Aabb3.centerAndHalfExtents(
-        Vector3(bb.centerX, bb.centerY, bb.centerZ),
-        Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ));
+    return renderableManager.getBoundingBox(entity);
   }
 
   /// Builds an (empty) [Skybox] instance. This will not be attached to any scene until
@@ -1287,7 +1285,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<bool> isRenderable(ThermionEntity entity) async {
-    return RenderableManager_isRenderable(renderableManager, entity);
+    return renderableManager.isRenderable(entity);
   }
 
   ///

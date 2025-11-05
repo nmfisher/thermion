@@ -19,6 +19,10 @@ Int32List makeInt32List(int length) {
   return Int32List(length);
 }
 
+Float32List makeFloat32List(int length) {
+  return Float32List(length);
+}
+
 class NativeLibrary {
   static void initBindings(String name) {
     throw Exception();

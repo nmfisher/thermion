@@ -32,8 +32,9 @@ abstract class FilamentApp<T> {
   T get gltfAssetLoader;
   T get renderer;
   T get transformManager;
-  T get renderableManager;
+  
   T get ubershaderMaterialProvider;
+  RenderableManager get renderableManager;
   LightManager get lightManager;
   DebugRegistry getDebugRegistry();
 

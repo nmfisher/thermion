@@ -1945,6 +1945,74 @@ external void Fence_waitAndDestroy(
   ffi.Pointer<TFence> tFence,
 );
 
+@ffi.Native<ffi.Pointer<TDebugRegistry> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TDebugRegistry> Engine_getDebugRegistry(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+external bool DebugRegistry_hasProperty(
+  ffi.Pointer<TDebugRegistry> tDebugRegistry,
+  ffi.Pointer<ffi.Char> name,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>,
+        ffi.Bool)>(isLeaf: true)
+external bool DebugRegistry_setProperty_bool(
+  ffi.Pointer<TDebugRegistry> tDebugRegistry,
+  ffi.Pointer<ffi.Char> name,
+  bool value,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>,
+        ffi.Int)>(isLeaf: true)
+external bool DebugRegistry_setProperty_int(
+  ffi.Pointer<TDebugRegistry> tDebugRegistry,
+  ffi.Pointer<ffi.Char> name,
+  int value,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>,
+        ffi.Float)>(isLeaf: true)
+external bool DebugRegistry_setProperty_float(
+  ffi.Pointer<TDebugRegistry> tDebugRegistry,
+  ffi.Pointer<ffi.Char> name,
+  double value,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Bool>)>(isLeaf: true)
+external bool DebugRegistry_getProperty_bool(
+  ffi.Pointer<TDebugRegistry> tDebugRegistry,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Bool> outValue,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Int>)>(isLeaf: true)
+external bool DebugRegistry_getProperty_int(
+  ffi.Pointer<TDebugRegistry> tDebugRegistry,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Int> outValue,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TDebugRegistry>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Float>)>(isLeaf: true)
+external bool DebugRegistry_getProperty_float(
+  ffi.Pointer<TDebugRegistry> tDebugRegistry,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Float> outValue,
+);
+
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void RenderThread_create();
 
@@ -3326,6 +3394,30 @@ external void Skybox_setColor(
   double a,
 );
 
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_hasComponent(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>)>(isLeaf: true)
+external bool RenderableManager_empty(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_isRenderable(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>)>(isLeaf: true)
+external int RenderableManager_getComponentCount(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+);
+
 @ffi.Native<
     ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Int,
         ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
@@ -3345,6 +3437,15 @@ external ffi.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
   int primitiveIndex,
 );
 
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Int)>(isLeaf: true)
+external void RenderableManager_clearMaterialInstanceAt(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int primitiveIndex,
+);
+
 @ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
 external int RenderableManager_getPrimitiveCount(
@@ -3352,76 +3453,49 @@ external int RenderableManager_getPrimitiveCount(
   int entityId,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
-external bool RenderableManager_isRenderable(
-  ffi.Pointer<TRenderableManager> tRenderableManager,
-  int entityId,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
-    isLeaf: true)
-external bool RenderableManager_hasComponent(
-  ffi.Pointer<TRenderableManager> tRenderableManager,
-  int entityId,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>)>(isLeaf: true)
-external bool RenderableManager_empty(
-  ffi.Pointer<TRenderableManager> tRenderableManager,
-);
-
-@ffi.Native<
-    ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId,
-        ffi.UnsignedInt)>(isLeaf: true)
-external bool RenderableManager_getLightChannel(
-  ffi.Pointer<TRenderableManager> tRenderableManager,
-  int entityId,
-  int channel,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
-    isLeaf: true)
-external bool RenderableManager_isShadowCaster(
+external Aabb3 RenderableManager_getAxisAlignedBoundingBox(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
-external void RenderableManager_setCastShadows(
+        ffi.Pointer<TRenderableManager>, EntityId, Aabb3)>(isLeaf: true)
+external void RenderableManager_setAxisAlignedBoundingBox(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
-  bool castShadows,
+  Aabb3 aabb,
 );
 
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
-external void RenderableManager_setReceiveShadows(
-  ffi.Pointer<TRenderableManager> tRenderableManager,
-  int entityId,
-  bool receiveShadows,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
-external bool RenderableManager_isShadowReceiver(
-  ffi.Pointer<TRenderableManager> tRenderableManager,
-  int entityId,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
-    isLeaf: true)
-external bool RenderableManager_getFogEnabled(
+external Aabb3 RenderableManager_getAabb(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
 );
 
 @ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
-external Aabb3 RenderableManager_getAabb(
+external Aabb3 RenderableManager_getBoundingBox(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8,
+        ffi.Uint8)>(isLeaf: true)
+external void RenderableManager_setLayerMask(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int select,
+  int values,
+);
+
+@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external int RenderableManager_getLayerMask(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
 );
@@ -3444,9 +3518,148 @@ external void RenderableManager_setPriority(
   int priority,
 );
 
-@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
-external Aabb3 RenderableManager_getBoundingBox(
+external int RenderableManager_getPriority(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint8)>(isLeaf: true)
+external void RenderableManager_setChannel(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int channel,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setCulling(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_getCulling(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setFogEnabled(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_getFogEnabled(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId,
+        ffi.UnsignedInt, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setLightChannel(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int channel,
+  bool enable,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId,
+        ffi.UnsignedInt)>(isLeaf: true)
+external bool RenderableManager_getLightChannel(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int channel,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setCastShadows(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool castShadows,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_isShadowCaster(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setReceiveShadows(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool receiveShadows,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_isShadowReceiver(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setScreenSpaceContactShadows(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool enabled,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Size,
+        ffi.Uint16)>(isLeaf: true)
+external void RenderableManager_setBlendOrderAt(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int primitiveIndex,
+  int order,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Size,
+        ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setGlobalBlendOrderEnabledAt(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int primitiveIndex,
+  bool enabled,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId,
+        ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>(isLeaf: true)
+external void RenderableManager_setMorphWeights(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> weights,
+  int count,
+  int offset,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external int RenderableManager_getMorphTargetCount(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
 );
@@ -4016,6 +4229,8 @@ final class TColorGrading extends ffi.Opaque {}
 final class TKtx1Bundle extends ffi.Opaque {}
 
 final class TOverlayManager extends ffi.Opaque {}
+
+final class TDebugRegistry extends ffi.Opaque {}
 
 final class double3 extends ffi.Struct {
   @ffi.Double()
