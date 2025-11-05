@@ -7,13 +7,14 @@
       "Getting Started",
       [
         ["Overview", "/"],
-        ["Getting Started", "/getting_started"],
-        ["Quick Start", "/quickstart"],
-        ["Viewer", "/viewer"],
-        ["Camera Manipulation", "/camera_manipulation"]
+        ["Quick Start", "/quickstart"]
       ]
     ],
     ["Misc.", [
+      ["Viewer", "/viewer"],
+      ["Camera Manipulation", "/camera_manipulation"],
+      ["Filament API", "/filament_api"],
+      ["Materials", "/materials"],
       ["Debugging", "/debugging"],
       ["Playground", "https://dartpad.thermion.dev"],
       ["Showcase", "/showcase"],
