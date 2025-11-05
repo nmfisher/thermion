@@ -1,3 +1,5 @@
+import 'package:vector_math/vector_math_64.dart';
+
 enum ShadowType {
   PCF, //!< percentage-closer filtered shadows (default)
   VSM, //!< variance shadows
@@ -62,7 +64,7 @@ class ShadowOptions {
   final double shadowBulbRadius;
 
   /// Shadow direction transform (quaternion: w, x, y, z).
-  final List<double> transform;
+  final Quaternion transform;
 
   ShadowOptions({
     this.mapSize = 1024,
@@ -83,8 +85,53 @@ class ShadowOptions {
     this.vsmElvsm = false,
     this.vsmBlurWidth = 0.0,
     this.shadowBulbRadius = 0.02,
-    this.transform = const [1.0, 0.0, 0.0, 0.0], // identity quaternion (w, x, y, z)
-  });
+    Quaternion? transform,
+  }) : transform = transform ?? Quaternion.identity();
+
+  /// Creates a copy of this ShadowOptions with the given fields replaced with new values.
+  ShadowOptions copyWith({
+    int? mapSize,
+    int? shadowCascades,
+    List<double>? cascadeSplitPositions,
+    double? constantBias,
+    double? normalBias,
+    double? shadowFar,
+    double? shadowNearHint,
+    double? shadowFarHint,
+    bool? stable,
+    bool? lispsm,
+    double? polygonOffsetConstant,
+    double? polygonOffsetSlope,
+    bool? screenSpaceContactShadows,
+    int? stepCount,
+    double? maxShadowDistance,
+    bool? vsmElvsm,
+    double? vsmBlurWidth,
+    double? shadowBulbRadius,
+    Quaternion? transform,
+  }) {
+    return ShadowOptions(
+      mapSize: mapSize ?? this.mapSize,
+      shadowCascades: shadowCascades ?? this.shadowCascades,
+      cascadeSplitPositions: cascadeSplitPositions ?? this.cascadeSplitPositions,
+      constantBias: constantBias ?? this.constantBias,
+      normalBias: normalBias ?? this.normalBias,
+      shadowFar: shadowFar ?? this.shadowFar,
+      shadowNearHint: shadowNearHint ?? this.shadowNearHint,
+      shadowFarHint: shadowFarHint ?? this.shadowFarHint,
+      stable: stable ?? this.stable,
+      lispsm: lispsm ?? this.lispsm,
+      polygonOffsetConstant: polygonOffsetConstant ?? this.polygonOffsetConstant,
+      polygonOffsetSlope: polygonOffsetSlope ?? this.polygonOffsetSlope,
+      screenSpaceContactShadows: screenSpaceContactShadows ?? this.screenSpaceContactShadows,
+      stepCount: stepCount ?? this.stepCount,
+      maxShadowDistance: maxShadowDistance ?? this.maxShadowDistance,
+      vsmElvsm: vsmElvsm ?? this.vsmElvsm,
+      vsmBlurWidth: vsmBlurWidth ?? this.vsmBlurWidth,
+      shadowBulbRadius: shadowBulbRadius ?? this.shadowBulbRadius,
+      transform: transform ?? this.transform,
+    );
+  }
 }
 
 /// View-level options for VSM Shadowing.

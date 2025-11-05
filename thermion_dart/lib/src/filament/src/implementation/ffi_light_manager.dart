@@ -96,47 +96,20 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
   @override
   List<double> getPosition(ThermionEntity light) {
-    final x = calloc<Float>();
-    final y = calloc<Float>();
-    final z = calloc<Float>();
-    try {
-      LightManager_getPosition(lightManager, light, x, y, z);
-      return [x.value, y.value, z.value];
-    } finally {
-      calloc.free(x);
-      calloc.free(y);
-      calloc.free(z);
-    }
+    final result = LightManager_getPosition(lightManager, light);
+    return [result.x, result.y, result.z];
   }
 
   @override
   List<double> getDirection(ThermionEntity light) {
-    final x = calloc<Float>();
-    final y = calloc<Float>();
-    final z = calloc<Float>();
-    try {
-      LightManager_getDirection(lightManager, light, x, y, z);
-      return [x.value, y.value, z.value];
-    } finally {
-      calloc.free(x);
-      calloc.free(y);
-      calloc.free(z);
-    }
+    final result = LightManager_getDirection(lightManager, light);
+    return [result.x, result.y, result.z];
   }
 
   @override
   List<double> getColor(ThermionEntity light) {
-    final r = calloc<Float>();
-    final g = calloc<Float>();
-    final b = calloc<Float>();
-    try {
-      LightManager_getColor(lightManager, light, r, g, b);
-      return [r.value, g.value, b.value];
-    } finally {
-      calloc.free(r);
-      calloc.free(g);
-      calloc.free(b);
-    }
+    final result = LightManager_getColor(lightManager, light);
+    return [result.x, result.y, result.z];
   }
 
   @override
@@ -215,11 +188,13 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     final requiredSplits = tShadowOptions.shadowCascades - 1;
     if (requiredSplits > 0) {
       if (options.cascadeSplitPositions.length < requiredSplits) {
-        throw ArgumentError('cascadeSplitPositions must have at least $requiredSplits elements for ${tShadowOptions.shadowCascades} cascades');
+        throw ArgumentError(
+            'cascadeSplitPositions must have at least $requiredSplits elements for ${tShadowOptions.shadowCascades} cascades');
       }
       // Copy the required split positions, ensuring we don't exceed array bounds
       for (int i = 0; i < requiredSplits && i < 3; i++) {
-        tShadowOptions.cascadeSplitPositions[i] = options.cascadeSplitPositions[i];
+        // tShadowOptions.cascadeSplitPositions [i] =
+        //     options.cascadeSplitPositions[i];
       }
     }
     tShadowOptions.constantBias = options.constantBias;
@@ -238,10 +213,10 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     tShadowOptions.vsmElvsm = options.vsmElvsm;
     tShadowOptions.vsmBlurWidth = options.vsmBlurWidth;
     tShadowOptions.shadowBulbRadius = options.shadowBulbRadius;
-    tShadowOptions.transformW = options.transform[0];
-    tShadowOptions.transformX = options.transform[1];
-    tShadowOptions.transformY = options.transform[2];
-    tShadowOptions.transformZ = options.transform[3];
+    tShadowOptions.transformW = options.transform.w;
+    tShadowOptions.transformX = options.transform.x;
+    tShadowOptions.transformY = options.transform.y;
+    tShadowOptions.transformZ = options.transform.z;
 
     LightManager_setShadowOptions(lightManager, light, tShadowOptions);
   }
@@ -276,12 +251,12 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
       vsmElvsm: tShadowOptions.vsmElvsm,
       vsmBlurWidth: tShadowOptions.vsmBlurWidth,
       shadowBulbRadius: tShadowOptions.shadowBulbRadius,
-      transform: [
-        tShadowOptions.transformW,
+      transform: Quaternion(
         tShadowOptions.transformX,
         tShadowOptions.transformY,
         tShadowOptions.transformZ,
-      ],
+        tShadowOptions.transformW,
+      ),
     );
   }
 
