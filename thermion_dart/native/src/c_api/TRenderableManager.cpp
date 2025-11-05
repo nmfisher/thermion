@@ -354,5 +354,105 @@ namespace thermion
             return renderableManager->getMorphTargetCount(renderableInstance);
         }
 
+        // ============================================================================
+        // RenderableBuilder
+        // ============================================================================
+
+        EMSCRIPTEN_KEEPALIVE TRenderableBuilder* RenderableBuilder_create(size_t primitiveCount) {
+            auto *builder = new filament::RenderableManager::Builder(primitiveCount);
+            return reinterpret_cast<TRenderableBuilder*>(builder);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_destroy(TRenderableBuilder *tBuilder) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            delete builder;
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_boundingBox(TRenderableBuilder *tBuilder, Aabb3 aabb) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            filament::Box box;
+            box.center = {aabb.centerX, aabb.centerY, aabb.centerZ};
+            box.halfExtent = {aabb.halfExtentX, aabb.halfExtentY, aabb.halfExtentZ};
+            builder->boundingBox(box);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_material(TRenderableBuilder *tBuilder, size_t primitiveIndex, TMaterialInstance *tMaterialInstance) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            auto *materialInstance = reinterpret_cast<filament::MaterialInstance*>(tMaterialInstance);
+            builder->material(primitiveIndex, materialInstance);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_geometry(TRenderableBuilder *tBuilder, size_t primitiveIndex, uint8_t type, TVertexBuffer *tVertices, TIndexBuffer *tIndices, size_t offset, size_t count) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tVertices);
+            auto *indexBuffer = reinterpret_cast<filament::IndexBuffer*>(tIndices);
+            auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(type);
+            builder->geometry(primitiveIndex, primitiveType, vertexBuffer, indexBuffer, offset, count);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_priority(TRenderableBuilder *tBuilder, uint8_t priority) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->priority(priority);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_channel(TRenderableBuilder *tBuilder, uint8_t channel) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->channel(channel);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_culling(TRenderableBuilder *tBuilder, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->culling(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_castShadows(TRenderableBuilder *tBuilder, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->castShadows(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_receiveShadows(TRenderableBuilder *tBuilder, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->receiveShadows(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_fog(TRenderableBuilder *tBuilder, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->fog(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_lightChannel(TRenderableBuilder *tBuilder, unsigned int channel, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->lightChannel(channel, enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_layerMask(TRenderableBuilder *tBuilder, uint8_t select, uint8_t values) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->layerMask(select, values);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_screenSpaceContactShadows(TRenderableBuilder *tBuilder, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->screenSpaceContactShadows(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_blendOrder(TRenderableBuilder *tBuilder, size_t primitiveIndex, uint16_t order) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->blendOrder(primitiveIndex, order);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_globalBlendOrderEnabled(TRenderableBuilder *tBuilder, size_t primitiveIndex, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->globalBlendOrderEnabled(primitiveIndex, enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE int RenderableBuilder_build(TRenderableBuilder *tBuilder, TEngine *tEngine, EntityId entityId) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            auto *engine = reinterpret_cast<filament::Engine*>(tEngine);
+            const auto &entity = utils::Entity::import(entityId);
+
+            auto result = builder->build(*engine, entity);
+            return static_cast<int>(result);
+        }
+
     }
 }

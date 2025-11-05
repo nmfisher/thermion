@@ -249,4 +249,111 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
 
   /// Returns the number of morph targets.
   int getMorphTargetCount(ThermionEntity entity);
+
+  // ============================================================================
+  // Builder
+  // ============================================================================
+
+  /// Creates a builder for constructing renderables.
+  ///
+  /// [primitiveCount] The number of primitives that will be supplied to the builder
+  RenderableBuilder createBuilder(int primitiveCount);
+}
+
+/// Builder for creating renderable components.
+///
+/// Renderables are bundles of primitives, each with its own geometry and material.
+/// All primitives in a renderable share rendering attributes like shadows and culling.
+///
+/// Usage:
+/// ```dart
+/// final builder = renderableManager.createBuilder(1);
+/// builder
+///   ..boundingBox(aabb)
+///   ..material(0, materialInstance)
+///   ..geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, vertexCount)
+///   ..castShadows(true)
+///   ..receiveShadows(true);
+/// await builder.build(entity);
+/// ```
+abstract class RenderableBuilder {
+  /// Sets the axis-aligned bounding box for frustum culling.
+  ///
+  /// This should encompass all possible vertex positions. Mandatory unless culling is disabled.
+  void boundingBox(Aabb3 aabb);
+
+  /// Binds a material instance to the specified primitive.
+  ///
+  /// [primitiveIndex] Zero-based index of the primitive
+  /// [materialInstance] The material instance to bind
+  void material(int primitiveIndex, MaterialInstance materialInstance);
+
+  /// Specifies the geometry data for a primitive.
+  ///
+  /// [primitiveIndex] Zero-based index of the primitive
+  /// [type] Topology of the primitive (e.g., PrimitiveType.triangles)
+  /// [vertices] Vertex buffer containing attribute data
+  /// [indices] Index buffer (u16 or u32)
+  /// [offset] Where to start reading in the index buffer (in indices)
+  /// [count] Number of indices to read
+  void geometry(int primitiveIndex, PrimitiveType type,
+      dynamic vertices, dynamic indices, int offset, int count);
+
+  /// Sets the rendering priority (0-7, where 7 is lowest/rendered last).
+  ///
+  /// Priority provides coarse-grained draw order control. Applied separately
+  /// for opaque and translucent objects.
+  void priority(int priority);
+
+  /// Sets the rendering channel (0-3).
+  ///
+  /// Channels enforce the strongest ordering. All renderables in a channel
+  /// are rendered together before the next channel.
+  void channel(int channel);
+
+  /// Controls frustum culling (enabled by default).
+  void culling(bool enabled);
+
+  /// Controls whether this renderable casts shadows.
+  void castShadows(bool enabled);
+
+  /// Controls whether this renderable receives shadows.
+  void receiveShadows(bool enabled);
+
+  /// Controls whether this renderable is affected by large-scale fog.
+  void fog(bool enabled);
+
+  /// Enables or disables a light channel (0-7).
+  ///
+  /// Light channel 0 is enabled by default.
+  void lightChannel(int channel, bool enabled);
+
+  /// Sets bits in the visibility layer mask.
+  ///
+  /// [select] The set of bits to affect
+  /// [values] The replacement values for the affected bits
+  void layerMask(int select, int values);
+
+  /// Controls screen-space contact shadows (more expensive but better quality).
+  void screenSpaceContactShadows(bool enabled);
+
+  /// Sets the drawing order for blended primitives.
+  ///
+  /// [primitiveIndex] The primitive index
+  /// [order] Draw order number (only lowest 15 bits used)
+  void blendOrder(int primitiveIndex, int order);
+
+  /// Sets whether blend order is global or local to this renderable.
+  ///
+  /// [primitiveIndex] The primitive index
+  /// [enabled] True for global, false for local (default)
+  void globalBlendOrderEnabled(int primitiveIndex, bool enabled);
+
+  /// Builds the renderable and attaches it to the entity.
+  ///
+  /// [entity] The entity to attach the renderable component to
+  /// Returns true on success, false on error
+  ///
+  /// The builder is consumed after this call and cannot be reused.
+  Future<bool> build(ThermionEntity entity);
 }

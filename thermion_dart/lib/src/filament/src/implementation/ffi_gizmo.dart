@@ -16,7 +16,6 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
 
   FFIGizmo(
     super.asset,
-    super.app,
     super.animationManager, {
     required this.view,
     required this.entities,

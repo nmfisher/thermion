@@ -6,6 +6,7 @@
 #include <filament/TransformManager.h>
 #include <filament/math/mat4.h>
 #include <gltfio/math.h>
+#include <vector>
 
 #include "c_api/APIExport.h"
 
@@ -184,5 +185,75 @@ extern "C"
             return;
         }
         tm->create(entity);
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool TransformManager_hasComponent(TTransformManager *tTransformManager, EntityId entityId)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        auto entity = Entity::import(entityId);
+        return tm->hasComponent(entity);
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool TransformManager_empty(TTransformManager *tTransformManager)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        return tm->empty();
+    }
+
+    EMSCRIPTEN_KEEPALIVE int TransformManager_getComponentCount(TTransformManager *tTransformManager)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        return static_cast<int>(tm->getComponentCount());
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_openLocalTransformTransaction(TTransformManager *tTransformManager)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        tm->openLocalTransformTransaction();
+    }
+
+    EMSCRIPTEN_KEEPALIVE int TransformManager_getChildCount(TTransformManager *tTransformManager, EntityId entityId)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        const auto &entity = utils::Entity::import(entityId);
+        auto transformInstance = tm->getInstance(entity);
+        if (!transformInstance)
+        {
+            return 0;
+        }
+        return static_cast<int>(tm->getChildCount(transformInstance));
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getChildren(TTransformManager *tTransformManager, EntityId entityId, EntityId *children, int count)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        const auto &entity = utils::Entity::import(entityId);
+        auto transformInstance = tm->getInstance(entity);
+        if (!transformInstance)
+        {
+            return;
+        }
+
+        auto actualCount = tm->getChildCount(transformInstance);
+        auto childrenToRetrieve = std::min(static_cast<size_t>(count), actualCount);
+
+        if (childrenToRetrieve > 0)
+        {
+            // Create temporary array to store children
+            std::vector<utils::Entity> childEntities(childrenToRetrieve);
+            auto retrievedCount = tm->getChildren(transformInstance, childEntities.data(), childrenToRetrieve);
+
+            // Convert to EntityId integers
+            for (size_t i = 0; i < retrievedCount; ++i)
+            {
+                children[i] = utils::Entity::smuggle(childEntities[i]);
+            }
+        }
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_commitLocalTransformTransaction(TTransformManager *tTransformManager)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        tm->commitLocalTransformTransaction();
     }
 }

@@ -65,6 +65,32 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeights(TRenderableManager *tRenderableManager, EntityId entityId, const float *weights, size_t count, size_t offset);
     EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getMorphTargetCount(TRenderableManager *tRenderableManager, EntityId entityId);
 
+    // ============================================================================
+    // RenderableBuilder
+    // ============================================================================
+
+    // Builder lifecycle
+    EMSCRIPTEN_KEEPALIVE TRenderableBuilder* RenderableBuilder_create(size_t primitiveCount);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_destroy(TRenderableBuilder *builder);
+
+    // Builder configuration methods
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_boundingBox(TRenderableBuilder *builder, Aabb3 aabb);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_material(TRenderableBuilder *builder, size_t primitiveIndex, TMaterialInstance *materialInstance);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_geometry(TRenderableBuilder *builder, size_t primitiveIndex, uint8_t type, TVertexBuffer *vertices, TIndexBuffer *indices, size_t offset, size_t count);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_priority(TRenderableBuilder *builder, uint8_t priority);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_channel(TRenderableBuilder *builder, uint8_t channel);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_culling(TRenderableBuilder *builder, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_castShadows(TRenderableBuilder *builder, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_receiveShadows(TRenderableBuilder *builder, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_fog(TRenderableBuilder *builder, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_lightChannel(TRenderableBuilder *builder, unsigned int channel, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_layerMask(TRenderableBuilder *builder, uint8_t select, uint8_t values);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_screenSpaceContactShadows(TRenderableBuilder *builder, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_blendOrder(TRenderableBuilder *builder, size_t primitiveIndex, uint16_t order);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_globalBlendOrderEnabled(TRenderableBuilder *builder, size_t primitiveIndex, bool enabled);
+
+    // Build the renderable
+    EMSCRIPTEN_KEEPALIVE int RenderableBuilder_build(TRenderableBuilder *builder, TEngine *engine, EntityId entity);
 
 #ifdef __cplusplus
 }

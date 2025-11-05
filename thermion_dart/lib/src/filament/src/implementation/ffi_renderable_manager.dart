@@ -1,8 +1,8 @@
+import 'dart:ffi' as ffi;
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
-import 'package:thermion_dart/src/filament/src/interface/renderable_manager.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// FFI implementation of RenderableManager for native platforms.
@@ -262,5 +262,163 @@ class FFIRenderableManager
   @override
   int getMorphTargetCount(ThermionEntity entity) {
     return RenderableManager_getMorphTargetCount(renderableManager, entity);
+  }
+
+  // ============================================================================
+  // Builder
+  // ============================================================================
+
+  @override
+  RenderableBuilder createBuilder(int primitiveCount) {
+    return FFIRenderableBuilder(primitiveCount, app);
+  }
+}
+
+/// FFI implementation of RenderableBuilder for native platforms.
+class FFIRenderableBuilder implements RenderableBuilder {
+  ffi.Pointer<TRenderableBuilder>? _builderPtr;
+  final FFIFilamentApp _app;
+  bool _isBuilt = false;
+
+  FFIRenderableBuilder(int primitiveCount, this._app) {
+    _builderPtr = bindings.RenderableBuilder_create(primitiveCount);
+  }
+
+  void _checkNotBuilt() {
+    if (_isBuilt) {
+      throw StateError('Builder has already been built and cannot be reused');
+    }
+    if (_builderPtr == null || _builderPtr == nullptr) {
+      throw StateError('Builder pointer is null');
+    }
+  }
+
+  @override
+  void boundingBox(Aabb3 aabb) {
+    _checkNotBuilt();
+    final center = Vector3.zero();
+    final halfExtents = Vector3.zero();
+    aabb.copyCenterAndHalfExtents(center, halfExtents);
+
+    final cAabb = Struct.create<bindings.Aabb3>();
+    cAabb.centerX = center.x;
+    cAabb.centerY = center.y;
+    cAabb.centerZ = center.z;
+    cAabb.halfExtentX = halfExtents.x;
+    cAabb.halfExtentY = halfExtents.y;
+    cAabb.halfExtentZ = halfExtents.z;
+
+    bindings.RenderableBuilder_boundingBox(_builderPtr!, cAabb);
+  }
+
+  @override
+  void material(int primitiveIndex, MaterialInstance materialInstance) {
+    _checkNotBuilt();
+    final materialPtr = (materialInstance as FFIMaterialInstance).pointer;
+    bindings.RenderableBuilder_material(_builderPtr!, primitiveIndex, materialPtr);
+  }
+
+  @override
+  void geometry(int primitiveIndex, PrimitiveType type,
+      dynamic vertices, dynamic indices, int offset, int count) {
+    _checkNotBuilt();
+
+    // vertices and indices should be Pointer<TVertexBuffer> and Pointer<TIndexBuffer>
+    // For now, we'll cast them as dynamic and let the caller handle the typing
+    final verticesPtr = vertices as ffi.Pointer<TVertexBuffer>;
+    final indicesPtr = indices as ffi.Pointer<TIndexBuffer>;
+
+    final typeValue = switch (type) {
+    PrimitiveType.POINTS => 0,
+    PrimitiveType.LINES => 1,
+    PrimitiveType.UNUSED1 => 2,
+    PrimitiveType.LINE_STRIP => 3,
+    PrimitiveType.TRIANGLES => 4,
+    PrimitiveType.TRIANGLE_STRIP => 5,
+  };
+
+  bindings.RenderableBuilder_geometry(
+      _builderPtr!, primitiveIndex, typeValue, verticesPtr, indicesPtr, offset, count);
+  }
+
+  @override
+  void priority(int priority) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_priority(_builderPtr!, priority);
+  }
+
+  @override
+  void channel(int channel) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_channel(_builderPtr!, channel);
+  }
+
+  @override
+  void culling(bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_culling(_builderPtr!, enabled);
+  }
+
+  @override
+  void castShadows(bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_castShadows(_builderPtr!, enabled);
+  }
+
+  @override
+  void receiveShadows(bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_receiveShadows(_builderPtr!, enabled);
+  }
+
+  @override
+  void fog(bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_fog(_builderPtr!, enabled);
+  }
+
+  @override
+  void lightChannel(int channel, bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_lightChannel(_builderPtr!, channel, enabled);
+  }
+
+  @override
+  void layerMask(int select, int values) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_layerMask(_builderPtr!, select, values);
+  }
+
+  @override
+  void screenSpaceContactShadows(bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_screenSpaceContactShadows(_builderPtr!, enabled);
+  }
+
+  @override
+  void blendOrder(int primitiveIndex, int order) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_blendOrder(_builderPtr!, primitiveIndex, order);
+  }
+
+  @override
+  void globalBlendOrderEnabled(int primitiveIndex, bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_globalBlendOrderEnabled(_builderPtr!, primitiveIndex, enabled);
+  }
+
+  @override
+  Future<bool> build(ThermionEntity entity) async {
+    _checkNotBuilt();
+
+    final result = bindings.RenderableBuilder_build(_builderPtr!, _app.engine, entity);
+
+    // Clean up the builder
+    bindings.RenderableBuilder_destroy(_builderPtr!);
+    _builderPtr = null;
+    _isBuilt = true;
+
+    // Result: 0 = Success, -1 = Error
+    return result == 0;
   }
 }

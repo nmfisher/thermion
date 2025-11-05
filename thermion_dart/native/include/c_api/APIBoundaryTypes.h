@@ -49,6 +49,9 @@ extern "C"
 	typedef struct TKtx1Bundle TKtx1Bundle;
 	typedef struct TOverlayManager TOverlayManager;
 	typedef struct TDebugRegistry TDebugRegistry;
+	typedef struct TRenderableBuilder TRenderableBuilder;
+	typedef struct TVertexBuffer TVertexBuffer;
+	typedef struct TIndexBuffer TIndexBuffer;
 	
 	typedef struct { 
 		double x;
