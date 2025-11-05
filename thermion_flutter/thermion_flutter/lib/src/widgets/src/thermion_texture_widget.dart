@@ -1,28 +1,22 @@
 import 'dart:async';
 import 'package:flutter/material.dart' hide View;
 import 'package:logging/logging.dart';
+import 'package:thermion_flutter/src/platform/platform.dart';
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
 class ThermionTextureWidget extends StatefulWidget {
   ///
-  ///
-  ///
   final ThermionViewer viewer;
 
   ///
-  ///
-  ///
   final Widget? initial;
 
-  ///
   /// A callback that will be invoked whenever this widget (and the underlying texture is resized).
-  ///
   final Future Function(Size size, View view, double pixelRatio)? onResize;
 
-  ///
   /// When true, an FPS counter will be displayed at the top right of the widget
-  ///
   final bool showFpsCounter;
 
   const ThermionTextureWidget({
@@ -57,9 +51,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     final texture = _texture;
     _texture = null;
     super.dispose();
-    if (texture != null) {
-      ThermionFlutterPlatform.instance.destroyTextureDescriptor(texture);
-    }
+    texture?.destroy();
     _fpsUpdateTimer?.cancel();
     _states.remove(this);
   }
@@ -98,7 +90,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         _logger.info(
             "Target texture dimensions ${width}x${height} (pixel ratio : $dpr)");
 
-        _texture = await ThermionFlutterPlatform.instance
+        _texture = await ThermionFlutterPluginImpl.instance
             .createTextureAndBindToView(widget.viewer.view, width, height);
 
         _logger.info(
@@ -133,9 +125,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         if (mounted) {
           setState(() {});
         }
-        if (texture != null) {
-          ThermionFlutterPlatform.instance.destroyTextureDescriptor(texture);
-        }
+        texture?.destroy();
 
         _views.clear();
       });
@@ -189,10 +179,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     }
 
     WidgetsBinding.instance.scheduleFrameCallback((Duration d) async {
-      if (_texture != null) {
-        await ThermionFlutterPlatform.instance
-            .markTextureFrameAvailable(_texture!);
-      }
+      _texture?.markTextureFrameAvailable();
       _frameCompleter?.complete();
     });
 
@@ -236,7 +223,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _logger.info(
           "Resizing texture to dimensions ${newWidth}x${newHeight} (pixel ratio : $dpr)");
 
-      _texture = await ThermionFlutterPlatform.instance
+      _texture = await ThermionFlutterPluginImpl.instance
           .resizeTexture(_texture!, widget.viewer.view, newWidth, newHeight);
 
       _logger.info(
@@ -272,7 +259,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
               child: Texture(
             key: ObjectKey("flutter_texture_${_texture!.flutterTextureId}"),
             textureId: _texture!.flutterTextureId,
-            filterQuality: FilterQuality.none,
+            filterQuality: FilterQuality.high,
             freeze: false,
           )),
           if (widget.showFpsCounter)
