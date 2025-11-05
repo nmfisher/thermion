@@ -56,13 +56,13 @@ extern "C"
 
 	// Position and direction
 	EMSCRIPTEN_KEEPALIVE void LightManager_setPosition(TLightManager *tLightManager, EntityId light, double x, double y, double z);
-	EMSCRIPTEN_KEEPALIVE void LightManager_getPosition(TLightManager *tLightManager, EntityId light, float *outX, float *outY, float *outZ);
+	EMSCRIPTEN_KEEPALIVE double3 LightManager_getPosition(TLightManager *tLightManager, EntityId light);
 	EMSCRIPTEN_KEEPALIVE void LightManager_setDirection(TLightManager *tLightManager, EntityId light, double x, double y, double z);
-	EMSCRIPTEN_KEEPALIVE void LightManager_getDirection(TLightManager *tLightManager, EntityId light, float *outX, float *outY, float *outZ);
+	EMSCRIPTEN_KEEPALIVE double3 LightManager_getDirection(TLightManager *tLightManager, EntityId light);
 
 	// Color and intensity
 	EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, float colorTemperature);
-	EMSCRIPTEN_KEEPALIVE void LightManager_getColor(TLightManager *tLightManager, EntityId entity, float *outR, float *outG, float *outB);
+	EMSCRIPTEN_KEEPALIVE double3 LightManager_getColor(TLightManager *tLightManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void LightManager_setIntensity(TLightManager *tLightManager, EntityId entity, double intensity);
 	EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityCandela(TLightManager *tLightManager, EntityId entity, double intensity);
 	EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityWatts(TLightManager *tLightManager, EntityId entity, double watts, double efficiency);

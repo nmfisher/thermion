@@ -148,38 +148,35 @@ EMSCRIPTEN_KEEPALIVE bool LightManager_isSpotLight(TLightManager *tLightManager,
 }
 
 // Position and direction getters
-EMSCRIPTEN_KEEPALIVE void LightManager_getPosition(TLightManager *tLightManager, EntityId light, float *outX, float *outY, float *outZ) {
+EMSCRIPTEN_KEEPALIVE double3 LightManager_getPosition(TLightManager *tLightManager, EntityId light) {
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(light));
     if (instance.isValid()) {
         const auto& pos = lm->getPosition(instance);
-        if (outX) *outX = pos.x;
-        if (outY) *outY = pos.y;
-        if (outZ) *outZ = pos.z;
+        return double3 { static_cast<double>(pos.x), static_cast<double>(pos.y), static_cast<double>(pos.z) };
     }
+    return double3 { 0.0, 0.0, 0.0 };
 }
 
-EMSCRIPTEN_KEEPALIVE void LightManager_getDirection(TLightManager *tLightManager, EntityId light, float *outX, float *outY, float *outZ) {
+EMSCRIPTEN_KEEPALIVE double3 LightManager_getDirection(TLightManager *tLightManager, EntityId light) {
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(light));
     if (instance.isValid()) {
         const auto& dir = lm->getDirection(instance);
-        if (outX) *outX = dir.x;
-        if (outY) *outY = dir.y;
-        if (outZ) *outZ = dir.z;
+        return double3 { static_cast<double>(dir.x), static_cast<double>(dir.y), static_cast<double>(dir.z) };
     }
+    return double3 { 0.0, 0.0, 0.0 };
 }
 
 // Color getter
-EMSCRIPTEN_KEEPALIVE void LightManager_getColor(TLightManager *tLightManager, EntityId entity, float *outR, float *outG, float *outB) {
+EMSCRIPTEN_KEEPALIVE double3 LightManager_getColor(TLightManager *tLightManager, EntityId entity) {
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
         const auto& color = lm->getColor(instance);
-        if (outR) *outR = color.r;
-        if (outG) *outG = color.g;
-        if (outB) *outB = color.b;
+        return double3 { static_cast<double>(color.r), static_cast<double>(color.g), static_cast<double>(color.b) };
     }
+    return double3 { 0.0, 0.0, 0.0 };
 }
 
 // Intensity variants
