@@ -35,10 +35,13 @@ class DelegateInputHandler implements InputHandler {
   bool _ready = false;
   bool _processing = false;
 
+
+
   DelegateInputHandler({
     required this.viewer,
     this.delegate,
     this.batch = false,
+
   }) {
     FilamentApp.instance!.registerRequestFrameHook(process);
     viewer.initialized.then((_) {
@@ -46,34 +49,35 @@ class DelegateInputHandler implements InputHandler {
     });
   }
 
-  factory DelegateInputHandler.fixedOrbit(
-    ThermionViewer viewer, {
-    double minimumDistance = 0.1,
-    Vector3? target,
-    InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
-  }) {
+  factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
+      {double minimumDistance = 0.1,
+      Vector3? target,
+      InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
+      bool moveOnHover = false}) {
     return DelegateInputHandler(
-      viewer: viewer,
-      delegate: OrbitInputHandlerDelegate(
-        viewer.view,
-        sensitivity: sensitivity,
-        minZoomDistance: minimumDistance,
-        maxZoomDistance: 1000.0,
-      ),
-      batch: true
-    );
+        viewer: viewer,
+        delegate: OrbitInputHandlerDelegate(
+          viewer.view,
+          moveOnHover: moveOnHover,
+          sensitivity: sensitivity,
+          minZoomDistance: minimumDistance,
+          maxZoomDistance: 1000.0,
+        ),
+        batch: true);
   }
 
   factory DelegateInputHandler.flight(
     ThermionViewer viewer, {
     bool freeLook = false,
+    bool moveOnHover = false,
     InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
   }) =>
       DelegateInputHandler(
         batch: true,
         viewer: viewer,
+        
         delegate: FreeFlightInputHandlerDelegateV2(viewer.view,
-            sensitivity: sensitivity),
+            sensitivity: sensitivity,moveOnHover: moveOnHover),
       );
 
   Future<void> process() async {
