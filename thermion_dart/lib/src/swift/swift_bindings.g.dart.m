@@ -1,7 +1,7 @@
 #include <stdint.h>
 #import <Foundation/Foundation.h>
 #import <objc/message.h>
-#import "../../../darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h"
+#import "../../../native/include/generated/MetalTextureWrapperObjCAPI.h"
 
 #if !__has_feature(objc_arc)
 #error "This file must be compiled with ARC enabled"
@@ -49,13 +49,13 @@ id objc_retainBlock(id);
   };
 
 
-Protocol* _SwiftThermionFlutterPluginObjCAPI_MTLDevice(void) { return @protocol(MTLDevice); }
+Protocol* _MetalTextureWrapper_MTLDevice(void) { return @protocol(MTLDevice); }
 
-Protocol* _SwiftThermionFlutterPluginObjCAPI_MTLTexture(void) { return @protocol(MTLTexture); }
+Protocol* _MetalTextureWrapper_MTLTexture(void) { return @protocol(MTLTexture); }
 
 typedef id  (^ProtocolTrampoline)(void * sel);
 __attribute__((visibility("default"))) __attribute__((used))
-id  _SwiftThermionFlutterPluginObjCAPI_protocolTrampoline_1mbt9g9(id target, void * sel) {
+id  _MetalTextureWrapper_protocolTrampoline_1mbt9g9(id target, void * sel) {
   return ((ProtocolTrampoline)((id (*)(id, SEL, SEL))objc_msgSend)(target, @selector(getDOBJCDartProtocolMethodForSelector:), sel))(sel);
 }
 #undef BLOCKING_BLOCK_IMPL

@@ -7,7 +7,7 @@ objc-interfaces:
   include:
     - 'MetalTextureWrapper'
   module:
-    'MetalTextureWrapper': 'thermion_swift'
+    'MetalTextureWrapper': 'thermion_flutter'
 headers:
   entry-points:
     - '../native/include/generated/MetalTextureWrapperObjCAPI.h'

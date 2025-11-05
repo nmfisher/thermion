@@ -9,14 +9,15 @@ import FlutterMacOS
 public class FlutterMetalTextureWrapper : NSObject, FlutterTexture {
     
     var flutterTextureId: Int64 = -1
-    var registry: FlutterTextureRegistry
-    var texture: MetalTextureWrapper 
+    private var registry: FlutterTextureRegistry
+    private var texture: MetalTextureWrapper 
     
     init(registry:FlutterTextureRegistry, texture: MetalTextureWrapper) {
         self.registry = registry
         self.texture = texture
         super.init()
         self.flutterTextureId = registry.register(self)
+        print("registered flutterTextureId \(self.flutterTextureId)")
     }
     
     public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {

@@ -305,7 +305,6 @@ typedef unsigned int swift_uint4  __attribute__((__ext_vector_type__(4)));
 
 @protocol MTLDevice;
 @protocol MTLTexture;
-@class NSData;
 SWIFT_CLASS("_TtC16thermion_flutter19MetalTextureWrapper")
 @interface MetalTextureWrapper : NSObject
 @property (nonatomic, readonly) CVPixelBufferRef _Nullable pixelBuffer;
@@ -319,16 +318,8 @@ SWIFT_CLASS("_TtC16thermion_flutter19MetalTextureWrapper")
 + (MetalTextureWrapper * _Nonnull)allocateWithWidth:(int64_t)width height:(int64_t)height isDepth:(BOOL)isDepth isStencil:(BOOL)isStencil SWIFT_WARN_UNUSED_RESULT;
 - (BOOL)supportsRenderTarget SWIFT_WARN_UNUSED_RESULT;
 - (void)destroyTexture;
-- (void)fillColor;
-- (NSData * _Nullable)getTextureBytes SWIFT_WARN_UNUSED_RESULT;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
-@end
-
-SWIFT_CLASS("_TtC16thermion_flutter33SwiftThermionFlutterPluginObjCAPI")
-@interface SwiftThermionFlutterPluginObjCAPI : NSObject
-+ (void)registerTextureWithTexture:(MetalTextureWrapper * _Nonnull)texture;
-- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
 @end
 
 #endif
