@@ -12,92 +12,92 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
 
   @override
   bool hasProperty(String name) {
-    final cName = name.toNativeUtf8();
+    final ptr = name.toNativeUtf8();
     try {
-      return DebugRegistry_hasProperty(debugRegistry, cName.cast());
+      return DebugRegistry_hasProperty(debugRegistry, ptr.cast());
     } finally {
-      malloc.free(cName);
+      free(ptr);
     }
   }
 
   @override
   bool setPropertyBool(String name, bool value) {
-    final cName = name.toNativeUtf8();
+    final ptr = name.toNativeUtf8();
     try {
-      return DebugRegistry_setProperty_bool(debugRegistry, cName.cast(), value);
+      return DebugRegistry_setProperty_bool(debugRegistry, ptr.cast(), value);
     } finally {
-      malloc.free(cName);
+      free(ptr);
     }
   }
 
   @override
   bool setPropertyInt(String name, int value) {
-    final cName = name.toNativeUtf8();
+    final ptr = name.toNativeUtf8();
     try {
-      return DebugRegistry_setProperty_int(debugRegistry, cName.cast(), value);
+      return DebugRegistry_setProperty_int(debugRegistry, ptr.cast(), value);
     } finally {
-      malloc.free(cName);
+      free(ptr);
     }
   }
 
   @override
   bool setPropertyFloat(String name, double value) {
-    final cName = name.toNativeUtf8();
+    final ptr = name.toNativeUtf8();
     try {
-      return DebugRegistry_setProperty_float(debugRegistry, cName.cast(), value);
+      return DebugRegistry_setProperty_float(debugRegistry, ptr.cast(), value);
     } finally {
-      malloc.free(cName);
+      free(ptr);
     }
   }
 
   @override
   bool? getPropertyBool(String name) {
-    final cName = name.toNativeUtf8();
-    final outValue = malloc<Bool>();
+    final ptr = name.toNativeUtf8();
     try {
-      final success =
-          DebugRegistry_getProperty_bool(debugRegistry, cName.cast(), outValue);
+      final outValue = makeInt32List(1);
+
+      final success = DebugRegistry_getProperty_bool(
+          debugRegistry, ptr.cast(), outValue.address.cast());
       if (!success) {
         return null;
       }
-      return outValue.value;
+      return outValue[0] == 1;
     } finally {
-      malloc.free(cName);
-      malloc.free(outValue);
+      free(ptr);
     }
   }
 
   @override
   int? getPropertyInt(String name) {
-    final cName = name.toNativeUtf8();
-    final outValue = malloc<Int>();
+    final ptr = name.toNativeUtf8();
     try {
-      final success =
-          DebugRegistry_getProperty_int(debugRegistry, cName.cast(), outValue);
+      final outValue = Int32List(1);
+
+      final success = DebugRegistry_getProperty_int(
+          debugRegistry, ptr.cast(), outValue.address.cast());
       if (!success) {
         return null;
       }
-      return outValue.value;
+      return outValue[0];
     } finally {
-      malloc.free(cName);
-      malloc.free(outValue);
+      free(ptr);
     }
   }
 
   @override
   double? getPropertyFloat(String name) {
-    final cName = name.toNativeUtf8();
-    final outValue = malloc<Float>();
+    final ptr = name.toNativeUtf8();
     try {
+      final outValue = Float32List(1);
+
       final success = DebugRegistry_getProperty_float(
-          debugRegistry, cName.cast(), outValue);
+          debugRegistry, ptr.cast(), outValue.address);
       if (!success) {
         return null;
       }
-      return outValue.value;
+      return outValue[0];
     } finally {
-      malloc.free(cName);
-      malloc.free(outValue);
+      free(ptr);
     }
   }
 }

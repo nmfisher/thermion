@@ -1,4 +1,3 @@
-import 'dart:ffi' as ffi;
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
@@ -276,7 +275,7 @@ class FFIRenderableManager
 
 /// FFI implementation of RenderableBuilder for native platforms.
 class FFIRenderableBuilder implements RenderableBuilder {
-  ffi.Pointer<TRenderableBuilder>? _builderPtr;
+  bindings.Pointer<TRenderableBuilder>? _builderPtr;
   final FFIFilamentApp _app;
   bool _isBuilt = false;
 
@@ -325,8 +324,8 @@ class FFIRenderableBuilder implements RenderableBuilder {
 
     // vertices and indices should be Pointer<TVertexBuffer> and Pointer<TIndexBuffer>
     // For now, we'll cast them as dynamic and let the caller handle the typing
-    final verticesPtr = vertices as ffi.Pointer<TVertexBuffer>;
-    final indicesPtr = indices as ffi.Pointer<TIndexBuffer>;
+    final verticesPtr = vertices as bindings.Pointer<TVertexBuffer>;
+    final indicesPtr = indices as bindings.Pointer<TIndexBuffer>;
 
     final typeValue = switch (type) {
     PrimitiveType.POINTS => 0,

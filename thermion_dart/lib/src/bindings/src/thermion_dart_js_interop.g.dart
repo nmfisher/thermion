@@ -68,6 +68,12 @@ extension type Char._(NativeType value) implements NativeType {
   }
 }
 
+extension type Bool._(NativeType value) implements NativeType {
+  static Pointer<Bool> stackAlloc(int count) {
+    return Pointer<Bool>(_lib._stackAlloc<Char>(4 * count));
+  }
+}
+
 extension type const Uint32._(NativeType nt) implements NativeType {
   static Pointer<Uint32> stackAlloc(int count) {
     return _lib._stackAlloc<Uint32>(4 * count);
@@ -243,25 +249,7 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static T create<T extends Struct>() {
-    switch (T) {
-      case double4x4:
-        final ptr = double4x4.stackAlloc();
-        return ptr.toDart() as T;
-      case TFogOptions:
-        final ptr = TFogOptions.stackAlloc();
-        final fogOptions = ptr.toDart();
-        return fogOptions as T;
-      case TShadowOptions:
-        final ptr = TShadowOptions.stackAlloc();
-        return ptr.toDart() as T;
-      case TSoftShadowOptions:
-        final ptr = TSoftShadowOptions.stackAlloc();
-        return ptr.toDart() as T;
-      case TVsmShadowOptions:
-        final ptr = TVsmShadowOptions.stackAlloc();
-        return ptr.toDart() as T;
-    }
-    throw Exception("Unsupported struct");
+    throw Exception();
   }
 }
 
@@ -290,14 +278,22 @@ extension type const Array<T extends NativeType>._(
 }
 
 extension ArrayInt32Ext on Array<Int32> {
-  double operator [](int i) {
-    return _lib.getValue(_.addr + (i * 4), 'double').toDartDouble;
+  int operator [](int i) {
+    return _lib.getValue(_.addr + (i * 4), 'i32').toDartInt;
+  }
+
+  void operator []=(int i, int v) {
+    _lib.setValue(_.addr + (i * 4), v.toJS, 'i32');
   }
 }
 
 extension ArrayFloat32Ext on Array<Float32> {
   double operator [](int i) {
     return _lib.getValue(_.addr + (i * 4), 'double').toDartDouble;
+  }
+
+  void operator []=(int i, double v) {
+    _lib.setValue(_.addr + (i * 4), v.toJS, 'double');
   }
 }
 
@@ -709,6 +705,23 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TLightManager> tLightManager,
     EntityId entity,
     int channel,
+  );
+  external void _LightManager_computeUniformSplits(
+    Pointer<Float32> splitPositions,
+    int cascades,
+  );
+  external void _LightManager_computeLogSplits(
+    Pointer<Float32> splitPositions,
+    int cascades,
+    double near,
+    double far,
+  );
+  external void _LightManager_computePracticalSplits(
+    Pointer<Float32> splitPositions,
+    int cascades,
+    double near,
+    double far,
+    double lambda,
   );
   external int _FilamentAsset_getEntityCount(
     Pointer<TFilamentAsset> filamentAsset,
@@ -1277,6 +1290,32 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
     EntityId entity,
   );
+  external int _TransformManager_hasComponent(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+  );
+  external int _TransformManager_empty(
+    Pointer<TTransformManager> tTransformManager,
+  );
+  external int _TransformManager_getComponentCount(
+    Pointer<TTransformManager> tTransformManager,
+  );
+  external int _TransformManager_getChildCount(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+  );
+  external void _TransformManager_getChildren(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+    Pointer<Int32> children,
+    int count,
+  );
+  external void _TransformManager_openLocalTransformTransaction(
+    Pointer<TTransformManager> tTransformManager,
+  );
+  external void _TransformManager_commitLocalTransformTransaction(
+    Pointer<TTransformManager> tTransformManager,
+  );
   external void _Renderer_setClearOptions(
     Pointer<TRenderer> tRenderer,
     double clearR,
@@ -1509,6 +1548,43 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _Fence_waitAndDestroy(
     Pointer<TFence> tFence,
+  );
+  external Pointer<TDebugRegistry> _Engine_getDebugRegistry(
+    Pointer<TEngine> tEngine,
+  );
+  external int _DebugRegistry_hasProperty(
+    Pointer<TDebugRegistry> tDebugRegistry,
+    Pointer<Char> name,
+  );
+  external int _DebugRegistry_setProperty_bool(
+    Pointer<TDebugRegistry> tDebugRegistry,
+    Pointer<Char> name,
+    bool value,
+  );
+  external int _DebugRegistry_setProperty_int(
+    Pointer<TDebugRegistry> tDebugRegistry,
+    Pointer<Char> name,
+    int value,
+  );
+  external int _DebugRegistry_setProperty_float(
+    Pointer<TDebugRegistry> tDebugRegistry,
+    Pointer<Char> name,
+    double value,
+  );
+  external int _DebugRegistry_getProperty_bool(
+    Pointer<TDebugRegistry> tDebugRegistry,
+    Pointer<Char> name,
+    Pointer<Bool> outValue,
+  );
+  external int _DebugRegistry_getProperty_int(
+    Pointer<TDebugRegistry> tDebugRegistry,
+    Pointer<Char> name,
+    Pointer<Int32> outValue,
+  );
+  external int _DebugRegistry_getProperty_float(
+    Pointer<TDebugRegistry> tDebugRegistry,
+    Pointer<Char> name,
+    Pointer<Float32> outValue,
   );
   external void _RenderThread_create();
   external void _RenderThread_destroy();
@@ -2176,6 +2252,20 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     double b,
     double a,
   );
+  external int _RenderableManager_hasComponent(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external int _RenderableManager_empty(
+    Pointer<TRenderableManager> tRenderableManager,
+  );
+  external int _RenderableManager_isRenderable(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external size_t _RenderableManager_getComponentCount(
+    Pointer<TRenderableManager> tRenderableManager,
+  );
   external int _RenderableManager_setMaterialInstanceAt(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
@@ -2187,50 +2277,42 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     EntityId entityId,
     int primitiveIndex,
   );
+  external void _RenderableManager_clearMaterialInstanceAt(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    int primitiveIndex,
+  );
   external size_t _RenderableManager_getPrimitiveCount(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external int _RenderableManager_isRenderable(
+  external void _RenderableManager_getAxisAlignedBoundingBox(
+    Pointer<Aabb3> Aabb3_out,
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
-  external int _RenderableManager_hasComponent(
+  external void _RenderableManager_setAxisAlignedBoundingBox(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
-  );
-  external int _RenderableManager_empty(
-    Pointer<TRenderableManager> tRenderableManager,
-  );
-  external int _RenderableManager_getLightChannel(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
-    int channel,
-  );
-  external int _RenderableManager_isShadowCaster(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
-  );
-  external void _RenderableManager_setCastShadows(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
-    bool castShadows,
-  );
-  external void _RenderableManager_setReceiveShadows(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
-    bool receiveShadows,
-  );
-  external int _RenderableManager_isShadowReceiver(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
-  );
-  external int _RenderableManager_getFogEnabled(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
+    Pointer<Aabb3> aabbPtr,
   );
   external void _RenderableManager_getAabb(
     Pointer<Aabb3> Aabb3_out,
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external void _RenderableManager_getBoundingBox(
+    Pointer<Aabb3> Aabb3_out,
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external void _RenderableManager_setLayerMask(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    int select,
+    int values,
+  );
+  external int _RenderableManager_getLayerMask(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
@@ -2244,10 +2326,166 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     EntityId entityId,
     int priority,
   );
-  external void _RenderableManager_getBoundingBox(
-    Pointer<Aabb3> Aabb3_out,
+  external int _RenderableManager_getPriority(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
+  );
+  external void _RenderableManager_setChannel(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    int channel,
+  );
+  external void _RenderableManager_setCulling(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    bool enabled,
+  );
+  external int _RenderableManager_getCulling(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external void _RenderableManager_setFogEnabled(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    bool enabled,
+  );
+  external int _RenderableManager_getFogEnabled(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external void _RenderableManager_setLightChannel(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    int channel,
+    bool enable,
+  );
+  external int _RenderableManager_getLightChannel(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    int channel,
+  );
+  external void _RenderableManager_setCastShadows(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    bool castShadows,
+  );
+  external int _RenderableManager_isShadowCaster(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external void _RenderableManager_setReceiveShadows(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    bool receiveShadows,
+  );
+  external int _RenderableManager_isShadowReceiver(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external void _RenderableManager_setScreenSpaceContactShadows(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    bool enabled,
+  );
+  external void _RenderableManager_setBlendOrderAt(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    size_t primitiveIndex,
+    int order,
+  );
+  external void _RenderableManager_setGlobalBlendOrderEnabledAt(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    size_t primitiveIndex,
+    bool enabled,
+  );
+  external void _RenderableManager_setMorphWeights(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    Pointer<Float32> weights,
+    size_t count,
+    size_t offset,
+  );
+  external size_t _RenderableManager_getMorphTargetCount(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+  );
+  external Pointer<TRenderableBuilder> _RenderableBuilder_create(
+    size_t primitiveCount,
+  );
+  external void _RenderableBuilder_destroy(
+    Pointer<TRenderableBuilder> builder,
+  );
+  external void _RenderableBuilder_boundingBox(
+    Pointer<TRenderableBuilder> builder,
+    Pointer<Aabb3> aabbPtr,
+  );
+  external void _RenderableBuilder_material(
+    Pointer<TRenderableBuilder> builder,
+    size_t primitiveIndex,
+    Pointer<TMaterialInstance> materialInstance,
+  );
+  external void _RenderableBuilder_geometry(
+    Pointer<TRenderableBuilder> builder,
+    size_t primitiveIndex,
+    int type,
+    Pointer<TVertexBuffer> vertices,
+    Pointer<TIndexBuffer> indices,
+    size_t offset,
+    size_t count,
+  );
+  external void _RenderableBuilder_priority(
+    Pointer<TRenderableBuilder> builder,
+    int priority,
+  );
+  external void _RenderableBuilder_channel(
+    Pointer<TRenderableBuilder> builder,
+    int channel,
+  );
+  external void _RenderableBuilder_culling(
+    Pointer<TRenderableBuilder> builder,
+    bool enabled,
+  );
+  external void _RenderableBuilder_castShadows(
+    Pointer<TRenderableBuilder> builder,
+    bool enabled,
+  );
+  external void _RenderableBuilder_receiveShadows(
+    Pointer<TRenderableBuilder> builder,
+    bool enabled,
+  );
+  external void _RenderableBuilder_fog(
+    Pointer<TRenderableBuilder> builder,
+    bool enabled,
+  );
+  external void _RenderableBuilder_lightChannel(
+    Pointer<TRenderableBuilder> builder,
+    int channel,
+    bool enabled,
+  );
+  external void _RenderableBuilder_layerMask(
+    Pointer<TRenderableBuilder> builder,
+    int select,
+    int values,
+  );
+  external void _RenderableBuilder_screenSpaceContactShadows(
+    Pointer<TRenderableBuilder> builder,
+    bool enabled,
+  );
+  external void _RenderableBuilder_blendOrder(
+    Pointer<TRenderableBuilder> builder,
+    size_t primitiveIndex,
+    int order,
+  );
+  external void _RenderableBuilder_globalBlendOrderEnabled(
+    Pointer<TRenderableBuilder> builder,
+    size_t primitiveIndex,
+    bool enabled,
+  );
+  external int _RenderableBuilder_build(
+    Pointer<TRenderableBuilder> builder,
+    Pointer<TEngine> engine,
+    EntityId entity,
   );
   external Pointer<TSceneAsset> _SceneAsset_createGeometry(
     Pointer<TEngine> tEngine,
@@ -3130,6 +3368,38 @@ bool LightManager_getLightChannel(
   final result =
       _lib._LightManager_getLightChannel(tLightManager.cast(), entity, channel);
   return result == 1;
+}
+
+void LightManager_computeUniformSplits(
+  self.Pointer<Float32> splitPositions,
+  int cascades,
+) {
+  final result =
+      _lib._LightManager_computeUniformSplits(splitPositions, cascades);
+  return result;
+}
+
+void LightManager_computeLogSplits(
+  self.Pointer<Float32> splitPositions,
+  int cascades,
+  double near,
+  double far,
+) {
+  final result =
+      _lib._LightManager_computeLogSplits(splitPositions, cascades, near, far);
+  return result;
+}
+
+void LightManager_computePracticalSplits(
+  self.Pointer<Float32> splitPositions,
+  int cascades,
+  double near,
+  double far,
+  double lambda,
+) {
+  final result = _lib._LightManager_computePracticalSplits(
+      splitPositions, cascades, near, far, lambda);
+  return result;
 }
 
 int FilamentAsset_getEntityCount(
@@ -4295,6 +4565,66 @@ void TransformManager_createComponent(
   return result;
 }
 
+bool TransformManager_hasComponent(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+) {
+  final result =
+      _lib._TransformManager_hasComponent(tTransformManager.cast(), entityId);
+  return result == 1;
+}
+
+bool TransformManager_empty(
+  self.Pointer<TTransformManager> tTransformManager,
+) {
+  final result = _lib._TransformManager_empty(tTransformManager.cast());
+  return result == 1;
+}
+
+int TransformManager_getComponentCount(
+  self.Pointer<TTransformManager> tTransformManager,
+) {
+  final result =
+      _lib._TransformManager_getComponentCount(tTransformManager.cast());
+  return result;
+}
+
+int TransformManager_getChildCount(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+) {
+  final result =
+      _lib._TransformManager_getChildCount(tTransformManager.cast(), entityId);
+  return result;
+}
+
+void TransformManager_getChildren(
+  self.Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+  self.Pointer<Int32> children,
+  int count,
+) {
+  final result = _lib._TransformManager_getChildren(
+      tTransformManager.cast(), entityId, children, count);
+  return result;
+}
+
+void TransformManager_openLocalTransformTransaction(
+  self.Pointer<TTransformManager> tTransformManager,
+) {
+  final result = _lib._TransformManager_openLocalTransformTransaction(
+      tTransformManager.cast());
+  return result;
+}
+
+void TransformManager_commitLocalTransformTransaction(
+  self.Pointer<TTransformManager> tTransformManager,
+) {
+  final result = _lib._TransformManager_commitLocalTransformTransaction(
+      tTransformManager.cast());
+  return result;
+}
+
 void Renderer_setClearOptions(
   self.Pointer<TRenderer> tRenderer,
   double clearR,
@@ -4776,6 +5106,81 @@ void Fence_waitAndDestroy(
 ) {
   final result = _lib._Fence_waitAndDestroy(tFence.cast());
   return result;
+}
+
+self.Pointer<TDebugRegistry> Engine_getDebugRegistry(
+  self.Pointer<TEngine> tEngine,
+) {
+  final result = _lib._Engine_getDebugRegistry(tEngine.cast());
+  return self.Pointer<TDebugRegistry>(result);
+}
+
+bool DebugRegistry_hasProperty(
+  self.Pointer<TDebugRegistry> tDebugRegistry,
+  self.Pointer<Char> name,
+) {
+  final result = _lib._DebugRegistry_hasProperty(tDebugRegistry.cast(), name);
+  return result == 1;
+}
+
+bool DebugRegistry_setProperty_bool(
+  self.Pointer<TDebugRegistry> tDebugRegistry,
+  self.Pointer<Char> name,
+  bool value,
+) {
+  final result =
+      _lib._DebugRegistry_setProperty_bool(tDebugRegistry.cast(), name, value);
+  return result == 1;
+}
+
+bool DebugRegistry_setProperty_int(
+  self.Pointer<TDebugRegistry> tDebugRegistry,
+  self.Pointer<Char> name,
+  int value,
+) {
+  final result =
+      _lib._DebugRegistry_setProperty_int(tDebugRegistry.cast(), name, value);
+  return result == 1;
+}
+
+bool DebugRegistry_setProperty_float(
+  self.Pointer<TDebugRegistry> tDebugRegistry,
+  self.Pointer<Char> name,
+  double value,
+) {
+  final result =
+      _lib._DebugRegistry_setProperty_float(tDebugRegistry.cast(), name, value);
+  return result == 1;
+}
+
+bool DebugRegistry_getProperty_bool(
+  self.Pointer<TDebugRegistry> tDebugRegistry,
+  self.Pointer<Char> name,
+  self.Pointer<Bool> outValue,
+) {
+  final result = _lib._DebugRegistry_getProperty_bool(
+      tDebugRegistry.cast(), name, outValue);
+  return result == 1;
+}
+
+bool DebugRegistry_getProperty_int(
+  self.Pointer<TDebugRegistry> tDebugRegistry,
+  self.Pointer<Char> name,
+  self.Pointer<Int32> outValue,
+) {
+  final result = _lib._DebugRegistry_getProperty_int(
+      tDebugRegistry.cast(), name, outValue);
+  return result == 1;
+}
+
+bool DebugRegistry_getProperty_float(
+  self.Pointer<TDebugRegistry> tDebugRegistry,
+  self.Pointer<Char> name,
+  self.Pointer<Float32> outValue,
+) {
+  final result = _lib._DebugRegistry_getProperty_float(
+      tDebugRegistry.cast(), name, outValue);
+  return result == 1;
 }
 
 void RenderThread_create() {
@@ -6170,6 +6575,39 @@ void Skybox_setColor(
   return result;
 }
 
+bool RenderableManager_hasComponent(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result =
+      _lib._RenderableManager_hasComponent(tRenderableManager.cast(), entityId);
+  return result == 1;
+}
+
+bool RenderableManager_empty(
+  self.Pointer<TRenderableManager> tRenderableManager,
+) {
+  final result = _lib._RenderableManager_empty(tRenderableManager.cast());
+  return result == 1;
+}
+
+bool RenderableManager_isRenderable(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result =
+      _lib._RenderableManager_isRenderable(tRenderableManager.cast(), entityId);
+  return result == 1;
+}
+
+Dart__darwin_size_t RenderableManager_getComponentCount(
+  self.Pointer<TRenderableManager> tRenderableManager,
+) {
+  final result =
+      _lib._RenderableManager_getComponentCount(tRenderableManager.cast());
+  return result;
+}
+
 bool RenderableManager_setMaterialInstanceAt(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
@@ -6194,6 +6632,16 @@ self.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
   return self.Pointer<TMaterialInstance>(result);
 }
 
+void RenderableManager_clearMaterialInstanceAt(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  int primitiveIndex,
+) {
+  final result = _lib._RenderableManager_clearMaterialInstanceAt(
+      tRenderableManager.cast(), entityId, primitiveIndex);
+  return result;
+}
+
 Dart__darwin_size_t RenderableManager_getPrimitiveCount(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
@@ -6203,86 +6651,25 @@ Dart__darwin_size_t RenderableManager_getPrimitiveCount(
   return result;
 }
 
-bool RenderableManager_isRenderable(
+Aabb3 RenderableManager_getAxisAlignedBoundingBox(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
 ) {
-  final result =
-      _lib._RenderableManager_isRenderable(tRenderableManager.cast(), entityId);
-  return result == 1;
+  final Aabb3_out = Aabb3.stackAlloc();
+  final result = _lib._RenderableManager_getAxisAlignedBoundingBox(
+      Aabb3_out.cast(), tRenderableManager.cast(), entityId);
+  return Aabb3_out.toDart();
 }
 
-bool RenderableManager_hasComponent(
+void RenderableManager_setAxisAlignedBoundingBox(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
+  Aabb3 aabb,
 ) {
-  final result =
-      _lib._RenderableManager_hasComponent(tRenderableManager.cast(), entityId);
-  return result == 1;
-}
-
-bool RenderableManager_empty(
-  self.Pointer<TRenderableManager> tRenderableManager,
-) {
-  final result = _lib._RenderableManager_empty(tRenderableManager.cast());
-  return result == 1;
-}
-
-bool RenderableManager_getLightChannel(
-  self.Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-  int channel,
-) {
-  final result = _lib._RenderableManager_getLightChannel(
-      tRenderableManager.cast(), entityId, channel);
-  return result == 1;
-}
-
-bool RenderableManager_isShadowCaster(
-  self.Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-) {
-  final result = _lib._RenderableManager_isShadowCaster(
-      tRenderableManager.cast(), entityId);
-  return result == 1;
-}
-
-void RenderableManager_setCastShadows(
-  self.Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-  bool castShadows,
-) {
-  final result = _lib._RenderableManager_setCastShadows(
-      tRenderableManager.cast(), entityId, castShadows);
+  final aabbPtr = aabb._address;
+  final result = _lib._RenderableManager_setAxisAlignedBoundingBox(
+      tRenderableManager.cast(), entityId, aabbPtr.cast());
   return result;
-}
-
-void RenderableManager_setReceiveShadows(
-  self.Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-  bool receiveShadows,
-) {
-  final result = _lib._RenderableManager_setReceiveShadows(
-      tRenderableManager.cast(), entityId, receiveShadows);
-  return result;
-}
-
-bool RenderableManager_isShadowReceiver(
-  self.Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-) {
-  final result = _lib._RenderableManager_isShadowReceiver(
-      tRenderableManager.cast(), entityId);
-  return result == 1;
-}
-
-bool RenderableManager_getFogEnabled(
-  self.Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-) {
-  final result = _lib._RenderableManager_getFogEnabled(
-      tRenderableManager.cast(), entityId);
-  return result == 1;
 }
 
 Aabb3 RenderableManager_getAabb(
@@ -6293,6 +6680,36 @@ Aabb3 RenderableManager_getAabb(
   final result = _lib._RenderableManager_getAabb(
       Aabb3_out.cast(), tRenderableManager.cast(), entityId);
   return Aabb3_out.toDart();
+}
+
+Aabb3 RenderableManager_getBoundingBox(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final Aabb3_out = Aabb3.stackAlloc();
+  final result = _lib._RenderableManager_getBoundingBox(
+      Aabb3_out.cast(), tRenderableManager.cast(), entityId);
+  return Aabb3_out.toDart();
+}
+
+void RenderableManager_setLayerMask(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  int select,
+  int values,
+) {
+  final result = _lib._RenderableManager_setLayerMask(
+      tRenderableManager.cast(), entityId, select, values);
+  return result;
+}
+
+int RenderableManager_getLayerMask(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result =
+      _lib._RenderableManager_getLayerMask(tRenderableManager.cast(), entityId);
+  return result;
 }
 
 void RenderableManager_setVisibilityLayer(
@@ -6315,14 +6732,329 @@ void RenderableManager_setPriority(
   return result;
 }
 
-Aabb3 RenderableManager_getBoundingBox(
+int RenderableManager_getPriority(
   self.Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
 ) {
-  final Aabb3_out = Aabb3.stackAlloc();
-  final result = _lib._RenderableManager_getBoundingBox(
-      Aabb3_out.cast(), tRenderableManager.cast(), entityId);
-  return Aabb3_out.toDart();
+  final result =
+      _lib._RenderableManager_getPriority(tRenderableManager.cast(), entityId);
+  return result;
+}
+
+void RenderableManager_setChannel(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  int channel,
+) {
+  final result = _lib._RenderableManager_setChannel(
+      tRenderableManager.cast(), entityId, channel);
+  return result;
+}
+
+void RenderableManager_setCulling(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  bool enabled,
+) {
+  final result = _lib._RenderableManager_setCulling(
+      tRenderableManager.cast(), entityId, enabled);
+  return result;
+}
+
+bool RenderableManager_getCulling(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result =
+      _lib._RenderableManager_getCulling(tRenderableManager.cast(), entityId);
+  return result == 1;
+}
+
+void RenderableManager_setFogEnabled(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  bool enabled,
+) {
+  final result = _lib._RenderableManager_setFogEnabled(
+      tRenderableManager.cast(), entityId, enabled);
+  return result;
+}
+
+bool RenderableManager_getFogEnabled(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result = _lib._RenderableManager_getFogEnabled(
+      tRenderableManager.cast(), entityId);
+  return result == 1;
+}
+
+void RenderableManager_setLightChannel(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  int channel,
+  bool enable,
+) {
+  final result = _lib._RenderableManager_setLightChannel(
+      tRenderableManager.cast(), entityId, channel, enable);
+  return result;
+}
+
+bool RenderableManager_getLightChannel(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  int channel,
+) {
+  final result = _lib._RenderableManager_getLightChannel(
+      tRenderableManager.cast(), entityId, channel);
+  return result == 1;
+}
+
+void RenderableManager_setCastShadows(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  bool castShadows,
+) {
+  final result = _lib._RenderableManager_setCastShadows(
+      tRenderableManager.cast(), entityId, castShadows);
+  return result;
+}
+
+bool RenderableManager_isShadowCaster(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result = _lib._RenderableManager_isShadowCaster(
+      tRenderableManager.cast(), entityId);
+  return result == 1;
+}
+
+void RenderableManager_setReceiveShadows(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  bool receiveShadows,
+) {
+  final result = _lib._RenderableManager_setReceiveShadows(
+      tRenderableManager.cast(), entityId, receiveShadows);
+  return result;
+}
+
+bool RenderableManager_isShadowReceiver(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result = _lib._RenderableManager_isShadowReceiver(
+      tRenderableManager.cast(), entityId);
+  return result == 1;
+}
+
+void RenderableManager_setScreenSpaceContactShadows(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  bool enabled,
+) {
+  final result = _lib._RenderableManager_setScreenSpaceContactShadows(
+      tRenderableManager.cast(), entityId, enabled);
+  return result;
+}
+
+void RenderableManager_setBlendOrderAt(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  Dart__darwin_size_t primitiveIndex,
+  int order,
+) {
+  final result = _lib._RenderableManager_setBlendOrderAt(
+      tRenderableManager.cast(), entityId, primitiveIndex, order);
+  return result;
+}
+
+void RenderableManager_setGlobalBlendOrderEnabledAt(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  Dart__darwin_size_t primitiveIndex,
+  bool enabled,
+) {
+  final result = _lib._RenderableManager_setGlobalBlendOrderEnabledAt(
+      tRenderableManager.cast(), entityId, primitiveIndex, enabled);
+  return result;
+}
+
+void RenderableManager_setMorphWeights(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  self.Pointer<Float32> weights,
+  Dart__darwin_size_t count,
+  Dart__darwin_size_t offset,
+) {
+  final result = _lib._RenderableManager_setMorphWeights(
+      tRenderableManager.cast(), entityId, weights, count, offset);
+  return result;
+}
+
+Dart__darwin_size_t RenderableManager_getMorphTargetCount(
+  self.Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result = _lib._RenderableManager_getMorphTargetCount(
+      tRenderableManager.cast(), entityId);
+  return result;
+}
+
+self.Pointer<TRenderableBuilder> RenderableBuilder_create(
+  Dart__darwin_size_t primitiveCount,
+) {
+  final result = _lib._RenderableBuilder_create(primitiveCount);
+  return self.Pointer<TRenderableBuilder>(result);
+}
+
+void RenderableBuilder_destroy(
+  self.Pointer<TRenderableBuilder> builder,
+) {
+  final result = _lib._RenderableBuilder_destroy(builder.cast());
+  return result;
+}
+
+void RenderableBuilder_boundingBox(
+  self.Pointer<TRenderableBuilder> builder,
+  Aabb3 aabb,
+) {
+  final aabbPtr = aabb._address;
+  final result =
+      _lib._RenderableBuilder_boundingBox(builder.cast(), aabbPtr.cast());
+  return result;
+}
+
+void RenderableBuilder_material(
+  self.Pointer<TRenderableBuilder> builder,
+  Dart__darwin_size_t primitiveIndex,
+  self.Pointer<TMaterialInstance> materialInstance,
+) {
+  final result = _lib._RenderableBuilder_material(
+      builder.cast(), primitiveIndex, materialInstance.cast());
+  return result;
+}
+
+void RenderableBuilder_geometry(
+  self.Pointer<TRenderableBuilder> builder,
+  Dart__darwin_size_t primitiveIndex,
+  int type,
+  self.Pointer<TVertexBuffer> vertices,
+  self.Pointer<TIndexBuffer> indices,
+  Dart__darwin_size_t offset,
+  Dart__darwin_size_t count,
+) {
+  final result = _lib._RenderableBuilder_geometry(builder.cast(),
+      primitiveIndex, type, vertices.cast(), indices.cast(), offset, count);
+  return result;
+}
+
+void RenderableBuilder_priority(
+  self.Pointer<TRenderableBuilder> builder,
+  int priority,
+) {
+  final result = _lib._RenderableBuilder_priority(builder.cast(), priority);
+  return result;
+}
+
+void RenderableBuilder_channel(
+  self.Pointer<TRenderableBuilder> builder,
+  int channel,
+) {
+  final result = _lib._RenderableBuilder_channel(builder.cast(), channel);
+  return result;
+}
+
+void RenderableBuilder_culling(
+  self.Pointer<TRenderableBuilder> builder,
+  bool enabled,
+) {
+  final result = _lib._RenderableBuilder_culling(builder.cast(), enabled);
+  return result;
+}
+
+void RenderableBuilder_castShadows(
+  self.Pointer<TRenderableBuilder> builder,
+  bool enabled,
+) {
+  final result = _lib._RenderableBuilder_castShadows(builder.cast(), enabled);
+  return result;
+}
+
+void RenderableBuilder_receiveShadows(
+  self.Pointer<TRenderableBuilder> builder,
+  bool enabled,
+) {
+  final result =
+      _lib._RenderableBuilder_receiveShadows(builder.cast(), enabled);
+  return result;
+}
+
+void RenderableBuilder_fog(
+  self.Pointer<TRenderableBuilder> builder,
+  bool enabled,
+) {
+  final result = _lib._RenderableBuilder_fog(builder.cast(), enabled);
+  return result;
+}
+
+void RenderableBuilder_lightChannel(
+  self.Pointer<TRenderableBuilder> builder,
+  int channel,
+  bool enabled,
+) {
+  final result =
+      _lib._RenderableBuilder_lightChannel(builder.cast(), channel, enabled);
+  return result;
+}
+
+void RenderableBuilder_layerMask(
+  self.Pointer<TRenderableBuilder> builder,
+  int select,
+  int values,
+) {
+  final result =
+      _lib._RenderableBuilder_layerMask(builder.cast(), select, values);
+  return result;
+}
+
+void RenderableBuilder_screenSpaceContactShadows(
+  self.Pointer<TRenderableBuilder> builder,
+  bool enabled,
+) {
+  final result = _lib._RenderableBuilder_screenSpaceContactShadows(
+      builder.cast(), enabled);
+  return result;
+}
+
+void RenderableBuilder_blendOrder(
+  self.Pointer<TRenderableBuilder> builder,
+  Dart__darwin_size_t primitiveIndex,
+  int order,
+) {
+  final result =
+      _lib._RenderableBuilder_blendOrder(builder.cast(), primitiveIndex, order);
+  return result;
+}
+
+void RenderableBuilder_globalBlendOrderEnabled(
+  self.Pointer<TRenderableBuilder> builder,
+  Dart__darwin_size_t primitiveIndex,
+  bool enabled,
+) {
+  final result = _lib._RenderableBuilder_globalBlendOrderEnabled(
+      builder.cast(), primitiveIndex, enabled);
+  return result;
+}
+
+int RenderableBuilder_build(
+  self.Pointer<TRenderableBuilder> builder,
+  self.Pointer<TEngine> engine,
+  DartEntityId entity,
+) {
+  final result =
+      _lib._RenderableBuilder_build(builder.cast(), engine.cast(), entity);
+  return result;
 }
 
 self.Pointer<TSceneAsset> SceneAsset_createGeometry(
@@ -8315,6 +9047,20 @@ final class TFence extends self.Struct {
   }
 }
 
+extension TDebugRegistryExt on Pointer<TDebugRegistry> {
+  TDebugRegistry toDart() {
+    return TDebugRegistry(this);
+  }
+}
+
+final class TDebugRegistry extends self.Struct {
+  TDebugRegistry(super._address);
+
+  static Pointer<TDebugRegistry> stackAlloc() {
+    return Pointer<TDebugRegistry>(_lib._stackAlloc<TDebugRegistry>(0));
+  }
+}
+
 extension TSceneAssetExt on Pointer<TSceneAsset> {
   TSceneAsset toDart() {
     return TSceneAsset(this);
@@ -8344,6 +9090,48 @@ sealed class TPrimitiveType {
 
   /// !< triangle strip
   static const PRIMITIVETYPE_TRIANGLE_STRIP = 5;
+}
+
+extension TRenderableBuilderExt on Pointer<TRenderableBuilder> {
+  TRenderableBuilder toDart() {
+    return TRenderableBuilder(this);
+  }
+}
+
+final class TRenderableBuilder extends self.Struct {
+  TRenderableBuilder(super._address);
+
+  static Pointer<TRenderableBuilder> stackAlloc() {
+    return Pointer<TRenderableBuilder>(_lib._stackAlloc<TRenderableBuilder>(0));
+  }
+}
+
+extension TVertexBufferExt on Pointer<TVertexBuffer> {
+  TVertexBuffer toDart() {
+    return TVertexBuffer(this);
+  }
+}
+
+final class TVertexBuffer extends self.Struct {
+  TVertexBuffer(super._address);
+
+  static Pointer<TVertexBuffer> stackAlloc() {
+    return Pointer<TVertexBuffer>(_lib._stackAlloc<TVertexBuffer>(0));
+  }
+}
+
+extension TIndexBufferExt on Pointer<TIndexBuffer> {
+  TIndexBuffer toDart() {
+    return TIndexBuffer(this);
+  }
+}
+
+final class TIndexBuffer extends self.Struct {
+  TIndexBuffer(super._address);
+
+  static Pointer<TIndexBuffer> stackAlloc() {
+    return Pointer<TIndexBuffer>(_lib._stackAlloc<TIndexBuffer>(0));
+  }
 }
 
 const int __bool_true_false_are_defined = 1;

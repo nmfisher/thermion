@@ -1,4 +1,3 @@
-import 'dart:ffi' as ffi;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
 import '../../../bindings/bindings.dart' as bindings;
@@ -9,15 +8,15 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// This class wraps the native Filament TransformManager and provides
 /// a type-safe Dart API for managing transform components.
 class FFITransformManager
-    extends TransformManager<ffi.Pointer<bindings.TTransformManager>> {
+    extends TransformManager<bindings.Pointer<bindings.TTransformManager>> {
 
-  final ffi.Pointer<bindings.TTransformManager> transformManager;
+  final bindings.Pointer<bindings.TTransformManager> transformManager;
   final FFIFilamentApp app;
 
   FFITransformManager(this.transformManager, this.app);
 
   @override
-  ffi.Pointer<bindings.TTransformManager> getNativeHandle() => transformManager;
+  bindings.Pointer<bindings.TTransformManager> getNativeHandle() => transformManager;
 
   // ============================================================================
   // Component queries
@@ -100,7 +99,7 @@ class FFITransformManager
   @override
   bool transformToUnitCube(ThermionEntity entity, Aabb3 boundingBox) {
     // Convert Aabb3 to C struct format
-    final cAabb = ffi.Struct.create<bindings.Aabb3>();
+    final cAabb = bindings.Struct.create<bindings.Aabb3>();
 
     final center = Vector3.zero();
     final halfExtents = Vector3.zero();
