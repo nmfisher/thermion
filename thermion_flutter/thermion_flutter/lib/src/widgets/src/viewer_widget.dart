@@ -107,7 +107,6 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     super.initState();
     ThermionFlutterPlugin.createViewer().then((viewer) async {
       this.viewer = viewer;
-      print("CREATED VIEWER");
       await _configure();
       setState(() {});
     });
@@ -220,15 +219,11 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       viewer: viewer!,
       showFpsCounter: widget.showFpsCounter,
     );
-    print("created thermoin widget");
 
     _setViewportWidget();
-    print("CONFIG COMPLETE");
 
     await viewer!.setRendering(true);
-    print("set rendeirng true");
     widget.onViewerAvailable?.call(viewer!);
-    print("CALLED");
     setState(() {});
   }
 
