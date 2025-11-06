@@ -1,29 +1,47 @@
 import 'dart:ui' as ui;
 import 'dart:ui_web' as ui_web;
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide View;
 import 'package:logging/logging.dart';
-import 'package:thermion_flutter/src/options.dart';
-import 'package:thermion_flutter/thermion_flutter.dart';
+import 'package:thermion_flutter/thermion_flutter.dart' hide BlendMode;
 import 'package:web/web.dart' as web;
+import '../../platform/platform.dart';
 import 'resize_observer.dart';
 
-class ThermionWidgetWeb extends StatefulWidget {
-  final ThermionFlutterWebOptions options;
+class ThermionWidgetInternal extends StatefulWidget {
+  ///
   final ThermionViewer viewer;
 
-  const ThermionWidgetWeb(
-      {super.key,
-      this.options = const ThermionFlutterWebOptions(),
-      required this.viewer});
+  ///
+  final Widget? initial;
+
+  /// A callback that will be invoked whenever this widget (and the underlying texture is resized).
+  final Future Function(Size size, View view, double pixelRatio)? onResize;
+
+  /// When true, an FPS counter will be displayed at the top right of the widget
+  final bool showFpsCounter;
+
+  const ThermionWidgetInternal({
+    super.key,
+    required this.viewer,
+    this.initial,
+    this.onResize,
+    this.showFpsCounter = false,
+  });
 
   @override
   State<StatefulWidget> createState() => _ThermionWidgetWebState();
 }
 
-class _ThermionWidgetWebState extends State<ThermionWidgetWeb> {
+class _ThermionWidgetWebState extends State<ThermionWidgetInternal> {
+
+  late final ThermionFlutterPluginImpl plugin;
+
+  @override
   void initState() {
     super.initState();
-    if (!widget.options.importCanvasAsWidget) {
+
+    plugin = ThermionFlutterPlugin.instance as ThermionFlutterPluginImpl;
+    if (!ThermionFlutterPlugin.instance.options.webOptions.importCanvasAsWidget) {
       _requestFrame();
     }
   }
@@ -54,21 +72,39 @@ class _ThermionWidgetWebState extends State<ThermionWidgetWeb> {
   void _resize(Size oldSize, Size newSize) async {
     var width = newSize.width.toInt();
     var height = newSize.height.toInt();
-    ThermionFlutterWebPlugin.instance
-        .resizeCanvas(newSize.width, newSize.height);
+    plugin.resizeCanvas(newSize.width, newSize.height);
     await widget.viewer.setViewport(width, height);
   }
 
   @override
   Widget build(BuildContext context) {
+    print("WEB");
+
     return ResizeObserver(
         onResized: _resize,
-        child: widget.options.importCanvasAsWidget
+        child: ThermionFlutterPlugin.instance.options.webOptions.importCanvasAsWidget
             ? _ImageCopyingWidget(viewer: widget.viewer)
             : SizedBox.expand(
-                child: Container(color: const Color(0x00000000))));
+                child: CustomPaint(painter: TransparencyPainter())));
   }
 }
+
+
+class TransparencyPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()
+        ..blendMode = BlendMode.clear
+        ..color = const Color(0x00000000),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 
 class _PlatformView extends StatefulWidget {
   final ThermionViewer viewer;
@@ -79,6 +115,7 @@ class _PlatformView extends StatefulWidget {
 }
 
 class _PlatformViewState extends State<_PlatformView> {
+  @override
   void initState() {
     super.initState();
     ui_web.platformViewRegistry.registerViewFactory(

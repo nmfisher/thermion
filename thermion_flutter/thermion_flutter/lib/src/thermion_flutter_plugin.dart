@@ -17,15 +17,11 @@ abstract class ThermionFlutterPlugin {
   }
 
   late ThermionFlutterOptions _options;
+
   ThermionFlutterOptions get options => _options;
 
   void setOptions(ThermionFlutterOptions options) {
     _options = options;
-  }
-
-  ThermionFlutterPlugin(
-      {ThermionFlutterOptions options = const ThermionFlutterOptions()}) {
-    setOptions(options);
   }
 
   Future<SwapChain> initialize();

@@ -107,6 +107,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     super.initState();
     ThermionFlutterPlugin.createViewer().then((viewer) async {
       this.viewer = viewer;
+      print("CREATED VIEWER");
       await _configure();
       setState(() {});
     });
@@ -120,15 +121,32 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       setState(() {});
     }
 
-    if (oldWidget.initialCameraPosition != widget.initialCameraPosition ||
+    if (oldWidget.postProcessing != widget.postProcessing) {
+      viewer!.setPostProcessing(widget.postProcessing);
+    } else if (oldWidget.skyboxPath != widget.skyboxPath) {
+      if (widget.skyboxPath == null) {
+        viewer!.removeSkybox();
+      } else {
+        viewer!.loadSkybox(widget.skyboxPath!);
+      }
+    } else if (oldWidget.iblPath != widget.iblPath) {
+      if (widget.iblPath == null) {
+        viewer!.removeIbl(destroy: true);
+      } else {
+        viewer!.loadIbl(widget.iblPath!);
+      }
+    } else if (oldWidget.background != widget.background) {
+      viewer!.setBackgroundColor(
+          widget.background?.r ?? 0,
+          widget.background?.g ?? 0,
+          widget.background?.b ?? 0,
+          widget.background?.a ?? 0);
+    } else if (oldWidget.initialCameraPosition !=
+            widget.initialCameraPosition ||
         oldWidget.showFpsCounter != widget.showFpsCounter ||
         oldWidget.assetPath != widget.assetPath ||
-        oldWidget.skyboxPath != widget.skyboxPath ||
-        oldWidget.iblPath != widget.iblPath ||
         oldWidget.directLight != widget.directLight ||
         oldWidget.transformToUnitCube != widget.transformToUnitCube ||
-        oldWidget.postProcessing != widget.postProcessing ||
-        oldWidget.background != widget.background ||
         oldWidget.destroyEngineOnUnload != widget.destroyEngineOnUnload) {
       throw UnsupportedError(
           "Only manipulatorType can be changed at runtime. To change any other properties, create a new widget.");
@@ -161,7 +179,9 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   Future _configure() async {
     if (widget.assetPath != null) {
       asset = await viewer!.loadGltf(widget.assetPath!);
+
       await asset!.setCastShadows(true);
+
       await viewer!.view.setShadowsEnabled(true);
     }
 
@@ -182,11 +202,13 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     await camera.lookAt(widget.initialCameraPosition);
 
-    await viewer!.setRendering(true);
-
     if (widget.background != null) {
-      await viewer!.setBackgroundColor(widget.background!.r,
-          widget.background!.g, widget.background!.b, widget.background!.a);
+      if (widget.skyboxPath != null) {
+        print("Specify skyboxPath or background, not both");
+      } else {
+        await viewer!.setBackgroundColor(widget.background!.r,
+            widget.background!.g, widget.background!.b, widget.background!.a);
+      }
     }
 
     if (widget.directLight != null) {
@@ -198,10 +220,16 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       viewer: viewer!,
       showFpsCounter: widget.showFpsCounter,
     );
+    print("created thermoin widget");
 
     _setViewportWidget();
+    print("CONFIG COMPLETE");
 
+    await viewer!.setRendering(true);
+    print("set rendeirng true");
     widget.onViewerAvailable?.call(viewer!);
+    print("CALLED");
+    setState(() {});
   }
 
   @override

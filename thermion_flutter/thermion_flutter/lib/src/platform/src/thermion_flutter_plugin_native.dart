@@ -61,8 +61,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
 
     late Backend backend;
-    if (options.backend != null) {
-      switch (options.backend) {
+    if (options.nativeOptions.backend != null) {
+      switch (options.nativeOptions.backend) {
         case Backend.VULKAN:
           if (!Platform.isWindows) {
             throw Exception("Vulkan only supported on Windows");
@@ -78,7 +78,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         default:
           throw Exception("Unsupported backend");
       }
-      backend = options.backend!;
+      backend = options.nativeOptions.backend!;
     } else {
       if (Platform.isWindows) {
         backend = Backend.VULKAN;
@@ -182,8 +182,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
         },
-        textureFormat: TextureFormat.RGBA32F,
-        // options.renderTargetColorTextureFormat,
+        textureFormat: options.nativeOptions.renderTargetColorTextureFormat,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
       final depth = await FilamentApp.instance!.createTexture(
@@ -195,8 +194,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
           TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT
         },
-        textureFormat: TextureFormat.DEPTH32F,
-        //options.renderTargetDepthTextureFormat,
+        textureFormat: options.nativeOptions.renderTargetDepthTextureFormat,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
 

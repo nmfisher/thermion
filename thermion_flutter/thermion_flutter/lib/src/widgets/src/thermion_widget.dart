@@ -1,8 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide View;
-import 'package:thermion_flutter/src/options.dart';
-import 'package:thermion_flutter/src/widgets/src/thermion_texture_widget.dart';
-import 'package:thermion_flutter/src/widgets/src/thermion_widget_web.dart';
+import 'thermion_widget_internal.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
@@ -19,7 +16,6 @@ Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
 }
 
 class ThermionWidget extends StatefulWidget {
-
   /// The viewer whose content will be rendered into this widget.
   ///
   final ThermionViewer viewer;
@@ -40,15 +36,13 @@ class ThermionWidget extends StatefulWidget {
   ///
   final Future Function(Size size, View view, double pixelRatio)? onResize;
 
-  ///
   /// If true, add an overlay showing the FPS on top of the rendered content.
-  ///
   final bool showFpsCounter;
 
-  ///
   /// The content to render before the texture widget is available.
-  /// The default is a solid red Container, intentionally chosen to make it clear that there will be at least one frame where the Texture widget is not being rendered.
-  ///
+  /// The default is a solid red Container. This is intentionally chosen to
+  /// make it clear that there will be at least one frame
+  /// where the Texture widget is not being rendered.
   final Widget? initial;
 
   const ThermionWidget(
@@ -66,14 +60,7 @@ class ThermionWidget extends StatefulWidget {
 class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
-      var options = ThermionFlutterPlugin.instance.options as ThermionFlutterWebOptions;
-      return ThermionWidgetWeb(
-          viewer: widget.viewer,
-          options: options);
-    }
-
-    return ThermionTextureWidget(
+    return ThermionWidgetInternal(
         key: ObjectKey(widget.viewer.view),
         initial: widget.initial,
         viewer: widget.viewer,

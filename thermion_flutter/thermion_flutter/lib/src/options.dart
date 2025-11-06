@@ -2,6 +2,17 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 class ThermionFlutterOptions {
   final String? uberarchivePath;
+
+  final WebOptions webOptions;
+  final NativeOptions nativeOptions;
+
+  const ThermionFlutterOptions(
+      {this.webOptions = const WebOptions(),
+      this.nativeOptions = const NativeOptions(),
+      this.uberarchivePath});
+}
+
+class NativeOptions {
   final Backend? backend;
 
   /// The format to use for the default render target color attachment.
@@ -14,23 +25,19 @@ class ThermionFlutterOptions {
   ///
   final TextureFormat renderTargetDepthTextureFormat;
 
-  const ThermionFlutterOptions(
-      {this.uberarchivePath = null,
-      this.backend = null,
+  const NativeOptions(
+      {this.backend,
       this.renderTargetColorTextureFormat = TextureFormat.RGBA32F,
       this.renderTargetDepthTextureFormat = TextureFormat.DEPTH24_STENCIL8});
 }
 
-class ThermionFlutterWebOptions extends ThermionFlutterOptions {
+class WebOptions {
   final bool createCanvas;
   final bool importCanvasAsWidget;
   final String jsPath;
 
-  const ThermionFlutterWebOptions(
+  const WebOptions(
       {this.importCanvasAsWidget = false,
       this.createCanvas = true,
-      this.jsPath = "./thermion_dart.js",
-
-      String? uberarchivePath})
-      : super(uberarchivePath: uberarchivePath);
+      this.jsPath = "./thermion_dart.js"});
 }

@@ -6,7 +6,7 @@ import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.da
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
-class ThermionTextureWidget extends StatefulWidget {
+class ThermionWidgetInternal extends StatefulWidget {
   ///
   final ThermionViewer viewer;
 
@@ -19,7 +19,7 @@ class ThermionTextureWidget extends StatefulWidget {
   /// When true, an FPS counter will be displayed at the top right of the widget
   final bool showFpsCounter;
 
-  const ThermionTextureWidget({
+  const ThermionWidgetInternal({
     super.key,
     required this.viewer,
     this.initial,
@@ -33,7 +33,7 @@ class ThermionTextureWidget extends StatefulWidget {
   }
 }
 
-class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
+class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
   PlatformTextureDescriptor? _texture;
 
   static final _views = <View>[];
@@ -247,6 +247,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
   @override
   Widget build(BuildContext context) {
+    print("NATIVE");
     if (_texture == null) {
       return widget.initial ?? Container(color: Colors.red);
     }
