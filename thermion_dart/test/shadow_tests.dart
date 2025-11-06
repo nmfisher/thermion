@@ -8,49 +8,30 @@ void main() async {
   await testHelper.setup();
 
   group("shadow tests", () {
-    test('viewer setShadowsEnabled', () async {
+    test('ThermionViewer setShadowsEnabled', () async {
       final builder = ViewerBuilder(testHelper)
           .setBackgroundColor(kRed)
-          .setPostProcessing(true)
+          .setPostProcessing(false)
+          .setViewportDimensions(800, 600)
           .setRenderTargetEnabled(true)
           .setShadowType(ShadowType.PCF)
           .addSun(
-              intensity: 50000,
+              intensity: 110000,
               castShadows: true,
-              direction: Vector3(1, -0.5, 0).normalized())
+              direction: Vector3(0.7, -1, -0.8).normalized(),
+              sunAngularRadius: 1.9)
           .addCube()
           .addPlane(receiveShadows: true, castShadows: true);
 
-      await builder.execute((viewer, assets) async {
-        final plane = assets[0]; // The plane is the first asset
-
-        expect(await plane.isCastShadowsEnabled(), true);
-        expect(await plane.isReceiveShadowsEnabled(), true);
-
-        await viewer.setShadowsEnabled(true);
-        await testHelper.capture(viewer.view, "shadows_enabled");
-
-        await viewer.setShadowsEnabled(false);
-        await testHelper.capture(viewer.view, "shadows_disabled");
-      });
-    });
-
-    test('viewer setShadowsEnabled with circular camera movement', () async {
-      final builder = ViewerBuilder(testHelper)
-          .setBackgroundColor(kRed)
-          .setPostProcessing(true)
-          .setRenderTargetEnabled(false)
-          .setShadowType(ShadowType.PCF)
-          .addSun(
-              intensity: 50000,
-              castShadows: true,
-              direction: Vector3(1, -0.5, 0).normalized())
-          .addCube()
-          .addPlane(receiveShadows: true, castShadows: true);
 
       await builder.execute((viewer, assets) async {
+        await viewer.loadGltf(
+            "file:///Users/nickfisher/Documents/mixworld/client/flutter/assets/homeemesh.glb");
         final plane = assets[0]; // The plane is the first asset
-        final camera = await viewer.getActiveCamera();
+        await plane.setTransform(Matrix4.compose(Vector3.zero(),
+            Quaternion.axisAngle(Vector3(0, 0, 1), -pi / 16), Vector3.all(1)));
+
+        final camera = await viewer.view.getCamera();
 
         expect(await plane.isCastShadowsEnabled(), true);
         expect(await plane.isReceiveShadowsEnabled(), true);
@@ -67,20 +48,28 @@ void main() async {
           final double angle = (i * 2 * pi) / numPositions;
 
           // Calculate camera position on circle
-          final double x = sin(angle) * radius;
-          final double z = cos(angle) * radius;
+          final double x = 0;
+          //sin(angle) * radius;
+          final double z = radius * (i + 2);
+          //cos(angle) * radius;
           final Vector3 cameraPosition = Vector3(x, cameraHeight, z);
 
           // Move camera to this position, looking at origin
           await camera.lookAt(cameraPosition, focus: Vector3.zero());
 
           // Capture the view from this position
-          await testHelper.capture(viewer.view, "shadows_circular_pos_$i");
+          await testHelper.capture(viewer.view, "shadows_enabled_$i");
         }
+
+        await viewer.setShadowsEnabled(false);
+
+        await testHelper.capture(viewer.view, "shadows_disabled");
       });
     });
 
-    test('viewer setShadowsEnabled with circular camera movement and changing sun direction', () async {
+    test(
+        'viewer setShadowsEnabled with circular camera movement and changing sun direction',
+        () async {
       final builder = ViewerBuilder(testHelper)
           .setBackgroundColor(kRed)
           .setPostProcessing(true)
@@ -252,17 +241,20 @@ void main() async {
               receiveShadows: true,
               castShadows: false,
               color: null // Use default ubershader material
-          );
+              );
 
       await builder.execute((viewer, assets) async {
         // Test different soft shadow options and capture each
-        await viewer.view.setSoftShadowOptions(0.1, 0.1);
+        await viewer.view.setSoftShadowOptions(
+            SoftShadowOptions(penumbraScale: 0.1, penumbraRatioScale: 0.1));
         await testHelper.capture(viewer.view, "soft_shadow_options_0.1");
 
-        await viewer.view.setSoftShadowOptions(0.5, 0.5);
+        await viewer.view.setSoftShadowOptions(
+            SoftShadowOptions(penumbraScale: 0.5, penumbraRatioScale: 0.5));
         await testHelper.capture(viewer.view, "soft_shadow_options_0.5");
 
-        await viewer.view.setSoftShadowOptions(1.0, 1.0);
+        await viewer.view.setSoftShadowOptions(
+            SoftShadowOptions(penumbraScale: 1, penumbraRatioScale: 1));
         await testHelper.capture(viewer.view, "soft_shadow_options_1.0");
       });
     });
@@ -283,7 +275,7 @@ void main() async {
               receiveShadows: true,
               castShadows: false,
               color: null // Use default ubershader material
-          );
+              );
 
       await builder.execute((viewer, assets) async {
         // Capture with normal winding

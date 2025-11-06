@@ -258,6 +258,7 @@ void main() async {
       final shadowOptions = ShadowOptions(
         mapSize: 2048,
         shadowCascades: 2,
+        cascadeSplitPositions: [0.1, 0.9],
         constantBias: 0.002,
         normalBias: 2.0,
         stable: true,
@@ -268,6 +269,7 @@ void main() async {
       final retrievedOptions = lightManager.getShadowOptions(sunLight);
       expect(retrievedOptions.mapSize, equals(2048));
       expect(retrievedOptions.shadowCascades, equals(2));
+      expect(retrievedOptions.cascadeSplitPositions.length, equals(2));
       expect(retrievedOptions.constantBias, closeTo(0.002, 0.0001));
       expect(retrievedOptions.normalBias, closeTo(2.0, 0.0001));
       expect(retrievedOptions.stable, isTrue);
@@ -368,6 +370,161 @@ void main() async {
 
       await scene.removeEntity(spotLight);
       lightManager.destroyLight(spotLight);
+    });
+  });
+
+  test('LightManager ShadowCascades utility methods', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+
+      // Test computeUniformSplits
+      test('computeUniformSplits returns correct split positions', () {
+        final uniformSplits2 = lightManager.computeUniformSplits(2);
+        expect(uniformSplits2.length, equals(1));
+        expect(uniformSplits2[0], closeTo(0.5, 0.001));
+
+        final uniformSplits3 = lightManager.computeUniformSplits(3);
+        expect(uniformSplits3.length, equals(2));
+        expect(uniformSplits3[0], closeTo(0.333, 0.001));
+        expect(uniformSplits3[1], closeTo(0.667, 0.001));
+
+        final uniformSplits4 = lightManager.computeUniformSplits(4);
+        expect(uniformSplits4.length, equals(3));
+        expect(uniformSplits4[0], closeTo(0.25, 0.001));
+        expect(uniformSplits4[1], closeTo(0.5, 0.001));
+        expect(uniformSplits4[2], closeTo(0.75, 0.001));
+      });
+
+      test('computeUniformSplits handles invalid input', () {
+        expect(() => lightManager.computeUniformSplits(1), throwsArgumentError);
+        expect(() => lightManager.computeUniformSplits(5), throwsArgumentError);
+      });
+
+      // Test computeLogSplits
+      test('computeLogSplits returns correct split positions', () {
+        final logSplits2 = lightManager.computeLogSplits(2, 0.1, 100.0);
+        expect(logSplits2.length, equals(1));
+        expect(logSplits2[0], greaterThan(0.0));
+        expect(logSplits2[0], lessThan(1.0));
+
+        final logSplits3 = lightManager.computeLogSplits(3, 0.1, 100.0);
+        expect(logSplits3.length, equals(2));
+        expect(logSplits3[0], greaterThan(0.0));
+        expect(logSplits3[0], lessThan(logSplits3[1]));
+        expect(logSplits3[1], greaterThan(0.0));
+        expect(logSplits3[1], lessThan(1.0));
+
+        final logSplits4 = lightManager.computeLogSplits(4, 0.1, 100.0);
+        expect(logSplits4.length, equals(3));
+        for (int i = 0; i < logSplits4.length; i++) {
+          expect(logSplits4[i], greaterThan(0.0));
+          expect(logSplits4[i], lessThan(1.0));
+          if (i > 0) {
+            expect(logSplits4[i], greaterThan(logSplits4[i - 1]));
+          }
+        }
+      });
+
+      test('computeLogSplits handles invalid input', () {
+        expect(() => lightManager.computeLogSplits(1, 0.1, 100.0), throwsArgumentError);
+        expect(() => lightManager.computeLogSplits(5, 0.1, 100.0), throwsArgumentError);
+      });
+
+      // Test computePracticalSplits
+      test('computePracticalSplits returns correct split positions', () {
+        final practicalSplits2 = lightManager.computePracticalSplits(2, 0.1, 100.0, 0.5);
+        expect(practicalSplits2.length, equals(1));
+        expect(practicalSplits2[0], greaterThan(0.0));
+        expect(practicalSplits2[0], lessThan(1.0));
+
+        final practicalSplits3 = lightManager.computePracticalSplits(3, 0.1, 100.0, 0.5);
+        expect(practicalSplits3.length, equals(2));
+        for (int i = 0; i < practicalSplits3.length; i++) {
+          expect(practicalSplits3[i], greaterThan(0.0));
+          expect(practicalSplits3[i], lessThan(1.0));
+          if (i > 0) {
+            expect(practicalSplits3[i], greaterThan(practicalSplits3[i - 1]));
+          }
+        }
+
+        final practicalSplits4 = lightManager.computePracticalSplits(4, 0.1, 100.0, 0.5);
+        expect(practicalSplits4.length, equals(3));
+        for (int i = 0; i < practicalSplits4.length; i++) {
+          expect(practicalSplits4[i], greaterThan(0.0));
+          expect(practicalSplits4[i], lessThan(1.0));
+          if (i > 0) {
+            expect(practicalSplits4[i], greaterThan(practicalSplits4[i - 1]));
+          }
+        }
+      });
+
+      test('computePracticalSplits handles lambda values', () {
+        final near = 0.1;
+        final far = 100.0;
+
+        // Test lambda = 0 (should be closer to logarithmic)
+        final practicalSplits0 = lightManager.computePracticalSplits(3, near, far, 0.0);
+
+        // Test lambda = 1 (should be closer to uniform)
+        final practicalSplits1 = lightManager.computePracticalSplits(3, near, far, 1.0);
+
+        // Test lambda = 0.5 (should be between uniform and logarithmic)
+        final practicalSplits05 = lightManager.computePracticalSplits(3, near, far, 0.5);
+
+        // All should be valid splits
+        for (final splits in [practicalSplits0, practicalSplits1, practicalSplits05]) {
+          expect(splits.length, equals(2));
+          for (int i = 0; i < splits.length; i++) {
+            expect(splits[i], greaterThan(0.0));
+            expect(splits[i], lessThan(1.0));
+            if (i > 0) {
+              expect(splits[i], greaterThan(splits[i - 1]));
+            }
+          }
+        }
+      });
+
+      test('computePracticalSplits handles invalid input', () {
+        expect(() => lightManager.computePracticalSplits(1, 0.1, 100.0, 0.5), throwsArgumentError);
+        expect(() => lightManager.computePracticalSplits(5, 0.1, 100.0, 0.5), throwsArgumentError);
+        expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, -0.1), throwsArgumentError);
+        expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, 1.1), throwsArgumentError);
+      });
+
+      // Test that different methods produce different results
+      test('ShadowCascades methods produce different results', () {
+        final cascades = 3;
+        final near = 0.1;
+        final far = 100.0;
+
+        final uniformSplits = lightManager.computeUniformSplits(cascades);
+        final logSplits = lightManager.computeLogSplits(cascades, near, far);
+        final practicalSplits = lightManager.computePracticalSplits(cascades, near, far, 0.5);
+
+        expect(uniformSplits.length, equals(2));
+        expect(logSplits.length, equals(2));
+        expect(practicalSplits.length, equals(2));
+
+        // Results should be different (except possibly coincidentally)
+        bool allEqual = true;
+        for (int i = 0; i < uniformSplits.length; i++) {
+          if ((uniformSplits[i] - logSplits[i]).abs() > 0.001 ||
+              (uniformSplits[i] - practicalSplits[i]).abs() > 0.001) {
+            allEqual = false;
+            break;
+          }
+        }
+        expect(allEqual, isFalse);
+      });
     });
   });
 }

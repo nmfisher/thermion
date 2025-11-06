@@ -140,4 +140,29 @@ abstract class LightManager<T> extends NativeHandle<T> {
 
   /// Returns whether a light channel is enabled.
   bool getLightChannel(ThermionEntity light, int channel);
+
+  // ============================================================================
+  // Shadow cascades utilities
+  // ============================================================================
+
+  /// Computes uniform split positions for shadow cascades.
+  /// [cascades] is the number of shadow cascades (at most 4).
+  /// Returns a list of cascade split positions (length will be cascades-1).
+  List<double> computeUniformSplits(int cascades);
+
+  /// Computes logarithmic split positions for shadow cascades.
+  /// [cascades] is the number of shadow cascades (at most 4).
+  /// [near] is the camera near plane.
+  /// [far] is the camera far plane.
+  /// Returns a list of cascade split positions (length will be cascades-1).
+  List<double> computeLogSplits(int cascades, double near, double far);
+
+  /// Computes practical split positions for shadow cascades.
+  /// [cascades] is the number of shadow cascades (at most 4).
+  /// [near] is the camera near plane.
+  /// [far] is the camera far plane.
+  /// [lambda] is a value in the range [0, 1] that interpolates between log and uniform split schemes.
+  /// Start with a lambda value of 0.5f and adjust for your scene.
+  /// Returns a list of cascade split positions (length will be cascades-1).
+  List<double> computePracticalSplits(int cascades, double near, double far, double lambda);
 }
