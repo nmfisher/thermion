@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -192,9 +193,9 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
             'cascadeSplitPositions must have at least $requiredSplits elements for ${tShadowOptions.shadowCascades} cascades');
       }
       // Copy the required split positions, ensuring we don't exceed array bounds
-      for (int i = 0; i < requiredSplits && i < 3; i++) {
-        // tShadowOptions.cascadeSplitPositions [i] =
-        //     options.cascadeSplitPositions[i];
+      for (int i = 0; i < requiredSplits; i++) {
+        tShadowOptions.cascadeSplitPositions[i] =
+            options.cascadeSplitPositions[i];
       }
     }
     tShadowOptions.constantBias = options.constantBias;
@@ -268,6 +269,60 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   @override
   bool getLightChannel(ThermionEntity light, int channel) {
     return LightManager_getLightChannel(lightManager, light, channel);
+  }
+
+  @override
+  List<double> computeUniformSplits(int cascades) {
+    if (cascades < 2 || cascades > 4) {
+      throw ArgumentError("Cascades must be between 2 and 4");
+    }
+
+    final requiredSplits = cascades - 1;
+
+    // Allocate native memory for the float array
+    final pointer = makeFloat32List(requiredSplits);
+
+    // Call the native method
+    LightManager_computeUniformSplits(pointer.address, cascades);
+    return pointer;
+  }
+
+  @override
+  List<double> computeLogSplits(int cascades, double near, double far) {
+    if (cascades < 2 || cascades > 4) {
+      throw ArgumentError("Cascades must be between 2 and 4");
+    }
+
+    final requiredSplits = cascades - 1;
+
+    // Allocate native memory for the float array
+    final pointer = makeFloat32List(requiredSplits);
+
+    // Call the native method
+    LightManager_computeLogSplits(pointer.address, cascades, near, far);
+    return pointer;
+  }
+
+  @override
+  List<double> computePracticalSplits(int cascades,
+      double near, double far, double lambda) {
+    if (cascades < 2 || cascades > 4) {
+      throw ArgumentError("Cascades must be between 2 and 4");
+    }
+
+    if (lambda < 0.0 || lambda > 1.0) {
+      throw ArgumentError("Lambda must be between 0.0 and 1.0");
+    }
+
+    final requiredSplits = cascades - 1;
+
+    // Allocate native memory for the float array
+    final pointer = makeFloat32List(requiredSplits);
+
+    // Call the native method
+    LightManager_computePracticalSplits(
+        pointer.address, cascades, near, far, lambda);
+    return pointer;
   }
 
   int _convertLightType(LightType type) {

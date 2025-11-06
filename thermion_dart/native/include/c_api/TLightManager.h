@@ -95,6 +95,11 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void LightManager_setLightChannel(TLightManager *tLightManager, EntityId entity, unsigned int channel, bool enable);
 	EMSCRIPTEN_KEEPALIVE bool LightManager_getLightChannel(TLightManager *tLightManager, EntityId entity, unsigned int channel);
 
+	// Shadow cascades utilities
+	EMSCRIPTEN_KEEPALIVE void LightManager_computeUniformSplits(float* splitPositions, uint8_t cascades);
+	EMSCRIPTEN_KEEPALIVE void LightManager_computeLogSplits(float* splitPositions, uint8_t cascades, float near, float far);
+	EMSCRIPTEN_KEEPALIVE void LightManager_computePracticalSplits(float* splitPositions, uint8_t cascades, float near, float far, float lambda);
+
 #ifdef __cplusplus
 }
 #endif

@@ -391,4 +391,17 @@ EMSCRIPTEN_KEEPALIVE bool LightManager_getLightChannel(TLightManager *tLightMana
     return false;
 }
 
+// Shadow cascades utilities
+EMSCRIPTEN_KEEPALIVE void LightManager_computeUniformSplits(float* splitPositions, uint8_t cascades) {
+    filament::LightManager::ShadowCascades::computeUniformSplits(splitPositions, cascades);
+}
+
+EMSCRIPTEN_KEEPALIVE void LightManager_computeLogSplits(float* splitPositions, uint8_t cascades, float near, float far) {
+    filament::LightManager::ShadowCascades::computeLogSplits(splitPositions, cascades, near, far);
+}
+
+EMSCRIPTEN_KEEPALIVE void LightManager_computePracticalSplits(float* splitPositions, uint8_t cascades, float near, float far, float lambda) {
+    filament::LightManager::ShadowCascades::computePracticalSplits(splitPositions, cascades, near, far, lambda);
+}
+
 } // extern "C"
