@@ -1,4 +1,4 @@
-import 'dart:ffi' as ffi;
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart' hide NativeLibrary;
 import 'package:thermion_dart/thermion_dart.dart' as t;
 
@@ -30,7 +30,11 @@ class MovementConfig {
 /// providing a type-safe API for setting movement targets and managing
 /// the executor lifecycle.
 abstract class MovementIntentExecutor {
-  final ffi.Pointer<bindings.TMovementIntentExecutor> _pointer;
+  
+  late final _logger = Logger(this.runtimeType.toString());
+  
+  final Pointer<bindings.TMovementIntentExecutor> _pointer;
+
   bool _disposed = false;
 
   /// Creates a MovementIntentExecutor wrapping the given native pointer.
@@ -41,13 +45,12 @@ abstract class MovementIntentExecutor {
   /// Gets the underlying native pointer.
   ///
   /// Throws [StateError] if the executor has been disposed.
-  ffi.Pointer<bindings.TMovementIntentExecutor> get pointer {
+  Pointer<bindings.TMovementIntentExecutor> get pointer {
     if (_disposed) {
       throw StateError('MovementIntentExecutor has been disposed');
     }
     return _pointer;
   }
-
 
   /// Disposes the executor and releases native resources.
   ///
@@ -59,14 +62,12 @@ abstract class MovementIntentExecutor {
       bindings.MovementIntentExecutor_destroy(_pointer);
       _disposed = true;
     } catch (e) {
-      throw InputHandlerManagerException('Failed to dispose executor: $e');
+      throw Exception('Failed to dispose executor: $e');
     }
   }
 
   /// Checks if the executor has been disposed.
   bool get isDisposed => _disposed;
-
-
 }
 
 /// Singleton wrapper for Thermion Input Handler system functionality.
@@ -76,23 +77,25 @@ abstract class MovementIntentExecutor {
 ///
 /// Use [InputPipeline.instance] to access the singleton instance.
 class InputPipeline {
+  
   static final InputPipeline _instance = InputPipeline._internal();
 
   static InputPipeline get instance => _instance;
 
+  late final _logger = Logger(this.runtimeType.toString());
+
   InputPipeline._internal();
 
   bool _initialized = false;
-  t.Pointer<ffi.Void>? _engine;
+  t.Pointer<Void>? _engine;
 
   /// Initializes the Thermion Input Handler system with the given engine.
   ///
   /// This must be called before using any other methods.
   /// The [engine] should be a valid Thermion engine pointer.
   ///
-  /// Throws [InputHandlerManagerException] if initialization fails.
-  void initialize(t.Pointer<ffi.Void> engine) {
-
+  /// Throws [Exception] if initialization fails.
+  void initialize(t.Pointer<Void> engine) {
     if (_initialized) {
       throw StateError('InputPipeline is already initialized');
     }
@@ -102,7 +105,7 @@ class InputPipeline {
       bindings.TransformPipeline_setEngine(engine);
       _initialized = true;
     } catch (e) {
-      throw InputHandlerManagerException(
+      throw Exception(
         'Failed to initialize InputPipeline: $e',
       );
     }
@@ -118,21 +121,19 @@ class InputPipeline {
         name.toNativeUtf8().cast(),
       );
     } catch (e) {
-      throw InputHandlerManagerException(
+      throw Exception(
         'Failed to set invert horizontal look for entity: $e',
       );
     }
   }
 
-
   /// Registers a transform executor with the pipeline.
   ///
   /// [executor] - The MovementIntentExecutor to register with the pipeline
   ///
-  /// Throws [InputHandlerManagerException] if registration fails.
+  /// Throws [Exception] if registration fails.
   void registerMovementIntentExecutor(MovementIntentExecutor executor) {
     bindings.Pipeline_registerMovementIntentExecutor(executor.pointer);
-
   }
 
   /// Updates the pipeline manually (fallback when automatic updates don't work).
@@ -142,12 +143,12 @@ class InputPipeline {
   ///
   /// [deltaTime] - The time delta since the last frame (in seconds)
   ///
-  /// Throws [InputHandlerManagerException] if the update fails.
+  /// Throws [Exception] if the update fails.
   void updatePipeline(double deltaTime) {
     try {
       bindings.TransformPipeline_update(deltaTime);
     } catch (e) {
-      throw InputHandlerManagerException('Failed to update pipeline: $e');
+      throw Exception('Failed to update pipeline: $e');
     }
   }
 
@@ -161,21 +162,23 @@ class InputPipeline {
       _initialized = false;
       _engine = null;
     } catch (e) {
-      throw InputHandlerManagerException('Failed to cleanup InputPipeline: $e');
+      _logger.severe(e);
+      _logger.severe(e);
+      rethrow;
     }
   }
 
   /// Gets the engine pointer used for initialization.
   ///
   /// Returns null if the manager is not initialized.
-  t.Pointer<ffi.Void>? get engine => _engine;
+  t.Pointer<Void>? get engine => _engine;
 
   /// Handles input events using the unified InputEvent system.
   ///
   /// Events are global and will be broadcast to all entities with InputHandlerComponent.
   /// [event] - The input event to handle
   ///
-  /// Throws [InputHandlerManagerException] if the manager is not initialized or if the operation fails.
+  /// Throws [Exception] if the manager is not initialized or if the operation fails.
   void onInputEvent(InputEvent event) {
     try {
       switch (event) {
@@ -217,7 +220,7 @@ class InputPipeline {
           break;
       }
     } catch (e) {
-      throw InputHandlerManagerException('Failed to handle input event: $e');
+      throw Exception('Failed to handle input event: $e');
     }
   }
 
@@ -228,16 +231,4 @@ class InputPipeline {
   void dispose() {
     cleanup();
   }
-}
-
-/// Exception thrown by InputPipeline operations.
-class InputHandlerManagerException implements Exception {
-  /// The error message.
-  final String message;
-
-  /// Creates a new InputHandlerManager exception with the given message.
-  const InputHandlerManagerException(this.message);
-
-  @override
-  String toString() => 'InputHandlerManagerException: $message';
 }
