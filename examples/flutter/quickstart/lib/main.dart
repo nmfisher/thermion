@@ -39,8 +39,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     if (kIsWeb) {
-      ThermionFlutterPlatform.instance
-          .setOptions(const ThermionFlutterWebOptions(importCanvasAsWidget: true));
+      ThermionFlutterPlugin.instance.setOptions(const ThermionFlutterOptions(
+          webOptions: WebOptions(importCanvasAsWidget: false)));
     }
   }
 
@@ -49,36 +49,40 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Colors.transparent,
         body: Stack(children: [
-      if (_showViewer)
-        Positioned.fill(
-            child: ViewerWidget(
-          assetPath: "assets/cube.glb",
-          skyboxPath: "assets/default_env_skybox.ktx",
-          iblPath: "assets/default_env_ibl.ktx",
-          transformToUnitCube: true,
-          initialCameraPosition: Vector3(0, 0, 6),
-          background: Colors.blue,
-          manipulatorType: ManipulatorType.ORBIT,
-          onViewerAvailable: (viewer) async {
-            await Future.delayed(const Duration(seconds: 5));
-            await viewer.removeSkybox();
-          },
-          initial: Container(
-            color: Colors.red,
-          ),
-        )),
-      Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _showViewer = !_showViewer;
-                    });
-                  },
-                  child: Text(_showViewer ? "Remove viewer" : "Show viewer"))))
-    ]));
+          if (_showViewer)
+            Positioned.fill(
+                child: ViewerWidget(
+              assetPath: "assets/cube.glb",
+              skyboxPath: "assets/default_env_skybox.ktx",
+              // iblPath: "assets/default_env_ibl.ktx",
+              directLight: DirectLight.sun(
+                  direction: Vector3(0.7, -1, -0.8).normalized()),
+              transformToUnitCube: true,
+              initialCameraPosition: Vector3(0, 0, 6),
+              background: Colors.blue,
+              manipulatorType: ManipulatorType.ORBIT,
+              onViewerAvailable: (viewer) async {
+                await Future.delayed(const Duration(seconds: 5));
+                await viewer.removeSkybox();
+              },
+              initial: Container(
+                color: Colors.red,
+              ),
+            )),
+          Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _showViewer = !_showViewer;
+                        });
+                      },
+                      child:
+                          Text(_showViewer ? "Remove viewer" : "Show viewer"))))
+        ]));
   }
 }
