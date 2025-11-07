@@ -42,7 +42,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   @override
-  Future<SwapChain> initialize({bool destroySwapchain = true}) async {
+  Future<SwapChain?> initialize({bool destroySwapchain = true}) async {
     var driverPlatform;
     Pointer<Void> platformPtr = nullptr;
     var sharedContext;
@@ -123,7 +123,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       _swapChain ??= await FilamentApp.instance!
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
-    return _swapChain!;
+    return _swapChain;
   }
 
   /// Create a rendering surface and binds to the given [View]. This is internal;

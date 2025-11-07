@@ -16,7 +16,7 @@ abstract class ThermionFlutterPlugin {
     return _instance!;
   }
 
-  late ThermionFlutterOptions _options;
+  ThermionFlutterOptions _options = const ThermionFlutterOptions();
 
   ThermionFlutterOptions get options => _options;
 
@@ -24,15 +24,19 @@ abstract class ThermionFlutterPlugin {
     _options = options;
   }
 
-  Future<SwapChain> initialize();
+  Future<SwapChain?> initialize();
 
   static Future<ThermionViewer> createViewer(
       {bool destroySwapchain = true}) async {
     final swapChain = await instance.initialize();
     final viewer = ThermionViewerFFI();
     await viewer.initialized;
-    await FilamentApp.instance!.register(swapChain, viewer.view);
-    await viewer.view.setRenderable(true);
+    if (swapChain != null) {
+      await FilamentApp.instance!.register(swapChain, viewer.view);
+    }
+
+      await viewer.view.setRenderable(true);
+    
     return viewer;
   }
 }
