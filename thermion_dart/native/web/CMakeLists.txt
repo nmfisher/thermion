@@ -62,6 +62,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O1")
 endif()
 
+# Set to "ON" to enable verbose linking 
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+
 add_link_options(${EMCC_CFLAGS} -pthread)
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib") 
@@ -82,154 +85,35 @@ file(GLOB SOURCES
    # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp"
   )
 
-# Add plugin sources if provided
-if(DEFINED PLUGIN_SOURCES)
-  message(STATUS "PLUGIN_SOURCES variable is defined!")
-  message(STATUS "Raw PLUGIN_SOURCES value: ${PLUGIN_SOURCES}")
-  # Plugin sources are now absolute paths, add them directly
-  foreach(plugin_source ${PLUGIN_SOURCES})
-    message(STATUS "Adding plugin source: ${plugin_source}")
-    list(APPEND SOURCES "${plugin_source}")
-  endforeach()
-  message(STATUS "Final SOURCES list now has plugin sources included")
-else()
-  message(STATUS "PLUGIN_SOURCES variable is NOT defined - no standalone plugins will be included")
-endif()
+if(DEFINED EXTERNAL_PROJECTS)
+  message(STATUS "EXTERNAL_PROJECTS variable is defined!")
+  message(STATUS "Raw EXTERNAL_PROJECTS value: ${EXTERNAL_PROJECTS}")
 
-# Process plugin configurations if provided
-if(DEFINED PLUGIN_CONFIGURATIONS AND DEFINED PLUGIN_BASE_DIR)
-  message(STATUS "PLUGIN_CONFIGURATIONS variable is defined!")
-  message(STATUS "Raw PLUGIN_CONFIGURATIONS value: ${PLUGIN_CONFIGURATIONS}")
-  message(STATUS "Plugin base directory: ${PLUGIN_BASE_DIR}")
+  # Process each external project
+  foreach(external_project ${EXTERNAL_PROJECTS})
+    message(STATUS "Processing external project: ${external_project}")
 
-  # Create a variable to collect all plugin sources
-  set(PLUGIN_ALL_SOURCES "")
-  set(PLUGIN_ALL_INCLUDE_DIRS "")
-  set(PLUGIN_ALL_LIBRARIES "")
-  set(PLUGIN_ALL_LIBRARY_DIRS "")
-  set(PLUGIN_ALL_DEFINES "")
+    # Check if the external project file exists
+    if(EXISTS "${external_project}")
+      message(STATUS "Found external project at: ${external_project}")
 
-  # Process each plugin configuration
-  foreach(plugin_config ${PLUGIN_CONFIGURATIONS})
-    message(STATUS "Processing plugin configuration: ${plugin_config}")
+      include("${external_project}")
 
-    # Create the full path to the configuration file
-    set(plugin_config_path "${PLUGIN_BASE_DIR}/${plugin_config}")
-
-    # Check if the configuration file exists
-    if(EXISTS "${plugin_config_path}")
-      message(STATUS "Found plugin configuration at: ${plugin_config_path}")
-
-      # Include the plugin configuration file
-      include("${plugin_config_path}")
-
-      # Process plugin source files (relative to plugin configuration directory)
-      if(DEFINED PLUGIN_SOURCES)
-        set(plugin_dir "${PLUGIN_BASE_DIR}")
-        foreach(plugin_source ${PLUGIN_SOURCES})
-          set(plugin_source_abs "${plugin_dir}/${plugin_source}")
-          if(EXISTS "${plugin_source_abs}")
-            list(APPEND PLUGIN_ALL_SOURCES "${plugin_source_abs}")
-            message(STATUS "Adding plugin source: ${plugin_source_abs}")
-          else()
-            message(WARNING "Plugin source file not found: ${plugin_source_abs}")
-          endif()
-        endforeach()
-      endif()
-
-      # Process plugin include directories (relative to plugin configuration directory)
-      if(DEFINED PLUGIN_INCLUDE_DIRS)
-        set(plugin_dir "${PLUGIN_BASE_DIR}")
-        foreach(plugin_include ${PLUGIN_INCLUDE_DIRS})
-          set(plugin_include_abs "${plugin_dir}/${plugin_include}")
-          if(EXISTS "${plugin_include_abs}")
-            list(APPEND PLUGIN_ALL_INCLUDE_DIRS "${plugin_include_abs}")
-            message(STATUS "Adding plugin include directory: ${plugin_include_abs}")
-          else()
-            message(WARNING "Plugin include directory not found: ${plugin_include_abs}")
-          endif()
-        endforeach()
-      endif()
-
-      # Process plugin library directories (relative to plugin configuration directory)
-      if(DEFINED PLUGIN_LIBRARY_DIRS)
-        set(plugin_dir "${PLUGIN_BASE_DIR}")
-        foreach(plugin_lib_dir ${PLUGIN_LIBRARY_DIRS})
-          set(plugin_lib_dir_abs "${plugin_dir}/${plugin_lib_dir}")
-          if(EXISTS "${plugin_lib_dir_abs}")
-            list(APPEND PLUGIN_ALL_LIBRARY_DIRS "${plugin_lib_dir_abs}")
-            message(STATUS "Adding plugin library directory: ${plugin_lib_dir_abs}")
-          else()
-            message(WARNING "Plugin library directory not found: ${plugin_lib_dir_abs}")
-          endif()
-        endforeach()
-      endif()
-
-      # Collect plugin libraries and defines
-      if(DEFINED PLUGIN_LIBRARIES)
-        list(APPEND PLUGIN_ALL_LIBRARIES ${PLUGIN_LIBRARIES})
-        message(STATUS "Adding plugin libraries: ${PLUGIN_LIBRARIES}")
-      endif()
-
-      if(DEFINED PLUGIN_DEFINES)
-        list(APPEND PLUGIN_ALL_DEFINES ${PLUGIN_DEFINES})
-        message(STATUS "Adding plugin defines: ${PLUGIN_DEFINES}")
-      endif()
-
-      # Handle plugin compile options (e.g., C++ standard requirements)
-      if(DEFINED PLUGIN_COMPILE_OPTIONS)
-        list(APPEND PLUGIN_ALL_COMPILE_OPTIONS ${PLUGIN_COMPILE_OPTIONS})
-        message(STATUS "Adding plugin compile options: ${PLUGIN_COMPILE_OPTIONS}")
-      endif()
-
-      # Clear plugin-specific variables for next iteration
-      unset(PLUGIN_SOURCES)
-      unset(PLUGIN_INCLUDE_DIRS)
-      unset(PLUGIN_LIBRARIES)
-      unset(PLUGIN_LIBRARY_DIRS)
-      unset(PLUGIN_DEFINES)
-      unset(PLUGIN_COMPILE_OPTIONS)
-
+      message(STATUS "Successfully included external project: ${external_project}")
     else()
-      message(WARNING "Plugin configuration file not found: ${plugin_config_path}")
+      message(WARNING "External project file not found: ${external_project}")
     endif()
   endforeach()
 
-  # Add all collected plugin sources to main sources
-  if(PLUGIN_ALL_SOURCES)
-    list(APPEND SOURCES ${PLUGIN_ALL_SOURCES})
-    message(STATUS "Added ${CMAKE_MATCH_COUNT} plugin sources from configurations")
+  if(EXTERNAL_ALL_LIBRARIES)
+    message(STATUS "Total external project libraries: ${EXTERNAL_ALL_LIBRARIES}")
+  else()
+    message(STATUS "No external project libraries found")
   endif()
 
-  # Add plugin include directories
-  if(PLUGIN_ALL_INCLUDE_DIRS)
-    foreach(include_dir ${PLUGIN_ALL_INCLUDE_DIRS})
-      include_directories(${include_dir})
-    endforeach()
-    message(STATUS "Added plugin include directories")
-  endif()
-
-  # Add plugin library directories to link directories
-  if(PLUGIN_ALL_LIBRARY_DIRS)
-    foreach(lib_dir ${PLUGIN_ALL_LIBRARY_DIRS})
-      link_directories(${lib_dir})
-    endforeach()
-    message(STATUS "Added plugin library directories")
-  endif()
-
-  # Add plugin defines
-  if(PLUGIN_ALL_DEFINES)
-    foreach(define ${PLUGIN_ALL_DEFINES})
-      add_compile_definitions(${define})
-    endforeach()
-    message(STATUS "Added plugin compile definitions: ${PLUGIN_ALL_DEFINES}")
-  endif()
-
-  # Store plugin libraries for later linking
-  set(PLUGIN_LIBRARIES ${PLUGIN_ALL_LIBRARIES} CACHE STRING "Plugin libraries")
-
+  message(STATUS "Completed processing external projects")
 else()
-  message(STATUS "PLUGIN_CONFIGURATIONS variable is NOT defined - no configured plugins will be included")
+  message(STATUS "EXTERNAL_PROJECTS variable is NOT defined - no external projects will be included")
 endif()
 
 message(STATUS "Total source files being compiled: ${SOURCES}")
@@ -241,14 +125,6 @@ target_compile_definitions(${MODULE_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_compile_options(${MODULE_NAME} PRIVATE -matomics -mbulk-memory)
 target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)
 
-# Apply plugin-specific compile options
-if(PLUGIN_ALL_COMPILE_OPTIONS)
-  # Apply compile options only to C++ files to avoid conflicts with C files
-  foreach(option ${PLUGIN_ALL_COMPILE_OPTIONS})
-    target_compile_options(${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${option}>)
-  endforeach()
-  message(STATUS "Applied plugin compile options to C++ files: ${PLUGIN_ALL_COMPILE_OPTIONS}")
-endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
@@ -380,22 +256,38 @@ set_property(TARGET png PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE
 set_property(TARGET png PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng.a")
 set_property(TARGET png PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng.a")
 
-target_link_libraries(${MODULE_NAME}  
- gltfio_core 
- filament 
- backend 
- geometry 
- dracodec 
+# Diagnostic: Check if EXTERNAL_ALL_LIBRARIES is visible
+if(DEFINED EXTERNAL_ALL_LIBRARIES)
+  message(STATUS "EXTERNAL_ALL_LIBRARIES is defined at link time: ${EXTERNAL_ALL_LIBRARIES}")
+
+  # Check if the targets actually exist
+  foreach(lib ${EXTERNAL_ALL_LIBRARIES})
+    if(TARGET ${lib})
+      message(STATUS "  Target ${lib} exists")
+    else()
+      message(WARNING "  Target ${lib} does NOT exist!")
+    endif()
+  endforeach()
+else()
+  message(STATUS "EXTERNAL_ALL_LIBRARIES is NOT defined at link time")
+endif()
+
+target_link_libraries(${MODULE_NAME}
+ gltfio_core
+ filament
+ backend
+ geometry
+ dracodec
  ibl-lite
- ktxreader 
+ ktxreader
  filaflat
  filabridge
  image
  imageio
- utils 
- stb 
- uberzlib 
- uberarchive 
+ utils
+ stb
+ uberzlib
+ uberarchive
  meshoptimizer
  basis_transcoder
  basis_encoder
@@ -403,11 +295,18 @@ target_link_libraries(${MODULE_NAME}
  zstd
  png
  tinyexr
+ ${EXTERNAL_ALL_LIBRARIES}
 )
 
-# Link plugin libraries if any
-if(DEFINED PLUGIN_LIBRARIES)
-  message(STATUS "Linking plugin libraries: ${PLUGIN_LIBRARIES}")
-  target_link_libraries(${MODULE_NAME} ${PLUGIN_LIBRARIES})
+# Force linker to include all symbols from external libraries (prevents dead code elimination)
+# This is critical because nothing in Thermion directly references these libraries
+if(DEFINED EXTERNAL_ALL_LIBRARIES)
+  foreach(lib ${EXTERNAL_ALL_LIBRARIES})
+    target_link_options(${MODULE_NAME} PRIVATE
+      "SHELL:-Wl,--whole-archive $<TARGET_FILE:${lib}> -Wl,--no-whole-archive"
+    )
+  endforeach()
+  message(STATUS "Added --whole-archive flags for external libraries to prevent dead code elimination")
 endif()
+
 
