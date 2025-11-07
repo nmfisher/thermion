@@ -135,7 +135,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future updateRenderOrder() async {
-    _logger.info("updateRenderOrder");
     if (_swapChains.length == 0) {
       _logger.warning("No swapchains, ignoring updateRenderOrder");
     }
@@ -155,7 +154,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       RenderTicker_setRenderable(
           renderTicker, swapChain.getNativeHandle(), viewsPtr, numRenderable);
-      _logger.info("Updated render order, $numRenderable renderable views");
+      _logger.finest("Updated render order, $numRenderable renderable views");
     }
   }
 
@@ -784,7 +783,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     if (beginFrame) {
-      _logger.info("Capturing ${views.length} views");
+      _logger.finest("Capturing ${views.length} views");
 
       for (final view in views) {
         beforeRender?.call(view);
