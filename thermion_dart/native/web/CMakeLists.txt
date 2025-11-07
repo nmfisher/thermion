@@ -86,14 +86,10 @@ file(GLOB SOURCES
   )
 
 if(DEFINED EXTERNAL_PROJECTS)
-  message(STATUS "EXTERNAL_PROJECTS variable is defined!")
-  message(STATUS "Raw EXTERNAL_PROJECTS value: ${EXTERNAL_PROJECTS}")
 
-  # Process each external project
   foreach(external_project ${EXTERNAL_PROJECTS})
     message(STATUS "Processing external project: ${external_project}")
 
-    # Check if the external project file exists
     if(EXISTS "${external_project}")
       message(STATUS "Found external project at: ${external_project}")
 
