@@ -100,7 +100,7 @@ class FFIRenderableManager
   @override
   Future setAxisAlignedBoundingBox(ThermionEntity entity, Aabb3 aabb) async {
     // Convert Aabb3 to the C struct format
-    final cAabb = Struct.create<bindings.Aabb3>();
+    final cAabb = StructAllocator.create<bindings.Aabb3>();
     cAabb.centerX = aabb.center.x;
     cAabb.centerY = aabb.center.y;
     cAabb.centerZ = aabb.center.z;
@@ -299,7 +299,7 @@ class FFIRenderableBuilder implements RenderableBuilder {
     final halfExtents = Vector3.zero();
     aabb.copyCenterAndHalfExtents(center, halfExtents);
 
-    final cAabb = Struct.create<bindings.Aabb3>();
+    final cAabb = StructAllocator.create<bindings.Aabb3>();
     cAabb.centerX = center.x;
     cAabb.centerY = center.y;
     cAabb.centerZ = center.z;

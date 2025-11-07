@@ -33,6 +33,7 @@ typedef IntPtrList = Int64List;
 typedef Float64 = Double;
 typedef PointerClass<T extends NativeType> = Pointer<T>;
 typedef VoidPointerClass = Pointer<Void>;
+typedef StructAllocator = Struct;
 
 class CallbackHolder<T extends Function> {
   final NativeCallable<T> nativeCallable;

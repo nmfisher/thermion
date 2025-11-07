@@ -180,7 +180,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
 
   @override
   void setShadowOptions(ThermionEntity light, ShadowOptions options) {
-    final tShadowOptions = Struct.create<TShadowOptions>();
+    final tShadowOptions = StructAllocator.create<TShadowOptions>();
     tShadowOptions.mapSize = options.mapSize;
     tShadowOptions.shadowCascades = options.shadowCascades;
 

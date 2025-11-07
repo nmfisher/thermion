@@ -247,7 +247,7 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setFogOptions(FogOptions options) async {
-    final tFogOptions = Struct.create<TFogOptions>();
+    final tFogOptions = StructAllocator.create<TFogOptions>();
 
     tFogOptions.distance = options.distance;
     tFogOptions.cutOffDistance = options.cutOffDistance;
@@ -289,7 +289,7 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setSoftShadowOptions(SoftShadowOptions options) async {
-    final tSoftShadowOptions = Struct.create<TSoftShadowOptions>();
+    final tSoftShadowOptions = StructAllocator.create<TSoftShadowOptions>();
     tSoftShadowOptions.penumbraScale = options.penumbraScale;
     tSoftShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
     View_setSoftShadowOptions(view, tSoftShadowOptions);
@@ -306,7 +306,7 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setVsmShadowOptions(VsmShadowOptions options) async {
-    final tVsmShadowOptions = Struct.create<TVsmShadowOptions>();
+    final tVsmShadowOptions = StructAllocator.create<TVsmShadowOptions>();
     tVsmShadowOptions.anisotropy = options.anisotropy;
     tVsmShadowOptions.mipmapping = options.mipmapping;
     tVsmShadowOptions.msaaSamples = options.msaaSamples;

@@ -99,7 +99,7 @@ class FFITransformManager
   @override
   bool transformToUnitCube(ThermionEntity entity, Aabb3 boundingBox) {
     // Convert Aabb3 to C struct format
-    final cAabb = bindings.Struct.create<bindings.Aabb3>();
+    final cAabb = bindings.StructAllocator.create<bindings.Aabb3>();
 
     final center = Vector3.zero();
     final halfExtents = Vector3.zero();
