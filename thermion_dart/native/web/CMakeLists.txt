@@ -70,7 +70,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
 file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/**/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/c_api/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/c_api/transform_pipeline/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/components/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/scene/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/transform_pipeline/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp"
@@ -249,7 +254,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament)
-
 
 add_library(backend STATIC IMPORTED)
 set_property(TARGET backend PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libbackend.a")
