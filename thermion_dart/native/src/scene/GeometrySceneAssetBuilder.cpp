@@ -251,7 +251,7 @@ namespace thermion
         }
         if (mVertices->empty())
         {
-            Log("Validation failed: No vertices (empty=%d, count=%d)", mVertices->empty(), mVertices->size());
+            Log("Validation failed: No vertices (empty=%d, count=%lu)", mVertices->empty(), mVertices->size());
             return false;
         }
 
@@ -261,17 +261,17 @@ namespace thermion
         }
         if (!mNormals->empty() && mNormals->size() != mVertices->size())
         {
-            Log("Validation failed: Normal count mismatch (normals=%d, vertices=%d)", mNormals->size(), mVertices->size());
+            Log("Validation failed: Normal count mismatch (normals=%lu, vertices=%lu)", mNormals->size(), mVertices->size());
             return false;
         }
         if (!mUVs->empty() && mUVs->size() != mVertices->size())
         {
-            Log("Validation failed: UV count mismatch (uvs=%d, vertices=%d)", mUVs->size(), mVertices->size());
+            Log("Validation failed: UV count mismatch (uvs=%zu, vertices=%zu)", mUVs->size(), mVertices->size());
             return false;
         }
         if (mIndices->empty())
         {
-            Log("Validation failed: No indices (empty=%d, count=%d)", mIndices->empty(), mIndices->size());
+            Log("Validation failed: No indices (empty=%d, count=%lu)", mIndices->empty(), mIndices->size());
             return false;
         }
 

@@ -34,7 +34,7 @@ namespace thermion::plugin
             if(registeredPluginNames[i] == name) {
                 registeredPluginNames.erase(registeredPluginNames.begin() + i);
                 registeredPlugins.erase(registeredPlugins.begin() + i);
-                Log("[PLUGIN] Erased existing plugin under name %s (%d plugins remaining)", name.c_str(), registeredPlugins.size());    
+                Log("[PLUGIN] Erased existing plugin under name %s (%lu plugins remaining)", name.c_str(), registeredPlugins.size());    
                 break;
             }
         }    
@@ -42,7 +42,7 @@ namespace thermion::plugin
         registeredPlugins.push_back(instance);
         registeredPluginNames.push_back(name);
 
-        Log("[PLUGIN] Registered plugin: %s (%d plugins total)", name.c_str(), registeredPlugins.size());
+        Log("[PLUGIN] Registered plugin: %s (%lu plugins total)", name.c_str(), registeredPlugins.size());
 
         return true;
     }
