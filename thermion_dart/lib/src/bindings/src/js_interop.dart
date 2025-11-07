@@ -254,10 +254,6 @@ Pointer stackSave() => NativeLibrary.instance.stackSave();
 void stackRestore(Pointer ptr) =>
     NativeLibrary.instance.stackRestore(ptr.cast());
 
-void getStackFree() {
-  print(NativeLibrary.instance._emscripten_stack_get_free());
-}
-
 void resizeWebCanvas(int width, int height) {
   Thermion_resizeCanvas(width, height);
 }
