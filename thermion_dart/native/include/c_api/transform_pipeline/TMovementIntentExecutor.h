@@ -1,7 +1,7 @@
 #pragma once
 
-#include "APIExport.h"
-#include "APIBoundaryTypes.h"
+#include "c_api/APIExport.h"
+#include "c_api/APIBoundaryTypes.h"
 
 #include "ffigen_fix.h"
 
