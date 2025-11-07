@@ -7,7 +7,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
-import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
+// import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:path/path.dart' as p;
 
@@ -192,13 +192,13 @@ class TestHelper {
     return retval;
   }
 
-  Future<MetalTextureWrapper> createTexture(int width, int height,
-      {bool depth = false, bool stencil = false}) async {
-    final object =
-        MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
-            width, height, depth, stencil);
-    return object;
-  }
+  // Future<MetalTextureWrapper> createTexture(int width, int height,
+  //     {bool depth = false, bool stencil = false}) async {
+  //   final object =
+  //       MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
+  //           width, height, depth, stencil);
+  //   return object;
+  // }
 
   Future<Uint8List> _loadResource(String uri) async {
     uri = uri.replaceAll("file://", "");
@@ -237,11 +237,11 @@ class TestHelper {
         DynamicLibrary.open(
             '${testDir}/generated/libMetalTextureWrapper.dylib');
       }
-      var metalColorTexture = await createTexture(
-          viewportDimensions.width, viewportDimensions.height);
-      var metalDepthTexture = await createTexture(
-          viewportDimensions.width, viewportDimensions.height,
-          depth: true);
+      // var metalColorTexture = await createTexture(
+      //     viewportDimensions.width, viewportDimensions.height);
+      // var metalDepthTexture = await createTexture(
+      //     viewportDimensions.width, viewportDimensions.height,
+      //     depth: true);
       print("Creating texture of size ${viewportDimensions}");
       var color = await FilamentApp.instance!
           .createTexture(viewportDimensions.width, viewportDimensions.height,
@@ -251,7 +251,8 @@ class TestHelper {
                 TextureUsage.TEXTURE_USAGE_SAMPLEABLE
               },
               textureFormat: TextureFormat.RGBA32F,
-              importedTextureHandle: metalColorTexture.metalTextureAddress);
+              // importedTextureHandle: metalColorTexture.metalTextureAddress
+            );
       var width = await color.getWidth();
       var height = await color.getHeight();
       var depth = await FilamentApp.instance!.createTexture(
@@ -265,7 +266,8 @@ class TestHelper {
           textureFormat: createStencilBuffer
               ? TextureFormat.DEPTH24_STENCIL8
               : TextureFormat.DEPTH32F,
-          importedTextureHandle: metalDepthTexture.metalTextureAddress);
+          // importedTextureHandle: metalDepthTexture.metalTextureAddress
+          );
 
       renderTarget = await FilamentApp.instance!.createRenderTarget(
           viewportDimensions.width, viewportDimensions.height,
