@@ -3,9 +3,11 @@ headers:
   entry-points:
     - '../native/web/include/ThermionWebApi.h'
     - '../native/include/c_api/*.h'
+    - '../native/include/c_api/**/*.h'
   include-directives:
     - '../native/web/include/ThermionWebApi.h'
     - '../native/include/c_api/*.h'
+    - '../native/include/c_api/**/*.h'
 compiler-opts:
   - "-D__EMSCRIPTEN__"
 structs:
