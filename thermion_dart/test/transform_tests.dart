@@ -65,6 +65,44 @@ void main() async {
     });
   });
 
+  test('transform children management', () async {
+    await testHelper.withViewer((viewer) async {
+      final transformManager = FilamentApp.instance!.transformManager;
+
+      // Create a parent entity
+      final parent = await FilamentApp.instance!.createEntity();
+      transformManager.createComponent(parent);
+
+      // Create several child entities
+      final children = <ThermionEntity>[];
+      for (int i = 0; i < 3; i++) {
+        final child = await FilamentApp.instance!.createEntity();
+        children.add(child);
+        transformManager.createComponent(child);
+
+        // Set parent relationship
+        await FilamentApp.instance!.setParent(child, parent);
+      }
+
+      // Test getChildCount
+      final childCount = transformManager.getChildCount(parent);
+      expect(childCount, equals(3));
+
+      // Test getChildren
+      final retrievedChildren = transformManager.getChildren(parent);
+      expect(retrievedChildren.length, equals(3));
+      expect(retrievedChildren, containsAll(children));
+
+      // Test that an entity with no children returns empty results
+      final emptyCount = transformManager.getChildCount(children[0]);
+      expect(emptyCount, equals(0));
+
+      final emptyChildren = transformManager.getChildren(children[0]);
+      expect(emptyChildren, isEmpty);
+
+    });
+  });
+
   test('transform transaction bulk updates', () async {
     await testHelper.withViewer((viewer) async {
       final transformManager = FilamentApp.instance!.transformManager;
