@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_renderable_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
@@ -32,14 +36,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TEngine> engine;
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
   final Pointer<TRenderer> renderer;
-  final Pointer<TTransformManager> transformManager;
-  final Pointer<TLightManager> lightManager;
-  final Pointer<TRenderableManager> renderableManager;
+
   final Pointer<TMaterialProvider> ubershaderMaterialProvider;
   final Pointer<TRenderTicker> renderTicker;
   final Pointer<TNameComponentManager> nameComponentManager;
 
   late final Future<Uint8List> Function(String uri) _loadResource;
+  late final FFILightManager lightManager;
+  late final FFIRenderableManager renderableManager;
+  late final FFITransformManager transformManager;
 
   static final _logger = Logger("FFIFilamentApp");
 
@@ -47,18 +52,28 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       this.engine,
       this.gltfAssetLoader,
       this.renderer,
-      this.transformManager,
-      this.lightManager,
-      this.renderableManager,
+      Pointer<TTransformManager> transformManagerPtr,
       this.ubershaderMaterialProvider,
       this.renderTicker,
       this.nameComponentManager,
-      Future<Uint8List> Function(String uri)? loadResource) {
+      Future<Uint8List> Function(String uri)? loadResource,
+      Pointer<TLightManager> lightManagerPointer,
+      Pointer<TRenderableManager> renderableManagerPointer) {
     this._loadResource = loadResource ?? defaultResourceLoader;
+    this.lightManager = FFILightManager(lightManagerPointer, this);
+    this.renderableManager =
+        FFIRenderableManager(renderableManagerPointer, this);
+    this.transformManager = FFITransformManager(transformManagerPtr, this);
   }
 
   Future<Uint8List> loadResource(String uri) {
     return _loadResource(uri);
+  }
+
+  @override
+  DebugRegistry getDebugRegistry() {
+    final debugRegistryPtr = Engine_getDebugRegistry(engine);
+    return FFIDebugRegistry(debugRegistryPtr);
   }
 
   static Future create({FFIFilamentConfig? config}) async {
@@ -103,12 +118,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         gltfAssetLoader,
         renderer,
         transformManager,
-        lightManager,
-        renderableManager,
         ubershaderMaterialProvider,
         renderTicker,
         nameComponentManager,
-        config.loadResource);
+        config.loadResource,
+        lightManager,
+        renderableManager);
     _logger.info("Initialization complete");
   }
 
@@ -541,10 +556,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int index) async {
-    final instancePtr = RenderableManager_getMaterialInstanceAt(
-        renderableManager, entity, index);
-
-    final instance = FFIMaterialInstance(instancePtr, this);
+    final instance =
+        await renderableManager.getMaterialInstanceAt(entity, index);
+    if (instance == null) {
+      throw Exception("No material instance at index $index");
+    }
     return instance;
   }
 
@@ -553,8 +569,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future setMaterialInstanceAt(ThermionEntity entity, int index,
       MaterialInstance materialInstance) async {
-    RenderableManager_setMaterialInstanceAt(renderableManager, entity, index,
-        (materialInstance as FFIMaterialInstance).pointer);
+    await renderableManager.setMaterialInstanceAt(
+        entity, index, materialInstance);
   }
 
   ///
@@ -673,8 +689,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   @override
   Future setParent(ThermionEntity child, ThermionEntity? parent,
       {bool preserveScaling = false}) async {
-    TransformManager_setParent(transformManager, child,
-        parent ?? FILAMENT_ENTITY_NULL, preserveScaling);
+    transformManager.setParent(child, parent ?? FILAMENT_ENTITY_NULL,
+        preserveScaling: preserveScaling);
   }
 
   ///
@@ -682,7 +698,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future<ThermionEntity?> getParent(ThermionEntity child) async {
-    var parent = TransformManager_getParent(transformManager, child);
+    var parent = transformManager.getParent(child);
     if (parent == FILAMENT_ASSET_ERROR) {
       return null;
     }
@@ -694,7 +710,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future<ThermionEntity?> getAncestor(ThermionEntity child) async {
-    var parent = TransformManager_getAncestor(transformManager, child);
+    var parent = transformManager.getAncestor(child);
     if (parent == FILAMENT_ASSET_ERROR) {
       return null;
     }
@@ -981,7 +997,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           GltfResourceLoader_destroyRenderThread(
               engine, gltfResourceLoader, requestId, cb));
 
-      return FFIAsset(asset, this, animationManager.cast<TAnimationManager>(),
+      return FFIAsset(asset, animationManager.cast<TAnimationManager>(),
           keepData: keepData);
     } finally {
       if (FILAMENT_WASM) {
@@ -1064,8 +1080,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     SceneAsset_getChildEntities(
         gizmo.cast<TSceneAsset>(), gizmoEntities.address);
 
-    final gizmoAsset = FFIGizmo(gizmo.cast<TSceneAsset>(), this,
-        animationManager.cast<TAnimationManager>(),
+    final gizmoAsset = FFIGizmo(
+        gizmo.cast<TSceneAsset>(), animationManager.cast<TAnimationManager>(),
         view: view,
         entities: gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
@@ -1132,7 +1148,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr, this, animationManager.cast<TAnimationManager>(),
+    return FFIAsset(assetPtr, animationManager.cast<TAnimationManager>(),
         keepData: keepData);
   }
 
@@ -1140,25 +1156,22 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<ThermionEntity> createDirectLight(DirectLight directLight) async {
-    var entity =
-        LightManager_createLight(engine, lightManager, directLight.type.index);
-    if (entity == FILAMENT_ASSET_ERROR) {
-      throw Exception("Failed to add light to scene");
-    }
+    var entity = lightManager.createLight(directLight.type);
 
-    LightManager_setColor(lightManager, entity, directLight.color);
-    LightManager_setIntensity(lightManager, entity, directLight.intensity);
-    LightManager_setPosition(lightManager, entity, directLight.position.x,
+    lightManager.setColor(entity, directLight.color);
+    lightManager.setIntensity(entity, directLight.intensity);
+    lightManager.setPosition(entity, directLight.position.x,
         directLight.position.y, directLight.position.z);
-    LightManager_setDirection(lightManager, entity, directLight.direction.x,
+    lightManager.setDirection(entity, directLight.direction.x,
         directLight.direction.y, directLight.direction.z);
-    LightManager_setFalloff(lightManager, entity, directLight.falloffRadius);
-    LightManager_setSpotLightCone(lightManager, entity,
-        directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    // LightManager_setSunAngularRadius(lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    // LightManager_setSunHaloSize(lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    // LightManager_setSunHaloFalloff(lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
-    LightManager_setShadowCaster(lightManager, entity, directLight.castShadows);
+    lightManager.setFalloff(entity, directLight.falloffRadius);
+    lightManager.setSpotLightCone(
+        entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
+
+    // Note: Sun-specific properties (angular radius, halo size, halo falloff)
+    // are not currently exposed in the Dart LightManager interface
+    lightManager.setShadowCaster(entity, directLight.castShadows);
+
     return entity;
   }
 
@@ -1191,7 +1204,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       {bool createTransformComponent = true}) async {
     final entity = EntityManager_createEntity(Engine_getEntityManager(engine));
     if (createTransformComponent) {
-      TransformManager_createComponent(transformManager, entity);
+      transformManager.createComponent(entity);
     }
     return entity;
   }
@@ -1200,32 +1213,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future setTransform(ThermionEntity entity, Matrix4 transform) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-    TransformManager_setTransform(
-        transformManager, entity, matrix4ToDouble4x4(transform));
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
+    transformManager.setTransform(entity, transform);
   }
 
   ///
-  ///
+  Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
+    return transformManager.getLocalTransform(entity);
+  }
+
   ///
   Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    var transform = double4x4ToMatrix4(
-        TransformManager_getWorldTransform(transformManager, entity));
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
-    return transform;
+    return transformManager.getWorldTransform(entity);
   }
 
   ///
@@ -1233,24 +1231,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future setPriority(ThermionEntity entity, int priority) async {
-    RenderableManager_setPriority(renderableManager, entity, priority);
+    await renderableManager.setPriority(entity, priority);
   }
 
   ///
   ///
   ///
   Future<int> getPrimitiveCount(ThermionEntity entity) async {
-    return RenderableManager_getPrimitiveCount(renderableManager, entity);
+    return renderableManager.getPrimitiveCount(entity);
   }
 
   ///
   ///
   ///
   Future<Aabb3> getBoundingBox(ThermionEntity entity) async {
-    final bb = RenderableManager_getBoundingBox(renderableManager, entity);
-    return Aabb3.centerAndHalfExtents(
-        Vector3(bb.centerX, bb.centerY, bb.centerZ),
-        Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ));
+    return renderableManager.getBoundingBox(entity);
   }
 
   /// Builds an (empty) [Skybox] instance. This will not be attached to any scene until
@@ -1271,7 +1266,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<bool> isRenderable(ThermionEntity entity) async {
-    return RenderableManager_isRenderable(renderableManager, entity);
+    return renderableManager.isRenderable(entity);
   }
 
   ///

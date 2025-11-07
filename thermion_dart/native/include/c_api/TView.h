@@ -1,5 +1,7 @@
 #pragma once
 
+#include "APIExport.h"
+
 #ifdef __cplusplus
 namespace thermion {
 extern "C"
@@ -7,7 +9,6 @@ extern "C"
 #endif
 
 #include "APIBoundaryTypes.h"
-#include "APIExport.h"
 
 struct TViewport { 
     int32_t left;
@@ -74,7 +75,36 @@ EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView* tView, bool enabl
 EMSCRIPTEN_KEEPALIVE void View_setPostProcessing(TView* tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabled(TView* tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE void View_setShadowType(TView* tView, int shadowType);
-EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView* tView, float penumbraScale, float penumbraRatioScale);
+EMSCRIPTEN_KEEPALIVE int View_getShadowType(TView* tView);
+
+/**
+ * Options for DPCF and PCSS Shadowing.
+ */
+struct TSoftShadowOptions {
+    float penumbraScale;
+    float penumbraRatioScale;
+};
+typedef struct TSoftShadowOptions TSoftShadowOptions;
+
+EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView* tView, TSoftShadowOptions options);
+EMSCRIPTEN_KEEPALIVE TSoftShadowOptions View_getSoftShadowOptions(TView* tView);
+
+/**
+ * Options for VSM Shadowing.
+ */
+struct TVsmShadowOptions {
+    uint8_t anisotropy;
+    bool mipmapping;
+    uint8_t msaaSamples;
+    bool highPrecision;
+    float minVarianceScale;
+    float lightBleedReduction;
+};
+typedef struct TVsmShadowOptions TVsmShadowOptions;
+
+EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptions(TView* tView, TVsmShadowOptions options);
+EMSCRIPTEN_KEEPALIVE TVsmShadowOptions View_getVsmShadowOptions(TView* tView);
+
 EMSCRIPTEN_KEEPALIVE void View_setBloom(TView* tView, bool enabled, float strength);
 EMSCRIPTEN_KEEPALIVE void View_setRenderQuality(TView* tView, TQualityLevel qualityLevel);
 EMSCRIPTEN_KEEPALIVE void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa);

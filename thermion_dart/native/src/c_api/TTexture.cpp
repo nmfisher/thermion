@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
+
 
 #include <chrono>
 #include <vector>
@@ -153,7 +151,7 @@ namespace thermion
             result = reader->requestFormat(filament::Texture::InternalFormat::RGBA8);
             Log("Result : %d", result);
 
-            Log("Finished requesting KTX2 formats, loading KTX2 data of length %d bytes", size);
+            Log("Finished requesting KTX2 formats, loading KTX2 data of length %zu bytes", size);
                 
             auto *texture = reader->load(copy.data(), size, ktxreader::Ktx2Reader::TransferFunction::sRGB);
 

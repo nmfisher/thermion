@@ -22,10 +22,11 @@
 
 #include "scene/AnimationManager.hpp"
 #include "components/OverlayComponentManager.hpp"
+#include "PluginAPI.hpp"
+
 
 namespace thermion
 {
-
 
 
     class RenderTicker
@@ -36,7 +37,9 @@ namespace thermion
     public:
         RenderTicker(
             filament::Engine *engine,
-            filament::Renderer *renderer) : mEngine(engine), mRenderer(renderer) { }
+            filament::Renderer *renderer) : mEngine(engine), mRenderer(renderer) { 
+                
+            }
         ~RenderTicker();
         
         /// @brief 

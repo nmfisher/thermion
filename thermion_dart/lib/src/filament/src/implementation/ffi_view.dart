@@ -247,7 +247,7 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setFogOptions(FogOptions options) async {
-    final tFogOptions = Struct.create<TFogOptions>();
+    final tFogOptions = StructAllocator.create<TFogOptions>();
 
     tFogOptions.distance = options.distance;
     tFogOptions.cutOffDistance = options.cutOffDistance;
@@ -267,8 +267,66 @@ class FFIView extends View<Pointer<TView>> {
     View_setFogOptions(this.view, tFogOptions);
   }
 
+  @override
+  Future setFrontFaceWindingInverted(bool inverted) async {
+    View_setFrontFaceWindingInverted(view, inverted);
+  }
+
   Future setShadowsEnabled(bool enabled) async {
     View_setShadowsEnabled(this.view, enabled);
+  }
+
+  @override
+  Future setShadowType(ShadowType shadowType) async {
+    View_setShadowType(view, shadowType.index);
+  }
+
+  @override
+  Future<ShadowType> getShadowType() async {
+    final shadowTypeIndex = View_getShadowType(view);
+    return ShadowType.values[shadowTypeIndex];
+  }
+
+  @override
+  Future setSoftShadowOptions(SoftShadowOptions options) async {
+    final tSoftShadowOptions = StructAllocator.create<TSoftShadowOptions>();
+    tSoftShadowOptions.penumbraScale = options.penumbraScale;
+    tSoftShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
+    View_setSoftShadowOptions(view, tSoftShadowOptions);
+  }
+
+  @override
+  SoftShadowOptions getSoftShadowOptions() {
+    final tSoftShadowOptions = View_getSoftShadowOptions(view);
+    return SoftShadowOptions(
+      penumbraScale: tSoftShadowOptions.penumbraScale,
+      penumbraRatioScale: tSoftShadowOptions.penumbraRatioScale,
+    );
+  }
+
+  @override
+  Future setVsmShadowOptions(VsmShadowOptions options) async {
+    final tVsmShadowOptions = StructAllocator.create<TVsmShadowOptions>();
+    tVsmShadowOptions.anisotropy = options.anisotropy;
+    tVsmShadowOptions.mipmapping = options.mipmapping;
+    tVsmShadowOptions.msaaSamples = options.msaaSamples;
+    tVsmShadowOptions.highPrecision = options.highPrecision;
+    tVsmShadowOptions.minVarianceScale = options.minVarianceScale;
+    tVsmShadowOptions.lightBleedReduction = options.lightBleedReduction;
+    View_setVsmShadowOptions(view, tVsmShadowOptions);
+  }
+
+  @override
+  VsmShadowOptions getVsmShadowOptions() {
+    final tVsmShadowOptions = View_getVsmShadowOptions(view);
+    return VsmShadowOptions(
+      anisotropy: tVsmShadowOptions.anisotropy,
+      mipmapping: tVsmShadowOptions.mipmapping,
+      msaaSamples: tVsmShadowOptions.msaaSamples,
+      highPrecision: tVsmShadowOptions.highPrecision,
+      minVarianceScale: tVsmShadowOptions.minVarianceScale,
+      lightBleedReduction: tVsmShadowOptions.lightBleedReduction,
+    );
   }
 
   Pointer<TOverlayManager>? overlayManager;
@@ -322,16 +380,16 @@ class FFIView extends View<Pointer<TView>> {
       } else {
         if (highlightMaterialInstance == null) {
           highlightMaterialInstance = await highlightMaterial!.createInstance();
-          await highlightMaterialInstance!.setParameterFloat("scale", scale);
-          await highlightMaterialInstance!
+          await highlightMaterialInstance.setParameterFloat("scale", scale);
+          await highlightMaterialInstance
               .setParameterFloat4("color", r, g, b, 1.0);
 
-          await highlightMaterialInstance!.setDepthCullingEnabled(true);
-          await highlightMaterialInstance!.setDepthWriteEnabled(true);
+          await highlightMaterialInstance.setDepthCullingEnabled(true);
+          await highlightMaterialInstance.setDepthWriteEnabled(true);
         }
         OverlayManager_addComponent(overlayManager!, entity,
             highlightMaterialInstance.getNativeHandle());
-        _highlighted[entity] = highlightMaterialInstance!;
+        _highlighted[entity] = highlightMaterialInstance;
       }
     }
 

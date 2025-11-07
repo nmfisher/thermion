@@ -24,7 +24,7 @@ Matrix4 double4x4ToMatrix4(double4x4 mat) {
 }
 
 double4x4 matrix4ToDouble4x4(Matrix4 mat) {
-  final out = Struct.create<double4x4>();
+  final out = StructAllocator.create<double4x4>();
   Array<Float64> col1 =out.col1;
   Array<Float64> col2 = out.col2;
   Array<Float64> col3 =out.col3;

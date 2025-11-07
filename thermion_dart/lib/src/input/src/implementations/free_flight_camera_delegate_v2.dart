@@ -8,11 +8,14 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
 
   final InputSensitivityOptions sensitivity;
 
+  final bool moveOnHover;
+
   FreeFlightInputHandlerDelegateV2(this.view,
-      {this.sensitivity = const InputSensitivityOptions()});
+      {this.sensitivity = const InputSensitivityOptions(),
+      this.moveOnHover = false});
 
   double? _scaleDelta;
-  
+
   @override
   Future<void> handle(List<InputEvent> events) async {
     Vector2 rotation = Vector2.zero();
@@ -35,6 +38,10 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
           ):
           switch (type) {
             case MouseEventType.hover:
+              if (!moveOnHover) {
+                continue;
+              }
+              rotation += delta.scaled(sensitivity.mouseSensitivity);
             case MouseEventType.move:
               rotation += delta.scaled(sensitivity.mouseSensitivity);
             default:
@@ -60,16 +67,27 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
             scale: final scale,
           ):
           if (numPointers == 1) {
-            translation +=
-                Vector3(localFocalPointDelta!.$1 * sensitivity.touchSensitivity, localFocalPointDelta!.$2 * sensitivity.touchSensitivity, 0);
+            translation += Vector3(
+                localFocalPointDelta!.$1 * sensitivity.touchSensitivity,
+                localFocalPointDelta!.$2 * sensitivity.touchSensitivity,
+                0);
           } else {
-            translation = Vector3(0,0, (_scaleDelta! - scale) * sensitivity.touchScaleSensitivity * current.getTranslation().length.abs() );
+            translation = Vector3(
+                0,
+                0,
+                (_scaleDelta! - scale) *
+                    sensitivity.touchScaleSensitivity *
+                    current.getTranslation().length.abs());
             _scaleDelta = scale;
           }
           break;
         case ScaleEndEvent(numPointers: final numPointers):
           break;
-        case KeyEvent(type: final type, logicalKey: var logicalKey, physicalKey: var physicalKey  ):
+        case KeyEvent(
+            type: final type,
+            logicalKey: var logicalKey,
+            physicalKey: var physicalKey
+          ):
           switch (physicalKey) {
             case PhysicalKey.a:
               translation += Vector3(

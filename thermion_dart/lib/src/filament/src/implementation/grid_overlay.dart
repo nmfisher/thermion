@@ -51,7 +51,7 @@ class GridOverlay {
         final assetPtr = await withPointerCallback<TSceneAsset>((cb) =>
             SceneAsset_createGridRenderThread(
                 app.engine, _gridMaterial!.getNativeHandle(), cb));
-        final ffiAsset = FFIAsset(assetPtr, app, animationManager);
+        final ffiAsset = FFIAsset(assetPtr, animationManager);
         var materialInstance = await ffiAsset.getMaterialInstanceAt();
         if(i == 2) {
           await materialInstance.setParameterBool("showAxes", true);  

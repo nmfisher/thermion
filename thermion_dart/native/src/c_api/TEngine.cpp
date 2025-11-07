@@ -8,6 +8,7 @@
 
 #include <filament/Camera.h>
 #include <filament/backend/DriverEnums.h>
+#include <filament/DebugRegistry.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>
 #include <filament/IndirectLight.h>
@@ -390,6 +391,47 @@ namespace thermion
             auto entityManager = reinterpret_cast<utils::EntityManager *>(tEntityManager);
             auto entity = entityManager->create();
             return utils::Entity::smuggle(entity);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TDebugRegistry *Engine_getDebugRegistry(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto &debugRegistry = engine->getDebugRegistry();
+            return reinterpret_cast<TDebugRegistry *>(&debugRegistry);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_hasProperty(TDebugRegistry *tDebugRegistry, const char *name) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->hasProperty(name);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_setProperty_bool(TDebugRegistry *tDebugRegistry, const char *name, bool value) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->setProperty(name, value);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_setProperty_int(TDebugRegistry *tDebugRegistry, const char *name, int value) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->setProperty(name, value);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_setProperty_float(TDebugRegistry *tDebugRegistry, const char *name, float value) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->setProperty(name, value);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_bool(TDebugRegistry *tDebugRegistry, const char *name, bool *outValue) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->getProperty(name, outValue);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_int(TDebugRegistry *tDebugRegistry, const char *name, int *outValue) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->getProperty(name, outValue);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_float(TDebugRegistry *tDebugRegistry, const char *name, float *outValue) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->getProperty(name, outValue);
         }
 
 #ifdef __cplusplus

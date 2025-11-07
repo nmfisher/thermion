@@ -1,41 +1,25 @@
 import 'dart:io';
-
 import 'package:archive/archive.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
-
 import 'package:path/path.dart' as path;
-
-Logger createLogger(String packageRoot) {
-  var logPath =
-      path.join(packageRoot, ".dart_tool", "thermion_dart", "log", "build.log");
-  var logFile = File(logPath);
-  if (!logFile.parent.existsSync()) {
-    logFile.parent.createSync(recursive: true);
-  }
-
-  final logger = Logger("")
-    ..level = Level.ALL
-    ..onRecord.listen((record) => logFile.writeAsStringSync(
-        record.message + "\n",
-        mode: FileMode.append,
-        flush: true));
-  return logger;
-}
+import 'log.dart';
 
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
 
-    final logger = createLogger(pkgRootFilePath);
+    final logger = createLogger(pkgRootFilePath, "build.log");
 
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
       return;
     }
+
+    logger.info(input.assets.encodedAssets.keys.toList());
 
     final config = input.config;
 
@@ -58,6 +42,15 @@ void main(List<String> args) async {
     final targetOS = config.code.targetOS;
 
     final targetArchitecture = config.code.targetArchitecture;
+
+    logger.info("""
+packageRoot : $packageRoot
+outputDirectory : ${outputDirectory.path}
+""");
+
+    // Extract consuming package root for plugin support
+    final consumingPackageRoot =
+        _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
 
     var platform = targetOS.toString().toLowerCase();
 
@@ -137,14 +130,31 @@ void main(List<String> args) async {
       defines["ENABLE_TRACING"] = "1";
     }
 
+    // Check for plugin configuration
+    final pluginConfigs = input.userDefines["plugins"] as List<dynamic>?;
+
     logger.info("Defines : ${defines}");
 
-    final flags = []; //"-fsanitize=address"];
+    final flags = <String>[]; //"-fsanitize=address"];
+
+    // Collect include directories including plugin includes
+    final includeDirs = <String>[
+      'native/include',
+      'native/include/filament',
+    ];
+
+    // Process plugins after flags and includeDirs are declared
+    if (pluginConfigs != null && consumingPackageRoot != null) {
+      await _processDeclarativePlugins(pluginConfigs, sources, libs, defines,
+          flags, includeDirs, targetOS, logger, consumingPackageRoot);
+    }
 
     var frameworks = [];
 
     if (targetOS != OS.windows) {
-      flags.addAll(['-std=c++17']);
+      if (!flags.any((f) => f.contains("-std=c++"))) {
+        flags.addAll(['-std=c++17']);
+      }
     } else {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
@@ -208,9 +218,7 @@ void main(List<String> args) async {
       language: Language.cpp,
       assetName: 'thermion_dart.dart',
       sources: targetOS == OS.windows ? [] : sources,
-      includes: platform == "windows"
-          ? []
-          : ['native/include', 'native/include/filament'],
+      includes: platform == "windows" ? [] : includeDirs,
       defines: platform == "windows" ? {} : defines,
       flags: [
         if (targetOS == OS.macOS) '-mmacosx-version-min=13.0',
@@ -281,18 +289,22 @@ void main(List<String> args) async {
 
       output.assets.addEncodedAsset(libcpp.encode());
     }
+        
+    output.metadata.addAll({"includeDirs":includeDirs.map((dir) => path.join(pkgRootFilePath,dir)).toList()});
+    output.metadata.addAll({"outputDir":outputDirectory.path});
+   
 
     if (targetOS == OS.windows) {
       var importLib = File(path.join(
           outputDirectory.path.substring(1).replaceAll("/", "\\"),
           "thermion_dart.lib"));
-      final libthermion = CodeAsset(
+
+      output.assets.code.add(CodeAsset(
         package: packageName,
         name: "thermion_dart.lib",
         linkMode: DynamicLoadingBundled(),
         file: importLib.uri,
-      );
-      output.assets.addEncodedAsset(libthermion.encode());
+      ));
 
       for (final dir in ["windows/vulkan"]) {
         // , "filament/bluevk", "filament/vulkan"
@@ -411,4 +423,167 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
     successToken.writeAsStringSync("SUCCESS");
   }
   return libDir;
+}
+
+//
+// Plugin configuration processing functions
+//
+
+String? _extractConsumingPackageRoot(String outputDirUri, Logger logger) {
+  try {
+    // Parse the URI to get file path
+    final uri = Uri.parse(outputDirUri);
+    final outputPath = uri.toFilePath();
+
+    logger.info(
+        "Extracting consuming package root from output directory: $outputPath");
+
+    // Navigate up the directory tree to find the consuming package root
+    // The path typically looks like: /path/to/consuming_package/.dart_tool/hooks_runner/shared/thermion_dart/build/hash/
+    var currentPath = outputPath;
+
+    while (currentPath != path.dirname(currentPath)) {
+      // Stop at filesystem root
+      final pubspecFile = File(path.join(currentPath, 'pubspec.yaml'));
+
+      if (pubspecFile.existsSync()) {
+        logger.info("Found pubspec.yaml at: ${pubspecFile.path}");
+
+        // Verify this is a consuming package (not thermion_dart itself)
+        final pubspecContent = pubspecFile.readAsStringSync();
+
+        // Check if this is thermion_dart package itself (avoid self-detection)
+        if (pubspecContent.contains('name: thermion_dart')) {
+          logger.info("Skipping thermion_dart package itself");
+        } else if (pubspecContent.contains('thermion_dart')) {
+          logger.info("Found consuming package root: $currentPath");
+          return currentPath;
+        }
+      }
+
+      // Move up one directory level
+      currentPath = path.dirname(currentPath);
+    }
+
+    logger.info("Could not find consuming package root from output directory");
+    return null;
+  } catch (e) {
+    logger.info("Error extracting consuming package root: $e");
+    return null;
+  }
+}
+
+Future<void> _processDeclarativePlugins(
+  List<dynamic> pluginConfigs,
+  List<String> sources,
+  List<String> libs,
+  Map<String, String?> defines,
+  List<String> flags,
+  List<String> includeDirs,
+  OS targetOS,
+  Logger logger,
+  String consumingPackageRoot,
+) async {
+  for (final pluginConfig in pluginConfigs) {
+    if (pluginConfig is! Map<String, dynamic>) {
+      logger.warning(
+          "Invalid plugin configuration, expected Map but got ${pluginConfig.runtimeType}");
+      continue;
+    }
+
+    final pluginName = pluginConfig['name'] as String?;
+    if (pluginName == null) {
+      logger.warning("Plugin configuration missing 'name' field");
+      continue;
+    }
+
+    logger.info("Processing plugin: $pluginName");
+
+    // Process sources
+    final pluginSources = pluginConfig['sources'] as List<dynamic>?;
+    if (pluginSources != null) {
+      for (final source in pluginSources) {
+        if (source is String) {
+          final sourcePath = path.join(consumingPackageRoot, source);
+          sources.add(sourcePath);
+          logger.fine("Added plugin source: $sourcePath");
+        }
+      }
+    }
+
+    // Process include directories
+    final pluginIncludeDirs = pluginConfig['include_dirs'] as List<dynamic>?;
+    if (pluginIncludeDirs != null) {
+      for (final includeDir in pluginIncludeDirs) {
+        if (includeDir is String) {
+          final includePath = path.join(consumingPackageRoot, includeDir);
+          includeDirs.add(includePath);
+          logger.fine("Added plugin include directory: $includePath");
+        }
+      }
+    }
+
+    // Process library directories (as -L flags)
+    final pluginLibraryDirs =
+        pluginConfig['library_dirs'] as Map<String, dynamic>?;
+    if (pluginLibraryDirs != null) {
+      final targetOSString = targetOS.toString().split('.').last;
+      final platformLibraryDirs =
+          pluginLibraryDirs[targetOSString] as List<dynamic>?;
+      if (platformLibraryDirs != null) {
+        for (final libraryDir in platformLibraryDirs) {
+          if (libraryDir is String) {
+            final libraryPath = path.join(consumingPackageRoot, libraryDir);
+            flags.add("-L$libraryPath");
+            logger.fine("Added plugin library directory: -L$libraryPath");
+          }
+        }
+      }
+    }
+
+    // Process link libraries (as -l flags)
+    final pluginLinkLibraries =
+        pluginConfig['link_libraries'] as List<dynamic>?;
+    if (pluginLinkLibraries != null) {
+      for (final library in pluginLinkLibraries) {
+        if (library is String) {
+          libs.add(library);
+          logger.fine("Added plugin link library: $library");
+        }
+      }
+    }
+
+    // Process defines
+    final pluginDefines = pluginConfig['defines'] as List<dynamic>?;
+    if (pluginDefines != null) {
+      for (final define in pluginDefines) {
+        if (define is String) {
+          if (define.contains('=')) {
+            final parts = define.split('=');
+            defines[parts[0]] = parts[1];
+          } else {
+            defines[define] = "1";
+          }
+          logger.fine("Added plugin define: $define");
+        }
+      }
+    }
+
+    // Process compile options
+    final pluginCompileOptions =
+        pluginConfig['compile_options'] as List<dynamic>?;
+    if (pluginCompileOptions != null) {
+      for (final option in pluginCompileOptions) {
+        if (option is String) {
+          flags.add(option);
+          logger.fine("Added plugin compile option: $option");
+        }
+      }
+    }
+
+    // Add plugin enabled define
+    defines["${pluginName.toUpperCase()}_ENABLED"] = "1";
+
+    logger.info("Successfully processed plugin: $pluginName");
+  }
 }

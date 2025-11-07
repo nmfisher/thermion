@@ -37,7 +37,7 @@ class ViewerWidget extends StatefulWidget {
   ///
   /// A direct light to add to the scene.
   ///
-  final LightType? directLightType;
+  final DirectLight? directLight;
 
   ///
   /// If true, the glTF asset will be rescaled so its bounding box fits within a 1x1x1 cube. Defaults to true.
@@ -86,7 +86,7 @@ class ViewerWidget extends StatefulWidget {
       this.assetPath,
       this.skyboxPath,
       this.iblPath,
-      this.directLightType,
+      this.directLight,
       this.background,
       this.onViewerAvailable,
       this.manipulatorType = ManipulatorType.ORBIT}) {
@@ -120,15 +120,32 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       setState(() {});
     }
 
-    if (oldWidget.initialCameraPosition != widget.initialCameraPosition ||
+    if (oldWidget.postProcessing != widget.postProcessing) {
+      viewer!.setPostProcessing(widget.postProcessing);
+    } else if (oldWidget.skyboxPath != widget.skyboxPath) {
+      if (widget.skyboxPath == null) {
+        viewer!.removeSkybox();
+      } else {
+        viewer!.loadSkybox(widget.skyboxPath!);
+      }
+    } else if (oldWidget.iblPath != widget.iblPath) {
+      if (widget.iblPath == null) {
+        viewer!.removeIbl(destroy: true);
+      } else {
+        viewer!.loadIbl(widget.iblPath!);
+      }
+    } else if (oldWidget.background != widget.background) {
+      viewer!.setBackgroundColor(
+          widget.background?.r ?? 0,
+          widget.background?.g ?? 0,
+          widget.background?.b ?? 0,
+          widget.background?.a ?? 0);
+    } else if (oldWidget.initialCameraPosition !=
+            widget.initialCameraPosition ||
         oldWidget.showFpsCounter != widget.showFpsCounter ||
         oldWidget.assetPath != widget.assetPath ||
-        oldWidget.skyboxPath != widget.skyboxPath ||
-        oldWidget.iblPath != widget.iblPath ||
-        oldWidget.directLightType != widget.directLightType ||
+        oldWidget.directLight != widget.directLight ||
         oldWidget.transformToUnitCube != widget.transformToUnitCube ||
-        oldWidget.postProcessing != widget.postProcessing ||
-        oldWidget.background != widget.background ||
         oldWidget.destroyEngineOnUnload != widget.destroyEngineOnUnload) {
       throw UnsupportedError(
           "Only manipulatorType can be changed at runtime. To change any other properties, create a new widget.");
@@ -143,7 +160,8 @@ class _ViewerWidgetState extends State<ViewerWidget> {
         viewport = ThermionListenerWidget(
             key: const ObjectKey(ManipulatorType.ORBIT),
             inputHandler: DelegateInputHandler.fixedOrbit(viewer!,
-                minimumDistance: widget.initialCameraPosition.length),
+                minimumDistance: widget.initialCameraPosition.length,
+                moveOnHover: false),
             child: thermionWidget);
       case ManipulatorType.FREE_FLIGHT:
         viewport = ThermionListenerWidget(
@@ -160,6 +178,10 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   Future _configure() async {
     if (widget.assetPath != null) {
       asset = await viewer!.loadGltf(widget.assetPath!);
+
+      await asset!.setCastShadows(true);
+
+      await viewer!.view.setShadowsEnabled(true);
     }
 
     if (widget.skyboxPath != null) {
@@ -179,11 +201,17 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     await camera.lookAt(widget.initialCameraPosition);
 
-    await viewer!.setRendering(true);
-
     if (widget.background != null) {
-      await viewer!.setBackgroundColor(widget.background!.r,
-          widget.background!.g, widget.background!.b, widget.background!.a);
+      if (widget.skyboxPath != null) {
+        print("Specify skyboxPath or background, not both");
+      } else {
+        await viewer!.setBackgroundColor(widget.background!.r,
+            widget.background!.g, widget.background!.b, widget.background!.a);
+      }
+    }
+
+    if (widget.directLight != null) {
+      await viewer!.addDirectLight(widget.directLight!);
     }
 
     thermionWidget = ThermionWidget(
@@ -194,7 +222,9 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     _setViewportWidget();
 
+    await viewer!.setRendering(true);
     widget.onViewerAvailable?.call(viewer!);
+    setState(() {});
   }
 
   @override

@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
+
 
 #include <filament/View.h>
 #include <filament/Viewport.h>
@@ -85,13 +83,56 @@ namespace thermion
             view->setShadowType((ShadowType)shadowType);
         }
 
-        EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView *tView, float penumbraScale, float penumbraRatioScale)
+        EMSCRIPTEN_KEEPALIVE int View_getShadowType(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            return static_cast<int>(view->getShadowType());
+        }
+
+        EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView *tView, TSoftShadowOptions options)
         {
             auto view = reinterpret_cast<View *>(tView);
             SoftShadowOptions opts;
-            opts.penumbraRatioScale = penumbraRatioScale;
-            opts.penumbraScale = penumbraScale;
+            opts.penumbraRatioScale = options.penumbraRatioScale;
+            opts.penumbraScale = options.penumbraScale;
             view->setSoftShadowOptions(opts);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TSoftShadowOptions View_getSoftShadowOptions(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            auto options = view->getSoftShadowOptions();
+            TSoftShadowOptions tOptions;
+            tOptions.penumbraRatioScale = options.penumbraRatioScale;
+            tOptions.penumbraScale = options.penumbraScale;
+            return tOptions;
+        }
+
+        EMSCRIPTEN_KEEPALIVE void View_setVsmShadowOptions(TView *tView, TVsmShadowOptions options)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            VsmShadowOptions opts;
+            opts.anisotropy = options.anisotropy;
+            opts.mipmapping = options.mipmapping;
+            opts.msaaSamples = options.msaaSamples;
+            opts.highPrecision = options.highPrecision;
+            opts.minVarianceScale = options.minVarianceScale;
+            opts.lightBleedReduction = options.lightBleedReduction;
+            view->setVsmShadowOptions(opts);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TVsmShadowOptions View_getVsmShadowOptions(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            auto options = view->getVsmShadowOptions();
+            TVsmShadowOptions tOptions;
+            tOptions.anisotropy = options.anisotropy;
+            tOptions.mipmapping = options.mipmapping;
+            tOptions.msaaSamples = options.msaaSamples;
+            tOptions.highPrecision = options.highPrecision;
+            tOptions.minVarianceScale = options.minVarianceScale;
+            tOptions.lightBleedReduction = options.lightBleedReduction;
+            return tOptions;
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setBloom(TView *tView, bool enabled, float strength)

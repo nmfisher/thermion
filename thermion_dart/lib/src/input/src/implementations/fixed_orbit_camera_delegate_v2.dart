@@ -23,13 +23,15 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
 
   Vector2? _lastPointerPosition;
 
-  OrbitInputHandlerDelegate(
-    this.view, {
-    this.sensitivity = const InputSensitivityOptions(),
-    Vector3? targetPoint,
-    this.minZoomDistance = 1.0,
-    this.maxZoomDistance = 100.0,
-  })  : targetPoint = targetPoint ?? Vector3.zero(),
+  final bool moveOnHover;
+
+  OrbitInputHandlerDelegate(this.view,
+      {this.sensitivity = const InputSensitivityOptions(),
+      Vector3? targetPoint,
+      this.minZoomDistance = 1.0,
+      this.maxZoomDistance = 100.0,
+      this.moveOnHover = false})
+      : targetPoint = targetPoint ?? Vector3.zero(),
         _radius =
             (minZoomDistance + maxZoomDistance) / 2, // Initial default radius
         _azimuth = 0.0,
@@ -90,9 +92,8 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
 
   @override
   Future<void> handle(List<InputEvent> events) async {
-
     final activeCamera = await view.getCamera();
-    
+
     if (!_isInitialized) {
       await _initializeFromCamera(activeCamera);
     }
@@ -130,6 +131,9 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
             case MouseEventType.move:
             case MouseEventType
                   .hover: // Some systems might only send hover when no buttons pressed
+              if (event.type == MouseEventType.hover && !moveOnHover) {
+                continue;
+              }
               if (_isMouseDown && _lastPointerPosition != null) {
                 final dragDelta = localPosition - _lastPointerPosition!;
                 // X-drag affects azimuth, Y-drag affects elevation

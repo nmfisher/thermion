@@ -107,33 +107,23 @@ abstract class ThermionAsset {
     throw UnimplementedError();
   }
 
-  ///
   /// The dimensions of the bounding box for this asset.
-  /// This is independent of the boundingBoxAsset (which is used to visualize
-  /// the bounding box in the scene); you do not need to call
-  /// [createBoundingBoxAsset] before this method.
   Future<Aabb3> getBoundingBox()  async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
+  /// Gets the instance attached to this asset at index [index]
   Future<ThermionAsset> getInstance(int index)  async {
     throw UnimplementedError();
   }
 
-  ///
   /// Create a new instance of [entity].
   /// Instances are not automatically added to the scene; you must
   /// call [Scene.add].
-  ///
   Future<ThermionAsset> createInstance(
       {List<MaterialInstance>? materialInstances = null});
 
-  ///
   /// Returns the number of instances associated with this asset.
-  ///
   Future<int> getInstanceCount()  async {
     throw UnimplementedError();
   }

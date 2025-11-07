@@ -65,7 +65,7 @@ abstract class ThermionViewer {
   Future<TexturedQuad> getBackgroundImage();
 
   ///
-  /// Set the background image to [path] (which should be .png, .jpg, or .ktx 
+  /// Set the background image to [path] (which should be .png, .jpg, or .ktx
   /// file). This will be rendered at the maximum depth (i.e. behind all other objects including the skybox).
   /// If [fillHeight] is false, the image will be rendered at its original size. Note this may cause issues with pixel density so be sure to specify the correct resolution
   /// If [fillHeight] is true, the image will be stretched/compressed to fit the height of the viewport.
@@ -74,7 +74,7 @@ abstract class ThermionViewer {
 
   ///
   /// Set the background image from [texture].
-  /// 
+  ///
   Future setBackgroundImageFromTexture(Texture texture);
 
   ///
@@ -149,16 +149,16 @@ abstract class ThermionViewer {
   ///
   Future destroyLights();
 
+  /// Load the glTF asset from [uri] (which must point to a file with the
+  /// extension `.glb` or `.gltf`. `file://` URIs are always supported;
+  /// `asset://` URIs are only supported if running in a Flutter application.
   ///
-  /// Load the glTF asset at the given path (.glb or .gltf)
-  ///
-  /// If the file is a .gltf and [resourceUri] is not specified,
-  /// all resources will be loaded relative to the URI of the file (so if
+  /// [resourceUri] is ignored for `.glb.` files; if provided, all asset paths 
+  /// in the `.gltf` file will be resolved relative to this path. If 
+  /// [resourceUri] is not provided, all asset paths in `.gltf` files will be 
+  /// resolved relative to the URI of the file itself (so if
   /// [uri] is asset://assets/scene.gltf, the loader will attempt to load
   /// asset://assets/scene.bin, asset://assets/texture.png, and so on).
-  ///
-  /// If [resourceUri] is specified, resources will be loaded relative to
-  /// that path.
   ///
   /// If [addToScene] is [true], all renderable entities (including lights)
   /// in the asset will be added to the scene.
@@ -265,11 +265,6 @@ abstract class ThermionViewer {
   Future setShadowType(ShadowType shadowType);
 
   ///
-  /// Set soft shadow options (ShadowType DPCF and PCSS)
-  ///
-  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale);
-
-  ///
   /// Set antialiasing options.
   ///
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
@@ -301,6 +296,7 @@ abstract class ThermionViewer {
   ///
   /// Gets the 3D axis aligned bounding box for the given entity.
   ///
+  @Deprecated("Call FilamentApp.instance.getRenderableBoundingBox instead")
   Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity);
 
   /// Render the bounding box for [asset] with an unlit material.
@@ -350,13 +346,13 @@ abstract class ThermionViewer {
   int getCameraCount();
 
   ///
-  /// Adds the asset to the scene. All renderable entities attached to  
+  /// Adds the asset to the scene. All renderable entities attached to
   /// the asset will be visible.
   ///
   Future addToScene(covariant ThermionAsset asset);
 
   ///
-  /// Removes the asset from the scene. None of the renderable entities 
+  /// Removes the asset from the scene. None of the renderable entities
   /// attached to the asset will be visible, but the asset itself remains valid.
   ///
   Future removeFromScene(covariant ThermionAsset asset);

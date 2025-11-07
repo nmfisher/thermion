@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
+ 
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/ResourceLoader.h>

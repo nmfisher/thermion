@@ -51,9 +51,19 @@ cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iph
 ninja
 mkdir -p imageio && cd imageio
 cmake -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DPLATFORM_NAME="iphonesimulator" \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
-        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../../libs/image/include -I../../../../libs/utils/include -I../../../../libs/math/include -I../../../../third_party/tinyexr -I../../../../third_party/libpng -I../../../../third_party/basisu/encoder" \
+        -DZ_HAVE_UNISTD_H=1 
+        -DUSE_ZLIB=1
+        -DIMPORT_EXECUTABLES_DIR=out 
+        -DCMAKE_CXX_FLAGS="-I../../../../libs/image/include 
+        -I../../../../libs/utils/include 
+        -I../../../../libs/math/include 
+        -I../../../../third_party/tinyexr 
+        -I../../../../third_party/libpng 
+        -I../../../../third_party/basisu/encoder" \
         ../../../../libs/imageio
 ninja
 cd .. && mkdir -p tinyexr && cd tinyexr
@@ -112,13 +122,13 @@ To work around, we need to adjust the Filament build configuration to build:
  
 ```
 ./build.sh -p desktop release
-mkdir -p out/cmake-webgl-release
-cd out/cmake-webgl-release
+mkdir -p out/cmake-webgl-release && cd out/cmake-webgl-release
 ln -s ../cmake-release/tools
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DWEBGL=1 \
         -DWEBGL_PTHREADS=0 \
+        -DCMAKE_CXX_STANDARD=20 \
         -DFILAMENT_SKIP_SAMPLES=1 \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
@@ -133,6 +143,7 @@ cd imageio
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DFILAMENT_SKIP_SAMPLES=1 \
+        -DCMAKE_CXX_STANDARD=20 \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
         -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
@@ -156,6 +167,7 @@ lib=libz
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+        -DCMAKE_CXX_STANDARD=20 \
         -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
         -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
         ../../../../third_party/$lib;

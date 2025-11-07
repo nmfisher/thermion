@@ -37,13 +37,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_ASSERTIONS=1)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_DEBUG=1)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSAFE_HEAP=1)
-  # add_compile_definitions(ENABLE_TRACING=1)
+  
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sWARN_UNALIGNED=1)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wover-aligned")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wcast-align -Wover-aligned")
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=10485760)
 endif()
 
+if(ENABLE_TRACING)
+add_compile_definitions(ENABLE_TRACING=1)
+message(STATUS "Enabling tracing")
+endif()
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=10485760)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_PTHREAD=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} "-sOFFSCREENCANVASES_TO_PTHREAD=#thermion_canvas")
@@ -62,21 +66,57 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O1")
 endif()
 
+# Set to "ON" to enable verbose linking 
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+
 add_link_options(${EMCC_CFLAGS} -pthread)
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib") 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
-file(GLOB SOURCES 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp" 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/**/*.cpp" 
+file(GLOB SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/c_api/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/c_api/transform_pipeline/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/components/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/scene/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/transform_pipeline/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp"
-   # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp" 
+   # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp"
   )
 
+if(DEFINED EXTERNAL_PROJECTS)
+
+  foreach(external_project ${EXTERNAL_PROJECTS})
+    message(STATUS "Processing external project: ${external_project}")
+
+    if(EXISTS "${external_project}")
+      message(STATUS "Found external project at: ${external_project}")
+
+      include("${external_project}")
+
+      message(STATUS "Successfully included external project: ${external_project}")
+    else()
+      message(WARNING "External project file not found: ${external_project}")
+    endif()
+  endforeach()
+
+  if(EXTERNAL_ALL_LIBRARIES)
+    message(STATUS "Total external project libraries: ${EXTERNAL_ALL_LIBRARIES}")
+  else()
+    message(STATUS "No external project libraries found")
+  endif()
+
+  message(STATUS "Completed processing external projects")
+else()
+  message(STATUS "EXTERNAL_PROJECTS variable is NOT defined - no external projects will be included")
+endif()
+
+message(STATUS "Total source files being compiled: ${SOURCES}")
 add_executable(${MODULE_NAME} ${SOURCES})
 
 set_target_properties(${MODULE_NAME} PROPERTIES
@@ -84,6 +124,7 @@ set_target_properties(${MODULE_NAME} PROPERTIES
 target_compile_definitions(${MODULE_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_compile_options(${MODULE_NAME} PRIVATE -matomics -mbulk-memory)
 target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)
+
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
@@ -215,22 +256,38 @@ set_property(TARGET png PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE
 set_property(TARGET png PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng.a")
 set_property(TARGET png PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng.a")
 
-target_link_libraries(${MODULE_NAME}  
- gltfio_core 
- filament 
- backend 
- geometry 
- dracodec 
+# Diagnostic: Check if EXTERNAL_ALL_LIBRARIES is visible
+if(DEFINED EXTERNAL_ALL_LIBRARIES)
+  message(STATUS "EXTERNAL_ALL_LIBRARIES is defined at link time: ${EXTERNAL_ALL_LIBRARIES}")
+
+  # Check if the targets actually exist
+  foreach(lib ${EXTERNAL_ALL_LIBRARIES})
+    if(TARGET ${lib})
+      message(STATUS "  Target ${lib} exists")
+    else()
+      message(WARNING "  Target ${lib} does NOT exist!")
+    endif()
+  endforeach()
+else()
+  message(STATUS "EXTERNAL_ALL_LIBRARIES is NOT defined at link time")
+endif()
+
+target_link_libraries(${MODULE_NAME}
+ gltfio_core
+ filament
+ backend
+ geometry
+ dracodec
  ibl-lite
- ktxreader 
+ ktxreader
  filaflat
  filabridge
  image
  imageio
- utils 
- stb 
- uberzlib 
- uberarchive 
+ utils
+ stb
+ uberzlib
+ uberarchive
  meshoptimizer
  basis_transcoder
  basis_encoder
@@ -238,5 +295,18 @@ target_link_libraries(${MODULE_NAME}
  zstd
  png
  tinyexr
+ ${EXTERNAL_ALL_LIBRARIES}
 )
+
+# Force linker to include all symbols from external libraries (prevents dead code elimination)
+# This is critical because nothing in Thermion directly references these libraries
+if(DEFINED EXTERNAL_ALL_LIBRARIES)
+  foreach(lib ${EXTERNAL_ALL_LIBRARIES})
+    target_link_options(${MODULE_NAME} PRIVATE
+      "SHELL:-Wl,--whole-archive $<TARGET_FILE:${lib}> -Wl,--no-whole-archive"
+    )
+  endforeach()
+  message(STATUS "Added --whole-archive flags for external libraries to prevent dead code elimination")
+endif()
+
 

@@ -4,13 +4,14 @@
 #include "ThermionWin32.h"
 #endif
 
+#include "APIExport.h"
+
 #ifdef __cplusplus
 namespace thermion {
 extern "C"
 {
 #endif
 
-#include "APIExport.h"
 #include "APIBoundaryTypes.h"
 
 enum TProjection {

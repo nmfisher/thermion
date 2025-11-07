@@ -449,7 +449,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future removeLight(ThermionEntity entity) async {
     Scene_removeEntity(scene.scene, entity);
-    LightManager_destroyLight(app.lightManager, entity);
+    app.lightManager.destroyLight(entity);
     _lights.remove(entity);
   }
 
@@ -579,7 +579,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setPostProcessing(bool enabled) async {
-    View_setPostProcessing(view.view, enabled);
+    await view.setPostProcessing(enabled);
   }
 
   ///
@@ -587,24 +587,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setShadowsEnabled(bool enabled) async {
-    View_setShadowsEnabled(view.view, enabled);
+    await view.setShadowsEnabled(enabled);
   }
 
   ///
   ///
   ///
   Future setShadowType(ShadowType shadowType) async {
-    View_setShadowType(view.view, shadowType.index);
-  }
-
-  ///
-  ///
-  ///
-  Future setSoftShadowOptions(
-    double penumbraScale,
-    double penumbraRatioScale,
-  ) async {
-    View_setSoftShadowOptions(view.view, penumbraScale, penumbraRatioScale);
+    await view.setShadowType(shadowType);
   }
 
   ///
@@ -644,7 +634,7 @@ class ThermionViewerFFI extends ThermionViewer {
     double y,
     double z,
   ) async {
-    LightManager_setPosition(app.lightManager, lightEntity, x, y, z);
+    app.lightManager.setPosition(lightEntity, x, y, z);
   }
 
   ///
@@ -656,13 +646,8 @@ class ThermionViewerFFI extends ThermionViewer {
     Vector3 direction,
   ) async {
     direction.normalize();
-    LightManager_setPosition(
-      app.lightManager,
-      lightEntity,
-      direction.x,
-      direction.y,
-      direction.z,
-    );
+    app.lightManager
+        .setDirection(lightEntity, direction.x, direction.y, direction.z);
   }
 
   ///
@@ -677,12 +662,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
+  @Deprecated("Call FilamentApp.instance!.renderableManager.getBoundingBox instead")
   Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
-    final result = RenderableManager_getAabb(app.renderableManager, entityId);
-    return v64.Aabb3.centerAndHalfExtents(
-      Vector3(result.centerX, result.centerY, result.centerZ),
-      Vector3(result.halfExtentX, result.halfExtentY, result.halfExtentZ),
-    );
+    return FilamentApp.instance!.renderableManager.getBoundingBox(entityId);
   }
 
   ///

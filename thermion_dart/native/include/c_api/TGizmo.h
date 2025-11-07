@@ -1,5 +1,7 @@
 #pragma once
 
+#include "APIExport.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -8,7 +10,6 @@ extern "C"
 #include <stddef.h>
 
 #include "APIBoundaryTypes.h"
-#include "APIExport.h"
 #include "TView.h"
 
 enum TGizmoAxis { X, Y, Z };

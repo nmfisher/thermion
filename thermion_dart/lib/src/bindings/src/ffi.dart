@@ -19,6 +19,10 @@ Int32List makeInt32List(int length) {
   return Int32List(length);
 }
 
+Float32List makeFloat32List(int length) {
+  return Float32List(length);
+}
+
 class NativeLibrary {
   static void initBindings(String name) {
     throw Exception();
@@ -29,6 +33,7 @@ typedef IntPtrList = Int64List;
 typedef Float64 = Double;
 typedef PointerClass<T extends NativeType> = Pointer<T>;
 typedef VoidPointerClass = Pointer<Void>;
+typedef StructAllocator = Struct;
 
 class CallbackHolder<T extends Function> {
   final NativeCallable<T> nativeCallable;

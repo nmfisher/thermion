@@ -432,6 +432,206 @@ void main() async {
           render: false);
     }, postProcessing: false);
   });
+
+  test('VSM shadow options set/get', () async {
+    await testHelper.withViewer((viewer) async {
+      // Test default values
+      final defaultOptions = viewer.view.getVsmShadowOptions();
+      expect(defaultOptions.anisotropy, equals(0));
+      expect(defaultOptions.mipmapping, isFalse);
+      expect(defaultOptions.msaaSamples, equals(1));
+      expect(defaultOptions.highPrecision, isFalse);
+      expect(defaultOptions.minVarianceScale, closeTo(0.5, 0.001));
+      expect(defaultOptions.lightBleedReduction, closeTo(0.15, 0.001));
+
+      // Test setting custom options
+      const customOptions = VsmShadowOptions(
+        anisotropy: 4,
+        mipmapping: true,
+        msaaSamples: 4,
+        highPrecision: true,
+        minVarianceScale: 0.75,
+        lightBleedReduction: 0.25,
+      );
+
+      await viewer.view.setVsmShadowOptions(customOptions);
+
+      // Verify the options were set correctly
+      final retrievedOptions = viewer.view.getVsmShadowOptions();
+      expect(retrievedOptions.anisotropy, equals(4));
+      expect(retrievedOptions.mipmapping, isTrue);
+      expect(retrievedOptions.msaaSamples, equals(4));
+      expect(retrievedOptions.highPrecision, isTrue);
+      expect(retrievedOptions.minVarianceScale, closeTo(0.75, 0.001));
+      expect(retrievedOptions.lightBleedReduction, closeTo(0.25, 0.001));
+    });
+  });
+
+  test('VSM shadow options with shadows enabled', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setBackgroundColor(kBlue)
+        .setPostProcessing(true)
+        .setRenderTargetEnabled(true)
+        .setShadowType(ShadowType.VSM)
+        .addSun(
+            intensity: 50000,
+            castShadows: true,
+            direction: Vector3(1, -0.5, 0).normalized())
+        .addCube(castShadows: true, color: kRed)
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            receiveShadows: true,
+            castShadows: false,
+            color: kGreen);
+
+    await builder.execute((viewer, assets) async {
+      // Enable VSM shadows
+      await viewer.setShadowsEnabled(true);
+      await testHelper.capture(viewer.view, "vsm_shadows_default_options");
+
+      // Test with custom VSM options that should improve quality
+      const vsmOptions = VsmShadowOptions(
+        anisotropy: 8,        // Higher anisotropy for better sampling
+        mipmapping: true,     // Enable mipmapping
+        msaaSamples: 4,       // MSAA for smoother edges
+        highPrecision: true,  // 32-bit precision to reduce light leaks
+        minVarianceScale: 0.3,
+        lightBleedReduction: 0.2,
+      );
+
+      await viewer.view.setVsmShadowOptions(vsmOptions);
+      await testHelper.capture(viewer.view, "vsm_shadows_custom_options");
+
+      // Test with different VSM options
+      const lowQualityVsmOptions = VsmShadowOptions(
+        anisotropy: 0,        // No anisotropic filtering
+        mipmapping: false,    // No mipmapping
+        msaaSamples: 1,       // No MSAA
+        highPrecision: false, // 16-bit precision
+        minVarianceScale: 0.5,
+        lightBleedReduction: 0.15,
+      );
+
+      await viewer.view.setVsmShadowOptions(lowQualityVsmOptions);
+      await testHelper.capture(viewer.view, "vsm_shadows_low_quality_options");
+    });
+  });
+
+  test('VSM shadow options getter works correctly', () async {
+    await testHelper.withViewer((viewer) async {
+      // Set specific options
+      const testOptions = VsmShadowOptions(
+        anisotropy: 2,
+        mipmapping: true,
+        msaaSamples: 2,
+        highPrecision: false,
+        minVarianceScale: 1.0,
+        lightBleedReduction: 0.5,
+      );
+
+      await viewer.view.setVsmShadowOptions(testOptions);
+
+      // Get the options back and verify all fields match
+      final retrieved = viewer.view.getVsmShadowOptions();
+      expect(retrieved.anisotropy, equals(testOptions.anisotropy));
+      expect(retrieved.mipmapping, equals(testOptions.mipmapping));
+      expect(retrieved.msaaSamples, equals(testOptions.msaaSamples));
+      expect(retrieved.highPrecision, equals(testOptions.highPrecision));
+      expect(retrieved.minVarianceScale, closeTo(testOptions.minVarianceScale, 0.001));
+      expect(retrieved.lightBleedReduction, closeTo(testOptions.lightBleedReduction, 0.001));
+    });
+  });
+
+  test('ShadowType get/set functionality', () async {
+    await testHelper.withViewer((viewer) async {
+      // Test default shadow type (should be PCF)
+      final defaultShadowType = await viewer.view.getShadowType();
+      expect(defaultShadowType, equals(ShadowType.PCF));
+
+      // Test setting and getting each shadow type
+      for (final shadowType in ShadowType.values) {
+        await viewer.view.setShadowType(shadowType);
+        final retrievedType = await viewer.view.getShadowType();
+        expect(retrievedType, equals(shadowType),
+            reason: 'ShadowType $shadowType should be retrieved correctly');
+      }
+
+      // Test with a specific sequence
+      await viewer.view.setShadowType(ShadowType.VSM);
+      expect(await viewer.view.getShadowType(), equals(ShadowType.VSM));
+
+      await viewer.view.setShadowType(ShadowType.PCSS);
+      expect(await viewer.view.getShadowType(), equals(ShadowType.PCSS));
+
+      await viewer.view.setShadowType(ShadowType.PCF);
+      expect(await viewer.view.getShadowType(), equals(ShadowType.PCF));
+    });
+  });
+
+  test('SoftShadowOptions functionality', () async {
+    await testHelper.withViewer((viewer) async {
+      // Test default options (check what Filament returns as default)
+      final defaultOptions = viewer.view.getSoftShadowOptions();
+      expect(defaultOptions.penumbraScale, closeTo(1.0, 0.001));
+      expect(defaultOptions.penumbraRatioScale, closeTo(1.0, 0.001));
+
+      // Test custom soft shadow options
+      const customOptions = SoftShadowOptions(
+        penumbraScale: 2.5,
+        penumbraRatioScale: 3.0,
+      );
+
+      await viewer.view.setSoftShadowOptions(customOptions);
+
+      // Verify the options were set correctly
+      final retrievedOptions = viewer.view.getSoftShadowOptions();
+      expect(retrievedOptions.penumbraScale, closeTo(2.5, 0.001));
+      expect(retrievedOptions.penumbraRatioScale, closeTo(3.0, 0.001));
+
+      // Test with DPCF shadow type (supports soft shadows)
+      await viewer.view.setShadowType(ShadowType.DPCF);
+      await viewer.view.setSoftShadowOptions(customOptions);
+
+      final dpfcOptions = viewer.view.getSoftShadowOptions();
+      expect(dpfcOptions.penumbraScale, closeTo(2.5, 0.001));
+      expect(dpfcOptions.penumbraRatioScale, closeTo(3.0, 0.001));
+
+      // Test with PCSS shadow type (supports soft shadows)
+      await viewer.view.setShadowType(ShadowType.PCSS);
+      await viewer.view.setSoftShadowOptions(const SoftShadowOptions(
+        penumbraScale: 1.5,
+        penumbraRatioScale: 2.0,
+      ));
+
+      final pcssOptions = viewer.view.getSoftShadowOptions();
+      expect(pcssOptions.penumbraScale, closeTo(1.5, 0.001));
+      expect(pcssOptions.penumbraRatioScale, closeTo(2.0, 0.001));
+
+      // Test with different values that may have precision issues
+      const testOptions = SoftShadowOptions(
+        penumbraScale: 0.8,
+        penumbraRatioScale: 1.2,
+      );
+
+      await viewer.view.setSoftShadowOptions(testOptions);
+      final finalOptions = viewer.view.getSoftShadowOptions();
+      expect(finalOptions.penumbraScale, closeTo(0.8, 0.001));
+      expect(finalOptions.penumbraRatioScale, closeTo(1.2, 0.001));
+
+      // Test with values that are likely to have precision differences
+      const precisionTestOptions = SoftShadowOptions(
+        penumbraScale: 0.1,
+        penumbraRatioScale: 1.33,
+      );
+
+      await viewer.view.setSoftShadowOptions(precisionTestOptions);
+      final precisionOptions = viewer.view.getSoftShadowOptions();
+      expect(precisionOptions.penumbraScale, closeTo(0.1, 0.001));
+      expect(precisionOptions.penumbraRatioScale, closeTo(1.33, 0.001));
+    });
+  });
 }
 // manually construct two views with stencil buffer
 // final viewportDimensions = (width: 500, height: 500);

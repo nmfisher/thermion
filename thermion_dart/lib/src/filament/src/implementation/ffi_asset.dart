@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/utils/src/matrix.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
@@ -15,30 +13,16 @@ class FFIAsset extends ThermionAsset {
   }
 
   ///
-  ///
-  ///
   final Pointer<TSceneAsset> asset;
 
   ///
-  ///
-  ///
-  final FFIFilamentApp app;
-
-  ///
-  ///
-  ///
   final Pointer<TAnimationManager> animationManager;
 
-  ///
-  ///
   ///
   bool get isInstance => instanceOwner != null;
   final FFIAsset? instanceOwner;
 
 
-
-  ///
-  ///
   ///
   late final ThermionEntity entity;
 
@@ -49,7 +33,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  FFIAsset(this.asset, this.app, this.animationManager,
+  FFIAsset(this.asset, this.animationManager,
       {this.instanceOwner = null, this.keepData = false}) {
     entity = SceneAsset_getEntity(asset);
   }
@@ -124,7 +108,7 @@ class FFIAsset extends ThermionAsset {
     if (instance == nullptr) {
       throw Exception("No instance available at index $index");
     }
-    return FFIAsset(instance, app, animationManager);
+    return FFIAsset(instance, animationManager);
   }
 
   ///
@@ -133,8 +117,9 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<FFIAsset> createInstance(
       {List<MaterialInstance>? materialInstances = null}) async {
-    if(isInstance) {
-      return instanceOwner!.createInstance(materialInstances: materialInstances);
+    if (isInstance) {
+      return instanceOwner!
+          .createInstance(materialInstances: materialInstances);
     }
     if (!keepData) {
       throw Exception(
@@ -169,7 +154,8 @@ class FFIAsset extends ThermionAsset {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, app, animationManager, instanceOwner: this, keepData: keepData);
+    return FFIAsset(created, animationManager,
+        instanceOwner: this, keepData: keepData);
   }
 
   ///
@@ -192,7 +178,7 @@ class FFIAsset extends ThermionAsset {
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
-      return FFIAsset(instance, app, animationManager);
+      return FFIAsset(instance, animationManager);
     });
 
     return result;
@@ -210,7 +196,7 @@ class FFIAsset extends ThermionAsset {
   ///
   Future<v64.Aabb3> getBoundingBox() async {
     final entities = <ThermionEntity>[];
-    if (RenderableManager_isRenderable(app.renderableManager, entity)) {
+    if (FilamentApp.instance!.renderableManager.isRenderable(entity)) {
       entities.add(entity);
     } else {
       entities.addAll(await getChildEntities());
@@ -219,12 +205,8 @@ class FFIAsset extends ThermionAsset {
     var boundingBox = v64.Aabb3();
 
     for (final entity in entities) {
-      final aabb3 = RenderableManager_getAabb(app.renderableManager, entity);
-      final entityBB = v64.Aabb3.centerAndHalfExtents(
-        v64.Vector3(aabb3.centerX, aabb3.centerY, aabb3.centerZ),
-        v64.Vector3(aabb3.halfExtentX, aabb3.halfExtentY, aabb3.halfExtentZ),
-      );
-      boundingBox.hull(entityBB);
+      final aabb3 = FilamentApp.instance!.renderableManager.getBoundingBox(entity);
+      boundingBox.hull(aabb3);
     }
     return boundingBox;
   }
@@ -236,11 +218,11 @@ class FFIAsset extends ThermionAsset {
   Future<MaterialInstance> getMaterialInstanceAt(
       {ThermionEntity? entity, int index = 0}) async {
     if (entity == null) {
-      if (RenderableManager_isRenderable(app.renderableManager, this.entity)) {
+      if (FilamentApp.instance!.renderableManager.isRenderable(this.entity)) {
         entity ??= this.entity;
       } else {
         for (final child in await getChildEntities()) {
-          if (RenderableManager_isRenderable(app.renderableManager, child)) {
+          if (FilamentApp.instance!.renderableManager.isRenderable(child)) {
             entity = child;
             break;
           }
@@ -252,12 +234,11 @@ class FFIAsset extends ThermionAsset {
       throw Exception("Failed to find renderable entity");
     }
 
-    var ptr = RenderableManager_getMaterialInstanceAt(
-        Engine_getRenderableManager(app.engine), entity, 0);
-    if (ptr == nullptr) {
+    var instance = await FilamentApp.instance!.renderableManager.getMaterialInstanceAt(entity, 0);
+    if (instance == null) {
       throw Exception("Failed to get material instance for asset");
     }
-    return FFIMaterialInstance(ptr, app);
+    return instance;
   }
 
   ///
@@ -265,13 +246,13 @@ class FFIAsset extends ThermionAsset {
   ///
   Future setMaterialInstanceForAll(FFIMaterialInstance instance) async {
     for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
-      if (RenderableManager_isRenderable(app.renderableManager, entity)) {
+      if (FilamentApp.instance!.renderableManager.isRenderable(entity)) {
         await setMaterialInstanceAt(instance,
             entity: entity, primitiveIndex: i);
       }
     }
     for (final entity in await getChildEntities()) {
-      if (!RenderableManager_isRenderable(app.renderableManager, entity)) {
+      if (!FilamentApp.instance!.renderableManager.isRenderable(entity)) {
         continue;
       }
       for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
@@ -290,7 +271,7 @@ class FFIAsset extends ThermionAsset {
     var entities = [entity, ...await getChildEntities()];
 
     for (final entity in entities) {
-      if (RenderableManager_isRenderable(app.renderableManager, entity)) {
+      if (FilamentApp.instance!.renderableManager.isRenderable(entity)) {
         result[entity] = [];
         for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
           result[entity]!
@@ -307,7 +288,7 @@ class FFIAsset extends ThermionAsset {
   Future setMaterialInstancesFromMap(
       Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
     for (final entity in materialInstances.keys) {
-      if (RenderableManager_isRenderable(app.renderableManager, entity)) {
+      if (FilamentApp.instance!.renderableManager.isRenderable(entity)) {
         for (int i = 0; i < materialInstances[entity]!.length; i++) {
           final mi = materialInstances[entity]![i];
           await setMaterialInstanceAt(mi as FFIMaterialInstance,
@@ -323,18 +304,17 @@ class FFIAsset extends ThermionAsset {
   @override
   Future setMaterialInstanceAt(MaterialInstance instance,
       {int? entity = null, int primitiveIndex = 0}) async {
-    if (entity != null &&
-        !RenderableManager_isRenderable(app.renderableManager, entity)) {
+    if (entity != null && !FilamentApp.instance!.renderableManager.isRenderable(entity)) {
       _logger.warning("Provided entity is not renderable");
       return;
     }
 
     if (entity == null) {
-      if (RenderableManager_isRenderable(app.renderableManager, this.entity)) {
+      if (FilamentApp.instance!.renderableManager.isRenderable(this.entity)) {
         entity ??= this.entity;
       } else {
         for (final child in await getChildEntities()) {
-          if (RenderableManager_isRenderable(app.renderableManager, child)) {
+          if (FilamentApp.instance!.renderableManager.isRenderable(child)) {
             entity = child;
             break;
           }
@@ -346,11 +326,8 @@ class FFIAsset extends ThermionAsset {
       throw Exception("Failed to find renderable entity");
     }
 
-    if (!RenderableManager_setMaterialInstanceAt(
-        Engine_getRenderableManager(app.engine),
-        entity,
-        primitiveIndex,
-        instance.getNativeHandle())) {
+    if (!await FilamentApp.instance!.renderableManager
+        .setMaterialInstanceAt(entity, primitiveIndex, instance)) {
       _logger.warning(
           "Failed to set material instance for entity $entity at primitive index ${primitiveIndex}");
     }
@@ -360,11 +337,9 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future setCastShadows(bool castShadows) async {
-    RenderableManager_setCastShadows(
-        app.renderableManager, this.entity, castShadows);
+    await FilamentApp.instance!.renderableManager.setCastShadows(this.entity, castShadows);
     for (final entity in await this.getChildEntities()) {
-      RenderableManager_setCastShadows(
-          app.renderableManager, entity, castShadows);
+      await FilamentApp.instance!.renderableManager.setCastShadows(entity, castShadows);
     }
   }
 
@@ -372,11 +347,9 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future setReceiveShadows(bool receiveShadows) async {
-    RenderableManager_setReceiveShadows(
-        app.renderableManager, this.entity, receiveShadows);
+    await FilamentApp.instance!.renderableManager.setReceiveShadows(this.entity, receiveShadows);
     for (final entity in await this.getChildEntities()) {
-      RenderableManager_setReceiveShadows(
-          app.renderableManager, entity, receiveShadows);
+      await FilamentApp.instance!.renderableManager.setReceiveShadows(entity, receiveShadows);
     }
   }
 
@@ -385,7 +358,7 @@ class FFIAsset extends ThermionAsset {
   ///
   Future<bool> isCastShadowsEnabled({ThermionEntity? entity}) async {
     entity ??= this.entity;
-    return RenderableManager_isShadowCaster(app.renderableManager, entity);
+    return FilamentApp.instance!.renderableManager.isShadowCaster(entity);
   }
 
   ///
@@ -393,17 +366,15 @@ class FFIAsset extends ThermionAsset {
   ///
   Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity}) async {
     entity ??= this.entity;
-    return RenderableManager_isShadowReceiver(app.renderableManager, entity);
+    return FilamentApp.instance!.renderableManager.isShadowReceiver(entity);
   }
 
   ///
   ///
   ///
   Future transformToUnitCube() async {
-    if (!TransformManager_transformToUnitCube(
-        app.transformManager, entity, SceneAsset_getBoundingBox(asset))) {
-      throw Exception("Failed to set transform. See logs for details");
-    }
+    FilamentApp.instance!.transformManager
+        .transformToUnitCube(entity, await getBoundingBox());
   }
 
   ///
@@ -411,8 +382,7 @@ class FFIAsset extends ThermionAsset {
   ///
   Future setVisibilityLayer(
       ThermionEntity entity, VisibilityLayers layer) async {
-    RenderableManager_setVisibilityLayer(
-        app.renderableManager, entity, layer.value);
+    await FilamentApp.instance!.renderableManager.setVisibilityLayer(entity, layer.value);
   }
 
   ///
@@ -625,7 +595,6 @@ class FFIAsset extends ThermionAsset {
     }
   }
 
-  ///
   /// Currently, scale is not supported.
   ///
   @override
@@ -723,38 +692,24 @@ class FFIAsset extends ThermionAsset {
   }
 
   ///
-  ///
-  ///
   Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
+
     entity ??= this.entity;
-    final transform = double4x4ToMatrix4(
-        TransformManager_getLocalTransform(app.transformManager, entity));
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
+    final transform =
+        FilamentApp.instance!.transformManager.getLocalTransform(entity);
     return transform;
   }
 
-  ///
-  ///
   ///
   Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
     return FilamentApp.instance!.getWorldTransform(entity ?? this.entity);
   }
 
   ///
-  ///
-  ///
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
     await FilamentApp.instance!.setTransform(entity ?? this.entity, transform);
   }
 
-  ///
-  ///
   ///
   Future updateBoneMatrices(ThermionEntity entity) async {
     throw UnimplementedError();
@@ -935,7 +890,7 @@ class FFIAsset extends ThermionAsset {
   Future<int> getPrimitiveCount({ThermionEntity? entity}) async {
     return FilamentApp.instance!.getPrimitiveCount(entity ??= this.entity);
   }
-  
+
   ///
   ///
   ///

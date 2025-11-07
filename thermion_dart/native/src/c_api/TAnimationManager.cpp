@@ -1,7 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
-
 #include "Log.hpp"
 
 #include <utils/Entity.h>
@@ -259,7 +255,7 @@ extern "C"
             auto numTransforms = transforms.size();
             if (numTransforms != numBones)
             {
-                Log("Error - %d bone transforms available but you only specified %d.", numTransforms, numBones);
+                Log("Error - %zu bone transforms available but you only specified %d.", numTransforms, numBones);
                 return;
             }
             for (int boneIndex = 0; boneIndex < numTransforms; boneIndex++)

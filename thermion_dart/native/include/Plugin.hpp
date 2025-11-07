@@ -7,9 +7,8 @@
 
 namespace thermion::plugin {
     /**
-     * Abstract base interface for plugin component managers.
-     * Plugin component managers should inherit from this interface alongside
-     * utils::SingleInstanceComponentManager<ComponentType> to integrate with
+     * Abstract base interface for plugins.
+     * Plugins should inherit from this interface to integrate with
      * the main animation update loop.
      */
     class Plugin {
@@ -18,9 +17,9 @@ namespace thermion::plugin {
 
         /**
          * Called once per frame from the main animation update loop.
-         * @param deltaTime Time elapsed since last frame in seconds
+         * @param frameTimeInNanos Start time (in nanoseconds) of current frame
          */
-        virtual void update(float deltaTime) = 0;
+        virtual void update(uint64_t frameTimeInNanos) = 0;
 
         /**
          * Returns a unique name for this component manager.
@@ -47,21 +46,3 @@ namespace thermion::plugin {
     bool RegisterPlugin(const std::string& name, Plugin* instance);
 }
 
-/**
- * Convenience macro for auto-registering component managers.
- * Place this at the end of your component manager implementation file.
- *
- * Usage:
- * REGISTER_COMPONENT_MANAGER(CollisionComponentManager)
- *
- * This will automatically create an instance and register it when the plugin is loaded.
- */
-#define REGISTER_COMPONENT_MANAGER(ClassName) \
-    namespace { \
-        static std::unique_ptr<thermion::ClassName> g_##ClassName##_instance = \
-            std::make_unique<thermion::ClassName>(); \
-        static bool g_##ClassName##_registered = thermion::RegisterPlugin( \
-            #ClassName, \
-            g_##ClassName##_instance.get() \
-        ); \
-    }

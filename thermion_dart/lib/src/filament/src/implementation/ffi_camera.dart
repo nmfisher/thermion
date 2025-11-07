@@ -81,8 +81,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   @override
   Future setTransform(Matrix4 transform) async {
     var entity = Camera_getEntity(camera);
-    TransformManager_setTransform(
-        app.transformManager, entity, matrix4ToDouble4x4(transform));
+    FilamentApp.instance!.transformManager.setTransform(entity,transform);
   }
 
   @override

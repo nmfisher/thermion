@@ -14,6 +14,7 @@ namespace thermion::plugin
     namespace
     {
         std::vector<Plugin *> registeredPlugins;
+        std::vector<std::string> registeredPluginNames;
     }
 
     /**
@@ -24,13 +25,24 @@ namespace thermion::plugin
     {
         if (!instance)
         {
-            Log("[PLUGIN] Error: Cannot register null component manager for '%s'", name.c_str());
+            Log("[PLUGIN] Error: Cannot register null plugin '%s'", name.c_str());
             return false;
         }
 
-        registeredPlugins.push_back(instance);
+        for(int i = 0; i < registeredPluginNames.size(); i++) {
 
-        Log("[PLUGIN] Registered component manager instance: %s (%d plugins total)", name.c_str(), registeredPlugins.size());
+            if(registeredPluginNames[i] == name) {
+                registeredPluginNames.erase(registeredPluginNames.begin() + i);
+                registeredPlugins.erase(registeredPlugins.begin() + i);
+                Log("[PLUGIN] Erased existing plugin under name %s (%lu plugins remaining)", name.c_str(), registeredPlugins.size());    
+                break;
+            }
+        }    
+
+        registeredPlugins.push_back(instance);
+        registeredPluginNames.push_back(name);
+
+        Log("[PLUGIN] Registered plugin: %s (%lu plugins total)", name.c_str(), registeredPlugins.size());
 
         return true;
     }
@@ -39,13 +51,13 @@ namespace thermion::plugin
      * Update all registered plugin component managers.
      * This is called from thermion's main render loop.
      */
-    void UpdatePlugins(float deltaTime)
+    void UpdatePlugins(uint64_t frameTimeInNanos)
     {
-        TRACE("Updating %d component managers", registeredPlugins.size());
         for (auto *manager : registeredPlugins)
         {
-            manager->update(deltaTime);
+            manager->update(frameTimeInNanos);
         }
+        TRACE("[PLUGIN] Updated %d plugins", registeredPlugins.size());
     }
 
     /**
@@ -58,6 +70,7 @@ namespace thermion::plugin
             manager->cleanup();
         }
         registeredPlugins.clear();
+        TRACE("All plugins removed");
     }
 
 } // namespace thermion

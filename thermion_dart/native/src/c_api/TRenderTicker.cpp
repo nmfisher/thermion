@@ -1,9 +1,6 @@
 #ifdef _WIN32
 #include "ThermionWin32.h"
 #endif
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
 
 #include <thread>
 #include <functional>
