@@ -1,12 +1,8 @@
 #pragma once
 
-#include "c_api/APIExport.h"
-#include "c_api/APIBoundaryTypes.h"
-
 #include <stdint.h>
 
 #ifdef __cplusplus
-namespace thermion::plugin::input {
 extern "C" {
 #endif
 
@@ -36,6 +32,5 @@ typedef struct {
 
 
 #ifdef __cplusplus
-}
 }
 #endif

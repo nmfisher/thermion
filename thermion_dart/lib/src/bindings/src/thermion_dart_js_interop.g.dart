@@ -7506,6 +7506,7 @@ extension TMaterialInstanceExt on Pointer<TMaterialInstance> {
 }
 
 final class TMaterialInstance extends Struct {
+  Pointer<TMaterialInstance> get address => super.address.cast();
   TMaterialInstance(super.address);
 
   static Pointer<TMaterialInstance> stackAlloc() {
@@ -7521,6 +7522,7 @@ extension TMaterialExt on Pointer<TMaterial> {
 }
 
 final class TMaterial extends Struct {
+  Pointer<TMaterial> get address => super.address.cast();
   TMaterial(super.address);
 
   static Pointer<TMaterial> stackAlloc() {
@@ -7542,6 +7544,7 @@ extension TEngineExt on Pointer<TEngine> {
 }
 
 final class TEngine extends Struct {
+  Pointer<TEngine> get address => super.address.cast();
   TEngine(super.address);
 
   static Pointer<TEngine> stackAlloc() {
@@ -7563,6 +7566,7 @@ extension TTextureExt on Pointer<TTexture> {
 }
 
 final class TTexture extends Struct {
+  Pointer<TTexture> get address => super.address.cast();
   TTexture(super.address);
 
   static Pointer<TTexture> stackAlloc() {
@@ -7577,6 +7581,7 @@ extension TTextureSamplerExt on Pointer<TTextureSampler> {
 }
 
 final class TTextureSampler extends Struct {
+  Pointer<TTextureSampler> get address => super.address.cast();
   TTextureSampler(super.address);
 
   static Pointer<TTextureSampler> stackAlloc() {
@@ -7649,6 +7654,7 @@ extension TLightManagerExt on Pointer<TLightManager> {
 }
 
 final class TLightManager extends Struct {
+  Pointer<TLightManager> get address => super.address.cast();
   TLightManager(super.address);
 
   static Pointer<TLightManager> stackAlloc() {
@@ -7675,6 +7681,7 @@ extension double3Ext on Pointer<double3> {
 }
 
 final class double3 extends Struct {
+  Pointer<double3> get address => super.address.cast();
   double get x {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, 'double').toDartDouble;
@@ -7719,6 +7726,7 @@ extension TShadowOptionsExt on Pointer<TShadowOptions> {
 }
 
 final class TShadowOptions extends Struct {
+  Pointer<TShadowOptions> get address => super.address.cast();
   int get mapSize {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
@@ -7960,6 +7968,7 @@ extension TFilamentAssetExt on Pointer<TFilamentAsset> {
 }
 
 final class TFilamentAsset extends Struct {
+  Pointer<TFilamentAsset> get address => super.address.cast();
   TFilamentAsset(super.address);
 
   static Pointer<TFilamentAsset> stackAlloc() {
@@ -7975,6 +7984,7 @@ extension TGltfAssetLoaderExt on Pointer<TGltfAssetLoader> {
 }
 
 final class TGltfAssetLoader extends Struct {
+  Pointer<TGltfAssetLoader> get address => super.address.cast();
   TGltfAssetLoader(super.address);
 
   static Pointer<TGltfAssetLoader> stackAlloc() {
@@ -7990,6 +8000,7 @@ extension TMaterialProviderExt on Pointer<TMaterialProvider> {
 }
 
 final class TMaterialProvider extends Struct {
+  Pointer<TMaterialProvider> get address => super.address.cast();
   TMaterialProvider(super.address);
 
   static Pointer<TMaterialProvider> stackAlloc() {
@@ -8005,6 +8016,7 @@ extension TNameComponentManagerExt on Pointer<TNameComponentManager> {
 }
 
 final class TNameComponentManager extends Struct {
+  Pointer<TNameComponentManager> get address => super.address.cast();
   TNameComponentManager(super.address);
 
   static Pointer<TNameComponentManager> stackAlloc() {
@@ -8024,6 +8036,7 @@ extension TRenderableManagerExt on Pointer<TRenderableManager> {
 }
 
 final class TRenderableManager extends Struct {
+  Pointer<TRenderableManager> get address => super.address.cast();
   TRenderableManager(super.address);
 
   static Pointer<TRenderableManager> stackAlloc() {
@@ -8039,6 +8052,7 @@ extension TViewportExt on Pointer<TViewport> {
 }
 
 final class TViewport extends Struct {
+  Pointer<TViewport> get address => super.address.cast();
   int get left {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
@@ -8093,6 +8107,7 @@ extension TViewExt on Pointer<TView> {
 }
 
 final class TView extends Struct {
+  Pointer<TView> get address => super.address.cast();
   TView(super.address);
 
   static Pointer<TView> stackAlloc() {
@@ -8107,6 +8122,7 @@ extension TColorGradingExt on Pointer<TColorGrading> {
 }
 
 final class TColorGrading extends Struct {
+  Pointer<TColorGrading> get address => super.address.cast();
   TColorGrading(super.address);
 
   static Pointer<TColorGrading> stackAlloc() {
@@ -8133,6 +8149,7 @@ extension TRenderTargetExt on Pointer<TRenderTarget> {
 }
 
 final class TRenderTarget extends Struct {
+  Pointer<TRenderTarget> get address => super.address.cast();
   TRenderTarget(super.address);
 
   static Pointer<TRenderTarget> stackAlloc() {
@@ -8150,6 +8167,7 @@ extension TSoftShadowOptionsExt on Pointer<TSoftShadowOptions> {
 }
 
 final class TSoftShadowOptions extends Struct {
+  Pointer<TSoftShadowOptions> get address => super.address.cast();
   double get penumbraScale {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
@@ -8187,6 +8205,7 @@ extension TVsmShadowOptionsExt on Pointer<TVsmShadowOptions> {
 }
 
 final class TVsmShadowOptions extends Struct {
+  Pointer<TVsmShadowOptions> get address => super.address.cast();
   int get anisotropy {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
@@ -8269,6 +8288,7 @@ extension TCameraExt on Pointer<TCamera> {
 }
 
 final class TCamera extends Struct {
+  Pointer<TCamera> get address => super.address.cast();
   TCamera(super.address);
 
   static Pointer<TCamera> stackAlloc() {
@@ -8283,6 +8303,7 @@ extension TSceneExt on Pointer<TScene> {
 }
 
 final class TScene extends Struct {
+  Pointer<TScene> get address => super.address.cast();
   TScene(super.address);
 
   static Pointer<TScene> stackAlloc() {
@@ -8299,6 +8320,7 @@ extension TFogOptionsExt on Pointer<TFogOptions> {
 }
 
 final class TFogOptions extends Struct {
+  Pointer<TFogOptions> get address => super.address.cast();
   double get distance {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
@@ -8468,6 +8490,7 @@ extension TIndirectLightExt on Pointer<TIndirectLight> {
 }
 
 final class TIndirectLight extends Struct {
+  Pointer<TIndirectLight> get address => super.address.cast();
   TIndirectLight(super.address);
 
   static Pointer<TIndirectLight> stackAlloc() {
@@ -8604,6 +8627,7 @@ extension TLinearImageExt on Pointer<TLinearImage> {
 }
 
 final class TLinearImage extends Struct {
+  Pointer<TLinearImage> get address => super.address.cast();
   TLinearImage(super.address);
 
   static Pointer<TLinearImage> stackAlloc() {
@@ -8726,6 +8750,7 @@ extension TKtx1BundleExt on Pointer<TKtx1Bundle> {
 }
 
 final class TKtx1Bundle extends Struct {
+  Pointer<TKtx1Bundle> get address => super.address.cast();
   TKtx1Bundle(super.address);
 
   static Pointer<TKtx1Bundle> stackAlloc() {
@@ -8779,6 +8804,7 @@ extension TGizmoExt on Pointer<TGizmo> {
 }
 
 final class TGizmo extends Struct {
+  Pointer<TGizmo> get address => super.address.cast();
   TGizmo(super.address);
 
   static Pointer<TGizmo> stackAlloc() {
@@ -8793,6 +8819,7 @@ extension TGltfResourceLoaderExt on Pointer<TGltfResourceLoader> {
 }
 
 final class TGltfResourceLoader extends Struct {
+  Pointer<TGltfResourceLoader> get address => super.address.cast();
   TGltfResourceLoader(super.address);
 
   static Pointer<TGltfResourceLoader> stackAlloc() {
@@ -8827,6 +8854,7 @@ extension TSkyboxExt on Pointer<TSkybox> {
 }
 
 final class TSkybox extends Struct {
+  Pointer<TSkybox> get address => super.address.cast();
   TSkybox(super.address);
 
   static Pointer<TSkybox> stackAlloc() {
@@ -8841,6 +8869,7 @@ extension double4x4Ext on Pointer<double4x4> {
 }
 
 final class double4x4 extends Struct {
+  Pointer<double4x4> get address => super.address.cast();
   Array<Float64> get col1 {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, '*');
@@ -8909,6 +8938,7 @@ extension TTransformManagerExt on Pointer<TTransformManager> {
 }
 
 final class TTransformManager extends Struct {
+  Pointer<TTransformManager> get address => super.address.cast();
   TTransformManager(super.address);
 
   static Pointer<TTransformManager> stackAlloc() {
@@ -8924,6 +8954,7 @@ extension Aabb3Ext on Pointer<Aabb3> {
 }
 
 final class Aabb3 extends Struct {
+  Pointer<Aabb3> get address => super.address.cast();
   double get centerX {
     final addr = this.address + 0;
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
@@ -8998,6 +9029,7 @@ extension TRendererExt on Pointer<TRenderer> {
 }
 
 final class TRenderer extends Struct {
+  Pointer<TRenderer> get address => super.address.cast();
   TRenderer(super.address);
 
   static Pointer<TRenderer> stackAlloc() {
@@ -9012,6 +9044,7 @@ extension TSwapChainExt on Pointer<TSwapChain> {
 }
 
 final class TSwapChain extends Struct {
+  Pointer<TSwapChain> get address => super.address.cast();
   TSwapChain(super.address);
 
   static Pointer<TSwapChain> stackAlloc() {
@@ -9027,6 +9060,7 @@ extension TOverlayManagerExt on Pointer<TOverlayManager> {
 }
 
 final class TOverlayManager extends Struct {
+  Pointer<TOverlayManager> get address => super.address.cast();
   TOverlayManager(super.address);
 
   static Pointer<TOverlayManager> stackAlloc() {
@@ -9042,6 +9076,7 @@ extension TRenderTickerExt on Pointer<TRenderTicker> {
 }
 
 final class TRenderTicker extends Struct {
+  Pointer<TRenderTicker> get address => super.address.cast();
   TRenderTicker(super.address);
 
   static Pointer<TRenderTicker> stackAlloc() {
@@ -9057,6 +9092,7 @@ extension TAnimationManagerExt on Pointer<TAnimationManager> {
 }
 
 final class TAnimationManager extends Struct {
+  Pointer<TAnimationManager> get address => super.address.cast();
   TAnimationManager(super.address);
 
   static Pointer<TAnimationManager> stackAlloc() {
@@ -9089,6 +9125,7 @@ extension TEntityManagerExt on Pointer<TEntityManager> {
 }
 
 final class TEntityManager extends Struct {
+  Pointer<TEntityManager> get address => super.address.cast();
   TEntityManager(super.address);
 
   static Pointer<TEntityManager> stackAlloc() {
@@ -9104,6 +9141,7 @@ extension TFenceExt on Pointer<TFence> {
 }
 
 final class TFence extends Struct {
+  Pointer<TFence> get address => super.address.cast();
   TFence(super.address);
 
   static Pointer<TFence> stackAlloc() {
@@ -9118,6 +9156,7 @@ extension TDebugRegistryExt on Pointer<TDebugRegistry> {
 }
 
 final class TDebugRegistry extends Struct {
+  Pointer<TDebugRegistry> get address => super.address.cast();
   TDebugRegistry(super.address);
 
   static Pointer<TDebugRegistry> stackAlloc() {
@@ -9133,6 +9172,7 @@ extension TSceneAssetExt on Pointer<TSceneAsset> {
 }
 
 final class TSceneAsset extends Struct {
+  Pointer<TSceneAsset> get address => super.address.cast();
   TSceneAsset(super.address);
 
   static Pointer<TSceneAsset> stackAlloc() {
@@ -9165,6 +9205,7 @@ extension TRenderableBuilderExt on Pointer<TRenderableBuilder> {
 }
 
 final class TRenderableBuilder extends Struct {
+  Pointer<TRenderableBuilder> get address => super.address.cast();
   TRenderableBuilder(super.address);
 
   static Pointer<TRenderableBuilder> stackAlloc() {
@@ -9180,6 +9221,7 @@ extension TVertexBufferExt on Pointer<TVertexBuffer> {
 }
 
 final class TVertexBuffer extends Struct {
+  Pointer<TVertexBuffer> get address => super.address.cast();
   TVertexBuffer(super.address);
 
   static Pointer<TVertexBuffer> stackAlloc() {
@@ -9195,6 +9237,7 @@ extension TIndexBufferExt on Pointer<TIndexBuffer> {
 }
 
 final class TIndexBuffer extends Struct {
+  Pointer<TIndexBuffer> get address => super.address.cast();
   TIndexBuffer(super.address);
 
   static Pointer<TIndexBuffer> stackAlloc() {
@@ -9210,6 +9253,7 @@ extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
 }
 
 final class TMovementIntentExecutor extends Struct {
+  Pointer<TMovementIntentExecutor> get address => super.address.cast();
   TMovementIntentExecutor(super.address);
 
   static Pointer<TMovementIntentExecutor> stackAlloc() {
@@ -9225,6 +9269,7 @@ extension TMovementIntentExt on Pointer<TMovementIntent> {
 }
 
 final class TMovementIntent extends Struct {
+  Pointer<TMovementIntent> get address => super.address.cast();
   TMovementIntent(super.address);
 
   static Pointer<TMovementIntent> stackAlloc() {

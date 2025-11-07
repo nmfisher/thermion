@@ -27,10 +27,11 @@ flutter-example-macos:
 swift-bindings:
 	swiftc -c thermion_dart/native/macos/MetalTextureWrapper.swift -module-name thermion_flutter -emit-objc-header-path thermion_dart/native/include/generated/MetalTextureWrapperObjCAPI.h -emit-library -o thermion_dart/test/generated/libMetalTextureWrapper.dylib
 	cd thermion_dart/ && dart --enable-experiment=native-assets run ffigen --config ffigen/swift.yaml
-# 	swiftc -c thermion_flutter/thermion_flutter/darwin/Classes/SwiftThermionFlutterPluginObjCAPI.swift -c thermion_flutter/thermion_flutter/darwin/Classes/MetalTextureWrapper.swift -module-name thermion_flutter -emit-objc-header-path thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h
-# 	cd thermion_flutter/thermion_flutter && dart --enable-experiment=native-assets run ffigen --config ffigen/swift.yaml
+	swiftc -c thermion_flutter/thermion_flutter/darwin/Classes/SwiftThermionFlutterPluginObjCAPI.swift -c thermion_flutter/thermion_flutter/darwin/Classes/MetalTextureWrapper.swift -module-name thermion_flutter -emit-objc-header-path thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h
+	cd thermion_flutter/thermion_flutter && dart --enable-experiment=native-assets run ffigen --config ffigen/swift.yaml
 bindings:
 	cd thermion_dart/ && dart --enable-experiment=native-assets run ffigen --config ffigen/native.yaml
+	cd thermion_dart/ && dart --enable-experiment=native-assets run ffigen_js --config ffigen/web.yaml
 shared:
 	cd thermion_dart/native && make
 

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <stdint.h>
+#include "APIExport.h"
+#include "APIBoundaryTypes.h"
 
-#include "c_api/APIExport.h"
-#include "c_api/APIBoundaryTypes.h"
+#include "ffigen_fix.h"
+
 #include "TMovementIntentCalculator.h"
 
 #ifdef __cplusplus
-namespace thermion::plugin::input {
 extern "C" {
 #endif
 
@@ -28,6 +28,5 @@ EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_process(
 EMSCRIPTEN_KEEPALIVE void Pipeline_registerMovementIntentExecutor(TMovementIntentExecutor* executor);
 
 #ifdef __cplusplus
-}
 }
 #endif

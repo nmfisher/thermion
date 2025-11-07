@@ -3,6 +3,8 @@
 #include "c_api/APIExport.h"
 #include "c_api/APIBoundaryTypes.h"
 
+#include "ffigen_fix.h"
+
 #include <stdint.h>
 
 #ifdef __cplusplus

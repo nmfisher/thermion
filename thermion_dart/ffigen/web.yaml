@@ -9,7 +9,7 @@ headers:
     - '../native/include/c_api/*.h'
     - '../native/include/c_api/**/*.h'
 compiler-opts:
-  - "-D__EMSCRIPTEN__"
+  - '-D__EMSCRIPTEN__'
 structs:
   dependency-only: opaque
   exclude: 

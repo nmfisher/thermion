@@ -1,4 +1,4 @@
-#include "c_api/transform_pipeline/TInputHandlerPipeline.h"
+#include "c_api/transform_pipeline/TTransformPipeline.h"
 #include "transform_pipeline/InputEventManager.hpp"
 #include "transform_pipeline/MovementIntentCalculator.hpp"
 #include "transform_pipeline/Pipeline.hpp"
