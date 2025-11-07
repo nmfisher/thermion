@@ -1,7 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
-
 #include "Log.hpp"
 
 #include <utils/Entity.h>

@@ -1,10 +1,9 @@
 #pragma once
 
-#ifndef EMSCRIPTEN_KEEPALIVE
-#define EMSCRIPTEN_KEEPALIVE
-#endif
-
 #include <stdint.h>
+
+#include "c_api/APIExport.h"
+#include "c_api/APIBoundaryTypes.h"
 #include "TMovementIntentCalculator.h"
 
 #ifdef __cplusplus

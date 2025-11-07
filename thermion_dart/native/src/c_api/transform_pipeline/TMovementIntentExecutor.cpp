@@ -1,6 +1,7 @@
-#include "Log.hpp"
 #include <utils/Entity.h>
 #include <filament/Engine.h>
+
+#include "Log.hpp"
 #include "c_api/transform_pipeline/TMovementIntentExecutor.h"
 #include "transform_pipeline/MovementIntentExecutor.hpp"
 #include "transform_pipeline/Pipeline.hpp"

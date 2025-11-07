@@ -1,13 +1,11 @@
 #pragma once
 
-#ifndef EMSCRIPTEN_KEEPALIVE
-#define EMSCRIPTEN_KEEPALIVE
-#endif
+#include "c_api/APIExport.h"
+#include "c_api/APIBoundaryTypes.h"
 
 #include <stdint.h>
 
 #ifdef __cplusplus
-namespace thermion::plugin::input {
 extern "C" {
 #endif
 
@@ -41,6 +39,5 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_unregisterPipelineStage(void* pipeli
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_cleanup();
 
 #ifdef __cplusplus
-}
 }
 #endif

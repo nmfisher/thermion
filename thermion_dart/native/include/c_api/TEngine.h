@@ -1,5 +1,4 @@
-#ifndef _T_ENGINE_H
-#define _T_ENGINE_H
+#pragma once
 
 #include "APIExport.h"
 #include "APIBoundaryTypes.h"
@@ -80,4 +79,3 @@ EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_float(TDebugRegistry *tDebug
 }
 #endif
 
-#endif

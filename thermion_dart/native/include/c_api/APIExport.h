@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #ifdef _WIN32
 #ifdef IS_DLL
 #define EMSCRIPTEN_KEEPALIVE __declspec(dllimport)

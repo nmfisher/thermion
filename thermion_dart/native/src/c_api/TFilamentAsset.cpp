@@ -1,7 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
-
 #include <gltfio/FilamentAsset.h>
 
 #include "c_api/TSceneAsset.h"

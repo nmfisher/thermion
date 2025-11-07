@@ -1,7 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
-
 #include <filament/MaterialInstance.h>
 #include <filament/RenderableManager.h>
 #include <utils/Entity.h>

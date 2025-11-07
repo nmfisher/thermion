@@ -1,5 +1,7 @@
 #pragma once
 
+#include "APIExport.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -7,8 +9,6 @@ extern "C"
 
 #include <stddef.h>
 #include <stdint.h>
-
-#include "APIExport.h"
 
 	typedef void (*VoidCallback)(int32_t requestId);
 	

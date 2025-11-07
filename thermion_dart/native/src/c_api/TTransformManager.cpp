@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
+
 
 #include <utils/Entity.h>
 #include <filament/TransformManager.h>

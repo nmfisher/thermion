@@ -8,17 +8,11 @@
 
 #include <utils/Entity.h>
 
-/**
- * Public C API functions for Dart FFI integration.
- * Bridges the C interface to the C++ InputEventManager and MovementIntentCalculator.
- */
-
-#ifdef __cplusplus
 extern "C" {
-namespace thermion::plugin::input {
-#endif
 
 using namespace thermion;
+using namespace thermion::plugin::input;
+
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_setEngine(void* enginePtr) {
     auto pipeline = getPipeline();
@@ -27,8 +21,6 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_setEngine(void* enginePtr) {
         pipeline->setEngine(engine);
     }
 }
-
-
 
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_onMouseEvent(
     int eventType, int button,
@@ -133,7 +125,4 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_cleanup() {
     }
 }
 
-#ifdef __cplusplus
 }
-}
-#endif

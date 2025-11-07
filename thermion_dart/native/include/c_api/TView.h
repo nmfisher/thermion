@@ -1,5 +1,7 @@
 #pragma once
 
+#include "APIExport.h"
+
 #ifdef __cplusplus
 namespace thermion {
 extern "C"
@@ -7,7 +9,6 @@ extern "C"
 #endif
 
 #include "APIBoundaryTypes.h"
-#include "APIExport.h"
 
 struct TViewport { 
     int32_t left;
