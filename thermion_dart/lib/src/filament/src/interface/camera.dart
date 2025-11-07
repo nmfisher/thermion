@@ -50,6 +50,21 @@ abstract class Camera<T> extends NativeHandle {
   Future setExposure(
       double aperture, double shutterSpeed, double sensitivity);
 
+  /// Returns this camera's aperture in f-stops.
+  ///
+  ///
+  Future<double> getAperture();
+
+  /// Returns this camera's shutter speed in seconds.
+  ///
+  ///
+  Future<double> getShutterSpeed();
+
+  /// Returns this camera's sensitivity in ISO.
+  ///
+  ///
+  Future<double> getSensitivity();
+
   Future setProjection(Projection projection, double left, double right,
       double bottom, double top, double near, double far);
   Future setProjectionMatrixWithCulling(

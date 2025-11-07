@@ -232,6 +232,15 @@ class FFICamera extends Camera<Pointer<TCamera>> {
     Camera_setExposure(camera, aperture, shutterSpeed, sensitivity);
   }
 
+  @override
+  Future<double> getAperture() async => Camera_getAperture(camera);
+
+  @override
+  Future<double> getShutterSpeed() async => Camera_getShutterSpeed(camera);
+
+  @override
+  Future<double> getSensitivity() async => Camera_getSensitivity(camera);
+
   Future<double> getFocusDistance() async => Camera_getFocusDistance(camera);
   Future setFocusDistance(double focusDistance) async =>
       Camera_setFocusDistance(camera, focusDistance);

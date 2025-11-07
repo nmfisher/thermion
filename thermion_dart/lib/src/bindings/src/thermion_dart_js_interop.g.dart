@@ -789,6 +789,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double shutterSpeed,
     double sensitivity,
   );
+  external double _Camera_getAperture(
+    Pointer<TCamera> camera,
+  );
+  external double _Camera_getShutterSpeed(
+    Pointer<TCamera> camera,
+  );
+  external double _Camera_getSensitivity(
+    Pointer<TCamera> camera,
+  );
   external void _Camera_getModelMatrix(
     Pointer<double4x4> double4x4_out,
     Pointer<TCamera> camera,
@@ -4040,6 +4049,29 @@ void Camera_setExposure(
 ) {
   final result = GeneratedBindings.instance
       ._Camera_setExposure(camera.cast(), aperture, shutterSpeed, sensitivity);
+  return result;
+}
+
+double Camera_getAperture(
+  Pointer<TCamera> camera,
+) {
+  final result = GeneratedBindings.instance._Camera_getAperture(camera.cast());
+  return result;
+}
+
+double Camera_getShutterSpeed(
+  Pointer<TCamera> camera,
+) {
+  final result =
+      GeneratedBindings.instance._Camera_getShutterSpeed(camera.cast());
+  return result;
+}
+
+double Camera_getSensitivity(
+  Pointer<TCamera> camera,
+) {
+  final result =
+      GeneratedBindings.instance._Camera_getSensitivity(camera.cast());
   return result;
 }
 

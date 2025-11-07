@@ -1,7 +1,5 @@
 // ignore_for_file: unused_local_variable
-
 import 'dart:math';
-
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
@@ -42,11 +40,32 @@ void main() async {
     });
   });
 
-  test('set exposure', () async {
+  test('get/set exposure (aperture, shutter speed, sensitivity)', () async {
     await testHelper.withViewer((viewer) async {
       final camera = await viewer.getActiveCamera();
+
+      // Default exposure values should be f/16, 1/125s, 100 ISO
+      var aperture = await camera.getAperture();
+      var shutterSpeed = await camera.getShutterSpeed();
+      var sensitivity = await camera.getSensitivity();
+
+      expect(aperture, closeTo(16.0, 0.001));
+      expect(shutterSpeed, closeTo(1.0 / 125.0, 0.00001));
+      expect(sensitivity, closeTo(100.0, 0.001));
+
       await testHelper.capture(viewer.view, "camera_default_exposure");
+
+      // Test setting and getting custom exposure parameters
       await camera.setExposure(16.0, 1.0 / 125.0, 200.0);
+
+      aperture = await camera.getAperture();
+      shutterSpeed = await camera.getShutterSpeed();
+      sensitivity = await camera.getSensitivity();
+
+      expect(aperture, closeTo(16.0, 0.001));
+      expect(shutterSpeed, closeTo(1.0 / 125.0, 0.00001));
+      expect(sensitivity, closeTo(200.0, 0.001));
+
       await testHelper.capture(viewer.view, "camera_iso_200");
     }, addSkybox: true);
   });

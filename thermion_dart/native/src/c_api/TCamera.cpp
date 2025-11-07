@@ -54,6 +54,21 @@ namespace thermion
             camera->setExposure(aperture, shutterSpeed, sensitivity);
         }
 
+        EMSCRIPTEN_KEEPALIVE float Camera_getAperture(TCamera *tCamera) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getAperture();
+        }
+
+        EMSCRIPTEN_KEEPALIVE float Camera_getShutterSpeed(TCamera *tCamera) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getShutterSpeed();
+        }
+
+        EMSCRIPTEN_KEEPALIVE float Camera_getSensitivity(TCamera *tCamera) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getSensitivity();
+        }
+
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double *tModelMatrix) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             auto modelMatrix = convert_double_to_mat4f(tModelMatrix);
