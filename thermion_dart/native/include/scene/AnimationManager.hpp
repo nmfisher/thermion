@@ -30,9 +30,7 @@ namespace thermion
     class AnimationManager
     {
     public:
-        AnimationManager(
-            Engine *engine,
-            Scene *scene);
+        AnimationManager(Engine *engine);
         ~AnimationManager() = default;
 
         /// @brief 
@@ -188,11 +186,10 @@ namespace thermion
             
 
     private:
-        Engine *_engine = nullptr;
-        Scene *_scene = nullptr;
-        std::mutex _mutex;
-        std::unique_ptr<GltfAnimationComponentManager> _gltfAnimationComponentManager = std::nullptr_t();
-        std::unique_ptr<MorphAnimationComponentManager> _morphAnimationComponentManager = std::nullptr_t();
-        std::unique_ptr<BoneAnimationComponentManager> _boneAnimationComponentManager = std::nullptr_t();
+        Engine *mEngine = nullptr;
+        std::mutex mMutex;
+        std::unique_ptr<GltfAnimationComponentManager> mGltfAnimationComponentManager = std::nullptr_t();
+        std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager = std::nullptr_t();
+        std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager = std::nullptr_t();
     };
 }

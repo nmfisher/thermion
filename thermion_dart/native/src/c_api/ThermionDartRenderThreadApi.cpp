@@ -772,12 +772,12 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *))
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *animationManager = AnimationManager_create(tEngine, tScene);
+          auto *animationManager = AnimationManager_create(tEngine);
           PROXY(onComplete(animationManager));
         });
     auto fut = _renderThread->add_task(lambda);

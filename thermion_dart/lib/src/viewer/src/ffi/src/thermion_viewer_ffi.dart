@@ -92,7 +92,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await view.setCamera(camera);
 
     animationManager = await withPointerCallback<TAnimationManager>(
-      (cb) => AnimationManager_createRenderThread(app.engine, scene.scene, cb),
+      (cb) => AnimationManager_createRenderThread(app.engine, cb),
     );
 
     RenderTicker_addAnimationManager(app.renderTicker, animationManager);
