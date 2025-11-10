@@ -1,0 +1,38 @@
+name: Auto-generate FFI bindings
+
+on:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+  generate-bindings:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/setup-build-env
+
+      - name: Run ffigen
+        working-directory: thermion_dart
+        run: dart --enable-experiments=native-assets run ffigen --config ffigen/native.yaml
+      - name: Run ffigen_js
+        working-directory: thermion_dart
+        run: dart --enable-experiments=native-assets run ffigen_js --config ffigen/web.yaml
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: auto-generate FFI bindings
+
+          🤖 Generated with GitHub Actions"
+          git push
