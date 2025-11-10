@@ -257,7 +257,7 @@ void main() async {
       // Test shadow options
       final shadowOptions = ShadowOptions(
         mapSize: 2048,
-        shadowCascades: 2,
+        shadowCascades: 3,
         cascadeSplitPositions: [0.1, 0.9],
         constantBias: 0.002,
         normalBias: 2.0,
@@ -268,7 +268,7 @@ void main() async {
 
       final retrievedOptions = lightManager.getShadowOptions(sunLight);
       expect(retrievedOptions.mapSize, equals(2048));
-      expect(retrievedOptions.shadowCascades, equals(2));
+      expect(retrievedOptions.shadowCascades, equals(3));
       expect(retrievedOptions.cascadeSplitPositions.length, equals(2));
       expect(retrievedOptions.constantBias, closeTo(0.002, 0.0001));
       expect(retrievedOptions.normalBias, closeTo(2.0, 0.0001));
@@ -386,8 +386,7 @@ void main() async {
     await builder.execute((viewer, assets) async {
       final lightManager = FilamentApp.instance!.lightManager;
 
-      // Test computeUniformSplits
-      test('computeUniformSplits returns correct split positions', () {
+      
         final uniformSplits2 = lightManager.computeUniformSplits(2);
         expect(uniformSplits2.length, equals(1));
         expect(uniformSplits2[0], closeTo(0.5, 0.001));
@@ -402,15 +401,12 @@ void main() async {
         expect(uniformSplits4[0], closeTo(0.25, 0.001));
         expect(uniformSplits4[1], closeTo(0.5, 0.001));
         expect(uniformSplits4[2], closeTo(0.75, 0.001));
-      });
 
-      test('computeUniformSplits handles invalid input', () {
+
+      
         expect(() => lightManager.computeUniformSplits(1), throwsArgumentError);
         expect(() => lightManager.computeUniformSplits(5), throwsArgumentError);
-      });
-
-      // Test computeLogSplits
-      test('computeLogSplits returns correct split positions', () {
+      
         final logSplits2 = lightManager.computeLogSplits(2, 0.1, 100.0);
         expect(logSplits2.length, equals(1));
         expect(logSplits2[0], greaterThan(0.0));
@@ -432,15 +428,12 @@ void main() async {
             expect(logSplits4[i], greaterThan(logSplits4[i - 1]));
           }
         }
-      });
-
-      test('computeLogSplits handles invalid input', () {
+      
         expect(() => lightManager.computeLogSplits(1, 0.1, 100.0), throwsArgumentError);
         expect(() => lightManager.computeLogSplits(5, 0.1, 100.0), throwsArgumentError);
-      });
+      
 
-      // Test computePracticalSplits
-      test('computePracticalSplits returns correct split positions', () {
+      
         final practicalSplits2 = lightManager.computePracticalSplits(2, 0.1, 100.0, 0.5);
         expect(practicalSplits2.length, equals(1));
         expect(practicalSplits2[0], greaterThan(0.0));
@@ -465,9 +458,7 @@ void main() async {
             expect(practicalSplits4[i], greaterThan(practicalSplits4[i - 1]));
           }
         }
-      });
 
-      test('computePracticalSplits handles lambda values', () {
         final near = 0.1;
         final far = 100.0;
 
@@ -491,20 +482,13 @@ void main() async {
             }
           }
         }
-      });
-
-      test('computePracticalSplits handles invalid input', () {
+      
         expect(() => lightManager.computePracticalSplits(1, 0.1, 100.0, 0.5), throwsArgumentError);
         expect(() => lightManager.computePracticalSplits(5, 0.1, 100.0, 0.5), throwsArgumentError);
         expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, -0.1), throwsArgumentError);
         expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, 1.1), throwsArgumentError);
-      });
-
-      // Test that different methods produce different results
-      test('ShadowCascades methods produce different results', () {
+      
         final cascades = 3;
-        final near = 0.1;
-        final far = 100.0;
 
         final uniformSplits = lightManager.computeUniformSplits(cascades);
         final logSplits = lightManager.computeLogSplits(cascades, near, far);
@@ -524,7 +508,7 @@ void main() async {
           }
         }
         expect(allEqual, isFalse);
-      });
+      
     });
   });
 }
