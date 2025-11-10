@@ -24,7 +24,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int width,
     int height,
   );
+  external void _Thermion_destroyCanvas();
   external int _Thermion_createGLContext();
+  external Pointer<Void> _Thermion_createPlatformWebGL();
   external int _Thermion_getGLContext();
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
@@ -2382,9 +2384,19 @@ void Thermion_resizeCanvas(
   return result;
 }
 
+void Thermion_destroyCanvas() {
+  final result = GeneratedBindings.instance._Thermion_destroyCanvas();
+  return result;
+}
+
 int Thermion_createGLContext() {
   final result = GeneratedBindings.instance._Thermion_createGLContext();
   return result;
+}
+
+Pointer<Void> Thermion_createPlatformWebGL() {
+  final result = GeneratedBindings.instance._Thermion_createPlatformWebGL();
+  return Pointer<Void>(result);
 }
 
 int Thermion_getGLContext() {
