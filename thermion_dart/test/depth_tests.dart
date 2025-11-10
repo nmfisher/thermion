@@ -65,10 +65,7 @@ void main() async {
 
     await view.setScene(scene);
     await view.setViewport(viewportDimensions.width, viewportDimensions.height);
-    final camera = FFICamera(
-        await withPointerCallback<TCamera>((cb) =>
-            Engine_createCameraRenderThread(FilamentApp.instance!.engine, cb)),
-        FilamentApp.instance! as FFIFilamentApp);
+    final camera = await FilamentApp.instance!.createCamera();
 
     await camera.setLensProjection();
 
@@ -98,7 +95,7 @@ void main() async {
     var umi = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
     var cube = await FilamentApp.instance!
-        .createGeometry(GeometryHelper.cube(), nullptr);
+        .createGeometry(GeometryHelper.cube());
     await scene.add(cube as FFIAsset);
     await umi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
@@ -139,10 +136,7 @@ void main() async {
 
     await view.setScene(scene);
     await view.setViewport(viewportDimensions.width, viewportDimensions.height);
-    final camera = FFICamera(
-        await withPointerCallback<TCamera>((cb) =>
-            Engine_createCameraRenderThread(FilamentApp.instance!.engine, cb)),
-        FilamentApp.instance! as FFIFilamentApp);
+    final camera = await FilamentApp.instance!.createCamera();
 
     await camera.setLensProjection();
 
@@ -172,7 +166,7 @@ void main() async {
     var umi = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
     var cube = await FilamentApp.instance!
-        .createGeometry(GeometryHelper.cube(), nullptr);
+        .createGeometry(GeometryHelper.cube());
     await scene.add(cube as FFIAsset);
     await umi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
