@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:web/web.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   late final _logger = Logger(this.runtimeType.toString());
@@ -20,16 +21,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     var asset = await rootBundle.load(path);
     return asset.buffer.asUint8List(asset.offsetInBytes);
   }
-
-  // Future<ThermionViewer> createViewer({bool destroySwapchain = true}) async {
-  //   final viewer = ThermionViewerFFI();
-  //   await viewer.initialized;
-  //   await viewer.setViewport(canvas!.width, canvas.height);
-
-  //   await FilamentApp.instance!.register(swapChain, viewer.view);
-
-  //   return viewer;
-  // }
 
   ///
   void resizeCanvas(double width, double height) async {
@@ -72,9 +63,18 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       NativeLibrary.initBindings("thermion_dart");
     }
 
-    canvas = options.webOptions.createCanvas == true
-        ? document.createElement("canvas") as HTMLCanvasElement?
-        : document.getElementById("thermion_canvas") as HTMLCanvasElement?;
+    canvas = document.getElementById("thermion_canvas") as HTMLCanvasElement?;
+
+        
+    if (options.webOptions.createCanvas) {
+      // Remove and re-create the canvas if createCanvas is true and the canvas
+      // already exists. This fixes the hot-reload problem (where the canvas 
+      // has already been created by the previous iteration and transferred to 
+      // the pthread. This is still an issue if createCanvas is false.
+      // if(canvas.context)
+      canvas?.remove();
+      canvas = document.createElement("canvas") as HTMLCanvasElement?;
+    }
 
     if (canvas == null) {
       throw Exception("Could not locate or create canvas");
@@ -88,10 +88,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       (canvas as HTMLElement).style.zIndex = "-1";
     }
 
+    final platform = Thermion_createPlatformWebGL();
     final config = FFIFilamentConfig(
         backend: Backend.OPENGL,
         loadResource: loadAsset,
-        platform: nullptr,
+        platform: platform,
         sharedContext: nullptr,
         uberArchivePath: options.uberarchivePath);
     await FFIFilamentApp.create(config: config);

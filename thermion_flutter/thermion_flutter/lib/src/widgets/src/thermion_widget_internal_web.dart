@@ -156,6 +156,7 @@ class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
   double width = 0;
   double height = 0;
 
+  @override
   void initState() {
     super.initState();
     canvas =

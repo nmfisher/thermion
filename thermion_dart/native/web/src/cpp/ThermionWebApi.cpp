@@ -5,6 +5,9 @@
 #include <future>
 #include <iostream>
 
+#include <backend/Platform.h>
+#include <backend/platforms/PlatformWebGL.h>
+
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -23,6 +26,17 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void Thermion_resizeCanvas(int width, int height) {
     emscripten_set_canvas_element_size("#thermion_canvas", width, height);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Thermion_destroyCanvas() {
+    val document = val::global("document");
+    val canvas = document.call<val>("querySelector", val("#thermion_canvas"));
+    if (!canvas.isNull() && !canvas.isUndefined()) {
+      canvas.call<void>("remove");
+      std::cout << "Removed #thermion_canvas element" << std::endl;
+    } else {
+      std::cout << "#thermion_canvas element not found" << std::endl;
+    }
   }
 
   static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _context;
@@ -73,6 +87,11 @@ extern "C"
     std::cout << "Returning context" << std::endl;
     return _context;
   }
+
+  EMSCRIPTEN_KEEPALIVE void *Thermion_createPlatformWebGL() {
+    return new filament::backend::PlatformWebGL();
+  }
+
 
   emscripten::val emscripten_make_uint8_buffer(int ptr, int length) {
     uint8_t *buffer = (uint8_t*)ptr;

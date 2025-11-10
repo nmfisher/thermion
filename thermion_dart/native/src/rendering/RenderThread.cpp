@@ -43,6 +43,7 @@ static void mainLoop(void* arg) {
     if(rt->mStop) {
         Log("RenderThread stopped")
         emscripten_set_main_loop_arg(nullptr, nullptr, 0, true);
+        Log("Cleared main loop");    
     }
 
 }
@@ -65,6 +66,7 @@ RenderThread::RenderThread()
 {
     srand(time(NULL));
     #ifdef __EMSCRIPTEN__
+    Log("Starting RenderThread")
     outer = pthread_self();
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -95,14 +97,12 @@ RenderThread::~RenderThread()
         _tasks.pop_front();
         task();
     }
-    #ifdef __EMSCRIPTEN__
-    pthread_join(t, NULL);
-    #else
+    #ifndef __EMSCRIPTEN__
     t->join();
     delete t;
     #endif
 
-    TRACE("RenderThread destructor complete");    
+    Log("RenderThread destructor complete");    
 }
 
 void RenderThread::requestFrame()
