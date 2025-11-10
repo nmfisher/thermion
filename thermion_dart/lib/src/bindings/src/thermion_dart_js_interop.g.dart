@@ -2225,6 +2225,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TOverlayManager> tOverlayManager,
     Pointer<TRenderTarget> tRenderTarget,
   );
+  external int _GltfParser_parseBuffer(
+    Pointer<Uint8> data,
+    size_t length,
+    Pointer<Char> meshName,
+    Pointer<TGltfMeshData> outMeshData,
+  );
+  external void _GltfParser_freeMeshData(
+    Pointer<TGltfMeshData> meshData,
+  );
   external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
     Pointer<TEngine> tEngine,
   );
@@ -7211,6 +7220,25 @@ void OverlayManager_setRenderTarget(
   return result;
 }
 
+int GltfParser_parseBuffer(
+  Pointer<Uint8> data,
+  Dartsize_t length,
+  Pointer<Char> meshName,
+  Pointer<TGltfMeshData> outMeshData,
+) {
+  final result = GeneratedBindings.instance
+      ._GltfParser_parseBuffer(data, length, meshName, outMeshData.cast());
+  return result;
+}
+
+void GltfParser_freeMeshData(
+  Pointer<TGltfMeshData> meshData,
+) {
+  final result =
+      GeneratedBindings.instance._GltfParser_freeMeshData(meshData.cast());
+  return result;
+}
+
 Pointer<TGltfResourceLoader> GltfResourceLoader_create(
   Pointer<TEngine> tEngine,
 ) {
@@ -9283,6 +9311,22 @@ final class TDebugRegistry extends Struct {
   }
 }
 
+extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
+  TGltfMeshData toDart() {
+    return TGltfMeshData(this);
+  }
+}
+
+final class TGltfMeshData extends Struct {
+  Pointer<TGltfMeshData> get address => super.address.cast();
+  TGltfMeshData(super.address);
+
+  static Pointer<TGltfMeshData> stackAlloc() {
+    return Pointer<TGltfMeshData>(
+        NativeLibrary.instance.stackAlloc<TGltfMeshData>(0));
+  }
+}
+
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
   TMovementIntentExecutor toDart() {
     return TMovementIntentExecutor(this);
@@ -9448,6 +9492,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TDebugRegistry:
         final ptr = TDebugRegistry.stackAlloc();
+        return ptr.toDart() as T;
+      case TGltfMeshData:
+        final ptr = TGltfMeshData.stackAlloc();
         return ptr.toDart() as T;
       case TMovementIntentExecutor:
         final ptr = TMovementIntentExecutor.stackAlloc();

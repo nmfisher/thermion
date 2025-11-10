@@ -2160,8 +2160,9 @@ external double3 LightManager_getDirection(
   int light,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
 external void LightManager_setColor(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
@@ -4117,6 +4118,21 @@ external void OverlayManager_setRenderTarget(
   ffi.Pointer<TRenderTarget> tRenderTarget,
 );
 
+@ffi.Native<
+    ffi.Int Function(ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<TGltfMeshData>)>(isLeaf: true)
+external int GltfParser_parseBuffer(
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  ffi.Pointer<ffi.Char> meshName,
+  ffi.Pointer<TGltfMeshData> outMeshData,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfMeshData>)>(isLeaf: true)
+external void GltfParser_freeMeshData(
+  ffi.Pointer<TGltfMeshData> meshData,
+);
+
 @ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(
     isLeaf: true)
 external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
@@ -5133,6 +5149,21 @@ typedef DartFilamentRenderCallbackFunction = void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef FilamentRenderCallback
     = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
+
+final class TGltfMeshData extends ffi.Struct {
+  external ffi.Pointer<ffi.Float> vertices;
+
+  @ffi.Uint32()
+  external int vertexCount;
+
+  external ffi.Pointer<ffi.Uint32> indices;
+
+  @ffi.Uint32()
+  external int indexCount;
+
+  @ffi.UnsignedInt()
+  external int primitiveType;
+}
 
 final class TMovementIntentCalculator extends ffi.Opaque {}
 
