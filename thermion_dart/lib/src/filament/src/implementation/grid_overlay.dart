@@ -33,7 +33,7 @@ class GridOverlay {
   }
 
   static Future<GridOverlay> create(
-      FFIFilamentApp app, Pointer<TAnimationManager> animationManager) async {
+      FFIFilamentApp app ) async {
     if (_instance == null) {
       _gridMaterial ??=
           FFIMaterial(Material_createGridMaterial(app.engine), app);
@@ -51,7 +51,7 @@ class GridOverlay {
         final assetPtr = await withPointerCallback<TSceneAsset>((cb) =>
             SceneAsset_createGridRenderThread(
                 app.engine, _gridMaterial!.getNativeHandle(), cb));
-        final ffiAsset = FFIAsset(assetPtr, animationManager);
+        final ffiAsset = FFIAsset(assetPtr);
         var materialInstance = await ffiAsset.getMaterialInstanceAt();
         if(i == 2) {
           await materialInstance.setParameterBool("showAxes", true);  

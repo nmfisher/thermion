@@ -16,7 +16,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
-import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
 import 'resource_loader.dart';
@@ -45,6 +44,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   late final FFILightManager lightManager;
   late final FFIRenderableManager renderableManager;
   late final FFITransformManager transformManager;
+  late final Pointer<TAnimationManager> animationManager;
 
   static final _logger = Logger("FFIFilamentApp");
 
@@ -58,7 +58,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       this.nameComponentManager,
       Future<Uint8List> Function(String uri)? loadResource,
       Pointer<TLightManager> lightManagerPointer,
-      Pointer<TRenderableManager> renderableManagerPointer) {
+      Pointer<TRenderableManager> renderableManagerPointer,
+      this.animationManager) {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
     this.renderableManager =
@@ -113,6 +114,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     RenderThread_setRenderTicker(renderTicker);
 
+    final animationManager = await withPointerCallback<TAnimationManager>(
+      (cb) => AnimationManager_createRenderThread(engine, cb),
+    );
+
+    RenderTicker_addAnimationManager(renderTicker, animationManager);
+
     FilamentApp.instance = FFIFilamentApp(
         engine,
         gltfAssetLoader,
@@ -123,7 +130,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         nameComponentManager,
         config.loadResource,
         lightManager,
-        renderableManager);
+        renderableManager, 
+        animationManager);
+
     _logger.info("Initialization complete");
   }
 
@@ -903,7 +912,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<ThermionAsset> loadGltfFromBuffer(
-      Uint8List data, Pointer animationManager,
+      Uint8List data, 
       {int initialInstances = 1,
       bool keepData = false,
       int priority = 4,
@@ -996,7 +1005,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           GltfResourceLoader_destroyRenderThread(
               engine, gltfResourceLoader, requestId, cb));
 
-      return FFIAsset(asset, animationManager.cast<TAnimationManager>(),
+      return FFIAsset(asset, 
           keepData: keepData);
     } finally {
       if (FILAMENT_WASM) {
@@ -1043,7 +1052,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<GizmoAsset> createGizmo(covariant FFIView view,
-      Pointer animationManager, GizmoType gizmoType) async {
+      GizmoType gizmoType) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       //stackPtr = stackSave();
@@ -1080,7 +1089,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         gizmo.cast<TSceneAsset>(), gizmoEntities.address);
 
     final gizmoAsset = FFIGizmo(
-        gizmo.cast<TSceneAsset>(), animationManager.cast<TAnimationManager>(),
+        gizmo.cast<TSceneAsset>(), 
         view: view,
         entities: gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
@@ -1097,7 +1106,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future<ThermionAsset> createGeometry(
-      Geometry geometry, Pointer animationManager,
+      Geometry geometry, 
       {List<MaterialInstance>? materialInstances,
       bool keepData = false,
       bool addToScene = true}) async {
@@ -1147,7 +1156,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr, animationManager.cast<TAnimationManager>(),
+    return FFIAsset(assetPtr, 
         keepData: keepData);
   }
 
@@ -1284,7 +1293,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   @override
   Future<TexturedQuad> createTexturedQuad() async {
     var mi = await createImageMaterialInstance();
-    var quad = await createGeometry(GeometryHelper.fullscreenQuad(), nullptr);
+    var quad = await createGeometry(GeometryHelper.fullscreenQuad());
     await mi.setParameterInt("isCubeMap", 0);
     await mi.setParameterInt("showImage", 0);
     var transform = Matrix4.identity();

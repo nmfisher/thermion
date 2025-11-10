@@ -16,9 +16,6 @@ class FFIAsset extends ThermionAsset {
   final Pointer<TSceneAsset> asset;
 
   ///
-  final Pointer<TAnimationManager> animationManager;
-
-  ///
   bool get isInstance => instanceOwner != null;
   final FFIAsset? instanceOwner;
 
@@ -33,8 +30,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  FFIAsset(this.asset, this.animationManager,
-      {this.instanceOwner = null, this.keepData = false}) {
+  FFIAsset(this.asset,       {this.instanceOwner = null, this.keepData = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -108,7 +104,7 @@ class FFIAsset extends ThermionAsset {
     if (instance == nullptr) {
       throw Exception("No instance available at index $index");
     }
-    return FFIAsset(instance, animationManager);
+    return FFIAsset(instance);
   }
 
   ///
@@ -154,7 +150,7 @@ class FFIAsset extends ThermionAsset {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, animationManager,
+    return FFIAsset(created,
         instanceOwner: this, keepData: keepData);
   }
 
@@ -178,7 +174,7 @@ class FFIAsset extends ThermionAsset {
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
-      return FFIAsset(instance, animationManager);
+      return FFIAsset(instance);
     });
 
     return result;
@@ -398,7 +394,7 @@ class FFIAsset extends ThermionAsset {
 
     var success = await withBoolCallback((cb) {
       AnimationManager_setMorphTargetWeightsRenderThread(
-          animationManager, entity, weightsF32.address, weights.length, cb);
+          FilamentApp.instance!.animationManager, entity, weightsF32.address, weights.length, cb);
     });
     weightsF32.free();
 
@@ -418,7 +414,7 @@ class FFIAsset extends ThermionAsset {
     entity ??= this.entity;
 
     var count = AnimationManager_getMorphTargetNameCount(
-        animationManager, asset, entity);
+        FilamentApp.instance!.animationManager, asset, entity);
 
     if (count < 0) {
       throw Exception("Failed to retrieve morph target name count");
@@ -426,7 +422,7 @@ class FFIAsset extends ThermionAsset {
     var outPtr = allocate<Char>(255);
     for (int i = 0; i < count; i++) {
       AnimationManager_getMorphTargetName(
-          animationManager, asset, entity, outPtr, i);
+          FilamentApp.instance!.animationManager, asset, entity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     free(outPtr);
@@ -438,13 +434,13 @@ class FFIAsset extends ThermionAsset {
   ///
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
     var count =
-        AnimationManager_getBoneCount(animationManager, asset, skinIndex);
+        AnimationManager_getBoneCount(FilamentApp.instance!.animationManager, asset, skinIndex);
     var out = allocate<PointerClass<Char>>(count);
     for (int i = 0; i < count; i++) {
       out[i] = allocate<Char>(255);
     }
 
-    AnimationManager_getBoneNames(animationManager, asset, out, skinIndex);
+    AnimationManager_getBoneNames(FilamentApp.instance!.animationManager, asset, out, skinIndex);
     var names = <String>[];
     for (int i = 0; i < count; i++) {
       var namePtr = out[i];
@@ -466,7 +462,7 @@ class FFIAsset extends ThermionAsset {
   Future<List<String>> getGltfAnimationNames() async {
     if (_gltfAnimationNames == null) {
       var animationCount =
-          AnimationManager_getGltfAnimationCount(animationManager, asset);
+          AnimationManager_getGltfAnimationCount(FilamentApp.instance!.animationManager, asset);
       if (animationCount == -1) {
         throw Exception("This is not a glTF asset");
       }
@@ -474,7 +470,7 @@ class FFIAsset extends ThermionAsset {
       var outPtr = allocate<Char>(255);
       for (int i = 0; i < animationCount; i++) {
         AnimationManager_getGltfAnimationName(
-            animationManager, asset, outPtr, i);
+            FilamentApp.instance!.animationManager, asset, outPtr, i);
         _gltfAnimationNames!.add(outPtr.cast<Utf8>().toDartString());
       }
       free(outPtr);
@@ -489,7 +485,7 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<double> getGltfAnimationDuration(int animationIndex) async {
     final duration = AnimationManager_getGltfAnimationDuration(
-        animationManager, asset, animationIndex);
+        FilamentApp.instance!.animationManager, asset, animationIndex);
     if (duration < 0) {
       throw Exception("Failed to get glTF animation duration");
     }
@@ -512,7 +508,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future clearMorphAnimationData(ThermionEntity entity) async {
-    if (!AnimationManager_clearMorphAnimation(animationManager, entity)) {
+    if (!AnimationManager_clearMorphAnimation(FilamentApp.instance!.animationManager, entity)) {
       throw Exception("Failed to clear morph animation");
     }
   }
@@ -578,7 +574,7 @@ class FFIAsset extends ThermionAsset {
           frameData.data.length == animation.numFrames * intersection.length);
 
       var result = AnimationManager_setMorphAnimation(
-          animationManager,
+          FilamentApp.instance!.animationManager,
           meshEntity,
           frameData.data.address,
           indices.address,
@@ -612,7 +608,7 @@ class FFIAsset extends ThermionAsset {
     }
     var boneNames = await getBoneNames();
     var restLocalTransformsRaw = allocate<Float>(boneNames.length * 16);
-    AnimationManager_getRestLocalTransforms(animationManager, asset, skinIndex,
+    AnimationManager_getRestLocalTransforms(FilamentApp.instance!.animationManager, asset, skinIndex,
         restLocalTransformsRaw, boneNames.length);
 
     var restLocalTransforms = <Matrix4>[];
@@ -677,7 +673,7 @@ class FFIAsset extends ThermionAsset {
       }
 
       AnimationManager_addBoneAnimation(
-          animationManager,
+          FilamentApp.instance!.animationManager,
           asset,
           skinIndex,
           entityBoneIndex,
@@ -733,7 +729,7 @@ class FFIAsset extends ThermionAsset {
     }
     var matrixIn = Float32List(16);
     AnimationManager_getInverseBindMatrix(
-        animationManager, asset, skinIndex, boneIndex, matrixIn.address);
+        FilamentApp.instance!.animationManager, asset, skinIndex, boneIndex, matrixIn.address);
     var matrixOut = Matrix4.fromList(matrixIn);
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
@@ -750,7 +746,7 @@ class FFIAsset extends ThermionAsset {
       throw UnimplementedError("TOOD");
     }
     return AnimationManager_getBone(
-        animationManager, asset, skinIndex, boneIndex);
+        FilamentApp.instance!.animationManager, asset, skinIndex, boneIndex);
   }
 
   ///
@@ -769,7 +765,7 @@ class FFIAsset extends ThermionAsset {
     }
     var result = await withBoolCallback((cb) {
       AnimationManager_setBoneTransformRenderThread(
-          animationManager, entity, skinIndex, boneIndex, ptr, cb);
+          FilamentApp.instance!.animationManager, entity, skinIndex, boneIndex, ptr, cb);
     });
 
     free(ptr);
@@ -786,7 +782,7 @@ class FFIAsset extends ThermionAsset {
   Future resetBones() async {
     await withVoidCallback((requestId, cb) =>
         AnimationManager_resetToRestPoseRenderThread(
-            animationManager, asset, requestId, cb));
+            FilamentApp.instance!.animationManager, asset, requestId, cb));
   }
 
   ///
@@ -799,7 +795,7 @@ class FFIAsset extends ThermionAsset {
       bool replaceActive = true,
       double crossfade = 0.0,
       double startOffset = 0.0}) async {
-    if (!AnimationManager_playGltfAnimation(animationManager, asset, index,
+    if (!AnimationManager_playGltfAnimation(FilamentApp.instance!.animationManager, asset, index,
         loop, reverse, replaceActive, crossfade, startOffset)) {
       throw Exception("Failed to play glTF animation. Check logs for details");
     }
@@ -811,7 +807,7 @@ class FFIAsset extends ThermionAsset {
   @override
   Future stopGltfAnimation(int animationIndex) async {
     if (!AnimationManager_stopGltfAnimation(
-        animationManager, asset, animationIndex)) {
+        FilamentApp.instance!.animationManager, asset, animationIndex)) {
       throw Exception("Failed to stop glTF animation. Check logs for details");
     }
   }
@@ -854,7 +850,7 @@ class FFIAsset extends ThermionAsset {
   @override
   Future setGltfAnimationFrame(int index, int animationFrame) async {
     AnimationManager_setGltfAnimationFrame(
-        animationManager, asset, index, animationFrame);
+        FilamentApp.instance!.animationManager, asset, index, animationFrame);
   }
 
   ///
@@ -862,7 +858,7 @@ class FFIAsset extends ThermionAsset {
   ///
   @override
   Future addAnimationComponent() async {
-    AnimationManager_addGltfAnimationComponent(animationManager, this.asset);
+    AnimationManager_addGltfAnimationComponent(FilamentApp.instance!.animationManager, this.asset);
   }
 
   ///
@@ -870,17 +866,17 @@ class FFIAsset extends ThermionAsset {
   ///
   Future removeAnimationComponent() async {
     if (!AnimationManager_removeGltfAnimationComponent(
-        animationManager, asset)) {
+        FilamentApp.instance!.animationManager, asset)) {
       _logger.warning("Failed to remove glTF animation component");
     }
     if (!AnimationManager_removeBoneAnimationComponent(
-        animationManager, asset)) {
+        FilamentApp.instance!.animationManager, asset)) {
       _logger.warning("Failed to remove bone animation component");
     }
-    AnimationManager_removeMorphAnimationComponent(animationManager, entity);
+    AnimationManager_removeMorphAnimationComponent(FilamentApp.instance!.animationManager, entity);
 
     for (final child in await getChildEntities()) {
-      AnimationManager_removeMorphAnimationComponent(animationManager, child);
+      AnimationManager_removeMorphAnimationComponent(FilamentApp.instance!.animationManager, child);
     }
   }
 

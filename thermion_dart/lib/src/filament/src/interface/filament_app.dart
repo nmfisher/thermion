@@ -31,8 +31,9 @@ abstract class FilamentApp<T> {
   T get engine;
   T get gltfAssetLoader;
   T get renderer;
+  T get animationManager;
   TransformManager get transformManager;
-  
+
   T get ubershaderMaterialProvider;
   RenderableManager get renderableManager;
   LightManager get lightManager;
@@ -288,7 +289,7 @@ abstract class FilamentApp<T> {
   /// See [FilamentViewerFFI.loadGltf] for details.
   ///
   ///
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, T animationManager,
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, 
       {int initialInstances = 1,
       bool keepData = false,
       int priority = 4,
@@ -305,12 +306,12 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future<GizmoAsset> createGizmo(
-      covariant View view, T animationManager, GizmoType type);
+      covariant View view, GizmoType type);
 
   ///
   ///
   ///
-  Future<ThermionAsset> createGeometry(Geometry geometry, T animationManager,
+  Future<ThermionAsset> createGeometry(Geometry geometry, 
       {List<MaterialInstance>? materialInstances, bool keepData = false});
 
   ///

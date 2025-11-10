@@ -31,7 +31,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
   late final FFIView view;
   late final FFIScene scene;
-  late final Pointer<TAnimationManager> animationManager;
 
   ///
   ///
@@ -90,12 +89,6 @@ class ThermionViewerFFI extends ThermionViewer {
     await camera.setLensProjection();
 
     await view.setCamera(camera);
-
-    animationManager = await withPointerCallback<TAnimationManager>(
-      (cb) => AnimationManager_createRenderThread(app.engine, cb),
-    );
-
-    RenderTicker_addAnimationManager(app.renderTicker, animationManager);
 
     this._initialized.complete(true);
   }
@@ -514,7 +507,6 @@ class ThermionViewerFFI extends ThermionViewer {
   }) async {
     var asset = await FilamentApp.instance!.loadGltfFromBuffer(
       data,
-      animationManager,
       initialInstances: initialInstances,
       keepData: keepData,
       priority: priority,
@@ -681,7 +673,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setGridOverlayVisibility(bool visible) async {
-    _grid ??= await GridOverlay.create(app, animationManager);
+    _grid ??= await GridOverlay.create(app);
 
     if (visible) {
       await _grid!.addToScene(scene);
@@ -778,7 +770,6 @@ class ThermionViewerFFI extends ThermionViewer {
   }) async {
     final asset = await FilamentApp.instance!.createGeometry(
       geometry,
-      animationManager,
       materialInstances: materialInstances,
       keepData: keepData,
     ) as FFIAsset;
@@ -800,7 +791,6 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_gizmos[gizmoType] == null) {
       _gizmos[gizmoType] = await FilamentApp.instance!.createGizmo(
         view,
-        animationManager,
         gizmoType,
       );
     }
@@ -951,7 +941,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
     final bbAsset = await FilamentApp.instance!.createGeometry(
       geometry,
-      animationManager,
       materialInstances: [material],
       keepData: false,
     ) as FFIAsset;
