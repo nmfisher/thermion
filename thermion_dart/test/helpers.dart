@@ -11,6 +11,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:path/path.dart' as p;
 
+Color kGrey = ColorFloat32(4)..setRgba(0.5, 0.5, 0.5, 1.0);
 Color kWhite = ColorFloat32(4)..setRgba(1.0, 1.0, 1.0, 1.0);
 Color kRed = ColorFloat32(4)..setRgba(1.0, 0.0, 0.0, 1.0);
 Color kGreen = ColorFloat32(4)..setRgba(0.0, 1.0, 0.0, 1.0);
@@ -344,6 +345,7 @@ class _CubeConfig {
   final bool castShadows;
   final bool receiveShadows;
   final Color? color;
+  final bool createUbershader;
 
   _CubeConfig({
     this.position,
@@ -352,6 +354,7 @@ class _CubeConfig {
     this.castShadows = true,
     this.receiveShadows = true,
     this.color,
+    this.createUbershader = false,
   });
 }
 
@@ -362,6 +365,7 @@ class _PlaneConfig {
   final bool castShadows;
   final bool receiveShadows;
   final Color? color;
+  final bool createUbershader;
 
   _PlaneConfig({
     this.position,
@@ -370,6 +374,7 @@ class _PlaneConfig {
     this.castShadows = true,
     this.receiveShadows = true,
     this.color,
+    this.createUbershader = false,
   });
 }
 
@@ -508,6 +513,7 @@ class ViewerBuilder {
     bool castShadows = true,
     bool receiveShadows = true,
     Color? color,
+    bool createUbershader = false,
   }) {
     _cubes.add(_CubeConfig(
       position: position,
@@ -516,6 +522,7 @@ class ViewerBuilder {
       castShadows: castShadows,
       receiveShadows: receiveShadows,
       color: color,
+      createUbershader: createUbershader,
     ));
     return this;
   }
@@ -527,6 +534,7 @@ class ViewerBuilder {
     bool castShadows = true,
     bool receiveShadows = true,
     Color? color,
+    bool createUbershader = false,
   }) {
     _planes.add(_PlaneConfig(
       position: position,
@@ -535,6 +543,7 @@ class ViewerBuilder {
       castShadows: castShadows,
       receiveShadows: receiveShadows,
       color: color,
+      createUbershader: createUbershader,
     ));
     return this;
   }
@@ -586,26 +595,30 @@ class ViewerBuilder {
 
     // Create and add configured planes
     for (final planeConfig in _planes) {
-      final materialInstance =
-          await FilamentApp.instance!.createUbershaderMaterialInstance();
-      await materialInstance.setCullingMode(CullingMode.NONE);
+      final materialInstance = planeConfig.createUbershader
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance()
+          : null;
 
-      if (planeConfig.color != null) {
-        await materialInstance.setParameterFloat4(
-            "baseColorFactor",
-            planeConfig.color!.r.toDouble(),
-            planeConfig.color!.g.toDouble(),
-            planeConfig.color!.b.toDouble(),
-            planeConfig.color!.a.toDouble());
-      } else {
-        await materialInstance.setParameterFloat4(
-            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+      if (materialInstance != null) {
+        await materialInstance.setCullingMode(CullingMode.NONE);
+
+        if (planeConfig.color != null) {
+          await materialInstance.setParameterFloat4(
+              "baseColorFactor",
+              planeConfig.color!.r.toDouble(),
+              planeConfig.color!.g.toDouble(),
+              planeConfig.color!.b.toDouble(),
+              planeConfig.color!.a.toDouble());
+        } else {
+          await materialInstance.setParameterFloat4(
+              "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+        }
       }
 
       final plane = await viewer.createGeometry(
           GeometryHelper.plane(
               normals: true, uvs: true, width: 10.0, height: 10.0),
-          materialInstances: [materialInstance]);
+          materialInstances: materialInstance != null ? [materialInstance] : null);
 
       await plane.setCastShadows(planeConfig.castShadows);
       await plane.setReceiveShadows(planeConfig.receiveShadows);
@@ -628,24 +641,27 @@ class ViewerBuilder {
 
     // Create and add configured cubes
     for (final cubeConfig in _cubes) {
-      final materialInstance =
-          await FilamentApp.instance!.createUbershaderMaterialInstance();
+      final materialInstance = cubeConfig.createUbershader
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance()
+          : null;
 
-      if (cubeConfig.color != null) {
-        await materialInstance.setParameterFloat4(
-            "baseColorFactor",
-            cubeConfig.color!.r.toDouble(),
-            cubeConfig.color!.g.toDouble(),
-            cubeConfig.color!.b.toDouble(),
-            cubeConfig.color!.a.toDouble());
-      } else {
-        await materialInstance.setParameterFloat4(
-            "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+      if (materialInstance != null) {
+        if (cubeConfig.color != null) {
+          await materialInstance.setParameterFloat4(
+              "baseColorFactor",
+              cubeConfig.color!.r.toDouble(),
+              cubeConfig.color!.g.toDouble(),
+              cubeConfig.color!.b.toDouble(),
+              cubeConfig.color!.a.toDouble());
+        } else {
+          await materialInstance.setParameterFloat4(
+              "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        }
       }
 
       final cube = await viewer.createGeometry(
           GeometryHelper.cube(flipUvs: true),
-          materialInstances: [materialInstance]);
+          materialInstances: materialInstance != null ? [materialInstance] : null);
 
       await cube.setCastShadows(cubeConfig.castShadows);
       await cube.setReceiveShadows(cubeConfig.receiveShadows);

@@ -373,6 +373,114 @@ void main() async {
     });
   });
 
+  test('LightManager sun light color management', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 10, 10), focus: Vector3.zero())
+        .addCube(color: kGrey, createUbershader: true)
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            scale: Vector3(10, 10, 1),
+            color: kWhite,
+            createUbershader: true);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      // Create a sun light with default color temperature (6500K - neutral white)
+      final sunLight = lightManager.createLight(LightType.SUN);
+      lightManager.setDirection(sunLight, 0, -0.5, -0.5);
+      lightManager.setIntensity(sunLight, 100000.0);
+      await scene.addEntity(sunLight);
+      
+      await testHelper.capture(viewer.view, "sun_light_default_color");
+      await testHelper.capture(viewer.view, "sun_light_default_color");
+
+      // Change sun light color to warm (orange/red) - low color temperature
+      lightManager.setColor(sunLight, 2000.0);
+      await testHelper.capture(viewer.view, "sun_light_warm_color");
+
+      // Verify the color changed (should be more red/orange)
+      final warmColor = lightManager.getColor(sunLight);
+      expect(warmColor, isA<List<double>>());
+      expect(warmColor.length, equals(3));
+
+      // Change sun light color to cool (blue) - high color temperature
+      lightManager.setColor(sunLight, 12000.0);
+      await testHelper.capture(viewer.view, "sun_light_cool_color");
+
+      // Verify the color changed (should be more blue)
+      final coolColor = lightManager.getColor(sunLight);
+      expect(coolColor, isA<List<double>>());
+      expect(coolColor.length, equals(3));
+
+      // Change back to neutral white
+      lightManager.setColor(sunLight, 6500.0);
+      await testHelper.capture(viewer.view, "sun_light_neutral_color");
+
+      // Verify the color changed back
+      final neutralColor = lightManager.getColor(sunLight);
+      expect(neutralColor, isA<List<double>>());
+      expect(neutralColor.length, equals(3));
+
+      await scene.removeEntity(sunLight);
+      lightManager.destroyLight(sunLight);
+    });
+  });
+
+  test('LightManager color management', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: null);
+
+    await builder.execute((viewer, assets) async {
+      final lightManager = FilamentApp.instance!.lightManager;
+      final scene = await viewer.view.getScene();
+
+      // Create a point light with default color temperature (6500K - neutral white)
+      final pointLight = lightManager.createLight(LightType.POINT);
+      lightManager.setPosition(pointLight, 2.0, 2.0, 2.0);
+      lightManager.setIntensity(pointLight, 50000.0);
+      await scene.addEntity(pointLight);
+      await testHelper.capture(viewer.view, "point_light_default_color");
+
+      // Change light color to warm (orange/red) - low color temperature
+      lightManager.setColor(pointLight, 2000.0);
+      await testHelper.capture(viewer.view, "point_light_warm_color");
+
+      // Verify the color changed (should be more red/orange)
+      final warmColor = lightManager.getColor(pointLight);
+      expect(warmColor, isA<List<double>>());
+      expect(warmColor.length, equals(3));
+
+      // Change light color to cool (blue) - high color temperature
+      lightManager.setColor(pointLight, 12000.0);
+      await testHelper.capture(viewer.view, "point_light_cool_color");
+
+      // Verify the color changed (should be more blue)
+      final coolColor = lightManager.getColor(pointLight);
+      expect(coolColor, isA<List<double>>());
+      expect(coolColor.length, equals(3));
+
+      // Change back to neutral white
+      lightManager.setColor(pointLight, 6500.0);
+      await testHelper.capture(viewer.view, "point_light_neutral_color");
+
+      // Verify the color changed back
+      final neutralColor = lightManager.getColor(pointLight);
+      expect(neutralColor, isA<List<double>>());
+      expect(neutralColor.length, equals(3));
+
+      await scene.removeEntity(pointLight);
+      lightManager.destroyLight(pointLight);
+    });
+  });
+
   test('LightManager ShadowCascades utility methods', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())

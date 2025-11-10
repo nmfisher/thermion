@@ -59,14 +59,17 @@ EMSCRIPTEN_KEEPALIVE void LightManager_destroyLight(TLightManager *tLightManager
     lm->destroy(utils::Entity::import(entity));
 }
 
-EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, float colorTemperature) {
+EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, double colorTemperature) {
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto color = filament::Color::cct(colorTemperature);
     
     auto instance = lm->getInstance(utils::Entity::import(entity));
-    if (instance.isValid()) {
-        lm->setColor(instance, color);
+    if (!instance.isValid()) {
+        ERROR("Light instance invalid");
+        return;
     }
+    lm->setColor(instance, color);
+    Log("Set light color to %f %f %f (%fK)", color.r, color.g, color.b, colorTemperature);
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setIntensity(TLightManager *tLightManager, EntityId entity, double intensity) {
