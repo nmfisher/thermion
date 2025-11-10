@@ -130,7 +130,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         nameComponentManager,
         config.loadResource,
         lightManager,
-        renderableManager, 
+        renderableManager,
         animationManager);
 
     _logger.info("Initialization complete");
@@ -409,9 +409,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       //stackPtr = stackSave();
     }
     var now = DateTime.now();
-
-    var ptr = Image_decode(data.address, data.length,
-        name.toNativeUtf8().cast<Char>(), requireAlpha);
+    final namePtr = name.toNativeUtf8().cast<Char>();
+    var ptr = Image_decode(data.address, data.length, namePtr, requireAlpha);
+    free(namePtr);
 
     var finished = DateTime.now();
     print(
@@ -911,8 +911,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<ThermionAsset> loadGltfFromBuffer(
-      Uint8List data, 
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
       bool keepData = false,
       int priority = 4,
@@ -1005,8 +1004,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           GltfResourceLoader_destroyRenderThread(
               engine, gltfResourceLoader, requestId, cb));
 
-      return FFIAsset(asset, 
-          keepData: keepData);
+      return FFIAsset(asset, keepData: keepData);
     } finally {
       if (FILAMENT_WASM) {
         //stackRestore(stackPtr);
@@ -1051,8 +1049,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<GizmoAsset> createGizmo(covariant FFIView view,
-      GizmoType gizmoType) async {
+  Future<GizmoAsset> createGizmo(
+      covariant FFIView view, GizmoType gizmoType) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       //stackPtr = stackSave();
@@ -1088,8 +1086,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     SceneAsset_getChildEntities(
         gizmo.cast<TSceneAsset>(), gizmoEntities.address);
 
-    final gizmoAsset = FFIGizmo(
-        gizmo.cast<TSceneAsset>(), 
+    final gizmoAsset = FFIGizmo(gizmo.cast<TSceneAsset>(),
         view: view,
         entities: gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
@@ -1105,8 +1102,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   @override
-  Future<ThermionAsset> createGeometry(
-      Geometry geometry, 
+  Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
       bool keepData = false,
       bool addToScene = true}) async {
@@ -1156,8 +1152,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr, 
-        keepData: keepData);
+    return FFIAsset(assetPtr, keepData: keepData);
   }
 
   ///

@@ -30,9 +30,8 @@ class MovementConfig {
 /// providing a type-safe API for setting movement targets and managing
 /// the executor lifecycle.
 abstract class MovementIntentExecutor {
-  
   late final _logger = Logger(this.runtimeType.toString());
-  
+
   final Pointer<bindings.TMovementIntentExecutor> _pointer;
 
   bool _disposed = false;
@@ -77,7 +76,6 @@ abstract class MovementIntentExecutor {
 ///
 /// Use [InputPipeline.instance] to access the singleton instance.
 class InputPipeline {
-  
   static final InputPipeline _instance = InputPipeline._internal();
 
   static InputPipeline get instance => _instance;
@@ -115,15 +113,15 @@ class InputPipeline {
   ///
   ///
   void registerPipelineStage(Pointer<Void> stage, String name) {
+    final ptr = name.toNativeUtf8().cast();
     try {
-      bindings.TransformPipeline_registerPipelineStage(
-        stage,
-        name.toNativeUtf8().cast(),
-      );
+      bindings.TransformPipeline_registerPipelineStage(stage, ptr.cast());
     } catch (e) {
       throw Exception(
         'Failed to set invert horizontal look for entity: $e',
       );
+    } finally {
+      free(ptr);
     }
   }
 

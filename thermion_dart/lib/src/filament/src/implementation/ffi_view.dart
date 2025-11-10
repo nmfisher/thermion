@@ -362,8 +362,7 @@ class FFIView extends View<Pointer<TView>> {
       RenderTicker_setOverlayManager(app.renderTicker, overlayManager!);
       final highlightMaterialPtr = await withPointerCallback<TMaterial>(
           (cb) => Material_createOutlineMaterialRenderThread(app.engine, cb));
-      highlightMaterial =
-          FFIMaterial(highlightMaterialPtr, app);
+      highlightMaterial = FFIMaterial(highlightMaterialPtr, app);
     }
 
     MaterialInstance? highlightMaterialInstance;
@@ -381,8 +380,8 @@ class FFIView extends View<Pointer<TView>> {
         if (highlightMaterialInstance == null) {
           highlightMaterialInstance = await highlightMaterial!.createInstance();
           await highlightMaterialInstance.setParameterFloat("scale", scale);
-          await highlightMaterialInstance
-              .setParameterFloat4("color", r, g, b, 1.0);
+          await highlightMaterialInstance.setParameterFloat4(
+              "color", r, g, b, 1.0);
 
           await highlightMaterialInstance.setDepthCullingEnabled(true);
           await highlightMaterialInstance.setDepthWriteEnabled(true);
@@ -427,7 +426,9 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   void setName(String name) {
-    View_setName(getNativeHandle(), name.toNativeUtf8().cast());
+    final ptr = name.toNativeUtf8();
+    View_setName(getNativeHandle(), ptr.cast());
+    free(ptr);
   }
 
   Future setTransparentPickingEnabled(bool enabled) async {
