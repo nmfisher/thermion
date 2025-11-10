@@ -31,7 +31,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git add thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
           git commit -m "chore: auto-generate FFI bindings
 
           🤖 Generated with GitHub Actions"
