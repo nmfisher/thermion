@@ -52,15 +52,14 @@ class Viewport {
 
 enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
-///
-/// ColorGrading object that holds color grading configuration.
-///
-/// Created via View.createColorGradingBuilder().build() and applied to a view.
-/// Must be explicitly disposed when no longer needed.
-///
+// ColorGrading object that holds color grading configuration.
+// ColorGrading is treated as const
+// Created via View.createColorGradingBuilder().build() and applied to a view.
+// Will be disposed when View.setColorGrading is called.
 abstract class ColorGrading extends NativeHandle<dynamic> {
-  /// Disposes this ColorGrading object and frees associated resources.
-  Future dispose();
+
+
+  
 }
 
 ///
