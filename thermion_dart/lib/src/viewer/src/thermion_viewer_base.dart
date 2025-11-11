@@ -216,7 +216,7 @@ abstract class ThermionViewer {
   ///
   /// Sets the tone mapping (requires postprocessing).
   ///
-  Future setToneMapping(ToneMapper mapper);
+  Future setToneMapper(ToneMapper mapper);
 
   ///
   /// Enable/disable bloom.

@@ -632,7 +632,8 @@ void main() async {
       expect(precisionOptions.penumbraRatioScale, closeTo(1.33, 0.001));
     });
   });
-}
+
+  }
 // manually construct two views with stencil buffer
 // final viewportDimensions = (width: 500, height: 500);
 //       final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(

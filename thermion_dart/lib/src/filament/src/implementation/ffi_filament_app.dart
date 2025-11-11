@@ -1016,22 +1016,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
-  Future destroyView(covariant FFIView view) async {
-    View_setColorGrading(view.view, nullptr);
-    for (final cg in view.colorGrading.entries) {
-      await withVoidCallback((requestId, cb) =>
-          Engine_destroyColorGradingRenderThread(
-              engine, cg.value, requestId, cb));
-    }
-    await withVoidCallback((requestId, cb) =>
-        Engine_destroyViewRenderThread(engine, view.view, requestId, cb));
+  Future destroyView(covariant FFIView view) async {   
     for (final swapchain in _swapChains.keys) {
       if (_swapChains[swapchain]!.contains(view)) {
         _swapChains[swapchain]!.remove(view);
         continue;
       }
     }
-    await view.dispose();
+    await view.destroy();
   }
 
   Future destroyScene(covariant FFIScene scene) async {
@@ -1041,7 +1033,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
     return withPointerCallback<TColorGrading>(
-        (cb) => ColorGrading_createRenderThread(engine, mapper.index, cb));
+        (cb) => ColorGrading_createRenderThread(engine, mapper.getNativeHandle(), cb));
   }
 
   FFIMaterial? _gizmoMaterial;

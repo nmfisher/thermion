@@ -6,6 +6,7 @@ import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import 'ffi_camera.dart';
@@ -38,10 +39,17 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   ///
-  ///
-  ///
-  Future dispose() async {
+  Future destroy() async {
     _onPickResultHolder.dispose();
+
+    View_setColorGrading(view, nullptr);
+    if (_colorGrading != nullptr) {
+      await withVoidCallback((requestId, cb) =>
+          Engine_destroyColorGradingRenderThread(
+              FilamentApp.instance!.engine, _colorGrading!, requestId, cb));
+    }
+    await withVoidCallback((requestId, cb) => Engine_destroyViewRenderThread(
+        FilamentApp.instance!.engine, view, requestId, cb));
   }
 
   ///
@@ -134,19 +142,57 @@ class FFIView extends View<Pointer<TView>> {
     });
   }
 
-  final colorGrading = <ToneMapper, Pointer<TColorGrading>>{};
+  Pointer<TColorGrading>? _colorGrading;
 
   @override
   Future setToneMapper(ToneMapper mapper) async {
-    if (colorGrading[mapper] == null) {
-      colorGrading[mapper] =
-          await FilamentApp.instance!.createColorGrading(mapper);
-      if (colorGrading[mapper] == nullptr) {
-        throw Exception("Failed to create color grading");
-      }
+    final colorGrading = await withPointerCallback<TColorGrading>((cb) =>
+        ColorGrading_createRenderThread(app.engine, mapper.getNativeHandle(), cb));
+    if (colorGrading == nullptr) {
+      throw Exception("Failed to create color grading");
     }
 
-    View_setColorGrading(view, colorGrading[mapper]!);
+    await withVoidCallback((requestId, cb) =>
+        View_setColorGradingRenderThread(view, colorGrading, requestId, cb));
+
+    if (_colorGrading != null) {
+      await withVoidCallback((requestId, cb) =>
+          Engine_destroyColorGradingRenderThread(
+              FilamentApp.instance!.engine, _colorGrading!, requestId, cb));
+    }
+    _colorGrading = colorGrading;
+  }
+
+  @override
+  Future<ColorGradingBuilder> createColorGradingBuilder() async {
+    final builderPtr = await withPointerCallback<TColorGradingBuilder>((cb) =>
+        ColorGradingBuilder_createRenderThread(cb));
+    if (builderPtr == nullptr) {
+      throw Exception('Failed to create ColorGradingBuilder');
+    }
+    return FFIColorGradingBuilder(builderPtr, app);
+  }
+
+  @override
+  Future setColorGrading(ColorGrading? colorGrading) async {
+    if (colorGrading == null) {
+      // Clear color grading by setting nullptr
+      await withVoidCallback((requestId, cb) =>
+          View_setColorGradingRenderThread(view, nullptr, requestId, cb));
+    } else {
+      // Set color grading with provided object
+      await withVoidCallback((requestId, cb) =>
+          View_setColorGradingRenderThread(view, colorGrading.getNativeHandle(), requestId, cb));
+    }
+  }
+
+  @override
+  Future<ColorGrading?> getColorGrading() async {
+    final colorGradingPtr = View_getColorGrading(view);
+    if (colorGradingPtr == nullptr) {
+      return null;
+    }
+    return FFIColorGrading(colorGradingPtr, app);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {

@@ -310,7 +310,7 @@ class TestHelper {
 
     await viewer.setPostProcessing(postProcessing);
 
-    await viewer.setToneMapping(ToneMapper.LINEAR);
+    await viewer.setToneMapper(await ToneMapper.aces());
     return viewer;
   }
 

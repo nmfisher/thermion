@@ -52,6 +52,177 @@ class Viewport {
 
 enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
+///
+/// ColorGrading object that holds color grading configuration.
+///
+/// Created via View.createColorGradingBuilder().build() and applied to a view.
+/// Must be explicitly disposed when no longer needed.
+///
+abstract class ColorGrading extends NativeHandle<dynamic> {
+  /// Disposes this ColorGrading object and frees associated resources.
+  Future dispose();
+}
+
+///
+/// Builder for creating ColorGrading objects with the full Filament color pipeline.
+///
+/// Usage:
+/// ```dart
+/// final colorGrading = await view.createColorGradingBuilder()
+///   .toneMapper(ToneMapper.ACES)
+///   .exposure(1.0)
+///   .contrast(1.1)
+///   .saturation(1.05)
+///   .build();
+/// await view.setColorGrading(colorGrading);
+/// ```
+///
+/// All methods return this builder for method chaining.
+/// The builder is consumed after build() and cannot be reused.
+///
+abstract class ColorGradingBuilder {
+  // ============================================================================
+  // Quality and format
+  // ============================================================================
+
+  /// Sets the quality level of the color grading LUT.
+  ///
+  /// - LOW: 16x16x16 10-bit LUT
+  /// - MEDIUM: 32x32x32 10-bit LUT (default)
+  /// - HIGH: 32x32x32 16-bit LUT
+  /// - ULTRA: 64x64x64 16-bit LUT
+  ColorGradingBuilder quality(QualityLevel level);
+
+  /// Sets the tone mapping operator.
+  ///
+  /// Default is ACESLegacy. The tone mapper must have a lifecycle that
+  /// exceeds this method call.
+  ColorGradingBuilder toneMapper(ToneMapper mapper);
+
+  // ============================================================================
+  // Basic adjustments
+  // ============================================================================
+
+  /// Adjusts the exposure in stops (EV).
+  ///
+  /// Each stop brightens (positive) or darkens (negative) by a factor of 2.
+  /// Applied after all post-processing. Default: 0.0
+  ColorGradingBuilder exposure(double exposure);
+
+  /// Controls night adaptation (0.0 = none, 1.0 = full).
+  ///
+  /// Simulates human vision in low-light: darker tones appear brighter,
+  /// contrast reduces, and colors shift blue. Default: 0.0
+  ColorGradingBuilder nightAdaptation(double adaptation);
+
+  /// Adjusts white balance.
+  ///
+  /// - [temperature]: -1.0 (cool/blue, 50000K) to +1.0 (warm/yellow, 2000K)
+  /// - [tint]: -1.0 (green) to +1.0 (magenta)
+  ///
+  /// Default: temperature=0.0, tint=0.0
+  ColorGradingBuilder whiteBalance(double temperature, double tint);
+
+  // ============================================================================
+  // Color adjustments
+  // ============================================================================
+
+  /// Adjusts contrast (0.0 to 2.0, default 1.0).
+  ///
+  /// Lower values narrow the tonal range, higher values widen it.
+  /// Applied in log space.
+  ColorGradingBuilder contrast(double contrast);
+
+  /// Adjusts vibrance (0.0 to 2.0, default 1.0).
+  ///
+  /// Saturation adjustment that affects low-saturation colors more than
+  /// high-saturation colors. Applied in linear space.
+  ColorGradingBuilder vibrance(double vibrance);
+
+  /// Adjusts saturation (0.0 to 2.0, default 1.0).
+  ///
+  /// Lower values desaturate, higher values increase color intensity.
+  /// Applied in linear space.
+  ColorGradingBuilder saturation(double saturation);
+
+  // ============================================================================
+  // Advanced controls
+  // ============================================================================
+
+  /// Modifies each output color channel using a mix of source channels.
+  ///
+  /// Default: outRed=(1,0,0), outGreen=(0,1,0), outBlue=(0,0,1)
+  /// Each component can be -2.0 to +2.0.
+  ///
+  /// Example (sepia tone):
+  /// ```dart
+  /// .channelMixer(
+  ///   Vector3(0.393, 0.769, 0.189),  // outRed
+  ///   Vector3(0.349, 0.686, 0.168),  // outGreen
+  ///   Vector3(0.272, 0.534, 0.131),  // outBlue
+  /// )
+  /// ```
+  ColorGradingBuilder channelMixer(
+      Vector3 outRed, Vector3 outGreen, Vector3 outBlue);
+
+  /// Adjusts colors in shadows, mid-tones, and highlights separately.
+  ///
+  /// Each zone is a Vector4 with RGB color and weight (.w).
+  /// [ranges] defines zone transitions (x,y = shadows->midtones, z,w = midtones->highlights)
+  ///
+  /// Default: all (1,1,1,0), ranges (0, 0.333, 0.550, 1)
+  /// Applied in linear space.
+  ColorGradingBuilder shadowsMidtonesHighlights(
+      Vector4 shadows, Vector4 midtones, Vector4 highlights, Vector4 ranges);
+
+  /// Applies ASC CDL slope/offset/power adjustment.
+  ///
+  /// Similar to lift/gamma/gain controls.
+  /// - [slope]: Multiplier (must be > 0, default 1.0)
+  /// - [offset]: Added value (can be negative, default 0.0)
+  /// - [power]: Exponent (must be > 0, default 1.0)
+  ///
+  /// Applied in log space.
+  ColorGradingBuilder slopeOffsetPower(
+      Vector3 slope, Vector3 offset, Vector3 power);
+
+  /// Applies per-channel curves.
+  ///
+  /// - [shadowGamma]: Power for shadows (must be > 0, default 1.0)
+  /// - [midPoint]: Where shadows end and highlights begin (must be > 0, default 1.0)
+  /// - [highlightScale]: Scale for highlights (any value, default 1.0)
+  ///
+  /// Applied in linear space.
+  ColorGradingBuilder curves(
+      Vector3 shadowGamma, Vector3 midPoint, Vector3 highlightScale);
+
+  // ============================================================================
+  // Flags
+  // ============================================================================
+
+  /// Enables luminance scaling (EVILS/LICH) for more natural high-chroma rendering.
+  ///
+  /// When enabled, tone mapping is performed on luminance instead of per-channel.
+  /// Helps avoid hue skews in out-of-gamut colors. Default: false
+  ColorGradingBuilder luminanceScaling(bool enabled);
+
+  /// Enables gamut mapping to prevent hue skews from out-of-gamut colors.
+  ///
+  /// Preserves perceived chroma and lightness when bringing colors back in gamut.
+  /// Default: false
+  ColorGradingBuilder gamutMapping(bool enabled);
+
+  // ============================================================================
+  // Build
+  // ============================================================================
+
+  /// Builds the ColorGrading object.
+  ///
+  /// The builder is consumed after this call and cannot be reused.
+  /// The returned ColorGrading must be disposed when no longer needed.
+  Future<ColorGrading> build();
+}
+
 abstract class View<T> extends NativeHandle<T> {
   static int STENCIL_HIGHLIGHT_REFERENCE_VALUE = 1;
 
@@ -81,7 +252,6 @@ abstract class View<T> extends NativeHandle<T> {
   Future setPostProcessing(bool enabled);
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
   Future setFrustumCullingEnabled(bool enabled);
-  Future setToneMapper(ToneMapper mapper);
   Future setStencilBufferEnabled(bool enabled);
   Future<bool> isStencilBufferEnabled();
   Future setDithering(bool enabled);
@@ -97,6 +267,45 @@ abstract class View<T> extends NativeHandle<T> {
   Future setVsmShadowOptions(VsmShadowOptions options);
   VsmShadowOptions getVsmShadowOptions();
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
+
+  /// Creates a builder for configuring color grading.
+  ///
+  /// Use the returned builder to configure the full Filament color pipeline
+  /// (exposure, white balance, tone mapping, curves, etc.), then call build()
+  /// to create a ColorGrading object that can be applied to this view.
+  ///
+  /// Example:
+  /// ```dart
+  /// final colorGrading = await view.createColorGradingBuilder()
+  ///   .toneMapper(ToneMapper.ACES)
+  ///   .exposure(1.0)
+  ///   .contrast(1.1)
+  ///   .build();
+  /// await view.setColorGrading(colorGrading);
+  /// ```
+  Future<ColorGradingBuilder> createColorGradingBuilder();
+
+  /// Sets the color grading for this view.
+  ///
+  /// The ColorGrading object must be created via createColorGradingBuilder().
+  /// The view does not take ownership - you must dispose the ColorGrading
+  /// when no longer needed.
+  ///
+  /// Pass null to clear any existing color grading from this view.
+  Future setColorGrading(ColorGrading? colorGrading);
+
+  /// Gets the current color grading from this view.
+  ///
+  /// Returns null if no color grading is currently set.
+  Future<ColorGrading?> getColorGrading();
+
+  /// Sets the tone mapper for this view (deprecated).
+  ///
+  /// @deprecated Use createColorGradingBuilder().toneMapper(...).build()
+  /// followed by setColorGrading() instead. This provides access to the
+  /// full color grading pipeline.
+  @Deprecated('Use createColorGradingBuilder() instead')
+  Future setToneMapper(ToneMapper mapper);
 
   Future setTransparentPickingEnabled(bool enabled);
   Future<bool> isTransparentPickingEnabled();
@@ -132,8 +341,4 @@ abstract class View<T> extends NativeHandle<T> {
   ///
   Future pick(int x, int y, void Function(PickResult) resultHandler);
 
-  ///
-  ///
-  ///
-  Future dispose();
 }

@@ -8,3 +8,4 @@ export 'src/interface/transform_manager.dart';
 export 'src/interface/axis.dart';
 export 'src/interface/textured_quad.dart';
 export 'src/interface/debug_registry.dart';
+export 'src/interface/tone_mapper.dart';

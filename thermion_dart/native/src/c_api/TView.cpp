@@ -154,33 +154,245 @@ namespace thermion
             view->setColorGrading(colorGrading);
         }
 
-        EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine *tEngine, TToneMapper tToneMapping)
+        EMSCRIPTEN_KEEPALIVE TColorGrading* View_getColorGrading(TView *tView)
+        {
+            auto *view = reinterpret_cast<View *>(tView);
+            auto *cg = view->getColorGrading();
+            if(!cg) {
+                Log("Color grading null");
+            } else { 
+                Log("Color grading non-null");
+            }
+            return reinterpret_cast<TColorGrading*>(const_cast<ColorGrading *>(cg));
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createLinear(TEngine* tEngine)
+        {
+            TRACE("Creating LinearToneMapper");
+            return reinterpret_cast<TToneMapper *>(new LinearToneMapper());
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createACES(TEngine* tEngine)
+        {
+            TRACE("Creating ACESToneMapper");
+            return reinterpret_cast<TToneMapper *>(new ACESToneMapper());
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createACESLegacy(TEngine* tEngine)
+        {
+            TRACE("Creating ACESLegacyToneMapper");
+            return reinterpret_cast<TToneMapper *>(new ACESLegacyToneMapper());
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createFilmic(TEngine* tEngine)
+        {
+            TRACE("Creating FilmicToneMapper");
+            return reinterpret_cast<TToneMapper *>(new FilmicToneMapper());
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createPBRNeutral(TEngine* tEngine)
+        {
+            TRACE("Creating PBRNeutralToneMapper");
+            return reinterpret_cast<TToneMapper *>(new PBRNeutralToneMapper());
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createAGX(TEngine* tEngine)
+        {
+            TRACE("Creating AgxToneMapper");
+            return reinterpret_cast<TToneMapper *>(new AgxToneMapper());
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createAGXWithLook(TEngine* tEngine, int look)
+        {
+            TRACE("Creating AgxToneMapper with look %d", look);
+            return reinterpret_cast<TToneMapper *>(new AgxToneMapper(static_cast<AgxToneMapper::AgxLook>(look)));
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createGeneric(TEngine* tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax)
+        {
+            TRACE("Creating GenericToneMapper (contrast=%f, midGrayIn=%f, midGrayOut=%f, hdrMax=%f)", contrast, midGrayIn, midGrayOut, hdrMax);
+            return reinterpret_cast<TToneMapper *>(new GenericToneMapper(contrast, midGrayIn, midGrayOut, hdrMax));
+        }
+
+        EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createDisplayRange(TEngine* tEngine)
+        {
+            TRACE("Creating DisplayRangeToneMapper");
+            return reinterpret_cast<TToneMapper *>(new DisplayRangeToneMapper());
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ToneMapper_destroy(TToneMapper *toneMapper)
+        {
+            auto tm = reinterpret_cast<ToneMapper *>(toneMapper);
+            delete tm;
+            TRACE("Destroyed ToneMapper");
+        }
+
+        EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine *tEngine, TToneMapper *toneMapper)
         {
             auto engine = reinterpret_cast<Engine *>(tEngine);
+            auto tm = reinterpret_cast<ToneMapper *>(toneMapper);
 
-            ToneMapper *tm;
-            switch (tToneMapping)
-            {
-            case TToneMapper::ACES:
-                TRACE("Setting tone mapping to ACES");
-                tm = new ACESToneMapper();
-                break;
-            case TToneMapper::LINEAR:
-                TRACE("Setting tone mapping to Linear");
-                tm = new LinearToneMapper();
-                break;
-            case TToneMapper::FILMIC:
-                TRACE("Setting tone mapping to Filmic");
-                tm = new FilmicToneMapper();
-                break;
-            default:
-                TRACE("ERROR: Unsupported tone mapping");
-                return nullptr;
-            }
+            TRACE("Creating ColorGrading with ToneMapper");
             auto colorGrading = ColorGrading::Builder().toneMapper(tm).build(*engine);
 
-            delete tm;
             return reinterpret_cast<TColorGrading *>(colorGrading);
+        }
+
+        // ============================================================================
+        // ColorGrading Builder API
+        // ============================================================================
+
+        EMSCRIPTEN_KEEPALIVE TColorGradingBuilder* ColorGradingBuilder_create()
+        {
+            TRACE("Creating ColorGradingBuilder");
+            auto builder = new ColorGrading::Builder();
+            return reinterpret_cast<TColorGradingBuilder*>(builder);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TColorGrading* ColorGradingBuilder_build(TColorGradingBuilder* tBuilder, TEngine* tEngine)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            auto engine = reinterpret_cast<Engine*>(tEngine);
+
+            TRACE("Building ColorGrading");
+            auto colorGrading = builder->build(*engine);
+
+            return reinterpret_cast<TColorGrading*>(colorGrading);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroy(TColorGradingBuilder* tBuilder)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            delete builder;
+            TRACE("Destroyed ColorGradingBuilder");
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGrading_destroy(TEngine* tEngine, TColorGrading* tColorGrading)
+        {
+            auto engine = reinterpret_cast<Engine*>(tEngine);
+            auto colorGrading = reinterpret_cast<ColorGrading*>(tColorGrading);
+            engine->destroy(colorGrading);
+            TRACE("Destroyed ColorGrading");
+        }
+
+        // Quality and format
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_quality(TColorGradingBuilder* tBuilder, TQualityLevel level)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->quality(static_cast<ColorGrading::QualityLevel>(level));
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_toneMapper(TColorGradingBuilder* tBuilder, TToneMapper* toneMapper)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            auto tm = reinterpret_cast<ToneMapper*>(toneMapper);
+            builder->toneMapper(tm);
+        }
+
+        // Basic adjustments
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_exposure(TColorGradingBuilder* tBuilder, float exposure)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->exposure(exposure);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_nightAdaptation(TColorGradingBuilder* tBuilder, float adaptation)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->nightAdaptation(adaptation);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_whiteBalance(TColorGradingBuilder* tBuilder, float temperature, float tint)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->whiteBalance(temperature, tint);
+        }
+
+        // Color adjustments
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_contrast(TColorGradingBuilder* tBuilder, float contrast)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->contrast(contrast);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_vibrance(TColorGradingBuilder* tBuilder, float vibrance)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->vibrance(vibrance);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_saturation(TColorGradingBuilder* tBuilder, float saturation)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->saturation(saturation);
+        }
+
+        // Advanced controls
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_channelMixer(TColorGradingBuilder* tBuilder,
+            float outRedR, float outRedG, float outRedB,
+            float outGreenR, float outGreenG, float outGreenB,
+            float outBlueR, float outBlueG, float outBlueB)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->channelMixer(
+                math::float3{outRedR, outRedG, outRedB},
+                math::float3{outGreenR, outGreenG, outGreenB},
+                math::float3{outBlueR, outBlueG, outBlueB}
+            );
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_shadowsMidtonesHighlights(TColorGradingBuilder* tBuilder,
+            float shadowsR, float shadowsG, float shadowsB, float shadowsW,
+            float midtonesR, float midtonesG, float midtonesB, float midtonesW,
+            float highlightsR, float highlightsG, float highlightsB, float highlightsW,
+            float rangesX, float rangesY, float rangesZ, float rangesW)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->shadowsMidtonesHighlights(
+                math::float4{shadowsR, shadowsG, shadowsB, shadowsW},
+                math::float4{midtonesR, midtonesG, midtonesB, midtonesW},
+                math::float4{highlightsR, highlightsG, highlightsB, highlightsW},
+                math::float4{rangesX, rangesY, rangesZ, rangesW}
+            );
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_slopeOffsetPower(TColorGradingBuilder* tBuilder,
+            float slopeR, float slopeG, float slopeB,
+            float offsetR, float offsetG, float offsetB,
+            float powerR, float powerG, float powerB)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->slopeOffsetPower(
+                math::float3{slopeR, slopeG, slopeB},
+                math::float3{offsetR, offsetG, offsetB},
+                math::float3{powerR, powerG, powerB}
+            );
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_curves(TColorGradingBuilder* tBuilder,
+            float shadowGammaR, float shadowGammaG, float shadowGammaB,
+            float midPointR, float midPointG, float midPointB,
+            float highlightScaleR, float highlightScaleG, float highlightScaleB)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->curves(
+                math::float3{shadowGammaR, shadowGammaG, shadowGammaB},
+                math::float3{midPointR, midPointG, midPointB},
+                math::float3{highlightScaleR, highlightScaleG, highlightScaleB}
+            );
+        }
+
+        // Flags
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_luminanceScaling(TColorGradingBuilder* tBuilder, bool enabled)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->luminanceScaling(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_gamutMapping(TColorGradingBuilder* tBuilder, bool enabled)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->gamutMapping(enabled);
         }
 
         void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa)

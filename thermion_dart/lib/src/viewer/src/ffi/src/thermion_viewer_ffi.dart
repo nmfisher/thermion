@@ -562,7 +562,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setToneMapping(ToneMapper mapper) async {
+  Future setToneMapper(ToneMapper mapper) async {
     await view.setToneMapper(mapper);
   }
 

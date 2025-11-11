@@ -700,13 +700,156 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper toneMapper, void (*callback)(TColorGrading *))
+  EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper *toneMapper, void (*callback)(TColorGrading *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
           auto cg = ColorGrading_create(tEngine, toneMapper);
           PROXY(callback(cg));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createRenderThread(void (*onComplete)(TColorGradingBuilder *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *builder = ColorGradingBuilder_create();
+          PROXY(onComplete(builder));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_buildRenderThread(TColorGradingBuilder *tBuilder, TEngine *tEngine, void (*onComplete)(TColorGrading *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *colorGrading = ColorGradingBuilder_build(tBuilder, tEngine);
+          PROXY(onComplete(colorGrading));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroyRenderThread(TColorGradingBuilder *tBuilder, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          ColorGradingBuilder_destroy(tBuilder);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createLinearRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createLinear(tEngine);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createACES(tEngine);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESLegacyRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createACESLegacy(tEngine);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createFilmicRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createFilmic(tEngine);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createPBRNeutralRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createPBRNeutral(tEngine);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createAGX(tEngine);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXWithLookRenderThread(TEngine *tEngine, int look, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createAGXWithLook(tEngine, look);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createGenericRenderThread(TEngine *tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createGeneric(tEngine, contrast, midGrayIn, midGrayOut, hdrMax);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_createDisplayRangeRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *toneMapper = ToneMapper_createDisplayRange(tEngine);
+          PROXY(onComplete(toneMapper));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void ToneMapper_destroyRenderThread(TToneMapper *tToneMapper, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          ToneMapper_destroy(tToneMapper);
+          PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->add_task(lambda);
   }

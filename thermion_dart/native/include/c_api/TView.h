@@ -38,13 +38,7 @@ struct TFogOptions {
     bool enabled = 0;
 };
 
-enum TToneMapper
-{
-    ACES,
-    FILMIC,
-    LINEAR
-};
-typedef enum TToneMapper TToneMapper;
+typedef struct TToneMapper TToneMapper;
 
 // copied from Options.h
 enum TQualityLevel { 
@@ -63,8 +57,70 @@ typedef enum TBlendMode TBlendMode;
 
 // View
 EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *view);
-EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine* tEngine, TToneMapper toneMapper);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createLinear(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createACES(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createACESLegacy(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createFilmic(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createPBRNeutral(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createAGX(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createAGXWithLook(TEngine* tEngine, int look);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createGeneric(TEngine* tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax);
+EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createDisplayRange(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE void ToneMapper_destroy(TToneMapper *toneMapper);
+
+// Legacy ColorGrading API (deprecated - use ColorGradingBuilder instead)
+EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine* tEngine, TToneMapper *toneMapper);
+
+// ColorGrading Builder API
+typedef struct TColorGradingBuilder TColorGradingBuilder;
+
+EMSCRIPTEN_KEEPALIVE TColorGradingBuilder* ColorGradingBuilder_create();
+EMSCRIPTEN_KEEPALIVE TColorGrading* ColorGradingBuilder_build(TColorGradingBuilder* builder, TEngine* engine);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroy(TColorGradingBuilder* builder);
+EMSCRIPTEN_KEEPALIVE void ColorGrading_destroy(TEngine* engine, TColorGrading* colorGrading);
+
+// Quality and format
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_quality(TColorGradingBuilder* builder, TQualityLevel level);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_toneMapper(TColorGradingBuilder* builder, TToneMapper* toneMapper);
+
+// Basic adjustments
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_exposure(TColorGradingBuilder* builder, float exposure);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_nightAdaptation(TColorGradingBuilder* builder, float adaptation);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_whiteBalance(TColorGradingBuilder* builder, float temperature, float tint);
+
+// Color adjustments
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_contrast(TColorGradingBuilder* builder, float contrast);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_vibrance(TColorGradingBuilder* builder, float vibrance);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_saturation(TColorGradingBuilder* builder, float saturation);
+
+// Advanced controls
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_channelMixer(TColorGradingBuilder* builder,
+    float outRedR, float outRedG, float outRedB,
+    float outGreenR, float outGreenG, float outGreenB,
+    float outBlueR, float outBlueG, float outBlueB);
+
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_shadowsMidtonesHighlights(TColorGradingBuilder* builder,
+    float shadowsR, float shadowsG, float shadowsB, float shadowsW,
+    float midtonesR, float midtonesG, float midtonesB, float midtonesW,
+    float highlightsR, float highlightsG, float highlightsB, float highlightsW,
+    float rangesX, float rangesY, float rangesZ, float rangesW);
+
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_slopeOffsetPower(TColorGradingBuilder* builder,
+    float slopeR, float slopeG, float slopeB,
+    float offsetR, float offsetG, float offsetB,
+    float powerR, float powerG, float powerB);
+
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_curves(TColorGradingBuilder* builder,
+    float shadowGammaR, float shadowGammaG, float shadowGammaB,
+    float midPointR, float midPointG, float midPointB,
+    float highlightScaleR, float highlightScaleG, float highlightScaleB);
+
+// Flags
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_luminanceScaling(TColorGradingBuilder* builder, bool enabled);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_gamutMapping(TColorGradingBuilder* builder, bool enabled);
+
 EMSCRIPTEN_KEEPALIVE void View_setColorGrading(TView *tView, TColorGrading *tColorGrading);
+EMSCRIPTEN_KEEPALIVE TColorGrading* View_getColorGrading(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setBlendMode(TView *view, TBlendMode blendMode);
 EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *view, uint32_t width, uint32_t height);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *view, TRenderTarget *renderTarget);

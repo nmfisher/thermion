@@ -1,53 +1,59 @@
-import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
-import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_tone_mapper.dart';
+// Dart wrapper for ToneMapper FFI bindings
+import 'dart:ffi' as ffi;
+import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart';
 
 /// Look options for AgX tone mapper
 enum AgxLook {
   /// Base contrast with no look applied
-  none,
+  none(0),
 
   /// A punchy and more chroma laden look for sRGB displays
-  punchy,
+  punchy(1),
 
   /// A golden tinted, slightly washed look for BT.1886 displays
-  golden
+  golden(2);
+
+  const AgxLook(this.value);
+  final int value;
 }
 
-/// Abstract tone mapper interface
-///
-/// ToneMapper instances define how HDR values are mapped to display-ready LDR values.
-/// Use the static factory methods to create specific tone mapper types.
-abstract class ToneMapper extends NativeHandle<dynamic> {
+/// Wrapper class for Filament ToneMapper with static factory methods
+class ToneMapper {
+  final ffi.Pointer<TToneMapper> _pointer;
+
+  ToneMapper._(this._pointer);
+
+  /// Get the native pointer
+  ffi.Pointer<TToneMapper> get pointer => _pointer;
+
   /// Create a LinearToneMapper - returns input color clamped to 0..1 range
   /// Useful for debugging
-  static Future<ToneMapper> linear() async {
-    return FFIToneMapper.linear();
+  static ToneMapper linear(ffi.Pointer<TEngine> engine) {
+    return ToneMapper._(ToneMapper_createLinear(engine));
   }
 
   /// Create an ACESToneMapper - ACES Reference Rendering Transform (RRT)
   /// combined with the Output Device Transform (ODT) for sRGB monitors
-  static Future<ToneMapper> aces() async {
-    return FFIToneMapper.aces();
+  static ToneMapper aces(ffi.Pointer<TEngine> engine) {
+    return ToneMapper._(ToneMapper_createACES(engine));
   }
 
   /// Create an ACESLegacyToneMapper - ACES tone mapper modified to match
   /// the perceived brightness of FilmicToneMapper (applies ~1.6x brightness)
-  static Future<ToneMapper> acesLegacy() async {
-    return FFIToneMapper.acesLegacy();
+  static ToneMapper acesLegacy(ffi.Pointer<TEngine> engine) {
+    return ToneMapper._(ToneMapper_createACESLegacy(engine));
   }
 
   /// Create a FilmicToneMapper - designed to approximate ACES RRT + ODT
   /// for Rec.709. Exists for backward compatibility.
-  static Future<ToneMapper> filmic() async {
-    return FFIToneMapper.filmic();
+  static ToneMapper filmic(ffi.Pointer<TEngine> engine) {
+    return ToneMapper._(ToneMapper_createFilmic(engine));
   }
 
   /// Create a PBRNeutralToneMapper - Khronos PBR Neutral tone mapper
   /// designed to preserve material appearance across lighting conditions
-  static Future<ToneMapper> pbrNeutral() async {
-    return FFIToneMapper.pbrNeutral();
+  static ToneMapper pbrNeutral(ffi.Pointer<TEngine> engine) {
+    return ToneMapper._(ToneMapper_createPBRNeutral(engine));
   }
 
   /// Create an AgxToneMapper with optional look
@@ -56,8 +62,8 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
   ///   - AgxLook.none: Base contrast with no look applied
   ///   - AgxLook.punchy: More chroma laden look for sRGB displays
   ///   - AgxLook.golden: Golden tinted look for BT.1886 displays
-  static Future<ToneMapper> agx({AgxLook look = AgxLook.none}) async {
-    return FFIToneMapper.agx(look: look);
+  static ToneMapper agx(ffi.Pointer<TEngine> engine, {AgxLook look = AgxLook.none}) {
+    return ToneMapper._(ToneMapper_createAGXWithLook(engine, look.value));
   }
 
   /// Create a GenericToneMapper with configurable parameters
@@ -70,17 +76,20 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
   /// [midGrayIn] - Input middle gray value (0.0..1.0, default: 0.18)
   /// [midGrayOut] - Output middle gray value (0.0..1.0, default: 0.215)
   /// [hdrMax] - Maximum input value mapped to output white (>= 1.0, default: 10.0)
-  static Future<ToneMapper> generic({
+  static ToneMapper generic(
+    ffi.Pointer<TEngine> engine, {
     double contrast = 1.55,
     double midGrayIn = 0.18,
     double midGrayOut = 0.215,
     double hdrMax = 10.0,
-  }) async {
-    return FFIToneMapper.generic(
-        contrast: contrast,
-        midGrayIn: midGrayIn,
-        midGrayOut: midGrayOut,
-        hdrMax: hdrMax);
+  }) {
+    return ToneMapper._(ToneMapper_createGeneric(
+      engine,
+      contrast,
+      midGrayIn,
+      midGrayOut,
+      hdrMax,
+    ));
   }
 
   /// Create a DisplayRangeToneMapper - converts HDR RGB to 16 debug colors
@@ -103,10 +112,12 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
   /// - +8EV: magenta
   /// - +9EV: purple
   /// - +10EV: white
-  static Future<ToneMapper> displayRange() async {
-    return FFIToneMapper.displayRange();
+  static ToneMapper displayRange(ffi.Pointer<TEngine> engine) {
+    return ToneMapper._(ToneMapper_createDisplayRange(engine));
   }
 
   /// Destroy the tone mapper and free its resources
-  Future dispose();
+  void destroy() {
+    ToneMapper_destroy(_pointer);
+  }
 }
