@@ -866,13 +866,159 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TViewport> TViewport_out,
     Pointer<TView> view,
   );
+  external Pointer<TToneMapper> _ToneMapper_createLinear(
+    Pointer<TEngine> tEngine,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createACES(
+    Pointer<TEngine> tEngine,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createACESLegacy(
+    Pointer<TEngine> tEngine,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createFilmic(
+    Pointer<TEngine> tEngine,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createPBRNeutral(
+    Pointer<TEngine> tEngine,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createAGX(
+    Pointer<TEngine> tEngine,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createAGXWithLook(
+    Pointer<TEngine> tEngine,
+    int look,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createGeneric(
+    Pointer<TEngine> tEngine,
+    double contrast,
+    double midGrayIn,
+    double midGrayOut,
+    double hdrMax,
+  );
+  external Pointer<TToneMapper> _ToneMapper_createDisplayRange(
+    Pointer<TEngine> tEngine,
+  );
+  external void _ToneMapper_destroy(
+    Pointer<TToneMapper> toneMapper,
+  );
   external Pointer<TColorGrading> _ColorGrading_create(
     Pointer<TEngine> tEngine,
-    int toneMapping,
+    Pointer<TToneMapper> toneMapper,
+  );
+  external Pointer<TColorGradingBuilder> _ColorGradingBuilder_create();
+  external Pointer<TColorGrading> _ColorGradingBuilder_build(
+    Pointer<TColorGradingBuilder> builder,
+    Pointer<TEngine> engine,
+  );
+  external void _ColorGradingBuilder_destroy(
+    Pointer<TColorGradingBuilder> builder,
+  );
+  external void _ColorGrading_destroy(
+    Pointer<TEngine> engine,
+    Pointer<TColorGrading> colorGrading,
+  );
+  external void _ColorGradingBuilder_quality(
+    Pointer<TColorGradingBuilder> builder,
+    int level,
+  );
+  external void _ColorGradingBuilder_toneMapper(
+    Pointer<TColorGradingBuilder> builder,
+    Pointer<TToneMapper> toneMapper,
+  );
+  external void _ColorGradingBuilder_exposure(
+    Pointer<TColorGradingBuilder> builder,
+    double exposure,
+  );
+  external void _ColorGradingBuilder_nightAdaptation(
+    Pointer<TColorGradingBuilder> builder,
+    double adaptation,
+  );
+  external void _ColorGradingBuilder_whiteBalance(
+    Pointer<TColorGradingBuilder> builder,
+    double temperature,
+    double tint,
+  );
+  external void _ColorGradingBuilder_contrast(
+    Pointer<TColorGradingBuilder> builder,
+    double contrast,
+  );
+  external void _ColorGradingBuilder_vibrance(
+    Pointer<TColorGradingBuilder> builder,
+    double vibrance,
+  );
+  external void _ColorGradingBuilder_saturation(
+    Pointer<TColorGradingBuilder> builder,
+    double saturation,
+  );
+  external void _ColorGradingBuilder_channelMixer(
+    Pointer<TColorGradingBuilder> builder,
+    double outRedR,
+    double outRedG,
+    double outRedB,
+    double outGreenR,
+    double outGreenG,
+    double outGreenB,
+    double outBlueR,
+    double outBlueG,
+    double outBlueB,
+  );
+  external void _ColorGradingBuilder_shadowsMidtonesHighlights(
+    Pointer<TColorGradingBuilder> builder,
+    double shadowsR,
+    double shadowsG,
+    double shadowsB,
+    double shadowsW,
+    double midtonesR,
+    double midtonesG,
+    double midtonesB,
+    double midtonesW,
+    double highlightsR,
+    double highlightsG,
+    double highlightsB,
+    double highlightsW,
+    double rangesX,
+    double rangesY,
+    double rangesZ,
+    double rangesW,
+  );
+  external void _ColorGradingBuilder_slopeOffsetPower(
+    Pointer<TColorGradingBuilder> builder,
+    double slopeR,
+    double slopeG,
+    double slopeB,
+    double offsetR,
+    double offsetG,
+    double offsetB,
+    double powerR,
+    double powerG,
+    double powerB,
+  );
+  external void _ColorGradingBuilder_curves(
+    Pointer<TColorGradingBuilder> builder,
+    double shadowGammaR,
+    double shadowGammaG,
+    double shadowGammaB,
+    double midPointR,
+    double midPointG,
+    double midPointB,
+    double highlightScaleR,
+    double highlightScaleG,
+    double highlightScaleB,
+  );
+  external void _ColorGradingBuilder_luminanceScaling(
+    Pointer<TColorGradingBuilder> builder,
+    bool enabled,
+  );
+  external void _ColorGradingBuilder_gamutMapping(
+    Pointer<TColorGradingBuilder> builder,
+    bool enabled,
   );
   external void _View_setColorGrading(
     Pointer<TView> tView,
     Pointer<TColorGrading> tColorGrading,
+  );
+  external Pointer<TColorGrading> _View_getColorGrading(
+    Pointer<TView> tView,
   );
   external void _View_setBlendMode(
     Pointer<TView> view,
@@ -1852,9 +1998,79 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _ColorGrading_createRenderThread(
     Pointer<TEngine> tEngine,
-    int toneMapping,
+    Pointer<TToneMapper> toneMapper,
     Pointer<NativeFunction<void Function(PointerClass<TColorGrading>)>>
         callback,
+  );
+  external void _ColorGradingBuilder_createRenderThread(
+    Pointer<NativeFunction<void Function(PointerClass<TColorGradingBuilder>)>>
+        onComplete,
+  );
+  external void _ColorGradingBuilder_buildRenderThread(
+    Pointer<TColorGradingBuilder> tBuilder,
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TColorGrading>)>>
+        onComplete,
+  );
+  external void _ColorGradingBuilder_destroyRenderThread(
+    Pointer<TColorGradingBuilder> tBuilder,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _ToneMapper_createLinearRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createACESRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createACESLegacyRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createFilmicRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createPBRNeutralRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createAGXRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createAGXWithLookRenderThread(
+    Pointer<TEngine> tEngine,
+    int look,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createGenericRenderThread(
+    Pointer<TEngine> tEngine,
+    double contrast,
+    double midGrayIn,
+    double midGrayOut,
+    double hdrMax,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_createDisplayRangeRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TToneMapper>)>>
+        onComplete,
+  );
+  external void _ToneMapper_destroyRenderThread(
+    Pointer<TToneMapper> tToneMapper,
+    int requestId,
+    VoidCallback onComplete,
   );
   external void _View_pickRenderThread(
     Pointer<TView> tView,
@@ -4240,13 +4456,331 @@ TViewport View_getViewport(
   return TViewport_out.toDart();
 }
 
-Pointer<TColorGrading> ColorGrading_create(
+Pointer<TToneMapper> ToneMapper_createLinear(
   Pointer<TEngine> tEngine,
-  int toneMapping,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_createLinear(tEngine.cast());
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createACES(
+  Pointer<TEngine> tEngine,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_createACES(tEngine.cast());
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createACESLegacy(
+  Pointer<TEngine> tEngine,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_createACESLegacy(tEngine.cast());
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createFilmic(
+  Pointer<TEngine> tEngine,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_createFilmic(tEngine.cast());
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createPBRNeutral(
+  Pointer<TEngine> tEngine,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_createPBRNeutral(tEngine.cast());
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createAGX(
+  Pointer<TEngine> tEngine,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_createAGX(tEngine.cast());
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createAGXWithLook(
+  Pointer<TEngine> tEngine,
+  int look,
 ) {
   final result = GeneratedBindings.instance
-      ._ColorGrading_create(tEngine.cast(), toneMapping);
+      ._ToneMapper_createAGXWithLook(tEngine.cast(), look);
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createGeneric(
+  Pointer<TEngine> tEngine,
+  double contrast,
+  double midGrayIn,
+  double midGrayOut,
+  double hdrMax,
+) {
+  final result = GeneratedBindings.instance._ToneMapper_createGeneric(
+      tEngine.cast(), contrast, midGrayIn, midGrayOut, hdrMax);
+  return Pointer<TToneMapper>(result);
+}
+
+Pointer<TToneMapper> ToneMapper_createDisplayRange(
+  Pointer<TEngine> tEngine,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_createDisplayRange(tEngine.cast());
+  return Pointer<TToneMapper>(result);
+}
+
+void ToneMapper_destroy(
+  Pointer<TToneMapper> toneMapper,
+) {
+  final result =
+      GeneratedBindings.instance._ToneMapper_destroy(toneMapper.cast());
+  return result;
+}
+
+Pointer<TColorGrading> ColorGrading_create(
+  Pointer<TEngine> tEngine,
+  Pointer<TToneMapper> toneMapper,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGrading_create(tEngine.cast(), toneMapper.cast());
   return Pointer<TColorGrading>(result);
+}
+
+Pointer<TColorGradingBuilder> ColorGradingBuilder_create() {
+  final result = GeneratedBindings.instance._ColorGradingBuilder_create();
+  return Pointer<TColorGradingBuilder>(result);
+}
+
+Pointer<TColorGrading> ColorGradingBuilder_build(
+  Pointer<TColorGradingBuilder> builder,
+  Pointer<TEngine> engine,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_build(builder.cast(), engine.cast());
+  return Pointer<TColorGrading>(result);
+}
+
+void ColorGradingBuilder_destroy(
+  Pointer<TColorGradingBuilder> builder,
+) {
+  final result =
+      GeneratedBindings.instance._ColorGradingBuilder_destroy(builder.cast());
+  return result;
+}
+
+void ColorGrading_destroy(
+  Pointer<TEngine> engine,
+  Pointer<TColorGrading> colorGrading,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGrading_destroy(engine.cast(), colorGrading.cast());
+  return result;
+}
+
+void ColorGradingBuilder_quality(
+  Pointer<TColorGradingBuilder> builder,
+  int level,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_quality(builder.cast(), level);
+  return result;
+}
+
+void ColorGradingBuilder_toneMapper(
+  Pointer<TColorGradingBuilder> builder,
+  Pointer<TToneMapper> toneMapper,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_toneMapper(builder.cast(), toneMapper.cast());
+  return result;
+}
+
+void ColorGradingBuilder_exposure(
+  Pointer<TColorGradingBuilder> builder,
+  double exposure,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_exposure(builder.cast(), exposure);
+  return result;
+}
+
+void ColorGradingBuilder_nightAdaptation(
+  Pointer<TColorGradingBuilder> builder,
+  double adaptation,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_nightAdaptation(builder.cast(), adaptation);
+  return result;
+}
+
+void ColorGradingBuilder_whiteBalance(
+  Pointer<TColorGradingBuilder> builder,
+  double temperature,
+  double tint,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_whiteBalance(builder.cast(), temperature, tint);
+  return result;
+}
+
+void ColorGradingBuilder_contrast(
+  Pointer<TColorGradingBuilder> builder,
+  double contrast,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_contrast(builder.cast(), contrast);
+  return result;
+}
+
+void ColorGradingBuilder_vibrance(
+  Pointer<TColorGradingBuilder> builder,
+  double vibrance,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_vibrance(builder.cast(), vibrance);
+  return result;
+}
+
+void ColorGradingBuilder_saturation(
+  Pointer<TColorGradingBuilder> builder,
+  double saturation,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_saturation(builder.cast(), saturation);
+  return result;
+}
+
+void ColorGradingBuilder_channelMixer(
+  Pointer<TColorGradingBuilder> builder,
+  double outRedR,
+  double outRedG,
+  double outRedB,
+  double outGreenR,
+  double outGreenG,
+  double outGreenB,
+  double outBlueR,
+  double outBlueG,
+  double outBlueB,
+) {
+  final result = GeneratedBindings.instance._ColorGradingBuilder_channelMixer(
+      builder.cast(),
+      outRedR,
+      outRedG,
+      outRedB,
+      outGreenR,
+      outGreenG,
+      outGreenB,
+      outBlueR,
+      outBlueG,
+      outBlueB);
+  return result;
+}
+
+void ColorGradingBuilder_shadowsMidtonesHighlights(
+  Pointer<TColorGradingBuilder> builder,
+  double shadowsR,
+  double shadowsG,
+  double shadowsB,
+  double shadowsW,
+  double midtonesR,
+  double midtonesG,
+  double midtonesB,
+  double midtonesW,
+  double highlightsR,
+  double highlightsG,
+  double highlightsB,
+  double highlightsW,
+  double rangesX,
+  double rangesY,
+  double rangesZ,
+  double rangesW,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_shadowsMidtonesHighlights(
+          builder.cast(),
+          shadowsR,
+          shadowsG,
+          shadowsB,
+          shadowsW,
+          midtonesR,
+          midtonesG,
+          midtonesB,
+          midtonesW,
+          highlightsR,
+          highlightsG,
+          highlightsB,
+          highlightsW,
+          rangesX,
+          rangesY,
+          rangesZ,
+          rangesW);
+  return result;
+}
+
+void ColorGradingBuilder_slopeOffsetPower(
+  Pointer<TColorGradingBuilder> builder,
+  double slopeR,
+  double slopeG,
+  double slopeB,
+  double offsetR,
+  double offsetG,
+  double offsetB,
+  double powerR,
+  double powerG,
+  double powerB,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_slopeOffsetPower(builder.cast(), slopeR, slopeG,
+          slopeB, offsetR, offsetG, offsetB, powerR, powerG, powerB);
+  return result;
+}
+
+void ColorGradingBuilder_curves(
+  Pointer<TColorGradingBuilder> builder,
+  double shadowGammaR,
+  double shadowGammaG,
+  double shadowGammaB,
+  double midPointR,
+  double midPointG,
+  double midPointB,
+  double highlightScaleR,
+  double highlightScaleG,
+  double highlightScaleB,
+) {
+  final result = GeneratedBindings.instance._ColorGradingBuilder_curves(
+      builder.cast(),
+      shadowGammaR,
+      shadowGammaG,
+      shadowGammaB,
+      midPointR,
+      midPointG,
+      midPointB,
+      highlightScaleR,
+      highlightScaleG,
+      highlightScaleB);
+  return result;
+}
+
+void ColorGradingBuilder_luminanceScaling(
+  Pointer<TColorGradingBuilder> builder,
+  bool enabled,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_luminanceScaling(builder.cast(), enabled);
+  return result;
+}
+
+void ColorGradingBuilder_gamutMapping(
+  Pointer<TColorGradingBuilder> builder,
+  bool enabled,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_gamutMapping(builder.cast(), enabled);
+  return result;
 }
 
 void View_setColorGrading(
@@ -4256,6 +4790,13 @@ void View_setColorGrading(
   final result = GeneratedBindings.instance
       ._View_setColorGrading(tView.cast(), tColorGrading.cast());
   return result;
+}
+
+Pointer<TColorGrading> View_getColorGrading(
+  Pointer<TView> tView,
+) {
+  final result = GeneratedBindings.instance._View_getColorGrading(tView.cast());
+  return Pointer<TColorGrading>(result);
 }
 
 void View_setBlendMode(
@@ -6418,11 +6959,145 @@ void Material_createOutlineMaterialRenderThread(
 
 void ColorGrading_createRenderThread(
   Pointer<TEngine> tEngine,
-  int toneMapping,
+  Pointer<TToneMapper> toneMapper,
   Pointer<NativeFunction<void Function(Pointer<TColorGrading>)>> callback,
 ) {
   final result = GeneratedBindings.instance._ColorGrading_createRenderThread(
-      tEngine.cast(), toneMapping, callback.cast());
+      tEngine.cast(), toneMapper.cast(), callback.cast());
+  return result;
+}
+
+void ColorGradingBuilder_createRenderThread(
+  Pointer<NativeFunction<void Function(Pointer<TColorGradingBuilder>)>>
+      onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_createRenderThread(onComplete.cast());
+  return result;
+}
+
+void ColorGradingBuilder_buildRenderThread(
+  Pointer<TColorGradingBuilder> tBuilder,
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TColorGrading>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_buildRenderThread(
+          tBuilder.cast(), tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ColorGradingBuilder_destroyRenderThread(
+  Pointer<TColorGradingBuilder> tBuilder,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_destroyRenderThread(tBuilder.cast(), requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void ToneMapper_createLinearRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createLinearRenderThread(tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createACESRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createACESRenderThread(tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createACESLegacyRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createACESLegacyRenderThread(
+          tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createFilmicRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createFilmicRenderThread(tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createPBRNeutralRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createPBRNeutralRenderThread(
+          tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createAGXRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createAGXRenderThread(tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createAGXWithLookRenderThread(
+  Pointer<TEngine> tEngine,
+  int look,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createAGXWithLookRenderThread(
+          tEngine.cast(), look, onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createGenericRenderThread(
+  Pointer<TEngine> tEngine,
+  double contrast,
+  double midGrayIn,
+  double midGrayOut,
+  double hdrMax,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createGenericRenderThread(tEngine.cast(), contrast,
+          midGrayIn, midGrayOut, hdrMax, onComplete.cast());
+  return result;
+}
+
+void ToneMapper_createDisplayRangeRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TToneMapper>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._ToneMapper_createDisplayRangeRenderThread(
+          tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void ToneMapper_destroyRenderThread(
+  Pointer<TToneMapper> tToneMapper,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._ToneMapper_destroyRenderThread(
+      tToneMapper.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -8459,6 +9134,22 @@ final class TView extends Struct {
   }
 }
 
+extension TToneMapperExt on Pointer<TToneMapper> {
+  TToneMapper toDart() {
+    return TToneMapper(this);
+  }
+}
+
+final class TToneMapper extends Struct {
+  Pointer<TToneMapper> get address => super.address.cast();
+  TToneMapper(super.address);
+
+  static Pointer<TToneMapper> stackAlloc() {
+    return Pointer<TToneMapper>(
+        NativeLibrary.instance.stackAlloc<TToneMapper>(0));
+  }
+}
+
 extension TColorGradingExt on Pointer<TColorGrading> {
   TColorGrading toDart() {
     return TColorGrading(this);
@@ -8475,10 +9166,27 @@ final class TColorGrading extends Struct {
   }
 }
 
-sealed class TToneMapping {
-  static const ACES = 0;
-  static const FILMIC = 1;
-  static const LINEAR = 2;
+extension TColorGradingBuilderExt on Pointer<TColorGradingBuilder> {
+  TColorGradingBuilder toDart() {
+    return TColorGradingBuilder(this);
+  }
+}
+
+final class TColorGradingBuilder extends Struct {
+  Pointer<TColorGradingBuilder> get address => super.address.cast();
+  TColorGradingBuilder(super.address);
+
+  static Pointer<TColorGradingBuilder> stackAlloc() {
+    return Pointer<TColorGradingBuilder>(
+        NativeLibrary.instance.stackAlloc<TColorGradingBuilder>(0));
+  }
+}
+
+sealed class TQualityLevel {
+  static const LOW = 0;
+  static const MEDIUM = 1;
+  static const HIGH = 2;
+  static const ULTRA = 3;
 }
 
 sealed class TBlendMode {
@@ -8600,13 +9308,6 @@ final class TVsmShadowOptions extends Struct {
     return Pointer<TVsmShadowOptions>(
         NativeLibrary.instance.stackAlloc<TVsmShadowOptions>(12));
   }
-}
-
-sealed class TQualityLevel {
-  static const LOW = 0;
-  static const MEDIUM = 1;
-  static const HIGH = 2;
-  static const ULTRA = 3;
 }
 
 extension TSceneExt on Pointer<TScene> {
@@ -9436,8 +10137,14 @@ extension StructAllocator on Struct {
       case TView:
         final ptr = TView.stackAlloc();
         return ptr.toDart() as T;
+      case TToneMapper:
+        final ptr = TToneMapper.stackAlloc();
+        return ptr.toDart() as T;
       case TColorGrading:
         final ptr = TColorGrading.stackAlloc();
+        return ptr.toDart() as T;
+      case TColorGradingBuilder:
+        final ptr = TColorGradingBuilder.stackAlloc();
         return ptr.toDart() as T;
       case TSoftShadowOptions:
         final ptr = TSoftShadowOptions.stackAlloc();
@@ -9535,7 +10242,7 @@ extension NativeFunctionPointer15<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer31<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer42<T extends NativeType> on void Function(int) {
   Pointer<NativeFunction<void Function(int)>> addFunction() {
     return Pointer<NativeFunction<void Function(int)>>(NativeLibrary.instance
             .addFunction<void Function(int)>(this.toJS, 'vi'))
@@ -9543,7 +10250,7 @@ extension NativeFunctionPointer31<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer46<T extends NativeType> on void Function(
+extension NativeFunctionPointer57<T extends NativeType> on void Function(
     double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(NativeLibrary.instance

@@ -1494,12 +1494,289 @@ external TViewport View_getViewport(
   ffi.Pointer<TView> view,
 );
 
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createLinear(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createACES(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createACESLegacy(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createFilmic(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createPBRNeutral(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createAGX(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>, ffi.Int)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createAGXWithLook(
+  ffi.Pointer<TEngine> tEngine,
+  int look,
+);
+
+@ffi.Native<
+    ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>, ffi.Float,
+        ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createGeneric(
+  ffi.Pointer<TEngine> tEngine,
+  double contrast,
+  double midGrayIn,
+  double midGrayOut,
+  double hdrMax,
+);
+
+@ffi.Native<ffi.Pointer<TToneMapper> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TToneMapper> ToneMapper_createDisplayRange(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TToneMapper>)>(isLeaf: true)
+external void ToneMapper_destroy(
+  ffi.Pointer<TToneMapper> toneMapper,
+);
+
 @ffi.Native<
     ffi.Pointer<TColorGrading> Function(
-        ffi.Pointer<TEngine>, ffi.UnsignedInt)>(isLeaf: true)
+        ffi.Pointer<TEngine>, ffi.Pointer<TToneMapper>)>(isLeaf: true)
 external ffi.Pointer<TColorGrading> ColorGrading_create(
   ffi.Pointer<TEngine> tEngine,
-  int toneMapping,
+  ffi.Pointer<TToneMapper> toneMapper,
+);
+
+@ffi.Native<ffi.Pointer<TColorGradingBuilder> Function()>(isLeaf: true)
+external ffi.Pointer<TColorGradingBuilder> ColorGradingBuilder_create();
+
+@ffi.Native<
+    ffi.Pointer<TColorGrading> Function(
+        ffi.Pointer<TColorGradingBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TColorGrading> ColorGradingBuilder_build(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>)>(isLeaf: true)
+external void ColorGradingBuilder_destroy(
+  ffi.Pointer<TColorGradingBuilder> builder,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TColorGrading>)>(isLeaf: true)
+external void ColorGrading_destroy(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TColorGrading> colorGrading,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>, ffi.UnsignedInt)>(isLeaf: true)
+external void ColorGradingBuilder_quality(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  int level,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TColorGradingBuilder>,
+        ffi.Pointer<TToneMapper>)>(isLeaf: true)
+external void ColorGradingBuilder_toneMapper(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  ffi.Pointer<TToneMapper> toneMapper,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(
+    isLeaf: true)
+external void ColorGradingBuilder_exposure(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double exposure,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(
+    isLeaf: true)
+external void ColorGradingBuilder_nightAdaptation(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double adaptation,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>, ffi.Float, ffi.Float)>(isLeaf: true)
+external void ColorGradingBuilder_whiteBalance(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double temperature,
+  double tint,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(
+    isLeaf: true)
+external void ColorGradingBuilder_contrast(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double contrast,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(
+    isLeaf: true)
+external void ColorGradingBuilder_vibrance(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double vibrance,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Float)>(
+    isLeaf: true)
+external void ColorGradingBuilder_saturation(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double saturation,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float)>(isLeaf: true)
+external void ColorGradingBuilder_channelMixer(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double outRedR,
+  double outRedG,
+  double outRedB,
+  double outGreenR,
+  double outGreenG,
+  double outGreenB,
+  double outBlueR,
+  double outBlueG,
+  double outBlueB,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float)>(isLeaf: true)
+external void ColorGradingBuilder_shadowsMidtonesHighlights(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double shadowsR,
+  double shadowsG,
+  double shadowsB,
+  double shadowsW,
+  double midtonesR,
+  double midtonesG,
+  double midtonesB,
+  double midtonesW,
+  double highlightsR,
+  double highlightsG,
+  double highlightsB,
+  double highlightsW,
+  double rangesX,
+  double rangesY,
+  double rangesZ,
+  double rangesW,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float)>(isLeaf: true)
+external void ColorGradingBuilder_slopeOffsetPower(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double slopeR,
+  double slopeG,
+  double slopeB,
+  double offsetR,
+  double offsetG,
+  double offsetB,
+  double powerR,
+  double powerG,
+  double powerB,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float)>(isLeaf: true)
+external void ColorGradingBuilder_curves(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  double shadowGammaR,
+  double shadowGammaG,
+  double shadowGammaB,
+  double midPointR,
+  double midPointG,
+  double midPointB,
+  double highlightScaleR,
+  double highlightScaleG,
+  double highlightScaleB,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Bool)>(
+    isLeaf: true)
+external void ColorGradingBuilder_luminanceScaling(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Bool)>(
+    isLeaf: true)
+external void ColorGradingBuilder_gamutMapping(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  bool enabled,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TColorGrading>)>(
@@ -1507,6 +1784,12 @@ external ffi.Pointer<TColorGrading> ColorGrading_create(
 external void View_setColorGrading(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TColorGrading> tColorGrading,
+);
+
+@ffi.Native<ffi.Pointer<TColorGrading> Function(ffi.Pointer<TView>)>(
+    isLeaf: true)
+external ffi.Pointer<TColorGrading> View_getColorGrading(
+  ffi.Pointer<TView> tView,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(
@@ -3323,15 +3606,187 @@ external void Material_createOutlineMaterialRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TEngine>,
-        ffi.UnsignedInt,
+        ffi.Pointer<TToneMapper>,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(ffi.Pointer<TColorGrading>)>>)>(isLeaf: true)
 external void ColorGrading_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
-  int toneMapping,
+  ffi.Pointer<TToneMapper> toneMapper,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TColorGrading>)>>
       callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Pointer<TColorGradingBuilder>)>>)>(isLeaf: true)
+external void ColorGradingBuilder_createRenderThread(
+  ffi.Pointer<
+          ffi
+          .NativeFunction<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>,
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TColorGrading>)>>)>(isLeaf: true)
+external void ColorGradingBuilder_buildRenderThread(
+  ffi.Pointer<TColorGradingBuilder> tBuilder,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TColorGrading>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void ColorGradingBuilder_destroyRenderThread(
+  ffi.Pointer<TColorGradingBuilder> tBuilder,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createLinearRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createACESRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createACESLegacyRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createFilmicRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createPBRNeutralRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createAGXRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Int,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createAGXWithLookRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  int look,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createGenericRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  double contrast,
+  double midGrayIn,
+  double midGrayOut,
+  double hdrMax,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>)>(
+    isLeaf: true)
+external void ToneMapper_createDisplayRangeRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TToneMapper>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TToneMapper>, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void ToneMapper_destroyRenderThread(
+  ffi.Pointer<TToneMapper> tToneMapper,
+  int requestId,
+  VoidCallback onComplete,
 );
 
 @ffi.Native<
@@ -4965,11 +5420,7 @@ final class TFogOptions extends ffi.Struct {
   external bool enabled;
 }
 
-sealed class TToneMapping {
-  static const ACES = 0;
-  static const FILMIC = 1;
-  static const LINEAR = 2;
-}
+final class TToneMapper extends ffi.Opaque {}
 
 sealed class TQualityLevel {
   static const LOW = 0;
@@ -4982,6 +5433,8 @@ sealed class TBlendMode {
   static const OPAQUE = 0;
   static const TRANSLUCENT = 1;
 }
+
+final class TColorGradingBuilder extends ffi.Opaque {}
 
 /// Options for DPCF and PCSS Shadowing.
 final class TSoftShadowOptions extends ffi.Struct {
