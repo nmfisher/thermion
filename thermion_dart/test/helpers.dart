@@ -481,7 +481,8 @@ class ViewerBuilder {
   }
 
   ViewerBuilder addSun({
-    double color = 6500,
+    LinearColor? color,
+    double? colorTemperature = 6500,
     double intensity = 100000,
     bool castShadows = true,
     Vector3? direction,
@@ -491,6 +492,7 @@ class ViewerBuilder {
   }) {
     _directLights.add(DirectLight.sun(
       color: color,
+      colorTemperature: colorTemperature,
       intensity: intensity,
       castShadows: castShadows,
       direction: direction,

@@ -397,7 +397,7 @@ void main() async {
       await testHelper.capture(viewer.view, "sun_light_default_color");
 
       // Change sun light color to warm (orange/red) - low color temperature
-      lightManager.setColor(sunLight, 2000.0);
+      lightManager.setColorTemperature(sunLight, 2000.0);
       await testHelper.capture(viewer.view, "sun_light_warm_color");
 
       // Verify the color changed (should be more red/orange)
@@ -406,7 +406,7 @@ void main() async {
       expect(warmColor.length, equals(3));
 
       // Change sun light color to cool (blue) - high color temperature
-      lightManager.setColor(sunLight, 12000.0);
+      lightManager.setColorTemperature(sunLight, 12000.0);
       await testHelper.capture(viewer.view, "sun_light_cool_color");
 
       // Verify the color changed (should be more blue)
@@ -415,7 +415,7 @@ void main() async {
       expect(coolColor.length, equals(3));
 
       // Change back to neutral white
-      lightManager.setColor(sunLight, 6500.0);
+      lightManager.setColorTemperature(sunLight, 6500.0);
       await testHelper.capture(viewer.view, "sun_light_neutral_color");
 
       // Verify the color changed back
@@ -450,7 +450,7 @@ void main() async {
       await testHelper.capture(viewer.view, "point_light_default_color");
 
       // Change light color to warm (orange/red) - low color temperature
-      lightManager.setColor(pointLight, 2000.0);
+      lightManager.setColorTemperature(pointLight, 2000.0);
       await testHelper.capture(viewer.view, "point_light_warm_color");
 
       // Verify the color changed (should be more red/orange)
@@ -459,7 +459,7 @@ void main() async {
       expect(warmColor.length, equals(3));
 
       // Change light color to cool (blue) - high color temperature
-      lightManager.setColor(pointLight, 12000.0);
+      lightManager.setColorTemperature(pointLight, 12000.0);
       await testHelper.capture(viewer.view, "point_light_cool_color");
 
       // Verify the color changed (should be more blue)
@@ -468,7 +468,7 @@ void main() async {
       expect(coolColor.length, equals(3));
 
       // Change back to neutral white
-      lightManager.setColor(pointLight, 6500.0);
+      lightManager.setColorTemperature(pointLight, 6500.0);
       await testHelper.capture(viewer.view, "point_light_neutral_color");
 
       // Verify the color changed back
@@ -619,4 +619,6 @@ void main() async {
       
     });
   });
+
+ 
 }

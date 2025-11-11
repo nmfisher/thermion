@@ -61,7 +61,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE double3 LightManager_getDirection(TLightManager *tLightManager, EntityId light);
 
 	// Color and intensity
-	EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, double colorTemperature);
+	EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, double r, double g, double b);
+	EMSCRIPTEN_KEEPALIVE void LightManager_setColorTemperature(TLightManager *tLightManager, EntityId entity, double colorTemperature);
 	EMSCRIPTEN_KEEPALIVE double3 LightManager_getColor(TLightManager *tLightManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void LightManager_setIntensity(TLightManager *tLightManager, EntityId entity, double intensity);
 	EMSCRIPTEN_KEEPALIVE void LightManager_setIntensityCandela(TLightManager *tLightManager, EntityId entity, double intensity);
@@ -99,6 +100,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void LightManager_computeUniformSplits(float* splitPositions, uint8_t cascades);
 	EMSCRIPTEN_KEEPALIVE void LightManager_computeLogSplits(float* splitPositions, uint8_t cascades, float near, float far);
 	EMSCRIPTEN_KEEPALIVE void LightManager_computePracticalSplits(float* splitPositions, uint8_t cascades, float near, float far, float lambda);
+
+	// Color temperature conversion utilities
+	EMSCRIPTEN_KEEPALIVE double LightManager_rgbToColorTemperature(double r, double g, double b);
 
 #ifdef __cplusplus
 }

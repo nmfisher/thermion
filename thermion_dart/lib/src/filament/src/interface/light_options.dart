@@ -1,7 +1,39 @@
 import 'dart:math';
+import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
-import 'package:vector_math/vector_math_64.dart';
-import 'light.dart';
+
+/// Represents a linear RGB color with values in the range [0.0, 1.0].
+/// This is used for physically-based lighting calculations.
+class LinearColor {
+  final double r;
+  final double g;
+  final double b;
+
+  /// Creates a linear RGB color.
+  /// [r], [g], [b] should be in the range [0.0, 1.0] for standard colors.
+  const LinearColor(this.r, this.g, this.b);
+
+  /// Pure white color (1.0, 1.0, 1.0)
+  static const LinearColor white = LinearColor(1.0, 1.0, 1.0);
+
+  /// Neutral white (equivalent to ~6500K)
+  static const LinearColor neutralWhite = LinearColor(1.0, 1.0, 1.0);
+
+  @override
+  String toString() => 'LinearColor($r, $g, $b)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LinearColor &&
+          runtimeType == other.runtimeType &&
+          r == other.r &&
+          g == other.g &&
+          b == other.b;
+
+  @override
+  int get hashCode => r.hashCode ^ g.hashCode ^ b.hashCode;
+}
 
 class IBL {
   String? iblPath;
@@ -12,7 +44,8 @@ class IBL {
 
 class DirectLight {
   final LightType type;
-  final double color;
+  final LinearColor color;
+  final double? colorTemperature;
   final double intensity;
   final bool castShadows;
   late final v.Vector3 position;
@@ -27,6 +60,7 @@ class DirectLight {
   DirectLight({
     required this.type,
     required this.color,
+    this.colorTemperature,
     required this.intensity,
     this.castShadows = false,
     required this.direction,
@@ -40,14 +74,16 @@ class DirectLight {
   });
 
   DirectLight.point({
-    double color = 6500,
+    LinearColor? color,
+    double? colorTemperature,
     double intensity = 100000,
     bool castShadows = false,
     Vector3? position,
     double falloffRadius = 1.0,
   }) : this(
     type: LightType.POINT,
-    color: color,
+    color: color ?? LinearColor.white,
+    colorTemperature: colorTemperature,
     intensity: intensity,
     castShadows: castShadows,
     position: position ?? Vector3(0, 1, 0),
@@ -56,7 +92,8 @@ class DirectLight {
   );
 
   DirectLight.sun({
-    double color = 6500,
+    LinearColor? color,
+    double? colorTemperature,
     double intensity = 100000,
     bool castShadows = true,
     Vector3? direction,
@@ -65,10 +102,11 @@ class DirectLight {
     double sunHaloFalloff = 80.0,
   }) : this(
     type: LightType.DIRECTIONAL,
-    color: color,
+    color: color ?? LinearColor.white,
+    colorTemperature: colorTemperature,
     intensity: intensity,
     castShadows: castShadows,
-    position: Vector3(0, 0, 0),  
+    position: Vector3(0, 0, 0),
     direction: direction ?? Vector3(0, -1, 0),
     sunAngularRadius: sunAngularRadius,
     sunHaloSize: sunHaloSize,
@@ -76,7 +114,8 @@ class DirectLight {
   );
 
   DirectLight.spot({
-    double color = 6500,
+    LinearColor? color,
+    double? colorTemperature,
     double intensity = 100000,
     bool castShadows = true,
     Vector3? position,
@@ -86,7 +125,8 @@ class DirectLight {
     double spotLightConeOuter = pi / 4,
   }) : this(
     type: LightType.SPOT,
-    color: color,
+    color: color ?? LinearColor.white,
+    colorTemperature: colorTemperature,
     intensity: intensity,
     castShadows: castShadows,
     position: position ?? Vector3(0, 1, 0),

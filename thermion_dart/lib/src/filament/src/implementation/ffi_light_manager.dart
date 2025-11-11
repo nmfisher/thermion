@@ -44,8 +44,13 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   }
 
   @override
-  void setColor(ThermionEntity light, double colorTemperature) {
-    LightManager_setColor(lightManager, light, colorTemperature);
+  void setColor(ThermionEntity light, double r, double g, double b) {
+    LightManager_setColor(lightManager, light, r, g, b);
+  }
+
+  @override
+  void setColorTemperature(ThermionEntity light, double colorTemperature) {
+    LightManager_setColorTemperature(lightManager, light, colorTemperature);
   }
 
   @override
@@ -322,6 +327,11 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     LightManager_computePracticalSplits(
         pointer.address, cascades, near, far, lambda);
     return pointer;
+  }
+
+  @override
+  double rgbToColorTemperature(double r, double g, double b) {
+    return LightManager_rgbToColorTemperature(r, g, b);
   }
 
   int _convertLightType(LightType type) {

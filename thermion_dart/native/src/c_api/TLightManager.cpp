@@ -59,10 +59,23 @@ EMSCRIPTEN_KEEPALIVE void LightManager_destroyLight(TLightManager *tLightManager
     lm->destroy(utils::Entity::import(entity));
 }
 
-EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, double colorTemperature) {
+EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, double r, double g, double b) {
+    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto color = filament::LinearColor{static_cast<float>(r), static_cast<float>(g), static_cast<float>(b)};
+
+    auto instance = lm->getInstance(utils::Entity::import(entity));
+    if (!instance.isValid()) {
+        ERROR("Light instance invalid");
+        return;
+    }
+    lm->setColor(instance, color);
+    Log("Set light color to %f %f %f (RGB)", color.r, color.g, color.b);
+}
+
+EMSCRIPTEN_KEEPALIVE void LightManager_setColorTemperature(TLightManager *tLightManager, EntityId entity, double colorTemperature) {
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
     auto color = filament::Color::cct(colorTemperature);
-    
+
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (!instance.isValid()) {
         ERROR("Light instance invalid");
@@ -71,6 +84,7 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, En
     lm->setColor(instance, color);
     Log("Set light color to %f %f %f (%fK)", color.r, color.g, color.b, colorTemperature);
 }
+
 
 EMSCRIPTEN_KEEPALIVE void LightManager_setIntensity(TLightManager *tLightManager, EntityId entity, double intensity) {
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
@@ -402,5 +416,12 @@ EMSCRIPTEN_KEEPALIVE void LightManager_computeLogSplits(float* splitPositions, u
 EMSCRIPTEN_KEEPALIVE void LightManager_computePracticalSplits(float* splitPositions, uint8_t cascades, float near, float far, float lambda) {
     filament::LightManager::ShadowCascades::computePracticalSplits(splitPositions, cascades, near, far, lambda);
 }
+
+// Color temperature conversion utility
+EMSCRIPTEN_KEEPALIVE double3 LightManager_colorTemperatureToRgb(double colorTemperature) {
+    auto color = filament::Color::cct(colorTemperature);
+    return double3 { static_cast<double>(color.r), static_cast<double>(color.g), static_cast<double>(color.b) };
+}
+
 
 } // extern "C"

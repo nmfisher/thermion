@@ -1153,7 +1153,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<ThermionEntity> createDirectLight(DirectLight directLight) async {
     var entity = lightManager.createLight(directLight.type);
 
-    lightManager.setColor(entity, directLight.color);
+    // Set color using either color temperature or RGB values
+    if (directLight.colorTemperature != null) {
+      lightManager.setColorTemperature(entity, directLight.colorTemperature!);
+    } else {
+      lightManager.setColor(entity, directLight.color.r, directLight.color.g, directLight.color.b);
+    }
+
     lightManager.setIntensity(entity, directLight.intensity);
     lightManager.setPosition(entity, directLight.position.x,
         directLight.position.y, directLight.position.z);

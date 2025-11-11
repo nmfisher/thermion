@@ -47,9 +47,14 @@ abstract class LightManager<T> extends NativeHandle<T> {
   // Color and intensity
   // ============================================================================
 
-  /// Sets the color of a light using color temperature.
+  /// Sets the color of a light using linear RGB values.
+  /// [r], [g], [b] are the linear RGB color components in the range [0.0, 1.0].
+  void setColor(ThermionEntity light, double r, double g, double b);
+
+  /// Sets the color of a light using color temperature in Kelvin.
   /// Higher values produce cooler (bluer) light, lower values produce warmer (redder) light.
-  void setColor(ThermionEntity light, double colorTemperature);
+  /// Typical values: 2000K (warm/orange), 6500K (neutral white), 12000K (cool/blue).
+  void setColorTemperature(ThermionEntity light, double colorTemperature);
 
   /// Gets the RGB color of a light. Returns a list [r, g, b].
   List<double> getColor(ThermionEntity light);
@@ -165,4 +170,14 @@ abstract class LightManager<T> extends NativeHandle<T> {
   /// Start with a lambda value of 0.5f and adjust for your scene.
   /// Returns a list of cascade split positions (length will be cascades-1).
   List<double> computePracticalSplits(int cascades, double near, double far, double lambda);
+
+  // ============================================================================
+  // Color temperature utilities
+  // ============================================================================
+
+  /// Converts linear RGB values to color temperature.
+  /// [r], [g], [b] are the linear RGB color components in the range [0.0, 1.0].
+  /// Returns the approximate color temperature in Kelvin (typically 1000K to 40000K).
+  /// Uses McCamy's approximation for the conversion.
+  double rgbToColorTemperature(double r, double g, double b);
 }
