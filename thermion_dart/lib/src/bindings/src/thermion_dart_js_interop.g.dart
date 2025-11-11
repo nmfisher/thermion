@@ -1403,6 +1403,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _LightManager_setColor(
     Pointer<TLightManager> tLightManager,
     EntityId entity,
+    double r,
+    double g,
+    double b,
+  );
+  external void _LightManager_setColorTemperature(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
     double colorTemperature,
   );
   external void _LightManager_getColor(
@@ -1526,6 +1533,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double near,
     double far,
     double lambda,
+  );
+  external double _LightManager_rgbToColorTemperature(
+    double r,
+    double g,
+    double b,
   );
   external Pointer<TEngine> _Engine_create(
     int backend,
@@ -5649,10 +5661,22 @@ double3 LightManager_getDirection(
 void LightManager_setColor(
   Pointer<TLightManager> tLightManager,
   DartEntityId entity,
-  double colorTemperature,
+  double r,
+  double g,
+  double b,
 ) {
   final result = GeneratedBindings.instance
-      ._LightManager_setColor(tLightManager.cast(), entity, colorTemperature);
+      ._LightManager_setColor(tLightManager.cast(), entity, r, g, b);
+  return result;
+}
+
+void LightManager_setColorTemperature(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double colorTemperature,
+) {
+  final result = GeneratedBindings.instance._LightManager_setColorTemperature(
+      tLightManager.cast(), entity, colorTemperature);
   return result;
 }
 
@@ -5902,6 +5926,16 @@ void LightManager_computePracticalSplits(
   final result = GeneratedBindings.instance
       ._LightManager_computePracticalSplits(
           splitPositions, cascades, near, far, lambda);
+  return result;
+}
+
+double LightManager_rgbToColorTemperature(
+  double r,
+  double g,
+  double b,
+) {
+  final result =
+      GeneratedBindings.instance._LightManager_rgbToColorTemperature(r, g, b);
   return result;
 }
 

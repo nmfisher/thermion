@@ -2444,9 +2444,20 @@ external double3 LightManager_getDirection(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setColor(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double r,
+  double g,
+  double b,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
-external void LightManager_setColor(
+external void LightManager_setColorTemperature(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
   double colorTemperature,
@@ -2654,6 +2665,14 @@ external void LightManager_computePracticalSplits(
   double near,
   double far,
   double lambda,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Double, ffi.Double, ffi.Double)>(
+    isLeaf: true)
+external double LightManager_rgbToColorTemperature(
+  double r,
+  double g,
+  double b,
 );
 
 @ffi.Native<
