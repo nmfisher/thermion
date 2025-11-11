@@ -92,7 +92,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createOutlineMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
 
-        EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapping toneMapping, void (*callback)(TColorGrading *));  
+        EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper toneMapper, void (*callback)(TColorGrading *));  
         EMSCRIPTEN_KEEPALIVE void View_pickRenderThread(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);
         EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, uint32_t requestId,  VoidCallback onComplete);

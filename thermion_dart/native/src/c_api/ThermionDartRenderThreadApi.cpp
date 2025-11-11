@@ -700,12 +700,12 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapping toneMapping, void (*callback)(TColorGrading *))
+  EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper toneMapper, void (*callback)(TColorGrading *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto cg = ColorGrading_create(tEngine, toneMapping);
+          auto cg = ColorGrading_create(tEngine, toneMapper);
           PROXY(callback(cg));
         });
     auto fut = _renderThread->add_task(lambda);

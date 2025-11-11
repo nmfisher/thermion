@@ -38,13 +38,13 @@ struct TFogOptions {
     bool enabled = 0;
 };
 
-enum TToneMapping
+enum TToneMapper
 {
     ACES,
     FILMIC,
     LINEAR
 };
-typedef enum TToneMapping TToneMapping;
+typedef enum TToneMapper TToneMapper;
 
 // copied from Options.h
 enum TQualityLevel { 
@@ -63,7 +63,7 @@ typedef enum TBlendMode TBlendMode;
 
 // View
 EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *view);
-EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine* tEngine, TToneMapping toneMapping);
+EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine* tEngine, TToneMapper toneMapper);
 EMSCRIPTEN_KEEPALIVE void View_setColorGrading(TView *tView, TColorGrading *tColorGrading);
 EMSCRIPTEN_KEEPALIVE void View_setBlendMode(TView *view, TBlendMode blendMode);
 EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *view, uint32_t width, uint32_t height);

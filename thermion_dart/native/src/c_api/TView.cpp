@@ -154,22 +154,22 @@ namespace thermion
             view->setColorGrading(colorGrading);
         }
 
-        EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine *tEngine, TToneMapping tToneMapping)
+        EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine *tEngine, TToneMapper tToneMapping)
         {
             auto engine = reinterpret_cast<Engine *>(tEngine);
 
             ToneMapper *tm;
             switch (tToneMapping)
             {
-            case TToneMapping::ACES:
+            case TToneMapper::ACES:
                 TRACE("Setting tone mapping to ACES");
                 tm = new ACESToneMapper();
                 break;
-            case TToneMapping::LINEAR:
+            case TToneMapper::LINEAR:
                 TRACE("Setting tone mapping to Linear");
                 tm = new LinearToneMapper();
                 break;
-            case TToneMapping::FILMIC:
+            case TToneMapper::FILMIC:
                 TRACE("Setting tone mapping to Filmic");
                 tm = new FilmicToneMapper();
                 break;
