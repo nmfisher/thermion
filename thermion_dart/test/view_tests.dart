@@ -66,7 +66,7 @@ void main() async {
     await green.setParameterFloat4("baseColorFactor", 0, 1, 0, 1);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true), nullptr,
+        GeometryHelper.cube(flipUvs: true),
         materialInstances: [red]) as FFIAsset;
 
     await scene.add(cube);
@@ -114,7 +114,7 @@ void main() async {
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true), nullptr,
+        GeometryHelper.cube(flipUvs: true),
         materialInstances: [materialInstance]) as FFIAsset;
 
     await scene.add(cube);
@@ -167,7 +167,7 @@ void main() async {
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true), nullptr,
+        GeometryHelper.cube(flipUvs: true),
         materialInstances: [materialInstance]) as FFIAsset;
 
     await scene.add(cube);
@@ -209,7 +209,7 @@ void main() async {
     await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true), nullptr,
+        GeometryHelper.cube(flipUvs: true),
         materialInstances: [materialInstance1]) as FFIAsset;
 
     await scene.add(cube);
@@ -230,7 +230,7 @@ void main() async {
 
     var light = await FilamentApp.instance!.createDirectLight(DirectLight(
         type: LightType.SUN,
-        color: 6500,
+        
         intensity: 100000000,
         direction: Vector3(0, 0, -1),
         position: Vector3.zero()));
@@ -292,7 +292,7 @@ void main() async {
           focus: Vector3(i == 0 ? -2 : 2, 0, 0));
 
       var cube = await FilamentApp.instance!.createGeometry(
-          GeometryHelper.cube(flipUvs: true), nullptr) as FFIAsset;
+          GeometryHelper.cube(flipUvs: true)) as FFIAsset;
 
       await scene.add(cube);
     }
@@ -347,7 +347,7 @@ void main() async {
     await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true), nullptr,
+        GeometryHelper.cube(flipUvs: true),
         materialInstances: [materialInstance1]) as FFIAsset;
 
     await scene.add(cube);
@@ -368,7 +368,6 @@ void main() async {
 
     var light = await FilamentApp.instance!.createDirectLight(DirectLight(
         type: LightType.SUN,
-        color: 6500,
         intensity: 100000000,
         direction: Vector3(0, 0, -1),
         position: Vector3.zero()));
@@ -396,7 +395,7 @@ void main() async {
   test('fog tests', () async {
     await testHelper.withViewer((viewer) async {
       var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true), nullptr);
+          .createGeometry(GeometryHelper.cube(flipUvs: true));
       await viewer.addToScene(cube);
 
       final camera = await viewer.getActiveCamera();
@@ -413,7 +412,7 @@ void main() async {
   test('show/hide stencil highlight', () async {
     await testHelper.withViewer((viewer) async {
       var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true), nullptr);
+          .createGeometry(GeometryHelper.cube(flipUvs: true));
       await viewer.addToScene(cube);
       await viewer.view.setStencilHighlight(cube);
       await FilamentApp.instance!
@@ -633,6 +632,281 @@ void main() async {
     });
   });
 
+  test('AmbientOcclusionOptions set/get functionality', () async {
+    await testHelper.withViewer((viewer) async {
+      // Test default options
+      final defaultOptions = viewer.view.getAmbientOcclusionOptions();
+      expect(defaultOptions.enabled, isFalse);
+      expect(defaultOptions.radius, closeTo(0.3, 0.001));
+      expect(defaultOptions.power, closeTo(1.0, 0.001));
+      expect(defaultOptions.bias, closeTo(0.0005, 0.0001));
+      expect(defaultOptions.resolution, closeTo(0.5, 0.001));
+      expect(defaultOptions.intensity, closeTo(1.0, 0.001));
+      expect(defaultOptions.bilateralThreshold, closeTo(0.05, 0.001));
+      expect(defaultOptions.quality, equals(QualityLevel.LOW));
+      expect(defaultOptions.lowPassFilter, equals(QualityLevel.MEDIUM));
+      expect(defaultOptions.upsampling, equals(QualityLevel.LOW));
+      expect(defaultOptions.bentNormals, isFalse);
+      expect(defaultOptions.minHorizonAngleRad, closeTo(0.0, 0.001));
+
+      // Test SSCT default options
+      expect(defaultOptions.ssct.enabled, isFalse);
+      expect(defaultOptions.ssct.lightConeRad, closeTo(1.0, 0.001));
+      expect(defaultOptions.ssct.shadowDistance, closeTo(0.3, 0.001));
+      expect(defaultOptions.ssct.contactDistanceMax, closeTo(1.0, 0.001));
+      expect(defaultOptions.ssct.intensity, closeTo(0.8, 0.001));
+      expect(defaultOptions.ssct.lightDirection[0], closeTo(0.0, 0.001));
+      expect(defaultOptions.ssct.lightDirection[1], closeTo(-1.0, 0.001));
+      expect(defaultOptions.ssct.lightDirection[2], closeTo(0.0, 0.001));
+      expect(defaultOptions.ssct.depthBias, closeTo(0.01, 0.001));
+      expect(defaultOptions.ssct.depthSlopeBias, closeTo(0.01, 0.001));
+      expect(defaultOptions.ssct.sampleCount, equals(4));
+      expect(defaultOptions.ssct.rayCount, equals(1));
+
+      // Test setting custom ambient occlusion options
+      final customOptions = AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.8,
+        power: 1.5,
+        bias: 0.001,
+        resolution: 1.0,
+        intensity: 1.2,
+        bilateralThreshold: 0.1,
+        quality: QualityLevel.HIGH,
+        lowPassFilter: QualityLevel.HIGH,
+        upsampling: QualityLevel.MEDIUM,
+        bentNormals: true,
+        minHorizonAngleRad: 0.1,
+        ssct: SsctOptions(
+          enabled: true,
+          lightConeRad: 0.5,
+          shadowDistance: 0.8,
+          contactDistanceMax: 1.5,
+          intensity: 1.0,
+          lightDirection: [0.5, -0.8, 0.2],
+          depthBias: 0.02,
+          depthSlopeBias: 0.015,
+          sampleCount: 8,
+          rayCount: 2,
+        ),
+      );
+
+      await viewer.view.setAmbientOcclusionOptions(customOptions);
+
+      // Verify the options were set correctly
+      final retrievedOptions = viewer.view.getAmbientOcclusionOptions();
+      expect(retrievedOptions.enabled, equals(customOptions.enabled));
+      expect(retrievedOptions.radius, closeTo(customOptions.radius, 0.001));
+      expect(retrievedOptions.power, closeTo(customOptions.power, 0.001));
+      expect(retrievedOptions.bias, closeTo(customOptions.bias, 0.0001));
+      expect(retrievedOptions.resolution, closeTo(customOptions.resolution, 0.001));
+      expect(retrievedOptions.intensity, closeTo(customOptions.intensity, 0.001));
+      expect(retrievedOptions.bilateralThreshold, closeTo(customOptions.bilateralThreshold, 0.001));
+      expect(retrievedOptions.quality, equals(customOptions.quality));
+      expect(retrievedOptions.lowPassFilter, equals(customOptions.lowPassFilter));
+      expect(retrievedOptions.upsampling, equals(customOptions.upsampling));
+      expect(retrievedOptions.bentNormals, equals(customOptions.bentNormals));
+      expect(retrievedOptions.minHorizonAngleRad, closeTo(customOptions.minHorizonAngleRad, 0.001));
+
+      // Verify SSCT options
+      expect(retrievedOptions.ssct.enabled, equals(customOptions.ssct.enabled));
+      expect(retrievedOptions.ssct.lightConeRad, closeTo(customOptions.ssct.lightConeRad, 0.001));
+      expect(retrievedOptions.ssct.shadowDistance, closeTo(customOptions.ssct.shadowDistance, 0.001));
+      expect(retrievedOptions.ssct.contactDistanceMax, closeTo(customOptions.ssct.contactDistanceMax, 0.001));
+      expect(retrievedOptions.ssct.intensity, closeTo(customOptions.ssct.intensity, 0.001));
+      expect(retrievedOptions.ssct.lightDirection[0], closeTo(customOptions.ssct.lightDirection[0], 0.001));
+      expect(retrievedOptions.ssct.lightDirection[1], closeTo(customOptions.ssct.lightDirection[1], 0.001));
+      expect(retrievedOptions.ssct.lightDirection[2], closeTo(customOptions.ssct.lightDirection[2], 0.001));
+      expect(retrievedOptions.ssct.depthBias, closeTo(customOptions.ssct.depthBias, 0.001));
+      expect(retrievedOptions.ssct.depthSlopeBias, closeTo(customOptions.ssct.depthSlopeBias, 0.001));
+      expect(retrievedOptions.ssct.sampleCount, equals(customOptions.ssct.sampleCount));
+      expect(retrievedOptions.ssct.rayCount, equals(customOptions.ssct.rayCount));
+    });
+  });
+
+  test('AmbientOcclusionOptions visual verification', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setBackgroundColor(kWhite)
+        .setPostProcessing(true)
+        .addCube(color: kRed)
+        .addSun(direction: Vector3(1, -1, 0.5), intensity: 100000);
+
+    await builder.execute((viewer, assets) async {
+      // Capture without ambient occlusion
+      await testHelper.capture(viewer.view, "ambient_occlusion_disabled");
+
+      // Enable basic ambient occlusion
+      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.5,
+        intensity: 1.0,
+        quality: QualityLevel.MEDIUM,
+      ));
+      await testHelper.capture(viewer.view, "ambient_occlusion_enabled_basic");
+
+      // Enable higher quality ambient occlusion
+      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.8,
+        intensity: 1.5,
+        quality: QualityLevel.HIGH,
+        bentNormals: true,
+      ));
+      await testHelper.capture(viewer.view, "ambient_occlusion_enabled_high_quality");
+
+      // Test with bent normals enabled
+      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.6,
+        intensity: 1.2,
+        quality: QualityLevel.HIGH,
+        bentNormals: true,
+        bilateralThreshold: 0.02,
+      ));
+      await testHelper.capture(viewer.view, "ambient_occlusion_bent_normals");
+
+      // Test with different radius values
+      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.2,
+        intensity: 1.0,
+        quality: QualityLevel.MEDIUM,
+      ));
+      await testHelper.capture(viewer.view, "ambient_occlusion_small_radius");
+
+      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 1.0,
+        intensity: 1.0,
+        quality: QualityLevel.MEDIUM,
+      ));
+      await testHelper.capture(viewer.view, "ambient_occlusion_large_radius");
+    });
+  });
+
+  test('AmbientOcclusionOptions with SSCT enabled', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setBackgroundColor(kWhite)
+        .setPostProcessing(true)
+        .addCube(color: kRed)
+        .addSun(direction: Vector3(0.5, -1, 0.2), intensity: 100000);
+
+    await builder.execute((viewer, assets) async {
+      // Enable ambient occlusion with SSCT
+      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.5,
+        intensity: 1.0,
+        quality: QualityLevel.HIGH,
+        ssct: SsctOptions(
+          enabled: true,
+          lightDirection: [0.5, -1, 0.2],
+          intensity: 0.8,
+          shadowDistance: 0.5,
+          contactDistanceMax: 1.0,
+          sampleCount: 4,
+        ),
+      ));
+      await testHelper.capture(viewer.view, "ambient_occlusion_ssct_enabled");
+
+      // Test with different SSCT parameters
+      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.5,
+        intensity: 1.0,
+        quality: QualityLevel.HIGH,
+        ssct: SsctOptions(
+          enabled: true,
+          lightDirection: [0.3, -0.9, 0.1],
+          intensity: 1.2,
+          shadowDistance: 0.8,
+          contactDistanceMax: 1.5,
+          sampleCount: 8,
+          rayCount: 2,
+        ),
+      ));
+      await testHelper.capture(viewer.view, "ambient_occlusion_ssct_custom");
+    });
+  });
+
+  test('AmbientOcclusionOptions precision edge cases', () async {
+    await testHelper.withViewer((viewer) async {
+      // Test with very small values
+      final smallValueOptions = AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.01,
+        bias: 0.0001,
+        bilateralThreshold: 0.001,
+        minHorizonAngleRad: 0.001,
+
+      );
+
+      await viewer.view.setAmbientOcclusionOptions(smallValueOptions);
+      final retrievedSmall = viewer.view.getAmbientOcclusionOptions();
+      expect(retrievedSmall.radius, closeTo(smallValueOptions.radius, 0.001));
+      expect(retrievedSmall.bias, closeTo(smallValueOptions.bias, 0.0001));
+      expect(retrievedSmall.bilateralThreshold, closeTo(smallValueOptions.bilateralThreshold, 0.001));
+      expect(retrievedSmall.minHorizonAngleRad, closeTo(smallValueOptions.minHorizonAngleRad, 0.001));
+
+      // Test with larger values
+      final largeValueOptions = AmbientOcclusionOptions(
+        enabled: true,
+        radius: 2.0,
+        power: 3.0,
+        intensity: 2.5,
+        bilateralThreshold: 0.2,
+      );
+
+      await viewer.view.setAmbientOcclusionOptions(largeValueOptions);
+      final retrievedLarge = viewer.view.getAmbientOcclusionOptions();
+      expect(retrievedLarge.radius, closeTo(largeValueOptions.radius, 0.001));
+      expect(retrievedLarge.power, closeTo(largeValueOptions.power, 0.001));
+      expect(retrievedLarge.intensity, closeTo(largeValueOptions.intensity, 0.001));
+      expect(retrievedLarge.bilateralThreshold, closeTo(largeValueOptions.bilateralThreshold, 0.001));
+
+      // Test SSCT precision
+      final ssctPrecisionOptions = AmbientOcclusionOptions(
+        enabled: true,
+        ssct: SsctOptions(
+          enabled: true,
+          lightDirection: [0.123456, -0.987654, 0.246801],
+          depthBias: 0.001,
+          depthSlopeBias: 0.002,
+        ),
+      );
+
+      await viewer.view.setAmbientOcclusionOptions(ssctPrecisionOptions);
+      final retrievedSsct = viewer.view.getAmbientOcclusionOptions();
+      expect(retrievedSsct.ssct.lightDirection[0], closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.001));
+      expect(retrievedSsct.ssct.lightDirection[1], closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.001));
+      expect(retrievedSsct.ssct.lightDirection[2], closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.001));
+      expect(retrievedSsct.ssct.depthBias, closeTo(ssctPrecisionOptions.ssct.depthBias, 0.001));
+      expect(retrievedSsct.ssct.depthSlopeBias, closeTo(ssctPrecisionOptions.ssct.depthSlopeBias, 0.001));
+    });
+  });
+
+  test('AmbientOcclusionOptions quality levels', () async {
+    await testHelper.withViewer((viewer) async {
+      // Test each quality level
+      for (final quality in QualityLevel.values) {
+        final options = AmbientOcclusionOptions(
+          enabled: true,
+          quality: quality,
+          lowPassFilter: quality,
+          upsampling: quality,
+        );
+
+        await viewer.view.setAmbientOcclusionOptions(options);
+        final retrieved = viewer.view.getAmbientOcclusionOptions();
+
+        expect(retrieved.quality, equals(quality));
+        expect(retrieved.lowPassFilter, equals(quality));
+        expect(retrieved.upsampling, equals(quality));
+        expect(retrieved.enabled, isTrue);
+      }
+    });
+  });
+
   }
 // manually construct two views with stencil buffer
 // final viewportDimensions = (width: 500, height: 500);
@@ -677,10 +951,10 @@ void main() async {
 //       await red.setStencilReferenceValue(11);
 
 //       var cube = await FilamentApp.instance!.createGeometry(
-//           GeometryHelper.cube(), nullptr,
+//           GeometryHelper.cube(),
 //           materialInstances: [green]);
 //       // var cube2 = await FilamentApp.instance!.createGeometry(
-//       //     GeometryHelper.cube(), nullptr,
+//       //     GeometryHelper.cube(),
 //       //     materialInstances: [red]);
 //       await scene.add(cube);
 //       // await scene.add(cube2);

@@ -34,6 +34,64 @@ class FogOptions {
   }
 }
 
+class SsctOptions {
+  final double lightConeRad;
+  final double shadowDistance;
+  final double contactDistanceMax;
+  final double intensity;
+  final List<double> lightDirection;
+  final double depthBias;
+  final double depthSlopeBias;
+  final int sampleCount;
+  final int rayCount;
+  final bool enabled;
+
+  const SsctOptions({
+    this.lightConeRad = 1.0,
+    this.shadowDistance = 0.3,
+    this.contactDistanceMax = 1.0,
+    this.intensity = 0.8,
+    this.lightDirection = const [0, -1, 0],
+    this.depthBias = 0.01,
+    this.depthSlopeBias = 0.01,
+    this.sampleCount = 4,
+    this.rayCount = 1,
+    this.enabled = false,
+  });
+}
+
+class AmbientOcclusionOptions {
+  final double radius;
+  final double power;
+  final double bias;
+  final double resolution;
+  final double intensity;
+  final double bilateralThreshold;
+  final QualityLevel quality;
+  final QualityLevel lowPassFilter;
+  final QualityLevel upsampling;
+  final bool enabled;
+  final bool bentNormals;
+  final double minHorizonAngleRad;
+  final SsctOptions ssct;
+
+  const AmbientOcclusionOptions({
+    this.radius = 0.3,
+    this.power = 1.0,
+    this.bias = 0.0005,
+    this.resolution = 0.5,
+    this.intensity = 1.0,
+    this.bilateralThreshold = 0.05,
+    this.quality = QualityLevel.LOW,
+    this.lowPassFilter = QualityLevel.MEDIUM,
+    this.upsampling = QualityLevel.LOW,
+    this.enabled = false,
+    this.bentNormals = false,
+    this.minHorizonAngleRad = 0.0,
+    this.ssct = const SsctOptions(),
+  });
+}
+
 enum BlendMode { opaque, transparent }
 
 ///
@@ -325,6 +383,15 @@ abstract class View<T> extends NativeHandle<T> {
   /// Fog is disabled by default
   ///
   Future setFogOptions(FogOptions options);
+
+  /// Sets the ambient occlusion options for this view.
+  /// Ambient occlusion is disabled by default.
+  ///
+  Future setAmbientOcclusionOptions(AmbientOcclusionOptions options);
+
+  /// Gets the current ambient occlusion options from this view.
+  ///
+  AmbientOcclusionOptions getAmbientOcclusionOptions();
 
   /// Inverts the winding order of front faces.
   ///

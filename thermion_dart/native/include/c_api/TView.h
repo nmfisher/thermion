@@ -174,6 +174,51 @@ EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabled(TView *tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE bool View_isDitheringEnabled(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setScene(TView *tView, TScene *tScene);
 EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInverted(TView *tView, bool inverted);
+
+/**
+ * Screen Space Cone Tracing (SSCT) options
+ * Ambient shadows from dominant light
+ */
+struct TSsct {
+    float lightConeRad = 1.0f;       //!< full cone angle in radian, between 0 and pi/2
+    float shadowDistance = 0.3f;     //!< how far shadows can be cast
+    float contactDistanceMax = 1.0f; //!< max distance for contact
+    float intensity = 0.8f;          //!< intensity
+    float lightDirectionX = 0.0f;    //!< light direction X
+    float lightDirectionY = -1.0f;   //!< light direction Y
+    float lightDirectionZ = 0.0f;    //!< light direction Z
+    float depthBias = 0.01f;         //!< depth bias in world units (mitigate self shadowing)
+    float depthSlopeBias = 0.01f;    //!< depth slope bias (mitigate self shadowing)
+    uint8_t sampleCount = 4;         //!< tracing sample count, between 1 and 255
+    uint8_t rayCount = 1;            //!< # of rays to trace, between 1 and 255
+    bool enabled = false;            //!< enables or disables SSCT
+};
+
+/**
+ * Options for screen space Ambient Occlusion (SSAO) and Screen Space Cone Tracing (SSCT)
+ */
+struct TAmbientOcclusionOptions {
+    float radius = 0.3f;            //!< Ambient Occlusion radius in meters, between 0 and ~10
+    float power = 1.0f;             //!< Controls ambient occlusion's contrast. Must be positive
+    float bias = 0.0005f;           //!< Self-occlusion bias in meters. Use to avoid self-occlusion. Between 0 and a few mm
+    float resolution = 0.5f;        //!< How each dimension of the AO buffer is scaled. Must be either 0.5 or 1.0
+    float intensity = 1.0f;         //!< Strength of the Ambient Occlusion effect
+    float bilateralThreshold = 0.05f; //!< depth distance that constitute an edge for filtering
+    TQualityLevel quality = LOW;    //!< affects # of samples used for AO
+    TQualityLevel lowPassFilter = MEDIUM; //!< affects AO smoothness
+    TQualityLevel upsampling = LOW; //!< affects AO buffer upsampling quality
+    bool enabled = false;           //!< enables or disables screen-space ambient occlusion
+    bool bentNormals = false;       //!< enables bent normals computation from AO, and specular AO
+    float minHorizonAngleRad = 0.0f; //!< min angle in radian to consider
+
+    TSsct ssct;
+};
+
+typedef struct TAmbientOcclusionOptions TAmbientOcclusionOptions;
+
+EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptions(TView *tView, TAmbientOcclusionOptions options);
+EMSCRIPTEN_KEEPALIVE TAmbientOcclusionOptions View_getAmbientOcclusionOptions(TView *tView);
+
 EMSCRIPTEN_KEEPALIVE void View_setFogOptions(TView *tView, TFogOptions tFogOptions);
 EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabled(TView *tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE bool View_isTransparentPickingEnabled(TView *tView);
