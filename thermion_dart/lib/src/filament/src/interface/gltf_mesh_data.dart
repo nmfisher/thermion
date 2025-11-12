@@ -1,4 +1,5 @@
 import 'package:thermion_dart/thermion_dart.dart';
+import '../implementation/ffi_gltf_mesh_data.dart';
 
 /// Contains mesh geometry data extracted from a glTF file for physics collision detection.
 class GltfMeshData {
@@ -21,7 +22,6 @@ class GltfMeshData {
   /// Returns vertex positions (xyz) and optional indices.
   /// If [meshName] is specified, only extracts data for that specific mesh.
   static Future<GltfMeshData> parse(Uint8List data, {String? meshName}) async {
-    // Implementation will be provided by the FFI layer
-    throw UnimplementedError('Must be called on FFI implementation');
+    return FFIGltfMeshData.parse(data, meshName: meshName);
   }
 }
