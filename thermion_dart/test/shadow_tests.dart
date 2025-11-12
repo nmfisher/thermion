@@ -198,7 +198,7 @@ void main() async {
           .addSun(
               intensity: 100000,
               castShadows: true,
-              color: 6500,
+              
               direction: Vector3(1, -1, 0).normalized())
           .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
           .addCube(color: kRed, castShadows: true)
@@ -231,7 +231,7 @@ void main() async {
           .addSun(
               intensity: 100000,
               castShadows: true,
-              color: 6500,
+              
               direction: Vector3(-0.5, -1, -0.5).normalized())
           .addCube()
           .addPlane(
@@ -265,7 +265,6 @@ void main() async {
           .addSun(
               intensity: 100000,
               castShadows: true,
-              color: 6500,
               direction: Vector3(-0.5, -1, -0.5).normalized())
           .addCube()
           .addPlane(
