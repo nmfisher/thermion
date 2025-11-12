@@ -59,7 +59,7 @@ class DirectLight {
 
   DirectLight({
     required this.type,
-    required this.color,
+    this.color = const LinearColor(1.0, 0.996, 0.980),
     this.colorTemperature,
     required this.intensity,
     this.castShadows = false,
