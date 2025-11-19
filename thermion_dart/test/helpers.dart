@@ -244,31 +244,31 @@ class TestHelper {
       //     viewportDimensions.width, viewportDimensions.height,
       //     depth: true);
       print("Creating texture of size ${viewportDimensions}");
-      var color = await FilamentApp.instance!
-          .createTexture(viewportDimensions.width, viewportDimensions.height,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE
-              },
-              textureFormat: TextureFormat.RGBA32F,
-              // importedTextureHandle: metalColorTexture.metalTextureAddress
-            );
+      var color = await FilamentApp.instance!.createTexture(
+        viewportDimensions.width, viewportDimensions.height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+        },
+        textureFormat: TextureFormat.RGBA32F,
+        // importedTextureHandle: metalColorTexture.metalTextureAddress
+      );
       var width = await color.getWidth();
       var height = await color.getHeight();
       var depth = await FilamentApp.instance!.createTexture(
-          viewportDimensions.width, viewportDimensions.height,
-          flags: {
-            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-            if (createStencilBuffer)
-              TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-          },
-          textureFormat: createStencilBuffer
-              ? TextureFormat.DEPTH24_STENCIL8
-              : TextureFormat.DEPTH32F,
-          // importedTextureHandle: metalDepthTexture.metalTextureAddress
-          );
+        viewportDimensions.width, viewportDimensions.height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          if (createStencilBuffer)
+            TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+        },
+        textureFormat: createStencilBuffer
+            ? TextureFormat.DEPTH24_STENCIL8
+            : TextureFormat.DEPTH32F,
+        // importedTextureHandle: metalDepthTexture.metalTextureAddress
+      );
 
       renderTarget = await FilamentApp.instance!.createRenderTarget(
           viewportDimensions.width, viewportDimensions.height,
@@ -346,6 +346,7 @@ class _CubeConfig {
   final bool receiveShadows;
   final Color? color;
   final bool createUbershader;
+  final bool unlit;
 
   _CubeConfig({
     this.position,
@@ -355,6 +356,7 @@ class _CubeConfig {
     this.receiveShadows = true,
     this.color,
     this.createUbershader = false,
+    this.unlit = false,
   });
 }
 
@@ -366,6 +368,7 @@ class _PlaneConfig {
   final bool receiveShadows;
   final Color? color;
   final bool createUbershader;
+  final bool unlit;
 
   _PlaneConfig({
     this.position,
@@ -375,6 +378,20 @@ class _PlaneConfig {
     this.receiveShadows = true,
     this.color,
     this.createUbershader = false,
+    this.unlit = false,
+  });
+}
+
+/// Result class containing all components created by ViewerBuilder
+class ViewerBuildResult {
+  final ThermionViewer viewer;
+  final List<ThermionAsset> assets;
+  final ThermionEntity? sun;
+
+  const ViewerBuildResult({
+    required this.viewer,
+    required this.assets,
+    this.sun,
   });
 }
 
@@ -398,6 +415,9 @@ class ViewerBuilder {
   // Store cube and plane configurations
   final List<_CubeConfig> _cubes = [];
   final List<_PlaneConfig> _planes = [];
+
+  // Store created light entities to enable finding sun lights later
+  List<ThermionEntity>? _lightEntities;
 
   ViewerBuilder(
     this._testHelper, {
@@ -516,6 +536,7 @@ class ViewerBuilder {
     bool receiveShadows = true,
     Color? color,
     bool createUbershader = false,
+    bool unlit = false,
   }) {
     _cubes.add(_CubeConfig(
       position: position,
@@ -525,6 +546,7 @@ class ViewerBuilder {
       receiveShadows: receiveShadows,
       color: color,
       createUbershader: createUbershader,
+      unlit: unlit,
     ));
     return this;
   }
@@ -537,6 +559,7 @@ class ViewerBuilder {
     bool receiveShadows = true,
     Color? color,
     bool createUbershader = false,
+    bool unlit = false,
   }) {
     _planes.add(_PlaneConfig(
       position: position,
@@ -546,6 +569,7 @@ class ViewerBuilder {
       receiveShadows: receiveShadows,
       color: color,
       createUbershader: createUbershader,
+      unlit: unlit,
     ));
     return this;
   }
@@ -590,37 +614,38 @@ class ViewerBuilder {
       }
     }
 
-    // Add direct lights
+    // Add direct lights and store their entities
+    _lightEntities = [];
     for (final light in _directLights) {
-      await viewer.addDirectLight(light);
+      final lightEntity = await viewer.addDirectLight(light);
+      _lightEntities!.add(lightEntity);
     }
 
     // Create and add configured planes
     for (final planeConfig in _planes) {
       final materialInstance = planeConfig.createUbershader
-          ? await FilamentApp.instance!.createUbershaderMaterialInstance()
-          : null;
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: planeConfig.unlit)
+          : await FilamentApp.instance!.createUnlitMaterialInstance();
 
-      if (materialInstance != null) {
-        await materialInstance.setCullingMode(CullingMode.NONE);
+      await materialInstance.setCullingMode(CullingMode.NONE);
 
-        if (planeConfig.color != null) {
-          await materialInstance.setParameterFloat4(
-              "baseColorFactor",
-              planeConfig.color!.r.toDouble(),
-              planeConfig.color!.g.toDouble(),
-              planeConfig.color!.b.toDouble(),
-              planeConfig.color!.a.toDouble());
-        } else {
-          await materialInstance.setParameterFloat4(
-              "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
-        }
+      if (planeConfig.color != null) {
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor",
+            planeConfig.color!.r.toDouble(),
+            planeConfig.color!.g.toDouble(),
+            planeConfig.color!.b.toDouble(),
+            planeConfig.color!.a.toDouble());
+      } else {
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
       }
 
       final plane = await viewer.createGeometry(
           GeometryHelper.plane(
               normals: true, uvs: true, width: 10.0, height: 10.0),
-          materialInstances: materialInstance != null ? [materialInstance] : null);
+          materialInstances:
+              [materialInstance]);
 
       await plane.setCastShadows(planeConfig.castShadows);
       await plane.setReceiveShadows(planeConfig.receiveShadows);
@@ -644,8 +669,8 @@ class ViewerBuilder {
     // Create and add configured cubes
     for (final cubeConfig in _cubes) {
       final materialInstance = cubeConfig.createUbershader
-          ? await FilamentApp.instance!.createUbershaderMaterialInstance()
-          : null;
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: cubeConfig.unlit)
+          : (cubeConfig.unlit ? await FilamentApp.instance!.createUnlitMaterialInstance() : null);
 
       if (materialInstance != null) {
         if (cubeConfig.color != null) {
@@ -663,7 +688,8 @@ class ViewerBuilder {
 
       final cube = await viewer.createGeometry(
           GeometryHelper.cube(flipUvs: true),
-          materialInstances: materialInstance != null ? [materialInstance] : null);
+          materialInstances:
+              materialInstance != null ? [materialInstance] : null);
 
       await cube.setCastShadows(cubeConfig.castShadows);
       await cube.setReceiveShadows(cubeConfig.receiveShadows);
@@ -708,13 +734,30 @@ class ViewerBuilder {
   }
 
   Future execute(
-      Future Function(ThermionViewer viewer, List<ThermionAsset> assets)
-          fn) async {
-    final result = await buildWithAssets();
+      Future Function(ViewerBuildResult result) fn) async {
+    final buildResult = await buildWithAssets();
+
+    // Find the first sun light entity (if any)
+    ThermionEntity? sunEntity;
+    int sunLightIndex = _directLights.indexWhere((light) =>
+        light.type == LightType.SUN ||
+        (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0));
+
+    // If we found a sun light and have corresponding entities, get the matching entity
+    if (sunLightIndex != -1 && _lightEntities != null && sunLightIndex < _lightEntities!.length) {
+      sunEntity = _lightEntities![sunLightIndex];
+    }
+
+    final viewerBuildResult = ViewerBuildResult(
+      viewer: buildResult.viewer,
+      assets: buildResult.assets,
+      sun: sunEntity,
+    );
+
     try {
-      await fn.call(result.viewer, result.assets);
+      await fn.call(viewerBuildResult);
     } finally {
-      await result.viewer.dispose();
+      await buildResult.viewer.dispose();
     }
   }
 }
