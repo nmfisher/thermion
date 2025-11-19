@@ -1,25 +1,22 @@
 // ignore_for_file: unused_local_variable
-import 'dart:io';
-import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("geometry");
   await testHelper.setup();
-  group("custom geometry", () {
+
     test('add/remove geometry', () async {
       await testHelper.withViewer((viewer) async {
         final asset = await viewer.createGeometry(GeometryHelper.cube());
         await viewer.addToScene(asset);
-        await testHelper.capture(viewer.view, "add_geometry");
+        await testHelper.capture(viewer.view, "add_cube");
         await viewer.removeFromScene(asset);
-        await testHelper.capture(viewer.view, "remove_geometry");
+        await testHelper.capture(viewer.view, "remove_cube");
         await viewer.addToScene(asset);
         await viewer.destroyAsset(asset);
-        await testHelper.capture(viewer.view, "destroy_geometry");
+        await testHelper.capture(viewer.view, "destroy_cube");
       }, bg: kRed);
     });
 
@@ -28,7 +25,7 @@ void main() async {
         final asset = await viewer.createGeometry(GeometryHelper.cube());
         await viewer.addToScene(asset);
         await viewer.destroyAssets();
-        await testHelper.capture(viewer.view, "destroyAssets_geometry");
+        await testHelper.capture(viewer.view, "destroyAssets_cube");
       }, bg: kRed);
     });
 
@@ -333,7 +330,7 @@ void main() async {
     //     await viewer.setTransform(
     //         asset2.entity, Matrix4.translation(Vector3(0, 1.5, 0)));
 
-    //     await testHelper.capture(viewer.view, "multiple_geometry");
+    //     await testHelper.capture(viewer.view, "multiple_cube");
     //     await viewer.removeFromScene(asset1);
     //     await viewer.destroyAsset(asset1);
     //     await viewer.removeFromScene(asset2);
@@ -348,10 +345,10 @@ void main() async {
     //     await viewer.addToScene(asset);
     //     await viewer.setTransform(asset.entity, Matrix4.rotationY(pi / 4));
 
-    //     await testHelper.capture(viewer.view, "camera_geometry");
+    //     await testHelper.capture(viewer.view, "camera_cube");
     //     await viewer.removeFromScene(asset);
     //     await viewer.destroyAsset(asset);
     //   });
     // });
-  });
+
 }
