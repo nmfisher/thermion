@@ -125,4 +125,82 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_cleanup() {
     }
 }
 
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_addKeyBinding(int logicalKey, int intentAction, float value) {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.addBinding(static_cast<LogicalKey>(logicalKey), static_cast<IntentAction>(intentAction), value);
+            calculator->setConfiguration(config);
+            TRACE("[C API] Added key binding: key=%d, action=%d, value=%.2f", logicalKey, intentAction, value);
+        }
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForKey(int logicalKey) {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.removeBindingsForKey(static_cast<LogicalKey>(logicalKey));
+            calculator->setConfiguration(config);
+            TRACE("[C API] Removed key bindings for key=%d", logicalKey);
+        }
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForAction(int intentAction) {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.removeBindingsForAction(static_cast<IntentAction>(intentAction));
+            calculator->setConfiguration(config);
+            TRACE("[C API] Removed key bindings for action=%d", intentAction);
+        }
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_clearKeyBindings() {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.clearBindings();
+            calculator->setConfiguration(config);
+            TRACE("[C API] Cleared all key bindings");
+        }
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(float sensitivity) {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.mouseSensitivity = sensitivity;
+            calculator->setConfiguration(config);
+            TRACE("[C API] Set mouse sensitivity to %.3f", sensitivity);
+        }
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setInvertMouseY(bool invert) {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.invertMouseY = invert;
+            calculator->setConfiguration(config);
+            TRACE("[C API] Set invert mouse Y to %s", invert ? "true" : "false");
+        }
+    }
+}
+
 }

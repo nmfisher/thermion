@@ -14,41 +14,60 @@ namespace thermion::plugin::input
 
         MovementIntent intent;
 
-        // Calculate movement direction from pressed keys
+        // Calculate movement direction from configured keybindings
         float3 movementDirection = {0, 0, 0};
-        const auto& pressedKeys = inputState.pressedKeys;
+        const uint64_t pressedKeys = inputState.pressedKeys;
 
-        // Debug: Log current pressed keys
-        TRACE("[MovementIntentCalculator] Processing %zu pressed keys", pressedKeys.size());
-        if (pressedKeys.size() > 0)
+        // Debug: Count pressed keys for logging
+        uint32_t numPressedKeys = __builtin_popcountll(pressedKeys);
+        TRACE("[MovementIntentCalculator] Processing %u pressed keys (bitmask: 0x%016llx)",
+              numPressedKeys, static_cast<unsigned long long>(pressedKeys));
+
+        // Process all configured keybindings
+        for (const auto& binding : config_.keyBindings)
         {
-            for (const auto& key : pressedKeys)
+            if (isKeyPressed(pressedKeys, binding.key))
             {
-                TRACE("[MovementIntentCalculator]   - Pressed key: %d", static_cast<int>(key));
+                switch (binding.action)
+                {
+                    case IntentAction::MoveForward:
+                        movementDirection.z += binding.value;
+                        TRACE("[MovementIntentCalculator] MoveForward key pressed, adding forward movement (%.2f)", binding.value);
+                        break;
+
+                    case IntentAction::MoveBackward:
+                        movementDirection.z -= binding.value;
+                        TRACE("[MovementIntentCalculator] MoveBackward key pressed, adding backward movement (%.2f)", binding.value);
+                        break;
+
+                    case IntentAction::MoveLeft:
+                        movementDirection.x += binding.value;
+                        TRACE("[MovementIntentCalculator] MoveLeft key pressed, adding left movement (%.2f)", binding.value);
+                        break;
+
+                    case IntentAction::MoveRight:
+                        movementDirection.x -= binding.value;
+                        TRACE("[MovementIntentCalculator] MoveRight key pressed, adding right movement (%.2f)", binding.value);
+                        break;
+
+                    case IntentAction::Jump:
+                        intent.setJumpIntent(true);
+                        TRACE("[MovementIntentCalculator] Jump intent activated");
+                        break;
+
+                    case IntentAction::Sprint:
+                        intent.setSprintIntent(true);
+                        TRACE("[MovementIntentCalculator] Sprint intent activated");
+                        break;
+
+                    default:
+                        // Store all other intents as custom intents using array indexing
+                        intent.setCustomIntent(binding.action, binding.value);
+                        TRACE("[MovementIntentCalculator] Custom intent %d activated with value %.2f",
+                              static_cast<int>(binding.action), binding.value);
+                        break;
+                }
             }
-        }
-
-        // WASD movement
-        if (pressedKeys.count(LogicalKey::w))
-        {
-            movementDirection.z += 1.0f; // Forward
-            TRACE("[MovementIntentCalculator] W key pressed, adding forward movement");
-        }
-        if (pressedKeys.count(LogicalKey::s))
-        {
-            movementDirection.z -= 1.0f; // Backward
-            TRACE("[MovementIntentCalculator] S key pressed, adding backward movement");
-        }
-
-        if (pressedKeys.count(LogicalKey::a))
-        {
-            movementDirection.x += 1.0f; // Left
-            TRACE("[MovementIntentCalculator] A key pressed, adding left movement");
-        }
-        if (pressedKeys.count(LogicalKey::d))
-        {
-            movementDirection.x -= 1.0f; // Right
-            TRACE("[MovementIntentCalculator] D key pressed, adding right movement");
         }
 
         // Normalize movement direction and apply speed
@@ -56,7 +75,7 @@ namespace thermion::plugin::input
         {
             intent.movementDirection = normalize(movementDirection);
             intent.movementSpeed = 1.0f; // Full speed when moving
-            intent.hasMovementIntent = true;
+            intent.setMovementIntent(true);
 
             TRACE("[MovementIntentCalculator] Movement intent: direction(%.3f, %.3f, %.3f), speed: %.3f",
                   intent.movementDirection.x, intent.movementDirection.y, intent.movementDirection.z,
@@ -66,7 +85,7 @@ namespace thermion::plugin::input
         {
             intent.movementDirection = {0, 0, 0};
             intent.movementSpeed = 0.0f;
-            intent.hasMovementIntent = false;
+            intent.setMovementIntent(false);
             TRACE("[MovementIntentCalculator] No movement intent - no movement keys pressed");
         }
 
@@ -74,8 +93,15 @@ namespace thermion::plugin::input
         float mouseDeltaLength = length(inputState.mouseDelta);
         if (mouseDeltaLength > 0.0f)
         {
-            intent.mouseDelta = inputState.mouseDelta;
-            intent.hasRotationIntent = true;
+            // Apply mouse sensitivity and inversion settings
+            float2 adjustedDelta = inputState.mouseDelta * config_.mouseSensitivity;
+            if (config_.invertMouseY)
+            {
+                adjustedDelta.y = -adjustedDelta.y;
+            }
+
+            intent.mouseDelta = adjustedDelta;
+            intent.setRotationIntent(true);
 
             TRACE("[MovementIntentCalculator] Rotation intent: delta(%.3f, %.3f), length: %.6f",
                   intent.mouseDelta.x, intent.mouseDelta.y, mouseDeltaLength);
@@ -83,13 +109,9 @@ namespace thermion::plugin::input
         else
         {
             intent.mouseDelta = {0, 0};
-            intent.hasRotationIntent = false;
+            intent.setRotationIntent(false);
             TRACE("[MovementIntentCalculator] No rotation intent - mouse delta too small");
         }
-
-        // Jump and sprint intent
-        intent.jumpIntent = pressedKeys.count(LogicalKey::space) > 0;
-        intent.sprintIntent = pressedKeys.count(LogicalKey::shift) > 0;
 
         return intent;
     }

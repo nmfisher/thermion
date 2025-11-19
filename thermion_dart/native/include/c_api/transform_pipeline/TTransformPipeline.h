@@ -40,6 +40,14 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_unregisterPipelineStage(void* pipeli
 // Pipeline cleanup function
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_cleanup();
 
+// Input configuration functions
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_addKeyBinding(int logicalKey, int intentAction, float value);
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForKey(int logicalKey);
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeKeyBindingsForAction(int intentAction);
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_clearKeyBindings();
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(float sensitivity);
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_setInvertMouseY(bool invert);
+
 #ifdef __cplusplus
 }
 #endif

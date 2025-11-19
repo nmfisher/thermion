@@ -40,9 +40,13 @@ namespace thermion::plugin::input {
     {
         TRACE("[InputEventManager] Processing global input events");
 
+        // Count pressed keys for logging
+        uint32_t numPressedKeys = __builtin_popcountll(mCurrentPressedKeys);
+
         // Log global events at start of update
-        TRACE("[InputEventManager] Global events: %zu mouse, %zu key, %zu scroll queued (current pressedKeys: %zu)",
-              mGlobalMouseEvents.size(), mGlobalKeyEvents.size(), mGlobalScrollEvents.size(), mCurrentPressedKeys.size());
+        TRACE("[InputEventManager] Global events: %zu mouse, %zu key, %zu scroll queued (current pressedKeys: %u, bitmask: 0x%016llx)",
+              mGlobalMouseEvents.size(), mGlobalKeyEvents.size(), mGlobalScrollEvents.size(), numPressedKeys,
+              static_cast<unsigned long long>(mCurrentPressedKeys));
 
         // Process global mouse events
         for (const auto& event : mGlobalMouseEvents)
@@ -76,8 +80,8 @@ namespace thermion::plugin::input {
         }
 
         // Process global keyboard events
-        TRACE("[InputEventManager] Processing %zu global key events (current pressedKeys: %zu)",
-              mGlobalKeyEvents.size(), mCurrentPressedKeys.size());
+        TRACE("[InputEventManager] Processing %zu global key events (current pressedKeys: %u)",
+              mGlobalKeyEvents.size(), numPressedKeys);
 
         for (const auto& event : mGlobalKeyEvents)
         {
@@ -85,18 +89,20 @@ namespace thermion::plugin::input {
             {
                 case KeyEventType::down:
                     {
-                        bool wasAlreadyPressed = mCurrentPressedKeys.count(event.logicalKey) > 0;
-                        mCurrentPressedKeys.insert(event.logicalKey);
-                        TRACE("[InputEventManager] KEY DOWN PROCESSED: Key %d pressed globally (wasAlreadyPressed: %s, total pressedKeys now: %zu)",
-                              static_cast<int>(event.logicalKey), wasAlreadyPressed ? "true" : "false", mCurrentPressedKeys.size());
+                        bool wasAlreadyPressed = isKeyPressed(mCurrentPressedKeys, event.logicalKey);
+                        mCurrentPressedKeys = setKeyPressed(mCurrentPressedKeys, event.logicalKey);
+                        uint32_t newNumPressed = __builtin_popcountll(mCurrentPressedKeys);
+                        TRACE("[InputEventManager] KEY DOWN PROCESSED: Key %d pressed globally (wasAlreadyPressed: %s, total pressedKeys now: %u)",
+                              static_cast<int>(event.logicalKey), wasAlreadyPressed ? "true" : "false", newNumPressed);
                         break;
                     }
                 case KeyEventType::up:
                     {
-                        bool wasPressed = mCurrentPressedKeys.count(event.logicalKey) > 0;
-                        mCurrentPressedKeys.erase(event.logicalKey);
-                        TRACE("[InputEventManager] KEY UP PROCESSED: Key %d released globally (wasPressed: %s, total pressedKeys now: %zu)",
-                              static_cast<int>(event.logicalKey), wasPressed ? "true" : "false", mCurrentPressedKeys.size());
+                        bool wasPressed = isKeyPressed(mCurrentPressedKeys, event.logicalKey);
+                        mCurrentPressedKeys = clearKeyPressed(mCurrentPressedKeys, event.logicalKey);
+                        uint32_t newNumPressed = __builtin_popcountll(mCurrentPressedKeys);
+                        TRACE("[InputEventManager] KEY UP PROCESSED: Key %d released globally (wasPressed: %s, total pressedKeys now: %u)",
+                              static_cast<int>(event.logicalKey), wasPressed ? "true" : "false", newNumPressed);
                         break;
                     }
             }
@@ -117,8 +123,9 @@ namespace thermion::plugin::input {
         mGlobalScrollEvents.clear();
 
         TRACE("[InputEventManager] Global event queues cleared");
-        TRACE("[InputEventManager] Current state: mouseDelta(%.2f, %.2f), pressedKeys: %zu",
-              mCurrentMouseDelta.x, mCurrentMouseDelta.y, mCurrentPressedKeys.size());
+        numPressedKeys = __builtin_popcountll(mCurrentPressedKeys);
+        TRACE("[InputEventManager] Current state: mouseDelta(%.2f, %.2f), pressedKeys: %u (bitmask: 0x%016llx)",
+              mCurrentMouseDelta.x, mCurrentMouseDelta.y, numPressedKeys, static_cast<unsigned long long>(mCurrentPressedKeys));
     }
 
     void InputEventManager::cleanup()
@@ -133,7 +140,7 @@ namespace thermion::plugin::input {
         // Clear global input state
         mCurrentMousePosition = {0, 0};
         mCurrentMouseDelta = {0, 0};
-        mCurrentPressedKeys.clear();
+        mCurrentPressedKeys = 0;
 
         TRACE("[InputEventManager] Cleanup completed - cleared global input state");
     }

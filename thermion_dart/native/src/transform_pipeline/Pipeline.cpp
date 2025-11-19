@@ -54,8 +54,8 @@ namespace thermion::plugin::input {
         // Calculate movement intent using the calculator
         MovementIntent intent = mCalculator->calculate(inputState, deltaTimeInNanos);
         TRACE("[Pipeline] Calculator completed, intent has movement: %s, rotation: %s",
-              intent.hasMovementIntent ? "yes" : "no",
-              intent.hasRotationIntent ? "yes" : "no");
+              intent.hasMovementIntent() ? "yes" : "no",
+              intent.hasRotationIntent() ? "yes" : "no");
 
         // First, run all registered pipeline stages
         // This is currently disabled in favour of using a movement executor directly for physics

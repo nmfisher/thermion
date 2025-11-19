@@ -3,6 +3,9 @@ import 'package:thermion_dart/thermion_dart.dart' hide NativeLibrary;
 import 'package:thermion_dart/thermion_dart.dart' as t;
 
 import '../../bindings/bindings.dart' as bindings;
+import 'input_configuration.dart';
+import 'intent_action.dart';
+import 'movement_intent_executor.dart';
 
 /// Movement space enumeration for input handler components.
 ///
@@ -24,50 +27,7 @@ class MovementConfig {
   bool invertHorizontalMovement = false;
 }
 
-/// Wrapper class for a TMovementIntentExecutor pointer.
-///
-/// This class encapsulates operations on a movement intent executor,
-/// providing a type-safe API for setting movement targets and managing
-/// the executor lifecycle.
-abstract class MovementIntentExecutor {
-  late final _logger = Logger(this.runtimeType.toString());
 
-  final Pointer<bindings.TMovementIntentExecutor> _pointer;
-
-  bool _disposed = false;
-
-  /// Creates a MovementIntentExecutor wrapping the given native pointer.
-  ///
-  /// [pointer] - The native TMovementIntentExecutor pointer to wrap
-  MovementIntentExecutor(this._pointer);
-
-  /// Gets the underlying native pointer.
-  ///
-  /// Throws [StateError] if the executor has been disposed.
-  Pointer<bindings.TMovementIntentExecutor> get pointer {
-    if (_disposed) {
-      throw StateError('MovementIntentExecutor has been disposed');
-    }
-    return _pointer;
-  }
-
-  /// Disposes the executor and releases native resources.
-  ///
-  /// After calling this, the executor cannot be used anymore.
-  void dispose() {
-    if (_disposed) return;
-
-    try {
-      bindings.MovementIntentExecutor_destroy(_pointer);
-      _disposed = true;
-    } catch (e) {
-      throw Exception('Failed to dispose executor: $e');
-    }
-  }
-
-  /// Checks if the executor has been disposed.
-  bool get isDisposed => _disposed;
-}
 
 /// Singleton wrapper for Thermion Input Handler system functionality.
 ///
@@ -228,5 +188,113 @@ class InputPipeline {
   /// Disposes the manager and cleans up resources.
   void dispose() {
     cleanup();
+  }
+
+  // Input configuration methods
+
+  /// Add a keybinding to the input calculator configuration.
+  ///
+  /// [key] - The logical key to bind
+  /// [action] - The intent action to trigger
+  /// [value] - Optional value multiplier (default 1.0)
+  ///
+  /// Throws [Exception] if the operation fails.
+  void addKeyBinding(LogicalKey key, IntentAction action, {double value = 1.0}) {
+    try {
+      bindings.TransformPipeline_addKeyBinding(key.index, action.nativeValue, value);
+    } catch (e) {
+      throw Exception('Failed to add key binding: $e');
+    }
+  }
+
+  /// Remove all keybindings for a specific key.
+  ///
+  /// [key] - The logical key whose bindings should be removed
+  ///
+  /// Throws [Exception] if the operation fails.
+  void removeKeyBindingsForKey(LogicalKey key) {
+    try {
+      bindings.TransformPipeline_removeKeyBindingsForKey(key.index);
+    } catch (e) {
+      throw Exception('Failed to remove key bindings for key: $e');
+    }
+  }
+
+  /// Remove all keybindings for a specific action.
+  ///
+  /// [action] - The intent action whose bindings should be removed
+  ///
+  /// Throws [Exception] if the operation fails.
+  void removeKeyBindingsForAction(IntentAction action) {
+    try {
+      bindings.TransformPipeline_removeKeyBindingsForAction(action.nativeValue);
+    } catch (e) {
+      throw Exception('Failed to remove key bindings for action: $e');
+    }
+  }
+
+  /// Clear all keybindings from the input calculator configuration.
+  ///
+  /// Throws [Exception] if the operation fails.
+  void clearKeyBindings() {
+    try {
+      bindings.TransformPipeline_clearKeyBindings();
+    } catch (e) {
+      throw Exception('Failed to clear key bindings: $e');
+    }
+  }
+
+  /// Set the mouse sensitivity multiplier.
+  ///
+  /// [sensitivity] - Mouse sensitivity value (typically 0.1 to 2.0)
+  ///
+  /// Throws [Exception] if the operation fails.
+  void setMouseSensitivity(double sensitivity) {
+    try {
+      bindings.TransformPipeline_setMouseSensitivity(sensitivity);
+    } catch (e) {
+      throw Exception('Failed to set mouse sensitivity: $e');
+    }
+  }
+
+  /// Set whether to invert the mouse Y axis.
+  ///
+  /// [invert] - True to invert Y axis, false for normal behavior
+  ///
+  /// Throws [Exception] if the operation fails.
+  void setInvertMouseY(bool invert) {
+    try {
+      bindings.TransformPipeline_setInvertMouseY(invert ? 1 : 0);
+    } catch (e) {
+      throw Exception('Failed to set invert mouse Y: $e');
+    }
+  }
+
+  /// Apply a complete input configuration.
+  ///
+  /// This is a convenience method that clears existing bindings and applies
+  /// the provided configuration all at once.
+  ///
+  /// [config] - The input configuration to apply
+  ///
+  /// Throws [Exception] if the operation fails.
+  void setInputConfiguration(InputConfiguration config) {
+    try {
+      // Clear existing bindings
+      clearKeyBindings();
+
+      // Add all keybindings from config
+      for (final binding in config.keyBindings) {
+        addKeyBinding(binding.key, binding.action, value: binding.value);
+      }
+
+      // Set mouse settings
+      setMouseSensitivity(config.mouseSensitivity);
+      setInvertMouseY(config.invertMouseY);
+
+      _logger.info('Applied input configuration with ${config.keyBindings.length} bindings');
+    } catch (e) {
+      throw Exception('Failed to set input configuration: $e');
+    }
   }
 }

@@ -41,7 +41,6 @@ namespace thermion::plugin::input {
         MovementConfig mConfig;
         
         bool canExecuteMovement(utils::Entity entity) const;
-        void executeMovement(utils::Entity entity, const MovementIntent& intent);
 
     };
 

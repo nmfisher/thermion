@@ -2,39 +2,51 @@
 
 #include <math/vec3.h>
 #include <math/vec2.h>
-#include <unordered_set>
 #include "InputEventManager.hpp"
+#include "InputConfiguration.hpp"
+#include "MovementIntent.hpp"
 
 namespace thermion::plugin::input {
 
     using namespace thermion;
     using namespace filament::math;
 
-    // Input state structure for read-only access
-    struct InputState {
-        const std::unordered_set<LogicalKey>& pressedKeys;
-        const float2& mouseDelta;
-    };
-
-    // Movement intent structure - represents what the player wants to do this frame
-    struct MovementIntent {
-        float3 movementDirection = {0, 0, 0};  // Normalized direction vector
-        float movementSpeed = 0.0f;           // Current speed multiplier (0-1)
-        float2 mouseDelta = {0, 0};          // Camera rotation intent
-        bool jumpIntent = false;
-        bool sprintIntent = false;
-        bool hasMovementIntent = false;
-        bool hasRotationIntent = false;
-    };
-
     /**
-     * Stateless calculator that converts raw input and configuration into movement intents.
-     * This class has no internal state and simply performs calculations based on provided inputs.
+     * Calculator that converts raw input and configuration into movement intents.
+     * Can be configured at runtime to support different keybinding schemes.
      */
     class MovementIntentCalculator {
+    private:
+        InputConfiguration config_;
+
     public:
-        MovementIntentCalculator() = default;
+        /**
+         * Construct with default WASD configuration.
+         */
+        MovementIntentCalculator()
+            : config_(createDefaultConfiguration()) {}
+
+        /**
+         * Construct with custom configuration.
+         */
+        explicit MovementIntentCalculator(const InputConfiguration& config)
+            : config_(config) {}
+
         ~MovementIntentCalculator() = default;
+
+        /**
+         * Update configuration at runtime.
+         */
+        void setConfiguration(const InputConfiguration& config) {
+            config_ = config;
+        }
+
+        /**
+         * Get current configuration.
+         */
+        const InputConfiguration& getConfiguration() const {
+            return config_;
+        }
 
         /**
          * Calculate movement intent based on input state, configuration, and delta time.

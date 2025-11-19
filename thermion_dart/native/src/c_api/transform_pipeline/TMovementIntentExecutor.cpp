@@ -48,10 +48,15 @@ EMSCRIPTEN_KEEPALIVE void MovementIntentExecutor_process(
     intent.movementDirection = {tIntent->movementDirectionX, tIntent->movementDirectionY, tIntent->movementDirectionZ};
     intent.movementSpeed = tIntent->movementSpeed;
     intent.mouseDelta = {tIntent->mouseDeltaX, tIntent->mouseDeltaY};
-    intent.jumpIntent = tIntent->jumpIntent != 0;
-    intent.sprintIntent = tIntent->sprintIntent != 0;
-    intent.hasMovementIntent = tIntent->hasMovementIntent != 0;
-    intent.hasRotationIntent = tIntent->hasRotationIntent != 0;
+
+    // Direct copy of intent state bitmask
+    intent.intentStates = tIntent->intentStates;
+
+    // Convert custom intents from parallel arrays to fixed array
+    for (int i = 0; i < tIntent->customIntentCount && i < MAX_CUSTOM_INTENTS; i++) {
+        IntentAction action = static_cast<IntentAction>(tIntent->customIntentActions[i]);
+        intent.setCustomIntent(action, tIntent->customIntentValues[i]);
+    }
 
     executor->process(intent, deltaTimeInNanos);
 }
