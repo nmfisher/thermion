@@ -33,14 +33,22 @@ void main() async {
           .createUbershaderMaterialInstance(unlit: true);
       final cube = await viewer.createGeometry(GeometryHelper.cube(),
           materialInstances: [materialInstance]);
+      await materialInstance.setParameterFloat4(
+          "baseColorFactor", 0.0, 0.0, 1.0, 1.0);
+      await testHelper.capture(
+          viewer.view, "ubershader_notexture");
       var data = File("${testHelper.testDir}/assets/cube_texture_512x512.png")
           .readAsBytesSync();
       final image = await FilamentApp.instance!.decodeImage(data);
+
+      final channels = await image.getChannels();
       final texture = await FilamentApp.instance!.createTexture(
           await image.getWidth(), await image.getHeight(),
-          textureFormat: TextureFormat.RGBA32F);
+          textureFormat: channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F);
+
       await texture.setLinearImage(
-          image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+          image, channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB, PixelDataType.FLOAT);
+
       final sampler = await FilamentApp.instance!.createTextureSampler();
       await materialInstance.setParameterFloat4(
           "baseColorFactor", 1.0, 1.0, 1.0, 0.0);
@@ -49,7 +57,7 @@ void main() async {
           "baseColorMap", texture, sampler);
 
       await testHelper.capture(
-          viewer.view, "geometry_cube_with_custom_material_ubershader_texture");
+          viewer.view, "ubershader_textured");
       await viewer.destroyAsset(cube);
       await materialInstance.destroy();
       await texture.dispose();
