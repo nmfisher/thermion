@@ -55,7 +55,7 @@ void main() async {
             scale: Vector3(10, 10, 1),
             color: kWhite,
             createUbershader: true)
-        .execute((viewer, assets) async {
+        .execute((result) async {
       for (int i = 0; i < toneMappers.length; i += 2) {
         final toneMapperFactory =
             toneMappers[i] as Future<ToneMapper> Function();
@@ -63,10 +63,10 @@ void main() async {
         final toneMapper = await toneMapperFactory();
 
         // Set the tone mapper directly to the view
-        await viewer.view.setToneMapper(toneMapper);
+        await result.viewer.view.setToneMapper(toneMapper);
 
         // Capture the viewport after changing tone mapper
-        await testHelper.capture(viewer.view, "tone_mapper_$name");
+        await testHelper.capture(result.viewer.view, "tone_mapper_$name");
       }
     });
   });
@@ -82,9 +82,9 @@ void main() async {
             scale: Vector3(10, 10, 1),
             color: kWhite,
             createUbershader: true)
-        .execute((viewer, assets) async {
+        .execute((result) async {
       // Create a complex color grading using the builder
-      final builder = await viewer.view.createColorGradingBuilder();
+      final builder = await result.viewer.view.createColorGradingBuilder();
       final colorGrading = await builder
           .quality(QualityLevel.HIGH)
           .exposure(0.7) // Slight exposure adjustment
@@ -106,13 +106,11 @@ void main() async {
       expect(colorGrading, isNotNull);
 
       // Apply the color grading to the view
-      await viewer.view.setColorGrading(colorGrading);
+      await result.viewer.view.setColorGrading(colorGrading);
 
       // Capture the viewport after applying color grading
-      await testHelper.capture(viewer.view, "color_grading_builder_applied");
+      await testHelper.capture(result.viewer.view, "color_grading_builder_applied");
 
-      // Clean up
-      await colorGrading.dispose();
     });
   });
 
@@ -127,16 +125,16 @@ void main() async {
             scale: Vector3(10, 10, 1),
             color: kWhite,
             createUbershader: true)
-        .execute((viewer, assets) async {
+        .execute((result) async {
       // Setting the color grading to null will clear the color grading
-      await viewer.view.setColorGrading(null);
+      await result.viewer.view.setColorGrading(null);
       // but internally, View resets this to a "default" color grading,
       // so this will be non-null
-      var initialColorGrading = await viewer.view.getColorGrading();
+      var initialColorGrading = await result.viewer.view.getColorGrading();
       expect(initialColorGrading, isNotNull);
 
       // Create and apply a color grading
-      final builder = await viewer.view.createColorGradingBuilder();
+      final builder = await result.viewer.view.createColorGradingBuilder();
       final colorGrading = await builder
           .quality(QualityLevel.HIGH)
           .exposure(0.5)
@@ -146,24 +144,22 @@ void main() async {
           .build();
 
       // Apply the color grading to the view
-      await viewer.view.setColorGrading(colorGrading);
+      await result.viewer.view.setColorGrading(colorGrading);
 
       // Retrieve the color grading from the view
-      var retrievedColorGrading = await viewer.view.getColorGrading();
+      var retrievedColorGrading = await result.viewer.view.getColorGrading();
       expect(retrievedColorGrading, isNotNull);
       expect(retrievedColorGrading, isA<ColorGrading>());
 
       // Capture the viewport with color grading applied
-      await testHelper.capture(viewer.view, "color_grading_get_test");
+      await testHelper.capture(result.viewer.view, "color_grading_get_test");
 
       // Clear the color grading by passing null
-      await viewer.view.setColorGrading(null);
+      await result.viewer.view.setColorGrading(null);
 
       // Capture the viewport with color grading cleared
-      await testHelper.capture(viewer.view, "color_grading_cleared");
+      await testHelper.capture(result.viewer.view, "color_grading_cleared");
 
-      // Clean up
-      await colorGrading.dispose();
     });
   });
 }

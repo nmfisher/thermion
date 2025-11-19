@@ -8,37 +8,39 @@ void main() async {
   await testHelper.setup();
 
   test('add/clear point light', () async {
-    await testHelper.withViewer((viewer) async {
-      await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
-
-      var light = await viewer.addDirectLight(
+    await ViewerBuilder(testHelper)
+        .addCube(createUbershader: true)
+        .execute((result) async {
+      var light = await result.viewer.addDirectLight(
           DirectLight.point(intensity: 1000000, falloffRadius: 10));
-      await viewer.setLightPosition(light, 1, 2, 2);
-      await testHelper.capture(viewer.view, "add_point_light");
-      await viewer.setLightPosition(light, -1, 2, 2);
-      await testHelper.capture(viewer.view, "move_point_light");
-      await viewer.removeLight(light);
-      await testHelper.capture(viewer.view, "remove_point_light");
+      await result.viewer.setLightPosition(light, 1, 2, 2);
+      await testHelper.capture(result.viewer.view, "add_point_light");
+      await result.viewer.setLightPosition(light, -1, 2, 2);
+      await testHelper.capture(result.viewer.view, "move_point_light");
+      await result.viewer.removeLight(light);
+      await testHelper.capture(result.viewer.view, "remove_point_light");
     });
   });
 
   test('load/remove ibl from KTX', () async {
-    await testHelper.withViewer((viewer) async {
-      var asset =
-          await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
-      await viewer
+    await ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(0, 0, 5))
+        .addCube(createUbershader: true)
+        .execute((result) async {
+      await result.viewer
           .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
-      await testHelper.capture(viewer.view, "ibl_ktx_loaded");
-      await viewer.removeIbl();
-      await testHelper.capture(viewer.view, "ibl_ktx_removed");
-    }, cameraPosition: Vector3(0, 0, 5));
+      await testHelper.capture(result.viewer.view, "ibl_ktx_loaded");
+      await result.viewer.removeIbl();
+      await testHelper.capture(result.viewer.view, "ibl_ktx_removed");
+    });
   });
 
   test('load/remove ibl with manually constructed texture', () async {
-    await testHelper.withViewer((viewer) async {
-      var asset =
-          await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
-
+    await ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(0, 0, 5))
+        .addCube(createUbershader: true)
+        .addSkybox()
+        .execute((result) async {
       final texture = await FilamentApp.instance!.createTexture(1, 1,
           textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
           flags: {
@@ -55,39 +57,39 @@ void main() async {
 
       var indirectLight = await FFIIndirectLight.fromIrradianceTexture(texture,
           reflectionsTexture: texture, intensity: 30000.0);
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
       await scene.setIndirectLight(indirectLight);
 
-      await testHelper.capture(viewer.view, "ibl_from_texture_loaded");
+      await testHelper.capture(result.viewer.view, "ibl_from_texture_loaded");
 
-      await viewer.removeIbl();
-      await testHelper.capture(viewer.view, "ibl_from_texture_removed");
-    }, cameraPosition: Vector3(0, 0, 5), addSkybox: true);
+      await result.viewer.removeIbl();
+      await testHelper.capture(result.viewer.view, "ibl_from_texture_removed");
+    });
   });
 
   test('LightManager type queries and component management', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null // Use default ubershader material
             );
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       // Capture initial state
-      await testHelper.capture(viewer.view, "initial_scene");
+      await testHelper.capture(result.viewer.view, "initial_scene");
 
       // Create a SUN light
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
       expect(lightManager.hasComponent(sunLight), isTrue);
-      await testHelper.capture(viewer.view, "sun_light_created");
+      await testHelper.capture(result.viewer.view, "sun_light_created");
 
       // Test type queries
       expect(lightManager.getType(sunLight), equals(LightType.SUN));
@@ -100,13 +102,13 @@ void main() async {
       await scene.addEntity(pointLight);
       expect(lightManager.isPointLight(pointLight), isTrue);
       expect(lightManager.isDirectional(pointLight), isFalse);
-      await testHelper.capture(viewer.view, "point_light_created");
+      await testHelper.capture(result.viewer.view, "point_light_created");
 
       // Test with a SPOT light
       final spotLight = lightManager.createLight(LightType.SPOT);
       await scene.addEntity(spotLight);
       expect(lightManager.isSpotLight(spotLight), isTrue);
-      await testHelper.capture(viewer.view, "spot_light_created");
+      await testHelper.capture(result.viewer.view, "spot_light_created");
 
       // Cleanup
       await scene.removeEntity(sunLight);
@@ -118,7 +120,7 @@ void main() async {
       lightManager.destroyLight(spotLight);
 
       expect(lightManager.hasComponent(sunLight), isFalse);
-      await testHelper.capture(viewer.view, "all_lights_destroyed");
+      await testHelper.capture(result.viewer.view, "all_lights_destroyed");
     });
   });
 
@@ -132,16 +134,16 @@ void main() async {
             position: Vector3(0, -1.5, 0),
             scale: Vector3(2, 1, 1),
             color: kGreen)
-        .execute((viewer, assets) async {
+        .execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
 
       final sunLight = lightManager.createLight(LightType.SUN);
       lightManager.setPosition(sunLight, 1.0, 2.0, 3.0);
       lightManager.setDirection(sunLight, 0.0, -1.0, 0.0);
       lightManager.setIntensity(sunLight, 50000);
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
       await scene.addEntity(sunLight);
-      await testHelper.capture(viewer.view, "light_created");
+      await testHelper.capture(result.viewer.view, "light_created");
 
       final position = lightManager.getPosition(sunLight);
       expect(position[0], closeTo(1.0, 0.001));
@@ -161,24 +163,24 @@ void main() async {
   test('LightManager intensity management', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
-      await testHelper.capture(viewer.view, "light_created_default_intensity");
+      await testHelper.capture(result.viewer.view, "light_created_default_intensity");
 
       // Test intensity
       lightManager.setIntensity(sunLight, 100000.0);
-      await testHelper.capture(viewer.view, "light_intensity_set");
+      await testHelper.capture(result.viewer.view, "light_intensity_set");
 
       expect(lightManager.getIntensity(sunLight), closeTo(100000.0, 0.001));
 
@@ -190,34 +192,34 @@ void main() async {
   test('LightManager sun-specific methods', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
-      await testHelper.capture(viewer.view, "sun_light_created");
+      await testHelper.capture(result.viewer.view, "sun_light_created");
 
       // Test sun-specific methods
       lightManager.setSunAngularRadius(sunLight, 0.545);
-      await testHelper.capture(viewer.view, "sun_angular_radius_set");
+      await testHelper.capture(result.viewer.view, "sun_angular_radius_set");
 
       expect(lightManager.getSunAngularRadius(sunLight), closeTo(0.545, 0.001));
 
       lightManager.setSunHaloSize(sunLight, 15.0);
-      await testHelper.capture(viewer.view, "sun_halo_size_set");
+      await testHelper.capture(result.viewer.view, "sun_halo_size_set");
 
       expect(lightManager.getSunHaloSize(sunLight), closeTo(15.0, 0.001));
 
       lightManager.setSunHaloFalloff(sunLight, 100.0);
-      await testHelper.capture(viewer.view, "sun_halo_falloff_set");
+      await testHelper.capture(result.viewer.view, "sun_halo_falloff_set");
 
       expect(lightManager.getSunHaloFalloff(sunLight), closeTo(100.0, 0.001));
 
@@ -239,18 +241,18 @@ void main() async {
             castShadows: false,
             color: kGreen);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       final sunLight = lightManager.createLight(LightType.SUN);
       lightManager.setDirection(sunLight, 1, -1, 0);
       await scene.addEntity(sunLight);
-      await testHelper.capture(viewer.view, "sun_light_created_no_shadows");
+      await testHelper.capture(result.viewer.view, "sun_light_created_no_shadows");
 
       // Test shadow caster
       lightManager.setShadowCaster(sunLight, true);
-      await testHelper.capture(viewer.view, "shadow_caster_enabled");
+      await testHelper.capture(result.viewer.view, "shadow_caster_enabled");
 
       expect(lightManager.isShadowCaster(sunLight), isTrue);
 
@@ -264,7 +266,7 @@ void main() async {
         stable: true,
       );
       lightManager.setShadowOptions(sunLight, shadowOptions);
-      await testHelper.capture(viewer.view, "shadow_options_configured");
+      await testHelper.capture(result.viewer.view, "shadow_options_configured");
 
       final retrievedOptions = lightManager.getShadowOptions(sunLight);
       expect(retrievedOptions.mapSize, equals(2048));
@@ -282,29 +284,29 @@ void main() async {
   test('LightManager light channel management', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
-      await testHelper.capture(viewer.view, "light_created_default_channels");
+      await testHelper.capture(result.viewer.view, "light_created_default_channels");
 
       // Test light channels
       lightManager.setLightChannel(sunLight, 1, true);
-      await testHelper.capture(viewer.view, "light_channel_1_enabled");
+      await testHelper.capture(result.viewer.view, "light_channel_1_enabled");
 
       expect(lightManager.getLightChannel(sunLight, 1), isTrue);
 
       lightManager.setLightChannel(sunLight, 1, false);
-      await testHelper.capture(viewer.view, "light_channel_1_disabled");
+      await testHelper.capture(result.viewer.view, "light_channel_1_disabled");
 
       expect(lightManager.getLightChannel(sunLight, 1), isFalse);
 
@@ -316,24 +318,24 @@ void main() async {
   test('LightManager point light specific methods', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       final pointLight = lightManager.createLight(LightType.POINT);
       await scene.addEntity(pointLight);
-      await testHelper.capture(viewer.view, "point_light_created");
+      await testHelper.capture(result.viewer.view, "point_light_created");
 
       // Test falloff
       lightManager.setFalloff(pointLight, 5.0);
-      await testHelper.capture(viewer.view, "point_light_falloff_set");
+      await testHelper.capture(result.viewer.view, "point_light_falloff_set");
 
       expect(lightManager.getFalloff(pointLight), closeTo(5.0, 0.001));
 
@@ -345,24 +347,24 @@ void main() async {
   test('LightManager spot light specific methods', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       final spotLight = lightManager.createLight(LightType.SPOT);
       await scene.addEntity(spotLight);
-      await testHelper.capture(viewer.view, "spot_light_created");
+      await testHelper.capture(result.viewer.view, "spot_light_created");
 
       // Test spot light cone
       lightManager.setSpotLightCone(spotLight, 0.5, 1.0);
-      await testHelper.capture(viewer.view, "spot_light_cone_set");
+      await testHelper.capture(result.viewer.view, "spot_light_cone_set");
 
       expect(lightManager.getSpotLightInnerCone(spotLight), greaterThan(0.0));
       expect(
@@ -383,9 +385,9 @@ void main() async {
             color: kWhite,
             createUbershader: true);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       // Create a sun light with default color temperature (6500K - neutral white)
       final sunLight = lightManager.createLight(LightType.SUN);
@@ -393,12 +395,11 @@ void main() async {
       lightManager.setIntensity(sunLight, 100000.0);
       await scene.addEntity(sunLight);
       
-      await testHelper.capture(viewer.view, "sun_light_default_color");
-      await testHelper.capture(viewer.view, "sun_light_default_color");
+      await testHelper.capture(result.viewer.view, "sun_light_default_color");
 
       // Change sun light color to warm (orange/red) - low color temperature
       lightManager.setColorTemperature(sunLight, 2000.0);
-      await testHelper.capture(viewer.view, "sun_light_warm_color");
+      await testHelper.capture(result.viewer.view, "sun_light_warm_color");
 
       // Verify the color changed (should be more red/orange)
       final warmColor = lightManager.getColor(sunLight);
@@ -407,7 +408,7 @@ void main() async {
 
       // Change sun light color to cool (blue) - high color temperature
       lightManager.setColorTemperature(sunLight, 12000.0);
-      await testHelper.capture(viewer.view, "sun_light_cool_color");
+      await testHelper.capture(result.viewer.view, "sun_light_cool_color");
 
       // Verify the color changed (should be more blue)
       final coolColor = lightManager.getColor(sunLight);
@@ -416,7 +417,7 @@ void main() async {
 
       // Change back to neutral white
       lightManager.setColorTemperature(sunLight, 6500.0);
-      await testHelper.capture(viewer.view, "sun_light_neutral_color");
+      await testHelper.capture(result.viewer.view, "sun_light_neutral_color");
 
       // Verify the color changed back
       final neutralColor = lightManager.getColor(sunLight);
@@ -431,27 +432,27 @@ void main() async {
   test('LightManager color management', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
-      final scene = await viewer.view.getScene();
+      final scene = await result.viewer.view.getScene();
 
       // Create a point light with default color temperature (6500K - neutral white)
       final pointLight = lightManager.createLight(LightType.POINT);
       lightManager.setPosition(pointLight, 2.0, 2.0, 2.0);
       lightManager.setIntensity(pointLight, 50000.0);
       await scene.addEntity(pointLight);
-      await testHelper.capture(viewer.view, "point_light_default_color");
+      await testHelper.capture(result.viewer.view, "point_light_default_color");
 
       // Change light color to warm (orange/red) - low color temperature
       lightManager.setColorTemperature(pointLight, 2000.0);
-      await testHelper.capture(viewer.view, "point_light_warm_color");
+      await testHelper.capture(result.viewer.view, "point_light_warm_color");
 
       // Verify the color changed (should be more red/orange)
       final warmColor = lightManager.getColor(pointLight);
@@ -460,7 +461,7 @@ void main() async {
 
       // Change light color to cool (blue) - high color temperature
       lightManager.setColorTemperature(pointLight, 12000.0);
-      await testHelper.capture(viewer.view, "point_light_cool_color");
+      await testHelper.capture(result.viewer.view, "point_light_cool_color");
 
       // Verify the color changed (should be more blue)
       final coolColor = lightManager.getColor(pointLight);
@@ -469,7 +470,7 @@ void main() async {
 
       // Change back to neutral white
       lightManager.setColorTemperature(pointLight, 6500.0);
-      await testHelper.capture(viewer.view, "point_light_neutral_color");
+      await testHelper.capture(result.viewer.view, "point_light_neutral_color");
 
       // Verify the color changed back
       final neutralColor = lightManager.getColor(pointLight);
@@ -484,14 +485,14 @@ void main() async {
   test('LightManager ShadowCascades utility methods', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .addCube()
+        .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            
             scale: Vector3(10, 10, 1),
             color: null);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
 
       
