@@ -1123,6 +1123,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TView> tView,
     bool inverted,
   );
+  external void _View_setAmbientOcclusionOptions(
+    Pointer<TView> tView,
+    Pointer<TAmbientOcclusionOptions> optionsPtr,
+  );
+  external void _View_getAmbientOcclusionOptions(
+    Pointer<TAmbientOcclusionOptions> TAmbientOcclusionOptions_out,
+    Pointer<TView> tView,
+  );
   external void _View_setFogOptions(
     Pointer<TView> tView,
     Pointer<TFogOptions> tFogOptionsPtr,
@@ -2610,6 +2618,24 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Void> pipelineStageHandle,
   );
   external void _TransformPipeline_cleanup();
+  external void _TransformPipeline_addKeyBinding(
+    int logicalKey,
+    int intentAction,
+    double value,
+  );
+  external void _TransformPipeline_removeKeyBindingsForKey(
+    int logicalKey,
+  );
+  external void _TransformPipeline_removeKeyBindingsForAction(
+    int intentAction,
+  );
+  external void _TransformPipeline_clearKeyBindings();
+  external void _TransformPipeline_setMouseSensitivity(
+    double sensitivity,
+  );
+  external void _TransformPipeline_setInvertMouseY(
+    int invert,
+  );
 }
 
 void Thermion_resizeCanvas(
@@ -5040,6 +5066,25 @@ void View_setFrontFaceWindingInverted(
   final result = GeneratedBindings.instance
       ._View_setFrontFaceWindingInverted(tView.cast(), inverted);
   return result;
+}
+
+void View_setAmbientOcclusionOptions(
+  Pointer<TView> tView,
+  TAmbientOcclusionOptions options,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance
+      ._View_setAmbientOcclusionOptions(tView.cast(), optionsPtr.cast());
+  return result;
+}
+
+TAmbientOcclusionOptions View_getAmbientOcclusionOptions(
+  Pointer<TView> tView,
+) {
+  final TAmbientOcclusionOptions_out = TAmbientOcclusionOptions.stackAlloc();
+  final result = GeneratedBindings.instance._View_getAmbientOcclusionOptions(
+      TAmbientOcclusionOptions_out.cast(), tView.cast());
+  return TAmbientOcclusionOptions_out.toDart();
 }
 
 void View_setFogOptions(
@@ -8275,6 +8320,54 @@ void TransformPipeline_cleanup() {
   return result;
 }
 
+void TransformPipeline_addKeyBinding(
+  int logicalKey,
+  int intentAction,
+  double value,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformPipeline_addKeyBinding(logicalKey, intentAction, value);
+  return result;
+}
+
+void TransformPipeline_removeKeyBindingsForKey(
+  int logicalKey,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformPipeline_removeKeyBindingsForKey(logicalKey);
+  return result;
+}
+
+void TransformPipeline_removeKeyBindingsForAction(
+  int intentAction,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformPipeline_removeKeyBindingsForAction(intentAction);
+  return result;
+}
+
+void TransformPipeline_clearKeyBindings() {
+  final result =
+      GeneratedBindings.instance._TransformPipeline_clearKeyBindings();
+  return result;
+}
+
+void TransformPipeline_setMouseSensitivity(
+  double sensitivity,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformPipeline_setMouseSensitivity(sensitivity);
+  return result;
+}
+
+void TransformPipeline_setInvertMouseY(
+  int invert,
+) {
+  final result =
+      GeneratedBindings.instance._TransformPipeline_setInvertMouseY(invert);
+  return result;
+}
+
 extension TRenderableManagerExt on Pointer<TRenderableManager> {
   TRenderableManager toDart() {
     return TRenderableManager(this);
@@ -9359,6 +9452,321 @@ final class TScene extends Struct {
   }
 }
 
+/// Options for screen space Ambient Occlusion (SSAO) and Screen Space Cone Tracing (SSCT)
+
+extension TAmbientOcclusionOptionsExt on Pointer<TAmbientOcclusionOptions> {
+  TAmbientOcclusionOptions toDart() {
+    return TAmbientOcclusionOptions(this);
+  }
+}
+
+final class TAmbientOcclusionOptions extends Struct {
+  Pointer<TAmbientOcclusionOptions> get address => super.address.cast();
+
+  /// !< Ambient Occlusion radius in meters, between 0 and ~10
+  double get radius {
+    final addr = this.address + 0;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set radius(double val) {
+    NativeLibrary.instance.setValue(this.address + 0, val.toJS, 'float');
+  }
+
+  /// !< Controls ambient occlusion's contrast. Must be positive
+  double get power {
+    final addr = this.address + 4;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set power(double val) {
+    NativeLibrary.instance.setValue(this.address + 4, val.toJS, 'float');
+  }
+
+  /// !< Self-occlusion bias in meters. Use to avoid self-occlusion. Between 0 and a few mm
+  double get bias {
+    final addr = this.address + 8;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set bias(double val) {
+    NativeLibrary.instance.setValue(this.address + 8, val.toJS, 'float');
+  }
+
+  /// !< How each dimension of the AO buffer is scaled. Must be either 0.5 or 1.0
+  double get resolution {
+    final addr = this.address + 12;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set resolution(double val) {
+    NativeLibrary.instance.setValue(this.address + 12, val.toJS, 'float');
+  }
+
+  /// !< Strength of the Ambient Occlusion effect
+  double get intensity {
+    final addr = this.address + 16;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set intensity(double val) {
+    NativeLibrary.instance.setValue(this.address + 16, val.toJS, 'float');
+  }
+
+  /// !< depth distance that constitute an edge for filtering
+  double get bilateralThreshold {
+    final addr = this.address + 20;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set bilateralThreshold(double val) {
+    NativeLibrary.instance.setValue(this.address + 20, val.toJS, 'float');
+  }
+
+  /// !< affects # of samples used for AO
+  int get quality {
+    final addr = this.address + 24;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return int(Pointer<int>(addr));
+  }
+
+  set quality(int val) {
+    NativeLibrary.instance.setValue(this.address + 24, val.address.toJS, 'i32');
+  }
+
+  /// !< affects AO smoothness
+  int get lowPassFilter {
+    final addr = this.address + 28;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return int(Pointer<int>(addr));
+  }
+
+  set lowPassFilter(int val) {
+    NativeLibrary.instance.setValue(this.address + 28, val.address.toJS, 'i32');
+  }
+
+  /// !< affects AO buffer upsampling quality
+  int get upsampling {
+    final addr = this.address + 32;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return int(Pointer<int>(addr));
+  }
+
+  set upsampling(int val) {
+    NativeLibrary.instance.setValue(this.address + 32, val.address.toJS, 'i32');
+  }
+
+  /// !< enables or disables screen-space ambient occlusion
+  bool get enabled {
+    final addr = this.address + 36;
+    final value = NativeLibrary.instance.getValue(addr, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set enabled(bool val) {
+    NativeLibrary.instance
+        .setValue(this.address + 36, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  /// !< enables bent normals computation from AO, and specular AO
+  bool get bentNormals {
+    final addr = this.address + 37;
+    final value = NativeLibrary.instance.getValue(addr, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set bentNormals(bool val) {
+    NativeLibrary.instance
+        .setValue(this.address + 37, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  /// !< min angle in radian to consider
+  double get minHorizonAngleRad {
+    final addr = this.address + 38;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set minHorizonAngleRad(double val) {
+    NativeLibrary.instance.setValue(this.address + 38, val.toJS, 'float');
+  }
+
+  TSsct get ssct {
+    final addr = this.address + 42;
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return TSsct(Pointer<TSsct>(addr));
+  }
+
+  set ssct(TSsct val) {
+    NativeLibrary.instance.setValue(this.address + 42, val.address.toJS, '*');
+  }
+
+  TAmbientOcclusionOptions(super.address);
+
+  static Pointer<TAmbientOcclusionOptions> stackAlloc() {
+    return Pointer<TAmbientOcclusionOptions>(
+        NativeLibrary.instance.stackAlloc<TAmbientOcclusionOptions>(81));
+  }
+}
+
+/// Screen Space Cone Tracing (SSCT) options
+/// Ambient shadows from dominant light
+
+extension TSsctExt on Pointer<TSsct> {
+  TSsct toDart() {
+    return TSsct(this);
+  }
+}
+
+final class TSsct extends Struct {
+  Pointer<TSsct> get address => super.address.cast();
+
+  /// !< full cone angle in radian, between 0 and pi/2
+  double get lightConeRad {
+    final addr = this.address + 0;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set lightConeRad(double val) {
+    NativeLibrary.instance.setValue(this.address + 0, val.toJS, 'float');
+  }
+
+  /// !< how far shadows can be cast
+  double get shadowDistance {
+    final addr = this.address + 4;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set shadowDistance(double val) {
+    NativeLibrary.instance.setValue(this.address + 4, val.toJS, 'float');
+  }
+
+  /// !< max distance for contact
+  double get contactDistanceMax {
+    final addr = this.address + 8;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set contactDistanceMax(double val) {
+    NativeLibrary.instance.setValue(this.address + 8, val.toJS, 'float');
+  }
+
+  /// !< intensity
+  double get intensity {
+    final addr = this.address + 12;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set intensity(double val) {
+    NativeLibrary.instance.setValue(this.address + 12, val.toJS, 'float');
+  }
+
+  /// !< light direction X
+  double get lightDirectionX {
+    final addr = this.address + 16;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set lightDirectionX(double val) {
+    NativeLibrary.instance.setValue(this.address + 16, val.toJS, 'float');
+  }
+
+  /// !< light direction Y
+  double get lightDirectionY {
+    final addr = this.address + 20;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set lightDirectionY(double val) {
+    NativeLibrary.instance.setValue(this.address + 20, val.toJS, 'float');
+  }
+
+  /// !< light direction Z
+  double get lightDirectionZ {
+    final addr = this.address + 24;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set lightDirectionZ(double val) {
+    NativeLibrary.instance.setValue(this.address + 24, val.toJS, 'float');
+  }
+
+  /// !< depth bias in world units (mitigate self shadowing)
+  double get depthBias {
+    final addr = this.address + 28;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set depthBias(double val) {
+    NativeLibrary.instance.setValue(this.address + 28, val.toJS, 'float');
+  }
+
+  /// !< depth slope bias (mitigate self shadowing)
+  double get depthSlopeBias {
+    final addr = this.address + 32;
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set depthSlopeBias(double val) {
+    NativeLibrary.instance.setValue(this.address + 32, val.toJS, 'float');
+  }
+
+  /// !< tracing sample count, between 1 and 255
+  int get sampleCount {
+    final addr = this.address + 36;
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set sampleCount(int val) {
+    NativeLibrary.instance.setValue(this.address + 36, val.toJS, 'i8');
+  }
+
+  /// !< # of rays to trace, between 1 and 255
+  int get rayCount {
+    final addr = this.address + 37;
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set rayCount(int val) {
+    NativeLibrary.instance.setValue(this.address + 37, val.toJS, 'i8');
+  }
+
+  /// !< enables or disables SSCT
+  bool get enabled {
+    final addr = this.address + 38;
+    final value = NativeLibrary.instance.getValue(addr, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set enabled(bool val) {
+    NativeLibrary.instance
+        .setValue(this.address + 38, (val ? 1 : 0).toJS, 'i8');
+  }
+
+  TSsct(super.address);
+
+  static Pointer<TSsct> stackAlloc() {
+    return Pointer<TSsct>(NativeLibrary.instance.stackAlloc<TSsct>(39));
+  }
+}
+
 /// Copied from FogOptions in View.h
 
 extension TFogOptionsExt on Pointer<TFogOptions> {
@@ -10096,6 +10504,16 @@ final class TMovementIntent extends Struct {
 
 const int __bool_true_false_are_defined = 1;
 
+const int MAX_CUSTOM_INTENTS = 16;
+
+const int MOVEMENT_INTENT_MASK = 1;
+
+const int ROTATION_INTENT_MASK = 2;
+
+const int JUMP_INTENT_MASK = 4;
+
+const int SPRINT_INTENT_MASK = 8;
+
 extension StructAllocator on Struct {
   static T create<T>() {
     switch (T) {
@@ -10188,6 +10606,12 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TScene:
         final ptr = TScene.stackAlloc();
+        return ptr.toDart() as T;
+      case TAmbientOcclusionOptions:
+        final ptr = TAmbientOcclusionOptions.stackAlloc();
+        return ptr.toDart() as T;
+      case TSsct:
+        final ptr = TSsct.stackAlloc();
         return ptr.toDart() as T;
       case TFogOptions:
         final ptr = TFogOptions.stackAlloc();

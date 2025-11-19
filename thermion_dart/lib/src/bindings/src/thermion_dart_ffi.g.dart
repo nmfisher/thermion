@@ -1958,6 +1958,18 @@ external void View_setFrontFaceWindingInverted(
   bool inverted,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TAmbientOcclusionOptions)>(
+    isLeaf: true)
+external void View_setAmbientOcclusionOptions(
+  ffi.Pointer<TView> tView,
+  TAmbientOcclusionOptions options,
+);
+
+@ffi.Native<TAmbientOcclusionOptions Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TAmbientOcclusionOptions View_getAmbientOcclusionOptions(
+  ffi.Pointer<TView> tView,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, TFogOptions)>(isLeaf: true)
 external void View_setFogOptions(
   ffi.Pointer<TView> tView,
@@ -4865,6 +4877,36 @@ external void TransformPipeline_unregisterPipelineStage(
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void TransformPipeline_cleanup();
 
+@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Float)>(isLeaf: true)
+external void TransformPipeline_addKeyBinding(
+  int logicalKey,
+  int intentAction,
+  double value,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+external void TransformPipeline_removeKeyBindingsForKey(
+  int logicalKey,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+external void TransformPipeline_removeKeyBindingsForAction(
+  int intentAction,
+);
+
+@ffi.Native<ffi.Void Function()>(isLeaf: true)
+external void TransformPipeline_clearKeyBindings();
+
+@ffi.Native<ffi.Void Function(ffi.Float)>(isLeaf: true)
+external void TransformPipeline_setMouseSensitivity(
+  double sensitivity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+external void TransformPipeline_setInvertMouseY(
+  int invert,
+);
+
 typedef VoidCallbackFunction = ffi.Void Function(ffi.Int32 requestId);
 typedef DartVoidCallbackFunction = void Function(int requestId);
 typedef VoidCallback = ffi.Pointer<ffi.NativeFunction<VoidCallbackFunction>>;
@@ -5485,6 +5527,111 @@ final class TVsmShadowOptions extends ffi.Struct {
   external double lightBleedReduction;
 }
 
+/// Screen Space Cone Tracing (SSCT) options
+/// Ambient shadows from dominant light
+final class TSsct extends ffi.Struct {
+  /// !< full cone angle in radian, between 0 and pi/2
+  @ffi.Float()
+  external double lightConeRad;
+
+  /// !< how far shadows can be cast
+  @ffi.Float()
+  external double shadowDistance;
+
+  /// !< max distance for contact
+  @ffi.Float()
+  external double contactDistanceMax;
+
+  /// !< intensity
+  @ffi.Float()
+  external double intensity;
+
+  /// !< light direction X
+  @ffi.Float()
+  external double lightDirectionX;
+
+  /// !< light direction Y
+  @ffi.Float()
+  external double lightDirectionY;
+
+  /// !< light direction Z
+  @ffi.Float()
+  external double lightDirectionZ;
+
+  /// !< depth bias in world units (mitigate self shadowing)
+  @ffi.Float()
+  external double depthBias;
+
+  /// !< depth slope bias (mitigate self shadowing)
+  @ffi.Float()
+  external double depthSlopeBias;
+
+  /// !< tracing sample count, between 1 and 255
+  @ffi.Uint8()
+  external int sampleCount;
+
+  /// !< # of rays to trace, between 1 and 255
+  @ffi.Uint8()
+  external int rayCount;
+
+  /// !< enables or disables SSCT
+  @ffi.Bool()
+  external bool enabled;
+}
+
+/// Options for screen space Ambient Occlusion (SSAO) and Screen Space Cone Tracing (SSCT)
+final class TAmbientOcclusionOptions extends ffi.Struct {
+  /// !< Ambient Occlusion radius in meters, between 0 and ~10
+  @ffi.Float()
+  external double radius;
+
+  /// !< Controls ambient occlusion's contrast. Must be positive
+  @ffi.Float()
+  external double power;
+
+  /// !< Self-occlusion bias in meters. Use to avoid self-occlusion. Between 0 and a few mm
+  @ffi.Float()
+  external double bias;
+
+  /// !< How each dimension of the AO buffer is scaled. Must be either 0.5 or 1.0
+  @ffi.Float()
+  external double resolution;
+
+  /// !< Strength of the Ambient Occlusion effect
+  @ffi.Float()
+  external double intensity;
+
+  /// !< depth distance that constitute an edge for filtering
+  @ffi.Float()
+  external double bilateralThreshold;
+
+  /// !< affects # of samples used for AO
+  @ffi.UnsignedInt()
+  external int quality;
+
+  /// !< affects AO smoothness
+  @ffi.UnsignedInt()
+  external int lowPassFilter;
+
+  /// !< affects AO buffer upsampling quality
+  @ffi.UnsignedInt()
+  external int upsampling;
+
+  /// !< enables or disables screen-space ambient occlusion
+  @ffi.Bool()
+  external bool enabled;
+
+  /// !< enables bent normals computation from AO, and specular AO
+  @ffi.Bool()
+  external bool bentNormals;
+
+  /// !< min angle in radian to consider
+  @ffi.Float()
+  external double minHorizonAngleRad;
+
+  external TSsct ssct;
+}
+
 typedef PickCallbackFunction = ffi.Void Function(
     ffi.Uint32 requestId,
     EntityId entityId,
@@ -5639,6 +5786,30 @@ final class TGltfMeshData extends ffi.Struct {
 
 final class TMovementIntentCalculator extends ffi.Opaque {}
 
+sealed class TIntentAction {
+  static const INTENT_ACTION_MOVE_FORWARD = 0;
+  static const INTENT_ACTION_MOVE_BACKWARD = 1;
+  static const INTENT_ACTION_MOVE_LEFT = 2;
+  static const INTENT_ACTION_MOVE_RIGHT = 3;
+  static const INTENT_ACTION_JUMP = 4;
+  static const INTENT_ACTION_SPRINT = 5;
+  static const INTENT_ACTION_CUSTOM1 = 6;
+  static const INTENT_ACTION_CUSTOM2 = 7;
+  static const INTENT_ACTION_CUSTOM3 = 8;
+  static const INTENT_ACTION_CUSTOM4 = 9;
+  static const INTENT_ACTION_CUSTOM5 = 10;
+  static const INTENT_ACTION_CUSTOM6 = 11;
+  static const INTENT_ACTION_CUSTOM7 = 12;
+  static const INTENT_ACTION_CUSTOM8 = 13;
+  static const INTENT_ACTION_CUSTOM9 = 14;
+  static const INTENT_ACTION_CUSTOM10 = 15;
+  static const INTENT_ACTION_CROUCH = 16;
+  static const INTENT_ACTION_INTERACT = 17;
+  static const INTENT_ACTION_USE_ITEM = 18;
+  static const INTENT_ACTION_RELOAD = 19;
+  static const INTENT_ACTION_ALT_FIRE = 20;
+}
+
 final class TMovementIntent extends ffi.Struct {
   @ffi.Float()
   external double movementDirectionX;
@@ -5658,20 +5829,20 @@ final class TMovementIntent extends ffi.Struct {
   @ffi.Float()
   external double mouseDeltaY;
 
-  @ffi.Int()
-  external int jumpIntent;
-
-  @ffi.Int()
-  external int sprintIntent;
+  @ffi.Uint32()
+  external int intentStates;
 
   @ffi.Float()
   external double deltaTime;
 
-  @ffi.Int()
-  external int hasMovementIntent;
+  @ffi.Array.multi([16])
+  external ffi.Array<ffi.Int> customIntentActions;
+
+  @ffi.Array.multi([16])
+  external ffi.Array<ffi.Float> customIntentValues;
 
   @ffi.Int()
-  external int hasRotationIntent;
+  external int customIntentCount;
 }
 
 final class TMovementIntentExecutor extends ffi.Opaque {}
@@ -5688,3 +5859,13 @@ const int __bool_true_false_are_defined = 1;
 const int true$ = 1;
 
 const int false$ = 0;
+
+const int MAX_CUSTOM_INTENTS = 16;
+
+const int MOVEMENT_INTENT_MASK = 1;
+
+const int ROTATION_INTENT_MASK = 2;
+
+const int JUMP_INTENT_MASK = 4;
+
+const int SPRINT_INTENT_MASK = 8;
