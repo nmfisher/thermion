@@ -8,55 +8,61 @@ void main() async {
   await testHelper.setup();
 
     test('add/remove geometry', () async {
-      await testHelper.withViewer((viewer) async {
-        final asset = await viewer.createGeometry(GeometryHelper.cube());
-        await viewer.addToScene(asset);
-        await testHelper.capture(viewer.view, "add_cube");
-        await viewer.removeFromScene(asset);
-        await testHelper.capture(viewer.view, "remove_cube");
-        await viewer.addToScene(asset);
-        await viewer.destroyAsset(asset);
-        await testHelper.capture(viewer.view, "destroy_cube");
-      }, bg: kRed);
+      await ViewerBuilder(testHelper)
+          .setBackgroundColor(kRed)
+          .execute((result) async {
+        final asset = await result.viewer.createGeometry(GeometryHelper.cube());
+        await result.viewer.addToScene(asset);
+        await testHelper.capture(result.viewer.view, "add_cube");
+        await result.viewer.removeFromScene(asset);
+        await testHelper.capture(result.viewer.view, "remove_cube");
+        await result.viewer.addToScene(asset);
+        await result.viewer.destroyAsset(asset);
+        await testHelper.capture(result.viewer.view, "destroy_cube");
+      });
     });
 
     test('ensure geometry is removed when destroyAll is called ', () async {
-      await testHelper.withViewer((viewer) async {
-        final asset = await viewer.createGeometry(GeometryHelper.cube());
-        await viewer.addToScene(asset);
-        await viewer.destroyAssets();
-        await testHelper.capture(viewer.view, "destroyAssets_cube");
-      }, bg: kRed);
+      await ViewerBuilder(testHelper)
+          .setBackgroundColor(kRed)
+          .execute((result) async {
+        final asset = await result.viewer.createGeometry(GeometryHelper.cube());
+        await result.viewer.addToScene(asset);
+        await result.viewer.destroyAssets();
+        await testHelper.capture(result.viewer.view, "destroyAssets_cube");
+      });
     });
 
     test('custom geometry (no normals/uvs)', () async {
-      await testHelper.withViewer((viewer) async {
-        final asset = await viewer
+      await ViewerBuilder(testHelper)
+          .execute((result) async {
+        final asset = await result.viewer
             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
-        await viewer.addToScene(asset);
-        await testHelper.capture(viewer.view, "geometry_cube_no_normals_uvs");
-        await viewer.removeFromScene(asset);
-        await viewer.destroyAsset(asset);
+        await result.viewer.addToScene(asset);
+        await testHelper.capture(result.viewer.view, "geometry_cube_no_normals_uvs");
+        await result.viewer.removeFromScene(asset);
+        await result.viewer.destroyAsset(asset);
       });
     });
 
     test('geometry with unlit (ubershader) material', () async {
-      await testHelper.withViewer((viewer) async {
+      await ViewerBuilder(testHelper)
+          .execute((result) async {
         final materialInstance = await FilamentApp.instance!
             .createUbershaderMaterialInstance(unlit: true);
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
 
-        final asset = await viewer.createGeometry(
+        final asset = await result.viewer.createGeometry(
             GeometryHelper.cube(normals: false, uvs: false),
             materialInstances: [materialInstance]);
-        await viewer.addToScene(asset);
-        await testHelper.capture(viewer.view, "geometry_cube_ubershader_red");
+        await result.viewer.addToScene(asset);
+        await testHelper.capture(result.viewer.view, "geometry_cube_ubershader_red");
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
-        await testHelper.capture(viewer.view, "geometry_cube_ubershader_green");
-        await viewer.removeFromScene(asset);
-        await viewer.destroyAsset(asset);
+        await testHelper.capture(result.viewer.view, "geometry_cube_ubershader_green");
+        await result.viewer.removeFromScene(asset);
+        await result.viewer.destroyAsset(asset);
       });
     });
 
