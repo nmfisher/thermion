@@ -597,18 +597,6 @@ namespace thermion
             auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
             TRACE("Setting texture image for level %d, offset %dx%dx%d, depth %d", level, x_offset, y_offset, z_offset, depth);
 
-            switch (bufferFormat)
-            {
-                case PixelBufferDescriptor::PixelDataFormat::RGB:
-                case PixelBufferDescriptor::PixelDataFormat::RGBA:
-                case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
-                case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
-                    break;
-                default:
-                    Log("Unsupported buffer format type : %d", bufferFormat);
-                    return false;
-            }
-
             // the texture upload is async, so we need to copy the buffer
             auto *buffer = new std::vector<uint8_t>(size);
             std::copy(data, data + size, buffer->begin());
