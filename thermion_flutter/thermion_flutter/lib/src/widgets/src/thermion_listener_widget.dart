@@ -26,7 +26,8 @@ final physicalKeyMap = {
   PhysicalKeyboardKey.keyX: PhysicalKey.x,
   PhysicalKeyboardKey.keyY: PhysicalKey.y,
   PhysicalKeyboardKey.keyZ: PhysicalKey.z,
-  PhysicalKeyboardKey.shiftLeft: PhysicalKey.shift,
+  PhysicalKeyboardKey.shiftLeft: PhysicalKey.shiftLeft,
+  PhysicalKeyboardKey.shiftRight: PhysicalKey.shiftRight,
   PhysicalKeyboardKey.space: PhysicalKey.space,
   PhysicalKeyboardKey.backquote: PhysicalKey.backtick,
   PhysicalKeyboardKey.period: PhysicalKey.period,
@@ -67,8 +68,8 @@ final logicalKeyMap = {
   LogicalKeyboardKey.keyX: LogicalKey.x,
   LogicalKeyboardKey.keyY: LogicalKey.y,
   LogicalKeyboardKey.keyZ: LogicalKey.z,
-  LogicalKeyboardKey.shift: LogicalKey.shift,
-  LogicalKeyboardKey.shiftLeft: LogicalKey.shift,
+  LogicalKeyboardKey.shiftLeft: LogicalKey.shiftLeft,
+  LogicalKeyboardKey.shiftRight: LogicalKey.shiftRight,
   LogicalKeyboardKey.space: LogicalKey.space,
   LogicalKeyboardKey.backquote: LogicalKey.backtick,
   LogicalKeyboardKey.digit0: LogicalKey.key0,
@@ -148,6 +149,9 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
   bool get isDesktop =>
       kIsWeb || Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
+  // Track the previous button state to detect button press/release events
+  int _buttonsPressed = 0;
+
   @override
   void initState() {
     super.initState();
@@ -198,9 +202,40 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     return button;
   }
 
+  /// Detects which button was pressed by comparing previous and current button states
+  t.MouseButton? _detectButtonPressed(int previousButtons, int currentButtons) {
+    final pressed = currentButtons & ~previousButtons;
+
+    if (pressed & kPrimaryMouseButton != 0) {
+      return MouseButton.left;
+    } else if (pressed & kSecondaryMouseButton != 0) {
+      return MouseButton.right;
+    } else if (pressed & kMiddleMouseButton != 0) {
+      return MouseButton.middle;
+    }
+    return null;
+  }
+
+  /// Detects which button was released by comparing previous and current button states
+  t.MouseButton? _detectButtonReleased(int previousButtons, int currentButtons) {
+    final released = previousButtons & ~currentButtons;
+
+    if (released & kPrimaryMouseButton != 0) {
+      return MouseButton.left;
+    } else if (released & kSecondaryMouseButton != 0) {
+      return MouseButton.right;
+    } else if (released & kMiddleMouseButton != 0) {
+      return MouseButton.middle;
+    }
+    return null;
+  }
+
   Widget _desktop(double pixelRatio) {
     return Focus(
         focusNode: widget.focusNode,
+        onKeyEvent: (focusNode, keyEvent) {
+          return KeyEventResult.handled;
+        },
         child: Listener(
           onPointerHover: (event) async {
             widget.inputHandler.handle(MouseEvent(
@@ -223,9 +258,12 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
           onPointerDown: (event) async {
             widget.focusNode?.requestFocus();
 
+            final button = _detectButtonPressed(_buttonsPressed, event.buttons);
+            _buttonsPressed = event.buttons;
+
             widget.inputHandler.handle(MouseEvent(
                 MouseEventType.buttonDown,
-                _mouseButtonFromEvent(event),
+                button,
                 event.localPosition.toVector2() * pixelRatio,
                 event.delta.toVector2() * pixelRatio));
           },
@@ -237,11 +275,15 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
                 event.delta.toVector2() * pixelRatio));
           },
           onPointerUp: (event) {
-            widget.inputHandler.handle(MouseEvent(
+            final button = _detectButtonReleased(_buttonsPressed, event.buttons);
+            _buttonsPressed = event.buttons;
+
+            var mouseEvent = MouseEvent(
                 MouseEventType.buttonUp,
-                _mouseButtonFromEvent(event),
+                button,
                 event.localPosition.toVector2() * pixelRatio,
-                event.delta.toVector2() * pixelRatio));
+                event.delta.toVector2() * pixelRatio);
+            widget.inputHandler.handle(mouseEvent);
           },
           child: widget.child,
         ));
