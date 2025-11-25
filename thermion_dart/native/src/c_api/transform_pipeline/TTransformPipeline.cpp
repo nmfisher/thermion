@@ -177,6 +177,32 @@ EMSCRIPTEN_KEEPALIVE void TransformPipeline_clearKeyBindings() {
     }
 }
 
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_addMouseButtonBinding(int mouseButton, int intentAction, float value) {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.addMouseButtonBinding(static_cast<MouseButton>(mouseButton), static_cast<IntentAction>(intentAction), value);
+            calculator->setConfiguration(config);
+            TRACE("[C API] Added mouse button binding: button=%d, action=%d, value=%.2f", mouseButton, intentAction, value);
+        }
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE void TransformPipeline_removeMouseButtonBindings(int mouseButton) {
+    auto pipeline = getPipeline();
+    if (pipeline) {
+        auto calculator = pipeline->getCalculator();
+        if (calculator) {
+            auto config = calculator->getConfiguration();
+            config.removeBindingsForMouseButton(static_cast<MouseButton>(mouseButton));
+            calculator->setConfiguration(config);
+            TRACE("[C API] Removed mouse button bindings for button=%d", mouseButton);
+        }
+    }
+}
+
 EMSCRIPTEN_KEEPALIVE void TransformPipeline_setMouseSensitivity(float sensitivity) {
     auto pipeline = getPipeline();
     if (pipeline) {

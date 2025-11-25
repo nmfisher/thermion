@@ -91,6 +91,23 @@ namespace thermion::plugin::input {
         return bitmask & ~keyToBit(key);
     }
 
+    // Bitmask utilities for MouseButton
+    constexpr inline uint8_t mouseButtonToBit(MouseButton button) {
+        return uint8_t(1) << static_cast<uint8_t>(button);
+    }
+
+    constexpr inline bool isMouseButtonPressed(uint8_t bitmask, MouseButton button) {
+        return (bitmask & mouseButtonToBit(button)) != 0;
+    }
+
+    constexpr inline uint8_t setMouseButtonPressed(uint8_t bitmask, MouseButton button) {
+        return bitmask | mouseButtonToBit(button);
+    }
+
+    constexpr inline uint8_t clearMouseButtonPressed(uint8_t bitmask, MouseButton button) {
+        return bitmask & ~mouseButtonToBit(button);
+    }
+
     enum class PhysicalKey {
         w,
         a,
@@ -182,6 +199,7 @@ namespace thermion::plugin::input {
         const float2& getCurrentMouseDelta() const { return mCurrentMouseDelta; }
         uint64_t getCurrentPressedKeys() const { return mCurrentPressedKeys; }
         const float2& getCurrentMousePosition() const { return mCurrentMousePosition; }
+        uint8_t getCurrentPressedMouseButtons() const { return mCurrentPressedMouseButtons; }
 
         // Reset methods for input state
         void resetMouseDelta();
@@ -196,6 +214,7 @@ namespace thermion::plugin::input {
         float2 mCurrentMousePosition = {0, 0};
         float2 mCurrentMouseDelta = {0, 0};
         uint64_t mCurrentPressedKeys = 0;
+        uint8_t mCurrentPressedMouseButtons = 0;
     };
 
 } // namespace thermion::plugin::input

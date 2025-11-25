@@ -48,7 +48,8 @@ namespace thermion::plugin::input {
         // Create input state for the calculator
         InputState inputState = {
             mEventManager->getCurrentPressedKeys(),
-            mEventManager->getCurrentMouseDelta()
+            mEventManager->getCurrentMouseDelta(),
+            mEventManager->getCurrentPressedMouseButtons()
         };
 
         // Calculate movement intent using the calculator

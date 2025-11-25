@@ -1,6 +1,7 @@
 import 'package:thermion_dart/thermion_dart.dart';
 import 'intent_action.dart';
 import 'key_binding.dart';
+import 'mouse_button_binding.dart';
 
 
 /// Configuration for input processing.
@@ -10,6 +11,9 @@ class InputConfiguration {
   /// List of key bindings
   final List<KeyBinding> keyBindings;
 
+  /// List of mouse button bindings
+  final List<MouseButtonBinding> mouseButtonBindings;
+
   /// Mouse sensitivity multiplier
   double mouseSensitivity;
 
@@ -18,13 +22,20 @@ class InputConfiguration {
 
   InputConfiguration({
     List<KeyBinding>? keyBindings,
+    List<MouseButtonBinding>? mouseButtonBindings,
     this.mouseSensitivity = 1.0,
     this.invertMouseY = false,
-  }) : keyBindings = keyBindings ?? [];
+  }) : keyBindings = keyBindings ?? [],
+       mouseButtonBindings = mouseButtonBindings ?? [];
 
   /// Add a keybinding to the configuration
   void addBinding(LogicalKey key, IntentAction action, {double value = 1.0}) {
     keyBindings.add(KeyBinding(key: key, action: action, value: value));
+  }
+
+  /// Add a mouse button binding to the configuration
+  void addMouseButtonBinding(MouseButton button, IntentAction action, {double value = 1.0}) {
+    mouseButtonBindings.add(MouseButtonBinding(button: button, action: action, value: value));
   }
 
   /// Remove all bindings for a specific key
@@ -32,14 +43,21 @@ class InputConfiguration {
     keyBindings.removeWhere((binding) => binding.key == key);
   }
 
+  /// Remove all bindings for a specific mouse button
+  void removeBindingsForMouseButton(MouseButton button) {
+    mouseButtonBindings.removeWhere((binding) => binding.button == button);
+  }
+
   /// Remove all bindings for a specific action
   void removeBindingsForAction(IntentAction action) {
     keyBindings.removeWhere((binding) => binding.action == action);
+    mouseButtonBindings.removeWhere((binding) => binding.action == action);
   }
 
-  /// Clear all keybindings
+  /// Clear all keybindings (both keyboard and mouse button)
   void clearBindings() {
     keyBindings.clear();
+    mouseButtonBindings.clear();
   }
 
   /// Get all bindings for a specific key
@@ -54,7 +72,7 @@ class InputConfiguration {
 
   @override
   String toString() =>
-      'InputConfiguration(bindings: ${keyBindings.length}, mouseSensitivity: $mouseSensitivity, invertMouseY: $invertMouseY)';
+      'InputConfiguration(keyBindings: ${keyBindings.length}, mouseButtonBindings: ${mouseButtonBindings.length}, mouseSensitivity: $mouseSensitivity, invertMouseY: $invertMouseY)';
 }
 
 /// Factory function to create default WASD configuration.

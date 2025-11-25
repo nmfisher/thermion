@@ -270,6 +270,34 @@ class InputPipeline {
     }
   }
 
+  /// Add a mouse button binding to the input calculator configuration.
+  ///
+  /// [button] - The mouse button to bind
+  /// [action] - The intent action to trigger
+  /// [value] - Optional value multiplier (default 1.0)
+  ///
+  /// Throws [Exception] if the operation fails.
+  void addMouseButtonBinding(MouseButton button, IntentAction action, {double value = 1.0}) {
+    try {
+      bindings.TransformPipeline_addMouseButtonBinding(button.index, action.nativeValue, value);
+    } catch (e) {
+      throw Exception('Failed to add mouse button binding: $e');
+    }
+  }
+
+  /// Remove all bindings for a specific mouse button.
+  ///
+  /// [button] - The mouse button whose bindings should be removed
+  ///
+  /// Throws [Exception] if the operation fails.
+  void removeMouseButtonBindings(MouseButton button) {
+    try {
+      bindings.TransformPipeline_removeMouseButtonBindings(button.index);
+    } catch (e) {
+      throw Exception('Failed to remove mouse button bindings: $e');
+    }
+  }
+
   /// Apply a complete input configuration.
   ///
   /// This is a convenience method that clears existing bindings and applies
@@ -288,11 +316,16 @@ class InputPipeline {
         addKeyBinding(binding.key, binding.action, value: binding.value);
       }
 
+      // Add all mouse button bindings from config
+      for (final binding in config.mouseButtonBindings) {
+        addMouseButtonBinding(binding.button, binding.action, value: binding.value);
+      }
+
       // Set mouse settings
       setMouseSensitivity(config.mouseSensitivity);
       setInvertMouseY(config.invertMouseY);
 
-      _logger.info('Applied input configuration with ${config.keyBindings.length} bindings');
+      _logger.info('Applied input configuration with ${config.keyBindings.length} key bindings and ${config.mouseButtonBindings.length} mouse button bindings');
     } catch (e) {
       throw Exception('Failed to set input configuration: $e');
     }

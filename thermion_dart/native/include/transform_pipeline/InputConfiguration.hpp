@@ -56,11 +56,25 @@ namespace thermion::plugin::input {
     };
 
     /**
+     * Maps a mouse button to an intent action with optional value multiplier.
+     */
+    struct MouseButtonBinding {
+        MouseButton button;
+        IntentAction action;
+        float value = 1.0f;
+
+        MouseButtonBinding() = default;
+        MouseButtonBinding(MouseButton b, IntentAction a, float v = 1.0f)
+            : button(b), action(a), value(v) {}
+    };
+
+    /**
      * Configuration for input processing.
      * This can be modified at runtime to change keybindings and behavior.
      */
     struct InputConfiguration {
         std::vector<KeyBinding> keyBindings;
+        std::vector<MouseButtonBinding> mouseButtonBindings;
         float mouseSensitivity = 1.0f;
         bool invertMouseY = false;
 
@@ -71,6 +85,13 @@ namespace thermion::plugin::input {
          */
         void addBinding(LogicalKey key, IntentAction action, float value = 1.0f) {
             keyBindings.emplace_back(key, action, value);
+        }
+
+        /**
+         * Add a mouse button binding to the configuration.
+         */
+        void addMouseButtonBinding(MouseButton button, IntentAction action, float value = 1.0f) {
+            mouseButtonBindings.emplace_back(button, action, value);
         }
 
         /**
@@ -85,6 +106,17 @@ namespace thermion::plugin::input {
         }
 
         /**
+         * Remove all bindings for a specific mouse button.
+         */
+        void removeBindingsForMouseButton(MouseButton button) {
+            mouseButtonBindings.erase(
+                std::remove_if(mouseButtonBindings.begin(), mouseButtonBindings.end(),
+                    [button](const MouseButtonBinding& binding) { return binding.button == button; }),
+                mouseButtonBindings.end()
+            );
+        }
+
+        /**
          * Remove all bindings for a specific action.
          */
         void removeBindingsForAction(IntentAction action) {
@@ -93,6 +125,11 @@ namespace thermion::plugin::input {
                     [action](const KeyBinding& binding) { return binding.action == action; }),
                 keyBindings.end()
             );
+            mouseButtonBindings.erase(
+                std::remove_if(mouseButtonBindings.begin(), mouseButtonBindings.end(),
+                    [action](const MouseButtonBinding& binding) { return binding.action == action; }),
+                mouseButtonBindings.end()
+            );
         }
 
         /**
@@ -100,6 +137,7 @@ namespace thermion::plugin::input {
          */
         void clearBindings() {
             keyBindings.clear();
+            mouseButtonBindings.clear();
         }
     };
 

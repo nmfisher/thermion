@@ -19,6 +19,7 @@ namespace thermion::plugin::input {
     struct InputState {
         uint64_t pressedKeys;
         const float2& mouseDelta;
+        uint8_t pressedMouseButtons;
     };
 
     // Intent state bitmasks (first 4 bits for standard intents, remaining 28 for custom)

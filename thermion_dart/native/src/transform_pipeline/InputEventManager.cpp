@@ -61,20 +61,20 @@ namespace thermion::plugin::input {
             TRACE("[InputEventManager] Global mouse delta accumulated: (%.2f, %.2f)",
                   mCurrentMouseDelta.x, mCurrentMouseDelta.y);
 
-            // Handle button events
-            if (event.type == MouseEventType::buttonDown && event.button.has_value())
+            // Handle button events - update pressed mouse button state
+            if (event.button.has_value())
             {
-                switch (event.button.value())
+                if (event.type == MouseEventType::buttonDown)
                 {
-                    case MouseButton::left:
-                        TRACE("[InputEventManager] Left mouse button pressed globally");
-                        break;
-                    case MouseButton::right:
-                        TRACE("[InputEventManager] Right mouse button pressed globally");
-                        break;
-                    case MouseButton::middle:
-                        TRACE("[InputEventManager] Middle mouse button pressed globally");
-                        break;
+                    mCurrentPressedMouseButtons = setMouseButtonPressed(mCurrentPressedMouseButtons, event.button.value());
+                    TRACE("[InputEventManager] Mouse button %d pressed globally (bitmask: 0x%02x)",
+                          static_cast<int>(event.button.value()), mCurrentPressedMouseButtons);
+                }
+                else if (event.type == MouseEventType::buttonUp)
+                {
+                    mCurrentPressedMouseButtons = clearMouseButtonPressed(mCurrentPressedMouseButtons, event.button.value());
+                    TRACE("[InputEventManager] Mouse button %d released globally (bitmask: 0x%02x)",
+                          static_cast<int>(event.button.value()), mCurrentPressedMouseButtons);
                 }
             }
         }
@@ -141,6 +141,7 @@ namespace thermion::plugin::input {
         mCurrentMousePosition = {0, 0};
         mCurrentMouseDelta = {0, 0};
         mCurrentPressedKeys = 0;
+        mCurrentPressedMouseButtons = 0;
 
         TRACE("[InputEventManager] Cleanup completed - cleared global input state");
     }

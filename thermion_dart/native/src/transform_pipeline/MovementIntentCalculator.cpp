@@ -70,6 +70,20 @@ namespace thermion::plugin::input
             }
         }
 
+        // Process mouse button bindings
+        const uint8_t pressedMouseButtons = inputState.pressedMouseButtons;
+        TRACE("[MovementIntentCalculator] Processing mouse buttons (bitmask: 0x%02x)", pressedMouseButtons);
+
+        for (const auto& binding : config_.mouseButtonBindings)
+        {
+            if (isMouseButtonPressed(pressedMouseButtons, binding.button))
+            {
+                intent.setCustomIntent(binding.action, binding.value);
+                TRACE("[MovementIntentCalculator] Mouse button %d -> intent %d activated with value %.2f",
+                      static_cast<int>(binding.button), static_cast<int>(binding.action), binding.value);
+            }
+        }
+
         // Normalize movement direction and apply speed
         if (length(movementDirection) > 0.0f)
         {
