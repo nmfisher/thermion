@@ -4897,6 +4897,18 @@ external void TransformPipeline_removeKeyBindingsForAction(
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void TransformPipeline_clearKeyBindings();
 
+@ffi.Native<ffi.Void Function(ffi.Int, ffi.Int, ffi.Float)>(isLeaf: true)
+external void TransformPipeline_addMouseButtonBinding(
+  int mouseButton,
+  int intentAction,
+  double value,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
+external void TransformPipeline_removeMouseButtonBindings(
+  int mouseButton,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Float)>(isLeaf: true)
 external void TransformPipeline_setMouseSensitivity(
   double sensitivity,

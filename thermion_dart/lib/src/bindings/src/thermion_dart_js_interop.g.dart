@@ -2630,6 +2630,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int intentAction,
   );
   external void _TransformPipeline_clearKeyBindings();
+  external void _TransformPipeline_addMouseButtonBinding(
+    int mouseButton,
+    int intentAction,
+    double value,
+  );
+  external void _TransformPipeline_removeMouseButtonBindings(
+    int mouseButton,
+  );
   external void _TransformPipeline_setMouseSensitivity(
     double sensitivity,
   );
@@ -8349,6 +8357,25 @@ void TransformPipeline_removeKeyBindingsForAction(
 void TransformPipeline_clearKeyBindings() {
   final result =
       GeneratedBindings.instance._TransformPipeline_clearKeyBindings();
+  return result;
+}
+
+void TransformPipeline_addMouseButtonBinding(
+  int mouseButton,
+  int intentAction,
+  double value,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformPipeline_addMouseButtonBinding(
+          mouseButton, intentAction, value);
+  return result;
+}
+
+void TransformPipeline_removeMouseButtonBindings(
+  int mouseButton,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformPipeline_removeMouseButtonBindings(mouseButton);
   return result;
 }
 
