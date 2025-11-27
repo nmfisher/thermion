@@ -15,6 +15,7 @@ import 'package:logging/logging.dart';
 
 import '../../../../filament/src/implementation/ffi_camera.dart';
 import '../../../../filament/src/implementation/ffi_view.dart';
+import '../../../../filament/src/interface/defaults.dart';
 
 const FILAMENT_ASSET_ERROR = 0;
 
@@ -654,7 +655,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  @Deprecated("Call FilamentApp.instance!.renderableManager.getBoundingBox instead")
+  @Deprecated(
+      "Call FilamentApp.instance!.renderableManager.getBoundingBox instead")
   Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
     return FilamentApp.instance!.renderableManager.getBoundingBox(entityId);
   }
@@ -670,10 +672,13 @@ class ThermionViewerFFI extends ThermionViewer {
   GridOverlay? _grid;
 
   ///
-  ///
-  ///
-  Future setGridOverlayVisibility(bool visible) async {
-    _grid ??= await GridOverlay.create(app);
+  Future setGridOverlayVisibility(bool visible,
+      {List<LinearColor> axisColors = kDefaultAxisColors,
+      LinearColor gridColor = kDefaultGridColor}) async {
+    _grid ??= await GridOverlay.create(app,
+        axisColors: axisColors, gridColor: gridColor);
+
+    await _grid!.setAxisColor(axisColors);
 
     if (visible) {
       await _grid!.addToScene(scene);

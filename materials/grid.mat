@@ -35,8 +35,33 @@ material {
             name: gridColor
         },
         {
+            type: float3,
+            name: axisColorX,
+            default: [1.0, 0.0, 0.0]
+        },
+        {
+            type: float3,
+            name: axisColorY,
+            default: [0.0, 1.0, 0.0]
+        },
+        {
+            type: float3,
+            name: axisColorZ,
+            default: [0.0, 0.0, 1.0]
+        },
+        {
             type: bool,
-            name: showAxes,
+            name: showAxisX,
+            default : false
+        },
+        {
+            type: bool,
+            name: showAxisY,
+            default : false
+        },
+        {
+            type: bool,
+            name: showAxisZ,
             default : false
         }
     ],
@@ -141,18 +166,12 @@ fragment {
         );  
 
         
-        if(axes.x > 1e-8) {
-            if(!materialParams.showAxes) {
-                material.baseColor = color * gridAlpha * fade * distanceFade; 
-            } else {
-                material.baseColor = vec4(AXIS_COLOR_X * gridAlpha * fade, gridAlpha * fade);
-            }
-        } else if(axes.z > 1e-8) {
-            if(!materialParams.showAxes) {
-                material.baseColor = color * gridAlpha * fade * distanceFade; 
-            } else {
-                material.baseColor = vec4(AXIS_COLOR_Z * gridAlpha * fade, gridAlpha * fade);
-            }
+        if(axes.x > 1e-8 && materialParams.showAxisX) {
+            material.baseColor = vec4(materialParams.axisColorX * fade, gridAlpha * fade);
+        } else if(axes.z > 1e-8 && materialParams.showAxisZ) {
+            material.baseColor = vec4(materialParams.axisColorZ * fade, gridAlpha * fade);            
+        } else if(axes.y > 1e-8 && materialParams.showAxisY) {
+            material.baseColor = vec4(materialParams.axisColorY * fade, gridAlpha * fade);
         } else {
             material.baseColor = color * gridAlpha * fade * distanceFade; 
         }

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/interface/defaults.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -13,6 +14,7 @@ class GridOverlay {
 
   static GridOverlay? _instance;
   static Material? _gridMaterial;
+  static List<LinearColor> _currentAxisColors = kDefaultAxisColors;
 
   Future addToScene(Scene scene) async {
     for (final asset in assets) {
@@ -33,7 +35,7 @@ class GridOverlay {
   }
 
   static Future<GridOverlay> create(
-      FFIFilamentApp app ) async {
+      FFIFilamentApp app, {List<LinearColor> axisColors = kDefaultAxisColors, LinearColor gridColor = kDefaultGridColor } ) async {
     if (_instance == null) {
       _gridMaterial ??=
           FFIMaterial(Material_createGridMaterial(app.engine), app);
@@ -54,9 +56,13 @@ class GridOverlay {
         final ffiAsset = FFIAsset(assetPtr);
         var materialInstance = await ffiAsset.getMaterialInstanceAt();
         if(i == 2) {
-          await materialInstance.setParameterBool("showAxes", true);  
+          await materialInstance.setParameterBool("showAxisX", true);  
+          await materialInstance.setParameterBool("showAxisZ", true);  
         }
-        await materialInstance.setParameterFloat3("gridColor", 0.3, 0.35, 0.3);
+        await materialInstance.setParameterFloat3("gridColor", gridColor.r, gridColor.g, gridColor.b);
+        await materialInstance.setParameterFloat3("axisColorX", axisColors[0].r, axisColors[0].g, axisColors[0].b);
+        await materialInstance.setParameterFloat3("axisColorY", axisColors[1].r, axisColors[1].g, axisColors[1].b);
+        await materialInstance.setParameterFloat3("axisColorZ", axisColors[2].r, axisColors[2].g, axisColors[2].b);
         await materialInstance.setParameterFloat("distance", 10000.0);
         await materialInstance.setParameterFloat("interval", intervals[i]);
         await materialInstance.setParameterFloat(
@@ -74,15 +80,35 @@ class GridOverlay {
         }
         assets.add(ffiAsset);
       }
+      _currentAxisColors = axisColors;
       _instance = GridOverlay(assets);
     }
     return _instance!;
   }
 
   ///
+  /// Sets the axis colors for the grid overlay.
+  /// [axisColors] should be a list of exactly 3 LinearColor objects: [X-axis, Y-axis, Z-axis]
+  ///
+  Future<void> setAxisColor(List<LinearColor> axisColors) async {
+    if (axisColors.length != 3) {
+      throw ArgumentError("axisColors must contain exactly 3 colors for X, Y, and Z axes");
+    }
+
+    _currentAxisColors = axisColors;
+
+    // Update existing assets' material instances
+    for (final asset in assets) {
+      var materialInstance = await asset.getMaterialInstanceAt();
+      await materialInstance.setParameterFloat3("axisColorX", axisColors[0].r, axisColors[0].g, axisColors[0].b);
+      await materialInstance.setParameterFloat3("axisColorY", axisColors[1].r, axisColors[1].g, axisColors[1].b);
+      await materialInstance.setParameterFloat3("axisColorZ", axisColors[2].r, axisColors[2].g, axisColors[2].b);
+    }
+  }
+
   ///
   ///
-  @override
+  ///
   Future<FFIAsset> createInstance(
       {List<MaterialInstance>? materialInstances = null}) async {
     throw Exception(

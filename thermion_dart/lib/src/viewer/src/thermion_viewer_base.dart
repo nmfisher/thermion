@@ -2,6 +2,7 @@ import 'package:thermion_dart/src/filament/src/interface/layers.dart';
 import 'package:thermion_dart/src/filament/src/interface/light_options.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
+import '../../filament/src/interface/defaults.dart';
 import '../../filament/src/interface/shared_types.dart';
 import 'dart:typed_data';
 import 'package:vector_math/vector_math_64.dart';
@@ -153,9 +154,9 @@ abstract class ThermionViewer {
   /// extension `.glb` or `.gltf`. `file://` URIs are always supported;
   /// `asset://` URIs are only supported if running in a Flutter application.
   ///
-  /// [resourceUri] is ignored for `.glb.` files; if provided, all asset paths 
-  /// in the `.gltf` file will be resolved relative to this path. If 
-  /// [resourceUri] is not provided, all asset paths in `.gltf` files will be 
+  /// [resourceUri] is ignored for `.glb.` files; if provided, all asset paths
+  /// in the `.gltf` file will be resolved relative to this path. If
+  /// [resourceUri] is not provided, all asset paths in `.gltf` files will be
   /// resolved relative to the URI of the file itself (so if
   /// [uri] is asset://assets/scene.gltf, the loader will attempt to load
   /// asset://assets/scene.bin, asset://assets/texture.png, and so on).
@@ -310,15 +311,14 @@ abstract class ThermionViewer {
   ///
   Future hideBoundingBox(ThermionAsset asset, {bool destroy = false});
 
-  ///
   /// Gets the 2D bounding box (in viewport coordinates) for the given entity.
   ///
   Future<Aabb2> getViewportBoundingBox(ThermionEntity entity);
 
   ///
-  ///
-  ///
-  Future setGridOverlayVisibility(bool visible);
+  Future setGridOverlayVisibility(bool visible,
+      {List<LinearColor> axisColors = kDefaultAxisColors,
+      LinearColor gridColor = kDefaultGridColor});
 
   ///
   ///
