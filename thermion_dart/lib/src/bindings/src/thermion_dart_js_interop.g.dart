@@ -777,6 +777,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool replaceActive,
     double crossfade,
     double startOffset,
+    double speed,
   );
   external int _AnimationManager_stopGltfAnimation(
     Pointer<TAnimationManager> tAnimationManager,
@@ -4302,6 +4303,7 @@ bool AnimationManager_playGltfAnimation(
   bool replaceActive,
   double crossfade,
   double startOffset,
+  double speed,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_playGltfAnimation(
       tAnimationManager.cast(),
@@ -4311,7 +4313,8 @@ bool AnimationManager_playGltfAnimation(
       reverse,
       replaceActive,
       crossfade,
-      startOffset);
+      startOffset,
+      speed);
   return result == 1;
 }
 

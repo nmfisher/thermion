@@ -1321,6 +1321,7 @@ external void AnimationManager_getInverseBindMatrix(
         ffi.Bool,
         ffi.Bool,
         ffi.Float,
+        ffi.Float,
         ffi.Float)>(isLeaf: true)
 external bool AnimationManager_playGltfAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
@@ -1331,6 +1332,7 @@ external bool AnimationManager_playGltfAnimation(
   bool replaceActive,
   double crossfade,
   double startOffset,
+  double speed,
 );
 
 @ffi.Native<
