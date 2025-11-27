@@ -171,12 +171,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<SwapChain> createHeadlessSwapChain(int width, int height,
-      {bool hasStencilBuffer = false}) async {
+      {bool hasStencilBuffer = false, bool isMacOS = false}) async {
     var flags = TSWAP_CHAIN_CONFIG_TRANSPARENT | TSWAP_CHAIN_CONFIG_READABLE;
 
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
+
+    if (isMacOS) {
+      flags |= TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
+    }
+
     final swapChain = await withPointerCallback<TSwapChain>((cb) =>
         Engine_createHeadlessSwapChainRenderThread(
             this.engine, width, height, flags, cb));
