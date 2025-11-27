@@ -63,10 +63,8 @@ import GLKit
             )
         }
 
-        print("Creating color texture")
-
         let pixelBufferAttrs = [
-            kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32ABGR ),
+            kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32BGRA ),
             kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary,
             kCVPixelBufferMetalCompatibilityKey: kCFBooleanTrue!,
             kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue!
@@ -87,6 +85,7 @@ import GLKit
                 height: height
             )
         }
+        
 
         var cvMetalTextureCache: CVMetalTextureCache?
         // Create texture cache attributes to enable render target usage
