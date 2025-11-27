@@ -323,7 +323,7 @@ namespace thermion
         return true;
     }
 
-    void AnimationManager::playGltfAnimation(GltfSceneAssetInstance *instance, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset)
+    void AnimationManager::playGltfAnimation(GltfSceneAssetInstance *instance, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed)
     {
         std::lock_guard lock(mMutex);
 
@@ -333,7 +333,7 @@ namespace thermion
             return;
         }
 
-        mGltfAnimationComponentManager->addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset);
+        mGltfAnimationComponentManager->addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset, speed);
     }
 
     void AnimationManager::stopGltfAnimation(GltfSceneAssetInstance *instance, int index)

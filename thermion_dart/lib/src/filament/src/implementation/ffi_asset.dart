@@ -794,9 +794,18 @@ class FFIAsset extends ThermionAsset {
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
-      double startOffset = 0.0}) async {
-    if (!AnimationManager_playGltfAnimation(FilamentApp.instance!.animationManager, asset, index,
-        loop, reverse, replaceActive, crossfade, startOffset)) {
+      double startOffset = 0.0,
+      double speed = 1.0}) async {
+    if (!AnimationManager_playGltfAnimation(
+        FilamentApp.instance!.animationManager,
+        asset,
+        index,
+        loop,
+        reverse,
+        replaceActive,
+        crossfade,
+        startOffset,
+        speed)) {
       throw Exception("Failed to play glTF animation. Check logs for details");
     }
   }
@@ -830,6 +839,7 @@ class FFIAsset extends ThermionAsset {
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
+      double speed = 1.0,
       bool wait = false}) async {
     var animations = await getGltfAnimationNames();
     var index = animations.indexOf(name);
@@ -838,7 +848,8 @@ class FFIAsset extends ThermionAsset {
         loop: loop,
         reverse: reverse,
         replaceActive: replaceActive,
-        crossfade: crossfade);
+        crossfade: crossfade,
+        speed: speed);
     if (wait) {
       await Future.delayed(Duration(milliseconds: (duration * 1000).toInt()));
     }

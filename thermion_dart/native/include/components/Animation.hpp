@@ -15,5 +15,6 @@ namespace thermion
         bool loop = false;
         bool reverse = false;
         float durationInSecs = 0;
+        float speed = 1.0f;
     };
 }

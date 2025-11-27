@@ -63,7 +63,7 @@ namespace thermion
             void addAnimationComponent(FilamentInstance *target);
             void removeAnimationComponent(FilamentInstance *target);
 
-            bool addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset);
+            bool addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed = 1.0f);
             // GltfAnimationComponent getAnimationComponentInstance(FilamentInstance *target);
             void update(); 
 

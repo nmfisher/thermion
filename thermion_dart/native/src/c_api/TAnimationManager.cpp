@@ -291,6 +291,8 @@ extern "C"
                     out[(colNum * 4) + rowNum] = transform[colNum][rowNum];
                 }
             }
+        } else { 
+            ERROR("AnimationManager_getInverseBindMatrix can only be called with an GltfSceneAssetInstance");
         }
     }
 
@@ -302,14 +304,15 @@ extern "C"
         bool reverse,
         bool replaceActive,
         float crossfade,
-        float startOffset)
+        float startOffset,
+        float speed)
     {
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        
+
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
         }
-        
+
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         GltfSceneAssetInstance *instance;
 
@@ -320,8 +323,8 @@ extern "C"
             instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
         }
         animationManager->addGltfAnimationComponent(instance);
-        animationManager->playGltfAnimation(instance, index, loop, reverse, replaceActive, crossfade, startOffset);
-        
+        animationManager->playGltfAnimation(instance, index, loop, reverse, replaceActive, crossfade, startOffset, speed);
+
         return true;
     }
 

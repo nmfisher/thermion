@@ -72,7 +72,8 @@ extern "C"
 		bool reverse,
 		bool replaceActive,
 		float crossfade,
-		float startOffset);
+		float startOffset,
+		float speed);
 
 	EMSCRIPTEN_KEEPALIVE bool AnimationManager_stopGltfAnimation(
 		TAnimationManager *tAnimationManager,

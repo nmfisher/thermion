@@ -127,7 +127,8 @@ namespace thermion
         /// @param replaceActive
         /// @param crossfade
         /// @param startOffset
-        void playGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f);
+        /// @param speed
+        void playGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f, float speed = 1.0f);
 
         /// @brief
         /// @param instance

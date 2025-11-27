@@ -196,7 +196,8 @@ abstract class ThermionAsset {
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
-      double startOffset = 0.0}) {
+      double startOffset = 0.0,
+      double speed = 1.0}) {
     throw UnimplementedError();
   }
 
@@ -207,7 +208,8 @@ abstract class ThermionAsset {
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
-      double crossfade = 0.0}) {
+      double crossfade = 0.0,
+      double speed = 1.0}) {
     throw UnimplementedError();
   }
 
