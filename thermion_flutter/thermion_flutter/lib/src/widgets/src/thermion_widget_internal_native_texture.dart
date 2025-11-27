@@ -260,7 +260,7 @@ class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
               child: Texture(
             key: ObjectKey("flutter_texture_${_texture!.flutterTextureId}"),
             textureId: _texture!.flutterTextureId,
-            filterQuality: FilterQuality.high,
+            filterQuality: FilterQuality.none,
             freeze: false,
           )),
           if (widget.showFpsCounter)
