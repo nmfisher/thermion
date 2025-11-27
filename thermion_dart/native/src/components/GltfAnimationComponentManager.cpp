@@ -1,4 +1,4 @@
-#include <chrono>
+#include <cstdint>
 #include <variant>
 
 #include "components/GltfAnimationComponentManager.hpp"
@@ -30,9 +30,7 @@ namespace thermion
                 auto &last = animationComponent.animations.back();
                 animationComponent.fadeGltfAnimationIndex = last.index;
                 animationComponent.fadeDuration = crossfade;
-                auto now = high_resolution_clock::now();
-                auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last.start).count()) / 1000.0f;
-                animationComponent.fadeOutAnimationStart = elapsedInSecs;
+                animationComponent.fadeOutAnimationStart = (float(mLastUpdateTime - last.startTimeInNanos) / 1'000'000'000.0f) / last.durationInSecs;
                 animationComponent.animations.clear();
             }
             else
@@ -55,7 +53,7 @@ namespace thermion
         GltfAnimation animation;
         animation.startOffset = startOffset;
         animation.index = index;
-        animation.start = std::chrono::high_resolution_clock::now();
+        animation.startTimeInNanos = 0; // Will be set by AnimationManager
         animation.loop = loop;
         animation.reverse = reverse;
         animation.durationInSecs = target->getAnimator()->getAnimationDuration(index);
@@ -88,8 +86,9 @@ namespace thermion
         }
     }
 
-    void GltfAnimationComponentManager::update() {
-        TRACE("Updating with %d components", getComponentCount());
+    void GltfAnimationComponentManager::update(uint64_t frameTimeInNanos) {
+ 
+        TRACE("Updating %d glTF animation components at %lu", getComponentCount(), frameTimeInNanos);
         for (auto it = begin(); it < end(); it++)
         {
             const auto &entity = getEntity(it);
@@ -103,13 +102,19 @@ namespace thermion
 
             for (int i = ((int)gltfAnimations.size()) - 1; i >= 0; i--)
             {
-                auto now = high_resolution_clock::now();
+                auto &animationStatus = gltfAnimations[i];
 
-                auto animationStatus = gltfAnimations[i];
+                // Initialize start time on first use
+                if (animationStatus.startTimeInNanos == 0) {
+                    animationStatus.startTimeInNanos = frameTimeInNanos;
+                    continue;
+                }
 
-                auto elapsedInSecs = (animationStatus.startOffset + float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f) * animationStatus.speed;
+                uint64_t elapsedInNanos = frameTimeInNanos - animationStatus.startTimeInNanos;
+                float elapsedInSeconds = float(elapsedInNanos) / 1'000'000'000.0f;
+                auto animationTargetTime = (animationStatus.startOffset + elapsedInSeconds) * animationStatus.speed;
 
-                if (!animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
+                if (!animationStatus.loop && animationTargetTime >= animationStatus.durationInSecs)
                 {
                     animator->applyAnimation(animationStatus.index, animationStatus.durationInSecs - 0.001);
                     animator->updateBoneMatrices();
@@ -117,18 +122,19 @@ namespace thermion
                     animationComponent.fadeGltfAnimationIndex = -1;
                     continue;
                 }
-                animator->applyAnimation(animationStatus.index, elapsedInSecs);
+                animator->applyAnimation(animationStatus.index, animationTargetTime);
 
-                if (animationComponent.fadeGltfAnimationIndex != -1 && elapsedInSecs < animationComponent.fadeDuration)
+                if (animationComponent.fadeGltfAnimationIndex != -1 && animationTargetTime < animationComponent.fadeDuration)
                 {
                     // cross-fade
-                    auto fadeFromTime = animationComponent.fadeOutAnimationStart + elapsedInSecs;
-                    auto alpha = elapsedInSecs / animationComponent.fadeDuration;
+                    auto fadeFromTime = animationComponent.fadeOutAnimationStart + elapsedInNanos;
+                    auto alpha = animationTargetTime / animationComponent.fadeDuration;
                     animator->applyCrossFade(animationComponent.fadeGltfAnimationIndex, fadeFromTime, alpha);
                 }
             }
 
             animator->updateBoneMatrices();
         }
+        mLastUpdateTime = frameTimeInNanos;
     }
 }

@@ -1,3 +1,4 @@
+import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -31,7 +32,7 @@ abstract class FilamentApp<T> {
   T get engine;
   T get gltfAssetLoader;
   T get renderer;
-  T get animationManager;
+  AnimationManager<T> get animationManager;
   TransformManager get transformManager;
 
   T get ubershaderMaterialProvider;

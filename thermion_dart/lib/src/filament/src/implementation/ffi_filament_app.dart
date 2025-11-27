@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
@@ -44,7 +45,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   late final FFILightManager lightManager;
   late final FFIRenderableManager renderableManager;
   late final FFITransformManager transformManager;
-  late final Pointer<TAnimationManager> animationManager;
+  late final FFIAnimationManager animationManager;
 
   static final _logger = Logger("FFIFilamentApp");
 
@@ -59,12 +60,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Future<Uint8List> Function(String uri)? loadResource,
       Pointer<TLightManager> lightManagerPointer,
       Pointer<TRenderableManager> renderableManagerPointer,
-      this.animationManager) {
+      Pointer<TAnimationManager> animationManagerPointer) {
     this._loadResource = loadResource ?? defaultResourceLoader;
     this.lightManager = FFILightManager(lightManagerPointer, this);
     this.renderableManager =
         FFIRenderableManager(renderableManagerPointer, this);
     this.transformManager = FFITransformManager(transformManagerPtr, this);
+    this.animationManager = FFIAnimationManager(animationManagerPointer, this);
   }
 
   Future<Uint8List> loadResource(String uri) {

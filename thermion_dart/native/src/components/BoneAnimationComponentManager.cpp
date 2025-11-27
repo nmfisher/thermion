@@ -1,4 +1,4 @@
-#include <chrono>
+#include <cstdint>
 #include <variant>
 
 #include "components/BoneAnimationComponentManager.hpp"
@@ -21,7 +21,7 @@ namespace thermion
         }
     }
 
-    void BoneAnimationComponentManager::update() {
+    void BoneAnimationComponentManager::update(uint64_t frameTimeInNanos) {
         TRACE("Updating with %d components", getComponentCount());
         for (auto it = begin(); it < end(); it++)
         {
@@ -42,14 +42,20 @@ namespace thermion
                 {
                     auto animationStatus = boneAnimations[i];
 
-                    auto now = high_resolution_clock::now();
+                    // Initialize start time on first use
+                    if (animationStatus.startTimeInNanos == 0) {
+                        animationStatus.startTimeInNanos = frameTimeInNanos;
+                        continue;
+                    }
 
-                    auto elapsedInMillis = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count());
-                    auto elapsedInSecs = elapsedInMillis / 1000.0f;
+                    uint64_t elapsedInNanos = frameTimeInNanos - animationStatus.startTimeInNanos;
+                    float elapsedInSeconds = float(elapsedInNanos) / 1'000'000'000.0f;
+                    auto animationTargetTime = (animationStatus.startOffset + elapsedInSeconds) * animationStatus.speed;
+                    auto elapsedInMillis = animationTargetTime * 1000.0f;
 
                     // if we're not looping and the amount of time elapsed is greater than the animation duration plus the fade-in/out buffer,
                     // then the animation is completed and we can delete it
-                    if (elapsedInSecs >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
+                    if (animationTargetTime >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
                     {
                         if(!animationStatus.loop) {
                             boneAnimations.erase(boneAnimations.begin() + i);
@@ -116,11 +122,11 @@ namespace thermion
 
                     // now calculate the fade out/in delta
                     // if we're fading in, this will be 0.0 at the start of the fade and 1.0 at the end
-                    auto fadeDelta = elapsedInSecs / animationStatus.fadeInInSecs;
+                    auto fadeDelta = elapsedInSeconds / animationStatus.fadeInInSecs;
                     
                     // // if we're fading out, this will be 1.0 at the start of the fade and 0.0 at the end
                     if(fadeDelta > 1.0f) {
-                        fadeDelta = 1 - ((elapsedInSecs - animationStatus.durationInSecs - animationStatus.fadeInInSecs) / animationStatus.fadeOutInSecs);
+                        fadeDelta = 1 - ((elapsedInSeconds - animationStatus.durationInSecs - animationStatus.fadeInInSecs) / animationStatus.fadeOutInSecs);
                     }
 
                     fadeDelta = std::clamp(fadeDelta, 0.0f, animationStatus.maxDelta);
@@ -144,9 +150,9 @@ namespace thermion
 
                     animator->updateBoneMatrices();
 
-                    if (animationStatus.loop && elapsedInSecs >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
+                    if (animationStatus.loop && elapsedInSeconds >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
                     {
-                        animationStatus.start = now;
+                        animationStatus.startTimeInNanos = frameTimeInNanos;
                     }
                 }
             }

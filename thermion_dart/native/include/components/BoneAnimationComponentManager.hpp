@@ -18,7 +18,7 @@
 #include <utils/SingleInstanceComponentManager.h>
 
 #include "Log.hpp"
-#include "components/Animation.hpp"
+#include "scene/AnimationManager.hpp"
 
 namespace thermion
 {
@@ -26,7 +26,7 @@ namespace thermion
     using namespace filament::gltfio;
     using namespace utils;
 
-    struct BoneAnimation : Animation {
+    struct BoneAnimation : AnimationManager::AnimationComponentBase {
         int lengthInFrames;
         size_t boneIndex;
         size_t skinIndex = 0;
@@ -56,7 +56,7 @@ namespace thermion
             
             void addAnimationComponent(FilamentInstance *target);
             void removeAnimationComponent(FilamentInstance *target);
-            void update(); 
+            void update(uint64_t frameTimeInNanos); 
 
         private:
             filament::TransformManager &mTransformManager;

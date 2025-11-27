@@ -12,6 +12,11 @@
 #include "Log.hpp"
 
 #include "scene/AnimationManager.hpp"
+
+#include "components/GltfAnimationComponentManager.hpp"
+#include "components/MorphAnimationComponentManager.hpp"
+#include "components/BoneAnimationComponentManager.hpp"
+
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 
@@ -29,6 +34,8 @@ namespace thermion
         mMorphAnimationComponentManager = std::make_unique<MorphAnimationComponentManager>(transformManager, renderableManager);
         mBoneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(transformManager, renderableManager);
     }
+
+    AnimationManager::~AnimationManager() = default;
 
     bool AnimationManager::setMorphAnimationBuffer(
         utils::Entity entity,
@@ -65,7 +72,7 @@ namespace thermion
         }
         morphAnimation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
 
-        morphAnimation.start = high_resolution_clock::now();
+        morphAnimation.startTimeInNanos = 0; // Will be set when first update() is called
         morphAnimation.lengthInFrames = numFrames;
 
         morphAnimations.emplace_back(morphAnimation);
@@ -299,7 +306,7 @@ namespace thermion
         }
 
         animation.frameLengthInMs = frameLengthInMs;
-        animation.start = std::chrono::high_resolution_clock::now();
+        animation.startTimeInNanos = 0; // Will be set when first update() is called
         animation.reverse = false;
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
         animation.lengthInFrames = numFrames;
@@ -316,9 +323,9 @@ namespace thermion
         auto animationComponentInstance = mBoneAnimationComponentManager->getInstance(instance->getInstance()->getRoot());
 
         auto &animationComponent = mBoneAnimationComponentManager->elementAt<0>(animationComponentInstance);
-        // auto &boneAnimations = animationComponent.boneAnimations;
+        auto &boneAnimations = animationComponent.animations;
 
-        // boneAnimations.emplace_back(animation);
+        boneAnimations.emplace_back(animation);
 
         return true;
     }
@@ -407,7 +414,7 @@ namespace thermion
         return names;
     }
 
-    vector<Entity> AnimationManager::getBoneEntities(GltfSceneAssetInstance *instance, int skinIndex)
+    std::vector<Entity> AnimationManager::getBoneEntities(GltfSceneAssetInstance *instance, int skinIndex)
     {
         auto *joints = instance->getInstance()->getJointsAt(skinIndex);
         auto jointCount = instance->getInstance()->getJointCountAt(skinIndex);
@@ -418,9 +425,10 @@ namespace thermion
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(mMutex);
-        mGltfAnimationComponentManager->update();
-        mMorphAnimationComponentManager->update();
-        mBoneAnimationComponentManager->update();
+        mGltfAnimationComponentManager->update(frameTimeInNanos);
+        mMorphAnimationComponentManager->update(frameTimeInNanos);
+        mBoneAnimationComponentManager->update(frameTimeInNanos);
+        mLastUpdateTime = frameTimeInNanos;
     }
 
     math::mat4f AnimationManager::getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex)

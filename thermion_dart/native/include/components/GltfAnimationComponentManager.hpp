@@ -19,7 +19,7 @@
 
 #include "Log.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
-#include "components/Animation.hpp"
+#include "scene/AnimationManager.hpp"
 
 template class std::vector<float>;
 namespace thermion
@@ -33,7 +33,7 @@ namespace thermion
     /// The status of an animation embedded in a glTF object.
     /// @param index refers to the index of the animation in the animations property of the underlying object.
     ///
-    struct GltfAnimation : Animation
+    struct GltfAnimation : AnimationManager::AnimationComponentBase
     {
         int index = -1;
     };
@@ -47,7 +47,7 @@ namespace thermion
         filament::gltfio::FilamentInstance * target;
         // the index of the last active glTF animation,
         // used to cross-fade
-        int fadeGltfAnimationIndex = -1;
+        int8_t fadeGltfAnimationIndex = -1;
         float fadeDuration = 0.0f;
         float fadeOutAnimationStart = 0.0f;
         std::vector<GltfAnimation> animations;
@@ -65,10 +65,12 @@ namespace thermion
 
             bool addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed = 1.0f);
             // GltfAnimationComponent getAnimationComponentInstance(FilamentInstance *target);
-            void update(); 
+            void update(uint64_t frameTimeInNanos); 
 
         private:
             filament::TransformManager &mTransformManager;
             filament::RenderableManager &mRenderableManager;
+            uint64_t mLastUpdateTime;
+
     };
 }

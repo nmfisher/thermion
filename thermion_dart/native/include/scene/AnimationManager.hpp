@@ -8,10 +8,6 @@
 
 #include "c_api/APIBoundaryTypes.h"
 
-#include "components/CollisionComponentManager.hpp"
-#include "components/GltfAnimationComponentManager.hpp"
-#include "components/MorphAnimationComponentManager.hpp"
-#include "components/BoneAnimationComponentManager.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/GltfSceneAsset.hpp"
 #include "scene/SceneAsset.hpp"
@@ -22,35 +18,72 @@ namespace thermion
     using namespace filament;
     using namespace filament::gltfio;
     using namespace utils;
-    using std::string;
-    using std::unique_ptr;
-    using std::vector;
 
-    /// @brief
+    // Assets can be animated by:
+    // 1) playing an embedded gltf animation 
+    // 2) creating a buffer containing the weights for the asset's morph target(s) 
+    //    at successive frames; or
+    // 3) creating a similar buffer containing the transforms for the asset's bones 
+    //    at successive frames;
+    //
+    // (note that embedded gltf animations may target the asset's morph target weights or 
+    // bone transforms; these are still handled separately from manually-created animations).
+    //
+    // AnimationManager maintains three component managers (one for each type of animation listed 
+    // above). Calling update() with the number of nanoseconds elapsed since the last call, 
+    // calls the same on each component manager, which will then update the asset's animatable properties 
+    // to match the target frame time.
+    
+    class GltfAnimationComponentManager;
+    class MorphAnimationComponentManager;
+    class BoneAnimationComponentManager;
     class AnimationManager
     {
-    public:
+        
+        public:
+        
+        // The base struct shared by all three animation types.
+        // 
+        struct AnimationComponentBase
+        {
+            // The frame time (in nanoseconds) when this animation started playing.
+            uint64_t startTimeInNanos = 0;
+            
+            // Whether the animation should be played from its first frame, or at some later time.
+            float startOffset;
+            
+            // Whether the animation should loop back to the start when it finishes.
+            bool loop = false;
+            
+            // Whether the animation should be played backwards or forwards.
+            bool reverse = false;
+            
+            // The duration of the animation in seconds.
+            float durationInSecs = 0;
+            
+            // The speed at which this animation should be played.
+            float speed = 1.0f;
+        };
         AnimationManager(Engine *engine);
-        ~AnimationManager() = default;
+        ~AnimationManager();
 
-        /// @brief 
         ///
         /// @param frameTimeInNanos 
         void update(uint64_t frameTimeInNanos);
 
-        /// @brief
+        
         /// @param asset
         /// @param childEntity
         /// @return
-        vector<string> getMorphTargetNames(GltfSceneAsset *asset, EntityId childEntity);
+        std::vector<std::string> getMorphTargetNames(GltfSceneAsset *asset, EntityId childEntity);
 
-        /// @brief
+        
         /// @param instance
         /// @param skinIndex
         /// @return
-        vector<Entity> getBoneEntities(GltfSceneAssetInstance *instance, int skinIndex);
+        std::vector<Entity> getBoneEntities(GltfSceneAssetInstance *instance, int skinIndex);
 
-        /// @brief
+        
         /// @param sceneAsset
         /// @param morphData
         /// @param morphIndices
@@ -66,19 +99,19 @@ namespace thermion
             int numFrames,
             float frameLengthInMs);
 
-        /// @brief
+        
         /// @param entityId
         void clearMorphAnimationBuffer(
             utils::Entity entity);
 
-        /// @brief
+        
         /// @param instance
         /// @param skinIndex
         /// @param boneIndex
         /// @return
         math::mat4f getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex);
 
-        /// @brief Set the local transform for the bone at boneIndex/skinIndex in the given entity.
+        /// Set the local transform for the bone at boneIndex/skinIndex in the given entity.
         /// @param entityId the parent entity
         /// @param entityName the name of the mesh under entityId for which the bone will be set.
         /// @param skinIndex the index of the joint skin. Currently only 0 is supported.
@@ -87,7 +120,7 @@ namespace thermion
         /// @return true if the transform was successfully set, false otherwise
         bool setBoneTransform(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex, math::mat4f transform);
 
-        /// @brief Immediately start animating the bone at [boneIndex] under the parent instance [entity] at skin [skinIndex].
+        /// Immediately start animating the bone at [boneIndex] under the parent instance [entity] at skin [skinIndex].
         /// @param entity the mesh entity to animate
         /// @param frameData frame data as quaternions
         /// @param numFrames the number of frames
@@ -105,21 +138,21 @@ namespace thermion
             float fadeInInSecs,
             float maxDelta);
 
-        /// @brief
+        
         /// @param instance
         /// @param skinIndex
         /// @return
         std::vector<math::mat4f> getBoneRestTranforms(GltfSceneAssetInstance *instance, int skinIndex);
 
-        /// @brief
+        
         /// @param instance
         void resetToRestPose(GltfSceneAssetInstance *instance);
 
-        /// @brief
+        
         /// @param instance
         void updateBoneMatrices(GltfSceneAssetInstance *instance);
 
-        /// @brief
+        
         /// @param instance
         /// @param animationIndex
         /// @param loop
@@ -130,58 +163,58 @@ namespace thermion
         /// @param speed
         void playGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f, float speed = 1.0f);
 
-        /// @brief
+        
         /// @param instance
         /// @param animationIndex
         void stopGltfAnimation(GltfSceneAssetInstance *instance, int animationIndex);
 
-        /// @brief
+        
         /// @param instance
         /// @param weights
         /// @param count
         void setMorphTargetWeights(utils::Entity entity, const float *const weights, int count);
 
-        /// @brief
+        
         /// @param instance
         /// @param animationIndex
         /// @param animationFrame
         void setGltfAnimationFrame(GltfSceneAssetInstance *instance, int animationIndex, int animationFrame);
 
-        /// @brief
+        
         /// @param instance
         /// @return
-        vector<string> getGltfAnimationNames(GltfSceneAssetInstance *instance);
+        std::vector<std::string> getGltfAnimationNames(GltfSceneAssetInstance *instance);
 
-        /// @brief
+        
         /// @param instance
         /// @param animationIndex
         /// @return
         float getGltfAnimationDuration(GltfSceneAssetInstance *instance, int animationIndex);
 
-        /// @brief
+        
         /// @param instance
         /// @return
         bool addGltfAnimationComponent(GltfSceneAssetInstance *instance);
 
-        /// @brief
+        
         /// @param instance
         void removeGltfAnimationComponent(GltfSceneAssetInstance *instance);
 
-        /// @brief
+        
         /// @param instance
         /// @return
         bool addBoneAnimationComponent(GltfSceneAssetInstance *instance);
 
-        /// @brief
+        
         /// @param instance
         void removeBoneAnimationComponent(GltfSceneAssetInstance *instance);
 
-        /// @brief
+        
         /// @param asset
         /// @return
         bool addMorphAnimationComponent(utils::Entity entity);
 
-        /// @brief
+        
         /// @param asset
         void removeMorphAnimationComponent(utils::Entity entity);
             
@@ -192,5 +225,6 @@ namespace thermion
         std::unique_ptr<GltfAnimationComponentManager> mGltfAnimationComponentManager = std::nullptr_t();
         std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager = std::nullptr_t();
         std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager = std::nullptr_t();
+        uint64_t mLastUpdateTime;
     };
 }

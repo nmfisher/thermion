@@ -58,13 +58,17 @@ void main() async {
 
       await viewer.addToScene(cube);
 
-      await testHelper.capture(viewer.view, "cube_morph_animation_reset");
+      await testHelper.capture(viewer.view, "cube_morph_animation_rest");
 
-      var morphData = MorphAnimationData(Float32List.fromList([1.0]), ["Key 1"],
+      var morphData = MorphAnimationData(Float32List.fromList(List<double>.generate(60, (i) => i / 60)), ["Key 1"],
           frameLengthInMs: 1000.0 / 60.0);
 
+
       await cube.setMorphAnimationData(morphData);
-      await viewer.render();
+      FilamentApp.instance!.animationManager.update(1_000_000_000);
+      
+      await testHelper.capture(viewer.view, "cube_morph_animation_start");
+      FilamentApp.instance!.animationManager.update(1_500_000_000);
       await testHelper.capture(viewer.view, "cube_morph_animation_playing");
     }, bg: kRed, cameraPosition: Vector3(3, 2, -6));
   });
@@ -80,27 +84,98 @@ void main() async {
 
       expect(animationNames.first, "CubeAction");
 
-      await testHelper.capture(viewer.view, "gltf_animation_rest");
-
-      await viewer.render();
-
-      await cube.playGltfAnimation(0);
       
-      await Future.delayed(Duration(milliseconds: 750));
-      await viewer.render();
-      await testHelper.capture(viewer.view, "gltf_animation_started");
-      await viewer.render();
-      await Future.delayed(Duration(milliseconds: 1000));
-      await viewer.render();
-      await cube.stopGltfAnimation(0);
-      await viewer.render();
+      await testHelper.capture(viewer.view, "gltf_animation_rest");
+      await cube.playGltfAnimationByName("CubeAction");
+      // need to call update manually so the animation start time is recorded as 1 second
+      FilamentApp.instance!.animationManager.update(1_000_000_000);
+      // this won't have moved because it's effectively the first frame
+      await testHelper.capture(viewer.view, "gltf_animation_start");
+
+      // update the animation manager by 1 second
+      FilamentApp.instance!.animationManager.update(2_000_000_000);
+      // cube should now be at the maximum height
+      await testHelper.capture(viewer.view, "gltf_animation_1s");
+      
+      // stop the animation 
+      await cube.stopGltfAnimationByName("CubeAction");
+      // update the animation manager by another second
+      FilamentApp.instance!.animationManager.update(3_000_000_000);
+      // cube should still be at maximum height
       await testHelper.capture(viewer.view, "gltf_animation_stopped");
 
       await viewer.destroyAsset(cube);
 
       await viewer.render();
 
-      await testHelper.capture(viewer.view, "gltf_asset_destroyed");
+    }, bg: kRed);
+  });
+
+  test('play gltf animation with faster speeds', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer
+          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+
+      await viewer.addToScene(cube);
+
+      final animationNames = await cube.getGltfAnimationNames();
+
+      expect(animationNames.first, "CubeAction");
+
+      // Test double speed (2.0x)
+      await testHelper.capture(viewer.view, "gltf_animation_speed_2x_rest");
+      await cube.playGltfAnimation(0, speed: 2.0);
+      // need to call update manually so the animation start time is recorded as 3 seconds
+      FilamentApp.instance!.animationManager.update(1_000_000_000);
+      // this won't have moved because it's effectively the first frame
+      await testHelper.capture(viewer.view, "gltf_animation_speed_2x_start");
+
+      // update the animation manager by 1 second
+      FilamentApp.instance!.animationManager.update(2_000_000_000);
+      // cube should be at maximum height (since speed is 2.0x, 0.5s real time = 1s animation time)
+      await testHelper.capture(viewer.view, "gltf_animation_speed_2x_1s");
+
+      // stop the animation
+      await cube.stopGltfAnimation(0);
+
+      await viewer.destroyAsset(cube);
+
+      await viewer.render();
+
+    }, bg: kRed);
+  });
+
+  test('play gltf animation with slower speeds', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer
+          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+
+      await viewer.addToScene(cube);
+
+      final animationNames = await cube.getGltfAnimationNames();
+
+      expect(animationNames.first, "CubeAction");
+
+      // Test half speed (0.5x)
+      await testHelper.capture(viewer.view, "gltf_animation_speed_0.5x_rest");
+      await cube.playGltfAnimation(0, speed: 0.5);
+      // need to call update manually so the animation start time is recorded as 1 second
+      FilamentApp.instance!.animationManager.update(1_000_000_000);
+      // this won't have moved because it's effectively the first frame
+      await testHelper.capture(viewer.view, "gltf_animation_speed_0.5x_start");
+
+      // update the animation manager by 1 second
+      FilamentApp.instance!.animationManager.update(2_000_000_000);
+      // cube should be halfway to maximum height (since speed is 0.5x)
+      await testHelper.capture(viewer.view, "gltf_animation_speed_0.5x_1s");
+
+      // stop the animation
+      await cube.stopGltfAnimation(0);
+
+      await viewer.destroyAsset(cube);
+
+      await viewer.render();
+
     }, bg: kRed);
   });
 }

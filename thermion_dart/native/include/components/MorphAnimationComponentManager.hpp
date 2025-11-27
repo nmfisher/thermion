@@ -18,7 +18,7 @@
 #include <utils/SingleInstanceComponentManager.h>
 
 #include "Log.hpp"
-#include "components/Animation.hpp"
+#include "scene/AnimationManager.hpp"
 
 namespace thermion
 {
@@ -27,10 +27,9 @@ namespace thermion
     using namespace utils;
     using namespace std::chrono;
 
-    //
     // The status of a morph target animation created dynamically at runtime (not glTF embedded).
     //
-    struct MorphAnimation : Animation
+    struct MorphAnimation : AnimationManager::AnimationComponentBase
     {
         int lengthInFrames;
         float frameLengthInMs = 0;
@@ -39,7 +38,6 @@ namespace thermion
     };
 
 
-    /// @brief 
     ///
     ///
     struct MorphAnimationComponent
@@ -57,7 +55,7 @@ namespace thermion
             
             void addAnimationComponent(Entity entity);
             void removeAnimationComponent(Entity entity);
-            void update(); 
+            void update(uint64_t frameTimeInNanos); 
 
         private:
             filament::TransformManager &mTransformManager;
