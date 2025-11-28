@@ -12,8 +12,8 @@ dependencies:
   plugin_platform_interface: ^2.0.0
   ffi: ^2.1.2
   animation_tools_dart: ^0.1.0
-  code_assets: ^0.19.7
-  hooks: ^0.20.1
+  code_assets: ^1.0.0
+  hooks: ^1.0.0
   native_toolchain_c: ^0.17.1
   archive: ^3.6.1
   web: ^1.0.0
@@ -25,7 +25,7 @@ dependencies:
   
 dev_dependencies:
   ffigen: ^18.1.0
-  test:  
+  test: ^1.28.0
   mockito: ^5.0.0
   build_runner: ^2.0.0
 
