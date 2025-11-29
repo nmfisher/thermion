@@ -7,12 +7,39 @@ void main() async {
   final testHelper = TestHelper("material");
   await testHelper.setup();
 
-  test('set 2D texture from decoded image', () async {
+  test('decode PNG and set 2D texture', () async {
     await ViewerBuilder(testHelper)
         .setBackgroundColor(kRed)
         .execute((result) async {
       var imageData = File(
         "${testHelper.testDir}/assets/cube_texture_512x512.png",
+      ).readAsBytesSync();
+      final image = await FilamentApp.instance!
+          .decodeImage(imageData, requireAlpha: true);
+      expect(await image.getChannels(), 4);
+      expect(await image.getWidth(), 512);
+      expect(await image.getHeight(), 512);
+
+      final texture = await FilamentApp.instance!.createTexture(
+        await image.getWidth(),
+        await image.getHeight(),
+        textureFormat: TextureFormat.RGBA32F,
+      );
+      await texture.setLinearImage(
+        image,
+        PixelDataFormat.RGBA,
+        PixelDataType.FLOAT,
+      );
+      await texture.dispose();
+    });
+  });
+
+  test('decode JPEG and set 2D texture', () async {
+    await ViewerBuilder(testHelper)
+        .setBackgroundColor(kRed)
+        .execute((result) async {
+      var imageData = File(
+        "${testHelper.testDir}/assets/cube_texture_512x512.jpeg",
       ).readAsBytesSync();
       final image = await FilamentApp.instance!
           .decodeImage(imageData, requireAlpha: true);
