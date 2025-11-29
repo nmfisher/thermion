@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
@@ -44,7 +43,7 @@ void main() async {
   test('unlit + baseColorFactor', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapping(ToneMapper.LINEAR);
+      await viewer.setToneMapper(await ToneMapper.linear());
 
       var materialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
@@ -60,7 +59,7 @@ void main() async {
     }, bg: kRed);
   });
 
-  test('unlit + baseColorMap', () async {
+  test('unlit + baseColorMap (PNG)', () async {
     await testHelper.withViewer((viewer) async {
       var materialInstance =
           await await FilamentApp.instance!.createUnlitMaterialInstance();
@@ -86,7 +85,45 @@ void main() async {
       await materialInstance.setParameterTexture(
           "baseColorMap", texture, sampler);
 
-      await testHelper.capture(viewer.view, "unlit_baseColorMap");
+      await testHelper.capture(viewer.view, "unlit_baseColorMap_png");
+
+      await image.destroy();
+      await texture.dispose();
+      await sampler.dispose();
+
+      await materialInstance.destroy();
+    });
+  });
+
+  test('unlit + baseColorMap (JPEG)', () async {
+    await testHelper.withViewer((viewer) async {
+      var materialInstance =
+          await await FilamentApp.instance!.createUnlitMaterialInstance();
+      var cube = await viewer.createGeometry(GeometryHelper.cube(),
+          materialInstances: [materialInstance]);
+
+      await materialInstance.setParameterFloat4(
+          "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
+      // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
+      await materialInstance.setParameterInt("baseColorIndex", 0);
+
+      var data = File("${testHelper.testDir}/assets/cube_texture_512x512.jpeg")
+          .readAsBytesSync();
+      final image = await await FilamentApp.instance!.decodeImage(data);
+      final width = await image.getWidth();
+      final height = await image.getHeight();
+      final channels = await image.getChannels();
+      final texture = await await FilamentApp.instance!.createTexture(
+          width, height,
+          textureFormat: channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F);
+      await texture.setLinearImage(
+          image, channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB, PixelDataType.FLOAT);
+      final sampler = await await FilamentApp.instance!.createTextureSampler();
+
+      await materialInstance.setParameterTexture(
+          "baseColorMap", texture, sampler);
+
+      await testHelper.capture(viewer.view, "unlit_baseColorMap_jpeg");
 
       await image.destroy();
       await texture.dispose();
@@ -173,7 +210,7 @@ void main() async {
   test('unlit material with color + alpha', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapping(ToneMapper.LINEAR);
+      await viewer.setToneMapper(await ToneMapper.linear());
 
       var materialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
@@ -194,7 +231,7 @@ void main() async {
     await viewer.setCameraPosition(0, 0, 6);
     await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
     await viewer.setPostProcessing(true);
-    await viewer.setToneMapping(ToneMapper.LINEAR);
+    await viewer.setToneMapper(await ToneMapper.linear());
 
     var materialInstance = await viewer.createUnlitFixedSizeMaterialInstance();
     var cube = await viewer.createGeometry(GeometryHelper.cube(),
@@ -237,6 +274,4 @@ void main() async {
           viewer.view, "material_instance_depth_write_disabled_with_priority");
     });
   });
-
-  
 }
