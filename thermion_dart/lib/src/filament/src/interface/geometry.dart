@@ -22,7 +22,7 @@ class Geometry {
     this.normals = normals ?? Float32List(0);
     if (this.uvs.length != 0 && this.uvs.length != (vertices.length ~/ 3 * 2)) {
       throw Exception(
-          "Expected either ${indices.length * 2} UVs, got ${this.uvs!.length}");
+          "Expected ${indices.length * 2} UVs, got ${this.uvs!.length}");
     }
   }
 
