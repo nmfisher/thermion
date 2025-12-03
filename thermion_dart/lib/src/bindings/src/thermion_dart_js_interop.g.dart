@@ -1136,6 +1136,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TView> tView,
     Pointer<TFogOptions> tFogOptionsPtr,
   );
+  external void _View_getFogOptions(
+    Pointer<TFogOptions> TFogOptions_out,
+    Pointer<TView> tView,
+  );
   external void _View_setTransparentPickingEnabled(
     Pointer<TView> tView,
     bool enabled,
@@ -5106,6 +5110,15 @@ void View_setFogOptions(
   final result = GeneratedBindings.instance
       ._View_setFogOptions(tView.cast(), tFogOptionsPtr.cast());
   return result;
+}
+
+TFogOptions View_getFogOptions(
+  Pointer<TView> tView,
+) {
+  final TFogOptions_out = TFogOptions.stackAlloc();
+  final result = GeneratedBindings.instance
+      ._View_getFogOptions(TFogOptions_out.cast(), tView.cast());
+  return TFogOptions_out.toDart();
 }
 
 void View_setTransparentPickingEnabled(
