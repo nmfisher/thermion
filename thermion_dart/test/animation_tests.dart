@@ -60,13 +60,14 @@ void main() async {
 
       await testHelper.capture(viewer.view, "cube_morph_animation_rest");
 
-      var morphData = MorphAnimationData(Float32List.fromList(List<double>.generate(60, (i) => i / 60)), ["Key 1"],
+      var morphData = MorphAnimationData(
+          Float32List.fromList(List<double>.generate(60, (i) => i / 60)),
+          ["Key 1"],
           frameLengthInMs: 1000.0 / 60.0);
-
 
       await cube.setMorphAnimationData(morphData);
       FilamentApp.instance!.animationManager.update(1_000_000_000);
-      
+
       await testHelper.capture(viewer.view, "cube_morph_animation_start");
       FilamentApp.instance!.animationManager.update(1_500_000_000);
       await testHelper.capture(viewer.view, "cube_morph_animation_playing");
@@ -82,11 +83,10 @@ void main() async {
 
       final animationNames = await cube.getGltfAnimationNames();
 
-      expect(animationNames.first, "CubeAction");
+      expect(animationNames.first, "Animation 1");
 
-      
       await testHelper.capture(viewer.view, "gltf_animation_rest");
-      await cube.playGltfAnimationByName("CubeAction");
+      await cube.playGltfAnimationByName("Animation 1");
       // need to call update manually so the animation start time is recorded as 1 second
       FilamentApp.instance!.animationManager.update(1_000_000_000);
       // this won't have moved because it's effectively the first frame
@@ -96,9 +96,9 @@ void main() async {
       FilamentApp.instance!.animationManager.update(2_000_000_000);
       // cube should now be at the maximum height
       await testHelper.capture(viewer.view, "gltf_animation_1s");
-      
-      // stop the animation 
-      await cube.stopGltfAnimationByName("CubeAction");
+
+      // stop the animation
+      await cube.stopGltfAnimationByName("Animation 1");
       // update the animation manager by another second
       FilamentApp.instance!.animationManager.update(3_000_000_000);
       // cube should still be at maximum height
@@ -107,7 +107,6 @@ void main() async {
       await viewer.destroyAsset(cube);
 
       await viewer.render();
-
     }, bg: kRed);
   });
 
@@ -120,7 +119,7 @@ void main() async {
 
       final animationNames = await cube.getGltfAnimationNames();
 
-      expect(animationNames.first, "CubeAction");
+      expect(animationNames.first, "Animation 1");
 
       // Test double speed (2.0x)
       await testHelper.capture(viewer.view, "gltf_animation_speed_2x_rest");
@@ -141,7 +140,6 @@ void main() async {
       await viewer.destroyAsset(cube);
 
       await viewer.render();
-
     }, bg: kRed);
   });
 
@@ -154,7 +152,7 @@ void main() async {
 
       final animationNames = await cube.getGltfAnimationNames();
 
-      expect(animationNames.first, "CubeAction");
+      expect(animationNames.first, "Animation 1");
 
       // Test half speed (0.5x)
       await testHelper.capture(viewer.view, "gltf_animation_speed_0.5x_rest");
@@ -175,7 +173,27 @@ void main() async {
       await viewer.destroyAsset(cube);
 
       await viewer.render();
-
     }, bg: kRed);
+  });
+
+  test('crossfade animations', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer
+          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+
+      await viewer.addToScene(cube);
+
+      await cube.playGltfAnimation(0);
+      FilamentApp.instance!.animationManager.update(1);
+      await testHelper.capture(viewer.view, "gltf_crossfade_animation1");
+      await cube.playGltfAnimation(1, crossfade: 0.25, replaceActive: true);
+      FilamentApp.instance!.animationManager.update(1_000_000_000);
+      
+      await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
+
+      // FilamentApp.instance!.animationManager.update(2_000_000_001);
+      // FilamentApp.instance!.animationManager.update(2_250_000_001);
+      // await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
+    }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
   });
 }
