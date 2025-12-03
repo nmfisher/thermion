@@ -77,7 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (selectedGltfAnimation == -1) {
       throw Exception();
     }
-    await _asset!.playGltfAnimation(selectedGltfAnimation);
+    await _asset!.playGltfAnimation(selectedGltfAnimation, crossfade: 0.2, replaceActive: true, loop: true);
   }
 
   Future _stopGltfAnimation() async {
@@ -155,6 +155,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       } else {
                         selectedGltfAnimation = gltfAnimations.indexOf(value);
                       }
+                      setState(() {
+                        
+                      });
                     }),
                 IconButton(
                     onPressed: _playGltfAnimation,
