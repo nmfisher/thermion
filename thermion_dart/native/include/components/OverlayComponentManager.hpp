@@ -25,7 +25,7 @@
 namespace thermion
 {
 
-    /// @brief
+    /// 
     class OverlayComponentManager : public utils::SingleInstanceComponentManager<filament::MaterialInstance *>
     {
     public:
@@ -58,7 +58,6 @@ namespace thermion
                 auto &materialInstance = elementAt<0>(componentInstance);    
                 materialInstance->setParameter("depth", color, mDepthSampler);
             }
-
         }
 
         void addOverlayComponent(utils::Entity target, filament::MaterialInstance *materialInstance)
