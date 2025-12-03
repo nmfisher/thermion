@@ -28,15 +28,17 @@ namespace thermion
             if (animationComponent.animations.size() > 0)
             {
                 auto &last = animationComponent.animations.back();
-                animationComponent.fadeGltfAnimationIndex = last.index;
-                animationComponent.fadeDuration = crossfade;
-                animationComponent.fadeOutAnimationStart = (float(mLastUpdateTime - last.startTimeInNanos) / 1'000'000'000.0f) / last.durationInSecs;
+                auto &fadeOutAnimation = animationComponent.fadeOutAnimation;
+                fadeOutAnimation.index = last.index;
+                fadeOutAnimation.startTimeInNanos = last.startTimeInNanos;
+                Log("Set fade out animation to %d (which started at %lu)", fadeOutAnimation.index, fadeOutAnimation.startTimeInNanos);
+                animationComponent.fadeOutAnimation = fadeOutAnimation;
+                animationComponent.fadeOutDuration = crossfade;
                 animationComponent.animations.clear();
             }
             else
             {
-                animationComponent.fadeGltfAnimationIndex = -1;
-                animationComponent.fadeDuration = 0.0f;
+                animationComponent.fadeOutAnimation.index = -1;
             }
         }
         else if (crossfade > 0)
@@ -46,8 +48,8 @@ namespace thermion
         }
         else
         {
-            animationComponent.fadeGltfAnimationIndex = -1;
-            animationComponent.fadeDuration = 0.0f;
+            animationComponent.fadeOutAnimation.index = -1;
+            animationComponent.fadeOutDuration = 0.0f;
         }
 
         GltfAnimation animation;
@@ -119,17 +121,39 @@ namespace thermion
                     animator->applyAnimation(animationStatus.index, animationStatus.durationInSecs - 0.001);
                     animator->updateBoneMatrices();
                     gltfAnimations.erase(gltfAnimations.begin() + i);
-                    animationComponent.fadeGltfAnimationIndex = -1;
+                    Log("glTF animation at index %d finished", animationStatus.index);
+                    animationComponent.fadeOutAnimation.index = -1;
                     continue;
                 }
                 animator->applyAnimation(animationStatus.index, animationTargetTime);
 
-                if (animationComponent.fadeGltfAnimationIndex != -1 && animationTargetTime < animationComponent.fadeDuration)
-                {
-                    // cross-fade
-                    auto fadeFromTime = animationComponent.fadeOutAnimationStart + elapsedInNanos;
-                    auto alpha = animationTargetTime / animationComponent.fadeDuration;
-                    animator->applyCrossFade(animationComponent.fadeGltfAnimationIndex, fadeFromTime, alpha);
+                auto &fadeOutAnimation = animationComponent.fadeOutAnimation;
+
+                if (fadeOutAnimation.index != -1) {
+                    auto fadeAnimationElapsed = float(frameTimeInNanos - fadeOutAnimation.startTimeInNanos)  / 1'000'000'000.0f;
+
+                    Log("%f seconds elapsed since fade out start", fadeAnimationElapsed);
+                    
+                    if(elapsedInSeconds > animationComponent.fadeOutDuration) {
+                        Log("Fade out complete");
+                        fadeOutAnimation.index = -1;
+                    } else {
+                        // cross-fade
+                        auto alpha = elapsedInSeconds / animationComponent.fadeOutDuration;
+                        Log("alpha pre-cap %f", alpha);
+
+                        if(alpha > 1.0f) {
+                            alpha = 1.0f;
+                        }
+                        
+                        Log("Applying cross fade at time %f with alpha %f", fadeAnimationElapsed, alpha);
+                        animator->applyCrossFade(
+                            fadeOutAnimation.index, 
+                            fadeAnimationElapsed,
+                            alpha);
+                    }
+                } else { 
+                    // Log("fade index is -1 (time %lu)", frameTimeInNanos);
                 }
             }
 

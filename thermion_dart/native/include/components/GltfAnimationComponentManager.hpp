@@ -35,7 +35,7 @@ namespace thermion
     ///
     struct GltfAnimation : AnimationManager::AnimationComponentBase
     {
-        int index = -1;
+        int8_t index = -1;
     };
 
 
@@ -47,9 +47,11 @@ namespace thermion
         filament::gltfio::FilamentInstance * target;
         // the index of the last active glTF animation,
         // used to cross-fade
-        int8_t fadeGltfAnimationIndex = -1;
-        float fadeDuration = 0.0f;
-        float fadeOutAnimationStart = 0.0f;
+        GltfAnimation fadeOutAnimation;
+        
+        // the time (in seconds) to fade out the last animation
+        float fadeOutDuration = 0.0f;
+
         std::vector<GltfAnimation> animations;
     };
 

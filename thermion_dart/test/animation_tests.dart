@@ -185,10 +185,12 @@ void main() async {
 
       await cube.playGltfAnimation(0);
       FilamentApp.instance!.animationManager.update(1);
+      FilamentApp.instance!.animationManager.update(500_000_000);
       await testHelper.capture(viewer.view, "gltf_crossfade_animation1");
-      await cube.playGltfAnimation(1, crossfade: 0.25, replaceActive: true);
-      FilamentApp.instance!.animationManager.update(1_000_000_000);
-      
+      await cube.playGltfAnimation(1, crossfade: 0.5, replaceActive: true);
+      FilamentApp.instance!.animationManager.update(500_000_001);
+      FilamentApp.instance!.animationManager.update(750_000_000);
+    
       await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
 
       // FilamentApp.instance!.animationManager.update(2_000_000_001);
