@@ -314,6 +314,35 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   @override
+  FogOptions getFogOptions() {
+    final tOptions = View_getFogOptions(view);
+
+    Texture? skyColor;
+    if (tOptions.skyColor != nullptr) {
+      skyColor = FFITexture(app.engine, tOptions.skyColor);
+    }
+
+    return FogOptions(
+      enabled: tOptions.enabled,
+      distance: tOptions.distance,
+      cutOffDistance: tOptions.cutOffDistance,
+      maximumOpacity: tOptions.maximumOpacity,
+      height: tOptions.height,
+      heightFalloff: tOptions.heightFalloff,
+      linearColor: Vector3(
+        tOptions.linearColorR,
+        tOptions.linearColorG,
+        tOptions.linearColorB,
+      ),
+      density: tOptions.density,
+      inScatteringStart: tOptions.inScatteringStart,
+      inScatteringSize: tOptions.inScatteringSize,
+      fogColorFromIbl: tOptions.fogColorFromIbl,
+      skyColor: skyColor,
+    );
+  }
+
+  @override
   Future setAmbientOcclusionOptions(AmbientOcclusionOptions options) async {
     final tAmbientOcclusionOptions = StructAllocator.create<TAmbientOcclusionOptions>();
 

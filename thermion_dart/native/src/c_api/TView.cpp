@@ -532,6 +532,30 @@ namespace thermion
             view->setFogOptions(fogOptions);
         }
 
+        EMSCRIPTEN_KEEPALIVE TFogOptions View_getFogOptions(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            auto options = view->getFogOptions();
+
+            TFogOptions tOptions;
+            tOptions.distance = options.distance;
+            tOptions.cutOffDistance = options.cutOffDistance;
+            tOptions.maximumOpacity = options.maximumOpacity;
+            tOptions.height = options.height;
+            tOptions.heightFalloff = options.heightFalloff;
+            tOptions.density = options.density;
+            tOptions.inScatteringStart = options.inScatteringStart;
+            tOptions.inScatteringSize = options.inScatteringSize;
+            tOptions.fogColorFromIbl = options.fogColorFromIbl;
+            tOptions.skyColor = reinterpret_cast<TTexture *>(options.skyColor);
+            tOptions.linearColorR = options.color.r;
+            tOptions.linearColorG = options.color.g;
+            tOptions.linearColorB = options.color.b;
+            tOptions.enabled = options.enabled;
+
+            return tOptions;
+        }
+
         EMSCRIPTEN_KEEPALIVE void View_setName(TView* tView, const char *name) {
             auto view = reinterpret_cast<View *>(tView);
             view->setName(name);
