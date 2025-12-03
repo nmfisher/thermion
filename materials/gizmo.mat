@@ -1,0 +1,34 @@
+material {
+    name : GizmoOverlay,
+    requires : [ position ],
+    parameters : [
+        {
+            type : float4,
+            name : baseColorFactor
+        }
+    ],
+    // The Magic Combination for Overlays:
+    // 1. Don't write to depth buffer
+    depthWrite : false,
+    // 2. Don't check against existing depth buffer (draws through walls)
+    depthCulling : false,
+    // 3. Unlit so it ignores shadows/lights (flat color)
+    shadingModel : unlit,
+    // 4. Transparent blending puts this in the transparent render pass,
+    //    ensuring it draws AFTER the opaque scene has finished.
+    blending: transparent,
+    // 5. Hide backfaces so cylinders/cones look solid
+    culling: back, 
+}
+  
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);           
+        
+        // Simple flat color
+        material.baseColor = materialParams.baseColorFactor;
+        
+        // Pre-multiply alpha for correct transparency blending
+        material.baseColor.rgb *= material.baseColor.a;
+    }
+}
