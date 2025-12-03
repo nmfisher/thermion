@@ -384,6 +384,10 @@ abstract class View<T> extends NativeHandle<T> {
   ///
   Future setFogOptions(FogOptions options);
 
+  /// Gets the current fog options from this view.
+  ///
+  FogOptions getFogOptions();
+
   /// Sets the ambient occlusion options for this view.
   /// Ambient occlusion is disabled by default.
   ///

@@ -22,19 +22,23 @@ void main() async {
   await testHelper.setup();
 
   test('get camera from view', () async {
-    await testHelper.withViewer((viewer) async {
-      final camera = await viewer.view.getCamera();
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
+      final camera = await result.viewer.view.getCamera();
       expect(camera, isNotNull);
     });
   });
 
   test('toggle transparent picking', () async {
-    await testHelper.withViewer((viewer) async {
-      expect(await viewer.view.isTransparentPickingEnabled(), false);
-      await viewer.view.setTransparentPickingEnabled(true);
-      expect(await viewer.view.isTransparentPickingEnabled(), true);
-      await viewer.view.setTransparentPickingEnabled(false);
-      expect(await viewer.view.isTransparentPickingEnabled(), false);
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
+      expect(await result.viewer.view.isTransparentPickingEnabled(), false);
+      await result.viewer.view.setTransparentPickingEnabled(true);
+      expect(await result.viewer.view.isTransparentPickingEnabled(), true);
+      await result.viewer.view.setTransparentPickingEnabled(false);
+      expect(await result.viewer.view.isTransparentPickingEnabled(), false);
     });
   });
 
@@ -393,28 +397,56 @@ void main() async {
   });
 
   test('fog tests', () async {
-    await testHelper.withViewer((viewer) async {
-      var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true));
-      await viewer.addToScene(cube);
+      await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .addCube()
+        .addCube(position: Vector3(0,0,-20))
+        .setCameraLookAt(Vector3(1,5,10))
+        .execute((result) async {
 
-      final camera = await viewer.getActiveCamera();
-      await camera.lookAt(Vector3(1, 3, 5), focus: Vector3.zero());
 
-      await testHelper.capture(viewer.view, "fog_options_disabled");
+      // Test default fog options (should be disabled)
+      final defaultOptions = result.viewer.view.getFogOptions();
+      expect(defaultOptions.enabled, isFalse);
+      expect(defaultOptions.distance, closeTo(0.0, 0.001));
+      expect(defaultOptions.density, closeTo(0.1, 0.001));
 
-      await viewer.view
-          .setFogOptions(FogOptions(enabled: true, distance: 0, density: 0.5));
-      await testHelper.capture(viewer.view, "fog_options_enabled");
-    }, addSkybox: true, postProcessing: true);
+      await testHelper.capture(result.viewer.view, "fog_options_disabled");
+
+      // Set custom fog options
+      final customOptions = FogOptions(
+        enabled: true,
+        distance: 0,
+        density: 0.5,
+        cutOffDistance: 100.0,
+        maximumOpacity: 0.9,
+        linearColor: Vector3(0.8, 0.9, 1.0),
+      );
+      await result.viewer.view.setFogOptions(customOptions);
+
+      // Verify the options were set correctly
+      final retrievedOptions = result.viewer.view.getFogOptions();
+      expect(retrievedOptions.enabled, isTrue);
+      expect(retrievedOptions.distance, closeTo(0.0, 0.001));
+      expect(retrievedOptions.density, closeTo(0.5, 0.001));
+      expect(retrievedOptions.cutOffDistance, closeTo(100.0, 0.001));
+      expect(retrievedOptions.maximumOpacity, closeTo(0.9, 0.001));
+      expect(retrievedOptions.linearColor.r, closeTo(0.8, 0.001));
+      expect(retrievedOptions.linearColor.g, closeTo(0.9, 0.001));
+      expect(retrievedOptions.linearColor.b, closeTo(1.0, 0.001));
+
+      await testHelper.capture(result.viewer.view, "fog_options_enabled");
+    });
   });
 
   test('show/hide stencil highlight', () async {
-    await testHelper.withViewer((viewer) async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       var cube = await FilamentApp.instance!
           .createGeometry(GeometryHelper.cube(flipUvs: true));
-      await viewer.addToScene(cube);
-      await viewer.view.setStencilHighlight(cube);
+      await result.viewer.addToScene(cube);
+      await result.viewer.view.setStencilHighlight(cube);
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
       await FilamentApp.instance!.requestFrame();
@@ -424,18 +456,20 @@ void main() async {
 
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-      await viewer.view.removeStencilHighlight(cube);
+      await result.viewer.view.removeStencilHighlight(cube);
       await FilamentApp.instance!.requestFrame();
 
       await testHelper.capture(null, "stencil_highlight_removed",
           render: false);
-    }, postProcessing: false);
+    });
   });
 
   test('VSM shadow options set/get', () async {
-    await testHelper.withViewer((viewer) async {
+      await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       // Test default values
-      final defaultOptions = viewer.view.getVsmShadowOptions();
+      final defaultOptions = result.viewer.view.getVsmShadowOptions();
       expect(defaultOptions.anisotropy, equals(0));
       expect(defaultOptions.mipmapping, isFalse);
       expect(defaultOptions.msaaSamples, equals(1));
@@ -453,10 +487,10 @@ void main() async {
         lightBleedReduction: 0.25,
       );
 
-      await viewer.view.setVsmShadowOptions(customOptions);
+      await result.viewer.view.setVsmShadowOptions(customOptions);
 
       // Verify the options were set correctly
-      final retrievedOptions = viewer.view.getVsmShadowOptions();
+      final retrievedOptions = result.viewer.view.getVsmShadowOptions();
       expect(retrievedOptions.anisotropy, equals(4));
       expect(retrievedOptions.mipmapping, isTrue);
       expect(retrievedOptions.msaaSamples, equals(4));
@@ -485,10 +519,10 @@ void main() async {
             castShadows: false,
             color: kGreen);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       // Enable VSM shadows
-      await viewer.setShadowsEnabled(true);
-      await testHelper.capture(viewer.view, "vsm_shadows_default_options");
+      await result.viewer.setShadowsEnabled(true);
+      await testHelper.capture(result.viewer.view, "vsm_shadows_default_options");
 
       // Test with custom VSM options that should improve quality
       const vsmOptions = VsmShadowOptions(
@@ -500,8 +534,8 @@ void main() async {
         lightBleedReduction: 0.2,
       );
 
-      await viewer.view.setVsmShadowOptions(vsmOptions);
-      await testHelper.capture(viewer.view, "vsm_shadows_custom_options");
+      await result.viewer.view.setVsmShadowOptions(vsmOptions);
+      await testHelper.capture(result.viewer.view, "vsm_shadows_custom_options");
 
       // Test with different VSM options
       const lowQualityVsmOptions = VsmShadowOptions(
@@ -513,13 +547,15 @@ void main() async {
         lightBleedReduction: 0.15,
       );
 
-      await viewer.view.setVsmShadowOptions(lowQualityVsmOptions);
-      await testHelper.capture(viewer.view, "vsm_shadows_low_quality_options");
+      await result.viewer.view.setVsmShadowOptions(lowQualityVsmOptions);
+      await testHelper.capture(result.viewer.view, "vsm_shadows_low_quality_options");
     });
   });
 
   test('VSM shadow options getter works correctly', () async {
-    await testHelper.withViewer((viewer) async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       // Set specific options
       const testOptions = VsmShadowOptions(
         anisotropy: 2,
@@ -530,10 +566,10 @@ void main() async {
         lightBleedReduction: 0.5,
       );
 
-      await viewer.view.setVsmShadowOptions(testOptions);
+      await result.viewer.view.setVsmShadowOptions(testOptions);
 
       // Get the options back and verify all fields match
-      final retrieved = viewer.view.getVsmShadowOptions();
+      final retrieved = result.viewer.view.getVsmShadowOptions();
       expect(retrieved.anisotropy, equals(testOptions.anisotropy));
       expect(retrieved.mipmapping, equals(testOptions.mipmapping));
       expect(retrieved.msaaSamples, equals(testOptions.msaaSamples));
@@ -544,35 +580,39 @@ void main() async {
   });
 
   test('ShadowType get/set functionality', () async {
-    await testHelper.withViewer((viewer) async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       // Test default shadow type (should be PCF)
-      final defaultShadowType = await viewer.view.getShadowType();
+      final defaultShadowType = await result.viewer.view.getShadowType();
       expect(defaultShadowType, equals(ShadowType.PCF));
 
       // Test setting and getting each shadow type
       for (final shadowType in ShadowType.values) {
-        await viewer.view.setShadowType(shadowType);
-        final retrievedType = await viewer.view.getShadowType();
+        await result.viewer.view.setShadowType(shadowType);
+        final retrievedType = await result.viewer.view.getShadowType();
         expect(retrievedType, equals(shadowType),
             reason: 'ShadowType $shadowType should be retrieved correctly');
       }
 
       // Test with a specific sequence
-      await viewer.view.setShadowType(ShadowType.VSM);
-      expect(await viewer.view.getShadowType(), equals(ShadowType.VSM));
+      await result.viewer.view.setShadowType(ShadowType.VSM);
+      expect(await result.viewer.view.getShadowType(), equals(ShadowType.VSM));
 
-      await viewer.view.setShadowType(ShadowType.PCSS);
-      expect(await viewer.view.getShadowType(), equals(ShadowType.PCSS));
+      await result.viewer.view.setShadowType(ShadowType.PCSS);
+      expect(await result.viewer.view.getShadowType(), equals(ShadowType.PCSS));
 
-      await viewer.view.setShadowType(ShadowType.PCF);
-      expect(await viewer.view.getShadowType(), equals(ShadowType.PCF));
+      await result.viewer.view.setShadowType(ShadowType.PCF);
+      expect(await result.viewer.view.getShadowType(), equals(ShadowType.PCF));
     });
   });
 
   test('SoftShadowOptions functionality', () async {
-    await testHelper.withViewer((viewer) async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       // Test default options (check what Filament returns as default)
-      final defaultOptions = viewer.view.getSoftShadowOptions();
+      final defaultOptions = result.viewer.view.getSoftShadowOptions();
       expect(defaultOptions.penumbraScale, closeTo(1.0, 0.001));
       expect(defaultOptions.penumbraRatioScale, closeTo(1.0, 0.001));
 
@@ -582,29 +622,29 @@ void main() async {
         penumbraRatioScale: 3.0,
       );
 
-      await viewer.view.setSoftShadowOptions(customOptions);
+      await result.viewer.view.setSoftShadowOptions(customOptions);
 
       // Verify the options were set correctly
-      final retrievedOptions = viewer.view.getSoftShadowOptions();
+      final retrievedOptions = result.viewer.view.getSoftShadowOptions();
       expect(retrievedOptions.penumbraScale, closeTo(2.5, 0.001));
       expect(retrievedOptions.penumbraRatioScale, closeTo(3.0, 0.001));
 
       // Test with DPCF shadow type (supports soft shadows)
-      await viewer.view.setShadowType(ShadowType.DPCF);
-      await viewer.view.setSoftShadowOptions(customOptions);
+      await result.viewer.view.setShadowType(ShadowType.DPCF);
+      await result.viewer.view.setSoftShadowOptions(customOptions);
 
-      final dpfcOptions = viewer.view.getSoftShadowOptions();
+      final dpfcOptions = result.viewer.view.getSoftShadowOptions();
       expect(dpfcOptions.penumbraScale, closeTo(2.5, 0.001));
       expect(dpfcOptions.penumbraRatioScale, closeTo(3.0, 0.001));
 
       // Test with PCSS shadow type (supports soft shadows)
-      await viewer.view.setShadowType(ShadowType.PCSS);
-      await viewer.view.setSoftShadowOptions(const SoftShadowOptions(
+      await result.viewer.view.setShadowType(ShadowType.PCSS);
+      await result.viewer.view.setSoftShadowOptions(const SoftShadowOptions(
         penumbraScale: 1.5,
         penumbraRatioScale: 2.0,
       ));
 
-      final pcssOptions = viewer.view.getSoftShadowOptions();
+      final pcssOptions = result.viewer.view.getSoftShadowOptions();
       expect(pcssOptions.penumbraScale, closeTo(1.5, 0.001));
       expect(pcssOptions.penumbraRatioScale, closeTo(2.0, 0.001));
 
@@ -614,8 +654,8 @@ void main() async {
         penumbraRatioScale: 1.2,
       );
 
-      await viewer.view.setSoftShadowOptions(testOptions);
-      final finalOptions = viewer.view.getSoftShadowOptions();
+      await result.viewer.view.setSoftShadowOptions(testOptions);
+      final finalOptions = result.viewer.view.getSoftShadowOptions();
       expect(finalOptions.penumbraScale, closeTo(0.8, 0.001));
       expect(finalOptions.penumbraRatioScale, closeTo(1.2, 0.001));
 
@@ -625,17 +665,19 @@ void main() async {
         penumbraRatioScale: 1.33,
       );
 
-      await viewer.view.setSoftShadowOptions(precisionTestOptions);
-      final precisionOptions = viewer.view.getSoftShadowOptions();
+      await result.viewer.view.setSoftShadowOptions(precisionTestOptions);
+      final precisionOptions = result.viewer.view.getSoftShadowOptions();
       expect(precisionOptions.penumbraScale, closeTo(0.1, 0.001));
       expect(precisionOptions.penumbraRatioScale, closeTo(1.33, 0.001));
     });
   });
 
   test('AmbientOcclusionOptions set/get functionality', () async {
-    await testHelper.withViewer((viewer) async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       // Test default options
-      final defaultOptions = viewer.view.getAmbientOcclusionOptions();
+      final defaultOptions = result.viewer.view.getAmbientOcclusionOptions();
       expect(defaultOptions.enabled, isFalse);
       expect(defaultOptions.radius, closeTo(0.3, 0.001));
       expect(defaultOptions.power, closeTo(1.0, 0.001));
@@ -691,10 +733,10 @@ void main() async {
         ),
       );
 
-      await viewer.view.setAmbientOcclusionOptions(customOptions);
+      await result.viewer.view.setAmbientOcclusionOptions(customOptions);
 
       // Verify the options were set correctly
-      final retrievedOptions = viewer.view.getAmbientOcclusionOptions();
+      final retrievedOptions = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedOptions.enabled, equals(customOptions.enabled));
       expect(retrievedOptions.radius, closeTo(customOptions.radius, 0.001));
       expect(retrievedOptions.power, closeTo(customOptions.power, 0.001));
@@ -731,31 +773,31 @@ void main() async {
         .addCube(color: kRed)
         .addSun(direction: Vector3(1, -1, 0.5), intensity: 100000);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       // Capture without ambient occlusion
-      await testHelper.capture(viewer.view, "ambient_occlusion_disabled");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_disabled");
 
       // Enable basic ambient occlusion
-      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.5,
         intensity: 1.0,
         quality: QualityLevel.MEDIUM,
       ));
-      await testHelper.capture(viewer.view, "ambient_occlusion_enabled_basic");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_enabled_basic");
 
       // Enable higher quality ambient occlusion
-      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.8,
         intensity: 1.5,
         quality: QualityLevel.HIGH,
         bentNormals: true,
       ));
-      await testHelper.capture(viewer.view, "ambient_occlusion_enabled_high_quality");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_enabled_high_quality");
 
       // Test with bent normals enabled
-      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.6,
         intensity: 1.2,
@@ -763,24 +805,24 @@ void main() async {
         bentNormals: true,
         bilateralThreshold: 0.02,
       ));
-      await testHelper.capture(viewer.view, "ambient_occlusion_bent_normals");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_bent_normals");
 
       // Test with different radius values
-      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.2,
         intensity: 1.0,
         quality: QualityLevel.MEDIUM,
       ));
-      await testHelper.capture(viewer.view, "ambient_occlusion_small_radius");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_small_radius");
 
-      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 1.0,
         intensity: 1.0,
         quality: QualityLevel.MEDIUM,
       ));
-      await testHelper.capture(viewer.view, "ambient_occlusion_large_radius");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_large_radius");
     });
   });
 
@@ -791,9 +833,9 @@ void main() async {
         .addCube(color: kRed)
         .addSun(direction: Vector3(0.5, -1, 0.2), intensity: 100000);
 
-    await builder.execute((viewer, assets) async {
+    await builder.execute((result) async {
       // Enable ambient occlusion with SSCT
-      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.5,
         intensity: 1.0,
@@ -807,10 +849,10 @@ void main() async {
           sampleCount: 4,
         ),
       ));
-      await testHelper.capture(viewer.view, "ambient_occlusion_ssct_enabled");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_ssct_enabled");
 
       // Test with different SSCT parameters
-      await viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.5,
         intensity: 1.0,
@@ -825,12 +867,14 @@ void main() async {
           rayCount: 2,
         ),
       ));
-      await testHelper.capture(viewer.view, "ambient_occlusion_ssct_custom");
+      await testHelper.capture(result.viewer.view, "ambient_occlusion_ssct_custom");
     });
   });
 
   test('AmbientOcclusionOptions precision edge cases', () async {
-    await testHelper.withViewer((viewer) async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       // Test with very small values
       final smallValueOptions = AmbientOcclusionOptions(
         enabled: true,
@@ -841,8 +885,8 @@ void main() async {
 
       );
 
-      await viewer.view.setAmbientOcclusionOptions(smallValueOptions);
-      final retrievedSmall = viewer.view.getAmbientOcclusionOptions();
+      await result.viewer.view.setAmbientOcclusionOptions(smallValueOptions);
+      final retrievedSmall = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedSmall.radius, closeTo(smallValueOptions.radius, 0.001));
       expect(retrievedSmall.bias, closeTo(smallValueOptions.bias, 0.0001));
       expect(retrievedSmall.bilateralThreshold, closeTo(smallValueOptions.bilateralThreshold, 0.001));
@@ -857,8 +901,8 @@ void main() async {
         bilateralThreshold: 0.2,
       );
 
-      await viewer.view.setAmbientOcclusionOptions(largeValueOptions);
-      final retrievedLarge = viewer.view.getAmbientOcclusionOptions();
+      await result.viewer.view.setAmbientOcclusionOptions(largeValueOptions);
+      final retrievedLarge = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedLarge.radius, closeTo(largeValueOptions.radius, 0.001));
       expect(retrievedLarge.power, closeTo(largeValueOptions.power, 0.001));
       expect(retrievedLarge.intensity, closeTo(largeValueOptions.intensity, 0.001));
@@ -875,8 +919,8 @@ void main() async {
         ),
       );
 
-      await viewer.view.setAmbientOcclusionOptions(ssctPrecisionOptions);
-      final retrievedSsct = viewer.view.getAmbientOcclusionOptions();
+      await result.viewer.view.setAmbientOcclusionOptions(ssctPrecisionOptions);
+      final retrievedSsct = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedSsct.ssct.lightDirection[0], closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.001));
       expect(retrievedSsct.ssct.lightDirection[1], closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.001));
       expect(retrievedSsct.ssct.lightDirection[2], closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.001));
@@ -886,7 +930,9 @@ void main() async {
   });
 
   test('AmbientOcclusionOptions quality levels', () async {
-    await testHelper.withViewer((viewer) async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
       // Test each quality level
       for (final quality in QualityLevel.values) {
         final options = AmbientOcclusionOptions(
@@ -896,8 +942,8 @@ void main() async {
           upsampling: quality,
         );
 
-        await viewer.view.setAmbientOcclusionOptions(options);
-        final retrieved = viewer.view.getAmbientOcclusionOptions();
+        await result.viewer.view.setAmbientOcclusionOptions(options);
+        final retrieved = result.viewer.view.getAmbientOcclusionOptions();
 
         expect(retrieved.quality, equals(quality));
         expect(retrieved.lowPassFilter, equals(quality));
@@ -1006,18 +1052,20 @@ void main() async {
 //     }, createStencilBuffer: true);
 
 //     test('one swapchain, render view to render target', () async {
-//       await testHelper.withViewer((viewer) async {
+//       await ViewerBuilder(testHelper)
+        // .setRenderTargetEnabled(true)
+        // .execute((result) async {
 //         final texture = await testHelper.createTexture(500, 500);
-//         final renderTarget = await viewer.createRenderTarget(
+//         final renderTarget = await result.viewer.createRenderTarget(
 //             500, 500, texture.metalTextureAddress);
-//         final view = await viewer.getViewAt(0);
+//         final view = await result.viewer.getViewAt(0);
 //         await view.setRenderTarget(renderTarget);
 
-//         await viewer.setBackgroundColor(1.0, 0, 0, 1);
+//         await result.viewer.setBackgroundColor(1.0, 0, 0, 1);
 //         final cube = await viewer
 //             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
 
-//         var mainCamera = await viewer.getMainCamera();
+//         var mainCamera = await result.viewer.getMainCamera();
 //         mainCamera.setTransform(Matrix4.translation(Vector3(0, 0, 5)));
 //         await testHelper.capture(
 //             viewer,
@@ -1027,15 +1075,17 @@ void main() async {
 //     });
 
 //     test('create secondary view, default swapchain', () async {
-//       await testHelper.withViewer((viewer) async {
+//       await ViewerBuilder(testHelper)
+        // .setRenderTargetEnabled(true)
+        // .execute((result) async {
 //         final cube = await viewer
 //             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
 
-//         var mainCamera = await viewer.getMainCamera();
+//         var mainCamera = await result.viewer.getMainCamera();
 //         mainCamera.setTransform(Matrix4.translation(Vector3(0, 0, 5)));
 //         await testHelper.capture(viewer, "default_swapchain_default_view");
 
-//         final view = await viewer.createView();
+//         final view = await result.viewer.createView();
 //         view.setViewport(500, 500);
 //         view.setCamera(mainCamera);
 //         await testHelper.capture(
@@ -1044,7 +1094,7 @@ void main() async {
 //           view: view,
 //         );
 
-//         var newCamera = await viewer.createCamera();
+//         var newCamera = await result.viewer.createCamera();
 //         newCamera.setTransform(Matrix4.translation(Vector3(0.0, 0.0, 10.0)));
 //         newCamera.setLensProjection();
 //         view.setCamera(newCamera);
@@ -1063,19 +1113,21 @@ void main() async {
 //     });
 
 //     test('create secondary view, different swapchain', () async {
-//       await testHelper.withViewer((viewer) async {
-//         final cube = await viewer.createGeometry(GeometryHelper.cube());
+//       await ViewerBuilder(testHelper)
+        // .setRenderTargetEnabled(true)
+        // .execute((result) async {
+//         final cube = await result.viewer.createGeometry(GeometryHelper.cube());
 
-//         var mainCamera = await viewer.getMainCamera();
+//         var mainCamera = await result.viewer.getMainCamera();
 //         mainCamera.setTransform(Matrix4.translation(Vector3(0, 0, 5)));
-//         final swapChain = await viewer.createHeadlessSwapChain(1, 1);
+//         final swapChain = await result.viewer.createHeadlessSwapChain(1, 1);
 //         await testHelper.capture(
 //             viewer, "create_swapchain_default_view_default_swapchain");
 
-//         final view = await viewer.createView();
+//         final view = await result.viewer.createView();
 
 //         final texture = await testHelper.createTexture(200, 400);
-//         final renderTarget = await viewer.createRenderTarget(
+//         final renderTarget = await result.viewer.createRenderTarget(
 //             200, 400, texture.metalTextureAddress);
 //         await view.setRenderTarget(renderTarget);
 

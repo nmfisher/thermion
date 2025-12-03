@@ -220,6 +220,7 @@ EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptions(TView *tView, TAmbient
 EMSCRIPTEN_KEEPALIVE TAmbientOcclusionOptions View_getAmbientOcclusionOptions(TView *tView);
 
 EMSCRIPTEN_KEEPALIVE void View_setFogOptions(TView *tView, TFogOptions tFogOptions);
+EMSCRIPTEN_KEEPALIVE TFogOptions View_getFogOptions(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setTransparentPickingEnabled(TView *tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE bool View_isTransparentPickingEnabled(TView *tView);
 
