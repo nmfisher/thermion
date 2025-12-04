@@ -5624,18 +5624,6 @@ final class TAmbientOcclusionOptions extends ffi.Struct {
   @ffi.Float()
   external double bilateralThreshold;
 
-  /// !< affects # of samples used for AO
-  @ffi.UnsignedInt()
-  external int quality;
-
-  /// !< affects AO smoothness
-  @ffi.UnsignedInt()
-  external int lowPassFilter;
-
-  /// !< affects AO buffer upsampling quality
-  @ffi.UnsignedInt()
-  external int upsampling;
-
   /// !< enables or disables screen-space ambient occlusion
   @ffi.Bool()
   external bool enabled;
@@ -5647,8 +5635,6 @@ final class TAmbientOcclusionOptions extends ffi.Struct {
   /// !< min angle in radian to consider
   @ffi.Float()
   external double minHorizonAngleRad;
-
-  external TSsct ssct;
 }
 
 typedef PickCallbackFunction = ffi.Void Function(
