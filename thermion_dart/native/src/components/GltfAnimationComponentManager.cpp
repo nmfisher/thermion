@@ -121,7 +121,7 @@ namespace thermion
                     animator->applyAnimation(animationStatus.index, animationStatus.durationInSecs - 0.001);
                     animator->updateBoneMatrices();
                     gltfAnimations.erase(gltfAnimations.begin() + i);
-                    Log("glTF animation at index %d finished", animationStatus.index);
+                    TRACE("glTF animation at index %d finished", animationStatus.index);
                     animationComponent.fadeOutAnimation.index = -1;
                     continue;
                 }
@@ -131,22 +131,18 @@ namespace thermion
 
                 if (fadeOutAnimation.index != -1) {
                     auto fadeAnimationElapsed = float(frameTimeInNanos - fadeOutAnimation.startTimeInNanos)  / 1'000'000'000.0f;
-
-                    Log("%f seconds elapsed since fade out start", fadeAnimationElapsed);
                     
                     if(elapsedInSeconds > animationComponent.fadeOutDuration) {
-                        Log("Fade out complete");
                         fadeOutAnimation.index = -1;
                     } else {
                         // cross-fade
                         auto alpha = elapsedInSeconds / animationComponent.fadeOutDuration;
-                        Log("alpha pre-cap %f", alpha);
 
                         if(alpha > 1.0f) {
                             alpha = 1.0f;
                         }
                         
-                        Log("Applying cross fade at time %f with alpha %f", fadeAnimationElapsed, alpha);
+                        TRACE("Applying cross fade at time %f with alpha %f", fadeAnimationElapsed, alpha);
                         animator->applyCrossFade(
                             fadeOutAnimation.index, 
                             fadeAnimationElapsed,
