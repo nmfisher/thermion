@@ -5,6 +5,11 @@
 #include <cstdint>
 #include <math/vec2.h>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#define __builtin_popcountll __popcnt64
+#endif
+
 namespace thermion::plugin::input {
 
     using namespace filament::math;
