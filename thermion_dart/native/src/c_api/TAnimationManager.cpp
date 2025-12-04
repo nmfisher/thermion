@@ -292,7 +292,7 @@ extern "C"
                 }
             }
         } else { 
-            ERROR("AnimationManager_getInverseBindMatrix can only be called with an GltfSceneAssetInstance");
+            LOG_ERROR("AnimationManager_getInverseBindMatrix can only be called with an GltfSceneAssetInstance");
         }
     }
 
