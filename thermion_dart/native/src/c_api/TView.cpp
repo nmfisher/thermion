@@ -572,24 +572,24 @@ namespace thermion
             aoOptions.resolution = options.resolution;
             aoOptions.intensity = options.intensity;
             aoOptions.bilateralThreshold = options.bilateralThreshold;
-            aoOptions.quality = static_cast<QualityLevel>(options.quality);
-            aoOptions.lowPassFilter = static_cast<QualityLevel>(options.lowPassFilter);
-            aoOptions.upsampling = static_cast<QualityLevel>(options.upsampling);
+            // aoOptions.quality = static_cast<QualityLevel>(options.quality);
+            // aoOptions.lowPassFilter = static_cast<QualityLevel>(options.lowPassFilter);
+            // aoOptions.upsampling = static_cast<QualityLevel>(options.upsampling);
             aoOptions.enabled = options.enabled;
             aoOptions.bentNormals = options.bentNormals;
             aoOptions.minHorizonAngleRad = options.minHorizonAngleRad;
 
             // Copy SSCT options
-            aoOptions.ssct.lightConeRad = options.ssct.lightConeRad;
-            aoOptions.ssct.shadowDistance = options.ssct.shadowDistance;
-            aoOptions.ssct.contactDistanceMax = options.ssct.contactDistanceMax;
-            aoOptions.ssct.intensity = options.ssct.intensity;
-            aoOptions.ssct.lightDirection = filament::math::float3{options.ssct.lightDirectionX, options.ssct.lightDirectionY, options.ssct.lightDirectionZ};
-            aoOptions.ssct.depthBias = options.ssct.depthBias;
-            aoOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
-            aoOptions.ssct.sampleCount = options.ssct.sampleCount;
-            aoOptions.ssct.rayCount = options.ssct.rayCount;
-            aoOptions.ssct.enabled = options.ssct.enabled;
+            // aoOptions.ssct.lightConeRad = options.ssct.lightConeRad;
+            // aoOptions.ssct.shadowDistance = options.ssct.shadowDistance;
+            // aoOptions.ssct.contactDistanceMax = options.ssct.contactDistanceMax;
+            // aoOptions.ssct.intensity = options.ssct.intensity;
+            // aoOptions.ssct.lightDirection = filament::math::float3{options.ssct.lightDirectionX, options.ssct.lightDirectionY, options.ssct.lightDirectionZ};
+            // aoOptions.ssct.depthBias = options.ssct.depthBias;
+            // aoOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
+            // aoOptions.ssct.sampleCount = options.ssct.sampleCount;
+            // aoOptions.ssct.rayCount = options.ssct.rayCount;
+            // aoOptions.ssct.enabled = options.ssct.enabled;
 
             view->setAmbientOcclusionOptions(aoOptions);
         }
@@ -606,26 +606,26 @@ namespace thermion
             tOptions.resolution = options.resolution;
             tOptions.intensity = options.intensity;
             tOptions.bilateralThreshold = options.bilateralThreshold;
-            tOptions.quality = static_cast<TQualityLevel>(options.quality);
-            tOptions.lowPassFilter = static_cast<TQualityLevel>(options.lowPassFilter);
-            tOptions.upsampling = static_cast<TQualityLevel>(options.upsampling);
+            // tOptions.quality = static_cast<TQualityLevel>(options.quality);
+            // tOptions.lowPassFilter = static_cast<TQualityLevel>(options.lowPassFilter);
+            // tOptions.upsampling = static_cast<TQualityLevel>(options.upsampling);
             tOptions.enabled = options.enabled;
             tOptions.bentNormals = options.bentNormals;
             tOptions.minHorizonAngleRad = options.minHorizonAngleRad;
 
             // Copy SSCT options
-            tOptions.ssct.lightConeRad = options.ssct.lightConeRad;
-            tOptions.ssct.shadowDistance = options.ssct.shadowDistance;
-            tOptions.ssct.contactDistanceMax = options.ssct.contactDistanceMax;
-            tOptions.ssct.intensity = options.ssct.intensity;
-            tOptions.ssct.lightDirectionX = options.ssct.lightDirection.x;
-            tOptions.ssct.lightDirectionY = options.ssct.lightDirection.y;
-            tOptions.ssct.lightDirectionZ = options.ssct.lightDirection.z;
-            tOptions.ssct.depthBias = options.ssct.depthBias;
-            tOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
-            tOptions.ssct.sampleCount = options.ssct.sampleCount;
-            tOptions.ssct.rayCount = options.ssct.rayCount;
-            tOptions.ssct.enabled = options.ssct.enabled;
+            // tOptions.ssct.lightConeRad = options.ssct.lightConeRad;
+            // tOptions.ssct.shadowDistance = options.ssct.shadowDistance;
+            // tOptions.ssct.contactDistanceMax = options.ssct.contactDistanceMax;
+            // tOptions.ssct.intensity = options.ssct.intensity;
+            // tOptions.ssct.lightDirectionX = options.ssct.lightDirection.x;
+            // tOptions.ssct.lightDirectionY = options.ssct.lightDirection.y;
+            // tOptions.ssct.lightDirectionZ = options.ssct.lightDirection.z;
+            // tOptions.ssct.depthBias = options.ssct.depthBias;
+            // tOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
+            // tOptions.ssct.sampleCount = options.ssct.sampleCount;
+            // tOptions.ssct.rayCount = options.ssct.rayCount;
+            // tOptions.ssct.enabled = options.ssct.enabled;
 
             return tOptions;
         }
