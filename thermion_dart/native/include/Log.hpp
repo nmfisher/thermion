@@ -63,3 +63,4 @@ static void Log(const char *fmt, ...) {
 #endif
 
 #define ERROR(fmt, ...) Log("Error: %s:%d " fmt, __FILENAME__, __LINE__, ##__VA_ARGS__)
+#define LOG_ERROR(fmt, ...) Log("Error: %s:%d " fmt, __FILENAME__, __LINE__, ##__VA_ARGS__)
