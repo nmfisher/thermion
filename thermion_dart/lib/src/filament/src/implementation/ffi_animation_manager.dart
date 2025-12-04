@@ -9,14 +9,14 @@ import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart'
 /// a type-safe Dart API for managing animation components.
 class FFIAnimationManager
     extends AnimationManager<bindings.Pointer<bindings.TAnimationManager>> {
-
   final bindings.Pointer<bindings.TAnimationManager> animationManager;
   final FFIFilamentApp app;
 
   FFIAnimationManager(this.animationManager, this.app);
 
   @override
-  bindings.Pointer<bindings.TAnimationManager> getNativeHandle() => animationManager;
+  bindings.Pointer<bindings.TAnimationManager> getNativeHandle() =>
+      animationManager;
 
   // ========================================================================
   // Animation component management
@@ -89,7 +89,8 @@ class FFIAnimationManager
   }
 
   @override
-  bool setGltfAnimationFrame(ThermionAsset asset, int animationIndex, int frame) {
+  bool setGltfAnimationFrame(
+      ThermionAsset asset, int animationIndex, int frame) {
     return bindings.AnimationManager_setGltfAnimationFrame(
         animationManager, asset.getHandle(), animationIndex, frame);
   }
@@ -154,7 +155,8 @@ class FFIAnimationManager
   }
 
   @override
-  bool setMorphAnimation(ThermionEntity entityId,
+  bool setMorphAnimation(
+      ThermionEntity entityId,
       List<double> morphData,
       List<int> morphIndices,
       int numMorphTargets,
@@ -166,7 +168,7 @@ class FFIAnimationManager
     }
 
     final morphDataPtr = makeFloat32List(morphData.length);
-    final morphIndicesPtr = makeUint32List(morphIndices.length);
+    final morphIndicesPtr = makeInt32List(morphIndices.length);
 
     morphDataPtr.setRange(0, morphData.length, morphData);
     morphIndicesPtr.setRange(0, morphIndices.length, morphIndices);
@@ -176,7 +178,7 @@ class FFIAnimationManager
           animationManager,
           entityId,
           morphDataPtr.address,
-          morphIndicesPtr.address,
+          morphIndicesPtr.address.cast(),
           numMorphTargets,
           numFrames,
           frameLengthInMs);
@@ -202,7 +204,8 @@ class FFIAnimationManager
   }
 
   @override
-  String? getMorphTargetName(ThermionAsset asset, ThermionEntity entityId, int index) {
+  String? getMorphTargetName(
+      ThermionAsset asset, ThermionEntity entityId, int index) {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -228,12 +231,8 @@ class FFIAnimationManager
   // ========================================================================
 
   @override
-  bool addBoneAnimation(ThermionAsset asset,
-      int skinIndex,
-      int boneIndex,
-      List<double> frameData,
-      int numFrames,
-      double frameLengthInMs,
+  bool addBoneAnimation(ThermionAsset asset, int skinIndex, int boneIndex,
+      List<double> frameData, int numFrames, double frameLengthInMs,
       {double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
       double maxDelta = 0.1}) {
@@ -291,27 +290,29 @@ class FFIAnimationManager
       stackPtr = stackSave();
     }
 
-    final namePointers = allocate<Pointer<Char>>(boneCount);
-    try {
-      bindings.AnimationManager_getBoneNames(
-          animationManager, asset.getHandle(), namePointers, skinIndex);
+    throw UnimplementedError();
 
-      final boneNames = <String>[];
-      for (int i = 0; i < boneCount; i++) {
-        final namePtr = namePointers[i];
-        if (namePtr != nullptr) {
-          final name = namePtr.cast<Utf8>().toDartString();
-          boneNames.add(name);
-        }
-      }
+    // final namePointers = allocate<Char>(boneCount);
+    // try {
+    //   bindings.AnimationManager_getBoneNames(
+    //       animationManager, asset.getHandle(), namePointers.cast(), skinIndex);
 
-      return boneNames;
-    } finally {
-      free(namePointers);
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
+    //   final boneNames = <String>[];
+    //   for (int i = 0; i < boneCount; i++) {
+    //     final namePtr = namePointers[i];
+    //     if (namePtr != nullptr) {
+    //       final name = namePtr.cast<Utf8>().toDartString();
+    //       boneNames.add(name);
+    //     }
+    //   }
+
+    //   return boneNames;
+    // } finally {
+    //   free(namePointers.cast());
+    //   if (FILAMENT_WASM) {
+    //     stackRestore(stackPtr);
+    //   }
+    // }
   }
 
   @override
@@ -330,8 +331,8 @@ class FFIAnimationManager
     // 16 floats per bone (4x4 matrix)
     final transformsPtr = makeFloat32List(boneCount * 16);
     try {
-      bindings.AnimationManager_getRestLocalTransforms(
-          animationManager, asset.getHandle(), skinIndex, transformsPtr.address, boneCount);
+      bindings.AnimationManager_getRestLocalTransforms(animationManager,
+          asset.getHandle(), skinIndex, transformsPtr.address, boneCount);
 
       return transformsPtr.toList();
     } finally {
@@ -343,7 +344,8 @@ class FFIAnimationManager
   }
 
   @override
-  List<double> getInverseBindMatrix(ThermionAsset asset, int skinIndex, int boneIndex) {
+  List<double> getInverseBindMatrix(
+      ThermionAsset asset, int skinIndex, int boneIndex) {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -351,8 +353,8 @@ class FFIAnimationManager
 
     final matrixPtr = makeFloat32List(16); // 4x4 matrix
     try {
-      bindings.AnimationManager_getInverseBindMatrix(
-          animationManager, asset.getHandle(), skinIndex, boneIndex, matrixPtr.address);
+      bindings.AnimationManager_getInverseBindMatrix(animationManager,
+          asset.getHandle(), skinIndex, boneIndex, matrixPtr.address);
 
       return matrixPtr.toList();
     } finally {
@@ -370,7 +372,8 @@ class FFIAnimationManager
   }
 
   @override
-  Future<bool> setBoneTransform(ThermionEntity entity, int skinIndex, int boneIndex, Matrix4 transform) async {
+  Future<bool> setBoneTransform(ThermionEntity entity, int skinIndex,
+      int boneIndex, Matrix4 transform) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -382,7 +385,12 @@ class FFIAnimationManager
     try {
       return await withBoolCallback((cb) {
         return bindings.AnimationManager_setBoneTransformRenderThread(
-            animationManager, entity, skinIndex, boneIndex, transformPtr.address, cb);
+            animationManager,
+            entity,
+            skinIndex,
+            boneIndex,
+            transformPtr.address,
+            cb);
       });
     } finally {
       transformPtr.free();
@@ -398,11 +406,13 @@ class FFIAnimationManager
 
   @override
   void resetToRestPose(ThermionAsset asset) {
-    bindings.AnimationManager_resetToRestPose(animationManager, asset.getHandle());
+    bindings.AnimationManager_resetToRestPose(
+        animationManager, asset.getHandle());
   }
 
   @override
   void update(int frameTimeInNanos) {
-    bindings.AnimationManager_update(animationManager, frameTimeInNanos);
+    bindings.AnimationManager_update(
+        animationManager, frameTimeInNanos.toBigInt);
   }
 }

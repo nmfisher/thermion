@@ -352,26 +352,26 @@ class FFIView extends View<Pointer<TView>> {
     tAmbientOcclusionOptions.resolution = options.resolution;
     tAmbientOcclusionOptions.intensity = options.intensity;
     tAmbientOcclusionOptions.bilateralThreshold = options.bilateralThreshold;
-    tAmbientOcclusionOptions.quality = options.quality.index;
-    tAmbientOcclusionOptions.lowPassFilter = options.lowPassFilter.index;
-    tAmbientOcclusionOptions.upsampling = options.upsampling.index;
+    // tAmbientOcclusionOptions.quality = options.quality.index;
+    // tAmbientOcclusionOptions.lowPassFilter = options.lowPassFilter.index;
+    // tAmbientOcclusionOptions.upsampling = options.upsampling.index;
     tAmbientOcclusionOptions.enabled = options.enabled;
     tAmbientOcclusionOptions.bentNormals = options.bentNormals;
     tAmbientOcclusionOptions.minHorizonAngleRad = options.minHorizonAngleRad;
 
     // Copy SSCT options
-    tAmbientOcclusionOptions.ssct.lightConeRad = options.ssct.lightConeRad;
-    tAmbientOcclusionOptions.ssct.shadowDistance = options.ssct.shadowDistance;
-    tAmbientOcclusionOptions.ssct.contactDistanceMax = options.ssct.contactDistanceMax;
-    tAmbientOcclusionOptions.ssct.intensity = options.ssct.intensity;
-    tAmbientOcclusionOptions.ssct.lightDirectionX = options.ssct.lightDirection[0];
-    tAmbientOcclusionOptions.ssct.lightDirectionY = options.ssct.lightDirection[1];
-    tAmbientOcclusionOptions.ssct.lightDirectionZ = options.ssct.lightDirection[2];
-    tAmbientOcclusionOptions.ssct.depthBias = options.ssct.depthBias;
-    tAmbientOcclusionOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
-    tAmbientOcclusionOptions.ssct.sampleCount = options.ssct.sampleCount;
-    tAmbientOcclusionOptions.ssct.rayCount = options.ssct.rayCount;
-    tAmbientOcclusionOptions.ssct.enabled = options.ssct.enabled;
+    // tAmbientOcclusionOptions.ssct.lightConeRad = options.ssct.lightConeRad;
+    // tAmbientOcclusionOptions.ssct.shadowDistance = options.ssct.shadowDistance;
+    // tAmbientOcclusionOptions.ssct.contactDistanceMax = options.ssct.contactDistanceMax;
+    // tAmbientOcclusionOptions.ssct.intensity = options.ssct.intensity;
+    // tAmbientOcclusionOptions.ssct.lightDirectionX = options.ssct.lightDirection[0];
+    // tAmbientOcclusionOptions.ssct.lightDirectionY = options.ssct.lightDirection[1];
+    // tAmbientOcclusionOptions.ssct.lightDirectionZ = options.ssct.lightDirection[2];
+    // tAmbientOcclusionOptions.ssct.depthBias = options.ssct.depthBias;
+    // tAmbientOcclusionOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
+    // tAmbientOcclusionOptions.ssct.sampleCount = options.ssct.sampleCount;
+    // tAmbientOcclusionOptions.ssct.rayCount = options.ssct.rayCount;
+    // tAmbientOcclusionOptions.ssct.enabled = options.ssct.enabled;
 
     View_setAmbientOcclusionOptions(view, tAmbientOcclusionOptions);
   }
@@ -387,27 +387,27 @@ class FFIView extends View<Pointer<TView>> {
       resolution: tOptions.resolution,
       intensity: tOptions.intensity,
       bilateralThreshold: tOptions.bilateralThreshold,
-      quality: QualityLevel.values[tOptions.quality],
-      lowPassFilter: QualityLevel.values[tOptions.lowPassFilter],
-      upsampling: QualityLevel.values[tOptions.upsampling],
+      // quality: QualityLevel.values[tOptions.quality],
+      // lowPassFilter: QualityLevel.values[tOptions.lowPassFilter],
+      // upsampling: QualityLevel.values[tOptions.upsampling],
       enabled: tOptions.enabled,
       bentNormals: tOptions.bentNormals,
       minHorizonAngleRad: tOptions.minHorizonAngleRad,
       ssct: SsctOptions(
-        lightConeRad: tOptions.ssct.lightConeRad,
-        shadowDistance: tOptions.ssct.shadowDistance,
-        contactDistanceMax: tOptions.ssct.contactDistanceMax,
-        intensity: tOptions.ssct.intensity,
-        lightDirection: [
-          tOptions.ssct.lightDirectionX,
-          tOptions.ssct.lightDirectionY,
-          tOptions.ssct.lightDirectionZ,
-        ],
-        depthBias: tOptions.ssct.depthBias,
-        depthSlopeBias: tOptions.ssct.depthSlopeBias,
-        sampleCount: tOptions.ssct.sampleCount,
-        rayCount: tOptions.ssct.rayCount,
-        enabled: tOptions.ssct.enabled,
+        // lightConeRad: tOptions.ssct.lightConeRad,
+        // shadowDistance: tOptions.ssct.shadowDistance,
+        // contactDistanceMax: tOptions.ssct.contactDistanceMax,
+        // intensity: tOptions.ssct.intensity,
+        // lightDirection: [
+        //   tOptions.ssct.lightDirectionX,
+        //   tOptions.ssct.lightDirectionY,
+        //   tOptions.ssct.lightDirectionZ,
+        // ],
+        // depthBias: tOptions.ssct.depthBias,
+        // depthSlopeBias: tOptions.ssct.depthSlopeBias,
+        // sampleCount: tOptions.ssct.sampleCount,
+        // rayCount: tOptions.ssct.rayCount,
+        // enabled: tOptions.ssct.enabled,
       ),
     );
   }

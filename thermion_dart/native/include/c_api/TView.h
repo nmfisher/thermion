@@ -204,14 +204,13 @@ struct TAmbientOcclusionOptions {
     float resolution = 0.5f;        //!< How each dimension of the AO buffer is scaled. Must be either 0.5 or 1.0
     float intensity = 1.0f;         //!< Strength of the Ambient Occlusion effect
     float bilateralThreshold = 0.05f; //!< depth distance that constitute an edge for filtering
-    TQualityLevel quality = LOW;    //!< affects # of samples used for AO
-    TQualityLevel lowPassFilter = MEDIUM; //!< affects AO smoothness
-    TQualityLevel upsampling = LOW; //!< affects AO buffer upsampling quality
+    // TQualityLevel quality = LOW;    //!< affects # of samples used for AO
+    // TQualityLevel lowPassFilter = MEDIUM; //!< affects AO smoothness
+    // TQualityLevel upsampling = LOW; //!< affects AO buffer upsampling quality
     bool enabled = false;           //!< enables or disables screen-space ambient occlusion
     bool bentNormals = false;       //!< enables bent normals computation from AO, and specular AO
     float minHorizonAngleRad = 0.0f; //!< min angle in radian to consider
-
-    TSsct ssct;
+    // TSsct ssct;
 };
 
 typedef struct TAmbientOcclusionOptions TAmbientOcclusionOptions;

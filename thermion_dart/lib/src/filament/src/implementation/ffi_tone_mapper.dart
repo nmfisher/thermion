@@ -1,15 +1,14 @@
-import 'dart:ffi' as ffi;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// FFI implementation of ToneMapper
 class FFIToneMapper extends ToneMapper {
-  final ffi.Pointer<TToneMapper> _pointer;
+  final Pointer<TToneMapper> _pointer;
 
   FFIToneMapper._(this._pointer);
 
   @override
-  ffi.Pointer<TToneMapper> getNativeHandle() => _pointer;
+  Pointer<TToneMapper> getNativeHandle() => _pointer;
 
   /// Create a LinearToneMapper - returns input color clamped to 0..1 range
   /// Useful for debugging
