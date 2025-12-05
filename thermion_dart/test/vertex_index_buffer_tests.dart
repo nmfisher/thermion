@@ -21,6 +21,7 @@ void main() async {
 
         final vertexBuffer = await vbBuilder.build();
 
+        // only to flush the pipeline, this won't render anything
         await testHelper.capture(result.viewer.view, "vertex_buffer");
 
         // Verify vertex count
@@ -67,6 +68,7 @@ void main() async {
         ]);
         await vertexBuffer.setBufferAt(1, uvs);
 
+        // only to flush the pipeline, this won't render anything
         await testHelper.capture(
             result.viewer.view, "vertex_buffer_uv_attributes");
 
@@ -93,9 +95,6 @@ void main() async {
 
         final vertexBuffer = await vbBuilder.build();
 
-        await testHelper.capture(
-            result.viewer.view, "interleaved_vertex_buffer");
-
         // Interleaved data: X, Y, Z, U, V repeated
         final interleavedData = Float32List.fromList([
           // vertex 0: position XYZ, UV
@@ -109,6 +108,10 @@ void main() async {
         await vertexBuffer.setBufferAt(0, interleavedData);
 
         expect(vertexBuffer.getVertexCount(), equals(3));
+
+        // only to flush the pipeline, this won't render anything
+        await testHelper.capture(
+            result.viewer.view, "interleaved_vertex_buffer");
 
         // Cleanup
         await vertexBuffer.destroy();
@@ -131,9 +134,6 @@ void main() async {
 
         final vertexBuffer = await vbBuilder.build();
 
-        await testHelper.capture(
-            result.viewer.view, "vertex_buffer_color_attribute");
-
         // Upload positions
         final positions = Float32List.fromList([
           0.0,
@@ -155,6 +155,10 @@ void main() async {
           0.0, 0.0, 1.0, 1.0, // blue
         ]);
         await vertexBuffer.setBufferAt(1, colors);
+
+        // only to flush the pipeline, this won't render anything
+        await testHelper.capture(
+            result.viewer.view, "vertex_buffer_color_attribute");
 
         // Cleanup
         await vertexBuffer.destroy();
@@ -185,6 +189,7 @@ void main() async {
         ]);
         await vertexBuffer.setBufferAt(0, colors);
 
+        // only to flush the pipeline, this won't render anything
         await testHelper.capture(result.viewer.view, "normalized_ubyte_color");
 
         // Cleanup
@@ -210,7 +215,8 @@ void main() async {
         // Try to build again - should throw
         expect(() async => await vbBuilder.build(), throwsA(isA<StateError>()));
 
-        await testHelper.capture(result.viewer.view, "vertex_buffer_builder_reuse");
+        await testHelper.capture(
+            result.viewer.view, "vertex_buffer_builder_reuse");
 
         // Cleanup
         await vertexBuffer1.destroy();
@@ -239,6 +245,7 @@ void main() async {
         final indices = Uint16List.fromList([0, 1, 2]);
         await indexBuffer.setBuffer(indices);
 
+        // only to flush the pipeline, this won't render anything
         await testHelper.capture(result.viewer.view, "index_buffer_ushort");
 
         // Cleanup
@@ -266,6 +273,7 @@ void main() async {
         final indices = Uint32List.fromList([0, 1, 2, 2, 3, 0]);
         await indexBuffer.setBuffer(indices);
 
+        // only to flush the pipeline, this won't render anything
         await testHelper.capture(result.viewer.view, "index_buffer_uint");
 
         // Cleanup
@@ -297,6 +305,7 @@ void main() async {
         }
         await indexBuffer.setBuffer(indices);
 
+        // only to flush the pipeline, this won't render anything
         await testHelper.capture(result.viewer.view, "large_index_buffer");
 
         // Cleanup
@@ -321,7 +330,8 @@ void main() async {
         // Try to build again - should throw
         expect(() async => await ibBuilder.build(), throwsA(isA<StateError>()));
 
-        await testHelper.capture(result.viewer.view, "index_buffer_builder_reuse");
+        await testHelper.capture(
+            result.viewer.view, "index_buffer_builder_reuse");
 
         // Cleanup
         await indexBuffer1.destroy();
@@ -330,23 +340,85 @@ void main() async {
   });
 
   group("Integration tests - Simple shapes", () {
-    test('render triangle with custom vertex/index buffers', () async {
+    test('render triangle with POSITION only', () async {
       await ViewerBuilder(testHelper)
-          .setBackgroundColor(kBlue)
+          .setBackgroundColor(kWhite)
           .execute((result) async {
         final app = FilamentApp.instance!;
         final renderableManager = app.renderableManager;
 
-        // Create vertex buffer
-        final vertexBuffer =
-            await (renderableManager.createVertexBufferBuilder()
-                  ..bufferCount(1)
-                  ..vertexCount(3)
-                  ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3,
-                      byteOffset: 0, byteStride: 20)
-                  ..attribute(VertexAttribute.UV0, 0, VertexAttributeType.FLOAT2,
-                      byteOffset: 12, byteStride: 20))
-                .build();
+        // Create vertex buffer with POSITION only
+        final vertexBuffer = await (renderableManager
+                .createVertexBufferBuilder()
+              ..bufferCount(1)
+              ..vertexCount(3)
+              ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
+            .build();
+
+        // Create index buffer
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
+
+        // Upload vertex data (positions only)
+        final vertexData = Float32List.fromList([
+          -0.5, -0.5, 0.0, // vertex 0
+           0.5, -0.5, 0.0, // vertex 1
+           0.0,  0.5, 0.0, // vertex 2
+        ]);
+        await vertexBuffer.setBufferAt(0, vertexData);
+
+        // Upload index data
+        await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
+
+        // Create material using solidcolor.filamat (requires only POSITION)
+        final material = await testHelper.loadSolidColorMaterial(
+            r: 1.0, g: 0.0, b: 1.0); // Magenta
+
+        // Create entity and renderable
+        final entity = await app.createEntity();
+        final renderableBuilder = renderableManager.createBuilder(1)
+          ..boundingBox(
+              Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+          ..geometry(
+              0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
+          ..material(0, material)
+          ..castShadows(false)
+          ..receiveShadows(false);
+
+        final success = await renderableBuilder.build(entity);
+        expect(success, true);
+
+        final scene = await result.viewer.view.getScene();
+        await scene.addEntity(entity);
+
+        await testHelper.capture(result.viewer.view, "triangle_position_only");
+
+        // Cleanup
+        await vertexBuffer.destroy();
+        await indexBuffer.destroy();
+      });
+    });
+
+    test('render triangle with POSITION + UV0 (interleaved)', () async {
+      await ViewerBuilder(testHelper)
+          .setBackgroundColor(kWhite)
+          .execute((result) async {
+        final app = FilamentApp.instance!;
+        final renderableManager = app.renderableManager;
+
+        // Create vertex buffer with interleaved POSITION + UV0
+        final vertexBuffer = await (renderableManager
+                .createVertexBufferBuilder()
+              ..bufferCount(1)
+              ..vertexCount(3)
+              ..attribute(
+                  VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3,
+                  byteOffset: 0, byteStride: 20)
+              ..attribute(VertexAttribute.UV0, 0, VertexAttributeType.FLOAT2,
+                  byteOffset: 12, byteStride: 20))
+            .build();
 
         // Create index buffer
         final indexBuffer = await (renderableManager.createIndexBufferBuilder()
@@ -368,10 +440,9 @@ void main() async {
         // Upload index data
         await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
 
-        // Create material
-        final material = await app.createUnlitMaterialInstance();
-        await material.setParameterFloat4(
-            "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        // Create material using solidcolor.filamat (requires only POSITION)
+        final material = await testHelper.loadSolidColorMaterial(
+            r: 0.0, g: 1.0, b: 1.0); // Cyan
 
         // Create entity and renderable
         final entity = await app.createEntity();
@@ -387,13 +458,10 @@ void main() async {
         final success = await renderableBuilder.build(entity);
         expect(success, true);
 
-        // Add to scene
-
         final scene = await result.viewer.view.getScene();
         await scene.addEntity(entity);
 
-        // Capture
-        await testHelper.capture(result.viewer.view, "triangle_custom_buffers");
+        await testHelper.capture(result.viewer.view, "triangle_position_uv");
 
         // Cleanup
         await vertexBuffer.destroy();
@@ -403,7 +471,7 @@ void main() async {
 
     test('render quad with custom vertex/index buffers', () async {
       final builder = ViewerBuilder(testHelper)
-          .setRenderTargetEnabled(true)
+          .setCameraLookAt(Vector3(1, 1, 1))
           .setBackgroundColor(kGrey);
 
       await builder.execute((result) async {
@@ -411,13 +479,14 @@ void main() async {
         final renderableManager = app.renderableManager;
 
         // Create vertex buffer for quad (4 vertices)
-        final vertexBuffer =
-            await (renderableManager.createVertexBufferBuilder()
-                  ..bufferCount(2)
-                  ..vertexCount(4)
-                  ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
-                  ..attribute(VertexAttribute.UV0, 1, VertexAttributeType.FLOAT2))
-                .build();
+        final vertexBuffer = await (renderableManager
+                .createVertexBufferBuilder()
+              ..bufferCount(2)
+              ..vertexCount(4)
+              ..attribute(
+                  VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
+              ..attribute(VertexAttribute.UV0, 1, VertexAttributeType.FLOAT2))
+            .build();
 
         // Create index buffer for 2 triangles
         final indexBuffer = await (renderableManager.createIndexBufferBuilder()
@@ -479,214 +548,243 @@ void main() async {
         await indexBuffer.destroy();
       });
     });
+
+    test('colored triangle with vertex colors', () async {
+      await ViewerBuilder(testHelper)
+          .setBackgroundColor(kWhite)
+          .execute((result) async {
+        final app = FilamentApp.instance!;
+        final renderableManager = app.renderableManager;
+
+        // Create vertex buffer with position and color
+        final vertexBuffer = await (renderableManager
+                .createVertexBufferBuilder()
+              ..bufferCount(2)
+              ..vertexCount(3)
+              ..attribute(
+                  VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
+              ..attribute(VertexAttribute.COLOR, 1, VertexAttributeType.FLOAT4))
+            .build();
+
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
+
+        // Upload positions
+        await vertexBuffer.setBufferAt(
+            0,
+            Float32List.fromList([
+              -0.5,
+              -0.5,
+              0.0,
+              0.5,
+              -0.5,
+              0.0,
+              0.0,
+              0.5,
+              0.0,
+            ]));
+
+        // Upload colors (RGB corners)
+        await vertexBuffer.setBufferAt(
+            1,
+            Float32List.fromList([
+              1.0, 0.0, 0.0, 1.0, // red
+              0.0, 1.0, 0.0, 1.0, // green
+              0.0, 0.0, 1.0, 1.0, // blue
+            ]));
+
+        await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
+
+        // Create material that uses vertex colors
+        final material = await app.createUbershaderMaterialInstance(
+            hasVertexColors: true, unlit: true);
+        await material.setParameterFloat4(
+            "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
+
+        final entity = await app.createEntity();
+        final renderableBuilder = renderableManager.createBuilder(1)
+          ..boundingBox(
+              Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+          ..geometry(
+              0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
+          ..material(0, material);
+
+        await renderableBuilder.build(entity);
+        final scene = await result.viewer.view.getScene();
+        await scene.addEntity(entity);
+
+        await testHelper.capture(result.viewer.view, "colored_triangle");
+
+        // Cleanup
+        await vertexBuffer.destroy();
+        await indexBuffer.destroy();
+      });
+    });
   });
 
-  //   test('colored triangle with vertex colors', () async {
-  //     final builder = ViewerBuilder(testHelper)
-  //         .setRenderTargetEnabled(true)
-  //         .setBackgroundColor(kWhite);
+  group("Integration tests - Complex geometry", () {
+    test('multiple attributes in single interleaved buffer', () async {
+      final builder = ViewerBuilder(testHelper).setBackgroundColor(kGrey);
 
-  //     await builder.execute((result) async {
-  //       final app = FilamentApp.instance!;
-  //       final renderableManager = app.renderableManager;
+      await builder.execute((result) async {
+        final app = FilamentApp.instance!;
+        final renderableManager = app.renderableManager;
 
-  //       // Create vertex buffer with position and color
-  //       final vertexBuffer = await (renderableManager.createVertexBufferBuilder()
-  //             ..bufferCount(2)
-  //             ..vertexCount(3)
-  //             ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
-  //             ..attribute(VertexAttribute.COLOR, 1, VertexAttributeType.FLOAT4))
-  //           .build();
+        // Create fully interleaved buffer: position(12) + normal(12) + UV(8) + color(16) = 48 bytes
+        final vertexBuffer = await (renderableManager
+                .createVertexBufferBuilder()
+              ..bufferCount(1)
+              ..vertexCount(3)
+              ..attribute(
+                  VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3,
+                  byteOffset: 0, byteStride: 48)
+              ..attribute(
+                  VertexAttribute.TANGENTS, 0, VertexAttributeType.FLOAT4,
+                  byteOffset: 12, byteStride: 48)
+              ..attribute(VertexAttribute.UV0, 0, VertexAttributeType.FLOAT2,
+                  byteOffset: 28, byteStride: 48)
+              ..attribute(VertexAttribute.COLOR, 0, VertexAttributeType.FLOAT4,
+                  byteOffset: 36, byteStride: 48))
+            .build();
 
-  //       final indexBuffer = await (renderableManager.createIndexBufferBuilder()
-  //             ..indexCount(3)
-  //             ..bufferType(IndexType.USHORT))
-  //           .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
-  //       // Upload positions
-  //       await vertexBuffer.setBufferAt(
-  //           0,
-  //           Float32List.fromList([
-  //             -0.5, -0.5, 0.0,
-  //             0.5, -0.5, 0.0,
-  //             0.0, 0.5, 0.0,
-  //           ]));
+        // Upload interleaved data
+        final interleavedData = Float32List.fromList([
+          // Vertex 0: pos.xyz, tangent.xyzw (w=handedness), uv.xy, color.rgba
+          -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+          // Vertex 1
+          0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0,
+          // Vertex 2
+          0.0, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0,
+        ]);
 
-  //       // Upload colors (RGB corners)
-  //       await vertexBuffer.setBufferAt(
-  //           1,
-  //           Float32List.fromList([
-  //             1.0, 0.0, 0.0, 1.0, // red
-  //             0.0, 1.0, 0.0, 1.0, // green
-  //             0.0, 0.0, 1.0, 1.0, // blue
-  //           ]));
+        await vertexBuffer.setBufferAt(0, interleavedData);
+        await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
 
-  //       await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
+        final material = await app.createUbershaderMaterialInstance(
+            hasVertexColors: true, unlit: true);
+        await material.setParameterFloat4(
+            "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
 
-  //       // Create material that uses vertex colors
-  //       final material = await app.createUnlitMaterialInstance();
+        final entity = await app.createEntity();
+        final renderableBuilder = renderableManager.createBuilder(1)
+          ..boundingBox(
+              Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+          ..geometry(
+              0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
+          ..material(0, material);
 
-  //       final entity = await app.createEntity();
-  //       final renderableBuilder = renderableManager.createBuilder(1)
-  //         ..boundingBox(
-  //             Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
-  //         ..geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
-  //         ..material(0, material);
+        await renderableBuilder.build(entity);
+        final scene = await result.viewer.view.getScene();
+        await scene.addEntity(entity);
 
-  //       await renderableBuilder.build(entity);
-  //       await result.viewer.addToScene(entity);
+        await testHelper.capture(
+            result.viewer.view, "interleaved_all_attributes");
 
-  //       await testHelper.capture(result.viewer.view, "colored_triangle");
+        // Cleanup
+        await vertexBuffer.destroy();
+        await indexBuffer.destroy();
+      });
+    });
 
-  //       // Cleanup
-  //       await vertexBuffer.destroy();
-  //       await indexBuffer.destroy();
-  //     });
-  //   });
-  // });
+    test('buffer reuse across multiple renderables', () async {
+      final builder = ViewerBuilder(testHelper).setBackgroundColor(kBlue);
 
-  // group("Integration tests - Complex geometry", () {
-  //   test('multiple attributes in single interleaved buffer', () async {
-  //     final builder = ViewerBuilder(testHelper)
-  //         .setRenderTargetEnabled(true)
-  //         .setBackgroundColor(kGrey);
+      await builder.execute((result) async {
+        final app = FilamentApp.instance!;
+        final renderableManager = app.renderableManager;
 
-  //     await builder.execute((result) async {
-  //       final app = FilamentApp.instance!;
-  //       final renderableManager = app.renderableManager;
+        // Create shared vertex and index buffers
+        final sharedVertexBuffer =
+            await (renderableManager.createVertexBufferBuilder()
+                  ..bufferCount(1)
+                  ..vertexCount(3)
+                  ..attribute(
+                      VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
+                .build();
 
-  //       // Create fully interleaved buffer: position(12) + normal(12) + UV(8) + color(16) = 48 bytes
-  //       final vertexBuffer = await (renderableManager.createVertexBufferBuilder()
-  //             ..bufferCount(1)
-  //             ..vertexCount(3)
-  //             ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3,
-  //                 byteOffset: 0, byteStride: 48)
-  //             ..attribute(VertexAttribute.TANGENTS, 0, VertexAttributeType.FLOAT4,
-  //                 byteOffset: 12, byteStride: 48)
-  //             ..attribute(VertexAttribute.UV0, 0, VertexAttributeType.FLOAT2,
-  //                 byteOffset: 28, byteStride: 48)
-  //             ..attribute(VertexAttribute.COLOR, 0, VertexAttributeType.FLOAT4,
-  //                 byteOffset: 36, byteStride: 48))
-  //           .build();
+        final sharedIndexBuffer =
+            await (renderableManager.createIndexBufferBuilder()
+                  ..indexCount(3)
+                  ..bufferType(IndexType.USHORT))
+                .build();
 
-  //       final indexBuffer = await (renderableManager.createIndexBufferBuilder()
-  //             ..indexCount(3)
-  //             ..bufferType(IndexType.USHORT))
-  //           .build();
+        // Upload shared data
+        await sharedVertexBuffer.setBufferAt(
+            0,
+            Float32List.fromList([
+              -0.5,
+              -0.5,
+              0.0,
+              0.5,
+              -0.5,
+              0.0,
+              0.0,
+              0.5,
+              0.0,
+            ]));
+        await sharedIndexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
 
-  //       // Upload interleaved data
-  //       final interleavedData = Float32List.fromList([
-  //         // Vertex 0: pos.xyz, tangent.xyzw (w=handedness), uv.xy, color.rgba
-  //         -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-  //         // Vertex 1
-  //         0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0,
-  //         // Vertex 2
-  //         0.0, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0,
-  //       ]);
+        // Create 3 renderables using the same buffers
+        final entities = <ThermionEntity>[];
+        final materials = [kRed, kGreen, kBlue];
+        final positions = [
+          Vector3(-1.0, 0.0, 0.0),
+          Vector3(0.0, 0.0, 0.0),
+          Vector3(1.0, 0.0, 0.0)
+        ];
 
-  //       await vertexBuffer.setBufferAt(0, interleavedData);
-  //       await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
+        for (int i = 0; i < 3; i++) {
+          final material = await app.createUnlitMaterialInstance();
 
-  //       final material = await app.createUnlitMaterialInstance();
+          final entity = await app.createEntity();
+          final renderableBuilder = renderableManager.createBuilder(1)
+            ..boundingBox(
+                Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+            ..geometry(0, PrimitiveType.TRIANGLES, sharedVertexBuffer,
+                sharedIndexBuffer, 0, 3)
+            ..material(0, material);
 
-  //       final entity = await app.createEntity();
-  //       final renderableBuilder = renderableManager.createBuilder(1)
-  //         ..boundingBox(
-  //             Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
-  //         ..geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
-  //         ..material(0, material);
+          await renderableBuilder.build(entity);
 
-  //       await renderableBuilder.build(entity);
-  //       await result.viewer.addToScene(entity);
+          // Position each triangle
+          final transform = Matrix4.compose(
+              positions[i], Quaternion.identity(), Vector3.all(1.0));
+          await app.setTransform(entity, transform);
 
-  //       await testHelper.capture(
-  //           result.viewer.view, "interleaved_all_attributes");
+          final scene = await result.viewer.view.getScene();
+          await scene.addEntity(entity);
+          await material.setParameterFloat4(
+              "baseColorFactor",
+              materials[i].r.toDouble(),
+              materials[i].g.toDouble(),
+              materials[i].b.toDouble(),
+              1.0);
 
-  //       // Cleanup
-  //       await vertexBuffer.destroy();
-  //       await indexBuffer.destroy();
-  //     });
-  //   });
+          entities.add(entity);
+        }
 
-  //   test('buffer reuse across multiple renderables', () async {
-  //     final builder = ViewerBuilder(testHelper)
-  //         .setRenderTargetEnabled(true)
-  //         .setBackgroundColor(kBlue);
-
-  //     await builder.execute((result) async {
-  //       final app = FilamentApp.instance!;
-  //       final renderableManager = app.renderableManager;
-
-  //       // Create shared vertex and index buffers
-  //       final sharedVertexBuffer =
-  //           await (renderableManager.createVertexBufferBuilder()
-  //                 ..bufferCount(1)
-  //                 ..vertexCount(3)
-  //                 ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
-  //               .build();
-
-  //       final sharedIndexBuffer =
-  //           await (renderableManager.createIndexBufferBuilder()
-  //                 ..indexCount(3)
-  //                 ..bufferType(IndexType.USHORT))
-  //               .build();
-
-  //       // Upload shared data
-  //       await sharedVertexBuffer.setBufferAt(
-  //           0,
-  //           Float32List.fromList([
-  //             -0.5, -0.5, 0.0,
-  //             0.5, -0.5, 0.0,
-  //             0.0, 0.5, 0.0,
-  //           ]));
-  //       await sharedIndexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
-
-  //       // Create 3 renderables using the same buffers
-  //       final entities = <ThermionEntity>[];
-  //       final materials = [kRed, kGreen, kBlue];
-  //       final positions = [
-  //         Vector3(-1.0, 0.0, 0.0),
-  //         Vector3(0.0, 0.0, 0.0),
-  //         Vector3(1.0, 0.0, 0.0)
-  //       ];
-
-  //       for (int i = 0; i < 3; i++) {
-  //         final material = await app.createUnlitMaterialInstance();
-  //         await material.setParameterFloat4("baseColorFactor",
-  //             materials[i].r.toDouble(), materials[i].g.toDouble(), materials[i].b.toDouble(), 1.0);
-
-  //         final entity = await app.createEntity();
-  //         final renderableBuilder = renderableManager.createBuilder(1)
-  //           ..boundingBox(
-  //               Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
-  //           ..geometry(
-  //               0, PrimitiveType.TRIANGLES, sharedVertexBuffer, sharedIndexBuffer, 0, 3)
-  //           ..material(0, material);
-
-  //         await renderableBuilder.build(entity);
-
-  //         // Position each triangle
-  //         final transform = Matrix4.compose(
-  //             positions[i], Quaternion.identity(), Vector3.all(1.0));
-  //         await app.setTransform(entity, transform);
-
-  //         await result.viewer.addToScene(entity);
-  //         entities.add(entity);
-  //       }
-
-  //       await testHelper.capture(result.viewer.view, "shared_buffers_3_triangles");
-
-  //       // Cleanup - buffers should still be valid after destroying renderables
-  //       await sharedVertexBuffer.destroy();
-  //       await sharedIndexBuffer.destroy();
-  //     });
-  //   });
-  // });
+        await testHelper.capture(
+            result.viewer.view, "shared_buffers_3_triangles");
+        await testHelper.capture(
+            result.viewer.view, "shared_buffers_3_triangles");
+        // Cleanup - buffers should still be valid after destroying renderables
+        await sharedVertexBuffer.destroy();
+        await sharedIndexBuffer.destroy();
+      });
+    });
+  });
 
   // group("Performance/Stress tests", () {
   //   test('large mesh (10k vertices, 30k indices)', () async {
   //     final builder = ViewerBuilder(testHelper)
-  //         .setRenderTargetEnabled(true);
+  //         ;
 
   //     await builder.execute((result) async {
   //       final app = FilamentApp.instance!;
