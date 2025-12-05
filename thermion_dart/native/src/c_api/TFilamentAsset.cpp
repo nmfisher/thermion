@@ -3,7 +3,6 @@
 #include "c_api/TSceneAsset.h"
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
-#include "scene/GeometrySceneAssetBuilder.hpp"
 
 using namespace thermion;
 

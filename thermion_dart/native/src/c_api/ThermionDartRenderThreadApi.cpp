@@ -556,29 +556,6 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryWithBuilderRenderThread(
-      TEngine *tEngine,
-      float *vertices,
-      uint32_t numVertices,
-      float *normals,
-      uint32_t numNormals,
-      float *uvs,
-      uint32_t numUvs,
-      uint16_t *indices,
-      uint32_t numIndices,
-      TPrimitiveType tPrimitiveType,
-      TMaterialInstance **materialInstances,
-      int materialInstanceCount,
-      void (*callback)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        {
-          auto sceneAsset = SceneAsset_createGeometryWithBuilder(tEngine, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, tPrimitiveType, materialInstances, materialInstanceCount);
-          PROXY(callback(sceneAsset));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       TEngine *tEngine,
