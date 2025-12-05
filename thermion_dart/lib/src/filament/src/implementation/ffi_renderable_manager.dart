@@ -276,12 +276,12 @@ class FFIRenderableManager
 
   @override
   VertexBufferBuilder createVertexBufferBuilder() {
-    return FFIVertexBufferBuilder(app);
+    return FFIVertexBufferBuilder(app.engine);
   }
 
   @override
   IndexBufferBuilder createIndexBufferBuilder() {
-    return FFIIndexBufferBuilder(app);
+    return FFIIndexBufferBuilder(app.engine);
   }
 }
 

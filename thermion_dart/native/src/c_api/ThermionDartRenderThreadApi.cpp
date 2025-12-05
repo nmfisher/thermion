@@ -596,6 +596,25 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(
+      TEngine *tEngine,
+      TVertexBuffer *tVertexBuffer,
+      TIndexBuffer *tIndexBuffer,
+      TMaterialInstance **materialInstances,
+      int materialInstanceCount,
+      TPrimitiveType tPrimitiveType,
+      Aabb3 boundingBox,
+      void (*callback)(TSceneAsset *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          auto sceneAsset = SceneAsset_createFromBuffers(tEngine, tVertexBuffer, tIndexBuffer, materialInstances, materialInstanceCount, tPrimitiveType, boundingBox);
+          PROXY(callback(sceneAsset));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(
       TSceneAsset *asset, TMaterialInstance **tMaterialInstances,
       int materialInstanceCount,

@@ -64,7 +64,52 @@ extern "C"
         }
 
         return reinterpret_cast<TSceneAsset*>(sceneAsset.release());
-        
+
+    }
+
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromBuffers(
+        TEngine *tEngine,
+        TVertexBuffer *tVertexBuffer,
+        TIndexBuffer *tIndexBuffer,
+        TMaterialInstance **materialInstances,
+        int materialInstanceCount,
+        TPrimitiveType tPrimitiveType,
+        Aabb3 boundingBox
+    ) {
+        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+        auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer *>(tVertexBuffer);
+        auto *indexBuffer = reinterpret_cast<filament::IndexBuffer *>(tIndexBuffer);
+        auto **matInstances = reinterpret_cast<filament::MaterialInstance **>(materialInstances);
+        auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(tPrimitiveType);
+
+        // Convert Aabb3 to filament::Box
+        filament::Box box;
+        box.set(
+            filament::math::float3{
+                boundingBox.centerX - boundingBox.halfExtentX,
+                boundingBox.centerY - boundingBox.halfExtentY,
+                boundingBox.centerZ - boundingBox.halfExtentZ
+            },
+            filament::math::float3{
+                boundingBox.centerX + boundingBox.halfExtentX,
+                boundingBox.centerY + boundingBox.halfExtentY,
+                boundingBox.centerZ + boundingBox.halfExtentZ
+            }
+        );
+
+        // Create the GeometrySceneAsset directly
+        auto *sceneAsset = new GeometrySceneAsset(
+            engine,
+            vertexBuffer,
+            indexBuffer,
+            matInstances,
+            materialInstanceCount,
+            primitiveType,
+            box,
+            nullptr  // instanceOwner - this is not an instance
+        );
+
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(

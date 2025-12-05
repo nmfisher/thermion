@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
+import '../../../bindings/bindings.dart' as bindings;
+
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_renderable_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -1109,6 +1114,90 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       //stackPtr = stackSave();
     }
 
+    // Build vertex buffer
+    final vertexBufferBuilder = FFIVertexBufferBuilder(engine);
+    vertexBufferBuilder.vertexCount(geometry.vertices.length ~/ 3);
+    vertexBufferBuilder.bufferCount(geometry.uvs.length > 0 ? 3 : (geometry.normals.length > 0 ? 2 : 1));
+
+    // Position attribute (always present)
+    vertexBufferBuilder.attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
+
+    // Normal attribute (if present)
+    if (geometry.normals.length > 0) {
+      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS, 1, VertexAttributeType.FLOAT4);
+    }
+
+    // UV attribute (if present)
+    if (geometry.uvs.length > 0) {
+      vertexBufferBuilder.attribute(VertexAttribute.UV0, geometry.normals.length > 0 ? 2 : 1, VertexAttributeType.FLOAT2);
+    }
+
+    final vertexBuffer = await vertexBufferBuilder.build() as FFIVertexBuffer;
+
+    // Set vertex data
+    await vertexBuffer.setBufferAt(0, geometry.vertices);
+
+    if (geometry.normals.length > 0) {
+      // Convert Float32List normals (xyz) to Float32List tangents (xyzw with w=1.0)
+      final tangents = Float32List(geometry.normals.length ~/ 3 * 4);
+      for (int i = 0; i < geometry.normals.length ~/ 3; i++) {
+        tangents[i * 4 + 0] = geometry.normals[i * 3 + 0];
+        tangents[i * 4 + 1] = geometry.normals[i * 3 + 1];
+        tangents[i * 4 + 2] = geometry.normals[i * 3 + 2];
+        tangents[i * 4 + 3] = 1.0; // w component
+      }
+      await vertexBuffer.setBufferAt(1, tangents);
+      if (FILAMENT_WASM) {
+        tangents.free();
+      }
+    }
+
+    if (geometry.uvs.length > 0) {
+      await vertexBuffer.setBufferAt(geometry.normals.length > 0 ? 2 : 1, geometry.uvs);
+    }
+
+    // Build index buffer
+    final indexBufferBuilder = FFIIndexBufferBuilder(engine);
+    indexBufferBuilder.indexCount(geometry.indices.length);
+    indexBufferBuilder.bufferType(IndexType.USHORT);
+    final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
+    await indexBuffer.setBuffer(geometry.indices);
+
+    // Calculate bounding box from vertices
+    double minX = double.infinity, minY = double.infinity, minZ = double.infinity;
+    double maxX = double.negativeInfinity, maxY = double.negativeInfinity, maxZ = double.negativeInfinity;
+
+    for (int i = 0; i < geometry.vertices.length; i += 3) {
+      final x = geometry.vertices[i];
+      final y = geometry.vertices[i + 1];
+      final z = geometry.vertices[i + 2];
+
+      minX = math.min(minX, x);
+      minY = math.min(minY, y);
+      minZ = math.min(minZ, z);
+      maxX = math.max(maxX, x);
+      maxY = math.max(maxY, y);
+      maxZ = math.max(maxZ, z);
+    }
+
+    final centerX = (minX + maxX) / 2.0;
+    final centerY = (minY + maxY) / 2.0;
+    final centerZ = (minZ + maxZ) / 2.0;
+    final halfExtentX = (maxX - minX) / 2.0;
+    final halfExtentY = (maxY - minY) / 2.0;
+    final halfExtentZ = (maxZ - minZ) / 2.0;
+
+    // Convert Aabb3 to C struct format
+    final cAabb = bindings.StructAllocator.create<bindings.Aabb3>();
+
+    cAabb.centerX = centerX;
+    cAabb.centerY = centerY;
+    cAabb.centerZ = centerZ;
+    cAabb.halfExtentX = halfExtentX;
+    cAabb.halfExtentY = halfExtentY;
+    cAabb.halfExtentZ = halfExtentZ;
+
+    // Prepare material instance pointers
     final ptrList = IntPtrList(materialInstances?.length ?? 0);
     if (materialInstances != null) {
       ptrList.setRange(
@@ -1120,20 +1209,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               .toList());
     }
 
+    // Create the scene asset from buffers
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
-      var ptr = SceneAsset_createGeometryWithBuilderRenderThread(
+      var ptr = SceneAsset_createFromBuffersRenderThread(
           engine,
-          geometry.vertices.address,
-          geometry.vertices.length,
-          geometry.normals.address,
-          geometry.normals.length,
-          geometry.uvs.address,
-          geometry.uvs.length,
-          geometry.indices.address,
-          geometry.indices.length,
-          geometry.primitiveType.index,
+          vertexBuffer.getNativeHandle(),
+          indexBuffer.getNativeHandle(),
           ptrList.address.cast(),
           ptrList.length ?? 0,
+          geometry.primitiveType.index,
+          cAabb,
           callback);
       return ptr;
     });
@@ -1144,6 +1229,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       geometry.vertices.free();
       geometry.normals.free();
       geometry.uvs.free();
+      geometry.indices.free();
     }
 
     if (assetPtr == nullptr) {

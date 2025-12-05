@@ -6,10 +6,10 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// FFI implementation of VertexBuffer for native platforms.
 class FFIVertexBuffer extends VertexBuffer {
   final bindings.Pointer<bindings.TVertexBuffer> _ptr;
-  final FFIFilamentApp _app;
+  final bindings.Pointer<bindings.TEngine> _engine;
   late final _logger = Logger('FFIVertexBuffer');
 
-  FFIVertexBuffer(this._ptr, this._app);
+  FFIVertexBuffer(this._ptr, this._engine);
 
   /// Returns the native handle for FFI calls.
   bindings.Pointer<bindings.TVertexBuffer> getNativeHandle() => _ptr;
@@ -24,7 +24,7 @@ class FFIVertexBuffer extends VertexBuffer {
       {int byteOffset = 0}) async {
     final byteData = data.buffer.asUint8List(data.offsetInBytes);
     bindings.VertexBuffer_setBufferAt(
-      _app.engine,
+      _engine,
       _ptr,
       bufferIndex,
       byteData.address.cast(),
@@ -35,17 +35,17 @@ class FFIVertexBuffer extends VertexBuffer {
 
   @override
   Future destroy() async {
-    bindings.VertexBuffer_destroy(_app.engine, _ptr);
+    bindings.VertexBuffer_destroy(_engine, _ptr);
   }
 }
 
 /// FFI implementation of VertexBufferBuilder for native platforms.
 class FFIVertexBufferBuilder implements VertexBufferBuilder {
   bindings.Pointer<bindings.TVertexBufferBuilder>? _builderPtr;
-  final FFIFilamentApp _app;
+  final bindings.Pointer<bindings.TEngine> _engine;
   bool _isBuilt = false;
 
-  FFIVertexBufferBuilder(this._app) {
+  FFIVertexBufferBuilder(this._engine) {
     _builderPtr = bindings.VertexBufferBuilder_create();
   }
 
@@ -106,13 +106,13 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
     _checkNotBuilt();
 
     final vertexBufferPtr =
-        bindings.VertexBufferBuilder_build(_builderPtr!, _app.engine);
+        bindings.VertexBufferBuilder_build(_builderPtr!, _engine);
 
     bindings.VertexBufferBuilder_destroy(_builderPtr!);
     _builderPtr = null;
     _isBuilt = true;
 
-    return FFIVertexBuffer(vertexBufferPtr, _app);
+    return FFIVertexBuffer(vertexBufferPtr, _engine);
   }
 
   int _vertexAttributeToInt(VertexAttribute attribute) {

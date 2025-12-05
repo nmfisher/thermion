@@ -7,10 +7,10 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// FFI implementation of IndexBuffer for native platforms.
 class FFIIndexBuffer extends IndexBuffer {
   final bindings.Pointer<bindings.TIndexBuffer> _ptr;
-  final FFIFilamentApp _app;
+  final bindings.Pointer<bindings.TEngine> _engine;
   late final _logger = Logger('FFIIndexBuffer');
 
-  FFIIndexBuffer(this._ptr, this._app);
+  FFIIndexBuffer(this._ptr, this._engine);
 
   /// Returns the native handle for FFI calls.
   bindings.Pointer<bindings.TIndexBuffer> getNativeHandle() => _ptr;
@@ -23,28 +23,23 @@ class FFIIndexBuffer extends IndexBuffer {
   @override
   Future setBuffer(TypedData data, {int byteOffset = 0}) async {
     final byteData = data.buffer.asUint8List();
-    bindings.IndexBuffer_setBuffer(
-      _app.engine,
-      _ptr,
-      byteData.address.cast(),
-      byteData.length,
-      byteOffset
-    );
+    bindings.IndexBuffer_setBuffer(_engine, _ptr, byteData.address.cast(),
+        byteData.length, byteOffset);
   }
 
   @override
   Future destroy() async {
-    bindings.IndexBuffer_destroy(_app.engine, _ptr);
+    bindings.IndexBuffer_destroy(_engine, _ptr);
   }
 }
 
 /// FFI implementation of IndexBufferBuilder for native platforms.
 class FFIIndexBufferBuilder implements IndexBufferBuilder {
   bindings.Pointer<bindings.TIndexBufferBuilder>? _builderPtr;
-  final FFIFilamentApp _app;
+  final bindings.Pointer<bindings.TEngine> _engine;
   bool _isBuilt = false;
 
-  FFIIndexBufferBuilder(this._app) {
+  FFIIndexBufferBuilder(this._engine) {
     _builderPtr = bindings.IndexBufferBuilder_create();
   }
 
@@ -77,12 +72,12 @@ class FFIIndexBufferBuilder implements IndexBufferBuilder {
     _checkNotBuilt();
 
     final indexBufferPtr =
-        bindings.IndexBufferBuilder_build(_builderPtr!, _app.engine);
+        bindings.IndexBufferBuilder_build(_builderPtr!, _engine);
 
     bindings.IndexBufferBuilder_destroy(_builderPtr!);
     _builderPtr = null;
     _isBuilt = true;
 
-    return FFIIndexBuffer(indexBufferPtr, _app);
+    return FFIIndexBuffer(indexBufferPtr, _engine);
   }
 }

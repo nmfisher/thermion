@@ -9,7 +9,7 @@ extern "C"
 {
 #endif
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometryWithBuilder(
-        TEngine *tEngine, 
+        TEngine *tEngine,
         float *vertices,
         uint32_t numVertices,
         float *normals,
@@ -21,6 +21,15 @@ extern "C"
         enum TPrimitiveType tPrimitiveType,
         TMaterialInstance **materialInstances,
 		int materialInstanceCount
+    );
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromBuffers(
+        TEngine *tEngine,
+        TVertexBuffer *tVertexBuffer,
+        TIndexBuffer *tIndexBuffer,
+        TMaterialInstance **materialInstances,
+        int materialInstanceCount,
+        enum TPrimitiveType tPrimitiveType,
+        Aabb3 boundingBox
     );
     EMSCRIPTEN_KEEPALIVE TSceneAsset * SceneAsset_createFromFilamentAsset(
         TEngine *tEngine,
