@@ -85,10 +85,9 @@ namespace thermion
 
     std::unique_ptr<GeometrySceneAsset> GeometrySceneAssetBuilder::build()
     {
-        Log("Starting build. Validating inputs...");
         if (!validate())
         {
-            Log("Validation failed!");
+            LOG_ERROR("Geometry validation failed!");
             return nullptr;
         }
 
@@ -96,10 +95,10 @@ namespace thermion
         auto [vertexBuffer, indexBuffer] = createBuffers();
         if (!vertexBuffer || !indexBuffer)
         {
-            Log("Failed to create buffers: VB=%p, IB=%p", vertexBuffer, indexBuffer);
+            LOG_ERROR("Failed to create buffers: VB=%p, IB=%p", vertexBuffer, indexBuffer);
             return nullptr;
         }
-        TRACE("Buffers created successfully: VB=%p, IB=%p", vertexBuffer, indexBuffer);
+        TRACE("Geometry buffers created successfully with %lu vertices and %lu indicesp", vertexBuffer->getVertexCount(), indexBuffer->getIndexCount());
 
         Box boundingBox = computeBoundingBox();
         TRACE("Computed bounding box: min={%f,%f,%f}, max={%f,%f,%f}",
@@ -115,7 +114,6 @@ namespace thermion
             mPrimitiveType,
             boundingBox);
 
-        TRACE("Asset created: %p", asset.get());
         return asset;
     }
 
