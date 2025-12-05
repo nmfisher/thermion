@@ -562,8 +562,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    final instance = await createUbershaderMaterialInstance(unlit: true);
-    return instance;
+    return createUbershaderMaterialInstance(unlit: true);
   }
 
   ///
