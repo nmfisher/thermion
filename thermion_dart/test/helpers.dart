@@ -107,6 +107,24 @@ class TestHelper {
     return texture;
   }
 
+  /// Load the solidcolor material and create an instance with the given color.
+  ///
+  /// The solidcolor material only requires POSITION vertex attribute, making it
+  /// suitable for testing custom vertex/index buffers without needing vertex colors.
+  Future<MaterialInstance> loadSolidColorMaterial({
+    required double r,
+    required double g,
+    required double b,
+    double a = 1.0,
+  }) async {
+    final material = await FilamentApp.instance!.createMaterial(
+      File("${testDir}/assets/solidcolor.filamat").readAsBytesSync(),
+    );
+    final instance = await material.createInstance();
+    await instance.setParameterFloat4("color", r, g, b, a);
+    return instance;
+  }
+
   ///
   ///
   ///
