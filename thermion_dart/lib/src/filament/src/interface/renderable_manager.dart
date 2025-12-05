@@ -258,6 +258,12 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   ///
   /// [primitiveCount] The number of primitives that will be supplied to the builder
   RenderableBuilder createBuilder(int primitiveCount);
+
+  /// Creates a builder for constructing vertex buffers.
+  VertexBufferBuilder createVertexBufferBuilder();
+
+  /// Creates a builder for constructing index buffers.
+  IndexBufferBuilder createIndexBufferBuilder();
 }
 
 /// Builder for creating renderable components.
@@ -297,7 +303,7 @@ abstract class RenderableBuilder {
   /// [offset] Where to start reading in the index buffer (in indices)
   /// [count] Number of indices to read
   void geometry(int primitiveIndex, PrimitiveType type,
-      dynamic vertices, dynamic indices, int offset, int count);
+      VertexBuffer vertices, IndexBuffer indices, int offset, int count);
 
   /// Sets the rendering priority (0-7, where 7 is lowest/rendered last).
   ///
