@@ -89,6 +89,11 @@ namespace thermion
             return reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance)->isStencilWriteEnabled();
         }
 
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDoubleSided(TMaterialInstance *materialInstance, bool enabled)
+        {
+            reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setDoubleSided(enabled);
+        }
+
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance *materialInstance, bool enabled)
         {
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setDepthWrite(enabled);
