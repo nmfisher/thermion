@@ -20,7 +20,7 @@ extern "C"
 {
 #endif
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometry(
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometryWithBuilder(
         TEngine *tEngine, 
         float *vertices,
         uint32_t numVertices,

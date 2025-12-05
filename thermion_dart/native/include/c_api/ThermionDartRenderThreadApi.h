@@ -125,7 +125,7 @@ namespace thermion
             void (*onComplete)(TSceneAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryWithBuilderRenderThread(
             TEngine *tEngine, 
             float *vertices,
             uint32_t numVertices,

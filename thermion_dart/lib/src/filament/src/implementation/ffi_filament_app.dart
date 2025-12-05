@@ -1122,7 +1122,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
-      var ptr = SceneAsset_createGeometryRenderThread(
+      var ptr = SceneAsset_createGeometryWithBuilderRenderThread(
           engine,
           geometry.vertices.address,
           geometry.vertices.length,
