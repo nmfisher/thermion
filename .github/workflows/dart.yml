@@ -5,6 +5,11 @@ on:
     branches: [ "develop" ]
   pull_request:
     branches: [ "develop" ]
+  # Run tests after ffigen bindings are generated
+  workflow_run:
+    workflows: ["ffigen"] # Name of the workflow that runs ffigen
+    types:
+      - completed
 
 jobs:
   compile-web-wasm:
