@@ -101,6 +101,7 @@ abstract class Material<T> extends NativeHandle<T> {
 
 abstract class MaterialInstance<T> extends NativeHandle<T> {
   Future<bool> isStencilWriteEnabled();
+  Future setDoubleSided(bool doubleSided);
   Future setDepthWriteEnabled(bool enabled);
   Future setDepthFunc(SamplerCompareFunction depthFunc);
   Future setDepthCullingEnabled(bool enabled);
@@ -110,10 +111,8 @@ abstract class MaterialInstance<T> extends NativeHandle<T> {
   Future setParameterFloat3Array(String name, List<Vector3> data);
   Future setParameterFloat4(
       String name, double x, double y, double z, double w);
-  Future setParameterMat3(
-      String name, Matrix3 matrix);
-  Future setParameterMat4(
-      String name, Matrix4 matrix);
+  Future setParameterMat3(String name, Matrix3 matrix);
+  Future setParameterMat4(String name, Matrix4 matrix);
 
   Future setParameterInt(String name, int value);
   Future setParameterBool(String name, bool value);
