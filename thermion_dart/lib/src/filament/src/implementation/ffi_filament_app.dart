@@ -567,7 +567,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    return createUbershaderMaterialInstance(unlit: true);
+    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
   }
 
   ///
@@ -1117,26 +1117,45 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Build vertex buffer
     final vertexBufferBuilder = FFIVertexBufferBuilder(engine);
     vertexBufferBuilder.vertexCount(geometry.vertices.length ~/ 3);
-    vertexBufferBuilder.bufferCount(geometry.uvs.length > 0 ? 3 : (geometry.normals.length > 0 ? 2 : 1));
 
-    // Position attribute (always present)
+    // Calculate buffer count - always include UV0 and COLOR like the native C++ code
+    int bufferCount = 1; // Always have positions
+    if (geometry.normals.length > 0) {
+      bufferCount++;
+    }
+    bufferCount++; // Always include UV0
+    bufferCount++; // Always include COLOR
+    vertexBufferBuilder.bufferCount(bufferCount);
+
+    // Position attribute (always present at buffer 0)
     vertexBufferBuilder.attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
+
+    // Track current buffer index
+    int currentBufferIndex = 1;
 
     // Normal attribute (if present)
     if (geometry.normals.length > 0) {
-      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS, 1, VertexAttributeType.FLOAT4);
+      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS, currentBufferIndex, VertexAttributeType.FLOAT4);
+      currentBufferIndex++;
     }
 
-    // UV attribute (if present)
-    if (geometry.uvs.length > 0) {
-      vertexBufferBuilder.attribute(VertexAttribute.UV0, geometry.normals.length > 0 ? 2 : 1, VertexAttributeType.FLOAT2);
-    }
+    // UV0 attribute (always present like the native C++ code)
+    vertexBufferBuilder.attribute(VertexAttribute.UV0, currentBufferIndex, VertexAttributeType.FLOAT2);
+    currentBufferIndex++;
+
+    // COLOR attribute (always present like the native C++ code)
+    vertexBufferBuilder.attribute(VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
+    currentBufferIndex++;
 
     final vertexBuffer = await vertexBufferBuilder.build() as FFIVertexBuffer;
 
-    // Set vertex data
+    // Set vertex data - Position always at buffer 0
     await vertexBuffer.setBufferAt(0, geometry.vertices);
 
+    // Reset buffer index for data population
+    currentBufferIndex = 1;
+
+    // Set normal/tangent data
     if (geometry.normals.length > 0) {
       // Convert Float32List normals (xyz) to Float32List tangents (xyzw with w=1.0)
       final tangents = Float32List(geometry.normals.length ~/ 3 * 4);
@@ -1146,14 +1165,46 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         tangents[i * 4 + 2] = geometry.normals[i * 3 + 2];
         tangents[i * 4 + 3] = 1.0; // w component
       }
-      await vertexBuffer.setBufferAt(1, tangents);
+      await vertexBuffer.setBufferAt(currentBufferIndex, tangents);
+      currentBufferIndex++;
       if (FILAMENT_WASM) {
         tangents.free();
       }
     }
 
+    // Set UV data (always present, use zeros if not provided)
     if (geometry.uvs.length > 0) {
-      await vertexBuffer.setBufferAt(geometry.normals.length > 0 ? 2 : 1, geometry.uvs);
+      await vertexBuffer.setBufferAt(currentBufferIndex, geometry.uvs);
+    } else {
+      // Create dummy UVs like the native C++ code does
+      final dummyUvs = Float32List(geometry.vertices.length ~/ 3 * 2);
+      for (int i = 0; i < dummyUvs.length; i += 2) {
+        dummyUvs[i] = 0.0; // u
+        dummyUvs[i + 1] = 0.0; // v
+      }
+      await vertexBuffer.setBufferAt(currentBufferIndex, dummyUvs);
+      if (FILAMENT_WASM) {
+        dummyUvs.free();
+      }
+    }
+    currentBufferIndex++;
+
+    // Set color data (always present, use white if not provided)
+    if (geometry.colors.length > 0) {
+      await vertexBuffer.setBufferAt(currentBufferIndex, geometry.colors);
+    } else {
+      // Create dummy colors like the native C++ code does
+      final dummyColors = Float32List(geometry.vertices.length ~/ 3 * 4);
+      for (int i = 0; i < dummyColors.length; i += 4) {
+        dummyColors[i] = 1.0;     // r
+        dummyColors[i + 1] = 1.0; // g
+        dummyColors[i + 2] = 1.0; // b
+        dummyColors[i + 3] = 1.0; // a
+      }
+      await vertexBuffer.setBufferAt(currentBufferIndex, dummyColors);
+      if (FILAMENT_WASM) {
+        dummyColors.free();
+      }
     }
 
     // Build index buffer
@@ -1229,6 +1280,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       geometry.vertices.free();
       geometry.normals.free();
       geometry.uvs.free();
+      geometry.colors.free();
       geometry.indices.free();
     }
 
