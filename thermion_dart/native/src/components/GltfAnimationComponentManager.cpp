@@ -31,7 +31,6 @@ namespace thermion
                 auto &fadeOutAnimation = animationComponent.fadeOutAnimation;
                 fadeOutAnimation.index = last.index;
                 fadeOutAnimation.startTimeInNanos = last.startTimeInNanos;
-                Log("Set fade out animation to %d (which started at %lu)", fadeOutAnimation.index, fadeOutAnimation.startTimeInNanos);
                 animationComponent.fadeOutAnimation = fadeOutAnimation;
                 animationComponent.fadeOutDuration = crossfade;
                 animationComponent.animations.clear();
