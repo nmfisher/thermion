@@ -2178,7 +2178,7 @@ external void TransformManager_commitLocalTransformTransaction(
         ffi.UnsignedInt,
         ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
         ffi.Int)>(isLeaf: true)
-external ffi.Pointer<TSceneAsset> SceneAsset_createGeometry(
+external ffi.Pointer<TSceneAsset> SceneAsset_createGeometryWithBuilder(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
@@ -3947,7 +3947,7 @@ external void SceneAsset_createInstanceRenderThread(
                 ffi
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
     isLeaf: true)
-external void SceneAsset_createGeometryRenderThread(
+external void SceneAsset_createGeometryWithBuilderRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,

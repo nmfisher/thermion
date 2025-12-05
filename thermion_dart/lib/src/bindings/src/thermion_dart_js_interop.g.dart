@@ -1247,7 +1247,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _TransformManager_commitLocalTransformTransaction(
     Pointer<TTransformManager> tTransformManager,
   );
-  external Pointer<TSceneAsset> _SceneAsset_createGeometry(
+  external Pointer<TSceneAsset> _SceneAsset_createGeometryWithBuilder(
     Pointer<TEngine> tEngine,
     Pointer<Float32> vertices,
     int numVertices,
@@ -2147,7 +2147,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int materialInstanceCount,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
   );
-  external void _SceneAsset_createGeometryRenderThread(
+  external void _SceneAsset_createGeometryWithBuilderRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<Float32> vertices,
     int numVertices,
@@ -5356,7 +5356,7 @@ void TransformManager_commitLocalTransformTransaction(
   return result;
 }
 
-Pointer<TSceneAsset> SceneAsset_createGeometry(
+Pointer<TSceneAsset> SceneAsset_createGeometryWithBuilder(
   Pointer<TEngine> tEngine,
   Pointer<Float32> vertices,
   int numVertices,
@@ -5370,19 +5370,20 @@ Pointer<TSceneAsset> SceneAsset_createGeometry(
   Pointer<PointerClass<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
 ) {
-  final result = GeneratedBindings.instance._SceneAsset_createGeometry(
-      tEngine.cast(),
-      vertices,
-      numVertices,
-      normals,
-      numNormals,
-      uvs,
-      numUvs,
-      indices,
-      numIndices,
-      tPrimitiveType,
-      materialInstances.cast(),
-      materialInstanceCount);
+  final result = GeneratedBindings.instance
+      ._SceneAsset_createGeometryWithBuilder(
+          tEngine.cast(),
+          vertices,
+          numVertices,
+          normals,
+          numNormals,
+          uvs,
+          numUvs,
+          indices,
+          numIndices,
+          tPrimitiveType,
+          materialInstances.cast(),
+          materialInstanceCount);
   return Pointer<TSceneAsset>(result);
 }
 
@@ -7315,7 +7316,7 @@ void SceneAsset_createInstanceRenderThread(
   return result;
 }
 
-void SceneAsset_createGeometryRenderThread(
+void SceneAsset_createGeometryWithBuilderRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<Float32> vertices,
   int numVertices,
@@ -7331,7 +7332,7 @@ void SceneAsset_createGeometryRenderThread(
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> callback,
 ) {
   final result = GeneratedBindings.instance
-      ._SceneAsset_createGeometryRenderThread(
+      ._SceneAsset_createGeometryWithBuilderRenderThread(
           tEngine.cast(),
           vertices,
           numVertices,
