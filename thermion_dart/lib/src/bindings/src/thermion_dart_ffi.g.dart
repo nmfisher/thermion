@@ -669,6 +669,13 @@ external void MaterialInstance_setCullingMode(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
     isLeaf: true)
+external void MaterialInstance_setDoubleSided(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool doubleSided,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
+    isLeaf: true)
 external void MaterialInstance_setDepthWrite(
   ffi.Pointer<TMaterialInstance> materialInstance,
   bool enabled,
@@ -1438,6 +1445,60 @@ external bool AnimationManager_setGltfAnimationFrame(
   int frame,
 );
 
+@ffi.Native<ffi.Pointer<TIndexBufferBuilder> Function()>(isLeaf: true)
+external ffi.Pointer<TIndexBufferBuilder> IndexBufferBuilder_create();
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>, ffi.Uint32)>(
+    isLeaf: true)
+external void IndexBufferBuilder_indexCount(
+  ffi.Pointer<TIndexBufferBuilder> builder,
+  int count,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TIndexBufferBuilder>, ffi.UnsignedInt)>(isLeaf: true)
+external void IndexBufferBuilder_bufferType(
+  ffi.Pointer<TIndexBufferBuilder> builder,
+  int indexType,
+);
+
+@ffi.Native<
+    ffi.Pointer<TIndexBuffer> Function(
+        ffi.Pointer<TIndexBufferBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TIndexBuffer> IndexBufferBuilder_build(
+  ffi.Pointer<TIndexBufferBuilder> builder,
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TIndexBufferBuilder>)>(isLeaf: true)
+external void IndexBufferBuilder_destroy(
+  ffi.Pointer<TIndexBufferBuilder> builder,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TIndexBuffer>)>(isLeaf: true)
+external int IndexBuffer_getIndexCount(
+  ffi.Pointer<TIndexBuffer> buffer,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndexBuffer>,
+        ffi.Pointer<ffi.Void>, ffi.Size, ffi.Uint32)>(isLeaf: true)
+external void IndexBuffer_setBuffer(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TIndexBuffer> buffer,
+  ffi.Pointer<ffi.Void> data,
+  int sizeInBytes,
+  int byteOffset,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndexBuffer>)>(
+    isLeaf: true)
+external void IndexBuffer_destroy(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TIndexBuffer> buffer,
+);
+
 @ffi.Native<
     ffi.Pointer<TGltfAssetLoader> Function(
         ffi.Pointer<TEngine>,
@@ -2167,30 +2228,20 @@ external void TransformManager_commitLocalTransformTransaction(
 @ffi.Native<
     ffi.Pointer<TSceneAsset> Function(
         ffi.Pointer<TEngine>,
-        ffi.Pointer<ffi.Float>,
-        ffi.Uint32,
-        ffi.Pointer<ffi.Float>,
-        ffi.Uint32,
-        ffi.Pointer<ffi.Float>,
-        ffi.Uint32,
-        ffi.Pointer<ffi.Uint16>,
-        ffi.Uint32,
-        ffi.UnsignedInt,
+        ffi.Pointer<TVertexBuffer>,
+        ffi.Pointer<TIndexBuffer>,
         ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
-        ffi.Int)>(isLeaf: true)
-external ffi.Pointer<TSceneAsset> SceneAsset_createGeometryWithBuilder(
+        ffi.Int,
+        ffi.UnsignedInt,
+        Aabb3)>(isLeaf: true)
+external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
-  ffi.Pointer<ffi.Float> normals,
-  int numNormals,
-  ffi.Pointer<ffi.Float> uvs,
-  int numUvs,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int tPrimitiveType,
+  ffi.Pointer<TVertexBuffer> tVertexBuffer,
+  ffi.Pointer<TIndexBuffer> tIndexBuffer,
   ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
+  int tPrimitiveType,
+  Aabb3 boundingBox,
 );
 
 @ffi.Native<
@@ -3914,6 +3965,31 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
 
 @ffi.Native<
         ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TVertexBuffer>,
+            ffi.Pointer<TIndexBuffer>,
+            ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
+            ffi.Int,
+            ffi.UnsignedInt,
+            Aabb3,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
+    isLeaf: true)
+external void SceneAsset_createFromBuffersRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TVertexBuffer> tVertexBuffer,
+  ffi.Pointer<TIndexBuffer> tIndexBuffer,
+  ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
+  int materialInstanceCount,
+  int tPrimitiveType,
+  Aabb3 boundingBox,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
+      callback,
+);
+
+@ffi.Native<
+        ffi.Void Function(
             ffi.Pointer<TSceneAsset>,
             ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
             ffi.Int,
@@ -3924,41 +4000,6 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
 external void SceneAsset_createInstanceRenderThread(
   ffi.Pointer<TSceneAsset> asset,
   ffi.Pointer<ffi.Pointer<TMaterialInstance>> tMaterialInstances,
-  int materialInstanceCount,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TEngine>,
-            ffi.Pointer<ffi.Float>,
-            ffi.Uint32,
-            ffi.Pointer<ffi.Float>,
-            ffi.Uint32,
-            ffi.Pointer<ffi.Float>,
-            ffi.Uint32,
-            ffi.Pointer<ffi.Uint16>,
-            ffi.Uint32,
-            ffi.UnsignedInt,
-            ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
-            ffi.Int,
-            ffi.Pointer<
-                ffi
-                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
-    isLeaf: true)
-external void SceneAsset_createGeometryWithBuilderRenderThread(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
-  ffi.Pointer<ffi.Float> normals,
-  int numNormals,
-  ffi.Pointer<ffi.Float> uvs,
-  int numUvs,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int tPrimitiveType,
-  ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
       callback,
@@ -4626,6 +4667,82 @@ external void GltfParser_freeMeshData(
   ffi.Pointer<TGltfMeshData> meshData,
 );
 
+@ffi.Native<ffi.Pointer<TVertexBufferBuilder> Function()>(isLeaf: true)
+external ffi.Pointer<TVertexBufferBuilder> VertexBufferBuilder_create();
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint8)>(
+    isLeaf: true)
+external void VertexBufferBuilder_bufferCount(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int count,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint32)>(
+    isLeaf: true)
+external void VertexBufferBuilder_vertexCount(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int count,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt,
+        ffi.Uint8, ffi.UnsignedInt, ffi.Uint32, ffi.Uint8)>(isLeaf: true)
+external void VertexBufferBuilder_attribute(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  int bufferIndex,
+  int attributeType,
+  int byteOffset,
+  int byteStride,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt,
+        ffi.Bool)>(isLeaf: true)
+external void VertexBufferBuilder_normalized(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  bool normalize,
+);
+
+@ffi.Native<
+    ffi.Pointer<TVertexBuffer> Function(
+        ffi.Pointer<TVertexBufferBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TVertexBuffer> VertexBufferBuilder_build(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>)>(isLeaf: true)
+external void VertexBufferBuilder_destroy(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
+external int VertexBuffer_getVertexCount(
+  ffi.Pointer<TVertexBuffer> buffer,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>,
+        ffi.Uint8, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Uint32)>(isLeaf: true)
+external void VertexBuffer_setBufferAt(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TVertexBuffer> buffer,
+  int bufferIndex,
+  ffi.Pointer<ffi.Void> data,
+  int sizeInBytes,
+  int byteOffset,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
+external void VertexBuffer_destroy(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TVertexBuffer> buffer,
+);
+
 @ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(
     isLeaf: true)
 external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
@@ -5010,6 +5127,10 @@ final class TVertexBuffer extends ffi.Opaque {}
 
 final class TIndexBuffer extends ffi.Opaque {}
 
+final class TVertexBufferBuilder extends ffi.Opaque {}
+
+final class TIndexBufferBuilder extends ffi.Opaque {}
+
 final class double3 extends ffi.Struct {
   @ffi.Double()
   external double x;
@@ -5118,6 +5239,58 @@ sealed class TPrimitiveType {
 
   /// !< triangle strip
   static const PRIMITIVETYPE_TRIANGLE_STRIP = 5;
+}
+
+sealed class TVertexAttribute {
+  static const TVERTEX_ATTRIBUTE_POSITION = 0;
+  static const TVERTEX_ATTRIBUTE_TANGENTS = 1;
+  static const TVERTEX_ATTRIBUTE_COLOR = 2;
+  static const TVERTEX_ATTRIBUTE_UV0 = 3;
+  static const TVERTEX_ATTRIBUTE_UV1 = 4;
+  static const TVERTEX_ATTRIBUTE_BONE_INDICES = 5;
+  static const TVERTEX_ATTRIBUTE_BONE_WEIGHTS = 6;
+  static const TVERTEX_ATTRIBUTE_CUSTOM0 = 8;
+  static const TVERTEX_ATTRIBUTE_CUSTOM1 = 9;
+  static const TVERTEX_ATTRIBUTE_CUSTOM2 = 10;
+  static const TVERTEX_ATTRIBUTE_CUSTOM3 = 11;
+  static const TVERTEX_ATTRIBUTE_CUSTOM4 = 12;
+  static const TVERTEX_ATTRIBUTE_CUSTOM5 = 13;
+  static const TVERTEX_ATTRIBUTE_CUSTOM6 = 14;
+  static const TVERTEX_ATTRIBUTE_CUSTOM7 = 15;
+}
+
+sealed class TVertexAttributeType {
+  static const TVERTEXATTRIBUTE_TYPE_BYTE = 0;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE2 = 1;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE3 = 2;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE4 = 3;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE = 4;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE2 = 5;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE3 = 6;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE4 = 7;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT = 8;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT2 = 9;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT3 = 10;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT4 = 11;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT = 12;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT2 = 13;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT3 = 14;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT4 = 15;
+  static const TVERTEXATTRIBUTE_TYPE_INT = 16;
+  static const TVERTEXATTRIBUTE_TYPE_UINT = 17;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT = 18;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT2 = 19;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT3 = 20;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT4 = 21;
+  static const TVERTEXATTRIBUTE_TYPE_HALF = 22;
+  static const TVERTEXATTRIBUTE_TYPE_HALF2 = 23;
+  static const TVERTEXATTRIBUTE_TYPE_HALF3 = 24;
+  static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
+}
+
+sealed class TIndexType {
+  static const TINDEX_TYPE_USHORT = 0;
+  static const TINDEX_TYPE_UINT = 1;
 }
 
 sealed class TProjection {

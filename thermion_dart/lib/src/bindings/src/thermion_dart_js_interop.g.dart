@@ -412,6 +412,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TMaterialInstance> materialInstance,
     int culling,
   );
+  external void _MaterialInstance_setDoubleSided(
+    Pointer<TMaterialInstance> materialInstance,
+    bool doubleSided,
+  );
   external void _MaterialInstance_setDepthWrite(
     Pointer<TMaterialInstance> materialInstance,
     bool enabled,
@@ -838,6 +842,36 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int animationIndex,
     int frame,
   );
+  external Pointer<TIndexBufferBuilder> _IndexBufferBuilder_create();
+  external void _IndexBufferBuilder_indexCount(
+    Pointer<TIndexBufferBuilder> builder,
+    int count,
+  );
+  external void _IndexBufferBuilder_bufferType(
+    Pointer<TIndexBufferBuilder> builder,
+    int indexType,
+  );
+  external Pointer<TIndexBuffer> _IndexBufferBuilder_build(
+    Pointer<TIndexBufferBuilder> builder,
+    Pointer<TEngine> engine,
+  );
+  external void _IndexBufferBuilder_destroy(
+    Pointer<TIndexBufferBuilder> builder,
+  );
+  external size_t _IndexBuffer_getIndexCount(
+    Pointer<TIndexBuffer> buffer,
+  );
+  external void _IndexBuffer_setBuffer(
+    Pointer<TEngine> engine,
+    Pointer<TIndexBuffer> buffer,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+  );
+  external void _IndexBuffer_destroy(
+    Pointer<TEngine> engine,
+    Pointer<TIndexBuffer> buffer,
+  );
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -1247,19 +1281,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _TransformManager_commitLocalTransformTransaction(
     Pointer<TTransformManager> tTransformManager,
   );
-  external Pointer<TSceneAsset> _SceneAsset_createGeometryWithBuilder(
+  external Pointer<TSceneAsset> _SceneAsset_createFromBuffers(
     Pointer<TEngine> tEngine,
-    Pointer<Float32> vertices,
-    int numVertices,
-    Pointer<Float32> normals,
-    int numNormals,
-    Pointer<Float32> uvs,
-    int numUvs,
-    Pointer<Uint16> indices,
-    int numIndices,
-    int tPrimitiveType,
+    Pointer<TVertexBuffer> tVertexBuffer,
+    Pointer<TIndexBuffer> tIndexBuffer,
     Pointer<PointerClass<TMaterialInstance>> materialInstances,
     int materialInstanceCount,
+    int tPrimitiveType,
+    Pointer<Aabb3> boundingBoxPtr,
   );
   external Pointer<TSceneAsset> _SceneAsset_createFromFilamentAsset(
     Pointer<TEngine> tEngine,
@@ -2141,24 +2170,19 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>>
         onComplete,
   );
+  external void _SceneAsset_createFromBuffersRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TVertexBuffer> tVertexBuffer,
+    Pointer<TIndexBuffer> tIndexBuffer,
+    Pointer<PointerClass<TMaterialInstance>> materialInstances,
+    int materialInstanceCount,
+    int tPrimitiveType,
+    Pointer<Aabb3> boundingBoxPtr,
+    Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
+  );
   external void _SceneAsset_createInstanceRenderThread(
     Pointer<TSceneAsset> asset,
     Pointer<PointerClass<TMaterialInstance>> tMaterialInstances,
-    int materialInstanceCount,
-    Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
-  );
-  external void _SceneAsset_createGeometryWithBuilderRenderThread(
-    Pointer<TEngine> tEngine,
-    Pointer<Float32> vertices,
-    int numVertices,
-    Pointer<Float32> normals,
-    int numNormals,
-    Pointer<Float32> uvs,
-    int numUvs,
-    Pointer<Uint16> indices,
-    int numIndices,
-    int tPrimitiveType,
-    Pointer<PointerClass<TMaterialInstance>> materialInstances,
     int materialInstanceCount,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
   );
@@ -2474,6 +2498,50 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _GltfParser_freeMeshData(
     Pointer<TGltfMeshData> meshData,
+  );
+  external Pointer<TVertexBufferBuilder> _VertexBufferBuilder_create();
+  external void _VertexBufferBuilder_bufferCount(
+    Pointer<TVertexBufferBuilder> builder,
+    int count,
+  );
+  external void _VertexBufferBuilder_vertexCount(
+    Pointer<TVertexBufferBuilder> builder,
+    int count,
+  );
+  external void _VertexBufferBuilder_attribute(
+    Pointer<TVertexBufferBuilder> builder,
+    int attribute,
+    int bufferIndex,
+    int attributeType,
+    int byteOffset,
+    int byteStride,
+  );
+  external void _VertexBufferBuilder_normalized(
+    Pointer<TVertexBufferBuilder> builder,
+    int attribute,
+    bool normalize,
+  );
+  external Pointer<TVertexBuffer> _VertexBufferBuilder_build(
+    Pointer<TVertexBufferBuilder> builder,
+    Pointer<TEngine> engine,
+  );
+  external void _VertexBufferBuilder_destroy(
+    Pointer<TVertexBufferBuilder> builder,
+  );
+  external size_t _VertexBuffer_getVertexCount(
+    Pointer<TVertexBuffer> buffer,
+  );
+  external void _VertexBuffer_setBufferAt(
+    Pointer<TEngine> engine,
+    Pointer<TVertexBuffer> buffer,
+    int bufferIndex,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+  );
+  external void _VertexBuffer_destroy(
+    Pointer<TEngine> engine,
+    Pointer<TVertexBuffer> buffer,
   );
   external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
     Pointer<TEngine> tEngine,
@@ -3532,6 +3600,15 @@ void MaterialInstance_setCullingMode(
   return result;
 }
 
+void MaterialInstance_setDoubleSided(
+  Pointer<TMaterialInstance> materialInstance,
+  bool doubleSided,
+) {
+  final result = GeneratedBindings.instance
+      ._MaterialInstance_setDoubleSided(materialInstance.cast(), doubleSided);
+  return result;
+}
+
 void MaterialInstance_setDepthWrite(
   Pointer<TMaterialInstance> materialInstance,
   bool enabled,
@@ -4442,6 +4519,75 @@ bool AnimationManager_setGltfAnimationFrame(
       ._AnimationManager_setGltfAnimationFrame(
           tAnimationManager.cast(), tSceneAsset.cast(), animationIndex, frame);
   return result == 1;
+}
+
+Pointer<TIndexBufferBuilder> IndexBufferBuilder_create() {
+  final result = GeneratedBindings.instance._IndexBufferBuilder_create();
+  return Pointer<TIndexBufferBuilder>(result);
+}
+
+void IndexBufferBuilder_indexCount(
+  Pointer<TIndexBufferBuilder> builder,
+  int count,
+) {
+  final result = GeneratedBindings.instance
+      ._IndexBufferBuilder_indexCount(builder.cast(), count);
+  return result;
+}
+
+void IndexBufferBuilder_bufferType(
+  Pointer<TIndexBufferBuilder> builder,
+  int indexType,
+) {
+  final result = GeneratedBindings.instance
+      ._IndexBufferBuilder_bufferType(builder.cast(), indexType);
+  return result;
+}
+
+Pointer<TIndexBuffer> IndexBufferBuilder_build(
+  Pointer<TIndexBufferBuilder> builder,
+  Pointer<TEngine> engine,
+) {
+  final result = GeneratedBindings.instance
+      ._IndexBufferBuilder_build(builder.cast(), engine.cast());
+  return Pointer<TIndexBuffer>(result);
+}
+
+void IndexBufferBuilder_destroy(
+  Pointer<TIndexBufferBuilder> builder,
+) {
+  final result =
+      GeneratedBindings.instance._IndexBufferBuilder_destroy(builder.cast());
+  return result;
+}
+
+Dartsize_t IndexBuffer_getIndexCount(
+  Pointer<TIndexBuffer> buffer,
+) {
+  final result =
+      GeneratedBindings.instance._IndexBuffer_getIndexCount(buffer.cast());
+  return result;
+}
+
+void IndexBuffer_setBuffer(
+  Pointer<TEngine> engine,
+  Pointer<TIndexBuffer> buffer,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+) {
+  final result = GeneratedBindings.instance._IndexBuffer_setBuffer(
+      engine.cast(), buffer.cast(), data, sizeInBytes, byteOffset);
+  return result;
+}
+
+void IndexBuffer_destroy(
+  Pointer<TEngine> engine,
+  Pointer<TIndexBuffer> buffer,
+) {
+  final result = GeneratedBindings.instance
+      ._IndexBuffer_destroy(engine.cast(), buffer.cast());
+  return result;
 }
 
 Pointer<TGltfAssetLoader> GltfAssetLoader_create(
@@ -5356,34 +5502,24 @@ void TransformManager_commitLocalTransformTransaction(
   return result;
 }
 
-Pointer<TSceneAsset> SceneAsset_createGeometryWithBuilder(
+Pointer<TSceneAsset> SceneAsset_createFromBuffers(
   Pointer<TEngine> tEngine,
-  Pointer<Float32> vertices,
-  int numVertices,
-  Pointer<Float32> normals,
-  int numNormals,
-  Pointer<Float32> uvs,
-  int numUvs,
-  Pointer<Uint16> indices,
-  int numIndices,
-  int tPrimitiveType,
+  Pointer<TVertexBuffer> tVertexBuffer,
+  Pointer<TIndexBuffer> tIndexBuffer,
   Pointer<PointerClass<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
+  int tPrimitiveType,
+  Aabb3 boundingBox,
 ) {
-  final result = GeneratedBindings.instance
-      ._SceneAsset_createGeometryWithBuilder(
-          tEngine.cast(),
-          vertices,
-          numVertices,
-          normals,
-          numNormals,
-          uvs,
-          numUvs,
-          indices,
-          numIndices,
-          tPrimitiveType,
-          materialInstances.cast(),
-          materialInstanceCount);
+  final boundingBoxPtr = boundingBox.address;
+  final result = GeneratedBindings.instance._SceneAsset_createFromBuffers(
+      tEngine.cast(),
+      tVertexBuffer.cast(),
+      tIndexBuffer.cast(),
+      materialInstances.cast(),
+      materialInstanceCount,
+      tPrimitiveType,
+      boundingBoxPtr.cast());
   return Pointer<TSceneAsset>(result);
 }
 
@@ -7304,6 +7440,30 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   return result;
 }
 
+void SceneAsset_createFromBuffersRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TVertexBuffer> tVertexBuffer,
+  Pointer<TIndexBuffer> tIndexBuffer,
+  Pointer<PointerClass<TMaterialInstance>> materialInstances,
+  int materialInstanceCount,
+  int tPrimitiveType,
+  Aabb3 boundingBox,
+  Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> callback,
+) {
+  final boundingBoxPtr = boundingBox.address;
+  final result = GeneratedBindings.instance
+      ._SceneAsset_createFromBuffersRenderThread(
+          tEngine.cast(),
+          tVertexBuffer.cast(),
+          tIndexBuffer.cast(),
+          materialInstances.cast(),
+          materialInstanceCount,
+          tPrimitiveType,
+          boundingBoxPtr.cast(),
+          callback.cast());
+  return result;
+}
+
 void SceneAsset_createInstanceRenderThread(
   Pointer<TSceneAsset> asset,
   Pointer<PointerClass<TMaterialInstance>> tMaterialInstances,
@@ -7313,39 +7473,6 @@ void SceneAsset_createInstanceRenderThread(
   final result = GeneratedBindings.instance
       ._SceneAsset_createInstanceRenderThread(asset.cast(),
           tMaterialInstances.cast(), materialInstanceCount, callback.cast());
-  return result;
-}
-
-void SceneAsset_createGeometryWithBuilderRenderThread(
-  Pointer<TEngine> tEngine,
-  Pointer<Float32> vertices,
-  int numVertices,
-  Pointer<Float32> normals,
-  int numNormals,
-  Pointer<Float32> uvs,
-  int numUvs,
-  Pointer<Uint16> indices,
-  int numIndices,
-  int tPrimitiveType,
-  Pointer<PointerClass<TMaterialInstance>> materialInstances,
-  int materialInstanceCount,
-  Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> callback,
-) {
-  final result = GeneratedBindings.instance
-      ._SceneAsset_createGeometryWithBuilderRenderThread(
-          tEngine.cast(),
-          vertices,
-          numVertices,
-          normals,
-          numNormals,
-          uvs,
-          numUvs,
-          indices,
-          numIndices,
-          tPrimitiveType,
-          materialInstances.cast(),
-          materialInstanceCount,
-          callback.cast());
   return result;
 }
 
@@ -8015,6 +8142,104 @@ void GltfParser_freeMeshData(
 ) {
   final result =
       GeneratedBindings.instance._GltfParser_freeMeshData(meshData.cast());
+  return result;
+}
+
+Pointer<TVertexBufferBuilder> VertexBufferBuilder_create() {
+  final result = GeneratedBindings.instance._VertexBufferBuilder_create();
+  return Pointer<TVertexBufferBuilder>(result);
+}
+
+void VertexBufferBuilder_bufferCount(
+  Pointer<TVertexBufferBuilder> builder,
+  int count,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_bufferCount(builder.cast(), count);
+  return result;
+}
+
+void VertexBufferBuilder_vertexCount(
+  Pointer<TVertexBufferBuilder> builder,
+  int count,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_vertexCount(builder.cast(), count);
+  return result;
+}
+
+void VertexBufferBuilder_attribute(
+  Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  int bufferIndex,
+  int attributeType,
+  int byteOffset,
+  int byteStride,
+) {
+  final result = GeneratedBindings.instance._VertexBufferBuilder_attribute(
+      builder.cast(),
+      attribute,
+      bufferIndex,
+      attributeType,
+      byteOffset,
+      byteStride);
+  return result;
+}
+
+void VertexBufferBuilder_normalized(
+  Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  bool normalize,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_normalized(builder.cast(), attribute, normalize);
+  return result;
+}
+
+Pointer<TVertexBuffer> VertexBufferBuilder_build(
+  Pointer<TVertexBufferBuilder> builder,
+  Pointer<TEngine> engine,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_build(builder.cast(), engine.cast());
+  return Pointer<TVertexBuffer>(result);
+}
+
+void VertexBufferBuilder_destroy(
+  Pointer<TVertexBufferBuilder> builder,
+) {
+  final result =
+      GeneratedBindings.instance._VertexBufferBuilder_destroy(builder.cast());
+  return result;
+}
+
+Dartsize_t VertexBuffer_getVertexCount(
+  Pointer<TVertexBuffer> buffer,
+) {
+  final result =
+      GeneratedBindings.instance._VertexBuffer_getVertexCount(buffer.cast());
+  return result;
+}
+
+void VertexBuffer_setBufferAt(
+  Pointer<TEngine> engine,
+  Pointer<TVertexBuffer> buffer,
+  int bufferIndex,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+) {
+  final result = GeneratedBindings.instance._VertexBuffer_setBufferAt(
+      engine.cast(), buffer.cast(), bufferIndex, data, sizeInBytes, byteOffset);
+  return result;
+}
+
+void VertexBuffer_destroy(
+  Pointer<TEngine> engine,
+  Pointer<TVertexBuffer> buffer,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBuffer_destroy(engine.cast(), buffer.cast());
   return result;
 }
 
@@ -9187,6 +9412,27 @@ final class TSceneAsset extends Struct {
   }
 }
 
+extension TIndexBufferBuilderExt on Pointer<TIndexBufferBuilder> {
+  TIndexBufferBuilder toDart() {
+    return TIndexBufferBuilder(this);
+  }
+}
+
+final class TIndexBufferBuilder extends Struct {
+  Pointer<TIndexBufferBuilder> get address => super.address.cast();
+  TIndexBufferBuilder(super.address);
+
+  static Pointer<TIndexBufferBuilder> stackAlloc() {
+    return Pointer<TIndexBufferBuilder>(
+        NativeLibrary.instance.stackAlloc<TIndexBufferBuilder>(0));
+  }
+}
+
+sealed class TIndexType {
+  static const TINDEX_TYPE_USHORT = 0;
+  static const TINDEX_TYPE_UINT = 1;
+}
+
 extension TGltfAssetLoaderExt on Pointer<TGltfAssetLoader> {
   TGltfAssetLoader toDart() {
     return TGltfAssetLoader(this);
@@ -10319,6 +10565,69 @@ final class TGltfMeshData extends Struct {
   }
 }
 
+extension TVertexBufferBuilderExt on Pointer<TVertexBufferBuilder> {
+  TVertexBufferBuilder toDart() {
+    return TVertexBufferBuilder(this);
+  }
+}
+
+final class TVertexBufferBuilder extends Struct {
+  Pointer<TVertexBufferBuilder> get address => super.address.cast();
+  TVertexBufferBuilder(super.address);
+
+  static Pointer<TVertexBufferBuilder> stackAlloc() {
+    return Pointer<TVertexBufferBuilder>(
+        NativeLibrary.instance.stackAlloc<TVertexBufferBuilder>(0));
+  }
+}
+
+sealed class TVertexAttribute {
+  static const TVERTEX_ATTRIBUTE_POSITION = 0;
+  static const TVERTEX_ATTRIBUTE_TANGENTS = 1;
+  static const TVERTEX_ATTRIBUTE_COLOR = 2;
+  static const TVERTEX_ATTRIBUTE_UV0 = 3;
+  static const TVERTEX_ATTRIBUTE_UV1 = 4;
+  static const TVERTEX_ATTRIBUTE_BONE_INDICES = 5;
+  static const TVERTEX_ATTRIBUTE_BONE_WEIGHTS = 6;
+  static const TVERTEX_ATTRIBUTE_CUSTOM0 = 8;
+  static const TVERTEX_ATTRIBUTE_CUSTOM1 = 9;
+  static const TVERTEX_ATTRIBUTE_CUSTOM2 = 10;
+  static const TVERTEX_ATTRIBUTE_CUSTOM3 = 11;
+  static const TVERTEX_ATTRIBUTE_CUSTOM4 = 12;
+  static const TVERTEX_ATTRIBUTE_CUSTOM5 = 13;
+  static const TVERTEX_ATTRIBUTE_CUSTOM6 = 14;
+  static const TVERTEX_ATTRIBUTE_CUSTOM7 = 15;
+}
+
+sealed class TVertexAttributeType {
+  static const TVERTEXATTRIBUTE_TYPE_BYTE = 0;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE2 = 1;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE3 = 2;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE4 = 3;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE = 4;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE2 = 5;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE3 = 6;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE4 = 7;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT = 8;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT2 = 9;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT3 = 10;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT4 = 11;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT = 12;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT2 = 13;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT3 = 14;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT4 = 15;
+  static const TVERTEXATTRIBUTE_TYPE_INT = 16;
+  static const TVERTEXATTRIBUTE_TYPE_UINT = 17;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT = 18;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT2 = 19;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT3 = 20;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT4 = 21;
+  static const TVERTEXATTRIBUTE_TYPE_HALF = 22;
+  static const TVERTEXATTRIBUTE_TYPE_HALF2 = 23;
+  static const TVERTEXATTRIBUTE_TYPE_HALF3 = 24;
+  static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
+}
+
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
   TMovementIntentExecutor toDart() {
     return TMovementIntentExecutor(this);
@@ -10423,6 +10732,9 @@ extension StructAllocator on Struct {
       case TSceneAsset:
         final ptr = TSceneAsset.stackAlloc();
         return ptr.toDart() as T;
+      case TIndexBufferBuilder:
+        final ptr = TIndexBufferBuilder.stackAlloc();
+        return ptr.toDart() as T;
       case TGltfAssetLoader:
         final ptr = TGltfAssetLoader.stackAlloc();
         return ptr.toDart() as T;
@@ -10506,6 +10818,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TGltfMeshData:
         final ptr = TGltfMeshData.stackAlloc();
+        return ptr.toDart() as T;
+      case TVertexBufferBuilder:
+        final ptr = TVertexBufferBuilder.stackAlloc();
         return ptr.toDart() as T;
       case TMovementIntentExecutor:
         final ptr = TMovementIntentExecutor.stackAlloc();
