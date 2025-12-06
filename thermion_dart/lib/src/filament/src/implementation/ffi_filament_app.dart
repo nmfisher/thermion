@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
+import '../../../bindings/bindings.dart' as bindings;
+
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_renderable_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -562,8 +567,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    final instance = await createUbershaderMaterialInstance(unlit: true);
-    return instance;
+    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
   }
 
   ///
@@ -1110,6 +1114,141 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       //stackPtr = stackSave();
     }
 
+    // Build vertex buffer
+    final vertexBufferBuilder = FFIVertexBufferBuilder(engine);
+    vertexBufferBuilder.vertexCount(geometry.vertices.length ~/ 3);
+
+    // Calculate buffer count - always include UV0 and COLOR like the native C++ code
+    int bufferCount = 1; // Always have positions
+    if (geometry.normals.length > 0) {
+      bufferCount++;
+    }
+    bufferCount++; // Always include UV0
+    bufferCount++; // Always include COLOR
+    vertexBufferBuilder.bufferCount(bufferCount);
+
+    // Position attribute (always present at buffer 0)
+    vertexBufferBuilder.attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
+
+    // Track current buffer index
+    int currentBufferIndex = 1;
+
+    // Normal attribute (if present)
+    if (geometry.normals.length > 0) {
+      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS, currentBufferIndex, VertexAttributeType.FLOAT4);
+      currentBufferIndex++;
+    }
+
+    // UV0 attribute (always present like the native C++ code)
+    vertexBufferBuilder.attribute(VertexAttribute.UV0, currentBufferIndex, VertexAttributeType.FLOAT2);
+    currentBufferIndex++;
+
+    // COLOR attribute (always present like the native C++ code)
+    vertexBufferBuilder.attribute(VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
+    currentBufferIndex++;
+
+    final vertexBuffer = await vertexBufferBuilder.build() as FFIVertexBuffer;
+
+    // Set vertex data - Position always at buffer 0
+    await vertexBuffer.setBufferAt(0, geometry.vertices);
+
+    // Reset buffer index for data population
+    currentBufferIndex = 1;
+
+    // Set normal/tangent data
+    if (geometry.normals.length > 0) {
+      // Convert Float32List normals (xyz) to Float32List tangents (xyzw with w=1.0)
+      final tangents = Float32List(geometry.normals.length ~/ 3 * 4);
+      for (int i = 0; i < geometry.normals.length ~/ 3; i++) {
+        tangents[i * 4 + 0] = geometry.normals[i * 3 + 0];
+        tangents[i * 4 + 1] = geometry.normals[i * 3 + 1];
+        tangents[i * 4 + 2] = geometry.normals[i * 3 + 2];
+        tangents[i * 4 + 3] = 1.0; // w component
+      }
+      await vertexBuffer.setBufferAt(currentBufferIndex, tangents);
+      currentBufferIndex++;
+      if (FILAMENT_WASM) {
+        tangents.free();
+      }
+    }
+
+    // Set UV data (always present, use zeros if not provided)
+    if (geometry.uvs.length > 0) {
+      await vertexBuffer.setBufferAt(currentBufferIndex, geometry.uvs);
+    } else {
+      // Create dummy UVs like the native C++ code does
+      final dummyUvs = Float32List(geometry.vertices.length ~/ 3 * 2);
+      for (int i = 0; i < dummyUvs.length; i += 2) {
+        dummyUvs[i] = 0.0; // u
+        dummyUvs[i + 1] = 0.0; // v
+      }
+      await vertexBuffer.setBufferAt(currentBufferIndex, dummyUvs);
+      if (FILAMENT_WASM) {
+        dummyUvs.free();
+      }
+    }
+    currentBufferIndex++;
+
+    // Set color data (always present, use white if not provided)
+    if (geometry.colors.length > 0) {
+      await vertexBuffer.setBufferAt(currentBufferIndex, geometry.colors);
+    } else {
+      // Create dummy colors like the native C++ code does
+      final dummyColors = Float32List(geometry.vertices.length ~/ 3 * 4);
+      for (int i = 0; i < dummyColors.length; i += 4) {
+        dummyColors[i] = 1.0;     // r
+        dummyColors[i + 1] = 1.0; // g
+        dummyColors[i + 2] = 1.0; // b
+        dummyColors[i + 3] = 1.0; // a
+      }
+      await vertexBuffer.setBufferAt(currentBufferIndex, dummyColors);
+      if (FILAMENT_WASM) {
+        dummyColors.free();
+      }
+    }
+
+    // Build index buffer
+    final indexBufferBuilder = FFIIndexBufferBuilder(engine);
+    indexBufferBuilder.indexCount(geometry.indices.length);
+    indexBufferBuilder.bufferType(IndexType.USHORT);
+    final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
+    await indexBuffer.setBuffer(geometry.indices);
+
+    // Calculate bounding box from vertices
+    double minX = double.infinity, minY = double.infinity, minZ = double.infinity;
+    double maxX = double.negativeInfinity, maxY = double.negativeInfinity, maxZ = double.negativeInfinity;
+
+    for (int i = 0; i < geometry.vertices.length; i += 3) {
+      final x = geometry.vertices[i];
+      final y = geometry.vertices[i + 1];
+      final z = geometry.vertices[i + 2];
+
+      minX = math.min(minX, x);
+      minY = math.min(minY, y);
+      minZ = math.min(minZ, z);
+      maxX = math.max(maxX, x);
+      maxY = math.max(maxY, y);
+      maxZ = math.max(maxZ, z);
+    }
+
+    final centerX = (minX + maxX) / 2.0;
+    final centerY = (minY + maxY) / 2.0;
+    final centerZ = (minZ + maxZ) / 2.0;
+    final halfExtentX = (maxX - minX) / 2.0;
+    final halfExtentY = (maxY - minY) / 2.0;
+    final halfExtentZ = (maxZ - minZ) / 2.0;
+
+    // Convert Aabb3 to C struct format
+    final cAabb = bindings.StructAllocator.create<bindings.Aabb3>();
+
+    cAabb.centerX = centerX;
+    cAabb.centerY = centerY;
+    cAabb.centerZ = centerZ;
+    cAabb.halfExtentX = halfExtentX;
+    cAabb.halfExtentY = halfExtentY;
+    cAabb.halfExtentZ = halfExtentZ;
+
+    // Prepare material instance pointers
     final ptrList = IntPtrList(materialInstances?.length ?? 0);
     if (materialInstances != null) {
       ptrList.setRange(
@@ -1121,20 +1260,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               .toList());
     }
 
+    // Create the scene asset from buffers
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
-      var ptr = SceneAsset_createGeometryWithBuilderRenderThread(
+      var ptr = SceneAsset_createFromBuffersRenderThread(
           engine,
-          geometry.vertices.address,
-          geometry.vertices.length,
-          geometry.normals.address,
-          geometry.normals.length,
-          geometry.uvs.address,
-          geometry.uvs.length,
-          geometry.indices.address,
-          geometry.indices.length,
-          geometry.primitiveType.index,
+          vertexBuffer.getNativeHandle(),
+          indexBuffer.getNativeHandle(),
           ptrList.address.cast(),
           ptrList.length ?? 0,
+          geometry.primitiveType.index,
+          cAabb,
           callback);
       return ptr;
     });
@@ -1145,6 +1280,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       geometry.vertices.free();
       geometry.normals.free();
       geometry.uvs.free();
+      geometry.colors.free();
+      geometry.indices.free();
     }
 
     if (assetPtr == nullptr) {

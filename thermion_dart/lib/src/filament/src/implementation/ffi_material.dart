@@ -45,6 +45,10 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
     }
   }
 
+  Future setDoubleSided(bool doubleSided) async {
+    MaterialInstance_setDoubleSided(this.pointer, doubleSided);
+  }
+
   @override
   Future setDepthCullingEnabled(bool enabled) async {
     MaterialInstance_setDepthCulling(this.pointer, enabled);

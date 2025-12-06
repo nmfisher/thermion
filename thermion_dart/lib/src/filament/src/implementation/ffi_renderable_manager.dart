@@ -2,6 +2,8 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// FFI implementation of RenderableManager for native platforms.
@@ -271,6 +273,16 @@ class FFIRenderableManager
   RenderableBuilder createBuilder(int primitiveCount) {
     return FFIRenderableBuilder(primitiveCount, app);
   }
+
+  @override
+  VertexBufferBuilder createVertexBufferBuilder() {
+    return FFIVertexBufferBuilder(app.engine);
+  }
+
+  @override
+  IndexBufferBuilder createIndexBufferBuilder() {
+    return FFIIndexBufferBuilder(app.engine);
+  }
 }
 
 /// FFI implementation of RenderableBuilder for native platforms.
@@ -319,13 +331,12 @@ class FFIRenderableBuilder implements RenderableBuilder {
 
   @override
   void geometry(int primitiveIndex, PrimitiveType type,
-      dynamic vertices, dynamic indices, int offset, int count) {
+      VertexBuffer vertices, IndexBuffer indices, int offset, int count) {
     _checkNotBuilt();
 
-    // vertices and indices should be Pointer<TVertexBuffer> and Pointer<TIndexBuffer>
-    // For now, we'll cast them as dynamic and let the caller handle the typing
-    final verticesPtr = vertices as bindings.Pointer<TVertexBuffer>;
-    final indicesPtr = indices as bindings.Pointer<TIndexBuffer>;
+    // Extract native handles from the buffer objects
+    final verticesPtr = (vertices as FFIVertexBuffer).getNativeHandle();
+    final indicesPtr = (indices as FFIIndexBuffer).getNativeHandle();
 
     final typeValue = switch (type) {
     PrimitiveType.POINTS => 0,

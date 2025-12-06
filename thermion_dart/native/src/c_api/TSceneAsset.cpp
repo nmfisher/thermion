@@ -7,10 +7,11 @@
 
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
+
+#include "scene/GeometrySceneAsset.hpp"
+#include "scene/GltfSceneAsset.hpp"
 #include "scene/GridOverlay.hpp"
 #include "scene/SceneAsset.hpp"
-#include "scene/GltfSceneAsset.hpp"
-#include "scene/GeometrySceneAssetBuilder.hpp"
 
 using namespace thermion;
 
@@ -20,51 +21,49 @@ extern "C"
 {
 #endif
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometryWithBuilder(
-        TEngine *tEngine, 
-        float *vertices,
-        uint32_t numVertices,
-        float *normals,
-        uint32_t numNormals,
-        float *uvs,
-        uint32_t numUvs,
-        uint16_t *indices,
-        uint32_t numIndices,
-        TPrimitiveType tPrimitiveType,
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromBuffers(
+        TEngine *tEngine,
+        TVertexBuffer *tVertexBuffer,
+        TIndexBuffer *tIndexBuffer,
         TMaterialInstance **materialInstances,
-		int materialInstanceCount
+        int materialInstanceCount,
+        TPrimitiveType tPrimitiveType,
+        Aabb3 boundingBox
     ) {
-        utils::Entity entity;
-
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+        auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer *>(tVertexBuffer);
+        auto *indexBuffer = reinterpret_cast<filament::IndexBuffer *>(tIndexBuffer);
+        auto **matInstances = reinterpret_cast<filament::MaterialInstance **>(materialInstances);
+        auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(tPrimitiveType);
 
-        auto builder = GeometrySceneAssetBuilder(engine)
-                           .vertices(vertices, numVertices)
-                           .indices(indices, numIndices)
-                           .primitiveType(static_cast<filament::RenderableManager::PrimitiveType>(tPrimitiveType));
+        // Convert Aabb3 to filament::Box
+        filament::Box box;
+        box.set(
+            filament::math::float3{
+                boundingBox.centerX - boundingBox.halfExtentX,
+                boundingBox.centerY - boundingBox.halfExtentY,
+                boundingBox.centerZ - boundingBox.halfExtentZ
+            },
+            filament::math::float3{
+                boundingBox.centerX + boundingBox.halfExtentX,
+                boundingBox.centerY + boundingBox.halfExtentY,
+                boundingBox.centerZ + boundingBox.halfExtentZ
+            }
+        );
 
-        if (normals)
-        {
-            builder.normals(normals, numNormals);
-        }
+        // Create the GeometrySceneAsset directly
+        auto *sceneAsset = new GeometrySceneAsset(
+            engine,
+            vertexBuffer,
+            indexBuffer,
+            matInstances,
+            materialInstanceCount,
+            primitiveType,
+            box,
+            nullptr  // instanceOwner - this is not an instance
+        );
 
-        if (uvs)
-        {
-            builder.uvs(uvs, numUvs);
-        }
-
-        builder.materials(reinterpret_cast<MaterialInstance**>(materialInstances), materialInstanceCount);
-
-        auto sceneAsset = builder.build();
-
-        if (!sceneAsset)
-        {
-            Log("Failed to create geometry");
-            return std::nullptr_t();
-        }
-
-        return reinterpret_cast<TSceneAsset*>(sceneAsset.release());
-        
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(

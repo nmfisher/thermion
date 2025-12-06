@@ -248,6 +248,7 @@ class GeometryHelper {
             flipUvs ? _flipUvCoordinates(originalUvs) : originalUvs)
         : null;
 
+
     final indices = [
       // Front face
       0, 1, 2, 0, 2, 3,

@@ -124,22 +124,18 @@ namespace thermion
             TFilamentAsset *tFilamentAsset,
             void (*onComplete)(TSceneAsset *)
         );
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryWithBuilderRenderThread(
-            TEngine *tEngine, 
-            float *vertices,
-            uint32_t numVertices,
-            float *normals,
-            uint32_t numNormals,
-            float *uvs,
-            uint32_t numUvs,
-            uint16_t *indices,
-            uint32_t numIndices,
-            TPrimitiveType tPrimitiveType,
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(
+            TEngine *tEngine,
+            TVertexBuffer *tVertexBuffer,
+            TIndexBuffer *tIndexBuffer,
             TMaterialInstance **materialInstances,
             int materialInstanceCount,
+            TPrimitiveType tPrimitiveType,
+            Aabb3 boundingBox,
             void (*callback)(TSceneAsset *)
         );
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
+        
         EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(
             TMaterialProvider *tMaterialProvider, 
             bool doubleSided,

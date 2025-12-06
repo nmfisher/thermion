@@ -11,7 +11,6 @@
 
 #include "Log.hpp"
 #include "scene/GeometrySceneAsset.hpp"
-#include "scene/GeometrySceneAssetBuilder.hpp"
 
 namespace thermion
 {
