@@ -1141,10 +1141,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       orientationBuilder.triangleCount(geometry.indices.length ~/ 3);
       if (geometry.indexType == IndexType.UINT) {
         orientationBuilder
-            .trianglesUint32(Uint32List.fromList(geometry.indices));
+            .trianglesUint32(makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices));
       } else {
         orientationBuilder
-            .trianglesUint16(Uint16List.fromList(geometry.indices));
+            .trianglesUint16(makeUint16List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices));
       }
 
       // Build the surface orientation
