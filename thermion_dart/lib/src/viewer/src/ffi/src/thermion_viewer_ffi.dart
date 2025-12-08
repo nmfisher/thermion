@@ -955,9 +955,8 @@ class ThermionViewerFFI extends ThermionViewer {
 
     TransformManager_setParent(Engine_getTransformManager(app.engine),
         bbAsset.entity, asset.entity, false);
-    geometry.uvs.free();
-    geometry.normals.free();
-    geometry.vertices.free();
+    geometry.dispose();
+    
     completer.complete(bbAsset);
 
     await scene.add(bbAsset);
