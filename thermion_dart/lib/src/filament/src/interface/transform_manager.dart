@@ -38,6 +38,13 @@ abstract class TransformManager<T> extends NativeHandle<T> {
   /// [entity] The entity to create a transform component for
   void createComponent(ThermionEntity entity);
 
+  /// Removes the transform component from the specified entity.
+  ///
+  /// If the entity does not have a transform component, this is a no-op.
+  ///
+  /// [entity] The entity to remove the transform component from
+  void removeComponent(ThermionEntity entity);
+
   // ============================================================================
   // Transform operations
   // ============================================================================

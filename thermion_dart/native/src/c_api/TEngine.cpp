@@ -403,6 +403,11 @@ namespace thermion
             return utils::Entity::smuggle(entity);
         }
 
+        EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntity(TEntityManager *tEntityManager, EntityId entityId) {
+            auto entityManager = reinterpret_cast<utils::EntityManager *>(tEntityManager);
+            entityManager->destroy(utils::Entity::import(entityId));
+        }
+
         EMSCRIPTEN_KEEPALIVE TDebugRegistry *Engine_getDebugRegistry(TEngine *tEngine) {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto &debugRegistry = engine->getDebugRegistry();

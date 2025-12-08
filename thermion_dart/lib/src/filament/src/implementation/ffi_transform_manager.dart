@@ -46,6 +46,11 @@ class FFITransformManager
     bindings.TransformManager_createComponent(transformManager, entity);
   }
 
+  @override
+  void removeComponent(ThermionEntity entity) {
+    bindings.TransformManager_removeComponent(transformManager, entity);
+  }
+
   // ============================================================================
   // Transform operations
   // ============================================================================

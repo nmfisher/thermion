@@ -242,14 +242,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future<Scene> createScene() async {
     return FFIScene(Engine_createScene(engine));
   }
 
-  ///
-  ///
   ///
   Future<Camera> createCamera({ThermionEntity? targetEntity}) async {
     targetEntity ??= await createEntity(createTransformComponent: false);
@@ -259,8 +255,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         this);
   }
 
-  ///
-  ///
   ///
   Future destroySwapChain(SwapChain swapChain) async {
     _logger.info("Destroying swapchain");
@@ -273,8 +267,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _logger.info("Destroyed swapchain");
   }
 
-  ///
-  ///
+  // Destroys the specified entity. You must ensure that the entity has already
+  // been detached (e.g. if renderable, it has been removed from any scenes,
+  // that any camera or animation component has already been removed, etc).
+  Future destroyEntity(ThermionEntity entity) async {
+    if (transformManager.hasComponent(entity)) {
+      transformManager.removeComponent(entity);
+    }
+    EntityManager_destroyEntity(Engine_getEntityManager(engine), entity);
+  }
+
   ///
   @override
   Future destroy() async {
