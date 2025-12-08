@@ -441,6 +441,11 @@ namespace thermion
             builder->globalBlendOrderEnabled(primitiveIndex, enabled);
         }
 
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_instances(TRenderableBuilder *tBuilder, size_t instanceCount) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->instances(instanceCount);
+        }
+
         EMSCRIPTEN_KEEPALIVE int RenderableBuilder_build(TRenderableBuilder *tBuilder, TEngine *tEngine, EntityId entityId) {
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             auto *engine = reinterpret_cast<filament::Engine*>(tEngine);

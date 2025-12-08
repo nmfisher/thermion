@@ -88,6 +88,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_screenSpaceContactShadows(TRenderableBuilder *builder, bool enabled);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_blendOrder(TRenderableBuilder *builder, size_t primitiveIndex, uint16_t order);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_globalBlendOrderEnabled(TRenderableBuilder *builder, size_t primitiveIndex, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_instances(TRenderableBuilder *builder, size_t instanceCount);
 
     // Build the renderable
     EMSCRIPTEN_KEEPALIVE int RenderableBuilder_build(TRenderableBuilder *builder, TEngine *engine, EntityId entity);

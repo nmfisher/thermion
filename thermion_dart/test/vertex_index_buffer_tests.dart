@@ -873,6 +873,67 @@ void main() async {
   //   }, timeout: Timeout(Duration(seconds: 30)));
   // });
 
+  group("RenderableBuilder instances tests", () {
+    test('RenderableBuilder instances method', () async {
+      await ViewerBuilder(testHelper)
+          .setBackgroundColor(kBlue)
+          .execute((result) async {
+        final app = FilamentApp.instance!;
+        final renderableManager = app.renderableManager;
+
+        // Create vertex buffer
+        final vertexBuffer = await (renderableManager.createVertexBufferBuilder()
+              ..bufferCount(1)
+              ..vertexCount(3)
+              ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
+            .build();
+
+        // Create index buffer
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
+
+        // Upload vertex data
+        await vertexBuffer.setBufferAt(
+            0,
+            Float32List.fromList([
+              -0.5, -0.5, 0.0,
+              0.5, -0.5, 0.0,
+              0.0, 0.5, 0.0,
+            ]));
+
+        // Upload index data
+        await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
+
+        // Create material
+        final material = await testHelper.loadSolidColorMaterial(
+            r: 1.0, g: 0.0, b: 0.0);
+
+        // Create entity and renderable with multiple instances
+        final entity = await app.createEntity();
+        final renderableBuilder = renderableManager.createBuilder(1)
+          ..boundingBox(
+              Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+          ..geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
+          ..material(0, material)
+          ..instances(10); // Set 10 draw instances
+
+        final success = await renderableBuilder.build(entity);
+        expect(success, true);
+
+        final scene = await result.viewer.view.getScene();
+        await scene.addEntity(entity);
+
+        await testHelper.capture(result.viewer.view, "triangle_10_instances");
+
+        // Cleanup
+        await vertexBuffer.destroy();
+        await indexBuffer.destroy();
+      });
+    });
+  });
+
   group("SurfaceOrientationBuilder tests", () {
     test('generate tangents for simple quad', () async {
       await ViewerBuilder(testHelper)
