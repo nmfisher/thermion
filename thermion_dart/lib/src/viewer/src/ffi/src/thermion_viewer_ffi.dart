@@ -958,7 +958,6 @@ class ThermionViewerFFI extends ThermionViewer {
     geometry.uvs.free();
     geometry.normals.free();
     geometry.vertices.free();
-    geometry.indices.free();
     completer.complete(bbAsset);
 
     await scene.add(bbAsset);

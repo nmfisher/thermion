@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:math';
 import '../../../bindings/bindings.dart' as bindings;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
@@ -567,7 +568,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
+    return createUbershaderMaterialInstance(
+        unlit: true, hasVertexColors: false);
   }
 
   ///
@@ -1027,7 +1029,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
-  Future destroyView(covariant FFIView view) async {   
+  Future destroyView(covariant FFIView view) async {
     for (final swapchain in _swapChains.keys) {
       if (_swapChains[swapchain]!.contains(view)) {
         _swapChains[swapchain]!.remove(view);
@@ -1043,8 +1045,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
-    return withPointerCallback<TColorGrading>(
-        (cb) => ColorGrading_createRenderThread(engine, mapper.getNativeHandle(), cb));
+    return withPointerCallback<TColorGrading>((cb) =>
+        ColorGrading_createRenderThread(engine, mapper.getNativeHandle(), cb));
   }
 
   FFIMaterial? _gizmoMaterial;
@@ -1102,8 +1104,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   @override
   Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
@@ -1128,23 +1128,27 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     vertexBufferBuilder.bufferCount(bufferCount);
 
     // Position attribute (always present at buffer 0)
-    vertexBufferBuilder.attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
+    vertexBufferBuilder.attribute(
+        VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
 
     // Track current buffer index
     int currentBufferIndex = 1;
 
     // Normal attribute (if present)
     if (geometry.normals.length > 0) {
-      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS, currentBufferIndex, VertexAttributeType.FLOAT4);
+      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS,
+          currentBufferIndex, VertexAttributeType.FLOAT4);
       currentBufferIndex++;
     }
 
     // UV0 attribute (always present like the native C++ code)
-    vertexBufferBuilder.attribute(VertexAttribute.UV0, currentBufferIndex, VertexAttributeType.FLOAT2);
+    vertexBufferBuilder.attribute(
+        VertexAttribute.UV0, currentBufferIndex, VertexAttributeType.FLOAT2);
     currentBufferIndex++;
 
     // COLOR attribute (always present like the native C++ code)
-    vertexBufferBuilder.attribute(VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
+    vertexBufferBuilder.attribute(
+        VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
     currentBufferIndex++;
 
     final vertexBuffer = await vertexBufferBuilder.build() as FFIVertexBuffer;
@@ -1196,7 +1200,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       // Create dummy colors like the native C++ code does
       final dummyColors = Float32List(geometry.vertices.length ~/ 3 * 4);
       for (int i = 0; i < dummyColors.length; i += 4) {
-        dummyColors[i] = 1.0;     // r
+        dummyColors[i] = 1.0; // r
         dummyColors[i + 1] = 1.0; // g
         dummyColors[i + 2] = 1.0; // b
         dummyColors[i + 3] = 1.0; // a
@@ -1210,13 +1214,23 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Build index buffer
     final indexBufferBuilder = FFIIndexBufferBuilder(engine);
     indexBufferBuilder.indexCount(geometry.indices.length);
-    indexBufferBuilder.bufferType(IndexType.USHORT);
+
+    indexBufferBuilder.bufferType(geometry.indexType);
+
     final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
-    await indexBuffer.setBuffer(geometry.indices);
+    final indexTypedData = switch (geometry.indexType) {
+      IndexType.UINT => Uint32List.fromList(geometry.indices),
+      IndexType.USHORT => Uint16List.fromList(geometry.indices)
+    };
+    await indexBuffer.setBuffer(indexTypedData);
 
     // Calculate bounding box from vertices
-    double minX = double.infinity, minY = double.infinity, minZ = double.infinity;
-    double maxX = double.negativeInfinity, maxY = double.negativeInfinity, maxZ = double.negativeInfinity;
+    double minX = double.infinity,
+        minY = double.infinity,
+        minZ = double.infinity;
+    double maxX = double.negativeInfinity,
+        maxY = double.negativeInfinity,
+        maxZ = double.negativeInfinity;
 
     for (int i = 0; i < geometry.vertices.length; i += 3) {
       final x = geometry.vertices[i];
@@ -1281,7 +1295,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       geometry.normals.free();
       geometry.uvs.free();
       geometry.colors.free();
-      geometry.indices.free();
     }
 
     if (assetPtr == nullptr) {
@@ -1301,7 +1314,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (directLight.colorTemperature != null) {
       lightManager.setColorTemperature(entity, directLight.colorTemperature!);
     } else {
-      lightManager.setColor(entity, directLight.color.r, directLight.color.g, directLight.color.b);
+      lightManager.setColor(entity, directLight.color.r, directLight.color.g,
+          directLight.color.b);
     }
 
     lightManager.setIntensity(entity, directLight.intensity);

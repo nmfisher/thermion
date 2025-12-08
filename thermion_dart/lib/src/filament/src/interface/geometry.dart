@@ -1,12 +1,9 @@
-import 'dart:typed_data';
-
-import 'package:thermion_dart/src/bindings/bindings.dart';
-
-import '../../../viewer/viewer.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 
 class Geometry {
   final Float32List vertices;
-  final Uint16List indices;
+  final List<int> indices;
+  final IndexType indexType;
   late final Float32List normals;
   late final Float32List uvs;
   late final Float32List colors;
@@ -19,6 +16,7 @@ class Geometry {
     Float32List? uvs,
     Float32List? colors,
     this.primitiveType = PrimitiveType.TRIANGLES,
+    this.indexType = IndexType.UINT
   }) {
     this.uvs = uvs ?? Float32List(0);
     this.normals = normals ?? Float32List(0);
@@ -27,7 +25,8 @@ class Geometry {
       throw Exception(
           "Expected ${indices.length * 2} UVs, got ${this.uvs!.length}");
     }
-    if (this.colors.length != 0 && this.colors.length != (vertices.length ~/ 3 * 4)) {
+    if (this.colors.length != 0 &&
+        this.colors.length != (vertices.length ~/ 3 * 4)) {
       throw Exception(
           "Expected ${vertices.length ~/ 3 * 4} color values (RGBA), got ${this.colors.length}");
     }
