@@ -419,6 +419,13 @@ external void RenderableBuilder_globalBlendOrderEnabled(
   bool enabled,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableBuilder>, ffi.Size)>(
+    isLeaf: true)
+external void RenderableBuilder_instances(
+  ffi.Pointer<TRenderableBuilder> builder,
+  int instanceCount,
+);
+
 @ffi.Native<
     ffi.Int Function(ffi.Pointer<TRenderableBuilder>, ffi.Pointer<TEngine>,
         EntityId)>(isLeaf: true)

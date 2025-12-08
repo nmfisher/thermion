@@ -262,6 +262,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t primitiveIndex,
     bool enabled,
   );
+  external void _RenderableBuilder_instances(
+    Pointer<TRenderableBuilder> builder,
+    size_t instanceCount,
+  );
   external int _RenderableBuilder_build(
     Pointer<TRenderableBuilder> builder,
     Pointer<TEngine> engine,
@@ -3340,6 +3344,15 @@ void RenderableBuilder_globalBlendOrderEnabled(
   final result = GeneratedBindings.instance
       ._RenderableBuilder_globalBlendOrderEnabled(
           builder.cast(), primitiveIndex, enabled);
+  return result;
+}
+
+void RenderableBuilder_instances(
+  Pointer<TRenderableBuilder> builder,
+  Dartsize_t instanceCount,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableBuilder_instances(builder.cast(), instanceCount);
   return result;
 }
 
