@@ -2875,6 +2875,11 @@ external void Engine_setAutomaticInstancingEnabled(
   bool enabled,
 );
 
+@ffi.Native<ffi.Size Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external int Engine_getMaxAutomaticInstances(
+  ffi.Pointer<TEngine> tEngine,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>)>(
     isLeaf: true)
 external void Engine_destroyTexture(

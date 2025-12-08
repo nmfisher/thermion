@@ -1655,6 +1655,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     bool enabled,
   );
+  external size_t _Engine_getMaxAutomaticInstances(
+    Pointer<TEngine> tEngine,
+  );
   external void _Engine_destroyTexture(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
@@ -6381,6 +6384,14 @@ void Engine_setAutomaticInstancingEnabled(
 ) {
   final result = GeneratedBindings.instance
       ._Engine_setAutomaticInstancingEnabled(tEngine.cast(), enabled);
+  return result;
+}
+
+Dartsize_t Engine_getMaxAutomaticInstances(
+  Pointer<TEngine> tEngine,
+) {
+  final result = GeneratedBindings.instance
+      ._Engine_getMaxAutomaticInstances(tEngine.cast());
   return result;
 }
 
