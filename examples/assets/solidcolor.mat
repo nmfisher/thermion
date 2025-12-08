@@ -9,6 +9,13 @@ material {
         type : float4,
         name : color
     }],
+    instanced: true
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.worldPosition.x += float(getInstanceIndex());
+    }
 }
 
 fragment {

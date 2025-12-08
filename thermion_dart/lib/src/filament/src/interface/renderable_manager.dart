@@ -355,6 +355,21 @@ abstract class RenderableBuilder {
   /// [enabled] True for global, false for local (default)
   void globalBlendOrderEnabled(int primitiveIndex, bool enabled);
 
+  /// Specifies the number of draw instances of this renderable.
+  ///
+  /// The default is 1 instance and the maximum number of instances allowed
+  /// is 32767. 0 is invalid.
+  ///
+  /// All instances are culled using the same bounding box, so care must be
+  /// taken to make sure all instances render inside the specified bounding box.
+  ///
+  /// The material must set its `instanced` parameter to `true` in order to use
+  /// getInstanceIndex() in the vertex or fragment shader to get the instance
+  /// index and possibly adjust the position or transform.
+  ///
+  /// [instanceCount] The number of instances, silently clamped between 1 and 32767.
+  void instances(int instanceCount);
+
   /// Builds the renderable and attaches it to the entity.
   ///
   /// [entity] The entity to attach the renderable component to

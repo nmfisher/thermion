@@ -418,6 +418,12 @@ class FFIRenderableBuilder implements RenderableBuilder {
   }
 
   @override
+  void instances(int instanceCount) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_instances(_builderPtr!, instanceCount);
+  }
+
+  @override
   Future<bool> build(ThermionEntity entity) async {
     _checkNotBuilt();
 
