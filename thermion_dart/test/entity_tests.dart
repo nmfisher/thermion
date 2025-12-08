@@ -23,14 +23,14 @@ void main() async {
   });
 
   test('get entity bounding boxes', () async {
-    var cube = await FilamentApp.instance!
-        .createGeometry(GeometryHelper.cube());
+    var cube =
+        await FilamentApp.instance!.createGeometry(GeometryHelper.cube());
     var bb = await FilamentApp.instance!.getBoundingBox(cube.entity);
 
     expect(bb.center.x, 0.0);
     expect(bb.center.y, 0.0);
     expect(bb.center.z, 0.0);
-    
+
     expect(bb.max.x, 1);
     expect(bb.max.y, 1);
     expect(bb.max.z, 1);
@@ -38,5 +38,10 @@ void main() async {
     expect(bb.min.x, -1);
     expect(bb.min.y, -1);
     expect(bb.min.z, -1);
+  });
+
+  test('create/destroy entity', () async {
+    var entity = await FilamentApp.instance!.createEntity();
+    await FilamentApp.instance!.destroyEntity(entity);
   });
 }

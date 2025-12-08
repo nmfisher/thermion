@@ -185,6 +185,18 @@ extern "C"
         tm->create(entity);
     }
 
+    EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponent(TTransformManager *tTransformManager, EntityId entityId)
+    {
+        auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
+        auto entity = Entity::import(entityId);
+        if (!tm->hasComponent(entity))
+        {
+            Log("Entity does not have transform component");
+            return;
+        }
+        tm->destroy(entity);
+    }
+
     EMSCRIPTEN_KEEPALIVE bool TransformManager_hasComponent(TTransformManager *tTransformManager, EntityId entityId)
     {
         auto tm = reinterpret_cast<TransformManager *>(tTransformManager);
