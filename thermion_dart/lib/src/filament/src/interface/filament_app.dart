@@ -68,18 +68,14 @@ abstract class FilamentApp<T> {
   ///
   Future<Scene> createScene();
 
-  ///
-  ///
-  ///
+  /// Creates a new Camera component. If [targetEntity] is null, a new entity
+  /// will be created; otherwise, the component will be attached to 
+  /// [targetEntity].
   Future<Camera> createCamera({ThermionEntity? targetEntity});
 
   ///
-  ///
-  ///
   Future destroySwapChain(SwapChain swapChain);
 
-  ///
-  ///
   ///
   Future destroyView(View view);
 
