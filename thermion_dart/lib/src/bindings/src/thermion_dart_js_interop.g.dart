@@ -1259,6 +1259,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
     EntityId entity,
   );
+  external void _TransformManager_removeComponent(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entity,
+  );
   external int _TransformManager_hasComponent(
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
@@ -1723,6 +1727,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external EntityId _EntityManager_createEntity(
     Pointer<TEntityManager> tEntityManager,
+  );
+  external void _EntityManager_destroyEntity(
+    Pointer<TEntityManager> tEntityManager,
+    EntityId entityId,
   );
   external void _Fence_waitAndDestroy(
     Pointer<TFence> tFence,
@@ -5527,6 +5535,15 @@ void TransformManager_createComponent(
   return result;
 }
 
+void TransformManager_removeComponent(
+  Pointer<TTransformManager> tTransformManager,
+  DartEntityId entity,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformManager_removeComponent(tTransformManager.cast(), entity);
+  return result;
+}
+
 bool TransformManager_hasComponent(
   Pointer<TTransformManager> tTransformManager,
   DartEntityId entityId,
@@ -6539,6 +6556,15 @@ DartEntityId EntityManager_createEntity(
 ) {
   final result = GeneratedBindings.instance
       ._EntityManager_createEntity(tEntityManager.cast());
+  return result;
+}
+
+void EntityManager_destroyEntity(
+  Pointer<TEntityManager> tEntityManager,
+  DartEntityId entityId,
+) {
+  final result = GeneratedBindings.instance
+      ._EntityManager_destroyEntity(tEntityManager.cast(), entityId);
   return result;
 }
 

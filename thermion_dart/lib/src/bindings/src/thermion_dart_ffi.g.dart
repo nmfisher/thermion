@@ -2188,6 +2188,13 @@ external void TransformManager_createComponent(
   int entity,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId)>(
+    isLeaf: true)
+external void TransformManager_removeComponent(
+  ffi.Pointer<TTransformManager> tTransformManager,
+  int entity,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>, EntityId)>(
     isLeaf: true)
 external bool TransformManager_hasComponent(
@@ -2993,6 +3000,13 @@ external void Engine_destroyIndirectLight(
 @ffi.Native<EntityId Function(ffi.Pointer<TEntityManager>)>(isLeaf: true)
 external int EntityManager_createEntity(
   ffi.Pointer<TEntityManager> tEntityManager,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEntityManager>, EntityId)>(
+    isLeaf: true)
+external void EntityManager_destroyEntity(
+  ffi.Pointer<TEntityManager> tEntityManager,
+  int entityId,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TFence>)>(isLeaf: true)
