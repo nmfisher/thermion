@@ -54,6 +54,8 @@ extern "C"
 	typedef struct TIndexBuffer TIndexBuffer;
 	typedef struct TVertexBufferBuilder TVertexBufferBuilder;
 	typedef struct TIndexBufferBuilder TIndexBufferBuilder;
+	typedef struct TSurfaceOrientation TSurfaceOrientation;
+	typedef struct TSurfaceOrientationBuilder TSurfaceOrientationBuilder;
 	
 	typedef struct { 
 		double x;

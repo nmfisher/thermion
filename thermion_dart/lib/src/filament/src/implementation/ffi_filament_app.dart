@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:math';
 import '../../../bindings/bindings.dart' as bindings;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
@@ -8,6 +9,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_renderable_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_surface_orientation.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
@@ -22,6 +24,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
+import 'package:thermion_dart/src/filament/src/interface/surface_orientation.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
 import 'resource_loader.dart';
@@ -567,7 +570,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<MaterialInstance> createUnlitMaterialInstance() async {
-    return createUbershaderMaterialInstance(unlit: true, hasVertexColors: false);
+    return createUbershaderMaterialInstance(
+        unlit: true, hasVertexColors: false);
   }
 
   ///
@@ -1027,7 +1031,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
-  Future destroyView(covariant FFIView view) async {   
+  Future destroyView(covariant FFIView view) async {
     for (final swapchain in _swapChains.keys) {
       if (_swapChains[swapchain]!.contains(view)) {
         _swapChains[swapchain]!.remove(view);
@@ -1043,8 +1047,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
-    return withPointerCallback<TColorGrading>(
-        (cb) => ColorGrading_createRenderThread(engine, mapper.getNativeHandle(), cb));
+    return withPointerCallback<TColorGrading>((cb) =>
+        ColorGrading_createRenderThread(engine, mapper.getNativeHandle(), cb));
   }
 
   FFIMaterial? _gizmoMaterial;
@@ -1102,8 +1106,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   @override
   Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
@@ -1120,31 +1122,69 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     // Calculate buffer count - always include UV0 and COLOR like the native C++ code
     int bufferCount = 1; // Always have positions
+    Float32List? tangentQuaternions;
+
     if (geometry.normals.length > 0) {
       bufferCount++;
+      // Generate tangent space quaternions using SurfaceOrientationBuilder
+      final orientationBuilder = FFISurfaceOrientationBuilder();
+      orientationBuilder.vertexCount(geometry.vertices.length ~/ 3);
+      orientationBuilder.positions(geometry.vertices);
+      orientationBuilder.normals(geometry.normals);
+
+      // Add UVs if available for better tangent generation
+      if (geometry.uvs.isNotEmpty) {
+        orientationBuilder.uvs(geometry.uvs);
+      }
+
+      // Set triangle indices
+      orientationBuilder.triangleCount(geometry.indices.length ~/ 3);
+      if (geometry.indexType == IndexType.UINT) {
+        orientationBuilder
+            .trianglesUint32(makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices));
+      } else {
+        orientationBuilder
+            .trianglesUint16(makeUint16List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices));
+      }
+
+      // Build the surface orientation
+      final surfaceOrientation = await orientationBuilder.build();
+
+      // Extract quaternions in FLOAT4 format
+      tangentQuaternions = await surfaceOrientation.getQuats(
+        QuaternionFormat.FLOAT4,
+        geometry.vertices.length ~/ 3,
+      ) as Float32List;
+
+      await surfaceOrientation.destroy();
     }
+
     bufferCount++; // Always include UV0
     bufferCount++; // Always include COLOR
     vertexBufferBuilder.bufferCount(bufferCount);
 
     // Position attribute (always present at buffer 0)
-    vertexBufferBuilder.attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
+    vertexBufferBuilder.attribute(
+        VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
 
     // Track current buffer index
     int currentBufferIndex = 1;
 
-    // Normal attribute (if present)
-    if (geometry.normals.length > 0) {
-      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS, currentBufferIndex, VertexAttributeType.FLOAT4);
+    // Tangents attribute (if normals were provided)
+    if (tangentQuaternions != null) {
+      vertexBufferBuilder.attribute(VertexAttribute.TANGENTS,
+          currentBufferIndex, VertexAttributeType.FLOAT4);
       currentBufferIndex++;
     }
 
     // UV0 attribute (always present like the native C++ code)
-    vertexBufferBuilder.attribute(VertexAttribute.UV0, currentBufferIndex, VertexAttributeType.FLOAT2);
+    vertexBufferBuilder.attribute(
+        VertexAttribute.UV0, currentBufferIndex, VertexAttributeType.FLOAT2);
     currentBufferIndex++;
 
     // COLOR attribute (always present like the native C++ code)
-    vertexBufferBuilder.attribute(VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
+    vertexBufferBuilder.attribute(
+        VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
     currentBufferIndex++;
 
     final vertexBuffer = await vertexBufferBuilder.build() as FFIVertexBuffer;
@@ -1155,68 +1195,43 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Reset buffer index for data population
     currentBufferIndex = 1;
 
-    // Set normal/tangent data
-    if (geometry.normals.length > 0) {
-      // Convert Float32List normals (xyz) to Float32List tangents (xyzw with w=1.0)
-      final tangents = Float32List(geometry.normals.length ~/ 3 * 4);
-      for (int i = 0; i < geometry.normals.length ~/ 3; i++) {
-        tangents[i * 4 + 0] = geometry.normals[i * 3 + 0];
-        tangents[i * 4 + 1] = geometry.normals[i * 3 + 1];
-        tangents[i * 4 + 2] = geometry.normals[i * 3 + 2];
-        tangents[i * 4 + 3] = 1.0; // w component
-      }
-      await vertexBuffer.setBufferAt(currentBufferIndex, tangents);
+    // Set tangent quaternion data (generated from normals)
+    if (tangentQuaternions != null) {
+      await vertexBuffer.setBufferAt(currentBufferIndex, tangentQuaternions);
       currentBufferIndex++;
-      if (FILAMENT_WASM) {
-        tangents.free();
-      }
     }
 
     // Set UV data (always present, use zeros if not provided)
     if (geometry.uvs.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.uvs);
-    } else {
-      // Create dummy UVs like the native C++ code does
-      final dummyUvs = Float32List(geometry.vertices.length ~/ 3 * 2);
-      for (int i = 0; i < dummyUvs.length; i += 2) {
-        dummyUvs[i] = 0.0; // u
-        dummyUvs[i + 1] = 0.0; // v
-      }
-      await vertexBuffer.setBufferAt(currentBufferIndex, dummyUvs);
-      if (FILAMENT_WASM) {
-        dummyUvs.free();
-      }
-    }
+    } 
+      
     currentBufferIndex++;
 
-    // Set color data (always present, use white if not provided)
     if (geometry.colors.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.colors);
-    } else {
-      // Create dummy colors like the native C++ code does
-      final dummyColors = Float32List(geometry.vertices.length ~/ 3 * 4);
-      for (int i = 0; i < dummyColors.length; i += 4) {
-        dummyColors[i] = 1.0;     // r
-        dummyColors[i + 1] = 1.0; // g
-        dummyColors[i + 2] = 1.0; // b
-        dummyColors[i + 3] = 1.0; // a
-      }
-      await vertexBuffer.setBufferAt(currentBufferIndex, dummyColors);
-      if (FILAMENT_WASM) {
-        dummyColors.free();
-      }
-    }
+    } 
 
     // Build index buffer
     final indexBufferBuilder = FFIIndexBufferBuilder(engine);
     indexBufferBuilder.indexCount(geometry.indices.length);
-    indexBufferBuilder.bufferType(IndexType.USHORT);
+
+    indexBufferBuilder.bufferType(geometry.indexType);
+
     final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
-    await indexBuffer.setBuffer(geometry.indices);
+    final indexTypedData = switch (geometry.indexType) {
+      IndexType.UINT => makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length,geometry.indices),
+      IndexType.USHORT => makeUint16List(geometry.indices.length)..setRange(0, geometry.indices.length,geometry.indices),
+    };
+    await indexBuffer.setBuffer(indexTypedData);
 
     // Calculate bounding box from vertices
-    double minX = double.infinity, minY = double.infinity, minZ = double.infinity;
-    double maxX = double.negativeInfinity, maxY = double.negativeInfinity, maxZ = double.negativeInfinity;
+    double minX = double.infinity,
+        minY = double.infinity,
+        minZ = double.infinity;
+    double maxX = double.negativeInfinity,
+        maxY = double.negativeInfinity,
+        maxZ = double.negativeInfinity;
 
     for (int i = 0; i < geometry.vertices.length; i += 3) {
       final x = geometry.vertices[i];
@@ -1249,7 +1264,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     cAabb.halfExtentZ = halfExtentZ;
 
     // Prepare material instance pointers
-    final ptrList = IntPtrList(materialInstances?.length ?? 0);
+    final ptrList = makeIntPtrList(materialInstances?.length ?? 0);
     if (materialInstances != null) {
       ptrList.setRange(
           0,
@@ -1274,14 +1289,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       return ptr;
     });
 
+    geometry.dispose();
+
+    ptrList.free();
+    tangentQuaternions?.free();
+
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
-      ptrList.free();
-      geometry.vertices.free();
-      geometry.normals.free();
-      geometry.uvs.free();
-      geometry.colors.free();
-      geometry.indices.free();
     }
 
     if (assetPtr == nullptr) {
@@ -1301,7 +1315,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (directLight.colorTemperature != null) {
       lightManager.setColorTemperature(entity, directLight.colorTemperature!);
     } else {
-      lightManager.setColor(entity, directLight.color.r, directLight.color.g, directLight.color.b);
+      lightManager.setColor(entity, directLight.color.r, directLight.color.g,
+          directLight.color.b);
     }
 
     lightManager.setIntensity(entity, directLight.intensity);

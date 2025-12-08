@@ -92,7 +92,6 @@ extern "C"
     return new filament::backend::PlatformWebGL();
   }
 
-
   emscripten::val emscripten_make_uint8_buffer(int ptr, int length) {
     uint8_t *buffer = (uint8_t*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));

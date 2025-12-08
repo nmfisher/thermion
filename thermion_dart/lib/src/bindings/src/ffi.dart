@@ -19,12 +19,24 @@ Uint32List makeUint32List(int length) {
   return Uint32List(length);
 }
 
+Int16List makeInt16List(int length) {
+  return Int16List(length);
+}
+
+Uint16List makeUint16List(int length) {
+  return Uint16List(length);
+}
+
 Int32List makeInt32List(int length) {
   return Int32List(length);
 }
 
 Float32List makeFloat32List(int length) {
   return Float32List(length);
+}
+
+IntPtrList makeIntPtrList(int length) {
+  return IntPtrList(length);
 }
 
 class NativeLibrary {
