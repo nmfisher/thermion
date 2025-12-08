@@ -2570,6 +2570,74 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfResourceLoader> tGltfResourceLoader,
     Pointer<TFilamentAsset> tFilamentAsset,
   );
+  external Pointer<TSurfaceOrientationBuilder>
+      _SurfaceOrientationBuilder_create();
+  external void _SurfaceOrientationBuilder_vertexCount(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    size_t count,
+  );
+  external void _SurfaceOrientationBuilder_normals(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    Pointer<Float32> normals,
+    size_t stride,
+  );
+  external void _SurfaceOrientationBuilder_tangents(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    Pointer<Float32> tangents,
+    size_t stride,
+  );
+  external void _SurfaceOrientationBuilder_uvs(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    Pointer<Float32> uvs,
+    size_t stride,
+  );
+  external void _SurfaceOrientationBuilder_positions(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    Pointer<Float32> positions,
+    size_t stride,
+  );
+  external void _SurfaceOrientationBuilder_triangleCount(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    size_t count,
+  );
+  external void _SurfaceOrientationBuilder_triangles_uint(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    Pointer<Uint32> triangles,
+  );
+  external void _SurfaceOrientationBuilder_triangles_ushort(
+    Pointer<TSurfaceOrientationBuilder> builder,
+    Pointer<Uint16> triangles,
+  );
+  external Pointer<TSurfaceOrientation> _SurfaceOrientationBuilder_build(
+    Pointer<TSurfaceOrientationBuilder> builder,
+  );
+  external void _SurfaceOrientationBuilder_destroy(
+    Pointer<TSurfaceOrientationBuilder> builder,
+  );
+  external size_t _SurfaceOrientation_getVertexCount(
+    Pointer<TSurfaceOrientation> orientation,
+  );
+  external void _SurfaceOrientation_getQuats_float4(
+    Pointer<TSurfaceOrientation> orientation,
+    Pointer<Float32> out,
+    size_t quatCount,
+    size_t stride,
+  );
+  external void _SurfaceOrientation_getQuats_short4(
+    Pointer<TSurfaceOrientation> orientation,
+    Pointer<Int16> out,
+    size_t quatCount,
+    size_t stride,
+  );
+  external void _SurfaceOrientation_getQuats_half4(
+    Pointer<TSurfaceOrientation> orientation,
+    Pointer<Uint16> out,
+    size_t quatCount,
+    size_t stride,
+  );
+  external void _SurfaceOrientation_destroy(
+    Pointer<TSurfaceOrientation> orientation,
+  );
   external void _Scene_addEntity(
     Pointer<TScene> tScene,
     EntityId entityId,
@@ -8305,6 +8373,152 @@ bool GltfResourceLoader_loadResources(
   return result == 1;
 }
 
+Pointer<TSurfaceOrientationBuilder> SurfaceOrientationBuilder_create() {
+  final result = GeneratedBindings.instance._SurfaceOrientationBuilder_create();
+  return Pointer<TSurfaceOrientationBuilder>(result);
+}
+
+void SurfaceOrientationBuilder_vertexCount(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Dartsize_t count,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_vertexCount(builder.cast(), count);
+  return result;
+}
+
+void SurfaceOrientationBuilder_normals(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Pointer<Float32> normals,
+  Dartsize_t stride,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_normals(builder.cast(), normals, stride);
+  return result;
+}
+
+void SurfaceOrientationBuilder_tangents(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Pointer<Float32> tangents,
+  Dartsize_t stride,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_tangents(builder.cast(), tangents, stride);
+  return result;
+}
+
+void SurfaceOrientationBuilder_uvs(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Pointer<Float32> uvs,
+  Dartsize_t stride,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_uvs(builder.cast(), uvs, stride);
+  return result;
+}
+
+void SurfaceOrientationBuilder_positions(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Pointer<Float32> positions,
+  Dartsize_t stride,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_positions(builder.cast(), positions, stride);
+  return result;
+}
+
+void SurfaceOrientationBuilder_triangleCount(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Dartsize_t count,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_triangleCount(builder.cast(), count);
+  return result;
+}
+
+void SurfaceOrientationBuilder_triangles_uint(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Pointer<Uint32> triangles,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_triangles_uint(builder.cast(), triangles);
+  return result;
+}
+
+void SurfaceOrientationBuilder_triangles_ushort(
+  Pointer<TSurfaceOrientationBuilder> builder,
+  Pointer<Uint16> triangles,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_triangles_ushort(builder.cast(), triangles);
+  return result;
+}
+
+Pointer<TSurfaceOrientation> SurfaceOrientationBuilder_build(
+  Pointer<TSurfaceOrientationBuilder> builder,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_build(builder.cast());
+  return Pointer<TSurfaceOrientation>(result);
+}
+
+void SurfaceOrientationBuilder_destroy(
+  Pointer<TSurfaceOrientationBuilder> builder,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientationBuilder_destroy(builder.cast());
+  return result;
+}
+
+Dartsize_t SurfaceOrientation_getVertexCount(
+  Pointer<TSurfaceOrientation> orientation,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientation_getVertexCount(orientation.cast());
+  return result;
+}
+
+void SurfaceOrientation_getQuats_float4(
+  Pointer<TSurfaceOrientation> orientation,
+  Pointer<Float32> out,
+  Dartsize_t quatCount,
+  Dartsize_t stride,
+) {
+  final result = GeneratedBindings.instance._SurfaceOrientation_getQuats_float4(
+      orientation.cast(), out, quatCount, stride);
+  return result;
+}
+
+void SurfaceOrientation_getQuats_short4(
+  Pointer<TSurfaceOrientation> orientation,
+  Pointer<Int16> out,
+  Dartsize_t quatCount,
+  Dartsize_t stride,
+) {
+  final result = GeneratedBindings.instance._SurfaceOrientation_getQuats_short4(
+      orientation.cast(), out, quatCount, stride);
+  return result;
+}
+
+void SurfaceOrientation_getQuats_half4(
+  Pointer<TSurfaceOrientation> orientation,
+  Pointer<Uint16> out,
+  Dartsize_t quatCount,
+  Dartsize_t stride,
+) {
+  final result = GeneratedBindings.instance._SurfaceOrientation_getQuats_half4(
+      orientation.cast(), out, quatCount, stride);
+  return result;
+}
+
+void SurfaceOrientation_destroy(
+  Pointer<TSurfaceOrientation> orientation,
+) {
+  final result = GeneratedBindings.instance
+      ._SurfaceOrientation_destroy(orientation.cast());
+  return result;
+}
+
 void Scene_addEntity(
   Pointer<TScene> tScene,
   DartEntityId entityId,
@@ -10628,6 +10842,38 @@ sealed class TVertexAttributeType {
   static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
 }
 
+extension TSurfaceOrientationBuilderExt on Pointer<TSurfaceOrientationBuilder> {
+  TSurfaceOrientationBuilder toDart() {
+    return TSurfaceOrientationBuilder(this);
+  }
+}
+
+final class TSurfaceOrientationBuilder extends Struct {
+  Pointer<TSurfaceOrientationBuilder> get address => super.address.cast();
+  TSurfaceOrientationBuilder(super.address);
+
+  static Pointer<TSurfaceOrientationBuilder> stackAlloc() {
+    return Pointer<TSurfaceOrientationBuilder>(
+        NativeLibrary.instance.stackAlloc<TSurfaceOrientationBuilder>(0));
+  }
+}
+
+extension TSurfaceOrientationExt on Pointer<TSurfaceOrientation> {
+  TSurfaceOrientation toDart() {
+    return TSurfaceOrientation(this);
+  }
+}
+
+final class TSurfaceOrientation extends Struct {
+  Pointer<TSurfaceOrientation> get address => super.address.cast();
+  TSurfaceOrientation(super.address);
+
+  static Pointer<TSurfaceOrientation> stackAlloc() {
+    return Pointer<TSurfaceOrientation>(
+        NativeLibrary.instance.stackAlloc<TSurfaceOrientation>(0));
+  }
+}
+
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
   TMovementIntentExecutor toDart() {
     return TMovementIntentExecutor(this);
@@ -10821,6 +11067,12 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TVertexBufferBuilder:
         final ptr = TVertexBufferBuilder.stackAlloc();
+        return ptr.toDart() as T;
+      case TSurfaceOrientationBuilder:
+        final ptr = TSurfaceOrientationBuilder.stackAlloc();
+        return ptr.toDart() as T;
+      case TSurfaceOrientation:
+        final ptr = TSurfaceOrientation.stackAlloc();
         return ptr.toDart() as T;
       case TMovementIntentExecutor:
         final ptr = TMovementIntentExecutor.stackAlloc();

@@ -4793,6 +4793,131 @@ external bool GltfResourceLoader_loadResources(
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
 );
 
+@ffi.Native<ffi.Pointer<TSurfaceOrientationBuilder> Function()>(isLeaf: true)
+external ffi.Pointer<TSurfaceOrientationBuilder>
+    SurfaceOrientationBuilder_create();
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSurfaceOrientationBuilder>, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientationBuilder_vertexCount(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  int count,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientationBuilder>,
+        ffi.Pointer<ffi.Float>, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientationBuilder_normals(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  ffi.Pointer<ffi.Float> normals,
+  int stride,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientationBuilder>,
+        ffi.Pointer<ffi.Float>, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientationBuilder_tangents(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  ffi.Pointer<ffi.Float> tangents,
+  int stride,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientationBuilder>,
+        ffi.Pointer<ffi.Float>, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientationBuilder_uvs(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  ffi.Pointer<ffi.Float> uvs,
+  int stride,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientationBuilder>,
+        ffi.Pointer<ffi.Float>, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientationBuilder_positions(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  ffi.Pointer<ffi.Float> positions,
+  int stride,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSurfaceOrientationBuilder>, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientationBuilder_triangleCount(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  int count,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientationBuilder>,
+        ffi.Pointer<ffi.Uint32>)>(isLeaf: true)
+external void SurfaceOrientationBuilder_triangles_uint(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  ffi.Pointer<ffi.Uint32> triangles,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientationBuilder>,
+        ffi.Pointer<ffi.Uint16>)>(isLeaf: true)
+external void SurfaceOrientationBuilder_triangles_ushort(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+  ffi.Pointer<ffi.Uint16> triangles,
+);
+
+@ffi.Native<
+    ffi.Pointer<TSurfaceOrientation> Function(
+        ffi.Pointer<TSurfaceOrientationBuilder>)>(isLeaf: true)
+external ffi.Pointer<TSurfaceOrientation> SurfaceOrientationBuilder_build(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSurfaceOrientationBuilder>)>(
+    isLeaf: true)
+external void SurfaceOrientationBuilder_destroy(
+  ffi.Pointer<TSurfaceOrientationBuilder> builder,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TSurfaceOrientation>)>(isLeaf: true)
+external int SurfaceOrientation_getVertexCount(
+  ffi.Pointer<TSurfaceOrientation> orientation,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientation>, ffi.Pointer<ffi.Float>,
+        ffi.Size, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientation_getQuats_float4(
+  ffi.Pointer<TSurfaceOrientation> orientation,
+  ffi.Pointer<ffi.Float> out,
+  int quatCount,
+  int stride,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientation>, ffi.Pointer<ffi.Int16>,
+        ffi.Size, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientation_getQuats_short4(
+  ffi.Pointer<TSurfaceOrientation> orientation,
+  ffi.Pointer<ffi.Int16> out,
+  int quatCount,
+  int stride,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSurfaceOrientation>, ffi.Pointer<ffi.Uint16>,
+        ffi.Size, ffi.Size)>(isLeaf: true)
+external void SurfaceOrientation_getQuats_half4(
+  ffi.Pointer<TSurfaceOrientation> orientation,
+  ffi.Pointer<ffi.Uint16> out,
+  int quatCount,
+  int stride,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSurfaceOrientation>)>(isLeaf: true)
+external void SurfaceOrientation_destroy(
+  ffi.Pointer<TSurfaceOrientation> orientation,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>(isLeaf: true)
 external void Scene_addEntity(
   ffi.Pointer<TScene> tScene,
@@ -5130,6 +5255,10 @@ final class TIndexBuffer extends ffi.Opaque {}
 final class TVertexBufferBuilder extends ffi.Opaque {}
 
 final class TIndexBufferBuilder extends ffi.Opaque {}
+
+final class TSurfaceOrientation extends ffi.Opaque {}
+
+final class TSurfaceOrientationBuilder extends ffi.Opaque {}
 
 final class double3 extends ffi.Struct {
   @ffi.Double()
