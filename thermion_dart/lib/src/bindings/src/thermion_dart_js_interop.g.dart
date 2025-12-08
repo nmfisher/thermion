@@ -1651,6 +1651,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TEntityManager> _Engine_getEntityManager(
     Pointer<TEngine> engine,
   );
+  external void _Engine_setAutomaticInstancingEnabled(
+    Pointer<TEngine> tEngine,
+    bool enabled,
+  );
   external void _Engine_destroyTexture(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
@@ -6369,6 +6373,15 @@ Pointer<TEntityManager> Engine_getEntityManager(
   final result =
       GeneratedBindings.instance._Engine_getEntityManager(engine.cast());
   return Pointer<TEntityManager>(result);
+}
+
+void Engine_setAutomaticInstancingEnabled(
+  Pointer<TEngine> tEngine,
+  bool enabled,
+) {
+  final result = GeneratedBindings.instance
+      ._Engine_setAutomaticInstancingEnabled(tEngine.cast(), enabled);
+  return result;
 }
 
 void Engine_destroyTexture(

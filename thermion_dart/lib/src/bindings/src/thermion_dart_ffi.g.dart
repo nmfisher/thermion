@@ -2869,6 +2869,12 @@ external ffi.Pointer<TEntityManager> Engine_getEntityManager(
   ffi.Pointer<TEngine> engine,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Bool)>(isLeaf: true)
+external void Engine_setAutomaticInstancingEnabled(
+  ffi.Pointer<TEngine> tEngine,
+  bool enabled,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>)>(
     isLeaf: true)
 external void Engine_destroyTexture(
