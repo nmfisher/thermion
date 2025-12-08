@@ -9,6 +9,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_debug_registry
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_light_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_renderable_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_surface_orientation.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
@@ -23,6 +24,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
+import 'package:thermion_dart/src/filament/src/interface/surface_orientation.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
 import 'resource_loader.dart';
@@ -1120,9 +1122,41 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     // Calculate buffer count - always include UV0 and COLOR like the native C++ code
     int bufferCount = 1; // Always have positions
+    Float32List? tangentQuaternions;
+
     if (geometry.normals.length > 0) {
       bufferCount++;
+      // Generate tangent space quaternions using SurfaceOrientationBuilder
+      final orientationBuilder = FFISurfaceOrientationBuilder();
+      orientationBuilder.vertexCount(geometry.vertices.length ~/ 3);
+      orientationBuilder.positions(geometry.vertices);
+      orientationBuilder.normals(geometry.normals);
+
+      // Add UVs if available for better tangent generation
+      if (geometry.uvs.isNotEmpty) {
+        orientationBuilder.uvs(geometry.uvs);
+      }
+
+      // Set triangle indices
+      orientationBuilder.triangleCount(geometry.indices.length ~/ 3);
+      if (geometry.indexType == IndexType.UINT) {
+        orientationBuilder.trianglesUint32(Uint32List.fromList(geometry.indices));
+      } else {
+        orientationBuilder.trianglesUint16(Uint16List.fromList(geometry.indices));
+      }
+
+      // Build the surface orientation
+      final surfaceOrientation = await orientationBuilder.build();
+
+      // Extract quaternions in FLOAT4 format
+      tangentQuaternions = await surfaceOrientation.getQuats(
+        QuaternionFormat.FLOAT4,
+        geometry.vertices.length ~/ 3,
+      ) as Float32List;
+
+      await surfaceOrientation.destroy();
     }
+
     bufferCount++; // Always include UV0
     bufferCount++; // Always include COLOR
     vertexBufferBuilder.bufferCount(bufferCount);
@@ -1134,8 +1168,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Track current buffer index
     int currentBufferIndex = 1;
 
-    // Normal attribute (if present)
-    if (geometry.normals.length > 0) {
+    // Tangents attribute (if normals were provided)
+    if (tangentQuaternions != null) {
       vertexBufferBuilder.attribute(VertexAttribute.TANGENTS,
           currentBufferIndex, VertexAttributeType.FLOAT4);
       currentBufferIndex++;
@@ -1159,20 +1193,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Reset buffer index for data population
     currentBufferIndex = 1;
 
-    // Set normal/tangent data
-    if (geometry.normals.length > 0) {
-      // Convert Float32List normals (xyz) to Float32List tangents (xyzw with w=1.0)
-      final tangents = Float32List(geometry.normals.length ~/ 3 * 4);
-      for (int i = 0; i < geometry.normals.length ~/ 3; i++) {
-        tangents[i * 4 + 0] = geometry.normals[i * 3 + 0];
-        tangents[i * 4 + 1] = geometry.normals[i * 3 + 1];
-        tangents[i * 4 + 2] = geometry.normals[i * 3 + 2];
-        tangents[i * 4 + 3] = 1.0; // w component
-      }
-      await vertexBuffer.setBufferAt(currentBufferIndex, tangents);
+    // Set tangent quaternion data (generated from normals)
+    if (tangentQuaternions != null) {
+      await vertexBuffer.setBufferAt(currentBufferIndex, tangentQuaternions);
       currentBufferIndex++;
       if (FILAMENT_WASM) {
-        tangents.free();
+        tangentQuaternions.free();
       }
     }
 

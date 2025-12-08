@@ -35,9 +35,9 @@ class FFISurfaceOrientation extends SurfaceOrientation {
 
     // Allocate buffer for output
     final output = switch (format) {
-      QuaternionFormat.FLOAT4 => Float32List(bufferSize ~/ 4),
-      QuaternionFormat.SHORT4 => Int16List(bufferSize ~/ 2),
-      QuaternionFormat.HALF4 => Uint16List(bufferSize ~/ 2),
+      QuaternionFormat.FLOAT4 => bindings.makeFloat32List(bufferSize ~/ 4),
+      QuaternionFormat.SHORT4 => bindings.makeInt16List(bufferSize ~/ 2),
+      QuaternionFormat.HALF4 => bindings.makeUint16List(bufferSize ~/ 2),
     };
 
     // Get pointer to output data
