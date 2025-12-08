@@ -1140,9 +1140,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       // Set triangle indices
       orientationBuilder.triangleCount(geometry.indices.length ~/ 3);
       if (geometry.indexType == IndexType.UINT) {
-        orientationBuilder.trianglesUint32(Uint32List.fromList(geometry.indices));
+        orientationBuilder
+            .trianglesUint32(Uint32List.fromList(geometry.indices));
       } else {
-        orientationBuilder.trianglesUint16(Uint16List.fromList(geometry.indices));
+        orientationBuilder
+            .trianglesUint16(Uint16List.fromList(geometry.indices));
       }
 
       // Build the surface orientation
@@ -1205,37 +1207,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Set UV data (always present, use zeros if not provided)
     if (geometry.uvs.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.uvs);
-    } else {
-      // Create dummy UVs like the native C++ code does
-      final dummyUvs = Float32List(geometry.vertices.length ~/ 3 * 2);
-      for (int i = 0; i < dummyUvs.length; i += 2) {
-        dummyUvs[i] = 0.0; // u
-        dummyUvs[i + 1] = 0.0; // v
-      }
-      await vertexBuffer.setBufferAt(currentBufferIndex, dummyUvs);
-      if (FILAMENT_WASM) {
-        dummyUvs.free();
-      }
-    }
+    } 
+      
     currentBufferIndex++;
 
-    // Set color data (always present, use white if not provided)
     if (geometry.colors.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.colors);
-    } else {
-      // Create dummy colors like the native C++ code does
-      final dummyColors = Float32List(geometry.vertices.length ~/ 3 * 4);
-      for (int i = 0; i < dummyColors.length; i += 4) {
-        dummyColors[i] = 1.0; // r
-        dummyColors[i + 1] = 1.0; // g
-        dummyColors[i + 2] = 1.0; // b
-        dummyColors[i + 3] = 1.0; // a
-      }
-      await vertexBuffer.setBufferAt(currentBufferIndex, dummyColors);
-      if (FILAMENT_WASM) {
-        dummyColors.free();
-      }
-    }
+    } 
 
     // Build index buffer
     final indexBufferBuilder = FFIIndexBufferBuilder(engine);
@@ -1245,8 +1223,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
     final indexTypedData = switch (geometry.indexType) {
-      IndexType.UINT => Uint32List.fromList(geometry.indices),
-      IndexType.USHORT => Uint16List.fromList(geometry.indices)
+      IndexType.UINT => makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length,geometry.indices),
+      IndexType.USHORT => makeUint16List(geometry.indices.length)..setRange(0, geometry.indices.length,geometry.indices),
     };
     await indexBuffer.setBuffer(indexTypedData);
 
@@ -1314,13 +1292,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       return ptr;
     });
 
+    geometry.dispose();
+
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
       ptrList.free();
-      geometry.vertices.free();
-      geometry.normals.free();
-      geometry.uvs.free();
-      geometry.colors.free();
     }
 
     if (assetPtr == nullptr) {
