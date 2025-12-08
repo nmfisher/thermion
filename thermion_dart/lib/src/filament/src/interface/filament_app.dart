@@ -68,18 +68,14 @@ abstract class FilamentApp<T> {
   ///
   Future<Scene> createScene();
 
-  ///
-  ///
-  ///
+  /// Creates a new Camera component. If [targetEntity] is null, a new entity
+  /// will be created; otherwise, the component will be attached to 
+  /// [targetEntity].
   Future<Camera> createCamera({ThermionEntity? targetEntity});
 
   ///
-  ///
-  ///
   Future destroySwapChain(SwapChain swapChain);
 
-  ///
-  ///
   ///
   Future destroyView(View view);
 
@@ -383,4 +379,9 @@ abstract class FilamentApp<T> {
 
   /// Create a screenspace quad. This can be used as an image or a solid block.
   Future<TexturedQuad> createTexturedQuad();
+
+  /// Parse glTF file and extract geometry data for physics collision detection.
+  /// Returns vertex positions (xyz) and optional indices.
+  /// If [meshName] is specified, only extracts data for that specific mesh.
+  Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName});
 }

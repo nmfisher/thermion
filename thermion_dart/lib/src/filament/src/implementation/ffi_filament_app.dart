@@ -27,6 +27,7 @@ import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/src/filament/src/interface/surface_orientation.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
+import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
 
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
@@ -1467,5 +1468,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     await quad.setMaterialInstanceAt(mi);
     return FFITexturedQuad(asset: quad, mi: mi);
+  }
+
+  //
+  Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName}) {
+    return FFIGltfMeshData.parse(data, meshName: meshName);
   }
 }

@@ -7,7 +7,7 @@ class FFIGltfMeshData extends GltfMeshData {
     required super.primitiveType,
   });
 
-  /// Parse glTF file and extract geometry data for physics collision detection.
+  /// Parse glTF file to extract vertex/index data.
   /// Returns vertex positions (xyz) and optional indices.
   /// If [meshName] is specified, only extracts data for that specific mesh.
   static Future<GltfMeshData> parse(Uint8List data, {String? meshName}) async {
