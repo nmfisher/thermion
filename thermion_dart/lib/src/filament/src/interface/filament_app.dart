@@ -39,6 +39,7 @@ abstract class FilamentApp<T> {
   RenderableManager get renderableManager;
   LightManager get lightManager;
   DebugRegistry getDebugRegistry();
+  void setAutomaticInstancingEnabled(bool enabled);
 
   ///
   ///
@@ -290,7 +291,7 @@ abstract class FilamentApp<T> {
   /// See [FilamentViewerFFI.loadGltf] for details.
   ///
   ///
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, 
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
       bool keepData = false,
       int priority = 4,
@@ -306,13 +307,12 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future<GizmoAsset> createGizmo(
-      covariant View view, GizmoType type);
+  Future<GizmoAsset> createGizmo(covariant View view, GizmoType type);
 
   ///
   ///
   ///
-  Future<ThermionAsset> createGeometry(Geometry geometry, 
+  Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances, bool keepData = false});
 
   ///

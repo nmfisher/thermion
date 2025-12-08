@@ -77,6 +77,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     this.animationManager = FFIAnimationManager(animationManagerPointer, this);
   }
 
+  void setAutomaticInstancingEnabled(bool enabled) {
+    Engine_setAutomaticInstancingEnabled(engine, enabled);
+  }
+
   Future<Uint8List> loadResource(String uri) {
     return _loadResource(uri);
   }
@@ -1140,11 +1144,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       // Set triangle indices
       orientationBuilder.triangleCount(geometry.indices.length ~/ 3);
       if (geometry.indexType == IndexType.UINT) {
-        orientationBuilder
-            .trianglesUint32(makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices));
+        orientationBuilder.trianglesUint32(
+            makeUint32List(geometry.indices.length)
+              ..setRange(0, geometry.indices.length, geometry.indices));
       } else {
-        orientationBuilder
-            .trianglesUint16(makeUint16List(geometry.indices.length)..setRange(0, geometry.indices.length, geometry.indices));
+        orientationBuilder.trianglesUint16(
+            makeUint16List(geometry.indices.length)
+              ..setRange(0, geometry.indices.length, geometry.indices));
       }
 
       // Build the surface orientation
@@ -1204,13 +1210,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // Set UV data (always present, use zeros if not provided)
     if (geometry.uvs.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.uvs);
-    } 
-      
+    }
+
     currentBufferIndex++;
 
     if (geometry.colors.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.colors);
-    } 
+    }
 
     // Build index buffer
     final indexBufferBuilder = FFIIndexBufferBuilder(engine);
@@ -1220,8 +1226,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
     final indexTypedData = switch (geometry.indexType) {
-      IndexType.UINT => makeUint32List(geometry.indices.length)..setRange(0, geometry.indices.length,geometry.indices),
-      IndexType.USHORT => makeUint16List(geometry.indices.length)..setRange(0, geometry.indices.length,geometry.indices),
+      IndexType.UINT => makeUint32List(geometry.indices.length)
+        ..setRange(0, geometry.indices.length, geometry.indices),
+      IndexType.USHORT => makeUint16List(geometry.indices.length)
+        ..setRange(0, geometry.indices.length, geometry.indices),
     };
     await indexBuffer.setBuffer(indexTypedData);
 

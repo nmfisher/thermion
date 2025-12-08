@@ -206,6 +206,11 @@ namespace thermion
             return reinterpret_cast<TEntityManager *>(&entityManager);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Engine_setAutomaticInstancingEnabled(TEngine *tEngine, bool enabled) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            engine->setAutomaticInstancingEnabled(enabled);
+        }
+
         EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine, EntityId entityId)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
