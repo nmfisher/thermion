@@ -35,6 +35,10 @@ Float32List makeFloat32List(int length) {
   return Float32List(length);
 }
 
+IntPtrList makeIntPtrList(int length) {
+  return IntPtrList(length);
+}
+
 class NativeLibrary {
   static void initBindings(String name) {
     throw Exception();

@@ -1199,9 +1199,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (tangentQuaternions != null) {
       await vertexBuffer.setBufferAt(currentBufferIndex, tangentQuaternions);
       currentBufferIndex++;
-      if (FILAMENT_WASM) {
-        tangentQuaternions.free();
-      }
     }
 
     // Set UV data (always present, use zeros if not provided)
@@ -1267,7 +1264,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     cAabb.halfExtentZ = halfExtentZ;
 
     // Prepare material instance pointers
-    final ptrList = IntPtrList(materialInstances?.length ?? 0);
+    final ptrList = makeIntPtrList(materialInstances?.length ?? 0);
     if (materialInstances != null) {
       ptrList.setRange(
           0,
@@ -1294,9 +1291,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     geometry.dispose();
 
+    ptrList.free();
+    tangentQuaternions?.free();
+
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
-      ptrList.free();
     }
 
     if (assetPtr == nullptr) {
