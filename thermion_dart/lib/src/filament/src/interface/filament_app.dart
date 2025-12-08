@@ -39,6 +39,7 @@ abstract class FilamentApp<T> {
   RenderableManager get renderableManager;
   LightManager get lightManager;
   DebugRegistry getDebugRegistry();
+  int getMaxAutomaticInstances();
   void setAutomaticInstancingEnabled(bool enabled);
 
   ///

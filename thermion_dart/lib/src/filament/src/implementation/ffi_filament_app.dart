@@ -77,6 +77,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     this.animationManager = FFIAnimationManager(animationManagerPointer, this);
   }
 
+  //
+  int getMaxAutomaticInstances() {
+    return Engine_getMaxAutomaticInstances(engine);
+  }
+
   void setAutomaticInstancingEnabled(bool enabled) {
     Engine_setAutomaticInstancingEnabled(engine, enabled);
   }

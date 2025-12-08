@@ -211,6 +211,11 @@ namespace thermion
             engine->setAutomaticInstancingEnabled(enabled);
         }
 
+        EMSCRIPTEN_KEEPALIVE size_t Engine_getMaxAutomaticInstances(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            return engine->getMaxAutomaticInstances();
+        }
+
         EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine, EntityId entityId)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
