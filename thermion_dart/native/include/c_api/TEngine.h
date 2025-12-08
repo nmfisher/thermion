@@ -46,6 +46,7 @@ EMSCRIPTEN_KEEPALIVE TTransformManager *Engine_getTransformManager(TEngine *engi
 EMSCRIPTEN_KEEPALIVE TRenderableManager *Engine_getRenderableManager(TEngine *engine);
 EMSCRIPTEN_KEEPALIVE TLightManager *Engine_getLightManager(TEngine *engine);
 EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
+EMSCRIPTEN_KEEPALIVE void Engine_setAutomaticInstancingEnabled(TEngine *tEngine, bool enabled);
 
 EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture);
 
