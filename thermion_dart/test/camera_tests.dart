@@ -110,19 +110,31 @@ void main() async {
     });
   });
 
-  test('getCameraFrustum', () async {
+  test('camera frustum', () async {
     await testHelper.withViewer((viewer) async {
       var camera = await viewer.getActiveCamera();
       var frustum = await camera.getFrustum();
 
-      print(frustum.plane5.normal);
-      print(frustum.plane5.constant);
+      // Test that points in front of the camera are inside the frustum
+      final nearPoint = Vector3(0, 0, -5);  // Point in front of camera
+      final farPoint = Vector3(0, 0, -100); // Far point in front
+      final leftPoint = Vector3(-5, 0, -10); // Left side
+      final rightPoint = Vector3(5, 0, -10); // Right side
+      final topPoint = Vector3(0, 5, -10); // Top
+      final bottomPoint = Vector3(0, -5, -10); // Bottom
 
-      await camera.setLensProjection(
-          near: 10.0, far: 1000.0, aspect: 1.0, focalLength: 28.0);
-      frustum = await camera.getFrustum();
-      print(frustum.plane5.normal);
-      print(frustum.plane5.constant);
+      // These should be inside the frustum
+      expect(frustum.containsVector3(nearPoint), isTrue);
+      expect(frustum.containsVector3(farPoint), isTrue);
+      expect(frustum.containsVector3(leftPoint), isTrue);
+      expect(frustum.containsVector3(rightPoint), isTrue);
+      expect(frustum.containsVector3(topPoint), isTrue);
+      expect(frustum.containsVector3(bottomPoint), isTrue);
+
+      // Test point behind camera (should be outside)
+      final behindPoint = Vector3(0, 0, 1); // Behind camera
+      expect(frustum.containsVector3(behindPoint), isFalse);
+
     });
   });
 
