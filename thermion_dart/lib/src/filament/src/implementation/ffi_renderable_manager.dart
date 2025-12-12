@@ -427,7 +427,8 @@ class FFIRenderableBuilder implements RenderableBuilder {
   Future<bool> build(ThermionEntity entity) async {
     _checkNotBuilt();
 
-    final result = bindings.RenderableBuilder_build(_builderPtr!, _app.engine, entity);
+    final result = await withIntCallback((cb) =>
+        bindings.RenderableBuilder_buildRenderThread(_builderPtr!, _app.engine, entity, cb.cast()));
 
     // Clean up the builder
     bindings.RenderableBuilder_destroy(_builderPtr!);

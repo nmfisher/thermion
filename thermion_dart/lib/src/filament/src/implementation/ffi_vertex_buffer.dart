@@ -1,4 +1,3 @@
-import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
@@ -7,7 +6,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 class FFIVertexBuffer extends VertexBuffer {
   final bindings.Pointer<bindings.TVertexBuffer> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
-  late final _logger = Logger('FFIVertexBuffer');
 
   FFIVertexBuffer(this._ptr, this._engine);
 
@@ -23,19 +21,25 @@ class FFIVertexBuffer extends VertexBuffer {
   Future setBufferAt(int bufferIndex, TypedData data,
       {int byteOffset = 0}) async {
     final byteData = data.buffer.asUint8List(data.offsetInBytes);
-    bindings.VertexBuffer_setBufferAt(
-      _engine,
-      _ptr,
-      bufferIndex,
-      byteData.address.cast(),
-      byteData.lengthInBytes,
-      byteOffset,
-    );
+    await withVoidCallback((requestId, cb) {
+      bindings.VertexBuffer_setBufferAtRenderThread(
+        _engine,
+        _ptr,
+        bufferIndex,
+        byteData.address.cast(),
+        byteData.lengthInBytes,
+        byteOffset,
+        requestId,
+        cb
+      );
+    });
   }
 
   @override
   Future destroy() async {
-    bindings.VertexBuffer_destroy(_engine, _ptr);
+    await withVoidCallback((requestId, cb) {
+      bindings.VertexBuffer_destroyRenderThread(_engine, _ptr, requestId, cb);
+    });
   }
 }
 
@@ -105,12 +109,17 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
   Future<VertexBuffer> build() async {
     _checkNotBuilt();
 
-    final vertexBufferPtr =
-        bindings.VertexBufferBuilder_build(_builderPtr!, _engine);
+    final vertexBufferPtr = await withPointerCallback<bindings.TVertexBuffer>(
+      (cb) => bindings.VertexBufferBuilder_buildRenderThread(_builderPtr!, _engine, cb)
+    );
 
     bindings.VertexBufferBuilder_destroy(_builderPtr!);
     _builderPtr = null;
     _isBuilt = true;
+
+    if (vertexBufferPtr == bindings.nullptr) {
+      throw Exception('Failed to build VertexBuffer');
+    }
 
     return FFIVertexBuffer(vertexBufferPtr, _engine);
   }

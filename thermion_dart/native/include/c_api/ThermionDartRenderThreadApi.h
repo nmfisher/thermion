@@ -6,6 +6,8 @@
 #include "TView.h"
 #include "TTexture.h"
 #include "TMaterialProvider.h"
+#include "TVertexBuffer.h"
+#include "TIndexBuffer.h"
 
 #ifdef __cplusplus
 namespace thermion
@@ -332,8 +334,61 @@ namespace thermion
             TNameComponentManager *tNameComponentManager,
             TView *tView,
             TMaterial *tMaterial,
-            TGizmoType tGizmoType,    
+            TGizmoType tGizmoType,
             void (*callback)(TGizmo *)
+        );
+
+        // VertexBuffer render thread methods
+        EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildRenderThread(
+            TVertexBufferBuilder *tBuilder,
+            TEngine *tEngine,
+            void (*onComplete)(TVertexBuffer *)
+        );
+        EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroyRenderThread(
+            TEngine *tEngine,
+            TVertexBuffer *tBuffer,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAtRenderThread(
+            TEngine* tEngine,
+            TVertexBuffer* tBuffer,
+            uint8_t bufferIndex,
+            void* data,
+            size_t sizeInBytes,
+            uint32_t byteOffset,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        // IndexBuffer render thread methods
+        EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_buildRenderThread(
+            TIndexBufferBuilder *tBuilder,
+            TEngine *tEngine,
+            void (*onComplete)(TIndexBuffer *)
+        );
+        EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroyRenderThread(
+            TEngine *tEngine,
+            TIndexBuffer *tBuffer,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void IndexBuffer_setBufferRenderThread(
+            TEngine* tEngine,
+            TIndexBuffer* tBuffer,
+            void* data,
+            size_t sizeInBytes,
+            uint32_t byteOffset,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        // RenderableBuilder render thread methods
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildRenderThread(
+            TRenderableBuilder *tBuilder,
+            TEngine *tEngine,
+            EntityId entityId,
+            void (*onComplete)(int)
         );
 
 
