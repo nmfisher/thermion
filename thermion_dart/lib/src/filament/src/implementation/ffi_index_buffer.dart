@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
@@ -8,7 +7,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 class FFIIndexBuffer extends IndexBuffer {
   final bindings.Pointer<bindings.TIndexBuffer> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
-  late final _logger = Logger('FFIIndexBuffer');
 
   FFIIndexBuffer(this._ptr, this._engine);
 
@@ -23,13 +21,24 @@ class FFIIndexBuffer extends IndexBuffer {
   @override
   Future setBuffer(TypedData data, {int byteOffset = 0}) async {
     final byteData = data.buffer.asUint8List();
-    bindings.IndexBuffer_setBuffer(_engine, _ptr, byteData.address.cast(),
-        byteData.length, byteOffset);
+    await withVoidCallback((requestId, cb) {
+      bindings.IndexBuffer_setBufferRenderThread(
+        _engine,
+        _ptr,
+        byteData.address.cast(),
+        byteData.length,
+        byteOffset,
+        requestId,
+        cb
+      );
+    });
   }
 
   @override
   Future destroy() async {
-    bindings.IndexBuffer_destroy(_engine, _ptr);
+    await withVoidCallback((requestId, cb) {
+      bindings.IndexBuffer_destroyRenderThread(_engine, _ptr, requestId, cb);
+    });
   }
 }
 
@@ -71,12 +80,17 @@ class FFIIndexBufferBuilder implements IndexBufferBuilder {
   Future<IndexBuffer> build() async {
     _checkNotBuilt();
 
-    final indexBufferPtr =
-        bindings.IndexBufferBuilder_build(_builderPtr!, _engine);
+    final indexBufferPtr = await withPointerCallback<bindings.TIndexBuffer>(
+      (cb) => bindings.IndexBufferBuilder_buildRenderThread(_builderPtr!, _engine, cb)
+    );
 
     bindings.IndexBufferBuilder_destroy(_builderPtr!);
     _builderPtr = null;
     _isBuilt = true;
+
+    if (indexBufferPtr == bindings.nullptr) {
+      throw Exception('Failed to build IndexBuffer');
+    }
 
     return FFIIndexBuffer(indexBufferPtr, _engine);
   }

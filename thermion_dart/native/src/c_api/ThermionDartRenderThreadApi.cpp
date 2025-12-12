@@ -2,6 +2,7 @@
 #include <mutex>
 #include <thread>
 #include <stdlib.h>
+#include <vector>
 
 #include <filament/LightManager.h>
 
@@ -18,6 +19,8 @@
 #include "c_api/TSceneAsset.h"
 #include "c_api/TTexture.h"
 #include "c_api/TView.h"
+#include "c_api/TVertexBuffer.h"
+#include "c_api/TIndexBuffer.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
 #include "rendering/RenderThread.hpp"
@@ -1496,6 +1499,156 @@ extern "C"
         {
           auto *gizmo = Gizmo_create(tEngine, tAssetLoader, tGltfResourceLoader, tNameComponentManager, tView, tMaterial, tGizmoType);
           PROXY(callback(gizmo));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildRenderThread(
+      TVertexBufferBuilder *tBuilder,
+      TEngine *tEngine,
+      void (*onComplete)(TVertexBuffer *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *vertexBuffer = VertexBufferBuilder_build(tBuilder, tEngine);
+          PROXY(onComplete(vertexBuffer));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroyRenderThread(
+      TEngine *tEngine,
+      TVertexBuffer *tBuffer,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          VertexBuffer_destroy(tEngine, tBuffer);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAtRenderThread(
+      TEngine* tEngine,
+      TVertexBuffer* tBuffer,
+      uint8_t bufferIndex,
+      void* data,
+      size_t sizeInBytes,
+      uint32_t byteOffset,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    // Copy data using std::vector to ensure it remains valid after the function returns
+    auto *buffer = new std::vector<uint8_t>(sizeInBytes);
+    std::copy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + sizeInBytes, buffer->begin());
+
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          // Create a BufferDescriptor with a callback to delete the vector
+          VertexBuffer::BufferDescriptor bufferDescriptor(
+              buffer->data(),
+              buffer->size(),
+              [](void* buffer, size_t size, void* user) {
+                delete reinterpret_cast<std::vector<uint8_t>*>(user);
+              },
+              buffer
+          );
+
+          // Call the original setBufferAt with our BufferDescriptor
+          auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
+          auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
+          vertexBuffer->setBufferAt(*engine, bufferIndex, std::move(bufferDescriptor), byteOffset);
+
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_buildRenderThread(
+      TIndexBufferBuilder *tBuilder,
+      TEngine *tEngine,
+      void (*onComplete)(TIndexBuffer *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *indexBuffer = IndexBufferBuilder_build(tBuilder, tEngine);
+          PROXY(onComplete(indexBuffer));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroyRenderThread(
+      TEngine *tEngine,
+      TIndexBuffer *tBuffer,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          IndexBuffer_destroy(tEngine, tBuffer);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void IndexBuffer_setBufferRenderThread(
+      TEngine* tEngine,
+      TIndexBuffer* tBuffer,
+      void* data,
+      size_t sizeInBytes,
+      uint32_t byteOffset,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    // Copy data using std::vector to ensure it remains valid after the function returns
+    auto *buffer = new std::vector<uint8_t>(sizeInBytes);
+    std::copy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + sizeInBytes, buffer->begin());
+
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          // Create a BufferDescriptor with a callback to delete the vector
+          IndexBuffer::BufferDescriptor bufferDescriptor(
+              buffer->data(),
+              buffer->size(),
+              [](void* buffer, size_t size, void* user) {
+                delete reinterpret_cast<std::vector<uint8_t>*>(user);
+              },
+              buffer
+          );
+
+          // Call the original setBuffer with our BufferDescriptor
+          auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
+          auto* indexBuffer = reinterpret_cast<filament::IndexBuffer*>(tBuffer);
+          indexBuffer->setBuffer(*engine, std::move(bufferDescriptor), byteOffset);
+
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildRenderThread(
+      TRenderableBuilder *tBuilder,
+      TEngine *tEngine,
+      EntityId entityId,
+      void (*onComplete)(int))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+          auto *engine = reinterpret_cast<filament::Engine*>(tEngine);
+          const auto &entity = utils::Entity::import(entityId);
+
+          auto result = builder->build(*engine, entity);
+          PROXY(onComplete(static_cast<int>(result)));
         });
     auto fut = _renderThread->add_task(lambda);
   }
