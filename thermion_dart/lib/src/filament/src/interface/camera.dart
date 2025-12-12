@@ -119,6 +119,8 @@ abstract class Camera<T> extends NativeHandle {
   
   Future<double> getHorizontalFieldOfView();
   Future<double> getVerticalFieldOfView();
+  
+  // Returns the view frustum of the camera in camera space.
   Future<Frustum> getFrustum();
 
   Future destroy();
