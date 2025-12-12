@@ -1813,6 +1813,50 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool hasIOR,
     bool hasVolume,
   );
+  external Pointer<TVertexBufferBuilder> _VertexBufferBuilder_create();
+  external void _VertexBufferBuilder_bufferCount(
+    Pointer<TVertexBufferBuilder> builder,
+    int count,
+  );
+  external void _VertexBufferBuilder_vertexCount(
+    Pointer<TVertexBufferBuilder> builder,
+    int count,
+  );
+  external void _VertexBufferBuilder_attribute(
+    Pointer<TVertexBufferBuilder> builder,
+    int attribute,
+    int bufferIndex,
+    int attributeType,
+    int byteOffset,
+    int byteStride,
+  );
+  external void _VertexBufferBuilder_normalized(
+    Pointer<TVertexBufferBuilder> builder,
+    int attribute,
+    bool normalize,
+  );
+  external Pointer<TVertexBuffer> _VertexBufferBuilder_build(
+    Pointer<TVertexBufferBuilder> builder,
+    Pointer<TEngine> engine,
+  );
+  external void _VertexBufferBuilder_destroy(
+    Pointer<TVertexBufferBuilder> builder,
+  );
+  external size_t _VertexBuffer_getVertexCount(
+    Pointer<TVertexBuffer> buffer,
+  );
+  external void _VertexBuffer_setBufferAt(
+    Pointer<TEngine> engine,
+    Pointer<TVertexBuffer> buffer,
+    int bufferIndex,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+  );
+  external void _VertexBuffer_destroy(
+    Pointer<TEngine> engine,
+    Pointer<TVertexBuffer> buffer,
+  );
   external void _RenderThread_create();
   external void _RenderThread_destroy();
   external void _RenderThread_requestFrameAsync();
@@ -2489,6 +2533,55 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int tGizmoType,
     Pointer<NativeFunction<void Function(PointerClass<TGizmo>)>> callback,
   );
+  external void _VertexBufferBuilder_buildRenderThread(
+    Pointer<TVertexBufferBuilder> tBuilder,
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TVertexBuffer>)>>
+        onComplete,
+  );
+  external void _VertexBuffer_destroyRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TVertexBuffer> tBuffer,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _VertexBuffer_setBufferAtRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TVertexBuffer> tBuffer,
+    int bufferIndex,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _IndexBufferBuilder_buildRenderThread(
+    Pointer<TIndexBufferBuilder> tBuilder,
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TIndexBuffer>)>>
+        onComplete,
+  );
+  external void _IndexBuffer_destroyRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TIndexBuffer> tBuffer,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _IndexBuffer_setBufferRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TIndexBuffer> tBuffer,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _RenderableBuilder_buildRenderThread(
+    Pointer<TRenderableBuilder> tBuilder,
+    Pointer<TEngine> tEngine,
+    EntityId entityId,
+    Pointer<NativeFunction<void Function(int)>> onComplete,
+  );
   external Pointer<TOverlayManager> _OverlayManager_create(
     Pointer<TEngine> tEngine,
     Pointer<TRenderer> tRenderer,
@@ -2517,50 +2610,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _GltfParser_freeMeshData(
     Pointer<TGltfMeshData> meshData,
-  );
-  external Pointer<TVertexBufferBuilder> _VertexBufferBuilder_create();
-  external void _VertexBufferBuilder_bufferCount(
-    Pointer<TVertexBufferBuilder> builder,
-    int count,
-  );
-  external void _VertexBufferBuilder_vertexCount(
-    Pointer<TVertexBufferBuilder> builder,
-    int count,
-  );
-  external void _VertexBufferBuilder_attribute(
-    Pointer<TVertexBufferBuilder> builder,
-    int attribute,
-    int bufferIndex,
-    int attributeType,
-    int byteOffset,
-    int byteStride,
-  );
-  external void _VertexBufferBuilder_normalized(
-    Pointer<TVertexBufferBuilder> builder,
-    int attribute,
-    bool normalize,
-  );
-  external Pointer<TVertexBuffer> _VertexBufferBuilder_build(
-    Pointer<TVertexBufferBuilder> builder,
-    Pointer<TEngine> engine,
-  );
-  external void _VertexBufferBuilder_destroy(
-    Pointer<TVertexBufferBuilder> builder,
-  );
-  external size_t _VertexBuffer_getVertexCount(
-    Pointer<TVertexBuffer> buffer,
-  );
-  external void _VertexBuffer_setBufferAt(
-    Pointer<TEngine> engine,
-    Pointer<TVertexBuffer> buffer,
-    int bufferIndex,
-    Pointer<Void> data,
-    size_t sizeInBytes,
-    int byteOffset,
-  );
-  external void _VertexBuffer_destroy(
-    Pointer<TEngine> engine,
-    Pointer<TVertexBuffer> buffer,
   );
   external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
     Pointer<TEngine> tEngine,
@@ -6738,6 +6787,104 @@ Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
   return Pointer<TMaterialInstance>(result);
 }
 
+Pointer<TVertexBufferBuilder> VertexBufferBuilder_create() {
+  final result = GeneratedBindings.instance._VertexBufferBuilder_create();
+  return Pointer<TVertexBufferBuilder>(result);
+}
+
+void VertexBufferBuilder_bufferCount(
+  Pointer<TVertexBufferBuilder> builder,
+  int count,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_bufferCount(builder.cast(), count);
+  return result;
+}
+
+void VertexBufferBuilder_vertexCount(
+  Pointer<TVertexBufferBuilder> builder,
+  int count,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_vertexCount(builder.cast(), count);
+  return result;
+}
+
+void VertexBufferBuilder_attribute(
+  Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  int bufferIndex,
+  int attributeType,
+  int byteOffset,
+  int byteStride,
+) {
+  final result = GeneratedBindings.instance._VertexBufferBuilder_attribute(
+      builder.cast(),
+      attribute,
+      bufferIndex,
+      attributeType,
+      byteOffset,
+      byteStride);
+  return result;
+}
+
+void VertexBufferBuilder_normalized(
+  Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  bool normalize,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_normalized(builder.cast(), attribute, normalize);
+  return result;
+}
+
+Pointer<TVertexBuffer> VertexBufferBuilder_build(
+  Pointer<TVertexBufferBuilder> builder,
+  Pointer<TEngine> engine,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_build(builder.cast(), engine.cast());
+  return Pointer<TVertexBuffer>(result);
+}
+
+void VertexBufferBuilder_destroy(
+  Pointer<TVertexBufferBuilder> builder,
+) {
+  final result =
+      GeneratedBindings.instance._VertexBufferBuilder_destroy(builder.cast());
+  return result;
+}
+
+Dartsize_t VertexBuffer_getVertexCount(
+  Pointer<TVertexBuffer> buffer,
+) {
+  final result =
+      GeneratedBindings.instance._VertexBuffer_getVertexCount(buffer.cast());
+  return result;
+}
+
+void VertexBuffer_setBufferAt(
+  Pointer<TEngine> engine,
+  Pointer<TVertexBuffer> buffer,
+  int bufferIndex,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+) {
+  final result = GeneratedBindings.instance._VertexBuffer_setBufferAt(
+      engine.cast(), buffer.cast(), bufferIndex, data, sizeInBytes, byteOffset);
+  return result;
+}
+
+void VertexBuffer_destroy(
+  Pointer<TEngine> engine,
+  Pointer<TVertexBuffer> buffer,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBuffer_destroy(engine.cast(), buffer.cast());
+  return result;
+}
+
 void RenderThread_create() {
   final result = GeneratedBindings.instance._RenderThread_create();
   return result;
@@ -8213,6 +8360,111 @@ void Gizmo_createRenderThread(
   return result;
 }
 
+void VertexBufferBuilder_buildRenderThread(
+  Pointer<TVertexBufferBuilder> tBuilder,
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TVertexBuffer>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBufferBuilder_buildRenderThread(
+          tBuilder.cast(), tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void VertexBuffer_destroyRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TVertexBuffer> tBuffer,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._VertexBuffer_destroyRenderThread(
+      tEngine.cast(),
+      tBuffer.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void VertexBuffer_setBufferAtRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TVertexBuffer> tBuffer,
+  int bufferIndex,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._VertexBuffer_setBufferAtRenderThread(
+          tEngine.cast(),
+          tBuffer.cast(),
+          bufferIndex,
+          data,
+          sizeInBytes,
+          byteOffset,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void IndexBufferBuilder_buildRenderThread(
+  Pointer<TIndexBufferBuilder> tBuilder,
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TIndexBuffer>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._IndexBufferBuilder_buildRenderThread(
+          tBuilder.cast(), tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void IndexBuffer_destroyRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TIndexBuffer> tBuffer,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._IndexBuffer_destroyRenderThread(
+      tEngine.cast(),
+      tBuffer.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void IndexBuffer_setBufferRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TIndexBuffer> tBuffer,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._IndexBuffer_setBufferRenderThread(
+      tEngine.cast(),
+      tBuffer.cast(),
+      data,
+      sizeInBytes,
+      byteOffset,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void RenderableBuilder_buildRenderThread(
+  Pointer<TRenderableBuilder> tBuilder,
+  Pointer<TEngine> tEngine,
+  DartEntityId entityId,
+  Pointer<NativeFunction<void Function(int)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableBuilder_buildRenderThread(
+          tBuilder.cast(), tEngine.cast(), entityId, onComplete.cast());
+  return result;
+}
+
 Pointer<TOverlayManager> OverlayManager_create(
   Pointer<TEngine> tEngine,
   Pointer<TRenderer> tRenderer,
@@ -8273,104 +8525,6 @@ void GltfParser_freeMeshData(
 ) {
   final result =
       GeneratedBindings.instance._GltfParser_freeMeshData(meshData.cast());
-  return result;
-}
-
-Pointer<TVertexBufferBuilder> VertexBufferBuilder_create() {
-  final result = GeneratedBindings.instance._VertexBufferBuilder_create();
-  return Pointer<TVertexBufferBuilder>(result);
-}
-
-void VertexBufferBuilder_bufferCount(
-  Pointer<TVertexBufferBuilder> builder,
-  int count,
-) {
-  final result = GeneratedBindings.instance
-      ._VertexBufferBuilder_bufferCount(builder.cast(), count);
-  return result;
-}
-
-void VertexBufferBuilder_vertexCount(
-  Pointer<TVertexBufferBuilder> builder,
-  int count,
-) {
-  final result = GeneratedBindings.instance
-      ._VertexBufferBuilder_vertexCount(builder.cast(), count);
-  return result;
-}
-
-void VertexBufferBuilder_attribute(
-  Pointer<TVertexBufferBuilder> builder,
-  int attribute,
-  int bufferIndex,
-  int attributeType,
-  int byteOffset,
-  int byteStride,
-) {
-  final result = GeneratedBindings.instance._VertexBufferBuilder_attribute(
-      builder.cast(),
-      attribute,
-      bufferIndex,
-      attributeType,
-      byteOffset,
-      byteStride);
-  return result;
-}
-
-void VertexBufferBuilder_normalized(
-  Pointer<TVertexBufferBuilder> builder,
-  int attribute,
-  bool normalize,
-) {
-  final result = GeneratedBindings.instance
-      ._VertexBufferBuilder_normalized(builder.cast(), attribute, normalize);
-  return result;
-}
-
-Pointer<TVertexBuffer> VertexBufferBuilder_build(
-  Pointer<TVertexBufferBuilder> builder,
-  Pointer<TEngine> engine,
-) {
-  final result = GeneratedBindings.instance
-      ._VertexBufferBuilder_build(builder.cast(), engine.cast());
-  return Pointer<TVertexBuffer>(result);
-}
-
-void VertexBufferBuilder_destroy(
-  Pointer<TVertexBufferBuilder> builder,
-) {
-  final result =
-      GeneratedBindings.instance._VertexBufferBuilder_destroy(builder.cast());
-  return result;
-}
-
-Dartsize_t VertexBuffer_getVertexCount(
-  Pointer<TVertexBuffer> buffer,
-) {
-  final result =
-      GeneratedBindings.instance._VertexBuffer_getVertexCount(buffer.cast());
-  return result;
-}
-
-void VertexBuffer_setBufferAt(
-  Pointer<TEngine> engine,
-  Pointer<TVertexBuffer> buffer,
-  int bufferIndex,
-  Pointer<Void> data,
-  Dartsize_t sizeInBytes,
-  int byteOffset,
-) {
-  final result = GeneratedBindings.instance._VertexBuffer_setBufferAt(
-      engine.cast(), buffer.cast(), bufferIndex, data, sizeInBytes, byteOffset);
-  return result;
-}
-
-void VertexBuffer_destroy(
-  Pointer<TEngine> engine,
-  Pointer<TVertexBuffer> buffer,
-) {
-  final result = GeneratedBindings.instance
-      ._VertexBuffer_destroy(engine.cast(), buffer.cast());
   return result;
 }
 
@@ -10826,22 +10980,6 @@ final class TDebugRegistry extends Struct {
   }
 }
 
-extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
-  TGltfMeshData toDart() {
-    return TGltfMeshData(this);
-  }
-}
-
-final class TGltfMeshData extends Struct {
-  Pointer<TGltfMeshData> get address => super.address.cast();
-  TGltfMeshData(super.address);
-
-  static Pointer<TGltfMeshData> stackAlloc() {
-    return Pointer<TGltfMeshData>(
-        NativeLibrary.instance.stackAlloc<TGltfMeshData>(0));
-  }
-}
-
 extension TVertexBufferBuilderExt on Pointer<TVertexBufferBuilder> {
   TVertexBufferBuilder toDart() {
     return TVertexBufferBuilder(this);
@@ -10903,6 +11041,22 @@ sealed class TVertexAttributeType {
   static const TVERTEXATTRIBUTE_TYPE_HALF2 = 23;
   static const TVERTEXATTRIBUTE_TYPE_HALF3 = 24;
   static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
+}
+
+extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
+  TGltfMeshData toDart() {
+    return TGltfMeshData(this);
+  }
+}
+
+final class TGltfMeshData extends Struct {
+  Pointer<TGltfMeshData> get address => super.address.cast();
+  TGltfMeshData(super.address);
+
+  static Pointer<TGltfMeshData> stackAlloc() {
+    return Pointer<TGltfMeshData>(
+        NativeLibrary.instance.stackAlloc<TGltfMeshData>(0));
+  }
 }
 
 extension TSurfaceOrientationBuilderExt on Pointer<TSurfaceOrientationBuilder> {
@@ -11125,11 +11279,11 @@ extension StructAllocator on Struct {
       case TDebugRegistry:
         final ptr = TDebugRegistry.stackAlloc();
         return ptr.toDart() as T;
-      case TGltfMeshData:
-        final ptr = TGltfMeshData.stackAlloc();
-        return ptr.toDart() as T;
       case TVertexBufferBuilder:
         final ptr = TVertexBufferBuilder.stackAlloc();
+        return ptr.toDart() as T;
+      case TGltfMeshData:
+        final ptr = TGltfMeshData.stackAlloc();
         return ptr.toDart() as T;
       case TSurfaceOrientationBuilder:
         final ptr = TSurfaceOrientationBuilder.stackAlloc();

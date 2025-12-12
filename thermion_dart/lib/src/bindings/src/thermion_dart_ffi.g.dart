@@ -3165,6 +3165,82 @@ external ffi.Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
   bool hasVolume,
 );
 
+@ffi.Native<ffi.Pointer<TVertexBufferBuilder> Function()>(isLeaf: true)
+external ffi.Pointer<TVertexBufferBuilder> VertexBufferBuilder_create();
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint8)>(
+    isLeaf: true)
+external void VertexBufferBuilder_bufferCount(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int count,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint32)>(
+    isLeaf: true)
+external void VertexBufferBuilder_vertexCount(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int count,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt,
+        ffi.Uint8, ffi.UnsignedInt, ffi.Uint32, ffi.Uint8)>(isLeaf: true)
+external void VertexBufferBuilder_attribute(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  int bufferIndex,
+  int attributeType,
+  int byteOffset,
+  int byteStride,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt,
+        ffi.Bool)>(isLeaf: true)
+external void VertexBufferBuilder_normalized(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  int attribute,
+  bool normalize,
+);
+
+@ffi.Native<
+    ffi.Pointer<TVertexBuffer> Function(
+        ffi.Pointer<TVertexBufferBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TVertexBuffer> VertexBufferBuilder_build(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>)>(isLeaf: true)
+external void VertexBufferBuilder_destroy(
+  ffi.Pointer<TVertexBufferBuilder> builder,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
+external int VertexBuffer_getVertexCount(
+  ffi.Pointer<TVertexBuffer> buffer,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>,
+        ffi.Uint8, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Uint32)>(isLeaf: true)
+external void VertexBuffer_setBufferAt(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TVertexBuffer> buffer,
+  int bufferIndex,
+  ffi.Pointer<ffi.Void> data,
+  int sizeInBytes,
+  int byteOffset,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
+external void VertexBuffer_destroy(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TVertexBuffer> buffer,
+);
+
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void RenderThread_create();
 
@@ -4646,6 +4722,108 @@ external void Gizmo_createRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TVertexBufferBuilder>,
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TVertexBuffer>)>>)>(isLeaf: true)
+external void VertexBufferBuilder_buildRenderThread(
+  ffi.Pointer<TVertexBufferBuilder> tBuilder,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TVertexBuffer>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>,
+        ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void VertexBuffer_destroyRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TVertexBuffer> tBuffer,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TVertexBuffer>,
+        ffi.Uint8,
+        ffi.Pointer<ffi.Void>,
+        ffi.Size,
+        ffi.Uint32,
+        ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void VertexBuffer_setBufferAtRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TVertexBuffer> tBuffer,
+  int bufferIndex,
+  ffi.Pointer<ffi.Void> data,
+  int sizeInBytes,
+  int byteOffset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TIndexBufferBuilder>,
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TIndexBuffer>)>>)>(isLeaf: true)
+external void IndexBufferBuilder_buildRenderThread(
+  ffi.Pointer<TIndexBufferBuilder> tBuilder,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TIndexBuffer>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndexBuffer>,
+        ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void IndexBuffer_destroyRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TIndexBuffer> tBuffer,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TIndexBuffer>,
+        ffi.Pointer<ffi.Void>,
+        ffi.Size,
+        ffi.Uint32,
+        ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void IndexBuffer_setBufferRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TIndexBuffer> tBuffer,
+  ffi.Pointer<ffi.Void> data,
+  int sizeInBytes,
+  int byteOffset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TRenderableBuilder>,
+            ffi.Pointer<TEngine>,
+            EntityId,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>)>(
+    isLeaf: true)
+external void RenderableBuilder_buildRenderThread(
+  ffi.Pointer<TRenderableBuilder> tBuilder,
+  ffi.Pointer<TEngine> tEngine,
+  int entityId,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>> onComplete,
+);
+
+@ffi.Native<
     ffi.Pointer<TOverlayManager> Function(
         ffi.Pointer<TEngine>,
         ffi.Pointer<TRenderer>,
@@ -4697,82 +4875,6 @@ external int GltfParser_parseBuffer(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGltfMeshData>)>(isLeaf: true)
 external void GltfParser_freeMeshData(
   ffi.Pointer<TGltfMeshData> meshData,
-);
-
-@ffi.Native<ffi.Pointer<TVertexBufferBuilder> Function()>(isLeaf: true)
-external ffi.Pointer<TVertexBufferBuilder> VertexBufferBuilder_create();
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint8)>(
-    isLeaf: true)
-external void VertexBufferBuilder_bufferCount(
-  ffi.Pointer<TVertexBufferBuilder> builder,
-  int count,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Uint32)>(
-    isLeaf: true)
-external void VertexBufferBuilder_vertexCount(
-  ffi.Pointer<TVertexBufferBuilder> builder,
-  int count,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt,
-        ffi.Uint8, ffi.UnsignedInt, ffi.Uint32, ffi.Uint8)>(isLeaf: true)
-external void VertexBufferBuilder_attribute(
-  ffi.Pointer<TVertexBufferBuilder> builder,
-  int attribute,
-  int bufferIndex,
-  int attributeType,
-  int byteOffset,
-  int byteStride,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.UnsignedInt,
-        ffi.Bool)>(isLeaf: true)
-external void VertexBufferBuilder_normalized(
-  ffi.Pointer<TVertexBufferBuilder> builder,
-  int attribute,
-  bool normalize,
-);
-
-@ffi.Native<
-    ffi.Pointer<TVertexBuffer> Function(
-        ffi.Pointer<TVertexBufferBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TVertexBuffer> VertexBufferBuilder_build(
-  ffi.Pointer<TVertexBufferBuilder> builder,
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>)>(isLeaf: true)
-external void VertexBufferBuilder_destroy(
-  ffi.Pointer<TVertexBufferBuilder> builder,
-);
-
-@ffi.Native<ffi.Size Function(ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
-external int VertexBuffer_getVertexCount(
-  ffi.Pointer<TVertexBuffer> buffer,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>,
-        ffi.Uint8, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Uint32)>(isLeaf: true)
-external void VertexBuffer_setBufferAt(
-  ffi.Pointer<TEngine> engine,
-  ffi.Pointer<TVertexBuffer> buffer,
-  int bufferIndex,
-  ffi.Pointer<ffi.Void> data,
-  int sizeInBytes,
-  int byteOffset,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
-external void VertexBuffer_destroy(
-  ffi.Pointer<TEngine> engine,
-  ffi.Pointer<TVertexBuffer> buffer,
 );
 
 @ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(
