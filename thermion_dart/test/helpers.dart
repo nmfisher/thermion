@@ -107,6 +107,20 @@ class TestHelper {
     return texture;
   }
 
+  Future<MaterialInstance> loadViewSpaceMateral() async {
+    final material = await FilamentApp.instance!.createMaterial(
+        await File("${testDir}/assets/viewspace.filamat")
+            .readAsBytesSync());
+    return material.createInstance();
+  }
+
+  Future<MaterialInstance> loadCustomAttributeMaterial() async {
+    final material = await FilamentApp.instance!.createMaterial(
+        await File("${testDir}/assets/customattributes.filamat")
+            .readAsBytesSync());
+    return material.createInstance();
+  }
+
   /// Load the solidcolor material and create an instance with the given color.
   ///
   /// The solidcolor material only requires POSITION vertex attribute, making it
@@ -642,7 +656,8 @@ class ViewerBuilder {
     // Create and add configured planes
     for (final planeConfig in _planes) {
       final materialInstance = planeConfig.createUbershader
-          ? await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: planeConfig.unlit)
+          ? await FilamentApp.instance!
+              .createUbershaderMaterialInstance(unlit: planeConfig.unlit)
           : await FilamentApp.instance!.createUnlitMaterialInstance();
 
       await materialInstance.setCullingMode(CullingMode.NONE);
@@ -662,8 +677,7 @@ class ViewerBuilder {
       final plane = await viewer.createGeometry(
           GeometryHelper.plane(
               normals: true, uvs: true, width: 10.0, height: 10.0),
-          materialInstances:
-              [materialInstance]);
+          materialInstances: [materialInstance]);
 
       await plane.setCastShadows(planeConfig.castShadows);
       await plane.setReceiveShadows(planeConfig.receiveShadows);
@@ -687,8 +701,11 @@ class ViewerBuilder {
     // Create and add configured cubes
     for (final cubeConfig in _cubes) {
       final materialInstance = cubeConfig.createUbershader
-          ? await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: cubeConfig.unlit)
-          : (cubeConfig.unlit ? await FilamentApp.instance!.createUnlitMaterialInstance() : null);
+          ? await FilamentApp.instance!
+              .createUbershaderMaterialInstance(unlit: cubeConfig.unlit)
+          : (cubeConfig.unlit
+              ? await FilamentApp.instance!.createUnlitMaterialInstance()
+              : null);
 
       if (materialInstance != null) {
         if (cubeConfig.color != null) {
@@ -751,8 +768,7 @@ class ViewerBuilder {
     return result.viewer;
   }
 
-  Future execute(
-      Future Function(ViewerBuildResult result) fn) async {
+  Future execute(Future Function(ViewerBuildResult result) fn) async {
     final buildResult = await buildWithAssets();
 
     // Find the first sun light entity (if any)
@@ -762,7 +778,9 @@ class ViewerBuilder {
         (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0));
 
     // If we found a sun light and have corresponding entities, get the matching entity
-    if (sunLightIndex != -1 && _lightEntities != null && sunLightIndex < _lightEntities!.length) {
+    if (sunLightIndex != -1 &&
+        _lightEntities != null &&
+        sunLightIndex < _lightEntities!.length) {
       sunEntity = _lightEntities![sunLightIndex];
     }
 
