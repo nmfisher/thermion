@@ -1175,6 +1175,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     bufferCount++; // Always include UV0
     bufferCount++; // Always include COLOR
+
+    if (geometry.hasAttribute0) {
+      bufferCount++;
+    }
     vertexBufferBuilder.bufferCount(bufferCount);
 
     // Position attribute (always present at buffer 0)
@@ -1201,6 +1205,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
     currentBufferIndex++;
 
+    if (geometry.hasAttribute0) {
+      vertexBufferBuilder.attribute(
+          VertexAttribute.CUSTOM0, currentBufferIndex, VertexAttributeType.FLOAT4);
+    }
+
     final vertexBuffer = await vertexBufferBuilder.build() as FFIVertexBuffer;
 
     // Set vertex data - Position always at buffer 0
@@ -1224,6 +1233,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     if (geometry.colors.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.colors);
+    }
+
+    currentBufferIndex++;
+
+    if (geometry.hasAttribute0) {
+      await vertexBuffer.setBufferAt(currentBufferIndex, geometry.attribute0);
     }
 
     // Build index buffer

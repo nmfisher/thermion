@@ -7,6 +7,7 @@ class Geometry {
   late final Float32List normals;
   late final Float32List uvs;
   late final Float32List colors;
+  late final Float32List attribute0;
   final PrimitiveType primitiveType;
 
   // Vertex colors and/or UVs aren't required for basic geometry renderables.
@@ -15,8 +16,8 @@ class Geometry {
   // FilamentApp.instance.createUnlitMaterialInstance(), which requests an unlit
   // ubershader material instance.
   //
-  // To avoid unexpected behaviour, [createDummyColors] and [createDummyUvs] 
-  // both default to [true], meaning dummy values will be created for each 
+  // To avoid unexpected behaviour, [createDummyColors] and [createDummyUvs]
+  // both default to [true], meaning dummy values will be created for each
   // vertex ((1,1,1,1) for vertex color, (0,0) for vertex UV) if [colors] and/or
   // [uvs] is null.
   //
@@ -26,11 +27,13 @@ class Geometry {
     Float32List? normals,
     Float32List? uvs,
     Float32List? colors,
+    Float32List? attribute0,
     this.primitiveType = PrimitiveType.TRIANGLES,
     this.indexType = IndexType.UINT,
     bool createDummyColors = true,
     bool createDummyUvs = true,
   }) {
+    this.attribute0 = attribute0 ?? Float32List(0);
     this.uvs = uvs ?? Float32List(0);
     this.normals = normals ?? Float32List(0);
 
@@ -58,9 +61,14 @@ class Geometry {
       }
     }
 
-    if (this.uvs.length != 0 && this.uvs.length != (vertices.length ~/ 3 * 2)) {
+    if (hasUVs && this.uvs.length != (vertices.length ~/ 3 * 2)) {
       throw Exception(
           "Expected ${indices.length * 2} UVs, got ${this.uvs!.length}");
+    }
+
+    if(hasAttribute0 && this.attribute0.length != (this.vertices.length ~/ 3 * 4)) {
+      throw Exception(
+          "Expected ${indices.length * 4} ATTRIBUTE0, got ${this.attribute0.length}");
     }
   }
 
@@ -70,9 +78,10 @@ class Geometry {
     }
   }
 
-  bool get hasNormals => normals?.isNotEmpty == true;
-  bool get hasUVs => uvs?.isNotEmpty == true;
-  bool get hasColors => colors?.isNotEmpty == true;
+  bool get hasNormals => normals.isNotEmpty == true;
+  bool get hasUVs => uvs.isNotEmpty == true;
+  bool get hasColors => colors.isNotEmpty == true;
+  bool get hasAttribute0 => attribute0.isNotEmpty == true;
 
   void dispose() {
     vertices.free();
