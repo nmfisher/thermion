@@ -407,4 +407,20 @@ abstract class ThermionAsset {
   Future<int> getPrimitiveCount({ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
+
+  ///
+  ///
+  ///
+  /// Returns the underlying [VertexBuffer] for this asset, if available.
+  ///
+  /// For geometry assets this exposes the backing Filament vertex buffer so you
+  /// can update data via [VertexBuffer.setBufferAt].
+  ///
+  /// [primitiveIndex] is reserved for future use. Geometry assets currently
+  /// only support a single primitive, so it is ignored.
+  ///
+  /// Returns null if this asset type does not expose a vertex buffer.
+  VertexBuffer? getVertexBuffer({int primitiveIndex = 0}) {
+    throw UnimplementedError();
+  }
 }

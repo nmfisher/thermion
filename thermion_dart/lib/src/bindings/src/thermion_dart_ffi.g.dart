@@ -2371,6 +2371,14 @@ external Aabb3 SceneAsset_getBoundingBox(
 );
 
 @ffi.Native<
+    ffi.Pointer<TVertexBuffer> Function(
+        ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+external ffi.Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int primitiveIndex,
+);
+
+@ffi.Native<
     ffi.Pointer<TRenderTicker> Function(
         ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>(isLeaf: true)
 external ffi.Pointer<TRenderTicker> RenderTicker_create(

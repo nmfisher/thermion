@@ -228,6 +228,16 @@ extern "C"
         return Aabb3{box.center().x, box.center().y, box.center().z, box.extent().x, box.extent().y, box.extent().z};
     }
 
+    EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
+            auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
+            auto *vertexBuffer = geometrySceneAsset->getVertexBuffer();
+            return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
+        }
+        return nullptr;
+    }
+
 
 #ifdef __cplusplus
 }

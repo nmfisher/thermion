@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
@@ -854,5 +855,14 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<bool> containsChild(ThermionEntity entity) async {
     return (await getChildEntities()).contains(entity);
+  }
+  
+  @override
+  VertexBuffer? getVertexBuffer({int primitiveIndex = 0}) {
+    final vbPtr = SceneAsset_getVertexBuffer(asset, primitiveIndex);
+    if (vbPtr == nullptr) {
+      return null;
+    }
+    return FFIVertexBuffer(vbPtr, FilamentApp.instance!.engine);
   }
 }
