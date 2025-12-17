@@ -67,6 +67,10 @@ abstract class Camera<T> extends NativeHandle {
 
   Future setProjection(Projection projection, double left, double right,
       double bottom, double top, double near, double far);
+  Future setProjectionFromHorizontalFieldOfView(double degrees,
+      double near, double far, double aspect);
+  Future setProjectionFromVerticalFieldOfView(double degrees,
+      double near, double far, double aspect);
   Future setProjectionMatrixWithCulling(
       Matrix4 projectionMatrix, double near, double far);
 

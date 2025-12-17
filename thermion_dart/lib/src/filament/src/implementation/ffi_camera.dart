@@ -19,8 +19,6 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   }
 
   ///
-  ///
-  ///
   @override
   Future setProjectionMatrixWithCulling(
       Matrix4 projectionMatrix, double near, double far) async {
@@ -28,8 +26,20 @@ class FFICamera extends Camera<Pointer<TCamera>> {
         camera, matrix4ToDouble4x4(projectionMatrix), near, far);
   }
 
-  ///
-  ///
+  //
+  @override
+  Future setProjectionFromHorizontalFieldOfView(
+      double degrees, double near, double far, double aspect) async {
+    Camera_setProjectionFromFov(camera, degrees, aspect, near, far, true);
+  }
+
+  //
+  @override
+  Future setProjectionFromVerticalFieldOfView(
+      double degrees, double near, double far, double aspect) async {
+        Camera_setProjectionFromFov(camera, degrees, aspect, near, far, false);
+  }
+
   ///
   Future<Matrix4> getModelMatrix() async {
     late Pointer stackPtr;

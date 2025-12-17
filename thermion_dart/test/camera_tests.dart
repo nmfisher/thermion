@@ -1,4 +1,5 @@
 // ignore_for_file: unused_local_variable
+import 'dart:io';
 import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
@@ -116,7 +117,7 @@ void main() async {
       var frustum = await camera.getFrustum();
 
       // Test that points in front of the camera are inside the frustum
-      final nearPoint = Vector3(0, 0, -5);  // Point in front of camera
+      final nearPoint = Vector3(0, 0, -5); // Point in front of camera
       final farPoint = Vector3(0, 0, -100); // Far point in front
       final leftPoint = Vector3(-5, 0, -10); // Left side
       final rightPoint = Vector3(5, 0, -10); // Right side
@@ -134,7 +135,6 @@ void main() async {
       // Test point behind camera (should be outside)
       final behindPoint = Vector3(0, 0, 1); // Behind camera
       expect(frustum.containsVector3(behindPoint), isFalse);
-
     });
   });
 
@@ -148,6 +148,32 @@ void main() async {
           Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
       await testHelper.capture(
           viewer.view, "camera_set_orthographic_projection");
+    });
+  });
+
+  test('set projection from horizontal/vertical FOV', () async {
+    await testHelper.withViewer((viewer) async {
+      var camera = await viewer.getActiveCamera();
+
+      await viewer.createGeometry(GeometryHelper.cube());
+
+      await camera.setProjectionFromHorizontalFieldOfView(90, 0.1, 100, 1.0);
+      await testHelper.capture(
+          viewer.view, "camera_fov_90_degrees_horizontal");
+
+      await camera.setProjectionFromVerticalFieldOfView(90, 0.1, 100, 1.0);
+      await testHelper.capture(
+          viewer.view, "camera_fov_90_degrees_vertical");
+
+      await camera.setProjectionFromHorizontalFieldOfView(45, 0.1, 100, 1.0);
+      await testHelper.capture(
+          viewer.view, "camera_fov_45_degrees_horizontal");
+
+      
+
+      await camera.setProjectionFromVerticalFieldOfView(45, 0.1, 100, 1.0);
+      await testHelper.capture(
+          viewer.view, "camera_fov_45_degrees_vertical");
     });
   });
 
@@ -199,11 +225,11 @@ void main() async {
   test('setting transform on camera updates model matrix', () async {
     await testHelper.withViewer((viewer) async {
       var camera = await viewer.getActiveCamera();
-      
+
       // explicitly set the model matrix first so we can check that the
       // transform is actually applied to the model matrix
       await camera.setModelMatrix(Matrix4.translation(Vector3.all(3)));
-      
+
       await camera.setTransform(Matrix4.translation(Vector3.all(1)));
 
       var modelMatrix = await camera.getModelMatrix();

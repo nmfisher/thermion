@@ -158,6 +158,11 @@ namespace thermion
             camera->setProjection(filamentProjection, left, right, bottom, top, near, far);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Camera_setProjectionFromFov(TCamera *tCamera, double fovInDegrees, double aspect, double near, double far, bool horizontal) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            camera->setProjection(fovInDegrees, aspect, near, far, horizontal ? filament::Camera::Fov::HORIZONTAL : filament::Camera::Fov::VERTICAL);
+        }
+
 #ifdef __cplusplus
     }
 }
