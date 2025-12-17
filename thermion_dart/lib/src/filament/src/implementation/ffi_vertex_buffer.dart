@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
 
