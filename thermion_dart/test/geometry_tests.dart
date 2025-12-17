@@ -21,10 +21,61 @@ void main() async {
     });
   });
 
+  test('update vertex buffer', () async {
+    await ViewerBuilder(testHelper)
+        .setBackgroundColor(kRed)
+        .execute((result) async {
+      final asset = await result.viewer.createGeometry(GeometryHelper.cube());
+      await result.viewer.addToScene(asset);
+      await testHelper.capture(result.viewer.view, "update_vertex_buffer_1");
+      final vb = await asset.getVertexBuffer();
+      expect(vb, isNotNull);
+      final vertices = Float32List.fromList([
+      // Front face
+      -1, -1, 1, // 0
+      1, -1, 1, // 1
+      2, 2, 2, // 2
+      -1, 1, 1, // 3
+
+      // Back face
+      -1, -1, -1, // 4
+      1, -1, -1, // 5
+      1, 1, -1, // 6
+      -1, 1, -1, // 7
+
+      // Top face
+      -1, 1, 1, // 3 (8)
+      2, 2, 2, //2 (9)
+      1, 1, -1, //6 (10)
+      -1, 1, -1, // 7 (11)
+
+      // Bottom
+      -1, -1, -1, // 4 (12)
+      1, -1, -1, // 5 (13)
+      1, -1, 1, // 1 (14)
+      -1, -1, 1, // 0 (15)
+
+      // Right
+      1, -1, 1, // 1 (16)
+      1, -1, -1, // 5 (17)
+      1, 1, -1, // 6 (18)
+      2, 2, 2, // 2 (19)
+
+      // Left
+      -1, -1, -1, // 4 (20)
+      -1, -1, 1, // 0 (21)
+      -1, 1, 1, // 3 (22)
+      -1, 1, -1 // 7 (23)
+    ]);
+      await vb!.setBufferAt(0, vertices);
+      await testHelper.capture(result.viewer.view, "update_vertex_buffer_2");
+    });
+  });
+
   test('material with vertexDomain: view', () async {
     await ViewerBuilder(testHelper)
         .setBackgroundColor(kBlue)
-        .setCameraLookAt(Vector3(0, 0, 0), focus: Vector3(0,0,-1))
+        .setCameraLookAt(Vector3(0, 0, 0), focus: Vector3(0, 0, -1))
         .execute((result) async {
       var material = await testHelper.loadViewSpaceMateral();
       await material.setCullingMode(CullingMode.NONE);
@@ -38,28 +89,28 @@ void main() async {
     });
   });
 
-    test('material with custom0 attribute: view', () async {
+  test('material with custom0 attribute: view', () async {
     await ViewerBuilder(testHelper)
         .setBackgroundColor(kBlue)
-        .setCameraLookAt(Vector3(0, 0, 0), focus: Vector3(0,0,-1))
+        .setCameraLookAt(Vector3(0, 0, 0), focus: Vector3(0, 0, -1))
         .execute((result) async {
       var material = await testHelper.loadCustomAttributeMaterial();
       await material.setCullingMode(CullingMode.NONE);
       var geo = await Geometry(
-          // these vertices don't matter since we're going to use the custom0
-          // attribute to set the position in the shader. We just need to make 
-          // sure Filament can calculate a non-degenerate bounding box.
-          Float32List.fromList([0, 1, 2, 0, 10, 20, 0, 20, 30]), 
-          Int16List.fromList([0, 1, 2]),
-          attribute0: Float32List.fromList([-1, -1, -15, 0, 1, -1, -15, 0, 1, 1, -15, 0 ]),
-           );
+        // these vertices don't matter since we're going to use the custom0
+        // attribute to set the position in the shader. We just need to make
+        // sure Filament can calculate a non-degenerate bounding box.
+        Float32List.fromList([0, 1, 2, 0, 10, 20, 0, 20, 30]),
+        Int16List.fromList([0, 1, 2]),
+        attribute0:
+            Float32List.fromList([-1, -1, -15, 0, 1, -1, -15, 0, 1, 1, -15, 0]),
+      );
       await result.viewer.setViewFrustumCulling(false);
       await result.viewer.createGeometry(geo, materialInstances: [material]);
 
       await testHelper.capture(result.viewer.view, "custom_attribute");
     });
   });
-
 
   test('ensure geometry is removed when destroyAll is called ', () async {
     await ViewerBuilder(testHelper)
