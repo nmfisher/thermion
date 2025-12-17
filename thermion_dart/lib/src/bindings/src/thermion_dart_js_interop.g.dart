@@ -1360,6 +1360,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Aabb3> Aabb3_out,
     Pointer<TSceneAsset> asset,
   );
+  external Pointer<TVertexBuffer> _SceneAsset_getVertexBuffer(
+    Pointer<TSceneAsset> tSceneAsset,
+    int primitiveIndex,
+  );
   external Pointer<TRenderTicker> _RenderTicker_create(
     Pointer<TEngine> tEngine,
     Pointer<TRenderer> tRenderer,
@@ -5825,6 +5829,15 @@ Aabb3 SceneAsset_getBoundingBox(
   final result = GeneratedBindings.instance
       ._SceneAsset_getBoundingBox(Aabb3_out.cast(), asset.cast());
   return Aabb3_out.toDart();
+}
+
+Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
+  Pointer<TSceneAsset> tSceneAsset,
+  int primitiveIndex,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_getVertexBuffer(tSceneAsset.cast(), primitiveIndex);
+  return Pointer<TVertexBuffer>(result);
 }
 
 Pointer<TRenderTicker> RenderTicker_create(
