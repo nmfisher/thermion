@@ -55,7 +55,7 @@ void readVkImageToBitmap(
     const char* outputPath
 );
 
-VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device);
+VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device, uint32_t* queueFamilyIndex);
 
 void createDeviceWithGraphicsQueue(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex, VkDevice* device);
 void fillImageWithColor(

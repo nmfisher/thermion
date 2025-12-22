@@ -46,22 +46,32 @@ class ThermionVulkanContext::Impl {
             }
             bluevk::bindInstance(instance);
 
-            result = createLogicalDevice(instance, &physicalDevice, &device);
+            uint32_t queueFamilyIndex = 0;
+            result = createLogicalDevice(instance, &physicalDevice, &device, &queueFamilyIndex);
             if (result != VK_SUCCESS)
             {
                 std::cout << "[ERROR] Failed to create logical device! Error: " << VkResultToString(result) << std::endl;
                 vkDestroyInstance(instance, nullptr);
                 return;
             }
+            _sharedContext.instance = instance;
+            _sharedContext.physicalDevice = physicalDevice;
+            _sharedContext.logicalDevice = device;
+            _sharedContext.graphicsQueueFamilyIndex = queueFamilyIndex;
+            _sharedContext.graphicsQueueIndex = 0;
+            _sharedContext.debugUtilsSupported = false;
+            _sharedContext.debugMarkersSupported = false;
+            _sharedContext.multiviewSupported = false;
 
-            uint32_t queueFamilyIndex;
-            
-            createDeviceWithGraphicsQueue(physicalDevice,queueFamilyIndex, &device);
-            
+            std::cout << "[INFO] Vulkan logical device created with queue family index "
+                      << queueFamilyIndex << std::endl;
+
             CommandResources cmdResources = createCommandResources(device, physicalDevice);
 
             commandPool = cmdResources.commandPool;
             queue = cmdResources.queue;
+            std::cout << "[INFO] Vulkan command resources using queue family index "
+                      << cmdResources.queueFamilyIndex << std::endl;
 
             VkPhysicalDeviceExternalImageFormatInfo externFormatInfo = {
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
@@ -536,6 +546,10 @@ class ThermionVulkanContext::Impl {
         filament::backend::VulkanPlatform *GetPlatform() { 
             return _platform.get();
         }
+
+        void* GetSharedContext() {
+            return &_sharedContext;
+        }
     private:
         VkInstance instance = VK_NULL_HANDLE;
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -549,6 +563,7 @@ class ThermionVulkanContext::Impl {
         std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _vulkanTextures;
         
         std::unique_ptr<TVulkanPlatform> _platform;
+        filament::backend::VulkanPlatform::VulkanSharedContext _sharedContext{};
 };
 
 HANDLE ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
@@ -565,6 +580,10 @@ void ThermionVulkanContext::Flush() {
 
 filament::backend::VulkanPlatform *ThermionVulkanContext::GetPlatform() { 
 return pImpl->GetPlatform();
+}
+
+void* ThermionVulkanContext::GetSharedContext() {
+    return pImpl->GetSharedContext();
 }
 
 void ThermionVulkanContext::BlitFromSwapchain() {

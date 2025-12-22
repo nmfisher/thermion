@@ -24,8 +24,8 @@
 namespace thermion::windows::vulkan {
  
 TVulkanPlatform::TVulkanPlatform() {
-  _customization.gpu.index = 0;
-  TRACE("Set GPU index to 1");
+  _customization.gpu.index = -1;
+  TRACE("Using default Vulkan GPU selection");
 }
        
 TVulkanPlatform::~TVulkanPlatform() {
