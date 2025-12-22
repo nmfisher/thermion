@@ -38,6 +38,8 @@ namespace thermion::windows::vulkan {
         filament::backend::VulkanPlatform *GetPlatform();
       
         void BlitFromSwapchain();
+
+        void* GetSharedContext();
       
         void readPixelsFromImage(
           uint32_t width,

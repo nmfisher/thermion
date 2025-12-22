@@ -175,8 +175,7 @@ namespace thermion::tflutter::windows
       {
         _context = new thermion::windows::vulkan::ThermionVulkanContext();
       }
-      // result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
-      result->Success(flutter::EncodableValue((int64_t) nullptr));
+      result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
     }
     else if (methodCall.method_name() == "createTexture")
     {

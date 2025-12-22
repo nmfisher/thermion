@@ -558,7 +558,7 @@ void readVkImageToBitmap(
 }
 
 // Consolidated function for creating logical device
-VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device)
+VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device, uint32_t* queueFamilyIndex)
 {
     uint32_t deviceCount = 0;
     bluevk::vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -571,15 +571,17 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
     }
 
     *physicalDevice = physicalDevices[0];
+    *queueFamilyIndex = findGraphicsQueueFamily(*physicalDevice);
 
     std::vector<const char *> deviceExtensions = {
         VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
-        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME};
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     float queuePriority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = 0;
+    queueCreateInfo.queueFamilyIndex = *queueFamilyIndex;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
 
