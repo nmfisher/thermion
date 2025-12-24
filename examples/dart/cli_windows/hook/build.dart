@@ -1,5 +1,6 @@
 import 'package:logging/logging.dart';
-import 'package:native_assets_cli/native_assets_cli.dart';
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:path/path.dart' as path;
 
@@ -8,7 +9,7 @@ void main(List<String> args) async {
       ..level = Level.ALL
       ..onRecord.listen((record) => print(
           record.message + "\n"));
-  await build(args, (input, output) async {
+  await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final cbuilder = CBuilder.library(
       name: input.packageName,
       language: Language.cpp,
