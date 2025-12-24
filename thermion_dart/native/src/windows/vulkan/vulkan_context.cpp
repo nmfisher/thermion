@@ -76,15 +76,17 @@ class ThermionVulkanContext::Impl {
             VkPhysicalDeviceExternalImageFormatInfo externFormatInfo = {
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
                 .pNext = nullptr,
-                .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT};
+                .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT
+            };
+
 
             VkPhysicalDeviceImageFormatInfo2 formatInfo = {
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
                 .pNext = &externFormatInfo,
                 .format = VK_FORMAT_R8G8B8A8_UNORM,
                 .type = VK_IMAGE_TYPE_2D,
-                .tiling = VK_IMAGE_TILING_OPTIMAL,                                      // Changed to LINEAR for VM compatibility
-                .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, // Simplified usage flags
+                .tiling = VK_IMAGE_TILING_OPTIMAL,                                      
+                .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
                 .flags = 0
             };
 
@@ -110,7 +112,57 @@ class ThermionVulkanContext::Impl {
 
             _platform = std::make_unique<TVulkanPlatform>();
 
-            _d3dContext = std::make_unique<thermion::windows::d3d::D3DContext>();
+            VkPhysicalDeviceIDProperties idProps{};
+            idProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+            idProps.pNext = nullptr;
+
+            VkPhysicalDeviceProperties2 props{};
+            props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+            props.pNext = &idProps;
+
+            // requires Vulkan instance version 1.1+ OR VK_KHR_get_physical_device_properties2 
+            bluevk::vkGetPhysicalDeviceProperties2(physicalDevice, &props);
+
+            if (idProps.deviceLUIDValid == VK_TRUE) {
+                Log("Using Vulkan Device LUID %d", idProps.deviceLUID);
+                _d3dContext = std::make_unique<thermion::windows::d3d::D3DContext>(idProps.deviceLUID);
+            } 
+
+            if(!_d3dContext || !_d3dContext->IsValid()) {
+                ERROR("Could not resolve Vulkan Device LUID");
+                return;
+            }
+
+            // Command buffer allocation
+            VkCommandBufferAllocateInfo cmdBufInfo{};
+            cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            cmdBufInfo.commandPool = commandPool;
+            cmdBufInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            cmdBufInfo.commandBufferCount = 1;
+
+            vkAllocateCommandBuffers(device, &cmdBufInfo, &blitCommandBuffer);
+
+            createSyncObjects();
+
+            VkSemaphoreGetWin32HandleInfoKHR handleInfo{};
+            handleInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
+            handleInfo.semaphore = sharedSemaphore;
+            handleInfo.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT;
+
+            HANDLE semaphoreHandle = NULL;
+
+            auto fpGetSemaphoreWin32Handle = (PFN_vkGetSemaphoreWin32HandleKHR)vkGetDeviceProcAddr(device, "vkGetSemaphoreWin32HandleKHR");
+            if (fpGetSemaphoreWin32Handle) {
+                fpGetSemaphoreWin32Handle(device, &handleInfo, &semaphoreHandle);
+            } else { 
+                ERROR("Failed to resolve vkGetSemaphoreWin32HandleKHR");
+            }
+
+            if(semaphoreHandle == VK_NULL_HANDLE) {
+                ERROR("Failed to create Vulkan semaphore");
+            } else {
+                _d3dContext->ImportSemaphore(semaphoreHandle);
+            }
 
         }
 
@@ -178,8 +230,6 @@ class ThermionVulkanContext::Impl {
                 return;
             }
 
-            
-
             auto&& vkTexture = _vulkanTextures.back();
             auto image = vkTexture->GetImage();
 
@@ -190,15 +240,9 @@ class ThermionVulkanContext::Impl {
 
             auto bundle = _platform->getSwapChainBundle(_platform->current);
             VkImage swapchainImage = bundle.colors[_platform->currentColorIndex];
-            // Command buffer allocation
-            VkCommandBufferAllocateInfo cmdBufInfo{};
-            cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            cmdBufInfo.commandPool = commandPool;
-            cmdBufInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            cmdBufInfo.commandBufferCount = 1;
 
-            VkCommandBuffer cmd;
-            VkResult result = bluevk::vkAllocateCommandBuffers(device, &cmdBufInfo, &cmd);
+            VkResult result = bluevk::vkResetCommandBuffer(blitCommandBuffer, 0); 
+
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to allocate command buffer: " << result << std::endl;
                 return;
@@ -209,7 +253,7 @@ class ThermionVulkanContext::Impl {
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             
-            result = bluevk::vkBeginCommandBuffer(cmd, &beginInfo);
+            result = bluevk::vkBeginCommandBuffer(blitCommandBuffer, &beginInfo);
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to begin command buffer: " << result << std::endl;
                 return;
@@ -251,9 +295,9 @@ class ThermionVulkanContext::Impl {
             // Pre-blit barriers
             VkImageMemoryBarrier preBlitBarriers[] = {srcBarrier, dstBarrier};
             vkCmdPipelineBarrier(
-                cmd,
-                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,  // Changed from TRANSFER_BIT for better sync
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                blitCommandBuffer,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
+                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                 0,
                 0, nullptr,
                 0, nullptr,
@@ -275,11 +319,11 @@ class ThermionVulkanContext::Impl {
 
             // Perform blit with validation
             bluevk::vkCmdBlitImage(
-                cmd,
+                blitCommandBuffer,
                 swapchainImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 1, &blit,
-                VK_FILTER_NEAREST  // Changed to NEAREST for debugging
+                VK_FILTER_NEAREST 
             );
 
             // Post-transition barriers
@@ -298,9 +342,9 @@ class ThermionVulkanContext::Impl {
             // Post-blit barriers
             VkImageMemoryBarrier postBlitBarriers[] = {srcBarrier, dstBarrier};
             bluevk::vkCmdPipelineBarrier(
-                cmd,
+                blitCommandBuffer,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,  // Changed for better sync
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
                 0,
                 0, nullptr,
                 0, nullptr,
@@ -308,49 +352,41 @@ class ThermionVulkanContext::Impl {
             );
 
             // End command buffer
-            result = bluevk::vkEndCommandBuffer(cmd);
+            result = bluevk::vkEndCommandBuffer(blitCommandBuffer);
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to end command buffer: " << result << std::endl;
                 return;
             }
 
-            // Create fence for synchronization
-            // VkFenceCreateInfo fenceInfo{};
-            // fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            
-            // VkFence fence;
-            // result = bluevk::vkCreateFence(device, &fenceInfo, nullptr, &fence);
-            // if (result != VK_SUCCESS) {
-            //     std::cout << "Failed to create fence: " << result << std::endl;
-            //     return;
-            // }
+            uint64_t signalValue = ++currentSemaphoreValue;
 
-            // // Submit with fence
+            // 2. Setup Timeline Submit Info
+            VkTimelineSemaphoreSubmitInfo timelineInfo{};
+            timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+            timelineInfo.signalSemaphoreValueCount = 1;
+            timelineInfo.pSignalSemaphoreValues = &signalValue;
+
+            // 3. Setup Standard Submit Info
             VkSubmitInfo submitInfo{};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.pNext = &timelineInfo; // Chain the timeline info
             submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &cmd;
+            submitInfo.pCommandBuffers = &blitCommandBuffer;
+            
+            // Define the semaphore to signal
+            submitInfo.signalSemaphoreCount = 1;
+            submitInfo.pSignalSemaphores = &sharedSemaphore;
 
-            result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE); //fence);
+            result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+
+            _d3dContext->SetWaitForSemaphore(signalValue);
+
+
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to submit queue: " << result << std::endl;
                 // bluevk::vkDestroyFence(device, fence, nullptr);
                 return;
             }
-
-            // // Wait for fence with timeout
-            // result = bluevk::vkWaitForFences(device, 1, &fence, VK_TRUE, 5000000000); // 5 second timeout
-            // if (result != VK_SUCCESS) {
-            //     std::cout << "Failed to wait for fence: " << result << std::endl;
-            //     vkDestroyFence(device, fence, nullptr);
-            //     return;
-            // }
-
-            // std::cout << "Blit operation completed successfully" << std::endl;
-
-            // // Cleanup
-            // bluevk::vkDestroyFence(device, fence, nullptr);
-            // bluevk::vkFreeCommandBuffers(device, commandPool, 1, &cmd);
         }
 
         void readPixelsFromImage(
@@ -550,13 +586,18 @@ class ThermionVulkanContext::Impl {
         void* GetSharedContext() {
             return &_sharedContext;
         }
+    
     private:
         VkInstance instance = VK_NULL_HANDLE;
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice device = VK_NULL_HANDLE;
         VkCommandPool commandPool = VK_NULL_HANDLE;
+        VkCommandBuffer blitCommandBuffer = VK_NULL_HANDLE; 
         VkQueue queue = VK_NULL_HANDLE;
-    
+
+        VkSemaphore sharedSemaphore = VK_NULL_HANDLE;
+        uint64_t currentSemaphoreValue = 0;
+        
         std::unique_ptr<thermion::windows::d3d::D3DContext> _d3dContext;
     
         std::vector<std::unique_ptr<thermion::windows::d3d::D3DTexture>> _d3dTextures;
@@ -564,6 +605,29 @@ class ThermionVulkanContext::Impl {
         
         std::unique_ptr<TVulkanPlatform> _platform;
         filament::backend::VulkanPlatform::VulkanSharedContext _sharedContext{};
+
+        void createSyncObjects() {
+            VkExportSemaphoreCreateInfo exportInfo{};
+            exportInfo.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
+            // D3D12_FENCE is the handle type that maps to ID3D11Fence
+            exportInfo.handleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT;
+
+            VkSemaphoreTypeCreateInfo timelineInfo{};
+            timelineInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+            timelineInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+            timelineInfo.initialValue = 0;
+            timelineInfo.pNext = &exportInfo;
+
+            VkSemaphoreCreateInfo semaphoreInfo{};
+            semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            semaphoreInfo.pNext = &timelineInfo;
+
+            VkResult result = bluevk::vkCreateSemaphore(device, &semaphoreInfo, nullptr, &sharedSemaphore);
+            if (result != VK_SUCCESS) {
+                std::cout << "Failed to create shared semaphore: " << result << std::endl;
+            }
+        }
+
 };
 
 HANDLE ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
