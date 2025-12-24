@@ -1,20 +1,15 @@
-import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
-import 'package:ffi/ffi.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'package:cli_windows/thermion_window.g.dart';
 
 void main(List<String> arguments) async {
   var hwnd = create_thermion_window(500, 500, 0, 0);
   update();
-  await FFIFilamentApp.create();
-  var viewer = ThermionViewerFFI(
-    loadAssetFromUri: (path) async => File(path.replaceAll("file://", "")).readAsBytesSync());
+  final config = FFIFilamentConfig(loadResource: (path) async => File(path.replaceAll("file://", "")).readAsBytesSync());
+  await FFIFilamentApp.create(config: config);
+  var viewer = ThermionViewerFFI();
 
   await viewer.initialized;
   var swapChain = await FilamentApp.instance!.createSwapChain(Pointer<Void>.fromAddress(hwnd));
