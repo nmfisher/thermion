@@ -247,7 +247,6 @@ class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
 
   @override
   Widget build(BuildContext context) {
-    print("NATIVE");
     if (_texture == null) {
       return widget.initial ?? Container(color: Colors.red);
     }
