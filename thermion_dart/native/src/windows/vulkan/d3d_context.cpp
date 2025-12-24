@@ -4,7 +4,7 @@
 namespace thermion::windows::d3d
 {
 
-    D3DContext::D3DContext()
+    D3DContext::D3DContext(const uint8_t *vulkanLUID)
     {
         IDXGIAdapter *adapter_ = nullptr;
 
@@ -24,11 +24,35 @@ namespace thermion::windows::d3d
             std::cout << "Failed to create DXGI 1.1 factory" << std::endl;
             return;
         }
-        dxgi->EnumAdapters(0, &adapter_);
+
+         // Find the adapter matching the Vulkan LUID passed above
+        UINT i = 0;
+        IDXGIAdapter* currAdapter = nullptr;
+        bool found = false;
+
+        while (dxgi->EnumAdapters(i, &currAdapter) != DXGI_ERROR_NOT_FOUND) {
+            DXGI_ADAPTER_DESC desc;
+            currAdapter->GetDesc(&desc);
+
+            //std::wcout << "Checking D3D adapter LUID" << desc.AdapterLuid << std::endl;
+
+            // Compare the 8 bytes of LUID
+            // LUID structure in Windows is exactly 8 bytes (DWORD + LONG)
+            if (memcmp(&desc.AdapterLuid, vulkanLUID, 8) == 0) {
+                adapter_ = currAdapter;
+                std::wcout << L"[INFO] Found matching D3D adapter: " << desc.Description << std::endl;
+                found = true;
+                break;
+            }
+            currAdapter->Release();
+            i++;
+        }
+    
         dxgi->Release();
-        if (!adapter_)
-        {
-            std::cout << "Failed to locate default D3D adapter" << std::endl;
+
+        
+        if (!found || !adapter_) {
+            std::cout << "[ERROR] Could not find D3D adapter matching Vulkan device LUID!" << std::endl;
             return;
         }
 
@@ -66,6 +90,18 @@ namespace thermion::windows::d3d
         std::cout << "Direct3D Feature Level: "
                   << (((unsigned)level) >> 12) << "_"
                   << ((((unsigned)level) >> 8) & 0xf) << std::endl;
+
+        hr = _D3D11Device->QueryInterface(__uuidof(ID3D11Device5), (void**)&_D3D11Device5);
+
+        if (FAILED(hr)) {
+            std::cout << "Failed to query ID3D11Device5 (Windows 10 Creator's Update required)" << std::endl;
+            return;
+        }
+
+        // Query for ID3D11DeviceContext4
+        hr = _D3D11DeviceContext->QueryInterface(__uuidof(ID3D11DeviceContext4), (void**)&_D3D11DeviceContext4);
+
+        adapter_->Release();
     }
 
     D3DContext::~D3DContext() { 
@@ -151,6 +187,25 @@ namespace thermion::windows::d3d
     void D3DContext::Flush()
     {
         _D3D11DeviceContext->Flush();
+    }
+
+    void D3DContext::ImportSemaphore(HANDLE handle)
+    {
+        if (!_D3D11Device5) return;
+
+        // Open the shared fence from Vulkan
+        HRESULT hr = _D3D11Device5->OpenSharedFence(handle, __uuidof(ID3D11Fence), (void**)&_sharedFence);
+        if (FAILED(hr)) {
+            std::cout << "Failed to open shared fence from Vulkan" << std::endl;
+        }
+    }
+
+    void D3DContext::SetWaitForSemaphore(uint64_t value) {
+        if (_D3D11DeviceContext4 && _sharedFence) {
+            // Instruct the GPU to wait until the fence reaches 'value'
+            // This is a GPU-side wait, it does not block the CPU.
+            _D3D11DeviceContext4->Wait(_sharedFence.Get(), value);
+        }
     }
 
 }

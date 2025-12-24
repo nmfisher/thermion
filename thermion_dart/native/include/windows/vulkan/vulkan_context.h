@@ -49,6 +49,7 @@ namespace thermion::windows::vulkan {
     private:
         class Impl; 
         std::unique_ptr<Impl> pImpl;
+        
     };
 
 }
