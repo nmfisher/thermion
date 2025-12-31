@@ -1059,6 +1059,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final materialPtr = await withPointerCallback<TMaterial>((cb) {
         Material_createGizmoMaterialRenderThread(engine, cb);
       });
+      if (materialPtr == nullptr) {
+        throw Exception(
+            "Gizmo material is not enabled. Enable it by adding 'gizmo: true' to the 'materials' section in your pubspec.yaml under 'hooks.user_defines.thermion_dart'.");
+      }
       _gizmoMaterial ??= FFIMaterial(materialPtr, this);
     }
 
