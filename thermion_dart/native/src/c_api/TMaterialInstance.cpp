@@ -12,8 +12,12 @@
 
 #include "material/image.h"
 #include "material/grid.h"
-#include "material/unlit_fixed_size.h"
 #include "material/outline.h"
+#include "material/unlit_fixed_size.h"
+
+#ifdef GIZMO_ENABLED
+#include "material/gizmo.h"
+#endif
 
 #include "c_api/TMaterialInstance.h"
 
@@ -64,11 +68,15 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
+#ifdef GIZMO_ENABLED
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
-                .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
+                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
+#else
+            return nullptr;
+#endif
         }
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createOutlineMaterial(TEngine *tEngine) {
