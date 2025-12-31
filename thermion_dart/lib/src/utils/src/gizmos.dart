@@ -24,6 +24,11 @@ class TransformationGizmo {
   ThermionEntity? _yAxisHead;
   ThermionEntity? _zAxisHead;
 
+  // Rotation Rings
+  ThermionEntity? _xAxisRing;
+  ThermionEntity? _yAxisRing;
+  ThermionEntity? _zAxisRing;
+
   MaterialInstance? _redMat;
   MaterialInstance? _greenMat;
   MaterialInstance? _blueMat;
@@ -56,6 +61,8 @@ class TransformationGizmo {
 
     if (type == GizmoType.translation) {
       await _buildTranslationAxes();
+    } else if (type == GizmoType.rotation) {
+      await _buildRotationRings();
     }
   }
 
@@ -81,6 +88,48 @@ class TransformationGizmo {
         await _createAxis(shaftGeom, headGeom, _blueMat!, Vector3(0, 0, 1));
     _zAxisShaft = zGroup.$1;
     _zAxisHead = zGroup.$2;
+  }
+
+  Future<void> _buildRotationRings() async {
+    final ringRadius = 1.0;
+    final tubeRadius = 0.03;
+    final ringSegments = 64;
+    final tubeSegments = 12;
+
+    final ringGeom = _createTorusGeometry(ringRadius, tubeRadius, ringSegments, tubeSegments);
+
+    // Y Axis Ring (Green, in XY plane - represents rotation around Y)
+    _yAxisRing = await _createRing(ringGeom, _greenMat!, Vector3(0, 1, 0));
+
+    // X Axis Ring (Red, in YZ plane - represents rotation around X)
+    _xAxisRing = await _createRing(ringGeom, _redMat!, Vector3(1, 0, 0));
+
+    // Z Axis Ring (Blue, in XY plane - represents rotation around Z)
+    _zAxisRing = await _createRing(ringGeom, _blueMat!, Vector3(0, 0, 1));
+  }
+
+  Future<ThermionEntity> _createRing(Geometry ring, MaterialInstance mat, Vector3 axis) async {
+    final ringAsset = await FilamentApp.instance!.createGeometry(ring, materialInstances: [mat]);
+    await viewer.addToScene(ringAsset);
+
+    // Calculate rotation to align ring with the axis
+    // Default torus is in XY plane (normal along Z)
+    Quaternion rotation;
+    if (axis.y > 0) {
+      // Y axis: rotate from Z to Y (-90° around X)
+      rotation = Quaternion.axisAngle(Vector3(1, 0, 0), -math.pi / 2);
+    } else if (axis.x > 0) {
+      // X axis: rotate from Z to X (+90° around Y)
+      rotation = Quaternion.axisAngle(Vector3(0, 1, 0), math.pi / 2);
+    } else {
+      // Z axis: already aligned
+      rotation = Quaternion.identity();
+    }
+
+    final ringMatrix = Matrix4.compose(Vector3.zero(), rotation, Vector3.all(1.0));
+    await FilamentApp.instance!.setTransform(ringAsset.entity, ringMatrix);
+
+    return ringAsset.entity;
   }
 
   // Returns Pair<Shaft, Head>
@@ -231,6 +280,55 @@ class TransformationGizmo {
     return GeometryHelper.cube(normals: false, uvs: false)..scale(size);
   }
 
+  /// Creates a torus (tube ring) geometry for rotation handles
+  /// The torus is created in the XY plane (normal along Z axis)
+  Geometry _createTorusGeometry(double ringRadius, double tubeRadius, int ringSegments, int tubeSegments) {
+    final vertices = <double>[];
+    final indices = <int>[];
+
+    // Generate vertices
+    for (int i = 0; i < ringSegments; i++) {
+      final u = (i / ringSegments) * 2 * math.pi;
+      final cosU = math.cos(u);
+      final sinU = math.sin(u);
+
+      for (int j = 0; j < tubeSegments; j++) {
+        final v = (j / tubeSegments) * 2 * math.pi;
+        final cosV = math.cos(v);
+        final sinV = math.sin(v);
+
+        // Torus parametric equation
+        final x = (ringRadius + tubeRadius * cosV) * cosU;
+        final y = (ringRadius + tubeRadius * cosV) * sinU;
+        final z = tubeRadius * sinV;
+
+        vertices.addAll([x, y, z]);
+      }
+    }
+
+    // Generate indices for triangles
+    for (int i = 0; i < ringSegments; i++) {
+      for (int j = 0; j < tubeSegments; j++) {
+        final nextI = (i + 1) % ringSegments;
+        final nextJ = (j + 1) % tubeSegments;
+
+        final current = i * tubeSegments + j;
+        final nextTube = i * tubeSegments + nextJ;
+        final nextRing = nextI * tubeSegments + j;
+        final nextBoth = nextI * tubeSegments + nextJ;
+
+        // Triangle 1
+        indices.addAll([current, nextRing, nextTube]);
+        // Triangle 2
+        indices.addAll([nextTube, nextRing, nextBoth]);
+      }
+    }
+
+    return Geometry(
+        Float32List.fromList(vertices), Uint16List.fromList(indices),
+        primitiveType: PrimitiveType.TRIANGLES);
+  }
+
   Future<MaterialInstance> _createGizmoMaterial(
       double r, double g, double b) async {
     // Load unlit filamat
@@ -275,10 +373,15 @@ class TransformationGizmo {
     });
     final hit = await completer.future;
 
-    // Check Shafts AND Heads
+    // Check Translation components (Shafts AND Heads)
     if (hit == _xAxisShaft || hit == _xAxisHead) return GizmoAxis.x;
     if (hit == _yAxisShaft || hit == _yAxisHead) return GizmoAxis.y;
     if (hit == _zAxisShaft || hit == _zAxisHead) return GizmoAxis.z;
+
+    // Check Rotation rings
+    if (hit == _xAxisRing) return GizmoAxis.x;
+    if (hit == _yAxisRing) return GizmoAxis.y;
+    if (hit == _zAxisRing) return GizmoAxis.z;
 
     return GizmoAxis.none;
   }
