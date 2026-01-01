@@ -7,18 +7,11 @@ material {
             name : baseColorFactor
         }
     ],
-    // The Magic Combination for Overlays:
-    // 1. Don't write to depth buffer
-    depthWrite : false,
-    // 2. Don't check against existing depth buffer (draws through walls)
+    depthWrite : true,
     depthCulling : false,
-    // 3. Unlit so it ignores shadows/lights (flat color)
     shadingModel : unlit,
-    // 4. Transparent blending puts this in the transparent render pass,
-    //    ensuring it draws AFTER the opaque scene has finished.
     blending: transparent,
-    // 5. Hide backfaces so cylinders/cones look solid
-    culling: back, 
+    culling: back 
 }
   
 fragment {
@@ -30,5 +23,7 @@ fragment {
         
         // Pre-multiply alpha for correct transparency blending
         material.baseColor.rgb *= material.baseColor.a;
+
+        gl_FragDepth = 0.999f;
     }
 }
