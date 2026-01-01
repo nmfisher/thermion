@@ -143,6 +143,16 @@ abstract class FilamentApp<T> {
   Future<Material> createMaterial(Uint8List data);
 
   ///
+  /// Creates a gizmo material suitable for unlit gizmo rendering.
+  /// The material supports color customization via the 'baseColorFactor' parameter.
+  ///
+  /// Throws an exception if gizmo materials are not enabled in the build.
+  /// Enable gizmo materials by adding 'gizmo: true' to the 'materials' section
+  /// in your pubspec.yaml under 'hooks.user_defines.thermion_dart'.
+  ///
+  Future<Material> createGizmoMaterial();
+
+  ///
   ///
   ///
   Future<MaterialInstance> createUbershaderMaterialInstance({
