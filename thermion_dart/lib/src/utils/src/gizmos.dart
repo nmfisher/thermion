@@ -30,15 +30,25 @@ class TransformationGizmo {
   ThermionEntity? _yAxisRing;
   ThermionEntity? _zAxisRing;
 
+  // Rotation drag markers
+  ThermionEntity? _startMarker;
+  ThermionEntity? _currentMarker;
+  ThermionAsset? _startMarkerAsset;
+  ThermionAsset? _currentMarkerAsset;
+
   MaterialInstance? _redMat;
   MaterialInstance? _greenMat;
   MaterialInstance? _blueMat;
+  MaterialInstance? _whiteMat;
+  MaterialInstance? _yellowMat;
 
   ThermionEntity? _attachedTarget;
 
   final double _axisLength = 1.5;
   final double _handleSize = 0.25;
   final double _shaftRadius = 0.03;
+  final double _markerRadius = 0.15;
+  final double _ringRadius = 1.0;
 
   // Gizmo type
   TransformationGizmoType _type = TransformationGizmoType.translation;
@@ -68,6 +78,10 @@ class TransformationGizmo {
     _greenMat = await _createGizmoMaterial(0.0, 1.0, 0.0);
     if (_isDisposed) return;
     _blueMat = await _createGizmoMaterial(0.0, 0.0, 1.0);
+    if (_isDisposed) return;
+    _whiteMat = await _createGizmoMaterial(1.0, 1.0, 1.0, alpha: 1.0);
+    if (_isDisposed) return;
+    _yellowMat = await _createGizmoMaterial(1.0, 1.0, 0.0, alpha: 1.0);
     if (_isDisposed) return;
 
     // 2. Create Root entity (no geometry needed - just a transform parent)
@@ -111,13 +125,12 @@ class TransformationGizmo {
 
   Future<void> _buildRotationRings() async {
     if (_isDisposed) return;
-    final ringRadius = 1.0;
     final tubeRadius = 0.03;
     final ringSegments = 64;
     final tubeSegments = 12;
 
     final ringGeom = _createTorusGeometry(
-        ringRadius, tubeRadius, ringSegments, tubeSegments);
+        _ringRadius, tubeRadius, ringSegments, tubeSegments);
 
     // Y Axis Ring (Green, in XY plane - represents rotation around Y)
     _yAxisRing = await _createRing(ringGeom, _greenMat!, Vector3(0, 1, 0));
@@ -129,6 +142,10 @@ class TransformationGizmo {
 
     // Z Axis Ring (Blue, in XY plane - represents rotation around Z)
     _zAxisRing = await _createRing(ringGeom, _blueMat!, Vector3(0, 0, 1));
+    if (_isDisposed) return;
+
+    // Create markers for showing drag start/current positions
+    await _createMarkers();
   }
 
   Future<ThermionEntity> _createRing(
@@ -335,12 +352,51 @@ class TransformationGizmo {
         primitiveType: PrimitiveType.TRIANGLES);
   }
 
+  Geometry _createSphereGeometry(double radius, int segments, int rings) {
+    final vertices = <double>[];
+    final indices = <int>[];
+
+    // Generate vertices
+    for (int ring = 0; ring <= rings; ring++) {
+      final phi = (ring / rings) * math.pi;
+      final sinPhi = math.sin(phi);
+      final cosPhi = math.cos(phi);
+
+      for (int seg = 0; seg <= segments; seg++) {
+        final theta = (seg / segments) * 2 * math.pi;
+        final sinTheta = math.sin(theta);
+        final cosTheta = math.cos(theta);
+
+        final x = radius * sinPhi * cosTheta;
+        final y = radius * cosPhi;
+        final z = radius * sinPhi * sinTheta;
+
+        vertices.addAll([x, y, z]);
+      }
+    }
+
+    // Generate indices
+    for (int ring = 0; ring < rings; ring++) {
+      for (int seg = 0; seg < segments; seg++) {
+        final current = ring * (segments + 1) + seg;
+        final next = current + segments + 1;
+
+        indices.addAll([current, next, current + 1]);
+        indices.addAll([current + 1, next, next + 1]);
+      }
+    }
+
+    return Geometry(
+        Float32List.fromList(vertices), Uint16List.fromList(indices),
+        primitiveType: PrimitiveType.TRIANGLES);
+  }
+
   Future<MaterialInstance> _createGizmoMaterial(
-      double r, double g, double b) async {
+      double r, double g, double b, {double alpha = 0.5}) async {
     if (_isDisposed) throw Exception("Gizmo disposed");
     final material = await FilamentApp.instance!.createGizmoMaterial();
     final mat = await material.createInstance();
-    await mat.setParameterFloat4("baseColorFactor", r, g, b, 0.5);
+    await mat.setParameterFloat4("baseColorFactor", r, g, b, alpha);
     return mat;
   }
 
@@ -504,6 +560,21 @@ class TransformationGizmo {
 
     if (_isDisposed) return false;
 
+    // For rotation gizmos, position markers at click location on ring
+    if (_type == TransformationGizmoType.rotation) {
+      final startPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
+      if (_isDisposed) return false;
+
+      if (startPos != null) {
+        if (_startMarker != null) {
+          await _updateMarkerPosition(_startMarker!, startPos);
+        }
+        if (_currentMarker != null) {
+          await _updateMarkerPosition(_currentMarker!, startPos);
+        }
+      }
+    }
+
     // Update highlights for active state
     await _updateHighlights();
 
@@ -630,6 +701,14 @@ class TransformationGizmo {
     final currentAngle = math.atan2(currentScreen.y - gizmoScreenSpace.y,
         currentScreen.x - gizmoScreenSpace.x);
 
+    // Update current marker position on the ring
+    if (_currentMarker != null) {
+      final currentPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
+      if (currentPos != null && !_isDisposed) {
+        await _updateMarkerPosition(_currentMarker!, currentPos);
+      }
+    }
+
     var angleDelta = currentAngle - startAngle;
     final axisVector = _getAxisVector(_activeAxis);
     final toCamera = (cameraPosition - gizmoWorldPos).normalized();
@@ -667,6 +746,10 @@ class TransformationGizmo {
   }
 
   Future<void> endDrag() async {
+    if (_type == TransformationGizmoType.rotation && !_isDisposed) {
+      await _hideMarkers();
+    }
+
     _activeAxis = GizmoAxis.none;
     _dragStartScreen = null;
     _targetStartTransform = null;
@@ -677,12 +760,16 @@ class TransformationGizmo {
   }
 
   Future<void> endDragAndRehover(int screenX, int screenY) async {
+    if (_type == TransformationGizmoType.rotation && !_isDisposed) {
+      await _hideMarkers();
+    }
+
     _activeAxis = GizmoAxis.none;
     _dragStartScreen = null;
     _targetStartTransform = null;
 
     if (_isDisposed) return;
-    
+
     _hoveredAxis = await pickAxis(screenX, screenY);
     if (!_isDisposed) {
       await _updateHighlights();
@@ -700,6 +787,171 @@ class TransformationGizmo {
       default:
         return Vector3.zero();
     }
+  }
+
+  /// Get marker position on ring by projecting ring points to screen space
+  /// and finding the closest point to the mouse cursor.
+  Future<Vector3?> _getMarkerPositionOnRing(
+      int screenX, int screenY, GizmoAxis axis) async {
+    if (_isDisposed || _rootEntity == null) return null;
+
+    final camera = await viewer.getActiveCamera();
+    if (_isDisposed) return null;
+
+    final view = await viewer.view;
+    final viewport = await view.getViewport();
+    final projectionMatrix = await camera.getProjectionMatrix();
+    final viewMatrix = await camera.getViewMatrix();
+
+    // Get gizmo world position and scale
+    final gizmoTransform = await FilamentApp.instance!.transformManager
+        .getWorldTransform(_rootEntity!);
+    final gizmoWorldPos = gizmoTransform.getTranslation();
+    final gizmoScale = gizmoTransform.getColumn(0).xyz.length;
+
+    if (_isDisposed) return null;
+
+    // Project a point from local ring space to screen space
+    Vector2 projectToScreen(Vector3 localPos) {
+      final worldPos = gizmoWorldPos + localPos * gizmoScale;
+      final clipSpace = projectionMatrix *
+          viewMatrix *
+          Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
+      final ndc = clipSpace / clipSpace.w;
+      return Vector2(
+        ((ndc.x + 1.0) / 2.0) * viewport.width.toDouble(),
+        ((1.0 - ndc.y) / 2.0) * viewport.height.toDouble(),
+      );
+    }
+
+    // Distance from point to line segment in 2D
+    double pointToSegmentDistance(Vector2 p, Vector2 a, Vector2 b) {
+      final ab = b - a;
+      final ap = p - a;
+      final t = (ap.dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
+      final closest = a + ab * t;
+      return (p - closest).length;
+    }
+
+    // Get basis vectors for the ring's orientation in local space
+    Vector3 basis1, basis2;
+    switch (axis) {
+      case GizmoAxis.x:
+        basis1 = Vector3(0, 1, 0);
+        basis2 = Vector3(0, 0, 1);
+        break;
+      case GizmoAxis.y:
+        basis1 = Vector3(1, 0, 0);
+        basis2 = Vector3(0, 0, 1);
+        break;
+      case GizmoAxis.z:
+        basis1 = Vector3(1, 0, 0);
+        basis2 = Vector3(0, 1, 0);
+        break;
+      default:
+        return null;
+    }
+
+    final mousePos = Vector2(screenX.toDouble(), screenY.toDouble());
+
+    // Sample points around the ring and find the closest one
+    const sampleCount = 64;
+    double minDist = double.infinity;
+    Vector3? closestLocalPos;
+
+    for (int i = 0; i < sampleCount; i++) {
+      final angle1 = (i / sampleCount) * 2 * math.pi;
+      final angle2 = ((i + 1) % sampleCount / sampleCount) * 2 * math.pi;
+
+      // Get two consecutive points on the ring in local space
+      final localPos1 = (basis1 * math.cos(angle1) + basis2 * math.sin(angle1)) * _ringRadius;
+      final localPos2 = (basis1 * math.cos(angle2) + basis2 * math.sin(angle2)) * _ringRadius;
+
+      // Project to screen space
+      final screenPos1 = projectToScreen(localPos1);
+      final screenPos2 = projectToScreen(localPos2);
+
+      // Check distance to this segment
+      final dist = pointToSegmentDistance(mousePos, screenPos1, screenPos2);
+
+      if (dist < minDist) {
+        minDist = dist;
+        // Return the first point of the closest segment
+        closestLocalPos = localPos1;
+      }
+    }
+
+    return closestLocalPos;
+  }
+
+  Future<void> _createMarkers() async {
+    if (_isDisposed) return;
+
+    final markerGeom = _createSphereGeometry(_markerRadius, 12, 8);
+
+    // Start marker (white)
+    _startMarkerAsset = await FilamentApp.instance!
+        .createGeometry(markerGeom, materialInstances: [_whiteMat!]);
+    if (_isDisposed) {
+      await viewer.removeFromScene(_startMarkerAsset!);
+      return;
+    }
+    await viewer.addToScene(_startMarkerAsset!);
+    _startMarker = _startMarkerAsset!.entity;
+    _assets.add(_startMarkerAsset!);
+
+    // Current marker (yellow)
+    _currentMarkerAsset = await FilamentApp.instance!
+        .createGeometry(markerGeom, materialInstances: [_yellowMat!]);
+    if (_isDisposed) {
+      await viewer.removeFromScene(_currentMarkerAsset!);
+      return;
+    }
+    await viewer.addToScene(_currentMarkerAsset!);
+    _currentMarker = _currentMarkerAsset!.entity;
+    _assets.add(_currentMarkerAsset!);
+
+    // Parent to root entity
+    if (_rootEntity != null) {
+      FilamentApp.instance!.transformManager
+          .setParent(_startMarker!, _rootEntity!);
+      FilamentApp.instance!.transformManager
+          .setParent(_currentMarker!, _rootEntity!);
+    }
+
+    // Initially hide markers
+    await _hideMarkers();
+  }
+
+  Future<void> _hideMarkers() async {
+    if (_isDisposed) return;
+
+    // Hide by scaling to zero
+    final hideTransform = Matrix4.compose(
+      Vector3.zero(),
+      Quaternion.identity(),
+      Vector3.zero(),
+    );
+
+    if (_startMarker != null) {
+      await FilamentApp.instance!.setTransform(_startMarker!, hideTransform);
+    }
+    if (_currentMarker != null) {
+      await FilamentApp.instance!.setTransform(_currentMarker!, hideTransform);
+    }
+  }
+
+  Future<void> _updateMarkerPosition(
+      ThermionEntity marker, Vector3 localPosition) async {
+    if (_isDisposed) return;
+
+    final markerTransform = Matrix4.compose(
+      localPosition,
+      Quaternion.identity(),
+      Vector3.all(1.0),
+    );
+    await FilamentApp.instance!.setTransform(marker, markerTransform);
+    await FilamentApp.instance!.setPriority(marker, 7);
   }
 
   Future<void> _updateHighlights() async {
@@ -764,9 +1016,16 @@ class TransformationGizmo {
     _yAxisRing = null;
     _zAxisRing = null;
 
+    _startMarker = null;
+    _currentMarker = null;
+    _startMarkerAsset = null;
+    _currentMarkerAsset = null;
+
     _redMat = null;
     _greenMat = null;
     _blueMat = null;
+    _whiteMat = null;
+    _yellowMat = null;
 
     _attachedTarget = null;
     _activeAxis = GizmoAxis.none;
