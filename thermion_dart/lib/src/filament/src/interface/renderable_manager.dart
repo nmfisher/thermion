@@ -251,6 +251,31 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   int getMorphTargetCount(ThermionEntity entity);
 
   // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  /// Sets bone transforms for a skinned renderable using 4x4 matrices.
+  ///
+  /// The renderable must have been built with skinning enabled.
+  ///
+  /// [entity] The entity containing the renderable
+  /// [transforms] List of 4x4 transformation matrices in column-major order
+  /// [offset] Index of the first bone to set (default 0)
+  Future setBones(
+      ThermionEntity entity, List<Matrix4> transforms, {int offset = 0});
+
+  /// Sets bone transforms for a skinned renderable using BoneData.
+  ///
+  /// The renderable must have been built with skinning enabled.
+  /// BoneData uses quaternion+translation format which is more memory efficient.
+  ///
+  /// [entity] The entity containing the renderable
+  /// [bones] List of bone transforms
+  /// [offset] Index of the first bone to set (default 0)
+  Future setBonesFromBone(
+      ThermionEntity entity, List<BoneData> bones, {int offset = 0});
+
+  // ============================================================================
   // Builder
   // ============================================================================
 
@@ -348,6 +373,39 @@ abstract class RenderableBuilder {
   /// [primitiveIndex] The primitive index
   /// [enabled] True for global, false for local (default)
   void globalBlendOrderEnabled(int primitiveIndex, bool enabled);
+
+  // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  /// Configures skinning with 4x4 transformation matrices.
+  ///
+  /// [boneCount] Number of bones
+  /// [transforms] Initial bone transforms as 4x4 matrices in column-major order
+  void skinning(int boneCount, List<Matrix4> transforms);
+
+  /// Configures skinning with BoneData (quaternion + translation).
+  ///
+  /// [boneCount] Number of bones
+  /// [bones] Initial bone transforms
+  void skinningFromBone(int boneCount, List<BoneData> bones);
+
+  /// Enables skinning buffer mode for sharing bone data between renderables.
+  ///
+  /// When enabled, use setSkinningBuffer on the renderable instead of setBones.
+  /// [enabled] Whether to enable skinning buffer mode
+  void enableSkinningBuffers(bool enabled);
+
+  /// Sets bone indices and weights for a primitive.
+  ///
+  /// Each bone-weight pair is a Float32List with 2 elements: [boneIndex, weight].
+  /// The data must be rectangular with the same number of pairs for all vertices.
+  ///
+  /// [primitiveIndex] The primitive index
+  /// [indicesAndWeights] Bone index and weight pairs for all vertices
+  /// [bonesPerVertex] Number of bones influencing each vertex
+  void boneIndicesAndWeights(
+      int primitiveIndex, List<Float32List> indicesAndWeights, int bonesPerVertex);
 
   /// Builds the renderable and attaches it to the entity.
   ///

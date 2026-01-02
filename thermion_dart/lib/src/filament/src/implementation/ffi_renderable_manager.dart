@@ -264,6 +264,36 @@ class FFIRenderableManager
   }
 
   // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  @override
+  Future setBones(
+      ThermionEntity entity, List<Matrix4> transforms, {int offset = 0}) async {
+    final transformsPtr = BoneData.matricesToFloat32List(transforms);
+
+    RenderableManager_setBonesFromMat4(
+        renderableManager, entity, transformsPtr.address, transforms.length, offset);
+
+    if (FILAMENT_WASM) {
+      transformsPtr.free();
+    }
+  }
+
+  @override
+  Future setBonesFromBone(
+      ThermionEntity entity, List<BoneData> bones, {int offset = 0}) async {
+    final bonesPtr = BoneData.toFloat32List(bones);
+
+    RenderableManager_setBonesFromBone(
+        renderableManager, entity, bonesPtr.address, bones.length, offset);
+
+    if (FILAMENT_WASM) {
+      bonesPtr.free();
+    }
+  }
+
+  // ============================================================================
   // Builder
   // ============================================================================
 
@@ -404,6 +434,61 @@ class FFIRenderableBuilder implements RenderableBuilder {
   void globalBlendOrderEnabled(int primitiveIndex, bool enabled) {
     _checkNotBuilt();
     bindings.RenderableBuilder_globalBlendOrderEnabled(_builderPtr!, primitiveIndex, enabled);
+  }
+
+  // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  @override
+  void skinning(int boneCount, List<Matrix4> transforms) {
+    _checkNotBuilt();
+    final transformsPtr = BoneData.matricesToFloat32List(transforms);
+    bindings.RenderableBuilder_skinningFromMat4(_builderPtr!, boneCount, transformsPtr.address);
+
+    if (FILAMENT_WASM) {
+      transformsPtr.free();
+    }
+  }
+
+  @override
+  void skinningFromBone(int boneCount, List<BoneData> bones) {
+    _checkNotBuilt();
+    final bonesPtr = BoneData.toFloat32List(bones);
+    bindings.RenderableBuilder_skinningFromBone(_builderPtr!, boneCount, bonesPtr.address);
+
+    if (FILAMENT_WASM) {
+      bonesPtr.free();
+    }
+  }
+
+  @override
+  void enableSkinningBuffers(bool enabled) {
+    _checkNotBuilt();
+    bindings.RenderableBuilder_enableSkinningBuffers(_builderPtr!, enabled);
+  }
+
+  @override
+  void boneIndicesAndWeights(
+      int primitiveIndex, List<Float32List> indicesAndWeights, int bonesPerVertex) {
+    _checkNotBuilt();
+
+    // Calculate total number of float pairs
+    int totalPairs = indicesAndWeights.length;
+    final dataPtr = makeFloat32List(totalPairs * 2);
+
+    int offset = 0;
+    for (final pair in indicesAndWeights) {
+      dataPtr[offset++] = pair[0]; // bone index
+      dataPtr[offset++] = pair[1]; // weight
+    }
+
+    bindings.RenderableBuilder_boneIndicesAndWeights(
+        _builderPtr!, primitiveIndex, dataPtr.address, totalPairs * 2, bonesPerVertex);
+
+    if (FILAMENT_WASM) {
+      dataPtr.free();
+    }
   }
 
   @override
