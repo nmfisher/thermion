@@ -50,6 +50,12 @@ extern "C"
 		int skinIndex,
 		int boneIndex);
 
+	EMSCRIPTEN_KEEPALIVE int AnimationManager_getBoneParent(
+		TAnimationManager *tAnimationManager,
+		TSceneAsset *sceneAsset,
+		int skinIndex,
+		int boneIndex);
+
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_getRestLocalTransforms(
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset,

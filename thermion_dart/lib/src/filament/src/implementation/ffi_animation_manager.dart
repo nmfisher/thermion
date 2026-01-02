@@ -273,6 +273,12 @@ class FFIAnimationManager
   }
 
   @override
+  int getBoneParent(ThermionAsset asset, int skinIndex, int boneIndex) {
+    return bindings.AnimationManager_getBoneParent(
+        animationManager, asset.getHandle(), skinIndex, boneIndex);
+  }
+
+  @override
   int getBoneCount(ThermionAsset asset, int skinIndex) {
     return bindings.AnimationManager_getBoneCount(
         animationManager, asset.getHandle(), skinIndex);

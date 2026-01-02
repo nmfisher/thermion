@@ -238,6 +238,24 @@ extern "C"
         return 0;
     }
 
+    EMSCRIPTEN_KEEPALIVE int AnimationManager_getBoneParent(
+        TAnimationManager *tAnimationManager,
+        TSceneAsset *sceneAsset,
+        int skinIndex,
+        int boneIndex)
+    {
+        auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
+        auto *asset = reinterpret_cast<SceneAsset *>(sceneAsset);
+
+        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
+        {
+            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
+            return animationManager->getBoneParent(instance, skinIndex, boneIndex);
+        }
+
+        return -1;
+    }
+
     EMSCRIPTEN_KEEPALIVE void AnimationManager_getRestLocalTransforms(
         TAnimationManager *tAnimationManager,
         TSceneAsset *sceneAsset,

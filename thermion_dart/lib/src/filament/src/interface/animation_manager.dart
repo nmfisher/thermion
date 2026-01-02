@@ -193,6 +193,14 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// Returns the bone entity ID, or null if not found
   ThermionEntity? getBone(ThermionAsset asset, int skinIndex, int boneIndex);
 
+  /// Gets the parent bone index for a specific bone.
+  ///
+  /// [asset] The asset containing the bones
+  /// [skinIndex] The skin index containing the bones
+  /// [boneIndex] The bone index
+  /// Returns the parent bone index, or -1 if the bone is a root bone
+  int getBoneParent(ThermionAsset asset, int skinIndex, int boneIndex);
+
   /// Gets the number of bones in a skin.
   ///
   /// [asset] The asset containing the skin

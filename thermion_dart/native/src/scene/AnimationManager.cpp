@@ -422,6 +422,36 @@ namespace thermion
         return boneEntities;
     }
 
+    int AnimationManager::getBoneParent(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex)
+    {
+        auto &transformManager = mEngine->getTransformManager();
+        auto *filamentInstance = instance->getInstance();
+
+        // Get all bone entities for this skin
+        auto *joints = filamentInstance->getJointsAt(skinIndex);
+        auto jointCount = filamentInstance->getJointCountAt(skinIndex);
+
+        if (boneIndex < 0 || boneIndex >= jointCount) {
+            return -1;
+        }
+
+        // Get the bone entity
+        Entity boneEntity = joints[boneIndex];
+        auto boneInstance = transformManager.getInstance(boneEntity);
+
+        // Get parent entity
+        Entity parentEntity = transformManager.getParent(boneInstance);
+
+        // Find parent index in joints array
+        for (int i = 0; i < jointCount; i++) {
+            if (joints[i] == parentEntity) {
+                return i;
+            }
+        }
+
+        return -1; // No parent (root bone)
+    }
+
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(mMutex);
