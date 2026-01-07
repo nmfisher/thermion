@@ -855,7 +855,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         }
 
         if (captureRenderTarget && view.renderTarget == null) {
-          throw Exception();
+          throw Exception("If captureRenderTarget is specified, the specified view must have a render target");
         }
 
         await withVoidCallback((requestId, cb) {
