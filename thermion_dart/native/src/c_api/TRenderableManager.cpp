@@ -145,7 +145,7 @@ namespace thermion
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             if (!renderableManager->hasComponent(entity)) {
-                Log("Not renderable");
+                Log("Entity %d has no renderable component, cannot set visibility layer");
                 return;
             }
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -157,7 +157,7 @@ namespace thermion
             const auto &entity = utils::Entity::import(entityId);
             
             if (!renderableManager->hasComponent(entity)) {
-                Log("Not renderable");
+                Log("Entity %d has no renderable component, cannot set renderable priority");
                 return;
             }
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -169,7 +169,7 @@ namespace thermion
             const auto &entity = utils::Entity::import(entityId);
 
             if (!renderableManager->hasComponent(entity)) {
-                Log("Not renderable");
+                Log("Entity %d has no renderable component, cannot get bounding box");
                 return Aabb3{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
             }
             auto renderableInstance = renderableManager->getInstance(entity);
