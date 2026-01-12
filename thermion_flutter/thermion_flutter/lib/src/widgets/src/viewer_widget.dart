@@ -72,6 +72,18 @@ class ViewerWidget extends StatefulWidget {
   final Future Function(ThermionViewer)? onViewerAvailable;
 
   ///
+  /// A callback that is invoked when the asset has been loaded.
+  /// Only called if [assetPath] is provided.
+  ///
+  final Future Function(ThermionViewer viewer, ThermionAsset asset)?
+      onAssetLoaded;
+
+  ///
+  /// When true, enable the highlight overlay system for rendering entity outlines.
+  ///
+  final bool enableOverlay;
+
+  ///
   ///
   ///
   ViewerWidget(
@@ -89,7 +101,9 @@ class ViewerWidget extends StatefulWidget {
       this.directLight,
       this.background,
       this.onViewerAvailable,
-      this.manipulatorType = ManipulatorType.ORBIT}) {
+      this.onAssetLoaded,
+      this.manipulatorType = ManipulatorType.ORBIT,
+      this.enableOverlay = false}) {
     this.initialCameraPosition = initialCameraPosition ?? Vector3(0, 0, 5);
   }
 
@@ -177,7 +191,8 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
   Future _configure() async {
     if (widget.assetPath != null) {
-      asset = await viewer!.loadGltf(widget.assetPath!);
+      // asset = await viewer!.loadGltf(widget.assetPath!);
+      asset = await viewer!.createGeometry(GeometryHelper.cube());
 
       await asset!.setCastShadows(true);
 
@@ -218,12 +233,16 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       key: ObjectKey(DateTime.now()),
       viewer: viewer!,
       showFpsCounter: widget.showFpsCounter,
+      enableOverlay: widget.enableOverlay,
     );
 
     _setViewportWidget();
 
     await viewer!.setRendering(true);
     widget.onViewerAvailable?.call(viewer!);
+    if (asset != null) {
+      widget.onAssetLoaded?.call(viewer!, asset!);
+    }
     setState(() {});
   }
 

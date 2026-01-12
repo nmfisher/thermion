@@ -9,14 +9,11 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart'
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
-import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
 void main() async {
-  Logger.root.onRecord.listen((record) {
-    print(record);
-  });
+  Logger.root.level = Level.ALL;
 
   final testHelper = TestHelper("view");
   await testHelper.setup();
@@ -234,7 +231,6 @@ void main() async {
 
     var light = await FilamentApp.instance!.createDirectLight(DirectLight(
         type: LightType.SUN,
-        
         intensity: 100000000,
         direction: Vector3(0, 0, -1),
         position: Vector3.zero()));
@@ -295,8 +291,8 @@ void main() async {
       await camera.lookAt(Vector3(0, 4, 12),
           focus: Vector3(i == 0 ? -2 : 2, 0, 0));
 
-      var cube = await FilamentApp.instance!.createGeometry(
-          GeometryHelper.cube(flipUvs: true)) as FFIAsset;
+      var cube = await FilamentApp.instance!
+          .createGeometry(GeometryHelper.cube(flipUvs: true)) as FFIAsset;
 
       await scene.add(cube);
     }
@@ -397,14 +393,12 @@ void main() async {
   });
 
   test('fog tests', () async {
-      await ViewerBuilder(testHelper)
+    await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
         .addCube()
-        .addCube(position: Vector3(0,0,-20))
-        .setCameraLookAt(Vector3(1,5,10))
+        .addCube(position: Vector3(0, 0, -20))
+        .setCameraLookAt(Vector3(1, 5, 10))
         .execute((result) async {
-
-
       // Test default fog options (should be disabled)
       final defaultOptions = result.viewer.view.getFogOptions();
       expect(defaultOptions.enabled, isFalse);
@@ -442,30 +436,91 @@ void main() async {
   test('show/hide stencil highlight', () async {
     await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
+        .setStencilBufferEnabled(true)
         .execute((result) async {
       var cube = await FilamentApp.instance!
           .createGeometry(GeometryHelper.cube(flipUvs: true));
       await result.viewer.addToScene(cube);
-      await result.viewer.view.setStencilHighlight(cube);
+
+      // Enable the highlight overlay system first
+      await result.viewer.view.enableHighlightOverlay();
+
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 1.0,
+        g: 0.5,
+        b: 0.0,
+        outlineWidth: 5.0,
+      );
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
       await FilamentApp.instance!.requestFrame();
 
-      await testHelper.capture(null, "stencil_highlight_enabled",
-          render: false);
+      final sv = await result.viewer.view.getSilhouetteView();
+      final svrt = await sv!.getRenderTarget();
+      assert(svrt != null);
+      final ov = await result.viewer.view.getOverlayView();
+      final ovrt = await ov!.getRenderTarget();
+      assert(ovrt != null);
 
-      await FilamentApp.instance!
-          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await testHelper.capture(null, "stencil_highlight_5px_orange",
+          render: true, captureRenderTarget: true);
+
+      // Test with thin outline (1 pixel) and blue color
       await result.viewer.view.removeStencilHighlight(cube);
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 0.0,
+        g: 0.5,
+        b: 1.0,
+        outlineWidth: 1.0,
+      );
+      await FilamentApp.instance!
+          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
       await FilamentApp.instance!.requestFrame();
 
-      await testHelper.capture(null, "stencil_highlight_removed",
-          render: false);
+      await testHelper.capture(null, "stencil_highlight_1px_blue",
+          captureRenderTarget: true, render: false);
+
+      // Test that highlight follows object translation
+      await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
+      await FilamentApp.instance!
+          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await FilamentApp.instance!.requestFrame();
+
+      await testHelper.capture(null, "stencil_highlight_after_translate",
+          captureRenderTarget: true, render: false);
+
+      // Test that highlight follows object rotation
+      await cube.setTransform(
+          Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
+      await FilamentApp.instance!
+          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await FilamentApp.instance!.requestFrame();
+
+      await testHelper.capture(null, "stencil_highlight_after_rotate",
+          captureRenderTarget: true, render: false);
+
+      // Test that highlight works after camera change
+      final camera = await result.viewer.view.getCamera();
+      await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
+      await FilamentApp.instance!
+          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      await FilamentApp.instance!.requestFrame();
+
+      await testHelper.capture(null, "stencil_highlight_after_camera_move",
+          captureRenderTarget: true, render: false);
+
+      await result.viewer.view.removeStencilHighlight(cube);
+
+      // Disable the highlight overlay system
+      await result.viewer.view.disableHighlightOverlay();
     });
   });
 
+
   test('VSM shadow options set/get', () async {
-      await ViewerBuilder(testHelper)
+    await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
         .execute((result) async {
       // Test default values
@@ -522,33 +577,36 @@ void main() async {
     await builder.execute((result) async {
       // Enable VSM shadows
       await result.viewer.setShadowsEnabled(true);
-      await testHelper.capture(result.viewer.view, "vsm_shadows_default_options");
+      await testHelper.capture(
+          result.viewer.view, "vsm_shadows_default_options");
 
       // Test with custom VSM options that should improve quality
       const vsmOptions = VsmShadowOptions(
-        anisotropy: 8,        // Higher anisotropy for better sampling
-        mipmapping: true,     // Enable mipmapping
-        msaaSamples: 4,       // MSAA for smoother edges
-        highPrecision: true,  // 32-bit precision to reduce light leaks
+        anisotropy: 8, // Higher anisotropy for better sampling
+        mipmapping: true, // Enable mipmapping
+        msaaSamples: 4, // MSAA for smoother edges
+        highPrecision: true, // 32-bit precision to reduce light leaks
         minVarianceScale: 0.3,
         lightBleedReduction: 0.2,
       );
 
       await result.viewer.view.setVsmShadowOptions(vsmOptions);
-      await testHelper.capture(result.viewer.view, "vsm_shadows_custom_options");
+      await testHelper.capture(
+          result.viewer.view, "vsm_shadows_custom_options");
 
       // Test with different VSM options
       const lowQualityVsmOptions = VsmShadowOptions(
-        anisotropy: 0,        // No anisotropic filtering
-        mipmapping: false,    // No mipmapping
-        msaaSamples: 1,       // No MSAA
+        anisotropy: 0, // No anisotropic filtering
+        mipmapping: false, // No mipmapping
+        msaaSamples: 1, // No MSAA
         highPrecision: false, // 16-bit precision
         minVarianceScale: 0.5,
         lightBleedReduction: 0.15,
       );
 
       await result.viewer.view.setVsmShadowOptions(lowQualityVsmOptions);
-      await testHelper.capture(result.viewer.view, "vsm_shadows_low_quality_options");
+      await testHelper.capture(
+          result.viewer.view, "vsm_shadows_low_quality_options");
     });
   });
 
@@ -574,8 +632,10 @@ void main() async {
       expect(retrieved.mipmapping, equals(testOptions.mipmapping));
       expect(retrieved.msaaSamples, equals(testOptions.msaaSamples));
       expect(retrieved.highPrecision, equals(testOptions.highPrecision));
-      expect(retrieved.minVarianceScale, closeTo(testOptions.minVarianceScale, 0.001));
-      expect(retrieved.lightBleedReduction, closeTo(testOptions.lightBleedReduction, 0.001));
+      expect(retrieved.minVarianceScale,
+          closeTo(testOptions.minVarianceScale, 0.001));
+      expect(retrieved.lightBleedReduction,
+          closeTo(testOptions.lightBleedReduction, 0.001));
     });
   });
 
@@ -741,28 +801,44 @@ void main() async {
       expect(retrievedOptions.radius, closeTo(customOptions.radius, 0.001));
       expect(retrievedOptions.power, closeTo(customOptions.power, 0.001));
       expect(retrievedOptions.bias, closeTo(customOptions.bias, 0.0001));
-      expect(retrievedOptions.resolution, closeTo(customOptions.resolution, 0.001));
-      expect(retrievedOptions.intensity, closeTo(customOptions.intensity, 0.001));
-      expect(retrievedOptions.bilateralThreshold, closeTo(customOptions.bilateralThreshold, 0.001));
+      expect(retrievedOptions.resolution,
+          closeTo(customOptions.resolution, 0.001));
+      expect(
+          retrievedOptions.intensity, closeTo(customOptions.intensity, 0.001));
+      expect(retrievedOptions.bilateralThreshold,
+          closeTo(customOptions.bilateralThreshold, 0.001));
       expect(retrievedOptions.quality, equals(customOptions.quality));
-      expect(retrievedOptions.lowPassFilter, equals(customOptions.lowPassFilter));
+      expect(
+          retrievedOptions.lowPassFilter, equals(customOptions.lowPassFilter));
       expect(retrievedOptions.upsampling, equals(customOptions.upsampling));
       expect(retrievedOptions.bentNormals, equals(customOptions.bentNormals));
-      expect(retrievedOptions.minHorizonAngleRad, closeTo(customOptions.minHorizonAngleRad, 0.001));
+      expect(retrievedOptions.minHorizonAngleRad,
+          closeTo(customOptions.minHorizonAngleRad, 0.001));
 
       // Verify SSCT options
       expect(retrievedOptions.ssct.enabled, equals(customOptions.ssct.enabled));
-      expect(retrievedOptions.ssct.lightConeRad, closeTo(customOptions.ssct.lightConeRad, 0.001));
-      expect(retrievedOptions.ssct.shadowDistance, closeTo(customOptions.ssct.shadowDistance, 0.001));
-      expect(retrievedOptions.ssct.contactDistanceMax, closeTo(customOptions.ssct.contactDistanceMax, 0.001));
-      expect(retrievedOptions.ssct.intensity, closeTo(customOptions.ssct.intensity, 0.001));
-      expect(retrievedOptions.ssct.lightDirection[0], closeTo(customOptions.ssct.lightDirection[0], 0.001));
-      expect(retrievedOptions.ssct.lightDirection[1], closeTo(customOptions.ssct.lightDirection[1], 0.001));
-      expect(retrievedOptions.ssct.lightDirection[2], closeTo(customOptions.ssct.lightDirection[2], 0.001));
-      expect(retrievedOptions.ssct.depthBias, closeTo(customOptions.ssct.depthBias, 0.001));
-      expect(retrievedOptions.ssct.depthSlopeBias, closeTo(customOptions.ssct.depthSlopeBias, 0.001));
-      expect(retrievedOptions.ssct.sampleCount, equals(customOptions.ssct.sampleCount));
-      expect(retrievedOptions.ssct.rayCount, equals(customOptions.ssct.rayCount));
+      expect(retrievedOptions.ssct.lightConeRad,
+          closeTo(customOptions.ssct.lightConeRad, 0.001));
+      expect(retrievedOptions.ssct.shadowDistance,
+          closeTo(customOptions.ssct.shadowDistance, 0.001));
+      expect(retrievedOptions.ssct.contactDistanceMax,
+          closeTo(customOptions.ssct.contactDistanceMax, 0.001));
+      expect(retrievedOptions.ssct.intensity,
+          closeTo(customOptions.ssct.intensity, 0.001));
+      expect(retrievedOptions.ssct.lightDirection[0],
+          closeTo(customOptions.ssct.lightDirection[0], 0.001));
+      expect(retrievedOptions.ssct.lightDirection[1],
+          closeTo(customOptions.ssct.lightDirection[1], 0.001));
+      expect(retrievedOptions.ssct.lightDirection[2],
+          closeTo(customOptions.ssct.lightDirection[2], 0.001));
+      expect(retrievedOptions.ssct.depthBias,
+          closeTo(customOptions.ssct.depthBias, 0.001));
+      expect(retrievedOptions.ssct.depthSlopeBias,
+          closeTo(customOptions.ssct.depthSlopeBias, 0.001));
+      expect(retrievedOptions.ssct.sampleCount,
+          equals(customOptions.ssct.sampleCount));
+      expect(
+          retrievedOptions.ssct.rayCount, equals(customOptions.ssct.rayCount));
     });
   });
 
@@ -775,29 +851,35 @@ void main() async {
 
     await builder.execute((result) async {
       // Capture without ambient occlusion
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_disabled");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_disabled");
 
       // Enable basic ambient occlusion
-      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view
+          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.5,
         intensity: 1.0,
         quality: QualityLevel.MEDIUM,
       ));
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_enabled_basic");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_enabled_basic");
 
       // Enable higher quality ambient occlusion
-      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view
+          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.8,
         intensity: 1.5,
         quality: QualityLevel.HIGH,
         bentNormals: true,
       ));
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_enabled_high_quality");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_enabled_high_quality");
 
       // Test with bent normals enabled
-      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view
+          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.6,
         intensity: 1.2,
@@ -805,24 +887,29 @@ void main() async {
         bentNormals: true,
         bilateralThreshold: 0.02,
       ));
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_bent_normals");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_bent_normals");
 
       // Test with different radius values
-      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view
+          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.2,
         intensity: 1.0,
         quality: QualityLevel.MEDIUM,
       ));
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_small_radius");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_small_radius");
 
-      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view
+          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 1.0,
         intensity: 1.0,
         quality: QualityLevel.MEDIUM,
       ));
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_large_radius");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_large_radius");
     });
   });
 
@@ -835,7 +922,8 @@ void main() async {
 
     await builder.execute((result) async {
       // Enable ambient occlusion with SSCT
-      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view
+          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.5,
         intensity: 1.0,
@@ -849,10 +937,12 @@ void main() async {
           sampleCount: 4,
         ),
       ));
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_ssct_enabled");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_ssct_enabled");
 
       // Test with different SSCT parameters
-      await result.viewer.view.setAmbientOcclusionOptions(AmbientOcclusionOptions(
+      await result.viewer.view
+          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
         enabled: true,
         radius: 0.5,
         intensity: 1.0,
@@ -867,7 +957,8 @@ void main() async {
           rayCount: 2,
         ),
       ));
-      await testHelper.capture(result.viewer.view, "ambient_occlusion_ssct_custom");
+      await testHelper.capture(
+          result.viewer.view, "ambient_occlusion_ssct_custom");
     });
   });
 
@@ -882,15 +973,16 @@ void main() async {
         bias: 0.0001,
         bilateralThreshold: 0.001,
         minHorizonAngleRad: 0.001,
-
       );
 
       await result.viewer.view.setAmbientOcclusionOptions(smallValueOptions);
       final retrievedSmall = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedSmall.radius, closeTo(smallValueOptions.radius, 0.001));
       expect(retrievedSmall.bias, closeTo(smallValueOptions.bias, 0.0001));
-      expect(retrievedSmall.bilateralThreshold, closeTo(smallValueOptions.bilateralThreshold, 0.001));
-      expect(retrievedSmall.minHorizonAngleRad, closeTo(smallValueOptions.minHorizonAngleRad, 0.001));
+      expect(retrievedSmall.bilateralThreshold,
+          closeTo(smallValueOptions.bilateralThreshold, 0.001));
+      expect(retrievedSmall.minHorizonAngleRad,
+          closeTo(smallValueOptions.minHorizonAngleRad, 0.001));
 
       // Test with larger values
       final largeValueOptions = AmbientOcclusionOptions(
@@ -905,8 +997,10 @@ void main() async {
       final retrievedLarge = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedLarge.radius, closeTo(largeValueOptions.radius, 0.001));
       expect(retrievedLarge.power, closeTo(largeValueOptions.power, 0.001));
-      expect(retrievedLarge.intensity, closeTo(largeValueOptions.intensity, 0.001));
-      expect(retrievedLarge.bilateralThreshold, closeTo(largeValueOptions.bilateralThreshold, 0.001));
+      expect(retrievedLarge.intensity,
+          closeTo(largeValueOptions.intensity, 0.001));
+      expect(retrievedLarge.bilateralThreshold,
+          closeTo(largeValueOptions.bilateralThreshold, 0.001));
 
       // Test SSCT precision
       final ssctPrecisionOptions = AmbientOcclusionOptions(
@@ -921,11 +1015,16 @@ void main() async {
 
       await result.viewer.view.setAmbientOcclusionOptions(ssctPrecisionOptions);
       final retrievedSsct = result.viewer.view.getAmbientOcclusionOptions();
-      expect(retrievedSsct.ssct.lightDirection[0], closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.001));
-      expect(retrievedSsct.ssct.lightDirection[1], closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.001));
-      expect(retrievedSsct.ssct.lightDirection[2], closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.001));
-      expect(retrievedSsct.ssct.depthBias, closeTo(ssctPrecisionOptions.ssct.depthBias, 0.001));
-      expect(retrievedSsct.ssct.depthSlopeBias, closeTo(ssctPrecisionOptions.ssct.depthSlopeBias, 0.001));
+      expect(retrievedSsct.ssct.lightDirection[0],
+          closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.001));
+      expect(retrievedSsct.ssct.lightDirection[1],
+          closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.001));
+      expect(retrievedSsct.ssct.lightDirection[2],
+          closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.001));
+      expect(retrievedSsct.ssct.depthBias,
+          closeTo(ssctPrecisionOptions.ssct.depthBias, 0.001));
+      expect(retrievedSsct.ssct.depthSlopeBias,
+          closeTo(ssctPrecisionOptions.ssct.depthSlopeBias, 0.001));
     });
   });
 
@@ -952,8 +1051,7 @@ void main() async {
       }
     });
   });
-
-  }
+}
 // manually construct two views with stencil buffer
 // final viewportDimensions = (width: 500, height: 500);
 //       final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(

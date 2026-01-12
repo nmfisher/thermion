@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ffi' as ffi;
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
@@ -68,22 +70,12 @@ class FFIView extends View<Pointer<TView>> {
     await FilamentApp.instance!.updateRenderOrder();
   }
 
-  Timer? _overlayResize;
-
   @override
   Future setViewport(int width, int height) async {
     View_setViewport(view, width, height);
 
     if (overlayManager != null) {
-      _overlayResize?.cancel();
-      _overlayResize = Timer(Duration(milliseconds: 33), () async {
-        var oldRenderTarget = overlayRenderTarget;
-        overlayRenderTarget =
-            await FilamentApp.instance!.createRenderTarget(width, height);
-        OverlayManager_setRenderTarget(
-            overlayManager!, overlayRenderTarget!.getNativeHandle());
-        await oldRenderTarget!.destroy();
-      });
+      OverlayManager_setViewport(overlayManager!, width, height);
     }
   }
 
@@ -98,14 +90,18 @@ class FFIView extends View<Pointer<TView>> {
       this.renderTarget = renderTarget;
     } else {
       View_setRenderTarget(view, nullptr);
+      this.renderTarget = null;
     }
-    // await overlayView?.setRenderTarget(renderTarget);
   }
 
   @override
   Future setCamera(Camera camera) async {
     View_setCamera(view, camera.getNativeHandle());
-    // await overlayView?.setCamera(camera.getNativeHandle());
+
+    // Sync the silhouette view's camera with the main view
+    if (overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
+      OverlayManager_setCamera(overlayManager!, camera.getNativeHandle());
+    }
   }
 
   @override
@@ -475,15 +471,97 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Pointer<TOverlayManager>? overlayManager;
-  View? overlayView;
-  Scene? overlayScene;
-  RenderTarget? overlayRenderTarget;
-  Material? highlightMaterial;
 
-  final _highlighted = <ThermionEntity, MaterialInstance>{};
+  final _highlighted = <ThermionEntity>{};
+
+  // Cached overlay views (lazy init)
+  FFIView? _silhouetteView;
+  FFIView? _overlayView;
 
   ///
+  /// Enables the highlight overlay system for this view.
   ///
+  @override
+  Future<bool> enableHighlightOverlay({int? hardwareTextureId}) async {
+    if (overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
+      _logger.warning("Highlight overlay already enabled");
+      return false;
+    }
+
+    final vp = await getViewport();
+
+    if (overlayManager == null) {
+      overlayManager = await withPointerCallback<TOverlayManager>(
+        (cb) => OverlayManager_createRenderThread(app.engine, cb)
+      );
+    }
+
+    await withVoidCallback((requestId, cb) =>
+      OverlayManager_initializeRenderThread(
+        overlayManager!,
+        vp.width,
+        vp.height,
+        hardwareTextureId ?? 0,
+        requestId,
+        cb
+      )
+    );
+
+    // Set the camera - silhouette view shares the main camera
+    final camera = await getCamera();
+    await withVoidCallback((requestId, cb) =>
+      OverlayManager_setCameraRenderThread(overlayManager!, camera.getNativeHandle(), requestId, cb)
+    );
+
+    _logger.info("Highlight overlay enabled (hardwareTextureId: ${hardwareTextureId ?? 'none'})");
+    return true;
+  }
+
+  ///
+  /// Disables the highlight overlay system and cleans up resources.
+  ///
+  @override
+  Future disableHighlightOverlay() async {
+    if (overlayManager == null) {
+      return;
+    }
+
+    // Remove all highlights
+    for (final entity in _highlighted.toList()) {
+      await withVoidCallback((requestId, cb) =>
+        OverlayManager_removeHighlightRenderThread(overlayManager!, entity, requestId, cb)
+      );
+    }
+    _highlighted.clear();
+
+    // Clear cached views
+    _silhouetteView = null;
+    _overlayView = null;
+    _overlayTexture = null;
+
+    // Destroy overlay manager (calls cleanup() and frees resources)
+    await withVoidCallback((requestId, cb) =>
+      OverlayManager_destroyRenderThread(overlayManager!, requestId, cb)
+    );
+    overlayManager = null;
+
+    // Update render order to remove silhouette/overlay views
+    await app.updateRenderOrder();
+
+    _logger.info("Highlight overlay disabled");
+  }
+
+  ///
+  /// Highlights an entity with a screen-space outline.
+  ///
+  /// The overlay system must be enabled first via [enableHighlightOverlay].
+  ///
+  /// The outline width is specified in pixels and remains constant regardless
+  /// of camera distance (screen-space expansion).
+  ///
+  /// Uses a two-pass post-process rendering approach:
+  /// 1. Silhouette pass: Render highlighted entities to a texture as white silhouettes
+  /// 2. Edge detection pass: Fullscreen shader samples silhouette, draws outline where edges are detected
   ///
   @override
   Future setStencilHighlight(ThermionAsset asset,
@@ -492,56 +570,105 @@ class FFIView extends View<Pointer<TView>> {
       double b = 0.0,
       int? entity,
       double scale = 1.05,
+      double outlineWidth = 3.0,
       int primitiveIndex = 0}) async {
-    if (overlayScene == null) {
-      overlayScene = await FilamentApp.instance!.createScene();
-      final vp = await getViewport();
-      overlayRenderTarget =
-          await FilamentApp.instance!.createRenderTarget(vp.width, vp.height);
-      overlayManager = OverlayManager_create(
-          app.engine,
-          app.renderer,
-          getNativeHandle(),
-          overlayScene!.getNativeHandle(),
-          overlayRenderTarget!.getNativeHandle());
-      RenderTicker_setOverlayManager(app.renderTicker, overlayManager!);
-      final highlightMaterialPtr = await withPointerCallback<TMaterial>(
-          (cb) => Material_createOutlineMaterialRenderThread(app.engine, cb));
-      highlightMaterial = FFIMaterial(highlightMaterialPtr, app);
-    }
 
-    MaterialInstance? highlightMaterialInstance;
+    if (overlayManager == null || !OverlayManager_isInitialized(overlayManager!)) {
+      throw StateError(
+        "Highlight overlay not enabled. Call enableHighlightOverlay() first."
+      );
+    }
 
     entity ??= asset.entity;
     final entities = [entity, ...await asset.getChildEntities()];
+
+    // Get geometry info for creating silhouette entity.
+    // Only works for geometry assets or glTF loaded via parseGltf.
+    final ffiAsset = asset as FFIAsset;
+    final vertexBuffer = asset.getVertexBuffer(primitiveIndex: primitiveIndex);
+    final indexBuffer = SceneAsset_getIndexBuffer(ffiAsset.asset, primitiveIndex);
+    final hasGeometry = vertexBuffer != null && indexBuffer != ffi.nullptr;
+
+    if (!hasGeometry || vertexBuffer is! FFIVertexBuffer) {
+      throw UnsupportedError(
+        "Stencil highlight requires geometry info (vertexBuffer and indexBuffer). "
+        "glTF assets loaded via loadGlb/loadGltf are not supported. "
+        "Use geometry assets or parseGltf instead."
+      );
+    }
+
+    final indexCount = IndexBuffer_getIndexCount(indexBuffer);
 
     for (final entity in entities) {
       if (!await FilamentApp.instance!.isRenderable(entity)) {
         continue;
       }
-      if (_highlighted.containsKey(entity)) {
-        _highlighted[entity]!.setParameterFloat4("color", r, g, b, 1.0);
-      } else {
-        if (highlightMaterialInstance == null) {
-          highlightMaterialInstance = await highlightMaterial!.createInstance();
-          await highlightMaterialInstance.setParameterFloat("scale", scale);
-          await highlightMaterialInstance.setParameterFloat4(
-              "color", r, g, b, 1.0);
-
-          await highlightMaterialInstance.setDepthCullingEnabled(true);
-          await highlightMaterialInstance.setDepthWriteEnabled(true);
-        }
-        OverlayManager_addComponent(overlayManager!, entity,
-            highlightMaterialInstance.getNativeHandle());
-        _highlighted[entity] = highlightMaterialInstance;
+      if (!_highlighted.contains(entity)) {
+        await withVoidCallback((requestId, cb) =>
+          OverlayManager_addHighlightRenderThread(
+            overlayManager!,
+            entity,
+            vertexBuffer.getNativeHandle(),
+            indexBuffer,
+            indexCount,
+            outlineWidth,
+            r, g, b,
+            requestId, cb
+          )
+        );
+        _highlighted.add(entity);
       }
     }
+
+    // Update render order to include silhouette/overlay views
+    await app.updateRenderOrder();
 
     _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
   }
 
+  /// Get the silhouette view for rendering highlighted entities to texture.
+  /// Returns null if no highlights are active.
+  @override
+  View? getSilhouetteView() {
+    if (_silhouetteView == null && overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
+      _silhouetteView = FFIView(OverlayManager_getSilhouetteView(overlayManager!), app);
+    }
+    return _silhouetteView;
+  }
+
+  /// Get the overlay view for edge detection fullscreen quad.
+  /// Returns null if no highlights are active.
+  @override
+  View? getOverlayView() {
+    if (_overlayView == null && overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
+      _overlayView = FFIView(OverlayManager_getOverlayView(overlayManager!), app);
+    }
+    return _overlayView;
+  }
+
+  FFITexture? _overlayTexture;
+
+  /// Get the overlay texture for compositing in Flutter.
+  /// Returns null if no highlights are active.
+  @override
+  Texture? getOverlayTexture() {
+    if (_overlayTexture == null && overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
+      final texturePtr = OverlayManager_getOverlayTexture(overlayManager!);
+      if (texturePtr != nullptr) {
+        _overlayTexture = FFITexture(app.engine, texturePtr);
+      }
+    }
+    return _overlayTexture;
+  }
+
+  /// Check if there are any active highlights.
+  @override
+  bool hasHighlights() {
+    return overlayManager != null && OverlayManager_hasHighlights(overlayManager!);
+  }
+
   ///
-  ///
+  /// Removes the stencil highlight from an asset.
   ///
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
@@ -551,23 +678,16 @@ class FFIView extends View<Pointer<TView>> {
     final entities = [asset.entity, ...await asset.getChildEntities()];
 
     for (final entity in entities) {
-      OverlayManager_removeComponent(overlayManager!, entity);
-    }
-
-    final destroyed = <MaterialInstance>{};
-    for (final entity in entities) {
-      final materialInstance = _highlighted[entity];
-      if (!await FilamentApp.instance!.isRenderable(entity) ||
-          materialInstance == null) {
-        continue;
-      }
-
-      _highlighted.remove(entity);
-      if (!destroyed.contains(materialInstance)) {
-        await materialInstance.destroy();
-        destroyed.add(materialInstance);
+      if (_highlighted.contains(entity)) {
+        await withVoidCallback((requestId, cb) =>
+          OverlayManager_removeHighlightRenderThread(overlayManager!, entity, requestId, cb)
+        );
+        _highlighted.remove(entity);
       }
     }
+
+    // Update render order to remove silhouette/overlay views if no more highlights
+    await app.updateRenderOrder();
   }
 
   void setName(String name) {
@@ -583,4 +703,11 @@ class FFIView extends View<Pointer<TView>> {
   Future<bool> isTransparentPickingEnabled() async {
     return View_isTransparentPickingEnabled(getNativeHandle());
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is FFIView && view.address == other.view.address;
+
+  @override
+  int get hashCode => view.address.hashCode;
 }

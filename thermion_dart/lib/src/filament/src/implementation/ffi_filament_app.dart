@@ -161,11 +161,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       allocate<PointerClass>(255).cast();
 
   ///
+  /// Updates the render order for all swap chains.
   ///
+  /// For views with highlights, the render order is:
+  /// 1. Silhouette views (render highlighted entities to texture)
+  /// 2. Main views (normal scene rendering)
+  /// 3. Overlay views (edge detection fullscreen quad, composites on top)
   ///
   Future updateRenderOrder() async {
-    if (_swapChains.length == 0) {
+    if (_swapChains.isEmpty) {
       _logger.warning("No swapchains, ignoring updateRenderOrder");
+      return;
     }
     for (final swapChain in _swapChains.keys) {
       final views = _swapChains[swapChain];
@@ -175,12 +181,36 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
 
       int numRenderable = 0;
+
+      // First pass: silhouette views (render to texture)
       for (final view in views) {
-        if (view.renderable) {
-          viewsPtr[numRenderable] = view.view;
-          numRenderable++;
+        if (view.renderable && view.hasHighlights()) {
+          final silhouetteView = view.getSilhouetteView();
+          if (silhouetteView != null) {
+            viewsPtr[numRenderable++] = silhouetteView.getNativeHandle();
+            _logger.info("Added silhouette view to render list");
+          }
         }
       }
+
+      // Second pass: main views
+      for (final view in views) {
+        if (view.renderable) {
+          viewsPtr[numRenderable++] = view.view;
+        }
+      }
+
+      // Third pass: overlay views (composite on top)
+      for (final view in views) {
+        if (view.renderable && view.hasHighlights()) {
+          final overlayView = view.getOverlayView();
+          if (overlayView != null) {
+            viewsPtr[numRenderable++] = overlayView.getNativeHandle();
+            _logger.info("Added overlay view to render list");
+          }
+        }
+      }
+
       RenderTicker_setRenderable(
           renderTicker, swapChain.getNativeHandle(), viewsPtr, numRenderable);
       _logger.finest("Updated render order, $numRenderable renderable views");
@@ -814,14 +844,39 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final views = <FFIView>[];
     if (view != null) {
       views.add(view);
+      _logger.finest("Using provided view");
     } else {
-      views.addAll(_swapChains[swapChain]!.where((v) => v.renderable));
+      final mainViews =
+          _swapChains[swapChain]!.where((v) => v.renderable).toList();
+
+      for (final v in mainViews) {
+        if (v.hasHighlights()) {
+          final silhouetteView = v.getSilhouetteView();
+          if (silhouetteView != null) views.add(silhouetteView as FFIView);
+        }
+      }
+
+      views.addAll(mainViews);
+
+      for (final v in mainViews) {
+        if (v.hasHighlights()) {
+          final overlayView = v.getOverlayView();
+          if (overlayView != null) views.add(overlayView as FFIView);
+        }
+      }
+
+      _logger.finest(
+          "Added ${views.length} views (from ${_swapChains.length} swapchains)");
     }
 
     if (beginFrame) {
-      _logger.finest("Capturing ${views.length} views");
+      _logger.finest("Starting capture for ${views.length} views");
 
-      for (final view in views) {
+      for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
+        final view = views[viewIndex];
+        _logger.finest(
+            "Capturing view ${viewIndex} (renderTarget: ${(await view.getRenderTarget()) != null ? 'yes' : 'no'}) views");
+
         beforeRender?.call(view);
 
         final viewport = await view.getViewport();
@@ -855,7 +910,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         }
 
         if (captureRenderTarget && view.renderTarget == null) {
-          throw Exception("If captureRenderTarget is specified, the specified view must have a render target");
+          _logger.warning(
+              "captureRenderTarget is true but the specified view has no render target. Falling back to swapchain capture");
         }
 
         await withVoidCallback((requestId, cb) {
@@ -1206,8 +1262,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     currentBufferIndex++;
 
     if (geometry.hasAttribute0) {
-      vertexBufferBuilder.attribute(
-          VertexAttribute.CUSTOM0, currentBufferIndex, VertexAttributeType.FLOAT4);
+      vertexBufferBuilder.attribute(VertexAttribute.CUSTOM0, currentBufferIndex,
+          VertexAttributeType.FLOAT4);
     }
 
     final vertexBuffer = await vertexBufferBuilder.build() as FFIVertexBuffer;

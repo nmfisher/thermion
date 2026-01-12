@@ -1,0 +1,12 @@
+    .global SILHOUETTE_SILHOUETTE_OFFSET;
+    .global SILHOUETTE_SILHOUETTE_SIZE;
+
+    .global SILHOUETTE_PACKAGE
+    .section .rodata
+SILHOUETTE_PACKAGE:
+    .incbin "silhouette.bin"
+SILHOUETTE_SILHOUETTE_OFFSET:
+    .int 0
+SILHOUETTE_SILHOUETTE_SIZE:
+    .int 144270
+

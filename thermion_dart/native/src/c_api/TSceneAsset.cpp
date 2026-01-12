@@ -238,6 +238,16 @@ extern "C"
         return nullptr;
     }
 
+    EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
+            auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
+            auto *indexBuffer = geometrySceneAsset->getIndexBuffer();
+            return reinterpret_cast<TIndexBuffer *>(indexBuffer);
+        }
+        return nullptr;
+    }
+
 
 #ifdef __cplusplus
 }
