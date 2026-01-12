@@ -1,0 +1,65 @@
+material {
+    name : EdgeOutline,
+    parameters : [
+        { type : sampler2d, name : silhouette },
+        { type : float2, name : texelSize },
+        { type : float3, name : outlineColor },
+        { type : float, name : outlineWidth }
+    ],
+    variables : [
+        screenUV
+    ],
+    shadingModel : unlit,
+    blending : masked,
+    maskThreshold : 0.5,
+    depthWrite : false,
+    depthCulling : false,
+    culling : none,
+    vertexDomain : device
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Convert from clip space [-1,1] to UV space [0,1]
+        material.screenUV.st = getPosition().xy * 0.5 + 0.5;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec2 uv = variable_screenUV.st;
+
+        // Flip Y for correct texture sampling
+        uv.y = 1.0 - uv.y;
+
+        float center = texture(materialParams_silhouette, uv).r;
+
+        // Sample neighbors at outline width distance
+        float width = materialParams.outlineWidth;
+        vec2 texel = materialParams.texelSize * width;
+
+        float left  = texture(materialParams_silhouette, uv + vec2(-texel.x, 0.0)).r;
+        float right = texture(materialParams_silhouette, uv + vec2( texel.x, 0.0)).r;
+        float up    = texture(materialParams_silhouette, uv + vec2(0.0,  texel.y)).r;
+        float down  = texture(materialParams_silhouette, uv + vec2(0.0, -texel.y)).r;
+
+        // Diagonal samples for better corner detection
+        float tl = texture(materialParams_silhouette, uv + vec2(-texel.x,  texel.y)).r;
+        float tr = texture(materialParams_silhouette, uv + vec2( texel.x,  texel.y)).r;
+        float bl = texture(materialParams_silhouette, uv + vec2(-texel.x, -texel.y)).r;
+        float br = texture(materialParams_silhouette, uv + vec2( texel.x, -texel.y)).r;
+
+        // Edge = center is 0 but any neighbor is 1
+        float maxNeighbor = max(max(max(left, right), max(up, down)),
+                                max(max(tl, tr), max(bl, br)));
+        float edge = (1.0 - center) * maxNeighbor;
+
+        // DEBUG: Visualize silhouette texture
+        // material.baseColor = vec4(center, center, center, 1.0);
+        // return;
+
+        material.baseColor = vec4(materialParams.outlineColor, edge);
+    }
+}

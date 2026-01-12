@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'log.dart';
 
+
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
@@ -71,14 +72,19 @@ outputDirectory : ${outputDirectory.path}
       sources = sources.where((p) => !p.contains("windows")).toList();
     }
 
+    // Material source paths (used by _processMaterials below)
+    final materialSources = <String, String>{
+      'capture_uv': 'native/include/material/capture_uv.c',
+      'grid': 'native/include/material/grid.c',
+      'image': 'native/include/material/image.c',
+      'linear_depth': 'native/include/material/linear_depth.c',
+      'unlit_fixed_size': 'native/include/material/unlit_fixed_size.c',
+      'silhouette': 'native/include/material/silhouette.c',
+      'edge_outline': 'native/include/material/edge_outline.c'
+    };
+
+    // Add gizmo resources (always included)
     sources.addAll([
-      path.join(pkgRootFilePath, "native", "include", "material",
-          "unlit_fixed_size.c"),
-      path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
-      path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
-      path.join(
-          pkgRootFilePath, "native", "include", "material", "linear_depth.c"),
-      path.join(pkgRootFilePath, "native", "include", "material", "outline.c"),
       path.join(pkgRootFilePath, "native", "include", "resources",
           "translation_gizmo_glb.c"),
       path.join(pkgRootFilePath, "native", "include", "resources",
@@ -148,6 +154,10 @@ outputDirectory : ${outputDirectory.path}
       await _processDeclarativePlugins(pluginConfigs, sources, libs, defines,
           flags, includeDirs, targetOS, logger, consumingPackageRoot);
     }
+
+    // Process materials configuration
+    final materialConfigs = input.userDefines["materials"] as Map<String, dynamic>?;
+    _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
 
     var frameworks = [];
 
@@ -586,4 +596,56 @@ Future<void> _processDeclarativePlugins(
 
     logger.info("Successfully processed plugin: $pluginName");
   }
+}
+
+//
+// Material configuration processing functions
+//
+
+void _processMaterials(
+  Map<String, dynamic>? materialConfig,
+  Map<String, String> materialSources,
+  List<String> sources,
+  Map<String, String?> defines,
+  Logger logger,
+  String pkgRootFilePath,
+) {
+  // If no config provided, include all materials (default)
+  if (materialConfig == null) {
+    logger.info("No materials config specified, including all materials");
+    for (final materialName in materialSources.keys) {
+      _includeMaterial(materialName, materialSources, sources, defines, logger,
+          pkgRootFilePath);
+    }
+    return;
+  }
+
+  // Otherwise, only include materials explicitly set to true
+  for (final entry in materialConfig.entries) {
+    final materialName = entry.key;
+    final shouldInclude = entry.value;
+
+    if (shouldInclude == true) {
+      if (materialSources.containsKey(materialName)) {
+        _includeMaterial(materialName, materialSources, sources, defines,
+            logger, pkgRootFilePath);
+      } else {
+        logger.warning("Unknown material: $materialName");
+      }
+    }
+  }
+}
+
+void _includeMaterial(
+  String materialName,
+  Map<String, String> materialSources,
+  List<String> sources,
+  Map<String, String?> defines,
+  Logger logger,
+  String pkgRootFilePath,
+) {
+  final sourcePath = path.join(pkgRootFilePath, materialSources[materialName]!);
+  sources.add(sourcePath);
+  defines["${materialName.toUpperCase()}_ENABLED"] = "1";
+  logger.info("Included material: $materialName");
 }

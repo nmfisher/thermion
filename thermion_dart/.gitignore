@@ -4,3 +4,4 @@ native/web/lib/**/*
 pubspec.lock
 test/output/*
 test/generated/libThermionTextureSwift.dylib
+**/*.g.dart

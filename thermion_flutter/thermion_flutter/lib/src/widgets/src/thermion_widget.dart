@@ -45,12 +45,18 @@ class ThermionWidget extends StatefulWidget {
   /// where the Texture widget is not being rendered.
   final Widget? initial;
 
+  /// If true, enable the highlight overlay system.
+  /// This creates a separate texture for rendering entity highlights/outlines
+  /// that is composited on top of the main render texture.
+  final bool enableOverlay;
+
   const ThermionWidget(
       {Key? key,
       this.initial,
       required this.viewer,
       this.showFpsCounter = false,
-      this.onResize = kDefaultResizeCallback})
+      this.onResize = kDefaultResizeCallback,
+      this.enableOverlay = false})
       : super(key: key);
 
   @override
@@ -65,6 +71,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
         initial: widget.initial,
         viewer: widget.viewer,
         showFpsCounter: widget.showFpsCounter,
-        onResize: widget.onResize);
+        onResize: widget.onResize,
+        enableOverlay: widget.enableOverlay);
   }
 }

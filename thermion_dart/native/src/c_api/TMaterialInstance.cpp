@@ -71,14 +71,6 @@ namespace thermion
             return reinterpret_cast<TMaterial *>(material);
         }
 
-        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createOutlineMaterial(TEngine *tEngine) {
-            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = filament::Material::Builder()
-                .package(OUTLINE_OUTLINE_DATA, OUTLINE_OUTLINE_SIZE)
-                .build(*engine);
-            return reinterpret_cast<TMaterial *>(material);
-        }
-
         EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);
             return material->hasParameter(propertyName);

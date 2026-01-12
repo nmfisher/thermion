@@ -367,13 +367,42 @@ abstract class View<T> extends NativeHandle<T> {
   Future setTransparentPickingEnabled(bool enabled);
   Future<bool> isTransparentPickingEnabled();
 
-  /// Renders an outline around [entity] with the given color.
+  /// Enables the highlight overlay system for this view.
+  ///
+  /// Must be called before [setStencilHighlight]. This initializes the overlay
+  /// manager with the current viewport dimensions.
+  ///
+  /// The optional [hardwareTextureId] parameter allows passing in a platform-specific
+  /// texture handle for the overlay render target. If provided, Filament will import
+  /// and render into this texture instead of creating its own. This is useful for
+  /// Flutter integration where you want to composite the overlay with other layers.
+  ///
+  /// Returns true if initialization succeeded, false if already enabled.
+  Future<bool> enableHighlightOverlay({int? hardwareTextureId});
+
+  /// Disables the highlight overlay system and cleans up resources.
+  ///
+  /// Removes all active highlights and destroys the overlay manager.
+  Future disableHighlightOverlay();
+
+  /// Renders a screen-space outline around [entity] with the given color.
+  ///
+  /// The overlay system must be enabled first via [enableHighlightOverlay].
+  ///
+  /// The outline width is specified in pixels via [outlineWidth] and remains
+  /// constant regardless of camera distance (screen-space expansion).
+  ///
+  /// Uses a stencil-based two-pass rendering approach for clean, flicker-free
+  /// outlines.
+  ///
+  /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
   Future setStencilHighlight(ThermionAsset asset,
       {double r = 1.0,
       double g = 0.0,
       double b = 0.0,
       int? entity,
-      double scale = 1.05,
+      @Deprecated('Use outlineWidth instead') double scale = 1.05,
+      double outlineWidth = 3.0,
       int primitiveIndex = 0});
 
   /// Removes the outline around [entity]. Noop if there was no highlight.
@@ -410,5 +439,21 @@ abstract class View<T> extends NativeHandle<T> {
   /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the viewport).
   ///
   Future pick(int x, int y, void Function(PickResult) resultHandler);
+
+  /// Get the silhouette view used for rendering highlighted entities to texture.
+  /// Returns null if no highlights are active or overlay manager is not initialized.
+  View? getSilhouetteView();
+
+  /// Get the overlay view used for edge detection fullscreen quad.
+  /// Returns null if no highlights are active or overlay manager is not initialized.
+  View? getOverlayView();
+
+  /// Get the overlay texture containing rendered edge outlines.
+  /// Returns null if no highlights are active or overlay manager is not initialized.
+  /// This texture can be used for compositing in Flutter.
+  Texture? getOverlayTexture();
+
+  /// Check if there are any active stencil highlights on this view.
+  bool hasHighlights();
 
 }

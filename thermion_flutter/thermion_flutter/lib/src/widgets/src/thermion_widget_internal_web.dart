@@ -20,12 +20,17 @@ class ThermionWidgetInternal extends StatefulWidget {
   /// When true, an FPS counter will be displayed at the top right of the widget
   final bool showFpsCounter;
 
+  /// When true, enable the highlight overlay system with a separate composited texture
+  /// Note: Overlay is not yet implemented on web platform.
+  final bool enableOverlay;
+
   const ThermionWidgetInternal({
     super.key,
     required this.viewer,
     this.initial,
     this.onResize,
     this.showFpsCounter = false,
+    this.enableOverlay = false,
   });
 
   @override

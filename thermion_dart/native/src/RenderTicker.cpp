@@ -49,37 +49,28 @@ namespace thermion
   void RenderTicker::removeSwapChain(SwapChain *swapChain)
   {
     std::lock_guard lock(mMutex);
-    auto erased = std::remove_if(mRenderable.begin(),
-                                 mRenderable.end(),
-                                 [=](ViewAttachment attachment)
-                                 { return attachment.first == swapChain; });
-    mRenderable.erase(erased,
-                      mRenderable.end());
+      for (int i = 0; i < numViewAttachments; i++)
+    {
+        mViewAttachment.views[i] = nullptr;
+    }
+    mViewAttachment.swapChain = nullptr;
   }
 
   void RenderTicker::setRenderable(SwapChain *swapChain, View **views, uint8_t numViews)
   {
     std::lock_guard lock(mMutex);
 
-    auto it = std::find_if(mRenderable.begin(), mRenderable.end(),
-                           [swapChain](const auto &pair)
-                           { return pair.first == swapChain; });
-
-    std::vector<View *> swapChainViews;
-    for (int i = 0; i < numViews; i++)
+    mViewAttachment.swapChain = swapChain;
+    
+    for (int i = 0; i < numViewAttachments; i++)
     {
-      swapChainViews.push_back(views[i]);
+      if(i < numViews) {
+        mViewAttachment.views[i] = views[i];
+      } else {
+        mViewAttachment.views[i] = nullptr;
+      }
     }
-
-    if (it != mRenderable.end())
-    {
-      it->second = swapChainViews;
-    }
-    else
-    {
-      mRenderable.emplace_back(swapChain, swapChainViews);
-    }
-    TRACE("Set %d views as renderable", numViews);
+    TRACE("Set %d view attachments", numViews);
   }
 
   bool RenderTicker::render(uint64_t frameTimeInNanos)
@@ -100,44 +91,40 @@ namespace thermion
 
     int swapChainIndex = 0;
     bool rendered = false;
+    
+    int numRendered = 0;
 
-    for (const auto &[swapChain, views] : mRenderable)
+    bool beginFrame = mRenderer->beginFrame(mViewAttachment.swapChain, frameTimeInNanos);
+    if (beginFrame)
     {
 
-      int numRendered = 0;
+      durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
 
-      bool beginFrame = mRenderer->beginFrame(swapChain, frameTimeInNanos);
-      if (beginFrame)
+      TRACE("Beginning frame (%.3f ms since last endFrame())", durationNs);
+      for (int i = 0; i < numViewAttachments; i++)
       {
+        if(!mViewAttachment.views[i]) {
+          break;
+        }
         numRendered++;
-        durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
-
-        TRACE("Beginning frame (%.3f ms since last endFrame())", durationNs);
-        for (auto view : views)
-        {
-          mRenderer->render(view);
-        }
-
-        if (mOverlayComponentManager)
-        {
-          mOverlayComponentManager->update();
-        }
-
-        mLastRender = std::chrono::high_resolution_clock::now();
-        mRenderer->endFrame();
+        mRenderer->render(mViewAttachment.views[i]);
       }
-      else
-      {
-        durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
-        TRACE("Skipping frame (%.3f ms since last endFrame())", durationNs);
-      }
-      TRACE("%d views rendered for swapchain %d", numRendered, swapChainIndex);
-      swapChainIndex++;
-      if (numRendered > 0)
-      {
-        rendered = true;
-      }
+
+      mLastRender = std::chrono::high_resolution_clock::now();
+      mRenderer->endFrame();
     }
+    else
+    {
+      durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+      TRACE("Skipping frame (%.3f ms since last endFrame())", durationNs);
+    }
+    TRACE("%d views rendered for swapchain %d", numRendered, swapChainIndex);
+    swapChainIndex++;
+    if (numRendered > 0)
+    {
+      rendered = true;
+    }
+    
 #ifdef __EMSCRIPTEN__
     mEngine->execute();
 #endif
@@ -145,7 +132,7 @@ namespace thermion
     durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
     float durationMs = durationNs / 1e6f;
 
-    TRACE("Total render() time: %.3f ms", durationMs);
+    TRACE("Total render() time for %d swapchains: %.3f ms", swapChainIndex, durationMs);
     return rendered;
   }
 

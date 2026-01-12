@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart' hide View;
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/platform.dart';
+import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/platform/src/method_channel_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
@@ -19,12 +22,16 @@ class ThermionWidgetInternal extends StatefulWidget {
   /// When true, an FPS counter will be displayed at the top right of the widget
   final bool showFpsCounter;
 
+  /// When true, enable the highlight overlay system with a separate composited texture
+  final bool enableOverlay;
+
   const ThermionWidgetInternal({
     super.key,
     required this.viewer,
     this.initial,
     this.onResize,
     this.showFpsCounter = false,
+    this.enableOverlay = false,
   });
 
   @override
@@ -35,6 +42,8 @@ class ThermionWidgetInternal extends StatefulWidget {
 
 class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
   PlatformTextureDescriptor? _texture;
+  PlatformTextureDescriptor? _overlayTexture;
+  bool _overlayEnabled = false;
 
   static final _views = <View>[];
 
@@ -50,8 +59,18 @@ class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
     _views.remove(widget.viewer.view);
     final texture = _texture;
     _texture = null;
+    final overlayTexture = _overlayTexture;
+    _overlayTexture = null;
+
+    // Disable highlight overlay if it was enabled
+    if (_overlayEnabled) {
+      _overlayEnabled = false;
+      widget.viewer.view.disableHighlightOverlay();
+    }
+
     super.dispose();
     texture?.destroy();
+    overlayTexture?.destroy();
     _fpsUpdateTimer?.cancel();
     _states.remove(this);
   }
@@ -106,6 +125,16 @@ class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
         } catch (err, st) {
           _logger.severe(err);
           _logger.severe(st);
+        }
+
+        // Create overlay texture if overlay is enabled (fixed-size, no resize handling)
+        if (widget.enableOverlay) {
+          _overlayTexture = await _createOverlayTexture(width, height);
+          _overlayEnabled = await widget.viewer.view.enableHighlightOverlay(
+            hardwareTextureId: _overlayTexture!.hardwareId,
+          );
+          _logger.info(
+              "Overlay texture created ${width}x${height}, enabled: $_overlayEnabled");
         }
       } else {
         _logger.warning("Widget has zero width or height");
@@ -180,6 +209,7 @@ class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
 
     WidgetsBinding.instance.scheduleFrameCallback((Duration d) async {
       _texture?.markTextureFrameAvailable();
+      _overlayTexture?.markTextureFrameAvailable();
       _frameCompleter?.complete();
     });
 
@@ -262,6 +292,15 @@ class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
             filterQuality: FilterQuality.none,
             freeze: false,
           )),
+          if (_overlayTexture != null && _overlayEnabled)
+            Positioned.fill(
+                child: Texture(
+              key: ObjectKey(
+                  "flutter_overlay_texture_${_overlayTexture!.flutterTextureId}"),
+              textureId: _overlayTexture!.flutterTextureId,
+              filterQuality: FilterQuality.none,
+              freeze: false,
+            )),
           if (widget.showFpsCounter)
             Positioned(
               top: 8,
@@ -297,5 +336,16 @@ class _ThermionTextureWidgetState extends State<ThermionWidgetInternal> {
         ],
       ),
     );
+  }
+
+  /// Creates a platform-specific overlay texture for the highlight system.
+  Future<PlatformTextureDescriptor> _createOverlayTexture(
+      int width, int height) async {
+    if (Platform.isMacOS || Platform.isIOS) {
+      return DarwinPlatformTextureDescriptorImpl.allocate(width, height);
+    } else {
+      return await MethodChannelPlatformTextureDescriptor.allocate(
+          ThermionFlutterPluginImpl.instance.channel, width, height);
+    }
   }
 }

@@ -1,0 +1,12 @@
+    .global _EDGE_OUTLINE_EDGE_OUTLINE_OFFSET;
+    .global _EDGE_OUTLINE_EDGE_OUTLINE_SIZE;
+
+    .global _EDGE_OUTLINE_PACKAGE
+    .section __TEXT,__const
+_EDGE_OUTLINE_PACKAGE:
+    .incbin "edge_outline.bin"
+_EDGE_OUTLINE_EDGE_OUTLINE_OFFSET:
+    .int 0
+_EDGE_OUTLINE_EDGE_OUTLINE_SIZE:
+    .int 189546
+

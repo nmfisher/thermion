@@ -9,6 +9,7 @@
 #include "c_api/APIBoundaryTypes.h"
 #include "c_api/TAnimationManager.h"
 #include "c_api/TEngine.h"
+#include "c_api/TTransformManager.h"
 #include "c_api/TGizmo.h"
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TGltfResourceLoader.h"
@@ -21,6 +22,7 @@
 #include "c_api/TView.h"
 #include "c_api/TVertexBuffer.h"
 #include "c_api/TIndexBuffer.h"
+#include "c_api/TOverlayManager.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
 #include "rendering/RenderThread.hpp"
@@ -527,17 +529,6 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-    EMSCRIPTEN_KEEPALIVE void Material_createOutlineMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createOutlineMaterial(tEngine);
-          PROXY(onComplete(instance));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
     std::packaged_task<void()> lambda(
@@ -545,6 +536,23 @@ extern "C"
         {
           auto *instance = Material_createInstance(tMaterial);
           PROXY(onComplete(instance));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureRenderThread(
+      TMaterialInstance *tMaterialInstance,
+      const char *propertyName,
+      TTexture* tTexture,
+      TTextureSampler* tSampler,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          MaterialInstance_setParameterTexture(tMaterialInstance, propertyName, tTexture, tSampler);
+          PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1663,4 +1671,135 @@ extern "C"
         });
     auto fut = _renderThread->add_task(lambda);
   }
+
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformRenderThread(
+      TTransformManager *tTransformManager,
+      EntityId entityId,
+      double4x4 transform,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TransformManager_setTransform(tTransformManager, entityId, transform);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  // OverlayManager render thread implementations
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_createRenderThread(
+      TEngine *tEngine,
+      void (*onComplete)(TOverlayManager *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *overlayManager = OverlayManager_create(tEngine);
+          PROXY(onComplete(overlayManager));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_initializeRenderThread(
+      TOverlayManager *tOverlayManager,
+      uint32_t width,
+      uint32_t height,
+      intptr_t hardwareTextureId,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          OverlayManager_initialize(tOverlayManager, width, height, hardwareTextureId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_setViewportRenderThread(
+      TOverlayManager *tOverlayManager,
+      uint32_t width,
+      uint32_t height,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          OverlayManager_setViewport(tOverlayManager, width, height);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_addHighlightRenderThread(
+      TOverlayManager *tOverlayManager,
+      EntityId entityId,
+      TVertexBuffer *tVertexBuffer,
+      TIndexBuffer *tIndexBuffer,
+      uint32_t indexCount,
+      float outlineWidth,
+      float r,
+      float g,
+      float b,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          OverlayManager_addHighlight(tOverlayManager, entityId, tVertexBuffer, tIndexBuffer, indexCount, outlineWidth, r, g, b);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_removeHighlightRenderThread(
+      TOverlayManager *tOverlayManager,
+      EntityId entityId,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          OverlayManager_removeHighlight(tOverlayManager, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_setCameraRenderThread(
+      TOverlayManager *tOverlayManager,
+      TCamera *tCamera,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          OverlayManager_setCamera(tOverlayManager, tCamera);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_destroyRenderThread(
+      TOverlayManager *tOverlayManager,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          OverlayManager_destroy(tOverlayManager);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
 }

@@ -1,0 +1,12 @@
+    .global EDGE_OUTLINE_EDGE_OUTLINE_OFFSET;
+    .global EDGE_OUTLINE_EDGE_OUTLINE_SIZE;
+
+    .global EDGE_OUTLINE_PACKAGE
+    .section .rodata
+EDGE_OUTLINE_PACKAGE:
+    .incbin "edge_outline.bin"
+EDGE_OUTLINE_EDGE_OUTLINE_OFFSET:
+    .int 0
+EDGE_OUTLINE_EDGE_OUTLINE_SIZE:
+    .int 189546
+

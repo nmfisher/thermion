@@ -52,12 +52,6 @@ EMSCRIPTEN_KEEPALIVE void RenderTicker_setRenderable(TRenderTicker *tRenderTicke
     renderTicker->setRenderable(swapChain, views, numViews);
 }
 
-EMSCRIPTEN_KEEPALIVE void RenderTicker_setOverlayManager(TRenderTicker *tRenderTicker, TOverlayManager *tOverlayManager) {
-    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
-    auto *overlayManager = reinterpret_cast<OverlayComponentManager *>(tOverlayManager);
-    renderTicker->addOverlayManager(overlayManager);
-}
-
 EMSCRIPTEN_KEEPALIVE void RenderTicker_removeSwapChain(TRenderTicker *tRenderTicker, TSwapChain *tSwapChain) {
     auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
     auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
