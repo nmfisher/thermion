@@ -241,7 +241,7 @@ class ThermionVulkanContext::Impl {
             auto bundle = _platform->getSwapChainBundle(_platform->current);
             VkImage swapchainImage = bundle.colors[_platform->currentColorIndex];
 
-            VkResult result = bluevk::vkResetCommandBuffer(blitCommandBuffer, 0); 
+            VkResult result = bluevk::vkResetCommandBuffer(blitCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to allocate command buffer: " << result << std::endl;
