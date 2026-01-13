@@ -382,6 +382,17 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxRenderThread(TEngine *tEngine, float r, float g, float b, float a, void (*onComplete)(TSkybox *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *skybox = Engine_buildColoredSkybox(tEngine, r, g, b, a);
+          PROXY(onComplete(skybox));
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
     TEngine *tEngine,
     TTexture *tReflectionsTexture,

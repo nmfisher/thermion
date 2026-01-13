@@ -330,12 +330,21 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *texture = reinterpret_cast<Texture *>(tTexture);
-            
+
             auto *skybox =
                 filament::Skybox::Builder()
                     .environment(texture)
                     .build(*engine);
 
+            return reinterpret_cast<TSkybox *>(skybox);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildColoredSkybox(TEngine *tEngine, float r, float g, float b, float a)
+        {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *skybox = filament::Skybox::Builder()
+                .color({r, g, b, a})
+                .build(*engine);
             return reinterpret_cast<TSkybox *>(skybox);
         }
 
