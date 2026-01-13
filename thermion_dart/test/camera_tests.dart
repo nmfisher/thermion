@@ -151,6 +151,49 @@ void main() async {
     });
   });
 
+  test('compare perspective vs orthographic projection', () async {
+    await testHelper.withViewer((viewer) async {
+      final camera = await viewer.getActiveCamera();
+
+      // Create three cubes at different Z depths to demonstrate the difference
+      // between perspective and orthographic projection.
+      // In perspective: objects appear smaller as they get farther away.
+      // In orthographic: objects maintain the same size regardless of distance.
+
+      // Near cube (Z = -2)
+      var nearCube = await viewer.createGeometry(GeometryHelper.cube());
+      await FilamentApp.instance!.setTransform(
+          nearCube.entity, Matrix4.translation(Vector3(-1.5, 0, -2)));
+
+      // Middle cube (Z = -5)
+      var midCube = await viewer.createGeometry(GeometryHelper.cube());
+      await FilamentApp.instance!
+          .setTransform(midCube.entity, Matrix4.translation(Vector3(0, 0, -5)));
+
+      // Far cube (Z = -8)
+      var farCube = await viewer.createGeometry(GeometryHelper.cube());
+      await FilamentApp.instance!.setTransform(
+          farCube.entity, Matrix4.translation(Vector3(1.5, 0, -8)));
+
+      await camera.lookAt(Vector3(0, 0, 0), focus: Vector3(0,0,-1));
+
+      await camera.setProjection(
+          Projection.Perspective, -2, 2, -2, 2, 0.1, 100);
+
+      // Capture with perspective projection (default)
+      // Expected: cubes appear progressively smaller as distance increases
+      await testHelper.capture(viewer.view, "camera_compare_perspective");
+
+      // Switch to orthographic projection
+      await camera.setProjection(
+          Projection.Orthographic, -2, 2, -2, 2, 0.1, 100);
+
+      // Capture with orthographic projection
+      // Expected: all cubes appear the same size regardless of distance
+      await testHelper.capture(viewer.view, "camera_compare_orthographic");
+    });
+  });
+
   test('set projection from horizontal/vertical FOV', () async {
     await testHelper.withViewer((viewer) async {
       var camera = await viewer.getActiveCamera();
@@ -158,22 +201,16 @@ void main() async {
       await viewer.createGeometry(GeometryHelper.cube());
 
       await camera.setProjectionFromHorizontalFieldOfView(90, 0.1, 100, 1.0);
-      await testHelper.capture(
-          viewer.view, "camera_fov_90_degrees_horizontal");
+      await testHelper.capture(viewer.view, "camera_fov_90_degrees_horizontal");
 
       await camera.setProjectionFromVerticalFieldOfView(90, 0.1, 100, 1.0);
-      await testHelper.capture(
-          viewer.view, "camera_fov_90_degrees_vertical");
+      await testHelper.capture(viewer.view, "camera_fov_90_degrees_vertical");
 
       await camera.setProjectionFromHorizontalFieldOfView(45, 0.1, 100, 1.0);
-      await testHelper.capture(
-          viewer.view, "camera_fov_45_degrees_horizontal");
-
-      
+      await testHelper.capture(viewer.view, "camera_fov_45_degrees_horizontal");
 
       await camera.setProjectionFromVerticalFieldOfView(45, 0.1, 100, 1.0);
-      await testHelper.capture(
-          viewer.view, "camera_fov_45_degrees_vertical");
+      await testHelper.capture(viewer.view, "camera_fov_45_degrees_vertical");
     });
   });
 
