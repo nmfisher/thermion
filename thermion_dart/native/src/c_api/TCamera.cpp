@@ -151,9 +151,11 @@ namespace thermion
             filament::Camera::Projection filamentProjection;
             switch(projection) {
                 case TProjection::Orthographic:
-                    filamentProjection = filament::Camera::Projection::ORTHO; 
+                    filamentProjection = filament::Camera::Projection::ORTHO;
+                    break;
                 case TProjection::Perspective:
-                    filamentProjection = filament::Camera::Projection::PERSPECTIVE; 
+                    filamentProjection = filament::Camera::Projection::PERSPECTIVE;
+                    break;
             }
             camera->setProjection(filamentProjection, left, right, bottom, top, near, far);
         }
