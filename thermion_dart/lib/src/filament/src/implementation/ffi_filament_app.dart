@@ -1453,6 +1453,23 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFISkybox(ptr);
   }
 
+  /// Creates a [Skybox] with a solid color. This will not be attached to any
+  /// scene until [setSkybox] is called.
+  ///
+  /// This is useful for clearing render targets with a specific color
+  /// (including fully transparent for overlay passes).
+  Future<Skybox> createColoredSkybox({
+    required double r,
+    required double g,
+    required double b,
+    required double a,
+  }) async {
+    final ptr = await withPointerCallback<TSkybox>((cb) {
+      Engine_buildColoredSkyboxRenderThread(engine, r, g, b, a, cb);
+    });
+    return FFISkybox(ptr);
+  }
+
   ///
   ///
   ///
