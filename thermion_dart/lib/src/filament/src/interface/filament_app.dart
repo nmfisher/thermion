@@ -370,6 +370,18 @@ abstract class FilamentApp<T> {
   ///
   Future<Skybox> buildSkybox({Texture? texture = null});
 
+  /// Creates a [Skybox] with a solid color. This will not be attached to any
+  /// scene until [setSkybox] is called.
+  ///
+  /// This is useful for clearing render targets with a specific color
+  /// (including fully transparent for overlay passes).
+  Future<Skybox> createColoredSkybox({
+    required double r,
+    required double g,
+    required double b,
+    required double a,
+  });
+
   ///
   ///
   ///
