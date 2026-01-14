@@ -24,26 +24,8 @@ std::chrono::high_resolution_clock::time_point loopStart;
 static void mainLoop(void* arg) {
     auto *rt = static_cast<RenderThread *>(arg);
   
-    auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto timeSinceLastLoopStart = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - loopStart).count();
-
-    loopStart = startTime;
-    rt->mRestart = false;
-    rt->mRendered = false;
-    long long elapsed = 0;
-    int numIters = 0;
-    while (!rt->mStop && !rt->mRestart && elapsed < 12) {
+    while (!rt->mStop) {
         rt->iter();
-        numIters++;
-        auto now = std::chrono::high_resolution_clock::now();
-        elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
-    } 
-
-    if(rt->mStop) {
-        Log("RenderThread stopped")
-        emscripten_set_main_loop_arg(nullptr, nullptr, 0, true);
-        Log("Cleared main loop");    
     }
 
 }
@@ -72,14 +54,12 @@ RenderThread::RenderThread()
     pthread_attr_init(&attr);
     emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas");
     pthread_create(&t, &attr, startHelper, this);
-    #else
+    #endif
     t = new std::thread([this]() { 
         while (!mStop) {
             iter();
-            mRendered = false;
         }
     });
-    #endif
 }
 
 
@@ -105,47 +85,9 @@ RenderThread::~RenderThread()
     Log("RenderThread destructor complete");    
 }
 
-void RenderThread::requestFrame()
-{
-    if(mRendered) {
-        return;
-    }
-    if(mRender) {
-        TRACE("Warning - frame requested before previous frame has completed rendering");
-    }
-    mRender = true;
-    #ifndef __EMSCRIPTEN__
-    _cv.notify_one();
-    #endif
-}
-
 void RenderThread::iter()
 {
-    if (mRender && !mRendered)
-    {
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        auto frameStartInNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(currentTime.time_since_epoch()).count();
-        TRACE("Rendering at frame time nanos %lu", frameStartInNanos);
-        if(mRenderTicker->render(frameStartInNanos)) {
-            mRender = false;
-            mRendered = true;
-                    
-            float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
-            _lastFrameTime = currentTime;
-
-            _frameCount++;
-            _accumulatedTime += deltaTime;
-
-            if (_accumulatedTime >= 1.0f) 
-            {
-                _fps = _frameCount / _accumulatedTime;
-                _frameCount = 0;
-                _accumulatedTime = 0.0f;
-            }
-        }
-    }
-    
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
     if (!_tasks.empty())

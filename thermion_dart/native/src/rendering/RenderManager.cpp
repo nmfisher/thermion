@@ -34,7 +34,7 @@
 #include <map>
 
 #include "Log.hpp"
-#include "RenderTicker.hpp"
+#include "rendering/RenderManager.hpp"
 #include "PluginAPI.hpp"
 
 namespace thermion
@@ -46,7 +46,7 @@ namespace thermion
 
   using std::string;
 
-  void RenderTicker::removeSwapChain(SwapChain *swapChain)
+  void RenderManager::removeSwapChain(SwapChain *swapChain)
   {
     std::lock_guard lock(mMutex);
       for (int i = 0; i < numViewAttachments; i++)
@@ -56,7 +56,7 @@ namespace thermion
     mViewAttachment.swapChain = nullptr;
   }
 
-  void RenderTicker::setRenderable(SwapChain *swapChain, View **views, uint8_t numViews)
+  void RenderManager::setRenderable(SwapChain *swapChain, View **views, uint8_t numViews)
   {
     std::lock_guard lock(mMutex);
 
@@ -73,7 +73,7 @@ namespace thermion
     TRACE("Set %d view attachments", numViews);
   }
 
-  bool RenderTicker::render(uint64_t frameTimeInNanos)
+  bool RenderManager::render(uint64_t frameTimeInNanos)
   {
     auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -94,6 +94,9 @@ namespace thermion
     
     int numRendered = 0;
 
+    if(!mViewAttachment.swapChain) {
+      return false;
+    }
     bool beginFrame = mRenderer->beginFrame(mViewAttachment.swapChain, frameTimeInNanos);
     if (beginFrame)
     {
@@ -136,13 +139,13 @@ namespace thermion
     return rendered;
   }
 
-  void RenderTicker::addAnimationManager(AnimationManager *animationManager)
+  void RenderManager::addAnimationManager(AnimationManager *animationManager)
   {
     std::lock_guard<std::mutex> lock(mMutex);
     mAnimationManagers.push_back(animationManager);
   }
 
-  void RenderTicker::removeAnimationManager(AnimationManager *animationManager)
+  void RenderManager::removeAnimationManager(AnimationManager *animationManager)
   {
     std::lock_guard<std::mutex> lock(mMutex);
     auto it = std::find(mAnimationManagers.begin(), mAnimationManagers.end(), animationManager);
@@ -152,6 +155,6 @@ namespace thermion
     }
   }
 
-  RenderTicker::~RenderTicker() {}
+  RenderManager::~RenderManager() {}
 
 } // namespace thermion

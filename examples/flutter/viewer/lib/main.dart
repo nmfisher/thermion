@@ -89,10 +89,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // If you're not sure what you're doing, always set this to true.
     await _thermionViewer!.setPostProcessing(true);
 
-    // Finally, you need to explicitly enable rendering. Setting rendering to
-    // false is designed to allow you to pause rendering to conserve battery life
-    await _thermionViewer!.setRendering(true);
-
     setState(() {});
   }
 

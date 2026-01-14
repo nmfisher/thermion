@@ -4,94 +4,58 @@ import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 enum ManipulatorType { NONE, ORBIT, FREE_FLIGHT }
 
 class ViewerWidget extends StatefulWidget {
-  ///
-  /// The widget to display before the viewport has loaded.
-  ///
+
+  // The widget to display before the viewport has loaded.
   final Widget initial;
 
-  ///
-  /// The initial position for the camera (looking towards (0,0,0)).
-  ///
+  // The initial position for the camera (looking towards (0,0,0)).
   late final Vector3 initialCameraPosition;
 
-  ///
-  /// When true, an FPS counter will be overlaid above the viewer widget.
-  ///
-  final bool showFpsCounter;
-
-  ///
-  /// The path to the (glTF) asset to be loaded into the scene.
-  ///
+  // The path to the (glTF) asset to be loaded into the scene.
   final String? assetPath;
 
-  ///
-  /// The path to the (KTX) skybox to be loaded into the scene.
-  ///
+  // The path to the (KTX) skybox to be loaded into the scene.
   final String? skyboxPath;
 
-  ///
-  /// The path to the (KTX) image-based light to be loaded into the scene.
-  ///
+  // The path to the (KTX) image-based light to be loaded into the scene.
   final String? iblPath;
 
-  ///
-  /// A direct light to add to the scene.
-  ///
+  // A direct light to add to the scene.
   final DirectLight? directLight;
 
-  ///
-  /// If true, the glTF asset will be rescaled so its bounding box fits within a 1x1x1 cube. Defaults to true.
-  ///
+  // If true, the glTF asset will be rescaled so its bounding box fits within a 1x1x1 cube. Defaults to true.
   final bool transformToUnitCube;
 
-  ///
-  /// If true, enables postprocessing (ACES tone mapping and basic anti-aliaising). Defaults to true.
-  ///
+  // If true, enables postprocessing (ACES tone mapping and basic anti-aliasing). Defaults to true.
   final bool postProcessing;
 
-  ///
-  /// The fill color to use for the background. If a skybox is provided, the fill color won't be visible.
-  ///
+  // The fill color to use for the background. If a skybox is provided, the fill color won't be visible.
   final Color? background;
 
-  ///
-  /// Disposing this widget will unload all scene resources (i.e. the asset, skybox, etc). but will leave the underlying engine intact.
-  /// If [destroyEngineOnUnload] is true, disposing the widget will also destroy the engine and rendering thread.
-  /// Defaults to false.
-  ///
+  // Disposing this widget will unload all scene resources (i.e. the asset, skybox, etc). but will leave the underlying engine intact.
+  // If [destroyEngineOnUnload] is true, disposing the widget will also destroy the engine and rendering thread.
+  // Defaults to false.
   final bool destroyEngineOnUnload;
 
-  ///
-  /// The type of camera manipulator to use to respond to viewport gestures. Defaults to ORBIT (pinch to zoom in/out, swipe to rotate around the asset at a fixed distance).
-  ///
+  // The type of camera manipulator to use to respond to viewport gestures. Defaults to ORBIT (pinch to zoom in/out, swipe to rotate around the asset at a fixed distance).
   final ManipulatorType manipulatorType;
 
-  ///
-  /// A callback that can be used to access the viewer.
-  ///
+  // A callback that can be used to access the viewer.
   final Future Function(ThermionViewer)? onViewerAvailable;
 
-  ///
-  /// A callback that is invoked when the asset has been loaded.
-  /// Only called if [assetPath] is provided.
-  ///
+  // A callback that is invoked when the asset has been loaded.
+  // Only called if [assetPath] is provided.
   final Future Function(ThermionViewer viewer, ThermionAsset asset)?
       onAssetLoaded;
 
-  ///
-  /// When true, enable the highlight overlay system for rendering entity outlines.
-  ///
+  // When true, enable the highlight overlay system for rendering entity outlines.
   final bool enableOverlay;
 
-  ///
-  ///
-  ///
   ViewerWidget(
       {super.key,
       this.initial =
           const DecoratedBox(decoration: BoxDecoration(color: Colors.red)),
       Vector3? initialCameraPosition,
-      this.showFpsCounter = false,
       this.transformToUnitCube = true,
       this.postProcessing = true,
       this.destroyEngineOnUnload = false,
@@ -119,11 +83,35 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   @override
   void initState() {
     super.initState();
-    ThermionFlutterPlugin.createViewer().then((viewer) async {
-      this.viewer = viewer;
-      await _configure();
+    _createViewer();
+  }
+
+  Future<void> _createViewer() async {
+    // Override options if this widget needs overlay
+    if (widget.enableOverlay) {
+      final currentOptions = ThermionFlutterPlugin.instance.options;
+      ThermionFlutterPlugin.instance.setOptions(
+        ThermionFlutterOptions(
+          uberarchivePath: currentOptions.uberarchivePath,
+          webOptions: currentOptions.webOptions,
+          nativeOptions: NativeOptions(
+            backend: currentOptions.nativeOptions.backend,
+            renderTargetColorTextureFormat:
+                currentOptions.nativeOptions.renderTargetColorTextureFormat,
+            renderTargetDepthTextureFormat:
+                currentOptions.nativeOptions.renderTargetDepthTextureFormat,
+            createOverlay: true,
+          ),
+        ),
+      );
+    }
+
+    final viewer = await ThermionFlutterPlugin.createViewer();
+    this.viewer = viewer;
+    await _configure();
+    if (mounted) {
       setState(() {});
-    });
+    }
   }
 
   @override
@@ -156,7 +144,6 @@ class _ViewerWidgetState extends State<ViewerWidget> {
           widget.background?.a ?? 0);
     } else if (oldWidget.initialCameraPosition !=
             widget.initialCameraPosition ||
-        oldWidget.showFpsCounter != widget.showFpsCounter ||
         oldWidget.assetPath != widget.assetPath ||
         oldWidget.directLight != widget.directLight ||
         oldWidget.transformToUnitCube != widget.transformToUnitCube ||
@@ -232,13 +219,11 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     thermionWidget = ThermionWidget(
       key: ObjectKey(DateTime.now()),
       viewer: viewer!,
-      showFpsCounter: widget.showFpsCounter,
       enableOverlay: widget.enableOverlay,
     );
 
     _setViewportWidget();
 
-    await viewer!.setRendering(true);
     widget.onViewerAvailable?.call(viewer!);
     if (asset != null) {
       widget.onAssetLoaded?.call(viewer!, asset!);

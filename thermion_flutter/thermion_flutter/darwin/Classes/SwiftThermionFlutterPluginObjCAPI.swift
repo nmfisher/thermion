@@ -8,7 +8,6 @@ import Foundation
             return -1
         }
         let flutterTextureId = SwiftThermionFlutterPlugin.instance!.registerTexture(texture:texture);
-        print("Registeredtexture : \(flutterTextureId)")
         return flutterTextureId
     }
 

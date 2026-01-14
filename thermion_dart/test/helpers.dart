@@ -212,6 +212,7 @@ class TestHelper {
     int i = 0;
     for (final (view, pixelBuffer) in pixelBuffers) {
       var vp = await view.getViewport();
+      print("Capture viewport : ${vp.width}x${vp.height}");
       if (outputFilename != null) {
         var outPath = p.join(outDir.path, "${outputFilename}_view${i}.png");
         await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
@@ -286,6 +287,9 @@ class TestHelper {
         textureFormat: TextureFormat.RGBA32F,
         // importedTextureHandle: metalColorTexture.metalTextureAddress
       );
+
+      print("Created color texture for test render target");
+            
       var width = await color.getWidth();
       var height = await color.getHeight();
       var depth = await FilamentApp.instance!.createTexture(
@@ -296,11 +300,14 @@ class TestHelper {
           if (createStencilBuffer)
             TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
         },
-        textureFormat: createStencilBuffer
-            ? TextureFormat.DEPTH24_STENCIL8
-            : TextureFormat.DEPTH32F,
+        textureFormat: TextureFormat.DEPTH32F_STENCIL8
+        // createStencilBuffer
+        //     ? TextureFormat.DEPTH24_STENCIL8
+        //     : TextureFormat.DEPTH32F,
         // importedTextureHandle: metalDepthTexture.metalTextureAddress
       );
+
+      print("Created depth texture for test render target");
 
       renderTarget = await FilamentApp.instance!.createRenderTarget(
           viewportDimensions.width, viewportDimensions.height,

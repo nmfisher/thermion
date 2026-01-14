@@ -1,25 +1,22 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/method_channel_platform_texture_descriptor.dart';
 import '../../../thermion_flutter.dart';
-
+import 'platform_texture_descriptor.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 
-import 'platform_texture_descriptor.dart';
-
-///
-/// Handles all platform-specific initialization to create a backing rendering
-/// surface in a Flutter application and lifecycle listeners to pause rendering
-/// when the app is inactive or in the background.
-///
+// Handles all platform-specific initialization to create a backing rendering
+// surface in a Flutter application and lifecycle listeners to pause rendering
+// when the app is inactive or in the background.
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   final channel = const MethodChannel("dev.thermion.flutter/event");
 
-  late final _logger = Logger(this.runtimeType.toString());
+  static final _logger = Logger("ThermionFlutterPluginImpl");
 
   static ThermionFlutterPluginImpl get instance =>
       ThermionFlutterPlugin.instance as ThermionFlutterPluginImpl;
@@ -39,6 +36,26 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
     var asset = await rootBundle.load(path);
     return asset.buffer.asUint8List(asset.offsetInBytes);
+  }
+
+  static final _descriptors = <PlatformTextureDescriptor>[];
+  static final _destroyed = <PlatformTextureDescriptor>[];
+
+  static void _flutterBeginFrame(Duration timestamp) async {
+    await FilamentApp.instance?.render();
+
+    for (final descriptor in _descriptors) {
+      if (!descriptor.destroyed) {
+        descriptor.markTextureFrameAvailable();
+        descriptor.onBeginFrame?.call(timestamp);
+      }
+    }
+    for (final descriptor in _destroyed) {
+      _descriptors.remove(descriptor);
+      _logger.info("Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
+    }
+    _destroyed.clear();
+    SchedulerBinding.instance.scheduleFrame();
   }
 
   @override
@@ -123,12 +140,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       _swapChain ??= await FilamentApp.instance!
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
+
+    SchedulerBinding.instance.addPersistentFrameCallback(_flutterBeginFrame);
+
     return _swapChain;
   }
 
-  /// Create a rendering surface and binds to the given [View]. This is internal;
-  /// unless you are [thermion_*] package developer, don't
-  /// call this yourself. May not be supported on all platforms.
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
     View view,
     int width,
@@ -208,6 +225,21 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       await view.setRenderTarget(renderTarget);
     }
 
+    await view.setViewport(width, height);
+
+    var camera = await view.getCamera();
+    var near = await camera.getNear();
+    var far = await camera.getCullingFar();
+    var focalLength = await camera.getFocalLength();
+
+    await camera.setLensProjection(
+      near: near,
+      far: far,
+      focalLength: focalLength,
+      aspect: width.toDouble() / height.toDouble());
+
+    _descriptors.add(descriptor);
+
     return descriptor;
   }
 
@@ -221,6 +253,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     if (newTexture == null) {
       throw Exception();
     }
+
+    _descriptors.remove(texture);
 
     texture.destroy();
 

@@ -9,7 +9,6 @@
 #include "TVertexBuffer.h"
 #include "TIndexBuffer.h"
 #include "TTransformManager.h"
-#include "TOverlayManager.h"
 
 #ifdef __cplusplus
 namespace thermion
@@ -22,11 +21,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void RenderThread_create();
         EMSCRIPTEN_KEEPALIVE void RenderThread_destroy();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrameAsync();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_setRenderTicker(TRenderTicker *tRenderTicker);
-        EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
         
-        EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
+        EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews, uint32_t requestId, VoidCallback onComplete);
+
+        EMSCRIPTEN_KEEPALIVE void RenderManager_renderRenderThread(TRenderManager *tRenderManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerRenderThread(TRenderManager *tRenderManager, TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerRenderThread(TRenderManager *tRenderManager, TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainRenderThread(TRenderManager *tRenderManager, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *));
 
         EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
@@ -97,6 +99,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createBoneOverlayMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
+        EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
+        EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
 
         EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper *toneMapper, void (*callback)(TColorGrading *));
 
@@ -399,57 +403,6 @@ namespace thermion
             TTransformManager *tTransformManager,
             EntityId entityId,
             double4x4 transform,
-            uint32_t requestId,
-            VoidCallback onComplete
-        );
-
-        // OverlayManager render thread methods
-        EMSCRIPTEN_KEEPALIVE void OverlayManager_createRenderThread(
-            TEngine *tEngine,
-            void (*onComplete)(TOverlayManager *)
-        );
-        EMSCRIPTEN_KEEPALIVE void OverlayManager_initializeRenderThread(
-            TOverlayManager *tOverlayManager,
-            uint32_t width,
-            uint32_t height,
-            intptr_t hardwareTextureId,
-            uint32_t requestId,
-            VoidCallback onComplete
-        );
-        EMSCRIPTEN_KEEPALIVE void OverlayManager_setViewportRenderThread(
-            TOverlayManager *tOverlayManager,
-            uint32_t width,
-            uint32_t height,
-            uint32_t requestId,
-            VoidCallback onComplete
-        );
-        EMSCRIPTEN_KEEPALIVE void OverlayManager_addHighlightRenderThread(
-            TOverlayManager *tOverlayManager,
-            EntityId entityId,
-            TVertexBuffer *tVertexBuffer,
-            TIndexBuffer *tIndexBuffer,
-            uint32_t indexCount,
-            float outlineWidth,
-            float r,
-            float g,
-            float b,
-            uint32_t requestId,
-            VoidCallback onComplete
-        );
-        EMSCRIPTEN_KEEPALIVE void OverlayManager_removeHighlightRenderThread(
-            TOverlayManager *tOverlayManager,
-            EntityId entityId,
-            uint32_t requestId,
-            VoidCallback onComplete
-        );
-        EMSCRIPTEN_KEEPALIVE void OverlayManager_setCameraRenderThread(
-            TOverlayManager *tOverlayManager,
-            TCamera *tCamera,
-            uint32_t requestId,
-            VoidCallback onComplete
-        );
-        EMSCRIPTEN_KEEPALIVE void OverlayManager_destroyRenderThread(
-            TOverlayManager *tOverlayManager,
             uint32_t requestId,
             VoidCallback onComplete
         );

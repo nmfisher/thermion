@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
+import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
@@ -45,7 +47,7 @@ class FFIView extends View<Pointer<TView>> {
     _onPickResultHolder.dispose();
 
     View_setColorGrading(view, nullptr);
-    if (_colorGrading != nullptr) {
+    if (_colorGrading != null && _colorGrading != nullptr) {
       await withVoidCallback((requestId, cb) =>
           Engine_destroyColorGradingRenderThread(
               FilamentApp.instance!.engine, _colorGrading!, requestId, cb));
@@ -74,9 +76,7 @@ class FFIView extends View<Pointer<TView>> {
   Future setViewport(int width, int height) async {
     View_setViewport(view, width, height);
 
-    if (overlayManager != null) {
-      OverlayManager_setViewport(overlayManager!, width, height);
-    }
+    await _highlightOverlayManager?.setViewport(width, height);
   }
 
   Future<RenderTarget?> getRenderTarget() async {
@@ -99,9 +99,7 @@ class FFIView extends View<Pointer<TView>> {
     View_setCamera(view, camera.getNativeHandle());
 
     // Sync the silhouette view's camera with the main view
-    if (overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
-      OverlayManager_setCamera(overlayManager!, camera.getNativeHandle());
-    }
+    await _highlightOverlayManager?.setCamera(camera);
   }
 
   @override
@@ -143,7 +141,8 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future setToneMapper(ToneMapper mapper) async {
     final colorGrading = await withPointerCallback<TColorGrading>((cb) =>
-        ColorGrading_createRenderThread(app.engine, mapper.getNativeHandle(), cb));
+        ColorGrading_createRenderThread(
+            app.engine, mapper.getNativeHandle(), cb));
     if (colorGrading == nullptr) {
       throw Exception("Failed to create color grading");
     }
@@ -161,8 +160,8 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future<ColorGradingBuilder> createColorGradingBuilder() async {
-    final builderPtr = await withPointerCallback<TColorGradingBuilder>((cb) =>
-        ColorGradingBuilder_createRenderThread(cb));
+    final builderPtr = await withPointerCallback<TColorGradingBuilder>(
+        (cb) => ColorGradingBuilder_createRenderThread(cb));
     if (builderPtr == nullptr) {
       throw Exception('Failed to create ColorGradingBuilder');
     }
@@ -178,7 +177,8 @@ class FFIView extends View<Pointer<TView>> {
     } else {
       // Set color grading with provided object
       await withVoidCallback((requestId, cb) =>
-          View_setColorGradingRenderThread(view, colorGrading.getNativeHandle(), requestId, cb));
+          View_setColorGradingRenderThread(
+              view, colorGrading.getNativeHandle(), requestId, cb));
     }
   }
 
@@ -340,7 +340,8 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setAmbientOcclusionOptions(AmbientOcclusionOptions options) async {
-    final tAmbientOcclusionOptions = StructAllocator.create<TAmbientOcclusionOptions>();
+    final tAmbientOcclusionOptions =
+        StructAllocator.create<TAmbientOcclusionOptions>();
 
     tAmbientOcclusionOptions.radius = options.radius;
     tAmbientOcclusionOptions.power = options.power;
@@ -390,21 +391,21 @@ class FFIView extends View<Pointer<TView>> {
       bentNormals: tOptions.bentNormals,
       minHorizonAngleRad: tOptions.minHorizonAngleRad,
       ssct: SsctOptions(
-        // lightConeRad: tOptions.ssct.lightConeRad,
-        // shadowDistance: tOptions.ssct.shadowDistance,
-        // contactDistanceMax: tOptions.ssct.contactDistanceMax,
-        // intensity: tOptions.ssct.intensity,
-        // lightDirection: [
-        //   tOptions.ssct.lightDirectionX,
-        //   tOptions.ssct.lightDirectionY,
-        //   tOptions.ssct.lightDirectionZ,
-        // ],
-        // depthBias: tOptions.ssct.depthBias,
-        // depthSlopeBias: tOptions.ssct.depthSlopeBias,
-        // sampleCount: tOptions.ssct.sampleCount,
-        // rayCount: tOptions.ssct.rayCount,
-        // enabled: tOptions.ssct.enabled,
-      ),
+          // lightConeRad: tOptions.ssct.lightConeRad,
+          // shadowDistance: tOptions.ssct.shadowDistance,
+          // contactDistanceMax: tOptions.ssct.contactDistanceMax,
+          // intensity: tOptions.ssct.intensity,
+          // lightDirection: [
+          //   tOptions.ssct.lightDirectionX,
+          //   tOptions.ssct.lightDirectionY,
+          //   tOptions.ssct.lightDirectionZ,
+          // ],
+          // depthBias: tOptions.ssct.depthBias,
+          // depthSlopeBias: tOptions.ssct.depthSlopeBias,
+          // sampleCount: tOptions.ssct.sampleCount,
+          // rayCount: tOptions.ssct.rayCount,
+          // enabled: tOptions.ssct.enabled,
+          ),
     );
   }
 
@@ -470,50 +471,32 @@ class FFIView extends View<Pointer<TView>> {
     );
   }
 
-  Pointer<TOverlayManager>? overlayManager;
-
-  final _highlighted = <ThermionEntity>{};
-
-  // Cached overlay views (lazy init)
-  FFIView? _silhouetteView;
-  FFIView? _overlayView;
+  HighlightOverlayManager? _highlightOverlayManager;
 
   ///
   /// Enables the highlight overlay system for this view.
   ///
   @override
-  Future<bool> enableHighlightOverlay({int? hardwareTextureId}) async {
-    if (overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
-      _logger.warning("Highlight overlay already enabled");
-      return false;
+  Future<bool> enableHighlightOverlay() async {
+    if (_highlightOverlayManager != null) {
+      return true;
     }
 
     final vp = await getViewport();
+    final width = vp.width > 0 ? vp.width : 1;
+    final height = vp.height > 0 ? vp.height : 1;
 
-    if (overlayManager == null) {
-      overlayManager = await withPointerCallback<TOverlayManager>(
-        (cb) => OverlayManager_createRenderThread(app.engine, cb)
-      );
-    }
-
-    await withVoidCallback((requestId, cb) =>
-      OverlayManager_initializeRenderThread(
-        overlayManager!,
-        vp.width,
-        vp.height,
-        hardwareTextureId ?? 0,
-        requestId,
-        cb
-      )
+    _highlightOverlayManager = await HighlightOverlayManager.create(
+      app,
+      width: width,
+      height: height,
     );
 
     // Set the camera - silhouette view shares the main camera
     final camera = await getCamera();
-    await withVoidCallback((requestId, cb) =>
-      OverlayManager_setCameraRenderThread(overlayManager!, camera.getNativeHandle(), requestId, cb)
-    );
+    await _highlightOverlayManager!.setCamera(camera);
 
-    _logger.info("Highlight overlay enabled (hardwareTextureId: ${hardwareTextureId ?? 'none'})");
+    _logger.info("Highlight overlay enabled");
     return true;
   }
 
@@ -522,28 +505,12 @@ class FFIView extends View<Pointer<TView>> {
   ///
   @override
   Future disableHighlightOverlay() async {
-    if (overlayManager == null) {
+    if (_highlightOverlayManager == null) {
       return;
     }
 
-    // Remove all highlights
-    for (final entity in _highlighted.toList()) {
-      await withVoidCallback((requestId, cb) =>
-        OverlayManager_removeHighlightRenderThread(overlayManager!, entity, requestId, cb)
-      );
-    }
-    _highlighted.clear();
-
-    // Clear cached views
-    _silhouetteView = null;
-    _overlayView = null;
-    _overlayTexture = null;
-
-    // Destroy overlay manager (calls cleanup() and frees resources)
-    await withVoidCallback((requestId, cb) =>
-      OverlayManager_destroyRenderThread(overlayManager!, requestId, cb)
-    );
-    overlayManager = null;
+    await _highlightOverlayManager!.destroy();
+    _highlightOverlayManager = null;
 
     // Update render order to remove silhouette/overlay views
     await app.updateRenderOrder();
@@ -572,11 +539,8 @@ class FFIView extends View<Pointer<TView>> {
       double scale = 1.05,
       double outlineWidth = 3.0,
       int primitiveIndex = 0}) async {
-
-    if (overlayManager == null || !OverlayManager_isInitialized(overlayManager!)) {
-      throw StateError(
-        "Highlight overlay not enabled. Call enableHighlightOverlay() first."
-      );
+    if (_highlightOverlayManager == null) {
+      await enableHighlightOverlay();
     }
 
     entity ??= asset.entity;
@@ -586,38 +550,34 @@ class FFIView extends View<Pointer<TView>> {
     // Only works for geometry assets or glTF loaded via parseGltf.
     final ffiAsset = asset as FFIAsset;
     final vertexBuffer = asset.getVertexBuffer(primitiveIndex: primitiveIndex);
-    final indexBuffer = SceneAsset_getIndexBuffer(ffiAsset.asset, primitiveIndex);
+    final indexBuffer =
+        SceneAsset_getIndexBuffer(ffiAsset.asset, primitiveIndex);
     final hasGeometry = vertexBuffer != null && indexBuffer != ffi.nullptr;
 
     if (!hasGeometry || vertexBuffer is! FFIVertexBuffer) {
       throw UnsupportedError(
-        "Stencil highlight requires geometry info (vertexBuffer and indexBuffer). "
-        "glTF assets loaded via loadGlb/loadGltf are not supported. "
-        "Use geometry assets or parseGltf instead."
-      );
+          "Stencil highlight requires geometry info (vertexBuffer and indexBuffer). "
+          "glTF assets loaded via loadGlb/loadGltf are not supported. "
+          "Use geometry assets or parseGltf instead.");
     }
 
     final indexCount = IndexBuffer_getIndexCount(indexBuffer);
+    final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, app.engine);
 
     for (final entity in entities) {
       if (!await FilamentApp.instance!.isRenderable(entity)) {
         continue;
       }
-      if (!_highlighted.contains(entity)) {
-        await withVoidCallback((requestId, cb) =>
-          OverlayManager_addHighlightRenderThread(
-            overlayManager!,
-            entity,
-            vertexBuffer.getNativeHandle(),
-            indexBuffer,
-            indexCount,
-            outlineWidth,
-            r, g, b,
-            requestId, cb
-          )
-        );
-        _highlighted.add(entity);
-      }
+      await _highlightOverlayManager!.addHighlight(
+        target: entity,
+        vertexBuffer: vertexBuffer,
+        indexBuffer: ffiIndexBuffer,
+        indexCount: indexCount,
+        outlineWidth: outlineWidth,
+        r: r,
+        g: g,
+        b: b,
+      );
     }
 
     // Update render order to include silhouette/overlay views
@@ -630,41 +590,21 @@ class FFIView extends View<Pointer<TView>> {
   /// Returns null if no highlights are active.
   @override
   View? getSilhouetteView() {
-    if (_silhouetteView == null && overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
-      _silhouetteView = FFIView(OverlayManager_getSilhouetteView(overlayManager!), app);
-    }
-    return _silhouetteView;
+    return _highlightOverlayManager?.silhouetteView;
   }
 
   /// Get the overlay view for edge detection fullscreen quad.
   /// Returns null if no highlights are active.
   @override
   View? getOverlayView() {
-    if (_overlayView == null && overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
-      _overlayView = FFIView(OverlayManager_getOverlayView(overlayManager!), app);
-    }
-    return _overlayView;
+    return _highlightOverlayManager?.overlayView;
   }
 
-  FFITexture? _overlayTexture;
-
-  /// Get the overlay texture for compositing in Flutter.
-  /// Returns null if no highlights are active.
-  @override
-  Texture? getOverlayTexture() {
-    if (_overlayTexture == null && overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
-      final texturePtr = OverlayManager_getOverlayTexture(overlayManager!);
-      if (texturePtr != nullptr) {
-        _overlayTexture = FFITexture(app.engine, texturePtr);
-      }
-    }
-    return _overlayTexture;
-  }
 
   /// Check if there are any active highlights.
   @override
   bool hasHighlights() {
-    return overlayManager != null && OverlayManager_hasHighlights(overlayManager!);
+    return _highlightOverlayManager?.hasHighlights ?? false;
   }
 
   ///
@@ -672,18 +612,13 @@ class FFIView extends View<Pointer<TView>> {
   ///
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
-    if (overlayManager == null) {
-      return;
+    if (_highlightOverlayManager == null) {
+      throw Exception("No overlay manager created");
     }
     final entities = [asset.entity, ...await asset.getChildEntities()];
 
     for (final entity in entities) {
-      if (_highlighted.contains(entity)) {
-        await withVoidCallback((requestId, cb) =>
-          OverlayManager_removeHighlightRenderThread(overlayManager!, entity, requestId, cb)
-        );
-        _highlighted.remove(entity);
-      }
+      await _highlightOverlayManager!.removeHighlight(entity);
     }
 
     // Update render order to remove silhouette/overlay views if no more highlights

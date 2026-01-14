@@ -1,13 +1,12 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:logging/logging.dart';
 
 class FFIScene extends Scene<Pointer<TScene>> {
-  late final _logger = Logger(this.runtimeType.toString());
 
   final Pointer<TScene> scene;
 
@@ -74,5 +73,14 @@ class FFIScene extends Scene<Pointer<TScene>> {
   ///
   Future setSkybox(Skybox skybox) async {
     Scene_setSkybox(scene, (skybox as FFISkybox).pointer);
+  }
+
+  ///
+  /// Destroys this scene and releases its resources.
+  ///
+  Future destroy() async {
+    await withVoidCallback((requestId, cb) =>
+        Engine_destroySceneRenderThread(
+            FilamentApp.instance!.engine, scene, requestId, cb));
   }
 }

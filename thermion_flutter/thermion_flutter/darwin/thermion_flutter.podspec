@@ -21,10 +21,6 @@ A new Flutter plugin project.
   s.ios.deployment_target = '13.0'
   s.osx.deployment_target = '13.0'
   
-  # s.pod_target_xcconfig = { 
-  #   'DEFINES_MODULE' => 'YES', 
-  #   'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
-  # }
   s.ios.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.osx.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
