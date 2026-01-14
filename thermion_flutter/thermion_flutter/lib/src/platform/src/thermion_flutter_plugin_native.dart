@@ -41,8 +41,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static final _descriptors = <PlatformTextureDescriptor>[];
   static final _destroyed = <PlatformTextureDescriptor>[];
 
-  static void _flutterBeginFrame(Duration timestamp) {
-    FilamentApp.instance?.requestFrame();
+  static void _flutterBeginFrame(Duration timestamp) async {
+    await FilamentApp.instance?.render();
 
     for (final descriptor in _descriptors) {
       if (!descriptor.destroyed) {
