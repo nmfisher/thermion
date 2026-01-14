@@ -660,6 +660,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
   );
+  external Pointer<TSkybox> _Engine_buildColoredSkybox(
+    Pointer<TEngine> tEngine,
+    double r,
+    double g,
+    double b,
+    double a,
+  );
   external Pointer<TIndirectLight>
       _Engine_buildIndirectLightFromIrradianceTexture(
     Pointer<TEngine> tEngine,
@@ -1311,6 +1318,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Engine_buildSkyboxRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
+    Pointer<NativeFunction<void Function(PointerClass<TSkybox>)>> onComplete,
+  );
+  external void _Engine_buildColoredSkyboxRenderThread(
+    Pointer<TEngine> tEngine,
+    double r,
+    double g,
+    double b,
+    double a,
     Pointer<NativeFunction<void Function(PointerClass<TSkybox>)>> onComplete,
   );
   external void _Engine_buildIndirectLightFromIrradianceTextureRenderThread(
@@ -4264,6 +4279,18 @@ Pointer<TSkybox> Engine_buildSkybox(
   return Pointer<TSkybox>(result);
 }
 
+Pointer<TSkybox> Engine_buildColoredSkybox(
+  Pointer<TEngine> tEngine,
+  double r,
+  double g,
+  double b,
+  double a,
+) {
+  final result = GeneratedBindings.instance
+      ._Engine_buildColoredSkybox(tEngine.cast(), r, g, b, a);
+  return Pointer<TSkybox>(result);
+}
+
 Pointer<TIndirectLight> Engine_buildIndirectLightFromIrradianceTexture(
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tReflectionsTexture,
@@ -5719,6 +5746,20 @@ void Engine_buildSkyboxRenderThread(
 ) {
   final result = GeneratedBindings.instance._Engine_buildSkyboxRenderThread(
       tEngine.cast(), tTexture.cast(), onComplete.cast());
+  return result;
+}
+
+void Engine_buildColoredSkyboxRenderThread(
+  Pointer<TEngine> tEngine,
+  double r,
+  double g,
+  double b,
+  double a,
+  Pointer<NativeFunction<void Function(Pointer<TSkybox>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._Engine_buildColoredSkyboxRenderThread(
+          tEngine.cast(), r, g, b, a, onComplete.cast());
   return result;
 }
 
@@ -11336,7 +11377,7 @@ extension NativeFunctionPointer1<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer15<T extends NativeType> on void Function(bool) {
+extension NativeFunctionPointer16<T extends NativeType> on void Function(bool) {
   Pointer<NativeFunction<void Function(bool)>> addFunction() {
     return Pointer<NativeFunction<void Function(bool)>>(NativeLibrary.instance
             .addFunction<void Function(bool)>(this.toJS, 'vi'))
@@ -11344,7 +11385,7 @@ extension NativeFunctionPointer15<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer42<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer43<T extends NativeType> on void Function(int) {
   Pointer<NativeFunction<void Function(int)>> addFunction() {
     return Pointer<NativeFunction<void Function(int)>>(NativeLibrary.instance
             .addFunction<void Function(int)>(this.toJS, 'vi'))
@@ -11352,7 +11393,7 @@ extension NativeFunctionPointer42<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer57<T extends NativeType> on void Function(
+extension NativeFunctionPointer58<T extends NativeType> on void Function(
     double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(NativeLibrary.instance

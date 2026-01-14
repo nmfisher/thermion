@@ -1115,6 +1115,17 @@ external ffi.Pointer<TSkybox> Engine_buildSkybox(
 );
 
 @ffi.Native<
+    ffi.Pointer<TSkybox> Function(ffi.Pointer<TEngine>, ffi.Float, ffi.Float,
+        ffi.Float, ffi.Float)>(isLeaf: true)
+external ffi.Pointer<TSkybox> Engine_buildColoredSkybox(
+  ffi.Pointer<TEngine> tEngine,
+  double r,
+  double g,
+  double b,
+  double a,
+);
+
+@ffi.Native<
     ffi.Pointer<TIndirectLight> Function(ffi.Pointer<TEngine>,
         ffi.Pointer<TTexture>, ffi.Pointer<TTexture>, ffi.Float)>(isLeaf: true)
 external ffi.Pointer<TIndirectLight>
@@ -2337,6 +2348,26 @@ external void Engine_executeRenderThread(
 external void Engine_buildSkyboxRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>)>(
+    isLeaf: true)
+external void Engine_buildColoredSkyboxRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  double r,
+  double g,
+  double b,
+  double a,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>
       onComplete,
 );
