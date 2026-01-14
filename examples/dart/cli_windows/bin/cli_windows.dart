@@ -39,7 +39,7 @@ void main(List<String> arguments) async {
     var position = Vector3(10 * sin(angle), 0, 10 * cos(angle));
     var modelMatrix = Matrix4.compose(position, rotation, Vector3.all(1));
     await camera.setModelMatrix(modelMatrix);
-    await FilamentApp.instance!.requestFrame();
+    await FilamentApp.instance!.render();
     update();
     await Future.delayed(Duration(milliseconds: 17));
   }

@@ -84,7 +84,7 @@ void main(List<String> arguments) async {
   while (true) {
     var stackPtr = stackSave();
     var now = DateTime.now();
-    await FilamentApp.instance!.requestFrame();
+    await FilamentApp.instance!.render();
     now = DateTime.now();
     var timeSinceLast =
         now.microsecondsSinceEpoch - lastRender.microsecondsSinceEpoch;
