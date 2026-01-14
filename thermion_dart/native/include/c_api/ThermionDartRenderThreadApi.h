@@ -22,11 +22,9 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void RenderThread_create();
         EMSCRIPTEN_KEEPALIVE void RenderThread_destroy();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrameAsync();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_setRenderTicker(TRenderTicker *tRenderTicker);
-        EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
         
-        EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
+        EMSCRIPTEN_KEEPALIVE void RenderManager_renderRenderThread(TRenderManager *tRenderManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *));
 
         EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
