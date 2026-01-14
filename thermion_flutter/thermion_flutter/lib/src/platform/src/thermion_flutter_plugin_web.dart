@@ -11,6 +11,8 @@ import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   late final _logger = Logger(this.runtimeType.toString());
 
+  static Pointer? _stackPtr;
+
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
       throw UnsupportedError("file:// URIs not supported on web");
@@ -20,6 +22,30 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
     var asset = await rootBundle.load(path);
     return asset.buffer.asUint8List(asset.offsetInBytes);
+  }
+
+  static void _flutterBeginFrame(Duration timestamp) async {
+
+    if (stackPtr != null) {
+      stackRestore(stackPtr!);
+    }
+
+    stackPtr = stackSave();
+    
+    await FilamentApp.instance?.render();
+
+    for (final descriptor in _descriptors) {
+      if (!descriptor.destroyed) {
+        descriptor.markTextureFrameAvailable();
+        descriptor.onBeginFrame?.call(timestamp);
+      }
+    }
+    for (final descriptor in _destroyed) {
+      _descriptors.remove(descriptor);
+      _logger.info("Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
+    }
+    _destroyed.clear();
+    SchedulerBinding.instance.scheduleFrame();
   }
 
   ///
@@ -99,6 +125,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     var swapChain = await FilamentApp.instance!
         .createHeadlessSwapChain(canvas.width, canvas.height);
+
+    SchedulerBinding.instance.addPersistentFrameCallback(_flutterBeginFrame);
 
     return swapChain;
   }

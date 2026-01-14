@@ -19,8 +19,8 @@ extern "C"
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;
 	typedef struct TLightManager TLightManager;
+	typedef struct TRenderManager TRenderManager;
 	typedef struct TRenderer TRenderer;
-	typedef struct TRenderTicker TRenderTicker;
 	typedef struct TFence TFence;
 	typedef struct TRenderTarget TRenderTarget;
 	typedef struct TSwapChain TSwapChain;
@@ -46,7 +46,6 @@ extern "C"
 	typedef struct TFilamentAsset TFilamentAsset;
 	typedef struct TColorGrading TColorGrading;
 	typedef struct TKtx1Bundle TKtx1Bundle;
-	typedef struct TOverlayManager TOverlayManager;
 	typedef struct TDebugRegistry TDebugRegistry;
 	typedef struct TRenderableBuilder TRenderableBuilder;
 	typedef struct TVertexBuffer TVertexBuffer;

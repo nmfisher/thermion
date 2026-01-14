@@ -7,8 +7,6 @@
 #include <mutex>
 #include <thread>
 
-#include "RenderTicker.hpp"
-
 #ifdef __EMSCRIPTEN__
 #include <emscripten/threading.h>
 #include <emscripten/proxying.h>
@@ -36,27 +34,14 @@ public:
     ~RenderThread();
 
     /**
-     * @brief Requests a frame to be rendered.
-     * 
-     * @param callback Callback function to be called after rendering completes
-     */
-    void requestFrame();
-
-    /**
-     * @brief Sets the render ticker used.
-     */
-    void setRenderTicker(RenderTicker *renderTicker) {
-        mRenderTicker = renderTicker;
-    }
-
-    /**
      * @brief Adds a task to the render thread's task queue.
      * 
      * @param pt The packaged task to be executed
      * @return std::future<Rt> Future for the task result
      */
     template <class Rt>
-    auto add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt>;
+    auto addTask(std::packaged_task<Rt()>& pt) -> std::future<Rt>;
+
 
     /**
      * @brief Main iteration of the render loop.
@@ -85,9 +70,6 @@ public:
     pthread_t outer;
     #endif
 
-    bool mRendered = false;
-    bool mRender = false;
-
 private:
     std::mutex _taskMutex;
     std::condition_variable _cv;
@@ -103,13 +85,11 @@ private:
 #else
     std::thread* t = nullptr;
 #endif
-    RenderTicker* mRenderTicker = nullptr;
 };
 
 // Template implementation
 template <class Rt>
-auto RenderThread::add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
-    
+auto RenderThread::addTask(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
     
     std::unique_lock<std::mutex> lock(_taskMutex);
     

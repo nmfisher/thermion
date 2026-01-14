@@ -4,8 +4,7 @@ import 'package:flutter/material.dart' hide View;
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide BlendMode;
 import 'package:web/web.dart' as web;
-import '../../platform/platform.dart';
-import 'resize_observer.dart';
+import '../../../platform/platform.dart';
 
 class ThermionWidgetInternal extends StatefulWidget {
   ///
@@ -13,12 +12,6 @@ class ThermionWidgetInternal extends StatefulWidget {
 
   ///
   final Widget? initial;
-
-  /// A callback that will be invoked whenever this widget (and the underlying texture is resized).
-  final Future Function(Size size, View view, double pixelRatio)? onResize;
-
-  /// When true, an FPS counter will be displayed at the top right of the widget
-  final bool showFpsCounter;
 
   /// When true, enable the highlight overlay system with a separate composited texture
   /// Note: Overlay is not yet implemented on web platform.
@@ -28,72 +21,40 @@ class ThermionWidgetInternal extends StatefulWidget {
     super.key,
     required this.viewer,
     this.initial,
-    this.onResize,
-    this.showFpsCounter = false,
     this.enableOverlay = false,
-  });
+  }) {
+    if(enableOverlay) {
+      throw UnimplementedError();
+    }
+  }
 
   @override
   State<StatefulWidget> createState() => _ThermionWidgetWebState();
 }
 
 class _ThermionWidgetWebState extends State<ThermionWidgetInternal> {
-
   late final ThermionFlutterPluginImpl plugin;
 
   @override
   void initState() {
     super.initState();
-
     plugin = ThermionFlutterPlugin.instance as ThermionFlutterPluginImpl;
-    if (!ThermionFlutterPlugin.instance.options.webOptions.importCanvasAsWidget) {
-      _requestFrame();
-    }
   }
 
   DateTime lastRender = DateTime.now();
 
-  void _requestFrame() async {
-    Pointer? stackPtr;
-    WidgetsBinding.instance.scheduleFrameCallback((d) async {
-      if (stackPtr != null) {
-        stackRestore(stackPtr!);
-        stackPtr = null;
-      }
-
-      var elapsed = DateTime.now().microsecondsSinceEpoch -
-          lastRender.microsecondsSinceEpoch;
-
-      lastRender = DateTime.now();
-      if (widget.viewer.rendering) {
-        await FilamentApp.instance!.requestFrame();
-      }
-
-      stackPtr = stackSave();
-      _requestFrame();
-    });
-  }
-
   void _resize(Size oldSize, Size newSize) async {
-    var width = newSize.width.toInt();
-    var height = newSize.height.toInt();
-    plugin.resizeCanvas(newSize.width, newSize.height);
-    await widget.viewer.setViewport(width, height);
+    throw UnimplementedError();
   }
 
   @override
   Widget build(BuildContext context) {
-    print("WEB");
-
-    return ResizeObserver(
-        onResized: _resize,
-        child: ThermionFlutterPlugin.instance.options.webOptions.importCanvasAsWidget
-            ? _ImageCopyingWidget(viewer: widget.viewer)
-            : SizedBox.expand(
-                child: CustomPaint(painter: TransparencyPainter())));
+    return ThermionFlutterPlugin
+            .instance.options.webOptions.importCanvasAsWidget
+        ? _ImageCopyingWidget(viewer: widget.viewer)
+        : SizedBox.expand(child: CustomPaint(painter: TransparencyPainter()));
   }
 }
-
 
 class TransparencyPainter extends CustomPainter {
   @override
@@ -109,7 +70,6 @@ class TransparencyPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
 
 class _PlatformView extends StatefulWidget {
   final ThermionViewer viewer;

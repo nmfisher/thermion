@@ -45,9 +45,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TEngine> engine;
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
   final Pointer<TRenderer> renderer;
+  final Pointer<TRenderManager> renderManager;
 
   final Pointer<TMaterialProvider> ubershaderMaterialProvider;
-  final Pointer<TRenderTicker> renderTicker;
+  
   final Pointer<TNameComponentManager> nameComponentManager;
 
   late final Future<Uint8List> Function(String uri) _loadResource;
@@ -64,7 +65,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       this.renderer,
       Pointer<TTransformManager> transformManagerPtr,
       this.ubershaderMaterialProvider,
-      this.renderTicker,
+      this.renderManager,
       this.nameComponentManager,
       Future<Uint8List> Function(String uri)? loadResource,
       Pointer<TLightManager> lightManagerPointer,
@@ -130,15 +131,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final lightManager = Engine_getLightManager(engine);
     final renderableManager = Engine_getRenderableManager(engine);
 
-    final renderTicker = RenderTicker_create(engine, renderer);
-
-    RenderThread_setRenderTicker(renderTicker);
+    final renderManager = RenderManager_create(engine, renderer);
 
     final animationManager = await withPointerCallback<TAnimationManager>(
       (cb) => AnimationManager_createRenderThread(engine, cb),
     );
 
-    RenderTicker_addAnimationManager(renderTicker, animationManager);
+    await withVoidCallback((requestId, cb) =>
+        RenderManager_addAnimationManagerRenderThread(renderManager, animationManager, requestId, cb));
 
     FilamentApp.instance = FFIFilamentApp(
         engine,
@@ -146,7 +146,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         renderer,
         transformManager,
         ubershaderMaterialProvider,
-        renderTicker,
+        renderManager,
         nameComponentManager,
         config.loadResource,
         lightManager,
@@ -160,14 +160,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   late Pointer<PointerClass<TView>> viewsPtr =
       allocate<PointerClass>(255).cast();
 
-  ///
-  /// Updates the render order for all swap chains.
-  ///
-  /// For views with highlights, the render order is:
-  /// 1. Silhouette views (render highlighted entities to texture)
-  /// 2. Main views (normal scene rendering)
-  /// 3. Overlay views (edge detection fullscreen quad, composites on top)
-  ///
+  //
+  // Updates the render order for all views/swap chains.
+  //
+  // For views with highlights, the render order is:
+  // 1. Silhouette views (render highlighted entities to texture)
+  // 2. Main views (normal scene rendering)
+  // 3. Overlay views (edge detection fullscreen quad, composites on top)
+  //
   Future updateRenderOrder() async {
     if (_swapChains.isEmpty) {
       _logger.warning("No swapchains, ignoring updateRenderOrder");
@@ -211,8 +211,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         }
       }
 
-      RenderTicker_setRenderable(
-          renderTicker, swapChain.getNativeHandle(), viewsPtr, numRenderable);
+      await withVoidCallback((requestId, cb) => RenderManager_setRenderableRenderThread(
+          renderManager, swapChain.getNativeHandle(), viewsPtr, numRenderable, requestId, cb));
       _logger.finest("Updated render order, $numRenderable renderable views");
     }
   }
@@ -237,8 +237,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   @override
   Future<SwapChain> createSwapChain(Pointer window,
       {bool hasStencilBuffer = false}) async {
@@ -252,8 +250,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFISwapChain(swapChain);
   }
 
-  ///
-  ///
   ///
   Future<View> createView() async {
     final view = await FFIView(
@@ -288,7 +284,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future destroySwapChain(SwapChain swapChain) async {
     _logger.info("Destroying swapchain");
-    RenderTicker_removeSwapChain(renderTicker, swapChain.getNativeHandle());
+    await withVoidCallback((requestId, cb) =>
+        RenderManager_removeSwapChainRenderThread(renderManager, swapChain.getNativeHandle(), requestId, cb));
     await withVoidCallback((requestId, callback) {
       Engine_destroySwapChainRenderThread(
           engine, swapChain.getNativeHandle(), requestId, callback);
@@ -326,7 +323,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     });
 
     RenderThread_destroy();
-    RenderTicker_destroy(renderTicker);
+    RenderManager_destroy(renderManager);
 
     free(viewsPtr);
     FilamentApp.instance = null;
@@ -360,11 +357,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future<RenderTarget> createRenderTarget(int width, int height,
       {covariant FFITexture? color, covariant FFITexture? depth}) async {
+    _logger.finest("Creating ${width}x${height} render target");
     if (color == null) {
+      _logger.finest("No color texture provided");
       color = await createTexture(width, height,
           flags: {
             TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
@@ -372,15 +369,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             TextureUsage.TEXTURE_USAGE_BLIT_SRC
           },
           textureFormat: TextureFormat.RGBA8) as FFITexture;
+      _logger.finest("Created ${width}x${height} color texture (TextureFormat.RGBA8)");
     }
     if (depth == null) {
+      _logger.finest("No depth texture provided");
       depth = await createTexture(width, height,
           flags: {
             TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
             TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
             TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           },
-          textureFormat: TextureFormat.DEPTH24_STENCIL8) as FFITexture;
+          textureFormat: TextureFormat.DEPTH32F) as FFITexture;
+      _logger.finest("Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
       RenderTarget_createRenderThread(
@@ -393,8 +393,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFIRenderTarget(renderTarget, this);
   }
 
-  ///
-  ///
   ///
   Future<Texture> createTexture(int width, int height,
       {int depth = 1,
@@ -427,8 +425,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
   }
 
-  ///
-  ///
   ///
   Future<TextureSampler> createTextureSampler(
       {TextureMinFilter minFilter = TextureMinFilter.LINEAR,
@@ -494,8 +490,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future<Material> createMaterial(Uint8List data) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
@@ -511,8 +505,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFIMaterial(ptr, this);
   }
 
-  ///
-  ///
   ///
   Future<MaterialInstance> createUbershaderMaterialInstance(
       {bool doubleSided = false,
@@ -609,15 +601,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future<MaterialInstance> createUnlitMaterialInstance() async {
     return createUbershaderMaterialInstance(
         unlit: true, hasVertexColors: false);
   }
 
-  ///
-  ///
   ///
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int index) async {
@@ -630,42 +618,38 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future setMaterialInstanceAt(ThermionEntity entity, int index,
       MaterialInstance materialInstance) async {
     await renderableManager.setMaterialInstanceAt(
         entity, index, materialInstance);
   }
 
-  ///
-  ///
-  ///
-  @override
-  Future render() async {
-    final swapchain = _swapChains.keys.first;
-    final view = _swapChains[swapchain]!.first;
-    await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(
-          renderer, swapchain.getNativeHandle(), 0.toBigInt, cb);
-    });
-    await withVoidCallback((requestId, cb) {
-      Renderer_renderRenderThread(
-        renderer,
-        view.view,
-        requestId,
-        cb,
-      );
-    });
-    await withVoidCallback((requestId, cb) {
-      Renderer_endFrameRenderThread(renderer, requestId, cb);
-    });
+  // ///
+  // ///
+  // ///
+  // @override
+  // Future render() async {
+  //   final swapchain = _swapChains.keys.first;
+  //   final view = _swapChains[swapchain]!.first;
+  //   await withBoolCallback((cb) {
+  //     RenderManager_beginFrameRenderThread(
+  //         renderer, swapchain.getNativeHandle(), 0.toBigInt, cb);
+  //   });
+  //   await withVoidCallback((requestId, cb) {
+  //     RenderManager_renderRenderThread(
+  //       renderer,
+  //       view.view,
+  //       requestId,
+  //       cb,
+  //     );
+  //   });
+  //   await withVoidCallback((requestId, cb) {
+  //     RenderManager_endFrameRenderThread(renderer, requestId, cb);
+  //   });
 
-    await flush();
-  }
+  //   await flush();
+  // }
 
-  ///
-  ///
   ///
   @override
   Future register(
@@ -680,8 +664,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   @override
   Future unregister(
       covariant FFISwapChain swapChain, covariant FFIView view) async {
@@ -695,8 +677,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future<Iterable<SwapChain>> getSwapChains() async {
     return _swapChains.keys;
   }
@@ -704,11 +684,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final _hooks = <Future Function()>[];
 
   ///
-  ///
-  ///
   @override
   Future registerRequestFrameHook(Future Function() hook) async {
-    while (_requesting) {
+    while (_processingRenderHooks) {
       await Future.delayed(Duration(milliseconds: 1));
     }
     if (!_hooks.contains(hook)) {
@@ -717,11 +695,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   @override
   Future unregisterRequestFrameHook(Future Function() hook) async {
-    while (_requesting) {
+    while (_processingRenderHooks) {
       await Future.delayed(Duration(milliseconds: 1));
     }
     if (_hooks.contains(hook)) {
@@ -729,14 +705,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
-  bool _requesting = false;
+  bool _processingRenderHooks = false;
 
-  ///
-  ///
-  ///
+  //
   @override
-  Future requestFrame() async {
-    _requesting = true;
+  Future render() async {
+    _processingRenderHooks = true;
     try {
       for (final hook in _hooks) {
         await hook.call();
@@ -744,12 +718,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     } catch (err) {
       _logger.severe(err);
     }
-    _requesting = false;
-    RenderThread_requestFrameAsync();
+    _processingRenderHooks = false;
+
+    final frameTimeInNanos = DateTime.now().microsecond * 1000000;
+
+    await withVoidCallback((requestId, cb) {
+      RenderManager_renderRenderThread(renderManager, frameTimeInNanos, requestId, cb);
+    });
+    
   }
 
-  ///
-  ///
   ///
   @override
   Future setParent(ThermionEntity child, ThermionEntity? parent,
@@ -758,8 +736,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         preserveScaling: preserveScaling);
   }
 
-  ///
-  ///
   ///
   @override
   Future<ThermionEntity?> getParent(ThermionEntity child) async {
@@ -771,8 +747,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   @override
   Future<ThermionEntity?> getAncestor(ThermionEntity child) async {
     var parent = transformManager.getAncestor(child);
@@ -782,8 +756,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return parent;
   }
 
-  ///
-  ///
   ///
   @override
   String? getNameForEntity(ThermionEntity entity) {
@@ -796,8 +768,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   Material? _imageMaterial;
 
-  ///
-  ///
   ///
   @override
   Future<MaterialInstance> createImageMaterialInstance() async {
@@ -812,8 +782,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return instance;
   }
 
-  ///
-  ///
   ///
   Future<List<(View, Uint8List)>> capture(covariant FFISwapChain? swapChain,
       {covariant FFIView? view,
@@ -867,6 +835,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       _logger.finest(
           "Added ${views.length} views (from ${_swapChains.length} swapchains)");
+    }
+
+    for(final view in views) {
+      final vp = await view.getViewport();
+      if(vp.width == 0 || vp.height == 0) {
+        throw Exception("Invalid viewport : ${vp.width}x${vp.height} for ${view.getNativeHandle()}");
+      }
     }
 
     if (beginFrame) {
@@ -983,16 +958,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future setClearOptions(double r, double g, double b, double a,
       {int clearStencil = 0, bool discard = false, bool clear = true}) async {
     Renderer_setClearOptions(
         renderer, r, g, b, a, clearStencil, clear, discard);
   }
 
-  ///
-  ///
   ///
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
@@ -1121,8 +1092,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   FFIMaterial? _gizmoMaterial;
 
-  ///
-  ///
   ///
   Future<GizmoAsset> createGizmo(
       covariant FFIView view, GizmoType gizmoType) async {
@@ -1393,8 +1362,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future<ThermionEntity> createDirectLight(DirectLight directLight) async {
     var entity = lightManager.createLight(directLight.type);
 
@@ -1423,8 +1390,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future flush() async {
     if (FILAMENT_SINGLE_THREADED) {
       await withVoidCallback(
@@ -1438,14 +1403,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final _onDestroy = <Future Function()>[];
 
   ///
-  ///
-  ///
   void onDestroy(Future Function() callback) {
     _onDestroy.add(callback);
   }
 
-  ///
-  ///
   ///
   Future<ThermionEntity> createEntity(
       {bool createTransformComponent = true}) async {
@@ -1456,8 +1417,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return entity;
   }
 
-  ///
-  ///
   ///
   Future setTransform(ThermionEntity entity, Matrix4 transform) async {
     transformManager.setTransform(entity, transform);
@@ -1474,22 +1433,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   @override
   Future setPriority(ThermionEntity entity, int priority) async {
     await renderableManager.setPriority(entity, priority);
   }
 
   ///
-  ///
-  ///
   Future<int> getPrimitiveCount(ThermionEntity entity) async {
     return renderableManager.getPrimitiveCount(entity);
   }
 
-  ///
-  ///
   ///
   Future<Aabb3> getBoundingBox(ThermionEntity entity) async {
     return renderableManager.getBoundingBox(entity);
@@ -1527,14 +1480,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  ///
-  ///
   Future<bool> isRenderable(ThermionEntity entity) async {
     return renderableManager.isRenderable(entity);
   }
 
-  ///
-  ///
   ///
   Future<Texture> loadKtx2(Uint8List data) async {
     _logger.info("Loading KTX2 from ${data.length} bytes");

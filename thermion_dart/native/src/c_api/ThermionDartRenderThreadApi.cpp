@@ -14,7 +14,7 @@
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TGltfResourceLoader.h"
 #include "c_api/TRenderer.h"
-#include "c_api/TRenderTicker.h"
+#include "c_api/TRenderManager.h"
 #include "c_api/TRenderTarget.h"
 #include "c_api/TScene.h"
 #include "c_api/TSceneAsset.h"
@@ -22,10 +22,10 @@
 #include "c_api/TView.h"
 #include "c_api/TVertexBuffer.h"
 #include "c_api/TIndexBuffer.h"
-#include "c_api/TOverlayManager.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
 #include "rendering/RenderThread.hpp"
+#include "rendering/RenderManager.hpp"
 #include "Log.hpp"
 
 #ifdef __EMSCRIPTEN__
@@ -38,22 +38,6 @@ using namespace thermion;
 using namespace std::chrono_literals;
 #include <time.h>
 #include <cinttypes>
-//auto innerStartTime = std::chrono::high_resolution_clock::now();\
-  //Log("inner proxy start time time: % " PRId64 "ms", std::chrono::duration_cast<std::chrono::milliseconds>(innerStartTime.time_since_epoch()).count());\
-//auto endTime = std::chrono::high_resolution_clock::now(); \
-//auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();\
-//float durationMs = durationNs / 1e6f;\
-//Log("proxySync time: %.3f ms", durationMs);\
-//startTime = std::chrono::high_resolution_clock::now(); \
-//_renderThread->queue.execute(); \
-//endTime = std::chrono::high_resolution_clock::now(); \
-//durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();\
-//durationMs = durationNs / 1e6f;\
-//TRACE("queue execute time: %.3f ms", durationMs);
-//auto innerEndTime = std::chrono::high_resolution_clock::now(); \
-  //auto innerDurationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(innerEndTime - innerStartTime).count();\
-  //float innerDurationMs = innerDurationNs / 1e6f;\
-  //Log("inner proxy fn time: %.3f ms", innerDurationMs);\
 
 #if defined __EMSCRIPTEN__
 #define PROXY(call)                                           \
@@ -95,29 +79,84 @@ extern "C"
         {
           task();
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderThread_setRenderTicker(TRenderTicker *tRenderTicker)
-  {
-    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
-    _renderThread->setRenderTicker(renderTicker);
-  }
+  EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(
+    TRenderManager *tRenderer,
+    TSwapChain *tSwapChain,
+    TView **tViews,
+    uint8_t numViews,
+    uint32_t requestId, VoidCallback onComplete) {
 
-  EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrameAsync()
-  {
-    _renderThread->requestFrame();
-  }
+      std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderManager_setRenderable(tRenderer, tSwapChain, tViews, numViews);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
 
-  EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete)
+    }
+
+  EMSCRIPTEN_KEEPALIVE void RenderManager_renderRenderThread(
+    TRenderManager *tRenderManager,
+    uint64_t frameTimeInNanos,
+    uint32_t requestId,
+    VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          RenderTicker_render(tRenderTicker, frameTimeInNanos);
+          RenderManager_render(tRenderManager, frameTimeInNanos);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerRenderThread(
+    TRenderManager *tRenderManager,
+    TAnimationManager *tAnimationManager,
+    uint32_t requestId,
+    VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderManager_addAnimationManager(tRenderManager, tAnimationManager);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerRenderThread(
+    TRenderManager *tRenderManager,
+    TAnimationManager *tAnimationManager,
+    uint32_t requestId,
+    VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderManager_removeAnimationManager(tRenderManager, tAnimationManager);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainRenderThread(
+    TRenderManager *tRenderManager,
+    TSwapChain *tSwapChain,
+    uint32_t requestId,
+    VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderManager_removeSwapChain(tRenderManager, tSwapChain);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
@@ -135,7 +174,7 @@ extern "C"
           auto *engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
           PROXY(onComplete(engine));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createRendererRenderThread(TEngine *tEngine, void (*onComplete)(TRenderer *))
@@ -147,7 +186,7 @@ extern "C"
           auto *renderer = Engine_createRenderer(tEngine);
           PROXY(onComplete(renderer));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainRenderThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *))
@@ -158,7 +197,7 @@ extern "C"
           auto swapChain = Engine_createSwapChain(tEngine, window, flags);
           PROXY(onComplete(swapChain));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainRenderThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *))
@@ -169,7 +208,7 @@ extern "C"
           auto swapChain = Engine_createHeadlessSwapChain(tEngine, width, height, flags);
           PROXY(onComplete(swapChain));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete)
@@ -180,7 +219,7 @@ extern "C"
           Engine_destroySwapChain(tEngine, tSwapChain);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, uint32_t requestId, VoidCallback onComplete)
@@ -191,7 +230,7 @@ extern "C"
           Engine_destroyView(tEngine, tView);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
@@ -202,7 +241,7 @@ extern "C"
           Engine_destroyScene(tEngine, tScene);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine *tEngine, EntityId entityId, void (*onComplete)(TCamera *))
@@ -213,7 +252,7 @@ extern "C"
           auto camera = Engine_createCamera(tEngine, entityId);
           PROXY(onComplete(camera));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createViewRenderThread(TEngine *tEngine, void (*onComplete)(TView *))
@@ -224,7 +263,7 @@ extern "C"
           auto *view = Engine_createView(tEngine);
           PROXY(onComplete(view));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
@@ -235,7 +274,7 @@ extern "C"
           Engine_destroy(tEngine);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture *tTexture, uint32_t requestId, VoidCallback onComplete)
@@ -246,7 +285,7 @@ extern "C"
           Engine_destroyTexture(engine, tTexture);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete)
@@ -257,7 +296,7 @@ extern "C"
           Engine_destroySkybox(tEngine, tSkybox);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete)
@@ -268,7 +307,7 @@ extern "C"
           Engine_destroyIndirectLight(tEngine, tIndirectLight);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
@@ -279,7 +318,7 @@ extern "C"
           auto material = Engine_buildMaterial(tEngine, materialData, length);
           PROXY(onComplete(material));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, uint32_t requestId, VoidCallback onComplete)
@@ -290,7 +329,7 @@ extern "C"
           Engine_destroyMaterial(tEngine, tMaterial);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, uint32_t requestId, VoidCallback onComplete)
@@ -301,7 +340,7 @@ extern "C"
           Engine_destroyMaterialInstance(tEngine, tMaterialInstance);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence *))
@@ -312,7 +351,7 @@ extern "C"
           auto *fence = Engine_createFence(tEngine);
           PROXY(onComplete(fence));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Fence_waitAndDestroyRenderThread(TFence *tFence, uint32_t requestId, VoidCallback onComplete)
@@ -324,7 +363,7 @@ extern "C"
           Fence_waitAndDestroy(tFence);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, uint32_t requestId, VoidCallback onComplete)
@@ -335,7 +374,7 @@ extern "C"
           Engine_destroyFence(tEngine, tFence);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
@@ -346,7 +385,7 @@ extern "C"
           Engine_flushAndWait(tEngine);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_executeRenderThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete)
@@ -360,10 +399,10 @@ extern "C"
           { 
             PROXY(onComplete(requestId));
           });
-          _renderThread->add_task(callback);
+          _renderThread->addTask(callback);
           _renderThread->restart();
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void execute_queue()
@@ -381,7 +420,7 @@ extern "C"
           auto *skybox = Engine_buildSkybox(tEngine, tTexture);
           PROXY(onComplete(skybox));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxRenderThread(TEngine *tEngine, float r, float g, float b, float a, void (*onComplete)(TSkybox *))
@@ -392,7 +431,7 @@ extern "C"
           auto *skybox = Engine_buildColoredSkybox(tEngine, r, g, b, a);
           PROXY(onComplete(skybox));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureRenderThread(
@@ -407,7 +446,7 @@ extern "C"
             auto *indirectLight = Engine_buildIndirectLightFromIrradianceTexture(tEngine, tReflectionsTexture, tIrradianceTexture, intensity);
             PROXY(onComplete(indirectLight));
           });
-      auto fut = _renderThread->add_task(lambda);
+      auto fut = _renderThread->addTask(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
@@ -422,7 +461,7 @@ extern "C"
             auto *indirectLight = Engine_buildIndirectLightFromIrradianceHarmonics(tEngine, tReflectionsTexture, harmonics, intensity);
             PROXY(onComplete(indirectLight));
           });
-      auto fut = _renderThread->add_task(lambda);
+      auto fut = _renderThread->addTask(lambda);
   }
 
 
@@ -434,7 +473,7 @@ extern "C"
           auto result = Renderer_beginFrame(tRenderer, tSwapChain, frameTimeInNanos);
           PROXY(onComplete(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
   EMSCRIPTEN_KEEPALIVE void Renderer_endFrameRenderThread(TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete)
   {
@@ -444,7 +483,7 @@ extern "C"
           Renderer_endFrame(tRenderer);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
@@ -455,7 +494,7 @@ extern "C"
           Renderer_render(tRenderer, tView);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, uint32_t requestId, VoidCallback onComplete)
@@ -466,7 +505,7 @@ extern "C"
           Renderer_renderStandaloneView(tRenderer, tView);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsRenderThread(
@@ -485,7 +524,7 @@ extern "C"
           Renderer_setClearOptions(tRenderer, clearR, clearG, clearB, clearA, clearStencil, clear, discard);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsRenderThread(
@@ -504,7 +543,7 @@ extern "C"
           Renderer_readPixels(tRenderer, width, height, xOffset, yOffset, tRenderTarget, tPixelBufferFormat, tPixelDataType, out, outLength);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
@@ -515,7 +554,7 @@ extern "C"
           auto *instance = Material_createImageMaterial(tEngine);
           PROXY(onComplete(instance));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
@@ -526,7 +565,29 @@ extern "C"
           auto *instance = Material_createGizmoMaterial(tEngine);
           PROXY(onComplete(instance));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Material_createSilhouetteMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createSilhouetteMaterial(tEngine);
+          PROXY(onComplete(instance));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createEdgeOutlineMaterial(tEngine);
+          PROXY(onComplete(instance));
+        });
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
@@ -537,7 +598,7 @@ extern "C"
           auto *instance = Material_createInstance(tMaterial);
           PROXY(onComplete(instance));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTextureRenderThread(
@@ -554,7 +615,7 @@ extern "C"
           MaterialInstance_setParameterTexture(tMaterialInstance, propertyName, tTexture, tSampler);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createGridRenderThread(TEngine *tEngine, TMaterial * tMaterial, void (*onComplete)(TSceneAsset *)) {
@@ -564,7 +625,7 @@ extern "C"
           auto *asset = SceneAsset_createGrid(tEngine, tMaterial);
           PROXY(onComplete(asset));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
@@ -575,7 +636,7 @@ extern "C"
           SceneAsset_destroy(tSceneAsset);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
 
@@ -592,7 +653,7 @@ extern "C"
           auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset);
           PROXY(onComplete(sceneAsset));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(
@@ -611,7 +672,7 @@ extern "C"
           auto sceneAsset = SceneAsset_createFromBuffers(tEngine, tVertexBuffer, tIndexBuffer, materialInstances, materialInstanceCount, tPrimitiveType, boundingBox);
           PROXY(callback(sceneAsset));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(
@@ -625,7 +686,7 @@ extern "C"
           auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
           PROXY(callback(instanceAsset));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(
@@ -715,7 +776,7 @@ extern "C"
               hasVolume);
           PROXY(callback(materialInstance));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper *toneMapper, void (*callback)(TColorGrading *))
@@ -726,7 +787,7 @@ extern "C"
           auto cg = ColorGrading_create(tEngine, toneMapper);
           PROXY(callback(cg));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createRenderThread(void (*onComplete)(TColorGradingBuilder *))
@@ -737,7 +798,7 @@ extern "C"
           auto *builder = ColorGradingBuilder_create();
           PROXY(onComplete(builder));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_buildRenderThread(TColorGradingBuilder *tBuilder, TEngine *tEngine, void (*onComplete)(TColorGrading *))
@@ -748,7 +809,7 @@ extern "C"
           auto *colorGrading = ColorGradingBuilder_build(tBuilder, tEngine);
           PROXY(onComplete(colorGrading));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_destroyRenderThread(TColorGradingBuilder *tBuilder, uint32_t requestId, VoidCallback onComplete)
@@ -759,7 +820,7 @@ extern "C"
           ColorGradingBuilder_destroy(tBuilder);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createLinearRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
@@ -770,7 +831,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createLinear(tEngine);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
@@ -781,7 +842,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createACES(tEngine);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createACESLegacyRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
@@ -792,7 +853,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createACESLegacy(tEngine);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createFilmicRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
@@ -803,7 +864,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createFilmic(tEngine);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createPBRNeutralRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
@@ -814,7 +875,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createPBRNeutral(tEngine);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
@@ -825,7 +886,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createAGX(tEngine);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createAGXWithLookRenderThread(TEngine *tEngine, int look, void (*onComplete)(TToneMapper *))
@@ -836,7 +897,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createAGXWithLook(tEngine, look);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createGenericRenderThread(TEngine *tEngine, float contrast, float midGrayIn, float midGrayOut, float hdrMax, void (*onComplete)(TToneMapper *))
@@ -847,7 +908,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createGeneric(tEngine, contrast, midGrayIn, midGrayOut, hdrMax);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_createDisplayRangeRenderThread(TEngine *tEngine, void (*onComplete)(TToneMapper *))
@@ -858,7 +919,7 @@ extern "C"
           auto *toneMapper = ToneMapper_createDisplayRange(tEngine);
           PROXY(onComplete(toneMapper));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void ToneMapper_destroyRenderThread(TToneMapper *tToneMapper, uint32_t requestId, VoidCallback onComplete)
@@ -869,7 +930,7 @@ extern "C"
           ToneMapper_destroy(tToneMapper);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
@@ -880,7 +941,7 @@ extern "C"
           Engine_destroyColorGrading(tEngine, tColorGrading);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void View_pickRenderThread(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
@@ -898,7 +959,7 @@ extern "C"
           View_setColorGrading(tView, tColorGrading);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, uint32_t requestId, VoidCallback onComplete)
@@ -909,7 +970,7 @@ extern "C"
           View_setBloom(tView, enabled, strength);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, uint32_t requestId, VoidCallback onComplete)
@@ -920,7 +981,7 @@ extern "C"
           View_setCamera(tView, tCamera);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
@@ -930,7 +991,7 @@ extern "C"
           AnimationManager_resetToRestPose(tAnimationManager, tSceneAsset);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *))
@@ -941,7 +1002,7 @@ extern "C"
           auto *animationManager = AnimationManager_create(tEngine);
           PROXY(onComplete(animationManager));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
@@ -955,7 +1016,7 @@ extern "C"
           bool result = AnimationManager_updateBoneMatrices(tAnimationManager, sceneAsset);
           PROXY(callback(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_setMorphTargetWeightsRenderThread(
@@ -971,7 +1032,7 @@ extern "C"
           bool result = AnimationManager_setMorphTargetWeights(tAnimationManager, entityId, morphData, numWeights);
           PROXY(callback(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_createEmptyRenderThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *))
@@ -982,7 +1043,7 @@ extern "C"
           auto image = Image_createEmpty(width, height, channel);
           PROXY(onComplete(image));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_decodeRenderThread(uint8_t *data, size_t length, const char *name, bool alpha, void (*onComplete)(TLinearImage *))
@@ -993,7 +1054,7 @@ extern "C"
           auto image = Image_decode(data, length, name, alpha);
           PROXY(onComplete(image));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getBytesRenderThread(TLinearImage *tLinearImage, void (*onComplete)(float *))
@@ -1004,7 +1065,7 @@ extern "C"
           auto bytes = Image_getBytes(tLinearImage);
           PROXY(onComplete(bytes));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_destroyRenderThread(TLinearImage *tLinearImage, uint32_t requestId, VoidCallback onComplete)
@@ -1015,7 +1076,7 @@ extern "C"
           Image_destroy(tLinearImage);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getWidthRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
@@ -1026,7 +1087,7 @@ extern "C"
           auto width = Image_getWidth(tLinearImage);
           PROXY(onComplete(width));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getHeightRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
@@ -1037,7 +1098,7 @@ extern "C"
           auto height = Image_getHeight(tLinearImage);
           PROXY(onComplete(height));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
@@ -1048,7 +1109,7 @@ extern "C"
           auto channels = Image_getChannels(tLinearImage);
           PROXY(onComplete(channels));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(
@@ -1068,7 +1129,7 @@ extern "C"
           auto *texture = Texture_build(tEngine, width, height, depth, levels, tUsage, import, sampler, format);
           PROXY(onComplete(texture));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Texture_generateMipMapsRenderThread(TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete) {
@@ -1078,7 +1139,7 @@ extern "C"
           Texture_generateMipMaps(tTexture, tEngine);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   #ifdef EMSCRIPTEN
@@ -1118,7 +1179,7 @@ extern "C"
           #endif          
           PROXY(onComplete(texture));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
 
@@ -1133,7 +1194,7 @@ extern "C"
           bool result = Texture_loadImage(tEngine, tTexture, tImage, bufferFormat, pixelDataType, level);
           PROXY(onComplete(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Texture_setImageRenderThread(
@@ -1171,7 +1232,7 @@ extern "C"
               pixelDataType);
           PROXY(onComplete(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
@@ -1182,7 +1243,7 @@ extern "C"
           auto texture = RenderTarget_getColorTexture(tRenderTarget);
           PROXY(onComplete(texture));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
@@ -1202,7 +1263,7 @@ extern "C"
           auto texture = RenderTarget_create(tEngine, width, height, tColor, tDepth);
           PROXY(onComplete(texture));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyRenderThread(
@@ -1216,7 +1277,7 @@ extern "C"
           RenderTarget_destroy(tEngine, tRenderTarget);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler *))
@@ -1227,7 +1288,7 @@ extern "C"
           auto sampler = TextureSampler_create();
           PROXY(onComplete(sampler));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringRenderThread(
@@ -1244,7 +1305,7 @@ extern "C"
           auto sampler = TextureSampler_createWithFiltering(minFilter, magFilter, wrapS, wrapT, wrapR);
           PROXY(onComplete(sampler));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonRenderThread(
@@ -1258,7 +1319,7 @@ extern "C"
           auto sampler = TextureSampler_createWithComparison(compareMode, compareFunc);
           PROXY(onComplete(sampler));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterRenderThread(
@@ -1272,7 +1333,7 @@ extern "C"
           TextureSampler_setMinFilter(sampler, filter);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterRenderThread(
@@ -1286,7 +1347,7 @@ extern "C"
           TextureSampler_setMagFilter(sampler, filter);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSRenderThread(
@@ -1300,7 +1361,7 @@ extern "C"
           TextureSampler_setWrapModeS(sampler, mode);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTRenderThread(
@@ -1314,7 +1375,7 @@ extern "C"
           TextureSampler_setWrapModeT(sampler, mode);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRRenderThread(
@@ -1328,7 +1389,7 @@ extern "C"
           TextureSampler_setWrapModeR(sampler, mode);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyRenderThread(
@@ -1342,7 +1403,7 @@ extern "C"
           TextureSampler_setAnisotropy(sampler, anisotropy);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeRenderThread(
@@ -1357,7 +1418,7 @@ extern "C"
           TextureSampler_setCompareMode(sampler, mode, func);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyRenderThread(
@@ -1370,7 +1431,7 @@ extern "C"
           TextureSampler_destroy(sampler);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(
@@ -1385,7 +1446,7 @@ extern "C"
         auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider, tNameComponentManager);
         PROXY(callback(loader));
       });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
@@ -1395,7 +1456,7 @@ extern "C"
         auto loader = GltfResourceLoader_create(tEngine);
         PROXY(callback(loader));
       });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
 
@@ -1407,7 +1468,7 @@ extern "C"
           GltfResourceLoader_destroy(tEngine, tResourceLoader);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool))
@@ -1418,7 +1479,7 @@ extern "C"
           auto result = GltfResourceLoader_loadResources(tGltfResourceLoader, tFilamentAsset);
           PROXY(callback(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataRenderThread(
@@ -1434,7 +1495,7 @@ extern "C"
           GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncBeginLoadRenderThread(
@@ -1448,7 +1509,7 @@ extern "C"
           auto result = GltfResourceLoader_asyncBeginLoad(tGltfResourceLoader, tFilamentAsset);
           PROXY(callback(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadRenderThread(
@@ -1459,7 +1520,7 @@ extern "C"
         {
           GltfResourceLoader_asyncUpdateLoad(tGltfResourceLoader);
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressRenderThread(
@@ -1472,7 +1533,7 @@ extern "C"
           auto result = GltfResourceLoader_asyncGetLoadProgress(tGltfResourceLoader);
           PROXY(callback(result));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
@@ -1489,7 +1550,7 @@ extern "C"
           auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
           PROXY(callback(loader));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene *tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete)
@@ -1500,7 +1561,7 @@ extern "C"
           Scene_addFilamentAsset(tScene, tAsset);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Gizmo_createRenderThread(
@@ -1519,7 +1580,7 @@ extern "C"
           auto *gizmo = Gizmo_create(tEngine, tAssetLoader, tGltfResourceLoader, tNameComponentManager, tView, tMaterial, tGizmoType);
           PROXY(callback(gizmo));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_buildRenderThread(
@@ -1533,7 +1594,7 @@ extern "C"
           auto *vertexBuffer = VertexBufferBuilder_build(tBuilder, tEngine);
           PROXY(onComplete(vertexBuffer));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroyRenderThread(
@@ -1548,7 +1609,7 @@ extern "C"
           VertexBuffer_destroy(tEngine, tBuffer);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAtRenderThread(
@@ -1585,7 +1646,7 @@ extern "C"
 
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void IndexBufferBuilder_buildRenderThread(
@@ -1599,7 +1660,7 @@ extern "C"
           auto *indexBuffer = IndexBufferBuilder_build(tBuilder, tEngine);
           PROXY(onComplete(indexBuffer));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void IndexBuffer_destroyRenderThread(
@@ -1614,7 +1675,7 @@ extern "C"
           IndexBuffer_destroy(tEngine, tBuffer);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void IndexBuffer_setBufferRenderThread(
@@ -1650,7 +1711,7 @@ extern "C"
 
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderableBuilder_buildRenderThread(
@@ -1669,7 +1730,7 @@ extern "C"
           auto result = builder->build(*engine, entity);
           PROXY(onComplete(static_cast<int>(result)));
         });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformRenderThread(
@@ -1685,121 +1746,7 @@ extern "C"
           TransformManager_setTransform(tTransformManager, entityId, transform);
           PROXY(onComplete(requestId));
         });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  // OverlayManager render thread implementations
-
-  EMSCRIPTEN_KEEPALIVE void OverlayManager_createRenderThread(
-      TEngine *tEngine,
-      void (*onComplete)(TOverlayManager *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *overlayManager = OverlayManager_create(tEngine);
-          PROXY(onComplete(overlayManager));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void OverlayManager_initializeRenderThread(
-      TOverlayManager *tOverlayManager,
-      uint32_t width,
-      uint32_t height,
-      intptr_t hardwareTextureId,
-      uint32_t requestId,
-      VoidCallback onComplete)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          OverlayManager_initialize(tOverlayManager, width, height, hardwareTextureId);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void OverlayManager_setViewportRenderThread(
-      TOverlayManager *tOverlayManager,
-      uint32_t width,
-      uint32_t height,
-      uint32_t requestId,
-      VoidCallback onComplete)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          OverlayManager_setViewport(tOverlayManager, width, height);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void OverlayManager_addHighlightRenderThread(
-      TOverlayManager *tOverlayManager,
-      EntityId entityId,
-      TVertexBuffer *tVertexBuffer,
-      TIndexBuffer *tIndexBuffer,
-      uint32_t indexCount,
-      float outlineWidth,
-      float r,
-      float g,
-      float b,
-      uint32_t requestId,
-      VoidCallback onComplete)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          OverlayManager_addHighlight(tOverlayManager, entityId, tVertexBuffer, tIndexBuffer, indexCount, outlineWidth, r, g, b);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void OverlayManager_removeHighlightRenderThread(
-      TOverlayManager *tOverlayManager,
-      EntityId entityId,
-      uint32_t requestId,
-      VoidCallback onComplete)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          OverlayManager_removeHighlight(tOverlayManager, entityId);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void OverlayManager_setCameraRenderThread(
-      TOverlayManager *tOverlayManager,
-      TCamera *tCamera,
-      uint32_t requestId,
-      VoidCallback onComplete)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          OverlayManager_setCamera(tOverlayManager, tCamera);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void OverlayManager_destroyRenderThread(
-      TOverlayManager *tOverlayManager,
-      uint32_t requestId,
-      VoidCallback onComplete)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          OverlayManager_destroy(tOverlayManager);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->add_task(lambda);
+    auto fut = _renderThread->addTask(lambda);
   }
 
 }

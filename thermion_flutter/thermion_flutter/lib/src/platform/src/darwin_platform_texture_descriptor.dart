@@ -3,6 +3,7 @@ import 'platform_texture_descriptor.dart';
 
 class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
   final MetalTextureWrapper texture;
+
   bool destroyed = false;
 
   DarwinPlatformTextureDescriptorImpl(this.texture,
@@ -29,8 +30,9 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
   }
 
   static DarwinPlatformTextureDescriptorImpl allocate(int width, int height) {
-    final metalTexture = MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(width,
-        height, false, false);
+    final metalTexture =
+        MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
+            width, height, false, false);
     metalTexture.retain();
     final flutterTextureId =
         SwiftThermionFlutterPluginObjCAPI.registerTextureWithTexture_(
