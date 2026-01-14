@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart' hide View;
 import 'package:thermion_flutter/thermion_flutter.dart';
 
+// A stub implementation to satisfy the analyzer.
 class ThermionWidgetInternal extends StatelessWidget {
   
-  ///
   final View view;
 
   const ThermionWidgetInternal({
@@ -13,7 +13,6 @@ class ThermionWidgetInternal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     throw UnimplementedError();
   }
 }

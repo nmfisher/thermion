@@ -1,39 +1,11 @@
 import 'package:flutter/material.dart' hide View;
-import 'thermion_widget_internal.dart';
+import 'thermion_widget_internal/thermion_widget_internal.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
-
-Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
-  var camera = await view.getCamera();
-  var near = await camera.getNear();
-  var far = await camera.getCullingFar();
-  var focalLength = await camera.getFocalLength();
-
-  await camera.setLensProjection(
-      near: near,
-      far: far,
-      focalLength: focalLength,
-      aspect: size.width.toDouble() / size.height.toDouble());
-}
 
 class ThermionWidget extends StatefulWidget {
 
-  /// The viewer whose content will be rendered into this widget.
+  // The viewer whose content will be rendered into this widget.
   final ThermionViewer viewer;
-
-  /// A callback to invoke whenever this widget and the underlying surface are
-  /// resized. If a callback is not explicitly provided, the default callback
-  /// will be run, which changes the aspect ratio for the active camera in
-  /// the View managed by this widget. If you specify your own callback,
-  /// you probably want to preserve this behaviour (otherwise the aspect ratio)
-  /// will be incorrect.
-  ///
-  /// To completely disable the resize callback, pass [null].
-  ///
-  /// IMPORTANT - size is specified in physical pixels, not logical pixels.
-  /// If you need to work with Flutter dimensions, divide [size] by
-  /// [pixelRatio].
-  ///
-  final Future Function(Size size, View view, double pixelRatio)? onResize;
 
   /// If true, enable the highlight overlay system.
   /// This creates a separate texture for rendering entity highlights/outlines
@@ -43,7 +15,6 @@ class ThermionWidget extends StatefulWidget {
   const ThermionWidget(
       {Key? key,
       required this.viewer,
-      this.onResize = kDefaultResizeCallback,
       this.enableOverlay = false})
       : super(key: key);
 
@@ -52,6 +23,11 @@ class ThermionWidget extends StatefulWidget {
 }
 
 class _ThermionWidgetState extends State<ThermionWidget> {
+
+  void initState() {
+    super.initState();  
+  }
+  
   @override
   Widget build(BuildContext context) {
     return ThermionWidgetInternal(
