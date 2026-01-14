@@ -700,8 +700,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   bool _processingRenderHooks = false;
 
-  double _lastRenderTimeInNanos = 0;
-
   //
   @override
   Future render() async {
