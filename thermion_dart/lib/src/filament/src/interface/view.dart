@@ -370,15 +370,11 @@ abstract class View<T> extends NativeHandle<T> {
   /// Enables the highlight overlay system for this view.
   ///
   /// Must be called before [setStencilHighlight]. This initializes the overlay
-  /// manager with the current viewport dimensions.
-  ///
-  /// The optional [hardwareTextureId] parameter allows passing in a platform-specific
-  /// texture handle for the overlay render target. If provided, Filament will import
-  /// and render into this texture instead of creating its own. This is useful for
-  /// Flutter integration where you want to composite the overlay with other layers.
+  /// manager with the current viewport dimensions and creates the necessary
+  /// render targets for silhouette and edge detection passes.
   ///
   /// Returns true if initialization succeeded, false if already enabled.
-  Future<bool> enableHighlightOverlay({int? hardwareTextureId});
+  Future<bool> enableHighlightOverlay();
 
   /// Disables the highlight overlay system and cleans up resources.
   ///

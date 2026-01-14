@@ -16,8 +16,7 @@ EMSCRIPTEN_KEEPALIVE void OverlayManager_destroy(TOverlayManager *tOverlayManage
 EMSCRIPTEN_KEEPALIVE void OverlayManager_initialize(
     TOverlayManager *tOverlayManager,
     uint32_t width,
-    uint32_t height,
-    intptr_t hardwareTextureId
+    uint32_t height
 );
 
 EMSCRIPTEN_KEEPALIVE void OverlayManager_addHighlight(
@@ -56,8 +55,9 @@ EMSCRIPTEN_KEEPALIVE TView *OverlayManager_getOverlayView(
     TOverlayManager *tOverlayManager
 );
 
-EMSCRIPTEN_KEEPALIVE TTexture *OverlayManager_getOverlayTexture(
-    TOverlayManager *tOverlayManager
+EMSCRIPTEN_KEEPALIVE void OverlayManager_setSilhouetteTexture(
+    TOverlayManager *tOverlayManager,
+    TTexture *tSilhouetteTexture
 );
 
 EMSCRIPTEN_KEEPALIVE bool OverlayManager_hasHighlights(

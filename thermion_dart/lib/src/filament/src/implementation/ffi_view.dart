@@ -478,11 +478,20 @@ class FFIView extends View<Pointer<TView>> {
   FFIView? _silhouetteView;
   FFIView? _overlayView;
 
+  // Render targets created and owned by Dart
+  FFITexture? _silhouetteColorTexture;
+  FFITexture? _silhouetteDepthTexture;
+  RenderTarget? _silhouetteRenderTarget;
+
+  FFITexture? _overlayColorTexture;
+  FFITexture? _overlayDepthTexture;
+  RenderTarget? _overlayRenderTarget;
+
   ///
   /// Enables the highlight overlay system for this view.
   ///
   @override
-  Future<bool> enableHighlightOverlay({int? hardwareTextureId}) async {
+  Future<bool> enableHighlightOverlay() async {
     if (overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
       _logger.warning("Highlight overlay already enabled");
       return false;
@@ -496,16 +505,71 @@ class FFIView extends View<Pointer<TView>> {
       );
     }
 
+    // Create silhouette render target (white silhouettes for edge detection)
+    _silhouetteColorTexture = await app.createTexture(
+      vp.width, vp.height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      },
+      textureFormat: TextureFormat.RGBA8,
+    ) as FFITexture;
+    _silhouetteDepthTexture = await app.createTexture(
+      vp.width, vp.height,
+      flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+      textureFormat: TextureFormat.DEPTH32F,
+    ) as FFITexture;
+    _silhouetteRenderTarget = await app.createRenderTarget(
+      vp.width, vp.height,
+      color: _silhouetteColorTexture,
+      depth: _silhouetteDepthTexture,
+    );
+
+    // Create overlay render target (edge detection output)
+    _overlayColorTexture = await app.createTexture(
+      vp.width, vp.height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      },
+      textureFormat: TextureFormat.RGBA8,
+    ) as FFITexture;
+    _overlayDepthTexture = await app.createTexture(
+      vp.width, vp.height,
+      flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+      textureFormat: TextureFormat.DEPTH32F,
+    ) as FFITexture;
+    _overlayRenderTarget = await app.createRenderTarget(
+      vp.width, vp.height,
+      color: _overlayColorTexture,
+      depth: _overlayDepthTexture,
+    );
+
+    // Initialize overlay manager (creates views, scenes, fullscreen quad)
     await withVoidCallback((requestId, cb) =>
       OverlayManager_initializeRenderThread(
         overlayManager!,
         vp.width,
         vp.height,
-        hardwareTextureId ?? 0,
         requestId,
         cb
       )
     );
+
+    // Set the silhouette texture for edge detection
+    // The edge material in C++ needs to sample from this texture
+    await withVoidCallback((requestId, cb) =>
+      OverlayManager_setSilhouetteTextureRenderThread(
+        overlayManager!, _silhouetteColorTexture!.pointer, requestId, cb
+      )
+    );
+
+    // Get the views and set their render targets
+    final silhouetteView = await getSilhouetteView();
+    await silhouetteView!.setRenderTarget(_silhouetteRenderTarget);
+
+    final overlayView = await getOverlayView();
+    await overlayView!.setRenderTarget(_overlayRenderTarget);
 
     // Set the camera - silhouette view shares the main camera
     final camera = await getCamera();
@@ -513,7 +577,7 @@ class FFIView extends View<Pointer<TView>> {
       OverlayManager_setCameraRenderThread(overlayManager!, camera.getNativeHandle(), requestId, cb)
     );
 
-    _logger.info("Highlight overlay enabled (hardwareTextureId: ${hardwareTextureId ?? 'none'})");
+    _logger.info("Highlight overlay enabled");
     return true;
   }
 
@@ -537,7 +601,34 @@ class FFIView extends View<Pointer<TView>> {
     // Clear cached views
     _silhouetteView = null;
     _overlayView = null;
-    _overlayTexture = null;
+
+    // Clean up Dart-owned overlay resources
+    if (_overlayRenderTarget != null) {
+      await _overlayRenderTarget!.destroy();
+      _overlayRenderTarget = null;
+    }
+    if (_overlayColorTexture != null) {
+      await _overlayColorTexture!.dispose();
+      _overlayColorTexture = null;
+    }
+    if (_overlayDepthTexture != null) {
+      await _overlayDepthTexture!.dispose();
+      _overlayDepthTexture = null;
+    }
+
+    // Clean up Dart-owned silhouette resources
+    if (_silhouetteRenderTarget != null) {
+      await _silhouetteRenderTarget!.destroy();
+      _silhouetteRenderTarget = null;
+    }
+    if (_silhouetteColorTexture != null) {
+      await _silhouetteColorTexture!.dispose();
+      _silhouetteColorTexture = null;
+    }
+    if (_silhouetteDepthTexture != null) {
+      await _silhouetteDepthTexture!.dispose();
+      _silhouetteDepthTexture = null;
+    }
 
     // Destroy overlay manager (calls cleanup() and frees resources)
     await withVoidCallback((requestId, cb) =>
@@ -646,19 +737,11 @@ class FFIView extends View<Pointer<TView>> {
     return _overlayView;
   }
 
-  FFITexture? _overlayTexture;
-
   /// Get the overlay texture for compositing in Flutter.
   /// Returns null if no highlights are active.
   @override
   Texture? getOverlayTexture() {
-    if (_overlayTexture == null && overlayManager != null && OverlayManager_isInitialized(overlayManager!)) {
-      final texturePtr = OverlayManager_getOverlayTexture(overlayManager!);
-      if (texturePtr != nullptr) {
-        _overlayTexture = FFITexture(app.engine, texturePtr);
-      }
-    }
-    return _overlayTexture;
+    return _overlayColorTexture;
   }
 
   /// Check if there are any active highlights.

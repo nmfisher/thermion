@@ -1685,14 +1685,13 @@ extern "C"
       TOverlayManager *tOverlayManager,
       uint32_t width,
       uint32_t height,
-      intptr_t hardwareTextureId,
       uint32_t requestId,
       VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          OverlayManager_initialize(tOverlayManager, width, height, hardwareTextureId);
+          OverlayManager_initialize(tOverlayManager, width, height);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -1761,6 +1760,21 @@ extern "C"
         [=]() mutable
         {
           OverlayManager_setCamera(tOverlayManager, tCamera);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void OverlayManager_setSilhouetteTextureRenderThread(
+      TOverlayManager *tOverlayManager,
+      TTexture *tSilhouetteTexture,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          OverlayManager_setSilhouetteTexture(tOverlayManager, tSilhouetteTexture);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);

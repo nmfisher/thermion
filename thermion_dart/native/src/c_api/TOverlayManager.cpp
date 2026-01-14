@@ -27,10 +27,9 @@ EMSCRIPTEN_KEEPALIVE void OverlayManager_destroy(TOverlayManager *tOverlayManage
 EMSCRIPTEN_KEEPALIVE void OverlayManager_initialize(
     TOverlayManager *tOverlayManager,
     uint32_t width,
-    uint32_t height,
-    intptr_t hardwareTextureId) {
+    uint32_t height) {
     auto *overlayManager = reinterpret_cast<OverlayComponentManager *>(tOverlayManager);
-    overlayManager->initialize(width, height, hardwareTextureId);
+    overlayManager->initialize(width, height);
 }
 
 EMSCRIPTEN_KEEPALIVE void OverlayManager_setViewport(TOverlayManager *tOverlayManager, uint32_t width, uint32_t height) {
@@ -84,10 +83,12 @@ EMSCRIPTEN_KEEPALIVE TView *OverlayManager_getOverlayView(
     return reinterpret_cast<TView *>(overlayManager->getOverlayView());
 }
 
-EMSCRIPTEN_KEEPALIVE TTexture *OverlayManager_getOverlayTexture(
-    TOverlayManager *tOverlayManager) {
+EMSCRIPTEN_KEEPALIVE void OverlayManager_setSilhouetteTexture(
+    TOverlayManager *tOverlayManager,
+    TTexture *tSilhouetteTexture) {
     auto *overlayManager = reinterpret_cast<OverlayComponentManager *>(tOverlayManager);
-    return reinterpret_cast<TTexture *>(overlayManager->getOverlayTexture());
+    auto *silhouetteTexture = reinterpret_cast<filament::Texture *>(tSilhouetteTexture);
+    overlayManager->setSilhouetteTexture(silhouetteTexture);
 }
 
 EMSCRIPTEN_KEEPALIVE bool OverlayManager_hasHighlights(

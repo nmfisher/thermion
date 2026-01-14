@@ -65,9 +65,8 @@ namespace thermion
 
         /// Initialize the overlay system with the given viewport size.
         /// Must be called before adding highlights.
-        /// @param hardwareTextureId Optional platform-specific texture handle for the overlay color texture.
-        ///        If 0, creates a new texture. If non-zero, imports the existing hardware texture.
-        void initialize(uint32_t width, uint32_t height, intptr_t hardwareTextureId = 0) {
+        /// Render targets must be created on the Dart side and set on the views.
+        void initialize(uint32_t width, uint32_t height) {
             std::lock_guard lock(mMutex);
 
             if (mInitialized) {
@@ -76,17 +75,13 @@ namespace thermion
 
             mViewportWidth = width;
             mViewportHeight = height;
-            mExternalOverlayTextureId = hardwareTextureId;
 
-            createRenderTargets(width, height);
-            createOverlayRenderTargets(width, height, hardwareTextureId);
             createSilhouetteView();
             createOverlayView();
             createFullscreenQuad();
 
             mInitialized = true;
-            TRACE("OverlayComponentManager initialized %dx%d (external texture: %s)",
-                  width, height, hardwareTextureId != 0 ? "yes" : "no");
+            TRACE("OverlayComponentManager initialized %dx%d", width, height);
         }
 
         void setViewport(uint32_t width, uint32_t height) {
@@ -103,22 +98,8 @@ namespace thermion
                 return;
             }
 
-            // Recreate silhouette render targets at new size
-            destroyRenderTargets();
-            createRenderTargets(width, height);
-
-            // Only recreate overlay targets if we own them (not external texture)
-            if (mExternalOverlayTextureId == 0) {
-                destroyOverlayRenderTargets();
-                createOverlayRenderTargets(width, height, 0);
-                mOverlayView->setRenderTarget(mOverlayTarget);
-            }
-            // If external texture, Flutter is responsible for recreating it at new size
-
-            // Update views
+            // Update views (render targets must be recreated on Dart side)
             mSilhouetteView->setViewport({0, 0, width, height});
-            mSilhouetteView->setRenderTarget(mSilhouetteTarget);
-
             mOverlayView->setViewport({0, 0, width, height});
 
             // Update edge material texel size
@@ -266,10 +247,13 @@ namespace thermion
             return mOverlayView;
         }
 
-        /// Get the overlay texture for compositing in Flutter.
-        /// Returns the RGBA texture containing the rendered edge outlines.
-        filament::Texture* getOverlayTexture() {
-            return mOverlayTexture;
+        /// Set the silhouette texture for edge detection.
+        /// The edge material samples from this texture to detect edges.
+        /// This texture should be created and owned by Dart.
+        void setSilhouetteTexture(filament::Texture *silhouetteTexture) {
+            std::lock_guard lock(mMutex);
+            mSilhouetteTexture = silhouetteTexture;
+            updateEdgeMaterialParams();
         }
 
         /// Check if there are any highlighted entities.
@@ -283,111 +267,6 @@ namespace thermion
         }
 
     private:
-        void createRenderTargets(uint32_t width, uint32_t height) {
-            // Create silhouette color texture (R8 - single channel)
-            mSilhouetteTexture = filament::Texture::Builder()
-                .width(width)
-                .height(height)
-                .levels(1)
-                .sampler(filament::Texture::Sampler::SAMPLER_2D)
-                .format(filament::Texture::InternalFormat::R8)
-                .usage(filament::Texture::Usage::COLOR_ATTACHMENT |
-                       filament::Texture::Usage::SAMPLEABLE)
-                .build(*mEngine);
-
-            // Create silhouette depth texture
-            mSilhouetteDepth = filament::Texture::Builder()
-                .width(width)
-                .height(height)
-                .levels(1)
-                .sampler(filament::Texture::Sampler::SAMPLER_2D)
-                .format(filament::Texture::InternalFormat::DEPTH32F)
-                .usage(filament::Texture::Usage::DEPTH_ATTACHMENT)
-                .build(*mEngine);
-
-            // Create render target
-            mSilhouetteTarget = filament::RenderTarget::Builder()
-                .texture(filament::RenderTarget::AttachmentPoint::COLOR, mSilhouetteTexture)
-                .texture(filament::RenderTarget::AttachmentPoint::DEPTH, mSilhouetteDepth)
-                .build(*mEngine);
-        }
-
-        void destroyRenderTargets() {
-            if (mSilhouetteTarget) {
-                mEngine->destroy(mSilhouetteTarget);
-                mSilhouetteTarget = nullptr;
-            }
-            if (mSilhouetteTexture) {
-                mEngine->destroy(mSilhouetteTexture);
-                mSilhouetteTexture = nullptr;
-            }
-            if (mSilhouetteDepth) {
-                mEngine->destroy(mSilhouetteDepth);
-                mSilhouetteDepth = nullptr;
-            }
-        }
-
-        void createOverlayRenderTargets(uint32_t width, uint32_t height, intptr_t hardwareTextureId = 0) {
-            if (hardwareTextureId != 0) {
-                // Import external hardware texture
-                mOverlayTexture = filament::Texture::Builder()
-                    .width(width)
-                    .height(height)
-                    .levels(1)
-                    .sampler(filament::Texture::Sampler::SAMPLER_2D)
-                    .format(filament::Texture::InternalFormat::RGBA8)
-                    .usage(filament::Texture::Usage::COLOR_ATTACHMENT |
-                           filament::Texture::Usage::SAMPLEABLE)
-                    .import(hardwareTextureId)
-                    .build(*mEngine);
-                mOwnsOverlayTexture = false;
-                TRACE("Imported external overlay texture with ID %ld", (long)hardwareTextureId);
-            } else {
-                // Create new overlay color texture (RGBA8 for color + alpha)
-                mOverlayTexture = filament::Texture::Builder()
-                    .width(width)
-                    .height(height)
-                    .levels(1)
-                    .sampler(filament::Texture::Sampler::SAMPLER_2D)
-                    .format(filament::Texture::InternalFormat::RGBA8)
-                    .usage(filament::Texture::Usage::COLOR_ATTACHMENT |
-                           filament::Texture::Usage::SAMPLEABLE)
-                    .build(*mEngine);
-                mOwnsOverlayTexture = true;
-            }
-
-            // Create overlay depth texture (always owned)
-            mOverlayDepth = filament::Texture::Builder()
-                .width(width)
-                .height(height)
-                .levels(1)
-                .sampler(filament::Texture::Sampler::SAMPLER_2D)
-                .format(filament::Texture::InternalFormat::DEPTH32F)
-                .usage(filament::Texture::Usage::DEPTH_ATTACHMENT)
-                .build(*mEngine);
-
-            // Create render target
-            mOverlayTarget = filament::RenderTarget::Builder()
-                .texture(filament::RenderTarget::AttachmentPoint::COLOR, mOverlayTexture)
-                .texture(filament::RenderTarget::AttachmentPoint::DEPTH, mOverlayDepth)
-                .build(*mEngine);
-        }
-
-        void destroyOverlayRenderTargets() {
-            if (mOverlayTarget) {
-                mEngine->destroy(mOverlayTarget);
-                mOverlayTarget = nullptr;
-            }
-            if (mOverlayTexture && mOwnsOverlayTexture) {
-                mEngine->destroy(mOverlayTexture);
-            }
-            mOverlayTexture = nullptr;
-            if (mOverlayDepth) {
-                mEngine->destroy(mOverlayDepth);
-                mOverlayDepth = nullptr;
-            }
-        }
-
         void createSilhouetteView() {
             // Create silhouette scene
             mSilhouetteScene = mEngine->createScene();
@@ -399,13 +278,13 @@ namespace thermion
                 .build(*mEngine);
             mSilhouetteScene->setSkybox(mSilhouetteSkybox);
 
-            // Create view (camera will be set later via setCamera())
+            // Create view (camera and render target will be set later)
             mSilhouetteView = mEngine->createView();
             mSilhouetteView->setScene(mSilhouetteScene);
             mSilhouetteView->setViewport({0, 0, mViewportWidth, mViewportHeight});
-            mSilhouetteView->setRenderTarget(mSilhouetteTarget);
             mSilhouetteView->setPostProcessingEnabled(false);
             mSilhouetteView->setShadowingEnabled(false);
+            // Note: Render target will be set from Dart
         }
 
         void createOverlayView() {
@@ -442,12 +321,10 @@ namespace thermion
             mOverlayView->setScene(mOverlayScene);
             mOverlayView->setCamera(mOverlayCamera);
             mOverlayView->setViewport({0, 0, mViewportWidth, mViewportHeight});
-            mOverlayView->setRenderTarget(mOverlayTarget);
             mOverlayView->setPostProcessingEnabled(false);
             mOverlayView->setShadowingEnabled(false);
             mOverlayView->setFrustumCullingEnabled(false);  // Fullscreen quad shouldn't be culled
-
-            // No longer need blend mode - rendering to own texture
+            // Note: Render target will be set from Dart
         }
 
         void createFullscreenQuad() {
@@ -607,9 +484,7 @@ namespace thermion
                 mSilhouetteScene = nullptr;
             }
 
-            // Destroy render targets
-            destroyRenderTargets();
-            destroyOverlayRenderTargets();
+            // Note: Render targets are owned by Dart and destroyed there
 
             mInitialized = false;
         }
@@ -634,9 +509,7 @@ namespace thermion
         // Silhouette pass resources (camera is shared via setCamera(), not owned)
         filament::Scene *mSilhouetteScene = nullptr;
         filament::View *mSilhouetteView = nullptr;
-        filament::RenderTarget *mSilhouetteTarget = nullptr;
-        filament::Texture *mSilhouetteTexture = nullptr;
-        filament::Texture *mSilhouetteDepth = nullptr;
+        filament::Texture *mSilhouetteTexture = nullptr;  // Set from Dart via setSilhouetteTexture()
         filament::Skybox *mSilhouetteSkybox = nullptr;
 
         // Overlay (edge detection) pass resources
@@ -649,11 +522,6 @@ namespace thermion
         filament::VertexBuffer *mQuadVB = nullptr;
         filament::IndexBuffer *mQuadIB = nullptr;
         utils::Entity mFullscreenQuadEntity;
-        filament::RenderTarget *mOverlayTarget = nullptr;
-        filament::Texture *mOverlayTexture = nullptr;
-        filament::Texture *mOverlayDepth = nullptr;
-        bool mOwnsOverlayTexture = true;
-        intptr_t mExternalOverlayTextureId = 0;
 
         // Highlighted entities tracking
         std::unordered_map<uint32_t, SilhouetteComponent> mComponents;

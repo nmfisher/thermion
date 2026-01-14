@@ -410,7 +410,6 @@ namespace thermion
             TOverlayManager *tOverlayManager,
             uint32_t width,
             uint32_t height,
-            intptr_t hardwareTextureId,
             uint32_t requestId,
             VoidCallback onComplete
         );
@@ -443,6 +442,12 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void OverlayManager_setCameraRenderThread(
             TOverlayManager *tOverlayManager,
             TCamera *tCamera,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void OverlayManager_setSilhouetteTextureRenderThread(
+            TOverlayManager *tOverlayManager,
+            TTexture *tSilhouetteTexture,
             uint32_t requestId,
             VoidCallback onComplete
         );
