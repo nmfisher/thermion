@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_flutter/src/options.dart';
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'platform/platform.dart';
 import 'package:logging/logging.dart';
 
@@ -26,12 +27,23 @@ abstract class ThermionFlutterPlugin {
     _options = options;
   }
 
+  // Initialize the plugin and create the default swapchain.
   Future<SwapChain?> initialize({bool destroySwapchain = true});
+
+  // Create a rendering surface and binds to the given [View]. This is internal;
+  // unless you are [thermion_*] package developer, don't
+  // call this yourself. May not be supported on all platforms.
+  Future<PlatformTextureDescriptor?> createTextureAndBindToView(
+    View view,
+    int width,
+    int height,
+  );
 
   static Future<ThermionViewer> createViewer(
       {bool destroySwapchain = true}) async {
     _logger.finest("Creating viewer");
-    final swapChain = await instance.initialize(destroySwapchain: destroySwapchain);
+    final swapChain =
+        await instance.initialize(destroySwapchain: destroySwapchain);
     _logger.finest("Plugin initialized");
     final viewer = ThermionViewerFFI();
     await viewer.initialized;

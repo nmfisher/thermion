@@ -16,11 +16,10 @@ Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
 }
 
 class ThermionWidget extends StatefulWidget {
+
   /// The viewer whose content will be rendered into this widget.
-  ///
   final ThermionViewer viewer;
 
-  ///
   /// A callback to invoke whenever this widget and the underlying surface are
   /// resized. If a callback is not explicitly provided, the default callback
   /// will be run, which changes the aspect ratio for the active camera in
@@ -36,15 +35,6 @@ class ThermionWidget extends StatefulWidget {
   ///
   final Future Function(Size size, View view, double pixelRatio)? onResize;
 
-  /// If true, add an overlay showing the FPS on top of the rendered content.
-  final bool showFpsCounter;
-
-  /// The content to render before the texture widget is available.
-  /// The default is a solid red Container. This is intentionally chosen to
-  /// make it clear that there will be at least one frame
-  /// where the Texture widget is not being rendered.
-  final Widget? initial;
-
   /// If true, enable the highlight overlay system.
   /// This creates a separate texture for rendering entity highlights/outlines
   /// that is composited on top of the main render texture.
@@ -52,9 +42,7 @@ class ThermionWidget extends StatefulWidget {
 
   const ThermionWidget(
       {Key? key,
-      this.initial,
       required this.viewer,
-      this.showFpsCounter = false,
       this.onResize = kDefaultResizeCallback,
       this.enableOverlay = false})
       : super(key: key);
@@ -67,11 +55,6 @@ class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
     return ThermionWidgetInternal(
-        key: ObjectKey(widget.viewer.view),
-        initial: widget.initial,
-        viewer: widget.viewer,
-        showFpsCounter: widget.showFpsCounter,
-        onResize: widget.onResize,
-        enableOverlay: widget.enableOverlay);
+        view: widget.viewer.view);
   }
 }

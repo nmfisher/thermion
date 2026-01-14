@@ -5,6 +5,8 @@ abstract class PlatformTextureDescriptor {
   final int width;
   final int height;
 
+  bool get destroyed;
+
   PlatformTextureDescriptor(
       {required this.flutterTextureId,
       required this.hardwareId,
@@ -14,4 +16,6 @@ abstract class PlatformTextureDescriptor {
 
   void markTextureFrameAvailable();
   Future destroy();
+
+  Future Function(Duration timestamp)? onBeginFrame;
 }

@@ -14,6 +14,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
 
   @override
   Future destroy() async {
+    destroyed = true;
     await channel.invokeMethod("destroyTexture", flutterTextureId);
   }
 
@@ -39,7 +40,14 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
     final flutterTextureId = result[0] as int;
     final hardwareTextureId = result[1] as int;
     final windowHandle = result[2] as int?; // usually 0 for nullptr
-    return MethodChannelPlatformTextureDescriptor(
-        channel, flutterTextureId:flutterTextureId, hardwareId:hardwareTextureId, windowHandle: windowHandle, width:width, height:height);
+    return MethodChannelPlatformTextureDescriptor(channel,
+        flutterTextureId: flutterTextureId,
+        hardwareId: hardwareTextureId,
+        windowHandle: windowHandle,
+        width: width,
+        height: height);
   }
+
+  @override
+  bool destroyed = false;
 }

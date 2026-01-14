@@ -17,9 +17,6 @@ class ThermionWidgetInternal extends StatefulWidget {
   /// A callback that will be invoked whenever this widget (and the underlying texture is resized).
   final Future Function(Size size, View view, double pixelRatio)? onResize;
 
-  /// When true, an FPS counter will be displayed at the top right of the widget
-  final bool showFpsCounter;
-
   /// When true, enable the highlight overlay system with a separate composited texture
   /// Note: Overlay is not yet implemented on web platform.
   final bool enableOverlay;
@@ -29,7 +26,7 @@ class ThermionWidgetInternal extends StatefulWidget {
     required this.viewer,
     this.initial,
     this.onResize,
-    this.showFpsCounter = false,
+
     this.enableOverlay = false,
   });
 
