@@ -21,6 +21,11 @@ jobs:
         working-directory: thermion_dart
         run: dart run ffigen_js --config ffigen/web.yaml
 
+      - name: Ensure bindings are tracked
+        run: |
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
+
       - name: Check for changes
         id: git-check
         run: |
