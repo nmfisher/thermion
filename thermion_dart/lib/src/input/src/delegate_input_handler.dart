@@ -20,6 +20,7 @@ abstract class InputHandlerDelegate {
 /// delegating the actual update to an [InputHandlerDelegate].
 ///
 class DelegateInputHandler implements InputHandler {
+  
   final ThermionViewer viewer;
 
   late final _logger = Logger(this.runtimeType.toString());
@@ -32,10 +33,7 @@ class DelegateInputHandler implements InputHandler {
 
   final bool batch;
 
-  bool _ready = false;
   bool _processing = false;
-
-
 
   DelegateInputHandler({
     required this.viewer,
@@ -44,9 +42,7 @@ class DelegateInputHandler implements InputHandler {
 
   }) {
     FilamentApp.instance!.registerRequestFrameHook(process);
-    viewer.initialized.then((_) {
-      this._ready = true;
-    });
+
   }
 
   factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
@@ -125,7 +121,7 @@ class DelegateInputHandler implements InputHandler {
 
   @override
   Future handle(InputEvent event) async {
-    if (!_ready || _processing || delegate == null) {
+    if (_processing || delegate == null) {
       return;
     }
 
