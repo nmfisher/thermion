@@ -36,7 +36,6 @@ void main(List<String> arguments) async {
   await FilamentApp.instance!.setClearOptions(1.0, 0.0, 0.0, 1.0);
   await FilamentApp.instance!.register(swapChain, viewer.view);
   await viewer.setViewport(canvas.width, canvas.height);
-  await viewer.setRendering(true);
   final rnd = Random();
   // ignore: prefer_function_declarations_over_variables
   bool resizing = false;

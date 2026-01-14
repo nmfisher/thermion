@@ -104,7 +104,6 @@ class _MyHomePageState extends State<MyHomePage> {
       final view = await viewer.getActiveCamera();
       await view.lookAt(Vector3(0, 0, 5));
 
-      await _viewer!.setRendering(true);
       setState(() {});
     });
   }

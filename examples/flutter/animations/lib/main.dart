@@ -99,8 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
       await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
       await _thermionViewer!.setPostProcessing(true);
-      await _thermionViewer!.setRendering(true);
-
+      
       _inputHandler = DelegateInputHandler.fixedOrbit(_thermionViewer!);
       await _load(_droneUri);
 
