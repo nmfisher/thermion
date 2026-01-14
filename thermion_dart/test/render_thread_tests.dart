@@ -16,7 +16,7 @@ void main() async {
       await Future.delayed(Duration(seconds: 1));
       await viewer.setRendering(true);
       await Future.delayed(Duration(seconds: 1));
-      await FilamentApp.instance!.requestFrame();
+      await FilamentApp.instance!.render();
       await testHelper.capture(viewer.view, "render_thread_2");
     }, addSkybox: true);
   });

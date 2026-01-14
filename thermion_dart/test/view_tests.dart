@@ -454,7 +454,7 @@ void main() async {
       );
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-      await FilamentApp.instance!.requestFrame();
+      await FilamentApp.instance!.render();
 
       final sv = await result.viewer.view.getSilhouetteView();
       final svrt = await sv!.getRenderTarget();
@@ -477,7 +477,7 @@ void main() async {
       );
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-      await FilamentApp.instance!.requestFrame();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_1px_blue",
           captureRenderTarget: true, render: false);
@@ -486,7 +486,7 @@ void main() async {
       await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-      await FilamentApp.instance!.requestFrame();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_translate",
           captureRenderTarget: true, render: false);
@@ -496,7 +496,7 @@ void main() async {
           Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-      await FilamentApp.instance!.requestFrame();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_rotate",
           captureRenderTarget: true, render: false);
@@ -506,7 +506,7 @@ void main() async {
       await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-      await FilamentApp.instance!.requestFrame();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_camera_move",
           captureRenderTarget: true, render: false);
