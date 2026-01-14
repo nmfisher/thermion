@@ -200,7 +200,6 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     _setViewportWidget();
 
-    await viewer!.setRendering(true);
     widget.onViewerAvailable?.call(viewer!);
     if (asset != null) {
       widget.onAssetLoaded?.call(viewer!, asset!);
