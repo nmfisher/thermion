@@ -57,7 +57,7 @@ class _ThermionWidgetWebState extends State<ThermionWidgetInternal> {
 
       lastRender = DateTime.now();
       if (widget.viewer.rendering) {
-        await FilamentApp.instance!.requestFrame();
+        await FilamentApp.instance!.render();
       }
 
       stackPtr = stackSave();
