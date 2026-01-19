@@ -31,7 +31,6 @@ extern "C"
 	typedef struct TIndirectLight TIndirectLight;
 	typedef struct TTransformManager TTransformManager;
 	typedef struct TAnimationManager TAnimationManager;
-	typedef struct TCollisionComponentManager TCollisionComponentManager;
 	typedef struct TSceneAsset TSceneAsset;
 	typedef struct TNameComponentManager TNameComponentManager;
 	typedef struct TMaterial TMaterial;
