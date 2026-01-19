@@ -19,7 +19,7 @@
 
 #include "Log.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
-#include "scene/AnimationManager.hpp"
+#include "scene/AnimationComponentBase.hpp"
 
 template class std::vector<float>;
 namespace thermion
@@ -29,11 +29,11 @@ namespace thermion
     using namespace utils;
     using namespace std::chrono;
 
-    /// @brief 
+    /// @brief
     /// The status of an animation embedded in a glTF object.
     /// @param index refers to the index of the animation in the animations property of the underlying object.
     ///
-    struct GltfAnimation : AnimationManager::AnimationComponentBase
+    struct GltfAnimation : AnimationComponentBase
     {
         int8_t index = -1;
     };

@@ -18,7 +18,7 @@
 #include <utils/SingleInstanceComponentManager.h>
 
 #include "Log.hpp"
-#include "scene/AnimationManager.hpp"
+#include "scene/AnimationComponentBase.hpp"
 
 namespace thermion
 {
@@ -29,12 +29,12 @@ namespace thermion
 
     // The status of a morph target animation created dynamically at runtime (not glTF embedded).
     //
-    struct MorphAnimation : AnimationManager::AnimationComponentBase
+    struct MorphAnimation : AnimationComponentBase
     {
         int lengthInFrames;
         float frameLengthInMs = 0;
         std::vector<float> frameData;
-        std::vector<int> morphIndices; 
+        std::vector<int> morphIndices;
     };
 
 

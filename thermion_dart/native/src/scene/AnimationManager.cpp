@@ -35,7 +35,9 @@ namespace thermion
         mBoneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(transformManager, renderableManager);
     }
 
-    AnimationManager::~AnimationManager() = default;
+    AnimationManager::~AnimationManager()
+    {
+    }
 
     bool AnimationManager::setMorphAnimationBuffer(
         utils::Entity entity,

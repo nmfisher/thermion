@@ -8,6 +8,7 @@
 
 #include "c_api/APIBoundaryTypes.h"
 
+#include "scene/AnimationComponentBase.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "scene/GltfSceneAsset.hpp"
 #include "scene/SceneAsset.hpp"
@@ -39,31 +40,9 @@ namespace thermion
     class BoneAnimationComponentManager;
     class AnimationManager
     {
-        
+
         public:
-        
-        // The base struct shared by all three animation types.
-        // 
-        struct AnimationComponentBase
-        {
-            // The frame time (in nanoseconds) when this animation started playing.
-            uint64_t startTimeInNanos = 0;
-            
-            // Whether the animation should be played from its first frame, or at some later time.
-            float startOffset;
-            
-            // Whether the animation should loop back to the start when it finishes.
-            bool loop = false;
-            
-            // Whether the animation should be played backwards or forwards.
-            bool reverse = false;
-            
-            // The duration of the animation in seconds.
-            float durationInSecs = 0;
-            
-            // The speed at which this animation should be played.
-            float speed = 1.0f;
-        };
+
         AnimationManager(Engine *engine);
         ~AnimationManager();
 
@@ -222,9 +201,9 @@ namespace thermion
     private:
         Engine *mEngine = nullptr;
         std::mutex mMutex;
-        std::unique_ptr<GltfAnimationComponentManager> mGltfAnimationComponentManager = std::nullptr_t();
-        std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager = std::nullptr_t();
-        std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager = std::nullptr_t();
+        std::unique_ptr<GltfAnimationComponentManager> mGltfAnimationComponentManager;
+        std::unique_ptr<MorphAnimationComponentManager> mMorphAnimationComponentManager;
+        std::unique_ptr<BoneAnimationComponentManager> mBoneAnimationComponentManager;
         uint64_t mLastUpdateTime;
     };
 }
