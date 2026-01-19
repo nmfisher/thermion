@@ -5564,8 +5564,6 @@ final class TTransformManager extends ffi.Opaque {}
 
 final class TAnimationManager extends ffi.Opaque {}
 
-final class TCollisionComponentManager extends ffi.Opaque {}
-
 final class TSceneAsset extends ffi.Opaque {}
 
 final class TNameComponentManager extends ffi.Opaque {}
