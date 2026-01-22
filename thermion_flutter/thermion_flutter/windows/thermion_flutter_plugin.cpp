@@ -192,7 +192,7 @@ namespace thermion::tflutter::windows
     {
       if (_context)
       {
-        // _context->BlitFromSwapchain();
+        _context->BlitFromSwapchain();
         const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
 
         if (!flutterTextureId || *flutterTextureId == -1)

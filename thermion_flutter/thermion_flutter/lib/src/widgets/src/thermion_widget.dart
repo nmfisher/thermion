@@ -22,22 +22,22 @@ class ThermionWidget extends StatefulWidget {
 class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
-    // if (widget.enableOverlay) {
-    //   final overlayView = widget.viewer.view.getOverlayView();
+    if (widget.enableOverlay) {
+      final overlayView = widget.viewer.view.getOverlayView();
 
-    //     return Stack(children: [
-    //       Positioned.fill(
-    //           child: ThermionWidgetInternal(
-    //             key: Key("main_texture_view"),
-    //             view: widget.viewer.view)),
-    //       Positioned.fill(
+        return Stack(children: [
+          Positioned.fill(
+              child: ThermionWidgetInternal(
+                key: Key("main_texture_view"),
+                view: widget.viewer.view)),
+          Positioned.fill(
             
-    //         child: ThermionWidgetInternal(
-    //           key: Key("overlay_texture_view"),
-    //           view: overlayView!))
-    //     ]);
+            child: ThermionWidgetInternal(
+              key: Key("overlay_texture_view"),
+              view: overlayView!))
+        ]);
 
-    // }
+    }
     return ThermionWidgetInternal(view: widget.viewer.view);
   }
 }
