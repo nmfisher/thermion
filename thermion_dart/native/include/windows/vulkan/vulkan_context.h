@@ -29,8 +29,10 @@ namespace thermion::windows::vulkan {
         ThermionVulkanContext();
         ~ThermionVulkanContext();
         
-        HANDLE CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top);        
-        
+        HANDLE CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top);
+
+        VkImage GetVulkanImageForSurface(HANDLE d3dTextureHandle);
+
         void DestroyRenderingSurface(HANDLE handle);
                 
         void Flush();

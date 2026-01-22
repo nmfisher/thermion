@@ -7,19 +7,28 @@
 namespace thermion::windows::vulkan
 {
 
-    VulkanTexture::VulkanTexture(VkImage image, VkDevice device, VkDeviceMemory imageMemory, uint32_t width, uint32_t height, HANDLE d3dTextureHandle) : _image(image), _device(device),  _imageMemory(imageMemory), _width(width), _height(height), _d3dTextureHandle(d3dTextureHandle) {};
+    // Constructor for D3D-interop textures (doesn't own memory)
+    VulkanTexture::VulkanTexture(VkImage image, VkDevice device, VkDeviceMemory imageMemory, uint32_t width, uint32_t height, HANDLE d3dTextureHandle)
+        : _image(image), _device(device), _imageMemory(imageMemory), _width(width), _height(height), _d3dTextureHandle(d3dTextureHandle), _ownsMemory(false) {}
+
+    // Constructor for pure Vulkan textures (owns memory)
+    VulkanTexture::VulkanTexture(VkImage image, VkDevice device, VkDeviceMemory imageMemory, uint32_t width, uint32_t height, bool ownsMemory)
+        : _image(image), _device(device), _imageMemory(imageMemory), _width(width), _height(height), _d3dTextureHandle(nullptr), _ownsMemory(ownsMemory) {}
 
     VulkanTexture::~VulkanTexture() {
         bluevk::vkDeviceWaitIdle(_device);
         if(_image != VK_NULL_HANDLE) {
             bluevk::vkDestroyImage(_device, _image, nullptr);
-        } else { 
+        } else {
             std::cout << "Warning : no vkImage found" << std::endl;
         }
 
+        // Only free memory if we own it (pure Vulkan textures)
+        // D3D-interop textures have memory imported from D3D without ownership transfer
         // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImportMemoryWin32HandleInfoKHR.html
-        // imageMemory has been imported from D3D without transferring ownership
-        // therefore we don't need to release
+        if (_ownsMemory && _imageMemory != VK_NULL_HANDLE) {
+            bluevk::vkFreeMemory(_device, _imageMemory, nullptr);
+        }
     }         
     
 
@@ -161,5 +170,74 @@ namespace thermion::windows::vulkan
             return nullptr;
         }
         return std::make_unique<VulkanTexture>(image, device, imageMemory, width, height, d3dTextureHandle);
+    }
+
+    std::unique_ptr<VulkanTexture> VulkanTexture::createPure(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        uint32_t width,
+        uint32_t height)
+    {
+        // Create image without external memory support (pure Vulkan)
+        VkImageCreateInfo imageInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = nullptr,  // No external memory info
+            .flags = 0,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = VK_FORMAT_R8G8B8A8_UNORM,  // RGBA format for render target
+            .extent = {width, height, 1},
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+        };
+
+        VkImage image;
+        VkResult result = bluevk::vkCreateImage(device, &imageInfo, nullptr, &image);
+        if (result != VK_SUCCESS) {
+            ERROR("Failed to create pure Vulkan image");
+            return nullptr;
+        }
+
+        std::cout << "Created pure Vulkan vkImage " << (int64_t)image << std::endl;
+
+        // Get memory requirements
+        VkMemoryRequirements memRequirements;
+        bluevk::vkGetImageMemoryRequirements(device, image, &memRequirements);
+
+        // Allocate device-local memory
+        uint32_t memoryTypeIndex = findOptimalMemoryType(
+            physicalDevice,
+            memRequirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        );
+
+        VkMemoryAllocateInfo allocInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = memoryTypeIndex
+        };
+
+        VkDeviceMemory imageMemory;
+        result = bluevk::vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory);
+        if (result != VK_SUCCESS) {
+            bluevk::vkDestroyImage(device, image, nullptr);
+            ERROR("Failed to allocate memory for pure Vulkan image");
+            return nullptr;
+        }
+
+        result = bluevk::vkBindImageMemory(device, image, imageMemory, 0);
+        if (result != VK_SUCCESS) {
+            bluevk::vkFreeMemory(device, imageMemory, nullptr);
+            bluevk::vkDestroyImage(device, image, nullptr);
+            ERROR("Failed to bind memory for pure Vulkan image");
+            return nullptr;
+        }
+
+        return std::make_unique<VulkanTexture>(image, device, imageMemory, width, height, true);
     }
 }
