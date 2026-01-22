@@ -131,7 +131,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // dimensions don't seem to matter).
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
-    if (Platform.isMacOS || Platform.isIOS) {
+    if (Platform.isMacOS || Platform.isIOS || Platform.isWindows) {
       if (destroySwapchain && _swapChain != null) {
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
         _swapChain = null;
@@ -165,22 +165,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           channel, width, height);
     }
 
-    if (Platform.isWindows) {
-      if (_swapChain != null) {
-        await FilamentApp.instance!.unregister(_swapChain!, view);
-        await FilamentApp.instance!.destroySwapChain(_swapChain!);
-      }
-
-      _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-          descriptor.width, descriptor.height,
-          hasStencilBuffer: true);
-
-      _logger.info(
-        "Created headless swapchain ${descriptor.width}x${descriptor.height}",
-      );
-
-      await FilamentApp.instance!.register(_swapChain!, view);
-    } else if (Platform.isAndroid) {
+    if (Platform.isAndroid) {
       if (_swapChain != null) {
         await FilamentApp.instance!.unregister(_swapChain!, view);
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
@@ -221,6 +206,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         color: color,
         depth: depth,
       );
+
+      _logger.info("Created render target for hardware texture ID ${descriptor.hardwareId}");
 
       await view.setRenderTarget(renderTarget);
     }
