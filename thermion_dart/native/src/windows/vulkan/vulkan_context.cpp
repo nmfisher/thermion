@@ -32,6 +32,9 @@ class ThermionVulkanContext::Impl {
         ~Impl() {
             std::cerr << "ThermionVulkanContext destructor " << _vulkanTextures.size() << " Vulkan textures / "
                       << _d3dTextures.size() << " D3D textures / " << _renderTargetTextures.size() << " render targets remain" << std::endl;
+            if (blitFence != VK_NULL_HANDLE) {
+                bluevk::vkDestroyFence(device, blitFence, nullptr);
+            }
             _d3dContext = std::nullptr_t();
         }
         
@@ -143,26 +146,13 @@ class ThermionVulkanContext::Impl {
 
             vkAllocateCommandBuffers(device, &cmdBufInfo, &blitCommandBuffer);
 
-            createSyncObjects();
-
-            VkSemaphoreGetWin32HandleInfoKHR handleInfo{};
-            handleInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
-            handleInfo.semaphore = sharedSemaphore;
-            handleInfo.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT;
-
-            HANDLE semaphoreHandle = NULL;
-
-            auto fpGetSemaphoreWin32Handle = (PFN_vkGetSemaphoreWin32HandleKHR)vkGetDeviceProcAddr(device, "vkGetSemaphoreWin32HandleKHR");
-            if (fpGetSemaphoreWin32Handle) {
-                fpGetSemaphoreWin32Handle(device, &handleInfo, &semaphoreHandle);
-            } else { 
-                ERROR("Failed to resolve vkGetSemaphoreWin32HandleKHR");
-            }
-
-            if(semaphoreHandle == VK_NULL_HANDLE) {
-                ERROR("Failed to create Vulkan semaphore");
-            } else {
-                _d3dContext->ImportSemaphore(semaphoreHandle);
+            // Create blit fence
+            VkFenceCreateInfo fenceInfo{};
+            fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;  // Start signaled so first reset works
+            VkResult fenceResult = bluevk::vkCreateFence(device, &fenceInfo, nullptr, &blitFence);
+            if (fenceResult != VK_SUCCESS) {
+                std::cout << "[ERROR] Failed to create blit fence" << std::endl;
             }
 
         }
@@ -356,30 +346,30 @@ class ThermionVulkanContext::Impl {
                 return;
             }
 
-            uint64_t signalValue = ++currentSemaphoreValue;
-
-            // Setup Timeline Submit Info
-            VkTimelineSemaphoreSubmitInfo timelineInfo{};
-            timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-            timelineInfo.signalSemaphoreValueCount = 1;
-            timelineInfo.pSignalSemaphoreValues = &signalValue;
-
             // Setup Standard Submit Info
             VkSubmitInfo submitInfo{};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfo.pNext = &timelineInfo;
+            // submitInfo.pNext = &timelineInfo;
             submitInfo.commandBufferCount = 1;
             submitInfo.pCommandBuffers = &blitCommandBuffer;
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pSignalSemaphores = &sharedSemaphore;
+            // submitInfo.signalSemaphoreCount = 1;
+            // submitInfo.pSignalSemaphores = &sharedSemaphore;
 
-            result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+            // Wait for any previous blit to complete and reset fence
+            bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            bluevk::vkResetFences(device, 1, &blitFence);
 
-            _d3dContext->SetWaitForSemaphore(signalValue);
+            result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, blitFence);
 
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to submit queue: " << result << std::endl;
                 return;
+            }
+
+            // Wait for blit to complete before returning
+            result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            if (result != VK_SUCCESS) {
+                std::cout << "Failed to wait for blit fence: " << result << std::endl;
             }
         }
 
@@ -586,11 +576,9 @@ class ThermionVulkanContext::Impl {
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice device = VK_NULL_HANDLE;
         VkCommandPool commandPool = VK_NULL_HANDLE;
-        VkCommandBuffer blitCommandBuffer = VK_NULL_HANDLE; 
+        VkCommandBuffer blitCommandBuffer = VK_NULL_HANDLE;
+        VkFence blitFence = VK_NULL_HANDLE;
         VkQueue queue = VK_NULL_HANDLE;
-
-        VkSemaphore sharedSemaphore = VK_NULL_HANDLE;
-        uint64_t currentSemaphoreValue = 0;
         
         std::unique_ptr<thermion::windows::d3d::D3DContext> _d3dContext;
     
@@ -601,27 +589,7 @@ class ThermionVulkanContext::Impl {
         std::unique_ptr<TVulkanPlatform> _platform;
         filament::backend::VulkanPlatform::VulkanSharedContext _sharedContext{};
 
-        void createSyncObjects() {
-            VkExportSemaphoreCreateInfo exportInfo{};
-            exportInfo.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
-            // D3D12_FENCE is the handle type that maps to ID3D11Fence
-            exportInfo.handleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT;
 
-            VkSemaphoreTypeCreateInfo timelineInfo{};
-            timelineInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-            timelineInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-            timelineInfo.initialValue = 0;
-            timelineInfo.pNext = &exportInfo;
-
-            VkSemaphoreCreateInfo semaphoreInfo{};
-            semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            semaphoreInfo.pNext = &timelineInfo;
-
-            VkResult result = bluevk::vkCreateSemaphore(device, &semaphoreInfo, nullptr, &sharedSemaphore);
-            if (result != VK_SUCCESS) {
-                std::cout << "Failed to create shared semaphore: " << result << std::endl;
-            }
-        }
 
 };
 
