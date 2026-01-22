@@ -65,7 +65,7 @@ outputDirectory : ${outputDirectory.path}
         .listSync(recursive: true)
         .whereType<File>()
         .map((f) => f.path)
-        .where((f) => !(f.contains("CMakeLists") || f.contains("main.cpp")))
+        .where((f) => !(f.contains("CMakeLists") || f.contains("main.cpp") || f.contains("build")))
         .toList();
 
     if (targetOS != OS.windows) {
