@@ -96,6 +96,8 @@ namespace thermion::tflutter::windows
       return;
     }
 
+    auto vkImage = _context->GetVulkanImageForSurface(d3dHandle);
+
     auto flutterTexture = std::make_unique<FlutterD3DTexture>(d3dHandle, width, height);
 
     auto flutterTextureId = _textureRegistrar->RegisterTexture(flutterTexture->GetFlutterTexture());
@@ -107,7 +109,7 @@ namespace thermion::tflutter::windows
 
     std::vector<flutter::EncodableValue> resultList;
     resultList.push_back(flutter::EncodableValue(flutterTextureId));
-    resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+    resultList.push_back(flutter::EncodableValue((int64_t)vkImage));
     resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
     result->Success(resultList);
   }
@@ -190,7 +192,7 @@ namespace thermion::tflutter::windows
     {
       if (_context)
       {
-        _context->BlitFromSwapchain();
+        // _context->BlitFromSwapchain();
         const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
 
         if (!flutterTextureId || *flutterTextureId == -1)
