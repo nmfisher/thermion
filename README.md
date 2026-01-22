@@ -80,3 +80,4 @@ Thank you to the following people:
 - @alexmercerind for his work on integrating ANGLE textures on Flutter Windows
 - @BrutalCoding for documentation fixes
 - @chenriji for testing and bug fixes
+- @JesperBellenbaum for Vulkan/Windows improvements  
