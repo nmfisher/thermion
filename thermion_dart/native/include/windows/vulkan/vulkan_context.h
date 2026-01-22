@@ -39,7 +39,7 @@ namespace thermion::windows::vulkan {
       
         filament::backend::VulkanPlatform *GetPlatform();
       
-        void BlitFromSwapchain();
+        void BlitFromSwapchain(HANDLE d3dTextureHandle);
 
         void* GetSharedContext();
       

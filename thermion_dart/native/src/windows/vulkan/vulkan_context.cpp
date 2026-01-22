@@ -225,24 +225,30 @@ class ThermionVulkanContext::Impl {
             // ?? what to do here
         }
 
-        void BlitFromSwapchain() {
-            // Blit from render target texture to D3D-interop texture for Flutter display
-            if (_renderTargetTextures.empty() || _vulkanTextures.empty() || _d3dTextures.empty()) {
-                ERROR("No textures available for blit");
+        void BlitFromSwapchain(HANDLE d3dTextureHandle) {
+            // Find the texture index for this handle
+            size_t textureIndex = SIZE_MAX;
+            for (size_t i = 0; i < _d3dTextures.size(); i++) {
+                if (_d3dTextures[i]->GetTextureHandle() == d3dTextureHandle) {
+                    textureIndex = i;
+                    break;
+                }
+            }
+
+            if (textureIndex == SIZE_MAX) {
+                ERROR("BlitFromSwapchain: texture handle not found");
                 return;
             }
 
-            // Source: pure Vulkan render target texture
-            auto&& renderTarget = _renderTargetTextures.back();
-            auto srcImage = renderTarget->GetImage();
+            if (textureIndex >= _renderTargetTextures.size() || textureIndex >= _vulkanTextures.size()) {
+                ERROR("BlitFromSwapchain: texture index out of bounds");
+                return;
+            }
 
-            // Destination: D3D-interop texture
-            auto&& vkTexture = _vulkanTextures.back();
-            auto dstImage = vkTexture->GetImage();
-
-            auto&& d3dTexture = _d3dTextures.back();
-            auto width = d3dTexture->GetWidth();
-            auto height = d3dTexture->GetHeight();
+            auto srcImage = _renderTargetTextures[textureIndex]->GetImage();
+            auto dstImage = _vulkanTextures[textureIndex]->GetImage();
+            auto width = _d3dTextures[textureIndex]->GetWidth();
+            auto height = _d3dTextures[textureIndex]->GetHeight();
 
             VkResult result = bluevk::vkResetCommandBuffer(blitCommandBuffer, 0);
             if (result != VK_SUCCESS) {
@@ -261,83 +267,87 @@ class ThermionVulkanContext::Impl {
                 return;
             }
 
-            // Source barrier: render target texture (COLOR_ATTACHMENT_OPTIMAL -> TRANSFER_SRC_OPTIMAL)
-            VkImageMemoryBarrier srcBarrier{};
-            srcBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            srcBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            srcBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            srcBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            srcBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            srcBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            srcBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            srcBarrier.image = srcImage;
-            srcBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+            // Blit only the specific texture pair
+            {
 
-            // Destination barrier: D3D-interop texture (UNDEFINED -> TRANSFER_DST_OPTIMAL)
-            VkImageMemoryBarrier dstBarrier{};
-            dstBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            dstBarrier.srcAccessMask = 0;
-            dstBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            dstBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            dstBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            dstBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            dstBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            dstBarrier.image = dstImage;
-            dstBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+                // Source barrier: render target texture (COLOR_ATTACHMENT_OPTIMAL -> TRANSFER_SRC_OPTIMAL)
+                VkImageMemoryBarrier srcBarrier{};
+                srcBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                srcBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                srcBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                srcBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                srcBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                srcBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                srcBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                srcBarrier.image = srcImage;
+                srcBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-            // Pre-blit barriers
-            VkImageMemoryBarrier preBlitBarriers[] = {srcBarrier, dstBarrier};
-            vkCmdPipelineBarrier(
-                blitCommandBuffer,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                0,
-                0, nullptr,
-                0, nullptr,
-                2, preBlitBarriers
-            );
+                // Destination barrier: D3D-interop texture (UNDEFINED -> TRANSFER_DST_OPTIMAL)
+                VkImageMemoryBarrier dstBarrier{};
+                dstBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                dstBarrier.srcAccessMask = 0;
+                dstBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                dstBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                dstBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                dstBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                dstBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                dstBarrier.image = dstImage;
+                dstBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-            // Define blit region
-            VkImageBlit blit{};
-            blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            blit.srcOffsets[0] = {0, 0, 0};
-            blit.srcOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
-            blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            blit.dstOffsets[0] = {0, 0, 0};
-            blit.dstOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
+                // Pre-blit barriers
+                VkImageMemoryBarrier preBlitBarriers[] = {srcBarrier, dstBarrier};
+                vkCmdPipelineBarrier(
+                    blitCommandBuffer,
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    2, preBlitBarriers
+                );
 
-            // Perform blit (handles RGBA->BGRA format conversion automatically)
-            bluevk::vkCmdBlitImage(
-                blitCommandBuffer,
-                srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1, &blit,
-                VK_FILTER_NEAREST
-            );
+                // Define blit region
+                VkImageBlit blit{};
+                blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+                blit.srcOffsets[0] = {0, 0, 0};
+                blit.srcOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
+                blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+                blit.dstOffsets[0] = {0, 0, 0};
+                blit.dstOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
 
-            // Post-blit barriers
-            // Source: transition back to COLOR_ATTACHMENT_OPTIMAL for next render
-            srcBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            srcBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            srcBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            srcBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                // Perform blit (handles RGBA->BGRA format conversion automatically)
+                bluevk::vkCmdBlitImage(
+                    blitCommandBuffer,
+                    srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    1, &blit,
+                    VK_FILTER_NEAREST
+                );
 
-            // Destination: transition to SHADER_READ_ONLY_OPTIMAL for D3D sampling
-            dstBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            dstBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            dstBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            dstBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                // Post-blit barriers
+                // Source: transition back to COLOR_ATTACHMENT_OPTIMAL for next render
+                srcBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                srcBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                srcBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                srcBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            VkImageMemoryBarrier postBlitBarriers[] = {srcBarrier, dstBarrier};
-            bluevk::vkCmdPipelineBarrier(
-                blitCommandBuffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                0,
-                0, nullptr,
-                0, nullptr,
-                2, postBlitBarriers
-            );
+                // Destination: transition to SHADER_READ_ONLY_OPTIMAL for D3D sampling
+                dstBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                dstBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                dstBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                dstBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+                VkImageMemoryBarrier postBlitBarriers[] = {srcBarrier, dstBarrier};
+                bluevk::vkCmdPipelineBarrier(
+                    blitCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    2, postBlitBarriers
+                );
+            }
 
             // End command buffer
             result = bluevk::vkEndCommandBuffer(blitCommandBuffer);
@@ -639,8 +649,8 @@ void* ThermionVulkanContext::GetSharedContext() {
     return pImpl->GetSharedContext();
 }
 
-void ThermionVulkanContext::BlitFromSwapchain() {
-    pImpl->BlitFromSwapchain();
+void ThermionVulkanContext::BlitFromSwapchain(HANDLE d3dTextureHandle) {
+    pImpl->BlitFromSwapchain(d3dTextureHandle);
 }
 
 void ThermionVulkanContext::readPixelsFromImage(
