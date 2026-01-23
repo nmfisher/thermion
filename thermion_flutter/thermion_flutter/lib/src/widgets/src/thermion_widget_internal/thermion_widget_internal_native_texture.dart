@@ -1,17 +1,20 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart' hide View;
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
-// Inserts [view] into the widget tree by allocating a hardware surface 
-// and binding to the [view]. The actual implementation 
-// (e.g. texture vs window, render target vs swapchain, etc) will differ by 
+// Inserts [view] into the widget tree by allocating a hardware surface
+// and binding to the [view]. The actual implementation
+// (e.g. texture vs window, render target vs swapchain, etc) will differ by
 // the actual platform; see [ThermionFlutterPluginImpl] for details.
 class ThermionWidgetInternal extends StatefulWidget {
   
   final View view;
+  
+  final void Function(PlatformTextureDescriptor? descriptor)? onTextureUpdated;
 
-  ThermionWidgetInternal({super.key, required this.view});
+  ThermionWidgetInternal({super.key, required this.view, this.onTextureUpdated});
 
   @override
   State<ThermionWidgetInternal> createState() => _ThermionWidgetInternalState();
@@ -93,6 +96,8 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   void _allocateTexture(int width, int height) async {
     final texture = await ThermionFlutterPlugin.instance
         .createTextureAndBindToView(widget.view, width, height);
+
+    widget.onTextureUpdated?.call(texture);
 
     if (!mounted) {
       texture?.destroy();

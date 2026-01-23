@@ -173,7 +173,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       _swapChain = await FilamentApp.instance!.createSwapChain(
         Pointer<Void>.fromAddress(descriptor.windowHandle!),
       );
-      await FilamentApp.instance!.register(_swapChain!, view);
+
     } else {
       final color = await FilamentApp.instance!.createTexture(
         descriptor.width,
@@ -212,18 +212,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       await view.setRenderTarget(renderTarget);
     }
 
-    await view.setViewport(width, height);
-
-    var camera = await view.getCamera();
-    var near = await camera.getNear();
-    var far = await camera.getCullingFar();
-    var focalLength = await camera.getFocalLength();
-
-    await camera.setLensProjection(
-      near: near,
-      far: far,
-      focalLength: focalLength,
-      aspect: width.toDouble() / height.toDouble());
+    await FilamentApp.instance!.register(_swapChain!, view);
 
     _descriptors.add(descriptor);
 

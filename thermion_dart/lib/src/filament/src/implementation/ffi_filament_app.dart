@@ -48,7 +48,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TRenderManager> renderManager;
 
   final Pointer<TMaterialProvider> ubershaderMaterialProvider;
-  
+
   final Pointer<TNameComponentManager> nameComponentManager;
 
   late final Future<Uint8List> Function(String uri) _loadResource;
@@ -138,7 +138,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
 
     await withVoidCallback((requestId, cb) =>
-        RenderManager_addAnimationManagerRenderThread(renderManager, animationManager, requestId, cb));
+        RenderManager_addAnimationManagerRenderThread(
+            renderManager, animationManager, requestId, cb));
 
     FilamentApp.instance = FFIFilamentApp(
         engine,
@@ -211,8 +212,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         }
       }
 
-      await withVoidCallback((requestId, cb) => RenderManager_setRenderableRenderThread(
-          renderManager, swapChain.getNativeHandle(), viewsPtr, numRenderable, requestId, cb));
+      await withVoidCallback((requestId, cb) =>
+          RenderManager_setRenderableRenderThread(
+              renderManager,
+              swapChain.getNativeHandle(),
+              viewsPtr,
+              numRenderable,
+              requestId,
+              cb));
       _logger.finest("Updated render order, $numRenderable renderable views");
     }
   }
@@ -285,7 +292,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future destroySwapChain(SwapChain swapChain) async {
     _logger.info("Destroying swapchain");
     await withVoidCallback((requestId, cb) =>
-        RenderManager_removeSwapChainRenderThread(renderManager, swapChain.getNativeHandle(), requestId, cb));
+        RenderManager_removeSwapChainRenderThread(
+            renderManager, swapChain.getNativeHandle(), requestId, cb));
     await withVoidCallback((requestId, callback) {
       Engine_destroySwapChainRenderThread(
           engine, swapChain.getNativeHandle(), requestId, callback);
@@ -369,7 +377,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             TextureUsage.TEXTURE_USAGE_BLIT_SRC
           },
           textureFormat: TextureFormat.RGBA8) as FFITexture;
-      _logger.finest("Created ${width}x${height} color texture (TextureFormat.RGBA8)");
+      _logger.finest(
+          "Created ${width}x${height} color texture (TextureFormat.RGBA8)");
     }
     if (depth == null) {
       _logger.finest("No depth texture provided");
@@ -380,7 +389,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           },
           textureFormat: TextureFormat.DEPTH32F) as FFITexture;
-      _logger.finest("Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
+      _logger.finest(
+          "Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
       RenderTarget_createRenderThread(
@@ -661,6 +671,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _swapChains[swapChain]!
         .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
     await updateRenderOrder();
+    _logger.info("Registered swapchain with view");
   }
 
   ///
@@ -723,9 +734,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final frameTimeInNanos = DateTime.now().microsecond * 1000000;
 
     await withVoidCallback((requestId, cb) {
-      RenderManager_renderRenderThread(renderManager, frameTimeInNanos, requestId, cb);
+      RenderManager_renderRenderThread(
+          renderManager, frameTimeInNanos, requestId, cb);
     });
-    
   }
 
   ///
@@ -837,10 +848,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           "Added ${views.length} views (from ${_swapChains.length} swapchains)");
     }
 
-    for(final view in views) {
+    for (final view in views) {
       final vp = await view.getViewport();
-      if(vp.width == 0 || vp.height == 0) {
-        throw Exception("Invalid viewport : ${vp.width}x${vp.height} for ${view.getNativeHandle()}");
+      if (vp.width == 0 || vp.height == 0) {
+        throw Exception(
+            "Invalid viewport : ${vp.width}x${vp.height} for ${view.getNativeHandle()}");
       }
     }
 
