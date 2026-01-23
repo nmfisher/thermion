@@ -476,8 +476,7 @@ void main() async {
         b: 1.0,
         outlineWidth: 1.0,
       );
-      await FilamentApp.instance!
-          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_1px_blue",
@@ -485,8 +484,7 @@ void main() async {
 
       // Test that highlight follows object translation
       await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
-      await FilamentApp.instance!
-          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_translate",
@@ -495,8 +493,7 @@ void main() async {
       // Test that highlight follows object rotation
       await cube.setTransform(
           Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
-      await FilamentApp.instance!
-          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_rotate",
@@ -505,8 +502,7 @@ void main() async {
       // Test that highlight works after camera change
       final camera = await result.viewer.view.getCamera();
       await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
-      await FilamentApp.instance!
-          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+      
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_camera_move",
