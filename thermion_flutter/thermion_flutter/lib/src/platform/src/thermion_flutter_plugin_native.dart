@@ -23,10 +23,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   static SwapChain? _swapChain;
 
-  SwapChain? getActiveSwapchain() {
-    return _swapChain;
-  }
-
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
       return File(path.replaceAll("file://", "")).readAsBytesSync();
