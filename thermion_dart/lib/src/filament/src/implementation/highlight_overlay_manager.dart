@@ -41,6 +41,7 @@ class HighlightOverlayManager {
       width: actualWidth,
       height: actualHeight,
     );
+    await silhouetteView.setBlendMode(BlendMode.transparent);
 
     // Create edge detection view (second pass)
     final edgeDetectionView = await EdgeDetectionView.create(
@@ -49,6 +50,12 @@ class HighlightOverlayManager {
       height: actualHeight,
       silhouetteTexture: silhouetteView.colorTexture,
     );
+
+    // Wire up texture resize callback so EdgeDetectionView gets notified
+    // when SilhouetteView resizes its render target
+    silhouetteView.onTextureResized = (newTexture) async {
+      await edgeDetectionView.updateSilhouetteTexture(newTexture);
+    };
 
     final manager = HighlightOverlayManager._(
       app,
@@ -66,7 +73,6 @@ class HighlightOverlayManager {
   /// Set the camera for the silhouette view.
   Future<void> setCamera(Camera camera) async {
     await silhouetteView.setCamera(camera);
-    await overlayView.setCamera(camera);
   }
 
   /// Update viewport size for both views.

@@ -41,8 +41,11 @@ class EdgeDetectionView extends FFIView {
   final ThermionEntity _fullscreenQuadEntity;
   final FFITextureSampler _edgeSampler;
 
-  // Silhouette texture to sample (set externally)
-  final Texture silhouetteTexture;
+  // Silhouette texture to sample (mutable for resize support)
+  Texture _silhouetteTexture;
+
+  /// The silhouette texture being sampled for edge detection
+  Texture get silhouetteTexture => _silhouetteTexture;
 
   EdgeDetectionView._(
     super.view,
@@ -57,8 +60,8 @@ class EdgeDetectionView extends FFIView {
     required FFIIndexBuffer quadIB,
     required ThermionEntity fullscreenQuadEntity,
     required FFITextureSampler edgeSampler,
-    required this.silhouetteTexture
-  })  : 
+    required Texture silhouetteTexture,
+  })  : _silhouetteTexture = silhouetteTexture,
         _edgeMaterial = material,
         _edgeScene = scene,
         _skybox = skybox,
@@ -239,6 +242,13 @@ class EdgeDetectionView extends FFIView {
     await _updateEdgeMaterialParams();
   }
 
+  /// Update the silhouette texture reference (called when SilhouetteView resizes)
+  Future<void> updateSilhouetteTexture(Texture newTexture) async {
+    _silhouetteTexture = newTexture;
+    await _updateEdgeMaterialParams();
+    _logger.info("Updated silhouette texture reference");
+  }
+
   /// Update viewport size.
   @override
   Future setViewport(int width, int height) async {
@@ -287,7 +297,7 @@ class EdgeDetectionView extends FFIView {
     // Set silhouette texture
     await _edgeMaterialInstance.setParameterTexture(
       'silhouette',
-      silhouetteTexture! as FFITexture,
+      _silhouetteTexture as FFITexture,
       _edgeSampler,
     );
 

@@ -496,6 +496,9 @@ class FFIView extends View<Pointer<TView>> {
     final camera = await getCamera();
     await _highlightOverlayManager!.setCamera(camera);
 
+    await app.updateRenderOrder();
+
+
     _logger.info("Highlight overlay enabled");
     return true;
   }

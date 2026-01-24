@@ -22,22 +22,44 @@ class ThermionWidget extends StatefulWidget {
 class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
-    // if (widget.enableOverlay) {
-    //   final overlayView = widget.viewer.view.getOverlayView();
+    if (widget.enableOverlay) {
+      final overlayView = widget.viewer.view.getOverlayView();
 
-    //     return Stack(children: [
-    //       Positioned.fill(
-    //           child: ThermionWidgetInternal(
-    //             key: Key("main_texture_view"),
-    //             view: widget.viewer.view)),
-    //       Positioned.fill(
-            
-    //         child: ThermionWidgetInternal(
-    //           key: Key("overlay_texture_view"),
-    //           view: overlayView!))
-    //     ]);
+      return Stack(children: [
+        Positioned.fill(
+            child: ThermionWidgetInternal(
+                key: Key("main_texture_view"),
+                onTextureUpdated: (descriptor) async {
+                  if (descriptor == null) {
+                    return;
+                  }
+                  final view = widget.viewer.view;
+                  var camera = await view.getCamera();
+                  var near = await camera.getNear();
+                  var far = await camera.getCullingFar();
+                  var focalLength = await camera.getFocalLength();
 
-    // }
+                  await camera.setLensProjection(
+                      near: near,
+                      far: far,
+                      focalLength: focalLength,
+                      aspect: descriptor.width.toDouble() /
+                          descriptor.height.toDouble());
+
+                  await view.setViewport(descriptor.width, descriptor.height);
+                },
+                view: widget.viewer.view)),
+        Positioned.fill(
+            child: ThermionWidgetInternal(
+                key: Key("overlay_texture_view"),
+                view: overlayView!,
+                onTextureUpdated: (descriptor) async {
+                  if (descriptor == null) {
+                    return;
+                  }
+                }))
+      ]);
+    }
     return ThermionWidgetInternal(view: widget.viewer.view);
   }
 }
