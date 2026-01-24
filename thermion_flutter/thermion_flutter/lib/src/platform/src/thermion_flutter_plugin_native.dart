@@ -206,6 +206,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       await view.setRenderTarget(renderTarget);
     }
 
+    await FilamentApp.instance!.register(_swapChain!, view);
+
     await view.setViewport(width, height);
 
     var camera = await view.getCamera();
