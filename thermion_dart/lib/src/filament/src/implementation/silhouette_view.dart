@@ -21,8 +21,8 @@ class _SilhouetteComponent {
 
 /// Manages the first (silhouette) rendering pass for highlighted entities.
 ///
-/// Renders highlighted entities as white silhouettes to a standalone texture/render target. 
-/// 
+/// Renders highlighted entities as white silhouettes to a standalone texture/render target.
+///
 /// This texture is passed to the edge detection pass.
 ///
 class SilhouetteView extends FFIView {
@@ -31,10 +31,17 @@ class SilhouetteView extends FFIView {
   // Material (owned by this class)
   final FFIMaterial _silhouetteMaterial;
 
-  // Render target resources
-  final FFITexture _colorTexture;
-  final FFITexture _depthTexture;
-  final FFIRenderTarget _renderTarget;
+  // Render target resources (mutable for resize support)
+  FFITexture _colorTexture;
+  FFITexture _depthTexture;
+  FFIRenderTarget _renderTarget;
+
+  // Track current texture dimensions
+  int _textureWidth = 0;
+  int _textureHeight = 0;
+
+  // Callback to notify when texture changes (for EdgeDetectionView)
+  Future<void> Function(Texture)? onTextureResized;
 
   // Scene resources (separate from parent's scene)
   final FFIScene _silhouetteScene;
@@ -52,8 +59,7 @@ class SilhouetteView extends FFIView {
     required FFIRenderTarget renderTarget,
     required FFIScene scene,
     required Skybox skybox,
-  })  : 
-        _silhouetteMaterial = material,
+  })  : _silhouetteMaterial = material,
         _colorTexture = colorTexture,
         _depthTexture = depthTexture,
         _renderTarget = renderTarget,
@@ -99,7 +105,8 @@ class SilhouetteView extends FFIView {
 
     // Create scene with black skybox to clear render target
     final silhouetteScene = await app.createScene() as FFIScene;
-    final skybox = await app.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
+    final skybox =
+        await app.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
     await silhouetteScene.setSkybox(skybox);
 
     // Create the SilhouetteView with all resources
@@ -114,6 +121,10 @@ class SilhouetteView extends FFIView {
       skybox: skybox,
     );
 
+    // Initialize texture dimensions to prevent resize on first setViewport
+    silhouetteView._textureWidth = width;
+    silhouetteView._textureHeight = height;
+
     // Configure this view
     await silhouetteView.setScene(silhouetteScene);
     await silhouetteView.setViewport(width, height);
@@ -122,6 +133,69 @@ class SilhouetteView extends FFIView {
     await silhouetteView.setShadowsEnabled(false);
 
     return silhouetteView;
+  }
+
+  @override
+  Future setViewport(int width, int height) async {
+    _logger.info("setViewport $width x $height (current texture: ${_textureWidth}x${_textureHeight})");
+    await super.setViewport(width, height);
+
+    // Resize if dimensions are valid and different from current texture size
+    if (width > 0 && height > 0 &&
+        (width != _textureWidth || height != _textureHeight)) {
+      await _resizeRenderTarget(width, height);
+    }
+  }
+
+  Future _resizeRenderTarget(int width, int height) async {
+    _logger.info("Resizing render target from ${_textureWidth}x${_textureHeight} to ${width}x${height}");
+
+    // Store old resources for cleanup
+    final oldColorTexture = _colorTexture;
+    final oldDepthTexture = _depthTexture;
+    final oldRenderTarget = _renderTarget;
+
+    // Create new textures
+    _colorTexture = await app.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      },
+      textureFormat: TextureFormat.RGBA8,
+    ) as FFITexture;
+
+    _depthTexture = await app.createTexture(
+      width,
+      height,
+      flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+      textureFormat: TextureFormat.DEPTH32F,
+    ) as FFITexture;
+
+    _renderTarget = await app.createRenderTarget(
+      width,
+      height,
+      color: _colorTexture,
+      depth: _depthTexture,
+    ) as FFIRenderTarget;
+
+    // Set new render target on view
+    await setRenderTarget(_renderTarget);
+
+    // Update tracked dimensions
+    _textureWidth = width;
+    _textureHeight = height;
+
+    // Notify listeners (EdgeDetectionView needs new texture reference)
+    await onTextureResized?.call(_colorTexture);
+
+    // Destroy old resources
+    await oldRenderTarget.destroy();
+    await oldColorTexture.dispose();
+    await oldDepthTexture.dispose();
+
+    _logger.info("Render target resized successfully");
   }
 
   /// The color texture containing white silhouettes (for edge detection sampling).
@@ -156,10 +230,8 @@ class SilhouetteView extends FFIView {
   @override
   View? getOverlayView() => throw Exception();
 
-
   @override
   bool hasHighlights() => _components.isNotEmpty;
-
 
   /// Add a highlight for the given entity.
   Future<void> addHighlight({
