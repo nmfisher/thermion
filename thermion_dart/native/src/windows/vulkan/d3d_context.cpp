@@ -189,23 +189,5 @@ namespace thermion::windows::d3d
         _D3D11DeviceContext->Flush();
     }
 
-    void D3DContext::ImportSemaphore(HANDLE handle)
-    {
-        if (!_D3D11Device5) return;
-
-        // Open the shared fence from Vulkan
-        HRESULT hr = _D3D11Device5->OpenSharedFence(handle, __uuidof(ID3D11Fence), (void**)&_sharedFence);
-        if (FAILED(hr)) {
-            std::cout << "Failed to open shared fence from Vulkan" << std::endl;
-        }
-    }
-
-    void D3DContext::SetWaitForSemaphore(uint64_t value) {
-        if (_D3D11DeviceContext4 && _sharedFence) {
-            // Instruct the GPU to wait until the fence reaches 'value'
-            // This is a GPU-side wait, it does not block the CPU.
-            _D3D11DeviceContext4->Wait(_sharedFence.Get(), value);
-        }
-    }
 
 }

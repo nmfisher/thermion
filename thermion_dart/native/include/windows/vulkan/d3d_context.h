@@ -26,9 +26,6 @@ namespace thermion::windows::d3d {
                 return _D3D11Device;
             }
 
-            void ImportSemaphore(HANDLE handle);
-            
-            void SetWaitForSemaphore(uint64_t value);
 
         private:
             ID3D11DeviceContext* _D3D11DeviceContext = nullptr;

@@ -96,6 +96,8 @@ namespace thermion::tflutter::windows
       return;
     }
 
+    auto vkImage = _context->GetVulkanImageForSurface(d3dHandle);
+
     auto flutterTexture = std::make_unique<FlutterD3DTexture>(d3dHandle, width, height);
 
     auto flutterTextureId = _textureRegistrar->RegisterTexture(flutterTexture->GetFlutterTexture());
@@ -107,7 +109,7 @@ namespace thermion::tflutter::windows
 
     std::vector<flutter::EncodableValue> resultList;
     resultList.push_back(flutter::EncodableValue(flutterTextureId));
-    resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+    resultList.push_back(flutter::EncodableValue((int64_t)vkImage));
     resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
     result->Success(resultList);
   }
@@ -190,17 +192,30 @@ namespace thermion::tflutter::windows
     {
       if (_context)
       {
-        _context->BlitFromSwapchain();
         const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
 
         if (!flutterTextureId || *flutterTextureId == -1)
         {
           std::cout << "Bad texture" << std::endl;
+          result->Success(flutter::EncodableValue((int64_t) nullptr));
           return;
         }
-        // std::cout << "Marking texture" << (*flutterTextureId) << "available" << std::endl;
+
+        // Find the FlutterD3DTexture for this flutterTextureId
+        auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
+                               { return ft->GetFlutterTextureId() == *flutterTextureId; });
+
+        if (it == _flutterTextures.end()) {
+          std::cerr << "Failed to find Flutter texture for ID " << *flutterTextureId << std::endl;
+          result->Success(flutter::EncodableValue((int64_t) nullptr));
+          return;
+        }
+
+        HANDLE d3dTextureHandle = (*it)->GetD3DTextureHandle();
+        _context->Blit(d3dTextureHandle);
+
         _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
-      } else { 
+      } else {
         std::cout << "No context" << std::endl;
       }
       result->Success(flutter::EncodableValue((int64_t) nullptr));

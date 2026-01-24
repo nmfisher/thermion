@@ -23,10 +23,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   static SwapChain? _swapChain;
 
-  SwapChain? getActiveSwapchain() {
-    return _swapChain;
-  }
-
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
       return File(path.replaceAll("file://", "")).readAsBytesSync();
@@ -131,7 +127,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // dimensions don't seem to matter).
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
-    if (Platform.isMacOS || Platform.isIOS) {
+    if (Platform.isMacOS || Platform.isIOS || Platform.isWindows) {
       if (destroySwapchain && _swapChain != null) {
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
         _swapChain = null;
@@ -165,22 +161,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           channel, width, height);
     }
 
-    if (Platform.isWindows) {
-      if (_swapChain != null) {
-        await FilamentApp.instance!.unregister(_swapChain!, view);
-        await FilamentApp.instance!.destroySwapChain(_swapChain!);
-      }
-
-      _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-          descriptor.width, descriptor.height,
-          hasStencilBuffer: true);
-
-      _logger.info(
-        "Created headless swapchain ${descriptor.width}x${descriptor.height}",
-      );
-
-      await FilamentApp.instance!.register(_swapChain!, view);
-    } else if (Platform.isAndroid) {
+    if (Platform.isAndroid) {
       if (_swapChain != null) {
         await FilamentApp.instance!.unregister(_swapChain!, view);
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
@@ -188,7 +169,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       _swapChain = await FilamentApp.instance!.createSwapChain(
         Pointer<Void>.fromAddress(descriptor.windowHandle!),
       );
-      await FilamentApp.instance!.register(_swapChain!, view);
+
     } else {
       final color = await FilamentApp.instance!.createTexture(
         descriptor.width,
@@ -215,6 +196,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
 
+      final existingRenderTarget = await view.getRenderTarget();
+
       var renderTarget = await FilamentApp.instance!.createRenderTarget(
         descriptor.width,
         descriptor.height,
@@ -223,7 +206,17 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       );
 
       await view.setRenderTarget(renderTarget);
+
+      if (existingRenderTarget != null) {
+        final color = await existingRenderTarget.getColorTexture();
+        final depth = await existingRenderTarget.getDepthTexture();
+        await color.destroy();
+        await depth.destroy();
+        await existingRenderTarget.destroy();
+      }
     }
+
+    await FilamentApp.instance!.register(_swapChain!, view);
 
     await view.setViewport(width, height);
 

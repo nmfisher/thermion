@@ -29,7 +29,7 @@ class NativeOptions {
 
   const NativeOptions(
       {this.backend,
-      this.renderTargetColorTextureFormat = TextureFormat.RGBA32F,
+      this.renderTargetColorTextureFormat = TextureFormat.RGBA8,
       this.renderTargetDepthTextureFormat = TextureFormat.DEPTH24_STENCIL8,
       this.createOverlay = false});
 }

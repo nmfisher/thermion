@@ -83,7 +83,7 @@ int main()
    std::cout << "SAVED PIXELS" << std::endl;
 
    // ctx->GetTexture()->Flush();
-   ctx->BlitFromSwapchain();      
+   ctx->Blit();      
 
    std::vector<uint8_t> outPixels(width * height * 4);
 
