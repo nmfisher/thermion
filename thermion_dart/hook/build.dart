@@ -387,7 +387,7 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
   var url = _getLibraryUrl(platform, mode);
 
   if (targetOS == OS.windows) {
-    url = url.replaceAll(".zip", "-vulkan.zip");
+    url = url.replaceAll(".zip", "-vulkan-texture-import.zip");
   }
 
   final filename = url.split("/").last;
