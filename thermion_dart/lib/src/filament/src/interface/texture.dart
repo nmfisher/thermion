@@ -351,8 +351,13 @@ abstract class Texture {
   /// Generates mipmaps automatically for the texture
   Future generateMipmaps();
 
-  /// Disposes the texture resources
+  // Destroys this texture.
+  @Deprecated("Call destroy() instead")
   Future dispose();
+
+  // Destroys this texture.
+  Future destroy();
+
 }
 
 /// Pixel data format enum, representing different channel combinations
