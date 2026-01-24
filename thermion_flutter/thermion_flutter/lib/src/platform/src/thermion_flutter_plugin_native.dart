@@ -196,6 +196,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
 
+      final existingRenderTarget = await view.getRenderTarget();
+
       var renderTarget = await FilamentApp.instance!.createRenderTarget(
         descriptor.width,
         descriptor.height,
@@ -204,6 +206,14 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       );
 
       await view.setRenderTarget(renderTarget);
+
+      if (existingRenderTarget != null) {
+        final color = await existingRenderTarget.getColorTexture();
+        final depth = await existingRenderTarget.getDepthTexture();
+        await color.destroy();
+        await depth.destroy();
+        await existingRenderTarget.destroy();
+      }
     }
 
     await FilamentApp.instance!.register(_swapChain!, view);
