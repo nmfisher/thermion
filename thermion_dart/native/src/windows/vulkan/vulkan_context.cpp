@@ -211,11 +211,7 @@ class ThermionVulkanContext::Impl {
             return VK_NULL_HANDLE;
         }
 
-        void Flush() {
-            // ?? what to do here
-        }
-
-        void BlitFromSwapchain(HANDLE d3dTextureHandle) {
+        void Blit(HANDLE d3dTextureHandle) {
             // Find the texture index for this handle
             size_t textureIndex = SIZE_MAX;
             for (size_t i = 0; i < _d3dTextures.size(); i++) {
@@ -226,12 +222,12 @@ class ThermionVulkanContext::Impl {
             }
 
             if (textureIndex == SIZE_MAX) {
-                ERROR("BlitFromSwapchain: texture handle not found");
+                ERROR("Texture handle not found");
                 return;
             }
 
             if (textureIndex >= _renderTargetTextures.size() || textureIndex >= _vulkanTextures.size()) {
-                ERROR("BlitFromSwapchain: texture index out of bounds");
+                ERROR("Texture index out of bounds");
                 return;
             }
 
@@ -617,8 +613,8 @@ void* ThermionVulkanContext::GetSharedContext() {
     return pImpl->GetSharedContext();
 }
 
-void ThermionVulkanContext::BlitFromSwapchain(HANDLE d3dTextureHandle) {
-    pImpl->BlitFromSwapchain(d3dTextureHandle);
+void ThermionVulkanContext::Blit(HANDLE d3dTextureHandle) {
+    pImpl->Blit(d3dTextureHandle);
 }
 
 void ThermionVulkanContext::readPixelsFromImage(

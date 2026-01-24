@@ -34,12 +34,11 @@ namespace thermion::windows::vulkan {
         VkImage GetVulkanImageForSurface(HANDLE d3dTextureHandle);
 
         void DestroyRenderingSurface(HANDLE handle);
-                
-        void Flush();
-      
+                      
         filament::backend::VulkanPlatform *GetPlatform();
       
-        void BlitFromSwapchain(HANDLE d3dTextureHandle);
+        // Blits the contents of the paired Vulkan texture to the specified D3D texture handle
+        void Blit(HANDLE d3dTextureHandle);
 
         void* GetSharedContext();
       

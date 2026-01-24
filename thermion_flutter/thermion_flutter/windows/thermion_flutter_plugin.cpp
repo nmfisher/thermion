@@ -212,7 +212,7 @@ namespace thermion::tflutter::windows
         }
 
         HANDLE d3dTextureHandle = (*it)->GetD3DTextureHandle();
-        _context->BlitFromSwapchain(d3dTextureHandle);
+        _context->Blit(d3dTextureHandle);
 
         _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
       } else {
