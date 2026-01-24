@@ -30,7 +30,11 @@ class ThermionVulkanContext::Impl {
     public:
 
         ~Impl() {
-            std::cerr << "ThermionVulkanContext destructor " << _vulkanTextures.size() << " Vulkan textures / " << _d3dTextures.size() << " D3D textures remain" << std::endl;
+            std::cerr << "ThermionVulkanContext destructor " << _vulkanTextures.size() << " Vulkan textures / "
+                      << _d3dTextures.size() << " D3D textures / " << _renderTargetTextures.size() << " render targets remain" << std::endl;
+            if (blitFence != VK_NULL_HANDLE) {
+                bluevk::vkDestroyFence(device, blitFence, nullptr);
+            }
             _d3dContext = std::nullptr_t();
         }
         
@@ -142,35 +146,29 @@ class ThermionVulkanContext::Impl {
 
             vkAllocateCommandBuffers(device, &cmdBufInfo, &blitCommandBuffer);
 
-            createSyncObjects();
-
-            VkSemaphoreGetWin32HandleInfoKHR handleInfo{};
-            handleInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
-            handleInfo.semaphore = sharedSemaphore;
-            handleInfo.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT;
-
-            HANDLE semaphoreHandle = NULL;
-
-            auto fpGetSemaphoreWin32Handle = (PFN_vkGetSemaphoreWin32HandleKHR)vkGetDeviceProcAddr(device, "vkGetSemaphoreWin32HandleKHR");
-            if (fpGetSemaphoreWin32Handle) {
-                fpGetSemaphoreWin32Handle(device, &handleInfo, &semaphoreHandle);
-            } else { 
-                ERROR("Failed to resolve vkGetSemaphoreWin32HandleKHR");
-            }
-
-            if(semaphoreHandle == VK_NULL_HANDLE) {
-                ERROR("Failed to create Vulkan semaphore");
-            } else {
-                _d3dContext->ImportSemaphore(semaphoreHandle);
+            // Create blit fence
+            VkFenceCreateInfo fenceInfo{};
+            fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;  // Start signaled so first reset works
+            VkResult fenceResult = bluevk::vkCreateFence(device, &fenceInfo, nullptr, &blitFence);
+            if (fenceResult != VK_SUCCESS) {
+                std::cout << "[ERROR] Failed to create blit fence" << std::endl;
             }
 
         }
 
         HANDLE CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
-            
+
             Log("Creating Vulkan texture %dx%d", width, height);
 
-            // creates the D3D texture
+            // 1. Create pure Vulkan texture for render target (returned to Flutter as hardware texture ID)
+            auto renderTargetTexture = VulkanTexture::createPure(device, physicalDevice, width, height);
+            if(!renderTargetTexture) {
+                ERROR("Failed to create pure Vulkan render target texture");
+                return NULL;
+            }
+
+            // 2. Create D3D texture and D3D-interop Vulkan texture (for Flutter display)
             auto d3dTexture = _d3dContext->CreateTexture(width, height);
             auto d3dTextureHandle = d3dTexture->GetTextureHandle();
             auto vkTexture = VulkanTexture::create(device, physicalDevice, width, height, d3dTextureHandle);
@@ -179,10 +177,7 @@ class ThermionVulkanContext::Impl {
                 return NULL;
             }
 
-            // fillImageWithColor(device, commandPool, queue, image, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,  // Current image layout
-            //     { width, height, 1 }, // Image extent
-            //     0.0f, 1.0f, 0.0f, 1.0f);    // Red color (RGBA))
-            
+            _renderTargetTextures.push_back(std::move(renderTargetTexture));
             _d3dTextures.push_back(std::move(d3dTexture));
             _vulkanTextures.push_back(std::move(vkTexture));
             return d3dTextureHandle;
@@ -190,61 +185,64 @@ class ThermionVulkanContext::Impl {
     
         void DestroyRenderingSurface(HANDLE handle) {
             std::cerr << "Destroying rendering surface " << handle << std::endl;
-            auto vulkanNewEnd = std::remove_if(_vulkanTextures.begin(), _vulkanTextures.end(), [=](auto&& vkTexture) {
-                return vkTexture->GetD3DTextureHandle() == handle;
-            });
-            
-            if (vulkanNewEnd != _vulkanTextures.end()) {
-                _vulkanTextures.erase(vulkanNewEnd, _vulkanTextures.end());
-            } else { 
-                std::cerr << "Vulkan texture not found?" << std::endl;
-            }
-            
-            auto d3dNewEnd = std::remove_if(_d3dTextures.begin(), _d3dTextures.end(), [=](auto&& d3dTexture) {
-                return d3dTexture->GetTextureHandle() == handle;
-            });
-            
-            if (d3dNewEnd != _d3dTextures.end()) {
-                _d3dTextures.erase(d3dNewEnd, _d3dTextures.end());
-            } else { 
-                std::cerr << "D3D texture not found?" << std::endl;
-            }
-            std::cerr << "Rendering surface destroyed, " << _vulkanTextures.size() << " Vulkan textures / " << _d3dTextures.size() << " D3D textures remain" << std::endl;
 
+            // Find index of the D3D texture with this handle and remove from all three vectors
+            for (size_t i = 0; i < _d3dTextures.size(); i++) {
+                if (_d3dTextures[i]->GetTextureHandle() == handle) {
+                    _renderTargetTextures.erase(_renderTargetTextures.begin() + i);
+                    _vulkanTextures.erase(_vulkanTextures.begin() + i);
+                    _d3dTextures.erase(_d3dTextures.begin() + i);
+                    std::cerr << "Rendering surface destroyed, " << _vulkanTextures.size() << " Vulkan textures / "
+                              << _d3dTextures.size() << " D3D textures / " << _renderTargetTextures.size() << " render targets remain" << std::endl;
+                    return;
+                }
+            }
+            std::cerr << "D3D texture not found for handle " << handle << std::endl;
+        }
+
+        VkImage GetVulkanImageForSurface(HANDLE handle) {
+            // Find the index of the D3D texture with this handle and return the corresponding render target VkImage
+            for (size_t i = 0; i < _d3dTextures.size(); i++) {
+                if (_d3dTextures[i]->GetTextureHandle() == handle) {
+                    // Return the corresponding render target texture's VkImage (not the D3D-interop one)
+                    return _renderTargetTextures[i]->GetImage();
+                }
+            }
+            return VK_NULL_HANDLE;
         }
 
         void Flush() {
             // ?? what to do here
         }
 
-        void BlitFromSwapchain() {
-            
-            std::lock_guard lock(_platform->mutex);
-            if(!_platform->current) {
-                ERROR("No platform");
+        void BlitFromSwapchain(HANDLE d3dTextureHandle) {
+            // Find the texture index for this handle
+            size_t textureIndex = SIZE_MAX;
+            for (size_t i = 0; i < _d3dTextures.size(); i++) {
+                if (_d3dTextures[i]->GetTextureHandle() == d3dTextureHandle) {
+                    textureIndex = i;
+                    break;
+                }
+            }
+
+            if (textureIndex == SIZE_MAX) {
+                ERROR("BlitFromSwapchain: texture handle not found");
                 return;
             }
 
-            if(_d3dTextures.size() == 0) {
-                ERROR("No D3D textures");
+            if (textureIndex >= _renderTargetTextures.size() || textureIndex >= _vulkanTextures.size()) {
+                ERROR("BlitFromSwapchain: texture index out of bounds");
                 return;
             }
 
-            auto&& vkTexture = _vulkanTextures.back();
-            auto image = vkTexture->GetImage();
+            auto srcImage = _renderTargetTextures[textureIndex]->GetImage();
+            auto dstImage = _vulkanTextures[textureIndex]->GetImage();
+            auto width = _d3dTextures[textureIndex]->GetWidth();
+            auto height = _d3dTextures[textureIndex]->GetHeight();
 
-            auto&& texture = _d3dTextures.back();
-
-            auto height = texture->GetHeight();
-            auto width = texture->GetWidth();
-
-            auto bundle = _platform->getSwapChainBundle(_platform->current);
-            VkImage swapchainImage = bundle.colors[_platform->currentColorIndex];
-
-            VkResult result = bluevk::vkResetCommandBuffer(blitCommandBuffer, 0); 
-
+            VkResult result = bluevk::vkResetCommandBuffer(blitCommandBuffer, 0);
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to allocate command buffer: " << result << std::endl;
+                std::cout << "Failed to reset command buffer: " << result << std::endl;
                 return;
             }
 
@@ -252,104 +250,94 @@ class ThermionVulkanContext::Impl {
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            
+
             result = bluevk::vkBeginCommandBuffer(blitCommandBuffer, &beginInfo);
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to begin command buffer: " << result << std::endl;
                 return;
             }
 
-            // std::cout << "Starting blit operation..." << std::endl;
-            
-            // Pre-transition barriers
-            VkImageMemoryBarrier srcBarrier{};
-            srcBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            srcBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            srcBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            srcBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            srcBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            srcBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            srcBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            srcBarrier.image = swapchainImage;
-            srcBarrier.subresourceRange = {
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                0, 1, 0, 1
-            };
+            // Blit only the specific texture pair
+            {
 
-            VkImageMemoryBarrier dstBarrier{};
-            dstBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            dstBarrier.srcAccessMask = 0;
-            dstBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            dstBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            dstBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            dstBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            dstBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            dstBarrier.image = image;
-            dstBarrier.subresourceRange = {
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                0, 1, 0, 1
-            };
+                // Source barrier: render target texture (COLOR_ATTACHMENT_OPTIMAL -> TRANSFER_SRC_OPTIMAL)
+                VkImageMemoryBarrier srcBarrier{};
+                srcBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                srcBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                srcBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                srcBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                srcBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                srcBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                srcBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                srcBarrier.image = srcImage;
+                srcBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-            // std::cout << "Transitioning images to transfer layouts..." << std::endl;
+                // Destination barrier: D3D-interop texture (UNDEFINED -> TRANSFER_DST_OPTIMAL)
+                VkImageMemoryBarrier dstBarrier{};
+                dstBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                dstBarrier.srcAccessMask = 0;
+                dstBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                dstBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                dstBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                dstBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                dstBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                dstBarrier.image = dstImage;
+                dstBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-            // Pre-blit barriers
-            VkImageMemoryBarrier preBlitBarriers[] = {srcBarrier, dstBarrier};
-            vkCmdPipelineBarrier(
-                blitCommandBuffer,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
-                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                0,
-                0, nullptr,
-                0, nullptr,
-                2, preBlitBarriers
-            );
+                // Pre-blit barriers
+                VkImageMemoryBarrier preBlitBarriers[] = {srcBarrier, dstBarrier};
+                vkCmdPipelineBarrier(
+                    blitCommandBuffer,
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    2, preBlitBarriers
+                );
 
-            // Define blit region with bounds checking
-            VkImageBlit blit{};
-            blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            blit.srcOffsets[0] = {0, 0, 0};
-            blit.srcOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
-            blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            blit.dstOffsets[0] = {0, 0, 0};
-            blit.dstOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
+                // Define blit region
+                VkImageBlit blit{};
+                blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+                blit.srcOffsets[0] = {0, 0, 0};
+                blit.srcOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
+                blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+                blit.dstOffsets[0] = {0, 0, 0};
+                blit.dstOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
 
-            // std::cout << "Executing blit command..." << std::endl;
-            // std::cout << "Source dimensions: " << width << "x" << height << std::endl;
-            // std::cout << "Destination dimensions: " << width << "x" << height << std::endl;
+                // Perform blit (handles RGBA->BGRA format conversion automatically)
+                bluevk::vkCmdBlitImage(
+                    blitCommandBuffer,
+                    srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    1, &blit,
+                    VK_FILTER_NEAREST
+                );
 
-            // Perform blit with validation
-            bluevk::vkCmdBlitImage(
-                blitCommandBuffer,
-                swapchainImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1, &blit,
-                VK_FILTER_NEAREST 
-            );
+                // Post-blit barriers
+                // Source: transition back to COLOR_ATTACHMENT_OPTIMAL for next render
+                srcBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                srcBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                srcBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                srcBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            // Post-transition barriers
-            srcBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            srcBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            srcBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            srcBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                // Destination: transition to SHADER_READ_ONLY_OPTIMAL for D3D sampling
+                dstBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                dstBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                dstBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                dstBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-            dstBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            dstBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            dstBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            dstBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-            // std::cout << "Transitioning images back to original layouts..." << std::endl;
-
-            // Post-blit barriers
-            VkImageMemoryBarrier postBlitBarriers[] = {srcBarrier, dstBarrier};
-            bluevk::vkCmdPipelineBarrier(
-                blitCommandBuffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
-                0,
-                0, nullptr,
-                0, nullptr,
-                2, postBlitBarriers
-            );
+                VkImageMemoryBarrier postBlitBarriers[] = {srcBarrier, dstBarrier};
+                bluevk::vkCmdPipelineBarrier(
+                    blitCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    2, postBlitBarriers
+                );
+            }
 
             // End command buffer
             result = bluevk::vkEndCommandBuffer(blitCommandBuffer);
@@ -358,34 +346,30 @@ class ThermionVulkanContext::Impl {
                 return;
             }
 
-            uint64_t signalValue = ++currentSemaphoreValue;
-
-            // 2. Setup Timeline Submit Info
-            VkTimelineSemaphoreSubmitInfo timelineInfo{};
-            timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-            timelineInfo.signalSemaphoreValueCount = 1;
-            timelineInfo.pSignalSemaphoreValues = &signalValue;
-
-            // 3. Setup Standard Submit Info
+            // Setup Standard Submit Info
             VkSubmitInfo submitInfo{};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfo.pNext = &timelineInfo; // Chain the timeline info
+            // submitInfo.pNext = &timelineInfo;
             submitInfo.commandBufferCount = 1;
             submitInfo.pCommandBuffers = &blitCommandBuffer;
-            
-            // Define the semaphore to signal
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pSignalSemaphores = &sharedSemaphore;
+            // submitInfo.signalSemaphoreCount = 1;
+            // submitInfo.pSignalSemaphores = &sharedSemaphore;
 
-            result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+            // Wait for any previous blit to complete and reset fence
+            bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            bluevk::vkResetFences(device, 1, &blitFence);
 
-            _d3dContext->SetWaitForSemaphore(signalValue);
-
+            result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, blitFence);
 
             if (result != VK_SUCCESS) {
                 std::cout << "Failed to submit queue: " << result << std::endl;
-                // bluevk::vkDestroyFence(device, fence, nullptr);
                 return;
+            }
+
+            // Wait for blit to complete before returning
+            result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            if (result != VK_SUCCESS) {
+                std::cout << "Failed to wait for blit fence: " << result << std::endl;
             }
         }
 
@@ -592,48 +576,31 @@ class ThermionVulkanContext::Impl {
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice device = VK_NULL_HANDLE;
         VkCommandPool commandPool = VK_NULL_HANDLE;
-        VkCommandBuffer blitCommandBuffer = VK_NULL_HANDLE; 
+        VkCommandBuffer blitCommandBuffer = VK_NULL_HANDLE;
+        VkFence blitFence = VK_NULL_HANDLE;
         VkQueue queue = VK_NULL_HANDLE;
-
-        VkSemaphore sharedSemaphore = VK_NULL_HANDLE;
-        uint64_t currentSemaphoreValue = 0;
         
         std::unique_ptr<thermion::windows::d3d::D3DContext> _d3dContext;
     
         std::vector<std::unique_ptr<thermion::windows::d3d::D3DTexture>> _d3dTextures;
         std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _vulkanTextures;
+        std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _renderTargetTextures;  // Pure Vulkan textures for render targets
         
         std::unique_ptr<TVulkanPlatform> _platform;
         filament::backend::VulkanPlatform::VulkanSharedContext _sharedContext{};
 
-        void createSyncObjects() {
-            VkExportSemaphoreCreateInfo exportInfo{};
-            exportInfo.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
-            // D3D12_FENCE is the handle type that maps to ID3D11Fence
-            exportInfo.handleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT;
 
-            VkSemaphoreTypeCreateInfo timelineInfo{};
-            timelineInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-            timelineInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-            timelineInfo.initialValue = 0;
-            timelineInfo.pNext = &exportInfo;
-
-            VkSemaphoreCreateInfo semaphoreInfo{};
-            semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            semaphoreInfo.pNext = &timelineInfo;
-
-            VkResult result = bluevk::vkCreateSemaphore(device, &semaphoreInfo, nullptr, &sharedSemaphore);
-            if (result != VK_SUCCESS) {
-                std::cout << "Failed to create shared semaphore: " << result << std::endl;
-            }
-        }
 
 };
 
 HANDLE ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
     return pImpl->CreateRenderingSurface(width, height, left, top);
 }
-  
+
+VkImage ThermionVulkanContext::GetVulkanImageForSurface(HANDLE handle) {
+    return pImpl->GetVulkanImageForSurface(handle);
+}
+
 void ThermionVulkanContext::DestroyRenderingSurface(HANDLE handle) {
     pImpl->DestroyRenderingSurface(handle);
 }
@@ -650,8 +617,8 @@ void* ThermionVulkanContext::GetSharedContext() {
     return pImpl->GetSharedContext();
 }
 
-void ThermionVulkanContext::BlitFromSwapchain() {
-    pImpl->BlitFromSwapchain();
+void ThermionVulkanContext::BlitFromSwapchain(HANDLE d3dTextureHandle) {
+    pImpl->BlitFromSwapchain(d3dTextureHandle);
 }
 
 void ThermionVulkanContext::readPixelsFromImage(
