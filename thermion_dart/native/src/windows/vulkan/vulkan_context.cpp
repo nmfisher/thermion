@@ -601,10 +601,6 @@ void ThermionVulkanContext::DestroyRenderingSurface(HANDLE handle) {
     pImpl->DestroyRenderingSurface(handle);
 }
 
-void ThermionVulkanContext::Flush() {
-    pImpl->Flush();
-}
-
 filament::backend::VulkanPlatform *ThermionVulkanContext::GetPlatform() { 
 return pImpl->GetPlatform();
 }
