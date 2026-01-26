@@ -8,4 +8,11 @@
 ///
 abstract class NativeHandle<T> {
   T getNativeHandle();
+
+  @override
+  bool operator ==(Object other) =>
+      other is NativeHandle && other.getNativeHandle() == getNativeHandle();
+
+  @override
+  int get hashCode => getNativeHandle().hashCode;
 }

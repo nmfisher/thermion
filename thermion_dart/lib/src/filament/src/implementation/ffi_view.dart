@@ -642,10 +642,5 @@ class FFIView extends View<Pointer<TView>> {
     return View_isTransparentPickingEnabled(getNativeHandle());
   }
 
-  @override
-  bool operator ==(Object other) =>
-      other is FFIView && view.address == other.view.address;
 
-  @override
-  int get hashCode => view.address.hashCode;
 }
