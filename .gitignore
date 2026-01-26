@@ -11,3 +11,4 @@ pubspec_overrides.yaml
 *.iml
 **/*/*.filamat
 **/*/*.g.dart
+**/*.BAK
