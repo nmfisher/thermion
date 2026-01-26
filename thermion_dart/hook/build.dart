@@ -95,7 +95,7 @@ outputDirectory : ${outputDirectory.path}
       "filament",
       "backend",
       "filameshio",
-	if (targetOS == OS.linux) "filamat_combined" else if (targetOS != OS.iOS) "filamat",
+	if (targetOS != OS.iOS) "filamat",
       if (targetOS == OS.linux) "shaders",
       "utils",
       "filabridge",
@@ -117,7 +117,7 @@ outputDirectory : ${outputDirectory.path}
       "uberarchive",
       "zstd",
       //"mikktspace",
-      if (targetOS == OS.linux) "geometry_combined" else "geometry",
+      "geometry",
       if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"]
     ];
 
