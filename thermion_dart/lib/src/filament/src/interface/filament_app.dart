@@ -64,8 +64,8 @@ abstract class FilamentApp<T> {
   Future<Camera> createCamera({ThermionEntity? targetEntity});
 
   // Destroys the specified entity. You must ensure that the entity has already
-  // been detached (e.g. if renderable, it has been removed from any scenes, 
-  // that any camera or animation component has already been removed, etc).  
+  // been detached (e.g. if renderable, it has been removed from any scenes,
+  // that any camera or animation component has already been removed, etc).
   Future destroyEntity(ThermionEntity entity);
 
   //
@@ -172,11 +172,26 @@ abstract class FilamentApp<T> {
   Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
       MaterialInstance materialInstance);
 
+  // Currently, only [View] instances that have been associated with 
+  // a [SwapChain] will be rendered when [render] is called. 
+  // Calling this method registers the association between [view] and 
+  // [swapChain], ensuring that the view will be rendered every time [render] is 
+  // called.
   //
+  // This is still required even if [view] has an attached render target. This 
+  // will change in future once we use Renderer.renderStandaloneView().
+  //
+  // If you are using the Flutter plugin, this is called automatically 
+  // internally. 
   Future register(covariant SwapChain swapChain, covariant View view);
 
-  //
+  // Unregisters the association between [swapChain] and [view]. If you are using the Flutter plugin, this is called automatically 
+  // internally. 
   Future unregister(covariant SwapChain swapChain, covariant View view);
+
+  // Returns the [SwapChain] instance associated with [view] (or null, if 
+  // no swapchain is registered.
+  Future<SwapChain?> getSwapChain(View view);
 
   //
   Future<Iterable<SwapChain>> getSwapChains();
@@ -184,8 +199,8 @@ abstract class FilamentApp<T> {
   //
   Future updateRenderOrder();
 
-  // Invokes one iteration of the full rendering pipeline for all 
-  // registered swapchains/views. This will also advance animations 
+  // Invokes one iteration of the full rendering pipeline for all
+  // registered swapchains/views. This will also advance animations
   // by one timestep and call out to all plugins to perform their own updates.
   //
   // The returned [Future] will complete when the pipeline step is complete.

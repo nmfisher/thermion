@@ -657,7 +657,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (!_swapChains.containsKey(swapChain)) {
       _swapChains[swapChain] = [];
     }
-    _swapChains[swapChain]!.add(view);
+    if (!_swapChains[swapChain]!.contains(view)) {
+      _swapChains[swapChain]!.add(view);
+    }
+
     _swapChains[swapChain]!
         .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
     await updateRenderOrder();
@@ -674,6 +677,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _swapChains[swapChain]!
         .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
     await updateRenderOrder();
+  }
+
+  @override
+  Future<SwapChain<dynamic>?> getSwapChain(View<dynamic> view) async {
+    return _swapChains.keys
+        .where((sc) => _swapChains[sc]?.contains(view) == true)
+        .firstOrNull;
   }
 
   ///

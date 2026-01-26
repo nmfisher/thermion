@@ -21,8 +21,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static ThermionFlutterPluginImpl get instance =>
       ThermionFlutterPlugin.instance as ThermionFlutterPluginImpl;
 
-  static SwapChain? _swapChain;
-
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
       return File(path.replaceAll("file://", "")).readAsBytesSync();
@@ -48,7 +46,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
     for (final descriptor in _destroyed) {
       _descriptors.remove(descriptor);
-      _logger.info("Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
+      _logger.info(
+          "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
     }
     _destroyed.clear();
     SchedulerBinding.instance.scheduleFrame();
@@ -118,9 +117,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         if (Platform.isWindows) {
           await channel.invokeMethod("destroyContext");
         }
-        _swapChain = null;
       });
     }
+
+    SwapChain? swapChain;
 
     // on MacOS/iOS, even though we render directly into a render target,
     // for some reason we still need to create a headless swapchain (though the
@@ -128,18 +128,13 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
     if (Platform.isMacOS || Platform.isIOS || Platform.isWindows) {
-      if (destroySwapchain && _swapChain != null) {
-        await FilamentApp.instance!.destroySwapChain(_swapChain!);
-        _swapChain = null;
-      }
-
-      _swapChain ??= await FilamentApp.instance!
+      swapChain ??= await FilamentApp.instance!
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
 
     SchedulerBinding.instance.addPersistentFrameCallback(_flutterBeginFrame);
 
-    return _swapChain;
+    return swapChain;
   }
 
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
@@ -162,15 +157,20 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
 
     if (Platform.isAndroid) {
-      if (_swapChain != null) {
-        await FilamentApp.instance!.unregister(_swapChain!, view);
-        await FilamentApp.instance!.destroySwapChain(_swapChain!);
-      }
-      _swapChain = await FilamentApp.instance!.createSwapChain(
+      final swapChain = await FilamentApp.instance!.createSwapChain(
         Pointer<Void>.fromAddress(descriptor.windowHandle!),
       );
 
+      final existingSwapChain = await FilamentApp.instance!.getSwapChain(view);
+      
+      await FilamentApp.instance!.register(swapChain, view);
+      
+      if (existingSwapChain != null) {
+        await FilamentApp.instance!.unregister(existingSwapChain, view);
+        await FilamentApp.instance!.destroySwapChain(existingSwapChain);
+      }
     } else {
+      final swapChains = await FilamentApp.instance!.getSwapChains();
       final color = await FilamentApp.instance!.createTexture(
         descriptor.width,
         descriptor.height,
@@ -214,22 +214,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         await depth.destroy();
         await existingRenderTarget.destroy();
       }
+      await FilamentApp.instance!.register(swapChains.first, view);
+
     }
 
-    await FilamentApp.instance!.register(_swapChain!, view);
-
     await view.setViewport(width, height);
-
-    var camera = await view.getCamera();
-    var near = await camera.getNear();
-    var far = await camera.getCullingFar();
-    var focalLength = await camera.getFocalLength();
-
-    await camera.setLensProjection(
-      near: near,
-      far: far,
-      focalLength: focalLength,
-      aspect: width.toDouble() / height.toDouble());
 
     _descriptors.add(descriptor);
 

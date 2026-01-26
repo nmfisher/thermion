@@ -41,10 +41,6 @@ namespace thermion
 
         RenderManager(Engine *engine, Renderer *renderer) : mEngine(engine), mRenderer(renderer), mLastRender(std::chrono::high_resolution_clock::now())
         {
-            for(int i = 0; i < numViewAttachments; i++) {
-                mViewAttachment.views[i] = nullptr;
-            }
-
         }
         ~RenderManager();
 
@@ -84,7 +80,7 @@ namespace thermion
         Engine *mEngine = nullptr;
         Renderer *mRenderer = nullptr;
         std::vector<AnimationManager *> mAnimationManagers;
-        ViewAttachment mViewAttachment;
+        std::vector<ViewAttachment> mViewAttachments;
         std::chrono::high_resolution_clock::time_point mLastRender;
     };
 

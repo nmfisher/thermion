@@ -30,6 +30,7 @@
 #include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 
+#include <algorithm>
 #include <chrono>
 #include <map>
 
@@ -49,28 +50,36 @@ namespace thermion
   void RenderManager::removeSwapChain(SwapChain *swapChain)
   {
     std::lock_guard lock(mMutex);
-      for (int i = 0; i < numViewAttachments; i++)
-    {
-        mViewAttachment.views[i] = nullptr;
-    }
-    mViewAttachment.swapChain = nullptr;
+    auto it = std::remove_if(mViewAttachments.begin(), mViewAttachments.end(),
+        [swapChain](const ViewAttachment& va) { return va.swapChain == swapChain; });
+    mViewAttachments.erase(it, mViewAttachments.end());
   }
 
   void RenderManager::setRenderable(SwapChain *swapChain, View **views, uint8_t numViews)
   {
     std::lock_guard lock(mMutex);
 
-    mViewAttachment.swapChain = swapChain;
-    
-    for (int i = 0; i < numViewAttachments; i++)
-    {
-      if(i < numViews) {
-        mViewAttachment.views[i] = views[i];
-      } else {
-        mViewAttachment.views[i] = nullptr;
+    // Find existing entry for this swapchain
+    ViewAttachment* attachment = nullptr;
+    for (auto& va : mViewAttachments) {
+      if (va.swapChain == swapChain) {
+        attachment = &va;
+        break;
       }
     }
-    TRACE("Set %d view attachments", numViews);
+
+    // Create new entry if not found
+    if (!attachment) {
+      mViewAttachments.push_back(ViewAttachment{});
+      attachment = &mViewAttachments.back();
+      attachment->swapChain = swapChain;
+    }
+
+    // Update views
+    for (int i = 0; i < numViewAttachments; i++) {
+      attachment->views[i] = (i < numViews) ? views[i] : nullptr;
+    }
+    TRACE("Set %d view attachments for swapchain", numViews);
   }
 
   bool RenderManager::render(uint64_t frameTimeInNanos)
@@ -89,45 +98,42 @@ namespace thermion
     auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
     TRACE("Updated animations in %.3f ms", durationNs);
 
-    int swapChainIndex = 0;
     bool rendered = false;
-    
-    int numRendered = 0;
+    int swapChainIndex = 0;
 
-    if(!mViewAttachment.swapChain) {
-      return false;
-    }
-    bool beginFrame = mRenderer->beginFrame(mViewAttachment.swapChain, frameTimeInNanos);
-    if (beginFrame)
+    // Render each swapchain
+    for (auto& attachment : mViewAttachments)
     {
+      if (!attachment.swapChain) continue;
 
-      durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
-
-      TRACE("Beginning frame (%.3f ms since last endFrame())", durationNs);
-      for (int i = 0; i < numViewAttachments; i++)
+      bool beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
+      if (beginFrame)
       {
-        if(!mViewAttachment.views[i]) {
-          break;
-        }
-        numRendered++;
-        mRenderer->render(mViewAttachment.views[i]);
-      }
+        durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+        TRACE("Beginning frame for swapchain %d (%.3f ms since last endFrame())", swapChainIndex, durationNs);
 
-      mLastRender = std::chrono::high_resolution_clock::now();
-      mRenderer->endFrame();
+        int numRendered = 0;
+        for (int i = 0; i < numViewAttachments; i++)
+        {
+          if (!attachment.views[i]) break;
+          numRendered++;
+          mRenderer->render(attachment.views[i]);
+        }
+
+        mLastRender = std::chrono::high_resolution_clock::now();
+        mRenderer->endFrame();
+
+        TRACE("%d views rendered for swapchain %d", numRendered, swapChainIndex);
+        if (numRendered > 0) rendered = true;
+      }
+      else
+      {
+        durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+        TRACE("Skipping frame for swapchain %d (%.3f ms since last endFrame())", swapChainIndex, durationNs);
+      }
+      swapChainIndex++;
     }
-    else
-    {
-      durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
-      TRACE("Skipping frame (%.3f ms since last endFrame())", durationNs);
-    }
-    TRACE("%d views rendered for swapchain %d", numRendered, swapChainIndex);
-    swapChainIndex++;
-    if (numRendered > 0)
-    {
-      rendered = true;
-    }
-    
+
 #ifdef __EMSCRIPTEN__
     mEngine->execute();
 #endif
