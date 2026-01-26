@@ -21,7 +21,7 @@ dependencies:
   http: ^1.2.2
   path: ^1.9.0
   image: ^4.3.0
-  ffigen_js: 0.0.6-pre
+  ffigen_js: 0.0.7-pre
   
 dev_dependencies:
   ffigen: ^18.1.0
