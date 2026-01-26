@@ -3,6 +3,7 @@ import 'dart:ffi' as ffi;
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
@@ -85,6 +86,22 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderTarget(RenderTarget? renderTarget) async {
+    // When highlight overlay is initialized, the main view renders to an internal
+    // render target. When Flutter creates a new render target (e.g., on resize),
+    // it should go to EdgeDetectionView, not replace the main view's internal RT.
+    // BUT: if the overlay manager is setting the internal RT, don't intercept.
+    if (_highlightOverlayManager != null &&
+        _highlightOverlayManager!.initialized &&
+        renderTarget != null) {
+      // Check if this is the internal RT being set by the overlay manager
+      final isInternalRT = _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
+      if (!isInternalRT) {
+        // This is a Flutter RT - redirect to EdgeDetectionView
+        await _highlightOverlayManager!.updateFlutterRenderTarget(renderTarget as FFIRenderTarget);
+        return;
+      }
+    }
+
     if (renderTarget != null) {
       View_setRenderTarget(view, renderTarget.getNativeHandle());
       this.renderTarget = renderTarget;
@@ -476,9 +493,13 @@ class FFIView extends View<Pointer<TView>> {
   ///
   /// Enables the highlight overlay system for this view.
   ///
+  /// The edge detection view composites the main scene with edge outlines
+  /// into a single texture output. This requires a render target or swapchain.
+  ///
   @override
   Future<bool> enableHighlightOverlay() async {
-    if (_highlightOverlayManager != null) {
+    // Already fully enabled
+    if (_highlightOverlayManager != null && _highlightOverlayManager!.initialized) {
       return true;
     }
 
@@ -486,20 +507,39 @@ class FFIView extends View<Pointer<TView>> {
     final width = vp.width > 0 ? vp.width : 1;
     final height = vp.height > 0 ? vp.height : 1;
 
-    _highlightOverlayManager = await HighlightOverlayManager.create(
-      app,
-      width: width,
-      height: height,
-    );
+    // Create manager if not exists
+    if (_highlightOverlayManager == null) {
+      _highlightOverlayManager = await HighlightOverlayManager.create(
+        app,
+        width: width,
+        height: height,
+      );
 
-    // Set the camera - silhouette view shares the main camera
-    final camera = await getCamera();
-    await _highlightOverlayManager!.setCamera(camera);
+      // Set the camera - silhouette view shares the main camera
+      final camera = await getCamera();
+      await _highlightOverlayManager!.setCamera(camera);
+    }
+
+    // Get swapchain if render target is null (Android/swapchain case)
+    FFISwapChain? swapChain;
+    if (renderTarget == null) {
+      swapChain = await app.getSwapChain(this) as FFISwapChain?;
+    }
+
+    // Initialize if we have RT/swapchain and not yet initialized
+    if (!_highlightOverlayManager!.initialized && (renderTarget != null || swapChain != null)) {
+      await _highlightOverlayManager!.initialize(
+        this,
+        renderTarget,
+        swapChain,
+      );
+      _logger.info("Highlight overlay enabled");
+    } else if (!_highlightOverlayManager!.initialized) {
+      _logger.warning("No render target or swapchain available for highlight overlay");
+    }
 
     await app.updateRenderOrder();
 
-
-    _logger.info("Highlight overlay enabled");
     return true;
   }
 

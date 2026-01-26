@@ -35,6 +35,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static final _descriptors = <PlatformTextureDescriptor>[];
   static final _destroyed = <PlatformTextureDescriptor>[];
 
+  // Track render targets created by Flutter for each view.
+  // This allows us to destroy the correct RT on resize, even when the view
+  // has been redirected to an internal RT (e.g., in composite highlight mode).
+  static final _viewRenderTargets = <View, RenderTarget>{};
+
   static void _flutterBeginFrame(Duration timestamp) async {
     await FilamentApp.instance?.render();
 
@@ -196,7 +201,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
 
-      final existingRenderTarget = await view.getRenderTarget();
+      // Use tracked RT for destruction (not view.getRenderTarget()) because
+      // in composite mode the view's RT may be an internal RT, not the Flutter RT
+      final existingRenderTarget = _viewRenderTargets[view];
 
       var renderTarget = await FilamentApp.instance!.createRenderTarget(
         descriptor.width,
@@ -206,6 +213,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       );
 
       await view.setRenderTarget(renderTarget);
+      _viewRenderTargets[view] = renderTarget;  // Track the new RT
 
       if (existingRenderTarget != null) {
         final color = await existingRenderTarget.getColorTexture();
