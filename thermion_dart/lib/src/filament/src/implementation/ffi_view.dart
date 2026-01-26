@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi' as ffi;
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
@@ -595,7 +594,7 @@ class FFIView extends View<Pointer<TView>> {
     final vertexBuffer = asset.getVertexBuffer(primitiveIndex: primitiveIndex);
     final indexBuffer =
         SceneAsset_getIndexBuffer(ffiAsset.asset, primitiveIndex);
-    final hasGeometry = vertexBuffer != null && indexBuffer != ffi.nullptr;
+    final hasGeometry = vertexBuffer != null && indexBuffer != nullptr;
 
     if (!hasGeometry || vertexBuffer is! FFIVertexBuffer) {
       throw UnsupportedError(
