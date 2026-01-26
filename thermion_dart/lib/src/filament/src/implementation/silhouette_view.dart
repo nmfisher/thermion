@@ -190,6 +190,10 @@ class SilhouetteView extends FFIView {
     // Notify listeners (EdgeDetectionView needs new texture reference)
     await onTextureResized?.call(_colorTexture);
 
+    // Flush render thread to ensure new textures are bound before destroying old ones
+    // This prevents "Invalid texture still bound to MaterialInstance" errors
+    await app.flush();
+
     // Destroy old resources
     await oldRenderTarget.destroy();
     await oldColorTexture.dispose();

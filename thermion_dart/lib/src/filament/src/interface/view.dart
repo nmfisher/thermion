@@ -373,6 +373,9 @@ abstract class View<T> extends NativeHandle<T> {
   /// manager with the current viewport dimensions and creates the necessary
   /// render targets for silhouette and edge detection passes.
   ///
+  /// The edge detection view composites the main scene with edge outlines
+  /// into a single texture output. Requires a render target or swapchain.
+  ///
   /// Returns true if initialization succeeded, false if already enabled.
   Future<bool> enableHighlightOverlay();
 

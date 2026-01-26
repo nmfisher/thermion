@@ -2,6 +2,7 @@ material {
     name : EdgeOutline,
     parameters : [
         { type : sampler2d, name : silhouette },
+        { type : sampler2d, name : mainScene },
         { type : float2, name : texelSize },
         { type : float3, name : outlineColor },
         { type : float, name : outlineWidth }
@@ -10,8 +11,7 @@ material {
         screenUV
     ],
     shadingModel : unlit,
-    blending : masked,
-    maskThreshold : 0.5,
+    blending : transparent,
     depthWrite : false,
     depthCulling : false,
     culling : none,
@@ -56,10 +56,11 @@ fragment {
                                 max(max(tl, tr), max(bl, br)));
         float edge = (1.0 - center) * maxNeighbor;
 
-        // DEBUG: Visualize silhouette texture
-        // material.baseColor = vec4(center, center, center, 1.0);
-        // return;
-
-        material.baseColor = vec4(materialParams.outlineColor, edge);
+        // Composite: blend main scene with edge outline
+        vec4 sceneColor = texture(materialParams_mainScene, uv);
+        vec3 outlineColor = materialParams.outlineColor;
+        // srcOver blend: outline on top of scene
+        material.baseColor.rgb = mix(sceneColor.rgb, outlineColor, edge);
+        material.baseColor.a = 1.0;
     }
 }

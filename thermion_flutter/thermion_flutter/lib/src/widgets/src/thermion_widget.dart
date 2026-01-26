@@ -7,13 +7,15 @@ class ThermionWidget extends StatefulWidget {
   final ThermionViewer viewer;
 
   /// If true, enable the highlight overlay system.
-  /// This creates a separate texture for rendering entity highlights/outlines
-  /// that is composited on top of the main render texture.
-  final bool enableOverlay;
+  /// The edge detection shader samples both the main scene and silhouette
+  /// textures, compositing them into a single output texture.
+  final bool enableHighlights;
 
-  const ThermionWidget(
-      {Key? key, required this.viewer, this.enableOverlay = false})
-      : super(key: key);
+  const ThermionWidget({
+    Key? key,
+    required this.viewer,
+    this.enableHighlights = false,
+  }) : super(key: key);
 
   @override
   State<ThermionWidget> createState() => _ThermionWidgetState();
@@ -22,44 +24,36 @@ class ThermionWidget extends StatefulWidget {
 class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
-    if (widget.enableOverlay) {
-      final overlayView = widget.viewer.view.getOverlayView();
+    if (widget.enableHighlights) {
+      return ThermionWidgetInternal(
+        key: Key("highlight_texture_view"),
+        onTextureUpdated: (descriptor) async {
+          if (descriptor == null) {
+            return;
+          }
+          final view = widget.viewer.view;
+          var camera = await view.getCamera();
+          var near = await camera.getNear();
+          var far = await camera.getCullingFar();
+          var focalLength = await camera.getFocalLength();
 
-      return Stack(children: [
-        Positioned.fill(
-            child: ThermionWidgetInternal(
-                key: Key("main_texture_view"),
-                onTextureUpdated: (descriptor) async {
-                  if (descriptor == null) {
-                    return;
-                  }
-                  final view = widget.viewer.view;
-                  var camera = await view.getCamera();
-                  var near = await camera.getNear();
-                  var far = await camera.getCullingFar();
-                  var focalLength = await camera.getFocalLength();
+          await camera.setLensProjection(
+              near: near,
+              far: far,
+              focalLength: focalLength,
+              aspect: descriptor.width.toDouble() /
+                  descriptor.height.toDouble());
 
-                  await camera.setLensProjection(
-                      near: near,
-                      far: far,
-                      focalLength: focalLength,
-                      aspect: descriptor.width.toDouble() /
-                          descriptor.height.toDouble());
+          await view.setViewport(descriptor.width, descriptor.height);
 
-                  await view.setViewport(descriptor.width, descriptor.height);
-                },
-                view: widget.viewer.view)),
-        Positioned.fill(
-            child: ThermionWidgetInternal(
-                key: Key("overlay_texture_view"),
-                view: overlayView!,
-                onTextureUpdated: (descriptor) async {
-                  if (descriptor == null) {
-                    return;
-                  }
-                }))
-      ]);
+          // Enable highlight overlay
+          await view.enableHighlightOverlay();
+        },
+        view: widget.viewer.view,
+      );
     }
+
+    // No highlights
     return ThermionWidgetInternal(view: widget.viewer.view);
   }
 }

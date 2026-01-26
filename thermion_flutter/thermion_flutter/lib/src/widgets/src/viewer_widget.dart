@@ -49,7 +49,7 @@ class ViewerWidget extends StatefulWidget {
       onAssetLoaded;
 
   // When true, enable the highlight overlay system for rendering entity outlines.
-  final bool enableOverlay;
+  final bool enableHighlights;
 
   ViewerWidget(
       {super.key,
@@ -67,7 +67,7 @@ class ViewerWidget extends StatefulWidget {
       this.onViewerAvailable,
       this.onAssetLoaded,
       this.manipulatorType = ManipulatorType.ORBIT,
-      this.enableOverlay = false}) {
+      this.enableHighlights = false}) {
     this.initialCameraPosition = initialCameraPosition ?? Vector3(0, 0, 5);
   }
 
@@ -87,8 +87,8 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   }
 
   Future<void> _createViewer() async {
-    // Override options if this widget needs overlay
-    if (widget.enableOverlay) {
+    // Override options if this widget needs highlights
+    if (widget.enableHighlights) {
       final currentOptions = ThermionFlutterPlugin.instance.options;
       ThermionFlutterPlugin.instance.setOptions(
         ThermionFlutterOptions(
@@ -219,7 +219,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     thermionWidget = ThermionWidget(
       key: ObjectKey(DateTime.now()),
       viewer: viewer!,
-      enableOverlay: widget.enableOverlay,
+      enableHighlights: true
     );
 
     _setViewportWidget();

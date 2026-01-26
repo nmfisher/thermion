@@ -47,6 +47,10 @@ class EdgeDetectionView extends FFIView {
   /// The silhouette texture being sampled for edge detection
   Texture get silhouetteTexture => _silhouetteTexture;
 
+  // Main scene texture for compositing
+  Texture _mainSceneTexture;
+  FFITextureSampler _mainSceneSampler;
+
   EdgeDetectionView._(
     super.view,
     super.app, {
@@ -61,7 +65,11 @@ class EdgeDetectionView extends FFIView {
     required ThermionEntity fullscreenQuadEntity,
     required FFITextureSampler edgeSampler,
     required Texture silhouetteTexture,
+    required Texture mainSceneTexture,
+    required FFITextureSampler mainSceneSampler,
   })  : _silhouetteTexture = silhouetteTexture,
+        _mainSceneTexture = mainSceneTexture,
+        _mainSceneSampler = mainSceneSampler,
         _edgeMaterial = material,
         _edgeScene = scene,
         _skybox = skybox,
@@ -148,6 +156,21 @@ class EdgeDetectionView extends FFIView {
       wrapT: TextureWrapMode.CLAMP_TO_EDGE,
     ) as FFITextureSampler;
 
+    // Create default 1x1 main scene texture (will be replaced when setMainSceneTexture is called)
+    // This ensures the shader has a valid texture to sample before initialization completes
+    final defaultMainSceneTexture = await app.createTexture(
+      1, 1,
+      flags: {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
+      textureFormat: TextureFormat.RGBA8,
+    ) as FFITexture;
+
+    final mainSceneSampler = await app.createTextureSampler(
+      minFilter: TextureMinFilter.LINEAR,
+      magFilter: TextureMagFilter.LINEAR,
+      wrapS: TextureWrapMode.CLAMP_TO_EDGE,
+      wrapT: TextureWrapMode.CLAMP_TO_EDGE,
+    ) as FFITextureSampler;
+
     // Create fullscreen quad entity
     final fullscreenQuadEntity = await app.createEntity();
 
@@ -180,7 +203,9 @@ class EdgeDetectionView extends FFIView {
       quadIB: quadIB,
       fullscreenQuadEntity: fullscreenQuadEntity,
       edgeSampler: edgeSampler,
-      silhouetteTexture:silhouetteTexture
+      silhouetteTexture: silhouetteTexture,
+      mainSceneTexture: defaultMainSceneTexture,
+      mainSceneSampler: mainSceneSampler,
     );
 
     // Configure view (renders to swap chain by default)
@@ -249,6 +274,17 @@ class EdgeDetectionView extends FFIView {
     _logger.info("Updated silhouette texture reference");
   }
 
+  /// Set the main scene texture.
+  ///
+  /// The edge detection view samples both the silhouette and main scene
+  /// textures, compositing edges on top of the scene.
+  Future<void> setMainSceneTexture(Texture texture) async {
+    _mainSceneTexture = texture;
+    await _updateEdgeMaterialParams();
+    _logger.info("Set main scene texture");
+  }
+
+
   /// Update viewport size.
   @override
   Future setViewport(int width, int height) async {
@@ -291,7 +327,6 @@ class EdgeDetectionView extends FFIView {
   }
 
   Future<void> _updateEdgeMaterialParams() async {
-
     final vp = await getViewport();
 
     // Set silhouette texture
@@ -299,6 +334,13 @@ class EdgeDetectionView extends FFIView {
       'silhouette',
       _silhouetteTexture as FFITexture,
       _edgeSampler,
+    );
+
+    // Set main scene texture
+    await _edgeMaterialInstance.setParameterTexture(
+      'mainScene',
+      _mainSceneTexture as FFITexture,
+      _mainSceneSampler,
     );
 
     // Set texel size (1/width, 1/height)
