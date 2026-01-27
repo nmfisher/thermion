@@ -10,15 +10,9 @@ class ThermionWidget extends StatefulWidget {
   // The viewer whose content will be rendered into this widget.
   final ThermionViewer viewer;
 
-  /// If true, enable the highlight overlay system.
-  /// The edge detection shader samples both the main scene and silhouette
-  /// textures, compositing them into a single output texture.
-  final bool enableHighlights;
-
   const ThermionWidget({
     Key? key,
     required this.viewer,
-    this.enableHighlights = false,
   }) : super(key: key);
 
   @override
@@ -26,14 +20,6 @@ class ThermionWidget extends StatefulWidget {
 }
 
 class _ThermionWidgetState extends State<ThermionWidget> {
-  @override
-  void initState() {
-    super.initState();
-
-    if (widget.enableHighlights) {
-      widget.viewer.view.enableHighlightOverlay();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
