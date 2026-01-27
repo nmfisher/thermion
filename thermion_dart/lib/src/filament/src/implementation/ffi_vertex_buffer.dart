@@ -19,7 +19,7 @@ class FFIVertexBuffer extends VertexBuffer {
   @override
   Future setBufferAt(int bufferIndex, TypedData data,
       {int byteOffset = 0}) async {
-    final byteData = data.buffer.asUint8List(data.offsetInBytes);
+    final byteData = data.asUint8List();
     await withVoidCallback((requestId, cb) {
       bindings.VertexBuffer_setBufferAtRenderThread(
         _engine,

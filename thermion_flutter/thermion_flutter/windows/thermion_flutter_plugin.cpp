@@ -61,7 +61,9 @@ namespace thermion::tflutter::windows
                                    { this->HandleMethodCall(call, std::move(result)); });
   }
 
-  ThermionFlutterPlugin::~ThermionFlutterPlugin() {}
+  ThermionFlutterPlugin::~ThermionFlutterPlugin() {
+    StopFrameScheduler();
+  }
 
   // this is only for storing Flutter surface descriptors
   // (as opposed to the D3D/Vulkan handles, which are stored in the ThermionVulkanContext)
@@ -235,11 +237,73 @@ namespace thermion::tflutter::windows
        }
       result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
     }
+    else if (methodCall.method_name() == "startFrameScheduler")
+    {
+      const auto *args = std::get_if<flutter::EncodableList>(methodCall.arguments());
+      int64_t callbackAddress = std::get<int64_t>(args->at(0));
+      int targetFps = std::get<int>(args->at(1));
+      StartFrameScheduler(callbackAddress, targetFps);
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
+    }
+    else if (methodCall.method_name() == "stopFrameScheduler")
+    {
+      StopFrameScheduler();
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
+    }
     else
     {
       result->Error("NOT_IMPLEMENTED", "Method is not implemented %s",
                     methodCall.method_name());
     }
+  }
+
+  void ThermionFlutterPlugin::StartFrameScheduler(int64_t callbackAddress, int targetFps) {
+    StopFrameScheduler();
+    _frameCallback = reinterpret_cast<FrameCallback>(callbackAddress);
+    _frameSchedulerRunning = true;
+    _frameSchedulerThread = std::thread([this]() {
+      IDXGIFactory1* factory = nullptr;
+      IDXGIAdapter* adapter = nullptr;
+      IDXGIOutput* output = nullptr;
+
+      HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory);
+      if (SUCCEEDED(hr) && factory) {
+        hr = factory->EnumAdapters(0, &adapter);
+        if (SUCCEEDED(hr) && adapter) {
+          hr = adapter->EnumOutputs(0, &output);
+          if (FAILED(hr)) {
+            output = nullptr;
+            std::cerr << "Failed to get DXGI output for WaitForVBlank, falling back to timer" << std::endl;
+          }
+        }
+      }
+
+      while (_frameSchedulerRunning) {
+        if (output) {
+          output->WaitForVBlank();
+        } else {
+          std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000 / 60));
+        }
+        if (_frameCallback && _frameSchedulerRunning) {
+          auto now = std::chrono::high_resolution_clock::now();
+          uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+              now.time_since_epoch()).count();
+          _frameCallback(nanos);
+        }
+      }
+
+      if (output) output->Release();
+      if (adapter) adapter->Release();
+      if (factory) factory->Release();
+    });
+  }
+
+  void ThermionFlutterPlugin::StopFrameScheduler() {
+    _frameSchedulerRunning = false;
+    if (_frameSchedulerThread.joinable()) {
+      _frameSchedulerThread.join();
+    }
+    _frameCallback = nullptr;
   }
 
 } // namespace thermion_flutter

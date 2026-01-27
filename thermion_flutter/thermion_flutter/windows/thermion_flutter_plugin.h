@@ -5,11 +5,14 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <thread>
 
 #include <Windows.h>
+#include <dxgi.h>
 #include <wrl.h>
 #include "vulkan_context.h"
 
@@ -48,6 +51,14 @@ public:
   private:
     thermion::windows::vulkan::ThermionVulkanContext *_context = nullptr;
     bool OnTextureUnregistered(int64_t flutterTextureId);
+
+    // Frame scheduler (DXGI vsync)
+    using FrameCallback = void (*)(uint64_t);
+    FrameCallback _frameCallback = nullptr;
+    std::atomic<bool> _frameSchedulerRunning{false};
+    std::thread _frameSchedulerThread;
+    void StartFrameScheduler(int64_t callbackAddress, int targetFps);
+    void StopFrameScheduler();
 
 };
 

@@ -19,5 +19,13 @@ import Foundation
     @objc public static func markTextureFrameAvailable(flutterTextureId: Int64) {
         SwiftThermionFlutterPlugin.instance!.markTextureFrameAvailable(flutterTextureId:flutterTextureId);
     }
+
+    @objc public static func startFrameScheduler(callbackAddress: Int64, targetFps: Int) {
+        ThermionFrameScheduler.start(callbackAddress: callbackAddress, targetFps: targetFps)
+    }
+
+    @objc public static func stopFrameScheduler() {
+        ThermionFrameScheduler.stop()
+    }
 }
 

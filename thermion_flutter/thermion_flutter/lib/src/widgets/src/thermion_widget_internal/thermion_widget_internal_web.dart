@@ -1,205 +1,240 @@
-import 'dart:ui' as ui;
-import 'dart:ui_web' as ui_web;
-import 'package:flutter/material.dart' hide View;
-import 'package:logging/logging.dart';
-import 'package:thermion_flutter/thermion_flutter.dart' hide BlendMode;
-import 'package:web/web.dart' as web;
-import '../../../platform/platform.dart';
+// import 'dart:async';
+// import 'dart:ui' as ui;
+// import 'dart:ui_web' as ui_web;
+// import 'package:flutter/material.dart' hide View;
+// import 'package:logging/logging.dart';
+// import 'package:thermion_flutter/thermion_flutter.dart' hide BlendMode;
+// import 'package:web/web.dart' as web;
+// import '../../../platform/platform.dart';
+// import '../../../platform/src/platform_texture_descriptor.dart';
+// import '../../../platform/src/web_platform_texture_descriptor.dart';
 
-class ThermionWidgetInternal extends StatefulWidget {
-  ///
-  final ThermionViewer viewer;
+//   @override
+//   Widget build(BuildContext context) {
+//     return SizedBox.expand(child: CustomPaint(painter: TransparencyPainter()));
+//     return ThermionFlutterPlugin
+//             .instance.options.webOptions.importCanvasAsWidget
+//         ? _ImageCopyingWidget(
+//             view: widget.view,
+//             onTextureUpdated: widget.onTextureUpdated,
+//           )
+//         : SizedBox.expand(child: CustomPaint(painter: TransparencyPainter()));
+//   }
+// }
 
-  ///
-  final Widget? initial;
+// class TransparencyPainter extends CustomPainter {
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     canvas.drawRect(
+//       Rect.fromLTWH(0, 0, size.width, size.height),
+//       Paint()
+//         ..blendMode = BlendMode.clear
+//         ..color = const Color(0x00000000),
+//     );
+//   }
 
-  /// When true, enable the highlight overlay system with a separate composited texture
-  /// Note: Overlay is not yet implemented on web platform.
-  final bool enableOverlay;
+//   @override
+//   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+// }
 
-  const ThermionWidgetInternal({
-    super.key,
-    required this.viewer,
-    this.initial,
-    this.enableOverlay = false,
-  }) {
-    if(enableOverlay) {
-      throw UnimplementedError();
-    }
-  }
+// class _PlatformView extends StatefulWidget {
+//   final ThermionViewer viewer;
 
-  @override
-  State<StatefulWidget> createState() => _ThermionWidgetWebState();
-}
+//   const _PlatformView({super.key, required this.viewer});
+//   @override
+//   State<StatefulWidget> createState() => _PlatformViewState();
+// }
 
-class _ThermionWidgetWebState extends State<ThermionWidgetInternal> {
-  late final ThermionFlutterPluginImpl plugin;
+// class _PlatformViewState extends State<_PlatformView> {
+//   @override
+//   void initState() {
+//     super.initState();
+//     ui_web.platformViewRegistry.registerViewFactory(
+//       'imported-canvas',
+//       (int viewId, {Object? params}) {
+//         var canvas = web.document.getElementById("thermion_canvas");
+//         return canvas! as Object;
+//       },
+//     );
+//   }
 
-  @override
-  void initState() {
-    super.initState();
-    plugin = ThermionFlutterPlugin.instance as ThermionFlutterPluginImpl;
-  }
+//   @override
+//   Widget build(BuildContext context) {
+//     return HtmlElementView(
+//       viewType: 'imported-canvas',
+//       onPlatformViewCreated: (i) {},
+//       creationParams: <String, Object?>{
+//         'key': 'someValue',
+//       },
+//     );
+//   }
+// }
 
-  DateTime lastRender = DateTime.now();
+// class _ImageCopyingWidget extends StatefulWidget {
+//   final View view;
+//   final void Function(PlatformTextureDescriptor? descriptor)? onTextureUpdated;
 
-  void _resize(Size oldSize, Size newSize) async {
-    throw UnimplementedError();
-  }
+//   const _ImageCopyingWidget({
+//     super.key,
+//     required this.view,
+//     this.onTextureUpdated,
+//   });
+//   @override
+//   State<StatefulWidget> createState() {
+//     return _ImageCopyingWidgetState();
+//   }
+// }
 
-  @override
-  Widget build(BuildContext context) {
-    return ThermionFlutterPlugin
-            .instance.options.webOptions.importCanvasAsWidget
-        ? _ImageCopyingWidget(viewer: widget.viewer)
-        : SizedBox.expand(child: CustomPaint(painter: TransparencyPainter()));
-  }
-}
+// class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
+//   static const _debounceDuration = Duration(milliseconds: 100);
 
-class TransparencyPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()
-        ..blendMode = BlendMode.clear
-        ..color = const Color(0x00000000),
-    );
-  }
+//   late final _logger = Logger(runtimeType.toString());
+//   late web.HTMLCanvasElement canvas;
+//   ui.Image? _img;
+//   double width = 0;
+//   double height = 0;
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
+//   // Track current and pending dimensions for debouncing
+//   int _currentWidth = 0;
+//   int _currentHeight = 0;
+//   int? _pendingWidth;
+//   int? _pendingHeight;
+//   Timer? _debounceTimer;
 
-class _PlatformView extends StatefulWidget {
-  final ThermionViewer viewer;
+//   @override
+//   void initState() {
+//     super.initState();
+//     canvas =
+//         web.document.getElementById("thermion_canvas") as web.HTMLCanvasElement;
+//     WidgetsBinding.instance.addPostFrameCallback((t) {
+//       _refresh(Duration.zero);
+//     });
+//   }
 
-  const _PlatformView({super.key, required this.viewer});
-  @override
-  State<StatefulWidget> createState() => _PlatformViewState();
-}
+//   @override
+//   void dispose() {
+//     _debounceTimer?.cancel();
+//     super.dispose();
+//   }
 
-class _PlatformViewState extends State<_PlatformView> {
-  @override
-  void initState() {
-    super.initState();
-    ui_web.platformViewRegistry.registerViewFactory(
-      'imported-canvas',
-      (int viewId, {Object? params}) {
-        var canvas = web.document.getElementById("thermion_canvas");
-        return canvas! as Object;
-      },
-    );
-  }
+//   void _refresh(Duration _) async {
+//     try {
+//       final rb = context.findRenderObject() as RenderBox?;
 
-  @override
-  Widget build(BuildContext context) {
-    return HtmlElementView(
-      viewType: 'imported-canvas',
-      onPlatformViewCreated: (i) {},
-      creationParams: <String, Object?>{
-        'key': 'someValue',
-      },
-    );
-  }
-}
+//       if (rb == null) {
+//         setState(() {});
+//         return;
+//       }
 
-class _ImageCopyingWidget extends StatefulWidget {
-  final ThermionViewer viewer;
+//       if (rb.size.isEmpty) {
+//         setState(() {});
+//         return;
+//       }
 
-  const _ImageCopyingWidget({super.key, required this.viewer});
-  @override
-  State<StatefulWidget> createState() {
-    return _ImageCopyingWidgetState();
-  }
-}
+//       // Calculate desired dimensions based on widget size and DPR
+//       final dpr = web.window.devicePixelRatio;
+//       final desiredWidth = (rb.size.width * dpr).ceil();
+//       final desiredHeight = (rb.size.height * dpr).ceil();
 
-class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
-  late final _logger = Logger(this.runtimeType.toString());
-  late web.HTMLCanvasElement canvas;
-  ui.Image? _img;
-  double width = 0;
-  double height = 0;
+//       // Check if canvas size needs updating
+//       if (canvas.width != desiredWidth || canvas.height != desiredHeight) {
+//         _scheduleResize(desiredWidth, desiredHeight);
+//       }
 
-  @override
-  void initState() {
-    super.initState();
-    canvas =
-        web.document.getElementById("thermion_canvas") as web.HTMLCanvasElement;
-    WidgetsBinding.instance.addPostFrameCallback((t) {
-      _refresh(Duration.zero);
-    });
-  }
+//       width = canvas.width * dpr;
+//       height = canvas.height * dpr;
+//       _img = await ui_web.createImageFromTextureSource(canvas,
+//           width: width.ceil(), height: height.ceil(), transferOwnership: true);
 
-  void _refresh(Duration _) async {
-    try {
-      final rb = this.context.findRenderObject() as RenderBox?;
+//       _request++;
+//     } catch (err) {
+//       _logger.severe(err);
+//     } finally {
+//       WidgetsBinding.instance.addPostFrameCallback((_) {
+//         setState(() {});
+//       });
+//       WidgetsBinding.instance.scheduleFrameCallback(_refresh);
+//     }
+//   }
 
-      if (rb == null) {
-        setState(() {});
-        return;
-      }
+//   int _request = 0;
 
-      if (rb.size.isEmpty) {
-        setState(() {});
-        return;
-      }
+//   void _scheduleResize(int width, int height) {
+//     _pendingWidth = width;
+//     _pendingHeight = height;
 
-      // if (_resizing) {
-      //   setState(() {});
-      //   return;
-      // }
+//     _debounceTimer?.cancel();
+//     _debounceTimer = Timer(_debounceDuration, () {
+//       if (_pendingWidth != null && _pendingHeight != null) {
+//         _performResize(_pendingWidth!, _pendingHeight!);
+//       }
+//     });
+//   }
 
-      if (canvas.width != rb.size.width || canvas.height != rb.size.height) {
-        // ThermionFlutterWebPlugin.instance
-        //     .resizeCanvas(rb.size.width, rb.size.height);
-        // await widget.viewer
-        //     .setViewport(rb.size.width.ceil(), rb.size.height.ceil())
-        //     .timeout(Duration(seconds: 1));
-      }
+//   void _performResize(int width, int height) async {
+//     if (_currentWidth == width && _currentHeight == height) {
+//       return;
+//     }
 
-      width = canvas.width * web.window.devicePixelRatio;
-      height = canvas.height * web.window.devicePixelRatio;
-      _img = await ui_web.createImageFromTextureSource(canvas,
-          width: width.ceil(), height: height.ceil(), transferOwnership: true);
+//     _logger.info("Resizing canvas to ${width}x$height");
 
-      _request++;
-    } catch (err) {
-      _logger.severe(err);
-    } finally {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {});
-      });
-      WidgetsBinding.instance.scheduleFrameCallback(_refresh);
-    }
-  }
+//     try {
+//       final plugin =
+//           ThermionFlutterPlugin.instance as ThermionFlutterPluginImpl;
+//       plugin.resizeCanvas(width / web.window.devicePixelRatio,
+//           height / web.window.devicePixelRatio);
 
-  int _request = 0;
+//       await widget.view
+//           .setViewport(width, height)
+//           .timeout(Duration(seconds: 1));
 
-  // bool _resizing = false;
-  // Timer? _resizeTimer;
+//       _currentWidth = width;
+//       _currentHeight = height;
 
-  // void _resize(Size oldSize, Size newSize) {
-  //   _resizeTimer?.cancel();
-  //   _resizing = true;
-  //   _resizeTimer = Timer(Duration(milliseconds: 100), () {
-  //     _resizing = false;
-  //   });
-  // }
+//       // Invoke callback with dimensions
+//       if (widget.onTextureUpdated != null) {
+//         final descriptor = WebPlatformTextureDescriptor(
+//           width: width,
+//           height: height,
+//         );
+//         widget.onTextureUpdated!(descriptor);
+//       }
+//     } catch (err) {
+//       _logger.severe("Failed to resize: $err");
+//     }
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_img == null) {
-      return Container();
-    }
+//   @override
+//   Widget build(BuildContext context) {
+//     if (_img == null) {
+//       return Container();
+//     }
 
-    return RawImage(
-      key: Key(_request.toString()),
-      width: width,
-      height: height,
-      image: _img!,
-      filterQuality: FilterQuality.high,
-      isAntiAlias: false,
-    );
-  }
-}
+//     return RawImage(
+//       key: Key(_request.toString()),
+//       width: width,
+//       height: height,
+//       image: _img!,
+//       filterQuality: FilterQuality.high,
+//       isAntiAlias: false,
+//     );
+//   }
+// }
+
+
+// import 'package:flutter/material.dart';
+
+// class TransparencyPainter extends CustomPainter {
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     canvas.drawRect(
+//       Rect.fromLTWH(0, 0, size.width, size.height),
+//       Paint()
+//         ..blendMode = BlendMode.clear
+//         ..color = const Color(0x00000000),
+//     );
+//   }
+
+//   @override
+//   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+// }

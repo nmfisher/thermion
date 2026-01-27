@@ -26,6 +26,7 @@
 
 #include "rendering/RenderThread.hpp"
 #include "rendering/RenderManager.hpp"
+#include "rendering/FrameScheduler.hpp"
 #include "Log.hpp"
 
 #ifdef __EMSCRIPTEN__
@@ -51,6 +52,7 @@ extern "C"
 {
 
   static std::unique_ptr<RenderThread> _renderThread;
+  static thermion::FrameScheduler* _frameScheduler = nullptr;
 
   EMSCRIPTEN_KEEPALIVE void RenderThread_create()
   {
@@ -109,6 +111,7 @@ extern "C"
         [=]() mutable
         {
           RenderManager_render(tRenderManager, frameTimeInNanos);
+          _renderThread->signalRenderComplete();
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -1747,6 +1750,28 @@ extern "C"
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps) {
+#ifndef __EMSCRIPTEN__
+    if (_frameScheduler) {
+      _frameScheduler->stop();
+      delete _frameScheduler;
+      _frameScheduler = nullptr;
+    }
+    _frameScheduler = new thermion::TimerFrameScheduler(targetFps > 0 ? targetFps : 60);
+    _frameScheduler->start(callback);
+#endif
+  }
+
+  EMSCRIPTEN_KEEPALIVE void FrameScheduler_stop() {
+#ifndef __EMSCRIPTEN__
+    if (_frameScheduler) {
+      _frameScheduler->stop();
+      delete _frameScheduler;
+      _frameScheduler = nullptr;
+    }
+#endif
   }
 
 }

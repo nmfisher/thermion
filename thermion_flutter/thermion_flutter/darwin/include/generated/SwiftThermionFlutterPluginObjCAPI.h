@@ -327,6 +327,15 @@ SWIFT_CLASS("_TtC16thermion_flutter33SwiftThermionFlutterPluginObjCAPI")
 + (int64_t)registerTextureWithTexture:(MetalTextureWrapper * _Nonnull)texture SWIFT_WARN_UNUSED_RESULT;
 + (void)unregisterFlutterTextureWithFlutterTextureId:(int64_t)flutterTextureId;
 + (void)markTextureFrameAvailableWithFlutterTextureId:(int64_t)flutterTextureId;
++ (void)startFrameSchedulerWithCallbackAddress:(int64_t)callbackAddress targetFps:(NSInteger)targetFps;
++ (void)stopFrameScheduler;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+SWIFT_CLASS("_TtC16thermion_flutter22ThermionFrameScheduler")
+@interface ThermionFrameScheduler : NSObject
++ (void)startWithCallbackAddress:(int64_t)callbackAddress targetFps:(NSInteger)targetFps;
++ (void)stop;
 - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
 @end
 

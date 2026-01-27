@@ -4,14 +4,18 @@ import 'dart:js_interop_unsafe';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/platform/src/web_platform_texture_descriptor.dart';
 import 'package:web/web.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
+import 'package:thermion_dart/src/bindings/src/js_interop.dart' show stackSave, stackRestore, resizeWebCanvas;
 
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
-  late final _logger = Logger(this.runtimeType.toString());
-
   static Pointer? _stackPtr;
+  static final _descriptors = <PlatformTextureDescriptor>[];
+  static final _destroyed = <PlatformTextureDescriptor>[];
+  static final _logger = Logger('ThermionFlutterPluginImpl');
 
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
@@ -24,28 +28,28 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     return asset.buffer.asUint8List(asset.offsetInBytes);
   }
 
-  static void _flutterBeginFrame(Duration timestamp) async {
-
-    if (stackPtr != null) {
-      stackRestore(stackPtr!);
+  static void _tick(JSNumber timestamp) {
+    if (_stackPtr != null) {
+      stackRestore(_stackPtr!);
     }
 
-    stackPtr = stackSave();
-    
-    await FilamentApp.instance?.render();
+    _stackPtr = stackSave();
+
+    FilamentApp.instance?.render();
 
     for (final descriptor in _descriptors) {
       if (!descriptor.destroyed) {
         descriptor.markTextureFrameAvailable();
-        descriptor.onBeginFrame?.call(timestamp);
       }
     }
     for (final descriptor in _destroyed) {
       _descriptors.remove(descriptor);
-      _logger.info("Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
+      _logger.info(
+          "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId})");
     }
     _destroyed.clear();
-    SchedulerBinding.instance.scheduleFrame();
+
+    window.requestAnimationFrame(_tick.toJS);
   }
 
   ///
@@ -54,6 +58,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     resizeWebCanvas((window.devicePixelRatio * width).ceil(),
         (window.devicePixelRatio * height).ceil());
   }
+
+  static SwapChain? swapChain;
 
   @override
   Future<SwapChain> initialize({bool destroySwapchain = true}) async {
@@ -91,11 +97,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     canvas = document.getElementById("thermion_canvas") as HTMLCanvasElement?;
 
-        
     if (options.webOptions.createCanvas) {
       // Remove and re-create the canvas if createCanvas is true and the canvas
-      // already exists. This fixes the hot-reload problem (where the canvas 
-      // has already been created by the previous iteration and transferred to 
+      // already exists. This fixes the hot-reload problem (where the canvas
+      // has already been created by the previous iteration and transferred to
       // the pthread. This is still an issue if createCanvas is false.
       // if(canvas.context)
       canvas?.remove();
@@ -114,20 +119,39 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       (canvas as HTMLElement).style.zIndex = "-1";
     }
 
-    final platform = Thermion_createPlatformWebGL();
     final config = FFIFilamentConfig(
         backend: Backend.OPENGL,
         loadResource: loadAsset,
-        platform: platform,
-        sharedContext: nullptr,
+        platform: nullptr,
+        sharedContext: null,
         uberArchivePath: options.uberarchivePath);
     await FFIFilamentApp.create(config: config);
 
-    var swapChain = await FilamentApp.instance!
-        .createHeadlessSwapChain(canvas.width, canvas.height);
+    // Use createSwapChain with nullptr to render to the canvas's default
+    // framebuffer (framebuffer 0). createHeadlessSwapChain creates an offscreen
+    // buffer that never gets displayed.
+    swapChain = await FilamentApp.instance!
+        .createHeadlessSwapChain(1, 1);
 
-    SchedulerBinding.instance.addPersistentFrameCallback(_flutterBeginFrame);
+    print("Created 1x1 headless swapchain");
 
-    return swapChain;
+    window.requestAnimationFrame(_tick.toJS);
+
+    return swapChain!;
+  }
+
+  @override
+  Future<PlatformTextureDescriptor?> createTextureAndBindToView(
+    View view,
+    int width,
+    int height,
+  ) async {
+    // On web, we don't use hardware textures but we return a descriptor
+    // with dimensions so the callback can update viewport/camera
+    _logger.info(
+        "createTextureAndBindToView returning web descriptor with ${width}x$height");
+    var descriptor = WebPlatformTextureDescriptor(width: width, height: height);
+    resizeWebCanvas(width, height);
+    return descriptor;
   }
 }

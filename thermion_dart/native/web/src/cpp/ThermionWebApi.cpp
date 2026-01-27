@@ -88,10 +88,6 @@ extern "C"
     return _context;
   }
 
-  EMSCRIPTEN_KEEPALIVE void *Thermion_createPlatformWebGL() {
-    return new filament::backend::PlatformWebGL();
-  }
-
   emscripten::val emscripten_make_uint8_buffer(int ptr, int length) {
     uint8_t *buffer = (uint8_t*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
@@ -106,6 +102,12 @@ extern "C"
 
   emscripten::val emscripten_make_uint16_buffer(int ptr, int length) {
     uint16_t *buffer = (uint16_t*)ptr;
+    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
+    return v;
+  }
+
+  emscripten::val emscripten_make_uint32_buffer(int ptr, int length) {
+    uint32_t *buffer = (uint32_t*)ptr;
     auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
     return v;
   }
@@ -138,6 +140,7 @@ EMSCRIPTEN_BINDINGS(module) {
   emscripten::function("_emscripten_make_uint16_buffer", &emscripten_make_uint16_buffer, emscripten::allow_raw_pointers());
   emscripten::function("_emscripten_make_int16_buffer", &emscripten_make_int16_buffer, emscripten::allow_raw_pointers());
   emscripten::function("_emscripten_make_int32_buffer", &emscripten_make_int32_buffer, emscripten::allow_raw_pointers());
+  emscripten::function("_emscripten_make_uint32_buffer", &emscripten_make_uint32_buffer, emscripten::allow_raw_pointers());
   emscripten::function("_emscripten_make_f32_buffer", &emscripten_make_f32_buffer, emscripten::allow_raw_pointers());
   emscripten::function("_emscripten_make_f64_buffer", &emscripten_make_f64_buffer, emscripten::allow_raw_pointers());
   emscripten::function("_emscripten_get_byte_offset", &emscripten_get_byte_offset, emscripten::allow_raw_pointers());

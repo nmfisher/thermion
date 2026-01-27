@@ -178,8 +178,8 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
   Future _configure() async {
     if (widget.assetPath != null) {
-      // asset = await viewer!.loadGltf(widget.assetPath!);
-      asset = await viewer!.createGeometry(GeometryHelper.cube());
+      asset = await viewer!.loadGltf(widget.assetPath!);
+      // asset = await viewer!.createGeometry(GeometryHelper.cube());
 
       await asset!.setCastShadows(true);
 
@@ -219,7 +219,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     thermionWidget = ThermionWidget(
       key: ObjectKey(DateTime.now()),
       viewer: viewer!,
-      enableHighlights: true
+      enableHighlights: widget.enableHighlights
     );
 
     _setViewportWidget();

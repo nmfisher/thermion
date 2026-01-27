@@ -247,6 +247,36 @@ extension Float32ListExtension on Float32List {
   }
 }
 
+extension Int16ListExtension on Int32List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension Int32ListExtension on Int32List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension UInt16ListExtension on Uint16List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension Uint32ListExtension on Uint32List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension TypedDataListExtension on TypedData {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
 void resizeWebCanvas(int width, int height) {
   throw UnsupportedError("Not supported on non-web platforms");
 }
