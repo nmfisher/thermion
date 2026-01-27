@@ -14,84 +14,12 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
-final _allocations = <TypedData>{};
-
-
 extension type _NativeLibrary(NativeLibrary _) implements JSObject {
   static _NativeLibrary get instance =>
       NativeLibrary.instance as _NativeLibrary;
 
-  external void _execute_queue();  
+  external void _execute_queue();
 }
-
-extension FreeTypedData<T> on TypedData {
-  void free() {
-    Pointer<Void>(this.offsetInBytes).free();
-    _allocations.remove(this);
-  }
-}
-
-Pointer<T> getPointer<T extends NativeType>(TypedData data, JSObject obj) {
-  late Pointer<T> ptr;
-
-  if (data.lengthInBytes < 32 * 1024) {
-    ptr = stackAlloc(data.lengthInBytes).cast<T>();
-  } else {
-    ptr = malloc<T>(data.lengthInBytes);
-  }
-
-  return ptr;
-}
-
-extension JSUint8BackingBuffer on JSUint8Array {
-  @JS('buffer')
-  external JSObject buffer;
-}
-
-extension JSFloat32BackingBuffer on JSFloat32Array {
-  @JS('buffer')
-  external JSObject buffer;
-}
-
-@JS('Uint8Array')
-extension type Uint8ArrayWrapper._(JSObject _) implements JSObject {
-  external Uint8ArrayWrapper(JSObject buffer, int offset, int length);
-}
-
-@JS('Int8Array')
-extension type Int8ArrayWrapper._(JSObject _) implements JSObject {
-  external Int8ArrayWrapper(JSObject buffer, int offset, int length);
-}
-
-@JS('Uint16Array')
-extension type Uint16ArrayWrapper._(JSObject _) implements JSObject {
-  external Uint16ArrayWrapper(JSObject buffer, int offset, int length);
-}
-
-@JS('Int16Array')
-extension type Int16ArrayWrapper._(JSObject _) implements JSObject {
-  external Int16ArrayWrapper(JSObject buffer, int offset, int length);
-}
-
-@JS('Uint32Array')
-extension type Uint32ArrayWrapper._(JSObject _) implements JSObject {
-  external Uint32ArrayWrapper(JSObject buffer, int offset, int length);
-}
-
-@JS('Int32Array')
-extension type Int32ArrayWrapper._(JSObject _) implements JSObject {
-  external Int32ArrayWrapper(JSObject buffer, int offset, int length);
-}
-
-@JS('Float32Array')
-extension type Float32ArrayWrapper._(JSObject _) implements JSObject {
-  external Float32ArrayWrapper(JSObject buffer, int offset, int length);
-}
-@JS('Float64Array')
-extension type Float64ArrayWrapper._(JSObject _) implements JSObject {
-  external Float64ArrayWrapper(JSObject buffer, int offset, int length);
-}
-
 
 typedef IntPtrList = Int32List;
 typedef Utf8 = Char;
@@ -138,6 +66,7 @@ extension VFCB on void Function() {
   }
 }
 
+int _lastRequestId = 0;
 final _completers = <int, Completer>{};
 void Function(int) _voidCallback = (int requestId) {
   _completers[requestId]!.complete();
@@ -149,7 +78,9 @@ final _voidCallbackPtr = _voidCallback.addFunction();
 Future<void> withVoidCallback(
     Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer();
-  final requestId = _completers.length;
+  var requestId = _lastRequestId;
+  _lastRequestId++;
+
   _completers[requestId] = completer;
 
   func.call(requestId, _voidCallbackPtr.cast());

@@ -407,6 +407,11 @@ namespace thermion
             VoidCallback onComplete
         );
 
+        typedef void (*FrameCallback)(uint64_t frameTimeNanos);
+
+        EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps);
+        EMSCRIPTEN_KEEPALIVE void FrameScheduler_stop();
+
 #ifdef __cplusplus
     }
 }

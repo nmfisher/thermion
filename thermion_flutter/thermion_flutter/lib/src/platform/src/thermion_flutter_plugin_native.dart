@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:ffi' as ffi;
 import 'dart:io';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
@@ -9,6 +9,11 @@ import '../../../thermion_flutter.dart';
 import 'platform_texture_descriptor.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+// ignore: implementation_imports
+import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
+    show FrameScheduler_start, FrameScheduler_stop, FrameCallback;
+import 'package:thermion_flutter/src/swift/swift_bindings.g.dart'
+    show SwiftThermionFlutterPluginObjCAPI;
 
 // Handles all platform-specific initialization to create a backing rendering
 // surface in a Flutter application and lifecycle listeners to pause rendering
@@ -40,13 +45,25 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   // has been redirected to an internal RT (e.g., in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
 
-  static void _flutterBeginFrame(Duration timestamp) async {
+  static bool _rendering = false;
+  static ffi.NativeCallable<FrameCallback>? _frameCallable;
+
+  /// Called by native FrameScheduler at vsync/timer intervals.
+  /// Not async — guards against re-entrant calls with [_rendering] flag.
+  static void _onFrame(int frameTimeNanos) {
+    if (_rendering) return;
+    _rendering = true;
+    _renderFrame().then((_) {
+      _rendering = false;
+    });
+  }
+
+  static Future<void> _renderFrame() async {
     await FilamentApp.instance?.render();
 
     for (final descriptor in _descriptors) {
       if (!descriptor.destroyed) {
         descriptor.markTextureFrameAvailable();
-        descriptor.onBeginFrame?.call(timestamp);
       }
     }
     for (final descriptor in _destroyed) {
@@ -55,7 +72,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
     }
     _destroyed.clear();
-    SchedulerBinding.instance.scheduleFrame();
   }
 
   @override
@@ -137,7 +153,17 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
 
-    SchedulerBinding.instance.addPersistentFrameCallback(_flutterBeginFrame);
+    _frameCallable = ffi.NativeCallable<FrameCallback>.listener(_onFrame);
+    if (Platform.isMacOS || Platform.isIOS) {
+      SwiftThermionFlutterPluginObjCAPI
+          .startFrameSchedulerWithCallbackAddress_targetFps_(
+              _frameCallable!.nativeFunction.address, 60);
+    } else if (Platform.isWindows) {
+      await channel.invokeMethod("startFrameScheduler",
+          [_frameCallable!.nativeFunction.address, 60]);
+    } else {
+      FrameScheduler_start(_frameCallable!.nativeFunction, 60);
+    }
 
     return swapChain;
   }

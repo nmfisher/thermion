@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:math';
 import '../../../bindings/bindings.dart' as bindings;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
@@ -746,7 +745,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     await withVoidCallback((requestId, cb) {
       RenderManager_renderRenderThread(
-          renderManager, frameTimeInNanos, requestId, cb);
+          renderManager, frameTimeInNanos.toBigInt, requestId, cb);
     });
   }
 

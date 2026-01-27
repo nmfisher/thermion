@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <map>
 
 #include "Log.hpp"
@@ -51,7 +52,8 @@ namespace thermion
   {
     std::lock_guard lock(mMutex);
     auto it = std::remove_if(mViewAttachments.begin(), mViewAttachments.end(),
-        [swapChain](const ViewAttachment& va) { return va.swapChain == swapChain; });
+                             [swapChain](const ViewAttachment &va)
+                             { return va.swapChain == swapChain; });
     mViewAttachments.erase(it, mViewAttachments.end());
   }
 
@@ -60,23 +62,27 @@ namespace thermion
     std::lock_guard lock(mMutex);
 
     // Find existing entry for this swapchain
-    ViewAttachment* attachment = nullptr;
-    for (auto& va : mViewAttachments) {
-      if (va.swapChain == swapChain) {
+    ViewAttachment *attachment = nullptr;
+    for (auto &va : mViewAttachments)
+    {
+      if (va.swapChain == swapChain)
+      {
         attachment = &va;
         break;
       }
     }
 
     // Create new entry if not found
-    if (!attachment) {
+    if (!attachment)
+    {
       mViewAttachments.push_back(ViewAttachment{});
       attachment = &mViewAttachments.back();
       attachment->swapChain = swapChain;
     }
 
     // Update views
-    for (int i = 0; i < numViewAttachments; i++) {
+    for (int i = 0; i < numViewAttachments; i++)
+    {
       attachment->views[i] = (i < numViews) ? views[i] : nullptr;
     }
     TRACE("Set %d view attachments for swapchain", numViews);
@@ -102,9 +108,13 @@ namespace thermion
     int swapChainIndex = 0;
 
     // Render each swapchain
-    for (auto& attachment : mViewAttachments)
+    for (auto &attachment : mViewAttachments)
     {
-      if (!attachment.swapChain) continue;
+      if (!attachment.swapChain)
+      {
+        Log("No swapchain, ignoring");
+        continue;
+      }
 
       bool beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
       if (beginFrame)
@@ -115,7 +125,9 @@ namespace thermion
         int numRendered = 0;
         for (int i = 0; i < numViewAttachments; i++)
         {
-          if (!attachment.views[i]) break;
+          if (!attachment.views[i]) {
+            break;
+          }
           numRendered++;
           mRenderer->render(attachment.views[i]);
         }
@@ -124,7 +136,9 @@ namespace thermion
         mRenderer->endFrame();
 
         TRACE("%d views rendered for swapchain %d", numRendered, swapChainIndex);
-        if (numRendered > 0) rendered = true;
+        if (numRendered > 0) {
+          rendered = true;
+        }
       }
       else
       {

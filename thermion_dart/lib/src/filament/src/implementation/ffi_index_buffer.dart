@@ -20,7 +20,7 @@ class FFIIndexBuffer extends IndexBuffer {
 
   @override
   Future setBuffer(TypedData data, {int byteOffset = 0}) async {
-    final byteData = data.buffer.asUint8List();
+    final byteData = data.asUint8List();
     await withVoidCallback((requestId, cb) {
       bindings.IndexBuffer_setBufferRenderThread(
         _engine,

@@ -41,7 +41,7 @@ class FFISurfaceOrientation extends SurfaceOrientation {
     };
 
     // Get pointer to output data
-    final outputBytes = output.buffer.asUint8List(output.offsetInBytes);
+    final outputBytes = output.asUint8List();
 
     // Call appropriate C function based on format
     switch (format) {
@@ -107,7 +107,7 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   @override
   void normals(Float32List normals, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = normals.buffer.asUint8List(normals.offsetInBytes);
+    final byteData = normals.asUint8List();
     bindings.SurfaceOrientationBuilder_normals(
       _builderPtr!,
       byteData.address.cast<bindings.Float>(),
@@ -118,7 +118,7 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   @override
   void tangents(Float32List tangents, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = tangents.buffer.asUint8List(tangents.offsetInBytes);
+    final byteData = tangents.asUint8List();
     bindings.SurfaceOrientationBuilder_tangents(
       _builderPtr!,
       byteData.address.cast<bindings.Float>(),
@@ -129,7 +129,7 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   @override
   void uvs(Float32List uvs, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = uvs.buffer.asUint8List(uvs.offsetInBytes);
+    final byteData = uvs.asUint8List();
     bindings.SurfaceOrientationBuilder_uvs(
       _builderPtr!,
       byteData.address.cast<bindings.Float>(),
@@ -140,7 +140,7 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   @override
   void positions(Float32List positions, {int stride = 0}) {
     _checkNotBuilt();
-    final byteData = positions.buffer.asUint8List(positions.offsetInBytes);
+    final byteData = positions.asUint8List();
     bindings.SurfaceOrientationBuilder_positions(
       _builderPtr!,
       byteData.address.cast<bindings.Float>(),
@@ -157,7 +157,7 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   @override
   void trianglesUint32(Uint32List triangles) {
     _checkNotBuilt();
-    final byteData = triangles.buffer.asUint8List(triangles.offsetInBytes);
+    final byteData = triangles.asUint8List();
     bindings.SurfaceOrientationBuilder_triangles_uint(
       _builderPtr!,
       byteData.address.cast<bindings.Uint32>(),
@@ -167,7 +167,7 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   @override
   void trianglesUint16(Uint16List triangles) {
     _checkNotBuilt();
-    final byteData = triangles.buffer.asUint8List(triangles.offsetInBytes);
+    final byteData = triangles.asUint8List();
     bindings.SurfaceOrientationBuilder_triangles_ushort(
       _builderPtr!,
       byteData.address.cast<bindings.Uint16>(),

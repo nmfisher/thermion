@@ -353,6 +353,8 @@ class MetalTextureWrapper extends objc.NSObject {
 
   /// init
   MetalTextureWrapper init() {
+    objc.checkOsVersionInternal('MetalTextureWrapper.init',
+        iOS: (false, (2, 0, 0)), macOS: (false, (10, 0, 0)));
     final _ret =
         _objc_msgSend_151sglz(this.ref.retainAndReturnPointer(), _sel_init);
     return MetalTextureWrapper.castFromPointer(_ret,
@@ -432,6 +434,17 @@ final _objc_msgSend_17gvxvj = objc.msgSendPointer
             ffi.Pointer<objc.ObjCSelector>, int)>();
 late final _sel_markTextureFrameAvailableWithFlutterTextureId_ =
     objc.registerName("markTextureFrameAvailableWithFlutterTextureId:");
+late final _sel_startFrameSchedulerWithCallbackAddress_targetFps_ =
+    objc.registerName("startFrameSchedulerWithCallbackAddress:targetFps:");
+final _objc_msgSend_12xnd2d = objc.msgSendPointer
+    .cast<
+        ffi.NativeFunction<
+            ffi.Void Function(ffi.Pointer<objc.ObjCObject>,
+                ffi.Pointer<objc.ObjCSelector>, ffi.Int64, ffi.Long)>>()
+    .asFunction<
+        void Function(ffi.Pointer<objc.ObjCObject>,
+            ffi.Pointer<objc.ObjCSelector>, int, int)>();
+late final _sel_stopFrameScheduler = objc.registerName("stopFrameScheduler");
 
 /// SwiftThermionFlutterPluginObjCAPI
 class SwiftThermionFlutterPluginObjCAPI extends objc.NSObject {
@@ -476,8 +489,26 @@ class SwiftThermionFlutterPluginObjCAPI extends objc.NSObject {
         _sel_markTextureFrameAvailableWithFlutterTextureId_, flutterTextureId);
   }
 
+  /// startFrameSchedulerWithCallbackAddress:targetFps:
+  static void startFrameSchedulerWithCallbackAddress_targetFps_(
+      int callbackAddress, int targetFps) {
+    _objc_msgSend_12xnd2d(
+        _class_SwiftThermionFlutterPluginObjCAPI,
+        _sel_startFrameSchedulerWithCallbackAddress_targetFps_,
+        callbackAddress,
+        targetFps);
+  }
+
+  /// stopFrameScheduler
+  static void stopFrameScheduler() {
+    _objc_msgSend_1pl9qdv(
+        _class_SwiftThermionFlutterPluginObjCAPI, _sel_stopFrameScheduler);
+  }
+
   /// init
   SwiftThermionFlutterPluginObjCAPI init() {
+    objc.checkOsVersionInternal('SwiftThermionFlutterPluginObjCAPI.init',
+        iOS: (false, (2, 0, 0)), macOS: (false, (10, 0, 0)));
     final _ret =
         _objc_msgSend_151sglz(this.ref.retainAndReturnPointer(), _sel_init);
     return SwiftThermionFlutterPluginObjCAPI.castFromPointer(_ret,

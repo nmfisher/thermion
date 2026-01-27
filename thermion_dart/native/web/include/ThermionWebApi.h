@@ -9,7 +9,6 @@ extern "C" {
 void Thermion_resizeCanvas(int width, int height);
 void Thermion_destroyCanvas();
 EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext();
-void *Thermion_createPlatformWebGL();
 EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext();
 
 

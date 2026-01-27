@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -61,11 +62,31 @@ public:
     bool mStop = false;
 
     /**
-     * 
+     *
      */
     bool mRestart = false;
-    
+
+    /**
+     * @brief Signals that a render() call has completed.
+     * On Emscripten, iter() will yield to browser after this is signaled.
+     */
+    std::atomic<bool> mRenderCompleted{false};
+
+    void signalRenderComplete() { mRenderCompleted.store(true); }
+
     #ifdef __EMSCRIPTEN__
+    /**
+     * @brief Indicates whether mainLoop is currently executing.
+     * Used to stop async task processing when the next frame begins.
+     */
+    std::atomic<bool> mMainLoopActive{false};
+
+    /**
+     * @brief Process a single deferred task asynchronously.
+     * Called via emscripten_async_call during the idle gap between frames.
+     */
+    void processAsyncTasks();
+
     emscripten::ProxyingQueue queue;
     pthread_t outer;
     #endif
