@@ -11,7 +11,7 @@ import 'platform_texture_descriptor.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
-    show FrameScheduler_start, FrameScheduler_stop, FrameCallback;
+    show FrameScheduler_start, FrameScheduler_stop, FrameCallbackFunction;
 import 'package:thermion_flutter/src/swift/swift_bindings.g.dart'
     show SwiftThermionFlutterPluginObjCAPI;
 
@@ -46,7 +46,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static final _viewRenderTargets = <View, RenderTarget>{};
 
   static bool _rendering = false;
-  static ffi.NativeCallable<FrameCallback>? _frameCallable;
+  static ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
 
   /// Called by native FrameScheduler at vsync/timer intervals.
   /// Not async — guards against re-entrant calls with [_rendering] flag.
@@ -153,7 +153,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
 
-    _frameCallable = ffi.NativeCallable<FrameCallback>.listener(_onFrame);
+    _frameCallable = ffi.NativeCallable<FrameCallbackFunction>.listener(_onFrame);
     if (Platform.isMacOS || Platform.isIOS) {
       SwiftThermionFlutterPluginObjCAPI
           .startFrameSchedulerWithCallbackAddress_targetFps_(
