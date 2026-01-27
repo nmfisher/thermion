@@ -3794,6 +3794,15 @@ external void TransformManager_setTransformRenderThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
+external void FrameScheduler_start(
+  FrameCallback callback,
+  int targetFps,
+);
+
+@ffi.Native<ffi.Void Function()>(isLeaf: true)
+external void FrameScheduler_stop();
+
 @ffi.Native<
     ffi.Pointer<TGltfAssetLoader> Function(
         ffi.Pointer<TEngine>,
@@ -6276,6 +6285,9 @@ typedef DartFilamentRenderCallbackFunction = void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef FilamentRenderCallback
     = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
+typedef FrameCallbackFunction = ffi.Void Function(ffi.Uint64 frameTimeNanos);
+typedef DartFrameCallbackFunction = void Function(int frameTimeNanos);
+typedef FrameCallback = ffi.Pointer<ffi.NativeFunction<FrameCallbackFunction>>;
 
 sealed class TProjection {
   static const Perspective = 0;

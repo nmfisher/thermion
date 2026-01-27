@@ -26,7 +26,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _Thermion_destroyCanvas();
   external int _Thermion_createGLContext();
-  external Pointer<Void> _Thermion_createPlatformWebGL();
   external int _Thermion_getGLContext();
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
@@ -1995,6 +1994,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _FrameScheduler_start(
+    FrameCallback callback,
+    int targetFps,
+  );
+  external void _FrameScheduler_stop();
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -2919,11 +2923,6 @@ void Thermion_destroyCanvas() {
 int Thermion_createGLContext() {
   final result = GeneratedBindings.instance._Thermion_createGLContext();
   return result;
-}
-
-Pointer<Void> Thermion_createPlatformWebGL() {
-  final result = GeneratedBindings.instance._Thermion_createPlatformWebGL();
-  return Pointer<Void>(result);
 }
 
 int Thermion_getGLContext() {
@@ -7236,6 +7235,20 @@ void TransformManager_setTransformRenderThread(
   return result;
 }
 
+void FrameScheduler_start(
+  DartFrameCallback callback,
+  int targetFps,
+) {
+  final result = GeneratedBindings.instance._FrameScheduler_start(
+      callback as Pointer<NativeFunction<FrameCallbackFunction>>, targetFps);
+  return result;
+}
+
+void FrameScheduler_stop() {
+  final result = GeneratedBindings.instance._FrameScheduler_stop();
+  return result;
+}
+
 Pointer<TGltfAssetLoader> GltfAssetLoader_create(
   Pointer<TEngine> tEngine,
   Pointer<TMaterialProvider> tMaterialProvider,
@@ -11154,6 +11167,11 @@ final class TRenderableBuilder extends Struct {
         NativeLibrary.instance.stackAlloc<TRenderableBuilder>(0));
   }
 }
+
+typedef FrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
+typedef DartFrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
+typedef FrameCallbackFunction = void Function(JSBigInt frameTimeNanos);
+typedef DartFrameCallbackFunction = void Function(BigInt frameTimeNanos);
 
 sealed class TProjection {
   static const Perspective = 0;
