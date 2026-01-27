@@ -85,18 +85,24 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderTarget(RenderTarget? renderTarget) async {
-    // When highlight overlay is initialized, the main view renders to an internal
-    // render target. When Flutter creates a new render target (e.g., on resize),
-    // it should go to EdgeDetectionView, not replace the main view's internal RT.
-    // BUT: if the overlay manager is setting the internal RT, don't intercept.
-    if (_highlightOverlayManager != null &&
-        _highlightOverlayManager!.initialized &&
-        renderTarget != null) {
-      // Check if this is the internal RT being set by the overlay manager
-      final isInternalRT = _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
-      if (!isInternalRT) {
-        // This is a Flutter RT - redirect to EdgeDetectionView
-        await _highlightOverlayManager!.updateFlutterRenderTarget(renderTarget as FFIRenderTarget);
+    // When highlight overlay is enabled, the main view renders to an internal
+    // render target. Flutter-provided render targets go to EdgeDetectionView.
+    if (_highlightOverlayManager != null && renderTarget != null) {
+      if (_highlightOverlayManager!.initialized) {
+        // Already initialized — check if this is the internal RT
+        final isInternalRT =
+            _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
+        if (!isInternalRT) {
+          // This is a Flutter RT - redirect to EdgeDetectionView
+          await _highlightOverlayManager!
+              .updateFlutterRenderTarget(renderTarget as FFIRenderTarget);
+          return;
+        }
+      } else {
+        // Manager exists but not yet initialized — initialize now with this RT
+        await _highlightOverlayManager!.initialize(this, renderTarget, null);
+        await app.updateRenderOrder();
+        _logger.info("Highlight overlay late-initialized with render target");
         return;
       }
     }
