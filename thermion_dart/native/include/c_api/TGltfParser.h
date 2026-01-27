@@ -16,6 +16,8 @@ typedef struct TGltfMeshData {
     TPrimitiveType primitiveType;
 } TGltfMeshData;
 
+void dummy(TGltfMeshData dummy);
+
 // Parse glTF and extract all mesh geometry data
 // Returns 0 on success, non-zero on failure
 EMSCRIPTEN_KEEPALIVE int GltfParser_parseBuffer(
