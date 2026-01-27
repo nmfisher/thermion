@@ -139,9 +139,16 @@ Future<double> withFloatCallback(
 }
 
 Future<int> withIntCallback(
-    Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
-  final completer = Completer<int>();
-  throw UnimplementedError();
+    Function(Pointer<NativeFunction<void Function(int)>>) func) async {
+    final completer = Completer<int>();
+  // ignore: prefer_function_declarations_over_variables
+  void Function(int) callback = (int result) {
+    completer.complete(result);
+  };
+  var ptr = callback.addFunction();
+  func.call(ptr);
+  await completer.future;
+  return completer.future;
 }
 
 Pointer<T> allocate<T extends NativeType>(int count) {
