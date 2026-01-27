@@ -11240,7 +11240,7 @@ final class TGltfMeshData extends Struct {
   int get primitiveType {
     final addr = this.address + 16;
     final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
-    return value.toDartInt;
+    return value;
   }
 
   set primitiveType(int val) {
