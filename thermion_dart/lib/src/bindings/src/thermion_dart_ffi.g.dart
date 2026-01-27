@@ -4604,6 +4604,11 @@ external ffi.Pointer<ffi.Char> NameComponentManager_getName(
   int entity,
 );
 
+@ffi.Native<ffi.Void Function(TGltfMeshData)>(isLeaf: true)
+external void dummy(
+  TGltfMeshData dummy,
+);
+
 @ffi.Native<
     ffi.Int Function(ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>,
         ffi.Pointer<TGltfMeshData>)>(isLeaf: true)

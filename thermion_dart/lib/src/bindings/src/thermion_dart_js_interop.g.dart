@@ -2444,6 +2444,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TNameComponentManager> tNameComponentManager,
     EntityId entity,
   );
+  external void _dummy(
+    Pointer<TGltfMeshData> dummyPtr,
+  );
   external int _GltfParser_parseBuffer(
     Pointer<Uint8> data,
     size_t length,
@@ -8233,6 +8236,14 @@ Pointer<Char> NameComponentManager_getName(
   return Pointer<Char>(result);
 }
 
+void dummy(
+  TGltfMeshData dummy,
+) {
+  final dummyPtr = dummy.address;
+  final result = GeneratedBindings.instance._dummy(dummyPtr.cast());
+  return result;
+}
+
 int GltfParser_parseBuffer(
   Pointer<Uint8> data,
   Dartsize_t length,
@@ -11186,11 +11197,61 @@ extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
 
 final class TGltfMeshData extends Struct {
   Pointer<TGltfMeshData> get address => super.address.cast();
+  Pointer<Float32> get vertices {
+    final addr = this.address + 0;
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return Pointer<Float32>(value.toDartInt);
+  }
+
+  set vertices(Pointer<Float32> val) {
+    NativeLibrary.instance.setValue(this.address + 0, val.toJS, '*');
+  }
+
+  int get vertexCount {
+    final addr = this.address + 4;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set vertexCount(int val) {
+    NativeLibrary.instance.setValue(this.address + 4, val.toJS, 'i32');
+  }
+
+  Pointer<Uint32> get indices {
+    final addr = this.address + 8;
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return Pointer<Uint32>(value.toDartInt);
+  }
+
+  set indices(Pointer<Uint32> val) {
+    NativeLibrary.instance.setValue(this.address + 8, val.toJS, '*');
+  }
+
+  int get indexCount {
+    final addr = this.address + 12;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set indexCount(int val) {
+    NativeLibrary.instance.setValue(this.address + 12, val.toJS, 'i32');
+  }
+
+  int get primitiveType {
+    final addr = this.address + 16;
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value.toDartInt;
+  }
+
+  set primitiveType(int val) {
+    NativeLibrary.instance.setValue(this.address + 16, val.toJS, 'i32');
+  }
+
   TGltfMeshData(super.address);
 
   static Pointer<TGltfMeshData> stackAlloc() {
     return Pointer<TGltfMeshData>(
-        NativeLibrary.instance.stackAlloc<TGltfMeshData>(0));
+        NativeLibrary.instance.stackAlloc<TGltfMeshData>(20));
   }
 }
 
