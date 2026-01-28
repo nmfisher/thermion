@@ -258,7 +258,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  Future<View> createView() async {
+  Future<View> createView({bool createScene = false}) async {
     final view = await FFIView(
         await withPointerCallback<TView>(
             (cb) => Engine_createViewRenderThread(engine, cb)),
@@ -271,6 +271,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await view.setAntiAliasing(false, false, false);
     await view.setDithering(false);
     await view.setRenderQuality(QualityLevel.MEDIUM);
+
+    if (createScene) {
+      final scene = await this.createScene();
+      await view.setScene(scene);
+    }
     return view;
   }
 

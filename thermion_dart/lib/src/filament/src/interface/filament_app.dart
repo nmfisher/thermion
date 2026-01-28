@@ -53,7 +53,7 @@ abstract class FilamentApp<T> {
   Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
 
   //
-  Future<View> createView();
+  Future<View> createView({bool createScene=false});
 
   //
   Future<Scene> createScene();
