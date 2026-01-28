@@ -444,15 +444,10 @@ void main() async {
         .setRenderTargetEnabled(true)
         .setStencilBufferEnabled(true)
         .execute((result) async {
-      await result.viewer.view.enableHighlightOverlay();
+      await result.viewer.view.setHighlightOverlayEnabled(true);
 
-      final sv = await result.viewer.view.getSilhouetteView();
-      final svrt = await sv!.getRenderTarget();
-      assert(svrt != null);
-
-      final ov = await result.viewer.view.getOverlayView();
-      final ovrt = await FilamentApp.instance!.createRenderTarget(512, 512);
-      await ov!.setRenderTarget(ovrt);
+      final manager = result.viewer.view.getHighlightOverlay();
+      assert(manager != null);
 
       var cube = await FilamentApp.instance!
           .createGeometry(GeometryHelper.cube(flipUvs: true));
@@ -516,7 +511,7 @@ void main() async {
       await result.viewer.view.removeStencilHighlight(cube);
 
       // Disable the highlight overlay system
-      await result.viewer.view.disableHighlightOverlay();
+      await result.viewer.view.setHighlightOverlayEnabled(false);
     });
   });
 
