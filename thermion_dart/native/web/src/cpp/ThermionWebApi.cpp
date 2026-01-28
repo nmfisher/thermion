@@ -56,7 +56,7 @@ extern "C"
     attr.depth = EM_TRUE;  
     attr.stencil = EM_TRUE; 
     attr.antialias = EM_FALSE; 
-    attr.explicitSwapControl = EM_FALSE; 
+    attr.explicitSwapControl = EM_TRUE; 
     attr.preserveDrawingBuffer = EM_FALSE; 
     attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_DISALLOW; 
     attr.enableExtensionsByDefault = EM_TRUE;
