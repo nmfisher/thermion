@@ -83,9 +83,16 @@ namespace thermion
     // Update views
     for (int i = 0; i < numViewAttachments; i++)
     {
-      attachment->views[i] = (i < numViews) ? views[i] : nullptr;
+      if(i < numViews) {
+        attachment->views[i] = views[i];
+        if(!views[i]) {
+          ERROR("View attachment at %d is nullptr, this is not expected", i);  
+        }
+      } else { 
+        attachment->views[i] = nullptr;
+      }
     }
-    TRACE("Set %d view attachments for swapchain", numViews);
+    Log("Set %d view attachments for swapchain", numViews);
   }
 
   bool RenderManager::render(uint64_t frameTimeInNanos)
@@ -148,9 +155,10 @@ namespace thermion
       swapChainIndex++;
     }
 
-#ifdef __EMSCRIPTEN__
-    mEngine->execute();
-#endif
+    #ifdef __EMSCRIPTEN__
+        mEngine->execute();
+    #endif
+
     auto endTime = std::chrono::high_resolution_clock::now();
     durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
     float durationMs = durationNs / 1e6f;
