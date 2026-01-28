@@ -180,7 +180,7 @@ class HighlightOverlayManager {
       // Android/web path: register EdgeDetectionView with swapchain
       await overlayView.setRenderTarget(null);  // Clear any RT
       _swapChain = swapChain as FFISwapChain;
-      await _app.register(_swapChain!, overlayView as FFIView);
+      await _app.setRenderOrder(_swapChain!, overlayView as FFIView, renderOrder: 0);
       _logger.info("EdgeDetectionView registered with swapchain");
     }
 
@@ -205,7 +205,7 @@ class HighlightOverlayManager {
 
     // If EdgeDetectionView was registered with swapchain (Android), unregister it
     if (_swapChain != null) {
-      await _app.unregister(_swapChain!, overlayView as FFIView);
+      await _app.setRenderOrder(_swapChain!, overlayView as FFIView, renderOrder: -1);
       _swapChain = null;
       _logger.info("EdgeDetectionView unregistered from swapchain");
     }

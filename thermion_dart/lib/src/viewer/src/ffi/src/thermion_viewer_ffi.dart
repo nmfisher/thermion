@@ -75,8 +75,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future _initialize() async {
     view = await FilamentApp.instance!.createView() as FFIView;
 
-    await view.setRenderable(true);
-
+    view.setName("main_view");
     await FilamentApp.instance!.setClearOptions(0.0, 0.0, 0.0, 0.0);
     scene = await FilamentApp.instance!.createScene() as FFIScene;
 
@@ -87,8 +86,6 @@ class ThermionViewerFFI extends ThermionViewer {
     await camera.setLensProjection();
 
     await view.setCamera(camera);
-
-    await setRendering(true);
 
     if (_createOverlay) {
       await view.enableHighlightOverlay();
@@ -107,7 +104,12 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setRendering(bool render) async {
     _rendering = render;
-    await view.setRenderable(render);
+    final swapChain = await FilamentApp.instance!.getSwapChain(view);
+    if (swapChain == null) {
+      throw Exception("TODO");
+    }
+    await FilamentApp.instance!
+        .setRenderOrder(swapChain, view, renderOrder: render ? 0 : -1);
   }
 
   //

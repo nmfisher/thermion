@@ -51,12 +51,9 @@ abstract class ThermionFlutterPlugin {
     _logger.finest("Viewer initialized");
     if (swapChain != null) {
       _logger.finest("Registering swapchain");
-      await FilamentApp.instance!.register(swapChain, viewer.view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, viewer.view, renderOrder: 0);
       _logger.finest("Swapchain registered");
     }
-
-    await viewer.view.setRenderable(true);
-    _logger.finest("Set view to renderable");
 
     return viewer;
   }

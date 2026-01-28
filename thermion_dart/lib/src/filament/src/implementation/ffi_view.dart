@@ -17,17 +17,12 @@ import 'ffi_camera.dart';
 
 class FFIView extends View<Pointer<TView>> {
   late final _logger = Logger(this.runtimeType.toString());
-  int _renderOrder = 0;
-  int get renderOrder => _renderOrder;
 
   final Pointer<TView> view;
 
   Pointer<TView> getNativeHandle() => view;
 
   final FFIFilamentApp app;
-
-  bool _renderable = false;
-  bool get renderable => _renderable;
 
   RenderTarget? renderTarget;
 
@@ -54,22 +49,6 @@ class FFIView extends View<Pointer<TView>> {
     }
     await withVoidCallback((requestId, cb) => Engine_destroyViewRenderThread(
         FilamentApp.instance!.engine, view, requestId, cb));
-  }
-
-  ///
-  ///
-  ///
-  Future setRenderOrder(int order) async {
-    this._renderOrder = order;
-    await FilamentApp.instance!.updateRenderOrder();
-  }
-
-  ///
-  ///
-  ///
-  Future setRenderable(bool renderable) async {
-    this._renderable = renderable;
-    await FilamentApp.instance!.updateRenderOrder();
   }
 
   @override

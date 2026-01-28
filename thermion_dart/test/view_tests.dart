@@ -18,6 +18,13 @@ void main() async {
   final testHelper = TestHelper("view");
   await testHelper.setup();
 
+  test('get/set debug name', () async {
+    final view = await FilamentApp.instance!.createView();
+    expect(view.getName(), "");
+    view.setName("viewname");
+    expect(view.getName(), "viewname");
+  });
+
   test('get camera from view', () async {
     await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
@@ -52,11 +59,11 @@ void main() async {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
       await view.setCamera(camera);
-      await view.setRenderable(true);
+      
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
-      await FilamentApp.instance!.register(swapChain, view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, view);
       views.add(view);
     }
 
@@ -95,12 +102,12 @@ void main() async {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
       await view.setCamera(camera);
-      await view.setRenderable(true);
+      
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
       await view.setPostProcessing(false);
-      await FilamentApp.instance!.register(swapChain, view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, view);
       views.add(view);
       await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
         viewportDimensions.width,
@@ -148,12 +155,12 @@ void main() async {
     for (int i = 0; i < 2; i++) {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
-      await view.setRenderable(true);
+      
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
       await view.setPostProcessing(false);
-      await FilamentApp.instance!.register(swapChain, view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, view);
       views.add(view);
     }
 
@@ -190,7 +197,7 @@ void main() async {
     for (int i = 0; i < 2; i++) {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
-      await view.setRenderable(true);
+      
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
@@ -198,7 +205,7 @@ void main() async {
       await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
               viewportDimensions.width, viewportDimensions.height)
           as FFIRenderTarget);
-      await FilamentApp.instance!.register(swapChain, view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, view);
       await view.setCamera(camera);
       views.add(view);
     }
@@ -276,7 +283,7 @@ void main() async {
       final view = await FilamentApp.instance!.createView() as FFIView;
       final scene = await FilamentApp.instance!.createScene() as FFIScene;
       await view.setScene(scene);
-      await view.setRenderable(true);
+      
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
@@ -284,7 +291,7 @@ void main() async {
 
       await view.setRenderTarget(renderTarget);
 
-      await FilamentApp.instance!.register(swapChain, view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, view);
       await view.setCamera(camera);
       views.add(view);
 
@@ -327,7 +334,6 @@ void main() async {
     for (int i = 0; i < 2; i++) {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
-      await view.setRenderable(true);
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
@@ -335,7 +341,7 @@ void main() async {
       await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
               viewportDimensions.width, viewportDimensions.height)
           as FFIRenderTarget);
-      await FilamentApp.instance!.register(swapChain, view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, view);
       await view.setCamera(camera);
       views.add(view);
     }
@@ -438,13 +444,12 @@ void main() async {
         .setRenderTargetEnabled(true)
         .setStencilBufferEnabled(true)
         .execute((result) async {
-      
       await result.viewer.view.enableHighlightOverlay();
-      
+
       final sv = await result.viewer.view.getSilhouetteView();
       final svrt = await sv!.getRenderTarget();
       assert(svrt != null);
-      
+
       final ov = await result.viewer.view.getOverlayView();
       final ovrt = await FilamentApp.instance!.createRenderTarget(512, 512);
       await ov!.setRenderTarget(ovrt);
@@ -476,7 +481,7 @@ void main() async {
         b: 1.0,
         outlineWidth: 1.0,
       );
-      
+
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_1px_blue",
@@ -484,7 +489,7 @@ void main() async {
 
       // Test that highlight follows object translation
       await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
-      
+
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_translate",
@@ -493,7 +498,7 @@ void main() async {
       // Test that highlight follows object rotation
       await cube.setTransform(
           Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
-      
+
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_rotate",
@@ -502,7 +507,7 @@ void main() async {
       // Test that highlight works after camera change
       final camera = await result.viewer.view.getCamera();
       await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
-      
+
       await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_camera_move",
@@ -514,7 +519,6 @@ void main() async {
       await result.viewer.view.disableHighlightOverlay();
     });
   });
-
 
   test('VSM shadow options set/get', () async {
     await ViewerBuilder(testHelper)

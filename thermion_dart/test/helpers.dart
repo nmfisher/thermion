@@ -160,7 +160,7 @@ class TestHelper {
     await view.setRenderTarget(await FilamentApp.instance!
         .createRenderTarget(512, 512, color: color) as FFIRenderTarget);
 
-    await FilamentApp.instance!.register(swapChain, view);
+    await FilamentApp.instance!.setRenderOrder(swapChain, view);
 
     return view;
   }
@@ -316,7 +316,7 @@ class TestHelper {
 
     var viewer = ThermionViewerFFI();
     await viewer.initialized;
-    await FilamentApp.instance!.register(swapChain, viewer.view);
+    await FilamentApp.instance!.setRenderOrder(swapChain, viewer.view);
     if (renderTarget != null) {
       await viewer.view.setRenderTarget(renderTarget);
     }

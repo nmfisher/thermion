@@ -156,10 +156,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _logger.info("Initialization complete");
   }
 
-  final _swapChains = <FFISwapChain, List<FFIView>>{};
-  late Pointer<PointerClass<TView>> viewsPtr =
-      allocate<PointerClass>(255).cast();
-
   //
   // Updates the render order for all views/swap chains.
   //
@@ -169,58 +165,70 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // 3. Overlay views (edge detection fullscreen quad, composites on top)
   //
   Future updateRenderOrder() async {
-    if (_swapChains.isEmpty) {
-      _logger.warning("No swapchains, ignoring updateRenderOrder");
-      return;
-    }
-    for (final swapChain in _swapChains.keys) {
+    final swapChains = _swapChains.keys.toList();
+
+    final handles = [];
+
+    for (int i = 0; i < swapChains.length; i++) {
+      final swapChain = swapChains[i];
       final views = _swapChains[swapChain];
+      final viewNames = [];
+
       if (views == null) {
         _logger.info("No views found for swapchain $swapChain");
         continue;
       }
 
-      int numRenderable = 0;
-
       // First pass: silhouette views (render to texture)
-      for (final view in views) {
-        if (view.renderable && view.hasHighlights()) {
-          final silhouetteView = view.getSilhouetteView();
-          if (silhouetteView != null) {
-            viewsPtr[numRenderable++] = silhouetteView.getNativeHandle();
-            _logger.info("Added silhouette view to render list");
-          }
+      for (final item in views) {
+        final view = item.$2;
+
+        final silhouetteView = view.getSilhouetteView();
+        if (silhouetteView != null) {
+          handles.add(silhouetteView.getNativeHandle());
+          viewNames.add(silhouetteView.getName());
+          _logger.info("Added silhouette view to render list");
         }
       }
 
       // Second pass: main views
-      for (final view in views) {
-        if (view.renderable) {
-          viewsPtr[numRenderable++] = view.view;
-        }
+      for (final item in views) {
+        final view = item.$2;
+        handles.add(view.getNativeHandle());
+        viewNames.add(view.getName());
       }
 
       // Third pass: overlay views (composite on top)
-      for (final view in views) {
-        if (view.renderable && view.hasHighlights()) {
-          final overlayView = view.getOverlayView();
-          if (overlayView != null) {
-            viewsPtr[numRenderable++] = overlayView.getNativeHandle();
-            _logger.info("Added overlay view to render list");
-          }
+      for (final item in views) {
+        final view = item.$2;
+        final overlayView = view.getOverlayView();
+        if (overlayView != null) {
+          handles.add(overlayView.getNativeHandle());
+          viewNames.add(overlayView.getName());
+          _logger.info("Added overlay view to render list");
         }
+      }
+
+      final pointers = allocate<PointerClass>(handles.length);
+      for (int i = 0; i < handles.length; i++) {
+        print("handles[i] ${handles[i]} pointers[i] ${pointers[i]}");
+        pointers[i] = handles[i];
       }
 
       await withVoidCallback((requestId, cb) =>
           RenderManager_setRenderableRenderThread(
               renderManager,
               swapChain.getNativeHandle(),
-              viewsPtr,
-              numRenderable,
+              pointers.cast(),
+              handles.length,
               requestId,
               cb));
-      _logger.finest("Updated render order, $numRenderable renderable views");
+
+      _logger.info(
+          "${handles.length} renderable views for swapchain $i : $viewNames");
     }
+
+    _logger.info("Updated render order for ${swapChains.length} swapchains");
   }
 
   @override
@@ -321,12 +329,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future destroy() async {
-    for (final swapChain in _swapChains.keys) {
+    final swapChains = _swapChains.keys.toList();
+    for (final swapChain in swapChains) {
       if (_swapChains[swapChain] == null) {
         continue;
       }
-      for (final view in _swapChains[swapChain]!) {
-        await view.setRenderable(false);
+      for (final item in _swapChains[swapChain]!) {
+        final view = item.$2;
+        await setRenderOrder(swapChain, view, renderOrder: -1);
       }
     }
     for (final swapChain in _swapChains.keys.toList()) {
@@ -339,7 +349,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     RenderThread_destroy();
     RenderManager_destroy(renderManager);
 
-    free(viewsPtr);
     FilamentApp.instance = null;
     for (final callback in _onDestroy) {
       await callback.call();
@@ -640,66 +649,41 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         entity, index, materialInstance);
   }
 
-  // ///
-  // ///
-  // ///
-  // @override
-  // Future render() async {
-  //   final swapchain = _swapChains.keys.first;
-  //   final view = _swapChains[swapchain]!.first;
-  //   await withBoolCallback((cb) {
-  //     RenderManager_beginFrameRenderThread(
-  //         renderer, swapchain.getNativeHandle(), 0.toBigInt, cb);
-  //   });
-  //   await withVoidCallback((requestId, cb) {
-  //     RenderManager_renderRenderThread(
-  //       renderer,
-  //       view.view,
-  //       requestId,
-  //       cb,
-  //     );
-  //   });
-  //   await withVoidCallback((requestId, cb) {
-  //     RenderManager_endFrameRenderThread(renderer, requestId, cb);
-  //   });
+  int _renderOrder = 0;
+  int get renderOrder => _renderOrder;
 
-  //   await flush();
-  // }
+  final _swapChains = <FFISwapChain, List<(int, FFIView)>>{};
 
   ///
   @override
-  Future register(
-      covariant FFISwapChain swapChain, covariant FFIView view) async {
+  Future setRenderOrder(
+      covariant FFISwapChain swapChain, covariant FFIView view,
+      {int renderOrder = 0}) async {
     if (!_swapChains.containsKey(swapChain)) {
       _swapChains[swapChain] = [];
     }
-    if (!_swapChains[swapChain]!.contains(view)) {
-      _swapChains[swapChain]!.add(view);
-    }
 
-    _swapChains[swapChain]!
-        .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
-    await updateRenderOrder();
-  }
-
-  ///
-  @override
-  Future unregister(
-      covariant FFISwapChain swapChain, covariant FFIView view) async {
-    if (!_swapChains.containsKey(swapChain)) {
-      _swapChains[swapChain] = [];
+    _swapChains[swapChain]!.removeWhere((v) => v.$2 == view);
+    if (renderOrder != -1) {
+      _swapChains[swapChain]!.add((renderOrder, view));
+      _swapChains[swapChain]!.sort((a, b) => a.$1.compareTo(b.$1));
     }
-    _swapChains[swapChain]!.remove(view);
-    _swapChains[swapChain]!
-        .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
     await updateRenderOrder();
   }
 
   @override
   Future<SwapChain<dynamic>?> getSwapChain(View<dynamic> view) async {
-    return _swapChains.keys
-        .where((sc) => _swapChains[sc]?.contains(view) == true)
-        .firstOrNull;
+    for (final swapChain in _swapChains.keys) {
+      if (_swapChains[swapChain] == null) {
+        continue;
+      }
+      for (final item in _swapChains[swapChain]!) {
+        if (item.$2 == view) {
+          return swapChain;
+        }
+      }
+    }
+    return null;
   }
 
   ///
@@ -840,22 +824,22 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       views.add(view);
       _logger.finest("Using provided view");
     } else {
-      final mainViews =
-          _swapChains[swapChain]!.where((v) => v.renderable).toList();
+      final mainViews = _swapChains[swapChain]!.map((item) => item.$2);
 
-      for (final v in mainViews) {
-        if (v.hasHighlights()) {
-          final silhouetteView = v.getSilhouetteView();
-          if (silhouetteView != null) views.add(silhouetteView as FFIView);
+      for (final item in mainViews) {
+        final view = item;
+        final silhouetteView = view.getSilhouetteView();
+        if (silhouetteView != null) {
+          views.add(silhouetteView as FFIView);
         }
       }
 
       views.addAll(mainViews);
 
       for (final v in mainViews) {
-        if (v.hasHighlights()) {
-          final overlayView = v.getOverlayView();
-          if (overlayView != null) views.add(overlayView as FFIView);
+        final overlayView = v.getOverlayView();
+        if (overlayView != null) {
+          views.add(overlayView as FFIView);
         }
       }
 

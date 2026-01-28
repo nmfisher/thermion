@@ -183,11 +183,7 @@ abstract class FilamentApp<T> {
   //
   // If you are using the Flutter plugin, this is called automatically 
   // internally. 
-  Future register(covariant SwapChain swapChain, covariant View view);
-
-  // Unregisters the association between [swapChain] and [view]. If you are using the Flutter plugin, this is called automatically 
-  // internally. 
-  Future unregister(covariant SwapChain swapChain, covariant View view);
+  Future setRenderOrder(covariant SwapChain swapChain, covariant View view, { int renderOrder = 0});
 
   // Returns the [SwapChain] instance associated with [view] (or null, if 
   // no swapchain is registered.
@@ -195,9 +191,6 @@ abstract class FilamentApp<T> {
 
   //
   Future<Iterable<SwapChain>> getSwapChains();
-
-  //
-  Future updateRenderOrder();
 
   // Invokes one iteration of the full rendering pipeline for all
   // registered swapchains/views. This will also advance animations
