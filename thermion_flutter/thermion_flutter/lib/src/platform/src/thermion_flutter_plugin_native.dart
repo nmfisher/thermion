@@ -194,10 +194,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
       final existingSwapChain = await FilamentApp.instance!.getSwapChain(view);
       
-      await FilamentApp.instance!.register(swapChain, view);
+      await FilamentApp.instance!.setRenderOrder(swapChain, view);
       
       if (existingSwapChain != null) {
-        await FilamentApp.instance!.unregister(existingSwapChain, view);
+        await FilamentApp.instance!.setRenderOrder(existingSwapChain, view, renderOrder: -1);
         await FilamentApp.instance!.destroySwapChain(existingSwapChain);
       }
     } else {
@@ -248,7 +248,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         await depth.destroy();
         await existingRenderTarget.destroy();
       }
-      await FilamentApp.instance!.register(swapChains.first, view);
+      await FilamentApp.instance!.setRenderOrder(swapChains.first, view);
 
     }
 
