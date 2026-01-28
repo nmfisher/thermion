@@ -22,16 +22,14 @@ class FFIView extends View<Pointer<TView>> {
 
   Pointer<TView> getNativeHandle() => view;
 
-  final FFIFilamentApp app;
-
   RenderTarget? renderTarget;
 
   late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
 
-  FFIView(this.view, this.app) {
+  FFIView(this.view) {
     final renderTargetPtr = View_getRenderTarget(view);
     if (renderTargetPtr != nullptr) {
-      renderTarget = FFIRenderTarget(renderTargetPtr, app);
+      renderTarget = FFIRenderTarget(renderTargetPtr);
     }
 
     _onPickResultHolder = _onPickResult.asCallback();
@@ -80,7 +78,7 @@ class FFIView extends View<Pointer<TView>> {
       } else {
         // Manager exists but not yet initialized — initialize now with this RT
         await _highlightOverlayManager!.initialize(this, renderTarget, null);
-        await app.updateRenderOrder();
+        await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
         _logger.info("Highlight overlay late-initialized with render target");
         return;
       }
@@ -112,7 +110,7 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future<Camera> getCamera() async {
     final cameraPtr = View_getCamera(view);
-    return FFICamera(cameraPtr, app);
+    return FFICamera(cameraPtr);
   }
 
   @override
@@ -143,7 +141,7 @@ class FFIView extends View<Pointer<TView>> {
   Future setToneMapper(ToneMapper mapper) async {
     final colorGrading = await withPointerCallback<TColorGrading>((cb) =>
         ColorGrading_createRenderThread(
-            app.engine, mapper.getNativeHandle(), cb));
+            FilamentApp.instance!.engine, mapper.getNativeHandle(), cb));
     if (colorGrading == nullptr) {
       throw Exception("Failed to create color grading");
     }
@@ -166,7 +164,7 @@ class FFIView extends View<Pointer<TView>> {
     if (builderPtr == nullptr) {
       throw Exception('Failed to create ColorGradingBuilder');
     }
-    return FFIColorGradingBuilder(builderPtr, app);
+    return FFIColorGradingBuilder(builderPtr);
   }
 
   @override
@@ -189,7 +187,7 @@ class FFIView extends View<Pointer<TView>> {
     if (colorGradingPtr == nullptr) {
       return null;
     }
-    return FFIColorGrading(colorGradingPtr, app);
+    return FFIColorGrading(colorGradingPtr);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
@@ -316,7 +314,7 @@ class FFIView extends View<Pointer<TView>> {
 
     Texture? skyColor;
     if (tOptions.skyColor != nullptr) {
-      skyColor = FFITexture(app.engine, tOptions.skyColor);
+      skyColor = FFITexture(FilamentApp.instance!.engine, tOptions.skyColor);
     }
 
     return FogOptions(
@@ -494,7 +492,7 @@ class FFIView extends View<Pointer<TView>> {
     // Create manager if not exists
     if (_highlightOverlayManager == null) {
       _highlightOverlayManager = await HighlightOverlayManager.create(
-        app,
+        FilamentApp.instance! as FFIFilamentApp,
         width: width,
         height: height,
       );
@@ -507,7 +505,7 @@ class FFIView extends View<Pointer<TView>> {
     // Get swapchain if render target is null (Android/swapchain case)
     FFISwapChain? swapChain;
     if (renderTarget == null) {
-      swapChain = await app.getSwapChain(this) as FFISwapChain?;
+      swapChain = await FilamentApp.instance!.getSwapChain(this) as FFISwapChain?;
     }
 
     // Initialize if we have RT/swapchain and not yet initialized
@@ -522,7 +520,7 @@ class FFIView extends View<Pointer<TView>> {
       _logger.warning("No render target or swapchain available for highlight overlay");
     }
 
-    await app.updateRenderOrder();
+    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
 
     return true;
   }
@@ -540,7 +538,7 @@ class FFIView extends View<Pointer<TView>> {
     _highlightOverlayManager = null;
 
     // Update render order to remove silhouette/overlay views
-    await app.updateRenderOrder();
+    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
 
     _logger.info("Highlight overlay disabled");
   }
@@ -589,7 +587,7 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     final indexCount = IndexBuffer_getIndexCount(indexBuffer);
-    final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, app.engine);
+    final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, FilamentApp.instance!.engine);
 
     for (final entity in entities) {
       if (!await FilamentApp.instance!.isRenderable(entity)) {
@@ -608,7 +606,7 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     // Update render order to include silhouette/overlay views
-    await app.updateRenderOrder();
+    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
 
     _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
   }
@@ -642,7 +640,7 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     // Update render order to remove silhouette/overlay views if no more highlights
-    await app.updateRenderOrder();
+    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
   }
 
   void setName(String name) {

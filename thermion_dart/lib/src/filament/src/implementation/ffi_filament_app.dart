@@ -270,8 +270,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<View> createView({bool createScene = false}) async {
     final view = await FFIView(
         await withPointerCallback<TView>(
-            (cb) => Engine_createViewRenderThread(engine, cb)),
-        this);
+            (cb) => Engine_createViewRenderThread(engine, cb)));
     await view.setFrustumCullingEnabled(true);
     await view.setBloom(false, 0.0);
     await view.setBlendMode(BlendMode.transparent);
@@ -298,8 +297,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     targetEntity ??= await createEntity(createTransformComponent: false);
     return FFICamera(
         await withPointerCallback<TCamera>(
-            (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb)),
-        this);
+            (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb)));
   }
 
   ///
@@ -416,7 +414,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create RenderTarget");
     }
 
-    return FFIRenderTarget(renderTarget, this);
+    return FFIRenderTarget(renderTarget);
   }
 
   ///
@@ -528,7 +526,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       //stackRestore(stackPtr);
       data.free();
     }
-    return FFIMaterial(ptr, this);
+    return FFIMaterial(ptr);
   }
 
   ///
@@ -622,7 +620,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create material instance");
     }
 
-    var instance = FFIMaterialInstance(materialInstance, this);
+    var instance = FFIMaterialInstance(materialInstance);
     return instance;
   }
 
@@ -785,8 +783,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (_imageMaterial == null) {
       var ptr = await withPointerCallback<TMaterial>(
           (cb) => Material_createImageMaterialRenderThread(engine, cb));
-      _imageMaterial =
-          FFIMaterial(ptr, FilamentApp.instance! as FFIFilamentApp);
+      _imageMaterial = FFIMaterial(ptr);
     }
     var instance =
         await _imageMaterial!.createInstance() as FFIMaterialInstance;
@@ -1118,7 +1115,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final materialPtr = await withPointerCallback<TMaterial>((cb) {
         Material_createGizmoMaterialRenderThread(engine, cb);
       });
-      _gizmoMaterial ??= FFIMaterial(materialPtr, this);
+      _gizmoMaterial ??= FFIMaterial(materialPtr);
     }
 
     var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(

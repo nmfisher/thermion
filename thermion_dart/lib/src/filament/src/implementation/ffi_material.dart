@@ -1,25 +1,24 @@
 import 'dart:async';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIMaterial extends Material<Pointer<TMaterial>> {
-  final FFIFilamentApp app;
+  
   final Pointer<TMaterial> pointer;
 
-  FFIMaterial(this.pointer, this.app);
+  FFIMaterial(this.pointer);
 
   @override
   Future<MaterialInstance> createInstance() async {
     var ptr = await withPointerCallback<TMaterialInstance>((cb) {
       Material_createInstanceRenderThread(pointer, cb);
     });
-    return FFIMaterialInstance(ptr, this.app);
+    return FFIMaterialInstance(ptr);
   }
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialRenderThread(app.engine, pointer, requestId, cb);
+      Engine_destroyMaterialRenderThread(FilamentApp.instance!.engine, pointer, requestId, cb);
     });
   }
 
@@ -37,9 +36,8 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
 
 class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   final Pointer<TMaterialInstance> pointer;
-  final FFIFilamentApp app;
 
-  FFIMaterialInstance(this.pointer, this.app) {
+  FFIMaterialInstance(this.pointer) {
     if (pointer == nullptr) {
       throw Exception("MaterialInstance not found");
     }
@@ -180,7 +178,7 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialInstanceRenderThread(
-          app.engine, this.pointer, requestId, cb);
+          FilamentApp.instance!.engine, this.pointer, requestId, cb);
     });
   }
 
