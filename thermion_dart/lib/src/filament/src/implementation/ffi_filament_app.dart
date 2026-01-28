@@ -995,7 +995,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         //stackPtr = stackSave();
       }
 
-      loadResourcesAsync = FILAMENT_SINGLE_THREADED;
+      if (loadResourcesAsync) {
+        loadResourcesAsync = !FILAMENT_SINGLE_THREADED;
+      }
 
       var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
           (cb) => GltfResourceLoader_createRenderThread(engine, cb));
