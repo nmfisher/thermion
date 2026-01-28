@@ -1,3 +1,4 @@
+import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/layers.dart';
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
@@ -114,11 +115,7 @@ enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 // ColorGrading is treated as const
 // Created via View.createColorGradingBuilder().build() and applied to a view.
 // Will be disposed when View.setColorGrading is called.
-abstract class ColorGrading extends NativeHandle<dynamic> {
-
-
-  
-}
+abstract class ColorGrading extends NativeHandle<dynamic> {}
 
 ///
 /// Builder for creating ColorGrading objects with the full Filament color pipeline.
@@ -295,7 +292,7 @@ abstract class View<T> extends NativeHandle<T> {
 
   // Sets the (debug) name for this View.
   void setName(String name);
-  
+
   // Gets the (debug) name for this View.
   String getName();
 
@@ -366,22 +363,21 @@ abstract class View<T> extends NativeHandle<T> {
   Future setTransparentPickingEnabled(bool enabled);
   Future<bool> isTransparentPickingEnabled();
 
-  /// Enables the highlight overlay system for this view.
-  ///
-  /// Must be called before [setStencilHighlight]. This initializes the overlay
-  /// manager with the current viewport dimensions and creates the necessary
-  /// render targets for silhouette and edge detection passes.
-  ///
-  /// The edge detection view composites the main scene with edge outlines
-  /// into a single texture output. Requires a render target or swapchain.
-  ///
-  /// Returns true if initialization succeeded, false if already enabled.
-  Future<bool> enableHighlightOverlay();
-
-  /// Disables the highlight overlay system and cleans up resources.
-  ///
-  /// Removes all active highlights and destroys the overlay manager.
-  Future disableHighlightOverlay();
+  // Enables the highlight overlay system for this view.
+  //
+  // Must be called before [setStencilHighlight]. This initializes the overlay
+  // manager with the current viewport dimensions and creates the necessary
+  // render targets for silhouette and edge detection passes.
+  //
+  // The edge detection view composites the main scene with edge outlines
+  // into a single texture output. Requires a render target or swapchain.
+  //
+  // Returns true if initialization succeeded, false if already enabled.
+  Future setHighlightOverlayEnabled(bool enabled);
+  
+  // Returns the highlight manager (or null if [setHighlightOverlayEnabled] was 
+  // called with false).
+  HighlightOverlayManager? getHighlightOverlay();
 
   /// Renders a screen-space outline around [entity] with the given color.
   ///
@@ -437,14 +433,4 @@ abstract class View<T> extends NativeHandle<T> {
   /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the viewport).
   ///
   Future pick(int x, int y, void Function(PickResult) resultHandler);
-
-  /// Get the silhouette view used for rendering highlighted entities to texture.
-  /// Returns null if no highlights are active or overlay manager is not initialized.
-  View? getSilhouetteView();
-
-  /// Get the overlay view used for rendering object outlines.
-  /// Returns null if no highlights are active or overlay manager is not initialized.
-  View? getOverlayView();
-
-
 }

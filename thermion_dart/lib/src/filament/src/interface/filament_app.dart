@@ -53,7 +53,7 @@ abstract class FilamentApp<T> {
   Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
 
   //
-  Future<View> createView({bool createScene=false});
+  Future<View> createView({bool createScene = false});
 
   //
   Future<Scene> createScene();
@@ -172,20 +172,33 @@ abstract class FilamentApp<T> {
   Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
       MaterialInstance materialInstance);
 
-  // Currently, only [View] instances that have been associated with 
-  // a [SwapChain] will be rendered when [render] is called. 
-  // Calling this method registers the association between [view] and 
-  // [swapChain], ensuring that the view will be rendered every time [render] is 
+  // Currently, only [View] instances that have been associated with
+  // a [SwapChain] will be rendered when [render] is called.
+  // Calling this method registers the association between [view] and
+  // [swapChain], ensuring that the view will be rendered every time [render] is
   // called.
   //
-  // This is still required even if [view] has an attached render target. This 
+  // This is still required even if [view] has an attached render target. This
   // will change in future once we use Renderer.renderStandaloneView().
   //
-  // If you are using the Flutter plugin, this is called automatically 
-  // internally. 
-  Future setRenderOrder(covariant SwapChain swapChain, covariant View view, { int renderOrder = 0});
+  // If you are using the Flutter plugin, this is called automatically
+  // internally.
+  Future setRenderOrder(SwapChain swapChain, View view, {int renderOrder = 0});
 
-  // Returns the [SwapChain] instance associated with [view] (or null, if 
+  // This methods
+  // a [SwapChain] will be rendered when [render] is called.
+  // Calling this method registers the association between [view] and
+  // [swapChain], ensuring that the view will be rendered every time [render] is
+  // called.
+  //
+  // This is still required even if [view] has an attached render target. This
+  // will change in future once we use Renderer.renderStandaloneView().
+  //
+  // If you are using the Flutter plugin, this is called automatically
+  // internally.
+  Future updateRenderOrder();
+
+  // Returns the [SwapChain] instance associated with [view] (or null, if
   // no swapchain is registered.
   Future<SwapChain?> getSwapChain(View view);
 
@@ -233,8 +246,8 @@ abstract class FilamentApp<T> {
   //
   // Pixel buffers will be returned in RGBA float32 format.
   //
-  Future<List<(View, Uint8List)>> capture(covariant SwapChain? swapChain,
-      {covariant View? view,
+  Future<List<(View, Uint8List)>> capture(SwapChain? swapChain,
+      {View? view,
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,

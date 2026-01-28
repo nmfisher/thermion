@@ -5,7 +5,8 @@ material {
         { type : sampler2d, name : mainScene },
         { type : float2, name : texelSize },
         { type : float3, name : outlineColor },
-        { type : float, name : outlineWidth }
+        { type : float, name : outlineWidth },
+        { type : int, name : overlayOnly }
     ],
     variables : [
         screenUV
@@ -29,10 +30,7 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec2 uv = variable_screenUV.st;
-
-        // Flip Y for correct texture sampling
-        uv.y = 1.0 - uv.y;
+        vec2 uv = uvToRenderTargetUV(variable_screenUV.st);
 
         float center = texture(materialParams_silhouette, uv).r;
 
@@ -51,16 +49,28 @@ fragment {
         float bl = texture(materialParams_silhouette, uv + vec2(-texel.x, -texel.y)).r;
         float br = texture(materialParams_silhouette, uv + vec2( texel.x, -texel.y)).r;
 
-        // Edge = center is 0 but any neighbor is 1
         float maxNeighbor = max(max(max(left, right), max(up, down)),
                                 max(max(tl, tr), max(bl, br)));
-        float edge = (1.0 - center) * maxNeighbor;
 
-        // Composite: blend main scene with edge outline
-        vec4 sceneColor = texture(materialParams_mainScene, uv);
         vec3 outlineColor = materialParams.outlineColor;
-        // srcOver blend: outline on top of scene
-        material.baseColor.rgb = mix(sceneColor.rgb, outlineColor, edge);
-        material.baseColor.a = 1.0;
+
+        if (materialParams.overlayOnly == 1) {
+            // Bidirectional edge detection — centers outline on the boundary
+            // to avoid gap caused by sub-pixel offset between overlay and main scene.
+            float minNeighbor = min(min(min(left, right), min(up, down)),
+                                    min(min(tl, tr), min(bl, br)));
+            float outsideEdge = (1.0 - center) * maxNeighbor;
+            float insideEdge = center * (1.0 - minNeighbor);
+            float edge = max(outsideEdge, insideEdge);
+
+            material.baseColor.rgb = outlineColor;
+            material.baseColor.a = edge;
+        } else {
+            // Composite mode: outside-only edges (pixel-perfect alignment).
+            float edge = (1.0 - center) * maxNeighbor;
+            vec4 sceneColor = texture(materialParams_mainScene, uv);
+            material.baseColor.rgb = mix(sceneColor.rgb, outlineColor, edge);
+            material.baseColor.a = 1.0;
+        }
     }
 }

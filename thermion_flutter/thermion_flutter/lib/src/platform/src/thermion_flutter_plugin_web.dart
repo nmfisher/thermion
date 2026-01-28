@@ -9,7 +9,8 @@ import 'package:thermion_flutter/src/platform/src/web_platform_texture_descripto
 import 'package:web/web.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
-import 'package:thermion_dart/src/bindings/src/js_interop.dart' show stackSave, stackRestore, resizeWebCanvas;
+import 'package:thermion_dart/src/bindings/src/js_interop.dart'
+    show stackSave, stackRestore, resizeWebCanvas;
 
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static Pointer? _stackPtr;
@@ -130,8 +131,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // Use createSwapChain with nullptr to render to the canvas's default
     // framebuffer (framebuffer 0). createHeadlessSwapChain creates an offscreen
     // buffer that never gets displayed.
-    swapChain = await FilamentApp.instance!
-        .createHeadlessSwapChain(1, 1);
+    swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1);
 
     print("Created 1x1 headless swapchain");
 
@@ -151,6 +151,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _logger.info(
         "createTextureAndBindToView returning web descriptor with ${width}x$height");
     var descriptor = WebPlatformTextureDescriptor(width: width, height: height);
+
+    var overlay = await view.getHighlightOverlay();
+    if (overlay != null) {
+      await overlay!.setSwapChain(swapChain!);
+    }
     resizeWebCanvas(width, height);
     return descriptor;
   }

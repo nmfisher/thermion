@@ -88,7 +88,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await view.setCamera(camera);
 
     if (_createOverlay) {
-      await view.enableHighlightOverlay();
+      await view.setHighlightOverlayEnabled(true);
     }
 
     this._initialized.complete(true);
@@ -835,7 +835,7 @@ class ThermionViewerFFI extends ThermionViewer {
           cb);
     });
 
-    final material = FFIMaterialInstance(materialInstancePtr, app);
+    final material = FFIMaterialInstance(materialInstancePtr);
     await material.setParameterFloat4(
         "baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
 

@@ -7,7 +7,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
@@ -65,21 +64,13 @@ class FFIView extends View<Pointer<TView>> {
     // When highlight overlay is enabled, the main view renders to an internal
     // render target. Flutter-provided render targets go to EdgeDetectionView.
     if (_highlightOverlayManager != null && renderTarget != null) {
-      if (_highlightOverlayManager!.initialized) {
-        // Already initialized — check if this is the internal RT
-        final isInternalRT =
-            _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
-        if (!isInternalRT) {
-          // This is a Flutter RT - redirect to EdgeDetectionView
-          await _highlightOverlayManager!
-              .updateFlutterRenderTarget(renderTarget as FFIRenderTarget);
-          return;
-        }
-      } else {
-        // Manager exists but not yet initialized — initialize now with this RT
-        await _highlightOverlayManager!.initialize(this, renderTarget, null);
-        await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
-        _logger.info("Highlight overlay late-initialized with render target");
+      final isInternalRT =
+          _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
+      if (!isInternalRT) {
+        // This is a Flutter RT - redirect to EdgeDetectionView
+        await _highlightOverlayManager!
+            .setRenderTarget(this, renderTarget as FFIRenderTarget);
+        await FilamentApp.instance!.updateRenderOrder();
         return;
       }
     }
@@ -472,73 +463,58 @@ class FFIView extends View<Pointer<TView>> {
 
   HighlightOverlayManager? _highlightOverlayManager;
 
-  ///
-  /// Enables the highlight overlay system for this view.
-  ///
-  /// The edge detection view composites the main scene with edge outlines
-  /// into a single texture output. This requires a render target or swapchain.
-  ///
   @override
-  Future<bool> enableHighlightOverlay() async {
-    // Already fully enabled
-    if (_highlightOverlayManager != null && _highlightOverlayManager!.initialized) {
-      return true;
-    }
-
-    final vp = await getViewport();
-    final width = vp.width > 0 ? vp.width : 1;
-    final height = vp.height > 0 ? vp.height : 1;
-
-    // Create manager if not exists
-    if (_highlightOverlayManager == null) {
-      _highlightOverlayManager = await HighlightOverlayManager.create(
-        FilamentApp.instance! as FFIFilamentApp,
-        width: width,
-        height: height,
-      );
-
-      // Set the camera - silhouette view shares the main camera
-      final camera = await getCamera();
-      await _highlightOverlayManager!.setCamera(camera);
-    }
-
-    // Get swapchain if render target is null (Android/swapchain case)
-    FFISwapChain? swapChain;
-    if (renderTarget == null) {
-      swapChain = await FilamentApp.instance!.getSwapChain(this) as FFISwapChain?;
-    }
-
-    // Initialize if we have RT/swapchain and not yet initialized
-    if (!_highlightOverlayManager!.initialized && (renderTarget != null || swapChain != null)) {
-      await _highlightOverlayManager!.initialize(
-        this,
-        renderTarget,
-        swapChain,
-      );
-      _logger.info("Highlight overlay enabled");
-    } else if (!_highlightOverlayManager!.initialized) {
-      _logger.warning("No render target or swapchain available for highlight overlay");
-    }
-
-    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
-
-    return true;
+  HighlightOverlayManager? getHighlightOverlay() {
+    return _highlightOverlayManager;
   }
 
-  ///
-  /// Disables the highlight overlay system and cleans up resources.
-  ///
   @override
-  Future disableHighlightOverlay() async {
-    if (_highlightOverlayManager == null) {
-      return;
+  Future setHighlightOverlayEnabled(bool enabled) async {
+    if (enabled) {
+      if (_highlightOverlayManager == null) {
+        final vp = await getViewport();
+        final width = vp.width > 0 ? vp.width : 1;
+        final height = vp.height > 0 ? vp.height : 1;
+
+        // Create manager if not exists
+        _highlightOverlayManager = await HighlightOverlayManager.create(
+          width,
+          height,
+        );
+
+        // Set the camera - silhouette view shares the main camera
+        final camera = await getCamera();
+        await _highlightOverlayManager!.setCamera(camera);
+      }
+
+      // Configure output: render target (macOS/iOS) or swapchain (web/Android)
+      if (renderTarget != null) {
+        await _highlightOverlayManager!
+            .setRenderTarget(this, renderTarget as FFIRenderTarget);
+        _logger.info("Highlight overlay enabled (render target mode)");
+      } else {
+        final swapChain =
+            await FilamentApp.instance!.getSwapChain(this) as FFISwapChain?;
+        if (swapChain != null) {
+          await _highlightOverlayManager!.setSwapChain(swapChain);
+          _logger.info("Highlight overlay enabled (swapchain mode)");
+        } else {
+          _logger.warning(
+              "No render target or swapchain available for highlight overlay");
+        }
+      }
+
+      await FilamentApp.instance!.updateRenderOrder();
+    } else {
+      if (_highlightOverlayManager == null) {
+        return;
+      }
+
+      await _highlightOverlayManager!.destroy();
+      _highlightOverlayManager = null;
     }
-
-    await _highlightOverlayManager!.destroy();
-    _highlightOverlayManager = null;
-
     // Update render order to remove silhouette/overlay views
-    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
+    await FilamentApp.instance!.updateRenderOrder();
 
     _logger.info("Highlight overlay disabled");
   }
@@ -565,7 +541,7 @@ class FFIView extends View<Pointer<TView>> {
       double outlineWidth = 3.0,
       int primitiveIndex = 0}) async {
     if (_highlightOverlayManager == null) {
-      await enableHighlightOverlay();
+      await setHighlightOverlayEnabled(true);
     }
 
     entity ??= asset.entity;
@@ -587,7 +563,8 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     final indexCount = IndexBuffer_getIndexCount(indexBuffer);
-    final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, FilamentApp.instance!.engine);
+    final ffiIndexBuffer =
+        FFIIndexBuffer(indexBuffer, FilamentApp.instance!.engine);
 
     for (final entity in entities) {
       if (!await FilamentApp.instance!.isRenderable(entity)) {
@@ -606,23 +583,9 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     // Update render order to include silhouette/overlay views
-    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
+    await FilamentApp.instance!.updateRenderOrder();
 
     _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
-  }
-
-  /// Get the silhouette view for rendering highlighted entities to texture.
-  /// Returns null if no highlights are active.
-  @override
-  View? getSilhouetteView() {
-    return _highlightOverlayManager?.silhouetteView;
-  }
-
-  /// Get the overlay view for edge detection fullscreen quad.
-  /// Returns null if no highlights are active.
-  @override
-  View? getOverlayView() {
-    return _highlightOverlayManager?.overlayView;
   }
 
   ///
@@ -640,7 +603,7 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     // Update render order to remove silhouette/overlay views if no more highlights
-    await (FilamentApp.instance! as FFIFilamentApp).updateRenderOrder();
+    await FilamentApp.instance!.updateRenderOrder();
   }
 
   void setName(String name) {
@@ -661,6 +624,4 @@ class FFIView extends View<Pointer<TView>> {
   Future<bool> isTransparentPickingEnabled() async {
     return View_isTransparentPickingEnabled(getNativeHandle());
   }
-
-
 }
