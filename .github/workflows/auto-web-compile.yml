@@ -1,0 +1,54 @@
+name: Compile Web Library
+
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+  compile-web:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.0'
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 'latest'
+      - name: Compile web
+        run: make wasm
+
+      - name: Ensure built files are tracked
+        run: |
+          git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.js
+          git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.wasm
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f thermion_dart/native/web/build/build/out/thermion_dart.js
+          git add -f thermion_dart/native/web/build/build/out/thermion_dart.wasm
+          git commit -m "chore: update compiled web artifacts
+
+          🤖 Generated with GitHub Actions"
+          git push
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-wasm-${{ github.sha }}
+          path: thermion_dart/native/web/build/build/out/

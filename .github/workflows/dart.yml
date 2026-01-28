@@ -12,20 +12,6 @@ on:
       - completed
 
 jobs:
-  compile-web-wasm:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.25.0'  # or 'latest'
-      - name: Setup Emscripten
-        uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 'latest'
-      - name: Compile web
-        run: make wasm
   dart-tests:
     runs-on: ubuntu-22.04
     steps:
