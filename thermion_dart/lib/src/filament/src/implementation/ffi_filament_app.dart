@@ -211,7 +211,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       final pointers = allocate<PointerClass>(handles.length);
       for (int i = 0; i < handles.length; i++) {
-        print("handles[i] ${handles[i]} pointers[i] ${pointers[i]}");
         pointers[i] = handles[i];
       }
 
@@ -223,6 +222,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               handles.length,
               requestId,
               cb));
+
+      free(pointers);
 
       _logger.info(
           "${handles.length} renderable views for swapchain $i : $viewNames");
