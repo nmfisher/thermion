@@ -679,6 +679,11 @@ class FFIView extends View<Pointer<TView>> {
     free(ptr);
   }
 
+  String getName() {
+    final ptr = View_getName(getNativeHandle());
+    return ptr.cast<Utf8>().toDartString();
+  }
+
   Future setTransparentPickingEnabled(bool enabled) async {
     View_setTransparentPickingEnabled(getNativeHandle(), enabled);
   }

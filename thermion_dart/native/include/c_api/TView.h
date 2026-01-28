@@ -226,6 +226,7 @@ EMSCRIPTEN_KEEPALIVE bool View_isTransparentPickingEnabled(TView *tView);
 typedef void (*PickCallback)(uint32_t requestId, EntityId entityId, float depth, float fragX, float fragY, float fragZ);
 EMSCRIPTEN_KEEPALIVE void View_pick(TView* tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);
 EMSCRIPTEN_KEEPALIVE void View_setName(TView* tView, const char *name);
+EMSCRIPTEN_KEEPALIVE const char *View_getName(TView* tView);
 
 #ifdef __cplusplus
 }

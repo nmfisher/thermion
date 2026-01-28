@@ -561,6 +561,11 @@ namespace thermion
             view->setName(name);
         }
 
+        EMSCRIPTEN_KEEPALIVE const char *View_getName(TView* tView) {
+            auto view = reinterpret_cast<View *>(tView);
+            return view->getName();
+        }
+
         EMSCRIPTEN_KEEPALIVE void View_setAmbientOcclusionOptions(TView *tView, TAmbientOcclusionOptions options)
         {
             auto view = reinterpret_cast<View *>(tView);
