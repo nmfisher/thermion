@@ -130,7 +130,6 @@ class _MyAppState extends State<MyApp> {
                                 v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
                             await viewer.addLight(
                                 LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
-                            await viewer.setRendering(true);
                             _loaded = true;
                             setState(() {});
                         }
@@ -170,7 +169,6 @@ The cube still won't be visible until we add a light to the scene and tell Therm
     ...
     await viewer.addLight(
                     LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
-    await viewer.setRendering(true);
     ...
 ````
 
