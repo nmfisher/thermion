@@ -1773,6 +1773,11 @@ external void View_setName(
   ffi.Pointer<ffi.Char> name,
 );
 
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TView>)>(isLeaf: true)
+external ffi.Pointer<ffi.Char> View_getName(
+  ffi.Pointer<TView> tView,
+);
+
 @ffi.Native<
     ffi.Pointer<TMaterialInstance> Function(
         ffi.Pointer<TMaterialProvider>,
