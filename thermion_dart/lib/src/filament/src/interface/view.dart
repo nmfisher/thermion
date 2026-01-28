@@ -446,7 +446,5 @@ abstract class View<T> extends NativeHandle<T> {
   /// Returns null if no highlights are active or overlay manager is not initialized.
   View? getOverlayView();
 
-  /// Check if there are any active stencil highlights on this view.
-  bool hasHighlights();
 
 }

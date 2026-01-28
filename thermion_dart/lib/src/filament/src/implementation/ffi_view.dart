@@ -627,13 +627,6 @@ class FFIView extends View<Pointer<TView>> {
     return _highlightOverlayManager?.overlayView;
   }
 
-
-  /// Check if there are any active highlights.
-  @override
-  bool hasHighlights() {
-    return _highlightOverlayManager?.hasHighlights ?? false;
-  }
-
   ///
   /// Removes the stencil highlight from an asset.
   ///

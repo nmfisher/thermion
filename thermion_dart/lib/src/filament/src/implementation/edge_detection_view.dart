@@ -250,9 +250,6 @@ class EdgeDetectionView extends FFIView {
   @override
   View? getOverlayView() => throw Exception();
 
-  @override
-  bool hasHighlights() => false;
-
   /// Set outline appearance.
   Future<void> setOutlineParams({
     double? width,

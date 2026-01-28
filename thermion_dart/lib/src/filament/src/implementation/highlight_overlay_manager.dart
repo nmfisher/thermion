@@ -110,9 +110,6 @@ class HighlightOverlayManager {
     return manager;
   }
 
-  /// Whether there are any active highlights.
-  bool get hasHighlights => _highlightedEntities.isNotEmpty;
-
   /// Set the camera for the silhouette view.
   Future<void> setCamera(Camera camera) async {
     await silhouetteView.setCamera(camera);

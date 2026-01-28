@@ -234,9 +234,6 @@ class SilhouetteView extends FFIView {
   @override
   View? getOverlayView() => throw Exception();
 
-  @override
-  bool hasHighlights() => _components.isNotEmpty;
-
   /// Add a highlight for the given entity.
   Future<void> addHighlight({
     required ThermionEntity target,
