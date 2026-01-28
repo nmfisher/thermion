@@ -1,6 +1,6 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
-class FFITexture extends Texture {
+class FFITexture extends Texture<Pointer<TRenderTarget>> {
   final Pointer<TEngine> _engine;
   final Pointer<TTexture> pointer;
 
@@ -119,6 +119,11 @@ class FFITexture extends Texture {
       PixelDataType type) {
     // TODO: implement setSubImage
     throw UnimplementedError();
+  }
+
+  @override
+  getNativeHandle() {
+    return pointer;
   }
 }
 

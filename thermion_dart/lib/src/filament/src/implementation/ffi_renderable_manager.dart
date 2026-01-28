@@ -67,7 +67,7 @@ class FFIRenderableManager
       return null;
     }
 
-    return FFIMaterialInstance(instancePtr, app);
+    return FFIMaterialInstance(instancePtr);
   }
 
   @override

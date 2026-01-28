@@ -1,5 +1,4 @@
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
@@ -52,7 +51,7 @@ class SilhouetteView extends FFIView {
 
   SilhouetteView._(
     super.view,
-    super.app, {
+    {
     required FFIMaterial material,
     required FFITexture colorTexture,
     required FFITexture depthTexture,
@@ -68,20 +67,20 @@ class SilhouetteView extends FFIView {
 
   /// Creates and initializes a new [SilhouetteView].
   static Future<SilhouetteView> create(
-    FFIFilamentApp app, {
+  {
     required int width,
     required int height,
   }) async {
     final viewPtr = await withPointerCallback<TView>(
-        (cb) => Engine_createViewRenderThread(app.engine, cb));
+        (cb) => Engine_createViewRenderThread(FilamentApp.instance!.engine, cb));
 
     // Create silhouette material
     final materialPtr = await withPointerCallback<TMaterial>(
-        (cb) => Material_createSilhouetteMaterialRenderThread(app.engine, cb));
-    final silhouetteMaterial = FFIMaterial(materialPtr, app);
+        (cb) => Material_createSilhouetteMaterialRenderThread(FilamentApp.instance!.engine, cb));
+    final silhouetteMaterial = FFIMaterial(materialPtr);
 
     // Create textures and render target
-    final colorTexture = await app.createTexture(
+    final colorTexture = await FilamentApp.instance!.createTexture(
       width,
       height,
       flags: {
@@ -90,13 +89,13 @@ class SilhouetteView extends FFIView {
       },
       textureFormat: TextureFormat.RGBA8,
     ) as FFITexture;
-    final depthTexture = await app.createTexture(
+    final depthTexture = await FilamentApp.instance!.createTexture(
       width,
       height,
       flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
       textureFormat: TextureFormat.DEPTH32F,
     ) as FFITexture;
-    final renderTarget = await app.createRenderTarget(
+    final renderTarget = await FilamentApp.instance!.createRenderTarget(
       width,
       height,
       color: colorTexture,
@@ -104,15 +103,14 @@ class SilhouetteView extends FFIView {
     ) as FFIRenderTarget;
 
     // Create scene with black skybox to clear render target
-    final silhouetteScene = await app.createScene() as FFIScene;
+    final silhouetteScene = await FilamentApp.instance!.createScene() as FFIScene;
     final skybox =
-        await app.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
+        await FilamentApp.instance!.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
     await silhouetteScene.setSkybox(skybox);
 
     // Create the SilhouetteView with all resources
     final silhouetteView = SilhouetteView._(
       viewPtr,
-      app,
       material: silhouetteMaterial,
       colorTexture: colorTexture,
       depthTexture: depthTexture,
@@ -158,7 +156,7 @@ class SilhouetteView extends FFIView {
     final oldRenderTarget = _renderTarget;
 
     // Create new textures
-    _colorTexture = await app.createTexture(
+    _colorTexture = await FilamentApp.instance!.createTexture(
       width,
       height,
       flags: {
@@ -168,14 +166,14 @@ class SilhouetteView extends FFIView {
       textureFormat: TextureFormat.RGBA8,
     ) as FFITexture;
 
-    _depthTexture = await app.createTexture(
+    _depthTexture = await FilamentApp.instance!.createTexture(
       width,
       height,
       flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
       textureFormat: TextureFormat.DEPTH32F,
     ) as FFITexture;
 
-    _renderTarget = await app.createRenderTarget(
+    _renderTarget = await FilamentApp.instance!.createRenderTarget(
       width,
       height,
       color: _colorTexture,
@@ -194,7 +192,7 @@ class SilhouetteView extends FFIView {
 
     // Flush render thread to ensure new textures are bound before destroying old ones
     // This prevents "Invalid texture still bound to MaterialInstance" errors
-    await app.flush();
+    await FilamentApp.instance!.flush();
 
     // Destroy old resources
     await oldRenderTarget.destroy();
@@ -245,7 +243,7 @@ class SilhouetteView extends FFIView {
   }) async {
     if (_components.containsKey(target)) return;
 
-    if (!app.renderableManager.hasComponent(target)) {
+    if (!FilamentApp.instance!.renderableManager.hasComponent(target)) {
       _logger.warning('Entity $target is not renderable');
       return;
     }
@@ -254,13 +252,13 @@ class SilhouetteView extends FFIView {
     final silhouetteMi = await _silhouetteMaterial.createInstance();
 
     // Create silhouette entity
-    final silhouetteEntity = await app.createEntity();
+    final silhouetteEntity = await FilamentApp.instance!.createEntity();
 
     // Get original bounding box
-    final boundingBox = app.renderableManager.getAxisAlignedBoundingBox(target);
+    final boundingBox = FilamentApp.instance!.renderableManager.getAxisAlignedBoundingBox(target);
 
     // Build silhouette renderable
-    final builder = app.renderableManager.createBuilder(1);
+    final builder = FilamentApp.instance!.renderableManager.createBuilder(1);
     builder.boundingBox(boundingBox);
     builder.geometry(
         0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, indexCount);
@@ -271,7 +269,7 @@ class SilhouetteView extends FFIView {
     await builder.build(silhouetteEntity);
 
     // Parent silhouette entity to target so it follows transforms
-    app.transformManager.setParent(silhouetteEntity, target);
+    FilamentApp.instance!.transformManager.setParent(silhouetteEntity, target);
 
     // Add to silhouette scene
     await _silhouetteScene.addEntity(silhouetteEntity);
@@ -294,7 +292,7 @@ class SilhouetteView extends FFIView {
     await _silhouetteScene.removeEntity(component.silhouetteEntity);
 
     // Destroy entity
-    await app.destroyEntity(component.silhouetteEntity);
+    await FilamentApp.instance!.destroyEntity(component.silhouetteEntity);
 
     // Destroy material instance
     await component.silhouetteMaterialInstance.destroy();

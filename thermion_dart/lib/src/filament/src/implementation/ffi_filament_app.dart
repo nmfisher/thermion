@@ -183,10 +183,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       for (final item in views) {
         final view = item.$2;
 
-        final silhouetteView = view.getSilhouetteView();
-        if (silhouetteView != null) {
-          handles.add(silhouetteView.getNativeHandle());
-          viewNames.add(silhouetteView.getName());
+        final overlayManager = await view.getHighlightOverlay();
+        if (overlayManager != null) {
+          handles.add(overlayManager.silhouetteView.getNativeHandle());
+          viewNames.add(overlayManager.silhouetteView.getName());
           _logger.info("Added silhouette view to render list");
         }
       }
@@ -201,10 +201,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       // Third pass: overlay views (composite on top)
       for (final item in views) {
         final view = item.$2;
-        final overlayView = view.getOverlayView();
-        if (overlayView != null) {
-          handles.add(overlayView.getNativeHandle());
-          viewNames.add(overlayView.getName());
+        final overlayManager = await view.getHighlightOverlay();
+
+        if (overlayManager != null) {
+          handles.add(overlayManager.overlayView.getNativeHandle());
+          viewNames.add(overlayManager.overlayView.getName());
           _logger.info("Added overlay view to render list");
         }
       }
@@ -380,7 +381,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   ///
   Future<RenderTarget> createRenderTarget(int width, int height,
-      {covariant FFITexture? color, covariant FFITexture? depth}) async {
+      {Texture? color, Texture? depth}) async {
     _logger.finest("Creating ${width}x${height} render target");
     if (color == null) {
       _logger.finest("No color texture provided");
@@ -408,7 +409,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
       RenderTarget_createRenderThread(
-          engine, width, height, color!.pointer, depth!.pointer, cb);
+          engine, width, height, color!.getNativeHandle(), depth!.getNativeHandle(), cb);
     });
     if (renderTarget == nullptr) {
       throw Exception("Failed to create RenderTarget");
@@ -651,12 +652,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   int _renderOrder = 0;
   int get renderOrder => _renderOrder;
 
-  final _swapChains = <FFISwapChain, List<(int, FFIView)>>{};
+  final _swapChains = <SwapChain, List<(int, View)>>{};
 
   ///
   @override
-  Future setRenderOrder(
-      covariant FFISwapChain swapChain, covariant FFIView view,
+  Future setRenderOrder(SwapChain swapChain, View view,
       {int renderOrder = 0}) async {
     if (!_swapChains.containsKey(swapChain)) {
       _swapChains[swapChain] = [];
@@ -783,7 +783,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (_imageMaterial == null) {
       var ptr = await withPointerCallback<TMaterial>(
           (cb) => Material_createImageMaterialRenderThread(engine, cb));
-      _imageMaterial = FFIMaterial(ptr);
+      _imageMaterial =
+          FFIMaterial(ptr);
     }
     var instance =
         await _imageMaterial!.createInstance() as FFIMaterialInstance;
@@ -791,8 +792,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  Future<List<(View, Uint8List)>> capture(covariant FFISwapChain? swapChain,
-      {covariant FFIView? view,
+  Future<List<(View, Uint8List)>> capture(SwapChain? swapChain,
+      {View? view,
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,
@@ -817,7 +818,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final pixelBuffers = <(View, Uint8List)>[];
 
-    final views = <FFIView>[];
+    final views = <View>[];
     if (view != null) {
       views.add(view);
       _logger.finest("Using provided view");
@@ -826,18 +827,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       for (final item in mainViews) {
         final view = item;
-        final silhouetteView = view.getSilhouetteView();
-        if (silhouetteView != null) {
-          views.add(silhouetteView as FFIView);
+        final overlayManager = await view.getHighlightOverlay();
+        if (overlayManager != null) {
+          views.add(overlayManager.silhouetteView);
         }
       }
 
       views.addAll(mainViews);
 
-      for (final v in mainViews) {
-        final overlayView = v.getOverlayView();
-        if (overlayView != null) {
-          views.add(overlayView as FFIView);
+      for (final view in mainViews) {
+        final overlayManager = await view.getHighlightOverlay();
+
+        if (overlayManager != null) {
+          views.add(overlayManager.overlayView);
         }
       }
 
@@ -886,14 +888,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           await withVoidCallback((requestId, cb) {
             Renderer_renderRenderThread(
               renderer,
-              view.view,
+              view.getNativeHandle(),
               requestId,
               cb,
             );
           });
         }
 
-        if (captureRenderTarget && view.renderTarget == null) {
+        final renderTarget = await view.getRenderTarget();
+
+        if (captureRenderTarget && renderTarget == null) {
           _logger.warning(
               "captureRenderTarget is true but the specified view has no render target. Falling back to swapchain capture");
         }
@@ -905,9 +909,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               viewport.height,
               0,
               0,
-              view.renderTarget == null
-                  ? nullptr
-                  : view.renderTarget!.getNativeHandle(),
+              renderTarget == null ? nullptr : renderTarget.getNativeHandle(),
               pixelDataFormat.value,
               pixelDataType.value,
               pixelBuffer.address,
@@ -940,7 +942,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         await withVoidCallback((requestId, cb) {
           Renderer_renderRenderThread(
             renderer,
-            view.view,
+            view.getNativeHandle(),
             requestId,
             cb,
           );
