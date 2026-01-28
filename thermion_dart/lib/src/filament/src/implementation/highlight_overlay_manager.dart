@@ -177,7 +177,7 @@ class HighlightOverlayManager {
       await overlayView.setRenderTarget(_flutterRenderTarget);
       _logger.info("EdgeDetectionView configured for render target output");
     } else if (swapChain != null) {
-      // Android path: register EdgeDetectionView with swapchain
+      // Android/web path: register EdgeDetectionView with swapchain
       await overlayView.setRenderTarget(null);  // Clear any RT
       _swapChain = swapChain as FFISwapChain;
       await _app.register(_swapChain!, overlayView as FFIView);
