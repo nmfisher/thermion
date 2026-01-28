@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
@@ -38,7 +36,7 @@ class GridOverlay {
       FFIFilamentApp app, {List<LinearColor> axisColors = kDefaultAxisColors, LinearColor gridColor = kDefaultGridColor } ) async {
     if (_instance == null) {
       _gridMaterial ??=
-          FFIMaterial(Material_createGridMaterial(app.engine), app);
+          FFIMaterial(Material_createGridMaterial(app.engine));
 
       final assets = <FFIAsset>[];
 

@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import '../../../utils/src/matrix.dart';
@@ -11,10 +10,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
     return camera;
   }
 
-  final FFIFilamentApp app;
   late ThermionEntity _entity;
 
-  FFICamera(this.camera, this.app) {
+  FFICamera(this.camera) {
     _entity = Camera_getEntity(camera);
   }
 
@@ -281,7 +279,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   }
 
   Future destroy() async {
-    Engine_destroyCamera(app.engine, camera);
+    Engine_destroyCamera(FilamentApp.instance!.engine, camera);
   }
 
   Future setExposure(
