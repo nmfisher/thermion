@@ -219,7 +219,6 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     thermionWidget = ThermionWidget(
       key: ObjectKey(DateTime.now()),
       viewer: viewer!,
-      enableHighlights: widget.enableHighlights
     );
 
     _setViewportWidget();
