@@ -274,6 +274,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<View> createView({bool createScene = false}) async {
     final view = await FFIView(await withPointerCallback<TView>(
         (cb) => Engine_createViewRenderThread(engine, cb)));
+    view.setName("unnamed_view");
     await view.setFrustumCullingEnabled(true);
     await view.setBloom(false, 0.0);
     await view.setBlendMode(BlendMode.transparent);
@@ -282,7 +283,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await view.setAntiAliasing(false, false, false);
     await view.setDithering(false);
     await view.setRenderQuality(QualityLevel.MEDIUM);
-    view.setName("unnamed_view");
+
 
     if (createScene) {
       final scene = await this.createScene();
