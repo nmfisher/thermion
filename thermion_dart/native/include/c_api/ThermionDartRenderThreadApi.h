@@ -123,6 +123,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, uint32_t requestId,  VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void View_getNameRenderThread(TView *tView, void (*onComplete)(const char *));
 
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createGridRenderThread(TEngine *tEngine, TMaterial * tMaterial, void (*callback)(TSceneAsset *));
 

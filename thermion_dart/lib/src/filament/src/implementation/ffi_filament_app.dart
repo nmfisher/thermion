@@ -189,7 +189,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         final overlayManager = await view.getHighlightOverlay();
         if (overlayManager != null) {
           handles.add(overlayManager.silhouetteView.getNativeHandle());
-          viewNames.add(overlayManager.silhouetteView.getName());
+          viewNames.add(await overlayManager.silhouetteView.getName());
           _logger.info("Added silhouette view to render list");
         }
       }
@@ -198,7 +198,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       for (final item in views) {
         final view = item.$2;
         handles.add(view.getNativeHandle());
-        viewNames.add(view.getName());
+        viewNames.add(await view.getName());
       }
 
       // Third pass: overlay views (composite on top)
@@ -208,7 +208,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
         if (overlayManager != null) {
           handles.add(overlayManager.overlayView.getNativeHandle());
-          viewNames.add(overlayManager.overlayView.getName());
+          viewNames.add(await overlayManager.overlayView.getName());
           _logger.info("Added overlay view to render list");
         }
       }
@@ -272,8 +272,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   ///
   Future<View> createView({bool createScene = false}) async {
-    final view = await FFIView(await withPointerCallback<TView>(
-        (cb) => Engine_createViewRenderThread(engine, cb)));
+    final view = await FFIView.create();
     view.setName("unnamed_view");
     await view.setFrustumCullingEnabled(true);
     await view.setBloom(false, 0.0);
@@ -283,7 +282,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await view.setAntiAliasing(false, false, false);
     await view.setDithering(false);
     await view.setRenderQuality(QualityLevel.MEDIUM);
-
 
     if (createScene) {
       final scene = await this.createScene();
@@ -885,10 +883,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           _ => throw UnsupportedError(pixelDataFormat.toString())
         };
 
-        final pixelBuffer = makeUint8List(viewport.width *
-            viewport.height *
-            numChannels *
-            channelSizeInBytes);
+        if (viewport.width <= 0 || viewport.height <= 0) {
+          throw Exception(
+              "Invalid viewport dimensions : ${viewport.width}x${viewport.height}");
+        }
+
+        final numBytes =
+            viewport.width * viewport.height * numChannels * channelSizeInBytes;
+        final pixelBuffer = makeUint8List(numBytes);
 
         if (render) {
           await withVoidCallback((requestId, cb) {
