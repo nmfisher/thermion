@@ -1085,14 +1085,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
-  Future destroyView(covariant FFIView view) async {
+  Future destroyView(View view) async {
     for (final swapchain in _swapChains.keys) {
-      if (_swapChains[swapchain]!.contains(view)) {
-        _swapChains[swapchain]!.remove(view);
-        continue;
-      }
+      _swapChains[swapchain]?.removeWhere((item) => item.$2 == view);
     }
-    await view.destroy();
+    await (view as FFIView).destroy();
   }
 
   Future destroyScene(covariant FFIScene scene) async {
