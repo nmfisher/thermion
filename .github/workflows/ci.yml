@@ -14,41 +14,61 @@ jobs:
   generate-artifacts:
     name: Generate Artifacts
     runs-on: macos-latest
-
+    outputs:
+      should-run: ${{ steps.changes.outputs.source-changed == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2  # Get one commit back for comparison
+
+      - name: Check for source changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            source-changed:
+              - 'thermion_dart/ffigen/**'
+              - 'thermion_dart/lib/src/bindings/**'
+              - 'thermion_dart/native/**'
+              - 'thermion_flutter/windows/**'
+              - 'thermion_flutter/darwin/**'
+              - 'thermion_flutter/android/**'
 
       - name: Setup CMake
+        if: steps.changes.outputs.source-changed == 'true'
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.25.0'
 
       - name: Setup Emscripten
+        if: steps.changes.outputs.source-changed == 'true'
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: 'latest'
 
       - name: Set up Flutter
+        if: steps.changes.outputs.source-changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           channel: master
           architecture: X64
 
       - name: Run ffigen
+        if: steps.changes.outputs.source-changed == 'true'
         working-directory: thermion_dart
         run: dart run ffigen --config ffigen/native.yaml
 
       - name: Run ffigen_js
+        if: steps.changes.outputs.source-changed == 'true'
         working-directory: thermion_dart
         run: dart run ffigen_js --config ffigen/web.yaml
 
       - name: Compile web
+        if: steps.changes.outputs.source-changed == 'true'
         run: make wasm
 
       - name: Ensure generated files are tracked
+        if: steps.changes.outputs.source-changed == 'true'
         run: |
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
@@ -58,6 +78,7 @@ jobs:
 
       - name: Check for changes
         id: git-check
+        if: steps.changes.outputs.source-changed == 'true'
         run: |
           git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
 
@@ -77,6 +98,7 @@ jobs:
           git push origin HEAD:${{ github.head_ref || github.ref_name }}
 
       - name: Upload artifacts
+        if: steps.changes.outputs.source-changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: web-wasm-${{ github.sha }}
@@ -85,6 +107,8 @@ jobs:
   dart-tests:
     name: Dart Tests
     runs-on: ubuntu-22.04
+    # Run even if generate-artifacts was skipped
+    if: always() && (needs.generate-artifacts.result == 'success' || needs.generate-artifacts.result == 'skipped')
     needs: generate-artifacts
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +116,7 @@ jobs:
       - run: |
           cd thermion_dart
           dart pub get
-          xvfb-run dart test \
+          xvfb-run dart test -j1 \
             test/asset_tests.dart \
             test/instancing_tests.dart \
             test/light_tests.dart \
@@ -139,7 +163,9 @@ jobs:
   flutter-examples:
     name: Flutter Examples
     runs-on: macos-latest
-    needs: dart-tests
+    # Run only if dart-tests succeeded (not if generate-artifacts was skipped)
+    if: always() && needs.dart-tests.result == 'success'
+    needs: [generate-artifacts, dart-tests]
     defaults:
       run:
         working-directory: examples/flutter
@@ -185,6 +211,8 @@ jobs:
   flutter-examples-windows:
     name: Flutter Examples (Windows)
     runs-on: windows-latest
+    # Run only if flutter-examples succeeded
+    if: success() && needs.flutter-examples.result == 'success'
     needs: flutter-examples
     defaults:
       run:
