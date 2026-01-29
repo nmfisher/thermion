@@ -998,7 +998,6 @@ extern "C"
         [=]
         {
           auto name = View_getName(tView);
-          Log("VIEW NAME : %s", name);
           PROXY(onComplete(name));
         });
     auto fut = _renderThread->addTask(lambda);
