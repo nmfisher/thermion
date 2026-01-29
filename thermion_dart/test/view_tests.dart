@@ -18,7 +18,7 @@ void main() async {
 
   test('get/set debug name', () async {
     final view = await FilamentApp.instance!.createView();
-    expect(view.getName(), "");
+    expect(view.getName(), "unnamed_view");
     view.setName("viewname");
     expect(view.getName(), "viewname");
   });
