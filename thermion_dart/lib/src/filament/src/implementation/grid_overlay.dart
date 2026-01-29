@@ -1,5 +1,4 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/interface/defaults.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
@@ -33,10 +32,10 @@ class GridOverlay {
   }
 
   static Future<GridOverlay> create(
-      FFIFilamentApp app, {List<LinearColor> axisColors = kDefaultAxisColors, LinearColor gridColor = kDefaultGridColor } ) async {
+      {List<LinearColor> axisColors = kDefaultAxisColors, LinearColor gridColor = kDefaultGridColor } ) async {
     if (_instance == null) {
       _gridMaterial ??=
-          FFIMaterial(Material_createGridMaterial(app.engine));
+          FFIMaterial(Material_createGridMaterial(FilamentApp.instance!.engine));
 
       final assets = <FFIAsset>[];
 
@@ -50,7 +49,7 @@ class GridOverlay {
       for (int i = 0; i < 3; i++) {
         final assetPtr = await withPointerCallback<TSceneAsset>((cb) =>
             SceneAsset_createGridRenderThread(
-                app.engine, _gridMaterial!.getNativeHandle(), cb));
+                FilamentApp.instance!.engine, _gridMaterial!.getNativeHandle(), cb));
         final ffiAsset = FFIAsset(assetPtr);
         var materialInstance = await ffiAsset.getMaterialInstanceAt();
         if(i == 2) {
