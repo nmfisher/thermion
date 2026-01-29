@@ -46,14 +46,10 @@ void main() async {
           flags: {
             TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
           });
+      var data = Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0))
+          .asUint8List();
       await texture.setImage(
-          0,
-          Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0))
-              .asUint8List(),
-          1,
-          1,
-          PixelDataFormat.RGBA,
-          PixelDataType.FLOAT);
+          0, data, 1, 1, PixelDataFormat.RGBA, PixelDataType.FLOAT);
 
       var indirectLight = await FFIIndirectLight.fromIrradianceTexture(texture,
           reflectionsTexture: texture, intensity: 30000.0);
@@ -62,8 +58,9 @@ void main() async {
 
       await testHelper.capture(result.viewer.view, "ibl_from_texture_loaded");
 
-      await result.viewer.removeIbl();
+      await result.viewer.removeIbl(destroy: true);
       await testHelper.capture(result.viewer.view, "ibl_from_texture_removed");
+
     });
   });
 
@@ -73,7 +70,6 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null // Use default ubershader material
             );
@@ -166,7 +162,6 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null);
 
@@ -176,7 +171,8 @@ void main() async {
 
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
-      await testHelper.capture(result.viewer.view, "light_created_default_intensity");
+      await testHelper.capture(
+          result.viewer.view, "light_created_default_intensity");
 
       // Test intensity
       lightManager.setIntensity(sunLight, 100000.0);
@@ -195,7 +191,6 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null);
 
@@ -248,7 +243,8 @@ void main() async {
       final sunLight = lightManager.createLight(LightType.SUN);
       lightManager.setDirection(sunLight, 1, -1, 0);
       await scene.addEntity(sunLight);
-      await testHelper.capture(result.viewer.view, "sun_light_created_no_shadows");
+      await testHelper.capture(
+          result.viewer.view, "sun_light_created_no_shadows");
 
       // Test shadow caster
       lightManager.setShadowCaster(sunLight, true);
@@ -287,7 +283,6 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null);
 
@@ -297,7 +292,8 @@ void main() async {
 
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
-      await testHelper.capture(result.viewer.view, "light_created_default_channels");
+      await testHelper.capture(
+          result.viewer.view, "light_created_default_channels");
 
       // Test light channels
       lightManager.setLightChannel(sunLight, 1, true);
@@ -321,7 +317,6 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null);
 
@@ -350,7 +345,6 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null);
 
@@ -394,7 +388,7 @@ void main() async {
       lightManager.setDirection(sunLight, 0, -0.5, -0.5);
       lightManager.setIntensity(sunLight, 100000.0);
       await scene.addEntity(sunLight);
-      
+
       await testHelper.capture(result.viewer.view, "sun_light_default_color");
 
       // Change sun light color to warm (orange/red) - low color temperature
@@ -435,7 +429,6 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null);
 
@@ -488,138 +481,146 @@ void main() async {
         .addCube(createUbershader: true)
         .addPlane(
             position: Vector3(0, -1.5, 0),
-            
             scale: Vector3(10, 10, 1),
             color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
 
-      
-        final uniformSplits2 = lightManager.computeUniformSplits(2);
-        expect(uniformSplits2.length, equals(1));
-        expect(uniformSplits2[0], closeTo(0.5, 0.001));
+      final uniformSplits2 = lightManager.computeUniformSplits(2);
+      expect(uniformSplits2.length, equals(1));
+      expect(uniformSplits2[0], closeTo(0.5, 0.001));
 
-        final uniformSplits3 = lightManager.computeUniformSplits(3);
-        expect(uniformSplits3.length, equals(2));
-        expect(uniformSplits3[0], closeTo(0.333, 0.001));
-        expect(uniformSplits3[1], closeTo(0.667, 0.001));
+      final uniformSplits3 = lightManager.computeUniformSplits(3);
+      expect(uniformSplits3.length, equals(2));
+      expect(uniformSplits3[0], closeTo(0.333, 0.001));
+      expect(uniformSplits3[1], closeTo(0.667, 0.001));
 
-        final uniformSplits4 = lightManager.computeUniformSplits(4);
-        expect(uniformSplits4.length, equals(3));
-        expect(uniformSplits4[0], closeTo(0.25, 0.001));
-        expect(uniformSplits4[1], closeTo(0.5, 0.001));
-        expect(uniformSplits4[2], closeTo(0.75, 0.001));
+      final uniformSplits4 = lightManager.computeUniformSplits(4);
+      expect(uniformSplits4.length, equals(3));
+      expect(uniformSplits4[0], closeTo(0.25, 0.001));
+      expect(uniformSplits4[1], closeTo(0.5, 0.001));
+      expect(uniformSplits4[2], closeTo(0.75, 0.001));
 
+      expect(() => lightManager.computeUniformSplits(1), throwsArgumentError);
+      expect(() => lightManager.computeUniformSplits(5), throwsArgumentError);
 
-      
-        expect(() => lightManager.computeUniformSplits(1), throwsArgumentError);
-        expect(() => lightManager.computeUniformSplits(5), throwsArgumentError);
-      
-        final logSplits2 = lightManager.computeLogSplits(2, 0.1, 100.0);
-        expect(logSplits2.length, equals(1));
-        expect(logSplits2[0], greaterThan(0.0));
-        expect(logSplits2[0], lessThan(1.0));
+      final logSplits2 = lightManager.computeLogSplits(2, 0.1, 100.0);
+      expect(logSplits2.length, equals(1));
+      expect(logSplits2[0], greaterThan(0.0));
+      expect(logSplits2[0], lessThan(1.0));
 
-        final logSplits3 = lightManager.computeLogSplits(3, 0.1, 100.0);
-        expect(logSplits3.length, equals(2));
-        expect(logSplits3[0], greaterThan(0.0));
-        expect(logSplits3[0], lessThan(logSplits3[1]));
-        expect(logSplits3[1], greaterThan(0.0));
-        expect(logSplits3[1], lessThan(1.0));
+      final logSplits3 = lightManager.computeLogSplits(3, 0.1, 100.0);
+      expect(logSplits3.length, equals(2));
+      expect(logSplits3[0], greaterThan(0.0));
+      expect(logSplits3[0], lessThan(logSplits3[1]));
+      expect(logSplits3[1], greaterThan(0.0));
+      expect(logSplits3[1], lessThan(1.0));
 
-        final logSplits4 = lightManager.computeLogSplits(4, 0.1, 100.0);
-        expect(logSplits4.length, equals(3));
-        for (int i = 0; i < logSplits4.length; i++) {
-          expect(logSplits4[i], greaterThan(0.0));
-          expect(logSplits4[i], lessThan(1.0));
+      final logSplits4 = lightManager.computeLogSplits(4, 0.1, 100.0);
+      expect(logSplits4.length, equals(3));
+      for (int i = 0; i < logSplits4.length; i++) {
+        expect(logSplits4[i], greaterThan(0.0));
+        expect(logSplits4[i], lessThan(1.0));
+        if (i > 0) {
+          expect(logSplits4[i], greaterThan(logSplits4[i - 1]));
+        }
+      }
+
+      expect(() => lightManager.computeLogSplits(1, 0.1, 100.0),
+          throwsArgumentError);
+      expect(() => lightManager.computeLogSplits(5, 0.1, 100.0),
+          throwsArgumentError);
+
+      final practicalSplits2 =
+          lightManager.computePracticalSplits(2, 0.1, 100.0, 0.5);
+      expect(practicalSplits2.length, equals(1));
+      expect(practicalSplits2[0], greaterThan(0.0));
+      expect(practicalSplits2[0], lessThan(1.0));
+
+      final practicalSplits3 =
+          lightManager.computePracticalSplits(3, 0.1, 100.0, 0.5);
+      expect(practicalSplits3.length, equals(2));
+      for (int i = 0; i < practicalSplits3.length; i++) {
+        expect(practicalSplits3[i], greaterThan(0.0));
+        expect(practicalSplits3[i], lessThan(1.0));
+        if (i > 0) {
+          expect(practicalSplits3[i], greaterThan(practicalSplits3[i - 1]));
+        }
+      }
+
+      final practicalSplits4 =
+          lightManager.computePracticalSplits(4, 0.1, 100.0, 0.5);
+      expect(practicalSplits4.length, equals(3));
+      for (int i = 0; i < practicalSplits4.length; i++) {
+        expect(practicalSplits4[i], greaterThan(0.0));
+        expect(practicalSplits4[i], lessThan(1.0));
+        if (i > 0) {
+          expect(practicalSplits4[i], greaterThan(practicalSplits4[i - 1]));
+        }
+      }
+
+      final near = 0.1;
+      final far = 100.0;
+
+      // Test lambda = 0 (should be closer to logarithmic)
+      final practicalSplits0 =
+          lightManager.computePracticalSplits(3, near, far, 0.0);
+
+      // Test lambda = 1 (should be closer to uniform)
+      final practicalSplits1 =
+          lightManager.computePracticalSplits(3, near, far, 1.0);
+
+      // Test lambda = 0.5 (should be between uniform and logarithmic)
+      final practicalSplits05 =
+          lightManager.computePracticalSplits(3, near, far, 0.5);
+
+      // All should be valid splits
+      for (final splits in [
+        practicalSplits0,
+        practicalSplits1,
+        practicalSplits05
+      ]) {
+        expect(splits.length, equals(2));
+        for (int i = 0; i < splits.length; i++) {
+          expect(splits[i], greaterThan(0.0));
+          expect(splits[i], lessThan(1.0));
           if (i > 0) {
-            expect(logSplits4[i], greaterThan(logSplits4[i - 1]));
+            expect(splits[i], greaterThan(splits[i - 1]));
           }
         }
-      
-        expect(() => lightManager.computeLogSplits(1, 0.1, 100.0), throwsArgumentError);
-        expect(() => lightManager.computeLogSplits(5, 0.1, 100.0), throwsArgumentError);
-      
+      }
 
-      
-        final practicalSplits2 = lightManager.computePracticalSplits(2, 0.1, 100.0, 0.5);
-        expect(practicalSplits2.length, equals(1));
-        expect(practicalSplits2[0], greaterThan(0.0));
-        expect(practicalSplits2[0], lessThan(1.0));
+      expect(() => lightManager.computePracticalSplits(1, 0.1, 100.0, 0.5),
+          throwsArgumentError);
+      expect(() => lightManager.computePracticalSplits(5, 0.1, 100.0, 0.5),
+          throwsArgumentError);
+      expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, -0.1),
+          throwsArgumentError);
+      expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, 1.1),
+          throwsArgumentError);
 
-        final practicalSplits3 = lightManager.computePracticalSplits(3, 0.1, 100.0, 0.5);
-        expect(practicalSplits3.length, equals(2));
-        for (int i = 0; i < practicalSplits3.length; i++) {
-          expect(practicalSplits3[i], greaterThan(0.0));
-          expect(practicalSplits3[i], lessThan(1.0));
-          if (i > 0) {
-            expect(practicalSplits3[i], greaterThan(practicalSplits3[i - 1]));
-          }
+      final cascades = 3;
+
+      final uniformSplits = lightManager.computeUniformSplits(cascades);
+      final logSplits = lightManager.computeLogSplits(cascades, near, far);
+      final practicalSplits =
+          lightManager.computePracticalSplits(cascades, near, far, 0.5);
+
+      expect(uniformSplits.length, equals(2));
+      expect(logSplits.length, equals(2));
+      expect(practicalSplits.length, equals(2));
+
+      // Results should be different (except possibly coincidentally)
+      bool allEqual = true;
+      for (int i = 0; i < uniformSplits.length; i++) {
+        if ((uniformSplits[i] - logSplits[i]).abs() > 0.001 ||
+            (uniformSplits[i] - practicalSplits[i]).abs() > 0.001) {
+          allEqual = false;
+          break;
         }
-
-        final practicalSplits4 = lightManager.computePracticalSplits(4, 0.1, 100.0, 0.5);
-        expect(practicalSplits4.length, equals(3));
-        for (int i = 0; i < practicalSplits4.length; i++) {
-          expect(practicalSplits4[i], greaterThan(0.0));
-          expect(practicalSplits4[i], lessThan(1.0));
-          if (i > 0) {
-            expect(practicalSplits4[i], greaterThan(practicalSplits4[i - 1]));
-          }
-        }
-
-        final near = 0.1;
-        final far = 100.0;
-
-        // Test lambda = 0 (should be closer to logarithmic)
-        final practicalSplits0 = lightManager.computePracticalSplits(3, near, far, 0.0);
-
-        // Test lambda = 1 (should be closer to uniform)
-        final practicalSplits1 = lightManager.computePracticalSplits(3, near, far, 1.0);
-
-        // Test lambda = 0.5 (should be between uniform and logarithmic)
-        final practicalSplits05 = lightManager.computePracticalSplits(3, near, far, 0.5);
-
-        // All should be valid splits
-        for (final splits in [practicalSplits0, practicalSplits1, practicalSplits05]) {
-          expect(splits.length, equals(2));
-          for (int i = 0; i < splits.length; i++) {
-            expect(splits[i], greaterThan(0.0));
-            expect(splits[i], lessThan(1.0));
-            if (i > 0) {
-              expect(splits[i], greaterThan(splits[i - 1]));
-            }
-          }
-        }
-      
-        expect(() => lightManager.computePracticalSplits(1, 0.1, 100.0, 0.5), throwsArgumentError);
-        expect(() => lightManager.computePracticalSplits(5, 0.1, 100.0, 0.5), throwsArgumentError);
-        expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, -0.1), throwsArgumentError);
-        expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, 1.1), throwsArgumentError);
-      
-        final cascades = 3;
-
-        final uniformSplits = lightManager.computeUniformSplits(cascades);
-        final logSplits = lightManager.computeLogSplits(cascades, near, far);
-        final practicalSplits = lightManager.computePracticalSplits(cascades, near, far, 0.5);
-
-        expect(uniformSplits.length, equals(2));
-        expect(logSplits.length, equals(2));
-        expect(practicalSplits.length, equals(2));
-
-        // Results should be different (except possibly coincidentally)
-        bool allEqual = true;
-        for (int i = 0; i < uniformSplits.length; i++) {
-          if ((uniformSplits[i] - logSplits[i]).abs() > 0.001 ||
-              (uniformSplits[i] - practicalSplits[i]).abs() > 0.001) {
-            allEqual = false;
-            break;
-          }
-        }
-        expect(allEqual, isFalse);
-      
+      }
+      expect(allEqual, isFalse);
     });
   });
-
- 
 }
