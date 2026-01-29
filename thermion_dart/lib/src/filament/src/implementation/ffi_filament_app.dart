@@ -282,6 +282,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await view.setAntiAliasing(false, false, false);
     await view.setDithering(false);
     await view.setRenderQuality(QualityLevel.MEDIUM);
+    view.setName("unnamed_view");
 
     if (createScene) {
       final scene = await this.createScene();
