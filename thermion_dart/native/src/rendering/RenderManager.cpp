@@ -92,7 +92,7 @@ namespace thermion
         attachment->views[i] = nullptr;
       }
     }
-    Log("Set %d view attachments for swapchain", numViews);
+    TRACE("Set %d view attachments for swapchain", numViews);
   }
 
   bool RenderManager::render(uint64_t frameTimeInNanos)

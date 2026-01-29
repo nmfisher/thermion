@@ -1947,6 +1947,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _View_getNameRenderThread(
+    Pointer<TView> tView,
+    Pointer<NativeFunction<void Function(PointerClass<Char>)>> onComplete,
+  );
   external void _SceneAsset_createGridRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TMaterial> tMaterial,
@@ -7151,6 +7155,15 @@ void View_setCameraRenderThread(
   return result;
 }
 
+void View_getNameRenderThread(
+  Pointer<TView> tView,
+  Pointer<NativeFunction<void Function(Pointer<Char>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._View_getNameRenderThread(tView.cast(), onComplete.cast());
+  return result;
+}
+
 void SceneAsset_createGridRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TMaterial> tMaterial,
@@ -11894,7 +11907,7 @@ extension NativeFunctionPointer16<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer45<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer46<T extends NativeType> on void Function(int) {
   Pointer<NativeFunction<void Function(int)>> addFunction() {
     return Pointer<NativeFunction<void Function(int)>>(NativeLibrary.instance
             .addFunction<void Function(int)>(this.toJS, 'vi'))
@@ -11902,7 +11915,7 @@ extension NativeFunctionPointer45<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer60<T extends NativeType> on void Function(
+extension NativeFunctionPointer61<T extends NativeType> on void Function(
     double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(NativeLibrary.instance

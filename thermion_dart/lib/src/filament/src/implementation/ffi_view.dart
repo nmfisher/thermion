@@ -349,11 +349,15 @@ class FFIView extends View<Pointer<TView>> {
     // Copy SSCT options
     tAmbientOcclusionOptions.ssct.lightConeRad = options.ssct.lightConeRad;
     tAmbientOcclusionOptions.ssct.shadowDistance = options.ssct.shadowDistance;
-    tAmbientOcclusionOptions.ssct.contactDistanceMax = options.ssct.contactDistanceMax;
+    tAmbientOcclusionOptions.ssct.contactDistanceMax =
+        options.ssct.contactDistanceMax;
     tAmbientOcclusionOptions.ssct.intensity = options.ssct.intensity;
-    tAmbientOcclusionOptions.ssct.lightDirectionX = options.ssct.lightDirection[0];
-    tAmbientOcclusionOptions.ssct.lightDirectionY = options.ssct.lightDirection[1];
-    tAmbientOcclusionOptions.ssct.lightDirectionZ = options.ssct.lightDirection[2];
+    tAmbientOcclusionOptions.ssct.lightDirectionX =
+        options.ssct.lightDirection[0];
+    tAmbientOcclusionOptions.ssct.lightDirectionY =
+        options.ssct.lightDirection[1];
+    tAmbientOcclusionOptions.ssct.lightDirectionZ =
+        options.ssct.lightDirection[2];
     tAmbientOcclusionOptions.ssct.depthBias = options.ssct.depthBias;
     tAmbientOcclusionOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
     tAmbientOcclusionOptions.ssct.sampleCount = options.ssct.sampleCount;
@@ -381,21 +385,21 @@ class FFIView extends View<Pointer<TView>> {
       bentNormals: tOptions.bentNormals,
       minHorizonAngleRad: tOptions.minHorizonAngleRad,
       ssct: SsctOptions(
-          lightConeRad: tOptions.ssct.lightConeRad,
-          shadowDistance: tOptions.ssct.shadowDistance,
-          contactDistanceMax: tOptions.ssct.contactDistanceMax,
-          intensity: tOptions.ssct.intensity,
-          lightDirection: [
-            tOptions.ssct.lightDirectionX,
-            tOptions.ssct.lightDirectionY,
-            tOptions.ssct.lightDirectionZ,
-          ],
-          depthBias: tOptions.ssct.depthBias,
-          depthSlopeBias: tOptions.ssct.depthSlopeBias,
-          sampleCount: tOptions.ssct.sampleCount,
-          rayCount: tOptions.ssct.rayCount,
-          enabled: tOptions.ssct.enabled,
-          ),
+        lightConeRad: tOptions.ssct.lightConeRad,
+        shadowDistance: tOptions.ssct.shadowDistance,
+        contactDistanceMax: tOptions.ssct.contactDistanceMax,
+        intensity: tOptions.ssct.intensity,
+        lightDirection: [
+          tOptions.ssct.lightDirectionX,
+          tOptions.ssct.lightDirectionY,
+          tOptions.ssct.lightDirectionZ,
+        ],
+        depthBias: tOptions.ssct.depthBias,
+        depthSlopeBias: tOptions.ssct.depthSlopeBias,
+        sampleCount: tOptions.ssct.sampleCount,
+        rayCount: tOptions.ssct.rayCount,
+        enabled: tOptions.ssct.enabled,
+      ),
     );
   }
 
@@ -594,7 +598,7 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
     if (_highlightOverlayManager == null) {
-      throw Exception("No overlay manager created");
+      return;
     }
     final entities = [asset.entity, ...await asset.getChildEntities()];
 
@@ -606,15 +610,20 @@ class FFIView extends View<Pointer<TView>> {
     await FilamentApp.instance!.updateRenderOrder();
   }
 
-  void setName(String name) {
+  Future setName(String name) async {
     final ptr = name.toNativeUtf8();
-    View_setName(getNativeHandle(), ptr.cast());
+    await withVoidCallback((requestId, cb) =>
+        View_setNameRenderThread(getNativeHandle(), ptr.cast(), requestId, cb));
     free(ptr);
   }
 
-  String getName() {
-    final ptr = View_getName(getNativeHandle());
-    return ptr.cast<Utf8>().toDartString();
+  Future<String?> getName() async {
+    final ptr = await withPointerCallback<Char>(
+        (cb) => View_getNameRenderThread(getNativeHandle(), cb));
+    if (ptr != nullptr) {
+      return ptr.cast<Utf8>().toDartString();
+    }
+    return null;
   }
 
   Future setTransparentPickingEnabled(bool enabled) async {
@@ -623,5 +632,11 @@ class FFIView extends View<Pointer<TView>> {
 
   Future<bool> isTransparentPickingEnabled() async {
     return View_isTransparentPickingEnabled(getNativeHandle());
+  }
+
+  static Future<View> create() async {
+    final ptr = await withPointerCallback<TView>((cb) =>
+        Engine_createViewRenderThread(FilamentApp.instance!.engine, cb));
+    return FFIView(ptr);
   }
 }

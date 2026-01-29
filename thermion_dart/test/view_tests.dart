@@ -13,16 +13,15 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
 void main() async {
-  Logger.root.level = Level.FINEST;
-
   final testHelper = TestHelper("view");
   await testHelper.setup();
 
   test('get/set debug name', () async {
     final view = await FilamentApp.instance!.createView();
-    expect(view.getName(), "");
+    expect(await view.getName(), "unnamed_view");
     view.setName("viewname");
-    expect(view.getName(), "viewname");
+    expect(await view.getName(), "viewname");
+    await FilamentApp.instance!.destroyView(view);
   });
 
   test('get camera from view', () async {
@@ -51,15 +50,15 @@ void main() async {
     final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height);
     await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
-    final views = [];
-    final scene = await FilamentApp.instance!.createScene() as FFIScene;
-    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+    final views = <View>[];
+    final scene = await FilamentApp.instance!.createScene();
+    final camera = await FilamentApp.instance!.createCamera();
     await camera.setLensProjection();
     for (int i = 0; i < 2; i++) {
-      final view = await FilamentApp.instance!.createView() as FFIView;
+      final view = await FilamentApp.instance!.createView();
       await view.setScene(scene);
       await view.setCamera(camera);
-      
+
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
@@ -81,12 +80,30 @@ void main() async {
 
     await camera.lookAt(Vector3(0, 0, 10));
 
-    await testHelper.capture(null, "multiview_change_material_instance",
-        swapChain: swapChain, beforeRender: (view) async {
-      if (view == views.last) {
-        await cube.setMaterialInstanceAt(green);
+    try {
+      await testHelper.capture(null, "multiview_change_material_instance",
+          swapChain: swapChain, beforeRender: (view) async {
+        if (view == views.last) {
+          await cube.setMaterialInstanceAt(green);
+        }
+      });
+    } finally {
+      // Cleanup in the same order as ThermionViewerFFI.dispose()
+      // 1. Remove assets from scene and destroy them
+      await scene.remove(cube);
+      await FilamentApp.instance!.destroyAsset(cube);
+
+      // 2. Unset scene from all views and destroy views
+      for (final view in views) {
+        await FilamentApp.instance!.destroyView(view);
       }
-    });
+
+      // 3. Destroy scene
+      await FilamentApp.instance!.destroyScene(scene);
+
+      // 4. Destroy swapchain
+      await FilamentApp.instance!.destroySwapChain(swapChain);
+    }
   });
 
   test('render to multiple views, same camera', () async {
@@ -102,7 +119,7 @@ void main() async {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
       await view.setCamera(camera);
-      
+
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
@@ -155,7 +172,7 @@ void main() async {
     for (int i = 0; i < 2; i++) {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
-      
+
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
@@ -197,7 +214,7 @@ void main() async {
     for (int i = 0; i < 2; i++) {
       final view = await FilamentApp.instance!.createView() as FFIView;
       await view.setScene(scene);
-      
+
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
@@ -283,7 +300,7 @@ void main() async {
       final view = await FilamentApp.instance!.createView() as FFIView;
       final scene = await FilamentApp.instance!.createScene() as FFIScene;
       await view.setScene(scene);
-      
+
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);

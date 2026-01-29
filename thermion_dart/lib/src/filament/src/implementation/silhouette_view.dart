@@ -130,7 +130,7 @@ class SilhouetteView extends FFIView {
     await silhouetteView.setPostProcessing(false);
     await silhouetteView.setShadowsEnabled(false);
 
-    silhouetteView.setName("highlight_silhouette");
+    await silhouetteView.setName("highlight_silhouette");
 
     return silhouetteView;
   }

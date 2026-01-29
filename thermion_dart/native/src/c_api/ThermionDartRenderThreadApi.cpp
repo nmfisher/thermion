@@ -992,6 +992,28 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void View_getNameRenderThread(TView *tView, void (*onComplete)(const char *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          auto name = View_getName(tView);
+          PROXY(onComplete(name));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void View_setNameRenderThread(TView *tView, const char *name, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          View_setName(tView, name);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
         [=]() mutable

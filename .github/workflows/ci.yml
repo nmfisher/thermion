@@ -1,0 +1,235 @@
+name: CI
+
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-artifacts:
+    name: Generate Artifacts
+    runs-on: macos-latest
+    outputs:
+      should-run: ${{ steps.changes.outputs.source-changed == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Get one commit back for comparison
+
+      - name: Check for source changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            source-changed:
+              - 'thermion_dart/ffigen/**'
+              - 'thermion_dart/lib/src/bindings/**'
+              - 'thermion_dart/native/**'
+              - 'thermion_flutter/windows/**'
+              - 'thermion_flutter/darwin/**'
+              - 'thermion_flutter/android/**'
+
+      - name: Setup CMake
+        if: steps.changes.outputs.source-changed == 'true'
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.0'
+
+      - name: Setup Emscripten
+        if: steps.changes.outputs.source-changed == 'true'
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 'latest'
+
+      - name: Set up Flutter
+        if: steps.changes.outputs.source-changed == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+          architecture: X64
+
+      - name: Run ffigen
+        if: steps.changes.outputs.source-changed == 'true'
+        working-directory: thermion_dart
+        run: dart run ffigen --config ffigen/native.yaml
+
+      - name: Run ffigen_js
+        if: steps.changes.outputs.source-changed == 'true'
+        working-directory: thermion_dart
+        run: dart run ffigen_js --config ffigen/web.yaml
+
+      - name: Compile web
+        if: steps.changes.outputs.source-changed == 'true'
+        run: make wasm
+
+      - name: Ensure generated files are tracked
+        if: steps.changes.outputs.source-changed == 'true'
+        run: |
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
+          git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.js
+          git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.wasm
+          git update-index --no-assume-unchanged thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
+
+      - name: Check for changes
+        id: git-check
+        if: steps.changes.outputs.source-changed == 'true'
+        run: |
+          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
+          git add -f thermion_dart/native/web/build/build/out/thermion_dart.js
+          git add -f thermion_dart/native/web/build/build/out/thermion_dart.wasm
+          git add -f thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
+          git commit -m "chore: update generated artifacts
+
+          🤖 Generated with GitHub Actions"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+
+      - name: Upload artifacts
+        if: steps.changes.outputs.source-changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-wasm-${{ github.sha }}
+          path: thermion_dart/native/web/build/build/out/
+
+  dart-tests:
+    name: Dart Tests
+    runs-on: ubuntu-22.04
+    # Run even if generate-artifacts was skipped
+    if: always() && (needs.generate-artifacts.result == 'success' || needs.generate-artifacts.result == 'skipped')
+    needs: generate-artifacts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-build-env
+      - run: |
+          cd thermion_dart
+          dart pub get
+          xvfb-run dart test -j1 \
+            test/asset_tests.dart \
+            test/instancing_tests.dart \
+            test/light_tests.dart \
+            test/entity_tests.dart \
+            test/geometry_tests.dart \
+            test/view_tests.dart \
+            test/postprocessing_tests.dart \
+            test/scene_tests.dart  \
+            test/picking_tests.dart \
+            test/image_tests.dart \
+            --concurrency=1
+      - name: Zip output
+        run: zip -r output.zip ./thermion_dart/test/output
+      - name: Upload test output
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-images-${{ github.sha }}
+          path: output.zip
+      - name: Download golden images from previous run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download 16958913950 \
+            --name golden-images-3ceabae9c40b21fddb3348597d9e8ef149bcd267 \
+            --dir ./thermion_dart/test/golden-downloads
+      - name: Unzip golden images
+        run: |
+          cd thermion_dart/test/golden-downloads && unzip output.zip
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Pillow numpy
+      - name: Compare golden images
+        run: cd thermion_dart/test && python compare_goldens.py
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  flutter-examples:
+    name: Flutter Examples
+    runs-on: macos-latest
+    # Run only if dart-tests succeeded (not if generate-artifacts was skipped)
+    if: always() && needs.dart-tests.result == 'success'
+    needs: [generate-artifacts, dart-tests]
+    defaults:
+      run:
+        working-directory: examples/flutter
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: beta
+          architecture: ARM64
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+          cmake-version: 3.22.1
+          ndk-version: 25.1.893739
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+      - run: cd quickstart && flutter pub get && flutter build macos
+      - run: cd quickstart && flutter pub get && flutter build appbundle
+      - run: cd quickstart && flutter build web
+      - run: cd picking && flutter pub get && flutter build macos
+      - run: cd picking && flutter pub get && flutter build appbundle
+      - run: cd picking && flutter build web
+      - run: cd viewer && flutter pub get && flutter build appbundle
+      - run: cd viewer && flutter build web
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            /Users/runner/work/thermion/thermion/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  flutter-examples-windows:
+    name: Flutter Examples (Windows)
+    runs-on: windows-latest
+    # Run only if flutter-examples succeeded
+    if: success() && needs.flutter-examples.result == 'success'
+    needs: flutter-examples
+    defaults:
+      run:
+        working-directory: examples/flutter
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: beta
+      - run: cd quickstart && flutter pub get && flutter build windows
+      - run: cd picking && flutter pub get && flutter build windows
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
+          retention-days: 5

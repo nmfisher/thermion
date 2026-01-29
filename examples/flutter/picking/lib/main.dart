@@ -111,7 +111,7 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {});
       });
       _inputHandler =
-          DelegateInputHandler(viewer: _thermionViewer!, delegates: [delegate]);
+          DelegateInputHandler.flight(_thermionViewer!);
 
       setState(() {});
     });
