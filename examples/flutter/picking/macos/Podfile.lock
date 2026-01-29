@@ -1,22 +1,29 @@
 PODS:
   - FlutterMacOS (1.0.0)
+  - objective_c (0.0.1):
+    - FlutterMacOS
   - thermion_flutter (0.0.1):
+    - Flutter
     - FlutterMacOS
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - thermion_flutter (from `Flutter/ephemeral/.symlinks/plugins/thermion_flutter/macos`)
+  - objective_c (from `Flutter/ephemeral/.symlinks/plugins/objective_c/macos`)
+  - thermion_flutter (from `Flutter/ephemeral/.symlinks/plugins/thermion_flutter/darwin`)
 
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
+  objective_c:
+    :path: Flutter/ephemeral/.symlinks/plugins/objective_c/macos
   thermion_flutter:
-    :path: Flutter/ephemeral/.symlinks/plugins/thermion_flutter/macos
+    :path: Flutter/ephemeral/.symlinks/plugins/thermion_flutter/darwin
 
 SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  thermion_flutter: debb51a861788780ce40e11e4400c2e5a8681fdf
+  objective_c: e5f8194456e8fc943e034d1af00510a1bc29c067
+  thermion_flutter: bbfc8333461fc5dc5ed7c4dd379813c669284f38
 
 PODFILE CHECKSUM: 1888651be91a8ad58692c1add9ce24279fd4e950
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2
