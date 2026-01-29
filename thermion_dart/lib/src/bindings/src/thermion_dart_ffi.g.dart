@@ -3571,6 +3571,18 @@ external void View_setCameraRenderThread(
 
 @ffi.Native<
         ffi.Void Function(
+            ffi.Pointer<TView>,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>)>(
+    isLeaf: true)
+external void View_getNameRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
             ffi.Pointer<TEngine>,
             ffi.Pointer<TMaterial>,
             ffi.Pointer<
