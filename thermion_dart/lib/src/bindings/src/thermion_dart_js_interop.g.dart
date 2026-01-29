@@ -1951,6 +1951,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TView> tView,
     Pointer<NativeFunction<void Function(PointerClass<Char>)>> onComplete,
   );
+  external void _View_setNameRenderThread(
+    Pointer<TView> tView,
+    Pointer<Char> name,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _SceneAsset_createGridRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TMaterial> tMaterial,
@@ -7161,6 +7167,20 @@ void View_getNameRenderThread(
 ) {
   final result = GeneratedBindings.instance
       ._View_getNameRenderThread(tView.cast(), onComplete.cast());
+  return result;
+}
+
+void View_setNameRenderThread(
+  Pointer<TView> tView,
+  Pointer<Char> name,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setNameRenderThread(
+      tView.cast(),
+      name,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 

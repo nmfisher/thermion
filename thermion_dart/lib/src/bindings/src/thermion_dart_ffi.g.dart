@@ -3582,6 +3582,16 @@ external void View_getNameRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<ffi.Char>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setNameRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<ffi.Char> name,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TEngine>,
             ffi.Pointer<TMaterial>,
