@@ -610,9 +610,10 @@ class FFIView extends View<Pointer<TView>> {
     await FilamentApp.instance!.updateRenderOrder();
   }
 
-  void setName(String name) {
+  Future setName(String name) async {
     final ptr = name.toNativeUtf8();
-    View_setName(getNativeHandle(), ptr.cast());
+    await withVoidCallback((requestId, cb) =>
+        View_setNameRenderThread(getNativeHandle(), ptr.cast(), requestId, cb));
     free(ptr);
   }
 
