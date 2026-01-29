@@ -273,7 +273,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<View> createView({bool createScene = false}) async {
     final view = await FFIView.create();
-    view.setName("unnamed_view");
+    await view.setName("unnamed_view");
     await view.setFrustumCullingEnabled(true);
     await view.setBloom(false, 0.0);
     await view.setBlendMode(BlendMode.transparent);

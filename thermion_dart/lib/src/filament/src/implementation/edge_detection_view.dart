@@ -229,7 +229,7 @@ class EdgeDetectionView extends FFIView {
     await edgeDetectionView.setShadowsEnabled(false);
     await edgeDetectionView.setFrustumCullingEnabled(false);
 
-    edgeDetectionView.setName("highlight_edge_detection");
+    await edgeDetectionView.setName("highlight_edge_detection");
 
     return edgeDetectionView;
   }
