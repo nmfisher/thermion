@@ -24,7 +24,11 @@ jobs:
         with:
           version: 'latest'
 
-      - uses: ./.github/actions/setup-build-env
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+          architecture: X64
 
       - name: Run ffigen
         working-directory: thermion_dart
