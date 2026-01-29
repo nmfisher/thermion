@@ -19,8 +19,8 @@ class FFIIndirectLight extends IndirectLight {
     var indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightFromIrradianceTextureRenderThread(
           engine,
-          (reflectionsTexture as FFITexture?)?.pointer ?? nullptr,
-          (irradianceTexture as FFITexture).pointer,
+          reflectionsTexture?.getNativeHandle() ?? nullptr,
+          irradianceTexture.getNativeHandle(),
           intensity,
           cb);
     });
@@ -77,14 +77,15 @@ class FFIIndirectLight extends IndirectLight {
 
     if (_irradianceTexture != null) {
       await withVoidCallback((requestId, cb) =>
-          Engine_destroyTextureRenderThread(engine,
-              (_irradianceTexture as FFITexture).pointer, requestId, cb));
+          Engine_destroyTextureRenderThread(
+              engine, _irradianceTexture.getNativeHandle(), requestId, cb));
     }
 
-    if (_reflectionsTexture != null) {
+    if (_reflectionsTexture != null &&
+        _reflectionsTexture != _irradianceTexture) {
       await withVoidCallback((requestId, cb) =>
-          Engine_destroyTextureRenderThread(engine,
-              (_reflectionsTexture as FFITexture).pointer, requestId, cb));
+          Engine_destroyTextureRenderThread(
+              engine, _reflectionsTexture.getNativeHandle(), requestId, cb));
     }
   }
 }
