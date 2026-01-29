@@ -5,6 +5,8 @@
 .vscode
 .DS_Store
 **/*/build
+!thermion_dart/native/web/build/*.js
+!thermion_dart/native/web/build/*.wasm
 **/*/pubspec.lock
 pubspec_overrides.yaml
 /pubspec.lock

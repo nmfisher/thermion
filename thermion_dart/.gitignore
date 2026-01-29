@@ -1,5 +1,7 @@
 native/build/
 native/web/build/
+!native/web/build/*.js
+!native/web/build/*.wasm
 native/web/lib/**/*
 pubspec.lock
 test/output/*
