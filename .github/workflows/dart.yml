@@ -1,13 +1,9 @@
 name: Dart
 
 on:
-  push:
-    branches: [ "develop" ]
-  pull_request:
-    branches: [ "develop" ]
-  # Run tests after ffigen bindings are generated
+  # Run tests after auto-generate workflow completes
   workflow_run:
-    workflows: ["ffigen"] # Name of the workflow that runs ffigen
+    workflows: ["Auto-generate Artifacts"]
     types:
       - completed
 
