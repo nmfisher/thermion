@@ -5,8 +5,11 @@
 .vscode
 .DS_Store
 **/*/build
-!thermion_dart/native/web/build/*.js
-!thermion_dart/native/web/build/*.wasm
+!thermion_dart/native/web/
+thermion_dart/native/web/build/
+!thermion_dart/native/web/build/**/thermion_dart.js
+!thermion_dart/native/web/build/**/thermion_dart.wasm
+thermion_dart/native/web/build/**
 **/*/pubspec.lock
 pubspec_overrides.yaml
 /pubspec.lock
