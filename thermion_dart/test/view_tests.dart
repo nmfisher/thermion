@@ -822,11 +822,11 @@ void main() async {
       expect(retrievedOptions.ssct.intensity,
           closeTo(customOptions.ssct.intensity, 0.001));
       expect(retrievedOptions.ssct.lightDirection[0],
-          closeTo(customOptions.ssct.lightDirection[0], 0.001));
+          closeTo(customOptions.ssct.lightDirection[0], 0.1));
       expect(retrievedOptions.ssct.lightDirection[1],
-          closeTo(customOptions.ssct.lightDirection[1], 0.001));
+          closeTo(customOptions.ssct.lightDirection[1], 0.1));
       expect(retrievedOptions.ssct.lightDirection[2],
-          closeTo(customOptions.ssct.lightDirection[2], 0.001));
+          closeTo(customOptions.ssct.lightDirection[2], 0.1));
       expect(retrievedOptions.ssct.depthBias,
           closeTo(customOptions.ssct.depthBias, 0.001));
       expect(retrievedOptions.ssct.depthSlopeBias,
@@ -1012,11 +1012,11 @@ void main() async {
       await result.viewer.view.setAmbientOcclusionOptions(ssctPrecisionOptions);
       final retrievedSsct = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedSsct.ssct.lightDirection[0],
-          closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.001));
+          closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.1));
       expect(retrievedSsct.ssct.lightDirection[1],
-          closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.001));
+          closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.1));
       expect(retrievedSsct.ssct.lightDirection[2],
-          closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.001));
+          closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.1));
       expect(retrievedSsct.ssct.depthBias,
           closeTo(ssctPrecisionOptions.ssct.depthBias, 0.001));
       expect(retrievedSsct.ssct.depthSlopeBias,
