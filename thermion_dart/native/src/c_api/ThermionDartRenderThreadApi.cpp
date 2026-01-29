@@ -29,6 +29,11 @@
 #include "rendering/FrameScheduler.hpp"
 #include "Log.hpp"
 
+// Dart API for port-based frame scheduling (hot restart safe)
+#ifndef __EMSCRIPTEN__
+#include "dart/dart_api_dl.h"
+#endif
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten/proxying.h>
 #include <emscripten/eventloop.h>
@@ -1759,7 +1764,15 @@ extern "C"
       delete _frameScheduler;
       _frameScheduler = nullptr;
     }
+#if __APPLE__
+    _frameScheduler = new thermion::CVDisplayLinkScheduler();
+#elif _WIN32
+    _frameScheduler = new thermion::DXGIFrameScheduler(targetFps > 0 ? targetFps : 60);
+#elif __ANDROID__
+    _frameScheduler = new thermion::AChoreographerFrameScheduler();
+#else
     _frameScheduler = new thermion::TimerFrameScheduler(targetFps > 0 ? targetFps : 60);
+#endif
     _frameScheduler->start(callback);
 #endif
   }
@@ -1771,6 +1784,69 @@ extern "C"
       delete _frameScheduler;
       _frameScheduler = nullptr;
     }
+#endif
+  }
+
+  // Port-based frame scheduler (hot restart safe)
+  // When the Dart isolate dies (hot restart), Dart_PostCObject_DL silently
+  // drops messages instead of crashing.
+
+#ifndef __EMSCRIPTEN__
+  static bool _dartApiInitialized = false;
+  static Dart_Port_DL _dartPort = 0;
+
+  // Callback function for port mode - posts frame time to Dart port
+  static void _portModeCallback(uint64_t frameTimeNanos) {
+    if (_dartPort == 0) return;
+
+    Dart_CObject msg;
+    msg.type = Dart_CObject_kInt64;
+    msg.value.as_int64 = static_cast<int64_t>(frameTimeNanos);
+
+    // Dart_PostCObject_DL is thread-safe and returns false if port is dead
+    // This is the key: no crash on hot restart, just silently drops
+    Dart_PostCObject_DL(_dartPort, &msg);
+  }
+#endif
+
+  EMSCRIPTEN_KEEPALIVE int FrameScheduler_initDartApi(void* data) {
+#ifndef __EMSCRIPTEN__
+    if (!_dartApiInitialized && data != nullptr) {
+      intptr_t result = Dart_InitializeApiDL(data);
+      _dartApiInitialized = (result == 0);
+      return _dartApiInitialized ? 0 : -1;
+    }
+    return _dartApiInitialized ? 0 : -1;
+#else
+    return -1;
+#endif
+  }
+
+  EMSCRIPTEN_KEEPALIVE void FrameScheduler_startWithPort(int64_t port, int targetFps) {
+#ifndef __EMSCRIPTEN__
+    if (_frameScheduler) {
+      _frameScheduler->stop();
+      delete _frameScheduler;
+      _frameScheduler = nullptr;
+    }
+
+    _dartPort = port;
+#if __APPLE__
+    auto* macScheduler = new thermion::CVDisplayLinkScheduler();
+    macScheduler->startWithPort(port);
+    _frameScheduler = macScheduler;
+#elif _WIN32
+    auto* winScheduler = new thermion::DXGIFrameScheduler(targetFps > 0 ? targetFps : 60);
+    winScheduler->startWithPort(port);
+    _frameScheduler = winScheduler;
+#elif __ANDROID__
+    auto* androidScheduler = new thermion::AChoreographerFrameScheduler();
+    androidScheduler->startWithPort(port);
+    _frameScheduler = androidScheduler;
+#else
+    _frameScheduler = new thermion::TimerFrameScheduler(targetFps > 0 ? targetFps : 60);
+    _frameScheduler->start(_portModeCallback);
+#endif
 #endif
   }
 

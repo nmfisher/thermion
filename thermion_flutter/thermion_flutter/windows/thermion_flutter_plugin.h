@@ -58,7 +58,13 @@ public:
     std::atomic<bool> _frameSchedulerRunning{false};
     std::thread _frameSchedulerThread;
     void StartFrameScheduler(int64_t callbackAddress, int targetFps);
+    void StartFrameSchedulerWithPort(int64_t port, int targetFps);
     void StopFrameScheduler();
+
+    // Port-based frame scheduling (hot restart safe)
+    int64_t _dartPort = 0;
+    bool _usePortMode = false;
+    static bool _dartApiInitialized;
 
 };
 

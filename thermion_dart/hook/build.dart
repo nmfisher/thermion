@@ -91,6 +91,10 @@ outputDirectory : ${outputDirectory.path}
           "rotation_gizmo_glb.c"),
     ]);
 
+    // Add Dart API DL for port-based frame scheduling (hot restart safe)
+    sources.add(path.join(pkgRootFilePath, "native", "include", "dart",
+        "dart_api_dl.c"));
+
     var libs = [
       "filament",
       "backend",

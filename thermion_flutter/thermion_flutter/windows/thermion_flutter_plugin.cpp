@@ -7,6 +7,9 @@
 
 #include <Windows.h>
 
+// Dart API DL for port-based frame scheduling (hot restart safe)
+#include "dart/dart_api_dl.h"
+
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
@@ -33,6 +36,9 @@ namespace thermion::tflutter::windows
 {
 
   using namespace std::chrono_literals;
+
+  // Static member initialization for Dart API DL
+  bool ThermionFlutterPlugin::_dartApiInitialized = false;
 
   void ThermionFlutterPlugin::RegisterWithRegistrar(
       flutter::PluginRegistrarWindows *registrar)
@@ -250,6 +256,26 @@ namespace thermion::tflutter::windows
       StopFrameScheduler();
       result->Success(flutter::EncodableValue((int64_t)nullptr));
     }
+    else if (methodCall.method_name() == "initDartApi")
+    {
+      // Initialize Dart API DL for port-based messaging (hot restart safe)
+      int64_t dataAddress = std::get<int64_t>(*methodCall.arguments());
+      void* data = reinterpret_cast<void*>(dataAddress);
+      if (!_dartApiInitialized && data != nullptr) {
+        intptr_t initResult = Dart_InitializeApiDL(data);
+        _dartApiInitialized = (initResult == 0);
+      }
+      result->Success(flutter::EncodableValue(_dartApiInitialized ? 0 : -1));
+    }
+    else if (methodCall.method_name() == "startFrameSchedulerWithPort")
+    {
+      // Port-based frame scheduling (hot restart safe)
+      const auto *args = std::get_if<flutter::EncodableList>(methodCall.arguments());
+      int64_t port = std::get<int64_t>(args->at(0));
+      int targetFps = std::get<int>(args->at(1));
+      StartFrameSchedulerWithPort(port, targetFps);
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
+    }
     else
     {
       result->Error("NOT_IMPLEMENTED", "Method is not implemented %s",
@@ -298,12 +324,61 @@ namespace thermion::tflutter::windows
     });
   }
 
+  void ThermionFlutterPlugin::StartFrameSchedulerWithPort(int64_t port, int targetFps) {
+    StopFrameScheduler();
+    _dartPort = port;
+    _usePortMode = true;
+    _frameSchedulerRunning = true;
+    _frameSchedulerThread = std::thread([this]() {
+      IDXGIFactory1* factory = nullptr;
+      IDXGIAdapter* adapter = nullptr;
+      IDXGIOutput* output = nullptr;
+
+      HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory);
+      if (SUCCEEDED(hr) && factory) {
+        hr = factory->EnumAdapters(0, &adapter);
+        if (SUCCEEDED(hr) && adapter) {
+          hr = adapter->EnumOutputs(0, &output);
+          if (FAILED(hr)) {
+            output = nullptr;
+            std::cerr << "Failed to get DXGI output for WaitForVBlank, falling back to timer" << std::endl;
+          }
+        }
+      }
+
+      while (_frameSchedulerRunning) {
+        if (output) {
+          output->WaitForVBlank();
+        } else {
+          std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000 / 60));
+        }
+        if (_usePortMode && _dartPort != 0 && _frameSchedulerRunning) {
+          auto now = std::chrono::high_resolution_clock::now();
+          uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+              now.time_since_epoch()).count();
+
+          // Post to Dart port - silently drops if isolate is dead (hot restart safe)
+          Dart_CObject msg;
+          msg.type = Dart_CObject_kInt64;
+          msg.value.as_int64 = static_cast<int64_t>(nanos);
+          Dart_PostCObject_DL(_dartPort, &msg);
+        }
+      }
+
+      if (output) output->Release();
+      if (adapter) adapter->Release();
+      if (factory) factory->Release();
+    });
+  }
+
   void ThermionFlutterPlugin::StopFrameScheduler() {
     _frameSchedulerRunning = false;
     if (_frameSchedulerThread.joinable()) {
       _frameSchedulerThread.join();
     }
     _frameCallback = nullptr;
+    _dartPort = 0;
+    _usePortMode = false;
   }
 
 } // namespace thermion_flutter

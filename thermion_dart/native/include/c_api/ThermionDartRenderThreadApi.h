@@ -412,6 +412,12 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps);
         EMSCRIPTEN_KEEPALIVE void FrameScheduler_stop();
 
+        // Port-based frame scheduler (hot restart safe)
+        // Initialize Dart API DL - must be called once before using port mode
+        EMSCRIPTEN_KEEPALIVE int FrameScheduler_initDartApi(void* data);
+        // Start frame scheduler in port mode - posts frame timestamps to Dart port
+        EMSCRIPTEN_KEEPALIVE void FrameScheduler_startWithPort(int64_t port, int targetFps);
+
 #ifdef __cplusplus
     }
 }

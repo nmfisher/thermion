@@ -4384,6 +4384,17 @@ external void FrameScheduler_start(
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void FrameScheduler_stop();
 
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external int FrameScheduler_initDartApi(
+  ffi.Pointer<ffi.Void> data,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Int64, ffi.Int)>(isLeaf: true)
+external void FrameScheduler_startWithPort(
+  int port,
+  int targetFps,
+);
+
 @ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(
     isLeaf: true)
 external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(

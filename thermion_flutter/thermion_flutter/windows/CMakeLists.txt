@@ -10,6 +10,7 @@ list(APPEND PLUGIN_SOURCES
   "thermion_flutter_plugin.cpp"
   "thermion_flutter_plugin.h"
   "flutter_d3d_texture.cpp"
+  "include/dart/dart_api_dl.c"
 )
 
 add_library(${PLUGIN_NAME} SHARED

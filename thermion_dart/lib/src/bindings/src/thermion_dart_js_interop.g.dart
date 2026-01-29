@@ -2326,6 +2326,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int targetFps,
   );
   external void _FrameScheduler_stop();
+  external int _FrameScheduler_initDartApi(
+    Pointer<Void> data,
+  );
+  external void _FrameScheduler_startWithPort(
+    JSBigInt port,
+    int targetFps,
+  );
   external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
     Pointer<TEngine> tEngine,
   );
@@ -7959,6 +7966,22 @@ void FrameScheduler_start(
 
 void FrameScheduler_stop() {
   final result = GeneratedBindings.instance._FrameScheduler_stop();
+  return result;
+}
+
+int FrameScheduler_initDartApi(
+  Pointer<Void> data,
+) {
+  final result = GeneratedBindings.instance._FrameScheduler_initDartApi(data);
+  return result;
+}
+
+void FrameScheduler_startWithPort(
+  BigInt port,
+  int targetFps,
+) {
+  final result = GeneratedBindings.instance
+      ._FrameScheduler_startWithPort(port.toJSBigInt, targetFps);
   return result;
 }
 
