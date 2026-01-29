@@ -1,4 +1,4 @@
-name: Compile Web Library
+name: Auto-generate Artifacts
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "develop" ]
 
 jobs:
-  compile-web:
+  generate-artifacts:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,15 +18,29 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.25.0'
+
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: 'latest'
+
+      - uses: ./.github/actions/setup-build-env
+
+      - name: Run ffigen
+        working-directory: thermion_dart
+        run: dart run ffigen --config ffigen/native.yaml
+
+      - name: Run ffigen_js
+        working-directory: thermion_dart
+        run: dart run ffigen_js --config ffigen/web.yaml
+
       - name: Compile web
         run: make wasm
 
-      - name: Ensure built files are tracked
+      - name: Ensure generated files are tracked
         run: |
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
           git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.js
           git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.wasm
 
@@ -40,9 +54,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
           git add -f thermion_dart/native/web/build/build/out/thermion_dart.js
           git add -f thermion_dart/native/web/build/build/out/thermion_dart.wasm
-          git commit -m "chore: update compiled web artifacts
+          git commit -m "chore: update generated artifacts
 
           🤖 Generated with GitHub Actions"
           git push
