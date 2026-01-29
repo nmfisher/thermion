@@ -10,9 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+# Set output to indicate success for dependent workflows
 jobs:
   generate-artifacts:
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
