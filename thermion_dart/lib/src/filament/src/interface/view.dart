@@ -294,7 +294,7 @@ abstract class View<T> extends NativeHandle<T> {
   void setName(String name);
 
   // Gets the (debug) name for this View.
-  String? getName();
+  Future<String?> getName();
 
   Future<Viewport> getViewport();
   Future setViewport(int width, int height);
