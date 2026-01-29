@@ -109,8 +109,7 @@ class TestHelper {
 
   Future<MaterialInstance> loadViewSpaceMateral() async {
     final material = await FilamentApp.instance!.createMaterial(
-        await File("${testDir}/assets/viewspace.filamat")
-            .readAsBytesSync());
+        await File("${testDir}/assets/viewspace.filamat").readAsBytesSync());
     return material.createInstance();
   }
 
@@ -240,6 +239,7 @@ class TestHelper {
   }
 
   Future setup() async {
+    Logger.root.level = Level.SEVERE;
     Logger.root.onRecord.listen((record) {
       print(record);
     });
@@ -289,7 +289,7 @@ class TestHelper {
       );
 
       print("Created color texture for test render target");
-            
+
       var width = await color.getWidth();
       var height = await color.getHeight();
       var depth = await FilamentApp.instance!.createTexture(
@@ -300,9 +300,10 @@ class TestHelper {
           if (createStencilBuffer)
             TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
         },
-        textureFormat: 
-        createStencilBuffer
-            ? Platform.isWindows ? TextureFormat.DEPTH32F_STENCIL8 : TextureFormat.DEPTH24_STENCIL8
+        textureFormat: createStencilBuffer
+            ? Platform.isWindows
+                ? TextureFormat.DEPTH32F_STENCIL8
+                : TextureFormat.DEPTH24_STENCIL8
             : TextureFormat.DEPTH32F,
         // importedTextureHandle: metalDepthTexture.metalTextureAddress
       );

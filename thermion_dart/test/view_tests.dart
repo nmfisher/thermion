@@ -13,8 +13,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
 void main() async {
-  Logger.root.level = Level.SEVERE;
-
   final testHelper = TestHelper("view");
   await testHelper.setup();
 
