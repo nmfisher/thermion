@@ -67,6 +67,7 @@ jobs:
   flutter_examples:
     name: flutter_examples
     runs-on: macos-latest
+    needs: dart-tests
     defaults:
       run:
         working-directory: examples/flutter 
@@ -114,6 +115,7 @@ jobs:
   flutter_examples_windows:
     name: flutter_examples_windows
     runs-on: windows-latest
+    needs: flutter_examples
     defaults:
       run:
         working-directory: examples/flutter 
