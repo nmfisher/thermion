@@ -594,7 +594,7 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
     if (_highlightOverlayManager == null) {
-      throw Exception("No overlay manager created");
+      return;
     }
     final entities = [asset.entity, ...await asset.getChildEntities()];
 
