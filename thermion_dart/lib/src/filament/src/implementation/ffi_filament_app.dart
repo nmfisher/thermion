@@ -655,12 +655,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   final _swapChains = <SwapChain, List<(int, View)>>{};
 
-  // // This is equivalent to setRenderOrder(), but called on the default (first)
-  // // swapchain with renderOrder=0.
-  // Future useDefaultRenderOrder(View view) {
-  //   return setRenderOrder(swapChain, view)
-  // }
-
   ///
   @override
   Future setRenderOrder(SwapChain swapChain, View view,
