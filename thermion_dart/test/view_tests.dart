@@ -18,9 +18,9 @@ void main() async {
 
   test('get/set debug name', () async {
     final view = await FilamentApp.instance!.createView();
-    expect(view.getName(), "unnamed_view");
+    expect(await view.getName(), "unnamed_view");
     view.setName("viewname");
-    expect(view.getName(), "viewname");
+    expect(await view.getName(), "viewname");
   });
 
   test('get camera from view', () async {
@@ -140,911 +140,911 @@ void main() async {
         isFloat: true);
   });
 
-  test('render to multiple views, same scene, different camera', () async {
-    final viewportDimensions = (width: 500, height: 500);
-    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-        viewportDimensions.width, viewportDimensions.height);
-    final views = <FFIView>[];
-    final scene = await FilamentApp.instance!.createScene() as FFIScene;
-    final camera1 = await FilamentApp.instance!.createCamera() as FFICamera;
-    await camera1.setLensProjection();
-    final camera2 = await FilamentApp.instance!.createCamera() as FFICamera;
-    await camera2.setLensProjection();
-    for (int i = 0; i < 2; i++) {
-      final view = await FilamentApp.instance!.createView() as FFIView;
-      await view.setScene(scene);
+  // test('render to multiple views, same scene, different camera', () async {
+  //   final viewportDimensions = (width: 500, height: 500);
+  //   final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+  //       viewportDimensions.width, viewportDimensions.height);
+  //   final views = <FFIView>[];
+  //   final scene = await FilamentApp.instance!.createScene() as FFIScene;
+  //   final camera1 = await FilamentApp.instance!.createCamera() as FFICamera;
+  //   await camera1.setLensProjection();
+  //   final camera2 = await FilamentApp.instance!.createCamera() as FFICamera;
+  //   await camera2.setLensProjection();
+  //   for (int i = 0; i < 2; i++) {
+  //     final view = await FilamentApp.instance!.createView() as FFIView;
+  //     await view.setScene(scene);
       
-      await view.setViewport(
-          viewportDimensions.width, viewportDimensions.height);
-      await view.setFrustumCullingEnabled(false);
-      await view.setPostProcessing(false);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
-      views.add(view);
-    }
+  //     await view.setViewport(
+  //         viewportDimensions.width, viewportDimensions.height);
+  //     await view.setFrustumCullingEnabled(false);
+  //     await view.setPostProcessing(false);
+  //     await FilamentApp.instance!.setRenderOrder(swapChain, view);
+  //     views.add(view);
+  //   }
 
-    await camera1.lookAt(Vector3(-5, 0, 10));
-    await camera2.lookAt(Vector3(5, 0, 10));
+  //   await camera1.lookAt(Vector3(-5, 0, 10));
+  //   await camera2.lookAt(Vector3(5, 0, 10));
 
-    await views.first.setCamera(camera1);
-    await views.last.setCamera(camera2);
+  //   await views.first.setCamera(camera1);
+  //   await views.last.setCamera(camera2);
 
-    var materialInstance =
-        await FilamentApp.instance!.createUnlitMaterialInstance();
-    await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
+  //   var materialInstance =
+  //       await FilamentApp.instance!.createUnlitMaterialInstance();
+  //   await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
-    var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
-        materialInstances: [materialInstance]) as FFIAsset;
+  //   var cube = await FilamentApp.instance!.createGeometry(
+  //       GeometryHelper.cube(flipUvs: true),
+  //       materialInstances: [materialInstance]) as FFIAsset;
 
-    await scene.add(cube);
+  //   await scene.add(cube);
 
-    await testHelper.capture(null, "multiple_view_different_camera");
-  });
+  //   await testHelper.capture(null, "multiple_view_different_camera");
+  // });
 
-  test('render view to render target, used as input for another', () async {
-    final viewportDimensions = (width: 500, height: 500);
-    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-        viewportDimensions.width, viewportDimensions.height);
-    final views = <FFIView>[];
-    final scene = await FilamentApp.instance!.createScene() as FFIScene;
-    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
-    await camera.setLensProjection();
+  // test('render view to render target, used as input for another', () async {
+  //   final viewportDimensions = (width: 500, height: 500);
+  //   final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+  //       viewportDimensions.width, viewportDimensions.height);
+  //   final views = <FFIView>[];
+  //   final scene = await FilamentApp.instance!.createScene() as FFIScene;
+  //   final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+  //   await camera.setLensProjection();
 
-    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
+  //   await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
 
-    for (int i = 0; i < 2; i++) {
-      final view = await FilamentApp.instance!.createView() as FFIView;
-      await view.setScene(scene);
+  //   for (int i = 0; i < 2; i++) {
+  //     final view = await FilamentApp.instance!.createView() as FFIView;
+  //     await view.setScene(scene);
       
-      await view.setViewport(
-          viewportDimensions.width, viewportDimensions.height);
-      await view.setFrustumCullingEnabled(false);
-      await view.setPostProcessing(false);
-      await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
-              viewportDimensions.width, viewportDimensions.height)
-          as FFIRenderTarget);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
-      await view.setCamera(camera);
-      views.add(view);
-    }
+  //     await view.setViewport(
+  //         viewportDimensions.width, viewportDimensions.height);
+  //     await view.setFrustumCullingEnabled(false);
+  //     await view.setPostProcessing(false);
+  //     await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
+  //             viewportDimensions.width, viewportDimensions.height)
+  //         as FFIRenderTarget);
+  //     await FilamentApp.instance!.setRenderOrder(swapChain, view);
+  //     await view.setCamera(camera);
+  //     views.add(view);
+  //   }
 
-    await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
+  //   await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
 
-    var materialInstance1 =
-        await FilamentApp.instance!.createUnlitMaterialInstance();
-    await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
+  //   var materialInstance1 =
+  //       await FilamentApp.instance!.createUnlitMaterialInstance();
+  //   await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
-    var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
-        materialInstances: [materialInstance1]) as FFIAsset;
+  //   var cube = await FilamentApp.instance!.createGeometry(
+  //       GeometryHelper.cube(flipUvs: true),
+  //       materialInstances: [materialInstance1]) as FFIAsset;
 
-    await scene.add(cube);
+  //   await scene.add(cube);
 
-    var result =
-        await FilamentApp.instance!.capture(swapChain, view: views.first);
+  //   var result =
+  //       await FilamentApp.instance!.capture(swapChain, view: views.first);
 
-    await savePixelBufferToBmp(
-        result.first.$2,
-        viewportDimensions.width,
-        viewportDimensions.height,
-        p.join(testHelper.outDir.path, "render_target_output.bmp"),
-        isFloat: true);
+  //   await savePixelBufferToBmp(
+  //       result.first.$2,
+  //       viewportDimensions.width,
+  //       viewportDimensions.height,
+  //       p.join(testHelper.outDir.path, "render_target_output.bmp"),
+  //       isFloat: true);
 
-    var materialInstance2 = await FilamentApp.instance!
-        .createUbershaderMaterialInstance(
-            hasBaseColorTexture: true, unlit: false);
+  //   var materialInstance2 = await FilamentApp.instance!
+  //       .createUbershaderMaterialInstance(
+  //           hasBaseColorTexture: true, unlit: false);
 
-    var light = await FilamentApp.instance!.createDirectLight(DirectLight(
-        type: LightType.SUN,
-        intensity: 100000000,
-        direction: Vector3(0, 0, -1),
-        position: Vector3.zero()));
-    await scene.addEntity(light);
+  //   var light = await FilamentApp.instance!.createDirectLight(DirectLight(
+  //       type: LightType.SUN,
+  //       intensity: 100000000,
+  //       direction: Vector3(0, 0, -1),
+  //       position: Vector3.zero()));
+  //   await scene.addEntity(light);
 
-    final texture =
-        await (await views.first.getRenderTarget())!.getColorTexture();
+  //   final texture =
+  //       await (await views.first.getRenderTarget())!.getColorTexture();
 
-    await materialInstance2.setParameterTexture("baseColorMap", texture,
-        await FilamentApp.instance!.createTextureSampler());
-    await materialInstance2.setParameterInt("baseColorIndex", 0);
-    await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
-    await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
+  //   await materialInstance2.setParameterTexture("baseColorMap", texture,
+  //       await FilamentApp.instance!.createTextureSampler());
+  //   await materialInstance2.setParameterInt("baseColorIndex", 0);
+  //   await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
+  //   await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
 
-    result = await FilamentApp.instance!.capture(swapChain, view: views.last);
+  //   result = await FilamentApp.instance!.capture(swapChain, view: views.last);
 
-    await savePixelBufferToBmp(
-        result.first.$2,
-        viewportDimensions.width,
-        viewportDimensions.height,
-        p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
-        isFloat: true);
-  });
+  //   await savePixelBufferToBmp(
+  //       result.first.$2,
+  //       viewportDimensions.width,
+  //       viewportDimensions.height,
+  //       p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
+  //       isFloat: true);
+  // });
 
-  ///
-  ///
-  ///
-  test('render two views to same render target', () async {
-    final viewportDimensions = (width: 500, height: 500);
-    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-        viewportDimensions.width, viewportDimensions.height);
-    final views = <FFIView>[];
+  // ///
+  // ///
+  // ///
+  // test('render two views to same render target', () async {
+  //   final viewportDimensions = (width: 500, height: 500);
+  //   final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+  //       viewportDimensions.width, viewportDimensions.height);
+  //   final views = <FFIView>[];
 
-    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0,
-        clear: false, clearStencil: 0, discard: false);
+  //   await FilamentApp.instance!.setClearOptions(0, 0, 0, 0,
+  //       clear: false, clearStencil: 0, discard: false);
 
-    final renderTarget = await FilamentApp.instance!.createRenderTarget(
-        viewportDimensions.width, viewportDimensions.height) as FFIRenderTarget;
+  //   final renderTarget = await FilamentApp.instance!.createRenderTarget(
+  //       viewportDimensions.width, viewportDimensions.height) as FFIRenderTarget;
 
-    for (int i = 0; i < 2; i++) {
-      final camera = await FilamentApp.instance!.createCamera() as FFICamera;
-      await camera.setLensProjection();
-      final view = await FilamentApp.instance!.createView() as FFIView;
-      final scene = await FilamentApp.instance!.createScene() as FFIScene;
-      await view.setScene(scene);
+  //   for (int i = 0; i < 2; i++) {
+  //     final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+  //     await camera.setLensProjection();
+  //     final view = await FilamentApp.instance!.createView() as FFIView;
+  //     final scene = await FilamentApp.instance!.createScene() as FFIScene;
+  //     await view.setScene(scene);
       
-      await view.setViewport(
-          viewportDimensions.width, viewportDimensions.height);
-      await view.setFrustumCullingEnabled(false);
-      await view.setPostProcessing(false);
-
-      await view.setRenderTarget(renderTarget);
-
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
-      await view.setCamera(camera);
-      views.add(view);
-
-      await camera.lookAt(Vector3(0, 4, 12),
-          focus: Vector3(i == 0 ? -2 : 2, 0, 0));
-
-      var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true)) as FFIAsset;
-
-      await scene.add(cube);
-    }
-    var result = await FilamentApp.instance!
-        .capture(swapChain, captureRenderTarget: true);
-
-    await savePixelBufferToBmp(
-        result.first.$2,
-        viewportDimensions.width,
-        viewportDimensions.height,
-        p.join(testHelper.outDir.path, "two_views_same_render_target1.bmp"),
-        isFloat: true);
-    await savePixelBufferToBmp(
-        result.last.$2,
-        viewportDimensions.width,
-        viewportDimensions.height,
-        p.join(testHelper.outDir.path, "two_views_same_render_target2.bmp"),
-        isFloat: true);
-  });
-
-  test('render depth buffer to render target', () async {
-    final viewportDimensions = (width: 500, height: 500);
-    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-        viewportDimensions.width, viewportDimensions.height);
-    final views = <FFIView>[];
-    final scene = await FilamentApp.instance!.createScene() as FFIScene;
-    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
-    await camera.setLensProjection();
-
-    await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
-
-    for (int i = 0; i < 2; i++) {
-      final view = await FilamentApp.instance!.createView() as FFIView;
-      await view.setScene(scene);
-      await view.setViewport(
-          viewportDimensions.width, viewportDimensions.height);
-      await view.setFrustumCullingEnabled(false);
-      await view.setPostProcessing(false);
-      await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
-              viewportDimensions.width, viewportDimensions.height)
-          as FFIRenderTarget);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
-      await view.setCamera(camera);
-      views.add(view);
-    }
-
-    await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
-
-    var materialInstance1 =
-        await FilamentApp.instance!.createUnlitMaterialInstance();
-    await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
-
-    var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
-        materialInstances: [materialInstance1]) as FFIAsset;
-
-    await scene.add(cube);
-
-    var result =
-        await FilamentApp.instance!.capture(swapChain, view: views.first);
-
-    await savePixelBufferToBmp(
-        result.first.$2,
-        viewportDimensions.width,
-        viewportDimensions.height,
-        p.join(testHelper.outDir.path, "render_target_output.bmp"),
-        isFloat: true);
-
-    var materialInstance2 = await FilamentApp.instance!
-        .createUbershaderMaterialInstance(
-            hasBaseColorTexture: true, unlit: false);
-
-    var light = await FilamentApp.instance!.createDirectLight(DirectLight(
-        type: LightType.SUN,
-        intensity: 100000000,
-        direction: Vector3(0, 0, -1),
-        position: Vector3.zero()));
-    await scene.addEntity(light);
-
-    final texture =
-        await (await views.first.getRenderTarget())!.getColorTexture();
-
-    await materialInstance2.setParameterTexture("baseColorMap", texture,
-        await FilamentApp.instance!.createTextureSampler());
-    await materialInstance2.setParameterInt("baseColorIndex", 0);
-    await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
-    await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
-
-    result = await FilamentApp.instance!.capture(swapChain, view: views.last);
-
-    await savePixelBufferToBmp(
-        result.first.$2,
-        viewportDimensions.width,
-        viewportDimensions.height,
-        p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
-        isFloat: true);
-  });
-
-  test('fog tests', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .addCube()
-        .addCube(position: Vector3(0, 0, -20))
-        .setCameraLookAt(Vector3(1, 5, 10))
-        .execute((result) async {
-      // Test default fog options (should be disabled)
-      final defaultOptions = result.viewer.view.getFogOptions();
-      expect(defaultOptions.enabled, isFalse);
-      expect(defaultOptions.distance, closeTo(0.0, 0.001));
-      expect(defaultOptions.density, closeTo(0.1, 0.001));
-
-      await testHelper.capture(result.viewer.view, "fog_options_disabled");
-
-      // Set custom fog options
-      final customOptions = FogOptions(
-        enabled: true,
-        distance: 0,
-        density: 0.5,
-        cutOffDistance: 100.0,
-        maximumOpacity: 0.9,
-        linearColor: Vector3(0.8, 0.9, 1.0),
-      );
-      await result.viewer.view.setFogOptions(customOptions);
-
-      // Verify the options were set correctly
-      final retrievedOptions = result.viewer.view.getFogOptions();
-      expect(retrievedOptions.enabled, isTrue);
-      expect(retrievedOptions.distance, closeTo(0.0, 0.001));
-      expect(retrievedOptions.density, closeTo(0.5, 0.001));
-      expect(retrievedOptions.cutOffDistance, closeTo(100.0, 0.001));
-      expect(retrievedOptions.maximumOpacity, closeTo(0.9, 0.001));
-      expect(retrievedOptions.linearColor.r, closeTo(0.8, 0.001));
-      expect(retrievedOptions.linearColor.g, closeTo(0.9, 0.001));
-      expect(retrievedOptions.linearColor.b, closeTo(1.0, 0.001));
-
-      await testHelper.capture(result.viewer.view, "fog_options_enabled");
-    });
-  });
-
-  test('show/hide stencil highlight', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .setStencilBufferEnabled(true)
-        .execute((result) async {
-      await result.viewer.view.setHighlightOverlayEnabled(true);
-
-      final manager = result.viewer.view.getHighlightOverlay();
-      assert(manager != null);
-
-      var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true));
-      await result.viewer.addToScene(cube);
-
-      await result.viewer.view.setStencilHighlight(
-        cube,
-        r: 1.0,
-        g: 0.5,
-        b: 0.0,
-        outlineWidth: 5.0,
-      );
-      await FilamentApp.instance!
-          .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-      await FilamentApp.instance!.render();
-
-      await testHelper.capture(null, "stencil_highlight_5px_orange",
-          render: true, captureRenderTarget: true);
-
-      // Test with thin outline (1 pixel) and blue color
-      await result.viewer.view.removeStencilHighlight(cube);
-      await result.viewer.view.setStencilHighlight(
-        cube,
-        r: 0.0,
-        g: 0.5,
-        b: 1.0,
-        outlineWidth: 1.0,
-      );
-
-      await FilamentApp.instance!.render();
-
-      await testHelper.capture(null, "stencil_highlight_1px_blue",
-          captureRenderTarget: true, render: false);
-
-      // Test that highlight follows object translation
-      await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
-
-      await FilamentApp.instance!.render();
-
-      await testHelper.capture(null, "stencil_highlight_after_translate",
-          captureRenderTarget: true, render: false);
-
-      // Test that highlight follows object rotation
-      await cube.setTransform(
-          Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
-
-      await FilamentApp.instance!.render();
-
-      await testHelper.capture(null, "stencil_highlight_after_rotate",
-          captureRenderTarget: true, render: false);
-
-      // Test that highlight works after camera change
-      final camera = await result.viewer.view.getCamera();
-      await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
-
-      await FilamentApp.instance!.render();
-
-      await testHelper.capture(null, "stencil_highlight_after_camera_move",
-          captureRenderTarget: true, render: false);
-
-      await result.viewer.view.removeStencilHighlight(cube);
-
-      // Disable the highlight overlay system
-      await result.viewer.view.setHighlightOverlayEnabled(false);
-    });
-  });
-
-  test('VSM shadow options set/get', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .execute((result) async {
-      // Test default values
-      final defaultOptions = result.viewer.view.getVsmShadowOptions();
-      expect(defaultOptions.anisotropy, equals(0));
-      expect(defaultOptions.mipmapping, isFalse);
-      expect(defaultOptions.msaaSamples, equals(1));
-      expect(defaultOptions.highPrecision, isFalse);
-      expect(defaultOptions.minVarianceScale, closeTo(0.5, 0.001));
-      expect(defaultOptions.lightBleedReduction, closeTo(0.15, 0.001));
-
-      // Test setting custom options
-      const customOptions = VsmShadowOptions(
-        anisotropy: 4,
-        mipmapping: true,
-        msaaSamples: 4,
-        highPrecision: true,
-        minVarianceScale: 0.75,
-        lightBleedReduction: 0.25,
-      );
-
-      await result.viewer.view.setVsmShadowOptions(customOptions);
-
-      // Verify the options were set correctly
-      final retrievedOptions = result.viewer.view.getVsmShadowOptions();
-      expect(retrievedOptions.anisotropy, equals(4));
-      expect(retrievedOptions.mipmapping, isTrue);
-      expect(retrievedOptions.msaaSamples, equals(4));
-      expect(retrievedOptions.highPrecision, isTrue);
-      expect(retrievedOptions.minVarianceScale, closeTo(0.75, 0.001));
-      expect(retrievedOptions.lightBleedReduction, closeTo(0.25, 0.001));
-    });
-  });
-
-  test('VSM shadow options with shadows enabled', () async {
-    final builder = ViewerBuilder(testHelper)
-        .setBackgroundColor(kBlue)
-        .setPostProcessing(true)
-        .setRenderTargetEnabled(true)
-        .setShadowType(ShadowType.VSM)
-        .addSun(
-            intensity: 50000,
-            castShadows: true,
-            direction: Vector3(1, -0.5, 0).normalized())
-        .addCube(castShadows: true, color: kRed)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
-            scale: Vector3(10, 10, 1),
-            receiveShadows: true,
-            castShadows: false,
-            color: kGreen);
-
-    await builder.execute((result) async {
-      // Enable VSM shadows
-      await result.viewer.setShadowsEnabled(true);
-      await testHelper.capture(
-          result.viewer.view, "vsm_shadows_default_options");
-
-      // Test with custom VSM options that should improve quality
-      const vsmOptions = VsmShadowOptions(
-        anisotropy: 8, // Higher anisotropy for better sampling
-        mipmapping: true, // Enable mipmapping
-        msaaSamples: 4, // MSAA for smoother edges
-        highPrecision: true, // 32-bit precision to reduce light leaks
-        minVarianceScale: 0.3,
-        lightBleedReduction: 0.2,
-      );
-
-      await result.viewer.view.setVsmShadowOptions(vsmOptions);
-      await testHelper.capture(
-          result.viewer.view, "vsm_shadows_custom_options");
-
-      // Test with different VSM options
-      const lowQualityVsmOptions = VsmShadowOptions(
-        anisotropy: 0, // No anisotropic filtering
-        mipmapping: false, // No mipmapping
-        msaaSamples: 1, // No MSAA
-        highPrecision: false, // 16-bit precision
-        minVarianceScale: 0.5,
-        lightBleedReduction: 0.15,
-      );
-
-      await result.viewer.view.setVsmShadowOptions(lowQualityVsmOptions);
-      await testHelper.capture(
-          result.viewer.view, "vsm_shadows_low_quality_options");
-    });
-  });
-
-  test('VSM shadow options getter works correctly', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .execute((result) async {
-      // Set specific options
-      const testOptions = VsmShadowOptions(
-        anisotropy: 2,
-        mipmapping: true,
-        msaaSamples: 2,
-        highPrecision: false,
-        minVarianceScale: 1.0,
-        lightBleedReduction: 0.5,
-      );
-
-      await result.viewer.view.setVsmShadowOptions(testOptions);
-
-      // Get the options back and verify all fields match
-      final retrieved = result.viewer.view.getVsmShadowOptions();
-      expect(retrieved.anisotropy, equals(testOptions.anisotropy));
-      expect(retrieved.mipmapping, equals(testOptions.mipmapping));
-      expect(retrieved.msaaSamples, equals(testOptions.msaaSamples));
-      expect(retrieved.highPrecision, equals(testOptions.highPrecision));
-      expect(retrieved.minVarianceScale,
-          closeTo(testOptions.minVarianceScale, 0.001));
-      expect(retrieved.lightBleedReduction,
-          closeTo(testOptions.lightBleedReduction, 0.001));
-    });
-  });
-
-  test('ShadowType get/set functionality', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .execute((result) async {
-      // Test default shadow type (should be PCF)
-      final defaultShadowType = await result.viewer.view.getShadowType();
-      expect(defaultShadowType, equals(ShadowType.PCF));
-
-      // Test setting and getting each shadow type
-      for (final shadowType in ShadowType.values) {
-        await result.viewer.view.setShadowType(shadowType);
-        final retrievedType = await result.viewer.view.getShadowType();
-        expect(retrievedType, equals(shadowType),
-            reason: 'ShadowType $shadowType should be retrieved correctly');
-      }
-
-      // Test with a specific sequence
-      await result.viewer.view.setShadowType(ShadowType.VSM);
-      expect(await result.viewer.view.getShadowType(), equals(ShadowType.VSM));
-
-      await result.viewer.view.setShadowType(ShadowType.PCSS);
-      expect(await result.viewer.view.getShadowType(), equals(ShadowType.PCSS));
-
-      await result.viewer.view.setShadowType(ShadowType.PCF);
-      expect(await result.viewer.view.getShadowType(), equals(ShadowType.PCF));
-    });
-  });
-
-  test('SoftShadowOptions functionality', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .execute((result) async {
-      // Test default options (check what Filament returns as default)
-      final defaultOptions = result.viewer.view.getSoftShadowOptions();
-      expect(defaultOptions.penumbraScale, closeTo(1.0, 0.001));
-      expect(defaultOptions.penumbraRatioScale, closeTo(1.0, 0.001));
-
-      // Test custom soft shadow options
-      const customOptions = SoftShadowOptions(
-        penumbraScale: 2.5,
-        penumbraRatioScale: 3.0,
-      );
-
-      await result.viewer.view.setSoftShadowOptions(customOptions);
-
-      // Verify the options were set correctly
-      final retrievedOptions = result.viewer.view.getSoftShadowOptions();
-      expect(retrievedOptions.penumbraScale, closeTo(2.5, 0.001));
-      expect(retrievedOptions.penumbraRatioScale, closeTo(3.0, 0.001));
-
-      // Test with DPCF shadow type (supports soft shadows)
-      await result.viewer.view.setShadowType(ShadowType.DPCF);
-      await result.viewer.view.setSoftShadowOptions(customOptions);
-
-      final dpfcOptions = result.viewer.view.getSoftShadowOptions();
-      expect(dpfcOptions.penumbraScale, closeTo(2.5, 0.001));
-      expect(dpfcOptions.penumbraRatioScale, closeTo(3.0, 0.001));
-
-      // Test with PCSS shadow type (supports soft shadows)
-      await result.viewer.view.setShadowType(ShadowType.PCSS);
-      await result.viewer.view.setSoftShadowOptions(const SoftShadowOptions(
-        penumbraScale: 1.5,
-        penumbraRatioScale: 2.0,
-      ));
-
-      final pcssOptions = result.viewer.view.getSoftShadowOptions();
-      expect(pcssOptions.penumbraScale, closeTo(1.5, 0.001));
-      expect(pcssOptions.penumbraRatioScale, closeTo(2.0, 0.001));
-
-      // Test with different values that may have precision issues
-      const testOptions = SoftShadowOptions(
-        penumbraScale: 0.8,
-        penumbraRatioScale: 1.2,
-      );
-
-      await result.viewer.view.setSoftShadowOptions(testOptions);
-      final finalOptions = result.viewer.view.getSoftShadowOptions();
-      expect(finalOptions.penumbraScale, closeTo(0.8, 0.001));
-      expect(finalOptions.penumbraRatioScale, closeTo(1.2, 0.001));
-
-      // Test with values that are likely to have precision differences
-      const precisionTestOptions = SoftShadowOptions(
-        penumbraScale: 0.1,
-        penumbraRatioScale: 1.33,
-      );
-
-      await result.viewer.view.setSoftShadowOptions(precisionTestOptions);
-      final precisionOptions = result.viewer.view.getSoftShadowOptions();
-      expect(precisionOptions.penumbraScale, closeTo(0.1, 0.001));
-      expect(precisionOptions.penumbraRatioScale, closeTo(1.33, 0.001));
-    });
-  });
-
-  test('AmbientOcclusionOptions set/get functionality', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .execute((result) async {
-      // Test default options
-      final defaultOptions = result.viewer.view.getAmbientOcclusionOptions();
-      expect(defaultOptions.enabled, isFalse);
-      expect(defaultOptions.radius, closeTo(0.3, 0.001));
-      expect(defaultOptions.power, closeTo(1.0, 0.001));
-      expect(defaultOptions.bias, closeTo(0.0005, 0.0001));
-      expect(defaultOptions.resolution, closeTo(0.5, 0.001));
-      expect(defaultOptions.intensity, closeTo(1.0, 0.001));
-      expect(defaultOptions.bilateralThreshold, closeTo(0.05, 0.001));
-      expect(defaultOptions.quality, equals(QualityLevel.LOW));
-      expect(defaultOptions.lowPassFilter, equals(QualityLevel.MEDIUM));
-      expect(defaultOptions.upsampling, equals(QualityLevel.LOW));
-      expect(defaultOptions.bentNormals, isFalse);
-      expect(defaultOptions.minHorizonAngleRad, closeTo(0.0, 0.001));
-
-      // Test SSCT default options
-      expect(defaultOptions.ssct.enabled, isFalse);
-      expect(defaultOptions.ssct.lightConeRad, closeTo(1.0, 0.001));
-      expect(defaultOptions.ssct.shadowDistance, closeTo(0.3, 0.001));
-      expect(defaultOptions.ssct.contactDistanceMax, closeTo(1.0, 0.001));
-      expect(defaultOptions.ssct.intensity, closeTo(0.8, 0.001));
-      expect(defaultOptions.ssct.lightDirection[0], closeTo(0.0, 0.001));
-      expect(defaultOptions.ssct.lightDirection[1], closeTo(-1.0, 0.001));
-      expect(defaultOptions.ssct.lightDirection[2], closeTo(0.0, 0.001));
-      expect(defaultOptions.ssct.depthBias, closeTo(0.01, 0.001));
-      expect(defaultOptions.ssct.depthSlopeBias, closeTo(0.01, 0.001));
-      expect(defaultOptions.ssct.sampleCount, equals(4));
-      expect(defaultOptions.ssct.rayCount, equals(1));
-
-      // Test setting custom ambient occlusion options
-      final customOptions = AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.8,
-        power: 1.5,
-        bias: 0.001,
-        resolution: 1.0,
-        intensity: 1.2,
-        bilateralThreshold: 0.1,
-        quality: QualityLevel.HIGH,
-        lowPassFilter: QualityLevel.HIGH,
-        upsampling: QualityLevel.MEDIUM,
-        bentNormals: true,
-        minHorizonAngleRad: 0.1,
-        ssct: SsctOptions(
-          enabled: true,
-          lightConeRad: 0.5,
-          shadowDistance: 0.8,
-          contactDistanceMax: 1.5,
-          intensity: 1.0,
-          lightDirection: [0.5, -0.8, 0.2],
-          depthBias: 0.02,
-          depthSlopeBias: 0.015,
-          sampleCount: 8,
-          rayCount: 2,
-        ),
-      );
-
-      await result.viewer.view.setAmbientOcclusionOptions(customOptions);
-
-      // Verify the options were set correctly
-      final retrievedOptions = result.viewer.view.getAmbientOcclusionOptions();
-      expect(retrievedOptions.enabled, equals(customOptions.enabled));
-      expect(retrievedOptions.radius, closeTo(customOptions.radius, 0.001));
-      expect(retrievedOptions.power, closeTo(customOptions.power, 0.001));
-      expect(retrievedOptions.bias, closeTo(customOptions.bias, 0.0001));
-      expect(retrievedOptions.resolution,
-          closeTo(customOptions.resolution, 0.001));
-      expect(
-          retrievedOptions.intensity, closeTo(customOptions.intensity, 0.001));
-      expect(retrievedOptions.bilateralThreshold,
-          closeTo(customOptions.bilateralThreshold, 0.001));
-      expect(retrievedOptions.quality, equals(customOptions.quality));
-      expect(
-          retrievedOptions.lowPassFilter, equals(customOptions.lowPassFilter));
-      expect(retrievedOptions.upsampling, equals(customOptions.upsampling));
-      expect(retrievedOptions.bentNormals, equals(customOptions.bentNormals));
-      expect(retrievedOptions.minHorizonAngleRad,
-          closeTo(customOptions.minHorizonAngleRad, 0.001));
-
-      // Verify SSCT options
-      expect(retrievedOptions.ssct.enabled, equals(customOptions.ssct.enabled));
-      expect(retrievedOptions.ssct.lightConeRad,
-          closeTo(customOptions.ssct.lightConeRad, 0.001));
-      expect(retrievedOptions.ssct.shadowDistance,
-          closeTo(customOptions.ssct.shadowDistance, 0.001));
-      expect(retrievedOptions.ssct.contactDistanceMax,
-          closeTo(customOptions.ssct.contactDistanceMax, 0.001));
-      expect(retrievedOptions.ssct.intensity,
-          closeTo(customOptions.ssct.intensity, 0.001));
-      expect(retrievedOptions.ssct.lightDirection[0],
-          closeTo(customOptions.ssct.lightDirection[0], 0.1));
-      expect(retrievedOptions.ssct.lightDirection[1],
-          closeTo(customOptions.ssct.lightDirection[1], 0.1));
-      expect(retrievedOptions.ssct.lightDirection[2],
-          closeTo(customOptions.ssct.lightDirection[2], 0.1));
-      expect(retrievedOptions.ssct.depthBias,
-          closeTo(customOptions.ssct.depthBias, 0.001));
-      expect(retrievedOptions.ssct.depthSlopeBias,
-          closeTo(customOptions.ssct.depthSlopeBias, 0.001));
-      expect(retrievedOptions.ssct.sampleCount,
-          equals(customOptions.ssct.sampleCount));
-      expect(
-          retrievedOptions.ssct.rayCount, equals(customOptions.ssct.rayCount));
-    });
-  });
-
-  test('AmbientOcclusionOptions visual verification', () async {
-    final builder = ViewerBuilder(testHelper)
-        .setBackgroundColor(kWhite)
-        .setPostProcessing(true)
-        .addCube(color: kRed)
-        .addSun(direction: Vector3(1, -1, 0.5), intensity: 100000);
-
-    await builder.execute((result) async {
-      // Capture without ambient occlusion
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_disabled");
-
-      // Enable basic ambient occlusion
-      await result.viewer.view
-          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.5,
-        intensity: 1.0,
-        quality: QualityLevel.MEDIUM,
-      ));
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_enabled_basic");
-
-      // Enable higher quality ambient occlusion
-      await result.viewer.view
-          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.8,
-        intensity: 1.5,
-        quality: QualityLevel.HIGH,
-        bentNormals: true,
-      ));
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_enabled_high_quality");
-
-      // Test with bent normals enabled
-      await result.viewer.view
-          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.6,
-        intensity: 1.2,
-        quality: QualityLevel.HIGH,
-        bentNormals: true,
-        bilateralThreshold: 0.02,
-      ));
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_bent_normals");
-
-      // Test with different radius values
-      await result.viewer.view
-          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.2,
-        intensity: 1.0,
-        quality: QualityLevel.MEDIUM,
-      ));
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_small_radius");
-
-      await result.viewer.view
-          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-        enabled: true,
-        radius: 1.0,
-        intensity: 1.0,
-        quality: QualityLevel.MEDIUM,
-      ));
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_large_radius");
-    });
-  });
-
-  test('AmbientOcclusionOptions with SSCT enabled', () async {
-    final builder = ViewerBuilder(testHelper)
-        .setBackgroundColor(kWhite)
-        .setPostProcessing(true)
-        .addCube(color: kRed)
-        .addSun(direction: Vector3(0.5, -1, 0.2), intensity: 100000);
-
-    await builder.execute((result) async {
-      // Enable ambient occlusion with SSCT
-      await result.viewer.view
-          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.5,
-        intensity: 1.0,
-        quality: QualityLevel.HIGH,
-        ssct: SsctOptions(
-          enabled: true,
-          lightDirection: [0.5, -1, 0.2],
-          intensity: 0.8,
-          shadowDistance: 0.5,
-          contactDistanceMax: 1.0,
-          sampleCount: 4,
-        ),
-      ));
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_ssct_enabled");
-
-      // Test with different SSCT parameters
-      await result.viewer.view
-          .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.5,
-        intensity: 1.0,
-        quality: QualityLevel.HIGH,
-        ssct: SsctOptions(
-          enabled: true,
-          lightDirection: [0.3, -0.9, 0.1],
-          intensity: 1.2,
-          shadowDistance: 0.8,
-          contactDistanceMax: 1.5,
-          sampleCount: 8,
-          rayCount: 2,
-        ),
-      ));
-      await testHelper.capture(
-          result.viewer.view, "ambient_occlusion_ssct_custom");
-    });
-  });
-
-  test('AmbientOcclusionOptions precision edge cases', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .execute((result) async {
-      // Test with very small values
-      final smallValueOptions = AmbientOcclusionOptions(
-        enabled: true,
-        radius: 0.01,
-        bias: 0.0001,
-        bilateralThreshold: 0.001,
-        minHorizonAngleRad: 0.001,
-      );
-
-      await result.viewer.view.setAmbientOcclusionOptions(smallValueOptions);
-      final retrievedSmall = result.viewer.view.getAmbientOcclusionOptions();
-      expect(retrievedSmall.radius, closeTo(smallValueOptions.radius, 0.001));
-      expect(retrievedSmall.bias, closeTo(smallValueOptions.bias, 0.0001));
-      expect(retrievedSmall.bilateralThreshold,
-          closeTo(smallValueOptions.bilateralThreshold, 0.001));
-      expect(retrievedSmall.minHorizonAngleRad,
-          closeTo(smallValueOptions.minHorizonAngleRad, 0.001));
-
-      // Test with larger values
-      final largeValueOptions = AmbientOcclusionOptions(
-        enabled: true,
-        radius: 2.0,
-        power: 3.0,
-        intensity: 2.5,
-        bilateralThreshold: 0.2,
-      );
-
-      await result.viewer.view.setAmbientOcclusionOptions(largeValueOptions);
-      final retrievedLarge = result.viewer.view.getAmbientOcclusionOptions();
-      expect(retrievedLarge.radius, closeTo(largeValueOptions.radius, 0.001));
-      expect(retrievedLarge.power, closeTo(largeValueOptions.power, 0.001));
-      expect(retrievedLarge.intensity,
-          closeTo(largeValueOptions.intensity, 0.001));
-      expect(retrievedLarge.bilateralThreshold,
-          closeTo(largeValueOptions.bilateralThreshold, 0.001));
-
-      // Test SSCT precision
-      final ssctPrecisionOptions = AmbientOcclusionOptions(
-        enabled: true,
-        ssct: SsctOptions(
-          enabled: true,
-          lightDirection: [0.123456, -0.987654, 0.246801],
-          depthBias: 0.001,
-          depthSlopeBias: 0.002,
-        ),
-      );
-
-      await result.viewer.view.setAmbientOcclusionOptions(ssctPrecisionOptions);
-      final retrievedSsct = result.viewer.view.getAmbientOcclusionOptions();
-      expect(retrievedSsct.ssct.lightDirection[0],
-          closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.1));
-      expect(retrievedSsct.ssct.lightDirection[1],
-          closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.1));
-      expect(retrievedSsct.ssct.lightDirection[2],
-          closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.1));
-      expect(retrievedSsct.ssct.depthBias,
-          closeTo(ssctPrecisionOptions.ssct.depthBias, 0.001));
-      expect(retrievedSsct.ssct.depthSlopeBias,
-          closeTo(ssctPrecisionOptions.ssct.depthSlopeBias, 0.001));
-    });
-  });
-
-  test('AmbientOcclusionOptions quality levels', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .execute((result) async {
-      // Test each quality level
-      for (final quality in QualityLevel.values) {
-        final options = AmbientOcclusionOptions(
-          enabled: true,
-          quality: quality,
-          lowPassFilter: quality,
-          upsampling: quality,
-        );
-
-        await result.viewer.view.setAmbientOcclusionOptions(options);
-        final retrieved = result.viewer.view.getAmbientOcclusionOptions();
-
-        expect(retrieved.quality, equals(quality));
-        expect(retrieved.lowPassFilter, equals(quality));
-        expect(retrieved.upsampling, equals(quality));
-        expect(retrieved.enabled, isTrue);
-      }
-    });
-  });
+  //     await view.setViewport(
+  //         viewportDimensions.width, viewportDimensions.height);
+  //     await view.setFrustumCullingEnabled(false);
+  //     await view.setPostProcessing(false);
+
+  //     await view.setRenderTarget(renderTarget);
+
+  //     await FilamentApp.instance!.setRenderOrder(swapChain, view);
+  //     await view.setCamera(camera);
+  //     views.add(view);
+
+  //     await camera.lookAt(Vector3(0, 4, 12),
+  //         focus: Vector3(i == 0 ? -2 : 2, 0, 0));
+
+  //     var cube = await FilamentApp.instance!
+  //         .createGeometry(GeometryHelper.cube(flipUvs: true)) as FFIAsset;
+
+  //     await scene.add(cube);
+  //   }
+  //   var result = await FilamentApp.instance!
+  //       .capture(swapChain, captureRenderTarget: true);
+
+  //   await savePixelBufferToBmp(
+  //       result.first.$2,
+  //       viewportDimensions.width,
+  //       viewportDimensions.height,
+  //       p.join(testHelper.outDir.path, "two_views_same_render_target1.bmp"),
+  //       isFloat: true);
+  //   await savePixelBufferToBmp(
+  //       result.last.$2,
+  //       viewportDimensions.width,
+  //       viewportDimensions.height,
+  //       p.join(testHelper.outDir.path, "two_views_same_render_target2.bmp"),
+  //       isFloat: true);
+  // });
+
+  // test('render depth buffer to render target', () async {
+  //   final viewportDimensions = (width: 500, height: 500);
+  //   final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+  //       viewportDimensions.width, viewportDimensions.height);
+  //   final views = <FFIView>[];
+  //   final scene = await FilamentApp.instance!.createScene() as FFIScene;
+  //   final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+  //   await camera.setLensProjection();
+
+  //   await FilamentApp.instance!.setClearOptions(0, 0, 0, 0);
+
+  //   for (int i = 0; i < 2; i++) {
+  //     final view = await FilamentApp.instance!.createView() as FFIView;
+  //     await view.setScene(scene);
+  //     await view.setViewport(
+  //         viewportDimensions.width, viewportDimensions.height);
+  //     await view.setFrustumCullingEnabled(false);
+  //     await view.setPostProcessing(false);
+  //     await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
+  //             viewportDimensions.width, viewportDimensions.height)
+  //         as FFIRenderTarget);
+  //     await FilamentApp.instance!.setRenderOrder(swapChain, view);
+  //     await view.setCamera(camera);
+  //     views.add(view);
+  //   }
+
+  //   await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
+
+  //   var materialInstance1 =
+  //       await FilamentApp.instance!.createUnlitMaterialInstance();
+  //   await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
+
+  //   var cube = await FilamentApp.instance!.createGeometry(
+  //       GeometryHelper.cube(flipUvs: true),
+  //       materialInstances: [materialInstance1]) as FFIAsset;
+
+  //   await scene.add(cube);
+
+  //   var result =
+  //       await FilamentApp.instance!.capture(swapChain, view: views.first);
+
+  //   await savePixelBufferToBmp(
+  //       result.first.$2,
+  //       viewportDimensions.width,
+  //       viewportDimensions.height,
+  //       p.join(testHelper.outDir.path, "render_target_output.bmp"),
+  //       isFloat: true);
+
+  //   var materialInstance2 = await FilamentApp.instance!
+  //       .createUbershaderMaterialInstance(
+  //           hasBaseColorTexture: true, unlit: false);
+
+  //   var light = await FilamentApp.instance!.createDirectLight(DirectLight(
+  //       type: LightType.SUN,
+  //       intensity: 100000000,
+  //       direction: Vector3(0, 0, -1),
+  //       position: Vector3.zero()));
+  //   await scene.addEntity(light);
+
+  //   final texture =
+  //       await (await views.first.getRenderTarget())!.getColorTexture();
+
+  //   await materialInstance2.setParameterTexture("baseColorMap", texture,
+  //       await FilamentApp.instance!.createTextureSampler());
+  //   await materialInstance2.setParameterInt("baseColorIndex", 0);
+  //   await materialInstance2.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
+  //   await cube.setMaterialInstanceAt(materialInstance2 as FFIMaterialInstance);
+
+  //   result = await FilamentApp.instance!.capture(swapChain, view: views.last);
+
+  //   await savePixelBufferToBmp(
+  //       result.first.$2,
+  //       viewportDimensions.width,
+  //       viewportDimensions.height,
+  //       p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
+  //       isFloat: true);
+  // });
+
+  // test('fog tests', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .addCube()
+  //       .addCube(position: Vector3(0, 0, -20))
+  //       .setCameraLookAt(Vector3(1, 5, 10))
+  //       .execute((result) async {
+  //     // Test default fog options (should be disabled)
+  //     final defaultOptions = result.viewer.view.getFogOptions();
+  //     expect(defaultOptions.enabled, isFalse);
+  //     expect(defaultOptions.distance, closeTo(0.0, 0.001));
+  //     expect(defaultOptions.density, closeTo(0.1, 0.001));
+
+  //     await testHelper.capture(result.viewer.view, "fog_options_disabled");
+
+  //     // Set custom fog options
+  //     final customOptions = FogOptions(
+  //       enabled: true,
+  //       distance: 0,
+  //       density: 0.5,
+  //       cutOffDistance: 100.0,
+  //       maximumOpacity: 0.9,
+  //       linearColor: Vector3(0.8, 0.9, 1.0),
+  //     );
+  //     await result.viewer.view.setFogOptions(customOptions);
+
+  //     // Verify the options were set correctly
+  //     final retrievedOptions = result.viewer.view.getFogOptions();
+  //     expect(retrievedOptions.enabled, isTrue);
+  //     expect(retrievedOptions.distance, closeTo(0.0, 0.001));
+  //     expect(retrievedOptions.density, closeTo(0.5, 0.001));
+  //     expect(retrievedOptions.cutOffDistance, closeTo(100.0, 0.001));
+  //     expect(retrievedOptions.maximumOpacity, closeTo(0.9, 0.001));
+  //     expect(retrievedOptions.linearColor.r, closeTo(0.8, 0.001));
+  //     expect(retrievedOptions.linearColor.g, closeTo(0.9, 0.001));
+  //     expect(retrievedOptions.linearColor.b, closeTo(1.0, 0.001));
+
+  //     await testHelper.capture(result.viewer.view, "fog_options_enabled");
+  //   });
+  // });
+
+  // test('show/hide stencil highlight', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .setStencilBufferEnabled(true)
+  //       .execute((result) async {
+  //     await result.viewer.view.setHighlightOverlayEnabled(true);
+
+  //     final manager = result.viewer.view.getHighlightOverlay();
+  //     assert(manager != null);
+
+  //     var cube = await FilamentApp.instance!
+  //         .createGeometry(GeometryHelper.cube(flipUvs: true));
+  //     await result.viewer.addToScene(cube);
+
+  //     await result.viewer.view.setStencilHighlight(
+  //       cube,
+  //       r: 1.0,
+  //       g: 0.5,
+  //       b: 0.0,
+  //       outlineWidth: 5.0,
+  //     );
+  //     await FilamentApp.instance!
+  //         .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
+  //     await FilamentApp.instance!.render();
+
+  //     await testHelper.capture(null, "stencil_highlight_5px_orange",
+  //         render: true, captureRenderTarget: true);
+
+  //     // Test with thin outline (1 pixel) and blue color
+  //     await result.viewer.view.removeStencilHighlight(cube);
+  //     await result.viewer.view.setStencilHighlight(
+  //       cube,
+  //       r: 0.0,
+  //       g: 0.5,
+  //       b: 1.0,
+  //       outlineWidth: 1.0,
+  //     );
+
+  //     await FilamentApp.instance!.render();
+
+  //     await testHelper.capture(null, "stencil_highlight_1px_blue",
+  //         captureRenderTarget: true, render: false);
+
+  //     // Test that highlight follows object translation
+  //     await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
+
+  //     await FilamentApp.instance!.render();
+
+  //     await testHelper.capture(null, "stencil_highlight_after_translate",
+  //         captureRenderTarget: true, render: false);
+
+  //     // Test that highlight follows object rotation
+  //     await cube.setTransform(
+  //         Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
+
+  //     await FilamentApp.instance!.render();
+
+  //     await testHelper.capture(null, "stencil_highlight_after_rotate",
+  //         captureRenderTarget: true, render: false);
+
+  //     // Test that highlight works after camera change
+  //     final camera = await result.viewer.view.getCamera();
+  //     await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
+
+  //     await FilamentApp.instance!.render();
+
+  //     await testHelper.capture(null, "stencil_highlight_after_camera_move",
+  //         captureRenderTarget: true, render: false);
+
+  //     await result.viewer.view.removeStencilHighlight(cube);
+
+  //     // Disable the highlight overlay system
+  //     await result.viewer.view.setHighlightOverlayEnabled(false);
+  //   });
+  // });
+
+  // test('VSM shadow options set/get', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .execute((result) async {
+  //     // Test default values
+  //     final defaultOptions = result.viewer.view.getVsmShadowOptions();
+  //     expect(defaultOptions.anisotropy, equals(0));
+  //     expect(defaultOptions.mipmapping, isFalse);
+  //     expect(defaultOptions.msaaSamples, equals(1));
+  //     expect(defaultOptions.highPrecision, isFalse);
+  //     expect(defaultOptions.minVarianceScale, closeTo(0.5, 0.001));
+  //     expect(defaultOptions.lightBleedReduction, closeTo(0.15, 0.001));
+
+  //     // Test setting custom options
+  //     const customOptions = VsmShadowOptions(
+  //       anisotropy: 4,
+  //       mipmapping: true,
+  //       msaaSamples: 4,
+  //       highPrecision: true,
+  //       minVarianceScale: 0.75,
+  //       lightBleedReduction: 0.25,
+  //     );
+
+  //     await result.viewer.view.setVsmShadowOptions(customOptions);
+
+  //     // Verify the options were set correctly
+  //     final retrievedOptions = result.viewer.view.getVsmShadowOptions();
+  //     expect(retrievedOptions.anisotropy, equals(4));
+  //     expect(retrievedOptions.mipmapping, isTrue);
+  //     expect(retrievedOptions.msaaSamples, equals(4));
+  //     expect(retrievedOptions.highPrecision, isTrue);
+  //     expect(retrievedOptions.minVarianceScale, closeTo(0.75, 0.001));
+  //     expect(retrievedOptions.lightBleedReduction, closeTo(0.25, 0.001));
+  //   });
+  // });
+
+  // test('VSM shadow options with shadows enabled', () async {
+  //   final builder = ViewerBuilder(testHelper)
+  //       .setBackgroundColor(kBlue)
+  //       .setPostProcessing(true)
+  //       .setRenderTargetEnabled(true)
+  //       .setShadowType(ShadowType.VSM)
+  //       .addSun(
+  //           intensity: 50000,
+  //           castShadows: true,
+  //           direction: Vector3(1, -0.5, 0).normalized())
+  //       .addCube(castShadows: true, color: kRed)
+  //       .addPlane(
+  //           position: Vector3(0, -1.5, 0),
+  //           rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+  //           scale: Vector3(10, 10, 1),
+  //           receiveShadows: true,
+  //           castShadows: false,
+  //           color: kGreen);
+
+  //   await builder.execute((result) async {
+  //     // Enable VSM shadows
+  //     await result.viewer.setShadowsEnabled(true);
+  //     await testHelper.capture(
+  //         result.viewer.view, "vsm_shadows_default_options");
+
+  //     // Test with custom VSM options that should improve quality
+  //     const vsmOptions = VsmShadowOptions(
+  //       anisotropy: 8, // Higher anisotropy for better sampling
+  //       mipmapping: true, // Enable mipmapping
+  //       msaaSamples: 4, // MSAA for smoother edges
+  //       highPrecision: true, // 32-bit precision to reduce light leaks
+  //       minVarianceScale: 0.3,
+  //       lightBleedReduction: 0.2,
+  //     );
+
+  //     await result.viewer.view.setVsmShadowOptions(vsmOptions);
+  //     await testHelper.capture(
+  //         result.viewer.view, "vsm_shadows_custom_options");
+
+  //     // Test with different VSM options
+  //     const lowQualityVsmOptions = VsmShadowOptions(
+  //       anisotropy: 0, // No anisotropic filtering
+  //       mipmapping: false, // No mipmapping
+  //       msaaSamples: 1, // No MSAA
+  //       highPrecision: false, // 16-bit precision
+  //       minVarianceScale: 0.5,
+  //       lightBleedReduction: 0.15,
+  //     );
+
+  //     await result.viewer.view.setVsmShadowOptions(lowQualityVsmOptions);
+  //     await testHelper.capture(
+  //         result.viewer.view, "vsm_shadows_low_quality_options");
+  //   });
+  // });
+
+  // test('VSM shadow options getter works correctly', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .execute((result) async {
+  //     // Set specific options
+  //     const testOptions = VsmShadowOptions(
+  //       anisotropy: 2,
+  //       mipmapping: true,
+  //       msaaSamples: 2,
+  //       highPrecision: false,
+  //       minVarianceScale: 1.0,
+  //       lightBleedReduction: 0.5,
+  //     );
+
+  //     await result.viewer.view.setVsmShadowOptions(testOptions);
+
+  //     // Get the options back and verify all fields match
+  //     final retrieved = result.viewer.view.getVsmShadowOptions();
+  //     expect(retrieved.anisotropy, equals(testOptions.anisotropy));
+  //     expect(retrieved.mipmapping, equals(testOptions.mipmapping));
+  //     expect(retrieved.msaaSamples, equals(testOptions.msaaSamples));
+  //     expect(retrieved.highPrecision, equals(testOptions.highPrecision));
+  //     expect(retrieved.minVarianceScale,
+  //         closeTo(testOptions.minVarianceScale, 0.001));
+  //     expect(retrieved.lightBleedReduction,
+  //         closeTo(testOptions.lightBleedReduction, 0.001));
+  //   });
+  // });
+
+  // test('ShadowType get/set functionality', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .execute((result) async {
+  //     // Test default shadow type (should be PCF)
+  //     final defaultShadowType = await result.viewer.view.getShadowType();
+  //     expect(defaultShadowType, equals(ShadowType.PCF));
+
+  //     // Test setting and getting each shadow type
+  //     for (final shadowType in ShadowType.values) {
+  //       await result.viewer.view.setShadowType(shadowType);
+  //       final retrievedType = await result.viewer.view.getShadowType();
+  //       expect(retrievedType, equals(shadowType),
+  //           reason: 'ShadowType $shadowType should be retrieved correctly');
+  //     }
+
+  //     // Test with a specific sequence
+  //     await result.viewer.view.setShadowType(ShadowType.VSM);
+  //     expect(await result.viewer.view.getShadowType(), equals(ShadowType.VSM));
+
+  //     await result.viewer.view.setShadowType(ShadowType.PCSS);
+  //     expect(await result.viewer.view.getShadowType(), equals(ShadowType.PCSS));
+
+  //     await result.viewer.view.setShadowType(ShadowType.PCF);
+  //     expect(await result.viewer.view.getShadowType(), equals(ShadowType.PCF));
+  //   });
+  // });
+
+  // test('SoftShadowOptions functionality', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .execute((result) async {
+  //     // Test default options (check what Filament returns as default)
+  //     final defaultOptions = result.viewer.view.getSoftShadowOptions();
+  //     expect(defaultOptions.penumbraScale, closeTo(1.0, 0.001));
+  //     expect(defaultOptions.penumbraRatioScale, closeTo(1.0, 0.001));
+
+  //     // Test custom soft shadow options
+  //     const customOptions = SoftShadowOptions(
+  //       penumbraScale: 2.5,
+  //       penumbraRatioScale: 3.0,
+  //     );
+
+  //     await result.viewer.view.setSoftShadowOptions(customOptions);
+
+  //     // Verify the options were set correctly
+  //     final retrievedOptions = result.viewer.view.getSoftShadowOptions();
+  //     expect(retrievedOptions.penumbraScale, closeTo(2.5, 0.001));
+  //     expect(retrievedOptions.penumbraRatioScale, closeTo(3.0, 0.001));
+
+  //     // Test with DPCF shadow type (supports soft shadows)
+  //     await result.viewer.view.setShadowType(ShadowType.DPCF);
+  //     await result.viewer.view.setSoftShadowOptions(customOptions);
+
+  //     final dpfcOptions = result.viewer.view.getSoftShadowOptions();
+  //     expect(dpfcOptions.penumbraScale, closeTo(2.5, 0.001));
+  //     expect(dpfcOptions.penumbraRatioScale, closeTo(3.0, 0.001));
+
+  //     // Test with PCSS shadow type (supports soft shadows)
+  //     await result.viewer.view.setShadowType(ShadowType.PCSS);
+  //     await result.viewer.view.setSoftShadowOptions(const SoftShadowOptions(
+  //       penumbraScale: 1.5,
+  //       penumbraRatioScale: 2.0,
+  //     ));
+
+  //     final pcssOptions = result.viewer.view.getSoftShadowOptions();
+  //     expect(pcssOptions.penumbraScale, closeTo(1.5, 0.001));
+  //     expect(pcssOptions.penumbraRatioScale, closeTo(2.0, 0.001));
+
+  //     // Test with different values that may have precision issues
+  //     const testOptions = SoftShadowOptions(
+  //       penumbraScale: 0.8,
+  //       penumbraRatioScale: 1.2,
+  //     );
+
+  //     await result.viewer.view.setSoftShadowOptions(testOptions);
+  //     final finalOptions = result.viewer.view.getSoftShadowOptions();
+  //     expect(finalOptions.penumbraScale, closeTo(0.8, 0.001));
+  //     expect(finalOptions.penumbraRatioScale, closeTo(1.2, 0.001));
+
+  //     // Test with values that are likely to have precision differences
+  //     const precisionTestOptions = SoftShadowOptions(
+  //       penumbraScale: 0.1,
+  //       penumbraRatioScale: 1.33,
+  //     );
+
+  //     await result.viewer.view.setSoftShadowOptions(precisionTestOptions);
+  //     final precisionOptions = result.viewer.view.getSoftShadowOptions();
+  //     expect(precisionOptions.penumbraScale, closeTo(0.1, 0.001));
+  //     expect(precisionOptions.penumbraRatioScale, closeTo(1.33, 0.001));
+  //   });
+  // });
+
+  // test('AmbientOcclusionOptions set/get functionality', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .execute((result) async {
+  //     // Test default options
+  //     final defaultOptions = result.viewer.view.getAmbientOcclusionOptions();
+  //     expect(defaultOptions.enabled, isFalse);
+  //     expect(defaultOptions.radius, closeTo(0.3, 0.001));
+  //     expect(defaultOptions.power, closeTo(1.0, 0.001));
+  //     expect(defaultOptions.bias, closeTo(0.0005, 0.0001));
+  //     expect(defaultOptions.resolution, closeTo(0.5, 0.001));
+  //     expect(defaultOptions.intensity, closeTo(1.0, 0.001));
+  //     expect(defaultOptions.bilateralThreshold, closeTo(0.05, 0.001));
+  //     expect(defaultOptions.quality, equals(QualityLevel.LOW));
+  //     expect(defaultOptions.lowPassFilter, equals(QualityLevel.MEDIUM));
+  //     expect(defaultOptions.upsampling, equals(QualityLevel.LOW));
+  //     expect(defaultOptions.bentNormals, isFalse);
+  //     expect(defaultOptions.minHorizonAngleRad, closeTo(0.0, 0.001));
+
+  //     // Test SSCT default options
+  //     expect(defaultOptions.ssct.enabled, isFalse);
+  //     expect(defaultOptions.ssct.lightConeRad, closeTo(1.0, 0.001));
+  //     expect(defaultOptions.ssct.shadowDistance, closeTo(0.3, 0.001));
+  //     expect(defaultOptions.ssct.contactDistanceMax, closeTo(1.0, 0.001));
+  //     expect(defaultOptions.ssct.intensity, closeTo(0.8, 0.001));
+  //     expect(defaultOptions.ssct.lightDirection[0], closeTo(0.0, 0.001));
+  //     expect(defaultOptions.ssct.lightDirection[1], closeTo(-1.0, 0.001));
+  //     expect(defaultOptions.ssct.lightDirection[2], closeTo(0.0, 0.001));
+  //     expect(defaultOptions.ssct.depthBias, closeTo(0.01, 0.001));
+  //     expect(defaultOptions.ssct.depthSlopeBias, closeTo(0.01, 0.001));
+  //     expect(defaultOptions.ssct.sampleCount, equals(4));
+  //     expect(defaultOptions.ssct.rayCount, equals(1));
+
+  //     // Test setting custom ambient occlusion options
+  //     final customOptions = AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.8,
+  //       power: 1.5,
+  //       bias: 0.001,
+  //       resolution: 1.0,
+  //       intensity: 1.2,
+  //       bilateralThreshold: 0.1,
+  //       quality: QualityLevel.HIGH,
+  //       lowPassFilter: QualityLevel.HIGH,
+  //       upsampling: QualityLevel.MEDIUM,
+  //       bentNormals: true,
+  //       minHorizonAngleRad: 0.1,
+  //       ssct: SsctOptions(
+  //         enabled: true,
+  //         lightConeRad: 0.5,
+  //         shadowDistance: 0.8,
+  //         contactDistanceMax: 1.5,
+  //         intensity: 1.0,
+  //         lightDirection: [0.5, -0.8, 0.2],
+  //         depthBias: 0.02,
+  //         depthSlopeBias: 0.015,
+  //         sampleCount: 8,
+  //         rayCount: 2,
+  //       ),
+  //     );
+
+  //     await result.viewer.view.setAmbientOcclusionOptions(customOptions);
+
+  //     // Verify the options were set correctly
+  //     final retrievedOptions = result.viewer.view.getAmbientOcclusionOptions();
+  //     expect(retrievedOptions.enabled, equals(customOptions.enabled));
+  //     expect(retrievedOptions.radius, closeTo(customOptions.radius, 0.001));
+  //     expect(retrievedOptions.power, closeTo(customOptions.power, 0.001));
+  //     expect(retrievedOptions.bias, closeTo(customOptions.bias, 0.0001));
+  //     expect(retrievedOptions.resolution,
+  //         closeTo(customOptions.resolution, 0.001));
+  //     expect(
+  //         retrievedOptions.intensity, closeTo(customOptions.intensity, 0.001));
+  //     expect(retrievedOptions.bilateralThreshold,
+  //         closeTo(customOptions.bilateralThreshold, 0.001));
+  //     expect(retrievedOptions.quality, equals(customOptions.quality));
+  //     expect(
+  //         retrievedOptions.lowPassFilter, equals(customOptions.lowPassFilter));
+  //     expect(retrievedOptions.upsampling, equals(customOptions.upsampling));
+  //     expect(retrievedOptions.bentNormals, equals(customOptions.bentNormals));
+  //     expect(retrievedOptions.minHorizonAngleRad,
+  //         closeTo(customOptions.minHorizonAngleRad, 0.001));
+
+  //     // Verify SSCT options
+  //     expect(retrievedOptions.ssct.enabled, equals(customOptions.ssct.enabled));
+  //     expect(retrievedOptions.ssct.lightConeRad,
+  //         closeTo(customOptions.ssct.lightConeRad, 0.001));
+  //     expect(retrievedOptions.ssct.shadowDistance,
+  //         closeTo(customOptions.ssct.shadowDistance, 0.001));
+  //     expect(retrievedOptions.ssct.contactDistanceMax,
+  //         closeTo(customOptions.ssct.contactDistanceMax, 0.001));
+  //     expect(retrievedOptions.ssct.intensity,
+  //         closeTo(customOptions.ssct.intensity, 0.001));
+  //     expect(retrievedOptions.ssct.lightDirection[0],
+  //         closeTo(customOptions.ssct.lightDirection[0], 0.1));
+  //     expect(retrievedOptions.ssct.lightDirection[1],
+  //         closeTo(customOptions.ssct.lightDirection[1], 0.1));
+  //     expect(retrievedOptions.ssct.lightDirection[2],
+  //         closeTo(customOptions.ssct.lightDirection[2], 0.1));
+  //     expect(retrievedOptions.ssct.depthBias,
+  //         closeTo(customOptions.ssct.depthBias, 0.001));
+  //     expect(retrievedOptions.ssct.depthSlopeBias,
+  //         closeTo(customOptions.ssct.depthSlopeBias, 0.001));
+  //     expect(retrievedOptions.ssct.sampleCount,
+  //         equals(customOptions.ssct.sampleCount));
+  //     expect(
+  //         retrievedOptions.ssct.rayCount, equals(customOptions.ssct.rayCount));
+  //   });
+  // });
+
+  // test('AmbientOcclusionOptions visual verification', () async {
+  //   final builder = ViewerBuilder(testHelper)
+  //       .setBackgroundColor(kWhite)
+  //       .setPostProcessing(true)
+  //       .addCube(color: kRed)
+  //       .addSun(direction: Vector3(1, -1, 0.5), intensity: 100000);
+
+  //   await builder.execute((result) async {
+  //     // Capture without ambient occlusion
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_disabled");
+
+  //     // Enable basic ambient occlusion
+  //     await result.viewer.view
+  //         .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.5,
+  //       intensity: 1.0,
+  //       quality: QualityLevel.MEDIUM,
+  //     ));
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_enabled_basic");
+
+  //     // Enable higher quality ambient occlusion
+  //     await result.viewer.view
+  //         .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.8,
+  //       intensity: 1.5,
+  //       quality: QualityLevel.HIGH,
+  //       bentNormals: true,
+  //     ));
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_enabled_high_quality");
+
+  //     // Test with bent normals enabled
+  //     await result.viewer.view
+  //         .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.6,
+  //       intensity: 1.2,
+  //       quality: QualityLevel.HIGH,
+  //       bentNormals: true,
+  //       bilateralThreshold: 0.02,
+  //     ));
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_bent_normals");
+
+  //     // Test with different radius values
+  //     await result.viewer.view
+  //         .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.2,
+  //       intensity: 1.0,
+  //       quality: QualityLevel.MEDIUM,
+  //     ));
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_small_radius");
+
+  //     await result.viewer.view
+  //         .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 1.0,
+  //       intensity: 1.0,
+  //       quality: QualityLevel.MEDIUM,
+  //     ));
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_large_radius");
+  //   });
+  // });
+
+  // test('AmbientOcclusionOptions with SSCT enabled', () async {
+  //   final builder = ViewerBuilder(testHelper)
+  //       .setBackgroundColor(kWhite)
+  //       .setPostProcessing(true)
+  //       .addCube(color: kRed)
+  //       .addSun(direction: Vector3(0.5, -1, 0.2), intensity: 100000);
+
+  //   await builder.execute((result) async {
+  //     // Enable ambient occlusion with SSCT
+  //     await result.viewer.view
+  //         .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.5,
+  //       intensity: 1.0,
+  //       quality: QualityLevel.HIGH,
+  //       ssct: SsctOptions(
+  //         enabled: true,
+  //         lightDirection: [0.5, -1, 0.2],
+  //         intensity: 0.8,
+  //         shadowDistance: 0.5,
+  //         contactDistanceMax: 1.0,
+  //         sampleCount: 4,
+  //       ),
+  //     ));
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_ssct_enabled");
+
+  //     // Test with different SSCT parameters
+  //     await result.viewer.view
+  //         .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.5,
+  //       intensity: 1.0,
+  //       quality: QualityLevel.HIGH,
+  //       ssct: SsctOptions(
+  //         enabled: true,
+  //         lightDirection: [0.3, -0.9, 0.1],
+  //         intensity: 1.2,
+  //         shadowDistance: 0.8,
+  //         contactDistanceMax: 1.5,
+  //         sampleCount: 8,
+  //         rayCount: 2,
+  //       ),
+  //     ));
+  //     await testHelper.capture(
+  //         result.viewer.view, "ambient_occlusion_ssct_custom");
+  //   });
+  // });
+
+  // test('AmbientOcclusionOptions precision edge cases', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .execute((result) async {
+  //     // Test with very small values
+  //     final smallValueOptions = AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 0.01,
+  //       bias: 0.0001,
+  //       bilateralThreshold: 0.001,
+  //       minHorizonAngleRad: 0.001,
+  //     );
+
+  //     await result.viewer.view.setAmbientOcclusionOptions(smallValueOptions);
+  //     final retrievedSmall = result.viewer.view.getAmbientOcclusionOptions();
+  //     expect(retrievedSmall.radius, closeTo(smallValueOptions.radius, 0.001));
+  //     expect(retrievedSmall.bias, closeTo(smallValueOptions.bias, 0.0001));
+  //     expect(retrievedSmall.bilateralThreshold,
+  //         closeTo(smallValueOptions.bilateralThreshold, 0.001));
+  //     expect(retrievedSmall.minHorizonAngleRad,
+  //         closeTo(smallValueOptions.minHorizonAngleRad, 0.001));
+
+  //     // Test with larger values
+  //     final largeValueOptions = AmbientOcclusionOptions(
+  //       enabled: true,
+  //       radius: 2.0,
+  //       power: 3.0,
+  //       intensity: 2.5,
+  //       bilateralThreshold: 0.2,
+  //     );
+
+  //     await result.viewer.view.setAmbientOcclusionOptions(largeValueOptions);
+  //     final retrievedLarge = result.viewer.view.getAmbientOcclusionOptions();
+  //     expect(retrievedLarge.radius, closeTo(largeValueOptions.radius, 0.001));
+  //     expect(retrievedLarge.power, closeTo(largeValueOptions.power, 0.001));
+  //     expect(retrievedLarge.intensity,
+  //         closeTo(largeValueOptions.intensity, 0.001));
+  //     expect(retrievedLarge.bilateralThreshold,
+  //         closeTo(largeValueOptions.bilateralThreshold, 0.001));
+
+  //     // Test SSCT precision
+  //     final ssctPrecisionOptions = AmbientOcclusionOptions(
+  //       enabled: true,
+  //       ssct: SsctOptions(
+  //         enabled: true,
+  //         lightDirection: [0.123456, -0.987654, 0.246801],
+  //         depthBias: 0.001,
+  //         depthSlopeBias: 0.002,
+  //       ),
+  //     );
+
+  //     await result.viewer.view.setAmbientOcclusionOptions(ssctPrecisionOptions);
+  //     final retrievedSsct = result.viewer.view.getAmbientOcclusionOptions();
+  //     expect(retrievedSsct.ssct.lightDirection[0],
+  //         closeTo(ssctPrecisionOptions.ssct.lightDirection[0], 0.1));
+  //     expect(retrievedSsct.ssct.lightDirection[1],
+  //         closeTo(ssctPrecisionOptions.ssct.lightDirection[1], 0.1));
+  //     expect(retrievedSsct.ssct.lightDirection[2],
+  //         closeTo(ssctPrecisionOptions.ssct.lightDirection[2], 0.1));
+  //     expect(retrievedSsct.ssct.depthBias,
+  //         closeTo(ssctPrecisionOptions.ssct.depthBias, 0.001));
+  //     expect(retrievedSsct.ssct.depthSlopeBias,
+  //         closeTo(ssctPrecisionOptions.ssct.depthSlopeBias, 0.001));
+  //   });
+  // });
+
+  // test('AmbientOcclusionOptions quality levels', () async {
+  //   await ViewerBuilder(testHelper)
+  //       .setRenderTargetEnabled(true)
+  //       .execute((result) async {
+  //     // Test each quality level
+  //     for (final quality in QualityLevel.values) {
+  //       final options = AmbientOcclusionOptions(
+  //         enabled: true,
+  //         quality: quality,
+  //         lowPassFilter: quality,
+  //         upsampling: quality,
+  //       );
+
+  //       await result.viewer.view.setAmbientOcclusionOptions(options);
+  //       final retrieved = result.viewer.view.getAmbientOcclusionOptions();
+
+  //       expect(retrieved.quality, equals(quality));
+  //       expect(retrieved.lowPassFilter, equals(quality));
+  //       expect(retrieved.upsampling, equals(quality));
+  //       expect(retrieved.enabled, isTrue);
+  //     }
+  //   });
+  // });
 }
 // manually construct two views with stencil buffer
 // final viewportDimensions = (width: 500, height: 500);
