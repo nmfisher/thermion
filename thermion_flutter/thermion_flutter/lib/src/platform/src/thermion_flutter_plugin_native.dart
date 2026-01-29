@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:io';
+import 'dart:isolate';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
@@ -11,13 +13,44 @@ import 'platform_texture_descriptor.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
-    show FrameScheduler_start, FrameScheduler_stop, FrameCallbackFunction;
-import 'package:thermion_flutter/src/swift/swift_bindings.g.dart'
-    show SwiftThermionFlutterPluginObjCAPI;
+    show FrameScheduler_start, FrameScheduler_stop, FrameCallbackFunction,
+         FrameScheduler_initDartApi, FrameScheduler_startWithPort;
 
-// Handles all platform-specific initialization to create a backing rendering
-// surface in a Flutter application and lifecycle listeners to pause rendering
-// when the app is inactive or in the background.
+/// Handles platform-specific initialization to create a backing rendering
+/// surface in a Flutter application and lifecycle listeners to pause rendering
+/// when the app is inactive or in the background.
+///
+/// ## Frame Scheduling Architecture
+///
+/// All platforms use a unified C API for frame scheduling via FFI:
+///
+/// ```
+/// Dart (this file)
+///     │
+///     ▼
+/// C API (FrameScheduler_start, FrameScheduler_stop, etc.)
+///     │
+///     ├── macOS/iOS ──► CVDisplayLinkScheduler (vsync via CVDisplayLink)
+///     ├── Windows ────► DXGIFrameScheduler (vsync via DXGI WaitForVBlank)
+///     ├── Android ────► AChoreographerFrameScheduler (vsync via AChoreographer)
+///     └── Linux ──────► TimerFrameScheduler (timer-based fallback)
+/// ```
+///
+/// ### Two Modes of Operation
+///
+/// **Release builds**: Direct callback mode for maximum performance.
+/// The native scheduler calls a Dart function pointer directly.
+///
+/// **Debug builds**: Port-based mode for hot restart safety.
+/// The native scheduler posts messages to a Dart port. When Flutter hot
+/// restarts, the old port becomes invalid and messages are silently dropped
+/// (via `Dart_PostCObject_DL`) instead of crashing on a dangling pointer.
+///
+/// ### Native Implementations
+///
+/// - `thermion_dart/native/include/rendering/FrameScheduler.hpp` - Class definitions
+/// - `thermion_dart/native/src/rendering/FrameScheduler.cpp` - Platform implementations
+/// - `thermion_dart/native/src/c_api/ThermionDartRenderThreadApi.cpp` - C API dispatch
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   final channel = const MethodChannel("dev.thermion.flutter/event");
 
@@ -47,15 +80,84 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   static bool _rendering = false;
   static ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
+  static bool _schedulerActive = false;
+
+  // Port-based mode for debug builds (hot restart safe)
+  static ReceivePort? _framePort;
+  static bool _usePortMode = false;
+  static bool _dartApiInitialized = false;
 
   /// Called by native FrameScheduler at vsync/timer intervals.
   /// Not async — guards against re-entrant calls with [_rendering] flag.
+  ///
+  /// IMPORTANT: This can be called from native code even after hot restart
+  /// while the native scheduler is being stopped. We MUST guard against this.
   static void _onFrame(int frameTimeNanos) {
+    // Critical safety check: Ignore callbacks if scheduler is being shut down
+    // or if we're in a hot restart scenario where FilamentApp is null
+    if (!_schedulerActive || FilamentApp.instance == null) return;
+
     if (_rendering) return;
     _rendering = true;
     _renderFrame().then((_) {
       _rendering = false;
+    }).catchError((error) {
+      _logger.warning('Frame render error: $error');
+      _rendering = false;
     });
+  }
+
+  /// Stop the frame scheduler and clean up the callback.
+  ///
+  /// IMPORTANT: This gets called at the START of initialize() in the new isolate
+  /// after hot restart. At that point _frameCallable is null (static reset), but
+  /// the NATIVE scheduler is still running with a dangling pointer. We MUST stop
+  /// the native scheduler even when _frameCallable is null.
+  static void stopFrameScheduler() {
+    // Mark scheduler as inactive FIRST to prevent race conditions
+    // Any in-flight callbacks will see this and return early
+    _schedulerActive = false;
+
+    // Always stop the native scheduler, even if _frameCallable is null
+    // (which happens after hot restart when statics are reset)
+    // All platforms use C API
+    FrameScheduler_stop();
+
+    // Clean up the Dart callback if it exists (release mode)
+    if (_frameCallable != null) {
+      _frameCallable!.close();
+      _frameCallable = null;
+    }
+
+    // Clean up the port if it exists (debug mode)
+    _framePort?.close();
+    _framePort = null;
+  }
+
+  /// Initialize port-based frame scheduling (debug mode only).
+  /// This mode is hot restart safe because Dart_PostCObject silently
+  /// drops messages to dead ports instead of crashing.
+  static Future<void> _initializePortMode() async {
+    // Initialize Dart API DL in native code (only once per process)
+    // All platforms use C API
+    if (!_dartApiInitialized) {
+      FrameScheduler_initDartApi(ffi.NativeApi.initializeApiDLData);
+      _dartApiInitialized = true;
+    }
+
+    // Create receive port and listen for frame timestamps
+    _framePort = ReceivePort();
+    _framePort!.listen((message) {
+      // message is the frame timestamp in nanoseconds
+      _onFrame(message as int);
+    });
+
+    // Start scheduler with port
+    // All platforms use C API (CVDisplayLink on macOS/iOS, DXGI on Windows, timer on others)
+    final nativePort = _framePort!.sendPort.nativePort;
+    FrameScheduler_startWithPort(nativePort, 60);
+
+    _logger.info('Frame scheduler started in port mode (hot restart safe)');
   }
 
   static Future<void> _renderFrame() async {
@@ -76,6 +178,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @override
   Future<SwapChain?> initialize({bool destroySwapchain = true}) async {
+    // Stop any existing frame scheduler from a previous session (e.g., hot restart)
+    // This prevents crashes from dangling callback pointers
+    stopFrameScheduler();
+
     var driverPlatform;
     Pointer<Void> platformPtr = nullptr;
     var sharedContext;
@@ -135,6 +241,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     if (FilamentApp.instance == null) {
       await FFIFilamentApp.create(config: config);
       FilamentApp.instance!.onDestroy(() async {
+        // Stop the frame scheduler BEFORE destroying the engine
+        // to prevent crashes from dangling callback pointers
+        stopFrameScheduler();
         if (Platform.isWindows) {
           await channel.invokeMethod("destroyContext");
         }
@@ -153,15 +262,22 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
 
-    _frameCallable = ffi.NativeCallable<FrameCallbackFunction>.listener(_onFrame);
-    if (Platform.isMacOS || Platform.isIOS) {
-      SwiftThermionFlutterPluginObjCAPI
-          .startFrameSchedulerWithCallbackAddress_targetFps_(
-              _frameCallable!.nativeFunction.address, 60);
-    } else if (Platform.isWindows) {
-      await channel.invokeMethod("startFrameScheduler",
-          [_frameCallable!.nativeFunction.address, 60]);
+    // Mark scheduler as active BEFORE starting it
+    _schedulerActive = true;
+
+    // Use port-based mode in debug builds (hot restart safe)
+    // Use direct callback in release builds (maximum performance)
+    // Supported on macOS, iOS, Android, and Windows
+    _usePortMode = kDebugMode && (Platform.isMacOS || Platform.isIOS || Platform.isAndroid || Platform.isWindows);
+
+    if (_usePortMode) {
+      // DEBUG MODE: Port-based (hot restart safe)
+      // Messages to dead ports are silently dropped - no crash
+      await _initializePortMode();
     } else {
+      // RELEASE MODE: Direct callback (maximum performance)
+      // All platforms use C API
+      _frameCallable = ffi.NativeCallable<FrameCallbackFunction>.listener(_onFrame);
       FrameScheduler_start(_frameCallable!.nativeFunction, 60);
     }
 

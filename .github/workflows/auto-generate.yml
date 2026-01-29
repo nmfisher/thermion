@@ -13,6 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v2
@@ -47,7 +48,7 @@ jobs:
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
           git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.js
           git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.wasm
-
+          git update-index --no-assume-unchanged thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
       - name: Check for changes
         id: git-check
         run: |
@@ -62,10 +63,11 @@ jobs:
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
           git add -f thermion_dart/native/web/build/build/out/thermion_dart.js
           git add -f thermion_dart/native/web/build/build/out/thermion_dart.wasm
+          git add -f thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
           git commit -m "chore: update generated artifacts
 
           🤖 Generated with GitHub Actions"
-          git push
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

@@ -156,10 +156,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _logger.info("Initialization complete");
   }
 
+  // Updates the native render manager with the current values for all views/swap
+  // chains passed to [setRenderOrder].
   //
-  // Updates the render order for all views/swap chains.
-  //
-  // For views with highlights, the render order is:
+  // Automatically sets the correct render order for views with a highlight
+  // overlay, being:
   // 1. Silhouette views (render highlighted entities to texture)
   // 2. Main views (normal scene rendering)
   // 3. Overlay views (edge detection fullscreen quad, composites on top)
@@ -171,13 +172,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     for (int i = 0; i < swapChains.length; i++) {
       final swapChain = swapChains[i];
-      final views = _swapChains[swapChain];
+      var views = _swapChains[swapChain];
       final viewNames = [];
 
       if (views == null) {
         _logger.info("No views found for swapchain $swapChain");
         continue;
       }
+
+      views = views.where((item) => item.$1 != -1).toList();
 
       // First pass: silhouette views (render to texture)
       for (final item in views) {
@@ -269,9 +272,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   ///
   Future<View> createView({bool createScene = false}) async {
-    final view = await FFIView(
-        await withPointerCallback<TView>(
-            (cb) => Engine_createViewRenderThread(engine, cb)));
+    final view = await FFIView(await withPointerCallback<TView>(
+        (cb) => Engine_createViewRenderThread(engine, cb)));
     await view.setFrustumCullingEnabled(true);
     await view.setBloom(false, 0.0);
     await view.setBlendMode(BlendMode.transparent);
@@ -296,9 +298,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<Camera> createCamera({ThermionEntity? targetEntity}) async {
     targetEntity ??= await createEntity(createTransformComponent: false);
-    return FFICamera(
-        await withPointerCallback<TCamera>(
-            (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb)));
+    return FFICamera(await withPointerCallback<TCamera>(
+        (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb)));
   }
 
   ///
@@ -408,8 +409,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           "Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
-      RenderTarget_createRenderThread(
-          engine, width, height, color!.getNativeHandle(), depth!.getNativeHandle(), cb);
+      RenderTarget_createRenderThread(engine, width, height,
+          color!.getNativeHandle(), depth!.getNativeHandle(), cb);
     });
     if (renderTarget == nullptr) {
       throw Exception("Failed to create RenderTarget");
@@ -654,6 +655,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   final _swapChains = <SwapChain, List<(int, View)>>{};
 
+  // // This is equivalent to setRenderOrder(), but called on the default (first)
+  // // swapchain with renderOrder=0.
+  // Future useDefaultRenderOrder(View view) {
+  //   return setRenderOrder(swapChain, view)
+  // }
+
   ///
   @override
   Future setRenderOrder(SwapChain swapChain, View view,
@@ -663,10 +670,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     _swapChains[swapChain]!.removeWhere((v) => v.$2 == view);
-    if (renderOrder != -1) {
-      _swapChains[swapChain]!.add((renderOrder, view));
-      _swapChains[swapChain]!.sort((a, b) => a.$1.compareTo(b.$1));
-    }
+    _swapChains[swapChain]!.add((renderOrder, view));
+    _swapChains[swapChain]!.sort((a, b) => a.$1.compareTo(b.$1));
     await updateRenderOrder();
   }
 
@@ -783,8 +788,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (_imageMaterial == null) {
       var ptr = await withPointerCallback<TMaterial>(
           (cb) => Material_createImageMaterialRenderThread(engine, cb));
-      _imageMaterial =
-          FFIMaterial(ptr);
+      _imageMaterial = FFIMaterial(ptr);
     }
     var instance =
         await _imageMaterial!.createInstance() as FFIMaterialInstance;

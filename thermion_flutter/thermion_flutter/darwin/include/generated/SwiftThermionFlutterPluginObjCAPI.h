@@ -318,8 +318,7 @@ SWIFT_CLASS("_TtC16thermion_flutter19MetalTextureWrapper")
 + (MetalTextureWrapper * _Nonnull)allocateWithWidth:(int64_t)width height:(int64_t)height isDepth:(BOOL)isDepth isStencil:(BOOL)isStencil SWIFT_WARN_UNUSED_RESULT;
 - (BOOL)supportsRenderTarget SWIFT_WARN_UNUSED_RESULT;
 - (void)destroyTexture;
-- (nonnull instancetype)init SWIFT_UNAVAILABLE;
-+ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
 @end
 
 SWIFT_CLASS("_TtC16thermion_flutter33SwiftThermionFlutterPluginObjCAPI")
@@ -329,13 +328,8 @@ SWIFT_CLASS("_TtC16thermion_flutter33SwiftThermionFlutterPluginObjCAPI")
 + (void)markTextureFrameAvailableWithFlutterTextureId:(int64_t)flutterTextureId;
 + (void)startFrameSchedulerWithCallbackAddress:(int64_t)callbackAddress targetFps:(NSInteger)targetFps;
 + (void)stopFrameScheduler;
-- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
-@end
-
-SWIFT_CLASS("_TtC16thermion_flutter22ThermionFrameScheduler")
-@interface ThermionFrameScheduler : NSObject
-+ (void)startWithCallbackAddress:(int64_t)callbackAddress targetFps:(NSInteger)targetFps;
-+ (void)stop;
++ (void)initializeDartApi:(int64_t)dataAddress;
++ (void)startFrameSchedulerWithPort:(int64_t)port targetFps:(NSInteger)targetFps;
 - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
 @end
 

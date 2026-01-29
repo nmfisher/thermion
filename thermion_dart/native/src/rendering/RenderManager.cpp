@@ -86,7 +86,7 @@ namespace thermion
       if(i < numViews) {
         attachment->views[i] = views[i];
         if(!views[i]) {
-          ERROR("View attachment at %d is nullptr, this is not expected", i);  
+          LOG_ERROR("View attachment at %d is nullptr, this is not expected", i);  
         }
       } else { 
         attachment->views[i] = nullptr;

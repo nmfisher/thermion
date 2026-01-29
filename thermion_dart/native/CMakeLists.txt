@@ -50,12 +50,18 @@ set(RESOURCE_SOURCES
 
 set_source_files_properties(${RESOURCE_SOURCES} PROPERTIES LANGUAGE CXX)
 
+# Dart API DL for port-based frame scheduling (hot restart safe)
+set(DART_API_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/dart/dart_api_dl.c"
+)
+
 
 # Create the shared library
-add_library(thermion_dart SHARED 
-    ${SOURCES} 
-    ${MATERIAL_SOURCES} 
+add_library(thermion_dart SHARED
+    ${SOURCES}
+    ${MATERIAL_SOURCES}
     ${RESOURCE_SOURCES}
+    ${DART_API_SOURCES}
 )
 
 # Include directories

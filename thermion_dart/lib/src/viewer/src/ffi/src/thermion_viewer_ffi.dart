@@ -106,7 +106,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _rendering = render;
     final swapChain = await FilamentApp.instance!.getSwapChain(view);
     if (swapChain == null) {
-      throw Exception("TODO");
+      throw Exception("TODO - could not find swapchain for view ${view.getName()}");
     }
     await FilamentApp.instance!
         .setRenderOrder(swapChain, view, renderOrder: render ? 0 : -1);
