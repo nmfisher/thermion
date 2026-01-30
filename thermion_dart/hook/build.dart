@@ -80,7 +80,8 @@ outputDirectory : ${outputDirectory.path}
       'linear_depth': 'native/include/material/linear_depth.c',
       'unlit_fixed_size': 'native/include/material/unlit_fixed_size.c',
       'silhouette': 'native/include/material/silhouette.c',
-      'edge_outline': 'native/include/material/edge_outline.c'
+      'edge_outline': 'native/include/material/edge_outline.c',
+      'wireframe': 'native/include/material/wireframe.c'
     };
 
     // Add gizmo resources (always included)

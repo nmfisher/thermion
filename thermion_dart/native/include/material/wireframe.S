@@ -1,0 +1,12 @@
+    .global WIREFRAME_WIREFRAME_OFFSET;
+    .global WIREFRAME_WIREFRAME_SIZE;
+
+    .global WIREFRAME_PACKAGE
+    .section .rodata
+WIREFRAME_PACKAGE:
+    .incbin "wireframe.bin"
+WIREFRAME_WIREFRAME_OFFSET:
+    .int 0
+WIREFRAME_WIREFRAME_SIZE:
+    .int 102151
+

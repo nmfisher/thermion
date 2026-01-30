@@ -61,9 +61,11 @@ class Geometry {
       }
     }
 
-    if (hasUVs && this.uvs.length != (vertices.length ~/ 3 * 2)) {
+    final numVertices = vertices.length ~/ 3;
+    final expectedUvs = numVertices * 2;
+    if (hasUVs && this.uvs.length != expectedUvs) {
       throw Exception(
-          "Expected ${indices.length * 2} UVs, got ${this.uvs!.length}");
+          "Expected ${expectedUvs} UVs, got ${this.uvs!.length}");
     }
 
     if(hasAttribute0 && this.attribute0.length != (this.vertices.length ~/ 3 * 4)) {

@@ -55,6 +55,11 @@ external ffi.Pointer<TMaterial> Material_createEdgeOutlineMaterial(
   ffi.Pointer<TEngine> tEngine,
 );
 
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createWireframeMaterial(
+  ffi.Pointer<TEngine> tEngine,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external bool Material_hasParameter(
@@ -3336,6 +3341,19 @@ external void Material_createSilhouetteMaterialRenderThread(
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
     isLeaf: true)
 external void Material_createEdgeOutlineMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
+    isLeaf: true)
+external void Material_createWireframeMaterialRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
       onComplete,

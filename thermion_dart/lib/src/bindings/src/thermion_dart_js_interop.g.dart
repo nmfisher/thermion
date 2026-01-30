@@ -52,6 +52,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TMaterial> _Material_createEdgeOutlineMaterial(
     Pointer<TEngine> tEngine,
   );
+  external Pointer<TMaterial> _Material_createWireframeMaterial(
+    Pointer<TEngine> tEngine,
+  );
   external int _Material_hasParameter(
     Pointer<TMaterial> tMaterial,
     Pointer<Char> propertyName,
@@ -1845,6 +1848,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
   );
+  external void _Material_createWireframeMaterialRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
+  );
   external void _ColorGrading_createRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TToneMapper> toneMapper,
@@ -3031,6 +3038,14 @@ Pointer<TMaterial> Material_createEdgeOutlineMaterial(
 ) {
   final result = GeneratedBindings.instance
       ._Material_createEdgeOutlineMaterial(tEngine.cast());
+  return Pointer<TMaterial>(result);
+}
+
+Pointer<TMaterial> Material_createWireframeMaterial(
+  Pointer<TEngine> tEngine,
+) {
+  final result = GeneratedBindings.instance
+      ._Material_createWireframeMaterial(tEngine.cast());
   return Pointer<TMaterial>(result);
 }
 
@@ -6953,6 +6968,16 @@ void Material_createEdgeOutlineMaterialRenderThread(
 ) {
   final result = GeneratedBindings.instance
       ._Material_createEdgeOutlineMaterialRenderThread(
+          tEngine.cast(), onComplete.cast());
+  return result;
+}
+
+void Material_createWireframeMaterialRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TMaterial>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._Material_createWireframeMaterialRenderThread(
           tEngine.cast(), onComplete.cast());
   return result;
 }
@@ -11927,7 +11952,7 @@ extension NativeFunctionPointer16<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer46<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer47<T extends NativeType> on void Function(int) {
   Pointer<NativeFunction<void Function(int)>> addFunction() {
     return Pointer<NativeFunction<void Function(int)>>(NativeLibrary.instance
             .addFunction<void Function(int)>(this.toJS, 'vi'))
@@ -11935,7 +11960,7 @@ extension NativeFunctionPointer46<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer61<T extends NativeType> on void Function(
+extension NativeFunctionPointer62<T extends NativeType> on void Function(
     double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(NativeLibrary.instance
