@@ -39,6 +39,7 @@ set(MATERIAL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/include/material/grid.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/material/linear_depth.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/material/outline.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/material/translation_axis.c"
 )
 
 set_source_files_properties(${MATERIAL_SOURCES} PROPERTIES LANGUAGE CXX)

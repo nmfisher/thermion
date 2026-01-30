@@ -16,6 +16,7 @@
 #include "material/outline.h"
 #include "material/silhouette.h"
 #include "material/edge_outline.h"
+#include "material/translation_axis.h"
 #include "material/wireframe.h"
 
 #include "c_api/TMaterialInstance.h"
@@ -94,6 +95,14 @@ namespace thermion
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(WIREFRAME_WIREFRAME_DATA, WIREFRAME_WIREFRAME_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(TRANSLATION_AXIS_TRANSLATION_AXIS_DATA, TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }

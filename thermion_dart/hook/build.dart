@@ -81,7 +81,8 @@ outputDirectory : ${outputDirectory.path}
       'unlit_fixed_size': 'native/include/material/unlit_fixed_size.c',
       'silhouette': 'native/include/material/silhouette.c',
       'edge_outline': 'native/include/material/edge_outline.c',
-      'wireframe': 'native/include/material/wireframe.c'
+      'wireframe': 'native/include/material/wireframe.c',
+      'translation_axis': 'native/include/material/translation_axis.c'
     };
 
     // Add gizmo resources (always included)

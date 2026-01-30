@@ -1109,7 +1109,65 @@ void main() async {
     });
   });
 
-  
+  test('translation axis material renders axis lines', () async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .setBackgroundColor(kGrey)
+        // Camera looking at XZ plane from an angle
+        .setCameraLookAt(Vector3(30, 30, 30), focus: Vector3(0, 0, 0))
+        .execute((result) async {
+      // Create a large plane to apply the translation axis material to
+      final plane = await FilamentApp.instance!.createGeometry(
+        GeometryHelper.plane(
+          width: 200,
+          height: 200,
+        ),
+      );
+
+      // Test X axis (red) - line along x at z=0
+      final xAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+        originX: 0,
+        originY: 0,
+        originZ: 0,
+        axis: 0, // X axis
+        lineWidth: 30.0, // world units - thick for visibility
+        lineLength: 80.0,
+      );
+      await plane.setMaterialInstanceAt(xAxisMaterial);
+      await result.viewer.addToScene(plane);
+
+      await testHelper.capture(result.viewer.view, "translation_axis_x");
+
+      // Test Z axis (blue) - line along z at x=0
+      final zAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+        originX: 0,
+        originY: 0,
+        originZ: 0,
+        axis: 2, // Z axis
+        lineWidth: 5.0, // world units
+        lineLength: 80.0,
+      );
+      await plane.setMaterialInstanceAt(zAxisMaterial);
+
+      await testHelper.capture(result.viewer.view, "translation_axis_z");
+
+      // Test with offset origin (line at x=20)
+      final offsetAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+        originX: 20,
+        originY: 0,
+        originZ: 0,
+        axis: 2, // Z axis (will appear offset from center)
+        lineWidth: 5.0, // world units
+        lineLength: 80.0,
+      );
+      await plane.setMaterialInstanceAt(offsetAxisMaterial);
+
+      await testHelper.capture(
+          result.viewer.view, "translation_axis_offset_origin");
+
+      await result.viewer.removeFromScene(plane);
+    });
+  });
 }
 // manually construct two views with stencil buffer
 // final viewportDimensions = (width: 500, height: 500);
