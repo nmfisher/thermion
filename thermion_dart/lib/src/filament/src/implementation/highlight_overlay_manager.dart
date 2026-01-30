@@ -294,6 +294,15 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     double g = 0.0,
     double b = 0.0,
   }) async {
+    // ALWAYS update outline params (even if already highlighted)
+    await overlayView.setOutlineParams(
+      width: outlineWidth,
+      r: r,
+      g: g,
+      b: b,
+    );
+
+    // Only add silhouette if not already tracked
     if (_highlightedEntities.contains(target)) {
       return;
     }
@@ -304,14 +313,6 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       vertexBuffer: vertexBuffer,
       indexBuffer: indexBuffer,
       indexCount: indexCount,
-    );
-
-    // Update outline params on edge detection view
-    await overlayView.setOutlineParams(
-      width: outlineWidth,
-      r: r,
-      g: g,
-      b: b,
     );
 
     _highlightedEntities.add(target);

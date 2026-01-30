@@ -532,6 +532,50 @@ void main() async {
     });
   });
 
+  test('consecutive setStencilHighlight with different colors updates correctly', () async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .setStencilBufferEnabled(true)
+        .execute((result) async {
+      await result.viewer.view.setHighlightOverlayEnabled(true);
+
+      var cube = await FilamentApp.instance!
+          .createGeometry(GeometryHelper.cube(flipUvs: true));
+      await result.viewer.addToScene(cube);
+
+      // Set initial highlight to orange
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 1.0,
+        g: 0.5,
+        b: 0.0,
+        outlineWidth: 5.0,
+      );
+      await FilamentApp.instance!.render();
+
+      await testHelper.capture(null, "consecutive_highlight_first_color_orange",
+          render: true, captureRenderTarget: true);
+
+      // Change to blue - this should now work correctly
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 0.0,
+        g: 0.5,
+        b: 1.0,
+        outlineWidth: 5.0,
+      );
+
+      await FilamentApp.instance!.render();
+
+      await testHelper.capture(null, "consecutive_highlight_second_color_blue",
+          captureRenderTarget: true, render: false);
+      // Should now be blue, not orange!
+
+      await result.viewer.view.removeStencilHighlight(cube);
+      await result.viewer.view.setHighlightOverlayEnabled(false);
+    });
+  });
+
   test('VSM shadow options set/get', () async {
     await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
