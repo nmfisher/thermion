@@ -1,0 +1,64 @@
+material {
+    name : Wireframe,
+    parameters : [
+        {
+            type: float4,
+            name: edgeColor,
+            default: [1.0, 1.0, 1.0, 1.0]
+        },
+        {
+            type: float4,
+            name: faceColor,
+            default: [0.2, 0.2, 0.2, 0.3]
+        },
+        {
+            type: float,
+            name: edgeWidth,
+            default: 1.5
+        }
+    ],
+    requires : [
+        custom0
+    ],
+    variables : [
+        barycentrics
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    doubleSided : false,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : back
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Barycentric coordinates stored in CUSTOM0 (float4):
+        // vertex 0: (1, 0, 0), vertex 1: (0, 1, 0), vertex 2: (0, 0, 1)
+        material.barycentrics = getCustom0();
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 bary = variable_barycentrics.xyz;
+        vec3 fw = fwidth(bary);
+        float lineWidthPixels = materialParams.edgeWidth;
+        vec3 threshold = fw * lineWidthPixels;
+        vec3 edgeDist = smoothstep(vec3(0.0), threshold, bary);
+        float interior = min(min(edgeDist.x, edgeDist.y), edgeDist.z);
+
+        // Mix edge and face colors based on interior factor
+        vec4 edgeColor = materialParams.edgeColor;
+        vec4 faceColor = materialParams.faceColor;
+
+        // For wireframe with transparent faces, use edge alpha for edges
+        // and face alpha for interior
+        vec3 color = mix(edgeColor.rgb, faceColor.rgb, interior);
+        float alpha = mix(edgeColor.a, faceColor.a, interior);
+
+        material.baseColor = vec4(color, alpha);
+    }
+}

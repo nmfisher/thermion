@@ -95,6 +95,71 @@
             return indices;
         }
 
+        // Helper to expand triangle strip indices to triangle list indices
+        static std::vector<uint32_t> expandTriangleStrip(const std::vector<uint32_t>& stripIndices, uint32_t indexOffset)
+        {
+            std::vector<uint32_t> triangleIndices;
+            if (stripIndices.size() < 3)
+            {
+                return triangleIndices;
+            }
+
+            // Number of triangles in a strip = numIndices - 2
+            size_t numTriangles = stripIndices.size() - 2;
+            triangleIndices.reserve(numTriangles * 3);
+
+            for (size_t i = 0; i < numTriangles; i++)
+            {
+                uint32_t i0 = stripIndices[i] + indexOffset;
+                uint32_t i1 = stripIndices[i + 1] + indexOffset;
+                uint32_t i2 = stripIndices[i + 2] + indexOffset;
+
+                // OpenGL/glTF triangle strip winding convention:
+                // - Even triangles: v[i], v[i+1], v[i+2]
+                // - Odd triangles:  v[i+1], v[i], v[i+2]
+                // This maintains consistent CCW front-face winding.
+                if (i % 2 == 0)
+                {
+                    triangleIndices.push_back(i0);
+                    triangleIndices.push_back(i1);
+                    triangleIndices.push_back(i2);
+                }
+                else
+                {
+                    // Odd triangles: swap first two vertices
+                    triangleIndices.push_back(i1);
+                    triangleIndices.push_back(i0);
+                    triangleIndices.push_back(i2);
+                }
+            }
+
+            return triangleIndices;
+        }
+
+        // Helper to expand triangle fan indices to triangle list indices
+        static std::vector<uint32_t> expandTriangleFan(const std::vector<uint32_t>& fanIndices, uint32_t indexOffset)
+        {
+            std::vector<uint32_t> triangleIndices;
+            if (fanIndices.size() < 3)
+            {
+                return triangleIndices;
+            }
+
+            // Number of triangles in a fan = numIndices - 2
+            size_t numTriangles = fanIndices.size() - 2;
+            triangleIndices.reserve(numTriangles * 3);
+
+            uint32_t centerVertex = fanIndices[0] + indexOffset;
+            for (size_t i = 0; i < numTriangles; i++)
+            {
+                triangleIndices.push_back(centerVertex);
+                triangleIndices.push_back(fanIndices[i + 1] + indexOffset);
+                triangleIndices.push_back(fanIndices[i + 2] + indexOffset);
+            }
+
+            return triangleIndices;
+        }
+
 extern "C" {
 
     EMSCRIPTEN_KEEPALIVE int GltfParser_parseBuffer(
@@ -209,14 +274,34 @@ extern "C" {
                         }
                     }
 
-                    // Extract indices
+                    // Extract indices and expand strips/fans to triangle lists
                     if (primitive->indices)
                     {
                         auto indices = extractIndexData(primitive->indices);
-                        // Offset indices by current vertex count
-                        for (auto idx : indices)
+
+                        if (primitiveType == cgltf_primitive_type_triangle_strip)
                         {
-                            allIndices.push_back(idx + indexOffset);
+                            Log("Expanding triangle strip (%zu indices) to triangle list", indices.size());
+                            auto expandedIndices = expandTriangleStrip(indices, indexOffset);
+                            allIndices.insert(allIndices.end(), expandedIndices.begin(), expandedIndices.end());
+                            // Override primitive type to triangles since we expanded
+                            primitiveType = cgltf_primitive_type_triangles;
+                        }
+                        else if (primitiveType == cgltf_primitive_type_triangle_fan)
+                        {
+                            Log("Expanding triangle fan (%zu indices) to triangle list", indices.size());
+                            auto expandedIndices = expandTriangleFan(indices, indexOffset);
+                            allIndices.insert(allIndices.end(), expandedIndices.begin(), expandedIndices.end());
+                            // Override primitive type to triangles since we expanded
+                            primitiveType = cgltf_primitive_type_triangles;
+                        }
+                        else
+                        {
+                            // Regular triangle list - just offset indices
+                            for (auto idx : indices)
+                            {
+                                allIndices.push_back(idx + indexOffset);
+                            }
                         }
                     }
                 }

@@ -132,7 +132,7 @@ class TestHelper {
     double edgeWidth = 1.5,
   }) async {
     final material = await FilamentApp.instance!.createMaterial(
-        File("${testDir}/assets/wireframe.filamat").readAsBytesSync());
+        File("/Users/nickfisher/Documents/thermion/materials/wireframe.filamat").readAsBytesSync());
     final instance = await material.createInstance();
     await instance.setParameterFloat4("edgeColor", edgeR, edgeG, edgeB, edgeA);
     await instance.setParameterFloat4("faceColor", faceR, faceG, faceB, faceA);
@@ -155,6 +155,36 @@ class TestHelper {
     );
     final instance = await material.createInstance();
     await instance.setParameterFloat4("color", r, g, b, a);
+    return instance;
+  }
+
+  /// Load the translation_axis material for rendering axis lines during translation.
+  ///
+  /// Parameters:
+  /// - [origin]: World-space anchor point (object's position)
+  /// - [axis]: Which axis to render (0=X, 1=Y, 2=Z)
+  /// - [lineWidth]: Line width in world units (default 0.5)
+  /// - [lineLength]: Half-length of axis line from origin (default 100.0)
+  /// - [alpha]: Line opacity (default 1.0)
+  Future<MaterialInstance> loadTranslationAxisMaterial({
+    required double originX,
+    required double originY,
+    required double originZ,
+    required int axis,
+    double lineWidth = 0.5,
+    double lineLength = 100.0,
+    double alpha = 1.0,
+  }) async {
+    final material = await FilamentApp.instance!.createMaterial(
+      File("/Users/nickfisher/Documents/thermion/materials/translation_axis.filamat")
+          .readAsBytesSync(),
+    );
+    final instance = await material.createInstance();
+    await instance.setParameterFloat3("origin", originX, originY, originZ);
+    await instance.setParameterInt("axis", axis);
+    await instance.setParameterFloat("lineWidth", lineWidth);
+    await instance.setParameterFloat("lineLength", lineLength);
+    await instance.setParameterFloat("alpha", alpha);
     return instance;
   }
 

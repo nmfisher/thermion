@@ -9,6 +9,34 @@ import '../implementation/wireframe_geometry.dart';
 /// methods to convert indexed geometry to non-indexed geometry with barycentric
 /// coordinates.
 class WireframeGeometry {
+  /// Creates a wireframe material instance with optional configuration.
+  ///
+  /// This is a convenience method that creates the wireframe material and
+  /// configures it with the specified color and edge width.
+  ///
+  /// Parameters:
+  /// - [edgeColor]: Optional edge color (default: white)
+  /// - [edgeWidth]: Line width in pixels (default: 1.5)
+  ///
+  /// Returns a configured [MaterialInstance] ready to use.
+  ///
+  /// Example:
+  /// ```dart
+  /// final material = await WireframeGeometry.createWireframeMaterialInstance(
+  ///   edgeColor: LinearColor(0, 1, 0), // green
+  ///   edgeWidth: 2.0,
+  /// );
+  /// ```
+  static Future<MaterialInstance> createWireframeMaterialInstance({
+    LinearColor? edgeColor,
+    double edgeWidth = 1.5,
+  }) {
+    return FFIWireframeGeometry.createWireframeMaterialInstance(
+      edgeColor: edgeColor,
+      edgeWidth: edgeWidth,
+    );
+  }
+
   /// Create a wireframe renderable entity from glTF data.
   ///
   /// Returns a new entity with duplicated vertices (so each triangle has unique

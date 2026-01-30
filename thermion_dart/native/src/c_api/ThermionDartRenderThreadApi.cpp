@@ -598,6 +598,17 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createWireframeMaterial(tEngine);
+          PROXY(onComplete(instance));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
     std::packaged_task<void()> lambda(
