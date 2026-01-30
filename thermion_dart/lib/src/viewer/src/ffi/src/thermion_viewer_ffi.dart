@@ -600,9 +600,20 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   Future setGridOverlayVisibility(bool visible,
       {List<LinearColor> axisColors = kDefaultAxisColors,
-      LinearColor gridColor = kDefaultGridColor}) async {
+      LinearColor gridColor = kDefaultGridColor,
+      List<double> spacing = const [1.0, 10.0, 100.0],
+      List<double> fadeInStart = const [0.001, 5.0, 50.0],
+      List<double> fadeInEnd = const [0.001, 50.0, 500.0],
+      List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
+      List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0]}) async {
     _grid ??= await GridOverlay.create(
-        axisColors: axisColors, gridColor: gridColor);
+        axisColors: axisColors,
+        gridColor: gridColor,
+        spacing: spacing,
+        fadeInStart: fadeInStart,
+        fadeInEnd: fadeInEnd,
+        fadeOutStart: fadeOutStart,
+        fadeOutEnd: fadeOutEnd);
 
     await _grid!.setAxisColor(axisColors);
 

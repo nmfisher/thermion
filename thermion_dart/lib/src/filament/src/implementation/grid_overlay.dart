@@ -32,19 +32,19 @@ class GridOverlay {
   }
 
   static Future<GridOverlay> create(
-      {List<LinearColor> axisColors = kDefaultAxisColors, LinearColor gridColor = kDefaultGridColor } ) async {
+      {List<LinearColor> axisColors = kDefaultAxisColors,
+      LinearColor gridColor = kDefaultGridColor,
+      List<double> spacing = const [1.0, 10.0, 100.0],
+      List<double> fadeInStart = const [0.001, 5.0, 50.0],
+      List<double> fadeInEnd = const [0.001, 50.0, 500.0],
+      List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
+      List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0] } ) async {
     if (_instance == null) {
       _gridMaterial ??=
           FFIMaterial(Material_createGridMaterial(FilamentApp.instance!.engine));
 
       final assets = <FFIAsset>[];
 
-      final intervals = [1.0, 10.0, 100.0];
-      final fadeInStart = [0.001, 5.0, 50.0];
-      final fadeInEnd = [0.001, 50.0, 500.0];
-      final fadeOutStart = [10.0, 500.0, 5000.0];
-      final fadeOutEnd = [200.0, 2000.0, 20000.0];
-      
 
       for (int i = 0; i < 3; i++) {
         final assetPtr = await withPointerCallback<TSceneAsset>((cb) =>
@@ -61,7 +61,7 @@ class GridOverlay {
         await materialInstance.setParameterFloat3("axisColorY", axisColors[1].r, axisColors[1].g, axisColors[1].b);
         await materialInstance.setParameterFloat3("axisColorZ", axisColors[2].r, axisColors[2].g, axisColors[2].b);
         await materialInstance.setParameterFloat("distance", 10000.0);
-        await materialInstance.setParameterFloat("interval", intervals[i]);
+        await materialInstance.setParameterFloat("interval", spacing[i]);
         await materialInstance.setParameterFloat(
             "fadeInStart", fadeInStart[i]);
         await materialInstance.setParameterFloat(
