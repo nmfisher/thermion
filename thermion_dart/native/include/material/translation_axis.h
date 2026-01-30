@@ -1,0 +1,17 @@
+#ifndef TRANSLATION_AXIS_H_
+#define TRANSLATION_AXIS_H_
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    extern const uint8_t TRANSLATION_AXIS_PACKAGE[];
+    extern int TRANSLATION_AXIS_TRANSLATION_AXIS_OFFSET;
+    extern int TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE;
+#ifdef __cplusplus
+}
+#endif
+#define TRANSLATION_AXIS_TRANSLATION_AXIS_DATA (TRANSLATION_AXIS_PACKAGE + TRANSLATION_AXIS_TRANSLATION_AXIS_OFFSET)
+
+#endif
