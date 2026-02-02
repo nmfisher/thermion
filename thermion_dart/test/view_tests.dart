@@ -529,10 +529,17 @@ void main() async {
 
       // Disable the highlight overlay system
       await result.viewer.view.setHighlightOverlayEnabled(false);
+
+      await FilamentApp.instance!.render();
+
+      await testHelper.capture(null, "stencil_highlight_after_overlay_disabled",
+          captureRenderTarget: true, render: false);
     });
   });
 
-  test('consecutive setStencilHighlight with different colors updates correctly', () async {
+  test(
+      'consecutive setStencilHighlight with different colors updates correctly',
+      () async {
     await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
         .setStencilBufferEnabled(true)
@@ -1125,7 +1132,8 @@ void main() async {
       );
 
       // Test X axis (red) - line along x at z=0
-      final xAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+      final xAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
         originX: 0,
         originY: 0,
         originZ: 0,
@@ -1139,7 +1147,8 @@ void main() async {
       await testHelper.capture(result.viewer.view, "translation_axis_x");
 
       // Test Z axis (blue) - line along z at x=0
-      final zAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+      final zAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
         originX: 0,
         originY: 0,
         originZ: 0,
@@ -1152,7 +1161,8 @@ void main() async {
       await testHelper.capture(result.viewer.view, "translation_axis_z");
 
       // Test with offset origin (line at x=20)
-      final offsetAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+      final offsetAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
         originX: 20,
         originY: 0,
         originZ: 0,

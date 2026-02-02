@@ -38,6 +38,62 @@ abstract class HighlightOverlayManager {
 /// This class encapsulates the two-pass rendering approach:
 /// 1. Silhouette pass: Render highlighted entities to a texture as white silhouettes
 /// 2. Edge detection pass: Fullscreen shader samples silhouette, draws outline where edges are detected
+///
+/// ## Creation Flow (macOS composite mode)
+///
+/// When [create] is called:
+/// 1. **SilhouetteView** is created, which OWNS:
+///    - `_colorTexture` (RGBA8, sampleable) - the silhouette render output
+///    - `_depthTexture` (DEPTH32F)
+///    - `_renderTarget` combining the above
+///    - `_silhouetteMaterial` and per-entity material instances
+///
+/// 2. **EdgeDetectionView** is created, which OWNS:
+///    - `_edgeMaterial` and `_edgeMaterialInstance`
+///    - Fullscreen quad geometry (`_quadVB`, `_quadIB`, `_fullscreenQuadEntity`)
+///    - `_edgeScene`, `_camera`, `_skybox`
+///    - Texture samplers (`_edgeSampler`, `_mainSceneSampler`)
+///
+///    EdgeDetectionView receives a REFERENCE to `silhouetteView.colorTexture`
+///    (does NOT own it). This texture is bound to `_edgeMaterialInstance`.
+///
+/// 3. When [setRenderTarget] is called (macOS/iOS composite mode):
+///    - This manager creates `_mainViewColorTexture` (SRGB8_A8, sampleable)
+///    - Main view is redirected to render to this internal texture
+///    - EdgeDetectionView receives a REFERENCE to `_mainViewColorTexture`
+///      and binds it to `_edgeMaterialInstance` as the 'mainScene' parameter
+///
+/// **Texture ownership summary:**
+/// - `_silhouetteTexture` in EdgeDetectionView → OWNED by SilhouetteView
+/// - `_mainSceneTexture` in EdgeDetectionView → OWNED by this manager
+/// - `_edgeMaterialInstance` holds REFERENCES to both textures
+///
+/// ## Destruction Flow
+///
+/// When [destroy] is called, resources must be destroyed in the correct order
+/// to avoid crashes from textures being destroyed while still bound to
+/// material instances:
+///
+/// 1. **clearHighlights()** - removes all silhouette entities:
+///    - For each highlighted entity: remove from scene, destroy entity,
+///      destroy its silhouette material instance
+///
+/// 2. **overlayView.destroy()** - destroys EdgeDetectionView:
+///    - Removes fullscreen quad from scene, destroys quad entity
+///    - Destroys `_edgeMaterialInstance` (releases texture bindings)
+///    - Destroys geometry buffers, skybox, scene, camera, material
+///
+/// 3. **flush()** - synchronizes with render thread:
+///    - CRITICAL: Must happen AFTER material instance destruction but BEFORE
+///      texture destruction to ensure render thread has processed the
+///      material instance cleanup
+///
+/// 4. **silhouetteView.destroy()** - destroys SilhouetteView:
+///    - Destroys `_colorTexture` (the silhouette texture)
+///    - Now safe because EdgeDetectionView's material instance is gone
+///    - Restores main view's original render target
+///    - Destroys `_mainViewColorTexture` (the main scene texture)
+///
 class FFIHighlightOverlayManager extends HighlightOverlayManager {
   final _logger = Logger('HighlightOverlayManager');
 
@@ -145,10 +201,6 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       silhouetteTexture: silhouetteView.colorTexture,
     );
 
-    // Post-processing is disabled on EdgeDetectionView (see edge_detection_view.dart)
-    // to avoid double tone-mapping in composite mode.
-    await edgeDetectionView.setAntiAliasing(false, true, false);
-
     // Wire up texture resize callback so EdgeDetectionView gets notified
     // when SilhouetteView resizes its render target
     silhouetteView.onTextureResized = (newTexture) async {
@@ -183,34 +235,13 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     }
   }
 
-  /// Tear down render targets and restore original state.
-  Future<void> _teardown() async {
-    // Restore main view's original render target (only if it was redirected)
-    if (_mainView != null && _mainViewRenderTarget != null) {
-      await _mainView!
-          .setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
-    }
-
-    // If EdgeDetectionView was registered with swapchain, unregister it
-    if (_swapChain != null) {
-      await FilamentApp.instance!
-          .setRenderOrder(_swapChain!, overlayView as FFIView, renderOrder: -1);
-      _swapChain = null;
-      _logger.info("EdgeDetectionView unregistered from swapchain");
-    }
-
-    // Clean up internal render target
-    await _destroyMainViewRenderTarget();
-
-    _mainView = null;
-    _originalMainViewRenderTarget = null;
-    _flutterRenderTarget = null; // Don't destroy - Flutter layer owns this
-
-    _logger.info("Highlight overlay torn down");
-  }
 
   Future<void> _createMainViewRenderTarget(int width, int height) async {
-    // Create color texture with sampleable flag
+    // Create color texture with sampleable flag.
+    // Use SRGBA8 format so that:
+    // 1. Main view post-processing outputs linear colors → GPU applies sRGB encoding
+    // 2. EdgeDetectionView samples → GPU linearizes the values automatically
+    // This prevents double gamma correction that causes brightness shift.
     _mainViewColorTexture = await FilamentApp.instance!.createTexture(
       width,
       height,
@@ -218,7 +249,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
         TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
         TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
       },
-      textureFormat: TextureFormat.RGBA8,
+      textureFormat: TextureFormat.SRGB8_A8,
     ) as FFITexture;
 
     // Create depth texture
@@ -338,14 +369,40 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   }
 
   /// Clean up all resources.
+  ///
+  /// See class documentation for the required destruction order.
   Future<void> destroy() async {
     await clearHighlights();
 
-    // Tear down render targets and restore original state
-    await _teardown();
-
+    // Destroy EdgeDetectionView FIRST (destroys material instance, releases texture bindings)
     await overlayView.destroy();
+
+    // NOW safe to destroy SilhouetteView (which destroys the silhouette texture)
     await silhouetteView.destroy();
+
+    // Tear down render targets and restore original state
+    // Restore main view's original render target (only if it was redirected)
+    if (_mainView != null && _mainViewRenderTarget != null) {
+      await _mainView!
+          .setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
+    }
+
+    // If EdgeDetectionView was registered with swapchain, unregister it
+    if (_swapChain != null) {
+      await FilamentApp.instance!
+          .setRenderOrder(_swapChain!, overlayView as FFIView, renderOrder: -1);
+      _swapChain = null;
+      _logger.info("EdgeDetectionView unregistered from swapchain");
+    }
+
+    // Clean up internal render target
+    await _destroyMainViewRenderTarget();
+
+    _mainView = null;
+    _originalMainViewRenderTarget = null;
+    _flutterRenderTarget = null; // Don't destroy - Flutter layer owns this
+
+    _logger.info("Highlight overlay torn down");
 
     _logger.info("Highlight overlay manager destroyed");
   }

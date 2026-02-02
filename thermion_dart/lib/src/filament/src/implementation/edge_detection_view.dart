@@ -187,9 +187,12 @@ class EdgeDetectionView extends FFIView {
       textureFormat: TextureFormat.RGBA8,
     ) as FFITexture;
 
+    // Use NEAREST filtering for pixel-perfect compositing - the main scene
+    // texture is at the same resolution as the output, so LINEAR filtering
+    // would blur anti-aliased features (like grid lines) making them appear thicker.
     final mainSceneSampler = await FilamentApp.instance!.createTextureSampler(
-      minFilter: TextureMinFilter.LINEAR,
-      magFilter: TextureMagFilter.LINEAR,
+      minFilter: TextureMinFilter.NEAREST,
+      magFilter: TextureMagFilter.NEAREST,
       wrapS: TextureWrapMode.CLAMP_TO_EDGE,
       wrapT: TextureWrapMode.CLAMP_TO_EDGE,
     ) as FFITextureSampler;
@@ -247,11 +250,13 @@ class EdgeDetectionView extends FFIView {
     await edgeDetectionView.setScene(edgeScene);
     await edgeDetectionView.setCamera(camera);
     await edgeDetectionView.setViewport(width, height);
-    // Post-processing enabled with linear tone mapping: in composite mode the main
-    // scene texture is already tone-mapped, so we use a pass-through tone mapper
-    // to preserve colors while still benefiting from anti-aliasing and dithering.
-    await edgeDetectionView.setPostProcessing(true);
-    await edgeDetectionView.setColorGrading(linearColorGrading);
+
+    // Disable post-processing entirely: the main scene texture is already
+    // fully processed (tone-mapped, gamma-corrected), so any additional
+    // post-processing would corrupt the colors. The shader outputs sRGB
+    // colors directly which go straight to the render target.
+    await edgeDetectionView._setPostProcessingInternal(false);
+
     await edgeDetectionView.setShadowsEnabled(false);
     await edgeDetectionView.setFrustumCullingEnabled(false);
 
@@ -273,6 +278,19 @@ class EdgeDetectionView extends FFIView {
         "disableHighlightOverlay cannot be called on a highlight view");
   }
 
+  Future setAntiAliasing(bool msaa, bool fxaa, bool taa) {
+    throw UnsupportedError("Not supported for overlay views");
+  }
+
+  Future setPostProcessing(bool enabled) {
+    throw UnsupportedError("Not supported for overlay views");
+  }
+
+  /// Internal method to set post-processing during initialization.
+  Future _setPostProcessingInternal(bool enabled) {
+    return super.setPostProcessing(enabled);
+  }
+
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
     throw Exception(
@@ -283,7 +301,6 @@ class EdgeDetectionView extends FFIView {
   Future setHighlightOverlayEnabled(bool enabled) async {
     throw UnimplementedError();
   }
-
 
   /// Set outline appearance.
   Future<void> setOutlineParams({

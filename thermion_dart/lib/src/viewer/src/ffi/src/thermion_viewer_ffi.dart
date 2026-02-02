@@ -11,7 +11,6 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:logging/logging.dart';
 
 import '../../../../filament/src/implementation/ffi_camera.dart';
-import '../../../../filament/src/implementation/ffi_view.dart';
 import '../../../../filament/src/interface/defaults.dart';
 
 const FILAMENT_ASSET_ERROR = 0;

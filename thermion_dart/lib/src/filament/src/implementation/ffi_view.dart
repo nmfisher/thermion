@@ -514,8 +514,11 @@ class FFIView extends View<Pointer<TView>> {
         return;
       }
 
-      await _highlightOverlayManager!.destroy();
+      // Set to null BEFORE calling destroy to prevent the setRenderTarget
+      // interceptor from redirecting to the already-destroyed EdgeDetectionView
+      final manager = _highlightOverlayManager;
       _highlightOverlayManager = null;
+      await manager!.destroy();
     }
     // Update render order to remove silhouette/overlay views
     await FilamentApp.instance!.updateRenderOrder();
