@@ -1,5 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
@@ -55,6 +56,10 @@ class EdgeDetectionView extends FFIView {
   Texture _mainSceneTexture;
   FFITextureSampler _mainSceneSampler;
 
+  // Linear color grading to avoid double tone-mapping (owned by this class)
+  final ColorGrading _linearColorGrading;
+  final ToneMapper _linearToneMapper;
+
   EdgeDetectionView._(
     super.view, {
     required FFIMaterial material,
@@ -70,6 +75,8 @@ class EdgeDetectionView extends FFIView {
     required Texture silhouetteTexture,
     required Texture mainSceneTexture,
     required FFITextureSampler mainSceneSampler,
+    required ColorGrading linearColorGrading,
+    required ToneMapper linearToneMapper,
   })  : _silhouetteTexture = silhouetteTexture,
         _mainSceneTexture = mainSceneTexture,
         _mainSceneSampler = mainSceneSampler,
@@ -82,7 +89,9 @@ class EdgeDetectionView extends FFIView {
         _quadVB = quadVB,
         _quadIB = quadIB,
         _fullscreenQuadEntity = fullscreenQuadEntity,
-        _edgeSampler = edgeSampler;
+        _edgeSampler = edgeSampler,
+        _linearColorGrading = linearColorGrading,
+        _linearToneMapper = linearToneMapper;
 
   /// Creates and initializes a new [EdgeDetectionView].
   static Future<EdgeDetectionView> create({
@@ -203,6 +212,17 @@ class EdgeDetectionView extends FFIView {
     // Add to scene
     await edgeScene.addEntity(fullscreenQuadEntity);
 
+    // Create linear tone mapper and color grading to avoid double tone-mapping.
+    // In composite mode, the main scene texture is already tone-mapped, so we
+    // use a pass-through (linear) tone mapper to preserve colors while still
+    // benefiting from other post-processing effects (anti-aliasing, dithering).
+    final linearToneMapper = await ToneMapper.linear();
+    final colorGradingBuilder = FFIColorGradingBuilder(
+        await withPointerCallback<TColorGradingBuilder>(
+            (cb) => ColorGradingBuilder_createRenderThread(cb)));
+    colorGradingBuilder.toneMapper(linearToneMapper);
+    final linearColorGrading = await colorGradingBuilder.build();
+
     // Create the EdgeDetectionView with all resources
     final edgeDetectionView = EdgeDetectionView._(
       viewPtr,
@@ -219,13 +239,19 @@ class EdgeDetectionView extends FFIView {
       silhouetteTexture: silhouetteTexture,
       mainSceneTexture: defaultMainSceneTexture,
       mainSceneSampler: mainSceneSampler,
+      linearColorGrading: linearColorGrading,
+      linearToneMapper: linearToneMapper,
     );
 
     // Configure view (renders to swap chain by default)
     await edgeDetectionView.setScene(edgeScene);
     await edgeDetectionView.setCamera(camera);
     await edgeDetectionView.setViewport(width, height);
+    // Post-processing enabled with linear tone mapping: in composite mode the main
+    // scene texture is already tone-mapped, so we use a pass-through tone mapper
+    // to preserve colors while still benefiting from anti-aliasing and dithering.
     await edgeDetectionView.setPostProcessing(true);
+    await edgeDetectionView.setColorGrading(linearColorGrading);
     await edgeDetectionView.setShadowsEnabled(false);
     await edgeDetectionView.setFrustumCullingEnabled(false);
 
@@ -334,6 +360,11 @@ class EdgeDetectionView extends FFIView {
 
     // Destroy material
     await _edgeMaterial.destroy();
+
+    // Clear color grading before destroying (must be done before view destruction)
+    await setColorGrading(null);
+    await (_linearColorGrading as FFIColorGrading).dispose();
+    await _linearToneMapper.dispose();
 
     // Destroy the underlying view
     await super.destroy();

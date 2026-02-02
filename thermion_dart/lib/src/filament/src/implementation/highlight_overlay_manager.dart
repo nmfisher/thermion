@@ -145,7 +145,8 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       silhouetteTexture: silhouetteView.colorTexture,
     );
 
-    await edgeDetectionView.setPostProcessing(true);
+    // Post-processing is disabled on EdgeDetectionView (see edge_detection_view.dart)
+    // to avoid double tone-mapping in composite mode.
     await edgeDetectionView.setAntiAliasing(false, true, false);
 
     // Wire up texture resize callback so EdgeDetectionView gets notified
