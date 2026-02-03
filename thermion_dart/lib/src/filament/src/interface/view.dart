@@ -300,7 +300,7 @@ abstract class View<T> extends NativeHandle<T> {
   Future setViewport(int width, int height);
   Future<RenderTarget?> getRenderTarget();
   Future setRenderTarget(covariant RenderTarget? renderTarget);
-  Future setCamera(covariant Camera camera);
+  Future setCamera(Camera? camera);
   Future<Camera> getCamera();
   Future setPostProcessing(bool enabled);
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);

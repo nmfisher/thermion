@@ -279,7 +279,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   }
 
   Future destroy() async {
-    Engine_destroyCamera(FilamentApp.instance!.engine, camera);
+    await withVoidCallback((requestId, cb) =>
+        Engine_destroyCameraRenderThread(
+            FilamentApp.instance!.engine, camera, requestId, cb));
   }
 
   Future setExposure(

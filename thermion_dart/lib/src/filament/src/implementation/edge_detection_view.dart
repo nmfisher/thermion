@@ -1,5 +1,4 @@
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
@@ -7,6 +6,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -34,10 +34,9 @@ class EdgeDetectionView extends FFIView {
   final FFIMaterial _edgeMaterial;
 
   // Scene resources (separate from parent's scene)
-  final FFIScene _edgeScene;
+  final Scene _edgeScene;
   final Skybox _skybox;
-  final FFICamera _camera;
-  final ThermionEntity _cameraEntity;
+  final Camera _camera;
 
   // Fullscreen quad resources
   final FFIMaterialInstance _edgeMaterialInstance;
@@ -63,10 +62,9 @@ class EdgeDetectionView extends FFIView {
   EdgeDetectionView._(
     super.view, {
     required FFIMaterial material,
-    required FFIScene scene,
+    required Scene scene,
     required Skybox skybox,
-    required FFICamera camera,
-    required ThermionEntity cameraEntity,
+    required Camera camera,
     required FFIMaterialInstance materialInstance,
     required FFIVertexBuffer quadVB,
     required FFIIndexBuffer quadIB,
@@ -84,7 +82,6 @@ class EdgeDetectionView extends FFIView {
         _edgeScene = scene,
         _skybox = skybox,
         _camera = camera,
-        _cameraEntity = cameraEntity,
         _edgeMaterialInstance = materialInstance,
         _quadVB = quadVB,
         _quadIB = quadIB,
@@ -110,16 +107,13 @@ class EdgeDetectionView extends FFIView {
     final edgeMaterial = FFIMaterial(materialPtr);
 
     // Create scene with transparent skybox
-    final edgeScene = await FilamentApp.instance!.createScene() as FFIScene;
+    final edgeScene = await FilamentApp.instance!.createScene();
     final skybox = await FilamentApp.instance!
         .createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 0.0);
     await edgeScene.setSkybox(skybox);
 
     // Create camera entity with orthographic projection
-    final cameraEntity = await FilamentApp.instance!.createEntity();
-    FilamentApp.instance!.transformManager.createComponent(cameraEntity);
-    final camera = await FilamentApp.instance!
-        .createCamera(targetEntity: cameraEntity) as FFICamera;
+    final camera = await FilamentApp.instance!.createCamera();
     await camera.setProjection(
       Projection.Orthographic,
       -1.0, 1.0, // left, right
@@ -233,7 +227,6 @@ class EdgeDetectionView extends FFIView {
       scene: edgeScene,
       skybox: skybox,
       camera: camera,
-      cameraEntity: cameraEntity,
       materialInstance: edgeMaterialInstance,
       quadVB: quadVB,
       quadIB: quadIB,
@@ -248,7 +241,7 @@ class EdgeDetectionView extends FFIView {
 
     // Configure view (renders to swap chain by default)
     await edgeDetectionView.setScene(edgeScene);
-    await edgeDetectionView.setCamera(camera);
+    await edgeDetectionView._setCamera(camera);
     await edgeDetectionView.setViewport(width, height);
 
     // Disable post-processing entirely: the main scene texture is already
@@ -289,6 +282,15 @@ class EdgeDetectionView extends FFIView {
   /// Internal method to set post-processing during initialization.
   Future _setPostProcessingInternal(bool enabled) {
     return super.setPostProcessing(enabled);
+  }
+
+  @override
+  Future setCamera(Camera? camera) {
+    throw UnsupportedError("Not supported for overlay view");
+  }
+
+  Future _setCamera(Camera? camera) async {
+    await super.setCamera(camera);
   }
 
   @override
@@ -355,6 +357,11 @@ class EdgeDetectionView extends FFIView {
   /// Clean up all resources.
   @override
   Future<void> destroy() async {
+    await super.setRenderTarget(null);
+    await super.setCamera(null);
+
+    View_setScene(this.getNativeHandle(), nullptr);
+
     // Destroy fullscreen quad
     await _edgeScene.removeEntity(_fullscreenQuadEntity);
     await FilamentApp.instance!.destroyEntity(_fullscreenQuadEntity);
@@ -363,17 +370,13 @@ class EdgeDetectionView extends FFIView {
     await _quadVB.destroy();
     await _quadIB.destroy();
 
+    await _edgeScene.setSkybox(null);
+
     // Destroy skybox
     await _skybox.destroy();
 
     // Destroy scene
-    await _edgeScene.destroy();
-
-    // Destroy camera
-    await _camera.destroy();
-
-    FilamentApp.instance!.transformManager.removeComponent(_cameraEntity);
-    await FilamentApp.instance!.destroyEntity(_cameraEntity);
+    await (_edgeScene as FFIScene).destroy();
 
     // Destroy material
     await _edgeMaterial.destroy();
@@ -382,6 +385,9 @@ class EdgeDetectionView extends FFIView {
     await setColorGrading(null);
     await (_linearColorGrading as FFIColorGrading).dispose();
     await _linearToneMapper.dispose();
+
+    // Destroy camera
+    await _camera.destroy();
 
     // Destroy the underlying view
     await super.destroy();

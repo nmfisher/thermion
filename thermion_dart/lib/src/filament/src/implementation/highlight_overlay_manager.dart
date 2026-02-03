@@ -10,7 +10,7 @@ abstract class HighlightOverlayManager {
   View get silhouetteView;
   View get overlayView;
   Future setSwapChain(SwapChain swapChain);
-  Future setCamera(Camera camera);
+  Future setCamera(Camera? camera);
   Future setViewport(int width, int height);
   Future setRenderTarget(View mainView, RenderTarget renderTarget);
   Future destroy();
@@ -220,7 +220,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   }
 
   /// Set the camera for the silhouette view.
-  Future<void> setCamera(Camera camera) async {
+  Future<void> setCamera(Camera? camera) async {
     await silhouetteView.setCamera(camera);
   }
 
@@ -372,10 +372,14 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   ///
   /// See class documentation for the required destruction order.
   Future<void> destroy() async {
+    _logger.info("Destroying highlight overlay");
     await clearHighlights();
+    _logger.info("Cleared highlights");
 
     // Destroy EdgeDetectionView FIRST (destroys material instance, releases texture bindings)
     await overlayView.destroy();
+
+    _logger.info("Destroyed overlay view");
 
     // NOW safe to destroy SilhouetteView (which destroys the silhouette texture)
     await silhouetteView.destroy();

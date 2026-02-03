@@ -49,20 +49,6 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
   bool isGizmoEntity(ThermionEntity entity) => entities.contains(entity);
 
   @override
-  Future removeStencilHighlight() async {
-    throw Exception("Not supported for gizmo");
-  }
-
-  @override
-  Future setStencilHighlight(
-      {double r = 1.0,
-      double g = 0.0,
-      double b = 0.0,
-      int? entityIndex}) async {
-    throw Exception("Not supported for gizmo");
-  }
-
-  @override
   Future pick(int x, int y,
       {Future Function(GizmoPickResultType result, Vector3 coords)?
           handler}) async {

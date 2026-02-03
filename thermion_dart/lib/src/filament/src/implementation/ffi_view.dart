@@ -38,7 +38,8 @@ class FFIView extends View<Pointer<TView>> {
   Future destroy() async {
     _onPickResultHolder.dispose();
 
-    View_setColorGrading(view, nullptr);
+    await withVoidCallback((requestId, cb) =>
+        View_setColorGradingRenderThread(view, nullptr, requestId, cb));
     if (_colorGrading != null && _colorGrading != nullptr) {
       await withVoidCallback((requestId, cb) =>
           Engine_destroyColorGradingRenderThread(
@@ -50,7 +51,8 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setViewport(int width, int height) async {
-    View_setViewport(view, width, height);
+    await withVoidCallback((requestId, cb) =>
+        View_setViewportRenderThread(view, width, height, requestId, cb));
 
     await _highlightOverlayManager?.setViewport(width, height);
   }
@@ -76,17 +78,25 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     if (renderTarget != null) {
-      View_setRenderTarget(view, renderTarget.getNativeHandle());
+      await withVoidCallback((requestId, cb) =>
+          View_setRenderTargetRenderThread(view, renderTarget.getNativeHandle(), requestId, cb));
       this.renderTarget = renderTarget;
     } else {
-      View_setRenderTarget(view, nullptr);
+      await withVoidCallback((requestId, cb) =>
+          View_setRenderTargetRenderThread(view, nullptr, requestId, cb));
       this.renderTarget = null;
     }
   }
 
   @override
-  Future setCamera(Camera camera) async {
-    View_setCamera(view, camera.getNativeHandle());
+  Future setCamera(Camera? camera) async {
+    if (camera == null) {
+      await withVoidCallback((requestId, cb) =>
+          View_setCameraRenderThread(view, nullptr, requestId, cb));
+    } else {
+      await withVoidCallback((requestId, cb) =>
+          View_setCameraRenderThread(view, camera.getNativeHandle(), requestId, cb));
+    }
 
     // Sync the silhouette view's camera with the main view
     await _highlightOverlayManager?.setCamera(camera);
@@ -106,17 +116,20 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    View_setAntiAliasing(view, msaa, fxaa, taa);
+    await withVoidCallback((requestId, cb) =>
+        View_setAntiAliasingRenderThread(view, msaa, fxaa, taa, requestId, cb));
   }
 
   @override
   Future setPostProcessing(bool enabled) async {
-    View_setPostProcessing(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setPostProcessingRenderThread(view, enabled, requestId, cb));
   }
 
   @override
   Future setFrustumCullingEnabled(bool enabled) async {
-    View_setFrustumCullingEnabled(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setFrustumCullingEnabledRenderThread(view, enabled, requestId, cb));
   }
 
   @override
@@ -182,7 +195,8 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
-    return View_setStencilBufferEnabled(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setStencilBufferEnabledRenderThread(view, enabled, requestId, cb));
   }
 
   Future<bool> isStencilBufferEnabled() async {
@@ -190,7 +204,8 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future setDithering(bool enabled) async {
-    View_setDitheringEnabled(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setDitheringEnabledRenderThread(view, enabled, requestId, cb));
   }
 
   Future<bool> isDitheringEnabled() async {
@@ -199,20 +214,24 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderQuality(QualityLevel quality) async {
-    View_setRenderQuality(view, quality.index);
+    await withVoidCallback((requestId, cb) =>
+        View_setRenderQualityRenderThread(view, quality.index, requestId, cb));
   }
 
   Future setScene(Scene scene) async {
-    View_setScene(view, scene.getNativeHandle());
+    await withVoidCallback((requestId, cb) =>
+        View_setSceneRenderThread(view, scene.getNativeHandle(), requestId, cb));
   }
 
   @override
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
-    View_setLayerEnabled(view, layer.value, visible);
+    await withVoidCallback((requestId, cb) =>
+        View_setLayerEnabledRenderThread(view, layer.value, visible, requestId, cb));
   }
 
   Future setBlendMode(BlendMode blendMode) async {
-    View_setBlendMode(view, blendMode.index);
+    await withVoidCallback((requestId, cb) =>
+        View_setBlendModeRenderThread(view, blendMode.index, requestId, cb));
   }
 
   FFIScene? _scene;
@@ -296,7 +315,8 @@ class FFIView extends View<Pointer<TView>> {
     tFogOptions.linearColorG = options.linearColor.g;
     tFogOptions.linearColorB = options.linearColor.b;
     tFogOptions.enabled = options.enabled;
-    View_setFogOptions(this.view, tFogOptions);
+    await withVoidCallback((requestId, cb) =>
+        View_setFogOptionsRenderThread(this.view, tFogOptions, requestId, cb));
   }
 
   @override
@@ -364,7 +384,8 @@ class FFIView extends View<Pointer<TView>> {
     tAmbientOcclusionOptions.ssct.rayCount = options.ssct.rayCount;
     tAmbientOcclusionOptions.ssct.enabled = options.ssct.enabled;
 
-    View_setAmbientOcclusionOptions(view, tAmbientOcclusionOptions);
+    await withVoidCallback((requestId, cb) =>
+        View_setAmbientOcclusionOptionsRenderThread(view, tAmbientOcclusionOptions, requestId, cb));
   }
 
   @override
@@ -405,16 +426,19 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setFrontFaceWindingInverted(bool inverted) async {
-    View_setFrontFaceWindingInverted(view, inverted);
+    await withVoidCallback((requestId, cb) =>
+        View_setFrontFaceWindingInvertedRenderThread(view, inverted, requestId, cb));
   }
 
   Future setShadowsEnabled(bool enabled) async {
-    View_setShadowsEnabled(this.view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setShadowsEnabledRenderThread(this.view, enabled, requestId, cb));
   }
 
   @override
   Future setShadowType(ShadowType shadowType) async {
-    View_setShadowType(view, shadowType.index);
+    await withVoidCallback((requestId, cb) =>
+        View_setShadowTypeRenderThread(view, shadowType.index, requestId, cb));
   }
 
   @override
@@ -428,7 +452,8 @@ class FFIView extends View<Pointer<TView>> {
     final tSoftShadowOptions = StructAllocator.create<TSoftShadowOptions>();
     tSoftShadowOptions.penumbraScale = options.penumbraScale;
     tSoftShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
-    View_setSoftShadowOptions(view, tSoftShadowOptions);
+    await withVoidCallback((requestId, cb) =>
+        View_setSoftShadowOptionsRenderThread(view, tSoftShadowOptions, requestId, cb));
   }
 
   @override
@@ -449,7 +474,8 @@ class FFIView extends View<Pointer<TView>> {
     tVsmShadowOptions.highPrecision = options.highPrecision;
     tVsmShadowOptions.minVarianceScale = options.minVarianceScale;
     tVsmShadowOptions.lightBleedReduction = options.lightBleedReduction;
-    View_setVsmShadowOptions(view, tVsmShadowOptions);
+    await withVoidCallback((requestId, cb) =>
+        View_setVsmShadowOptionsRenderThread(view, tVsmShadowOptions, requestId, cb));
   }
 
   @override
@@ -630,7 +656,8 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future setTransparentPickingEnabled(bool enabled) async {
-    View_setTransparentPickingEnabled(getNativeHandle(), enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setTransparentPickingEnabledRenderThread(getNativeHandle(), enabled, requestId, cb));
   }
 
   Future<bool> isTransparentPickingEnabled() async {
