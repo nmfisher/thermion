@@ -227,8 +227,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroyCamera(TEngine *tEngine, TCamera *tCamera) {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *camera = reinterpret_cast<Camera *>(tCamera);
+            auto &em = utils::EntityManager::get();
             engine->destroyCameraComponent(camera->getEntity());
-            utils::EntityManager::get().destroy(camera->getEntity());
         }
 
         EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)

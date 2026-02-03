@@ -1,5 +1,3 @@
-// ignore_for_file: unused_local_variable
-import 'dart:io';
 import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
@@ -10,10 +8,9 @@ void main() async {
   await testHelper.setup();
 
   test('create and destroy camera', () async {
-    await testHelper.withViewer((viewer) async {
-      final camera = await viewer.createCamera();
-      await camera.destroy();
-    });
+    final camera = await FilamentApp.instance!.createCamera();
+    await FilamentApp.instance!.flush();
+    await camera.destroy();
   });
 
   test('create and destroy camera for target entity', () async {
@@ -175,7 +172,7 @@ void main() async {
       await FilamentApp.instance!.setTransform(
           farCube.entity, Matrix4.translation(Vector3(1.5, 0, -8)));
 
-      await camera.lookAt(Vector3(0, 0, 0), focus: Vector3(0,0,-1));
+      await camera.lookAt(Vector3(0, 0, 0), focus: Vector3(0, 0, -1));
 
       await camera.setProjection(
           Projection.Perspective, -2, 2, -2, 2, 0.1, 100);
