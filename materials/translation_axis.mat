@@ -4,7 +4,7 @@ material {
         {
             type : float3,
             name : origin,
-            precision : high
+            precision : high  // Origin in object space (typically 0,0,0 when positioned via transform)
         },
         {
             type : int,
@@ -61,9 +61,9 @@ fragment {
             color = vec4(1.0, 0.0, 0.0, 1.0);  // Red for X
         } else if (materialParams.axis == 1) {
             // Y axis: vertical plane (rotated 90° around X), line along local Z (world Y) at x=origin.x
-            // After rotation: pos2D.x = world X, pos2D.y = world Y
+            // After rotation: pos2D.x = world X, pos2D.y = local Z = -world Y (sign flip due to rotation)
             dist = abs(pos2D.x - materialParams.origin.x);
-            t = pos2D.y - materialParams.origin.y;
+            t = materialParams.origin.y - pos2D.y;  // Inverted to account for coordinate transform
             color = vec4(0.0, 1.0, 0.0, 1.0);  // Green for Y
         } else if (materialParams.axis == 2) {
             // Z axis: horizontal plane, line along z at x=origin.x
