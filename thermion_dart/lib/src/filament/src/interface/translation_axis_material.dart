@@ -6,18 +6,18 @@ import '../implementation/translation_axis_material.dart';
 ///
 /// The translation axis material renders axis lines for translation gizmos.
 /// Each instance renders a single axis line (X, Y, or Z) originating from
-/// a specified world-space position.
+/// a specified world-space position. Colors are hardcoded: X=red, Y=green, Z=blue.
 class TranslationAxisMaterial {
   /// Creates a translation axis material instance with the specified configuration.
   ///
   /// This material renders axis lines for translation gizmos.
+  /// Colors are hardcoded: X=red, Y=green, Z=blue.
   ///
   /// Parameters:
   /// - [originX], [originY], [originZ]: World-space anchor point
   /// - [axis]: Which axis to render (0=X, 1=Y, 2=Z)
-  /// - [lineWidth]: Line width in world units (default 0.5)
+  /// - [lineWidth]: Line width in world units (default 5.0)
   /// - [lineLength]: Half-length of axis line from origin (default 100.0)
-  /// - [alpha]: Line opacity (default 1.0)
   ///
   /// Returns a configured [MaterialInstance] ready to use.
   ///
@@ -29,9 +29,8 @@ class TranslationAxisMaterial {
   ///   originY: 0.0,
   ///   originZ: 0.0,
   ///   axis: 0, // X-axis
-  ///   lineWidth: 0.5,
+  ///   lineWidth: 5.0,
   ///   lineLength: 100.0,
-  ///   alpha: 1.0,
   /// );
   /// ```
   static Future<MaterialInstance> createMaterialInstance({
@@ -39,9 +38,8 @@ class TranslationAxisMaterial {
     required double originY,
     required double originZ,
     required int axis,
-    double lineWidth = 0.5,
+    double lineWidth = 5.0,
     double lineLength = 100.0,
-    double alpha = 1.0,
   }) {
     return FFITranslationAxisMaterial.createTranslationAxisMaterialInstance(
       originX: originX,
@@ -50,7 +48,6 @@ class TranslationAxisMaterial {
       axis: axis,
       lineWidth: lineWidth,
       lineLength: lineLength,
-      alpha: alpha,
     );
   }
 }

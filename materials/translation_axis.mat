@@ -1,0 +1,86 @@
+material {
+    name : TranslationAxis,
+    parameters : [
+        {
+            type : float3,
+            name : origin,
+            precision : high
+        },
+        {
+            type : int,
+            name : axis
+        },
+        {
+            type : float,
+            name : lineWidth,
+            default : 5.0
+        },
+        {
+            type : float,
+            name : lineLength,
+            default : 100.0
+        }
+    ],
+    requires : [uv0],
+    shadingModel : unlit,
+    blending : opaque,
+    depthWrite : true,
+    depthCulling : true,
+    culling : none,
+    instanced : false,
+    vertexDomain : object,
+    variantFilter : [ dynamicLighting, directionalLighting, shadowReceiver, skinning, ssr, stereo ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Pass the object-space position through UV
+        material.uv0 = getPosition().xz;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec2 pos2D = getUV0();
+        float dist;
+        float t;
+
+        // Default to X axis color
+        vec4 color = vec4(1.0, 0.0, 0.0, 1.0);  // Red
+
+        // Compute screen-space pixel size in world units using derivatives
+        vec3 worldPos = getWorldPosition().xyz;
+        float pixelSize = length(fwidth(worldPos));
+
+        if (materialParams.axis == 0) {
+            // X axis: horizontal plane, line along x at z=origin.z
+            dist = abs(pos2D.y - materialParams.origin.z);
+            t = pos2D.x - materialParams.origin.x;
+            color = vec4(1.0, 0.0, 0.0, 1.0);  // Red for X
+        } else if (materialParams.axis == 1) {
+            // Y axis: vertical plane (rotated 90° around X), line along local Z (world Y) at x=origin.x
+            // After rotation: pos2D.x = world X, pos2D.y = world Y
+            dist = abs(pos2D.x - materialParams.origin.x);
+            t = pos2D.y - materialParams.origin.y;
+            color = vec4(0.0, 1.0, 0.0, 1.0);  // Green for Y
+        } else if (materialParams.axis == 2) {
+            // Z axis: horizontal plane, line along z at x=origin.x
+            dist = abs(pos2D.x - materialParams.origin.x);
+            t = pos2D.y - materialParams.origin.z;
+            color = vec4(0.0, 0.0, 1.0, 1.0);  // Blue for Z
+        } else {
+            discard;
+        }
+
+        // Use 1px screen-space width (pixelSize gives world units per pixel)
+        float halfWidth = pixelSize * materialParams.lineWidth * 0.5;
+
+        if (dist < halfWidth && abs(t) < materialParams.lineLength) {
+            material.baseColor = color;
+        } else {
+            discard;
+        }
+    }
+}

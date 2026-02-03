@@ -33,6 +33,24 @@ void main() async {
     });
   });
 
+  test('set camera to null', () async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .execute((result) async {
+      // Verify camera is initially set
+      final camera = await result.viewer.view.getCamera();
+      expect(camera, isNotNull);
+
+      // Set camera to null - should not throw
+      await result.viewer.view.setCamera(null);
+
+      // Re-set the camera
+      await result.viewer.view.setCamera(camera);
+      final cameraAfter = await result.viewer.view.getCamera();
+      expect(cameraAfter, isNotNull);
+    });
+  });
+
   test('toggle transparent picking', () async {
     await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
@@ -527,8 +545,12 @@ void main() async {
 
       await result.viewer.view.removeStencilHighlight(cube);
 
+      Logger.root.log(Level.ALL, "removed stencil highlight");
+
       // Disable the highlight overlay system
       await result.viewer.view.setHighlightOverlayEnabled(false);
+
+      Logger.root.log(Level.ALL, "disabled highlight overlay");
 
       await FilamentApp.instance!.render();
 

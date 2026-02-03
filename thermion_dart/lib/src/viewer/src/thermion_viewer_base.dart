@@ -249,6 +249,20 @@ abstract class ThermionViewer {
       List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
       List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0]});
 
+  /// Shows or hides a translation axis line overlay.
+  ///
+  /// When [visible] is true, [axis] is required, and either [entity] or [origin] must be provided.
+  /// If [entity] is provided, the axis line is positioned at the entity's current world position.
+  /// If [origin] is provided, it overrides the entity position.
+  /// The line extends [lineLength] in both directions along [axis].
+  /// Colors are hardcoded: X=red, Y=green, Z=blue.
+  Future setTranslationAxisVisibility(bool visible,
+      {ThermionEntity? entity,
+      Vector3? origin,
+      Axis? axis,
+      double lineWidth = 5.0,
+      double lineLength = 500.0});
+
   //
   Future<Camera> createCamera();
 

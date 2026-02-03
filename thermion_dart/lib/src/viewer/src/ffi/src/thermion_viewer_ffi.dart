@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show pi;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
@@ -639,6 +640,85 @@ class ThermionViewerFFI extends ThermionViewer {
         _grid = null;
       }
     }
+  }
+
+  ThermionAsset? _translationAxisAsset;
+  MaterialInstance? _translationAxisMaterial;
+
+  @override
+  Future setTranslationAxisVisibility(bool visible,
+      {ThermionEntity? entity,
+      v64.Vector3? origin,
+      Axis? axis,
+      double lineWidth = 5.0,
+      double lineLength = 500.0}) async {
+    if (visible) {
+      if (axis == null) {
+        throw ArgumentError('axis is required when visible is true');
+      }
+      if (entity == null && origin == null) {
+        throw ArgumentError('either entity or origin must be provided when visible is true');
+      }
+
+      // Get origin from entity's world position if not explicitly provided
+      v64.Vector3 effectiveOrigin;
+      if (origin != null) {
+        effectiveOrigin = origin;
+      } else {
+        final worldTransform = await FilamentApp.instance!.getWorldTransform(entity!);
+        effectiveOrigin = worldTransform.getTranslation();
+      }
+
+      // Remove existing if any
+      await _removeTranslationAxis();
+
+      // Create material
+      final axisInt = switch (axis) {
+        Axis.X => 0,
+        Axis.Y => 1,
+        Axis.Z => 2,
+      };
+
+      _translationAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
+        originX: effectiveOrigin.x,
+        originY: effectiveOrigin.y,
+        originZ: effectiveOrigin.z,
+        axis: axisInt,
+        lineWidth: lineWidth,
+        lineLength: lineLength,
+      );
+
+      // Create plane geometry (without material first, then apply)
+      _translationAxisAsset = await createGeometry(
+        GeometryHelper.plane(width: lineLength * 2, height: lineLength * 2),
+      );
+      await _translationAxisAsset!.setMaterialInstanceAt(_translationAxisMaterial!);
+
+      // Position at origin, with rotation for Y axis
+      v64.Matrix4 transform;
+      if (axis == Axis.Y) {
+        // Rotate plane 90° around X axis to make it vertical (XY plane)
+        final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
+        transform = v64.Matrix4.compose(effectiveOrigin, rotation, v64.Vector3.all(1.0));
+      } else {
+        transform = v64.Matrix4.translation(effectiveOrigin);
+      }
+      await FilamentApp.instance!
+          .setTransform(_translationAxisAsset!.entity, transform);
+    } else {
+      await _removeTranslationAxis();
+    }
+  }
+
+  Future _removeTranslationAxis() async {
+    if (_translationAxisAsset != null) {
+      _assets.remove(_translationAxisAsset!);
+      await scene.remove(_translationAxisAsset!);
+      await FilamentApp.instance!.destroyAsset(_translationAxisAsset!);
+      _translationAxisAsset = null;
+    }
+    _translationAxisMaterial = null;
   }
 
   //
