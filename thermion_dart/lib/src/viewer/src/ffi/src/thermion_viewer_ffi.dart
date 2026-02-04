@@ -667,6 +667,7 @@ class ThermionViewerFFI extends ThermionViewer {
       } else {
         final worldTransform = await FilamentApp.instance!.getWorldTransform(entity!);
         worldPosition = worldTransform.getTranslation();
+        await FilamentApp.instance!.setPriority(entity, 0);
       }
 
       // Remove existing if any
