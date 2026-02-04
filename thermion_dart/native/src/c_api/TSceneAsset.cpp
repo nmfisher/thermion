@@ -10,7 +10,6 @@
 
 #include "scene/GeometrySceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
-#include "scene/GridOverlay.hpp"
 #include "scene/SceneAsset.hpp"
 
 using namespace thermion;
@@ -100,13 +99,6 @@ extern "C"
         return reinterpret_cast<TFilamentAsset *>(filamentAsset);
     }
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial* tMaterial) {
-        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-        auto *material = reinterpret_cast<filament::Material *>(tMaterial);
-        auto *asset = new GridOverlay(*engine, material);
-        return reinterpret_cast<TSceneAsset *>(asset);
-    }
-    
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) { 
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if(asset->isInstance()) {
