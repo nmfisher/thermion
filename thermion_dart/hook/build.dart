@@ -125,7 +125,7 @@ outputDirectory : ${outputDirectory.path}
       "zstd",
       //"mikktspace",
       "geometry",
-      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"]
+      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
     ];
 
     if (targetOS == OS.windows) {
@@ -204,7 +204,8 @@ outputDirectory : ${outputDirectory.path}
         'Foundation',
         'CoreVideo',
         'Cocoa',
-        "Metal",
+        'Metal',
+        'QuartzCore',
       ]);
 
       if (buildMode == BuildMode.debug) {
@@ -351,7 +352,7 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-String _FILAMENT_VERSION = "v1.58.0";
+String _FILAMENT_VERSION = "v1.69.0";
 String _getLibraryUrl(String platform, String mode) {
   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
 }
