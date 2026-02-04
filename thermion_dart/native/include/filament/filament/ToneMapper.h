@@ -45,6 +45,7 @@ namespace filament {
  *   - ACESLegacyToneMapper
  *   - FilmicToneMapper
  *   - PBRNeutralToneMapper
+ *   - GT7ToneMapper
  * - Debug/validation tone mapping operators
  *   - LinearToneMapper
  *   - DisplayRangeToneMapper
@@ -68,6 +69,23 @@ struct UTILS_PUBLIC ToneMapper {
      *         function applied ("linear")
      */
     virtual math::float3 operator()(math::float3 c) const noexcept = 0;
+
+    /**
+     * If true, then this function holds that f(x) = vec3(f(x.r), f(x.g), f(x.b))
+     *
+     * This may be used to indicate that the color grading's LUT only requires a
+     * 1D texture instead of a 3D texture, potentially saving a significant amount
+     * of memory and generation time.
+     */
+    virtual bool isOneDimensional() const noexcept { return false; }
+
+    /**
+     * True if this tonemapper only works in low-dynamic-range.
+     *
+     * This may be used to indicate that the color grading's LUT doesn't need to be
+     * log encoded.
+     */
+    virtual bool isLDR() const noexcept { return false; }
 };
 
 /**
@@ -79,6 +97,8 @@ struct UTILS_PUBLIC LinearToneMapper final : public ToneMapper {
     ~LinearToneMapper() noexcept final;
 
     math::float3 operator()(math::float3 c) const noexcept override;
+    bool isOneDimensional() const noexcept override { return true; }
+    bool isLDR() const noexcept override { return true; }
 };
 
 /**
@@ -91,6 +111,8 @@ struct UTILS_PUBLIC ACESToneMapper final : public ToneMapper {
     ~ACESToneMapper() noexcept final;
 
     math::float3 operator()(math::float3 c) const noexcept override;
+    bool isOneDimensional() const noexcept override { return false; }
+    bool isLDR() const noexcept override { return false; }
 };
 
 /**
@@ -104,6 +126,8 @@ struct UTILS_PUBLIC ACESLegacyToneMapper final : public ToneMapper {
     ~ACESLegacyToneMapper() noexcept final;
 
     math::float3 operator()(math::float3 c) const noexcept override;
+    bool isOneDimensional() const noexcept override { return false; }
+    bool isLDR() const noexcept override { return false; }
 };
 
 /**
@@ -117,6 +141,8 @@ struct UTILS_PUBLIC FilmicToneMapper final : public ToneMapper {
     ~FilmicToneMapper() noexcept final;
 
     math::float3 operator()(math::float3 x) const noexcept override;
+    bool isOneDimensional() const noexcept override { return true; }
+    bool isLDR() const noexcept override { return false; }
 };
 
 /**
@@ -129,6 +155,28 @@ struct UTILS_PUBLIC PBRNeutralToneMapper final : public ToneMapper {
     ~PBRNeutralToneMapper() noexcept final;
 
     math::float3 operator()(math::float3 x) const noexcept override;
+    bool isOneDimensional() const noexcept override { return false; }
+    bool isLDR() const noexcept override { return false; }
+};
+
+/**
+ * Gran Turismo 7 tone mapping operator. This tone mapper was designed
+ * to preserve the appearance of materials across lighting conditions while
+ * avoiding artifacts in the highlights in high dynamic range conditions.
+ * This tone mapper targets an SDR paper white value of 250 nits, with a
+ * reference luminance of 100 cd/m^2 (a value of 1.0 in the HDR framebuffer).
+ */
+struct UTILS_PUBLIC GT7ToneMapper final : public ToneMapper {
+    GT7ToneMapper() noexcept;
+    ~GT7ToneMapper() noexcept final;
+
+    math::float3 operator()(math::float3 x) const noexcept override;
+    bool isOneDimensional() const noexcept override { return false; }
+    bool isLDR() const noexcept override { return false; }
+
+private:
+    struct State;
+    State* mState;
 };
 
 /**
@@ -150,6 +198,8 @@ struct UTILS_PUBLIC AgxToneMapper final : public ToneMapper {
     ~AgxToneMapper() noexcept final;
 
     math::float3 operator()(math::float3 x) const noexcept override;
+    bool isOneDimensional() const noexcept override { return false; }
+    bool isLDR() const noexcept override { return false; }
 
     AgxLook look;
 };
@@ -194,6 +244,8 @@ struct UTILS_PUBLIC GenericToneMapper final : public ToneMapper {
     GenericToneMapper& operator=(GenericToneMapper&& rhs) noexcept;
 
     math::float3 operator()(math::float3 x) const noexcept override;
+    bool isOneDimensional() const noexcept override { return true; }
+    bool isLDR() const noexcept override { return false; }
 
     /** Returns the contrast of the curve as a strictly positive value. */
     float getContrast() const noexcept;
@@ -256,6 +308,8 @@ struct UTILS_PUBLIC DisplayRangeToneMapper final : public ToneMapper {
     ~DisplayRangeToneMapper() noexcept override;
 
     math::float3 operator()(math::float3 c) const noexcept override;
+    bool isOneDimensional() const noexcept override { return false; }
+    bool isLDR() const noexcept override { return false; }
 };
 
 } // namespace filament

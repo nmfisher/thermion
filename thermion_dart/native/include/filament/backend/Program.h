@@ -20,18 +20,20 @@
 #include <utils/CString.h>
 #include <utils/FixedCapacityVector.h>
 #include <utils/Invocable.h>
-#include <utils/ostream.h>
 
 #include <backend/DriverEnums.h>
 
 #include <array>
-#include <unordered_map>
 #include <tuple>
 #include <utility>
 #include <variant>
 
 #include <stddef.h>
 #include <stdint.h>
+
+namespace utils::io {
+class ostream;
+} // namespace utils::io
 
 namespace filament::backend {
 
@@ -44,15 +46,17 @@ public:
 
     struct Descriptor {
         utils::CString name;
-        backend::DescriptorType type;
-        backend::descriptor_binding_t binding;
+        DescriptorType type;
+        descriptor_binding_t binding;
     };
 
-    struct SpecializationConstant {
-        using Type = std::variant<int32_t, float, bool>;
-        uint32_t id;    // id set in glsl
-        Type value;     // value and type
+    struct DescriptorSetLayoutBinding {
+        descriptor_set_t set;
+        DescriptorSetLayout layout;
     };
+
+    using SpecializationConstant = std::variant<int32_t, float, bool>;
+    using DescriptorSetLayoutArray = utils::FixedCapacityVector<DescriptorSetLayoutBinding>;
 
     struct Uniform { // For ES2 support
         utils::CString name;    // full qualified name of the uniform field
@@ -78,7 +82,7 @@ public:
     Program& operator=(const Program& rhs) = delete;
 
     Program(Program&& rhs) noexcept;
-    Program& operator=(Program&& rhs) noexcept = delete;
+    Program& operator=(Program&& rhs) noexcept;
 
     ~Program() noexcept;
 
@@ -86,7 +90,8 @@ public:
 
     // sets the material name and variant for diagnostic purposes only
     Program& diagnostics(utils::CString const& name,
-            utils::Invocable<utils::io::ostream&(utils::io::ostream& out)>&& logger);
+            utils::Invocable<utils::io::ostream&(utils::CString const& name,
+                    utils::io::ostream& out)>&& logger);
 
     // Sets one of the program's shader (e.g. vertex, fragment)
     // string-based shaders are null terminated, consequently the size parameter must include the
@@ -115,7 +120,7 @@ public:
     Program& multiview(bool multiview) noexcept;
 
     // For ES2 support only...
-    Program& uniforms(uint32_t index, utils::CString name, UniformInfo uniforms) noexcept;
+    Program& uniforms(uint32_t index, utils::CString name, UniformInfo uniforms);
     Program& attributes(AttributesInfo attributes) noexcept;
 
     //
@@ -148,6 +153,19 @@ public:
         return mDescriptorBindings;
     }
 
+    inline Program& descriptorLayout(backend::descriptor_set_t set,
+            DescriptorSetLayout descriptorLayout) noexcept {
+        mDescriptorLayouts.push_back({
+            .set = set,
+            .layout = std::move(descriptorLayout),
+        });
+        return *this;
+    }
+
+    const DescriptorSetLayoutArray& getDescriptorSetLayouts() const noexcept {
+        return mDescriptorLayouts;
+    }
+
     utils::FixedCapacityVector<PushConstant> const& getPushConstants(
             ShaderStage stage) const noexcept {
         return mPushConstants[static_cast<uint8_t>(stage)];
@@ -171,10 +189,16 @@ private:
     utils::CString mName;
     uint64_t mCacheId{};
     CompilerPriorityQueue mPriorityQueue = CompilerPriorityQueue::HIGH;
-    utils::Invocable<utils::io::ostream&(utils::io::ostream& out)> mLogger;
+    utils::Invocable<utils::io::ostream&(utils::CString const& name, utils::io::ostream& out)>
+            mLogger;
     SpecializationConstantsInfo mSpecializationConstants;
     std::array<utils::FixedCapacityVector<PushConstant>, SHADER_TYPE_COUNT> mPushConstants;
     DescriptorSetInfo mDescriptorBindings;
+
+    // Descriptions for descriptor set layouts that may be used for this Program, which
+    // can be useful for attempting to compile the pipeline ahead of time.
+    DescriptorSetLayoutArray mDescriptorLayouts =
+        DescriptorSetLayoutArray::with_capacity(MAX_DESCRIPTOR_SET_COUNT);
 
     // For ES2 support only
     AttributesInfo mAttributes;

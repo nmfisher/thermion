@@ -45,6 +45,7 @@ enum UTILS_PUBLIC ChunkType : uint64_t {
     MaterialEssl1 = charTo64bitNum("MAT_ESS1"),
     MaterialSpirv = charTo64bitNum("MAT_SPIR"),
     MaterialMetal = charTo64bitNum("MAT_METL"),
+    MaterialWgsl = charTo64bitNum("MAT_WGSL"),
     MaterialMetalLibrary = charTo64bitNum("MAT_MLIB"),
     MaterialShaderModels = charTo64bitNum("MAT_SMDL"),
     MaterialBindingUniformInfo = charTo64bitNum("MAT_UFRM"),
@@ -57,6 +58,7 @@ enum UTILS_PUBLIC ChunkType : uint64_t {
 
     MaterialName = charTo64bitNum("MAT_NAME"),
     MaterialVersion = charTo64bitNum("MAT_VERS"),
+    MaterialCompilationParameters = charTo64bitNum("MAT_CPRM"),
     MaterialCacheId = charTo64bitNum("MAT_UUID"),
     MaterialFeatureLevel = charTo64bitNum("MAT_FEAT"),
     MaterialShading = charTo64bitNum("MAT_SHAD"),
@@ -97,6 +99,10 @@ enum UTILS_PUBLIC ChunkType : uint64_t {
     DictionaryText = charTo64bitNum("DIC_TEXT"),
     DictionarySpirv = charTo64bitNum("DIC_SPIR"),
     DictionaryMetalLibrary = charTo64bitNum("DIC_MLIB"),
+
+    MaterialCrc32 = charTo64bitNum("MAT_CRC "),
+
+    MaterialSource = charTo64bitNum("MAT_SRC "),
 };
 
 } // namespace filamat
