@@ -19,7 +19,7 @@
 
 #include <filament/FilamentAPI.h>
 #include <filament/Color.h>
-
+#include <filament/Engine.h>
 #include <filament/MaterialEnums.h>
 
 #include <backend/DriverEnums.h>
@@ -42,6 +42,13 @@ class TextureSampler;
 class UniformBuffer;
 class BufferInterfaceBlock;
 
+/**
+ * A MaterialInstance represents a specific instance of a Material.
+ *
+ * While a Material defines the shader code and the set of parameters, a MaterialInstance
+ * holds the specific values for those parameters.
+ *
+ */
 class UTILS_PUBLIC MaterialInstance : public FilamentAPI {
     template<size_t N>
     using StringLiteralHelper = const char[N];
@@ -57,7 +64,8 @@ class UTILS_PUBLIC MaterialInstance : public FilamentAPI {
 
 public:
     using CullingMode = backend::CullingMode;
-    using TransparencyMode = TransparencyMode;
+    // ReSharper disable once CppRedundantQualifier
+    using TransparencyMode = filament::TransparencyMode;
     using DepthFunc = backend::SamplerCompareFunc;
     using StencilCompareFunc = backend::SamplerCompareFunc;
     using StencilOperation = backend::StencilOperation;
@@ -110,6 +118,13 @@ public:
 
     /**
      * Set a uniform by name
+     *
+     * Supported types:
+     * - float, float2, float3, float4
+     * - int, int2, int3, int4
+     * - uint, uint2, uint3, uint4
+     * - bool, bool2, bool3, bool4
+     * - mat3f, mat4f
      *
      * @param name          Name of the parameter as defined by Material. Cannot be nullptr.
      * @param nameLength    Length in `char` of the name parameter.
@@ -528,6 +543,13 @@ public:
      */
     void setStencilWriteMask(uint8_t writeMask,
             StencilFace face = StencilFace::FRONT_AND_BACK) noexcept;
+
+    /**
+     * PostProcess and compute domain material instance must be commited manually. This call has
+     * no effect on surface domain materials.
+     * @param engine Filament engine
+     */
+    void commit(Engine& engine) const;
 
 protected:
     // prevent heap allocation

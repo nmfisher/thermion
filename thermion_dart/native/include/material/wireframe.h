@@ -7,11 +7,12 @@
 extern "C" {
 #endif
     extern const uint8_t WIREFRAME_PACKAGE[];
-    extern int WIREFRAME_WIREFRAME_OFFSET;
-    extern int WIREFRAME_WIREFRAME_SIZE;
 #ifdef __cplusplus
 }
 #endif
+
+#define WIREFRAME_WIREFRAME_OFFSET 0
+#define WIREFRAME_WIREFRAME_SIZE 80815
 #define WIREFRAME_WIREFRAME_DATA (WIREFRAME_PACKAGE + WIREFRAME_WIREFRAME_OFFSET)
 
 #endif

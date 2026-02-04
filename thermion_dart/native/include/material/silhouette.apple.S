@@ -1,12 +1,6 @@
-    .global _SILHOUETTE_SILHOUETTE_OFFSET;
-    .global _SILHOUETTE_SILHOUETTE_SIZE;
 
     .global _SILHOUETTE_PACKAGE
     .section __TEXT,__const
 _SILHOUETTE_PACKAGE:
     .incbin "silhouette.bin"
-_SILHOUETTE_SILHOUETTE_OFFSET:
-    .int 0
-_SILHOUETTE_SILHOUETTE_SIZE:
-    .int 144270
 
