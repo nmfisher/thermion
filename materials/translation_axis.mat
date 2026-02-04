@@ -23,7 +23,7 @@ material {
     ],
     requires : [uv0],
     shadingModel : unlit,
-    blending : opaque,
+    blending : transparent,
     depthWrite : true,
     depthCulling : true,
     culling : none,
@@ -40,6 +40,13 @@ vertex {
 }
 
 fragment {
+    // Antialiasing constants (from grid.mat)
+    #define _1_DIV_SQRTPI 0.5641895835477563
+    #define RADIUS (_1_DIV_SQRTPI * 1.05)
+    #define GRID_START (0.5 + RADIUS)
+    #define GRID_END (0.5 - RADIUS)
+    #define GRID_STEP(dist) smoothstep(GRID_START, GRID_END, dist)
+
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
@@ -74,13 +81,27 @@ fragment {
             discard;
         }
 
-        // Use 1px screen-space width (pixelSize gives world units per pixel)
+        // Use screen-space width for antialiasing
         float halfWidth = pixelSize * materialParams.lineWidth * 0.5;
 
-        if (dist < halfWidth && abs(t) < materialParams.lineLength) {
-            material.baseColor = color;
-        } else {
+        // Hard cutoff for length
+        if (abs(t) > materialParams.lineLength) {
             discard;
         }
+
+        // Hard cutoff with a small margin for antialiasing (2-3 pixels beyond the line edge)
+        float aaMargin = pixelSize * 2.0;
+        if (dist > halfWidth + aaMargin) {
+            discard;
+        }
+
+        // Normalize distance by pixel size for smooth antialiasing
+        float normalizedDist = dist / pixelSize;
+        float normalizedHalfWidth = halfWidth / pixelSize;
+
+        // Apply smoothstep for antialiased edges
+        float alpha = GRID_STEP(normalizedDist - normalizedHalfWidth);
+
+        material.baseColor = vec4(color.rgb * alpha, alpha);
     }
 }
