@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(thermion_dart VERSION 1.0.0 LANGUAGES CXX C)
 
 # Configuration variables
-set(FILAMENT_VERSION "v1.58.0")
+set(FILAMENT_VERSION "v1.69.0")
 set(PACKAGE_NAME "thermion_dart")
 set(PLATFORM "macos")
 
@@ -65,10 +65,17 @@ add_library(thermion_dart SHARED
     ${DART_API_SOURCES}
 )
 
-# Include directories
-target_include_directories(thermion_dart PRIVATE 
+# Include directories - select debug or release Filament headers based on build type
+# Headers are under filament/debug or filament/release so includes like <filament/SomeHeader.h> work
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(FILAMENT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/filament/debug")
+else()
+  set(FILAMENT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/filament/release")
+endif()
+
+target_include_directories(thermion_dart PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/filament"
+    "${FILAMENT_INCLUDE_DIR}"
 )
 
 # Set the output name of the library
@@ -78,8 +85,12 @@ set_target_properties(thermion_dart PROPERTIES
     SUFFIX ".dylib"
 )
 
-# Filament libraries path
-set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/debug")
+# Filament libraries path - select debug or release based on build type
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/debug")
+else()
+  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/release")
+endif()
 
 # Link libraries
 target_link_directories(thermion_dart PRIVATE ${FILAMENT_LIB_DIR})
