@@ -77,7 +77,7 @@ void main() async {
         .setBackgroundColor(kBlue)
         .setCameraLookAt(Vector3(0, 0, 0), focus: Vector3(0, 0, -1))
         .execute((result) async {
-      var material = await testHelper.loadViewSpaceMateral();
+      var material = await testHelper.loadViewSpaceMaterial();
       await material.setCullingMode(CullingMode.NONE);
       var geo = await Geometry(
           Float32List.fromList([-1, -1, -15, 1, -1, -15, 1, 1, -15]),
