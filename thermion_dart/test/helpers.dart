@@ -107,15 +107,19 @@ class TestHelper {
     return texture;
   }
 
-  Future<MaterialInstance> loadViewSpaceMateral() async {
+  Future<MaterialInstance> loadViewSpaceMaterial() async {
+    final packageUri = findPackageRoot('thermion_dart').toFilePath();
+    final assetsDir = Directory("${packageUri}/../examples/assets").path;
     final material = await FilamentApp.instance!.createMaterial(
-        await File("${testDir}/assets/viewspace.filamat").readAsBytesSync());
+        await File("${assetsDir}/viewspace.filamat").readAsBytesSync());
     return material.createInstance();
   }
 
   Future<MaterialInstance> loadCustomAttributeMaterial() async {
+    final packageUri = findPackageRoot('thermion_dart').toFilePath();
+    final assetsDir = Directory("${packageUri}/../examples/assets").path;
     final material = await FilamentApp.instance!.createMaterial(
-        await File("${testDir}/assets/customattributes.filamat")
+        await File("${assetsDir}/customattributes.filamat")
             .readAsBytesSync());
     return material.createInstance();
   }
@@ -150,8 +154,10 @@ class TestHelper {
     required double b,
     double a = 1.0,
   }) async {
+    final packageUri = findPackageRoot('thermion_dart').toFilePath();
+    final assetsDir = Directory("${packageUri}/../examples/assets").path;
     final material = await FilamentApp.instance!.createMaterial(
-      File("${testDir}/assets/solidcolor.filamat").readAsBytesSync(),
+      File("${assetsDir}/solidcolor.filamat").readAsBytesSync(),
     );
     final instance = await material.createInstance();
     await instance.setParameterFloat4("color", r, g, b, a);
