@@ -9,6 +9,8 @@
 
 #include <gltfio/Animator.h>
 
+#include <utils/Panic.h>
+
 #include "Log.hpp"
 
 #include "scene/AnimationManager.hpp"
