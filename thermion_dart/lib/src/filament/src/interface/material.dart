@@ -76,6 +76,32 @@ enum StencilFace {
 
 enum AlphaMode { OPAQUE, MASK, BLEND }
 
+enum BlendingMode {
+  /// Material is opaque
+  OPAQUE,
+
+  /// Material is transparent and color is alpha-pre-multiplied, affects diffuse lighting only
+  TRANSPARENT,
+
+  /// Material is additive (e.g.: hologram)
+  ADD,
+
+  /// Material is masked (i.e. alpha tested)
+  MASKED,
+
+  /// Material is transparent and color is alpha-pre-multiplied, affects specular lighting
+  FADE,
+
+  /// Material darkens what's behind it
+  MULTIPLY,
+
+  /// Material brightens what's behind it
+  SCREEN,
+
+  /// Custom blending function
+  CUSTOM
+}
+
 enum TransparencyMode {
   //! the transparent object is drawn honoring the raster state
   DEFAULT,
@@ -96,6 +122,7 @@ enum TransparencyMode {
 abstract class Material<T> extends NativeHandle<T> {
   Future<MaterialInstance> createInstance();
   Future<bool> hasParameter(String propertyName);
+  Future<BlendingMode> getBlendingMode();
   Future destroy();
 }
 
@@ -147,6 +174,7 @@ abstract class MaterialInstance<T> extends NativeHandle<T> {
   Future setStencilWriteMask(int mask);
 
   Future setTransparencyMode(TransparencyMode mode);
+  Future<TransparencyMode> getTransparencyMode();
 
   Future destroy();
 }

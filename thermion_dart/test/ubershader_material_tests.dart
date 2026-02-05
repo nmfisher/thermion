@@ -168,4 +168,32 @@ void main() async {
       await texture.dispose();
     });
   });
+
+  test('getTransparencyMode', () async {
+    await testHelper.withViewer((viewer) async {
+      var materialInstance =
+          await FilamentApp.instance!.createUbershaderMaterialInstance();
+
+      // Default transparency mode should be DEFAULT
+      var mode = await materialInstance.getTransparencyMode();
+      expect(mode, TransparencyMode.DEFAULT);
+
+      // Set to TWO_PASSES_ONE_SIDE
+      await materialInstance.setTransparencyMode(TransparencyMode.TWO_PASSES_ONE_SIDE);
+      mode = await materialInstance.getTransparencyMode();
+      expect(mode, TransparencyMode.TWO_PASSES_ONE_SIDE);
+
+      // Set to TWO_PASSES_TWO_SIDES
+      await materialInstance.setTransparencyMode(TransparencyMode.TWO_PASSES_TWO_SIDES);
+      mode = await materialInstance.getTransparencyMode();
+      expect(mode, TransparencyMode.TWO_PASSES_TWO_SIDES);
+
+      // Set back to DEFAULT
+      await materialInstance.setTransparencyMode(TransparencyMode.DEFAULT);
+      mode = await materialInstance.getTransparencyMode();
+      expect(mode, TransparencyMode.DEFAULT);
+
+      await materialInstance.destroy();
+    });
+  });
 }

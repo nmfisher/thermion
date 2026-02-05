@@ -54,7 +54,7 @@ extern "C"
 	};
 	typedef enum TCullingMode TCullingMode;
 
-	enum TTransparencyMode { 
+	enum TTransparencyMode {
 		//! the transparent object is drawn honoring the raster state
 		DEFAULT,
 		/**
@@ -71,6 +71,18 @@ extern "C"
 		TWO_PASSES_TWO_SIDES
 	};
 	typedef enum TTransparencyMode TTransparencyMode;
+
+	enum TBlendingMode {
+		BLENDING_MODE_OPAQUE = 0,
+		BLENDING_MODE_TRANSPARENT,
+		BLENDING_MODE_ADD,
+		BLENDING_MODE_MASKED,
+		BLENDING_MODE_FADE,
+		BLENDING_MODE_MULTIPLY,
+		BLENDING_MODE_SCREEN,
+		BLENDING_MODE_CUSTOM
+	};
+	typedef enum TBlendingMode TBlendingMode;
 
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial);
 	EMSCRIPTEN_KEEPALIVE TFeatureLevel Material_getFeatureLevel(TMaterial *tMaterial);
@@ -137,6 +149,10 @@ extern "C"
             TMaterialInstance *materialInstance,
             TTransparencyMode transparencyMode);
 
+	EMSCRIPTEN_KEEPALIVE TTransparencyMode MaterialInstance_getTransparencyMode(
+            TMaterialInstance *materialInstance);
+
+	EMSCRIPTEN_KEEPALIVE TBlendingMode Material_getBlendingMode(TMaterial *material);
 
 #ifdef __cplusplus
 }

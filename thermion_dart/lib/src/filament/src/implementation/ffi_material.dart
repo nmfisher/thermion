@@ -29,6 +29,11 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
   }
 
   @override
+  Future<BlendingMode> getBlendingMode() async {
+    return BlendingMode.values[Material_getBlendingMode(pointer)];
+  }
+
+  @override
   Pointer<TMaterial> getNativeHandle() {
     return pointer;
   }
@@ -185,6 +190,11 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   @override
   Future setTransparencyMode(TransparencyMode mode) async {
     MaterialInstance_setTransparencyMode(pointer, mode.index);
+  }
+
+  @override
+  Future<TransparencyMode> getTransparencyMode() async {
+    return TransparencyMode.values[MaterialInstance_getTransparencyMode(pointer)];
   }
 
   @override
