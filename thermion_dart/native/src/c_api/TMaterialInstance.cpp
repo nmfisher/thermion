@@ -298,6 +298,21 @@ namespace thermion
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
             instance->setTransparencyMode((filament::TransparencyMode)transparencyMode);
         }
+
+        EMSCRIPTEN_KEEPALIVE TTransparencyMode MaterialInstance_getTransparencyMode(
+            TMaterialInstance *tMaterialInstance)
+        {
+            auto *instance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            auto transparencyMode = instance->getTransparencyMode();
+            return static_cast<TTransparencyMode>(transparencyMode);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TBlendingMode Material_getBlendingMode(TMaterial *tMaterial)
+        {
+            auto *material = reinterpret_cast<filament::Material *>(tMaterial);
+            auto blendingMode = material->getBlendingMode();
+            return static_cast<TBlendingMode>(blendingMode);
+        }
 #ifdef __cplusplus
     }
 }
