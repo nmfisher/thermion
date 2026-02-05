@@ -149,10 +149,17 @@ outputDirectory : ${outputDirectory.path}
 
     final flags = <String>[]; //"-fsanitize=address"];
 
+
     // Collect include directories including plugin includes
+    // Use debug or release Filament headers based on build mode
+    // Headers are under filament/debug or filament/release so includes like <filament/SomeHeader.h> work
+    final filamentIncludeDir = buildMode == BuildMode.debug
+        ? [
+          'native/include/filament/debug', 'native/include/filament/debug/filament']
+        : ['native/include/filament/release', 'native/include/filament/release/filament'];
     final includeDirs = <String>[
       'native/include',
-      'native/include/filament',
+      ...filamentIncludeDir,
     ];
 
     // Process plugins after flags and includeDirs are declared
@@ -251,7 +258,7 @@ outputDirectory : ${outputDirectory.path}
         ],
         if (platform == "windows") ...[
           "/I${path.join(pkgRootFilePath, "native", "include")}",
-          "/I${path.join(pkgRootFilePath, "native", "include", "filament")}",
+          ...filamentIncludeDir.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
           "/I${path.join(pkgRootFilePath, "native", "include", "windows", "vulkan")}",
           "@${srcs.uri.toFilePath(windows: true)}",
           // ...sources,
