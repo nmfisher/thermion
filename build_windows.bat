@@ -88,13 +88,13 @@ if "!BUILD_DEBUG!"=="true" if exist "%TARGET_DEBUG_DIR%" (
   )
 )
 
-REM Change to Filament directory and checkout tag
+REM Change to Filament directory and checkout branch
 cd /d "%FILAMENT_BASE_DIR%" || exit /b 1
 git stash
 git reset --hard
-echo Checking out tag: %FILAMENT_VERSION%
-git checkout "%FILAMENT_VERSION%" || (
-  echo Error: Failed to checkout tag: %FILAMENT_VERSION%
+echo Checking out branch: thermion-custom-build
+git checkout thermion-custom-build || (
+  echo Error: Failed to checkout branch: thermion-custom-build
   exit /b 1
 )
 
