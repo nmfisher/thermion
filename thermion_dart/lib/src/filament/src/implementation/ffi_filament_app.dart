@@ -1211,6 +1211,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     bufferCount++; // Always include UV0
+    bufferCount++; // Always include UV1 (ubershader requires two UV sets)
     bufferCount++; // Always include COLOR
 
     if (geometry.hasAttribute0) {
@@ -1237,6 +1238,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         VertexAttribute.UV0, currentBufferIndex, VertexAttributeType.FLOAT2);
     currentBufferIndex++;
 
+    // UV1 attribute (ubershader requires two UV sets)
+    vertexBufferBuilder.attribute(
+        VertexAttribute.UV1, currentBufferIndex, VertexAttributeType.FLOAT2);
+    currentBufferIndex++;
+
     // COLOR attribute (always present like the native C++ code)
     vertexBufferBuilder.attribute(
         VertexAttribute.COLOR, currentBufferIndex, VertexAttributeType.FLOAT4);
@@ -1261,17 +1267,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       currentBufferIndex++;
     }
 
-    // Set UV data (always present, use zeros if not provided)
+    // Set UV0 data (always present, use zeros if not provided)
     if (geometry.uvs.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.uvs);
     }
+    currentBufferIndex++;
 
+    // Set UV1 data (always present for ubershader compatibility)
+    if (geometry.uvs1.length > 0) {
+      await vertexBuffer.setBufferAt(currentBufferIndex, geometry.uvs1);
+    }
     currentBufferIndex++;
 
     if (geometry.colors.length > 0) {
       await vertexBuffer.setBufferAt(currentBufferIndex, geometry.colors);
     }
-
     currentBufferIndex++;
 
     if (geometry.hasAttribute0) {
