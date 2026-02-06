@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Prevent macOS ._* resource fork files in copies and zips
+export COPYFILE_DISABLE=1
+
 # Save script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -529,8 +532,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug headers copied to: $THERMION_INCLUDE_DEBUG"
 fi
 
-# Create zip files (COPYFILE_DISABLE prevents macOS ._* resource fork files)
-export COPYFILE_DISABLE=1
+# Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
