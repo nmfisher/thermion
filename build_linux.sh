@@ -90,13 +90,13 @@ if [ "$BUILD_DEBUG" = true ] && [ -d "$TARGET_DEBUG_DIR" ]; then
   fi
 fi
 
-# Change to Filament directory and checkout tag
+# Change to Filament directory and checkout branch
 cd "$FILAMENT_BASE_DIR" || exit 1
 git stash
 git reset --hard
-echo "Checking out tag: $FILAMENT_VERSION"
-git checkout "${FILAMENT_VERSION}" || {
-  echo "Error: Failed to checkout tag: $FILAMENT_VERSION"
+echo "Checking out branch: thermion-custom-build"
+git checkout thermion-custom-build || {
+  echo "Error: Failed to checkout branch: thermion-custom-build"
   exit 1
 }
 
@@ -114,6 +114,10 @@ else
     echo "Warning: Failed to patch basisu CMakeLists.txt"
   }
 fi
+
+# Set compiler to clang
+export CC=clang
+export CXX=clang++
 
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
