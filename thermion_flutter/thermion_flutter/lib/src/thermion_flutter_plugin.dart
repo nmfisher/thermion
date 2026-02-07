@@ -39,6 +39,10 @@ abstract class ThermionFlutterPlugin {
     int height,
   );
 
+  // Destroy any platform resources (swapchains, render targets) bound to a view.
+  // Called when the widget displaying this view is disposed.
+  Future<void> destroyViewResources(View view);
+
   static Future<ThermionViewer> createViewer(
       {bool destroySwapchain = true}) async {
     _logger.finest("Creating viewer");
@@ -54,6 +58,11 @@ abstract class ThermionFlutterPlugin {
       await FilamentApp.instance!.setRenderOrder(swapChain, viewer.view, renderOrder: 0);
       _logger.finest("Swapchain registered");
     }
+
+    // Allow rendering now that the new view is registered.
+    // The native render list has been updated with the new view via
+    // setRenderOrder → updateRenderOrder → RenderManager_setRenderableRenderThread.
+    ThermionFlutterPluginImpl.viewerCreating = false;
 
     return viewer;
   }

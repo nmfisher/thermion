@@ -159,4 +159,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     resizeWebCanvas(width, height);
     return descriptor;
   }
+
+  @override
+  Future<void> destroyViewResources(View view) async {
+    // No-op on web
+  }
 }

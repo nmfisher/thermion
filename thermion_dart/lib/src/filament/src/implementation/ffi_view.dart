@@ -218,9 +218,9 @@ class FFIView extends View<Pointer<TView>> {
         View_setRenderQualityRenderThread(view, quality.index, requestId, cb));
   }
 
-  Future setScene(Scene scene) async {
+  Future setScene(Scene? scene) async {
     await withVoidCallback((requestId, cb) =>
-        View_setSceneRenderThread(view, scene.getNativeHandle(), requestId, cb));
+        View_setSceneRenderThread(view, scene?.getNativeHandle() ?? nullptr, requestId, cb));
   }
 
   @override

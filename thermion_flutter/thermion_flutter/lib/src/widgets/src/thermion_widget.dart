@@ -86,6 +86,9 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _texture?.destroy();
+    _texture = null;
+    ThermionFlutterPlugin.instance.destroyViewResources(widget.view);
     super.dispose();
   }
 

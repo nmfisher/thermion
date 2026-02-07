@@ -360,7 +360,7 @@ class EdgeDetectionView extends FFIView {
     await super.setRenderTarget(null);
     await super.setCamera(null);
 
-    View_setScene(this.getNativeHandle(), nullptr);
+    await super.setScene(null);
 
     // Destroy fullscreen quad
     await _edgeScene.removeEntity(_fullscreenQuadEntity);

@@ -30,6 +30,8 @@ target_link_directories(${PLUGIN_NAME} PRIVATE "${NATIVE_ASSETS_DIR}")
 set_property(TARGET ${PLUGIN_NAME} APPEND PROPERTY
   INTERFACE_LINK_OPTIONS "-Wl,--allow-shlib-undefined")
 
+target_compile_options(${PLUGIN_NAME} PRIVATE -stdlib=libc++)
+target_link_options(${PLUGIN_NAME} PRIVATE -nostdlib++ -l:libc++.a -l:libc++abi.a)
 target_link_libraries(${PLUGIN_NAME} PRIVATE
   flutter
   PkgConfig::GTK

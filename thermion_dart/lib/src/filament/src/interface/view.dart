@@ -288,7 +288,7 @@ abstract class View<T> extends NativeHandle<T> {
   /// Sets the scene currently associated with this View.
   ///
   ///
-  Future setScene(Scene scene);
+  Future setScene(Scene? scene);
 
   // Sets the (debug) name for this View.
   Future setName(String name);

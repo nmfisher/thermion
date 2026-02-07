@@ -110,6 +110,10 @@ class ThermionLinuxVulkanContext::Impl {
 
         void DestroyRenderingSurface(int64_t surfaceId) {
             std::cerr << "Destroying rendering surface " << surfaceId << std::endl;
+            // Wait for any in-flight blit to complete before destroying the texture
+            if (blitFence != VK_NULL_HANDLE) {
+                bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            }
             _exportableTextures.erase(surfaceId);
             std::cerr << "Rendering surface destroyed, "
                       << _exportableTextures.size() << " exportable textures remain" << std::endl;

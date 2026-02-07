@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 void main() {
+  Logger.root.level = Level.INFO;
   runApp(const MyApp());
   Logger.root.onRecord.listen((record) {
     print(record);

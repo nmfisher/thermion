@@ -245,7 +245,7 @@ outputDirectory : ${outputDirectory.path}
         if (targetOS == OS.iOS) '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        if (targetOS == OS.linux) ...["-stdlib=libc++", "-Wl,--whole-archive"],
+        if (targetOS == OS.linux) ...["-stdlib=libc++", "-nostdlib++", "-Wl,--whole-archive"],
         if (targetOS != OS.windows) ...[
           ...libs.map((lib) => "-l$lib"),
           if (targetOS == OS.linux) ...["-Wl,--no-whole-archive", "-l:libc++.a", "-l:libc++abi.a"],

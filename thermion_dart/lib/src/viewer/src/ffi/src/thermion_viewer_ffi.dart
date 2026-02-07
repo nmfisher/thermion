@@ -99,13 +99,26 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setRendering(bool render) async {
     _rendering = render;
-    final swapChain = await FilamentApp.instance!.getSwapChain(view);
-    if (swapChain == null) {
-      throw Exception(
-          "TODO - could not find swapchain for view ${await view.getName()}");
+    if (render) {
+      final swapChain = await FilamentApp.instance!.getSwapChain(view);
+      if (swapChain == null) {
+        throw Exception(
+            "Could not find swapchain for view ${await view.getName()}");
+      }
+      await FilamentApp.instance!
+          .setRenderOrder(swapChain, view, renderOrder: 0);
+    } else {
+      // When disabling rendering, remove the view from ALL swapchains.
+      // The view may be registered with both the init swapchain and a
+      // per-view swapchain — leaving it in any swapchain risks the render
+      // thread rendering a view whose scene/assets are being destroyed.
+      final allSwapChains =
+          (await FilamentApp.instance!.getSwapChains()).toList();
+      for (final sc in allSwapChains) {
+        await FilamentApp.instance!
+            .setRenderOrder(sc, view, renderOrder: -1);
+      }
     }
-    await FilamentApp.instance!
-        .setRenderOrder(swapChain, view, renderOrder: render ? 0 : -1);
   }
 
   //
@@ -170,7 +183,9 @@ class ThermionViewerFFI extends ThermionViewer {
     for (final callback in _onDispose) {
       await callback.call();
     }
-    View_setScene(view.getNativeHandle(), nullptr);
+    // Use the render-thread version to avoid racing with the render thread
+    // which may be in the middle of mRenderer->render(view).
+    await view.setScene(null);
 
     await FilamentApp.instance!.destroyScene(scene);
     await FilamentApp.instance!.destroyView(view);

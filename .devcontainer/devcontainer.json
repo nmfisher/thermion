@@ -4,6 +4,22 @@
     "dockerfile": "Dockerfile"
   },
   "features": {},
+  "runArgs": [
+    "--userns=keep-id",
+    "--device", "/dev/dri",
+    "--group-add", "keep-groups",
+    "--security-opt", "label=disable"
+  ],
+  "containerEnv": {
+    "XDG_RUNTIME_DIR": "/tmp/runtime-developer",
+    "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "GDK_BACKEND": "wayland"
+  },
+  "mounts": [
+    "source=${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY},target=/tmp/runtime-developer/${localEnv:WAYLAND_DISPLAY},type=bind",
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [

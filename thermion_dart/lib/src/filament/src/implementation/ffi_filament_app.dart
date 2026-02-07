@@ -1089,6 +1089,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     for (final swapchain in _swapChains.keys) {
       _swapChains[swapchain]?.removeWhere((item) => item.$2 == view);
     }
+    // Sync the native render list BEFORE destroying the native view.
+    // Without this, the frame scheduler can call render() with a dangling
+    // view pointer between the Dart-side removal and the native destruction.
+    await updateRenderOrder();
     await (view as FFIView).destroy();
   }
 

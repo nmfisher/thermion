@@ -34,6 +34,16 @@ filament::backend::VulkanPlatform::SwapChainPtr TVulkanPlatform::createSwapChain
 
 void TVulkanPlatform::destroy(filament::backend::VulkanPlatform::SwapChainPtr handle) {
   std::lock_guard lock(mutex);
+  // Check if lastRenderedImage belongs to this swapchain before erasing
+  auto it = _cachedBundles.find(handle);
+  if (it != _cachedBundles.end()) {
+    for (size_t i = 0; i < it->second.colors.size(); i++) {
+      if (it->second.colors[i] == lastRenderedImage) {
+        lastRenderedImage = VK_NULL_HANDLE;
+        break;
+      }
+    }
+  }
   _cachedBundles.erase(handle);
   filament::backend::VulkanPlatform::destroy(handle);
   if(handle == current) {

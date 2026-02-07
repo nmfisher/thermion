@@ -78,10 +78,18 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   // has been redirected to an internal RT (e.g., in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
   static final _viewSwapChains = <View, SwapChain>{};
+  static SwapChain? _initSwapChain;
 
   static bool _rendering = false;
   static ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
   static bool _schedulerActive = false;
+
+  /// Set to true during viewer creation to prevent render() calls from
+  /// reaching the render thread with stale view pointers. The old viewer's
+  /// async disposal may still be in progress when initialize() restarts the
+  /// frame scheduler — rendering during this window can crash because the
+  /// native render list may still reference the old (being-destroyed) view.
+  static bool viewerCreating = false;
 
   // Port-based mode for debug builds (hot restart safe)
   static ReceivePort? _framePort;
@@ -97,6 +105,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // Critical safety check: Ignore callbacks if scheduler is being shut down
     // or if we're in a hot restart scenario where FilamentApp is null
     if (!_schedulerActive || FilamentApp.instance == null) return;
+    if (viewerCreating) return;
 
     if (_rendering) return;
     _rendering = true;
@@ -179,6 +188,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @override
   Future<SwapChain?> initialize({bool destroySwapchain = true}) async {
+    // Prevent rendering during viewer creation. The old viewer's async
+    // disposal may still be in progress, so the native render list could
+    // contain stale view pointers. We'll clear this flag once the new
+    // viewer is fully registered in createViewer().
+    viewerCreating = true;
+
     // Stop any existing frame scheduler from a previous session (e.g., hot restart)
     // This prevents crashes from dangling callback pointers
     stopFrameScheduler();
@@ -245,13 +260,24 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         // Stop the frame scheduler BEFORE destroying the engine
         // to prevent crashes from dangling callback pointers
         stopFrameScheduler();
+
+        // Destroy any headless swapchains we created for Vulkan views
+        for (final entry in _viewSwapChains.entries) {
+          try {
+            await FilamentApp.instance!.destroySwapChain(entry.value);
+          } catch (e) {
+            _logger.warning('Failed to destroy view swapchain: $e');
+          }
+        }
+        _viewSwapChains.clear();
+        _viewRenderTargets.clear();
+        _initSwapChain = null;
+
         if (Platform.isWindows || Platform.isLinux) {
           await channel.invokeMethod("destroyContext");
         }
       });
     }
-
-    SwapChain? swapChain;
 
     // on MacOS/iOS, even though we render directly into a render target,
     // for some reason we still need to create a headless swapchain (though the
@@ -259,7 +285,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
     if (Platform.isMacOS || Platform.isIOS || Platform.isWindows || Platform.isLinux) {
-      swapChain ??= await FilamentApp.instance!
+      _initSwapChain ??= await FilamentApp.instance!
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
 
@@ -282,7 +308,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       FrameScheduler_start(_frameCallable!.nativeFunction, 60);
     }
 
-    return swapChain;
+    return _initSwapChain;
   }
 
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
@@ -393,6 +419,44 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _descriptors.add(descriptor);
 
     return descriptor;
+  }
+
+  @override
+  Future<void> destroyViewResources(View view) async {
+    if (FilamentApp.instance == null) return;
+
+    // Remove the view from ALL swapchains in the render order.
+    // This is critical: the init swapchain (created in initialize()) is also
+    // registered with this view. If we don't remove it, the next call to
+    // updateRenderOrder() will try to use the destroyed view's native handle.
+    final allSwapChains = (await FilamentApp.instance!.getSwapChains()).toList();
+    for (final sc in allSwapChains) {
+      await FilamentApp.instance!.setRenderOrder(sc, view, renderOrder: -1);
+    }
+
+    // Destroy any headless swapchain created for this view
+    final swapChain = _viewSwapChains.remove(view);
+    if (swapChain != null) {
+      try {
+        await FilamentApp.instance!.destroySwapChain(swapChain);
+      } catch (e) {
+        _logger.warning('Failed to destroy view swapchain: $e');
+      }
+    }
+
+    // Destroy any render target created for this view
+    final renderTarget = _viewRenderTargets.remove(view);
+    if (renderTarget != null) {
+      try {
+        final color = await renderTarget.getColorTexture();
+        final depth = await renderTarget.getDepthTexture();
+        await color.destroy();
+        await depth.destroy();
+        await renderTarget.destroy();
+      } catch (e) {
+        _logger.warning('Failed to destroy view render target: $e');
+      }
+    }
   }
 
   Future<PlatformTextureDescriptor> resizeTexture(
