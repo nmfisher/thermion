@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/console.h>
