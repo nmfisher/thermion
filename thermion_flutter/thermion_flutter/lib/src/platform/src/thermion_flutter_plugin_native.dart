@@ -77,6 +77,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   // This allows us to destroy the correct RT on resize, even when the view
   // has been redirected to an internal RT (e.g., in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
+  static final _viewSwapChains = <View, SwapChain>{};
 
   static bool _rendering = false;
   static ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
@@ -203,8 +204,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     if (options.nativeOptions.backend != null) {
       switch (options.nativeOptions.backend) {
         case Backend.VULKAN:
-          if (!Platform.isWindows) {
-            throw Exception("Vulkan only supported on Windows");
+          if (!Platform.isWindows && !Platform.isLinux) {
+            throw Exception("Vulkan only supported on Windows and Linux");
           }
         case Backend.METAL:
           if (!Platform.isIOS || !Platform.isMacOS) {
@@ -219,7 +220,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       }
       backend = options.nativeOptions.backend!;
     } else {
-      if (Platform.isWindows) {
+      if (Platform.isWindows || Platform.isLinux) {
         backend = Backend.VULKAN;
       } else if (Platform.isMacOS || Platform.isIOS) {
         backend = Backend.METAL;
@@ -244,7 +245,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         // Stop the frame scheduler BEFORE destroying the engine
         // to prevent crashes from dangling callback pointers
         stopFrameScheduler();
-        if (Platform.isWindows) {
+        if (Platform.isWindows || Platform.isLinux) {
           await channel.invokeMethod("destroyContext");
         }
       });
@@ -257,7 +258,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // dimensions don't seem to matter).
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
-    if (Platform.isMacOS || Platform.isIOS || Platform.isWindows) {
+    if (Platform.isMacOS || Platform.isIOS || Platform.isWindows || Platform.isLinux) {
       swapChain ??= await FilamentApp.instance!
           .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
     }
@@ -268,7 +269,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // Use port-based mode in debug builds (hot restart safe)
     // Use direct callback in release builds (maximum performance)
     // Supported on macOS, iOS, Android, and Windows
-    _usePortMode = kDebugMode && (Platform.isMacOS || Platform.isIOS || Platform.isAndroid || Platform.isWindows);
+    _usePortMode = kDebugMode && (Platform.isMacOS || Platform.isIOS || Platform.isAndroid || Platform.isWindows || Platform.isLinux);
 
     if (_usePortMode) {
       // DEBUG MODE: Port-based (hot restart safe)
@@ -309,14 +310,15 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       );
 
       final existingSwapChain = await FilamentApp.instance!.getSwapChain(view);
-      
+
       await FilamentApp.instance!.setRenderOrder(swapChain, view);
-      
+
       if (existingSwapChain != null) {
         await FilamentApp.instance!.setRenderOrder(existingSwapChain, view, renderOrder: -1);
         await FilamentApp.instance!.destroySwapChain(existingSwapChain);
       }
-    } else {
+    } else if (descriptor.hardwareId != 0) {
+      // Metal/OpenGL: import hardware texture as render target
       final swapChains = await FilamentApp.instance!.getSwapChains();
       final color = await FilamentApp.instance!.createTexture(
         descriptor.width,
@@ -366,6 +368,24 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       }
       await FilamentApp.instance!.setRenderOrder(swapChains.first, view);
 
+    } else {
+      // Vulkan: use headless swapchain (Texture::Builder::import() is not
+      // supported on the Vulkan backend, so we render directly to a swapchain
+      // and blit its VkImage to the DMA-BUF exportable texture).
+      final existingSwapChain = _viewSwapChains[view];
+
+      final renderSwapChain = await FilamentApp.instance!
+          .createHeadlessSwapChain(
+              descriptor.width, descriptor.height,
+              hasStencilBuffer: true);
+      await FilamentApp.instance!.setRenderOrder(renderSwapChain, view);
+      _viewSwapChains[view] = renderSwapChain;
+
+      if (existingSwapChain != null) {
+        await FilamentApp.instance!
+            .setRenderOrder(existingSwapChain, view, renderOrder: -1);
+        await FilamentApp.instance!.destroySwapChain(existingSwapChain);
+      }
     }
 
     await view.setViewport(width, height);

@@ -159,6 +159,15 @@ namespace thermion
         mEngine->execute();
     #endif
 
+    // Flush Filament's backend command queue and wait for completion.
+    // This ensures the FEngine backend thread is idle and all GPU commands
+    // have been submitted before we return. Without this, calling Blit()
+    // from another thread would race with the backend thread on the shared
+    // VkQueue (Vulkan requires external synchronization of VkQueue access).
+    if (rendered) {
+      mEngine->flushAndWait();
+    }
+
     auto endTime = std::chrono::high_resolution_clock::now();
     durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
     float durationMs = durationNs / 1e6f;

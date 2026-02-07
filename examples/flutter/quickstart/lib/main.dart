@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  bool _showViewer = false;
+  bool _showViewer = true; // Auto-start for testing
 
   @override
   Widget build(BuildContext context) {

@@ -72,6 +72,10 @@ outputDirectory : ${outputDirectory.path}
       sources = sources.where((p) => !p.contains("windows")).toList();
     }
 
+    if (targetOS != OS.linux) {
+      sources = sources.where((p) => !p.contains("linux")).toList();
+    }
+
     // Material source paths (used by _processMaterials below)
     final materialSources = <String, String>{
       'capture_uv': 'native/include/material/capture_uv.c',
@@ -152,6 +156,7 @@ outputDirectory : ${outputDirectory.path}
     final includeDirs = <String>[
       'native/include',
       'native/include/filament',
+      if (targetOS == OS.linux) 'native/include/linux/vulkan',
     ];
 
     // Process plugins after flags and includeDirs are declared
@@ -243,7 +248,7 @@ outputDirectory : ${outputDirectory.path}
         if (targetOS == OS.linux) ...["-stdlib=libc++", "-Wl,--whole-archive"],
         if (targetOS != OS.windows) ...[
           ...libs.map((lib) => "-l$lib"),
-          if (targetOS == OS.linux) "-Wl,--no-whole-archive",
+          if (targetOS == OS.linux) ...["-Wl,--no-whole-archive", "-l:libc++.a", "-l:libc++abi.a"],
           if (targetOS != OS.linux) "-lstdc++",
           "-L$libDir"
         ],
@@ -345,6 +350,25 @@ outputDirectory : ${outputDirectory.path}
             output.assets.addEncodedAsset(include.encode());
           }
         }
+      }
+    }
+
+    if (targetOS == OS.linux) {
+      // Only export the C API header (no internal Filament/Vulkan dependencies)
+      final apiHeader = File(path.join(
+          pkgRootFilePath, "native", "include", "linux", "vulkan",
+          "linux_vulkan_context_api.h"));
+      if (apiHeader.existsSync()) {
+        final targetPath = path.join(outputDirectory.path,
+            "linux_vulkan_context_api.h");
+        apiHeader.copySync(targetPath);
+        final include = CodeAsset(
+          package: packageName,
+          name: "include/linux/vulkan/linux_vulkan_context_api.h",
+          linkMode: DynamicLoadingBundled(),
+          file: apiHeader.uri,
+        );
+        output.assets.addEncodedAsset(include.encode());
       }
     }
   });
