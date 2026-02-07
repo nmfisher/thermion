@@ -1621,6 +1621,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     EntityId entityId,
     Pointer<NativeFunction<void Function(PointerClass<TCamera>)>> onComplete,
   );
+  external void _Engine_destroyCameraRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TCamera> tCamera,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _Engine_createViewRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TView>)>> onComplete,
@@ -1971,6 +1977,124 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _View_setViewportRenderThread(
+    Pointer<TView> tView,
+    int width,
+    int height,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setRenderTargetRenderThread(
+    Pointer<TView> tView,
+    Pointer<TRenderTarget> tRenderTarget,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setAntiAliasingRenderThread(
+    Pointer<TView> tView,
+    bool msaa,
+    bool fxaa,
+    bool taa,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setPostProcessingRenderThread(
+    Pointer<TView> tView,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setFrustumCullingEnabledRenderThread(
+    Pointer<TView> tView,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setStencilBufferEnabledRenderThread(
+    Pointer<TView> tView,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setDitheringEnabledRenderThread(
+    Pointer<TView> tView,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setRenderQualityRenderThread(
+    Pointer<TView> tView,
+    int qualityLevel,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setSceneRenderThread(
+    Pointer<TView> tView,
+    Pointer<TScene> tScene,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setLayerEnabledRenderThread(
+    Pointer<TView> tView,
+    int layer,
+    bool visible,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setBlendModeRenderThread(
+    Pointer<TView> tView,
+    int blendMode,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setFogOptionsRenderThread(
+    Pointer<TView> tView,
+    Pointer<TFogOptions> tFogOptionsPtr,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setAmbientOcclusionOptionsRenderThread(
+    Pointer<TView> tView,
+    Pointer<TAmbientOcclusionOptions> optionsPtr,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setFrontFaceWindingInvertedRenderThread(
+    Pointer<TView> tView,
+    bool inverted,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setShadowsEnabledRenderThread(
+    Pointer<TView> tView,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setShadowTypeRenderThread(
+    Pointer<TView> tView,
+    int shadowType,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setSoftShadowOptionsRenderThread(
+    Pointer<TView> tView,
+    Pointer<TSoftShadowOptions> optionsPtr,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setVsmShadowOptionsRenderThread(
+    Pointer<TView> tView,
+    Pointer<TVsmShadowOptions> optionsPtr,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _View_setTransparentPickingEnabledRenderThread(
+    Pointer<TView> tView,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _SceneAsset_createGridRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TMaterial> tMaterial,
@@ -2276,6 +2400,24 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Scene_addFilamentAssetRenderThread(
     Pointer<TScene> tScene,
     Pointer<TFilamentAsset> tAsset,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _Scene_removeEntityRenderThread(
+    Pointer<TScene> tScene,
+    EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _Scene_setSkyboxRenderThread(
+    Pointer<TScene> tScene,
+    Pointer<TSkybox> tSkybox,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _Scene_setIndirectLightRenderThread(
+    Pointer<TScene> tScene,
+    Pointer<TIndirectLight> tIndirectLight,
     int requestId,
     VoidCallback onComplete,
   );
@@ -6458,6 +6600,20 @@ void Engine_createCameraRenderThread(
   return result;
 }
 
+void Engine_destroyCameraRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TCamera> tCamera,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._Engine_destroyCameraRenderThread(
+      tEngine.cast(),
+      tCamera.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
 void Engine_createViewRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<NativeFunction<void Function(Pointer<TView>)>> onComplete,
@@ -7234,6 +7390,289 @@ void View_setNameRenderThread(
   return result;
 }
 
+void View_setViewportRenderThread(
+  Pointer<TView> tView,
+  int width,
+  int height,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setViewportRenderThread(
+      tView.cast(),
+      width,
+      height,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setRenderTargetRenderThread(
+  Pointer<TView> tView,
+  Pointer<TRenderTarget> tRenderTarget,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setRenderTargetRenderThread(
+      tView.cast(),
+      tRenderTarget.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setAntiAliasingRenderThread(
+  Pointer<TView> tView,
+  bool msaa,
+  bool fxaa,
+  bool taa,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setAntiAliasingRenderThread(
+      tView.cast(),
+      msaa,
+      fxaa,
+      taa,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setPostProcessingRenderThread(
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setPostProcessingRenderThread(
+      tView.cast(),
+      enabled,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setFrustumCullingEnabledRenderThread(
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._View_setFrustumCullingEnabledRenderThread(
+          tView.cast(),
+          enabled,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setStencilBufferEnabledRenderThread(
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._View_setStencilBufferEnabledRenderThread(
+          tView.cast(),
+          enabled,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setDitheringEnabledRenderThread(
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._View_setDitheringEnabledRenderThread(tView.cast(), enabled, requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setRenderQualityRenderThread(
+  Pointer<TView> tView,
+  int qualityLevel,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setRenderQualityRenderThread(
+      tView.cast(),
+      qualityLevel,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setSceneRenderThread(
+  Pointer<TView> tView,
+  Pointer<TScene> tScene,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setSceneRenderThread(
+      tView.cast(),
+      tScene.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setLayerEnabledRenderThread(
+  Pointer<TView> tView,
+  int layer,
+  bool visible,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setLayerEnabledRenderThread(
+      tView.cast(),
+      layer,
+      visible,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setBlendModeRenderThread(
+  Pointer<TView> tView,
+  int blendMode,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setBlendModeRenderThread(
+      tView.cast(),
+      blendMode,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setFogOptionsRenderThread(
+  Pointer<TView> tView,
+  TFogOptions tFogOptions,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final tFogOptionsPtr = tFogOptions.address;
+  final result = GeneratedBindings.instance._View_setFogOptionsRenderThread(
+      tView.cast(),
+      tFogOptionsPtr.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setAmbientOcclusionOptionsRenderThread(
+  Pointer<TView> tView,
+  TAmbientOcclusionOptions options,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance
+      ._View_setAmbientOcclusionOptionsRenderThread(
+          tView.cast(),
+          optionsPtr.cast(),
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setFrontFaceWindingInvertedRenderThread(
+  Pointer<TView> tView,
+  bool inverted,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._View_setFrontFaceWindingInvertedRenderThread(
+          tView.cast(),
+          inverted,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setShadowsEnabledRenderThread(
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setShadowsEnabledRenderThread(
+      tView.cast(),
+      enabled,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setShadowTypeRenderThread(
+  Pointer<TView> tView,
+  int shadowType,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._View_setShadowTypeRenderThread(
+      tView.cast(),
+      shadowType,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setSoftShadowOptionsRenderThread(
+  Pointer<TView> tView,
+  TSoftShadowOptions options,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance
+      ._View_setSoftShadowOptionsRenderThread(
+          tView.cast(),
+          optionsPtr.cast(),
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setVsmShadowOptionsRenderThread(
+  Pointer<TView> tView,
+  TVsmShadowOptions options,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance
+      ._View_setVsmShadowOptionsRenderThread(
+          tView.cast(),
+          optionsPtr.cast(),
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void View_setTransparentPickingEnabledRenderThread(
+  Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._View_setTransparentPickingEnabledRenderThread(
+          tView.cast(),
+          enabled,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
 void SceneAsset_createGridRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TMaterial> tMaterial,
@@ -7888,6 +8327,48 @@ void Scene_addFilamentAssetRenderThread(
   final result = GeneratedBindings.instance._Scene_addFilamentAssetRenderThread(
       tScene.cast(),
       tAsset.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void Scene_removeEntityRenderThread(
+  Pointer<TScene> tScene,
+  DartEntityId entityId,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._Scene_removeEntityRenderThread(
+      tScene.cast(),
+      entityId,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void Scene_setSkyboxRenderThread(
+  Pointer<TScene> tScene,
+  Pointer<TSkybox> tSkybox,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._Scene_setSkyboxRenderThread(
+      tScene.cast(),
+      tSkybox.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void Scene_setIndirectLightRenderThread(
+  Pointer<TScene> tScene,
+  Pointer<TIndirectLight> tIndirectLight,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._Scene_setIndirectLightRenderThread(
+      tScene.cast(),
+      tIndirectLight.cast(),
       requestId,
       onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;

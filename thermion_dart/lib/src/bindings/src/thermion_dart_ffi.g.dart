@@ -2858,6 +2858,16 @@ external void Engine_createCameraRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TCamera>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void Engine_destroyCameraRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TCamera> tCamera,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TEngine>,
             ffi.Pointer<
@@ -3628,6 +3638,200 @@ external void View_setNameRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setViewportRenderThread(
+  ffi.Pointer<TView> tView,
+  int width,
+  int height,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>,
+        ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setRenderTargetRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Bool, ffi.Bool,
+        ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setAntiAliasingRenderThread(
+  ffi.Pointer<TView> tView,
+  bool msaa,
+  bool fxaa,
+  bool taa,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setPostProcessingRenderThread(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setFrustumCullingEnabledRenderThread(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setStencilBufferEnabledRenderThread(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setDitheringEnabledRenderThread(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Int, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setRenderQualityRenderThread(
+  ffi.Pointer<TView> tView,
+  int qualityLevel,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TScene>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setSceneRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Int, ffi.Bool, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setLayerEnabledRenderThread(
+  ffi.Pointer<TView> tView,
+  int layer,
+  bool visible,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Int, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setBlendModeRenderThread(
+  ffi.Pointer<TView> tView,
+  int blendMode,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, TFogOptions, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setFogOptionsRenderThread(
+  ffi.Pointer<TView> tView,
+  TFogOptions tFogOptions,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, TAmbientOcclusionOptions, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setAmbientOcclusionOptionsRenderThread(
+  ffi.Pointer<TView> tView,
+  TAmbientOcclusionOptions options,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setFrontFaceWindingInvertedRenderThread(
+  ffi.Pointer<TView> tView,
+  bool inverted,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setShadowsEnabledRenderThread(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Int, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setShadowTypeRenderThread(
+  ffi.Pointer<TView> tView,
+  int shadowType,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, TSoftShadowOptions, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setSoftShadowOptionsRenderThread(
+  ffi.Pointer<TView> tView,
+  TSoftShadowOptions options,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, TVsmShadowOptions, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void View_setVsmShadowOptionsRenderThread(
+  ffi.Pointer<TView> tView,
+  TVsmShadowOptions options,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void View_setTransparentPickingEnabledRenderThread(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TEngine>,
             ffi.Pointer<TMaterial>,
@@ -4292,6 +4496,36 @@ external void GltfAssetLoader_loadRenderThread(
 external void Scene_addFilamentAssetRenderThread(
   ffi.Pointer<TScene> tScene,
   ffi.Pointer<TFilamentAsset> tAsset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TScene>, EntityId, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void Scene_removeEntityRenderThread(
+  ffi.Pointer<TScene> tScene,
+  int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TSkybox>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void Scene_setSkyboxRenderThread(
+  ffi.Pointer<TScene> tScene,
+  ffi.Pointer<TSkybox> tSkybox,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TIndirectLight>,
+        ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void Scene_setIndirectLightRenderThread(
+  ffi.Pointer<TScene> tScene,
+  ffi.Pointer<TIndirectLight> tIndirectLight,
   int requestId,
   VoidCallback onComplete,
 );
