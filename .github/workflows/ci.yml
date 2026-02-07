@@ -113,12 +113,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-build-env
-      - name: Enable debug mode for tests
-        run: |
-          echo 'hooks:' >> thermion_dart/pubspec.yaml
-          echo '  user_defines:' >> thermion_dart/pubspec.yaml
-          echo '    thermion_dart:' >> thermion_dart/pubspec.yaml
-          echo '      mode: debug' >> thermion_dart/pubspec.yaml
       - run: |
           cd thermion_dart
           dart pub get
