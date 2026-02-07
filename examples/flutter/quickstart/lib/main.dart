@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 void main() {
-  Logger.root.level = Level.INFO;
   runApp(const MyApp());
   Logger.root.onRecord.listen((record) {
     print(record);
@@ -45,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  bool _showViewer = true; // Auto-start for testing
+  bool _showViewer = false;
 
   @override
   Widget build(BuildContext context) {

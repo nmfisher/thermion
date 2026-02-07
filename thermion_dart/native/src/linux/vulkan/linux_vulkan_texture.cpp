@@ -2,7 +2,6 @@
 #include "linux_vulkan_utils.h"
 #include "Log.hpp"
 
-#include <iostream>
 #include <unistd.h>
 #include <drm/drm_fourcc.h>
 
@@ -69,11 +68,9 @@ namespace thermion::linux_platform::vulkan
         VkImage image;
         VkResult result = bluevk::vkCreateImage(device, &imageInfo, nullptr, &image);
         if (result != VK_SUCCESS) {
-            std::cerr << "Failed to create exportable VkImage: " << VkResultToString(result) << std::endl;
+            LOG_ERROR("Failed to create exportable VkImage: %s", VkResultToString(result));
             return nullptr;
         }
-
-        std::cout << "Created exportable vkImage " << (int64_t)image << std::endl;
 
         // Get memory requirements
         VkMemoryRequirements memRequirements;
@@ -103,7 +100,7 @@ namespace thermion::linux_platform::vulkan
         result = bluevk::vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory);
         if (result != VK_SUCCESS) {
             bluevk::vkDestroyImage(device, image, nullptr);
-            std::cerr << "Failed to allocate exportable memory: " << VkResultToString(result) << std::endl;
+            LOG_ERROR("Failed to allocate exportable memory: %s", VkResultToString(result));
             return nullptr;
         }
 
@@ -111,7 +108,7 @@ namespace thermion::linux_platform::vulkan
         if (result != VK_SUCCESS) {
             bluevk::vkFreeMemory(device, imageMemory, nullptr);
             bluevk::vkDestroyImage(device, image, nullptr);
-            std::cerr << "Failed to bind exportable image memory" << std::endl;
+            LOG_ERROR("Failed to bind exportable image memory");
             return nullptr;
         }
 
@@ -128,7 +125,7 @@ namespace thermion::linux_platform::vulkan
         if (result != VK_SUCCESS || dmaBufFd < 0) {
             bluevk::vkFreeMemory(device, imageMemory, nullptr);
             bluevk::vkDestroyImage(device, image, nullptr);
-            std::cerr << "Failed to export dmabuf fd: " << VkResultToString(result) << std::endl;
+            LOG_ERROR("Failed to export dmabuf fd: %s", VkResultToString(result));
             return nullptr;
         }
 
@@ -146,10 +143,6 @@ namespace thermion::linux_platform::vulkan
 
         // DRM_FORMAT_ABGR8888 corresponds to VK_FORMAT_R8G8B8A8_UNORM
         uint32_t drmFormat = DRM_FORMAT_ABGR8888;
-
-        std::cout << "Exportable texture: dmabuf fd=" << dmaBufFd
-                  << " stride=" << stride << " offset=" << offset
-                  << " format=DRM_FORMAT_ABGR8888" << std::endl;
 
         return std::make_unique<LinuxVulkanTexture>(image, device, imageMemory, width, height,
                                                      dmaBufFd, stride, offset, drmFormat);

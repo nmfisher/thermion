@@ -96,9 +96,6 @@ thermion_texture_populate(FlTextureGL *texture,
         }
 
         self->initialized = TRUE;
-        std::cout << "[ThermionEGL] Initialized GL texture " << self->gl_texture_id
-                  << " from dmabuf fd " << self->dmabuf_fd
-                  << " (" << self->width << "x" << self->height << ")" << std::endl;
     }
 
     *target = GL_TEXTURE_EXTERNAL_OES;

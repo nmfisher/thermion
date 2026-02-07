@@ -1,18 +1,14 @@
 #include "linux_vulkan_platform.h"
 #include "Log.hpp"
 
-#include <iostream>
-
 namespace thermion::linux_platform::vulkan {
 
 TVulkanPlatform::TVulkanPlatform() {
   _customization.gpu.index = -1;
   _customization.transitionSwapChainImageLayoutForPresent = false;
-  std::cout << "[ThermionLinux] Using default Vulkan GPU selection" << std::endl;
 }
 
 TVulkanPlatform::~TVulkanPlatform() {
-  std::cout << "[ThermionLinux] Destroyed Vulkan platform" << std::endl;
 }
 
 filament::backend::VulkanPlatform::Customization TVulkanPlatform::getCustomization() const noexcept {
@@ -25,10 +21,7 @@ filament::backend::VulkanPlatform::SwapChainPtr TVulkanPlatform::createSwapChain
     current = filament::backend::VulkanPlatform::createSwapChain(nativeWindow, flags, extent);
     if (current) {
         _cachedBundles[current] = getSwapChainBundle(current);
-        std::cout << "[ThermionLinux] Cached swap chain bundle with "
-                  << _cachedBundles[current].colors.size() << " color images" << std::endl;
     }
-    std::cout << "[ThermionLinux] Created swap chain with flags " << flags << std::endl;
     return current;
 }
 
@@ -49,7 +42,6 @@ void TVulkanPlatform::destroy(filament::backend::VulkanPlatform::SwapChainPtr ha
   if(handle == current) {
     current = nullptr;
   }
-  std::cout << "[ThermionLinux] Destroyed swap chain" << std::endl;
 }
 
 VkResult TVulkanPlatform::acquire(SwapChainPtr handle, ImageSyncData* outImageSyncData) {

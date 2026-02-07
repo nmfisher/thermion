@@ -4,7 +4,6 @@
 #include "linux_vulkan_platform.h"
 #include "linux_vulkan_utils.h"
 
-#include <iostream>
 #include <vector>
 #include <memory>
 #include <unordered_map>
@@ -19,8 +18,6 @@ using namespace bluevk;
 class ThermionLinuxVulkanContext::Impl {
     public:
         ~Impl() {
-            std::cerr << "ThermionLinuxVulkanContext destructor: "
-                      << _exportableTextures.size() << " exportable textures remain" << std::endl;
             if (blitFence != VK_NULL_HANDLE) {
                 bluevk::vkDestroyFence(device, blitFence, nullptr);
             }
@@ -39,7 +36,7 @@ class ThermionLinuxVulkanContext::Impl {
             VkResult result = createVulkanInstance(&instance);
             if (result != VK_SUCCESS)
             {
-                std::cout << "[ERROR] Failed to create Vulkan instance! Error: " << VkResultToString(result) << std::endl;
+                LOG_ERROR("Failed to create Vulkan instance: %s", VkResultToString(result));
                 return;
             }
             bluevk::bindInstance(instance);
@@ -48,7 +45,7 @@ class ThermionLinuxVulkanContext::Impl {
             result = createLogicalDevice(instance, &physicalDevice, &device, &queueFamilyIndex);
             if (result != VK_SUCCESS)
             {
-                std::cout << "[ERROR] Failed to create logical device! Error: " << VkResultToString(result) << std::endl;
+                LOG_ERROR("Failed to create logical device: %s", VkResultToString(result));
                 vkDestroyInstance(instance, nullptr);
                 return;
             }
@@ -61,14 +58,9 @@ class ThermionLinuxVulkanContext::Impl {
             _sharedContext.debugMarkersSupported = false;
             _sharedContext.multiviewSupported = false;
 
-            std::cout << "[INFO] Vulkan logical device created with queue family index "
-                      << queueFamilyIndex << std::endl;
-
             CommandResources cmdResources = createCommandResources(device, physicalDevice);
             commandPool = cmdResources.commandPool;
             queue = cmdResources.queue;
-            std::cout << "[INFO] Vulkan command resources using queue family index "
-                      << cmdResources.queueFamilyIndex << std::endl;
 
             _platform = std::make_unique<TVulkanPlatform>();
 
@@ -87,36 +79,30 @@ class ThermionLinuxVulkanContext::Impl {
             fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
             VkResult fenceResult = bluevk::vkCreateFence(device, &fenceInfo, nullptr, &blitFence);
             if (fenceResult != VK_SUCCESS) {
-                std::cout << "[ERROR] Failed to create blit fence" << std::endl;
+                LOG_ERROR("Failed to create blit fence");
             }
         }
 
         int64_t CreateRenderingSurface(uint32_t width, uint32_t height) {
-            std::cout << "[ThermionLinux] Creating rendering surface " << width << "x" << height << std::endl;
-
             // Create exportable dmabuf-backed texture (the only texture needed now)
             auto exportableTexture = LinuxVulkanTexture::createExportable(device, physicalDevice, width, height);
             if (!exportableTexture) {
-                std::cerr << "Failed to create exportable dmabuf texture" << std::endl;
+                LOG_ERROR("Failed to create exportable dmabuf texture");
                 return -1;
             }
 
             int64_t surfaceId = _nextSurfaceId++;
             _exportableTextures[surfaceId] = std::move(exportableTexture);
 
-            std::cout << "[ThermionLinux] Created rendering surface ID " << surfaceId << std::endl;
             return surfaceId;
         }
 
         void DestroyRenderingSurface(int64_t surfaceId) {
-            std::cerr << "Destroying rendering surface " << surfaceId << std::endl;
             // Wait for any in-flight blit to complete before destroying the texture
             if (blitFence != VK_NULL_HANDLE) {
                 bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
             }
             _exportableTextures.erase(surfaceId);
-            std::cerr << "Rendering surface destroyed, "
-                      << _exportableTextures.size() << " exportable textures remain" << std::endl;
         }
 
         VkImage GetVulkanImageForSurface(int64_t surfaceId) {
@@ -175,32 +161,22 @@ class ThermionLinuxVulkanContext::Impl {
         }
 
         void Blit(int64_t surfaceId) {
-            static int blitCount = 0;
-            blitCount++;
-
             auto exIt = _exportableTextures.find(surfaceId);
 
             if (exIt == _exportableTextures.end()) {
-                std::cerr << "Surface ID " << surfaceId << " not found for blit" << std::endl;
+                LOG_ERROR("Surface ID %lld not found for blit", (long long)surfaceId);
                 return;
             }
 
             // Source from the swapchain image that Filament just rendered to
             auto srcImage = _platform->getLastRenderedImage();
             if (srcImage == VK_NULL_HANDLE) {
-                std::cerr << "No swapchain image available for blit (not rendered yet?)" << std::endl;
                 return;
             }
 
             auto dstImage = exIt->second->GetImage();
             auto width = exIt->second->GetWidth();
             auto height = exIt->second->GetHeight();
-
-            if (blitCount <= 3 || blitCount % 60 == 0) {
-                std::cout << "[Blit #" << blitCount << "] src=" << (uint64_t)srcImage
-                          << " dst=" << (uint64_t)dstImage
-                          << " " << width << "x" << height << std::endl;
-            }
 
             // Wait for all submitted GPU work to complete before recording blit commands.
             // By this point, flushAndWait() in RenderManager::render() has ensured
@@ -209,7 +185,7 @@ class ThermionLinuxVulkanContext::Impl {
 
             VkResult result = bluevk::vkResetCommandBuffer(blitCommandBuffer, 0);
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to reset command buffer: " << result << std::endl;
+                LOG_ERROR("Failed to reset command buffer: %d", result);
                 return;
             }
 
@@ -220,7 +196,7 @@ class ThermionLinuxVulkanContext::Impl {
 
             result = bluevk::vkBeginCommandBuffer(blitCommandBuffer, &beginInfo);
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to begin command buffer: " << result << std::endl;
+                LOG_ERROR("Failed to begin command buffer: %d", result);
                 return;
             }
 
@@ -307,7 +283,7 @@ class ThermionLinuxVulkanContext::Impl {
             // End command buffer
             result = bluevk::vkEndCommandBuffer(blitCommandBuffer);
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to end command buffer: " << result << std::endl;
+                LOG_ERROR("Failed to end command buffer: %d", result);
                 return;
             }
 
@@ -321,14 +297,14 @@ class ThermionLinuxVulkanContext::Impl {
 
             result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, blitFence);
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to submit queue: " << result << std::endl;
+                LOG_ERROR("Failed to submit blit queue: %d", result);
                 return;
             }
 
             // Wait for blit to complete before returning
             result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to wait for blit fence: " << result << std::endl;
+                LOG_ERROR("Failed to wait for blit fence: %d", result);
             }
         }
 

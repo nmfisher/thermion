@@ -5,7 +5,6 @@
 #include <flutter_linux/fl_texture_gl.h>
 #include <gtk/gtk.h>
 
-#include <iostream>
 #include <cstring>
 #include <vector>
 #include <memory>
@@ -85,9 +84,6 @@ static FlMethodResponse* handle_create_texture(ThermionFlutterPlugin* self, FlMe
 
   int64_t flutterTextureId = fl_texture_get_id(flTexture);
 
-  std::cout << "[ThermionFlutter] Created texture: flutter ID=" << flutterTextureId
-            << " surface ID=" << surfaceId << std::endl;
-
   // Return [flutterTextureId, 0, 0]
   // vkImage=0 signals to Dart that Vulkan import is not supported,
   // so it should use a headless swapchain instead of a RenderTarget.
@@ -118,7 +114,6 @@ static FlMethodResponse* handle_destroy_texture(ThermionFlutterPlugin* self, FlM
       }
 
       self->textures->erase(it);
-      std::cerr << "[ThermionFlutter] Destroyed texture flutter ID=" << flutterTextureId << std::endl;
       break;
     }
   }
@@ -154,7 +149,6 @@ static FlMethodResponse* handle_destroy_context(ThermionFlutterPlugin* self) {
   if (self->context) {
     ThermionLinuxVulkanContext_Destroy(self->context);
     self->context = nullptr;
-    std::cerr << "[ThermionFlutter] Destroyed context" << std::endl;
   }
   g_autoptr(FlValue) result = fl_value_new_null();
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));

@@ -159,6 +159,7 @@ namespace thermion
         mEngine->execute();
     #endif
 
+    #ifdef __linux__
     // Flush Filament's backend command queue and wait for completion.
     // This ensures the FEngine backend thread is idle and all GPU commands
     // have been submitted before we return. Without this, calling Blit()
@@ -167,6 +168,7 @@ namespace thermion
     if (rendered) {
       mEngine->flushAndWait();
     }
+    #endif
 
     auto endTime = std::chrono::high_resolution_clock::now();
     durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
