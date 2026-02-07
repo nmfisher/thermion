@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     libvulkan-dev vulkan-tools \
     # DRM headers for drm_fourcc.h
     libdrm-dev \
+    # Headless testing (xvfb)
+    xvfb \
     # Misc
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
