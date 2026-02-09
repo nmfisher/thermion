@@ -145,8 +145,54 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run download 21482452235 \
-            --name golden-images-64f6bf1e43117ca0b2fcf74427bf8874849a252f \
+          # Helper: find the most recent successful run with golden-images artifacts
+          find_golden_run() {
+            local repo="$1"
+            gh api \
+              "repos/${repo}/actions/workflows/ci.yml/runs?branch=develop&status=success&per_page=20" \
+              --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }})] | .[].id" \
+            | while read -r run_id; do
+                HAS_GOLDEN=$(gh api \
+                  "repos/${repo}/actions/runs/${run_id}/artifacts" \
+                  --jq '[.artifacts[] | select(.name | startswith("golden-images-")) | select(.expired == false)] | length')
+                if [ "$HAS_GOLDEN" -gt 0 ]; then
+                  echo "$run_id"
+                  break
+                fi
+              done
+          }
+
+          CURRENT_REPO="${{ github.repository }}"
+          SOURCE_REPO=""
+          PREV_RUN_ID=""
+
+          # 1) Check this repo for a successful run with golden images
+          echo "Searching ${CURRENT_REPO} for golden image baseline..."
+          PREV_RUN_ID=$(find_golden_run "$CURRENT_REPO")
+
+          # 2) If not found and this is a fork, check the parent repo
+          if [ -z "$PREV_RUN_ID" ]; then
+            PARENT_REPO=$(gh api "repos/${CURRENT_REPO}" --jq '.parent.full_name // empty')
+            if [ -n "$PARENT_REPO" ]; then
+              echo "No baseline in fork. Searching upstream ${PARENT_REPO}..."
+              PREV_RUN_ID=$(find_golden_run "$PARENT_REPO")
+              SOURCE_REPO="$PARENT_REPO"
+            fi
+          fi
+
+          if [ -z "$PREV_RUN_ID" ]; then
+            echo "::error::No golden image baseline found in ${CURRENT_REPO} or its upstream."
+            echo "::error::Looked for successful CI runs with golden-images-* artifacts."
+            echo "::error::This can happen when all artifacts have expired or no"
+            echo "::error::successful run has been recorded yet."
+            exit 1
+          fi
+
+          DOWNLOAD_REPO="${SOURCE_REPO:-$CURRENT_REPO}"
+          echo "Downloading golden images from ${DOWNLOAD_REPO} run ${PREV_RUN_ID}"
+          gh run download "$PREV_RUN_ID" \
+            --repo "$DOWNLOAD_REPO" \
+            --pattern 'golden-images-*' \
             --dir ./thermion_dart/test/golden-downloads
       - name: Unzip golden images
         run: |
