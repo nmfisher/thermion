@@ -92,9 +92,9 @@ REM Change to Filament directory and checkout branch
 cd /d "%FILAMENT_BASE_DIR%" || exit /b 1
 git stash
 git reset --hard
-echo Checking out branch: thermion-custom-build
-git checkout thermion-custom-build || (
-  echo Error: Failed to checkout branch: thermion-custom-build
+echo Checking out tag: v1.69.1
+git checkout v1.69.1 || (
+  echo Error: Failed to checkout tag: v1.69.1
   exit /b 1
 )
 
