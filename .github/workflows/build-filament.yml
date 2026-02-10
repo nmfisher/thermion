@@ -100,7 +100,20 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Setup ccache
+        run: brew install ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-macos-${{ env.FILAMENT_VERSION }}
+          restore-keys: ccache-macos-
+
       - name: Build Filament
+        env:
+          CC: ccache clang
+          CXX: ccache clang++
         run: |
           mkdir -p output
           chmod +x scripts/build_macos.sh
@@ -234,7 +247,20 @@ jobs:
         with:
           ndk-version: r25c
 
+      - name: Install ccache
+        run: sudo apt-get update && sudo apt-get install -y ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-android-${{ env.FILAMENT_VERSION }}
+          restore-keys: ccache-android-
+
       - name: Build Filament
+        env:
+          CC: ccache clang
+          CXX: ccache clang++
         run: |
           mkdir -p output
           chmod +x scripts/build_android.sh
@@ -296,6 +322,9 @@ jobs:
           sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
 
       - name: Build Filament
+        env:
+          CC: ccache clang
+          CXX: ccache clang++
         run: |
           mkdir -p output
           chmod +x scripts/build_linux.sh
@@ -434,7 +463,20 @@ jobs:
         with:
           version: '3.1.60'
 
+      - name: Install ccache
+        run: sudo apt-get update && sudo apt-get install -y ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-web-${{ env.FILAMENT_VERSION }}
+          restore-keys: ccache-web-
+
       - name: Build Filament
+        env:
+          CC: ccache clang
+          CXX: ccache clang++
         run: |
           mkdir -p output
           chmod +x scripts/build_web.sh
