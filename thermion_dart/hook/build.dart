@@ -153,10 +153,9 @@ outputDirectory : ${outputDirectory.path}
     // Collect include directories including plugin includes
     // Use debug or release Filament headers based on build mode
     // Headers are under filament/debug or filament/release so includes like <filament/SomeHeader.h> work
-    final filamentIncludeDir = buildMode == BuildMode.debug
-        ? [
-          'native/include/filament/debug', 'native/include/filament/debug/filament']
-        : ['native/include/filament/release', 'native/include/filament/release/filament'];
+    final filamentIncludeDir = ['native/include/filament', buildMode == BuildMode.debug
+        ? 
+          'native/include/filament/debug' : 'native/include/filament/release'];
     final includeDirs = <String>[
       'native/include',
       ...filamentIncludeDir,
@@ -359,7 +358,7 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-String _FILAMENT_VERSION = "v1.69.0";
+String _FILAMENT_VERSION = "v1.69.1";
 String _getLibraryUrl(String platform, String mode) {
   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
 }
