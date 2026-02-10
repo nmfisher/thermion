@@ -44,8 +44,8 @@ public:
     math::float3 halfExtent = {};
 
     /**
-     * Whether the box is empty, i.e.: it's volume is null.
-     * @return true if the volume of the box is null
+     * Whether the box is empty, i.e.: its extents are zero.
+     * @return true if the extents of the box are zero
      */
     constexpr bool isEmpty() const noexcept {
         return length2(halfExtent) == 0;
@@ -120,8 +120,11 @@ public:
     }
 
     /**
-     * @deprecated Use transform() instead
-     * @see transform()
+     * Transform a Box by a linear transform and a translation.
+     *
+     * @param m a linear transform matrix
+     * @param box the box to transform
+     * @return the bounding box of the transformed box
      */
     friend Box rigidTransform(Box const& box, const math::mat4f& m) noexcept {
         return transform(m.upperLeft(), m[3].xyz, box);
@@ -235,8 +238,10 @@ struct UTILS_PUBLIC Aabb {
     }
 
     /**
-     * @deprecated Use transform() instead
-     * @see transform()
+     * Applies an affine transformation to the AABB.
+     *
+     * @param m the affine transformation to apply
+     * @return the bounding box of the transformed box
      */
     Aabb transform(const math::mat4f& m) const noexcept {
         return transform(m.upperLeft(), m[3].xyz, *this);

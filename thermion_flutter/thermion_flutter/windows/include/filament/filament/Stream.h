@@ -23,6 +23,7 @@
 #include <backend/CallbackHandler.h>
 
 #include <utils/compiler.h>
+#include <utils/StaticString.h>
 
 #include <math/mat3.h>
 
@@ -68,12 +69,11 @@ class Engine;
  * - Filament invokes low-level graphics commands on the \em{driver thread}.
  * - The thread that calls `beginFrame` is called the \em{main thread}.
  *
- * For ACQUIRED streams, there is no need to perform the copy because Filament explictly acquires
+ * For ACQUIRED streams, there is no need to perform the copy because Filament explicitly acquires
  * the stream, then releases it later via a callback function. This configuration is especially
  * useful when the Vulkan backend is enabled.
  *
- * For NATIVE streams, Filament does not make any synchronization guarantee. However they are simple
- * to use and do not incur a copy. These are often appropriate in video applications.
+ * NATIVE streams are deprecated because they are backend specific and do not make any synchronization guarantee.
  *
  * Please see `sample-stream-test` and `sample-hello-camera` for usage examples.
  *
@@ -115,7 +115,9 @@ public:
          *                     be CLAMP_TO_EDGE.
          *
          * @return This Builder, for chaining calls.
+         * @deprecated Use Stream::setAcquiredImage instead.
          */
+        UTILS_DEPRECATED
         Builder& stream(void* UTILS_NULLABLE stream) noexcept;
 
         /**
@@ -150,8 +152,20 @@ public:
          * @param name A string to identify this Stream
          * @param len Length of name, should be less than or equal to 128
          * @return This Builder, for chaining calls.
+         * @deprecated Use name(utils::StaticString const&) instead.
          */
+        UTILS_DEPRECATED
         Builder& name(const char* UTILS_NONNULL name, size_t len) noexcept;
+
+        /**
+         * Associate an optional name with this Stream for debugging purposes.
+         *
+         * name will show in error messages and should be kept as short as possible.
+         *
+         * @param name A string literal to identify this Stream
+         * @return This Builder, for chaining calls.
+         */
+        Builder& name(utils::StaticString const& name) noexcept;
 
         /**
          * Creates the Stream object and returns a pointer to it.
