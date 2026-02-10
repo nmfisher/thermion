@@ -269,60 +269,17 @@ if [ "$BUILD_DEBUG" = true ]; then
 fi
 
 # Copy header files to thermion_dart
-# All shared headers go to native/include/filament/
-# Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/thermion_dart/native/include/filament"
-
-if [ "$BUILD_RELEASE" = true ]; then
-  HEADER_SOURCE="out/release/filament/include"
-elif [ "$BUILD_DEBUG" = true ]; then
-  HEADER_SOURCE="out/debug/filament/include"
+COPY_HEADERS_OPTS=""
+if [ "$BUILD_RELEASE" = true ] && [ "$BUILD_DEBUG" = false ]; then
+  COPY_HEADERS_OPTS="--release"
+elif [ "$BUILD_DEBUG" = true ] && [ "$BUILD_RELEASE" = false ]; then
+  COPY_HEADERS_OPTS="--debug"
 fi
 
-echo "Copying Filament header files to thermion_dart..."
-rm -rf "$THERMION_INCLUDE"
-mkdir -p "$THERMION_INCLUDE"
-cd "$FILAMENT_BASE_DIR"
-cp -R $HEADER_SOURCE/* "$THERMION_INCLUDE/" || {
-  echo "Error: Failed to copy Filament headers"
+"$SCRIPT_DIR/copy_headers.sh" "$FILAMENT_BASE_DIR" $COPY_HEADERS_OPTS || {
+  echo "Error: Failed to copy headers"
   exit 1
 }
-
-# Copy imageio headers (not included in main include dir)
-mkdir -p "$THERMION_INCLUDE/imageio"
-cp -R libs/imageio/include/* "$THERMION_INCLUDE/imageio/" || {
-  echo "Error: Failed to copy imageio headers"
-  exit 1
-}
-
-# Copy release-specific uberarchive.h
-if [ "$BUILD_RELEASE" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/release/gltfio/materials"
-  cp out/release/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/release/gltfio/materials/" || {
-    echo "Error: Failed to copy release uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy debug-specific uberarchive.h
-if [ "$BUILD_DEBUG" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/debug/gltfio/materials"
-  cp out/debug/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/debug/gltfio/materials/" || {
-    echo "Error: Failed to copy debug uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy stb_image.h (third-party header used by TTexture.cpp)
-mkdir -p "$THERMION_INCLUDE/third_party/stb"
-cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$THERMION_INCLUDE/third_party/stb/" || {
-  echo "Error: Failed to copy stb_image.h"
-  exit 1
-}
-
-echo "Headers copied to: $THERMION_INCLUDE"
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
