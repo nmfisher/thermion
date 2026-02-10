@@ -3,6 +3,7 @@ import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'dart:isolate';
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
@@ -13,8 +14,16 @@ import 'platform_texture_descriptor.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
-    show FrameScheduler_start, FrameScheduler_stop, FrameCallbackFunction,
-         FrameScheduler_initDartApi, FrameScheduler_startWithPort;
+    show
+        FrameScheduler_start,
+        FrameScheduler_stop,
+        FrameCallbackFunction,
+        FrameScheduler_initDartApi,
+        FrameScheduler_startWithPort,
+        FrameScheduler_setRenderThread,
+        FrameScheduler_setRenderManager,
+        FrameScheduler_setPostRenderCallback,
+        FrameScheduler_requestRender;
 
 /// Handles platform-specific initialization to create a backing rendering
 /// surface in a Flutter application and lifecycle listeners to pause rendering
@@ -92,7 +101,20 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static bool _usePortMode = false;
   static bool _dartApiInitialized = false;
 
+<<<<<<< HEAD
   static bool _frameSchedulerPaused = false;
+=======
+  // Diagnostic timing state
+  static int _diagFrameCount = 0;
+  static int _diagDropCount = 0;
+  static int _diagJankCount = 0;
+  static double _diagMaxFrameMs = 0;
+  static double _diagSumFrameMs = 0;
+  static final _diagStopwatch = Stopwatch();
+  static int _diagTransitSum = 0;
+  static int _diagTransitCount = 0;
+  static int _diagTransitMax = 0;
+>>>>>>> 49c6c75d (refactor:)
 
   /// Called by native FrameScheduler at vsync/timer intervals.
   /// Not async — guards against re-entrant calls with [_rendering] flag.
@@ -106,8 +128,30 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     if (_rendering || _resizing || _frameSchedulerPaused) return;
     _rendering = true;
+    _diagStopwatch.reset();
+    _diagStopwatch.start();
     _renderFrame().then((_) {
+      _diagStopwatch.stop();
       _rendering = false;
+      final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
+      _diagFrameCount++;
+      _diagSumFrameMs += frameMs;
+      if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
+      if (frameMs > 20.0) _diagJankCount++;
+      if (frameMs > 20.0) {
+        _logger.warning(
+            '[DART] #$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms');
+      }
+      if (_diagFrameCount % 120 == 0) {
+        final avgMs = _diagSumFrameMs / 120.0;
+        _logger.info('[DART] 120-frame avg=${avgMs.toStringAsFixed(1)}ms '
+            'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
+            'jank=$_diagJankCount drop=$_diagDropCount');
+        _diagJankCount = 0;
+        _diagDropCount = 0;
+        _diagMaxFrameMs = 0;
+        _diagSumFrameMs = 0;
+      }
     }).catchError((error) {
       _logger.warning('Frame render error: $error');
       _rendering = false;
@@ -155,8 +199,34 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // Create receive port and listen for frame timestamps
     _framePort = ReceivePort();
     _framePort!.listen((message) {
-      // message is the frame timestamp in nanoseconds
-      _onFrame(message as int);
+      if (message is List) {
+        // [frameTimeNanos, postTimeUs] — measure port transit latency
+        final frameTimeNanos = message[0] as int;
+        final postTimeUs = message[1] as int;
+        final recvTimeUs = FrameScheduler_steadyClockUs();
+        final transitUs = recvTimeUs - postTimeUs;
+        _diagTransitSum += transitUs;
+        _diagTransitCount++;
+        if (transitUs > _diagTransitMax) _diagTransitMax = transitUs;
+        if (transitUs > 2000) {
+          // > 2ms transit
+          _logger.warning(
+              '[PORT] transit=${(transitUs / 1000.0).toStringAsFixed(1)}ms');
+        }
+        if (_diagTransitCount % 120 == 0) {
+          final avgMs = _diagTransitSum / (_diagTransitCount * 1000.0);
+          _logger.info(
+              '[PORT] 120-frame transit avg=${(avgMs).toStringAsFixed(2)}ms '
+              'max=${(_diagTransitMax / 1000.0).toStringAsFixed(1)}ms');
+          _diagTransitSum = 0;
+          _diagTransitCount = 0;
+          _diagTransitMax = 0;
+        }
+        _onFrame(frameTimeNanos);
+      } else {
+        // Legacy: single int
+        _onFrame(message as int);
+      }
     });
 
     // Start scheduler with port
@@ -167,16 +237,59 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _logger.info('Frame scheduler started in port mode (hot restart safe)');
   }
 
+  /// Initialize Flutter-synced render loop on Linux.
+  /// Flutter's frame scheduler controls timing; rendering happens on the
+  /// native render thread. Each Flutter frame triggers:
+  ///   FrameScheduler_requestRender → render thread → mark textures
+  static Future<void> _initializeNativeRenderLoop() async {
+    final dylib = ffi.DynamicLibrary.process();
+
+    // Look up cross-library symbols from thermion_flutter_plugin.so
+    final getHandleFn = dylib.lookupFunction<ffi.Pointer<ffi.Void> Function(),
+        ffi.Pointer<ffi.Void> Function()>('thermion_flutter_get_plugin_handle');
+
+    final pluginHandle = getHandleFn();
+
+    // Look up the texture marking function from the Flutter plugin
+    final markTexturesFnPtr = dylib
+        .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+            'thermion_flutter_mark_textures');
+
+    final app = FilamentApp.instance as FFIFilamentApp;
+
+    // Configure native render: set render thread, render manager + post-render texture mark
+    FrameScheduler_setRenderThread(app.renderThreadHandle);
+    FrameScheduler_setRenderManager(app.renderManager);
+    FrameScheduler_setPostRenderCallback(markTexturesFnPtr, pluginHandle);
+
+    // Synchronize with Flutter's frame clock via persistent frame callback.
+    // Each Flutter frame triggers a non-blocking render request to the
+    // native render thread.
+    SchedulerBinding.instance.addPersistentFrameCallback(_onFlutterFrame);
+    SchedulerBinding.instance.scheduleFrame();
+
+    _logger.info('Flutter-synced render loop started');
+  }
+
+  /// Called on each Flutter frame. Triggers a native render and requests
+  /// the next frame to keep the loop running.
+  static void _onFlutterFrame(Duration timeStamp) {
+    if (!_schedulerActive || FilamentApp.instance == null) return;
+    FrameScheduler_requestRender(timeStamp.inMicroseconds * 1000);
+    SchedulerBinding.instance.scheduleFrame();
+  }
+
   static Future<void> _renderFrame() async {
     await FilamentApp.instance?.render();
 
     for (final descriptor in _descriptors) {
-        descriptor.markTextureFrameAvailable();
+      descriptor.markTextureFrameAvailable();
     }
     for (final descriptor in _destroyed) {
       _descriptors.remove(descriptor);
       _logger.info(
-          "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
+        "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}",
+      );
     }
     _destroyed.clear();
 
@@ -211,37 +324,20 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // This prevents crashes from dangling callback pointers
     stopFrameScheduler();
 
-    var driverPlatform;
-    Pointer<Void> platformPtr = nullptr;
-    var sharedContext;
-    Pointer<Void> sharedContextPtr = nullptr;
-    if (!Platform.isMacOS && !Platform.isIOS) {
-      driverPlatform = await channel.invokeMethod("getDriverPlatform");
-      platformPtr = driverPlatform == null
-          ? nullptr
-          : VoidPointerClass.fromAddress(driverPlatform);
-
-      sharedContext = await channel.invokeMethod("getSharedContext");
-
-      sharedContextPtr = sharedContext == null
-          ? nullptr
-          : VoidPointerClass.fromAddress(sharedContext);
-    }
-
     late Backend backend;
     if (options.nativeOptions.backend != null) {
       switch (options.nativeOptions.backend) {
         case Backend.VULKAN:
-          if (!Platform.isWindows) {
-            throw Exception("Vulkan only supported on Windows");
+          if (!Platform.isWindows && !Platform.isLinux) {
+            throw Exception("Vulkan only supported on Windows and Linux");
           }
         case Backend.METAL:
           if (!Platform.isIOS || !Platform.isMacOS) {
             throw Exception("Metal only supported on iOS/macOS");
           }
         case Backend.OPENGL:
-          if (!Platform.isAndroid) {
-            throw Exception("OpenGL only supported on Android");
+          if (!Platform.isAndroid && !Platform.isLinux) {
+            throw Exception("OpenGL only supported on Android and Linux");
           }
         default:
           throw Exception("Unsupported backend");
@@ -252,11 +348,30 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         backend = Backend.VULKAN;
       } else if (Platform.isMacOS || Platform.isIOS) {
         backend = Backend.METAL;
-      } else if (Platform.isAndroid) {
+      } else if (Platform.isAndroid || Platform.isLinux) {
         backend = Backend.OPENGL;
       } else {
         throw Exception("Unsupported platform");
       }
+    }
+
+    int? driverPlatform;
+    Pointer<Void> platformPtr = nullptr;
+    int? sharedContext;
+    Pointer<Void> sharedContextPtr = nullptr;
+    if (!Platform.isMacOS && !Platform.isIOS) {
+      driverPlatform =
+          await channel.invokeMethod("getDriverPlatform", backend.index);
+      platformPtr = driverPlatform == null
+          ? nullptr
+          : VoidPointerClass.fromAddress(driverPlatform);
+
+      sharedContext =
+          await channel.invokeMethod("getSharedContext", backend.index);
+
+      sharedContextPtr = sharedContext == null
+          ? nullptr
+          : VoidPointerClass.fromAddress(sharedContext);
     }
 
     final config = FFIFilamentConfig(
@@ -273,41 +388,58 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         // Stop the frame scheduler BEFORE destroying the engine
         // to prevent crashes from dangling callback pointers
         stopFrameScheduler();
-        if (Platform.isWindows) {
+
+        if (Platform.isWindows || Platform.isLinux) {
           await channel.invokeMethod("destroyContext");
         }
       });
     }
-
-    SwapChain? swapChain;
 
     // on MacOS/iOS, even though we render directly into a render target,
     // for some reason we still need to create a headless swapchain (though the
     // dimensions don't seem to matter).
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
-    if (Platform.isMacOS || Platform.isIOS || Platform.isWindows) {
-      swapChain ??= await FilamentApp.instance!
-          .createHeadlessSwapChain(1, 1, hasStencilBuffer: true);
+    SwapChain? swapChain;
+    if (Platform.isMacOS ||
+        Platform.isIOS ||
+        Platform.isWindows ||
+        Platform.isLinux) {
+      swapChain ??= await FilamentApp.instance!.createHeadlessSwapChain(
+        1,
+        1,
+        hasStencilBuffer: true,
+      );
     }
 
     // Mark scheduler as active BEFORE starting it
     _schedulerActive = true;
 
-    // Use port-based mode in debug builds (hot restart safe)
-    // Use direct callback in release builds (maximum performance)
-    // Supported on macOS, iOS, Android, and Windows
-    _usePortMode = kDebugMode && (Platform.isMacOS || Platform.isIOS || Platform.isAndroid || Platform.isWindows);
-
-    if (_usePortMode) {
-      // DEBUG MODE: Port-based (hot restart safe)
-      // Messages to dead ports are silently dropped - no crash
-      await _initializePortMode();
+    if (Platform.isLinux) {
+      // Native render loop: vsync → render → mark textures all in native.
+      // Bypasses Dart event loop entirely for minimal frame latency.
+      await _initializeNativeRenderLoop();
     } else {
-      // RELEASE MODE: Direct callback (maximum performance)
-      // All platforms use C API
-      _frameCallable = ffi.NativeCallable<FrameCallbackFunction>.listener(_onFrame);
-      FrameScheduler_start(_frameCallable!.nativeFunction, 60);
+      // Use port-based mode in debug builds (hot restart safe)
+      // Use direct callback in release builds (maximum performance)
+      _usePortMode = kDebugMode &&
+          (Platform.isMacOS ||
+              Platform.isIOS ||
+              Platform.isAndroid ||
+              Platform.isWindows);
+
+      if (_usePortMode) {
+        // DEBUG MODE: Port-based (hot restart safe)
+        // Messages to dead ports are silently dropped - no crash
+        await _initializePortMode();
+      } else {
+        // RELEASE MODE: Direct callback (maximum performance)
+        // All platforms use C API
+        _frameCallable = ffi.NativeCallable<FrameCallbackFunction>.listener(
+          _onFrame,
+        );
+        FrameScheduler_start(_frameCallable!.nativeFunction, 60);
+      }
     }
 
     return swapChain;
@@ -319,6 +451,103 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   void resumeFrameScheduler() {
     _frameSchedulerPaused = false;
+  }
+
+  /// Creates Filament textures + render target and binds them to [view].
+  /// Extracted so it can be called immediately or deferred.
+  static Future<void> _createFilamentResources(
+    PlatformTextureDescriptor descriptor,
+    View view,
+    int width,
+    int height,
+  ) async {
+    // Determine if we need the Vulkan external image path or direct GL/Metal import.
+    // Vulkan path: builder.external() + setExternalImage (Windows, or Linux with Vulkan)
+    // Direct import path: builder.import(textureId) (macOS/iOS Metal, Linux with OpenGL)
+    final useExternalImage =
+        ThermionFlutterPlugin.instance.options.nativeOptions.backend ==
+            Backend.VULKAN;
+
+    final swapChains = await FilamentApp.instance!.getSwapChains();
+    final color = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      importedTextureHandle: useExternalImage ? -1 : descriptor.hardwareId,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      },
+      textureFormat:
+          instance.options.nativeOptions.renderTargetColorTextureFormat,
+      textureSamplerType: TextureSamplerType.SAMPLER_2D,
+    );
+
+    if (useExternalImage) {
+      await FilamentApp.instance!.setExternalImage(
+        color,
+        descriptor.hardwareId,
+      );
+    }
+
+    final depth = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+      },
+      textureFormat:
+          instance.options.nativeOptions.renderTargetDepthTextureFormat,
+      textureSamplerType: TextureSamplerType.SAMPLER_2D,
+    );
+
+    // Use tracked RT for destruction (not view.getRenderTarget()) because
+    // in composite mode the view's RT may be an internal RT, not the Flutter RT
+    final existingRenderTarget = _viewRenderTargets[view];
+
+    var renderTarget = await FilamentApp.instance!.createRenderTarget(
+      width,
+      height,
+      color: color,
+      depth: depth,
+    );
+
+    await view.setRenderTarget(renderTarget);
+    _viewRenderTargets[view] = renderTarget; // Track the new RT
+
+    if (existingRenderTarget != null) {
+      final color = await existingRenderTarget.getColorTexture();
+      final depth = await existingRenderTarget.getDepthTexture();
+      await color.destroy();
+      await depth.destroy();
+      await existingRenderTarget.destroy();
+    }
+    await FilamentApp.instance!.setRenderOrder(swapChains.first, view);
+  }
+
+  /// Fire-and-forget: waits for populate() to create the GL texture,
+  /// then creates Filament resources. Runs after createTextureAndBindToView
+  /// returns so the Texture widget can be built first.
+  static void _scheduleDeferredBinding(
+    MethodChannelPlatformTextureDescriptor descriptor,
+    View view,
+    int width,
+    int height,
+  ) async {
+    try {
+      final hardwareId = await descriptor.awaitTextureReady();
+      if (descriptor.destroyed) return;
+      descriptor.hardwareId = hardwareId;
+      _logger.info(
+        'Deferred texture ready: flutter=${descriptor.flutterTextureId} hardware=$hardwareId',
+      );
+      await _createFilamentResources(descriptor, view, width, height);
+    } catch (e) {
+      _logger.warning('Deferred texture binding failed: $e');
+    }
   }
 
   @override
@@ -334,84 +563,62 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
 
     late PlatformTextureDescriptor descriptor;
+
     if (Platform.isMacOS || Platform.isIOS) {
       descriptor = DarwinPlatformTextureDescriptorImpl.allocate(width, height);
     } else {
       descriptor = await MethodChannelPlatformTextureDescriptor.allocate(
-          channel, width, height);
+        channel,
+        width,
+        height,
+      );
     }
 
+    // Add to descriptors early so markTextureFrameAvailable is called
+    // (triggers populate() which creates the deferred GL texture)
+    _descriptors.add(descriptor);
+
+    // On Android, we recreate the swapchain whenever the size changes
+    // TODO - why not allocate a larger swapchain initially and just change
+    // the viewport?
+    // In fact we can probably do this for all platforms
     if (Platform.isAndroid) {
       final swapChain = await FilamentApp.instance!.createSwapChain(
         Pointer<Void>.fromAddress(descriptor.windowHandle!),
       );
 
       final existingSwapChain = await FilamentApp.instance!.getSwapChain(view);
-      
+
       await FilamentApp.instance!.setRenderOrder(swapChain, view);
-      
+
       if (existingSwapChain != null) {
-        await FilamentApp.instance!.setRenderOrder(existingSwapChain, view, renderOrder: -1);
+        await FilamentApp.instance!.setRenderOrder(
+          existingSwapChain,
+          view,
+          renderOrder: -1,
+        );
         await FilamentApp.instance!.destroySwapChain(existingSwapChain);
       }
-    } else {
-      final swapChains = await FilamentApp.instance!.getSwapChains();
-      final color = await FilamentApp.instance!.createTexture(
-        descriptor.width,
-        descriptor.height,
-        importedTextureHandle: Platform.isWindows ? -1 : descriptor.hardwareId,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-        },
-        textureFormat: options.nativeOptions.renderTargetColorTextureFormat,
-        textureSamplerType: TextureSamplerType.SAMPLER_2D,
-      );
-      if (Platform.isWindows) {
-        await FilamentApp.instance!.setExternalImage(color, descriptor.hardwareId);
-      }
-      final depth = await FilamentApp.instance!.createTexture(
-        descriptor.width,
-        descriptor.height,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT
-        },
-        textureFormat: options.nativeOptions.renderTargetDepthTextureFormat,
-        textureSamplerType: TextureSamplerType.SAMPLER_2D,
-      );
 
-      // Use tracked RT for destruction (not view.getRenderTarget()) because
-      // in composite mode the view's RT may be an internal RT, not the Flutter RT
-      final existingRenderTarget = _viewRenderTargets[view];
+      // On other platforms, if a hardware texture ID is returned, this means
+      // the texture is immediately available for rendering.
+    } else if (descriptor.hardwareId != 0) {
+      await _createFilamentResources(descriptor, view, width, height);
 
-      var renderTarget = await FilamentApp.instance!.createRenderTarget(
-        descriptor.width,
-        descriptor.height,
-        color: color,
-        depth: depth,
-      );
-
-      await view.setRenderTarget(renderTarget);
-      _viewRenderTargets[view] = renderTarget;  // Track the new RT
-
-      if (existingRenderTarget != null) {
-        final color = await existingRenderTarget.getColorTexture();
-        final depth = await existingRenderTarget.getDepthTexture();
-        await color.destroy();
-        await depth.destroy();
-        await existingRenderTarget.destroy();
-      }
-      await FilamentApp.instance!.setRenderOrder(swapChains.first, view);
-
+      // On Linux, when running via EGL/OpenGL backend (Wayland),
+      // we can only access the EGL context in the native populate() callback;
+      // in other words, the platform thread cannot return a hardware texture ID.
+      // We need to defer binding the surface.
+      //
+    } else if (Platform.isLinux) {
+      _scheduleDeferredBinding(
+          descriptor as MethodChannelPlatformTextureDescriptor,
+          view,
+          width,
+          height);
     }
 
     await view.setViewport(width, height);
-
-    _descriptors.add(descriptor);
 
     return descriptor;
   }

@@ -1,0 +1,36 @@
+#pragma once
+
+#include <mutex>
+
+#include "utils/ostream.h"
+#include "filament/backend/Platform.h"
+#include "filament/backend/platforms/VulkanPlatform.h"
+
+#include "windows/import.h"
+
+namespace thermion::vulkan::windows {
+
+class WindowsVulkanPlatform : public filament::backend::VulkanPlatform {
+    public:
+ 
+       WindowsVulkanPlatform();
+       ~WindowsVulkanPlatform();
+ 
+       virtual VulkanPlatform::Customization getCustomization() const noexcept;
+ 
+       SwapChainPtr createSwapChain(void* nativeWindow, uint64_t flags,
+             VkExtent2D extent = {0, 0}) override;
+       
+       void destroy(SwapChainPtr handle) override;
+ 
+       VkResult present(SwapChainPtr handle, uint32_t index, VkSemaphore finishedDrawing) override;
+       
+       SwapChainPtr current = std::nullptr_t();
+       std::mutex mutex;
+       uint32_t currentColorIndex = 0;
+     
+      private:  
+       filament::backend::VulkanPlatform::Customization _customization;
+ 
+ };
+}
