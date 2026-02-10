@@ -510,7 +510,12 @@ namespace thermion
                                .sampler(samplerType)
                                .format(format)
                                .usage(usage);
-            if (import)
+            if (import == -1)
+            {
+                TRACE("Building external texture");
+                builder.external();
+            }
+            else if (import)
             {
                 TRACE("Importing texture with handle : %d", import);
                 builder.import(import);
@@ -527,6 +532,15 @@ namespace thermion
             }
 
             return reinterpret_cast<TTexture *>(texture);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Texture_setExternalImage(TEngine *tEngine, TTexture *tTexture, void *externalImage)
+        {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+            auto *extImg = static_cast<filament::backend::Platform::ExternalImage *>(externalImage);
+            auto handle = filament::backend::Platform::ExternalImageHandle(extImg);
+            texture->setExternalImage(*engine, std::move(handle));
         }
 
         EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture)

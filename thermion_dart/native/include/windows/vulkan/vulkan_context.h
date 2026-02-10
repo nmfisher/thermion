@@ -33,6 +33,8 @@ namespace thermion::windows::vulkan {
 
         VkImage GetVulkanImageForSurface(HANDLE d3dTextureHandle);
 
+        void* CreateExternalImageForSurface(HANDLE d3dTextureHandle);
+
         void DestroyRenderingSurface(HANDLE handle);
                       
         filament::backend::VulkanPlatform *GetPlatform();

@@ -451,6 +451,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
   }
 
+  Future<void> setExternalImage(Texture texture, int externalImagePtr) async {
+    final ffiTexture = texture as FFITexture;
+    await withVoidCallback((requestId, cb) {
+      Texture_setExternalImageRenderThread(
+          engine,
+          ffiTexture.pointer,
+          Pointer<Void>.fromAddress(externalImagePtr),
+          requestId,
+          cb);
+    });
+  }
+
   ///
   Future<TextureSampler> createTextureSampler(
       {TextureMinFilter minFilter = TextureMinFilter.LINEAR,

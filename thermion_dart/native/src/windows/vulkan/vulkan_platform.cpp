@@ -58,5 +58,30 @@ VkResult TVulkanPlatform::present(SwapChainPtr handle, uint32_t index, VkSemapho
   currentColorIndex = index;
   return result;
 }
- 
+
+filament::backend::VulkanPlatform::ExternalImageMetadata TVulkanPlatform::extractExternalImageMetadata(ExternalImageHandleRef image) const {
+  auto* ext = static_cast<ExternalVulkanImage const*>(image.get());
+  ExternalImageMetadata metadata{};
+  metadata.filamentFormat = ext->filamentFormat;
+  metadata.filamentUsage = ext->filamentUsage;
+  metadata.width = ext->width;
+  metadata.height = ext->height;
+  metadata.layers = ext->layers;
+  metadata.samples = VK_SAMPLE_COUNT_1_BIT;
+  metadata.format = ext->format;
+  metadata.externalFormat = 0;
+  metadata.usage = ext->usage;
+  metadata.allocationSize = ext->allocationSize;
+  metadata.memoryTypeBits = ext->memoryTypeBits;
+  return metadata;
+}
+
+filament::backend::VulkanPlatform::ImageData TVulkanPlatform::createVkImageFromExternal(ExternalImageHandleRef image) const {
+  auto* ext = static_cast<ExternalVulkanImage const*>(image.get());
+  ImageData data{};
+  data.internal.image = ext->image;
+  data.internal.memory = ext->memory;
+  return data;
+}
+
 }

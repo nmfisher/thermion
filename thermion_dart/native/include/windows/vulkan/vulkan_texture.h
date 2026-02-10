@@ -33,6 +33,18 @@ class DLL_EXPORT VulkanTexture {
         VkImage GetImage() {
             return _image;
         }
+
+        VkDeviceMemory GetMemory() {
+            return _imageMemory;
+        }
+
+        uint32_t GetWidth() {
+            return _width;
+        }
+
+        uint32_t GetHeight() {
+            return _height;
+        }
     private:
         VkImage _image = VK_NULL_HANDLE;
         VkDevice _device = VK_NULL_HANDLE;

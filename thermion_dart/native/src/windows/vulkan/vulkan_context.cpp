@@ -211,6 +211,36 @@ class ThermionVulkanContext::Impl {
             return VK_NULL_HANDLE;
         }
 
+        void* CreateExternalImageForSurface(HANDLE handle) {
+            for (size_t i = 0; i < _d3dTextures.size(); i++) {
+                if (_d3dTextures[i]->GetTextureHandle() == handle) {
+                    auto& rt = _renderTargetTextures[i];
+                    auto* ext = new ExternalVulkanImage();
+                    ext->image = rt->GetImage();
+                    ext->memory = rt->GetMemory();
+                    ext->format = VK_FORMAT_R8G8B8A8_UNORM;
+                    ext->width = rt->GetWidth();
+                    ext->height = rt->GetHeight();
+                    ext->layers = 1;
+                    ext->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+                    // Get memory requirements for allocationSize and memoryTypeBits
+                    VkMemoryRequirements memReqs;
+                    bluevk::vkGetImageMemoryRequirements(device, ext->image, &memReqs);
+                    ext->allocationSize = memReqs.size;
+                    ext->memoryTypeBits = memReqs.memoryTypeBits;
+
+                    ext->filamentFormat = filament::backend::TextureFormat::RGBA8;
+                    ext->filamentUsage = filament::backend::TextureUsage::COLOR_ATTACHMENT
+                        | filament::backend::TextureUsage::BLIT_SRC
+                        | filament::backend::TextureUsage::SAMPLEABLE;
+                    return ext;
+                }
+            }
+            ERROR("D3D texture not found for handle in CreateExternalImageForSurface");
+            return nullptr;
+        }
+
         void Blit(HANDLE d3dTextureHandle) {
             // Find the texture index for this handle
             size_t textureIndex = SIZE_MAX;
@@ -595,6 +625,10 @@ HANDLE ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t he
 
 VkImage ThermionVulkanContext::GetVulkanImageForSurface(HANDLE handle) {
     return pImpl->GetVulkanImageForSurface(handle);
+}
+
+void* ThermionVulkanContext::CreateExternalImageForSurface(HANDLE handle) {
+    return pImpl->CreateExternalImageForSurface(handle);
 }
 
 void ThermionVulkanContext::DestroyRenderingSurface(HANDLE handle) {

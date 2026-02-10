@@ -104,7 +104,7 @@ namespace thermion::tflutter::windows
       return;
     }
 
-    auto vkImage = _context->GetVulkanImageForSurface(d3dHandle);
+    auto externalImage = _context->CreateExternalImageForSurface(d3dHandle);
 
     auto flutterTexture = std::make_unique<FlutterD3DTexture>(d3dHandle, width, height);
 
@@ -117,7 +117,7 @@ namespace thermion::tflutter::windows
 
     std::vector<flutter::EncodableValue> resultList;
     resultList.push_back(flutter::EncodableValue(flutterTextureId));
-    resultList.push_back(flutter::EncodableValue((int64_t)vkImage));
+    resultList.push_back(flutter::EncodableValue((int64_t)externalImage));
     resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
     result->Success(resultList);
   }
