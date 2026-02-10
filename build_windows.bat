@@ -89,12 +89,13 @@ if "!BUILD_DEBUG!"=="true" if exist "%TARGET_DEBUG_DIR%" (
 )
 
 REM Change to Filament directory and checkout branch
+REM Change to Filament directory and checkout branch
 cd /d "%FILAMENT_BASE_DIR%" || exit /b 1
-git stash
-git reset --hard
-echo Checking out tag: v1.69.1
-git checkout v1.69.1 || (
-  echo Error: Failed to checkout tag: v1.69.1
+call git stash
+call git reset --hard
+echo Checking out branch: thermion-custom-build
+call git checkout thermion-custom-build || (
+  echo Error: Failed to checkout branch: thermion-custom-build
   exit /b 1
 )
 
@@ -236,6 +237,27 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
+  REM Copy bluevk headers (not included in main include dir)
+  mkdir "!THERMION_INCLUDE_RELEASE!\bluevk" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk\*" "!THERMION_INCLUDE_RELEASE!\bluevk\" >nul || (
+    echo Error: Failed to copy bluevk headers
+    exit /b 1
+  )
+
+  REM Copy vulkan headers (not included in main include dir)
+  mkdir "!THERMION_INCLUDE_RELEASE!\vulkan" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan\*" "!THERMION_INCLUDE_RELEASE!\vulkan\" >nul || (
+    echo Error: Failed to copy vulkan headers
+    exit /b 1
+  )
+
+  REM Copy vk_video headers (not included in main include dir)
+  mkdir "!THERMION_INCLUDE_RELEASE!\vk_video" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video\*" "!THERMION_INCLUDE_RELEASE!\vk_video\" >nul || (
+    echo Error: Failed to copy vk_video headers
+    exit /b 1
+  )
+
   echo Release headers copied to: !THERMION_INCLUDE_RELEASE!
 )
 
@@ -260,7 +282,76 @@ if "!BUILD_DEBUG!"=="true" (
     exit /b 1
   )
 
+  REM Copy bluevk headers (not included in main include dir)
+  mkdir "!THERMION_INCLUDE_DEBUG!\bluevk" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk\*" "!THERMION_INCLUDE_DEBUG!\bluevk\" >nul || (
+    echo Error: Failed to copy bluevk headers
+    exit /b 1
+  )
+
+  REM Copy vulkan headers (not included in main include dir)
+  mkdir "!THERMION_INCLUDE_DEBUG!\vulkan" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan\*" "!THERMION_INCLUDE_DEBUG!\vulkan\" >nul || (
+    echo Error: Failed to copy vulkan headers
+    exit /b 1
+  )
+
+  REM Copy vk_video headers (not included in main include dir)
+  mkdir "!THERMION_INCLUDE_DEBUG!\vk_video" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video\*" "!THERMION_INCLUDE_DEBUG!\vk_video\" >nul || (
+    echo Error: Failed to copy vk_video headers
+    exit /b 1
+  )
+
   echo Debug headers copied to: !THERMION_INCLUDE_DEBUG!
+)
+
+REM Download vulkan-1.lib from v1.58.0 (reusable across versions)
+set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.58.0-windows-release.zip"
+set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
+set "VULKAN_LIB_EXTRACT=%OUTPUT_BASE_DIR%\vulkan-1-temp"
+
+if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
+  echo Downloading filament v1.58.0 to extract vulkan-1.lib...
+  powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
+    echo Error: Failed to download filament v1.58.0 zip
+    exit /b 1
+  )
+
+  echo Extracting vulkan-1.lib from zip...
+  if exist "%VULKAN_LIB_EXTRACT%" rmdir /s /q "%VULKAN_LIB_EXTRACT%"
+  mkdir "%VULKAN_LIB_EXTRACT%"
+  powershell -Command "Expand-Archive -Path '%VULKAN_LIB_ZIP%' -DestinationPath '%VULKAN_LIB_EXTRACT%' -Force" || (
+    echo Error: Failed to extract filament v1.58.0 zip
+    exit /b 1
+  )
+
+  REM Copy vulkan-1.lib to output base for reuse
+  if exist "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" (
+    copy /Y "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
+  ) else (
+    echo Error: vulkan-1.lib not found in v1.58.0 zip
+    echo Contents of extracted zip:
+    dir /b "%VULKAN_LIB_EXTRACT%"
+    exit /b 1
+  )
+
+  REM Cleanup temp files
+  del /q "%VULKAN_LIB_ZIP%" 2>nul
+  rmdir /s /q "%VULKAN_LIB_EXTRACT%" 2>nul
+  echo vulkan-1.lib cached at: %OUTPUT_BASE_DIR%\vulkan-1.lib
+) else (
+  echo Using cached vulkan-1.lib from: %OUTPUT_BASE_DIR%\vulkan-1.lib
+)
+
+REM Copy vulkan-1.lib to target directories
+if "!BUILD_RELEASE!"=="true" (
+  copy /Y "%OUTPUT_BASE_DIR%\vulkan-1.lib" "%TARGET_RELEASE_DIR%\vulkan-1.lib" >nul
+  echo Copied vulkan-1.lib to release directory
+)
+if "!BUILD_DEBUG!"=="true" (
+  copy /Y "%OUTPUT_BASE_DIR%\vulkan-1.lib" "%TARGET_DEBUG_DIR%\vulkan-1.lib" >nul
+  echo Copied vulkan-1.lib to debug directory
 )
 
 REM Create zip files (using PowerShell)
@@ -286,6 +377,20 @@ if "!BUILD_RELEASE!"=="true" (
 if "!BUILD_DEBUG!"=="true" (
   echo Debug libraries: %TARGET_DEBUG_DIR%
   echo Debug zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip
+)
+
+REM Upload zip files to Cloudflare R2
+echo.
+echo Uploading zip files to Cloudflare R2...
+if "!BUILD_RELEASE!"=="true" (
+  call "%SCRIPT_DIR%upload_r2.bat" "%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release.zip" || (
+    echo Warning: Failed to upload release zip
+  )
+)
+if "!BUILD_DEBUG!"=="true" (
+  call "%SCRIPT_DIR%upload_r2.bat" "%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip" || (
+    echo Warning: Failed to upload debug zip
+  )
 )
 
 endlocal
