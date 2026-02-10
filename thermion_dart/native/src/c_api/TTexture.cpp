@@ -512,12 +512,12 @@ namespace thermion
                                .usage(usage);
             if (import == -1)
             {
-                TRACE("Building external texture");
+                Log("Building external texture");
                 builder.external();
             }
             else if (import)
             {
-                TRACE("Importing texture with handle : %d", import);
+                Log("Importing texture with handle : %d", import);
                 builder.import(import);
             }
             auto *texture = builder
