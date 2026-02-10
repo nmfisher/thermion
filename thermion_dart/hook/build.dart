@@ -358,7 +358,19 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-String _FILAMENT_VERSION = "v1.69.1";
+String _getFilamentVersion() {
+  final versionFile = File(path.join(
+    path.dirname(path.dirname(Platform.script.toFilePath(windows: Platform.isWindows))),
+    'filament.version'
+  ));
+  if (versionFile.existsSync()) {
+    return versionFile.readAsStringSync().trim();
+  }
+  // Fallback to hardcoded version if file doesn't exist
+  return "v1.69.1";
+}
+
+String _FILAMENT_VERSION = _getFilamentVersion();
 String _getLibraryUrl(String platform, String mode) {
   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
 }
