@@ -94,9 +94,9 @@ fi
 cd "$FILAMENT_BASE_DIR" || exit 1
 git stash
 git reset --hard
-echo "Checking out branch: thermion-custom-build"
-git checkout thermion-custom-build || {
-  echo "Error: Failed to checkout branch: thermion-custom-build"
+echo "Checking out tag: $FILAMENT_VERSION"
+git checkout "${FILAMENT_VERSION}" || {
+  echo "Error: Failed to checkout tag: $FILAMENT_VERSION"
   exit 1
 }
 
