@@ -364,7 +364,9 @@ String _getFilamentVersion() {
     'filament.version'
   ));
   if (versionFile.existsSync()) {
-    return versionFile.readAsStringSync().trim();
+    final parts = versionFile.readAsStringSync().trim().split(RegExp(r'\s+'));
+    // Format: "<repo> <version>" - return the version (second field)
+    return parts.length >= 2 ? parts[1] : parts[0];
   }
   // Fallback to hardcoded version if file doesn't exist
   return "v1.69.1";
