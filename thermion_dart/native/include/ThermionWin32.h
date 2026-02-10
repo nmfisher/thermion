@@ -9,7 +9,6 @@
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "filament.lib")
 #pragma comment(lib, "bluevk.lib")
-#pragma comment(lib, "vkshaders.lib")
 #pragma comment(lib, "bluegl.lib")
 #pragma comment(lib, "backend.lib")
 #pragma comment(lib, "filamat.lib")
