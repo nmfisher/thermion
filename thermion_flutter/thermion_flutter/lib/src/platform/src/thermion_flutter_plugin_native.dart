@@ -321,7 +321,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       final color = await FilamentApp.instance!.createTexture(
         descriptor.width,
         descriptor.height,
-        importedTextureHandle: descriptor.hardwareId,
+        importedTextureHandle: Platform.isWindows ? -1 : descriptor.hardwareId,
         flags: {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
@@ -330,6 +330,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         textureFormat: options.nativeOptions.renderTargetColorTextureFormat,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
+      if (Platform.isWindows) {
+        await FilamentApp.instance!.setExternalImage(color, descriptor.hardwareId);
+      }
       final depth = await FilamentApp.instance!.createTexture(
         descriptor.width,
         descriptor.height,

@@ -96,6 +96,8 @@ abstract class FilamentApp<T> {
       TextureFormat textureFormat = TextureFormat.RGBA32F,
       int? importedTextureHandle});
 
+  Future<void> setExternalImage(Texture texture, int externalImagePtr);
+
   //
   Future<TextureSampler> createTextureSampler(
       {TextureMinFilter minFilter = TextureMinFilter.LINEAR,
