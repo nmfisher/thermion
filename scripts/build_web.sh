@@ -12,11 +12,14 @@ if [ $# -lt 3 ]; then
   echo "Example: $0 /path/to/filament v1.69.0 /path/to/output"
   echo "         $0 /path/to/filament v1.69.0 /path/to/output --clean"
   echo "         $0 /path/to/filament v1.69.0 /path/to/output --release"
+  echo "         $0 /path/to/filament v1.69.0 /path/to/output --tools-dir /path/to/tools"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
   echo "  --release       Build release only"
   echo "  --debug         Build debug only"
+  echo "  --tools-dir DIR Use prebuilt desktop tools from DIR (skips desktop build)"
+  echo "                  DIR must contain ImportExecutables-Release.cmake and tools/"
   echo "  (default)       Build both release and debug"
   echo ""
   echo "Environment variables:"
@@ -24,18 +27,19 @@ if [ $# -lt 3 ]; then
   exit 1
 fi
 
-FILAMENT_BASE_DIR=$1
+FILAMENT_BASE_DIR=$(cd "$1" && pwd)
 FILAMENT_VERSION=$2
-OUTPUT_BASE_DIR=$3
+OUTPUT_BASE_DIR=$(cd "$3" && pwd)
 shift 3
 
 # Parse optional flags
 CLEAN_FLAG=""
 BUILD_RELEASE=true
 BUILD_DEBUG=true
+TOOLS_DIR=""
 
-for arg in "$@"; do
-  case $arg in
+while [ $# -gt 0 ]; do
+  case $1 in
     --clean)
       CLEAN_FLAG="--clean"
       ;;
@@ -45,11 +49,16 @@ for arg in "$@"; do
     --debug)
       BUILD_RELEASE=false
       ;;
+    --tools-dir)
+      shift
+      TOOLS_DIR="$1"
+      ;;
     *)
-      echo "Unknown option: $arg"
+      echo "Unknown option: $1"
       exit 1
       ;;
   esac
+  shift
 done
 
 # Validate OUTPUT_BASE_DIR exists
@@ -76,6 +85,10 @@ if [ -z "$EMSDK" ] && [ -z "$EMSCRIPTEN" ]; then
   echo "Example: export EMSDK=/path/to/emsdk"
   exit 1
 fi
+
+# Set compiler to clang
+export CC=clang
+export CXX=clang++
 
 # Use EMSDK if available, otherwise fall back to EMSCRIPTEN
 if [ -n "$EMSDK" ]; then
@@ -134,13 +147,76 @@ echo "Patching libz CMakeLists.txt for Emscripten..."
 sed -i.bak 's/set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)/set_target_properties(zlib PROPERTIES OUTPUT_NAME z)\n set_target_properties(zlibstatic PROPERTIES OUTPUT_NAME zstatic)/g' third_party/libz/CMakeLists.txt
 
 # Ensure desktop tools are available (needed for web cross-compilation)
-if [ ! -d "out/cmake-release/tools" ]; then
-  echo "Desktop tools not found. Building desktop release (required for web cross-compilation)..."
-  ./build.sh -p desktop release || {
-    echo "Error: Desktop tools build failed"
-    exit 1
+if [ -n "$TOOLS_DIR" ]; then
+  # Use prebuilt tools from a local directory
+  TOOLS_DIR=$(cd "$TOOLS_DIR" && pwd)
+  echo "Using prebuilt desktop tools from: $TOOLS_DIR"
+elif [ ! -d "$FILAMENT_BASE_DIR/out/cmake-release/tools" ]; then
+  # Download official Filament release to get prebuilt tools
+  echo "Downloading official Filament release for desktop tools..."
+  RELEASE_URL="https://github.com/google/filament/releases/download/${FILAMENT_VERSION}/filament-${FILAMENT_VERSION}-linux.tgz"
+  TOOLS_DIR="$FILAMENT_BASE_DIR/out/filament-release"
+  mkdir -p "$TOOLS_DIR"
+  curl -sL "$RELEASE_URL" | tar xz -C "$TOOLS_DIR" --strip-components=1 || {
+    echo "Error: Failed to download Filament release from: $RELEASE_URL"
+    echo "Falling back to building desktop tools from source..."
+    TOOLS_DIR=""
+    ./build.sh -p desktop release || {
+      echo "Error: Desktop tools build failed"
+      exit 1
+    }
   }
 fi
+
+# If using prebuilt tools (downloaded or provided), set them up
+if [ -n "$TOOLS_DIR" ]; then
+  # Verify tools exist
+  for tool in matc cmgen filamesh mipgen resgen uberz glslminifier; do
+    if [ ! -f "$TOOLS_DIR/bin/$tool" ]; then
+      echo "Error: Tool not found: $TOOLS_DIR/bin/$tool"
+      exit 1
+    fi
+  done
+
+  # Generate ImportExecutables-Release.cmake pointing to the tools
+  mkdir -p "$FILAMENT_BASE_DIR/out"
+  TOOLS_BIN_DIR="$TOOLS_DIR/bin"
+  cat > "$FILAMENT_BASE_DIR/out/ImportExecutables-Release.cmake" << CMAKE_EOF
+cmake_policy(PUSH)
+cmake_policy(VERSION 2.8.3...3.31)
+set(CMAKE_IMPORT_FILE_VERSION 1)
+
+foreach(_tool matc cmgen filamesh mipgen resgen uberz glslminifier)
+  if(NOT TARGET \${_tool})
+    add_executable(\${_tool} IMPORTED)
+    set_property(TARGET \${_tool} APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+    set_target_properties(\${_tool} PROPERTIES
+      IMPORTED_LOCATION_RELEASE "${TOOLS_BIN_DIR}/\${_tool}"
+    )
+  endif()
+endforeach()
+
+set(CMAKE_IMPORT_FILE_VERSION)
+cmake_policy(POP)
+CMAKE_EOF
+
+  # Set up tools directory structure for symlinks in build dirs
+  mkdir -p "$FILAMENT_BASE_DIR/out/cmake-release/tools"
+  for tool in matc cmgen filamesh mipgen resgen uberz glslminifier; do
+    mkdir -p "$FILAMENT_BASE_DIR/out/cmake-release/tools/$tool"
+    ln -sf "$TOOLS_BIN_DIR/$tool" "$FILAMENT_BASE_DIR/out/cmake-release/tools/$tool/$tool"
+  done
+fi
+
+# Verify ImportExecutables file exists
+IMPORT_FILE="$FILAMENT_BASE_DIR/out/ImportExecutables-Release.cmake"
+if [ ! -f "$IMPORT_FILE" ]; then
+  echo "Error: ImportExecutables-Release.cmake not found at: $IMPORT_FILE"
+  echo "Contents of $FILAMENT_BASE_DIR/out/:"
+  ls -la "$FILAMENT_BASE_DIR/out/" 2>/dev/null || echo "(directory does not exist)"
+  exit 1
+fi
+echo "Found ImportExecutables file: $IMPORT_FILE"
 
 # Build release
 if [ "$BUILD_RELEASE" = true ]; then
