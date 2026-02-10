@@ -510,7 +510,7 @@ namespace thermion
                                .sampler(samplerType)
                                .format(format)
                                .usage(usage);
-            if (import == -1)
+            if (import == 1)
             {
                 Log("Building external texture");
                 builder.external();

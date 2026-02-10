@@ -49,10 +49,6 @@ class TVulkanPlatform : public filament::backend::VulkanPlatform {
 
        VkResult present(SwapChainPtr handle, uint32_t index, VkSemaphore finishedDrawing) override;
 
-       ExtensionSet getSwapchainInstanceExtensions() const override;
-       SurfaceBundle createVkSurfaceKHR(void* nativeWindow, VkInstance instance,
-             uint64_t flags) const noexcept override;
-
        ExternalImageMetadata extractExternalImageMetadata(ExternalImageHandleRef image) const override;
        ImageData createVkImageFromExternal(ExternalImageHandleRef image) const override;
 
