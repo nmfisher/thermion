@@ -93,9 +93,9 @@ REM Change to Filament directory and checkout branch
 cd /d "%FILAMENT_BASE_DIR%" || exit /b 1
 call git stash
 call git reset --hard
-echo Checking out branch: thermion-custom-build
-call git checkout thermion-custom-build || (
-  echo Error: Failed to checkout branch: thermion-custom-build
+echo Checking out tag: v1.69.1
+call git checkout v1.69.1 || (
+  echo Error: Failed to checkout tag v1.69.1
   exit /b 1
 )
 
@@ -215,95 +215,14 @@ if "!BUILD_DEBUG!"=="true" (
   )
 )
 
-REM Copy header files to thermion_dart (separate directories for release and debug)
-if "!BUILD_RELEASE!"=="true" (
-  echo Copying Filament release header files to thermion_dart...
-  set "THERMION_INCLUDE_RELEASE=%SCRIPT_DIR%thermion_dart\native\include\filament\release\filament"
+REM Copy header files to thermion_dart
+set "COPY_HEADERS_OPTS="
+if "!BUILD_RELEASE!"=="true" if "!BUILD_DEBUG!"=="false" set "COPY_HEADERS_OPTS=--release"
+if "!BUILD_DEBUG!"=="true" if "!BUILD_RELEASE!"=="false" set "COPY_HEADERS_OPTS=--debug"
 
-  REM Clean and recreate release include directory
-  if exist "!THERMION_INCLUDE_RELEASE!" rmdir /s /q "!THERMION_INCLUDE_RELEASE!"
-  mkdir "!THERMION_INCLUDE_RELEASE!"
-
-  REM Copy all headers from Filament's release install directory
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\out\install-release\include\*" "!THERMION_INCLUDE_RELEASE!\" >nul || (
-    echo Error: Failed to copy Filament release headers
-    exit /b 1
-  )
-
-  REM Copy imageio headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_RELEASE!\imageio" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "!THERMION_INCLUDE_RELEASE!\imageio\" >nul || (
-    echo Error: Failed to copy imageio headers
-    exit /b 1
-  )
-
-  REM Copy bluevk headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_RELEASE!\bluevk" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk\*" "!THERMION_INCLUDE_RELEASE!\bluevk\" >nul || (
-    echo Error: Failed to copy bluevk headers
-    exit /b 1
-  )
-
-  REM Copy vulkan headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_RELEASE!\vulkan" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan\*" "!THERMION_INCLUDE_RELEASE!\vulkan\" >nul || (
-    echo Error: Failed to copy vulkan headers
-    exit /b 1
-  )
-
-  REM Copy vk_video headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_RELEASE!\vk_video" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video\*" "!THERMION_INCLUDE_RELEASE!\vk_video\" >nul || (
-    echo Error: Failed to copy vk_video headers
-    exit /b 1
-  )
-
-  echo Release headers copied to: !THERMION_INCLUDE_RELEASE!
-)
-
-if "!BUILD_DEBUG!"=="true" (
-  echo Copying Filament debug header files to thermion_dart...
-  set "THERMION_INCLUDE_DEBUG=%SCRIPT_DIR%thermion_dart\native\include\filament\debug\filament"
-
-  REM Clean and recreate debug include directory
-  if exist "!THERMION_INCLUDE_DEBUG!" rmdir /s /q "!THERMION_INCLUDE_DEBUG!"
-  mkdir "!THERMION_INCLUDE_DEBUG!"
-
-  REM Copy all headers from Filament's debug install directory
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\out\install-debug\include\*" "!THERMION_INCLUDE_DEBUG!\" >nul || (
-    echo Error: Failed to copy Filament debug headers
-    exit /b 1
-  )
-
-  REM Copy imageio headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_DEBUG!\imageio" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "!THERMION_INCLUDE_DEBUG!\imageio\" >nul || (
-    echo Error: Failed to copy imageio headers
-    exit /b 1
-  )
-
-  REM Copy bluevk headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_DEBUG!\bluevk" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk\*" "!THERMION_INCLUDE_DEBUG!\bluevk\" >nul || (
-    echo Error: Failed to copy bluevk headers
-    exit /b 1
-  )
-
-  REM Copy vulkan headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_DEBUG!\vulkan" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan\*" "!THERMION_INCLUDE_DEBUG!\vulkan\" >nul || (
-    echo Error: Failed to copy vulkan headers
-    exit /b 1
-  )
-
-  REM Copy vk_video headers (not included in main include dir)
-  mkdir "!THERMION_INCLUDE_DEBUG!\vk_video" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video\*" "!THERMION_INCLUDE_DEBUG!\vk_video\" >nul || (
-    echo Error: Failed to copy vk_video headers
-    exit /b 1
-  )
-
-  echo Debug headers copied to: !THERMION_INCLUDE_DEBUG!
+call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! || (
+  echo Error: Failed to copy headers
+  exit /b 1
 )
 
 REM Download vulkan-1.lib from v1.58.0 (reusable across versions)
