@@ -26,9 +26,12 @@
 #include <backend/Platform.h>
 
 #include <utils/compiler.h>
+#include <utils/Invocable.h>
+#include <utils/StaticString.h>
 
 #include <utility>
 
+#include <functional>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -87,12 +90,18 @@ public:
     using Swizzle = backend::TextureSwizzle;                         //!< Texture swizzle
     using ExternalImageHandle = backend::Platform::ExternalImageHandle;
     using ExternalImageHandleRef = backend::Platform::ExternalImageHandleRef;
+    using AsyncCompletionCallback =
+            std::function<void(Texture* UTILS_NONNULL, void* UTILS_NULLABLE)>;
+    using AsyncCallId = backend::AsyncCallId;
 
     /** @return Whether a backend supports a particular format. */
     static bool isTextureFormatSupported(Engine& engine, InternalFormat format) noexcept;
 
     /** @return Whether a backend supports mipmapping of a particular format. */
     static bool isTextureFormatMipmappable(Engine& engine, InternalFormat format) noexcept;
+
+    /** @return Whether particular format is compressed */
+    static bool isTextureFormatCompressed(InternalFormat format) noexcept;
 
     /** @return Whether this backend supports protected textures. */
     static bool isProtectedTexturesSupported(Engine& engine) noexcept;
@@ -106,18 +115,12 @@ public:
     /** @return Whether a combination of texture format, pixel format and type is valid. */
     static bool validatePixelFormatAndType(InternalFormat internalFormat, Format format, Type type) noexcept;
 
-    /**
-     * Options for environment prefiltering into reflection map
-     *
-     * @see generatePrefilterMipmap()
-     */
-    struct PrefilterOptions {
-        uint16_t sampleCount = 8;   //!< sample count used for filtering
-        bool mirror = true;         //!< whether the environment must be mirrored
-    private:
-        UTILS_UNUSED uintptr_t reserved[3] = {};
-    };
+    /** @return the maximum size in texels of a texture of type \p type. At least 2048 for
+     * 2D textures, 256 for 3D textures. */
+    static size_t getMaxTextureSize(Engine& engine, Sampler type) noexcept;
 
+    /** @return the maximum number of layers supported by texture arrays. At least 256. */
+    static size_t getMaxArrayTextureLayers(Engine& engine) noexcept;
 
     //! Use Builder to construct a Texture object instance
     class Builder : public BuilderBase<BuilderDetails>, public BuilderNameMixin<Builder> {
@@ -163,6 +166,20 @@ public:
          * @return This Builder, for chaining calls.
          */
         Builder& levels(uint8_t levels) noexcept;
+
+        /**
+         * Specifies the numbers of samples used for MSAA (Multisample Anti-Aliasing).
+         *
+         * Calling this method implicitly indicates the texture is used as a render target. Hence,
+         * this method should not be used in conjunction with other methods that are semantically
+         * conflicting like `setImage`.
+         *
+         * If this is invoked for array textures, it means this texture is used for multiview.
+         *
+         * @param samples Number of samples for this texture.
+         * @return This Builder, for chaining calls.
+         */
+        Builder& samples(uint8_t samples) noexcept;
 
         /**
          * Specifies the type of sampler to use.
@@ -222,8 +239,20 @@ public:
          * @param name A string to identify this Texture
          * @param len Length of name, should be less than or equal to 128
          * @return This Builder, for chaining calls.
+         * @deprecated Use name(utils::StaticString const&) instead.
          */
-         Builder& name(const char* UTILS_NONNULL name, size_t len) noexcept;
+        UTILS_DEPRECATED
+        Builder& name(const char* UTILS_NONNULL name, size_t len) noexcept;
+
+        /**
+         * Associate an optional name with this Texture for debugging purposes.
+         *
+         * name will show in error messages and should be kept as short as possible.
+         *
+         * @param name A string literal to identify this Texture
+         * @return This Builder, for chaining calls.
+         */
+        Builder& name(utils::StaticString const& name) noexcept;
 
         /**
          * Creates an external texture. The content must be set using setExternalImage().
@@ -236,6 +265,32 @@ public:
          * @return
          */
         Builder& external() noexcept;
+
+        /**
+         * Specifies a callback that will execute once the resource's data has been fully allocated
+         * within the GPU memory. This enables the resource creation process to be handled
+         * asynchronously.
+         *
+         * Any asynchronous calls made during a resource's asynchronous creation (using this method)
+         * are safe because they are queued and executed in sequence. However, invoking regular
+         * methods on the same resource before it's fully ready is unsafe and may cause undefined
+         * behavior. Users can call the `isCreationComplete()` method for the resource to confirm
+         * when the resource is ready for regular API calls.
+         *
+         * To use this method, the engine must be configured for asynchronous operation. Otherwise,
+         * calling async method will cause the program to terminate.
+         *
+         * This method and the `external()` method are mutually exclusive. You cannot use both
+         * because external texture's contents are filled later by calling `setExternalImage()`.
+         *
+         * @param handler Handler to dispatch the callback or nullptr for the default handler
+         * @param callback A function to be called upon the completion of an asynchronous creation.
+         * @param user The custom data that will be passed as the second argument to the `callback`.
+         * @return This Builder, for chaining calls.
+         */
+        Builder& async(backend::CallbackHandler* UTILS_NULLABLE handler,
+                AsyncCompletionCallback callback = nullptr,
+                void* UTILS_NULLABLE user = nullptr) noexcept;
 
         /**
          * Creates the Texture object and returns a pointer to it.
@@ -344,7 +399,8 @@ public:
      * @param width     Width of the sub-region to update.
      * @param height    Height of the sub-region to update.
      * @param depth     Depth of the sub-region to update.
-     * @param buffer    Client-side buffer containing the image to set.
+     * @param buffer    Client-side buffer containing the image to set. The driver will invoke
+     *                  the callback associated with this buffer when the data has been consumed.
      *
      * @attention \p engine must be the instance passed to Builder::build()
      * @attention \p level must be less than getLevels().
@@ -413,6 +469,85 @@ public:
     void setImage(Engine& engine, size_t level,
             PixelBufferDescriptor&& buffer, const FaceOffsets& faceOffsets) const;
 
+    /**
+     * An asynchronous version of `setImage()`.
+     * Updates a sub-image of a 3D texture or 2D texture array for a level. Cubemaps are treated
+     * like a 2D array of six layers.
+     *
+     * Users can call the `Engine::cancelAsyncCall()` method with the returned ID to cancel the
+     * asynchronous call.
+     *
+     * To use this method, the engine must be configured for asynchronous operation. Otherwise,
+     * calling async method will cause the program to terminate.
+     *
+     * @param engine    Engine this texture is associated to.
+     * @param level     Level to set the image for.
+     * @param xoffset   Left offset of the sub-region to update.
+     * @param yoffset   Bottom offset of the sub-region to update.
+     * @param zoffset   Depth offset of the sub-region to update.
+     * @param width     Width of the sub-region to update.
+     * @param height    Height of the sub-region to update.
+     * @param depth     Depth of the sub-region to update.
+     * @param buffer    Client-side buffer containing the image to set.
+     * @param handler   Handler to dispatch the callback or nullptr for the default handler
+     * @param callback  A function to be called upon the completion of an asynchronous creation.
+     * @param user      The custom data that will be passed as the second argument to the `callback`.
+     *
+     * @return          An ID that the caller can use to cancel the operation.
+     *
+     * @attention \p engine must be the instance passed to Builder::build()
+     * @attention \p level must be less than getLevels().
+     * @attention \p buffer's Texture::Format must match that of getFormat().
+     * @attention This Texture instance must use Sampler::SAMPLER_3D, Sampler::SAMPLER_2D_ARRAY
+     *             or Sampler::SAMPLER_CUBEMAP.
+     *
+     * @see Builder::sampler()
+     */
+    AsyncCallId setImageAsync(Engine& engine, size_t level,
+            uint32_t xoffset, uint32_t yoffset, uint32_t zoffset,
+            uint32_t width, uint32_t height, uint32_t depth,
+            PixelBufferDescriptor&& buffer,
+            backend::CallbackHandler* UTILS_NULLABLE handler,
+            AsyncCompletionCallback callback,
+            void* UTILS_NULLABLE user = nullptr) const;
+
+    /**
+     * inline helper to update a 2D texture asynchronously
+     *
+     * @see setImageAsync(Engine& engine, size_t level,
+     *              uint32_t xoffset, uint32_t yoffset, uint32_t zoffset,
+     *              uint32_t width, uint32_t height, uint32_t depth,
+     *              PixelBufferDescriptor&& buffer,
+     *              backend::CallbackHandler* UTILS_NULLABLE handler,
+     *              AsyncCompletionCallback callback, void* user)
+     */
+    AsyncCallId setImageAsync(Engine& engine, size_t level, PixelBufferDescriptor&& buffer,
+            backend::CallbackHandler* UTILS_NULLABLE handler, AsyncCompletionCallback callback,
+            void* UTILS_NULLABLE user = nullptr) const {
+        return setImageAsync(engine, level, 0, 0, 0,
+            uint32_t(getWidth(level)), uint32_t(getHeight(level)), 1, std::move(buffer),
+            handler, std::move(callback), user);
+    }
+
+    /**
+     * inline helper to update a 2D texture asynchronously
+     *
+     * @see setImageAsync(Engine& engine, size_t level,
+     *              uint32_t xoffset, uint32_t yoffset, uint32_t zoffset,
+     *              uint32_t width, uint32_t height, uint32_t depth,
+     *              PixelBufferDescriptor&& buffer,
+     *              backend::CallbackHandler* UTILS_NULLABLE handler,
+     *              AsyncCompletionCallback callback, void* user)
+     */
+    AsyncCallId setImageAsync(Engine& engine, size_t level,
+            uint32_t xoffset, uint32_t yoffset, uint32_t width, uint32_t height,
+            PixelBufferDescriptor&& buffer,
+            backend::CallbackHandler* UTILS_NULLABLE handler,
+            AsyncCompletionCallback callback,
+            void* UTILS_NULLABLE user = nullptr) const {
+        return setImageAsync(engine, level, xoffset, yoffset, 0, width, height, 1, std::move(buffer),
+            handler, std::move(callback), user);
+    }
 
     /**
      * Specify the external image to associate with this Texture. Typically, the external
@@ -524,43 +659,16 @@ public:
     void generateMipmaps(Engine& engine) const noexcept;
 
     /**
-     * Creates a reflection map from an environment map.
+     * This non-blocking method checks if the resource has finished creation. If the resource
+     * creation was initiated asynchronously, it will return true only after all related
+     * asynchronous tasks are complete. If the resource was created normally without using async
+     * method, it will always return true.
      *
-     * This is a utility function that replaces calls to Texture::setImage().
-     * The provided environment map is processed and all mipmap levels are populated. The
-     * processing is similar to the offline tool `cmgen` as a lower quality setting.
+     * @return Whether the resource is created.
      *
-     * This function is intended to be used when the environment cannot be processed offline,
-     * for instance if it's generated at runtime.
-     *
-     * The source data must obey to some constraints:
-     *   - the data type must be PixelDataFormat::RGB
-     *   - the data format must be one of
-     *          - PixelDataType::FLOAT
-     *          - PixelDataType::HALF
-     *
-     * The current texture must be a cubemap
-     *
-     * The reflections cubemap's internal format cannot be a compressed format.
-     *
-     * The reflections cubemap's dimension must be a power-of-two.
-     *
-     * @warning This operation is computationally intensive, especially with large environments and
-     *          is currently synchronous. Expect about 1ms for a 16x16 cubemap.
-     *
-     * @param engine        Reference to the filament::Engine to associate this IndirectLight with.
-     * @param buffer        Client-side buffer containing the images to set.
-     * @param faceOffsets   Offsets in bytes into \p buffer for all six images. The offsets
-     *                      are specified in the following order: +x, -x, +y, -y, +z, -z
-     * @param options       Optional parameter controlling user-specified quality and options.
-     *
-     * @exception utils::PreConditionPanic If the source data constraints are not respected.
-     *
+     * @see Builder::async()
      */
-    void generatePrefilterMipmap(Engine& engine,
-            PixelBufferDescriptor&& buffer, const FaceOffsets& faceOffsets,
-            PrefilterOptions const* UTILS_NULLABLE options = nullptr);
-
+    bool isCreationComplete() const noexcept;
 
     /** @deprecated */
     struct FaceOffsets {

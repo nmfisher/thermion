@@ -21,6 +21,7 @@
 #include <filament/Engine.h>
 
 #include <utils/compiler.h>
+#include <utils/StaticString.h>
 
 #include <math/mathfwd.h>
 
@@ -44,7 +45,7 @@ public:
     public:
 
         /**
-         * @param instanceCount the number of instances this InstanceBuffer will support, must be
+         * @param instanceCount The number of instances this InstanceBuffer will support, must be
          *                      >= 1 and <= \c Engine::getMaxAutomaticInstances()
          * @see Engine::getMaxAutomaticInstances
          */
@@ -82,13 +83,25 @@ public:
          * @param name A string to identify this InstanceBuffer
          * @param len Length of name, should be less than or equal to 128
          * @return This Builder, for chaining calls.
+         * @deprecated Use name(utils::StaticString const&) instead.
          */
+        UTILS_DEPRECATED
         Builder& name(const char* UTILS_NONNULL name, size_t len) noexcept;
+
+        /**
+         * Associate an optional name with this InstanceBuffer for debugging purposes.
+         *
+         * name will show in error messages and should be kept as short as possible.
+         *
+         * @param name A string literal to identify this InstanceBuffer
+         * @return This Builder, for chaining calls.
+         */
+        Builder& name(utils::StaticString const& name) noexcept;
 
         /**
          * Creates the InstanceBuffer object and returns a pointer to it.
          */
-        InstanceBuffer* UTILS_NONNULL build(Engine& engine);
+        InstanceBuffer* UTILS_NONNULL build(Engine& engine) const;
 
     private:
         friend class FInstanceBuffer;
@@ -110,6 +123,13 @@ public:
      */
     void setLocalTransforms(math::mat4f const* UTILS_NONNULL localTransforms,
             size_t count, size_t offset = 0);
+
+    /**
+     * Returns the local transform for a given instance.
+     * @param index The index of the instance.
+     * @return The local transform of the instance.
+     */
+    math::mat4f const& getLocalTransform(size_t index);
 
 protected:
     // prevent heap allocation
