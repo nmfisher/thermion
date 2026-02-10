@@ -17,3 +17,5 @@ pubspec_overrides.yaml
 **/*/*.filamat
 **/*/*.g.dart
 **/*.BAK
+.wrangler
+node_modules
