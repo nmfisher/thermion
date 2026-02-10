@@ -18,9 +18,9 @@ if [ $# -lt 3 ]; then
   exit 1
 fi
 
-FILAMENT_BASE_DIR=$1
+FILAMENT_BASE_DIR=$(cd "$1" && pwd)
 FILAMENT_VERSION=$2
-OUTPUT_BASE_DIR=$3
+OUTPUT_BASE_DIR=$(cd "$3" && pwd)
 shift 3
 
 # Parse optional flags
@@ -102,7 +102,7 @@ git checkout "${FILAMENT_VERSION}" || {
 
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DCMAKE_CXX_STANDARD=17 \\|g' build.sh
 
 # Patch basisu CMakeLists.txt for position independent code
 echo "Patching basisu CMakeLists.txt..."
