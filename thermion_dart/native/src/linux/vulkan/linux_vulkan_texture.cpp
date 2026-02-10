@@ -147,4 +147,125 @@ namespace thermion::linux_platform::vulkan
         return std::make_unique<LinuxVulkanTexture>(image, device, imageMemory, width, height,
                                                      dmaBufFd, stride, offset, drmFormat);
     }
+
+    std::unique_ptr<LinuxVulkanTexture> LinuxVulkanTexture::createColorAttachable(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        uint32_t width,
+        uint32_t height)
+    {
+        // Check GPU capability first
+        DmaBufRenderCapability capability = queryDmaBufRenderCapability(physicalDevice);
+        if (!capability.colorAttachmentSupported) {
+            return nullptr;
+        }
+
+        uint64_t drmModifier = DRM_FORMAT_MOD_LINEAR;
+
+        VkImageDrmFormatModifierListCreateInfoEXT drmModListInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT,
+            .pNext = nullptr,
+            .drmFormatModifierCount = 1,
+            .pDrmFormatModifiers = &drmModifier
+        };
+
+        VkExternalMemoryImageCreateInfo extImageInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
+            .pNext = &drmModListInfo,
+            .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT
+        };
+
+        VkImageCreateInfo imageInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = &extImageInfo,
+            .flags = 0,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = VK_FORMAT_R8G8B8A8_UNORM,
+            .extent = {width, height, 1},
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+        };
+
+        VkImage image;
+        VkResult result = bluevk::vkCreateImage(device, &imageInfo, nullptr, &image);
+        if (result != VK_SUCCESS) {
+            LOG_ERROR("Failed to create color-attachable VkImage: %s", VkResultToString(result));
+            return nullptr;
+        }
+
+        VkMemoryRequirements memRequirements;
+        bluevk::vkGetImageMemoryRequirements(device, image, &memRequirements);
+
+        VkExportMemoryAllocateInfo exportAllocInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT
+        };
+
+        uint32_t memoryTypeIndex = findOptimalMemoryType(
+            physicalDevice,
+            memRequirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        );
+
+        VkMemoryAllocateInfo allocInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .pNext = &exportAllocInfo,
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = memoryTypeIndex
+        };
+
+        VkDeviceMemory imageMemory;
+        result = bluevk::vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory);
+        if (result != VK_SUCCESS) {
+            bluevk::vkDestroyImage(device, image, nullptr);
+            LOG_ERROR("Failed to allocate color-attachable memory: %s", VkResultToString(result));
+            return nullptr;
+        }
+
+        result = bluevk::vkBindImageMemory(device, image, imageMemory, 0);
+        if (result != VK_SUCCESS) {
+            bluevk::vkFreeMemory(device, imageMemory, nullptr);
+            bluevk::vkDestroyImage(device, image, nullptr);
+            LOG_ERROR("Failed to bind color-attachable image memory");
+            return nullptr;
+        }
+
+        VkMemoryGetFdInfoKHR getFdInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
+            .pNext = nullptr,
+            .memory = imageMemory,
+            .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT
+        };
+
+        int dmaBufFd = -1;
+        result = bluevk::vkGetMemoryFdKHR(device, &getFdInfo, &dmaBufFd);
+        if (result != VK_SUCCESS || dmaBufFd < 0) {
+            bluevk::vkFreeMemory(device, imageMemory, nullptr);
+            bluevk::vkDestroyImage(device, image, nullptr);
+            LOG_ERROR("Failed to export color-attachable dmabuf fd: %s", VkResultToString(result));
+            return nullptr;
+        }
+
+        VkImageSubresource subresource = {
+            .aspectMask = VK_IMAGE_ASPECT_MEMORY_PLANE_0_BIT_EXT,
+            .mipLevel = 0,
+            .arrayLayer = 0
+        };
+        VkSubresourceLayout layout;
+        bluevk::vkGetImageSubresourceLayout(device, image, &subresource, &layout);
+
+        uint32_t stride = static_cast<uint32_t>(layout.rowPitch);
+        uint32_t offset = static_cast<uint32_t>(layout.offset);
+
+        uint32_t drmFormat = DRM_FORMAT_ABGR8888;
+
+        return std::make_unique<LinuxVulkanTexture>(image, device, imageMemory, width, height,
+                                                     dmaBufFd, stride, offset, drmFormat);
+    }
 }

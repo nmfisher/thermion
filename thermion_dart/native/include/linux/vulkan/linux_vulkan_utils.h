@@ -26,3 +26,9 @@ struct CommandResources {
 CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physicalDevice);
 
 VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device, uint32_t* queueFamilyIndex);
+
+// Query whether the GPU supports COLOR_ATTACHMENT_BIT on DRM_FORMAT_MOD_LINEAR images
+struct DmaBufRenderCapability {
+    bool colorAttachmentSupported;
+};
+DmaBufRenderCapability queryDmaBufRenderCapability(VkPhysicalDevice physicalDevice);

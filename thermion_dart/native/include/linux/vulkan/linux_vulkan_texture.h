@@ -14,8 +14,12 @@ class LinuxVulkanTexture {
 
         ~LinuxVulkanTexture();
 
-        // Factory method for exportable dmabuf-backed textures
+        // Factory method for exportable dmabuf-backed textures (transfer-dst only, for blit path)
         static std::unique_ptr<LinuxVulkanTexture> createExportable(VkDevice device, VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height);
+
+        // Factory method for color-attachable dmabuf-backed textures (zero-copy direct rendering)
+        // Returns nullptr if the GPU does not support COLOR_ATTACHMENT_BIT on DRM_FORMAT_MOD_LINEAR
+        static std::unique_ptr<LinuxVulkanTexture> createColorAttachable(VkDevice device, VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height);
 
         VkImage GetImage() { return _image; }
         int GetDmaBufFd() { return _dmaBufFd; }

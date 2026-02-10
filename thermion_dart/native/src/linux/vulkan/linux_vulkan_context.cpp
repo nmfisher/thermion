@@ -64,6 +64,14 @@ class ThermionLinuxVulkanContext::Impl {
 
             _platform = std::make_unique<TVulkanPlatform>();
 
+            // Probe DMA-BUF direct rendering capability
+            _directRenderingCapable = queryDmaBufRenderCapability(physicalDevice).colorAttachmentSupported;
+            if (_directRenderingCapable) {
+                Log("DMA-BUF direct rendering supported (COLOR_ATTACHMENT on DRM_FORMAT_MOD_LINEAR)");
+            } else {
+                Log("DMA-BUF direct rendering not supported, using blit fallback path");
+            }
+
             // Command buffer allocation
             VkCommandBufferAllocateInfo cmdBufInfo{};
             cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -84,15 +92,32 @@ class ThermionLinuxVulkanContext::Impl {
         }
 
         int64_t CreateRenderingSurface(uint32_t width, uint32_t height) {
-            // Create exportable dmabuf-backed texture (the only texture needed now)
+            int64_t surfaceId = _nextSurfaceId++;
+
+            // Try direct rendering path first (zero-copy)
+            if (_directRenderingCapable) {
+                auto colorAttachableTexture = LinuxVulkanTexture::createColorAttachable(device, physicalDevice, width, height);
+                if (colorAttachableTexture) {
+                    _platform->setPendingDmaBufImage(colorAttachableTexture->GetImage(), width, height);
+                    _exportableTextures[surfaceId] = std::move(colorAttachableTexture);
+                    _directRenderingSurfaces[surfaceId] = true;
+                    Log("Surface %lld: using direct rendering (zero-copy)", (long long)surfaceId);
+                    return surfaceId;
+                }
+                Log("Surface %lld: color-attachable texture creation failed, falling back to blit path", (long long)surfaceId);
+            }
+
+            // Fallback: blit path with transfer-dst texture
             auto exportableTexture = LinuxVulkanTexture::createExportable(device, physicalDevice, width, height);
             if (!exportableTexture) {
                 LOG_ERROR("Failed to create exportable dmabuf texture");
+                _nextSurfaceId--;
                 return -1;
             }
 
-            int64_t surfaceId = _nextSurfaceId++;
             _exportableTextures[surfaceId] = std::move(exportableTexture);
+            _directRenderingSurfaces[surfaceId] = false;
+            Log("Surface %lld: using blit fallback path", (long long)surfaceId);
 
             return surfaceId;
         }
@@ -103,6 +128,7 @@ class ThermionLinuxVulkanContext::Impl {
                 bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
             }
             _exportableTextures.erase(surfaceId);
+            _directRenderingSurfaces.erase(surfaceId);
         }
 
         VkImage GetVulkanImageForSurface(int64_t surfaceId) {
@@ -161,6 +187,13 @@ class ThermionLinuxVulkanContext::Impl {
         }
 
         void Blit(int64_t surfaceId) {
+            // Direct rendering surfaces don't need a blit -- Filament renders directly
+            // into the DMA-BUF image via the custom swapchain
+            auto drIt = _directRenderingSurfaces.find(surfaceId);
+            if (drIt != _directRenderingSurfaces.end() && drIt->second) {
+                return;
+            }
+
             auto exIt = _exportableTextures.find(surfaceId);
 
             if (exIt == _exportableTextures.end()) {
@@ -326,10 +359,12 @@ class ThermionLinuxVulkanContext::Impl {
         VkQueue queue = VK_NULL_HANDLE;
 
         std::unordered_map<int64_t, std::unique_ptr<LinuxVulkanTexture>> _exportableTextures;
+        std::unordered_map<int64_t, bool> _directRenderingSurfaces;
 
         std::unique_ptr<TVulkanPlatform> _platform;
         filament::backend::VulkanPlatform::VulkanSharedContext _sharedContext{};
 
+        bool _directRenderingCapable = false;
         int64_t _nextSurfaceId = 1;
 };
 

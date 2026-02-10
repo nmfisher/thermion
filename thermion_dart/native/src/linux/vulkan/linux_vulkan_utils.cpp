@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <drm/drm_fourcc.h>
 
 using namespace bluevk;
 
@@ -139,6 +140,43 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     }
 
     return resources;
+}
+
+DmaBufRenderCapability queryDmaBufRenderCapability(VkPhysicalDevice physicalDevice) {
+    DmaBufRenderCapability capability{};
+    capability.colorAttachmentSupported = false;
+
+    // Query DRM format modifier properties for R8G8B8A8_UNORM
+    VkDrmFormatModifierPropertiesListEXT modifierPropsList = {};
+    modifierPropsList.sType = VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT;
+
+    VkFormatProperties2 formatProps2 = {};
+    formatProps2.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
+    formatProps2.pNext = &modifierPropsList;
+
+    // First call to get the count
+    vkGetPhysicalDeviceFormatProperties2(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, &formatProps2);
+
+    if (modifierPropsList.drmFormatModifierCount == 0) {
+        return capability;
+    }
+
+    // Second call to get the actual properties
+    std::vector<VkDrmFormatModifierPropertiesEXT> modifierProps(modifierPropsList.drmFormatModifierCount);
+    modifierPropsList.pDrmFormatModifierProperties = modifierProps.data();
+    vkGetPhysicalDeviceFormatProperties2(physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, &formatProps2);
+
+    // Check if DRM_FORMAT_MOD_LINEAR supports COLOR_ATTACHMENT_BIT
+    for (uint32_t i = 0; i < modifierPropsList.drmFormatModifierCount; i++) {
+        if (modifierProps[i].drmFormatModifier == DRM_FORMAT_MOD_LINEAR) {
+            if (modifierProps[i].drmFormatModifierTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT) {
+                capability.colorAttachmentSupported = true;
+            }
+            break;
+        }
+    }
+
+    return capability;
 }
 
 // Consolidated function for creating logical device with Linux dmabuf extensions
