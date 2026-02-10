@@ -59,6 +59,27 @@ VkResult TVulkanPlatform::present(SwapChainPtr handle, uint32_t index, VkSemapho
   return result;
 }
 
+filament::backend::VulkanPlatform::ExtensionSet TVulkanPlatform::getSwapchainInstanceExtensions() const {
+  ExtensionSet extensions;
+  extensions.insert(utils::CString(VK_KHR_SURFACE_EXTENSION_NAME));
+  extensions.insert(utils::CString(VK_KHR_WIN32_SURFACE_EXTENSION_NAME));
+  return extensions;
+}
+
+filament::backend::VulkanPlatform::SurfaceBundle TVulkanPlatform::createVkSurfaceKHR(
+    void* nativeWindow, VkInstance instance, uint64_t flags) const noexcept {
+  VkSurfaceKHR surface = VK_NULL_HANDLE;
+  VkWin32SurfaceCreateInfoKHR createInfo = {};
+  createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+  createInfo.hinstance = GetModuleHandle(nullptr);
+  createInfo.hwnd = (HWND) nativeWindow;
+  VkResult result = bluevk::vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface);
+  if (result != VK_SUCCESS) {
+    ERROR("vkCreateWin32SurfaceKHR failed with error %d", result);
+  }
+  return SurfaceBundle{surface, {}};
+}
+
 filament::backend::VulkanPlatform::ExternalImageMetadata TVulkanPlatform::extractExternalImageMetadata(ExternalImageHandleRef image) const {
   auto* ext = static_cast<ExternalVulkanImage const*>(image.get());
   ExternalImageMetadata metadata{};
