@@ -283,6 +283,17 @@ external void MaterialInstance_setTransparencyMode(
   int transparencyMode,
 );
 
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterialInstance>)>(
+    isLeaf: true)
+external int MaterialInstance_getTransparencyMode(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+);
+
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
+external int Material_getBlendingMode(
+  ffi.Pointer<TMaterial> material,
+);
+
 @ffi.Native<
     ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>,
         ffi.UnsignedInt)>(isLeaf: true)
@@ -1359,6 +1370,15 @@ external ffi.Pointer<TTexture> Texture_build(
   int import$,
   int sampler,
   int format,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>,
+        ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external void Texture_setExternalImage(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<ffi.Void> externalImage,
 );
 
 @ffi.Native<ffi.Size Function(ffi.Pointer<TTexture>)>(isLeaf: true)
@@ -5233,14 +5253,6 @@ external ffi.Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<
-    ffi.Pointer<TSceneAsset> Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(isLeaf: true)
-external ffi.Pointer<TSceneAsset> SceneAsset_createGrid(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TMaterial> tMaterial,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external void SceneAsset_destroy(
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -6045,6 +6057,17 @@ sealed class TTransparencyMode {
   /// first with back faces only, then with front faces; the culling
   /// mode is ignored. Can be combined with two-sided lighting
   static const TWO_PASSES_TWO_SIDES = 2;
+}
+
+sealed class TBlendingMode {
+  static const BLENDING_MODE_OPAQUE = 0;
+  static const BLENDING_MODE_TRANSPARENT = 1;
+  static const BLENDING_MODE_ADD = 2;
+  static const BLENDING_MODE_MASKED = 3;
+  static const BLENDING_MODE_FADE = 4;
+  static const BLENDING_MODE_MULTIPLY = 5;
+  static const BLENDING_MODE_SCREEN = 6;
+  static const BLENDING_MODE_CUSTOM = 7;
 }
 
 sealed class TLightType {
