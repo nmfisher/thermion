@@ -102,7 +102,7 @@ git checkout "${FILAMENT_VERSION}" || {
 
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DCMAKE_CXX_STANDARD=17 \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
 
 # Patch basisu CMakeLists.txt for position independent code
 echo "Patching basisu CMakeLists.txt..."
@@ -119,6 +119,7 @@ fi
 export CC=clang
 export CXX=clang++
 
+
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for Linux (release)..."
@@ -129,9 +130,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Build third-party libraries for release
   echo "Building third-party libraries for release..."
-  ./build.sh -l -i -f -p desktop release zstd || {
-    echo "Warning: zstd release build failed"
-  }
+  # Note: zstd is already bundled in Filament's libraries, building separately causes duplicate symbols
   ./build.sh -l -i -f -p desktop release tinyexr || {
     echo "Warning: tinyexr release build failed"
   }
@@ -150,9 +149,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Build third-party libraries for debug
   echo "Building third-party libraries for debug..."
-  ./build.sh -l -i -f -p desktop debug zstd || {
-    echo "Warning: zstd debug build failed"
-  }
+  # Note: zstd is already bundled in Filament's libraries, building separately causes duplicate symbols
   ./build.sh -l -i -f -p desktop debug tinyexr || {
     echo "Warning: tinyexr debug build failed"
   }
@@ -181,25 +178,94 @@ fi
 # Copy release libraries
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Copying release libraries..."
-  cp out/release/filament/lib/x86_64/*.a "$TARGET_RELEASE_DIR/" || {
-    echo "Error: Failed to copy release libraries"
-    exit 1
-  }
+  echo "Searching for release libraries..."
+  echo "=== out/release/filament/lib/x86_64/ ==="
+  ls -la out/release/filament/lib/x86_64/ 2>&1 || true
+  echo "=== out/cmake-release/libs/imageio/ ==="
+  ls -la out/cmake-release/libs/imageio/ 2>&1 || true
+  echo "=== out/cmake-release/third_party/tinyexr/ ==="
+  ls -la out/cmake-release/third_party/tinyexr/ 2>&1 || true
+  echo "=== find imageio ==="
+  find out/ -name "libimageio*" 2>&1 || true
+  echo "=== find tinyexr ==="
+  find out/ -name "libtinyexr*" 2>&1 || true
+
+  for lib in out/release/filament/lib/x86_64/*.a; do
+    case "$(basename "$lib")" in
+      *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
+      *) cp "$lib" "$TARGET_RELEASE_DIR/" ;;
+    esac
+  done
+
+  # Try multiple known locations for imageio/tinyexr
+  for searchdir in "out/release/filament/lib/x86_64" "out/cmake-release/libs/imageio" "out/cmake-release/third_party/imageio"; do
+    if [ -f "$searchdir/libimageio.a" ]; then
+      echo "Found imageio at $searchdir"
+      cp "$searchdir/libimageio.a" "$TARGET_RELEASE_DIR/"
+      break
+    fi
+  done
+  if [ ! -f "$TARGET_RELEASE_DIR/libimageio.a" ]; then
+    echo "WARNING: libimageio.a not found in any known location"
+  fi
+
+  for searchdir in "out/release/filament/lib/x86_64" "out/cmake-release/third_party/tinyexr/tnt" "out/cmake-release/third_party/tinyexr"; do
+    if [ -f "$searchdir/libtinyexr.a" ]; then
+      echo "Found tinyexr at $searchdir"
+      cp "$searchdir/libtinyexr.a" "$TARGET_RELEASE_DIR/"
+      break
+    fi
+  done
+  if [ ! -f "$TARGET_RELEASE_DIR/libtinyexr.a" ]; then
+    echo "WARNING: libtinyexr.a not found in any known location"
+  fi
 fi
 
 # Copy debug libraries
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Copying debug libraries..."
-  cp out/debug/filament/lib/x86_64/*.a "$TARGET_DEBUG_DIR/" || {
-    echo "Error: Failed to copy debug libraries"
-    exit 1
-  }
+  echo "Searching for debug libraries..."
+  echo "=== out/debug/filament/lib/x86_64/ ==="
+  ls -la out/debug/filament/lib/x86_64/ 2>&1 || true
+  echo "=== find imageio (debug) ==="
+  find out/ -path "*/debug*" -name "libimageio*" 2>&1 || true
+  echo "=== find tinyexr (debug) ==="
+  find out/ -path "*/debug*" -name "libtinyexr*" 2>&1 || true
+
+  for lib in out/debug/filament/lib/x86_64/*.a; do
+    case "$(basename "$lib")" in
+      *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
+      *) cp "$lib" "$TARGET_DEBUG_DIR/" ;;
+    esac
+  done
+
+  for searchdir in "out/debug/filament/lib/x86_64" "out/cmake-debug/libs/imageio" "out/cmake-debug/third_party/imageio"; do
+    if [ -f "$searchdir/libimageio.a" ]; then
+      echo "Found imageio at $searchdir"
+      cp "$searchdir/libimageio.a" "$TARGET_DEBUG_DIR/"
+      break
+    fi
+  done
+  if [ ! -f "$TARGET_DEBUG_DIR/libimageio.a" ]; then
+    echo "WARNING: libimageio.a not found in any known location"
+  fi
+
+  for searchdir in "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/tinyexr/tnt" "out/cmake-debug/third_party/tinyexr"; do
+    if [ -f "$searchdir/libtinyexr.a" ]; then
+      echo "Found tinyexr at $searchdir"
+      cp "$searchdir/libtinyexr.a" "$TARGET_DEBUG_DIR/"
+      break
+    fi
+  done
+  if [ ! -f "$TARGET_DEBUG_DIR/libtinyexr.a" ]; then
+    echo "WARNING: libtinyexr.a not found in any known location"
+  fi
 fi
 
 # Copy header files to thermion_dart
 # All shared headers go to native/include/filament/
 # Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/thermion_dart/native/include/filament"
+THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
 
 if [ "$BUILD_RELEASE" = true ]; then
   HEADER_SOURCE="out/release/filament/include"
@@ -255,20 +321,28 @@ echo "Headers copied to: $THERMION_INCLUDE"
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
+  echo "Contents of release directory:"
+  ls -la "$TARGET_RELEASE_DIR"
   cd "$TARGET_RELEASE_DIR"
   zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-release.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
+  echo "Release zip contents:"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-release.zip"
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug zip..."
+  echo "Contents of debug directory:"
+  ls -la "$TARGET_DEBUG_DIR"
   cd "$TARGET_DEBUG_DIR"
   zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-debug.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
+  echo "Debug zip contents:"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-debug.zip"
 fi
 
 echo "Build completed successfully!"

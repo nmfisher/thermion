@@ -25,9 +25,9 @@ if "%~3"=="" (
   exit /b 1
 )
 
-set "FILAMENT_BASE_DIR=%~1"
+set "FILAMENT_BASE_DIR=%~f1"
 set "FILAMENT_VERSION=%~2"
-set "OUTPUT_BASE_DIR=%~3"
+set "OUTPUT_BASE_DIR=%~f3"
 
 REM Parse optional flags
 set "CLEAN_FLAG="
@@ -93,9 +93,9 @@ REM Change to Filament directory and checkout branch
 cd /d "%FILAMENT_BASE_DIR%" || exit /b 1
 call git stash
 call git reset --hard
-echo Checking out tag: v1.69.1
-call git checkout v1.69.1 || (
-  echo Error: Failed to checkout tag v1.69.1
+echo Checking out tag: %FILAMENT_VERSION%
+call git checkout %FILAMENT_VERSION% || (
+  echo Error: Failed to checkout tag %FILAMENT_VERSION%
   exit /b 1
 )
 
@@ -106,7 +106,7 @@ cd /d "%FILAMENT_BASE_DIR%\out" || exit /b 1
 
 REM Run CMake configuration
 echo Configuring Filament for Windows...
-cmake -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DCMAKE_BUILD_TYPE=Release -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
+cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
   echo Error: CMake configuration failed
   exit /b 1
 )
@@ -226,7 +226,7 @@ call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! ||
 )
 
 REM Download vulkan-1.lib from v1.58.0 (reusable across versions)
-set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.58.0-windows-release.zip"
+set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.58.0-windows-release-vulkan.zip"
 set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
 set "VULKAN_LIB_EXTRACT=%OUTPUT_BASE_DIR%\vulkan-1-temp"
 
@@ -296,20 +296,6 @@ if "!BUILD_RELEASE!"=="true" (
 if "!BUILD_DEBUG!"=="true" (
   echo Debug libraries: %TARGET_DEBUG_DIR%
   echo Debug zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip
-)
-
-REM Upload zip files to Cloudflare R2
-echo.
-echo Uploading zip files to Cloudflare R2...
-if "!BUILD_RELEASE!"=="true" (
-  call "%SCRIPT_DIR%upload_r2.bat" "%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release.zip" || (
-    echo Warning: Failed to upload release zip
-  )
-)
-if "!BUILD_DEBUG!"=="true" (
-  call "%SCRIPT_DIR%upload_r2.bat" "%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip" || (
-    echo Warning: Failed to upload debug zip
-  )
 )
 
 endlocal

@@ -18,9 +18,9 @@ if [ $# -lt 3 ]; then
   exit 1
 fi
 
-FILAMENT_BASE_DIR=$1
+FILAMENT_BASE_DIR=$(cd "$1" && pwd)
 FILAMENT_VERSION=$2
-OUTPUT_BASE_DIR=$3
+OUTPUT_BASE_DIR=$(cd "$3" && pwd)
 shift 3
 
 # Parse optional flags
@@ -254,7 +254,7 @@ fi
 # Copy header files to thermion_dart
 # All shared headers go to native/include/filament/
 # Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/thermion_dart/native/include/filament"
+THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
 
 if [ "$BUILD_RELEASE" = true ]; then
   HEADER_SOURCE="out/ios-release/filament/include"

@@ -21,9 +21,9 @@ if [ $# -lt 3 ]; then
   exit 1
 fi
 
-FILAMENT_BASE_DIR=$1
+FILAMENT_BASE_DIR=$(cd "$1" && pwd)
 FILAMENT_VERSION=$2
-OUTPUT_BASE_DIR=$3
+OUTPUT_BASE_DIR=$(cd "$3" && pwd)
 shift 3
 
 # Parse optional flags

@@ -18,9 +18,9 @@ if [ $# -lt 3 ]; then
   exit 1
 fi
 
-FILAMENT_BASE_DIR=$1
+FILAMENT_BASE_DIR=$(cd "$1" && pwd)
 FILAMENT_VERSION=$2
-OUTPUT_BASE_DIR=$3
+OUTPUT_BASE_DIR=$(cd "$3" && pwd)
 shift 3
 
 # Parse optional flags
@@ -103,6 +103,10 @@ git checkout "${FILAMENT_VERSION}" || {
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+
+# Set compiler to clang (Filament requires clang, rejects GCC)
+export CC=clang
+export CXX=clang++
 
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
@@ -209,7 +213,7 @@ fi
 # Copy header files to thermion_dart
 # All shared headers go to native/include/filament/
 # Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/thermion_dart/native/include/filament"
+THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
 
 if [ "$BUILD_RELEASE" = true ]; then
   HEADER_SOURCE="out/android-release/filament/include"
