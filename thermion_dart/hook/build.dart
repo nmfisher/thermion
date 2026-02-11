@@ -122,7 +122,7 @@ outputDirectory : ${outputDirectory.path}
       "smol-v",
       "basis_transcoder",
       "uberarchive",
-      "zstd",
+      if (targetOS != OS.linux) "zstd",
       //"mikktspace",
       "geometry",
       if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
