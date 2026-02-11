@@ -24,8 +24,8 @@ if [ $# -lt 1 ]; then
   exit 1
 fi
 
-FILAMENT_BASE_DIR=$1
-OUTPUT_INCLUDE_DIR="$SCRIPT_DIR/thermion_dart/native/include/filament"
+FILAMENT_BASE_DIR=$(cd "$1" && pwd)
+OUTPUT_INCLUDE_DIR="$SCRIPT_DIR/../thermion_dart/native/include/filament"
 shift 1
 
 # Parse optional flags

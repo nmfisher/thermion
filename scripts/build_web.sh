@@ -560,7 +560,7 @@ fi
 # Copy header files to thermion_dart
 # All shared headers go to native/include/filament/
 # Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/thermion_dart/native/include/filament"
+THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
 
 if [ "$BUILD_RELEASE" = true ]; then
   HEADER_SOURCE="out/webgl-release/filament/include"
