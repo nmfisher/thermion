@@ -166,7 +166,64 @@ void main() async {
           lineWidth: 1.0,  // 1px screen-space
           lineLength: 50.0,
         );
-        await testHelper.capture(viewer.view, "translation_axis_from_entity");
+        await testHelper.capture(viewer.view, "translation_axis_from_entity_x_pos1");
+
+        // Change to Y axis at same position
+        await viewer.setTranslationAxisVisibility(
+          true,
+          entity: cube.entity,
+          axis: Axis.Y,
+          lineWidth: 1.0,
+          lineLength: 50.0,
+        );
+        await testHelper.capture(viewer.view, "translation_axis_from_entity_y_pos1");
+
+        // Change to Z axis at same position
+        await viewer.setTranslationAxisVisibility(
+          true,
+          entity: cube.entity,
+          axis: Axis.Z,
+          lineWidth: 1.0,
+          lineLength: 50.0,
+        );
+        await testHelper.capture(viewer.view, "translation_axis_from_entity_z_pos1");
+
+        // Move cube to a different position (-5, 5, 8)
+        await FilamentApp.instance!.setTransform(
+          cube.entity,
+          Matrix4.translation(Vector3(-5, 5, 8)),
+        );
+        await camera.lookAt(Vector3(5, 10, 18), focus: Vector3(-5, 5, 8));
+
+        // Show X axis at new position
+        await viewer.setTranslationAxisVisibility(
+          true,
+          entity: cube.entity,
+          axis: Axis.X,
+          lineWidth: 1.0,
+          lineLength: 50.0,
+        );
+        await testHelper.capture(viewer.view, "translation_axis_from_entity_x_pos2");
+
+        // Show Y axis at new position (critical test for the fix)
+        await viewer.setTranslationAxisVisibility(
+          true,
+          entity: cube.entity,
+          axis: Axis.Y,
+          lineWidth: 1.0,
+          lineLength: 50.0,
+        );
+        await testHelper.capture(viewer.view, "translation_axis_from_entity_y_pos2");
+
+        // Show Z axis at new position
+        await viewer.setTranslationAxisVisibility(
+          true,
+          entity: cube.entity,
+          axis: Axis.Z,
+          lineWidth: 1.0,
+          lineLength: 50.0,
+        );
+        await testHelper.capture(viewer.view, "translation_axis_from_entity_z_pos2");
 
         await viewer.removeFromScene(cube);
       },

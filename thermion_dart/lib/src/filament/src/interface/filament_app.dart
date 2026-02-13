@@ -304,7 +304,6 @@ abstract class FilamentApp<T> {
   // Sets the render priority for [entity].
   // [priority] should be be between 0 and 7, with 0 meaning highest priority
   // (rendered first) and 7 meaning lowest priority (rendered last).
-  //
   Future setPriority(ThermionEntity entity, int priority);
 
   // Gets the number of primitives for [entity] (which is assumed to be

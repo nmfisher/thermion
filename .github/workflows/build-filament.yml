@@ -1,0 +1,457 @@
+name: Build Filament
+
+on:
+  workflow_dispatch:
+    inputs:
+      filament_repo:
+        description: 'Filament repository as owner/repo (overrides filament.version file)'
+        required: false
+        type: string
+      filament_version:
+        description: 'Filament version/tag/branch to build (overrides filament.version file)'
+        required: false
+        type: string
+      platform:
+        description: 'Platform(s) to build'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - macos
+          - ios
+          - android
+          - linux
+          - windows
+          - web
+      clean_build:
+        description: 'Clean build (remove existing artifacts)'
+        required: false
+        default: true
+        type: boolean
+      upload_to_r2:
+        description: 'Upload artifacts to R2'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
+  cancel-in-progress: true
+
+env:
+  R2_BUCKET_NAME: thermion
+  R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+  R2_ENDPOINT: https://${{ vars.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+  R2_PUBLIC_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      filament_version: ${{ steps.read-version.outputs.version }}
+      filament_repo: ${{ steps.read-version.outputs.repo }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Filament version
+        id: read-version
+        run: |
+          if [ -n "${{ inputs.filament_version }}" ] && [ -n "${{ inputs.filament_repo }}" ]; then
+            REPO="${{ inputs.filament_repo }}"
+            VERSION="${{ inputs.filament_version }}"
+          else
+            read -r REPO VERSION < filament.version
+          fi
+          # Override individually if provided
+          [ -n "${{ inputs.filament_repo }}" ] && REPO="${{ inputs.filament_repo }}"
+          [ -n "${{ inputs.filament_version }}" ] && VERSION="${{ inputs.filament_version }}"
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building Filament repo: $REPO ref: $VERSION"
+
+      - name: Determine build matrix
+        id: set-matrix
+        run: |
+          if [ "${{ inputs.platform }}" = "all" ]; then
+            MATRIX='["macos", "ios", "android", "linux", "windows", "web"]'
+          else
+            MATRIX='["${{ inputs.platform }}"]'
+          fi
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "Building platforms: $MATRIX"
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-14
+    needs: setup
+    if: contains(needs.setup.outputs.matrix, 'macos')
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Build Filament
+        run: |
+          mkdir -p output
+          chmod +x scripts/build_macos.sh
+          scripts/build_macos.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-macos-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
+          retention-days: 7
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-macos-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+          retention-days: 7
+
+      - name: Upload to R2 (release)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
+
+      - name: Upload to R2 (debug)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-14
+    needs: setup
+    if: contains(needs.setup.outputs.matrix, 'ios')
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Build Filament
+        run: |
+          mkdir -p output
+          chmod +x scripts/build_ios.sh
+          scripts/build_ios.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-ios-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-release.zip
+          retention-days: 7
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-ios-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
+          retention-days: 7
+
+      - name: Upload to R2 (release)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-ios-release.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-ios-release.zip
+
+      - name: Upload to R2 (debug)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-24.04
+    needs: setup
+    if: contains(needs.setup.outputs.matrix, 'android')
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+
+      - name: Build Filament
+        run: |
+          mkdir -p output
+          chmod +x scripts/build_android.sh
+          scripts/build_android.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-android-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-android-release.zip
+          retention-days: 7
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-android-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
+          retention-days: 7
+
+      - name: Upload to R2 (release)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-android-release.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-android-release.zip
+
+      - name: Upload to R2 (debug)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-24.04
+    needs: setup
+    if: contains(needs.setup.outputs.matrix, 'linux')
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+
+      - name: Build Filament
+        run: |
+          mkdir -p output
+          chmod +x scripts/build_linux.sh
+          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-linux-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
+          retention-days: 7
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-linux-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
+          retention-days: 7
+
+      - name: Upload to R2 (release)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
+
+      - name: Upload to R2 (debug)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-2022
+    needs: setup
+    if: contains(needs.setup.outputs.matrix, 'windows')
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.0'
+
+      - name: Build Filament
+        shell: cmd
+        run: |
+          mkdir output
+          scripts\build_windows.bat filament %FILAMENT_VERSION% output --clean
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-windows-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-windows-release.zip
+          retention-days: 7
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-windows-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-windows-debug.zip
+          retention-days: 7
+
+      - name: Upload to R2 (release)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-windows-release.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-windows-release.zip
+
+      - name: Upload to R2 (debug)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-windows-debug.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-windows-debug.zip
+
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-24.04
+    needs: setup
+    if: contains(needs.setup.outputs.matrix, 'web')
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.60'
+
+      - name: Build Filament
+        run: |
+          mkdir -p output
+          chmod +x scripts/build_web.sh
+          scripts/build_web.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-web-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release.zip
+          retention-days: 7
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-web-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
+          retention-days: 7
+
+      - name: Upload to R2 (release)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-web-release.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-web-release.zip
+
+      - name: Upload to R2 (debug)
+        if: inputs.upload_to_r2
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        env:
+          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
+          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
+          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
