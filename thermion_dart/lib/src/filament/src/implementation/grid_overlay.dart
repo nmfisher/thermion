@@ -71,9 +71,9 @@ class GridOverlay {
         await materialInstance.setParameterFloat(
             "fadeOutEnd", fadeOutEnd[i]);
 
-        await FilamentApp.instance!.setPriority(ffiAsset.entity, 0);
+        await FilamentApp.instance!.setPriority(ffiAsset.entity, 6);
         for (final child in await ffiAsset.getChildEntities()) {
-          await FilamentApp.instance!.setPriority(child, 7);
+          await FilamentApp.instance!.setPriority(child, 6);
         }
         assets.add(ffiAsset);
       }

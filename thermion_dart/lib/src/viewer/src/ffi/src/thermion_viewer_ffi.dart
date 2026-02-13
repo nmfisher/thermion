@@ -660,13 +660,14 @@ class ThermionViewerFFI extends ThermionViewer {
         throw ArgumentError('either entity or origin must be provided when visible is true');
       }
 
-      // Get origin from entity's world position if not explicitly provided
-      v64.Vector3 effectiveOrigin;
+      // Get world position from entity if provided
+      v64.Vector3 worldPosition;
       if (origin != null) {
-        effectiveOrigin = origin;
+        worldPosition = origin;
       } else {
         final worldTransform = await FilamentApp.instance!.getWorldTransform(entity!);
-        effectiveOrigin = worldTransform.getTranslation();
+        worldPosition = worldTransform.getTranslation();
+        await FilamentApp.instance!.setPriority(entity, 0);
       }
 
       // Remove existing if any
@@ -679,11 +680,12 @@ class ThermionViewerFFI extends ThermionViewer {
         Axis.Z => 2,
       };
 
+      // Material origin should be (0,0,0) in object space since we position via transform
       _translationAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
-        originX: effectiveOrigin.x,
-        originY: effectiveOrigin.y,
-        originZ: effectiveOrigin.z,
+        originX: 0.0,
+        originY: 0.0,
+        originZ: 0.0,
         axis: axisInt,
         lineWidth: lineWidth,
         lineLength: lineLength,
@@ -695,14 +697,14 @@ class ThermionViewerFFI extends ThermionViewer {
       );
       await _translationAxisAsset!.setMaterialInstanceAt(_translationAxisMaterial!);
 
-      // Position at origin, with rotation for Y axis
+      // Position at world position, with rotation for Y axis
       v64.Matrix4 transform;
       if (axis == Axis.Y) {
         // Rotate plane 90° around X axis to make it vertical (XY plane)
         final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
-        transform = v64.Matrix4.compose(effectiveOrigin, rotation, v64.Vector3.all(1.0));
+        transform = v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
       } else {
-        transform = v64.Matrix4.translation(effectiveOrigin);
+        transform = v64.Matrix4.translation(worldPosition);
       }
       await FilamentApp.instance!
           .setTransform(_translationAxisAsset!.entity, transform);
