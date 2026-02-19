@@ -28,7 +28,7 @@ void main() async {
         .addCube(createUbershader: true)
         .execute((result) async {
       await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await testHelper.capture(result.viewer.view, "ibl_ktx_loaded");
       await result.viewer.removeIbl();
       await testHelper.capture(result.viewer.view, "ibl_ktx_removed");

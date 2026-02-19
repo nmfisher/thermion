@@ -12,7 +12,7 @@ void main() async {
 
   test('get morph target names', () async {
     await testHelper.withViewer((viewer) async {
-      var cube = await viewer.loadGltf("${testHelper.testDir}/assets/cube.glb");
+      var cube = await viewer.loadGltf("${testHelper.assetsDir}/cube.glb");
       var morphTargets = await cube.getMorphTargetNames();
       expect(morphTargets.length, 0);
 
@@ -23,7 +23,7 @@ void main() async {
       expect(morphTargets.length, 0);
 
       cube = await viewer
-          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
       morphTargets = await cube.getMorphTargetNames();
       expect(morphTargets.length, 0);
 
@@ -39,7 +39,7 @@ void main() async {
   test('set morph target weights', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
       await viewer.addToScene(cube);
 
@@ -54,7 +54,7 @@ void main() async {
   test('set morph target animation', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
       await viewer.addToScene(cube);
 
@@ -77,7 +77,7 @@ void main() async {
   test('play/stop gltf animation', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
       await viewer.addToScene(cube);
 
@@ -113,7 +113,7 @@ void main() async {
   test('play gltf animation with faster speeds', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
       await viewer.addToScene(cube);
 
@@ -146,7 +146,7 @@ void main() async {
   test('play gltf animation with slower speeds', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
       await viewer.addToScene(cube);
 
@@ -179,7 +179,7 @@ void main() async {
   test('crossfade animations', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .loadGltf("${testHelper.testDir}/assets/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
       await viewer.addToScene(cube);
 

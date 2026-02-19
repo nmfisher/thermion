@@ -59,12 +59,12 @@ void main() async {
   test('gltf assets are created with initialInstances instances', () async {
     await testHelper.withViewer((viewer) async {
       var asset = await viewer.loadGltf(
-          "file://${testHelper.testDir}/assets/cube.glb",
+          "file://${testHelper.assetsDir}/cube.glb",
           initialInstances: 1);
       expect(await asset.getInstanceCount(), 1);
 
       asset = await viewer.loadGltf(
-          "file://${testHelper.testDir}/assets/cube.glb",
+          "file://${testHelper.assetsDir}/cube.glb",
           initialInstances: 2);
       expect(await asset.getInstanceCount(), 2);
 
@@ -84,7 +84,7 @@ void main() async {
       // When creating multiple instances, however,you usually want to work
       // with each instance individually, rather than the owning asset.
       var asset = await viewer.loadGltf(
-          "file://${testHelper.testDir}/assets/cube.glb",
+          "file://${testHelper.assetsDir}/cube.glb",
           addToScene: false,
           initialInstances: 2,
           keepData: true);
@@ -114,9 +114,9 @@ void main() async {
   //   await testHelper.withViewer((viewer) async {
   //     // --- Scene Setup ---
   //     await viewer
-  //         .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+  //         .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
   //     await viewer.loadSkybox(
-  //         "file://${testHelper.testDir}/assets/default_env_skybox.ktx");
+  //         "file://${testHelper.assetsDir}/default_env_skybox.ktx");
   //     await viewer.setPostProcessing(true);
   //     await viewer.setAntiAliasing(false, true, false); // Enable FXAA
   //     final camera = await viewer.getActiveCamera();
@@ -127,7 +127,7 @@ void main() async {
   //     print("Loading asset...");
   //     var numInstances = 100;
   //     var asset = await viewer.loadGltf(
-  //         "file://${testHelper.testDir}/assets/cube.glb",
+  //         "file://${testHelper.assetsDir}/cube.glb",
   //         numInstances: numInstances,
   //         addToScene: false, keepData: true);
 

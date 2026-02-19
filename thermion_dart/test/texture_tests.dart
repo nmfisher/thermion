@@ -12,7 +12,7 @@ void main() async {
         .setBackgroundColor(kRed)
         .execute((result) async {
       var imageData = File(
-        "${testHelper.testDir}/assets/cube_texture_512x512.png",
+        "${testHelper.assetsDir}/cube_texture_512x512.png",
       ).readAsBytesSync();
       final image = await FilamentApp.instance!
           .decodeImage(imageData, requireAlpha: true);
@@ -39,7 +39,7 @@ void main() async {
         .setBackgroundColor(kRed)
         .execute((result) async {
       var imageData = File(
-        "${testHelper.testDir}/assets/cube_texture_512x512.jpeg",
+        "${testHelper.assetsDir}/cube_texture_512x512.jpeg",
       ).readAsBytesSync();
       final image = await FilamentApp.instance!
           .decodeImage(imageData, requireAlpha: true);
@@ -98,7 +98,7 @@ void main() async {
         .setBackgroundColor(kRed)
         .execute((result) async {
       var imageData = File(
-        "${testHelper.testDir}/assets/cube_texture_512x512.png",
+        "${testHelper.assetsDir}/cube_texture_512x512.png",
       ).readAsBytesSync();
       final texture = await LinearImage.decodeToTexture(imageData, levels: 4);
       expect(await texture.getLevels(), 4);
@@ -112,7 +112,7 @@ void main() async {
         .setBackgroundColor(kRed)
         .execute((result) async {
       var imageData = File(
-        "${testHelper.testDir}/assets/cube_texture_512x512.png",
+        "${testHelper.assetsDir}/cube_texture_512x512.png",
       ).readAsBytesSync();
       final image = await FilamentApp.instance!
           .decodeImage(imageData, requireAlpha: true);
@@ -244,7 +244,7 @@ void main() async {
         .setBackgroundColor(kRed)
         .execute((result) async {
       final data =
-          File("${testHelper.testDir}/assets/2d_uastc.ktx2").readAsBytesSync();
+          File("${testHelper.assetsDir}/2d_uastc.ktx2").readAsBytesSync();
       final texture = await FilamentApp.instance!.loadKtx2(data);
       expect(await texture.getHeight(), 40);
       expect(await texture.getWidth(), 40);

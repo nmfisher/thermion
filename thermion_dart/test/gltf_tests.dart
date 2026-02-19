@@ -14,7 +14,7 @@
 //     test('load glb from file', () async {
 //       await testHelper.withViewer((viewer) async {
 //         var model = await viewer
-//             .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+//             .loadGlb("file://${testHelper.assetsDir}/cube.glb");
 //         await testHelper.capture(viewer, "load_glb_from_file");
 //         await viewer.destroyAsset(model);
 //       });
@@ -23,7 +23,7 @@
 //     test('load glb from buffer', () async {
 //       await testHelper.withViewer((viewer) async {
 //         var buffer =
-//             File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
+//             File("${testHelper.assetsDir}/cube.glb").readAsBytesSync();
 //         var model = await viewer.loadGlbFromBuffer(buffer);
 //         await testHelper.capture(viewer, "load_glb_from_buffer");
 //       });
@@ -32,7 +32,7 @@
 //     test('load glb from buffer with instances', () async {
 //       await testHelper.withViewer((viewer) async {
 //         var buffer =
-//             File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
+//             File("${testHelper.assetsDir}/cube.glb").readAsBytesSync();
 //         var model = await viewer.loadGlbFromBuffer(buffer, numInstances: 2);
 //         var instance = await model.createInstance();
 //         await instance.addToScene();
@@ -57,7 +57,7 @@
 //       await testHelper.withViewer((viewer) async {
 //         viewer.addDirectLight(DirectLight.sun());
 //         var buffer =
-//             File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
+//             File("${testHelper.assetsDir}/cube.glb").readAsBytesSync();
 
 //         // priority 0 gets drawn first
 //         var greenModel = await viewer.loadGlbFromBuffer(buffer, priority: 0);
@@ -81,7 +81,7 @@
 //     test('create instance from gltf', () async {
 //       await testHelper.withViewer((viewer) async {
 //         var model = await viewer.loadGlb(
-//             "file://${testHelper.testDir}/assets/cube.glb",
+//             "file://${testHelper.assetsDir}/cube.glb",
 //             numInstances: 32);
 //         await testHelper.capture(viewer, "gltf_create_instance_0");
 //         var instance = await model.createInstance();
@@ -97,7 +97,7 @@
 //     test('create instance from gltf with new material', () async {
 //       await testHelper.withViewer((viewer) async {
 //         var model = await viewer.loadGlb(
-//             "file://${testHelper.testDir}/assets/cube.glb",
+//             "file://${testHelper.assetsDir}/cube.glb",
 //             numInstances: 2);
 //         await testHelper.capture(
 //             viewer, "gltf_create_instance_with_material_0");
@@ -120,7 +120,7 @@
 //     test('replace material instance with unlit material', () async {
 //       await testHelper.withViewer((viewer) async {
 //         var model = await viewer
-//             .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+//             .loadGlb("file://${testHelper.assetsDir}/cube.glb");
 //         await testHelper.capture(viewer, "gltf_default_material_instance");
 //         var materialInstance = await viewer.createUnlitMaterialInstance();
 //         await materialInstance.setParameterFloat4(
@@ -136,9 +136,9 @@
 //     test('replace material instance with ubershader material', () async {
 //       await testHelper.withViewer((viewer) async {
 //         var model = await viewer
-//             .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+//             .loadGlb("file://${testHelper.assetsDir}/cube.glb");
 //         await viewer
-//             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+//             .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
 //         var materialInstance = await viewer.createUbershaderMaterialInstance();
 //         await materialInstance.setParameterFloat4(
 //             "baseColorFactor", 1.0, 1.0, 0.0, 1.0);

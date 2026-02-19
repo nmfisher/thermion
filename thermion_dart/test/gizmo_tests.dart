@@ -144,7 +144,7 @@ void main() async {
   //     unlitMaterialInstance.setParameterFloat2("uvScale", 2.0, 4.0);
 
   //     var textureData =
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png")
   //             .readAsBytesSync();
   //     var texture = await viewer.createTexture(textureData);
   //     await viewer.applyTexture(texture, cube);
@@ -158,7 +158,7 @@ void main() async {
   //     var viewer = await testHelper.createViewer();
 
   //     var textureData =
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png")
   //             .readAsBytesSync();
 
   //     var texture = await viewer.createTexture(textureData);
@@ -216,7 +216,7 @@ void main() async {
   //     await viewer.setMaterialPropertyFloat4(
   //         cube, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1.0);
   //     var textureData =
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync();
   //     var texture = await viewer.createTexture(textureData);
   //     await viewer.applyTexture(texture, cube,
   //         materialIndex: 0, parameterName: "baseColorMap");

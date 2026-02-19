@@ -14,7 +14,7 @@ void main() async {
       var materialInstance =
           await FilamentApp.instance!.createUbershaderMaterialInstance();
       await viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       var cube = await viewer.createGeometry(
           GeometryHelper.cube(normals: true, uvs: true),
           materialInstances: [materialInstance]);
@@ -37,7 +37,7 @@ void main() async {
           "baseColorFactor", 0.0, 0.0, 1.0, 1.0);
       await testHelper.capture(
           viewer.view, "ubershader_notexture");
-      var data = File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png")
           .readAsBytesSync();
       final image = await FilamentApp.instance!.decodeImage(data);
 
@@ -72,9 +72,9 @@ void main() async {
           materialInstances: [materialInstance]);
 
       final red = await FilamentApp.instance!.decodeImage(
-          File("${testHelper.testDir}/assets/red_24x24.png").readAsBytesSync());
+          File("${testHelper.assetsDir}/red_24x24.png").readAsBytesSync());
       final green = await FilamentApp.instance!.decodeImage(
-          File("${testHelper.testDir}/assets/green_12x12.png")
+          File("${testHelper.assetsDir}/green_12x12.png")
               .readAsBytesSync());
 
       final texture = await FilamentApp.instance!.createTexture(24, 24,
@@ -130,7 +130,7 @@ void main() async {
       final cube = await viewer.createGeometry(GeometryHelper.cube(),
           materialInstances: [materialInstance]);
 
-      var data = File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png")
           .readAsBytesSync();
       final image = await FilamentApp.instance!.decodeImage(data);
       final channels = await image.getChannels();

@@ -71,7 +71,7 @@ void main() async {
       // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png")
           .readAsBytesSync();
       final image = await await FilamentApp.instance!.decodeImage(data);
 
@@ -107,7 +107,7 @@ void main() async {
       // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File("${testHelper.testDir}/assets/cube_texture_512x512.jpeg")
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.jpeg")
           .readAsBytesSync();
       final image = await await FilamentApp.instance!.decodeImage(data);
       final width = await image.getWidth();
@@ -144,7 +144,7 @@ void main() async {
       // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png")
           .readAsBytesSync();
       final image = await FilamentApp.instance!.decodeImage(data);
 
@@ -182,7 +182,7 @@ void main() async {
           "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png")
           .readAsBytesSync();
       final image = await FilamentApp.instance!.decodeImage(data);
 

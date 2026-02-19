@@ -315,7 +315,7 @@ void main() async {
   //     await viewer.addToScene(asset);
 
   //     final image = await viewer.decodeImage(
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png")
   //             .readAsBytesSync());
   //     var texture = await viewer.createTexture(
   //         await image.getWidth(), await image.getHeight());
@@ -357,7 +357,7 @@ void main() async {
   //     await materialInstance.setParameterInt("baseColorIndex", 0);
 
   //     final image = await viewer.decodeImage(
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png")
   //             .readAsBytesSync());
   //     var texture = await viewer.createTexture(
   //         await image.getWidth(), await image.getHeight());
@@ -388,7 +388,7 @@ void main() async {
 
   //     await materialInstance.setParameterInt("baseColorIndex", 0);
   //     final image = await viewer.decodeImage(
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png")
   //             .readAsBytesSync());
   //     var texture = await viewer.createTexture(
   //         await image.getWidth(), await image.getHeight());
