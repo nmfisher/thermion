@@ -104,6 +104,20 @@ git checkout "${FILAMENT_VERSION}" || {
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
 
+# Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
+echo "Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM..."
+FFILAMENT_ASSET_H="$FILAMENT_BASE_DIR/libs/gltfio/src/FFilamentAsset.h"
+sed -i.bak $'s/^#if defined(__EMSCRIPTEN__)/#ifndef GLTFIO_USE_FILESYSTEM\\\n#if defined(__EMSCRIPTEN__)/' "$FFILAMENT_ASSET_H"
+sed -i.bak '/^#define GLTFIO_USE_FILESYSTEM 1/{
+n
+s|^#endif|#endif\
+#endif|
+}' "$FFILAMENT_ASSET_H"
+
+# Inject -DGLTFIO_USE_FILESYSTEM=0 into gltfio's compile definitions
+GLTFIO_CMAKE="$FILAMENT_BASE_DIR/libs/gltfio/CMakeLists.txt"
+echo 'target_compile_definitions(gltfio PRIVATE GLTFIO_USE_FILESYSTEM=0)' >> "$GLTFIO_CMAKE"
+
 # Patch basisu CMakeLists.txt for position independent code
 echo "Patching basisu CMakeLists.txt..."
 BASISU_CMAKE="$FILAMENT_BASE_DIR/third_party/basisu/tnt/CMakeLists.txt"
