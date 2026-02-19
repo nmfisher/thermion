@@ -1,5 +1,11 @@
 # Instructions for building Filament
 
+```
+gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=linux -f clean_build=false -f upload_to_r2=true
+gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=android -f clean_build=false -f upload_to_r2=true 
+gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=windows -f clean_build=false -f upload_to_r2=true
+```
+
 Below are instructions for building the Filament (currently pinned to v1.58.0) for each of the target platforms.
 
 This is only for developers extending the Thermion package itself; if you are simply using Thermion as a dependency in your `pubspec.yaml`, you can ignore this.
