@@ -402,7 +402,7 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
   // If this file already exists, we assume everything has been successfully extracted and skip
   final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
   final successToken = File(path.join(
-      unzipDir, targetOS == OS.windows ? "success-vulkan" : "success"));
+      unzipDir, "success"));
   final libraryZip = File(path.join(unzipDir, filename));
 
   if (!successToken.existsSync()) {
