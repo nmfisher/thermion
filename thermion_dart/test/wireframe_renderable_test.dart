@@ -279,7 +279,7 @@ void main() async {
 
       // Load glTF file from examples/assets
       final gltfData = await File(
-        '${testHelper.testDir}/../../examples/assets/cube.glb',
+        '${testHelper.assetsDir}/cube.glb',
       ).readAsBytes();
 
       final wireframeRenderable = await WireframeRenderable.create(

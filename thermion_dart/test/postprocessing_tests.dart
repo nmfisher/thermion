@@ -43,7 +43,7 @@ void main() async {
       await testHelper.withViewer((viewer) async {
         await FilamentApp.instance!.setClearOptions(1, 1, 1, 1, clear: false);
         var asset = await viewer
-            .loadGltf("file://${testHelper.testDir}/assets/cube.glb");
+            .loadGltf("file://${testHelper.assetsDir}/cube.glb");
         var light = await viewer.addDirectLight(
             DirectLight.point(intensity: 1000000, falloffRadius: 10));
         await viewer.setLightPosition(light, 1, 2, 2);

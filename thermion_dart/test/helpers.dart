@@ -80,10 +80,12 @@ class TestHelper {
   late FFISwapChain swapChain;
   late Directory outDir;
   late String testDir;
+  late String assetsDir;
 
   TestHelper(String? subDir) {
+    final packageUri = findPackageRoot('thermion_dart').toFilePath();
+    assetsDir = p.normalize(p.join(packageUri, '..', 'examples', 'assets'));
     if (subDir != null) {
-      final packageUri = findPackageRoot('thermion_dart').toFilePath();
       testDir = Directory("${packageUri}test").path;
       outDir = Directory("$testDir/output/${subDir}");
     } else {
@@ -98,7 +100,7 @@ class TestHelper {
   ///
   Future<Texture> createTextureFromImage(TestHelper testHelper) async {
     final image = await FilamentApp.instance!.decodeImage(
-        File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+        File("${testHelper.assetsDir}/cube_texture_512x512.png")
             .readAsBytesSync());
     final texture = await FilamentApp.instance!
         .createTexture(await image.getWidth(), await image.getHeight());
@@ -108,16 +110,12 @@ class TestHelper {
   }
 
   Future<MaterialInstance> loadViewSpaceMaterial() async {
-    final packageUri = findPackageRoot('thermion_dart').toFilePath();
-    final assetsDir = Directory("${packageUri}/../examples/assets").path;
     final material = await FilamentApp.instance!.createMaterial(
         await File("${assetsDir}/viewspace.filamat").readAsBytesSync());
     return material.createInstance();
   }
 
   Future<MaterialInstance> loadCustomAttributeMaterial() async {
-    final packageUri = findPackageRoot('thermion_dart').toFilePath();
-    final assetsDir = Directory("${packageUri}/../examples/assets").path;
     final material = await FilamentApp.instance!.createMaterial(
         await File("${assetsDir}/customattributes.filamat")
             .readAsBytesSync());
@@ -136,7 +134,7 @@ class TestHelper {
     double edgeWidth = 1.5,
   }) async {
     final material = await FilamentApp.instance!.createMaterial(
-        File("/Users/nickfisher/Documents/thermion/materials/wireframe.filamat").readAsBytesSync());
+        File("${assetsDir}/wireframe.filamat").readAsBytesSync());
     final instance = await material.createInstance();
     await instance.setParameterFloat4("edgeColor", edgeR, edgeG, edgeB, edgeA);
     await instance.setParameterFloat4("faceColor", faceR, faceG, faceB, faceA);
@@ -154,8 +152,6 @@ class TestHelper {
     required double b,
     double a = 1.0,
   }) async {
-    final packageUri = findPackageRoot('thermion_dart').toFilePath();
-    final assetsDir = Directory("${packageUri}/../examples/assets").path;
     final material = await FilamentApp.instance!.createMaterial(
       File("${assetsDir}/solidcolor.filamat").readAsBytesSync(),
     );
@@ -356,7 +352,7 @@ class TestHelper {
 
     if (addSkybox) {
       await viewer
-          .loadSkybox("file://${testDir}/assets/default_env_skybox.ktx");
+          .loadSkybox("file://${assetsDir}/default_env_skybox.ktx");
     }
 
     if (bg != null) {

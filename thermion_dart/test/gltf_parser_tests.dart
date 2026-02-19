@@ -22,7 +22,7 @@ void main() async {
         final renderableManager = app.renderableManager;
 
         // Parse the glb file to get geometry data
-        final glbPath = "${testHelper.testDir}/assets/cube.glb";
+        final glbPath = "${testHelper.assetsDir}/cube.glb";
         final buffer = File(glbPath).readAsBytesSync();
         final meshData = await FFIGltfMeshData.parse(buffer);
 
@@ -105,7 +105,7 @@ void main() async {
 
   group('glTF Parser', () {
     test('parse cube.glb for physics', () async {
-      final glbPath = "${testHelper.testDir}/assets/cube.glb";
+      final glbPath = "${testHelper.assetsDir}/cube.glb";
       final buffer = File(glbPath).readAsBytesSync();
 
       final meshData = await FFIGltfMeshData.parse(buffer);
@@ -129,7 +129,7 @@ void main() async {
     });
 
     test('parse cube.glb and verify vertex bounds', () async {
-      final glbPath = "${testHelper.testDir}/assets/cube.glb";
+      final glbPath = "${testHelper.assetsDir}/cube.glb";
       final buffer = File(glbPath).readAsBytesSync();
 
       final meshData = await FFIGltfMeshData.parse(buffer);
@@ -161,7 +161,7 @@ void main() async {
     });
 
     test('parse with non-existent mesh name returns empty or null', () async {
-      final glbPath = "${testHelper.testDir}/assets/cube.glb";
+      final glbPath = "${testHelper.assetsDir}/cube.glb";
       final buffer = File(glbPath).readAsBytesSync();
 
       // Try to parse with a mesh name that doesn't exist
@@ -173,7 +173,7 @@ void main() async {
     });
 
     test('verify indices point to valid vertices', () async {
-      final glbPath = "${testHelper.testDir}/assets/cube.glb";
+      final glbPath = "${testHelper.assetsDir}/cube.glb";
       final buffer = File(glbPath).readAsBytesSync();
 
       final meshData = await FFIGltfMeshData.parse(buffer);

@@ -14,7 +14,7 @@ void main() async {
         .setRenderTargetEnabled(true)
         .execute((result) async {
       await result.viewer.loadSkybox(
-          "file://${testHelper.testDir}/assets/default_env_skybox.ktx");
+          "file://${testHelper.assetsDir}/default_env_skybox.ktx");
       await testHelper.capture(result.viewer.view, "load_skybox");
       await result.viewer.removeSkybox();
       await testHelper.capture(result.viewer.view, "remove_skybox");
@@ -22,7 +22,7 @@ void main() async {
       await result.viewer.setPostProcessing(true);
       await result.viewer.setBloom(false, 0.01);
       await result.viewer.loadSkybox(
-          "file://${testHelper.testDir}/assets/default_env_skybox.ktx");
+          "file://${testHelper.assetsDir}/default_env_skybox.ktx");
       await testHelper.capture(result.viewer.view, "load_skybox_with_postprocessing");
       await result.viewer.removeSkybox();
       await testHelper.capture(
@@ -35,9 +35,9 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .execute((result) async {
       var asset = await result.viewer
-          .loadGltf("file://${testHelper.testDir}/assets/cube.gltf");
+          .loadGltf("file://${testHelper.assetsDir}/cube.gltf");
       await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await testHelper.capture(result.viewer.view, "gltf_loaded");
       await result.viewer.removeFromScene(asset);
       await testHelper.capture(result.viewer.view, "gltf_removed");
@@ -49,10 +49,10 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .execute((result) async {
       var asset = await result.viewer.loadGltf(
-          "file://${testHelper.testDir}/assets/cube.gltf",
+          "file://${testHelper.assetsDir}/cube.gltf",
           loadAsync: true);
       await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await testHelper.capture(result.viewer.view, "gltf_async_loaded");
       await result.viewer.removeFromScene(asset);
       await testHelper.capture(result.viewer.view, "gltf_async_removed");
@@ -64,12 +64,12 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .execute((result) async {
       var assetData =
-          File("${testHelper.testDir}/assets/cube.gltf").readAsBytesSync();
+          File("${testHelper.assetsDir}/cube.gltf").readAsBytesSync();
       var asset = await result.viewer.loadGltfFromBuffer(assetData,
-          resourceUri: "${testHelper.testDir}/assets",
+          resourceUri: "${testHelper.assetsDir}",
           loadResourcesAsync: false);
       await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await testHelper.capture(result.viewer.view, "gltf_load_from_buffer");
     });
   });
@@ -79,10 +79,10 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .execute((result) async {
       var asset = await result.viewer
-          .loadGltf("file://${testHelper.testDir}/assets/cube.gltf");
+          .loadGltf("file://${testHelper.assetsDir}/cube.gltf");
 
       await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await asset.setTransform(Matrix4.compose(
           Vector3.zero(), Quaternion.identity(), Vector3.all(2)));
       await testHelper.capture(result.viewer.view, "gltf_before_unit_cube");
@@ -96,9 +96,9 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .execute((result) async {
       var asset =
-          await result.viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
+          await result.viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb");
       await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await testHelper.capture(result.viewer.view, "asset_added");
       await result.viewer.removeFromScene(asset);
       await testHelper.capture(result.viewer.view, "asset_removed");
@@ -110,9 +110,9 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .execute((result) async {
       var asset =
-          await result.viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
+          await result.viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb");
       await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await testHelper.capture(result.viewer.view, "assets_present");
       await result.viewer.destroyAssets();
       await testHelper.capture(result.viewer.view, "assets_destroyed");
@@ -124,9 +124,9 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .execute((result) async {
       var asset =
-          await result.viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
+          await result.viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb");
               await result.viewer
-          .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await result.viewer.showBoundingBox(asset);
       await testHelper.capture(result.viewer.view, "show_bounding_box");
       await result.viewer.hideBoundingBox(asset);
