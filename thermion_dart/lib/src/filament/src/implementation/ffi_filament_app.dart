@@ -114,7 +114,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.sharedContext ?? nullptr,
             config.stereoscopicEyeCount,
             config.disableHandleUseAfterFreeCheck,
-            cb));
+            cb)).timeout(Duration(seconds: 30)); // 30 second timeout is just for CI purposes, this should return  
     final featureLevel = Engine_getSupportedFeatureLevel(engine);
     _logger.info("Created engine with feature level ${featureLevel}");
     final nameComponentManager = NameComponentManager_create();
