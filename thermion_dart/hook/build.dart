@@ -392,10 +392,6 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
 
   var url = _getLibraryUrl(platform, mode);
 
-  if (targetOS == OS.windows) {
-    url = url.replaceAll(".zip", "-vulkan-texture-import.zip");
-  }
-
   final filename = url.split("/").last;
 
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
