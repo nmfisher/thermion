@@ -41,8 +41,7 @@ concurrency:
 
 env:
   R2_BUCKET_NAME: thermion
-  R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
-  R2_ENDPOINT: https://${{ vars.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+  R2_ENDPOINT: https://260d4efc65af500536ea376de6452ece.r2.cloudflarestorage.com
   R2_PUBLIC_URL: https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev
 
 jobs:
@@ -121,27 +120,20 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
           retention-days: 7
 
-      - name: Upload to R2 (release)
+      - name: Upload to R2
         if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
+        run: |
+          pip3 install --break-system-packages awscli
+          for variant in release debug; do
+            aws s3 cp \
+              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
+              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          done
         env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
-
-      - name: Upload to R2 (debug)
-        if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+          AWS_DEFAULT_REGION: auto
 
   build-ios:
     name: Build iOS
@@ -181,27 +173,20 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
           retention-days: 7
 
-      - name: Upload to R2 (release)
+      - name: Upload to R2
         if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
+        run: |
+          pip3 install --break-system-packages awscli
+          for variant in release debug; do
+            aws s3 cp \
+              "output/filament-${{ env.FILAMENT_VERSION }}-ios-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-ios-${variant}.zip" \
+              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          done
         env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-ios-release.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-ios-release.zip
-
-      - name: Upload to R2 (debug)
-        if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
+          AWS_DEFAULT_REGION: auto
 
   build-android:
     name: Build Android
@@ -217,6 +202,11 @@ jobs:
 
       - name: Checkout Filament
         run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libxcb1-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
 
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
@@ -243,27 +233,19 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
           retention-days: 7
 
-      - name: Upload to R2 (release)
+      - name: Upload to R2
         if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
+        run: |
+          for variant in release debug; do
+            aws s3 cp \
+              "output/filament-${{ env.FILAMENT_VERSION }}-android-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-android-${variant}.zip" \
+              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          done
         env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-android-release.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-android-release.zip
-
-      - name: Upload to R2 (debug)
-        if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
+          AWS_DEFAULT_REGION: auto
 
   build-linux:
     name: Build Linux
@@ -283,7 +265,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
 
       - name: Build Filament
         run: |
@@ -305,27 +287,19 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
           retention-days: 7
 
-      - name: Upload to R2 (release)
+      - name: Upload to R2
         if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
+        run: |
+          for variant in release debug; do
+            aws s3 cp \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
+              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          done
         env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
-
-      - name: Upload to R2 (debug)
-        if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
+          AWS_DEFAULT_REGION: auto
 
   build-windows:
     name: Build Windows
@@ -345,7 +319,7 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v2
         with:
-          cmake-version: '3.25.0'
+          cmake-version: '3.30.0'
 
       - name: Build Filament
         shell: cmd
@@ -367,27 +341,21 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-windows-debug.zip
           retention-days: 7
 
-      - name: Upload to R2 (release)
+      - name: Upload to R2
         if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
+        shell: bash
+        run: |
+          pip install awscli
+          for variant in release debug; do
+            aws s3 cp \
+              "output/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}.zip" \
+              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          done
         env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-windows-release.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-windows-release.zip
-
-      - name: Upload to R2 (debug)
-        if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-windows-debug.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-windows-debug.zip
+          AWS_DEFAULT_REGION: auto
 
   build-web:
     name: Build Web
@@ -407,7 +375,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
@@ -434,24 +402,16 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
           retention-days: 7
 
-      - name: Upload to R2 (release)
+      - name: Upload to R2
         if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
+        run: |
+          for variant in release debug; do
+            aws s3 cp \
+              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip" \
+              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          done
         env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-web-release.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-web-release.zip
-
-      - name: Upload to R2 (debug)
-        if: inputs.upload_to_r2
-        uses: jakejarvis/s3-sync-action@v0.5.1
-        env:
-          AWS_S3_BUCKET: ${{ env.R2_BUCKET_NAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_S3_ENDPOINT: ${{ env.R2_ENDPOINT }}
-          SOURCE_DIR: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
-          DEST_DIR: filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
+          AWS_DEFAULT_REGION: auto
