@@ -104,7 +104,7 @@ echo Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM...
 powershell -Command "(Get-Content '%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h') -replace '^(#if defined\(__EMSCRIPTEN__\))', '#ifndef GLTFIO_USE_FILESYSTEM`n$1' -replace '(#define GLTFIO_USE_FILESYSTEM 1\r?\n#endif)', '$1`n#endif' | Set-Content '%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h'"
 
 REM Inject -DGLTFIO_USE_FILESYSTEM=0 into gltfio's compile definitions
-echo target_compile_definitions(gltfio PRIVATE GLTFIO_USE_FILESYSTEM=0)>> "%FILAMENT_BASE_DIR%\libs\gltfio\CMakeLists.txt"
+echo target_compile_definitions(gltfio_core PRIVATE GLTFIO_USE_FILESYSTEM=0)>> "%FILAMENT_BASE_DIR%\libs\gltfio\CMakeLists.txt"
 
 REM Create build directory
 echo Creating build directory...

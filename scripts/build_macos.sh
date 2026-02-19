@@ -120,7 +120,7 @@ s|^#endif|#endif\
 
 # Inject -DGLTFIO_USE_FILESYSTEM=0 into gltfio's compile definitions
 GLTFIO_CMAKE="$FILAMENT_BASE_DIR/libs/gltfio/CMakeLists.txt"
-echo 'target_compile_definitions(gltfio PRIVATE GLTFIO_USE_FILESYSTEM=0)' >> "$GLTFIO_CMAKE"
+echo 'target_compile_definitions(gltfio_core PRIVATE GLTFIO_USE_FILESYSTEM=0)' >> "$GLTFIO_CMAKE"
 
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
