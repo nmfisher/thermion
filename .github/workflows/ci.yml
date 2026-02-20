@@ -115,19 +115,19 @@ jobs:
         include:
           - name: Linux
             os: ubuntu-22.04
-            setup-action: setup-build-env
-            test-wrapper: "xvfb-run"
-            shell: bash
           - name: Windows
             os: windows-2022
-            setup-action: setup-windows-env
-            test-wrapper: ""
-            shell: pwsh
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/${{ matrix.setup-action }}
+      - name: Setup build environment (Linux)
+        if: matrix.name == 'Linux'
+        uses: ./.github/actions/setup-build-env
+
+      - name: Setup build environment (Windows)
+        if: matrix.name == 'Windows'
+        uses: ./.github/actions/setup-windows-env
 
       - name: Enable debug mode for tests
         shell: bash
