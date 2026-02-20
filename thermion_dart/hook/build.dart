@@ -34,9 +34,9 @@ void main(List<String> args) async {
     // `hooks` section of pubspec.yaml.
     var buildMode = BuildMode.release;
 
-    if (input.userDefines["mode"] == "debug") {
+    // if (input.userDefines["mode"] == "debug") {
       buildMode = BuildMode.debug;
-    }
+    // }
 
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
@@ -58,8 +58,12 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
+    final isIOSSimulator = targetOS == OS.iOS &&
+        config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
+
     var libDir = (await getLibDir(
-            packageRoot, targetOS, targetArchitecture, logger, buildMode))
+            packageRoot, targetOS, targetArchitecture, logger, buildMode,
+            isIOSSimulator: isIOSSimulator))
         .path;
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
@@ -231,6 +235,60 @@ outputDirectory : ${outputDirectory.path}
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
 
+    // Objective-C files must be compiled separately because CBuilder uses -x c++
+    // which prevents clang from recognizing ObjC syntax.
+    final objcSources = sources.where((s) => s.endsWith('.m')).toList();
+    sources = sources.where((s) => !s.endsWith('.m')).toList();
+
+    final objcObjectFiles = <String>[];
+    if (objcSources.isNotEmpty && targetOS == OS.iOS) {
+      final cc = config.code.cCompiler?.compiler.toFilePath() ?? 'clang';
+      final archStr = targetArchitecture == Architecture.arm64 ? 'arm64' : 'x86_64';
+      // Detect simulator vs device from the iOS config
+      final isSimulator = config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
+      final sdkName = isSimulator ? 'iphonesimulator' : 'iphoneos';
+      final sdkPath = (await Process.run('xcrun', ['--sdk', sdkName, '--show-sdk-path'])).stdout.toString().trim();
+      final targetTriple = isSimulator
+          ? '$archStr-apple-ios-simulator'
+          : '$archStr-apple-ios';
+
+      for (final objcSource in objcSources) {
+        final objFile = path.join(Directory.systemTemp.path, '${path.basenameWithoutExtension(objcSource)}.o');
+        final result = await Process.run(cc, [
+          '-x', 'objective-c',
+          '-target', targetTriple,
+          '-mios-version-min=13.0',
+          '-isysroot', sdkPath,
+          '-fPIC',
+          '-fobjc-arc',
+          '-O3',
+          ...includeDirs.map((d) => '-I${path.join(pkgRootFilePath, d)}'),
+          '-c', objcSource,
+          '-o', objFile,
+        ]);
+        if (result.exitCode != 0) {
+          logger.severe('Failed to compile ObjC source $objcSource:\n${result.stderr}');
+          throw Exception('ObjC compilation failed for $objcSource');
+        }
+        objcObjectFiles.add(objFile);
+        logger.info('Compiled ObjC source: $objcSource -> $objFile');
+      }
+
+      // Create a static library from the ObjC object files so it can be
+      // linked without -x c++ interfering (ar archives are recognized by extension).
+      if (objcObjectFiles.isNotEmpty) {
+        final objcLib = path.join(Directory.systemTemp.path, 'libthermion_objc.a');
+        final arResult = await Process.run('ar', ['rcs', objcLib, ...objcObjectFiles]);
+        if (arResult.exitCode != 0) {
+          logger.severe('Failed to create ObjC static library:\n${arResult.stderr}');
+          throw Exception('ar failed');
+        }
+        objcObjectFiles.clear();
+        objcObjectFiles.add(objcLib);
+        logger.info('Created ObjC static library: $objcLib');
+      }
+    }
+
     var srcs = File(Directory.systemTemp.path +
         Platform.pathSeparator +
         "thermion_sources.rsp");
@@ -246,6 +304,7 @@ outputDirectory : ${outputDirectory.path}
       flags: [
         if (targetOS == OS.macOS) '-mmacosx-version-min=13.0',
         if (targetOS == OS.iOS) '-mios-version-min=13.0',
+        if (objcObjectFiles.isNotEmpty) ...['-lthermion_objc', '-L${Directory.systemTemp.path}'],
         ...flags,
         ...frameworks,
         if (targetOS == OS.linux) ...["-stdlib=libc++", "-Wl,--whole-archive"],
@@ -358,6 +417,8 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
+
+
 String _getFilamentVersion() {
   final versionFile = File(path.join(
     path.dirname(path.dirname(Platform.script.toFilePath(windows: Platform.isWindows))),
@@ -381,8 +442,15 @@ String _getLibraryUrl(String platform, String mode) {
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
 Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
-    Architecture targetArchitecture, Logger logger, BuildMode buildMode) async {
+    Architecture targetArchitecture, Logger logger, BuildMode buildMode,
+    {bool isIOSSimulator = false}) async {
   var platform = targetOS.toString().toLowerCase();
+
+  // Use separate library directory for iOS simulator (arm64 simulator
+  // libraries can't be lipo'd with arm64 device libraries).
+  if (isIOSSimulator) {
+    platform = "ios-simulator";
+  }
 
   var mode = buildMode == BuildMode.debug ? "debug" : "release";
 
