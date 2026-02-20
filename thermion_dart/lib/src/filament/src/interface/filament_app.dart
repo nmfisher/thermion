@@ -240,9 +240,6 @@ abstract class FilamentApp<T> {
       {bool preserveScaling});
 
   //
-  Future<MaterialInstance> createImageMaterialInstance();
-
-  //
   // Returns pixel buffer(s) for [view] (or, if null, all views associated
   // with [swapChain] by calling [register]).
   //

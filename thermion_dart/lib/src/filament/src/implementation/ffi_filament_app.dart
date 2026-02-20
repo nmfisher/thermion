@@ -789,19 +789,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Material? _imageMaterial;
 
   ///
-  @override
-  Future<MaterialInstance> createImageMaterialInstance() async {
-    if (_imageMaterial == null) {
-      var ptr = await withPointerCallback<TMaterial>(
-          (cb) => Material_createImageMaterialRenderThread(engine, cb));
-      _imageMaterial = FFIMaterial(ptr);
-    }
-    var instance =
-        await _imageMaterial!.createInstance() as FFIMaterialInstance;
-    return instance;
-  }
-
-  ///
   Future<List<(View, Uint8List)>> capture(SwapChain? swapChain,
       {View? view,
       bool captureRenderTarget = false,
@@ -1541,7 +1528,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<TexturedQuad> createTexturedQuad() async {
-    var mi = await createImageMaterialInstance();
+
+    if (_imageMaterial == null) {
+      var ptr = await withPointerCallback<TMaterial>(
+          (cb) => Material_createImageMaterialRenderThread(engine, cb));
+      _imageMaterial = FFIMaterial(ptr);
+    }
+    var mi =
+        await _imageMaterial!.createInstance() as FFIMaterialInstance;
+    
     var quad = await createGeometry(GeometryHelper.fullscreenQuad());
     await mi.setParameterInt("isCubeMap", 0);
     await mi.setParameterInt("showImage", 0);
