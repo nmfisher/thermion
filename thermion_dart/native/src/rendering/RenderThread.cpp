@@ -79,7 +79,7 @@ RenderThread::RenderThread()
 
 RenderThread::~RenderThread()
 {
-    Log("Destroying RenderThread (%lu tasks remaining)", _tasks.size());
+    TRACE("Destroying RenderThread (%lu tasks remaining)", _tasks.size());
     mStop = true;
     _cv.notify_one();
     TRACE("Joining RenderThread thread..");    
@@ -95,7 +95,7 @@ RenderThread::~RenderThread()
     delete t;
     #endif
 
-    Log("RenderThread destructor complete");    
+    TRACE("RenderThread destructor complete");    
 }
 
 void RenderThread::iter()
