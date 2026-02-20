@@ -2083,8 +2083,10 @@ extern "C"
       delete _frameScheduler;
       _frameScheduler = nullptr;
     }
-#if __APPLE__
+#if __APPLE__ && TARGET_OS_OSX
     _frameScheduler = new thermion::CVDisplayLinkScheduler();
+#elif __APPLE__
+    _frameScheduler = new thermion::CADisplayLinkScheduler();
 #elif _WIN32
     _frameScheduler = new thermion::DXGIFrameScheduler(targetFps > 0 ? targetFps : 60);
 #elif __ANDROID__
@@ -2150,10 +2152,14 @@ extern "C"
     }
 
     _dartPort = port;
-#if __APPLE__
+#if __APPLE__ && TARGET_OS_OSX
     auto* macScheduler = new thermion::CVDisplayLinkScheduler();
     macScheduler->startWithPort(port);
     _frameScheduler = macScheduler;
+#elif __APPLE__
+    auto* iosScheduler = new thermion::CADisplayLinkScheduler();
+    iosScheduler->startWithPort(port);
+    _frameScheduler = iosScheduler;
 #elif _WIN32
     auto* winScheduler = new thermion::DXGIFrameScheduler(targetFps > 0 ? targetFps : 60);
     winScheduler->startWithPort(port);
