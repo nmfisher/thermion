@@ -55,13 +55,18 @@ namespace thermion
 
     GeometrySceneAsset::~GeometrySceneAsset()
     {
-        if (_engine)
-        {
-            if (_vertexBuffer && !isInstance())
-                _engine->destroy(_vertexBuffer);
-            if (_indexBuffer && !isInstance())
-                _engine->destroy(_indexBuffer);
+        auto &rm = _engine->getRenderableManager();
+        auto ri = rm.getInstance(_entity);
+        if (ri.isValid()) {
+            rm.destroy(_entity);
         }
+        utils::EntityManager::get().destroy(_entity);
+
+        if (_vertexBuffer && !isInstance())
+            _engine->destroy(_vertexBuffer);
+        if (_indexBuffer && !isInstance())
+            _engine->destroy(_indexBuffer);
+        
     }
 
     SceneAsset *GeometrySceneAsset::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)
