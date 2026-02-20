@@ -130,6 +130,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament/debug)
+else()
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament/release)
+endif()
+
 
 add_library(backend STATIC IMPORTED)
 set_property(TARGET backend PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libbackend.a")
