@@ -2515,6 +2515,18 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _TransformManager_createComponentRenderThread(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _TransformManager_removeComponentRenderThread(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _FrameScheduler_start(
     FrameCallback callback,
     int targetFps,
@@ -8877,6 +8889,36 @@ void TransformManager_setTransformRenderThread(
           tTransformManager.cast(),
           entityId,
           transformPtr.cast(),
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void TransformManager_createComponentRenderThread(
+  Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformManager_createComponentRenderThread(
+          tTransformManager.cast(),
+          entityId,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void TransformManager_removeComponentRenderThread(
+  Pointer<TTransformManager> tTransformManager,
+  DartEntityId entityId,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformManager_removeComponentRenderThread(
+          tTransformManager.cast(),
+          entityId,
           requestId,
           onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;

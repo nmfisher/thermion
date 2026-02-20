@@ -4717,6 +4717,26 @@ external void TransformManager_setTransformRenderThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void TransformManager_createComponentRenderThread(
+  ffi.Pointer<TTransformManager> tTransformManager,
+  int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void TransformManager_removeComponentRenderThread(
+  ffi.Pointer<TTransformManager> tTransformManager,
+  int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
 external void FrameScheduler_start(
   FrameCallback callback,
