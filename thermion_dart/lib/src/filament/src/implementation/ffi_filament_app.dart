@@ -997,11 +997,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       int layer = 0,
       bool loadResourcesAsync = false,
       String? resourceUri}) async {
+    _logger.info(
+        "Loading glTF from buffer (${data.lengthInBytes} bytes) with resourceUri ${resourceUri}");
     final resources = <FinalizableUint8List>[];
 
     if (resourceUri != null && !resourceUri.endsWith("/")) {
       resourceUri = "${resourceUri}/";
     }
+
     try {
       late Pointer stackPtr;
       if (FILAMENT_WASM) {
@@ -1028,9 +1031,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       for (int i = 0; i < resourceUriCount; i++) {
         final resourceUriDart = resourceUris[i].cast<Utf8>().toDartString();
+        final resolvedResourceUri = "${resourceUri ?? ""}${resourceUriDart}";
 
-        final resourceData =
-            await loadResource("${resourceUri ?? ""}${resourceUriDart}");
+        final resourceData = await loadResource(resolvedResourceUri);
+
+        _logger.info(
+            "Adding ${resourceData.lengthInBytes} bytes for resource ${resourceUriDart} (resolved to $resolvedResourceUri)");
 
         resources.add(FinalizableUint8List(resourceUris[i], resourceData));
 
@@ -1064,13 +1070,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
                   gltfResourceLoader, cb));
         }
       } else {
+        _logger.info("Loading glTF resources synchronously");
         final result = await withBoolCallback((cb) =>
             GltfResourceLoader_loadResourcesRenderThread(
                 gltfResourceLoader, filamentAsset, cb));
+
         if (!result) {
           throw Exception("Failed to load resources");
         }
       }
+
+      _logger.info("glTF resources loaded");
 
       final asset = await withPointerCallback<TSceneAsset>((cb) =>
           SceneAsset_createFromFilamentAssetRenderThread(engine,
