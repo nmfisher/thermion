@@ -39,7 +39,11 @@ class ThermionVulkanContext::Impl {
         }
         
         Impl() {
-            bluevk::initialize();
+            std::cerr << "Initializing ThermionVulkanContext" << std::endl;
+            if(!bluevk::initialize()) { 
+                std::cerr << "Failed to initialize BlueVK, this means the Vulkan drivers were not found." << std::endl;
+                return;
+            }
 
             // Create Vulkan instance
             VkResult result = createVulkanInstance(&instance);
