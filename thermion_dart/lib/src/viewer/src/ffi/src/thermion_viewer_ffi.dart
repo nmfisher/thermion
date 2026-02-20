@@ -161,8 +161,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _disposed = true;
     await setRendering(false);
 
-    await _backgroundImage?.destroy();
-    _backgroundImage = null;
+    await clearBackgroundImage(destroy: true);
 
     await destroyAssets();
     await destroyLights();
@@ -188,12 +187,15 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   @override
   Future clearBackgroundImage({bool destroy = false}) async {
+    if (_backgroundImage == null) {
+      return;
+    }
     if (destroy) {
       await scene.remove(_backgroundImage!);
-      await _backgroundImage?.destroy();
+      await _backgroundImage!.destroy();
       _backgroundImage = null;
     } else {
-      _backgroundImage?.hideImage();
+      _backgroundImage!.hideImage();
     }
   }
 
