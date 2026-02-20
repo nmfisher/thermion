@@ -175,6 +175,8 @@ void main() async {
         viewportDimensions.height,
         p.join(testHelper.outDir.path, "multi_view_same_camera_1.bmp"),
         isFloat: true);
+
+    await FilamentApp.instance!.destroySwapChain(swapChain);
   });
 
   test('render to multiple views, same scene, different camera', () async {
@@ -216,6 +218,8 @@ void main() async {
     await scene.add(cube);
 
     await testHelper.capture(null, "multiple_view_different_camera");
+
+    await FilamentApp.instance!.destroySwapChain(swapChain);
   });
 
   test('render view to render target, used as input for another', () async {
@@ -295,6 +299,8 @@ void main() async {
         viewportDimensions.height,
         p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
         isFloat: true);
+
+    await FilamentApp.instance!.destroySwapChain(swapChain);
   });
 
   ///
@@ -353,6 +359,7 @@ void main() async {
         viewportDimensions.height,
         p.join(testHelper.outDir.path, "two_views_same_render_target2.bmp"),
         isFloat: true);
+    await FilamentApp.instance!.destroySwapChain(swapChain);
   });
 
   test('render depth buffer to render target', () async {
@@ -431,6 +438,8 @@ void main() async {
         viewportDimensions.height,
         p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
         isFloat: true);
+
+      await FilamentApp.instance!.destroySwapChain(swapChain);
   });
 
   test('fog tests', () async {
