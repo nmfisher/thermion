@@ -28,6 +28,7 @@ class FFITexturedQuad extends TexturedQuad {
   ///
   ///
   Future destroy() async {
+    await FilamentApp.instance!.destroyAsset(asset);
     await texture?.dispose();
     await sampler?.dispose();
     await mi.destroy();
@@ -100,6 +101,10 @@ class FFITexturedQuad extends TexturedQuad {
 
     final texture = await FilamentApp.instance!.createTexture(
         await image.getWidth(), await image.getHeight(),
+        flags: {
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_UPLOADABLE
+        },
         textureFormat: textureFormat);
     await texture.setLinearImage(image, pixelFormat, PixelDataType.FLOAT);
     await setImageFromTexture(texture);
@@ -152,7 +157,6 @@ class FFITexturedQuad extends TexturedQuad {
   Future<List<ThermionAsset>> getInstances() async {
     return [];
   }
-
 
   @override
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
