@@ -47,8 +47,8 @@ class FFITransformManager
   }
 
   @override
-  void removeComponent(ThermionEntity entity) {
-    bindings.TransformManager_removeComponent(transformManager, entity);
+  void removeComponent(ThermionEntity entity) async {
+    await withVoidCallback((requestId, cb) => bindings.TransformManager_removeComponentRenderThread(transformManager, entity, requestId, cb));
   }
 
   // ============================================================================
