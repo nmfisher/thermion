@@ -2076,6 +2076,36 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void TransformManager_createComponentRenderThread(
+      TTransformManager *tTransformManager,
+      EntityId entityId,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TransformManager_createComponent(tTransformManager, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponentRenderThread(
+      TTransformManager *tTransformManager,
+      EntityId entityId,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TransformManager_removeComponent(tTransformManager, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps) {
 #ifndef __EMSCRIPTEN__
     if (_frameScheduler) {

@@ -437,6 +437,20 @@ namespace thermion
             VoidCallback onComplete
         );
 
+        EMSCRIPTEN_KEEPALIVE void TransformManager_createComponentRenderThread(
+            TTransformManager *tTransformManager,
+            EntityId entityId,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponentRenderThread(
+            TTransformManager *tTransformManager,
+            EntityId entityId,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
         typedef void (*FrameCallback)(uint64_t frameTimeNanos);
 
         EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps);
