@@ -324,7 +324,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (transformManager.hasComponent(entity)) {
       transformManager.removeComponent(entity);
     }
-    EntityManager_destroyEntity(Engine_getEntityManager(engine), entity);
+    await withVoidCallback((requestId, cb) =>
+        EntityManager_destroyEntityRenderThread(
+            Engine_getEntityManager(engine), entity, requestId, cb));
   }
 
   ///
@@ -1441,7 +1443,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<ThermionEntity> createEntity(
       {bool createTransformComponent = true}) async {
-    final entity = EntityManager_createEntity(Engine_getEntityManager(engine));
+    final entity = await withIntCallback((cb) => EntityManager_createEntityRenderThread(Engine_getEntityManager(engine), cb));
     if (createTransformComponent) {
       transformManager.createComponent(entity);
     }

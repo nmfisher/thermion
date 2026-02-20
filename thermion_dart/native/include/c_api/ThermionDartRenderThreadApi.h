@@ -53,6 +53,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, uint32_t requestId,  VoidCallback onComplete);
+        
         EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine, 
@@ -424,6 +425,9 @@ namespace thermion
             EntityId entityId,
             void (*onComplete)(int)
         );
+
+        EMSCRIPTEN_KEEPALIVE void EntityManager_createEntityRenderThread(TEntityManager *tEntityManager, void (*onComplete)(EntityId));
+        EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntityRenderThread(TEntityManager *tEntityManager, EntityId entityId, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformRenderThread(
             TTransformManager *tTransformManager,
