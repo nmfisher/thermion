@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
@@ -401,6 +402,12 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
       unzipDir, "success"));
   final libraryZip = File(path.join(unzipDir, filename));
 
+  if (libraryZip.existsSync()) {
+    final zipBytes = await libraryZip.readAsBytes();
+    final zipHash = md5.convert(zipBytes);
+    logger.info("Existing library zip hash: $zipHash, size: ${zipBytes.length} bytes (${libraryZip.path})");
+  }
+
   if (!successToken.existsSync()) {
     if (libraryZip.existsSync()) {
       libraryZip.deleteSync();
@@ -417,7 +424,11 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
 
     await response.pipe(libraryZip.openWrite());
 
-    final archive = ZipDecoder().decodeBytes(await libraryZip.readAsBytes());
+    final downloadedBytes = await libraryZip.readAsBytes();
+    final downloadedHash = md5.convert(downloadedBytes);
+    logger.info("Downloaded library zip hash: $downloadedHash, size: ${downloadedBytes.length} bytes (${libraryZip.path})");
+
+    final archive = ZipDecoder().decodeBytes(downloadedBytes);
 
     for (final file in archive) {
       final filename = file.name;
