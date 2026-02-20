@@ -56,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: ViewerWidget(
               assetPath: "assets/cube.glb",
               skyboxPath: "assets/default_env_skybox.ktx",
-              // iblPath: "assets/default_env_ibl.ktx",
+              iblPath: "assets/default_env_ibl.ktx",
               directLight: DirectLight.sun(
                   direction: Vector3(0.7, -1, -0.8).normalized()),
               transformToUnitCube: true,
