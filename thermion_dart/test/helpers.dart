@@ -77,7 +77,6 @@ Future<Uint8List> savePixelBufferToPng(
 }
 
 class TestHelper {
-  late FFISwapChain swapChain;
   late Directory outDir;
   late String testDir;
   late String assetsDir;
@@ -117,8 +116,7 @@ class TestHelper {
 
   Future<MaterialInstance> loadCustomAttributeMaterial() async {
     final material = await FilamentApp.instance!.createMaterial(
-        await File("${assetsDir}/customattributes.filamat")
-            .readAsBytesSync());
+        await File("${assetsDir}/customattributes.filamat").readAsBytesSync());
     return material.createInstance();
   }
 
@@ -221,7 +219,6 @@ class TestHelper {
       PixelDataType pixelDataType = PixelDataType.FLOAT,
       bool captureRenderTarget = false,
       bool render = true}) async {
-    swapChain ??= this.swapChain;
     var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
         view: view,
         beforeRender: beforeRender,
@@ -233,7 +230,7 @@ class TestHelper {
     int i = 0;
     for (final (view, pixelBuffer) in pixelBuffers) {
       var vp = await view.getViewport();
-      print("Capture viewport : ${vp.width}x${vp.height}");
+
       if (outputFilename != null) {
         var outPath = p.join(outDir.path, "${outputFilename}_view${i}.png");
         await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
@@ -269,10 +266,14 @@ class TestHelper {
     await FFIFilamentApp.create(
         config: FFIFilamentConfig(
             loadResource: _loadResource,
-            backend: Platform.isLinux ? Backend.OPENGL : Backend.DEFAULT));
+            backend: Platform.isLinux
+                ? Backend.OPENGL
+                : Platform.isWindows
+                    ? Backend.VULKAN
+                    : Backend.DEFAULT));
   }
 
-  Future createViewer(
+  Future<(ThermionViewer viewer, SwapChain swapChain)> createViewer(
       {img.Color? bg,
       Vector3? cameraPosition,
       ({int width, int height}) viewportDimensions = (width: 512, height: 512),
@@ -282,7 +283,7 @@ class TestHelper {
       bool createStencilBuffer = false}) async {
     cameraPosition ??= Vector3(0, 5, 5);
 
-    swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height,
         hasStencilBuffer: createStencilBuffer) as FFISwapChain;
 
@@ -339,7 +340,7 @@ class TestHelper {
 
     var viewer = ThermionViewerFFI();
     await viewer.initialized;
-    await FilamentApp.instance!.setRenderOrder(swapChain, viewer.view);
+    await FilamentApp.instance!.setRenderOrder(swapChain!, viewer.view);
     if (renderTarget != null) {
       await viewer.view.setRenderTarget(renderTarget);
     }
@@ -351,8 +352,7 @@ class TestHelper {
     }
 
     if (addSkybox) {
-      await viewer
-          .loadSkybox("file://${assetsDir}/default_env_skybox.ktx");
+      await viewer.loadSkybox("file://${assetsDir}/default_env_skybox.ktx");
     }
 
     if (bg != null) {
@@ -373,7 +373,7 @@ class TestHelper {
     await viewer.setPostProcessing(postProcessing);
 
     await viewer.setToneMapper(await ToneMapper.aces());
-    return viewer;
+    return (viewer, swapChain);
   }
 
   Future withViewer(
@@ -395,8 +395,9 @@ class TestHelper {
         createRenderTarget: createRenderTarget,
         createStencilBuffer: createStencilBuffer);
 
-    await fn.call(viewer);
-    await viewer.dispose();
+    await fn.call(viewer.$1);
+    await viewer.$1.dispose();
+    await FilamentApp.instance!.destroySwapChain(viewer.$2);
   }
 }
 
@@ -654,9 +655,13 @@ class ViewerBuilder {
     });
   }
 
-  Future<({ThermionViewer viewer, List<ThermionAsset> assets})>
-      buildWithAssets() async {
-    final viewer = await _testHelper.createViewer(
+  Future<
+      ({
+        ThermionViewer viewer,
+        List<ThermionAsset> assets,
+        SwapChain swapChain
+      })> buildWithAssets() async {
+    final viewerResult = await _testHelper.createViewer(
       bg: _bg,
       cameraPosition: _cameraPosition,
       viewportDimensions: _viewportDimensions,
@@ -665,6 +670,7 @@ class ViewerBuilder {
       createRenderTarget: _createRenderTarget,
       createStencilBuffer: _createStencilBuffer,
     );
+    final viewer = viewerResult.$1;
 
     final List<ThermionAsset> createdAssets = [];
 
@@ -674,6 +680,11 @@ class ViewerBuilder {
       if (_shadowType != null) {
         await viewer.setShadowType(_shadowType!);
       }
+    }
+
+    // Apply tone mapping if specified
+    if (_toneMapper != null) {
+      viewer.setToneMapper(_toneMapper!);
     }
 
     // Add direct lights and store their entities
@@ -785,12 +796,7 @@ class ViewerBuilder {
       );
     }
 
-    // Apply tone mapping if specified
-    if (_toneMapper != null) {
-      await viewer.setToneMapping(_toneMapper!);
-    }
-
-    return (viewer: viewer as ThermionViewer, assets: createdAssets);
+    return (viewer: viewer, assets: createdAssets, swapChain: viewerResult.$2);
   }
 
   Future<ThermionViewer> build() async {
@@ -825,6 +831,7 @@ class ViewerBuilder {
     } finally {
       await buildResult.viewer.dispose();
     }
+    await FilamentApp.instance!.destroySwapChain(buildResult.swapChain);
   }
 }
 

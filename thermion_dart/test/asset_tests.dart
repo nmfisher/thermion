@@ -7,6 +7,7 @@ import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("assets");
+
   await testHelper.setup();
 
   test('load/clear skybox', () async {
@@ -27,6 +28,20 @@ void main() async {
       await result.viewer.removeSkybox();
       await testHelper.capture(
           result.viewer.view, "remove_skybox_with_postprocessing");
+    });
+  });
+
+  test('sync load/remove glb', () async {
+    await ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(0, 0, 5))
+        .execute((result) async {
+      var asset = await result.viewer
+          .loadGltf("file://${testHelper.assetsDir}/cube.glb");
+      await result.viewer
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
+      await testHelper.capture(result.viewer.view, "glb_loaded");
+      await result.viewer.removeFromScene(asset);
+      await testHelper.capture(result.viewer.view, "glb_removed");
     });
   });
 

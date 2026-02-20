@@ -230,7 +230,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       free(pointers);
 
       _logger.info(
-          "${handles.length} renderable views for swapchain $i : $viewNames");
+          "${handles.length} renderable views for swapchain $i (${swapChain.getNativeHandle()}) : $viewNames");
     }
 
     _logger.info("Updated render order for ${swapChains.length} swapchains");
