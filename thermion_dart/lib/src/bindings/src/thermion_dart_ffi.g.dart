@@ -4688,6 +4688,25 @@ external void RenderableBuilder_buildRenderThread(
 );
 
 @ffi.Native<
+        ffi.Void Function(ffi.Pointer<TEntityManager>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
+    isLeaf: true)
+external void EntityManager_createEntityRenderThread(
+  ffi.Pointer<TEntityManager> tEntityManager,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEntityManager>, EntityId, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void EntityManager_destroyEntityRenderThread(
+  ffi.Pointer<TEntityManager> tEntityManager,
+  int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, double4x4,
         ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void TransformManager_setTransformRenderThread(
