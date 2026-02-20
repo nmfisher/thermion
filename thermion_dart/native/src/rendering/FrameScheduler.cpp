@@ -1,7 +1,12 @@
 #include "rendering/FrameScheduler.hpp"
 #include "Log.hpp"
 
-#if __APPLE__
+#if __APPLE__ && TARGET_OS_IOS
+#include "rendering/CADisplayLinkWrapper.h"
+#include "dart/dart_api_dl.h"
+#endif
+
+#if __APPLE__ && TARGET_OS_OSX
 #include "dart/dart_api_dl.h"
 #endif
 
@@ -51,10 +56,60 @@ void TimerFrameScheduler::stop() {
 }
 
 // ---------------------------------------------------------------------------
-// CVDisplayLinkScheduler (macOS/iOS)
+// CADisplayLinkScheduler (iOS)
 // ---------------------------------------------------------------------------
 
-#if __APPLE__
+#if __APPLE__ && TARGET_OS_IOS
+
+void CADisplayLinkScheduler::displayLinkCallback(uint64_t frameTimeNanos, void* context) {
+    auto* self = static_cast<CADisplayLinkScheduler*>(context);
+
+    if (self->_usePortMode) {
+        if (self->_dartPort != 0) {
+            Dart_CObject msg;
+            msg.type = Dart_CObject_kInt64;
+            msg.value.as_int64 = static_cast<int64_t>(frameTimeNanos);
+            Dart_PostCObject_DL(self->_dartPort, &msg);
+        }
+    } else if (self->_callback) {
+        self->_callback(frameTimeNanos);
+    }
+}
+
+void CADisplayLinkScheduler::start(Callback callback) {
+    stop();
+    _callback = callback;
+    _usePortMode = false;
+    _wrapper = CADisplayLinkWrapper_create(displayLinkCallback, this);
+    CADisplayLinkWrapper_start(_wrapper);
+}
+
+void CADisplayLinkScheduler::startWithPort(int64_t port) {
+    stop();
+    _dartPort = port;
+    _usePortMode = true;
+    _callback = nullptr;
+    _wrapper = CADisplayLinkWrapper_create(displayLinkCallback, this);
+    CADisplayLinkWrapper_start(_wrapper);
+}
+
+void CADisplayLinkScheduler::stop() {
+    if (_wrapper) {
+        CADisplayLinkWrapper_destroy(_wrapper);
+        _wrapper = nullptr;
+    }
+    _callback = nullptr;
+    _dartPort = 0;
+    _usePortMode = false;
+}
+
+#endif // __APPLE__ && TARGET_OS_IOS
+
+// ---------------------------------------------------------------------------
+// CVDisplayLinkScheduler (macOS)
+// ---------------------------------------------------------------------------
+
+#if __APPLE__ && TARGET_OS_OSX
 
 void CVDisplayLinkScheduler::start(Callback callback) {
     stop();
@@ -108,7 +163,7 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
     return kCVReturnSuccess;
 }
 
-#endif // __APPLE__
+#endif // __APPLE__ && TARGET_OS_OSX
 
 // ---------------------------------------------------------------------------
 // DXGIFrameScheduler (Windows)

@@ -5,7 +5,10 @@
 #include <chrono>
 
 #if __APPLE__
+#include <TargetConditionals.h>
+#if TARGET_OS_OSX
 #include <CoreVideo/CoreVideo.h>
+#endif
 #endif
 
 namespace thermion {
@@ -31,8 +34,25 @@ public:
     void stop() override;
 };
 
-#if __APPLE__
-/// macOS/iOS CVDisplayLink-based scheduler for proper vsync timing.
+#if __APPLE__ && TARGET_OS_IOS
+/// iOS CADisplayLink-based scheduler for proper vsync timing.
+class CADisplayLinkScheduler : public FrameScheduler {
+    void* _wrapper = nullptr;
+    Callback _callback = nullptr;
+    int64_t _dartPort = 0;
+    bool _usePortMode = false;
+public:
+    ~CADisplayLinkScheduler() override { stop(); }
+    void start(Callback callback) override;
+    void startWithPort(int64_t port);
+    void stop() override;
+private:
+    static void displayLinkCallback(uint64_t frameTimeNanos, void* context);
+};
+#endif // __APPLE__ && TARGET_OS_IOS
+
+#if __APPLE__ && TARGET_OS_OSX
+/// macOS CVDisplayLink-based scheduler for proper vsync timing.
 class CVDisplayLinkScheduler : public FrameScheduler {
     CVDisplayLinkRef _displayLink = nullptr;
     Callback _callback = nullptr;
@@ -48,7 +68,7 @@ private:
         const CVTimeStamp* inNow, const CVTimeStamp* inOutputTime,
         CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* context);
 };
-#endif
+#endif // __APPLE__ && TARGET_OS_OSX
 
 #ifdef _WIN32
 /// Windows DXGI-based scheduler for proper vsync timing.
