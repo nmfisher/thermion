@@ -2038,6 +2038,28 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void EntityManager_createEntityRenderThread(TEntityManager *tEntityManager, void (*onComplete)(EntityId))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto entityId = EntityManager_createEntity(tEntityManager);
+          PROXY(onComplete(entityId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntityRenderThread(TEntityManager *tEntityManager, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          EntityManager_destroyEntity(tEntityManager, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformRenderThread(
       TTransformManager *tTransformManager,
       EntityId entityId,
