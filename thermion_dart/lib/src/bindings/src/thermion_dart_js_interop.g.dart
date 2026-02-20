@@ -2498,6 +2498,16 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     EntityId entityId,
     Pointer<NativeFunction<void Function(int)>> onComplete,
   );
+  external void _EntityManager_createEntityRenderThread(
+    Pointer<TEntityManager> tEntityManager,
+    Pointer<NativeFunction<void Function(EntityId)>> onComplete,
+  );
+  external void _EntityManager_destroyEntityRenderThread(
+    Pointer<TEntityManager> tEntityManager,
+    EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _TransformManager_setTransformRenderThread(
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
@@ -8826,6 +8836,31 @@ void RenderableBuilder_buildRenderThread(
   final result = GeneratedBindings.instance
       ._RenderableBuilder_buildRenderThread(
           tBuilder.cast(), tEngine.cast(), entityId, onComplete.cast());
+  return result;
+}
+
+void EntityManager_createEntityRenderThread(
+  Pointer<TEntityManager> tEntityManager,
+  Pointer<NativeFunction<void Function(EntityId)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._EntityManager_createEntityRenderThread(
+          tEntityManager.cast(), onComplete.cast());
+  return result;
+}
+
+void EntityManager_destroyEntityRenderThread(
+  Pointer<TEntityManager> tEntityManager,
+  DartEntityId entityId,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._EntityManager_destroyEntityRenderThread(
+          tEntityManager.cast(),
+          entityId,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
