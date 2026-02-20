@@ -1,4 +1,4 @@
-name: CI (Windows Dart Tests)
+name: Dart Tests (Windows)
 
 on:
   push:
@@ -54,6 +54,10 @@ jobs:
         with:
           channel: master
           architecture: X64
+
+      - name: Clean cached Filament libraries
+        shell: bash
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
 
       - name: Enable debug mode for tests
         shell: bash
