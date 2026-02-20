@@ -101,7 +101,8 @@ call git checkout %FILAMENT_VERSION% || (
 
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM...
-powershell -Command "(Get-Content '%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h') -replace '^(#if defined\(__EMSCRIPTEN__\))', '#ifndef GLTFIO_USE_FILESYSTEM`n$1' -replace '(#define GLTFIO_USE_FILESYSTEM 1\r?\n#endif)', '$1`n#endif' | Set-Content '%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h'"
+set "GLTFIO_HEADER=%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h"
+powershell -Command "$f = Get-Content '%GLTFIO_HEADER%' -Raw; $old = '#if defined(__EMSCRIPTEN__) || defined(__ANDROID__) || defined(FILAMENT_IOS)'; $new = '#ifndef GLTFIO_USE_FILESYSTEM' + \"`n\" + $old; $f = $f.Replace($old, $new); $tail = '#define GLTFIO_USE_FILESYSTEM 1' + \"`r`n\" + '#endif'; $f = $f.Replace($tail, $tail + \"`r`n\" + '#endif'); Set-Content '%GLTFIO_HEADER%' $f -NoNewline; Write-Host 'Patch applied. Verifying...'; $check = Get-Content '%GLTFIO_HEADER%' -Raw; if ($check -match 'ifndef GLTFIO_USE_FILESYSTEM') { Write-Host 'SUCCESS: Guard found in patched file' } else { Write-Host 'FAILED: Guard NOT found'; exit 1 }"
 
 REM Inject -DGLTFIO_USE_FILESYSTEM=0 into gltfio's compile definitions
 echo target_compile_definitions(gltfio_core PRIVATE GLTFIO_USE_FILESYSTEM=0)>> "%FILAMENT_BASE_DIR%\libs\gltfio\CMakeLists.txt"
