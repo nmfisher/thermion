@@ -45,6 +45,7 @@ void main() async {
           textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
           flags: {
             TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_UPLOADABLE
           });
       var data = Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0))
           .asUint8List();
