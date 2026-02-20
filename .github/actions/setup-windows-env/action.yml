@@ -1,0 +1,43 @@
+name: 'Setup Windows Build Environment'
+description: 'Set up LLVM, Vulkan SDK with SwiftShader, and Flutter for Windows builds'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup LLVM
+      uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: "16"
+
+    - name: Add LLVM to PATH
+      shell: bash
+      run: echo "${{ github.workspace }}/llvm/bin" >> $GITHUB_PATH
+
+    - name: Verify LLVM installation
+      shell: bash
+      run: clang --version
+
+    - name: Install Vulkan SDK + SwiftShader
+      uses: jakoch/install-vulkan-sdk-action@v1
+      with:
+        install_runtime: true
+        cache: true
+        install_swiftshader: true
+
+    - name: Verify SwiftShader installation
+      shell: pwsh
+      run: |
+        if (!(Test-Path "C:\swiftshader\vk_swiftshader_icd.json")) { throw "SwiftShader ICD JSON not found" }
+        if (!(Test-Path "C:\swiftshader\vk_swiftshader.dll")) { throw "SwiftShader DLL not found" }
+        if (!(Test-Path "C:\swiftshader\vulkan-1.dll")) { throw "vulkan-1.dll not found" }
+        Get-Content "C:\swiftshader\vk_swiftshader_icd.json"
+        Write-Host "SwiftShader installation verified"
+
+    - name: Add SwiftShader to PATH
+      shell: bash
+      run: echo "C:/swiftshader" >> $GITHUB_PATH
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: master
+        architecture: X64

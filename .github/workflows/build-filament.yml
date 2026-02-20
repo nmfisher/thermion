@@ -327,6 +327,30 @@ jobs:
           mkdir output
           scripts\build_windows.bat filament %FILAMENT_VERSION% output --clean
 
+      - name: Verify GLTFIO_USE_FILESYSTEM patch
+        shell: bash
+        run: |
+          header="filament/libs/gltfio/src/FFilamentAsset.h"
+          cmake="filament/libs/gltfio/CMakeLists.txt"
+          echo "=== Checking $header ==="
+          if grep -q "ifndef GLTFIO_USE_FILESYSTEM" "$header"; then
+            echo "OK: #ifndef guard found in FFilamentAsset.h"
+          else
+            echo "FAILED: #ifndef GLTFIO_USE_FILESYSTEM guard not found in FFilamentAsset.h"
+            echo "--- Relevant lines ---"
+            grep -n -A5 "GLTFIO_USE_FILESYSTEM" "$header" || true
+            exit 1
+          fi
+          echo "=== Checking $cmake ==="
+          if grep -q "GLTFIO_USE_FILESYSTEM=0" "$cmake"; then
+            echo "OK: GLTFIO_USE_FILESYSTEM=0 found in CMakeLists.txt"
+          else
+            echo "FAILED: GLTFIO_USE_FILESYSTEM=0 not found in gltfio CMakeLists.txt"
+            echo "--- Last 5 lines ---"
+            tail -5 "$cmake"
+            exit 1
+          fi
+
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
