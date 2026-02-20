@@ -1,10 +1,11 @@
-name: CI
+name: Dart/Flutter Tests and Example Apps
 
 on:
   push:
     branches: [ "develop" ]
   pull_request:
     branches: [ "develop" ]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}

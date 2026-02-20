@@ -1,4 +1,4 @@
-name: CI (Windows Dart Tests)
+name: Dart Tests (Windows)
 
 on:
   push:
