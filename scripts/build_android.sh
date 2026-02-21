@@ -126,8 +126,109 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Android architectures
+# Android ABI names (used in output lib dirs) and cmake arch names (used in build dirs)
 ARCHS="arm64-v8a armeabi-v7a x86_64 x86"
+
+abi_to_cmake_arch() {
+  case "$1" in
+    arm64-v8a)   echo "aarch64" ;;
+    armeabi-v7a) echo "arm7" ;;
+    x86_64)      echo "x86_64" ;;
+    x86)         echo "x86" ;;
+  esac
+}
+
+# Find Android NDK toolchain
+if [ -n "$ANDROID_NDK_HOME" ]; then
+  NDK_TOOLCHAIN="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake"
+elif [ -n "$ANDROID_NDK_ROOT" ]; then
+  NDK_TOOLCHAIN="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake"
+elif [ -n "$ANDROID_NDK" ]; then
+  NDK_TOOLCHAIN="$ANDROID_NDK/build/cmake/android.toolchain.cmake"
+else
+  echo "Error: Cannot find Android NDK. Set ANDROID_NDK_HOME, ANDROID_NDK_ROOT, or ANDROID_NDK."
+  exit 1
+fi
+
+if [ ! -f "$NDK_TOOLCHAIN" ]; then
+  echo "Error: NDK toolchain not found at: $NDK_TOOLCHAIN"
+  exit 1
+fi
+echo "Using NDK toolchain: $NDK_TOOLCHAIN"
+
+# Build imageio and tinyexr for each Android architecture using cmake + NDK toolchain.
+# Filament's build.sh -p android only cross-compiles core libs, not imageio/tinyexr.
+build_third_party_for_arch() {
+  local BUILD_TYPE=$1  # Release or Debug
+  local BUILD_SUFFIX=$2  # release or debug
+  local ABI=$3
+  local CMAKE_ARCH=$(abi_to_cmake_arch "$ABI")
+  local CMAKE_DIR="$FILAMENT_BASE_DIR/out/cmake-android-${BUILD_SUFFIX}-${CMAKE_ARCH}"
+
+  echo "Building imageio + tinyexr for $ABI ($BUILD_SUFFIX)..."
+
+  mkdir -p "$CMAKE_DIR/third_party/imageio" && cd "$CMAKE_DIR/third_party/imageio"
+  cmake -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$NDK_TOOLCHAIN" \
+    -DANDROID_ABI="$ABI" \
+    -DANDROID_PLATFORM=android-21 \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
+    -DZ_HAVE_UNISTD_H=1 \
+    -DUSE_ZLIB=1 \
+    -DIMPORT_EXECUTABLES_DIR=out \
+    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    "$FILAMENT_BASE_DIR/libs/imageio" || {
+    echo "Error: imageio cmake failed for $ABI ($BUILD_SUFFIX)"
+    return 1
+  }
+  ninja || {
+    echo "Error: imageio build failed for $ABI ($BUILD_SUFFIX)"
+    return 1
+  }
+
+  mkdir -p "$CMAKE_DIR/third_party/tinyexr" && cd "$CMAKE_DIR/third_party/tinyexr"
+  cmake -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$NDK_TOOLCHAIN" \
+    -DANDROID_ABI="$ABI" \
+    -DANDROID_PLATFORM=android-21 \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
+    -DZ_HAVE_UNISTD_H=1 \
+    -DUSE_ZLIB=1 \
+    -DIMPORT_EXECUTABLES_DIR=out \
+    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    "$FILAMENT_BASE_DIR/third_party/tinyexr" || {
+    echo "Error: tinyexr cmake failed for $ABI ($BUILD_SUFFIX)"
+    return 1
+  }
+  ninja || {
+    echo "Error: tinyexr build failed for $ABI ($BUILD_SUFFIX)"
+    return 1
+  }
+
+  cd "$FILAMENT_BASE_DIR"
+}
+
+if [ "$BUILD_RELEASE" = true ]; then
+  for ARCH in $ARCHS; do
+    build_third_party_for_arch Release release "$ARCH" || {
+      echo "Error: third-party build failed for $ARCH (release)"
+      exit 1
+    }
+  done
+fi
+
+if [ "$BUILD_DEBUG" = true ]; then
+  for ARCH in $ARCHS; do
+    build_third_party_for_arch Debug debug "$ARCH" || {
+      echo "Error: third-party build failed for $ARCH (debug)"
+      exit 1
+    }
+  done
+fi
 
 # Create target directories and copy libraries
 echo "Copying libraries..."
@@ -138,36 +239,36 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy release libraries for each architecture
   echo "Copying release libraries..."
   for ARCH in $ARCHS; do
-    mkdir -p "$TARGET_RELEASE_DIR/$ARCH" || {
-      echo "Error: Failed to create directory: $TARGET_RELEASE_DIR/$ARCH"
-      exit 1
-    }
-    cp out/android-release/filament/lib/$ARCH/*.a "$TARGET_RELEASE_DIR/$ARCH/" 2>/dev/null || {
-      echo "Warning: No release libraries found for $ARCH"
-    }
-  done
+    CMAKE_ARCH=$(abi_to_cmake_arch "$ARCH")
+    mkdir -p "$TARGET_RELEASE_DIR/$ARCH"
 
-  # Build and copy third-party libraries for release
-  echo "Building third-party libraries for release..."
-  ./build.sh -i -f -p android release zstd || {
-    echo "Warning: zstd release build failed"
-  }
-  ./build.sh -i -f -p android release tinyexr || {
-    echo "Warning: tinyexr release build failed"
-  }
-  ./build.sh -i -f -p android release imageio || {
-    echo "Warning: imageio release build failed"
-  }
-
-  for ARCH in $ARCHS; do
-    for LIB in libimageio.a libtinyexr.a; do
-      cp out/android-release/filament/lib/$ARCH/$LIB "$TARGET_RELEASE_DIR/$ARCH/" 2>/dev/null || {
-        echo "Warning: Failed to copy $LIB for $ARCH (release)"
-      }
+    # Copy main Filament libraries
+    for lib in out/android-release/filament/lib/$ARCH/*.a; do
+      case "$(basename "$lib")" in
+        *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
+        *) cp "$lib" "$TARGET_RELEASE_DIR/$ARCH/" ;;
+      esac
     done
+
+    # Copy imageio (built per-arch by build_third_party_for_arch)
+    IMAGEIO_SRC="out/cmake-android-release-${CMAKE_ARCH}/third_party/imageio/libimageio.a"
+    if [ -f "$IMAGEIO_SRC" ]; then
+      echo "Found imageio at $IMAGEIO_SRC"
+      cp "$IMAGEIO_SRC" "$TARGET_RELEASE_DIR/$ARCH/"
+    else
+      echo "WARNING: libimageio.a not found for $ARCH at $IMAGEIO_SRC"
+    fi
+
+    # Copy tinyexr (built per-arch by build_third_party_for_arch)
+    TINYEXR_SRC="out/cmake-android-release-${CMAKE_ARCH}/third_party/tinyexr/libtinyexr.a"
+    if [ -f "$TINYEXR_SRC" ]; then
+      echo "Found tinyexr at $TINYEXR_SRC"
+      cp "$TINYEXR_SRC" "$TARGET_RELEASE_DIR/$ARCH/"
+    else
+      echo "WARNING: libtinyexr.a not found for $ARCH at $TINYEXR_SRC"
+    fi
   done
 fi
 
@@ -177,36 +278,36 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy debug libraries for each architecture
   echo "Copying debug libraries..."
   for ARCH in $ARCHS; do
-    mkdir -p "$TARGET_DEBUG_DIR/$ARCH" || {
-      echo "Error: Failed to create directory: $TARGET_DEBUG_DIR/$ARCH"
-      exit 1
-    }
-    cp out/android-debug/filament/lib/$ARCH/*.a "$TARGET_DEBUG_DIR/$ARCH/" 2>/dev/null || {
-      echo "Warning: No debug libraries found for $ARCH"
-    }
-  done
+    CMAKE_ARCH=$(abi_to_cmake_arch "$ARCH")
+    mkdir -p "$TARGET_DEBUG_DIR/$ARCH"
 
-  # Build and copy third-party libraries for debug
-  echo "Building third-party libraries for debug..."
-  ./build.sh -i -f -p android debug zstd || {
-    echo "Warning: zstd debug build failed"
-  }
-  ./build.sh -i -f -p android debug tinyexr || {
-    echo "Warning: tinyexr debug build failed"
-  }
-  ./build.sh -i -f -p android debug imageio || {
-    echo "Warning: imageio debug build failed"
-  }
-
-  for ARCH in $ARCHS; do
-    for LIB in libimageio.a libtinyexr.a; do
-      cp out/android-debug/filament/lib/$ARCH/$LIB "$TARGET_DEBUG_DIR/$ARCH/" 2>/dev/null || {
-        echo "Warning: Failed to copy $LIB for $ARCH (debug)"
-      }
+    # Copy main Filament libraries
+    for lib in out/android-debug/filament/lib/$ARCH/*.a; do
+      case "$(basename "$lib")" in
+        *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
+        *) cp "$lib" "$TARGET_DEBUG_DIR/$ARCH/" ;;
+      esac
     done
+
+    # Copy imageio (built per-arch by build_third_party_for_arch)
+    IMAGEIO_SRC="out/cmake-android-debug-${CMAKE_ARCH}/third_party/imageio/libimageio.a"
+    if [ -f "$IMAGEIO_SRC" ]; then
+      echo "Found imageio at $IMAGEIO_SRC"
+      cp "$IMAGEIO_SRC" "$TARGET_DEBUG_DIR/$ARCH/"
+    else
+      echo "WARNING: libimageio.a not found for $ARCH at $IMAGEIO_SRC"
+    fi
+
+    # Copy tinyexr (built per-arch by build_third_party_for_arch)
+    TINYEXR_SRC="out/cmake-android-debug-${CMAKE_ARCH}/third_party/tinyexr/libtinyexr.a"
+    if [ -f "$TINYEXR_SRC" ]; then
+      echo "Found tinyexr at $TINYEXR_SRC"
+      cp "$TINYEXR_SRC" "$TARGET_DEBUG_DIR/$ARCH/"
+    else
+      echo "WARNING: libtinyexr.a not found for $ARCH at $TINYEXR_SRC"
+    fi
   done
 fi
 

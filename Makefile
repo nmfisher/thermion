@@ -31,7 +31,7 @@ bindings:
 	cd thermion_dart/ && dart run ffigen --config ffigen/native.yaml
 	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml
 	cd thermion_dart/ && dart run ffigen --config ffigen/swift.yaml
-	cd thermion_flutter/thermion_flutter && dart run ffigen --config ffigen/swift.yaml
+	cd thermion_flutter/thermion_flutter && flutter pub get && flutter pub run ffigen --config ffigen/swift.yaml
 shared:
 	cd thermion_dart/native && make
 
