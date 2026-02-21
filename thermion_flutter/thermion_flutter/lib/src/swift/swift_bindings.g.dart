@@ -445,6 +445,9 @@ final _objc_msgSend_12xnd2d = objc.msgSendPointer
         void Function(ffi.Pointer<objc.ObjCObject>,
             ffi.Pointer<objc.ObjCSelector>, int, int)>();
 late final _sel_stopFrameScheduler = objc.registerName("stopFrameScheduler");
+late final _sel_initializeDartApi_ = objc.registerName("initializeDartApi:");
+late final _sel_startFrameSchedulerWithPort_targetFps_ =
+    objc.registerName("startFrameSchedulerWithPort:targetFps:");
 
 /// SwiftThermionFlutterPluginObjCAPI
 class SwiftThermionFlutterPluginObjCAPI extends objc.NSObject {
@@ -503,6 +506,18 @@ class SwiftThermionFlutterPluginObjCAPI extends objc.NSObject {
   static void stopFrameScheduler() {
     _objc_msgSend_1pl9qdv(
         _class_SwiftThermionFlutterPluginObjCAPI, _sel_stopFrameScheduler);
+  }
+
+  /// initializeDartApi:
+  static void initializeDartApi_(int dataAddress) {
+    _objc_msgSend_17gvxvj(_class_SwiftThermionFlutterPluginObjCAPI,
+        _sel_initializeDartApi_, dataAddress);
+  }
+
+  /// startFrameSchedulerWithPort:targetFps:
+  static void startFrameSchedulerWithPort_targetFps_(int port, int targetFps) {
+    _objc_msgSend_12xnd2d(_class_SwiftThermionFlutterPluginObjCAPI,
+        _sel_startFrameSchedulerWithPort_targetFps_, port, targetFps);
   }
 
   /// init
