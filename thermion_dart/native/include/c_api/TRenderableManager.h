@@ -8,6 +8,9 @@ extern "C"
 {
 #endif
 
+    // Component lifecycle
+    EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntity(TRenderableManager *tRenderableManager, EntityId entityId);
+
     // Component queries
     EMSCRIPTEN_KEEPALIVE bool RenderableManager_hasComponent(TRenderableManager *tRenderableManager, EntityId entityId);
     EMSCRIPTEN_KEEPALIVE bool RenderableManager_empty(TRenderableManager *tRenderableManager);

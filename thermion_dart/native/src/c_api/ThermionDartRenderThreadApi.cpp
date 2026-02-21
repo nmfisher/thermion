@@ -9,6 +9,7 @@
 #include "c_api/APIBoundaryTypes.h"
 #include "c_api/TAnimationManager.h"
 #include "c_api/TEngine.h"
+#include "c_api/TRenderableManager.h"
 #include "c_api/TTransformManager.h"
 #include "c_api/TGizmo.h"
 #include "c_api/TGltfAssetLoader.h"
@@ -2101,6 +2102,21 @@ extern "C"
         [=]() mutable
         {
           TransformManager_removeComponent(tTransformManager, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntityRenderThread(
+      TRenderableManager *tRenderableManager,
+      EntityId entityId,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderableManager_destroyEntity(tRenderableManager, entityId);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);

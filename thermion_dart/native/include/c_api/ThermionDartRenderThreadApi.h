@@ -451,6 +451,13 @@ namespace thermion
             VoidCallback onComplete
         );
 
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntityRenderThread(
+            TRenderableManager *tRenderableManager,
+            EntityId entityId,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
         typedef void (*FrameCallback)(uint64_t frameTimeNanos);
 
         EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps);
