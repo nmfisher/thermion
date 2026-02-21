@@ -42,12 +42,12 @@ class FFITransformManager
   // ============================================================================
 
   @override
-  void createComponent(ThermionEntity entity) {
-    bindings.TransformManager_createComponent(transformManager, entity);
+  Future createComponent(ThermionEntity entity) async {
+    await withVoidCallback((requestId, cb) => bindings.TransformManager_createComponentRenderThread(transformManager, entity, requestId, cb));
   }
 
   @override
-  void removeComponent(ThermionEntity entity) async {
+  Future removeComponent(ThermionEntity entity) async {
     await withVoidCallback((requestId, cb) => bindings.TransformManager_removeComponentRenderThread(transformManager, entity, requestId, cb));
   }
 

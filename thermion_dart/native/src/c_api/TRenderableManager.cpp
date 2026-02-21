@@ -53,6 +53,12 @@ namespace thermion
             return renderableInstance.isValid();
         }
 
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntity(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            renderableManager->destroy(entity);
+        }
+
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_hasComponent(TRenderableManager *tRenderableManager, EntityId entityId) {
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);

@@ -321,8 +321,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // been detached (e.g. if renderable, it has been removed from any scenes,
   // that any camera or animation component has already been removed, etc).
   Future destroyEntity(ThermionEntity entity) async {
+    if (renderableManager.hasComponent(entity)) {
+      await withVoidCallback((requestId, cb) =>
+          RenderableManager_destroyEntityRenderThread(
+              renderableManager.getNativeHandle(), entity, requestId, cb));
+    }
     if (transformManager.hasComponent(entity)) {
-      transformManager.removeComponent(entity);
+      await transformManager.removeComponent(entity);
     }
     await withVoidCallback((requestId, cb) =>
         EntityManager_destroyEntityRenderThread(
