@@ -516,6 +516,10 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
     final request = await HttpClient().getUrl(Uri.parse(url));
     final response = await request.close();
 
+    if(response.statusCode != 200) {
+      throw Exception("Libraries not found at $url");
+    }
+
     await response.pipe(libraryZip.openWrite());
 
     final downloadedBytes = await libraryZip.readAsBytes();
