@@ -2527,6 +2527,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _RenderableManager_destroyEntityRenderThread(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _FrameScheduler_start(
     FrameCallback callback,
     int targetFps,
@@ -2584,6 +2590,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _GltfParser_freeMeshData(
     Pointer<TGltfMeshData> meshData,
+  );
+  external void _RenderableManager_destroyEntity(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
   );
   external int _RenderableManager_hasComponent(
     Pointer<TRenderableManager> tRenderableManager,
@@ -8924,6 +8934,21 @@ void TransformManager_removeComponentRenderThread(
   return result;
 }
 
+void RenderableManager_destroyEntityRenderThread(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableManager_destroyEntityRenderThread(
+          tRenderableManager.cast(),
+          entityId,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
 void FrameScheduler_start(
   DartFrameCallback callback,
   int targetFps,
@@ -9052,6 +9077,15 @@ void GltfParser_freeMeshData(
 ) {
   final result =
       GeneratedBindings.instance._GltfParser_freeMeshData(meshData.cast());
+  return result;
+}
+
+void RenderableManager_destroyEntity(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableManager_destroyEntity(tRenderableManager.cast(), entityId);
   return result;
 }
 
