@@ -4737,6 +4737,16 @@ external void TransformManager_removeComponentRenderThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void RenderableManager_destroyEntityRenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
 external void FrameScheduler_start(
   FrameCallback callback,
@@ -4836,6 +4846,13 @@ external int GltfParser_parseBuffer(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGltfMeshData>)>(isLeaf: true)
 external void GltfParser_freeMeshData(
   ffi.Pointer<TGltfMeshData> meshData,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external void RenderableManager_destroyEntity(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
 );
 
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
