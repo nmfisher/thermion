@@ -153,11 +153,16 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
-      - name: Build Filament
+      - name: Build Filament (device)
         run: |
           mkdir -p output
           chmod +x scripts/build_ios.sh
           scripts/build_ios.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Build Filament (arm64 simulator)
+        run: |
+          chmod +x scripts/build_ios_simulator.sh
+          scripts/build_ios_simulator.sh filament ${{ env.FILAMENT_VERSION }} output --clean
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
@@ -173,15 +178,31 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
           retention-days: 7
 
+      - name: Upload simulator release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-ios-simulator-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-simulator-release.zip
+          retention-days: 7
+
+      - name: Upload simulator debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-ios-simulator-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-simulator-debug.zip
+          retention-days: 7
+
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
           pip3 install --break-system-packages awscli
-          for variant in release debug; do
-            aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-ios-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-ios-${variant}.zip" \
-              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          for platform in ios ios-simulator; do
+            for variant in release debug; do
+              aws s3 cp \
+                "output/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}.zip" \
+                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}.zip" \
+                --endpoint-url "${{ env.R2_ENDPOINT }}"
+            done
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}

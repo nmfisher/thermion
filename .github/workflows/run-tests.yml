@@ -1,0 +1,252 @@
+name: Dart/Flutter Tests and Example Apps
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  dart-tests:
+    name: Dart Tests (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-22.04
+          - name: Windows
+            os: windows-2022
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Setup build environment (Linux)
+        if: matrix.name == 'Linux'
+        uses: ./.github/actions/setup-build-env
+
+      - name: Setup build environment (Windows)
+        if: matrix.name == 'Windows'
+        uses: ./.github/actions/setup-windows-env
+
+      - name: Enable debug mode for tests
+        shell: bash
+        run: |
+          echo 'hooks:' >> thermion_dart/pubspec.yaml
+          echo '  user_defines:' >> thermion_dart/pubspec.yaml
+          echo '    thermion_dart:' >> thermion_dart/pubspec.yaml
+          echo '      mode: debug' >> thermion_dart/pubspec.yaml
+
+      - name: Clean cached Filament libraries
+        shell: bash
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
+
+      - name: Run tests (Linux)
+        if: matrix.name == 'Linux'
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          xvfb-run dart test -j1 \
+            test/asset_tests.dart \
+            test/instancing_tests.dart \
+            test/light_tests.dart \
+            test/entity_tests.dart \
+            test/geometry_tests.dart \
+            test/view_tests.dart \
+            test/postprocessing_tests.dart \
+            test/scene_tests.dart \
+            test/picking_tests.dart \
+            test/image_tests.dart \
+            --concurrency=1
+
+      - name: Run tests (Windows)
+        if: matrix.name == 'Windows'
+        working-directory: thermion_dart
+        env:
+          VK_ICD_FILENAMES: C:\swiftshader\vk_swiftshader_icd.json
+        run: |
+          dart pub get
+          dart test -j1 `
+            test/asset_tests.dart `
+            test/instancing_tests.dart `
+            test/light_tests.dart `
+            test/entity_tests.dart `
+            test/geometry_tests.dart `
+            test/view_tests.dart `
+            test/postprocessing_tests.dart `
+            test/scene_tests.dart `
+            test/picking_tests.dart `
+            test/image_tests.dart `
+            --concurrency=1
+
+      - name: Zip output
+        if: matrix.name == 'Linux'
+        run: zip -r output.zip ./thermion_dart/test/output
+
+      - name: Upload test output
+        if: matrix.name == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-images-${{ github.sha }}
+          path: output.zip
+
+      - name: Download golden images from previous run
+        if: matrix.name == 'Linux'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download 21482452235 \
+            --name golden-images-64f6bf1e43117ca0b2fcf74427bf8874849a252f \
+            --dir ./thermion_dart/test/golden-downloads
+
+      - name: Unzip golden images
+        if: matrix.name == 'Linux'
+        run: |
+          cd thermion_dart/test/golden-downloads && unzip output.zip
+
+      - name: Install Python dependencies
+        if: matrix.name == 'Linux'
+        run: |
+          python -m pip install --upgrade pip
+          pip install Pillow numpy
+
+      - name: Compare golden images
+        if: matrix.name == 'Linux'
+        run: cd thermion_dart/test && python compare_goldens.py
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-dart-${{ matrix.name }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  flutter-examples:
+    name: Flutter Examples (${{ matrix.name }})
+    if: always() && needs.dart-tests.result == 'success'
+    needs: dart-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            flutter-channel: beta
+            flutter-arch: ARM64
+          - name: Windows
+            os: windows-latest
+            flutter-channel: beta
+            flutter-arch: X64
+          - name: Linux
+            os: ubuntu-22.04
+            flutter-channel: beta
+            flutter-arch: X64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: examples/flutter
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ matrix.flutter-channel }}
+          architecture: ${{ matrix.flutter-arch }}
+
+      # macOS: build native macOS + Android + web
+      - name: Set up JDK 17
+        if: matrix.name == 'macOS'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Android SDK
+        if: matrix.name == 'macOS'
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+          cmake-version: 3.22.1
+          ndk-version: 25.1.893739
+
+      - name: Accept Android SDK licenses
+        if: matrix.name == 'macOS'
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Build quickstart (macOS)
+        if: matrix.name == 'macOS'
+        run: cd quickstart && flutter pub get && flutter build macos
+
+      - name: Build picking (macOS)
+        if: matrix.name == 'macOS'
+        run: cd picking && flutter pub get && flutter build macos
+
+      - name: Build viewer (macOS)
+        if: matrix.name == 'macOS'
+        run: cd viewer && flutter pub get && flutter build macos
+
+      - name: Build quickstart (appbundle)
+        if: matrix.name == 'macOS'
+        run: cd quickstart && flutter build appbundle
+
+      - name: Build picking (appbundle)
+        if: matrix.name == 'macOS'
+        run: cd picking && flutter build appbundle
+
+      - name: Build viewer (appbundle)
+        if: matrix.name == 'macOS'
+        run: cd viewer && flutter build appbundle
+
+      # Windows: build native Windows
+      - name: Build quickstart (Windows)
+        if: matrix.name == 'Windows'
+        run: cd quickstart && flutter pub get && flutter build windows
+
+      - name: Build picking (Windows)
+        if: matrix.name == 'Windows'
+        run: cd picking && flutter pub get && flutter build windows
+
+      # Linux: install deps, build native Linux + web
+      - name: Install Linux build dependencies
+        if: matrix.name == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Build quickstart (Linux)
+        if: matrix.name == 'Linux'
+        run: cd quickstart && flutter pub get && flutter build linux
+
+      - name: Build picking (Linux)
+        if: matrix.name == 'Linux'
+        run: cd picking && flutter pub get && flutter build linux
+
+      # Web builds (Linux only to avoid duplication)
+      - name: Build quickstart (web)
+        if: matrix.name == 'Linux'
+        run: cd quickstart && flutter build web
+
+      - name: Build picking (web)
+        if: matrix.name == 'Linux'
+        run: cd picking && flutter build web
+
+      - name: Build viewer (web)
+        if: matrix.name == 'Linux'
+        run: cd viewer && flutter pub get && flutter build web
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-flutter-${{ matrix.name }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
