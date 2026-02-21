@@ -62,7 +62,7 @@ Future<Uint8List> savePixelBufferToBmp(
   var data = await pixelBufferToBmp(pixelBuffer, width, height,
       hasAlpha: hasAlpha, isFloat: isFloat);
   File(outputPath).writeAsBytesSync(data);
-  print("Wrote bitmap to ${outputPath}");
+  Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
 }
 
@@ -72,7 +72,7 @@ Future<Uint8List> savePixelBufferToPng(
   var data = await pixelBufferToPng(pixelBuffer, width, height,
       hasAlpha: hasAlpha, isFloat: isFloat);
   File(outputPath).writeAsBytesSync(data);
-  print("Wrote bitmap to ${outputPath}");
+  Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
 }
 
@@ -260,7 +260,7 @@ class TestHelper {
   Future setup() async {
     Logger.root.level = Level.SEVERE;
     Logger.root.onRecord.listen((record) {
-      print(record);
+      Logger.root.info(record.toString());
     });
 
     await FFIFilamentApp.create(
@@ -299,7 +299,7 @@ class TestHelper {
       // var metalDepthTexture = await createTexture(
       //     viewportDimensions.width, viewportDimensions.height,
       //     depth: true);
-      print("Creating texture of size ${viewportDimensions}");
+      Logger.root.info("Creating texture of size ${viewportDimensions}");
       var color = await FilamentApp.instance!.createTexture(
         viewportDimensions.width, viewportDimensions.height,
         flags: {
@@ -311,7 +311,7 @@ class TestHelper {
         // importedTextureHandle: metalColorTexture.metalTextureAddress
       );
 
-      print("Created color texture for test render target");
+      Logger.root.info("Created color texture for test render target");
 
       var width = await color.getWidth();
       var height = await color.getHeight();
@@ -331,7 +331,7 @@ class TestHelper {
         // importedTextureHandle: metalDepthTexture.metalTextureAddress
       );
 
-      print("Created depth texture for test render target");
+      Logger.root.info("Created depth texture for test render target");
 
       renderTarget = await FilamentApp.instance!.createRenderTarget(
           viewportDimensions.width, viewportDimensions.height,
@@ -1134,7 +1134,7 @@ Uint8List comparePixelBuffers(
       final int index = (y * width + x) * 3;
 
       if (buffer1[index + 2] != 0) {
-        print(
+        Logger.root.info(
             "buffer 1 red ${buffer1[index + 2]} buffer 2 ${buffer2[index + 2]}");
       }
 
