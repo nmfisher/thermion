@@ -34,9 +34,9 @@ void main(List<String> args) async {
     // `hooks` section of pubspec.yaml.
     var buildMode = BuildMode.release;
 
-    // if (input.userDefines["mode"] == "debug") {
+    if (input.userDefines["mode"] == "debug") {
       buildMode = BuildMode.debug;
-    // }
+    }
 
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
@@ -218,19 +218,24 @@ outputDirectory : ${outputDirectory.path}
         'QuartzCore',
       ]);
 
-      if (buildMode == BuildMode.debug) {
-        flags.addAll([
-          "-g",
-          "-O0",
-        ]);
-      }
-
       libs.addAll(["bluegl", "bluevk"]);
     } else if (targetOS == OS.android) {
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
       flags.add("-Wl,-z,max-page-size=16384");
     } else if (targetOS == OS.linux) {
       libs.addAll(["bluevk", "bluegl"]);
+    }
+
+    if ({OS.linux, OS.macOS}.contains(targetOS) &&
+        buildMode == BuildMode.debug) {
+      flags.addAll([
+        "-g",
+        "-O0",
+      ]);
+    }
+
+    if (targetOS == OS.linux) {
+      flags.add("-Wl,--export-dynamic");
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
