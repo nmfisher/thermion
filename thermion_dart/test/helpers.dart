@@ -7,7 +7,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
-// import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:path/path.dart' as p;
 
@@ -289,16 +288,6 @@ class TestHelper {
 
     FFIRenderTarget? renderTarget;
     if (createRenderTarget) {
-      if (Platform.isMacOS) {
-        DynamicLibrary.open('${testDir}/generated/objective_c.dylib');
-        DynamicLibrary.open(
-            '${testDir}/generated/libMetalTextureWrapper.dylib');
-      }
-      // var metalColorTexture = await createTexture(
-      //     viewportDimensions.width, viewportDimensions.height);
-      // var metalDepthTexture = await createTexture(
-      //     viewportDimensions.width, viewportDimensions.height,
-      //     depth: true);
       Logger.root.info("Creating texture of size ${viewportDimensions}");
       var color = await FilamentApp.instance!.createTexture(
         viewportDimensions.width, viewportDimensions.height,
@@ -308,7 +297,6 @@ class TestHelper {
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE
         },
         textureFormat: TextureFormat.RGBA32F,
-        // importedTextureHandle: metalColorTexture.metalTextureAddress
       );
 
       Logger.root.info("Created color texture for test render target");
