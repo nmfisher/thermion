@@ -126,7 +126,7 @@ outputDirectory : ${outputDirectory.path}
       "smol-v",
       "basis_transcoder",
       "uberarchive",
-      if (targetOS != OS.linux) "zstd",
+      if (!{OS.linux, OS.android}.contains(targetOS)) "zstd",
       //"mikktspace",
       "geometry",
       if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
