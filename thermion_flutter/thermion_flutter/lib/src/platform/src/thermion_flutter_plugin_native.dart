@@ -164,9 +164,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     await FilamentApp.instance?.render();
 
     for (final descriptor in _descriptors) {
-      if (!descriptor.destroyed) {
         descriptor.markTextureFrameAvailable();
-      }
     }
     for (final descriptor in _destroyed) {
       _descriptors.remove(descriptor);
