@@ -4,7 +4,6 @@ import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 enum ManipulatorType { NONE, ORBIT, FREE_FLIGHT }
 
 class ViewerWidget extends StatefulWidget {
-
   // The widget to display before the viewport has loaded.
   final Widget initial;
 
@@ -162,22 +161,32 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     }
   }
 
+  final _focusNode = FocusNode();
+  InputHandler? _inputHandler;
+
   void _setViewportWidget() {
     switch (widget.manipulatorType) {
       case ManipulatorType.NONE:
-        viewport = thermionWidget;
+        _inputHandler = null;
+        break;
       case ManipulatorType.ORBIT:
-        viewport = ThermionListenerWidget(
-            key: const ObjectKey(ManipulatorType.ORBIT),
-            inputHandler: DelegateInputHandler.fixedOrbit(viewer!,
-                minimumDistance: widget.initialCameraPosition.length,
-                moveOnHover: false),
-            child: thermionWidget);
+        _inputHandler = DelegateInputHandler.fixedOrbit(viewer!,
+            minimumDistance: widget.initialCameraPosition.length,
+            moveOnHover: false);
+        break;
       case ManipulatorType.FREE_FLIGHT:
-        viewport = ThermionListenerWidget(
-            key: const ObjectKey(ManipulatorType.FREE_FLIGHT),
-            inputHandler: DelegateInputHandler.flight(viewer!),
-            child: thermionWidget);
+        _inputHandler = DelegateInputHandler.flight(viewer!);
+        break;
+    }
+
+    if (_inputHandler == null) {
+      viewport = thermionWidget;
+    } else {
+      viewport = ThermionListenerWidget(
+          focusNode: _focusNode,
+          inputHandler: _inputHandler!,
+          child: thermionWidget);
+      _focusNode.requestFocus();
     }
   }
 
@@ -223,7 +232,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     }
 
     thermionWidget = ThermionWidget(
-      key: ObjectKey(DateTime.now()),
+      key: const Key("viewer_thermion_widget"),
       viewer: viewer!,
     );
 
