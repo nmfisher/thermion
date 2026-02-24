@@ -5,14 +5,53 @@ import '../../input.dart';
 
 class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
   final View view;
-
   final InputSensitivityOptions sensitivity;
-
   final bool moveOnHover;
+
+  final _heldKeys = <PhysicalKey>{};
+  late final Future<void> Function() _onFrame;
 
   FreeFlightInputHandlerDelegateV2(this.view,
       {this.sensitivity = const InputSensitivityOptions(),
-      this.moveOnHover = false});
+      this.moveOnHover = false}) {
+    _onFrame = _handleFrame;
+    FilamentApp.instance!.registerRequestFrameHook(_onFrame);
+  }
+
+  Future<void> _handleFrame() async {
+    if (_heldKeys.isEmpty) return;
+
+    Vector3 translation = Vector3.zero();
+    for (final key in _heldKeys) {
+      switch (key) {
+        case PhysicalKey.w:
+          translation += Vector3(0, 0, -sensitivity.keySensitivity);
+        case PhysicalKey.s:
+          translation += Vector3(0, 0, sensitivity.keySensitivity);
+        case PhysicalKey.a:
+          translation += Vector3(-sensitivity.keySensitivity, 0, 0);
+        case PhysicalKey.d:
+          translation += Vector3(sensitivity.keySensitivity, 0, 0);
+        default:
+          break;
+      }
+    }
+
+    if (translation.length2 > 0) {
+      try {
+        final camera = await view.getCamera();
+        final current = await camera.getModelMatrix();
+        final updated = current * Matrix4.compose(
+          translation,
+          Quaternion.identity(),
+          Vector3.all(1),
+        );
+        await camera.setModelMatrix(updated);
+      } catch (_) {
+        // Camera may have been disposed
+      }
+    }
+  }
 
   double? _scaleDelta;
 
@@ -88,32 +127,11 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
             logicalKey: var logicalKey,
             physicalKey: var physicalKey
           ):
-          switch (physicalKey) {
-            case PhysicalKey.a:
-              translation += Vector3(
-                -sensitivity.keySensitivity,
-                0,
-                0,
-              );
-              break;
-            case PhysicalKey.s:
-              translation += Vector3(0, 0, sensitivity.keySensitivity);
-              break;
-            case PhysicalKey.d:
-              translation += Vector3(
-                sensitivity.keySensitivity,
-                0,
-                0,
-              );
-              break;
-            case PhysicalKey.w:
-              translation += Vector3(
-                0,
-                0,
-                -sensitivity.keySensitivity,
-              );
-              break;
-            default:
+          switch (type) {
+            case KeyEventType.down:
+              _heldKeys.add(physicalKey);
+            case KeyEventType.up:
+              _heldKeys.remove(physicalKey);
           }
           break;
       }
@@ -133,5 +151,11 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
     await activeCamera.setModelMatrix(updated);
 
     return updated;
+  }
+
+  @override
+  Future dispose() async {
+    FilamentApp.instance!.unregisterRequestFrameHook(_onFrame);
+    _heldKeys.clear();
   }
 }
