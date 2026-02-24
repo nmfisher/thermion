@@ -6,7 +6,6 @@ import 'thermion_widget_internal/surface_widget_builder.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 class ThermionWidget extends StatefulWidget {
-  
   // The viewer whose content will be rendered into this widget.
   final ThermionViewer viewer;
 
@@ -20,7 +19,6 @@ class ThermionWidget extends StatefulWidget {
 }
 
 class _ThermionWidgetState extends State<ThermionWidget> {
-
   @override
   Widget build(BuildContext context) {
     return ThermionWidgetInternal(
@@ -47,7 +45,6 @@ class _ThermionWidgetState extends State<ThermionWidget> {
     );
   }
 }
-
 
 // Inserts [view] into the widget tree by allocating a hardware surface
 // and binding to the [view]. The actual implementation
@@ -85,8 +82,11 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
     super.dispose();
+    _debounceTimer?.cancel();
+    var texture = _texture;
+    _texture = null;
+    texture?.destroy();
   }
 
   @override
@@ -152,4 +152,3 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     });
   }
 }
-
