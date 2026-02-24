@@ -143,13 +143,22 @@ class _ViewerWidgetState extends State<ViewerWidget> {
           widget.background?.b ?? 0,
           widget.background?.a ?? 0);
     } else if (oldWidget.initialCameraPosition !=
-            widget.initialCameraPosition ||
-        oldWidget.assetPath != widget.assetPath ||
-        oldWidget.directLight != widget.directLight ||
-        oldWidget.transformToUnitCube != widget.transformToUnitCube ||
-        oldWidget.destroyEngineOnUnload != widget.destroyEngineOnUnload) {
+        widget.initialCameraPosition) {
       throw UnsupportedError(
-          "Only manipulatorType can be changed at runtime. To change any other properties, create a new widget.");
+          "initialCameraPosition cannot be changed at runtime. Create a new widget to change this property.");
+    } else if (oldWidget.assetPath != widget.assetPath) {
+      throw UnsupportedError(
+          "assetPath cannot be changed at runtime. Create a new widget to change this property.");
+    } else if (oldWidget.directLight != widget.directLight) {
+      throw UnsupportedError(
+          "directLight cannot be changed at runtime. Create a new widget to change this property.");
+    } else if (oldWidget.transformToUnitCube != widget.transformToUnitCube) {
+      throw UnsupportedError(
+          "transformToUnitCube cannot be changed at runtime. Create a new widget to change this property.");
+    } else if (oldWidget.destroyEngineOnUnload !=
+        widget.destroyEngineOnUnload) {
+      throw UnsupportedError(
+          "destroyEngineOnUnload cannot be changed at runtime. Create a new widget to change this property.");
     }
   }
 
