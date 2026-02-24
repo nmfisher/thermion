@@ -48,8 +48,8 @@ class DirectLight {
   final double? colorTemperature;
   final double intensity;
   final bool castShadows;
-  late final v.Vector3 position;
-  late final v.Vector3 direction;
+  final v.Vector3 position;
+  final v.Vector3 direction;
   final double falloffRadius;
   final double spotLightConeInner;
   final double spotLightConeOuter;
@@ -57,7 +57,7 @@ class DirectLight {
   final double sunHaloSize;
   final double sunHaloFallof;
 
-  DirectLight({
+  const DirectLight({
     required this.type,
     this.color = const LinearColor(1.0, 0.996, 0.980),
     this.colorTemperature,
