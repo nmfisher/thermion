@@ -5,7 +5,6 @@ abstract class PlatformTextureDescriptor {
   final int width;
   final int height;
 
-  bool get destroyed;
 
   PlatformTextureDescriptor(
       {required this.flutterTextureId,

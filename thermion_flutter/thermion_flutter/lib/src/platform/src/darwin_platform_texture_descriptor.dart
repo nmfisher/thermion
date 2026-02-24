@@ -4,7 +4,7 @@ import 'platform_texture_descriptor.dart';
 class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
   final MetalTextureWrapper texture;
 
-  bool destroyed = false;
+  bool _destroyed = false;
 
   DarwinPlatformTextureDescriptorImpl(this.texture,
       {required super.flutterTextureId,
@@ -14,17 +14,22 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
 
   @override
   Future destroy() async {
-    if (destroyed) {
+    if (_destroyed) {
       throw Exception();
     }
+    // set flag early to ensure markTextureFrameAvailable is not called 
+    // with a destroyed texture handle
+    _destroyed = true;
     SwiftThermionFlutterPluginObjCAPI
         .unregisterFlutterTextureWithFlutterTextureId_(flutterTextureId);
     texture.release();
-    destroyed = true;
   }
 
   @override
   void markTextureFrameAvailable() async {
+    if (_destroyed) {
+      return;
+    }
     SwiftThermionFlutterPluginObjCAPI
         .markTextureFrameAvailableWithFlutterTextureId_(flutterTextureId);
   }
