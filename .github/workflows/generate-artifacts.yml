@@ -2,7 +2,6 @@ name: Generate Artifacts
 
 on:
   push:
-    branches: [ "develop" ]
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
@@ -76,7 +75,9 @@ jobs:
         if: steps.changes.outputs.materials-changed == 'true'
         env:
           FILAMENT_PATH: ${{ github.workspace }}/filament-binaries/bin
-        run: make materials
+        run: |
+          chmod +x materials/build.sh
+          make materials
 
       - name: Generate bindings
         if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'

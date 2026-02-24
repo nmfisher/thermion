@@ -254,6 +254,13 @@ jobs:
           path: output/filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
           retention-days: 7
 
+      - name: Upload full out directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-android-out
+          path: filament/out/
+          retention-days: 3
+
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
