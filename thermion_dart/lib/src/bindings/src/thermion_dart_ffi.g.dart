@@ -3863,21 +3863,6 @@ external void View_setTransparentPickingEnabledRenderThread(
 );
 
 @ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TEngine>,
-            ffi.Pointer<TMaterial>,
-            ffi.Pointer<
-                ffi
-                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
-    isLeaf: true)
-external void SceneAsset_createGridRenderThread(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TMaterial> tMaterial,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
-);
-
-@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void SceneAsset_destroyRenderThread(
