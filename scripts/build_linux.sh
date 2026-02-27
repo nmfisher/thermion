@@ -129,46 +129,144 @@ else
   }
 fi
 
+# Patch build.sh to add CMAKE_POSITION_INDEPENDENT_CODE to build_desktop_target
+echo "Patching build.sh to add CMAKE_POSITION_INDEPENDENT_CODE..."
+sed -i '/-DCMAKE_BUILD_TYPE="\$1"/a\            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\' "$FILAMENT_BASE_DIR/build.sh" || {
+  echo "Warning: Failed to patch build.sh for POSITION_INDEPENDENT_CODE"
+}
+
+# Patch filament/CMakeLists.txt to comment out test subdirectory
+echo "Patching filament/CMakeLists.txt to disable tests..."
+FILAMENT_CMAKE="$FILAMENT_BASE_DIR/filament/CMakeLists.txt"
+if grep -q "^#add_subdirectory(test)" "$FILAMENT_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i 's/^add_subdirectory(test)/#add_subdirectory(test)/' "$FILAMENT_CMAKE" || {
+    echo "Warning: Failed to patch filament/CMakeLists.txt"
+  }
+fi
+
+# Patch filament/backend/CMakeLists.txt to comment out Linux backend test
+echo "Patching filament/backend/CMakeLists.txt to disable backend_test_linux..."
+BACKEND_CMAKE="$FILAMENT_BASE_DIR/filament/backend/CMakeLists.txt"
+if grep -q "^#if (LINUX)" "$BACKEND_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i '/^if (LINUX)$/,/^endif()$/{s/^if (LINUX)$/#if (LINUX)/; s/^    add_executable/#    add_executable/; s/^    target_link_libraries/#    target_link_libraries/; s/^    set_target_properties/#    set_target_properties/; s/^        target_link_libraries/#        target_link_libraries/; s/^    endif()/#    endif()/; s/^endif()$/#endif()/}' "$BACKEND_CMAKE" || {
+    echo "Warning: Failed to patch filament/backend/CMakeLists.txt"
+  }
+fi
+
+# Patch libs/filamat/CMakeLists.txt for position independent code
+echo "Patching libs/filamat/CMakeLists.txt..."
+FILAMAT_CMAKE="$FILAMENT_BASE_DIR/libs/filamat/CMakeLists.txt"
+if grep -q "set(CMAKE_POSITION_INDEPENDENT_CODE ON)" "$FILAMAT_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i '/^project(filamat)/a set(CMAKE_POSITION_INDEPENDENT_CODE ON)' "$FILAMAT_CMAKE" || {
+    echo "Warning: Failed to patch filamat CMakeLists.txt"
+  }
+fi
+
+# Patch libs/filameshio/CMakeLists.txt to comment out tests
+echo "Patching libs/filameshio/CMakeLists.txt to disable tests..."
+FILAMESHIO_CMAKE="$FILAMENT_BASE_DIR/libs/filameshio/CMakeLists.txt"
+if grep -q "^#if (NOT IOS AND NOT WEBGL AND NOT ANDROID)" "$FILAMESHIO_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i '/^if (NOT IOS AND NOT WEBGL AND NOT ANDROID)$/,/^endif()$/{s/^if/#if/; s/^    add_executable/#    add_executable/; s/^    target_link_libraries/#    target_link_libraries/; s/^    set_target_properties/#    set_target_properties/; s/^endif()$/#endif()/}' "$FILAMESHIO_CMAKE" || {
+    echo "Warning: Failed to patch filameshio CMakeLists.txt"
+  }
+fi
+
+# Patch libs/ktxreader/CMakeLists.txt to comment out tests
+echo "Patching libs/ktxreader/CMakeLists.txt to disable tests..."
+KTXREADER_CMAKE="$FILAMENT_BASE_DIR/libs/ktxreader/CMakeLists.txt"
+if grep -q "^#if (NOT ANDROID AND NOT WEBGL AND NOT IOS)" "$KTXREADER_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i '/^if (NOT ANDROID AND NOT WEBGL AND NOT IOS)$/,/^endif()$/{s/^if/#if/; s/^    add_executable/#    add_executable/; s/^    target_link_libraries/#    target_link_libraries/; s/^    set_target_properties/#    set_target_properties/; s/^endif()$/#endif()/}' "$KTXREADER_CMAKE" || {
+    echo "Warning: Failed to patch ktxreader CMakeLists.txt"
+  }
+fi
+
 # Set compiler to clang
 export CC=clang
 export CXX=clang++
+
+# Build imageio and tinyexr using cmake directly
+# build.sh doesn't properly support building these third-party libs on Linux
+build_third_party_libs() {
+  local BUILD_TYPE=$1  # Release or Debug
+  local BUILD_SUFFIX=$2  # release or debug
+  local CMAKE_DIR="$FILAMENT_BASE_DIR/out/cmake-${BUILD_SUFFIX}"
+
+  echo "Building imageio ($BUILD_SUFFIX)..."
+  mkdir -p "$CMAKE_DIR/libs/imageio" && cd "$CMAKE_DIR/libs/imageio"
+  cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage" \
+    -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
+    -DZ_HAVE_UNISTD_H=1 \
+    -DUSE_ZLIB=1 \
+    "$FILAMENT_BASE_DIR/libs/imageio" || {
+    echo "Error: imageio cmake failed for $BUILD_SUFFIX"
+    return 1
+  }
+  ninja || {
+    echo "Error: imageio build failed for $BUILD_SUFFIX"
+    return 1
+  }
+
+  echo "Building tinyexr ($BUILD_SUFFIX)..."
+  mkdir -p "$CMAKE_DIR/third_party/tinyexr" && cd "$CMAKE_DIR/third_party/tinyexr"
+  cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage" \
+    "$FILAMENT_BASE_DIR/third_party/tinyexr" || {
+    echo "Error: tinyexr cmake failed for $BUILD_SUFFIX"
+    return 1
+  }
+  ninja || {
+    echo "Error: tinyexr build failed for $BUILD_SUFFIX"
+    return 1
+  }
+
+  cd "$FILAMENT_BASE_DIR"
+}
 
 
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for Linux (release)..."
-  ./build.sh -l -i -f -p desktop release || {
+  ./build.sh -e -i -f -p desktop release || {
     echo "Error: Filament release build failed"
     exit 1
   }
 
-  # Build third-party libraries for release
+  # Build third-party libraries for release using cmake directly
   echo "Building third-party libraries for release..."
-  # Note: zstd is already bundled in Filament's libraries, building separately causes duplicate symbols
-  ./build.sh -l -i -f -p desktop release tinyexr || {
-    echo "Warning: tinyexr release build failed"
-  }
-  ./build.sh -l -i -f -p desktop release imageio || {
-    echo "Warning: imageio release build failed"
+  build_third_party_libs Release release || {
+    echo "Error: third-party release build failed"
+    exit 1
   }
 fi
 
 # Run debug build
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Building Filament for Linux (debug)..."
-  ./build.sh -l -i -f -t -d -p desktop debug || {
+  ./build.sh -e -i -f -t -d -p desktop debug || {
     echo "Error: Filament debug build failed"
     exit 1
   }
 
-  # Build third-party libraries for debug
+  # Build third-party libraries for debug using cmake directly
   echo "Building third-party libraries for debug..."
-  # Note: zstd is already bundled in Filament's libraries, building separately causes duplicate symbols
-  ./build.sh -l -i -f -p desktop debug tinyexr || {
-    echo "Warning: tinyexr debug build failed"
-  }
-  ./build.sh -l -i -f -p desktop debug imageio || {
-    echo "Warning: imageio debug build failed"
+  build_third_party_libs Debug debug || {
+    echo "Error: third-party debug build failed"
+    exit 1
   }
 fi
 
@@ -212,7 +310,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   done
 
   # Try multiple known locations for imageio/tinyexr
-  for searchdir in "out/release/filament/lib/x86_64" "out/cmake-release/libs/imageio" "out/cmake-release/third_party/imageio"; do
+  for searchdir in "out/cmake-release/libs/imageio" "out/release/filament/lib/x86_64" "out/cmake-release/third_party/imageio"; do
     if [ -f "$searchdir/libimageio.a" ]; then
       echo "Found imageio at $searchdir"
       cp "$searchdir/libimageio.a" "$TARGET_RELEASE_DIR/"
@@ -223,7 +321,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     echo "WARNING: libimageio.a not found in any known location"
   fi
 
-  for searchdir in "out/release/filament/lib/x86_64" "out/cmake-release/third_party/tinyexr/tnt" "out/cmake-release/third_party/tinyexr"; do
+  for searchdir in "out/cmake-release/third_party/tinyexr" "out/release/filament/lib/x86_64" "out/cmake-release/third_party/tinyexr/tnt"; do
     if [ -f "$searchdir/libtinyexr.a" ]; then
       echo "Found tinyexr at $searchdir"
       cp "$searchdir/libtinyexr.a" "$TARGET_RELEASE_DIR/"
@@ -253,7 +351,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     esac
   done
 
-  for searchdir in "out/debug/filament/lib/x86_64" "out/cmake-debug/libs/imageio" "out/cmake-debug/third_party/imageio"; do
+  for searchdir in "out/cmake-debug/libs/imageio" "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/imageio"; do
     if [ -f "$searchdir/libimageio.a" ]; then
       echo "Found imageio at $searchdir"
       cp "$searchdir/libimageio.a" "$TARGET_DEBUG_DIR/"
@@ -264,7 +362,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "WARNING: libimageio.a not found in any known location"
   fi
 
-  for searchdir in "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/tinyexr/tnt" "out/cmake-debug/third_party/tinyexr"; do
+  for searchdir in "out/cmake-debug/third_party/tinyexr" "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/tinyexr/tnt"; do
     if [ -f "$searchdir/libtinyexr.a" ]; then
       echo "Found tinyexr at $searchdir"
       cp "$searchdir/libtinyexr.a" "$TARGET_DEBUG_DIR/"
