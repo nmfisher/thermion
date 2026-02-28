@@ -120,31 +120,24 @@ class FFIAsset extends ThermionAsset {
       throw Exception(
           "keepData must have been specified as true when this asset was created");
     }
-    var ptrList = IntPtrList(materialInstances?.length ?? 0);
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
-    }
-
+    // Allocate material instance pointers in native memory. The pointer
+    // array is read asynchronously by the render thread, so it must not be
+    // backed by Dart GC-managed memory (the GC may relocate the backing
+    // store between the queue and the read, causing a SIGSEGV).
+    final miCount = materialInstances?.length ?? 0;
+    final ptrList = calloc<IntPtr>(miCount == 0 ? 1 : miCount);
     if (materialInstances != null && materialInstances.isNotEmpty) {
-      ptrList.setRange(
-          0,
-          materialInstances.length,
-          materialInstances
-              .cast<FFIMaterialInstance>()
-              .map((mi) => mi.pointer.address)
-              .toList());
+      for (int i = 0; i < materialInstances.length; i++) {
+        ptrList[i] = (materialInstances[i] as FFIMaterialInstance).pointer.address;
+      }
     }
 
     var created = await withPointerCallback<TSceneAsset>((cb) {
       SceneAsset_createInstanceRenderThread(
-          asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
+          asset, ptrList.cast(), miCount, cb);
     });
 
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      ptrList.free();
-    }
+    calloc.free(ptrList);
 
     if (created == nullptr) {
       throw Exception("Failed to create instance");

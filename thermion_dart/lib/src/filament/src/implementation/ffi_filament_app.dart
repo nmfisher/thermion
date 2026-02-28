@@ -1357,16 +1357,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     cAabb.halfExtentY = halfExtentY;
     cAabb.halfExtentZ = halfExtentZ;
 
-    // Prepare material instance pointers
-    final ptrList = makeIntPtrList(materialInstances?.length ?? 0);
+    // Prepare material instance pointers in native-allocated memory.
+    // The pointer array is read asynchronously by the render thread, so it
+    // must not be backed by Dart GC-managed memory (the GC may relocate the
+    // backing store between the queue and the read, causing a SIGSEGV).
+    final miCount = materialInstances?.length ?? 0;
+    final ptrList = calloc<IntPtr>(miCount == 0 ? 1 : miCount);
     if (materialInstances != null) {
-      ptrList.setRange(
-          0,
-          materialInstances.length,
-          materialInstances
-              .cast<FFIMaterialInstance>()
-              .map((mi) => mi.pointer.address)
-              .toList());
+      for (int i = 0; i < materialInstances.length; i++) {
+        ptrList[i] = (materialInstances[i] as FFIMaterialInstance).pointer.address;
+      }
     }
 
     // Create the scene asset from buffers
@@ -1375,8 +1375,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           engine,
           vertexBuffer.getNativeHandle(),
           indexBuffer.getNativeHandle(),
-          ptrList.address.cast(),
-          ptrList.length ?? 0,
+          ptrList.cast(),
+          miCount,
           geometry.primitiveType.index,
           cAabb,
           callback);
@@ -1385,7 +1385,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     geometry.dispose();
 
-    ptrList.free();
+    calloc.free(ptrList);
     tangentQuaternions?.free();
 
     if (FILAMENT_WASM) {
