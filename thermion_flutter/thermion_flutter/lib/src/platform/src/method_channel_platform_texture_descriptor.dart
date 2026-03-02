@@ -20,6 +20,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
 
   @override
   void markTextureFrameAvailable() async {
+    if (destroyed) return;
     await channel.invokeMethod(
       "markTextureFrameAvailable",
       flutterTextureId,

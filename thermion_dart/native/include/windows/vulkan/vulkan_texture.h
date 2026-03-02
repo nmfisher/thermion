@@ -45,6 +45,14 @@ class DLL_EXPORT VulkanTexture {
         uint32_t GetHeight() {
             return _height;
         }
+
+        /// Release ownership of the VkImage and VkDeviceMemory so the
+        /// destructor will not free them.  Use when an external consumer
+        /// (e.g. Filament via setExternalImage) has taken ownership.
+        void releaseOwnership() {
+            _image = VK_NULL_HANDLE;
+            _imageMemory = VK_NULL_HANDLE;
+        }
     private:
         VkImage _image = VK_NULL_HANDLE;
         VkDevice _device = VK_NULL_HANDLE;

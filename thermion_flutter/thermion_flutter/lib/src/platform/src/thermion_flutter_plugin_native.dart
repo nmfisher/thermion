@@ -79,6 +79,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static final _viewRenderTargets = <View, RenderTarget>{};
 
   static bool _rendering = false;
+  static bool _resizing = false;
   static ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
   static bool _schedulerActive = false;
 
@@ -97,7 +98,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // or if we're in a hot restart scenario where FilamentApp is null
     if (!_schedulerActive || FilamentApp.instance == null) return;
 
-    if (_rendering) return;
+    if (_rendering || _resizing) return;
     _rendering = true;
     _renderFrame().then((_) {
       _rendering = false;
@@ -382,15 +383,33 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     int width,
     int height,
   ) async {
-    var newTexture = await createTextureAndBindToView(view, width, height);
-    if (newTexture == null) {
-      throw Exception();
+    // Block new frames while we swap textures.
+    _resizing = true;
+    while (_rendering) {
+      await Future.delayed(const Duration(milliseconds: 1));
     }
 
-    _descriptors.remove(texture);
+    // Flush Filament's render thread so all queued GPU commands complete.
+    await FilamentApp.instance!.flush();
 
-    texture.destroy();
+    try {
+      _descriptors.remove(texture);
 
-    return newTexture;
+      // Explicitly destroy the old platform texture.  Flutter's
+      // TextureRegistrar will also auto-unregister when the Texture
+      // widget rebuilds with the new ID; the C++ side handles
+      // duplicate calls gracefully.  The C++ graveyard defers actual
+      // VkImage deallocation to avoid double-free with Filament.
+      await texture.destroy();
+
+      var newTexture = await createTextureAndBindToView(view, width, height);
+      if (newTexture == null) {
+        throw Exception('Failed to create texture during resize');
+      }
+
+      return newTexture;
+    } finally {
+      _resizing = false;
+    }
   }
 }
