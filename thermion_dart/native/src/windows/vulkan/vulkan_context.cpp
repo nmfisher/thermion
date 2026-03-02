@@ -188,20 +188,28 @@ class ThermionVulkanContext::Impl {
         }
     
         void DestroyRenderingSurface(HANDLE handle) {
-            std::cerr << "Destroying rendering surface " << handle << std::endl;
-
-            // Find index of the D3D texture with this handle and remove from all three vectors
             for (size_t i = 0; i < _d3dTextures.size(); i++) {
                 if (_d3dTextures[i]->GetTextureHandle() == handle) {
+                    // Release ownership of the render target VkImage.
+                    // Filament imports this image via setExternalImage and
+                    // frees it when its texture is destroyed.  If we also
+                    // free it, we get a double-free that corrupts the GPU.
+                    _renderTargetTextures[i]->releaseOwnership();
+                    _graveyardRT.push_back(std::move(_renderTargetTextures[i]));
                     _renderTargetTextures.erase(_renderTargetTextures.begin() + i);
+
+                    // The D3D-interop textures are not imported by Filament,
+                    // so we still own them.  Defer their cleanup to avoid
+                    // freeing resources while the driver still references them.
+                    _graveyardVk.push_back(std::move(_vulkanTextures[i]));
                     _vulkanTextures.erase(_vulkanTextures.begin() + i);
+                    _graveyardD3D.push_back(std::move(_d3dTextures[i]));
                     _d3dTextures.erase(_d3dTextures.begin() + i);
-                    std::cerr << "Rendering surface destroyed, " << _vulkanTextures.size() << " Vulkan textures / "
-                              << _d3dTextures.size() << " D3D textures / " << _renderTargetTextures.size() << " render targets remain" << std::endl;
+                    _graveyardFrames = 0;
                     return;
                 }
             }
-            std::cerr << "D3D texture not found for handle " << handle << std::endl;
+            std::cerr << "Warning: D3D texture not found for handle " << handle << std::endl;
         }
 
         VkImage GetVulkanImageForSurface(HANDLE handle) {
@@ -386,20 +394,38 @@ class ThermionVulkanContext::Impl {
             // submitInfo.pSignalSemaphores = &sharedSemaphore;
 
             // Wait for any previous blit to complete and reset fence
-            bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            if (result != VK_SUCCESS) {
+                std::cerr << "vkWaitForFences failed: " << result << std::endl;
+                return;
+            }
             bluevk::vkResetFences(device, 1, &blitFence);
 
             result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, blitFence);
-
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to submit queue: " << result << std::endl;
+                std::cerr << "vkQueueSubmit failed: " << result << std::endl;
                 return;
             }
 
             // Wait for blit to complete before returning
             result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
             if (result != VK_SUCCESS) {
-                std::cout << "Failed to wait for blit fence: " << result << std::endl;
+                std::cerr << "vkWaitForFences (post-blit) failed: " << result << std::endl;
+            }
+
+            // Drain the graveyard after enough Blit cycles.
+            // The render target VkImages have released ownership (Filament
+            // owns them), so clearing _graveyardRT just frees the wrapper.
+            // The D3D and interop textures are freed here after the driver
+            // has retired all references.
+            if (!_graveyardD3D.empty()) {
+                _graveyardFrames++;
+                if (_graveyardFrames >= GRAVEYARD_DRAIN_FRAMES) {
+                    bluevk::vkDeviceWaitIdle(device);
+                    _graveyardRT.clear();
+                    _graveyardVk.clear();
+                    _graveyardD3D.clear();
+                }
             }
         }
 
@@ -615,6 +641,17 @@ class ThermionVulkanContext::Impl {
         std::vector<std::unique_ptr<thermion::windows::d3d::D3DTexture>> _d3dTextures;
         std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _vulkanTextures;
         std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _renderTargetTextures;  // Pure Vulkan textures for render targets
+
+        // Graveyard: holds old textures after DestroyRenderingSurface.
+        // The render target VkImage ownership is released to Filament
+        // (which frees it via setExternalImage).  The D3D-interop
+        // textures are deferred here and freed after GRAVEYARD_DRAIN_FRAMES
+        // Blit cycles with a vkDeviceWaitIdle fence.
+        static constexpr int GRAVEYARD_DRAIN_FRAMES = 5;
+        std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _graveyardRT;
+        std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _graveyardVk;
+        std::vector<std::unique_ptr<thermion::windows::d3d::D3DTexture>> _graveyardD3D;
+        int _graveyardFrames = 0;
         
         std::unique_ptr<TVulkanPlatform> _platform;
         filament::backend::VulkanPlatform::VulkanSharedContext _sharedContext{};
