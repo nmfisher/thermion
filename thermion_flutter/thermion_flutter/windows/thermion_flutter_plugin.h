@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -48,9 +49,26 @@ public:
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   void RenderCallback();
 
+  void ResizeTexture(
+      const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
   private:
     thermion::windows::vulkan::ThermionVulkanContext *_context = nullptr;
     bool OnTextureUnregistered(int64_t flutterTextureId);
+
+    // Pending handle swap: after resizeTexture creates new GPU resources,
+    // the new D3D handle waits here until the first successful Blit, then
+    // SwapDescriptor() is called so Flutter sees the new handle.
+    struct PendingSwap {
+      HANDLE oldD3DHandle;
+      HANDLE newD3DHandle;
+      uint32_t width;
+      uint32_t height;
+      int64_t externalImage;
+      int frameCount = 0;  // Frames since resize; swap fires at 2+
+    };
+    std::map<int64_t, PendingSwap> _pendingSwaps;
 
     // Frame scheduler (DXGI vsync)
     using FrameCallback = void (*)(uint64_t);

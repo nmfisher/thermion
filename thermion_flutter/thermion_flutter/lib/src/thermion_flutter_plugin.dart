@@ -39,6 +39,16 @@ abstract class ThermionFlutterPlugin {
     int height,
   );
 
+  // Resize an existing texture. On Windows this reuses the Flutter texture ID
+  // to avoid a black frame flash. On other platforms falls back to destroy +
+  // recreate.
+  Future<PlatformTextureDescriptor> resizeTexture(
+    PlatformTextureDescriptor texture,
+    View view,
+    int width,
+    int height,
+  );
+
   static Future<ThermionViewer> createViewer(
       {bool destroySwapchain = true}) async {
     _logger.finest("Creating viewer");

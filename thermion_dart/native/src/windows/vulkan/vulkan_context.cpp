@@ -255,6 +255,10 @@ class ThermionVulkanContext::Impl {
             return nullptr;
         }
 
+        void ClearPendingFirstBlit(HANDLE d3dTextureHandle) {
+            _pendingFirstBlit.erase(d3dTextureHandle);
+        }
+
         void Blit(HANDLE d3dTextureHandle) {
             // Skip the first Blit after texture creation.  The render
             // target has uninitialized contents until Filament renders
@@ -696,6 +700,10 @@ void* ThermionVulkanContext::GetSharedContext() {
 
 void ThermionVulkanContext::Blit(HANDLE d3dTextureHandle) {
     pImpl->Blit(d3dTextureHandle);
+}
+
+void ThermionVulkanContext::ClearPendingFirstBlit(HANDLE d3dTextureHandle) {
+    pImpl->ClearPendingFirstBlit(d3dTextureHandle);
 }
 
 void ThermionVulkanContext::readPixelsFromImage(

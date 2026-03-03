@@ -42,6 +42,12 @@ namespace thermion::windows::vulkan {
         // Blits the contents of the paired Vulkan texture to the specified D3D texture handle
         void Blit(HANDLE d3dTextureHandle);
 
+        // Clear the pending-first-blit flag for a handle.
+        // Used during resize swap: by the time the swap fires, Filament
+        // has already rendered into the new render target, so the first
+        // Blit should not be skipped.
+        void ClearPendingFirstBlit(HANDLE d3dTextureHandle);
+
         void* GetSharedContext();
       
         void readPixelsFromImage(

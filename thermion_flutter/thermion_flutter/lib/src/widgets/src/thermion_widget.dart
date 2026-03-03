@@ -131,8 +131,17 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   }
 
   void _allocateTexture(int width, int height) async {
-    final texture = await ThermionFlutterPlugin.instance
-        .createTextureAndBindToView(widget.view, width, height);
+    PlatformTextureDescriptor? texture;
+
+    if (_texture != null) {
+      // Resize existing texture (on Windows this reuses the Flutter
+      // texture ID to avoid a black frame flash).
+      texture = await ThermionFlutterPlugin.instance
+          .resizeTexture(_texture!, widget.view, width, height);
+    } else {
+      texture = await ThermionFlutterPlugin.instance
+          .createTextureAndBindToView(widget.view, width, height);
+    }
 
     widget.onTextureUpdated?.call(texture);
 
@@ -144,11 +153,15 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     if (texture == null) return;
 
     setState(() {
+      // On Windows resize, texture is the same object (same flutterTextureId),
+      // so old?.destroy() is skipped to avoid destroying the live texture.
       final old = _texture;
       _texture = texture;
       _currentWidth = width;
       _currentHeight = height;
-      old?.destroy();
+      if (old != null && old != texture) {
+        old.destroy();
+      }
     });
   }
 }

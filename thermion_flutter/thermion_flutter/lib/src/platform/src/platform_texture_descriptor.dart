@@ -1,9 +1,9 @@
 abstract class PlatformTextureDescriptor {
   final int flutterTextureId;
-  final int hardwareId;
+  int hardwareId;
   final int? windowHandle;
-  final int width;
-  final int height;
+  int width;
+  int height;
 
 
   PlatformTextureDescriptor(

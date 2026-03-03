@@ -139,6 +139,19 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   @override
+  Future<PlatformTextureDescriptor> resizeTexture(
+    PlatformTextureDescriptor texture,
+    View view,
+    int width,
+    int height,
+  ) async {
+    await texture.destroy();
+    _descriptors.remove(texture);
+    final newTexture = await createTextureAndBindToView(view, width, height);
+    return newTexture!;
+  }
+
+  @override
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
     View view,
     int width,

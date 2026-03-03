@@ -122,6 +122,56 @@ namespace thermion::tflutter::windows
     result->Success(resultList);
   }
 
+  void ThermionFlutterPlugin::ResizeTexture(
+      const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
+  {
+    if (!_context)
+    {
+      result->Error("NO_CONTEXT", "No rendering context");
+      return;
+    }
+
+    const auto *args =
+        std::get_if<flutter::EncodableList>(methodCall.arguments());
+
+    int64_t flutterTextureId = std::get<int64_t>(args->at(0));
+    int dWidth = std::get<int>(args->at(1));
+    int dHeight = std::get<int>(args->at(2));
+    auto width = static_cast<uint32_t>(dWidth);
+    auto height = static_cast<uint32_t>(dHeight);
+
+    // Find the existing FlutterD3DTexture
+    auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
+                           { return ft->GetFlutterTextureId() == flutterTextureId; });
+    if (it == _flutterTextures.end()) {
+      result->Error("NOT_FOUND", "Flutter texture not found");
+      return;
+    }
+
+    HANDLE oldD3DHandle = (*it)->GetD3DTextureHandle();
+
+    // Create new D3D + Vulkan textures
+    auto newD3DHandle = _context->CreateRenderingSurface(width, height, 0, 0);
+    if (!newD3DHandle) {
+      result->Error("CREATE_FAILED", "Failed to create new D3D texture");
+      return;
+    }
+
+    auto externalImage = _context->CreateExternalImageForSurface(newD3DHandle);
+
+    // Store pending swap — will be applied after first successful Blit
+    _pendingSwaps[flutterTextureId] = PendingSwap{
+      oldD3DHandle, newD3DHandle, width, height,
+      static_cast<int64_t>(reinterpret_cast<intptr_t>(externalImage))
+    };
+
+    // Return [externalImage] to Dart
+    std::vector<flutter::EncodableValue> resultList;
+    resultList.push_back(flutter::EncodableValue(static_cast<int64_t>(reinterpret_cast<intptr_t>(externalImage))));
+    result->Success(resultList);
+  }
+
   bool ThermionFlutterPlugin::OnTextureUnregistered(int64_t flutterTextureId)
   {
     std::cerr << "ThermionFlutterPlugin::OnTextureUnregistered" << std::endl;
@@ -196,6 +246,10 @@ namespace thermion::tflutter::windows
       // result->Success(flutter::EncodableValue((int64_t) nullptr));
       DestroyTexture(methodCall, std::move(result));
     }
+    else if (methodCall.method_name() == "resizeTexture")
+    {
+      ResizeTexture(methodCall, std::move(result));
+    }
     else if (methodCall.method_name() == "markTextureFrameAvailable")
     {
       if (_context)
@@ -219,8 +273,31 @@ namespace thermion::tflutter::windows
           return;
         }
 
-        HANDLE d3dTextureHandle = (*it)->GetD3DTextureHandle();
-        _context->Blit(d3dTextureHandle);
+        auto swapIt = _pendingSwaps.find(*flutterTextureId);
+        if (swapIt != _pendingSwaps.end()) {
+          auto& swap = swapIt->second;
+          swap.frameCount++;
+
+          if (swap.frameCount < 2) {
+            // Frame 1: Filament is rendering into the new RT.
+            // Blit OLD handle — old RT VkImage is still valid because
+            // Dart deferred its Filament texture cleanup.
+            // Flutter keeps showing last valid frame via old D3D texture.
+            _context->Blit(swap.oldD3DHandle);
+          } else {
+            // Frame 2+: new RT has valid content from previous render.
+            // Blit new handle, swap descriptor, retire old textures.
+            _context->ClearPendingFirstBlit(swap.newD3DHandle);
+            _context->Blit(swap.newD3DHandle);
+
+            (*it)->SwapDescriptor(swap.newD3DHandle, swap.width, swap.height);
+            _context->DestroyRenderingSurface(swap.oldD3DHandle);
+            _pendingSwaps.erase(swapIt);
+          }
+        } else {
+          HANDLE d3dTextureHandle = (*it)->GetD3DTextureHandle();
+          _context->Blit(d3dTextureHandle);
+        }
 
         _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
       } else {
