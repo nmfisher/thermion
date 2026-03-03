@@ -241,7 +241,7 @@ build_third_party_libs() {
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for Linux (release)..."
-  ./build.sh -e -i -f -p desktop release || {
+  ./build.sh -i -f -p desktop release || {
     echo "Error: Filament release build failed"
     exit 1
   }
@@ -257,7 +257,7 @@ fi
 # Run debug build
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Building Filament for Linux (debug)..."
-  ./build.sh -e -i -f -t -d -p desktop debug || {
+  ./build.sh -i -f -t -d -p desktop debug || {
     echo "Error: Filament debug build failed"
     exit 1
   }
