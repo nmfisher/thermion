@@ -393,19 +393,17 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     await FilamentApp.instance!.flush();
 
     try {
-      _descriptors.remove(texture);
-
-      // Explicitly destroy the old platform texture.  Flutter's
-      // TextureRegistrar will also auto-unregister when the Texture
-      // widget rebuilds with the new ID; the C++ side handles
-      // duplicate calls gracefully.  The C++ graveyard defers actual
-      // VkImage deallocation to avoid double-free with Filament.
-      await texture.destroy();
-
+      // Create the new texture BEFORE destroying the old one.
+      // The old D3D texture stays registered with Flutter during creation,
+      // so Flutter composites the last valid frame instead of garbage
+      // from freed memory.
       var newTexture = await createTextureAndBindToView(view, width, height);
       if (newTexture == null) {
         throw Exception('Failed to create texture during resize');
       }
+
+      _descriptors.remove(texture);
+      await texture.destroy();
 
       return newTexture;
     } finally {
