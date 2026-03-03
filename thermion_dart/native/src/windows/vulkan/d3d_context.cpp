@@ -176,9 +176,9 @@ namespace thermion::windows::d3d
             return std::nullptr_t();
         }
 
-        // Clear the texture to blue
-        float blueColor[4] = { 1.0f, 0.0f, 1.0f, 1.0f }; // RGBA
-        _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
+        float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        _D3D11DeviceContext->ClearRenderTargetView(rtv, black);
+        rtv->Release();
 
         Flush();
         return texture;

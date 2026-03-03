@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <vector>
+#include <set>
 #include <chrono>
 #include <string>
 #include <fstream>
@@ -184,6 +185,7 @@ class ThermionVulkanContext::Impl {
             _renderTargetTextures.push_back(std::move(renderTargetTexture));
             _d3dTextures.push_back(std::move(d3dTexture));
             _vulkanTextures.push_back(std::move(vkTexture));
+            _pendingFirstBlit.insert(d3dTextureHandle);
             return d3dTextureHandle;
         }
     
@@ -254,6 +256,13 @@ class ThermionVulkanContext::Impl {
         }
 
         void Blit(HANDLE d3dTextureHandle) {
+            // Skip the first Blit after texture creation.  The render
+            // target has uninitialized contents until Filament renders
+            // into it; blitting garbage produces visible jank.
+            if (_pendingFirstBlit.erase(d3dTextureHandle)) {
+                return;
+            }
+
             // Find the texture index for this handle
             size_t textureIndex = SIZE_MAX;
             for (size_t i = 0; i < _d3dTextures.size(); i++) {
@@ -641,6 +650,7 @@ class ThermionVulkanContext::Impl {
         std::vector<std::unique_ptr<thermion::windows::d3d::D3DTexture>> _d3dTextures;
         std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _vulkanTextures;
         std::vector<std::unique_ptr<thermion::windows::vulkan::VulkanTexture>> _renderTargetTextures;  // Pure Vulkan textures for render targets
+        std::set<HANDLE> _pendingFirstBlit;  // Skip first Blit until Filament renders
 
         // Graveyard: holds old textures after DestroyRenderingSurface.
         // The render target VkImage ownership is released to Filament
