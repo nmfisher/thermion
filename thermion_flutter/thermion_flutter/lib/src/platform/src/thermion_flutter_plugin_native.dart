@@ -78,6 +78,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   // has been redirected to an internal RT (e.g., in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
 
+  // Deferred Filament render target cleanup for Windows resize.
+  // Old RT stays alive so native can Blit from it during the swap window.
+  static final _deferredRenderTargets = <(RenderTarget, int)>[];
+
   static bool _rendering = false;
   static bool _resizing = false;
   static ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
@@ -173,6 +177,30 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
           "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}");
     }
     _destroyed.clear();
+
+    // Process deferred render target cleanup (Windows resize path).
+    // Old RTs stay alive for a few frames so native can Blit from them.
+    if (_deferredRenderTargets.isNotEmpty) {
+      final ready = <(RenderTarget, int)>[];
+      final remaining = <(RenderTarget, int)>[];
+      for (final (rt, frames) in _deferredRenderTargets) {
+        if (frames <= 0) {
+          ready.add((rt, frames));
+        } else {
+          remaining.add((rt, frames - 1));
+        }
+      }
+      _deferredRenderTargets
+        ..clear()
+        ..addAll(remaining);
+      for (final (rt, _) in ready) {
+        final color = await rt.getColorTexture();
+        final depth = await rt.getDepthTexture();
+        await color.destroy();
+        await depth.destroy();
+        await rt.destroy();
+      }
+    }
   }
 
   @override
@@ -393,10 +421,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     await FilamentApp.instance!.flush();
 
     try {
-      // Create the new texture BEFORE destroying the old one.
-      // The old D3D texture stays registered with Flutter during creation,
-      // so Flutter composites the last valid frame instead of garbage
-      // from freed memory.
+      if (Platform.isWindows) {
+        return await _resizeTextureWindows(texture, view, width, height);
+      }
+
+      // Non-Windows: full destroy + recreate (existing path)
       var newTexture = await createTextureAndBindToView(view, width, height);
       if (newTexture == null) {
         throw Exception('Failed to create texture during resize');
@@ -409,5 +438,84 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     } finally {
       _resizing = false;
     }
+  }
+
+  /// Windows-specific resize: reuses the Flutter texture ID.
+  ///
+  /// The native side creates new D3D + Vulkan textures and stores a
+  /// pending swap.  The swap fires after the first successful Blit into
+  /// the new render target, so Flutter keeps compositing the last valid
+  /// frame until the new one is ready.  No black frame.
+  Future<PlatformTextureDescriptor> _resizeTextureWindows(
+    PlatformTextureDescriptor texture,
+    View view,
+    int width,
+    int height,
+  ) async {
+    // Ask native to create new GPU resources (no new Flutter texture)
+    final result = await channel.invokeMethod("resizeTexture", [
+      texture.flutterTextureId,
+      width,
+      height,
+    ]);
+
+    final externalImage = result[0] as int;
+
+    // Re-create Filament render target with the new external image
+    final swapChains = await FilamentApp.instance!.getSwapChains();
+    final color = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      importedTextureHandle: -1,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      },
+      textureFormat: options.nativeOptions.renderTargetColorTextureFormat,
+      textureSamplerType: TextureSamplerType.SAMPLER_2D,
+    );
+    await FilamentApp.instance!.setExternalImage(color, externalImage);
+
+    final depth = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+      },
+      textureFormat: options.nativeOptions.renderTargetDepthTextureFormat,
+      textureSamplerType: TextureSamplerType.SAMPLER_2D,
+    );
+
+    final existingRenderTarget = _viewRenderTargets[view];
+
+    var renderTarget = await FilamentApp.instance!.createRenderTarget(
+      width,
+      height,
+      color: color,
+      depth: depth,
+    );
+
+    await view.setRenderTarget(renderTarget);
+    _viewRenderTargets[view] = renderTarget;
+
+    if (existingRenderTarget != null) {
+      // Defer destruction: native still needs the old render target's
+      // VkImage for Blit during the swap window (1-2 frames).
+      // Clean up after 5 frames to be safe.
+      _deferredRenderTargets.add((existingRenderTarget, 5));
+    }
+    await FilamentApp.instance!.setRenderOrder(swapChains.first, view);
+    await view.setViewport(width, height);
+
+    // Update the existing descriptor in place — same Flutter texture ID
+    texture.hardwareId = externalImage;
+    texture.width = width;
+    texture.height = height;
+
+    return texture;
   }
 }

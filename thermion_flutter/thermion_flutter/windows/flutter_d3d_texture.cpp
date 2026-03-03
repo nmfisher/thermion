@@ -29,6 +29,7 @@ namespace thermion::tflutter::windows
             kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
             [&](size_t width, size_t height)
             {
+              std::lock_guard<std::mutex> lock(_descriptorMutex);
               return _textureDescriptor.get();
             }));
   }
@@ -41,8 +42,18 @@ namespace thermion::tflutter::windows
       return _texture.get();
   }
 
-  HANDLE FlutterD3DTexture::GetD3DTextureHandle() { 
+  HANDLE FlutterD3DTexture::GetD3DTextureHandle() {
+    std::lock_guard<std::mutex> lock(_descriptorMutex);
     return _textureDescriptor->handle;
+  }
+
+  void FlutterD3DTexture::SwapDescriptor(HANDLE newHandle, uint32_t width, uint32_t height) {
+    std::lock_guard<std::mutex> lock(_descriptorMutex);
+    _textureDescriptor->handle = newHandle;
+    _textureDescriptor->width = _textureDescriptor->visible_width = width;
+    _textureDescriptor->height = _textureDescriptor->visible_height = height;
+    _width = width;
+    _height = height;
   }
 
   void FlutterD3DTexture::SetFlutterTextureId(int64_t textureId) {

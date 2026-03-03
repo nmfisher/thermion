@@ -176,7 +176,7 @@ namespace thermion::windows::d3d
             return std::nullptr_t();
         }
 
-        float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        float black[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
         _D3D11DeviceContext->ClearRenderTargetView(rtv, black);
         rtv->Release();
 
