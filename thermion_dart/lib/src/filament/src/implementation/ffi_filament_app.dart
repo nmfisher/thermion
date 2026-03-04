@@ -416,7 +416,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           "Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
-      RenderTarget_createRenderThread(engine, width, height,
+      RenderTarget_createRenderThread(engine, 
           color!.getNativeHandle(), depth!.getNativeHandle(), cb);
     });
     if (renderTarget == nullptr) {

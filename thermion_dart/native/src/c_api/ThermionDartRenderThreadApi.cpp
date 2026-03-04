@@ -1521,8 +1521,6 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
       TEngine *tEngine,
-      uint32_t width,
-      uint32_t height,
       TTexture *tColor,
       TTexture *tDepth,
       void (*onComplete)(TRenderTarget *))
@@ -1533,7 +1531,7 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto texture = RenderTarget_create(tEngine, width, height, tColor, tDepth);
+          auto texture = RenderTarget_create(tEngine, tColor, tDepth);
           PROXY(onComplete(texture));
         });
     auto fut = _renderThread->addTask(lambda);
