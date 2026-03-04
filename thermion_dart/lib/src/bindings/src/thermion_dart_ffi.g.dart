@@ -1909,12 +1909,10 @@ external void VertexBuffer_destroy(
 );
 
 @ffi.Native<
-    ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TEngine>, ffi.Uint32,
-        ffi.Uint32, ffi.Pointer<TTexture>, ffi.Pointer<TTexture>)>(isLeaf: true)
+    ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TEngine>,
+        ffi.Pointer<TTexture>, ffi.Pointer<TTexture>)>(isLeaf: true)
 external ffi.Pointer<TRenderTarget> RenderTarget_create(
   ffi.Pointer<TEngine> tEngine,
-  int width,
-  int height,
   ffi.Pointer<TTexture> color,
   ffi.Pointer<TTexture> depth,
 );
@@ -4202,8 +4200,6 @@ external void RenderTarget_getColorTextureRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TEngine>,
-        ffi.Uint32,
-        ffi.Uint32,
         ffi.Pointer<TTexture>,
         ffi.Pointer<TTexture>,
         ffi.Pointer<
@@ -4211,8 +4207,6 @@ external void RenderTarget_getColorTextureRenderThread(
                 ffi.Void Function(ffi.Pointer<TRenderTarget>)>>)>(isLeaf: true)
 external void RenderTarget_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
-  int width,
-  int height,
   ffi.Pointer<TTexture> color,
   ffi.Pointer<TTexture> depth,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>>

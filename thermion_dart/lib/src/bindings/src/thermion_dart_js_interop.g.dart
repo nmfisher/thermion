@@ -1094,8 +1094,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TRenderTarget> _RenderTarget_create(
     Pointer<TEngine> tEngine,
-    int width,
-    int height,
     Pointer<TTexture> color,
     Pointer<TTexture> depth,
   );
@@ -2264,8 +2262,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _RenderTarget_createRenderThread(
     Pointer<TEngine> tEngine,
-    int width,
-    int height,
     Pointer<TTexture> color,
     Pointer<TTexture> depth,
     Pointer<NativeFunction<void Function(PointerClass<TRenderTarget>)>>
@@ -5487,13 +5483,11 @@ void VertexBuffer_destroy(
 
 Pointer<TRenderTarget> RenderTarget_create(
   Pointer<TEngine> tEngine,
-  int width,
-  int height,
   Pointer<TTexture> color,
   Pointer<TTexture> depth,
 ) {
-  final result = GeneratedBindings.instance._RenderTarget_create(
-      tEngine.cast(), width, height, color.cast(), depth.cast());
+  final result = GeneratedBindings.instance
+      ._RenderTarget_create(tEngine.cast(), color.cast(), depth.cast());
   return Pointer<TRenderTarget>(result);
 }
 
@@ -8074,19 +8068,12 @@ void RenderTarget_getColorTextureRenderThread(
 
 void RenderTarget_createRenderThread(
   Pointer<TEngine> tEngine,
-  int width,
-  int height,
   Pointer<TTexture> color,
   Pointer<TTexture> depth,
   Pointer<NativeFunction<void Function(Pointer<TRenderTarget>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._RenderTarget_createRenderThread(
-      tEngine.cast(),
-      width,
-      height,
-      color.cast(),
-      depth.cast(),
-      onComplete.cast());
+      tEngine.cast(), color.cast(), depth.cast(), onComplete.cast());
   return result;
 }
 
