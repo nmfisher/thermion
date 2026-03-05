@@ -25,6 +25,12 @@ jobs:
         if: matrix.name == 'Linux'
         uses: ./.github/actions/setup-build-env
 
+      - name: Install EGL libraries (Linux)
+        if: matrix.name == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libegl1 libegl1-mesa-dev
+
       - name: Setup build environment (Windows)
         if: matrix.name == 'Windows'
         uses: ./.github/actions/setup-windows-env
