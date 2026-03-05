@@ -172,16 +172,14 @@ outputDirectory : ${outputDirectory.path}
     }
 
     // Process materials configuration
-    final materialConfigs =
-        input.userDefines["materials"] as Map<String, dynamic>?;
-    _processMaterials(materialConfigs, materialSources, sources, defines,
-        logger, pkgRootFilePath);
+    final materialConfigs = input.userDefines["materials"] as Map<String, dynamic>?;
+    _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
 
     var frameworks = [];
 
     if (targetOS != OS.windows) {
       if (!flags.any((f) => f.contains("-std=c++"))) {
-        flags.addAll(['-std=c++17']);
+        flags.add('-std=c++17');
       }
     } else {
       defines["WIN32"] = "1";
@@ -314,7 +312,7 @@ outputDirectory : ${outputDirectory.path}
         if (objcObjectFiles.isNotEmpty) ...['-lthermion_objc', '-L${Directory.systemTemp.path}'],
         ...flags,
         ...frameworks,
-        if (targetOS == OS.linux) ...["-stdlib=libc++", "-Wl,--whole-archive"],
+        if (targetOS == OS.linux) ...["-Wl,--whole-archive"],
         if (targetOS != OS.windows) ...[
           ...libs.map((lib) => "-l$lib"),
           if (targetOS == OS.linux) ...[
@@ -325,6 +323,7 @@ outputDirectory : ${outputDirectory.path}
           if (targetOS != OS.linux) "-lstdc++",
           "-L$libDir"
         ],
+        if(targetOS == OS.linux) '-lstdc++' else if(targetOS != OS.windows) '-lc++',
         if (platform == "windows") ...[
           "/I${path.join(pkgRootFilePath, "native", "include")}",
           ...filamentIncludeDir.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
