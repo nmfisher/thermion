@@ -349,6 +349,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       } else {
         throw Exception("Unsupported platform");
       }
+      
     }
 
     int? driverPlatform;
@@ -452,7 +453,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // Determine if we need the Vulkan external image path or direct GL/Metal import.
     // Vulkan path: builder.external() + setExternalImage (Windows, or Linux with Vulkan)
     // Direct import path: builder.import(textureId) (macOS/iOS Metal, Linux with OpenGL)
-    final useExternalImage =
+    final useExternalImage = Platform.isWindows ||
         ThermionFlutterPlugin.instance.options.nativeOptions.backend ==
             Backend.VULKAN;
 
