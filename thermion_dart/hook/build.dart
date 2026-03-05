@@ -323,7 +323,7 @@ outputDirectory : ${outputDirectory.path}
           if (targetOS != OS.linux) "-lstdc++",
           "-L$libDir"
         ],
-        if(targetOS == OS.linux) '-lstdc++' else if(targetOS != OS.windows) '-lc++',
+        if(targetOS == OS.linux) ...['-Wl,--no-as-needed', '-lstdc++'] else if(targetOS != OS.windows) '-lc++',
         if (platform == "windows") ...[
           "/I${path.join(pkgRootFilePath, "native", "include")}",
           ...filamentIncludeDir.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
