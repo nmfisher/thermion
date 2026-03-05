@@ -73,6 +73,40 @@ for BUILD_TYPE in release debug; do
     echo "$ARCH: $(ls "$STAGE_DIR/$ARCH/" | wc -l) libraries"
   done
 
+  # Copy header files to staging directory (for inclusion in R2 upload zip)
+  echo "Copying header files to staging directory..."
+  if [ "$BUILD_TYPE" = "release" ]; then
+    HEADER_SOURCE="$OUT_DIR/android-release/filament/include"
+  else
+    HEADER_SOURCE="$OUT_DIR/android-debug/filament/include"
+  fi
+
+  if [ -d "$HEADER_SOURCE" ]; then
+    mkdir -p "$STAGE_DIR/include"
+    cp -R "$HEADER_SOURCE"/* "$STAGE_DIR/include/" || {
+      echo "Warning: Failed to copy headers to staging directory"
+    }
+  fi
+
+  # Copy imageio headers
+  if [ -d "$OUT_DIR/../libs/imageio/include" ]; then
+    mkdir -p "$STAGE_DIR/include/imageio"
+    cp -R "$OUT_DIR/../libs/imageio/include"/* "$STAGE_DIR/include/imageio/" 2>/dev/null || true
+  fi
+
+  # Copy stb_image.h
+  if [ -f "$OUT_DIR/../third_party/stb/stb_image.h" ]; then
+    mkdir -p "$STAGE_DIR/include/third_party/stb"
+    cp "$OUT_DIR/../third_party/stb/stb_image.h" "$STAGE_DIR/include/third_party/stb/" 2>/dev/null || true
+  fi
+
+  # Copy uberarchive.h for release/debug
+  UBERARCHIVE="$HEADER_SOURCE/gltfio/materials/uberarchive.h"
+  if [ -f "$UBERARCHIVE" ]; then
+    mkdir -p "$STAGE_DIR/include/$BUILD_TYPE/gltfio/materials"
+    cp "$UBERARCHIVE" "$STAGE_DIR/include/$BUILD_TYPE/gltfio/materials/" 2>/dev/null || true
+  fi
+
   ZIP_FILE="$OUTPUT_DIR/filament-${FILAMENT_VERSION}-android-${BUILD_TYPE}.zip"
   cd "$STAGE_DIR"
   zip -r "$ZIP_FILE" . || {
