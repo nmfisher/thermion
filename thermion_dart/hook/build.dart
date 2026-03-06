@@ -178,6 +178,7 @@ outputDirectory : ${outputDirectory.path}
     var frameworks = [];
 
     if (targetOS != OS.windows) {
+      flags.add('-stdlib=libc++');
       if (!flags.any((f) => f.contains("-std=c++"))) {
         flags.add('-std=c++17');
       }
@@ -318,9 +319,11 @@ outputDirectory : ${outputDirectory.path}
           if (targetOS == OS.linux) ...[
             "-Wl,--no-whole-archive",
             '-lGL',
-            '-lEGL'
+            '-lEGL',
+          ] else ...[
+            "-lc++",
+            ""
           ],
-          if (targetOS != OS.linux) "-lstdc++",
           "-L$libDir"
         ],
         if(targetOS == OS.linux) ...['-Wl,--no-as-needed', '-lstdc++'] else if(targetOS != OS.windows) '-lc++',
