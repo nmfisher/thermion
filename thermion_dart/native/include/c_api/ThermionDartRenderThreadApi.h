@@ -262,8 +262,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *));
         EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
             TEngine *tEngine,
-            uint32_t width,
-            uint32_t height,
             TTexture *color,
             TTexture *depth,
             void (*onComplete)(TRenderTarget *)

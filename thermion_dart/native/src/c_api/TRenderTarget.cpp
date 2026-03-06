@@ -20,8 +20,6 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TRenderTarget *RenderTarget_create(
             TEngine *tEngine,
-            uint32_t width,
-            uint32_t height,
             TTexture *tColor,
             TTexture *tDepth)
         {
