@@ -952,6 +952,64 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _TextureSampler_destroy(
     Pointer<TTextureSampler> sampler,
   );
+  external Pointer<TRenderManager> _RenderManager_create(
+    Pointer<TEngine> tEngine,
+    Pointer<TRenderer> tRenderer,
+  );
+  external void _RenderManager_destroy(
+    Pointer<TRenderManager> tRenderer,
+  );
+  external void _RenderManager_addAnimationManager(
+    Pointer<TRenderManager> tRenderer,
+    Pointer<TAnimationManager> tAnimationManager,
+  );
+  external void _RenderManager_removeAnimationManager(
+    Pointer<TRenderManager> tRenderer,
+    Pointer<TAnimationManager> tAnimationManager,
+  );
+  external void _RenderManager_render(
+    Pointer<TRenderManager> tRenderer,
+    JSBigInt frameTimeInNanos,
+  );
+  external void _RenderManager_setRenderable(
+    Pointer<TRenderManager> tRenderer,
+    Pointer<TSwapChain> swapChain,
+    Pointer<PointerClass<TView>> views,
+    int numViews,
+  );
+  external void _RenderManager_removeSwapChain(
+    Pointer<TRenderManager> tRenderer,
+    Pointer<TSwapChain> swapChain,
+  );
+  external void _FrameScheduler_start(
+    FrameCallback callback,
+    int targetFps,
+  );
+  external void _FrameScheduler_stop();
+  external void _FrameScheduler_setRenderThread(
+    Pointer<Void> renderThread,
+  );
+  external void _FrameScheduler_setRenderManager(
+    Pointer<TRenderManager> rm,
+  );
+  external void _FrameScheduler_setPostRenderCallback(
+    PostRenderCallback callback,
+    Pointer<Void> userData,
+  );
+  external void _FrameScheduler_requestRender(
+    JSBigInt frameTimeNanos,
+  );
+  external void _FrameScheduler_startNativeRenderLoop(
+    int targetFps,
+  );
+  external int _FrameScheduler_initDartApi(
+    Pointer<Void> data,
+  );
+  external void _FrameScheduler_startWithPort(
+    JSBigInt port,
+    int targetFps,
+  );
+  external JSBigInt _FrameScheduler_steadyClockUs();
   external void _Gizmo_dummy(
     int t,
   );
@@ -1120,35 +1178,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Scene_addFilamentAsset(
     Pointer<TScene> tScene,
     Pointer<TFilamentAsset> asset,
-  );
-  external Pointer<TRenderManager> _RenderManager_create(
-    Pointer<TEngine> tEngine,
-    Pointer<TRenderer> tRenderer,
-  );
-  external void _RenderManager_destroy(
-    Pointer<TRenderManager> tRenderer,
-  );
-  external void _RenderManager_addAnimationManager(
-    Pointer<TRenderManager> tRenderer,
-    Pointer<TAnimationManager> tAnimationManager,
-  );
-  external void _RenderManager_removeAnimationManager(
-    Pointer<TRenderManager> tRenderer,
-    Pointer<TAnimationManager> tAnimationManager,
-  );
-  external void _RenderManager_render(
-    Pointer<TRenderManager> tRenderer,
-    JSBigInt frameTimeInNanos,
-  );
-  external void _RenderManager_setRenderable(
-    Pointer<TRenderManager> tRenderer,
-    Pointer<TSwapChain> swapChain,
-    Pointer<PointerClass<TView>> views,
-    int numViews,
-  );
-  external void _RenderManager_removeSwapChain(
-    Pointer<TRenderManager> tRenderer,
-    Pointer<TSwapChain> swapChain,
   );
   external void _Camera_setExposure(
     Pointer<TCamera> camera,
@@ -1558,7 +1587,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Char> name,
     Pointer<Float32> outValue,
   );
-  external void _RenderThread_create();
+  external Pointer<Void> _RenderThread_create();
   external void _RenderThread_destroy();
   external void _RenderThread_addTask(
     Pointer<NativeFunction<void Function()>> task,
@@ -2523,18 +2552,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     EntityId entityId,
     int requestId,
     VoidCallback onComplete,
-  );
-  external void _FrameScheduler_start(
-    FrameCallback callback,
-    int targetFps,
-  );
-  external void _FrameScheduler_stop();
-  external int _FrameScheduler_initDartApi(
-    Pointer<Void> data,
-  );
-  external void _FrameScheduler_startWithPort(
-    JSBigInt port,
-    int targetFps,
   );
   external Pointer<TGltfResourceLoader> _GltfResourceLoader_create(
     Pointer<TEngine> tEngine,
@@ -5175,6 +5192,149 @@ void TextureSampler_destroy(
   return result;
 }
 
+Pointer<TRenderManager> RenderManager_create(
+  Pointer<TEngine> tEngine,
+  Pointer<TRenderer> tRenderer,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_create(tEngine.cast(), tRenderer.cast());
+  return Pointer<TRenderManager>(result);
+}
+
+void RenderManager_destroy(
+  Pointer<TRenderManager> tRenderer,
+) {
+  final result =
+      GeneratedBindings.instance._RenderManager_destroy(tRenderer.cast());
+  return result;
+}
+
+void RenderManager_addAnimationManager(
+  Pointer<TRenderManager> tRenderer,
+  Pointer<TAnimationManager> tAnimationManager,
+) {
+  final result = GeneratedBindings.instance._RenderManager_addAnimationManager(
+      tRenderer.cast(), tAnimationManager.cast());
+  return result;
+}
+
+void RenderManager_removeAnimationManager(
+  Pointer<TRenderManager> tRenderer,
+  Pointer<TAnimationManager> tAnimationManager,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_removeAnimationManager(
+          tRenderer.cast(), tAnimationManager.cast());
+  return result;
+}
+
+void RenderManager_render(
+  Pointer<TRenderManager> tRenderer,
+  BigInt frameTimeInNanos,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_render(tRenderer.cast(), frameTimeInNanos.toJSBigInt);
+  return result;
+}
+
+void RenderManager_setRenderable(
+  Pointer<TRenderManager> tRenderer,
+  Pointer<TSwapChain> swapChain,
+  Pointer<PointerClass<TView>> views,
+  int numViews,
+) {
+  final result = GeneratedBindings.instance._RenderManager_setRenderable(
+      tRenderer.cast(), swapChain.cast(), views.cast(), numViews);
+  return result;
+}
+
+void RenderManager_removeSwapChain(
+  Pointer<TRenderManager> tRenderer,
+  Pointer<TSwapChain> swapChain,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_removeSwapChain(tRenderer.cast(), swapChain.cast());
+  return result;
+}
+
+void FrameScheduler_start(
+  DartFrameCallback callback,
+  int targetFps,
+) {
+  final result = GeneratedBindings.instance._FrameScheduler_start(
+      callback as Pointer<NativeFunction<FrameCallbackFunction>>, targetFps);
+  return result;
+}
+
+void FrameScheduler_stop() {
+  final result = GeneratedBindings.instance._FrameScheduler_stop();
+  return result;
+}
+
+void FrameScheduler_setRenderThread(
+  Pointer<Void> renderThread,
+) {
+  final result =
+      GeneratedBindings.instance._FrameScheduler_setRenderThread(renderThread);
+  return result;
+}
+
+void FrameScheduler_setRenderManager(
+  Pointer<TRenderManager> rm,
+) {
+  final result =
+      GeneratedBindings.instance._FrameScheduler_setRenderManager(rm.cast());
+  return result;
+}
+
+void FrameScheduler_setPostRenderCallback(
+  DartPostRenderCallback callback,
+  Pointer<Void> userData,
+) {
+  final result = GeneratedBindings.instance
+      ._FrameScheduler_setPostRenderCallback(
+          callback as Pointer<NativeFunction<PostRenderCallbackFunction>>,
+          userData);
+  return result;
+}
+
+void FrameScheduler_requestRender(
+  BigInt frameTimeNanos,
+) {
+  final result = GeneratedBindings.instance
+      ._FrameScheduler_requestRender(frameTimeNanos.toJSBigInt);
+  return result;
+}
+
+void FrameScheduler_startNativeRenderLoop(
+  int targetFps,
+) {
+  final result = GeneratedBindings.instance
+      ._FrameScheduler_startNativeRenderLoop(targetFps);
+  return result;
+}
+
+int FrameScheduler_initDartApi(
+  Pointer<Void> data,
+) {
+  final result = GeneratedBindings.instance._FrameScheduler_initDartApi(data);
+  return result;
+}
+
+void FrameScheduler_startWithPort(
+  BigInt port,
+  int targetFps,
+) {
+  final result = GeneratedBindings.instance
+      ._FrameScheduler_startWithPort(port.toJSBigInt, targetFps);
+  return result;
+}
+
+BigInt FrameScheduler_steadyClockUs() {
+  final result = GeneratedBindings.instance._FrameScheduler_steadyClockUs();
+  return result.toDart;
+}
+
 void Gizmo_dummy(
   int t,
 ) {
@@ -5542,71 +5702,6 @@ void Scene_addFilamentAsset(
 ) {
   final result = GeneratedBindings.instance
       ._Scene_addFilamentAsset(tScene.cast(), asset.cast());
-  return result;
-}
-
-Pointer<TRenderManager> RenderManager_create(
-  Pointer<TEngine> tEngine,
-  Pointer<TRenderer> tRenderer,
-) {
-  final result = GeneratedBindings.instance
-      ._RenderManager_create(tEngine.cast(), tRenderer.cast());
-  return Pointer<TRenderManager>(result);
-}
-
-void RenderManager_destroy(
-  Pointer<TRenderManager> tRenderer,
-) {
-  final result =
-      GeneratedBindings.instance._RenderManager_destroy(tRenderer.cast());
-  return result;
-}
-
-void RenderManager_addAnimationManager(
-  Pointer<TRenderManager> tRenderer,
-  Pointer<TAnimationManager> tAnimationManager,
-) {
-  final result = GeneratedBindings.instance._RenderManager_addAnimationManager(
-      tRenderer.cast(), tAnimationManager.cast());
-  return result;
-}
-
-void RenderManager_removeAnimationManager(
-  Pointer<TRenderManager> tRenderer,
-  Pointer<TAnimationManager> tAnimationManager,
-) {
-  final result = GeneratedBindings.instance
-      ._RenderManager_removeAnimationManager(
-          tRenderer.cast(), tAnimationManager.cast());
-  return result;
-}
-
-void RenderManager_render(
-  Pointer<TRenderManager> tRenderer,
-  BigInt frameTimeInNanos,
-) {
-  final result = GeneratedBindings.instance
-      ._RenderManager_render(tRenderer.cast(), frameTimeInNanos.toJSBigInt);
-  return result;
-}
-
-void RenderManager_setRenderable(
-  Pointer<TRenderManager> tRenderer,
-  Pointer<TSwapChain> swapChain,
-  Pointer<PointerClass<TView>> views,
-  int numViews,
-) {
-  final result = GeneratedBindings.instance._RenderManager_setRenderable(
-      tRenderer.cast(), swapChain.cast(), views.cast(), numViews);
-  return result;
-}
-
-void RenderManager_removeSwapChain(
-  Pointer<TRenderManager> tRenderer,
-  Pointer<TSwapChain> swapChain,
-) {
-  final result = GeneratedBindings.instance
-      ._RenderManager_removeSwapChain(tRenderer.cast(), swapChain.cast());
   return result;
 }
 
@@ -6496,9 +6591,9 @@ bool DebugRegistry_getProperty_float(
   return result == 1;
 }
 
-void RenderThread_create() {
+Pointer<Void> RenderThread_create() {
   final result = GeneratedBindings.instance._RenderThread_create();
-  return result;
+  return Pointer<Void>(result);
 }
 
 void RenderThread_destroy() {
@@ -8647,36 +8742,6 @@ void RenderableManager_destroyEntityRenderThread(
           entityId,
           requestId,
           onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
-  return result;
-}
-
-void FrameScheduler_start(
-  DartFrameCallback callback,
-  int targetFps,
-) {
-  final result = GeneratedBindings.instance._FrameScheduler_start(
-      callback as Pointer<NativeFunction<FrameCallbackFunction>>, targetFps);
-  return result;
-}
-
-void FrameScheduler_stop() {
-  final result = GeneratedBindings.instance._FrameScheduler_stop();
-  return result;
-}
-
-int FrameScheduler_initDartApi(
-  Pointer<Void> data,
-) {
-  final result = GeneratedBindings.instance._FrameScheduler_initDartApi(data);
-  return result;
-}
-
-void FrameScheduler_startWithPort(
-  BigInt port,
-  int targetFps,
-) {
-  final result = GeneratedBindings.instance
-      ._FrameScheduler_startWithPort(port.toJSBigInt, targetFps);
   return result;
 }
 
@@ -11754,6 +11819,80 @@ sealed class TSamplerCompareMode {
   static const COMPARE_MODE_COMPARE_TO_TEXTURE = 1;
 }
 
+extension TRenderManagerExt on Pointer<TRenderManager> {
+  TRenderManager toDart() {
+    return TRenderManager(this);
+  }
+}
+
+final class TRenderManager extends Struct {
+  Pointer<TRenderManager> get address => super.address.cast();
+  TRenderManager(super.address);
+
+  static Pointer<TRenderManager> stackAlloc() {
+    return Pointer<TRenderManager>(
+        NativeLibrary.instance.stackAlloc<TRenderManager>(0));
+  }
+}
+
+extension TRendererExt on Pointer<TRenderer> {
+  TRenderer toDart() {
+    return TRenderer(this);
+  }
+}
+
+final class TRenderer extends Struct {
+  Pointer<TRenderer> get address => super.address.cast();
+  TRenderer(super.address);
+
+  static Pointer<TRenderer> stackAlloc() {
+    return Pointer<TRenderer>(NativeLibrary.instance.stackAlloc<TRenderer>(0));
+  }
+}
+
+extension TAnimationManagerExt on Pointer<TAnimationManager> {
+  TAnimationManager toDart() {
+    return TAnimationManager(this);
+  }
+}
+
+final class TAnimationManager extends Struct {
+  Pointer<TAnimationManager> get address => super.address.cast();
+  TAnimationManager(super.address);
+
+  static Pointer<TAnimationManager> stackAlloc() {
+    return Pointer<TAnimationManager>(
+        NativeLibrary.instance.stackAlloc<TAnimationManager>(0));
+  }
+}
+
+extension TSwapChainExt on Pointer<TSwapChain> {
+  TSwapChain toDart() {
+    return TSwapChain(this);
+  }
+}
+
+final class TSwapChain extends Struct {
+  Pointer<TSwapChain> get address => super.address.cast();
+  TSwapChain(super.address);
+
+  static Pointer<TSwapChain> stackAlloc() {
+    return Pointer<TSwapChain>(
+        NativeLibrary.instance.stackAlloc<TSwapChain>(0));
+  }
+}
+
+typedef FrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
+typedef DartFrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
+typedef FrameCallbackFunction = void Function(JSBigInt frameTimeNanos);
+typedef DartFrameCallbackFunction = void Function(BigInt frameTimeNanos);
+typedef PostRenderCallback
+    = Pointer<NativeFunction<PostRenderCallbackFunction>>;
+typedef DartPostRenderCallback
+    = Pointer<NativeFunction<PostRenderCallbackFunction>>;
+typedef PostRenderCallbackFunction = void Function(Pointer<Void> userData);
+typedef DartPostRenderCallbackFunction = void Function(Pointer<Void> userData);
+
 sealed class TGizmoPickResultType {
   static const AxisX = 0;
   static const AxisY = 1;
@@ -11940,69 +12079,6 @@ final class TSkybox extends Struct {
 
   static Pointer<TSkybox> stackAlloc() {
     return Pointer<TSkybox>(NativeLibrary.instance.stackAlloc<TSkybox>(0));
-  }
-}
-
-extension TRenderManagerExt on Pointer<TRenderManager> {
-  TRenderManager toDart() {
-    return TRenderManager(this);
-  }
-}
-
-final class TRenderManager extends Struct {
-  Pointer<TRenderManager> get address => super.address.cast();
-  TRenderManager(super.address);
-
-  static Pointer<TRenderManager> stackAlloc() {
-    return Pointer<TRenderManager>(
-        NativeLibrary.instance.stackAlloc<TRenderManager>(0));
-  }
-}
-
-extension TRendererExt on Pointer<TRenderer> {
-  TRenderer toDart() {
-    return TRenderer(this);
-  }
-}
-
-final class TRenderer extends Struct {
-  Pointer<TRenderer> get address => super.address.cast();
-  TRenderer(super.address);
-
-  static Pointer<TRenderer> stackAlloc() {
-    return Pointer<TRenderer>(NativeLibrary.instance.stackAlloc<TRenderer>(0));
-  }
-}
-
-extension TAnimationManagerExt on Pointer<TAnimationManager> {
-  TAnimationManager toDart() {
-    return TAnimationManager(this);
-  }
-}
-
-final class TAnimationManager extends Struct {
-  Pointer<TAnimationManager> get address => super.address.cast();
-  TAnimationManager(super.address);
-
-  static Pointer<TAnimationManager> stackAlloc() {
-    return Pointer<TAnimationManager>(
-        NativeLibrary.instance.stackAlloc<TAnimationManager>(0));
-  }
-}
-
-extension TSwapChainExt on Pointer<TSwapChain> {
-  TSwapChain toDart() {
-    return TSwapChain(this);
-  }
-}
-
-final class TSwapChain extends Struct {
-  Pointer<TSwapChain> get address => super.address.cast();
-  TSwapChain(super.address);
-
-  static Pointer<TSwapChain> stackAlloc() {
-    return Pointer<TSwapChain>(
-        NativeLibrary.instance.stackAlloc<TSwapChain>(0));
   }
 }
 
@@ -12285,11 +12361,6 @@ final class TRenderableBuilder extends Struct {
   }
 }
 
-typedef FrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
-typedef DartFrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
-typedef FrameCallbackFunction = void Function(JSBigInt frameTimeNanos);
-typedef DartFrameCallbackFunction = void Function(BigInt frameTimeNanos);
-
 extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
   TGltfMeshData toDart() {
     return TGltfMeshData(this);
@@ -12501,6 +12572,18 @@ extension StructAllocator on Struct {
       case TKtx1Bundle:
         final ptr = TKtx1Bundle.stackAlloc();
         return ptr.toDart() as T;
+      case TRenderManager:
+        final ptr = TRenderManager.stackAlloc();
+        return ptr.toDart() as T;
+      case TRenderer:
+        final ptr = TRenderer.stackAlloc();
+        return ptr.toDart() as T;
+      case TAnimationManager:
+        final ptr = TAnimationManager.stackAlloc();
+        return ptr.toDart() as T;
+      case TSwapChain:
+        final ptr = TSwapChain.stackAlloc();
+        return ptr.toDart() as T;
       case TGizmo:
         final ptr = TGizmo.stackAlloc();
         return ptr.toDart() as T;
@@ -12521,18 +12604,6 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TSkybox:
         final ptr = TSkybox.stackAlloc();
-        return ptr.toDart() as T;
-      case TRenderManager:
-        final ptr = TRenderManager.stackAlloc();
-        return ptr.toDart() as T;
-      case TRenderer:
-        final ptr = TRenderer.stackAlloc();
-        return ptr.toDart() as T;
-      case TAnimationManager:
-        final ptr = TAnimationManager.stackAlloc();
-        return ptr.toDart() as T;
-      case TSwapChain:
-        final ptr = TSwapChain.stackAlloc();
         return ptr.toDart() as T;
       case double4x4:
         final ptr = double4x4.stackAlloc();

@@ -12,10 +12,9 @@
 #include <mutex>
 #include <thread>
 
-#include <Windows.h>
-#include <dxgi.h>
-#include <wrl.h>
-#include "vulkan_context.h"
+#include "windows/import.h"
+
+#include "vulkan/windows/WindowsVulkanContext.h"
 
 namespace thermion::tflutter::windows {
 
@@ -54,7 +53,7 @@ public:
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   private:
-    thermion::windows::vulkan::ThermionVulkanContext *_context = nullptr;
+    thermion::vulkan::windows::WindowsVulkanContext *_context = nullptr;
     bool OnTextureUnregistered(int64_t flutterTextureId);
 
     // Pending handle swap: after resizeTexture creates new GPU resources,
