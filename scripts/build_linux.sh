@@ -150,51 +150,6 @@ fi
 export CC=clang
 export CXX=clang++
 
-# Build imageio and tinyexr using cmake directly
-# build.sh doesn't properly support building these third-party libs on Linux
-build_third_party_libs() {
-  local BUILD_TYPE=$1  # Release or Debug
-  local BUILD_SUFFIX=$2  # release or debug
-  local CMAKE_DIR="$FILAMENT_BASE_DIR/out/cmake-${BUILD_SUFFIX}"
-
-  echo "Building imageio ($BUILD_SUFFIX)..."
-  mkdir -p "$CMAKE_DIR/libs/imageio" && cd "$CMAKE_DIR/libs/imageio"
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage" \
-    -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-    -DZ_HAVE_UNISTD_H=1 \
-    -DUSE_ZLIB=1 \
-    "$FILAMENT_BASE_DIR/libs/imageio" || {
-    echo "Error: imageio cmake failed for $BUILD_SUFFIX"
-    return 1
-  }
-  ninja || {
-    echo "Error: imageio build failed for $BUILD_SUFFIX"
-    return 1
-  }
-
-  echo "Building tinyexr ($BUILD_SUFFIX)..."
-  mkdir -p "$CMAKE_DIR/third_party/tinyexr" && cd "$CMAKE_DIR/third_party/tinyexr"
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage" \
-    "$FILAMENT_BASE_DIR/third_party/tinyexr" || {
-    echo "Error: tinyexr cmake failed for $BUILD_SUFFIX"
-    return 1
-  }
-  ninja || {
-    echo "Error: tinyexr build failed for $BUILD_SUFFIX"
-    return 1
-  }
-
-  cd "$FILAMENT_BASE_DIR"
-}
-
 
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
@@ -204,10 +159,11 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Build third-party libraries for release using cmake directly
-  echo "Building third-party libraries for release..."
-  build_third_party_libs Release release || {
-    echo "Error: third-party release build failed"
+  # Build imageio and tinyexr as targets within the main cmake build
+  # (they need Filament's include paths and inherit -stdlib=libc++ from the top-level config)
+  echo "Building imageio and tinyexr (release)..."
+  ./build.sh -f -p desktop release imageio tinyexr || {
+    echo "Error: imageio/tinyexr release build failed"
     exit 1
   }
 fi
@@ -220,10 +176,10 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Build third-party libraries for debug using cmake directly
-  echo "Building third-party libraries for debug..."
-  build_third_party_libs Debug debug || {
-    echo "Error: third-party debug build failed"
+  # Build imageio and tinyexr as targets within the main cmake build
+  echo "Building imageio and tinyexr (debug)..."
+  ./build.sh -f -t -d -p desktop debug imageio tinyexr || {
+    echo "Error: imageio/tinyexr debug build failed"
     exit 1
   }
 fi
