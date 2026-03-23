@@ -1,28 +1,61 @@
 #include "rendering/FrameScheduler.hpp"
 #include "Log.hpp"
+#include "dart/dart_api_dl.h"
+#include <iostream>
 
 #if __APPLE__ && TARGET_OS_IOS
 #include "rendering/CADisplayLinkWrapper.h"
-#include "dart/dart_api_dl.h"
-#endif
-
-#if __APPLE__ && TARGET_OS_OSX
-#include "dart/dart_api_dl.h"
 #endif
 
 #ifdef _WIN32
 #include <dxgi.h>
-#include "dart/dart_api_dl.h"
 #pragma comment(lib, "dxgi.lib")
 #endif
 
 #ifdef __ANDROID__
 #include <android/choreographer.h>
 #include <android/looper.h>
-#include "dart/dart_api_dl.h"
 #endif
 
 namespace thermion {
+
+// ---------------------------------------------------------------------------
+// FrameScheduler (base helpers)
+// ---------------------------------------------------------------------------
+
+void FrameScheduler::dispatchFrame(uint64_t nanos) {
+    if (_usePortMode) {
+        if (_dartPort != 0) {
+            Dart_CObject msg;
+            msg.type = Dart_CObject_kInt64;
+            msg.value.as_int64 = static_cast<int64_t>(nanos);
+            Dart_PostCObject_DL(_dartPort, &msg);
+        }
+    } else if (_callback) {
+        _callback(nanos);
+    }
+}
+
+void FrameScheduler::resetState() {
+    _callback = nullptr;
+    _dartPort = 0;
+    _usePortMode = false;
+}
+
+FrameScheduler* FrameScheduler::create(int targetFps) {
+    int fps = targetFps > 0 ? targetFps : 60;
+#if __APPLE__ && TARGET_OS_OSX
+    return new CVDisplayLinkScheduler();
+#elif __APPLE__ && TARGET_OS_IOS
+    return new CADisplayLinkScheduler();
+#elif defined(_WIN32)
+    return new DXGIFrameScheduler(fps);
+#elif defined(__ANDROID__)
+    return new AChoreographerFrameScheduler();
+#else
+    return new TimerFrameScheduler(fps);
+#endif
+}
 
 // ---------------------------------------------------------------------------
 // TimerFrameScheduler
@@ -33,11 +66,50 @@ void TimerFrameScheduler::start(Callback callback) {
     _running = true;
     auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
     _thread = new std::thread([this, callback, interval]() {
+        uint64_t frameCount = 0;
+        auto lastActual = std::chrono::high_resolution_clock::now();
         while (_running) {
             auto start = std::chrono::high_resolution_clock::now();
             uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 start.time_since_epoch()).count();
+
+            auto actualIntervalUs = std::chrono::duration_cast<std::chrono::microseconds>(
+                start - lastActual).count();
+            lastActual = start;
+
             callback(nanos);
+
+            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            auto callbackUs = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+
+            if (elapsed < interval) {
+                std::this_thread::sleep_for(interval - elapsed);
+            }
+
+            frameCount++;
+            if (frameCount % 300 == 0) {
+                auto targetUs = std::chrono::duration_cast<std::chrono::microseconds>(interval).count();
+                std::cerr << "[ThermionVk:Sched] interval=" << actualIntervalUs
+                          << "us callback=" << callbackUs
+                          << "us target=" << targetUs << "us" << std::endl;
+            }
+        }
+    });
+}
+
+void TimerFrameScheduler::startWithPort(int64_t port) {
+    if (_running) return;
+    _dartPort = port;
+    _usePortMode = true;
+    _callback = nullptr;
+    _running = true;
+    auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
+    _thread = new std::thread([this, interval]() {
+        while (_running) {
+            auto start = std::chrono::high_resolution_clock::now();
+            uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                start.time_since_epoch()).count();
+            dispatchFrame(nanos);
             auto elapsed = std::chrono::high_resolution_clock::now() - start;
             if (elapsed < interval) {
                 std::this_thread::sleep_for(interval - elapsed);
@@ -63,17 +135,7 @@ void TimerFrameScheduler::stop() {
 
 void CADisplayLinkScheduler::displayLinkCallback(uint64_t frameTimeNanos, void* context) {
     auto* self = static_cast<CADisplayLinkScheduler*>(context);
-
-    if (self->_usePortMode) {
-        if (self->_dartPort != 0) {
-            Dart_CObject msg;
-            msg.type = Dart_CObject_kInt64;
-            msg.value.as_int64 = static_cast<int64_t>(frameTimeNanos);
-            Dart_PostCObject_DL(self->_dartPort, &msg);
-        }
-    } else if (self->_callback) {
-        self->_callback(frameTimeNanos);
-    }
+    self->dispatchFrame(frameTimeNanos);
 }
 
 void CADisplayLinkScheduler::start(Callback callback) {
@@ -98,9 +160,7 @@ void CADisplayLinkScheduler::stop() {
         CADisplayLinkWrapper_destroy(_wrapper);
         _wrapper = nullptr;
     }
-    _callback = nullptr;
-    _dartPort = 0;
-    _usePortMode = false;
+    resetState();
 }
 
 #endif // __APPLE__ && TARGET_OS_IOS
@@ -133,8 +193,7 @@ void CVDisplayLinkScheduler::startWithPort(int64_t port) {
 }
 
 void CVDisplayLinkScheduler::stop() {
-    _callback = nullptr;
-    _dartPort = 0;
+    resetState();
     if (_displayLink) {
         CVDisplayLinkStop(_displayLink);
         CVDisplayLinkRelease(_displayLink);
@@ -148,18 +207,7 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
 
     auto* self = static_cast<CVDisplayLinkScheduler*>(context);
     uint64_t nanos = inOutputTime->hostTime;
-
-    if (self->_usePortMode) {
-        if (self->_dartPort != 0) {
-            Dart_CObject msg;
-            msg.type = Dart_CObject_kInt64;
-            msg.value.as_int64 = static_cast<int64_t>(nanos);
-            // Dart_PostCObject_DL returns false if port is dead - no crash
-            Dart_PostCObject_DL(self->_dartPort, &msg);
-        }
-    } else if (self->_callback) {
-        self->_callback(nanos);
-    }
+    self->dispatchFrame(nanos);
     return kCVReturnSuccess;
 }
 
@@ -201,11 +249,11 @@ void DXGIFrameScheduler::start(Callback callback) {
             } else {
                 std::this_thread::sleep_for(interval);
             }
-            if (_callback && _running) {
+            if (_running) {
                 auto now = std::chrono::high_resolution_clock::now();
                 uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     now.time_since_epoch()).count();
-                _callback(nanos);
+                dispatchFrame(nanos);
             }
         }
 
@@ -246,16 +294,11 @@ void DXGIFrameScheduler::startWithPort(int64_t port) {
             } else {
                 std::this_thread::sleep_for(interval);
             }
-            if (_usePortMode && _dartPort != 0 && _running) {
+            if (_running) {
                 auto now = std::chrono::high_resolution_clock::now();
                 uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     now.time_since_epoch()).count();
-
-                // Post to Dart port - silently drops if isolate is dead (hot restart safe)
-                Dart_CObject msg;
-                msg.type = Dart_CObject_kInt64;
-                msg.value.as_int64 = static_cast<int64_t>(nanos);
-                Dart_PostCObject_DL(_dartPort, &msg);
+                dispatchFrame(nanos);
             }
         }
 
@@ -272,9 +315,7 @@ void DXGIFrameScheduler::stop() {
         delete _thread;
         _thread = nullptr;
     }
-    _callback = nullptr;
-    _dartPort = 0;
-    _usePortMode = false;
+    resetState();
 }
 
 #endif // _WIN32
@@ -290,18 +331,7 @@ void AChoreographerFrameScheduler::frameCallback(long frameTimeNanos, void* data
     if (!self->_running) return;
 
     uint64_t nanos = static_cast<uint64_t>(frameTimeNanos);
-
-    if (self->_usePortMode) {
-        if (self->_dartPort != 0) {
-            Dart_CObject msg;
-            msg.type = Dart_CObject_kInt64;
-            msg.value.as_int64 = static_cast<int64_t>(nanos);
-            // Dart_PostCObject_DL returns false if port is dead - no crash
-            Dart_PostCObject_DL(self->_dartPort, &msg);
-        }
-    } else if (self->_callback) {
-        self->_callback(nanos);
-    }
+    self->dispatchFrame(nanos);
 
     // Re-schedule for next frame (Choreographer callbacks are one-shot)
     self->scheduleNextFrame();
@@ -405,9 +435,7 @@ void AChoreographerFrameScheduler::stop() {
         delete _thread;
         _thread = nullptr;
     }
-    _callback = nullptr;
-    _dartPort = 0;
-    _usePortMode = false;
+    resetState();
     _choreographer = nullptr;
     _looper = nullptr;
 }

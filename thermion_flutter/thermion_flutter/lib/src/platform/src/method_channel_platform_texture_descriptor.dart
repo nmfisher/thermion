@@ -49,6 +49,13 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
         height: height);
   }
 
-  @override
+  /// Waits for populate() to create the GL texture (deferred path).
+  /// Returns the hardware texture ID once ready.
+  Future<int> awaitTextureReady() async {
+    final result =
+        await channel.invokeMethod("awaitTextureReady", flutterTextureId);
+    return result as int;
+  }
+
   bool destroyed = false;
 }
