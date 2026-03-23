@@ -265,7 +265,7 @@ class TestHelper {
     await FFIFilamentApp.create(
         config: FFIFilamentConfig(
             loadResource: _loadResource,
-            backend: Platform.isLinux || Platform.isWindows
+            backend: Platform.isLinux ? Backend.OPENGL : Platform.isWindows
                 ? Backend.VULKAN
                 : Backend.DEFAULT));
   }
