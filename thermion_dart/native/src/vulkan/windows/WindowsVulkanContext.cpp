@@ -146,6 +146,8 @@ class WindowsVulkanContext::Impl {
                 return;
             }
 
+            _platform = std::make_unique<WindowsVulkanPlatform>();
+
             // Command buffer allocation
             VkCommandBufferAllocateInfo cmdBufInfo{};
             cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
