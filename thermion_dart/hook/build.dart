@@ -24,6 +24,8 @@ void main(List<String> args) async {
 
     final config = input.config;
 
+    logger.info("Config : ${input.config}");
+
     // Most users will only need release builds of Filament.
     // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue.
     // Also note that there are known driver issues with Android debug builds, e.g.:
@@ -33,9 +35,9 @@ void main(List<String> args) async {
     // `hooks` section of pubspec.yaml.
     var buildMode = BuildMode.release;
 
-    // if (input.userDefines["mode"] == "debug") {
-    buildMode = BuildMode.debug;
-    // }
+    if (input.userDefines["mode"] == "debug") {
+        buildMode = BuildMode.debug;
+    }
 
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
