@@ -16,7 +16,7 @@ void main() async {
       await viewer
           .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       var cube = await viewer.createGeometry(
-          GeometryHelper.cube(normals: true, uvs: true),
+          GeometryUtils.cube(normals: true, uvs: true),
           materialInstances: [materialInstance]);
 
       await materialInstance.setParameterFloat4(
@@ -31,7 +31,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var materialInstance = await FilamentApp.instance!
           .createUbershaderMaterialInstance(unlit: true);
-      final cube = await viewer.createGeometry(GeometryHelper.cube(),
+      final cube = await viewer.createGeometry(GeometryUtils.cube(),
           materialInstances: [materialInstance]);
       await materialInstance.setParameterFloat4(
           "baseColorFactor", 0.0, 0.0, 1.0, 1.0);
@@ -68,7 +68,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var materialInstance = await FilamentApp.instance!
           .createUbershaderMaterialInstance(unlit: true);
-      final cube = await viewer.createGeometry(GeometryHelper.cube(),
+      final cube = await viewer.createGeometry(GeometryUtils.cube(),
           materialInstances: [materialInstance]);
 
       final red = await FilamentApp.instance!.decodeImage(
@@ -127,7 +127,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var materialInstance = await FilamentApp.instance!
           .createUbershaderMaterialInstance(unlit: true);
-      final cube = await viewer.createGeometry(GeometryHelper.cube(),
+      final cube = await viewer.createGeometry(GeometryUtils.cube(),
           materialInstances: [materialInstance]);
 
       var data = File("${testHelper.assetsDir}/cube_texture_512x512.png")

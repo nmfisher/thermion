@@ -12,7 +12,7 @@ void main() async {
   test('create entity and set as parent', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+          .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
       await testHelper.capture(viewer.view, "create_entity_before_parent");
       
@@ -32,7 +32,7 @@ void main() async {
       var blueMaterialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
       final blueCube = await viewer.createGeometry(
-          GeometryHelper.cube(normals: false, uvs: false),
+          GeometryUtils.cube(normals: false, uvs: false),
           materialInstances: [blueMaterialInstance]);
       await blueMaterialInstance.setParameterFloat4(
           "baseColorFactor", 0.0, 0.0, 1.0, 1.0);
@@ -43,7 +43,7 @@ void main() async {
       var greenMaterialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
       final greenCube = await viewer.createGeometry(
-          GeometryHelper.cube(normals: false, uvs: false),
+          GeometryUtils.cube(normals: false, uvs: false),
           materialInstances: [greenMaterialInstance]);
       await greenMaterialInstance.setParameterFloat4(
           "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
@@ -121,7 +121,7 @@ void main() async {
 
         var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
         final cube = await viewer.createGeometry(
-            GeometryHelper.cube(normals: false, uvs: false),
+            GeometryUtils.cube(normals: false, uvs: false),
             materialInstances: [materialInstance]);
 
         // Set different colors for each cube

@@ -91,7 +91,7 @@ void main() async {
     await green.setParameterFloat4("baseColorFactor", 0, 1, 0, 1);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
+        GeometryUtils.cube(flipUvs: true),
         materialInstances: [red]) as FFIAsset;
 
     await scene.add(cube);
@@ -157,7 +157,7 @@ void main() async {
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
+        GeometryUtils.cube(flipUvs: true),
         materialInstances: [materialInstance]) as FFIAsset;
 
     await scene.add(cube);
@@ -212,7 +212,7 @@ void main() async {
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
+        GeometryUtils.cube(flipUvs: true),
         materialInstances: [materialInstance]) as FFIAsset;
 
     await scene.add(cube);
@@ -256,7 +256,7 @@ void main() async {
     await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
+        GeometryUtils.cube(flipUvs: true),
         materialInstances: [materialInstance1]) as FFIAsset;
 
     await scene.add(cube);
@@ -340,7 +340,7 @@ void main() async {
           focus: Vector3(i == 0 ? -2 : 2, 0, 0));
 
       var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true)) as FFIAsset;
+          .createGeometry(GeometryUtils.cube(flipUvs: true)) as FFIAsset;
 
       await scene.add(cube);
     }
@@ -395,7 +395,7 @@ void main() async {
     await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
     var cube = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.cube(flipUvs: true),
+        GeometryUtils.cube(flipUvs: true),
         materialInstances: [materialInstance1]) as FFIAsset;
 
     await scene.add(cube);
@@ -494,7 +494,7 @@ void main() async {
       assert(manager != null);
 
       var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true));
+          .createGeometry(GeometryUtils.cube(flipUvs: true));
       await result.viewer.addToScene(cube);
 
       await result.viewer.view.setStencilHighlight(
@@ -578,7 +578,7 @@ void main() async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
 
       var cube = await FilamentApp.instance!
-          .createGeometry(GeometryHelper.cube(flipUvs: true));
+          .createGeometry(GeometryUtils.cube(flipUvs: true));
       await result.viewer.addToScene(cube);
 
       // Set initial highlight to orange
@@ -1156,7 +1156,7 @@ void main() async {
         .execute((result) async {
       // Create a large plane to apply the translation axis material to
       final plane = await FilamentApp.instance!.createGeometry(
-        GeometryHelper.plane(
+        GeometryUtils.plane(
           width: 200,
           height: 200,
         ),
@@ -1253,10 +1253,10 @@ void main() async {
 //       await red.setStencilReferenceValue(11);
 
 //       var cube = await FilamentApp.instance!.createGeometry(
-//           GeometryHelper.cube(),
+//           GeometryUtils.cube(),
 //           materialInstances: [green]);
 //       // var cube2 = await FilamentApp.instance!.createGeometry(
-//       //     GeometryHelper.cube(),
+//       //     GeometryUtils.cube(),
 //       //     materialInstances: [red]);
 //       await scene.add(cube);
 //       // await scene.add(cube2);
@@ -1319,7 +1319,7 @@ void main() async {
 
 //         await result.viewer.setBackgroundColor(1.0, 0, 0, 1);
 //         final cube = await viewer
-//             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+//             .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
 //         var mainCamera = await result.viewer.getMainCamera();
 //         mainCamera.setTransform(Matrix4.translation(Vector3(0, 0, 5)));
@@ -1335,7 +1335,7 @@ void main() async {
         // .setRenderTargetEnabled(true)
         // .execute((result) async {
 //         final cube = await viewer
-//             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+//             .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
 //         var mainCamera = await result.viewer.getMainCamera();
 //         mainCamera.setTransform(Matrix4.translation(Vector3(0, 0, 5)));
@@ -1372,7 +1372,7 @@ void main() async {
 //       await ViewerBuilder(testHelper)
         // .setRenderTargetEnabled(true)
         // .execute((result) async {
-//         final cube = await result.viewer.createGeometry(GeometryHelper.cube());
+//         final cube = await result.viewer.createGeometry(GeometryUtils.cube());
 
 //         var mainCamera = await result.viewer.getMainCamera();
 //         mainCamera.setTransform(Matrix4.translation(Vector3(0, 0, 5)));

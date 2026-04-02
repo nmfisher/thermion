@@ -95,7 +95,7 @@ void main() async {
     var umi = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
     var cube = await FilamentApp.instance!
-        .createGeometry(GeometryHelper.cube());
+        .createGeometry(GeometryUtils.cube());
     await scene.add(cube as FFIAsset);
     await umi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
@@ -166,7 +166,7 @@ void main() async {
     var umi = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
     var cube = await FilamentApp.instance!
-        .createGeometry(GeometryHelper.cube());
+        .createGeometry(GeometryUtils.cube());
     await scene.add(cube as FFIAsset);
     await umi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 

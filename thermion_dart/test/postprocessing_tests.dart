@@ -29,7 +29,7 @@ void main() async {
         expect(await view.isDitheringEnabled(), true);
 
         final cube = await viewer
-            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+            .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
         await testHelper.capture(viewer.view, "dithering_enabled");
 

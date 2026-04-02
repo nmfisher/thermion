@@ -119,26 +119,6 @@ class TestHelper {
     return material.createInstance();
   }
 
-  Future<MaterialInstance> loadWireframeMaterial({
-    double edgeR = 1.0,
-    double edgeG = 1.0,
-    double edgeB = 1.0,
-    double edgeA = 1.0,
-    double faceR = 0.2,
-    double faceG = 0.2,
-    double faceB = 0.2,
-    double faceA = 0.3,
-    double edgeWidth = 1.5,
-  }) async {
-    final material = await FilamentApp.instance!.createMaterial(
-        File("${assetsDir}/wireframe.filamat").readAsBytesSync());
-    final instance = await material.createInstance();
-    await instance.setParameterFloat4("edgeColor", edgeR, edgeG, edgeB, edgeA);
-    await instance.setParameterFloat4("faceColor", faceR, faceG, faceB, faceA);
-    await instance.setParameterFloat("edgeWidth", edgeWidth);
-    return instance;
-  }
-
   /// Load the solidcolor material and create an instance with the given color.
   ///
   /// The solidcolor material only requires POSITION vertex attribute, making it
@@ -188,7 +168,7 @@ class TestHelper {
         .createUbershaderMaterialInstance(unlit: true);
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
-    final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+    final cubeGeometry = GeometryUtils.cube(flipUvs: true);
     var asset = await viewer
         .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
     return asset;
@@ -200,7 +180,7 @@ class TestHelper {
         .createUbershaderMaterialInstance(unlit: true);
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
-    final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+    final cubeGeometry = GeometryUtils.cube(flipUvs: true);
     var asset = await viewer
         .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
 
@@ -630,7 +610,7 @@ class ViewerBuilder {
           .createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
-      final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+      final cubeGeometry = GeometryUtils.cube(flipUvs: true);
       var asset = await viewer
           .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
 
@@ -703,7 +683,7 @@ class ViewerBuilder {
       }
 
       final plane = await viewer.createGeometry(
-          GeometryHelper.plane(
+          GeometryUtils.plane(
               normals: true, uvs: true, width: 10.0, height: 10.0),
           materialInstances: [materialInstance]);
 
@@ -750,7 +730,7 @@ class ViewerBuilder {
       }
 
       final cube = await viewer.createGeometry(
-          GeometryHelper.cube(flipUvs: true),
+          GeometryUtils.cube(flipUvs: true),
           materialInstances:
               materialInstance != null ? [materialInstance] : null);
 
