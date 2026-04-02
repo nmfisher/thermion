@@ -9,8 +9,15 @@ class FFIWireframeAsset extends FFIAsset {
   FFIWireframeAsset(super.asset);
 
   static Future<MaterialInstance> _createMaterialInstance({
-    LinearColor? edgeColor,
-    double edgeWidth = 1.5,
+    double edgeR = 0.3,
+    double edgeG = 0.3,
+    double edgeB = 0.3,
+    double edgeA = 0.3,
+    double faceR = 0.1,
+    double faceG = 0.1,
+    double faceB = 0.1,
+    double faceA = 0.1,
+    double edgeWidth = 0.5,
   }) async {
     // Create wireframe material
     _material ??= FFIMaterial(await withPointerCallback<TMaterial>(
@@ -23,10 +30,11 @@ class FFIWireframeAsset extends FFIAsset {
     // Create and configure material instance
     final instance = await _material!.createInstance();
 
-    if (edgeColor != null) {
-      await instance.setParameterFloat4(
-          "edgeColor", edgeColor.r, edgeColor.g, edgeColor.b, 1.0);
-    }
+    // Make double-sided to avoid winding/culling issues with extracted geometry
+    await instance.setDoubleSided(true);
+
+    await instance.setParameterFloat4("edgeColor", edgeR, edgeG, edgeB, edgeA);
+    await instance.setParameterFloat4("faceColor", faceR, faceG, faceB, faceA);
     await instance.setParameterFloat("edgeWidth", edgeWidth);
 
     return instance;
@@ -59,6 +67,53 @@ class FFIWireframeAsset extends FFIAsset {
       materialInstances: [materialInstance],
     );
     return FFIWireframeAsset(asset.getNativeHandle());
+  }
+
+  /// Creates a wireframe overlay entity by extracting mesh data from a loaded
+  /// glTF asset. The overlay is a separate entity that can be added/removed
+  /// from the scene independently.
+  ///
+  /// All buffer creation happens in C++ using the same enableBufferObjects +
+  /// BufferObject pattern as the working applyWireframeBarycentrics.
+  static Future<ThermionAsset> createOverlayFromAsset(
+    ThermionAsset asset, {
+    double edgeR = 0.3,
+    double edgeG = 0.3,
+    double edgeB = 0.3,
+    double edgeA = 0.3,
+    double faceR = 0.1,
+    double faceG = 0.1,
+    double faceB = 0.1,
+    double faceA = 0.1,
+    double edgeWidth = 0.5,
+  }) async {
+    final nativeHandle = asset.getNativeHandle();
+
+    // Create wireframe material instance
+    final materialInstance = await _createMaterialInstance(
+      edgeR: edgeR,
+      edgeG: edgeG,
+      edgeB: edgeB,
+      edgeA: edgeA,
+      faceR: faceR,
+      faceG: faceG,
+      faceB: faceB,
+      faceA: faceA,
+      edgeWidth: edgeWidth,
+    );
+
+    // Delegate everything to C++ — extract mesh data, unweld, assign
+    // barycentrics, build VertexBuffer/IndexBuffer, create GeometrySceneAsset.
+    final assetPtr = await withPointerCallback<TSceneAsset>((callback) {
+      SceneAsset_createWireframeOverlayRenderThread(
+          nativeHandle, materialInstance.getNativeHandle(), callback);
+    });
+
+    if (assetPtr == nullptr) {
+      throw Exception('Failed to create wireframe overlay');
+    }
+
+    return FFIWireframeAsset(assetPtr);
   }
 
   static Future<ThermionAsset> createFromGltf(Uint8List gltfData) async {

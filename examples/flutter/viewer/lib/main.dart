@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:flutter/material.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_wireframe_geometry.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 void main() {
@@ -43,6 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ThermionViewer? _thermionViewer;
+  ThermionAsset? _wireframeOverlay;
 
   Future _load() async {
     if (_thermionViewer != null) {
@@ -63,30 +64,12 @@ class _MyHomePageState extends State<MyHomePage> {
     // By default, all paths are treated as asset paths. To load from a file
     // instead, use file:// URIs.
     var asset = await _thermionViewer!
-        .loadGltf("assets/FlightHelmet/FlightHelmet.gltf");
+        .loadGltf("assets/FlightHelmet/FlightHelmet.gltf", addToScene: false);
 
-    await asset.applyWireframeBarycentrics();
+    // Create a wireframe overlay as a separate entity
+    _wireframeOverlay = await FFIWireframeAsset.createOverlayFromAsset(asset);
 
-    // Create wireframe material
-    var material = FFIMaterial(await withPointerCallback<TMaterial>(
-      (callback) => Material_createWireframeMaterialRenderThread(
-        FilamentApp.instance!.engine,
-        callback,
-      ),
-    ));
-
-    // Create and configure material instance
-    final instance = await material!.createInstance();
-
-    for (final child in await asset.getChildEntities()) {
-      if (await FilamentApp.instance!.isRenderable(child)) {
-        await FilamentApp.instance!.setMaterialInstanceAt(child, 0, instance);
-      }
-    }
-
-      await instance.setParameterFloat4("edgeColor", 1.0, 0.0, 1.0, 1.0);
-      await instance.setParameterFloat4("faceColor", 0.1, 0.1, 0.1, 1.0);
-      await instance.setParameterFloat("edgeWidth", 0.5);
+    await _thermionViewer!.addToScene(_wireframeOverlay!);
 
     // Thermion uses a right-handed coordinate system where +Y is up and -Z is
     // "into" the screen.
@@ -171,8 +154,10 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_thermionViewer != null)
             Positioned.fill(
                 child: ThermionListenerWidget(
-                    inputHandler:
-                        DelegateInputHandler.fixedOrbit(_thermionViewer!, sensitivity: InputSensitivityOptions(scrollWheelSensitivity: 0.005)),
+                    inputHandler: DelegateInputHandler.fixedOrbit(
+                        _thermionViewer!,
+                        sensitivity: InputSensitivityOptions(
+                            scrollWheelSensitivity: 0.005)),
                     child: ThermionWidget(
                       viewer: _thermionViewer!,
                     ))),

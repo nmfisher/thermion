@@ -261,6 +261,45 @@ extern "C"
         gltfAsset->releaseSourceData();
     }
 
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createWireframeOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("createWireframeOverlay only supported on glTF assets");
+            return nullptr;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        auto *materialInstance = reinterpret_cast<filament::MaterialInstance*>(tMaterialInstance);
+        auto *overlay = gltfAsset->createWireframeOverlay(materialInstance);
+        return reinterpret_cast<TSceneAsset*>(overlay);
+    }
+
+    EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshDataSize(TSceneAsset *tSceneAsset, uint32_t *outVertexCount, uint32_t *outIndexCount) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("getMeshDataSize only supported on glTF assets");
+            return -1;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        if (!gltfAsset->extractMeshData(nullptr, outVertexCount, nullptr, outIndexCount)) {
+            return -1;
+        }
+        return 0;
+    }
+
+    EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshData(TSceneAsset *tSceneAsset, float *outPositions, uint32_t *outIndices) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("getMeshData only supported on glTF assets");
+            return -1;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        uint32_t vertexCount = 0, indexCount = 0;
+        if (!gltfAsset->extractMeshData(outPositions, &vertexCount, outIndices, &indexCount)) {
+            return -1;
+        }
+        return 0;
+    }
+
 #ifdef __cplusplus
 }
 #endif

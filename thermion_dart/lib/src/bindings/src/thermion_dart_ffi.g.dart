@@ -5467,6 +5467,33 @@ external void SceneAsset_releaseSourceData(
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TMaterialInstance>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(isLeaf: true)
+external void SceneAsset_createWireframeOverlayRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Int Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Uint32>,
+        ffi.Pointer<ffi.Uint32>)>(isLeaf: true)
+external int SceneAsset_getMeshDataSize(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<ffi.Uint32> outVertexCount,
+  ffi.Pointer<ffi.Uint32> outIndexCount,
+);
+
+@ffi.Native<
+    ffi.Int Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Uint32>)>(isLeaf: true)
+external int SceneAsset_getMeshData(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<ffi.Float> outPositions,
+  ffi.Pointer<ffi.Uint32> outIndices,
+);
+
 @ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(
     isLeaf: true)
 external ffi.Pointer<TAnimationManager> AnimationManager_create(

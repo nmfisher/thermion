@@ -142,6 +142,18 @@ namespace thermion
         /// Requires source data to still be available (releaseSourceData not called).
         void applyWireframeBarycentrics();
 
+        /// Extract raw vertex positions and triangle indices from all mesh primitives.
+        /// Two-pass API: call with outPositions=nullptr to get counts, then allocate
+        /// and call again to fill. Returns false if source data is unavailable.
+        bool extractMeshData(float* outPositions, uint32_t* outVertexCount,
+                             uint32_t* outIndices, uint32_t* outIndexCount);
+
+        /// Create a separate wireframe overlay entity using the same buffer
+        /// layout as applyWireframeBarycentrics (POSITION + CUSTOM0 only,
+        /// with enableBufferObjects). Returns a new GeometrySceneAsset, or
+        /// nullptr if source data is unavailable.
+        SceneAsset* createWireframeOverlay(MaterialInstance* materialInstance);
+
         /// Release the underlying cgltf source data early to free memory.
         /// Safe to call multiple times; subsequent calls are no-ops.
         void releaseSourceData();

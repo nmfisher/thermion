@@ -48,12 +48,10 @@ fragment {
         vec3 edgeDist = smoothstep(vec3(0.0), threshold, bary);
         float interior = min(min(edgeDist.x, edgeDist.y), edgeDist.z);
 
-        vec4 edgeColor = materialParams.edgeColor;
-        vec4 faceColor = materialParams.faceColor;
+        vec3 edgeColor = materialParams.edgeColor.rgb;
+        vec3 faceColor = materialParams.faceColor.rgb;
 
-        vec3 color = mix(edgeColor.rgb, faceColor.rgb, interior);
-        float alpha = mix(edgeColor.a, faceColor.a, interior);
-
-        material.baseColor = vec4(color, alpha);
+        vec3 color = mix(edgeColor, faceColor, interior);
+        material.baseColor = vec4(color, 1.0);
     }
 }

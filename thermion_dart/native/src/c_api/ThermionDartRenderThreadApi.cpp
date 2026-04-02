@@ -736,6 +736,18 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createWireframeOverlayRenderThread(
+      TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance, void (*onComplete)(TSceneAsset *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *overlay = SceneAsset_createWireframeOverlay(tSceneAsset, tMaterialInstance);
+          PROXY(onComplete(overlay));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataRenderThread(
       TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
   {

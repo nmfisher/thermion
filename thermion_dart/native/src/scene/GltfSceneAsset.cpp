@@ -1,6 +1,7 @@
 
 #include "scene/GltfSceneAsset.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
+#include "scene/GeometrySceneAsset.hpp"
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
 
@@ -186,6 +187,206 @@ namespace thermion
             }
         }
         return nullptr;
+    }
+
+    bool GltfSceneAsset::extractMeshData(float* outPositions, uint32_t* outVertexCount,
+                                          uint32_t* outIndices, uint32_t* outIndexCount)
+    {
+        auto* sourceData = (const cgltf_data*)_asset->getSourceAsset();
+        if (!sourceData) {
+            Log("extractMeshData: source data already released");
+            return false;
+        }
+
+        uint32_t totalVertices = 0;
+        uint32_t totalIndices = 0;
+
+        // Iterate all nodes with meshes in the cgltf data
+        for (cgltf_size ni = 0; ni < sourceData->nodes_count; ni++) {
+            const cgltf_node& node = sourceData->nodes[ni];
+            if (!node.mesh) continue;
+
+            for (cgltf_size pi = 0; pi < node.mesh->primitives_count; pi++) {
+                const cgltf_primitive& prim = node.mesh->primitives[pi];
+
+                if (prim.type != cgltf_primitive_type_triangles) continue;
+
+                // Find position accessor
+                const cgltf_accessor* posAccessor = nullptr;
+                for (cgltf_size ai = 0; ai < prim.attributes_count; ai++) {
+                    if (prim.attributes[ai].type == cgltf_attribute_type_position) {
+                        posAccessor = prim.attributes[ai].data;
+                        break;
+                    }
+                }
+                if (!posAccessor) continue;
+
+                // Count indices
+                uint32_t primIndexCount = 0;
+                if (prim.indices) {
+                    primIndexCount = (uint32_t)prim.indices->count;
+                } else {
+                    primIndexCount = (uint32_t)posAccessor->count;
+                }
+
+                if (primIndexCount < 3 || primIndexCount % 3 != 0) continue;
+
+                if (outPositions != nullptr) {
+                    // Get the node's world transform (column-major 4x4)
+                    float worldTransform[16];
+                    cgltf_node_transform_world(&node, worldTransform);
+
+                    // Read positions
+                    size_t posComponents = cgltf_num_components(posAccessor->type);
+                    std::vector<float> srcPositions(posAccessor->count * posComponents);
+                    cgltf_accessor_unpack_floats(posAccessor, srcPositions.data(), srcPositions.size());
+
+                    // Copy positions transformed to world space (3 floats per vertex)
+                    for (cgltf_size vi = 0; vi < posAccessor->count; vi++) {
+                        float x = srcPositions[vi * posComponents + 0];
+                        float y = srcPositions[vi * posComponents + 1];
+                        float z = srcPositions[vi * posComponents + 2];
+
+                        // Apply column-major 4x4 world transform
+                        outPositions[(totalVertices + vi) * 3 + 0] =
+                            worldTransform[0] * x + worldTransform[4] * y + worldTransform[8] * z + worldTransform[12];
+                        outPositions[(totalVertices + vi) * 3 + 1] =
+                            worldTransform[1] * x + worldTransform[5] * y + worldTransform[9] * z + worldTransform[13];
+                        outPositions[(totalVertices + vi) * 3 + 2] =
+                            worldTransform[2] * x + worldTransform[6] * y + worldTransform[10] * z + worldTransform[14];
+                    }
+
+                    // Read indices (offset by accumulated vertex count)
+                    if (prim.indices) {
+                        for (cgltf_size ii = 0; ii < prim.indices->count; ii++) {
+                            outIndices[totalIndices + ii] = totalVertices + (uint32_t)cgltf_accessor_read_index(prim.indices, ii);
+                        }
+                    } else {
+                        for (uint32_t ii = 0; ii < primIndexCount; ii++) {
+                            outIndices[totalIndices + ii] = totalVertices + ii;
+                        }
+                    }
+                }
+
+                totalVertices += (uint32_t)posAccessor->count;
+                totalIndices += primIndexCount;
+            }
+        }
+
+        *outVertexCount = totalVertices;
+        *outIndexCount = totalIndices;
+        return true;
+    }
+
+    SceneAsset* GltfSceneAsset::createWireframeOverlay(MaterialInstance* materialInstance)
+    {
+        // Step 1: Get counts
+        uint32_t vertexCount = 0, indexCount = 0;
+        if (!extractMeshData(nullptr, &vertexCount, nullptr, &indexCount)) {
+            Log("createWireframeOverlay: failed to extract mesh data");
+            return nullptr;
+        }
+        if (vertexCount == 0 || indexCount == 0) {
+            Log("createWireframeOverlay: no mesh data");
+            return nullptr;
+        }
+
+        // Step 2: Extract positions and indices
+        std::vector<float> positions(vertexCount * 3);
+        std::vector<uint32_t> indices(indexCount);
+        extractMeshData(positions.data(), &vertexCount, indices.data(), &indexCount);
+
+        // Step 3: Unweld vertices and assign barycentrics
+        // (same logic as applyWireframeBarycentrics)
+        uint32_t triangleCount = indexCount / 3;
+        uint32_t newVertexCount = triangleCount * 3;
+
+        size_t posDataSize = newVertexCount * 3 * sizeof(float);
+        float* newPositions = (float*)malloc(posDataSize);
+
+        size_t baryDataSize = newVertexCount * 4 * sizeof(float);
+        float* newBarycentrics = (float*)malloc(baryDataSize);
+
+        const float bary[3][4] = {
+            {1.0f, 0.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f, 0.0f}
+        };
+
+        for (uint32_t t = 0; t < triangleCount; t++) {
+            for (int v = 0; v < 3; v++) {
+                uint32_t srcIdx = indices[t * 3 + v];
+                uint32_t dstIdx = t * 3 + v;
+
+                newPositions[dstIdx * 3 + 0] = positions[srcIdx * 3 + 0];
+                newPositions[dstIdx * 3 + 1] = positions[srcIdx * 3 + 1];
+                newPositions[dstIdx * 3 + 2] = positions[srcIdx * 3 + 2];
+
+                newBarycentrics[dstIdx * 4 + 0] = bary[v][0];
+                newBarycentrics[dstIdx * 4 + 1] = bary[v][1];
+                newBarycentrics[dstIdx * 4 + 2] = bary[v][2];
+                newBarycentrics[dstIdx * 4 + 3] = bary[v][3];
+            }
+        }
+
+        // Step 4: Build VertexBuffer with POSITION + CUSTOM0
+        // Use enableBufferObjects + BufferObject (same pattern as applyWireframeBarycentrics)
+        VertexBuffer* vb = VertexBuffer::Builder()
+            .vertexCount(newVertexCount)
+            .bufferCount(2)
+            .enableBufferObjects()
+            .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+            .attribute(VertexAttribute::CUSTOM0, 1, VertexBuffer::AttributeType::FLOAT4)
+            .build(*_engine);
+
+        BufferObject* posBO = BufferObject::Builder()
+            .size(posDataSize)
+            .build(*_engine);
+        posBO->setBuffer(*_engine,
+            BufferObject::BufferDescriptor(newPositions, posDataSize, FREE_CB));
+        vb->setBufferObjectAt(*_engine, 0, posBO);
+
+        BufferObject* baryBO = BufferObject::Builder()
+            .size(baryDataSize)
+            .build(*_engine);
+        baryBO->setBuffer(*_engine,
+            BufferObject::BufferDescriptor(newBarycentrics, baryDataSize, FREE_CB));
+        vb->setBufferObjectAt(*_engine, 1, baryBO);
+
+        // Step 5: Build IndexBuffer with sequential indices
+        size_t indexDataSize = newVertexCount * sizeof(uint32_t);
+        uint32_t* newIndices = (uint32_t*)malloc(indexDataSize);
+        for (uint32_t i = 0; i < newVertexCount; i++) {
+            newIndices[i] = i;
+        }
+
+        IndexBuffer* ib = IndexBuffer::Builder()
+            .indexCount(newVertexCount)
+            .bufferType(IndexBuffer::IndexType::UINT)
+            .build(*_engine);
+        ib->setBuffer(*_engine,
+            IndexBuffer::BufferDescriptor(newIndices, indexDataSize, FREE_CB));
+
+        // Step 6: Calculate bounding box
+        float minX = positions[0], minY = positions[1], minZ = positions[2];
+        float maxX = minX, maxY = minY, maxZ = minZ;
+        for (uint32_t i = 1; i < vertexCount; i++) {
+            float x = positions[i * 3 + 0], y = positions[i * 3 + 1], z = positions[i * 3 + 2];
+            if (x < minX) minX = x; if (x > maxX) maxX = x;
+            if (y < minY) minY = y; if (y > maxY) maxY = y;
+            if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+        }
+        Box boundingBox;
+        boundingBox.set({minX, minY, minZ}, {maxX, maxY, maxZ});
+
+        // Step 7: Create GeometrySceneAsset
+        auto* asset = new GeometrySceneAsset(
+            _engine, vb, ib, &materialInstance, 1,
+            RenderableManager::PrimitiveType::TRIANGLES,
+            boundingBox, nullptr);
+
+        TRACE("createWireframeOverlay: created overlay with %u vertices", newVertexCount);
+        return asset;
     }
 
     void GltfSceneAsset::applyWireframeBarycentrics()

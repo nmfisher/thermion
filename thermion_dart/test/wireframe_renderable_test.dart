@@ -1,4 +1,5 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_wireframe_geometry.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
@@ -38,6 +39,25 @@ void main() async {
 
       // Capture the wireframe rendering
       await testHelper.capture(result.viewer.view, "gltf_bary_wireframe");
+    });
+  });
+
+  test('create wireframe overlay from glTF asset', () async {
+    await ViewerBuilder(testHelper).addSun().execute((result) async {
+      final asset = await result.viewer
+          .loadGltf("file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf");
+
+      await result.viewer.addToScene(asset);
+      await testHelper.capture(result.viewer.view, "gltf_overlay_before");
+
+      // Create wireframe overlay as separate entity
+      final overlay = await FFIWireframeAsset.createOverlayFromAsset(asset);
+      await result.viewer.addToScene(overlay);
+      await testHelper.capture(result.viewer.view, "gltf_overlay_wireframe");
+
+      // Remove overlay - original should remain
+      await result.viewer.removeFromScene(overlay);
+      await testHelper.capture(result.viewer.view, "gltf_overlay_removed");
     });
   });
 }
