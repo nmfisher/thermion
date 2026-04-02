@@ -2175,6 +2175,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int materialInstanceCount,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
   );
+  external void _SceneAsset_applyWireframeBarycentricsRenderThread(
+    Pointer<TSceneAsset> tSceneAsset,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _SceneAsset_releaseSourceDataRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
     int requestId,
@@ -2932,21 +2937,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> tSceneAsset,
     int primitiveIndex,
   );
-  external int _SceneAsset_getRenderableEntityCount(
+  external void _SceneAsset_applyWireframeBarycentrics(
     Pointer<TSceneAsset> tSceneAsset,
-  );
-  external int _SceneAsset_getMeshPrimitiveCount(
-    Pointer<TSceneAsset> tSceneAsset,
-    int entityIndex,
-  );
-  external void _SceneAsset_getMeshPrimitiveData(
-    Pointer<TSceneAsset> tSceneAsset,
-    int entityIndex,
-    int primitiveIndex,
-    Pointer<Uint32> outVertexCount,
-    Pointer<Float32> outPositions,
-    Pointer<Uint32> outIndexCount,
-    Pointer<Uint32> outIndices,
   );
   external void _SceneAsset_releaseSourceData(
     Pointer<TSceneAsset> tSceneAsset,
@@ -7961,6 +7953,19 @@ void SceneAsset_createInstanceRenderThread(
   return result;
 }
 
+void SceneAsset_applyWireframeBarycentricsRenderThread(
+  Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_applyWireframeBarycentricsRenderThread(
+          tSceneAsset.cast(),
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
 void SceneAsset_releaseSourceDataRenderThread(
   Pointer<TSceneAsset> tSceneAsset,
   int requestId,
@@ -9620,40 +9625,11 @@ Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
   return Pointer<TIndexBuffer>(result);
 }
 
-int SceneAsset_getRenderableEntityCount(
+void SceneAsset_applyWireframeBarycentrics(
   Pointer<TSceneAsset> tSceneAsset,
 ) {
   final result = GeneratedBindings.instance
-      ._SceneAsset_getRenderableEntityCount(tSceneAsset.cast());
-  return result;
-}
-
-int SceneAsset_getMeshPrimitiveCount(
-  Pointer<TSceneAsset> tSceneAsset,
-  int entityIndex,
-) {
-  final result = GeneratedBindings.instance
-      ._SceneAsset_getMeshPrimitiveCount(tSceneAsset.cast(), entityIndex);
-  return result;
-}
-
-void SceneAsset_getMeshPrimitiveData(
-  Pointer<TSceneAsset> tSceneAsset,
-  int entityIndex,
-  int primitiveIndex,
-  Pointer<Uint32> outVertexCount,
-  Pointer<Float32> outPositions,
-  Pointer<Uint32> outIndexCount,
-  Pointer<Uint32> outIndices,
-) {
-  final result = GeneratedBindings.instance._SceneAsset_getMeshPrimitiveData(
-      tSceneAsset.cast(),
-      entityIndex,
-      primitiveIndex,
-      outVertexCount,
-      outPositions,
-      outIndexCount,
-      outIndices);
+      ._SceneAsset_applyWireframeBarycentrics(tSceneAsset.cast());
   return result;
 }
 

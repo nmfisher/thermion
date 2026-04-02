@@ -3994,6 +3994,15 @@ external void SceneAsset_createInstanceRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void SceneAsset_applyWireframeBarycentricsRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void SceneAsset_releaseSourceDataRenderThread(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int requestId,
@@ -5448,13 +5457,9 @@ external ffi.Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
   int primitiveIndex,
 );
 
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
-external void SceneAsset_applyWireframeBarycentricsRenderThread(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external void SceneAsset_applyWireframeBarycentrics(
   ffi.Pointer<TSceneAsset> tSceneAsset,
-  int requestId,
-  VoidCallback onComplete,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
