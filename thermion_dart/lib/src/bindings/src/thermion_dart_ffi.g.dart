@@ -626,6 +626,17 @@ external void FilamentAsset_getEntities(
   ffi.Pointer<EntityId> out,
 );
 
+@ffi.Native<EntityId Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external int FilamentAsset_getWireframe(
+  ffi.Pointer<TFilamentAsset> filamentAsset,
+);
+
+@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<TFilamentAsset>)>(
+    isLeaf: true)
+external ffi.Pointer<ffi.Void> FilamentAsset_getSourceAsset(
+  ffi.Pointer<TFilamentAsset> filamentAsset,
+);
+
 @ffi.Native<
     ffi.Pointer<TGltfAssetLoader> Function(
         ffi.Pointer<TEngine>,
@@ -3925,6 +3936,7 @@ external void SceneAsset_destroyRenderThread(
             ffi.Pointer<TGltfAssetLoader>,
             ffi.Pointer<TNameComponentManager>,
             ffi.Pointer<TFilamentAsset>,
+            ffi.Bool,
             ffi.Pointer<
                 ffi
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
@@ -3934,6 +3946,7 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  bool preserveGeometry,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
       onComplete,
 );
@@ -3978,6 +3991,15 @@ external void SceneAsset_createInstanceRenderThread(
   int materialInstanceCount,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
       callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void SceneAsset_releaseSourceDataRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  VoidCallback onComplete,
 );
 
 @ffi.Native<
@@ -4558,6 +4580,15 @@ external void Scene_addFilamentAssetRenderThread(
   ffi.Pointer<TFilamentAsset> tAsset,
   int requestId,
   VoidCallback onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TFilamentAsset>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
+    isLeaf: true)
+external void FilamentAsset_getWireframeRenderThread(
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> onComplete,
 );
 
 @ffi.Native<
@@ -5304,12 +5335,14 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
         ffi.Pointer<TEngine>,
         ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<TNameComponentManager>,
-        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+        ffi.Pointer<TFilamentAsset>,
+        ffi.Bool)>(isLeaf: true)
 external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  bool preserveGeometry,
 );
 
 @ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(
@@ -5417,6 +5450,11 @@ external ffi.Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
 external ffi.Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int primitiveIndex,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external void SceneAsset_releaseSourceData(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
 @ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(

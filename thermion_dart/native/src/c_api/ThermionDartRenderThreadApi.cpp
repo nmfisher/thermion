@@ -20,6 +20,7 @@
 #include "c_api/TRenderTarget.h"
 #include "c_api/TScene.h"
 #include "c_api/TSceneAsset.h"
+#include "c_api/TFilamentAsset.h"
 #include "c_api/TTexture.h"
 #include "c_api/TView.h"
 #include "c_api/TVertexBuffer.h"
@@ -679,12 +680,13 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
+      bool preserveGeometry,
       void (*onComplete)(TSceneAsset *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, preserveGeometry);
           PROXY(onComplete(sceneAsset));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -719,6 +721,18 @@ extern "C"
         {
           auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
           PROXY(callback(instanceAsset));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataRenderThread(
+      TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneAsset_releaseSourceData(tSceneAsset);
+          PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
   }
@@ -1833,6 +1847,17 @@ extern "C"
         {
           Scene_addFilamentAsset(tScene, tAsset);
           PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeRenderThread(TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto entityId = FilamentAsset_getWireframe(tFilamentAsset);
+          PROXY(onComplete(entityId));
         });
     auto fut = _renderThread->addTask(lambda);
   }

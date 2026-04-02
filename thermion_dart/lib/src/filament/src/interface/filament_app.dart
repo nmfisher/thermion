@@ -5,8 +5,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 class FilamentConfig<T, U> {
   final Backend backend;
-  final T? renderCallback;
-  final U? renderCallbackOwner;
   Future<Uint8List> Function(String)? loadResource;
   final U? platform;
   final U? sharedContext;
@@ -18,8 +16,6 @@ class FilamentConfig<T, U> {
       {required this.backend,
       required this.loadResource,
       this.uberArchivePath,
-      this.renderCallback,
-      this.renderCallbackOwner,
       this.platform,
       this.sharedContext,
       this.stereoscopicEyeCount = 1,
@@ -257,14 +253,11 @@ abstract class FilamentApp<T> {
   Future setClearOptions(double r, double g, double b, double a,
       {int clearStencil = 0, bool discard = false, bool clear = true});
 
-  // See [FilamentViewerFFI.loadGltf] for details.
-  //
-  //
+  // Loads a glTF asset from a raw memory buffer.
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
-      bool keepData = false,
-      int priority = 4,
-      int layer = 0,
+      bool releaseSourceData = false,
+      bool preserveGeometry = false,
       bool loadResourcesAsync = false,
       String? resourceUri});
 
@@ -272,11 +265,12 @@ abstract class FilamentApp<T> {
   Future<T> createColorGrading(ToneMapper mapper);
 
   //
-  Future<GizmoAsset> createGizmo(covariant View view, GizmoType type);
+  Future<GizmoAsset> createGizmo(View view, GizmoType type);
 
   //
   Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances, bool keepData = false});
+      {List<MaterialInstance>? materialInstances,
+      bool releaseSourceData = false});
 
   //
   Future<ThermionEntity> createDirectLight(DirectLight directLight);

@@ -14,7 +14,7 @@ material {
         {
             type: float,
             name: edgeWidth,
-            default: 1.5
+            default: 3.0
         }
     ],
     requires : [
@@ -27,14 +27,12 @@ material {
     depthCulling : true,
     doubleSided : false,
     shadingModel : unlit,
-    blending : transparent,
+    blending : opaque,
     culling : back
 }
 
 vertex {
     void materialVertex(inout MaterialVertexInputs material) {
-        // Barycentric coordinates stored in CUSTOM0 (float4):
-        // vertex 0: (1, 0, 0), vertex 1: (0, 1, 0), vertex 2: (0, 0, 1)
         material.barycentrics = getCustom0();
     }
 }
@@ -44,21 +42,26 @@ fragment {
         prepareMaterial(material);
 
         vec3 bary = variable_barycentrics.xyz;
-        vec3 fw = fwidth(bary);
+
+        // Screen-space edge width with anti-aliased transition.
+        // Use separate derivative components to avoid artifacts at
+        // grazing angles where fwidth can spike.
+        vec3 dx = dFdx(bary);
+        vec3 dy = dFdy(bary);
+        vec3 fw = sqrt(dx * dx + dy * dy);
+
         float lineWidthPixels = materialParams.edgeWidth;
-        vec3 threshold = fw * lineWidthPixels;
-        vec3 edgeDist = smoothstep(vec3(0.0), threshold, bary);
+
+        // Smoothstep over a 1-pixel transition band for anti-aliasing
+        vec3 edgeStart = fw * (lineWidthPixels - 0.5);
+        vec3 edgeEnd   = fw * (lineWidthPixels + 0.5);
+        vec3 edgeDist = smoothstep(edgeStart, edgeEnd, bary);
         float interior = min(min(edgeDist.x, edgeDist.y), edgeDist.z);
 
-        // Mix edge and face colors based on interior factor
-        vec4 edgeColor = materialParams.edgeColor;
-        vec4 faceColor = materialParams.faceColor;
+        vec3 edgeColor = materialParams.edgeColor.rgb;
+        vec3 faceColor = materialParams.faceColor.rgb;
 
-        // For wireframe with transparent faces, use edge alpha for edges
-        // and face alpha for interior
-        vec3 color = mix(edgeColor.rgb, faceColor.rgb, interior);
-        float alpha = mix(edgeColor.a, faceColor.a, interior);
-
-        material.baseColor = vec4(color, alpha);
+        vec3 color = mix(edgeColor, faceColor, interior);
+        material.baseColor = vec4(color, 1.0);
     }
 }

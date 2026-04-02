@@ -181,7 +181,7 @@ void main() async {
   //     final materialInstance = await material.createInstance();
   //     final sampler = await FilamentApp.instance!.createTextureSampler();
   //     final cube = await result.viewer.createGeometry(
-  //       GeometryHelper.cube(),
+  //       GeometryUtils.cube(),
   //       materialInstances: [materialInstance],
   //     );
 

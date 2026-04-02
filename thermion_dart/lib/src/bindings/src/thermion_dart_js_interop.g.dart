@@ -390,6 +390,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> filamentAsset,
     Pointer<Int32> out,
   );
+  external EntityId _FilamentAsset_getWireframe(
+    Pointer<TFilamentAsset> filamentAsset,
+  );
+  external Pointer<Void> _FilamentAsset_getSourceAsset(
+    Pointer<TFilamentAsset> filamentAsset,
+  );
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -2151,6 +2157,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
+    bool preserveGeometry,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>>
         onComplete,
   );
@@ -2169,6 +2176,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<PointerClass<TMaterialInstance>> tMaterialInstances,
     int materialInstanceCount,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
+  );
+  external void _SceneAsset_releaseSourceDataRenderThread(
+    Pointer<TSceneAsset> tSceneAsset,
+    int requestId,
+    VoidCallback onComplete,
   );
   external void _MaterialProvider_createMaterialInstanceRenderThread(
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -2441,6 +2453,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> tAsset,
     int requestId,
     VoidCallback onComplete,
+  );
+  external void _FilamentAsset_getWireframeRenderThread(
+    Pointer<TFilamentAsset> tFilamentAsset,
+    Pointer<NativeFunction<void Function(EntityId)>> onComplete,
   );
   external void _Scene_removeEntityRenderThread(
     Pointer<TScene> tScene,
@@ -2857,6 +2873,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
+    bool preserveGeometry,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(
     Pointer<TSceneAsset> tSceneAsset,
@@ -2917,6 +2934,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TIndexBuffer> _SceneAsset_getIndexBuffer(
     Pointer<TSceneAsset> tSceneAsset,
     int primitiveIndex,
+  );
+  external void _SceneAsset_releaseSourceData(
+    Pointer<TSceneAsset> tSceneAsset,
   );
   external Pointer<TAnimationManager> _AnimationManager_create(
     Pointer<TEngine> tEngine,
@@ -3949,6 +3969,22 @@ void FilamentAsset_getEntities(
   final result = GeneratedBindings.instance
       ._FilamentAsset_getEntities(filamentAsset.cast(), out);
   return result;
+}
+
+DartEntityId FilamentAsset_getWireframe(
+  Pointer<TFilamentAsset> filamentAsset,
+) {
+  final result = GeneratedBindings.instance
+      ._FilamentAsset_getWireframe(filamentAsset.cast());
+  return result;
+}
+
+Pointer<Void> FilamentAsset_getSourceAsset(
+  Pointer<TFilamentAsset> filamentAsset,
+) {
+  final result = GeneratedBindings.instance
+      ._FilamentAsset_getSourceAsset(filamentAsset.cast());
+  return Pointer<Void>(result);
 }
 
 Pointer<TGltfAssetLoader> GltfAssetLoader_create(
@@ -7865,6 +7901,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
+  bool preserveGeometry,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance
@@ -7873,6 +7910,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
           tAssetLoader.cast(),
           tNameComponentManager.cast(),
           tFilamentAsset.cast(),
+          preserveGeometry,
           onComplete.cast());
   return result;
 }
@@ -7910,6 +7948,17 @@ void SceneAsset_createInstanceRenderThread(
   final result = GeneratedBindings.instance
       ._SceneAsset_createInstanceRenderThread(asset.cast(),
           tMaterialInstances.cast(), materialInstanceCount, callback.cast());
+  return result;
+}
+
+void SceneAsset_releaseSourceDataRenderThread(
+  Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_releaseSourceDataRenderThread(tSceneAsset.cast(), requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -8487,6 +8536,16 @@ void Scene_addFilamentAssetRenderThread(
       tAsset.cast(),
       requestId,
       onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void FilamentAsset_getWireframeRenderThread(
+  Pointer<TFilamentAsset> tFilamentAsset,
+  Pointer<NativeFunction<void Function(EntityId)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._FilamentAsset_getWireframeRenderThread(
+          tFilamentAsset.cast(), onComplete.cast());
   return result;
 }
 
@@ -9397,12 +9456,14 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
+  bool preserveGeometry,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAsset(
       tEngine.cast(),
       tAssetLoader.cast(),
       tNameComponentManager.cast(),
-      tFilamentAsset.cast());
+      tFilamentAsset.cast(),
+      preserveGeometry);
   return Pointer<TSceneAsset>(result);
 }
 
@@ -9549,6 +9610,14 @@ Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
   final result = GeneratedBindings.instance
       ._SceneAsset_getIndexBuffer(tSceneAsset.cast(), primitiveIndex);
   return Pointer<TIndexBuffer>(result);
+}
+
+void SceneAsset_releaseSourceData(
+  Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_releaseSourceData(tSceneAsset.cast());
+  return result;
 }
 
 Pointer<TAnimationManager> AnimationManager_create(

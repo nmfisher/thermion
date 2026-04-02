@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
+
 import '../../../bindings/bindings.dart' as bindings;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_animation_manager.dart';
@@ -29,9 +31,7 @@ import 'package:logging/logging.dart';
 import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
 
-typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
-
-class FFIFilamentConfig extends FilamentConfig<RenderCallback, Pointer<Void>> {
+class FFIFilamentConfig extends FilamentConfig {
   FFIFilamentConfig(
       {super.loadResource = null,
       super.backend = Backend.DEFAULT,
@@ -116,7 +116,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.sharedContext ?? nullptr,
             config.stereoscopicEyeCount,
             config.disableHandleUseAfterFreeCheck,
-            cb)).timeout(Duration(seconds: 30)); // 30 second timeout is just for CI purposes, this should return  
+            cb)).timeout(Duration(
+        seconds:
+            30)); // 30 second timeout is just for CI purposes, this should return
     final featureLevel = Engine_getSupportedFeatureLevel(engine);
     _logger.info("Created engine with feature level ${featureLevel}");
     final nameComponentManager = NameComponentManager_create();
@@ -419,8 +421,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           "Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)");
     }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
-      RenderTarget_createRenderThread(engine, 
-          color!.getNativeHandle(), depth!.getNativeHandle(), cb);
+      RenderTarget_createRenderThread(
+          engine, color!.getNativeHandle(), depth!.getNativeHandle(), cb);
     });
     if (renderTarget == nullptr) {
       throw Exception("Failed to create RenderTarget");
@@ -464,12 +466,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<void> setExternalImage(Texture texture, int externalImagePtr) async {
     final ffiTexture = texture as FFITexture;
     await withVoidCallback((requestId, cb) {
-      Texture_setExternalImageRenderThread(
-          engine,
-          ffiTexture.pointer,
-          Pointer<Void>.fromAddress(externalImagePtr),
-          requestId,
-          cb);
+      Texture_setExternalImageRenderThread(engine, ffiTexture.pointer,
+          Pointer<Void>.fromAddress(externalImagePtr), requestId, cb);
     });
   }
 
@@ -992,13 +990,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
-      bool keepData = false,
-      int priority = 4,
-      int layer = 0,
+      bool releaseSourceData = false,
       bool loadResourcesAsync = false,
+      bool preserveGeometry = false,
       String? resourceUri}) async {
-    _logger.info(
-        "Loading glTF from buffer (${data.lengthInBytes} bytes) with resourceUri ${resourceUri}");
+    _logger.info("""Loading glTF from buffer (${data.lengthInBytes} bytes)"""
+        """with resourceUri ${resourceUri}""");
     final resources = <FinalizableUint8List>[];
 
     if (resourceUri != null && !resourceUri.endsWith("/")) {
@@ -1084,7 +1081,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       final asset = await withPointerCallback<TSceneAsset>((cb) =>
           SceneAsset_createFromFilamentAssetRenderThread(engine,
-              gltfAssetLoader, nameComponentManager, filamentAsset, cb));
+              gltfAssetLoader, nameComponentManager, filamentAsset,
+              preserveGeometry, cb));
 
       if (asset == nullptr) {
         throw Exception(
@@ -1095,7 +1093,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           GltfResourceLoader_destroyRenderThread(
               engine, gltfResourceLoader, requestId, cb));
 
-      return FFIAsset(asset, keepData: keepData);
+      if (releaseSourceData) {
+        await withVoidCallback((requestId, cb) =>
+            SceneAsset_releaseSourceDataRenderThread(asset, requestId, cb));
+      }
+
+      return FFIAsset(asset, releaseSourceData: releaseSourceData);
     } finally {
       if (FILAMENT_WASM) {
         //stackRestore(stackPtr);
@@ -1124,63 +1127,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         ColorGrading_createRenderThread(engine, mapper.getNativeHandle(), cb));
   }
 
-  FFIMaterial? _gizmoMaterial;
-
   ///
   Future<GizmoAsset> createGizmo(
-      covariant FFIView view, GizmoType gizmoType) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
-    }
-
-    if (_gizmoMaterial == null) {
-      final materialPtr = await withPointerCallback<TMaterial>((cb) {
-        Material_createGizmoMaterialRenderThread(engine, cb);
-      });
-      _gizmoMaterial ??= FFIMaterial(materialPtr);
-    }
-
-    var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-        (cb) => GltfResourceLoader_createRenderThread(engine, cb));
-
-    final gizmo = await withPointerCallback<TGizmo>((cb) {
-      Gizmo_createRenderThread(
-          engine,
-          gltfAssetLoader,
-          gltfResourceLoader,
-          nameComponentManager,
-          view.view,
-          _gizmoMaterial!.pointer,
-          gizmoType.index,
-          cb);
-    });
-    if (gizmo == nullptr) {
-      throw Exception("Failed to create gizmo");
-    }
-    final gizmoEntityCount =
-        SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
-    final gizmoEntities = Int32List(gizmoEntityCount);
-    SceneAsset_getChildEntities(
-        gizmo.cast<TSceneAsset>(), gizmoEntities.address);
-
-    final gizmoAsset = FFIGizmo(gizmo.cast<TSceneAsset>(),
-        view: view,
-        entities: gizmoEntities.toSet()
-          ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
-    if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
-      gizmoEntities.free();
-    }
-
-    return gizmoAsset;
+      View view, GizmoType gizmoType) async {
+    return FFIGizmo.create(view, gizmoType); 
   }
 
   ///
   @override
   Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
-      bool keepData = false,
+      bool releaseSourceData = false,
       bool addToScene = true}) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
@@ -1402,7 +1359,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr, keepData: keepData);
+    return FFIAsset(assetPtr, releaseSourceData: releaseSourceData);
   }
 
   ///
@@ -1454,7 +1411,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<ThermionEntity> createEntity(
       {bool createTransformComponent = true}) async {
-    final entity = await withIntCallback((cb) => EntityManager_createEntityRenderThread(Engine_getEntityManager(engine), cb));
+    final entity = await withIntCallback((cb) =>
+        EntityManager_createEntityRenderThread(
+            Engine_getEntityManager(engine), cb));
     if (createTransformComponent) {
       await transformManager.createComponent(entity);
     }
@@ -1541,16 +1500,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   @override
   Future<TexturedQuad> createTexturedQuad() async {
-
     if (_imageMaterial == null) {
       var ptr = await withPointerCallback<TMaterial>(
           (cb) => Material_createImageMaterialRenderThread(engine, cb));
       _imageMaterial = FFIMaterial(ptr);
     }
-    var mi =
-        await _imageMaterial!.createInstance() as FFIMaterialInstance;
-    
-    var quad = await createGeometry(GeometryHelper.fullscreenQuad());
+    var mi = await _imageMaterial!.createInstance() as FFIMaterialInstance;
+
+    var quad = await createGeometry(GeometryUtils.fullscreenQuad());
     await mi.setParameterInt("isCubeMap", 0);
     await mi.setParameterInt("showImage", 0);
     var transform = Matrix4.identity();
@@ -1558,7 +1515,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await mi.setParameterMat4("transform", transform);
 
     await quad.setMaterialInstanceAt(mi);
-    return FFITexturedQuad(asset: quad, mi: mi);
+    return FFITexturedQuad(asset: quad as ThermionAsset<NativeHandle>, mi: mi);
   }
 
   //

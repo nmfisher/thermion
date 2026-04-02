@@ -36,12 +36,15 @@ namespace thermion
 
         _entity = utils::EntityManager::get().create();
 
+        auto& tm = engine->getTransformManager();
+        tm.create(_entity);
+
         RenderableManager::Builder builder(1);
         builder.boundingBox(boundingBox)
             .geometry(0, _primitiveType, _vertexBuffer, _indexBuffer)
-            .culling(true)
-            .receiveShadows(true)
-            .castShadows(true);
+            .culling(false)
+            .receiveShadows(false)
+            .castShadows(false);
 
         _boundingBox.min = boundingBox.getMin();
         _boundingBox.max = boundingBox.getMax();
@@ -60,6 +63,12 @@ namespace thermion
         if (ri.isValid()) {
             rm.destroy(_entity);
         }
+
+        auto& tm = _engine->getTransformManager();
+        if (tm.getInstance(_entity).isValid()) {
+            tm.destroy(_entity);
+        }
+
         utils::EntityManager::get().destroy(_entity);
 
         if (_vertexBuffer && !isInstance())
