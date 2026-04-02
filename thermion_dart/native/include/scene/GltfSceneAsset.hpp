@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include <filament/BufferObject.h>
 #include <filament/Engine.h>
 #include <filament/RenderableManager.h>
 #include <filament/VertexBuffer.h>
@@ -136,6 +137,15 @@ namespace thermion
             return _asset->getBoundingBox();
         }
 
+        /// Unweld all mesh primitives so each triangle has unique vertices,
+        /// then assign barycentric coordinates to CUSTOM0 for wireframe rendering.
+        /// Requires source data to still be available (releaseSourceData not called).
+        void applyWireframeBarycentrics();
+
+        /// Release the underlying cgltf source data early to free memory.
+        /// Safe to call multiple times; subsequent calls are no-ops.
+        void releaseSourceData();
+
     private:
         gltfio::FilamentAsset *_asset;
         gltfio::AssetLoader *_assetLoader;
@@ -144,6 +154,13 @@ namespace thermion
         MaterialInstance **_materialInstances = nullptr;
         size_t _materialInstanceCount = 0;
         std::vector<std::unique_ptr<GltfSceneAssetInstance>> _instances;
+
+        bool _sourceDataReleased = false;
+
+        // Buffers created by applyWireframeBarycentrics, owned by this asset.
+        std::vector<VertexBuffer*> _wireframeVertexBuffers;
+        std::vector<IndexBuffer*> _wireframeIndexBuffers;
+        std::vector<BufferObject*> _wireframeBufferObjects;
     };
 
 } // namespace thermion

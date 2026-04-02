@@ -14,7 +14,7 @@ material {
         {
             type: float,
             name: edgeWidth,
-            default: 1.5
+            default: 3.0
         }
     ],
     requires : [
@@ -27,14 +27,12 @@ material {
     depthCulling : true,
     doubleSided : false,
     shadingModel : unlit,
-    blending : transparent,
+    blending : opaque,
     culling : back
 }
 
 vertex {
     void materialVertex(inout MaterialVertexInputs material) {
-        // Barycentric coordinates stored in CUSTOM0 (float4):
-        // vertex 0: (1, 0, 0), vertex 1: (0, 1, 0), vertex 2: (0, 0, 1)
         material.barycentrics = getCustom0();
     }
 }
@@ -50,12 +48,9 @@ fragment {
         vec3 edgeDist = smoothstep(vec3(0.0), threshold, bary);
         float interior = min(min(edgeDist.x, edgeDist.y), edgeDist.z);
 
-        // Mix edge and face colors based on interior factor
         vec4 edgeColor = materialParams.edgeColor;
         vec4 faceColor = materialParams.faceColor;
 
-        // For wireframe with transparent faces, use edge alpha for edges
-        // and face alpha for interior
         vec3 color = mix(edgeColor.rgb, faceColor.rgb, interior);
         float alpha = mix(edgeColor.a, faceColor.a, interior);
 
