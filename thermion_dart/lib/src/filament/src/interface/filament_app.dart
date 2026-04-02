@@ -159,8 +159,96 @@ abstract class FilamentApp<T> {
     bool hasVolume = false,
   });
 
+  /// Creates an ubershader material instance wrapped in a typed
+  /// [UbershaderMaterialInstance] with named setters for all standard PBR
+  /// parameters.
+  Future<UbershaderMaterialInstance> createUbershaderMaterial({
+    bool doubleSided = false,
+    bool unlit = false,
+    bool hasVertexColors = false,
+    bool hasBaseColorTexture = false,
+    bool hasNormalTexture = false,
+    bool hasOcclusionTexture = false,
+    bool hasEmissiveTexture = false,
+    bool useSpecularGlossiness = false,
+    AlphaMode alphaMode = AlphaMode.OPAQUE,
+    bool enableDiagnostics = false,
+    bool hasMetallicRoughnessTexture = false,
+    int metallicRoughnessUV = -1,
+    int baseColorUV = -1,
+    bool hasClearCoatTexture = false,
+    int clearCoatUV = -1,
+    bool hasClearCoatRoughnessTexture = false,
+    int clearCoatRoughnessUV = -1,
+    bool hasClearCoatNormalTexture = false,
+    int clearCoatNormalUV = -1,
+    bool hasClearCoat = false,
+    bool hasTransmission = false,
+    bool hasTextureTransforms = false,
+    int emissiveUV = -1,
+    int aoUV = -1,
+    int normalUV = -1,
+    bool hasTransmissionTexture = false,
+    int transmissionUV = -1,
+    bool hasSheenColorTexture = false,
+    int sheenColorUV = -1,
+    bool hasSheenRoughnessTexture = false,
+    int sheenRoughnessUV = -1,
+    bool hasVolumeThicknessTexture = false,
+    int volumeThicknessUV = -1,
+    bool hasSheen = false,
+    bool hasIOR = false,
+    bool hasVolume = false,
+  }) async {
+    final mi = await createUbershaderMaterialInstance(
+      doubleSided: doubleSided,
+      unlit: unlit,
+      hasVertexColors: hasVertexColors,
+      hasBaseColorTexture: hasBaseColorTexture,
+      hasNormalTexture: hasNormalTexture,
+      hasOcclusionTexture: hasOcclusionTexture,
+      hasEmissiveTexture: hasEmissiveTexture,
+      useSpecularGlossiness: useSpecularGlossiness,
+      alphaMode: alphaMode,
+      enableDiagnostics: enableDiagnostics,
+      hasMetallicRoughnessTexture: hasMetallicRoughnessTexture,
+      metallicRoughnessUV: metallicRoughnessUV,
+      baseColorUV: baseColorUV,
+      hasClearCoatTexture: hasClearCoatTexture,
+      clearCoatUV: clearCoatUV,
+      hasClearCoatRoughnessTexture: hasClearCoatRoughnessTexture,
+      clearCoatRoughnessUV: clearCoatRoughnessUV,
+      hasClearCoatNormalTexture: hasClearCoatNormalTexture,
+      clearCoatNormalUV: clearCoatNormalUV,
+      hasClearCoat: hasClearCoat,
+      hasTransmission: hasTransmission,
+      hasTextureTransforms: hasTextureTransforms,
+      emissiveUV: emissiveUV,
+      aoUV: aoUV,
+      normalUV: normalUV,
+      hasTransmissionTexture: hasTransmissionTexture,
+      transmissionUV: transmissionUV,
+      hasSheenColorTexture: hasSheenColorTexture,
+      sheenColorUV: sheenColorUV,
+      hasSheenRoughnessTexture: hasSheenRoughnessTexture,
+      sheenRoughnessUV: sheenRoughnessUV,
+      hasVolumeThicknessTexture: hasVolumeThicknessTexture,
+      volumeThicknessUV: volumeThicknessUV,
+      hasSheen: hasSheen,
+      hasIOR: hasIOR,
+      hasVolume: hasVolume,
+    );
+    return UbershaderMaterialInstance(mi);
+  }
+
   //
   Future<MaterialInstance> createUnlitMaterialInstance();
+
+  /// Creates a wireframe material instance for use with assets loaded
+  /// with [rebuildVertices: true]. Set parameters (edgeColor, faceColor,
+  /// edgeWidth) on the returned [WireframeMaterialInstance], then apply with
+  /// [ThermionAsset.setMaterialInstanceForAll].
+  Future<WireframeMaterialInstance> createWireframeMaterialInstance();
 
   //
   Future<MaterialInstance> getMaterialInstanceAt(
@@ -257,7 +345,7 @@ abstract class FilamentApp<T> {
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
       bool releaseSourceData = false,
-      bool preserveGeometry = false,
+      bool rebuildVertices = false,
       bool loadResourcesAsync = false,
       String? resourceUri});
 

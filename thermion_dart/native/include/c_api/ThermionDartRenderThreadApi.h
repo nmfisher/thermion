@@ -156,7 +156,7 @@ namespace thermion
             TGltfAssetLoader *tAssetLoader,
             TNameComponentManager *tNameComponentManager,
             TFilamentAsset *tFilamentAsset,
-            bool preserveGeometry,
+            bool rebuildVertices,
             void (*onComplete)(TSceneAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(
@@ -171,6 +171,7 @@ namespace thermion
         );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
         EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataRenderThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShadingRenderThread(TSceneAsset *tSceneAsset, bool flatShading, uint32_t requestId, VoidCallback onComplete);
         
         EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(
             TMaterialProvider *tMaterialProvider, 
