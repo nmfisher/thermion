@@ -8,6 +8,8 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'log.dart';
 
+
+
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
@@ -470,6 +472,8 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
   if (isIOSSimulator) {
     platform = "ios-simulator";
   }
+  
+
 
   var mode = buildMode == BuildMode.debug ? "debug" : "release";
 

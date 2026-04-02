@@ -626,6 +626,17 @@ external void FilamentAsset_getEntities(
   ffi.Pointer<EntityId> out,
 );
 
+@ffi.Native<EntityId Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external int FilamentAsset_getWireframe(
+  ffi.Pointer<TFilamentAsset> filamentAsset,
+);
+
+@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<TFilamentAsset>)>(
+    isLeaf: true)
+external ffi.Pointer<ffi.Void> FilamentAsset_getSourceAsset(
+  ffi.Pointer<TFilamentAsset> filamentAsset,
+);
+
 @ffi.Native<
     ffi.Pointer<TGltfAssetLoader> Function(
         ffi.Pointer<TEngine>,
@@ -3982,6 +3993,15 @@ external void SceneAsset_createInstanceRenderThread(
 
 @ffi.Native<
     ffi.Void Function(
+        ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void SceneAsset_releaseSourceDataRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
         ffi.Pointer<TMaterialProvider>,
         ffi.Bool,
         ffi.Bool,
@@ -4558,6 +4578,15 @@ external void Scene_addFilamentAssetRenderThread(
   ffi.Pointer<TFilamentAsset> tAsset,
   int requestId,
   VoidCallback onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TFilamentAsset>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
+    isLeaf: true)
+external void FilamentAsset_getWireframeRenderThread(
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> onComplete,
 );
 
 @ffi.Native<
@@ -5417,6 +5446,20 @@ external ffi.Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
 external ffi.Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int primitiveIndex,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void SceneAsset_applyWireframeBarycentricsRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external void SceneAsset_releaseSourceData(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
 @ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(

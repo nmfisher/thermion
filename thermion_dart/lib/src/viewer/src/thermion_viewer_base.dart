@@ -5,17 +5,16 @@ import 'dart:async';
 // A high-level interface for managing scene:
 // - adding/removing assets, lights and cameras
 // - setting post-processing options
-// -  
-// Broadly, an instance of [ThermionViewer] encapsulates a single Filament 
-// Scene, Camera and a View, with some additional commonly-used entities 
-// (skybox, background image, etc). 
+// -
+// Broadly, an instance of [ThermionViewer] encapsulates a single Filament
+// Scene, Camera and a View, with some additional commonly-used entities
+// (skybox, background image, etc).
 //
 // If you know what you are doing, you can use a lower level interface by
 // using the methods directly via FilamentApp.instance
 //
 // Note that this is a Dart class, not a Flutter class.
 abstract class ThermionViewer {
-  
   // The Filament [View] encapsulated by this viewer. Call View.getScene to get
   // the Filament [Scene].
   View get view;
@@ -115,12 +114,11 @@ abstract class ThermionViewer {
   // If [addToScene] is [true], all renderable entities (including lights)
   // in the asset will be added to the scene.
   //
-  // The [initialInstances] argument determines the number of
-  // instances created when the asset is first instantiated. If [keepData] is
-  // false, no further instances will be able to be created.
-  //
-  // If [keepData] is true, additional instances can be created by calling
-  // [createInstance] on the returned asset.
+  // The [initialInstances] argument determines the number of instances created
+  // when the asset is first instantiated. If [releaseSourceData] is true, no
+  // further instances will be able to be created. If [releaseSourceData] is
+  // false, additional instances can be created by calling [createInstance] on
+  // the returned asset.
   //
   // Creating instances at asset load time is more efficient than dynamically
   // instantating at a later time.
@@ -133,7 +131,7 @@ abstract class ThermionViewer {
   Future<ThermionAsset> loadGltf(String uri,
       {bool addToScene = true,
       int initialInstances = 1,
-      bool keepData = false,
+      bool releaseSourceData = false,
       String? resourceUri,
       bool loadAsync = false});
 
@@ -144,9 +142,7 @@ abstract class ThermionViewer {
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {String? resourceUri,
       int initialInstances = 1,
-      bool keepData = false,
-      int priority = 4,
-      int layer = 0,
+      bool releaseSourceData = false,
       bool loadResourcesAsync = false,
       bool addToScene = true});
 
@@ -205,16 +201,14 @@ abstract class ThermionViewer {
   //
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
 
-  //
-  // Sets the draw priority for the given entity. See RenderableManager.h for more details.
-  //
+  // Sets the draw priority for the given entity. See RenderableManager.h for
+  // more details.
   Future setPriority(ThermionEntity entityId, int priority);
 
   //
   Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
-      bool keepData = false,
-      bool addToScene = true});
+      bool releaseSourceData = false});
 
   // Returns a gizmo for translating/rotating objects.
   // Only one gizmo can be visible at any given time for this viewer.

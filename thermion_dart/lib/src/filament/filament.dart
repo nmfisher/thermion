@@ -12,6 +12,4 @@ export 'src/interface/tone_mapper.dart';
 export 'src/interface/gltf_mesh_data.dart';
 export 'src/interface/vertex_buffer.dart';
 export 'src/interface/index_buffer.dart';
-export 'src/interface/wireframe_geometry.dart';
 export 'src/interface/translation_axis_material.dart';
-export 'src/implementation/wireframe_renderable.dart';

@@ -389,6 +389,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> filamentAsset,
     Pointer<Int32> out,
   );
+  external EntityId _FilamentAsset_getWireframe(
+    Pointer<TFilamentAsset> filamentAsset,
+  );
+  external Pointer<Void> _FilamentAsset_getSourceAsset(
+    Pointer<TFilamentAsset> filamentAsset,
+  );
   external Pointer<TGltfAssetLoader> _GltfAssetLoader_create(
     Pointer<TEngine> tEngine,
     Pointer<TMaterialProvider> tMaterialProvider,
@@ -2169,6 +2175,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int materialInstanceCount,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
   );
+  external void _SceneAsset_releaseSourceDataRenderThread(
+    Pointer<TSceneAsset> tSceneAsset,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _MaterialProvider_createMaterialInstanceRenderThread(
     Pointer<TMaterialProvider> tMaterialProvider,
     bool doubleSided,
@@ -2440,6 +2451,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> tAsset,
     int requestId,
     VoidCallback onComplete,
+  );
+  external void _FilamentAsset_getWireframeRenderThread(
+    Pointer<TFilamentAsset> tFilamentAsset,
+    Pointer<NativeFunction<void Function(EntityId)>> onComplete,
   );
   external void _Scene_removeEntityRenderThread(
     Pointer<TScene> tScene,
@@ -2916,6 +2931,25 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TIndexBuffer> _SceneAsset_getIndexBuffer(
     Pointer<TSceneAsset> tSceneAsset,
     int primitiveIndex,
+  );
+  external int _SceneAsset_getRenderableEntityCount(
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external int _SceneAsset_getMeshPrimitiveCount(
+    Pointer<TSceneAsset> tSceneAsset,
+    int entityIndex,
+  );
+  external void _SceneAsset_getMeshPrimitiveData(
+    Pointer<TSceneAsset> tSceneAsset,
+    int entityIndex,
+    int primitiveIndex,
+    Pointer<Uint32> outVertexCount,
+    Pointer<Float32> outPositions,
+    Pointer<Uint32> outIndexCount,
+    Pointer<Uint32> outIndices,
+  );
+  external void _SceneAsset_releaseSourceData(
+    Pointer<TSceneAsset> tSceneAsset,
   );
   external Pointer<TAnimationManager> _AnimationManager_create(
     Pointer<TEngine> tEngine,
@@ -3947,6 +3981,22 @@ void FilamentAsset_getEntities(
   final result = GeneratedBindings.instance
       ._FilamentAsset_getEntities(filamentAsset.cast(), out);
   return result;
+}
+
+DartEntityId FilamentAsset_getWireframe(
+  Pointer<TFilamentAsset> filamentAsset,
+) {
+  final result = GeneratedBindings.instance
+      ._FilamentAsset_getWireframe(filamentAsset.cast());
+  return result;
+}
+
+Pointer<Void> FilamentAsset_getSourceAsset(
+  Pointer<TFilamentAsset> filamentAsset,
+) {
+  final result = GeneratedBindings.instance
+      ._FilamentAsset_getSourceAsset(filamentAsset.cast());
+  return Pointer<Void>(result);
 }
 
 Pointer<TGltfAssetLoader> GltfAssetLoader_create(
@@ -7911,6 +7961,17 @@ void SceneAsset_createInstanceRenderThread(
   return result;
 }
 
+void SceneAsset_releaseSourceDataRenderThread(
+  Pointer<TSceneAsset> tSceneAsset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_releaseSourceDataRenderThread(tSceneAsset.cast(), requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
 void MaterialProvider_createMaterialInstanceRenderThread(
   Pointer<TMaterialProvider> tMaterialProvider,
   bool doubleSided,
@@ -8485,6 +8546,16 @@ void Scene_addFilamentAssetRenderThread(
       tAsset.cast(),
       requestId,
       onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void FilamentAsset_getWireframeRenderThread(
+  Pointer<TFilamentAsset> tFilamentAsset,
+  Pointer<NativeFunction<void Function(EntityId)>> onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._FilamentAsset_getWireframeRenderThread(
+          tFilamentAsset.cast(), onComplete.cast());
   return result;
 }
 
@@ -9547,6 +9618,51 @@ Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
   final result = GeneratedBindings.instance
       ._SceneAsset_getIndexBuffer(tSceneAsset.cast(), primitiveIndex);
   return Pointer<TIndexBuffer>(result);
+}
+
+int SceneAsset_getRenderableEntityCount(
+  Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_getRenderableEntityCount(tSceneAsset.cast());
+  return result;
+}
+
+int SceneAsset_getMeshPrimitiveCount(
+  Pointer<TSceneAsset> tSceneAsset,
+  int entityIndex,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_getMeshPrimitiveCount(tSceneAsset.cast(), entityIndex);
+  return result;
+}
+
+void SceneAsset_getMeshPrimitiveData(
+  Pointer<TSceneAsset> tSceneAsset,
+  int entityIndex,
+  int primitiveIndex,
+  Pointer<Uint32> outVertexCount,
+  Pointer<Float32> outPositions,
+  Pointer<Uint32> outIndexCount,
+  Pointer<Uint32> outIndices,
+) {
+  final result = GeneratedBindings.instance._SceneAsset_getMeshPrimitiveData(
+      tSceneAsset.cast(),
+      entityIndex,
+      primitiveIndex,
+      outVertexCount,
+      outPositions,
+      outIndexCount,
+      outIndices);
+  return result;
+}
+
+void SceneAsset_releaseSourceData(
+  Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_releaseSourceData(tSceneAsset.cast());
+  return result;
 }
 
 Pointer<TAnimationManager> AnimationManager_create(
