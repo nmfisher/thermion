@@ -7,13 +7,12 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
-class FFIAsset extends ThermionAsset {
-  T getHandle<T>() {
-    return asset as T;
-  }
-
-  ///
+class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   final Pointer<TSceneAsset> asset;
+
+  Pointer<TSceneAsset> getNativeHandle() {
+    return asset;
+  }
 
   ///
   bool get isInstance => instanceOwner != null;

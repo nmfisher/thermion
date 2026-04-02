@@ -23,10 +23,25 @@ EMSCRIPTEN_KEEPALIVE void FilamentAsset_getEntities(
     EntityId* out
 ) {
     auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset*>(tFilamentAsset);
-    for(int i=0; i < filamentAsset->getEntityCount(); i++) { 
+    for(int i=0; i < filamentAsset->getEntityCount(); i++) {
         out[i] = utils::Entity::smuggle(filamentAsset->getEntities()[i]);
     }
 }
+
+EMSCRIPTEN_KEEPALIVE EntityId FilamentAsset_getWireframe(
+    TFilamentAsset *tFilamentAsset
+) {
+    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset*>(tFilamentAsset);
+    return utils::Entity::smuggle(filamentAsset->getWireframe());
+}
+
+EMSCRIPTEN_KEEPALIVE const void* FilamentAsset_getSourceAsset(
+    TFilamentAsset *tFilamentAsset
+) {
+    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset*>(tFilamentAsset);
+    return filamentAsset->getSourceAsset();
+}
+
 #ifdef __cplusplus
 }
 #endif

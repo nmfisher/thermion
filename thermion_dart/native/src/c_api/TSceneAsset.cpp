@@ -241,6 +241,26 @@ extern "C"
     }
 
 
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_applyWireframeBarycentrics(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("applyWireframeBarycentrics only supported on glTF assets");
+            return;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        gltfAsset->applyWireframeBarycentrics();
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("releaseSourceData only supported on glTF assets");
+            return;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        gltfAsset->releaseSourceData();
+    }
+
 #ifdef __cplusplus
 }
 #endif

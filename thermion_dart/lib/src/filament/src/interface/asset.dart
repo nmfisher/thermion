@@ -19,13 +19,7 @@ export 'geometry.dart';
 // entities.
 //
 abstract class ThermionAsset<T> extends NativeHandle<T> {
-  
-  //
-  T getHandle<T>() {
-    throw UnimplementedError();
-  }
-
-  // The top-most entity in the hierarchy. 
+  // The top-most entity in the hierarchy.
   // If this is a glTF asset
   ThermionEntity get entity;
 

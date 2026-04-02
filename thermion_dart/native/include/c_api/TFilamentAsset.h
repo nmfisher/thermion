@@ -15,7 +15,14 @@ extern "C"
         EntityId* out
     );
 
-    
+    EMSCRIPTEN_KEEPALIVE EntityId FilamentAsset_getWireframe(
+        TFilamentAsset *filamentAsset
+    );
+
+    EMSCRIPTEN_KEEPALIVE const void* FilamentAsset_getSourceAsset(
+        TFilamentAsset *filamentAsset
+    );
+
 #ifdef __cplusplus
 }
 #endif
