@@ -201,11 +201,11 @@ class GeometryUtils {
 
     final indices = Uint16List.fromList([
       0,
+      2,
       1,
-      2,
       0,
-      2,
       3,
+      2,
     ]);
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);

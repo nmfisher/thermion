@@ -614,6 +614,54 @@ void main() async {
     });
   });
 
+  test('stencil highlight visible on plane from both sides', () async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .setStencilBufferEnabled(true)
+        .execute((result) async {
+      await result.viewer.view.setHighlightOverlayEnabled(true);
+
+      var materialInstance = await FilamentApp.instance!
+          .createUbershaderMaterialInstance(unlit: true);
+      await materialInstance.setParameterFloat4(
+          "baseColorFactor", 1, 1, 1, 1);
+      var plane = await FilamentApp.instance!.createGeometry(
+          GeometryUtils.plane(width: 2, height: 2),
+          materialInstances: [materialInstance]);
+      await result.viewer.addToScene(plane);
+
+      await result.viewer.view.setStencilHighlight(
+        plane,
+        r: 1.0,
+        g: 0.5,
+        b: 0.0,
+        outlineWidth: 5.0,
+      );
+      await FilamentApp.instance!
+          .setClearOptions(0, 0, 0, 1, clear: true, discard: false);
+
+      // View from above (front face - normals point up)
+      final camera = await result.viewer.view.getCamera();
+      await camera.lookAt(Vector3(0, 5, 0.1), focus: Vector3(0, 0, 0));
+      await FilamentApp.instance!.render();
+
+      await testHelper.capture(
+          null, "stencil_highlight_plane_front",
+          render: true, captureRenderTarget: true);
+
+      // View from below (back face) - highlight should still be visible
+      await camera.lookAt(Vector3(0, -5, 0.1), focus: Vector3(0, 0, 0));
+      await FilamentApp.instance!.render();
+
+      await testHelper.capture(
+          null, "stencil_highlight_plane_back",
+          captureRenderTarget: true, render: false);
+
+      await result.viewer.view.removeStencilHighlight(plane);
+      await result.viewer.view.setHighlightOverlayEnabled(false);
+    });
+  });
+
   test('VSM shadow options set/get', () async {
     await ViewerBuilder(testHelper)
         .setRenderTargetEnabled(true)
