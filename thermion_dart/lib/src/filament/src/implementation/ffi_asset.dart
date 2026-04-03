@@ -26,7 +26,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   final bool releaseSourceData;
 
   //
-  FFIAsset(this.asset, {this.instanceOwner = null, this.releaseSourceData = false}) {
+  FFIAsset(this.asset,
+      {this.instanceOwner = null, this.releaseSourceData = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -136,7 +137,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, instanceOwner: this, releaseSourceData: releaseSourceData);
+    return FFIAsset(created,
+        instanceOwner: this, releaseSourceData: releaseSourceData);
   }
 
   //
@@ -742,9 +744,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   @override
-  Future setGltfAnimationFrame(int index, int animationFrame) async {
+  Future setGltfAnimationTime(int index, double timeInSeconds) async {
     FilamentApp.instance!.animationManager
-        .setGltfAnimationFrame(this, index, animationFrame);
+        .setGltfAnimationTime(this, index, timeInSeconds);
   }
 
   //

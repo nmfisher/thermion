@@ -180,7 +180,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   //
-  Future setGltfAnimationFrame(int index, int animationFrame) {
+  Future setGltfAnimationTime(int index, double timeInSeconds) {
     throw UnimplementedError();
   }
 

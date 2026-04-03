@@ -87,9 +87,9 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   ///
   /// [asset] The asset containing the animation
   /// [animationIndex] The animation index
-  /// [frame] The frame number to set
+  /// [timeInSeconds] The time position in the animation in seconds
   /// Returns true if successful, false otherwise
-  bool setGltfAnimationFrame(ThermionAsset asset, int animationIndex, int frame);
+  bool setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds);
 
   /// Gets the duration of a glTF animation in seconds.
   ///

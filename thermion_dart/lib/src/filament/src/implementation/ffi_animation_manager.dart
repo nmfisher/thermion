@@ -89,10 +89,10 @@ class FFIAnimationManager
   }
 
   @override
-  bool setGltfAnimationFrame(
-      ThermionAsset asset, int animationIndex, int frame) {
-    return bindings.AnimationManager_setGltfAnimationFrame(
-        animationManager, asset.getNativeHandle(), animationIndex, frame);
+  bool setGltfAnimationTime(
+      ThermionAsset asset, int animationIndex, double timeInSeconds) {
+    return bindings.AnimationManager_setGltfAnimationTime(
+        animationManager, asset.getNativeHandle(), animationIndex, timeInSeconds);
   }
 
   @override
