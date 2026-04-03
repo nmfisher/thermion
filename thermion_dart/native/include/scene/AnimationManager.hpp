@@ -156,8 +156,8 @@ namespace thermion
         
         /// @param instance
         /// @param animationIndex
-        /// @param animationFrame
-        void setGltfAnimationFrame(GltfSceneAssetInstance *instance, int animationIndex, int animationFrame);
+        /// @param timeInSeconds
+        void setGltfAnimationTime(GltfSceneAssetInstance *instance, int animationIndex, float timeInSeconds);
 
         
         /// @param instance

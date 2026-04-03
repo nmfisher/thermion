@@ -813,8 +813,9 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future setGltfAnimationFrame(int index, int animationFrame) async {
-    FilamentApp.instance!.animationManager.setGltfAnimationFrame(this, index, animationFrame);
+  Future setGltfAnimationTime(int index, double timeInSeconds) async {
+    FilamentApp.instance!.animationManager
+        .setGltfAnimationTime(this, index, timeInSeconds);
   }
 
   ///
