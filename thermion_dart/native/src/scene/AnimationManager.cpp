@@ -277,7 +277,8 @@ namespace thermion
                                             float frameLengthInMs,
                                             float fadeOutInSecs,
                                             float fadeInInSecs,
-                                            float maxDelta)
+                                            float maxDelta,
+                                            bool loop)
     {
         std::lock_guard lock(mMutex);
 
@@ -312,6 +313,7 @@ namespace thermion
         animation.frameLengthInMs = frameLengthInMs;
         animation.startTimeInNanos = 0; // Will be set when first update() is called
         animation.reverse = false;
+        animation.loop = loop;
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
         animation.lengthInFrames = numFrames;
         animation.frameLengthInMs = frameLengthInMs;

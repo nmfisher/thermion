@@ -196,13 +196,14 @@ extern "C"
         float frameLengthInMs,
         float fadeOutInSecs,
         float fadeInInSecs,
-        float maxDelta)
+        float maxDelta,
+        bool loop)
     {
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
         }
-        
+
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         GltfSceneAssetInstance *instance;
 
@@ -213,9 +214,9 @@ extern "C"
             instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
         }
         animationManager->addBoneAnimationComponent(instance);
-        animationManager->addBoneAnimation(instance, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta);
+        animationManager->addBoneAnimation(instance, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta, loop);
         return true;
-        
+
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId AnimationManager_getBone(

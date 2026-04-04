@@ -381,7 +381,18 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
-    return FilamentApp.instance!.animationManager.getBoneNames(this, skinIndex);
+    // The native getBoneCount/getBoneNames requires a GltfSceneAssetInstance,
+    // not a top-level GltfSceneAsset. Auto-resolve to instance(0) if needed.
+    ThermionAsset target = this;
+    if (!isInstance) {
+      try {
+        target = await getInstance(0);
+      } catch (_) {
+        // Fall through with self
+      }
+    }
+    return FilamentApp.instance!.animationManager
+        .getBoneNames(target, skinIndex);
   }
 
   List<String>? _gltfAnimationNames;
@@ -517,7 +528,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       {int skinIndex = 0,
       double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
-      double maxDelta = 1.0}) async {
+      double maxDelta = 1.0,
+      bool loop = false}) async {
     if (animation.space != Space.Bone &&
         animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
@@ -525,9 +537,20 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (skinIndex != 0) {
       throw UnimplementedError("TODO - support skinIndex != 0 ");
     }
-    var boneNames = await getBoneNames();
+    // Resolve to instance(0) if this is a top-level asset — the native
+    // bone APIs (getBoneCount, getBone, getRestLocalTransforms) require
+    // a GltfSceneAssetInstance, not a GltfSceneAsset.
+    FFIAsset instanceAsset = this;
+    if (!isInstance) {
+      try {
+        instanceAsset = (await getInstance(0)) as FFIAsset;
+      } catch (_) {
+        // Fall through with self
+      }
+    }
+    var boneNames = await instanceAsset.getBoneNames(skinIndex: skinIndex);
     var restLocalTransformsData = FilamentApp.instance!.animationManager
-        .getRestLocalTransforms(this, skinIndex);
+        .getRestLocalTransforms(instanceAsset, skinIndex);
     var restLocalTransforms = <Matrix4>[];
     for (int i = 0; i < boneNames.length; i++) {
       var values = <double>[];
@@ -542,7 +565,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     var data = allocate<Float>(numFrames * 16);
 
     var bones = await Future.wait(List<Future<ThermionEntity>>.generate(
-        boneNames.length, (i) => getBone(i)));
+        boneNames.length, (i) => instanceAsset.getBone(i)));
 
     for (int i = 0; i < animation.bones.length; i++) {
       var boneName = animation.bones[i];
@@ -597,7 +620,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
           entityBoneIndex, frameDataList, numFrames, animation.frameLengthInMs,
           fadeOutInSecs: fadeOutInSecs,
           fadeInInSecs: fadeInInSecs,
-          maxDelta: maxDelta);
+          maxDelta: maxDelta,
+          loop: loop);
     }
     free(data);
   }

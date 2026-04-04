@@ -42,7 +42,8 @@ extern "C"
 		float frameLengthInMs,
 		float fadeOutInSecs,
 		float fadeInInSecs,
-		float maxDelta);
+		float maxDelta,
+		bool loop);
 
 	EMSCRIPTEN_KEEPALIVE EntityId AnimationManager_getBone(
 		TAnimationManager *tAnimationManager,

@@ -183,7 +183,8 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
       double frameLengthInMs,
       {double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
-      double maxDelta = 0.1});
+      double maxDelta = 0.1,
+      bool loop = false});
 
   /// Gets the entity ID for a specific bone.
   ///
