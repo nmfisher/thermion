@@ -27,6 +27,10 @@ abstract class ThermionFlutterPlugin {
     _options = options;
   }
 
+  void pauseFrameScheduler();
+
+  void resumeFrameScheduler();
+
   // Initialize the plugin and create the default swapchain.
   Future<SwapChain?> initialize({bool destroySwapchain = true});
 
@@ -67,4 +71,6 @@ abstract class ThermionFlutterPlugin {
 
     return viewer;
   }
+
+  
 }

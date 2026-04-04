@@ -92,6 +92,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static bool _usePortMode = false;
   static bool _dartApiInitialized = false;
 
+  static bool _frameSchedulerPaused = false;
+
   /// Called by native FrameScheduler at vsync/timer intervals.
   /// Not async — guards against re-entrant calls with [_rendering] flag.
   ///
@@ -102,7 +104,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // or if we're in a hot restart scenario where FilamentApp is null
     if (!_schedulerActive || FilamentApp.instance == null) return;
 
-    if (_rendering || _resizing) return;
+    if (_rendering || _resizing || _frameSchedulerPaused) return;
     _rendering = true;
     _renderFrame().then((_) {
       _rendering = false;
@@ -311,6 +313,15 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     return swapChain;
   }
 
+  void pauseFrameScheduler() {
+    _frameSchedulerPaused = true;
+  }
+
+  void resumeFrameScheduler() {
+    _frameSchedulerPaused = false;
+  }
+
+  @override
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
     View view,
     int width,
