@@ -234,8 +234,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       free(pointers);
 
-      _logger.info(
-          "${handles.length} renderable views for swapchain $i (${swapChain.getNativeHandle()}) : $viewNames");
+      _logger.fine(
+          """${handles.length} renderable views for swapchain  $i"""
+"""(${swapChain.getNativeHandle()}) : $viewNames""");
     }
 
     _logger.info("Updated render order for ${swapChains.length} swapchains");
@@ -1123,9 +1124,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   ///
-  Future<GizmoAsset> createGizmo(
-      View view, GizmoType gizmoType) async {
-    return FFIGizmo.create(view, gizmoType); 
+  Future<GizmoAsset> createGizmo(View view, GizmoType gizmoType) async {
+    return FFIGizmo.create(view, gizmoType);
   }
 
   ///
