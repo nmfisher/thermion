@@ -46,6 +46,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshDataSize(TSceneAsset *tSceneAsset, uint32_t *outVertexCount, uint32_t *outIndexCount);
     EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshData(TSceneAsset *tSceneAsset, float *outPositions, uint32_t *outIndices);
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createWireframeOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance);
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createSolidOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance);
 
 #ifdef __cplusplus
 }

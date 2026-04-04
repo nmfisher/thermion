@@ -154,6 +154,14 @@ namespace thermion
         /// nullptr if source data is unavailable.
         SceneAsset* createWireframeOverlay(MaterialInstance* materialInstance);
 
+        /// Extract mesh data including normals (two-pass, like extractMeshData).
+        bool extractMeshDataWithNormals(float* outPositions, float* outNormals,
+                                        uint32_t* outVertexCount,
+                                        uint32_t* outIndices, uint32_t* outIndexCount);
+
+        /// Create a solid-shaded overlay entity (POSITION + TANGENTS).
+        SceneAsset* createSolidOverlay(MaterialInstance* materialInstance);
+
         /// Release the underlying cgltf source data early to free memory.
         /// Safe to call multiple times; subsequent calls are no-ops.
         void releaseSourceData();

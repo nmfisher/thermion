@@ -1,0 +1,57 @@
+material {
+    name : Solid,
+    parameters : [
+        {
+            type: float4,
+            name: baseColor,
+            default: [0.8, 0.8, 0.8, 1.0]
+        },
+        {
+            type: float3,
+            name: lightDirection,
+            default: [1.0, 1.0, 1.0]
+        },
+        {
+            type: float,
+            name: intensity,
+            default: 1.0
+        }
+    ],
+    requires : [
+        position,
+        tangents
+    ],
+    variables : [
+        surfaceNormal
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    doubleSided : false,
+    shadingModel : unlit,
+    blending : opaque,
+    culling : back
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.surfaceNormal.xyz = material.worldNormal;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+        vec3 lightDir = normalize(materialParams.lightDirection);
+
+        // Lambertian diffuse + ambient
+        float nDotL = max(dot(normal, lightDir), 0.0);
+        float lighting = 0.2 + nDotL * 0.8 * materialParams.intensity;
+
+        material.baseColor = vec4(
+            materialParams.baseColor.rgb * lighting,
+            1.0
+        );
+    }
+}

@@ -98,6 +98,7 @@ outputDirectory : ${outputDirectory.path}
       'silhouette': 'native/include/material/silhouette.c',
       'edge_outline': 'native/include/material/edge_outline.c',
       'wireframe': 'native/include/material/wireframe.c',
+      'solid': 'native/include/material/solid.c',
       'translation_axis': 'native/include/material/translation_axis.c'
     };
 
@@ -472,8 +473,6 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
   if (isIOSSimulator) {
     platform = "ios-simulator";
   }
-  
-
 
   var mode = buildMode == BuildMode.debug ? "debug" : "release";
 

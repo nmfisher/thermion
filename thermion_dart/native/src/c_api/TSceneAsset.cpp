@@ -273,6 +273,18 @@ extern "C"
         return reinterpret_cast<TSceneAsset*>(overlay);
     }
 
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createSolidOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("createSolidOverlay only supported on glTF assets");
+            return nullptr;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        auto *materialInstance = reinterpret_cast<filament::MaterialInstance*>(tMaterialInstance);
+        auto *overlay = gltfAsset->createSolidOverlay(materialInstance);
+        return reinterpret_cast<TSceneAsset*>(overlay);
+    }
+
     EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshDataSize(TSceneAsset *tSceneAsset, uint32_t *outVertexCount, uint32_t *outIndexCount) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {

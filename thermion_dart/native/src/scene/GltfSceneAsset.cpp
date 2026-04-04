@@ -23,6 +23,8 @@
 
 #include <cgltf.h>
 
+#include <filament/geometry/SurfaceOrientation.h>
+
 #include <utils/NameComponentManager.h>
 
 #include "scene/GltfSceneAssetInstance.hpp"
@@ -386,6 +388,235 @@ namespace thermion
             boundingBox, nullptr);
 
         TRACE("createWireframeOverlay: created overlay with %u vertices", newVertexCount);
+        return asset;
+    }
+
+    bool GltfSceneAsset::extractMeshDataWithNormals(
+        float* outPositions, float* outNormals,
+        uint32_t* outVertexCount,
+        uint32_t* outIndices, uint32_t* outIndexCount)
+    {
+        if(!_asset) {
+            Log("extractMeshDataWithNormals: NO ASSET");
+            return false;
+        }
+        auto* sourceData = (const cgltf_data*)_asset->getSourceAsset();
+        if (!sourceData) {
+            Log("extractMeshDataWithNormals: source data already released");
+            return false;
+        }
+
+        uint32_t totalVertices = 0;
+        uint32_t totalIndices = 0;
+
+        for (cgltf_size ni = 0; ni < sourceData->nodes_count; ni++) {
+            const cgltf_node& node = sourceData->nodes[ni];
+            if (!node.mesh) continue;
+
+            for (cgltf_size pi = 0; pi < node.mesh->primitives_count; pi++) {
+                const cgltf_primitive& prim = node.mesh->primitives[pi];
+                if (prim.type != cgltf_primitive_type_triangles) continue;
+
+                const cgltf_accessor* posAccessor = nullptr;
+                const cgltf_accessor* nrmAccessor = nullptr;
+                for (cgltf_size ai = 0; ai < prim.attributes_count; ai++) {
+                    if (prim.attributes[ai].type == cgltf_attribute_type_position)
+                        posAccessor = prim.attributes[ai].data;
+                    else if (prim.attributes[ai].type == cgltf_attribute_type_normal)
+                        nrmAccessor = prim.attributes[ai].data;
+                }
+                if (!posAccessor) continue;
+
+                uint32_t primIndexCount = 0;
+                if (prim.indices) {
+                    primIndexCount = (uint32_t)prim.indices->count;
+                } else {
+                    primIndexCount = (uint32_t)posAccessor->count;
+                }
+                if (primIndexCount < 3 || primIndexCount % 3 != 0) continue;
+
+                if (outPositions != nullptr) {
+                    float worldTransform[16];
+                    cgltf_node_transform_world(&node, worldTransform);
+
+                    // Read positions
+                    size_t posComponents = cgltf_num_components(posAccessor->type);
+                    std::vector<float> srcPositions(posAccessor->count * posComponents);
+                    cgltf_accessor_unpack_floats(posAccessor, srcPositions.data(), srcPositions.size());
+
+                    // Read normals (if available)
+                    std::vector<float> srcNormals;
+                    size_t nrmComponents = 0;
+                    if (nrmAccessor) {
+                        nrmComponents = cgltf_num_components(nrmAccessor->type);
+                        srcNormals.resize(nrmAccessor->count * nrmComponents);
+                        cgltf_accessor_unpack_floats(nrmAccessor, srcNormals.data(), srcNormals.size());
+                    }
+
+                    for (cgltf_size vi = 0; vi < posAccessor->count; vi++) {
+                        float x = srcPositions[vi * posComponents + 0];
+                        float y = srcPositions[vi * posComponents + 1];
+                        float z = srcPositions[vi * posComponents + 2];
+
+                        // Transform position to world space
+                        outPositions[(totalVertices + vi) * 3 + 0] =
+                            worldTransform[0] * x + worldTransform[4] * y + worldTransform[8] * z + worldTransform[12];
+                        outPositions[(totalVertices + vi) * 3 + 1] =
+                            worldTransform[1] * x + worldTransform[5] * y + worldTransform[9] * z + worldTransform[13];
+                        outPositions[(totalVertices + vi) * 3 + 2] =
+                            worldTransform[2] * x + worldTransform[6] * y + worldTransform[10] * z + worldTransform[14];
+
+                        // Transform normal by upper-left 3x3 (rotation only, re-normalize after)
+                        if (outNormals && nrmAccessor && vi < nrmAccessor->count) {
+                            float nx = srcNormals[vi * nrmComponents + 0];
+                            float ny = srcNormals[vi * nrmComponents + 1];
+                            float nz = srcNormals[vi * nrmComponents + 2];
+
+                            float wnx = worldTransform[0] * nx + worldTransform[4] * ny + worldTransform[8] * nz;
+                            float wny = worldTransform[1] * nx + worldTransform[5] * ny + worldTransform[9] * nz;
+                            float wnz = worldTransform[2] * nx + worldTransform[6] * ny + worldTransform[10] * nz;
+
+                            float len = sqrtf(wnx*wnx + wny*wny + wnz*wnz);
+                            if (len > 1e-6f) { wnx /= len; wny /= len; wnz /= len; }
+
+                            outNormals[(totalVertices + vi) * 3 + 0] = wnx;
+                            outNormals[(totalVertices + vi) * 3 + 1] = wny;
+                            outNormals[(totalVertices + vi) * 3 + 2] = wnz;
+                        } else if (outNormals) {
+                            // No normal data — use a default up normal
+                            outNormals[(totalVertices + vi) * 3 + 0] = 0.0f;
+                            outNormals[(totalVertices + vi) * 3 + 1] = 1.0f;
+                            outNormals[(totalVertices + vi) * 3 + 2] = 0.0f;
+                        }
+                    }
+
+                    // Read indices
+                    if (prim.indices) {
+                        for (cgltf_size ii = 0; ii < prim.indices->count; ii++) {
+                            outIndices[totalIndices + ii] = totalVertices + (uint32_t)cgltf_accessor_read_index(prim.indices, ii);
+                        }
+                    } else {
+                        for (uint32_t ii = 0; ii < primIndexCount; ii++) {
+                            outIndices[totalIndices + ii] = totalVertices + ii;
+                        }
+                    }
+                }
+
+                totalVertices += (uint32_t)posAccessor->count;
+                totalIndices += primIndexCount;
+            }
+        }
+
+        *outVertexCount = totalVertices;
+        *outIndexCount = totalIndices;
+        return true;
+    }
+
+    SceneAsset* GltfSceneAsset::createSolidOverlay(MaterialInstance* materialInstance)
+    {
+        // Step 1: Get counts
+        uint32_t vertexCount = 0, indexCount = 0;
+        if (!extractMeshDataWithNormals(nullptr, nullptr, &vertexCount, nullptr, &indexCount)) {
+            Log("createSolidOverlay: failed to extract mesh data");
+            return nullptr;
+        }
+        if (vertexCount == 0 || indexCount == 0) {
+            Log("createSolidOverlay: no mesh data");
+            return nullptr;
+        }
+
+        // Step 2: Extract positions, normals, and indices
+        std::vector<float> positions(vertexCount * 3);
+        std::vector<float> normals(vertexCount * 3);
+        std::vector<uint32_t> indices(indexCount);
+        extractMeshDataWithNormals(positions.data(), normals.data(), &vertexCount,
+                                   indices.data(), &indexCount);
+
+        // Step 3: Build tangent quaternions from normals using SurfaceOrientation
+        std::vector<filament::math::ushort3> triangles(indexCount / 3);
+        for (uint32_t i = 0; i < indexCount; i += 3) {
+            triangles[i / 3] = {
+                (uint16_t)indices[i],
+                (uint16_t)indices[i + 1],
+                (uint16_t)indices[i + 2]
+            };
+        }
+
+        geometry::SurfaceOrientation::Builder orientBuilder;
+        orientBuilder.vertexCount(vertexCount)
+            .normals((filament::math::float3*)normals.data())
+            .positions((filament::math::float3*)positions.data())
+            .triangleCount(triangles.size())
+            .triangles(triangles.data());
+
+        auto orientation = orientBuilder.build();
+        auto* quats = new std::vector<filament::math::quatf>(vertexCount);
+        orientation->getQuats(quats->data(), vertexCount);
+
+        size_t posDataSize = vertexCount * 3 * sizeof(float);
+        size_t tangDataSize = vertexCount * sizeof(filament::math::quatf);
+
+        // Step 4: Build VertexBuffer with POSITION + TANGENTS
+        VertexBuffer* vb = VertexBuffer::Builder()
+            .vertexCount(vertexCount)
+            .bufferCount(2)
+            .enableBufferObjects()
+            .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+            .attribute(VertexAttribute::TANGENTS, 1, VertexBuffer::AttributeType::FLOAT4)
+            .build(*_engine);
+
+        // Upload positions via BufferObject
+        float* posData = (float*)malloc(posDataSize);
+        memcpy(posData, positions.data(), posDataSize);
+        BufferObject* posBO = BufferObject::Builder()
+            .size(posDataSize)
+            .build(*_engine);
+        posBO->setBuffer(*_engine,
+            BufferObject::BufferDescriptor(posData, posDataSize, FREE_CB));
+        vb->setBufferObjectAt(*_engine, 0, posBO);
+
+        // Upload tangent quaternions via BufferObject
+        BufferObject* tangBO = BufferObject::Builder()
+            .size(tangDataSize)
+            .build(*_engine);
+        tangBO->setBuffer(*_engine,
+            BufferObject::BufferDescriptor(quats->data(), tangDataSize,
+                [](void*, size_t, void* user) {
+                    delete (std::vector<filament::math::quatf>*)user;
+                }, quats));
+        vb->setBufferObjectAt(*_engine, 1, tangBO);
+
+        // Step 5: Build IndexBuffer
+        size_t indexDataSize = indexCount * sizeof(uint32_t);
+        uint32_t* indexData = (uint32_t*)malloc(indexDataSize);
+        memcpy(indexData, indices.data(), indexDataSize);
+
+        IndexBuffer* ib = IndexBuffer::Builder()
+            .indexCount(indexCount)
+            .bufferType(IndexBuffer::IndexType::UINT)
+            .build(*_engine);
+        ib->setBuffer(*_engine,
+            IndexBuffer::BufferDescriptor(indexData, indexDataSize, FREE_CB));
+
+        // Step 6: Bounding box
+        float minX = positions[0], minY = positions[1], minZ = positions[2];
+        float maxX = minX, maxY = minY, maxZ = minZ;
+        for (uint32_t i = 1; i < vertexCount; i++) {
+            float x = positions[i * 3], y = positions[i * 3 + 1], z = positions[i * 3 + 2];
+            if (x < minX) minX = x; if (x > maxX) maxX = x;
+            if (y < minY) minY = y; if (y > maxY) maxY = y;
+            if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+        }
+        Box boundingBox;
+        boundingBox.set({minX, minY, minZ}, {maxX, maxY, maxZ});
+
+        // Step 7: Create GeometrySceneAsset
+        auto* asset = new GeometrySceneAsset(
+            _engine, vb, ib, &materialInstance, 1,
+            RenderableManager::PrimitiveType::TRIANGLES,
+            boundingBox, nullptr);
+
+        TRACE("createSolidOverlay: created overlay with %u vertices", vertexCount);
         return asset;
     }
 

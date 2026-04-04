@@ -624,6 +624,17 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Material_createSolidMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createSolidMaterial(tEngine);
+          PROXY(onComplete(instance));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     std::packaged_task<void()> lambda(
@@ -743,6 +754,18 @@ extern "C"
         [=]() mutable
         {
           auto *overlay = SceneAsset_createWireframeOverlay(tSceneAsset, tMaterialInstance);
+          PROXY(onComplete(overlay));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_createSolidOverlayRenderThread(
+      TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance, void (*onComplete)(TSceneAsset *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *overlay = SceneAsset_createSolidOverlay(tSceneAsset, tMaterialInstance);
           PROXY(onComplete(overlay));
         });
     auto fut = _renderThread->addTask(lambda);

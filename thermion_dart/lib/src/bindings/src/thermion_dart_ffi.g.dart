@@ -4002,6 +4002,33 @@ external void SceneAsset_applyWireframeBarycentricsRenderThread(
 
 @ffi.Native<
     ffi.Void Function(
+        ffi.Pointer<TSceneAsset>,
+        ffi.Pointer<TMaterialInstance>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(isLeaf: true)
+external void SceneAsset_createSolidOverlayRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(isLeaf: true)
+external void Material_createSolidMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
         ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void SceneAsset_releaseSourceDataRenderThread(
   ffi.Pointer<TSceneAsset> tSceneAsset,

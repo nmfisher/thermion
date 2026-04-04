@@ -171,6 +171,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
         EMSCRIPTEN_KEEPALIVE void SceneAsset_applyWireframeBarycentricsRenderThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createWireframeOverlayRenderThread(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance, void (*onComplete)(TSceneAsset *));
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_createSolidOverlayRenderThread(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance, void (*onComplete)(TSceneAsset *));
+        EMSCRIPTEN_KEEPALIVE void Material_createSolidMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataRenderThread(TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete);
         
         EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(
