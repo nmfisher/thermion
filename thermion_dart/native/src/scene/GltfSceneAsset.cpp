@@ -1,7 +1,6 @@
 
 #include "scene/GltfSceneAsset.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
-#include "scene/GeometrySceneAsset.hpp"
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
 
@@ -55,13 +54,13 @@ namespace thermion
     GltfSceneAsset::~GltfSceneAsset()
     {
         _instances.clear();
-        for (auto* vb : _wireframeVertexBuffers) {
+        for (auto* vb : _preservedVertexBuffers) {
             _engine->destroy(vb);
         }
-        for (auto* ib : _wireframeIndexBuffers) {
+        for (auto* ib : _preservedIndexBuffers) {
             _engine->destroy(ib);
         }
-        for (auto* bo : _wireframeBufferObjects) {
+        for (auto* bo : _preservedBufferObjects) {
             _engine->destroy(bo);
         }
         releaseSourceData();
@@ -191,444 +190,19 @@ namespace thermion
         return nullptr;
     }
 
-    bool GltfSceneAsset::extractMeshData(float* outPositions, uint32_t* outVertexCount,
-                                          uint32_t* outIndices, uint32_t* outIndexCount)
+    void GltfSceneAsset::rebuildVertexBuffers()
     {
         auto* sourceData = (const cgltf_data*)_asset->getSourceAsset();
         if (!sourceData) {
-            Log("extractMeshData: source data already released");
-            return false;
-        }
-
-        uint32_t totalVertices = 0;
-        uint32_t totalIndices = 0;
-
-        // Iterate all nodes with meshes in the cgltf data
-        for (cgltf_size ni = 0; ni < sourceData->nodes_count; ni++) {
-            const cgltf_node& node = sourceData->nodes[ni];
-            if (!node.mesh) continue;
-
-            for (cgltf_size pi = 0; pi < node.mesh->primitives_count; pi++) {
-                const cgltf_primitive& prim = node.mesh->primitives[pi];
-
-                if (prim.type != cgltf_primitive_type_triangles) continue;
-
-                // Find position accessor
-                const cgltf_accessor* posAccessor = nullptr;
-                for (cgltf_size ai = 0; ai < prim.attributes_count; ai++) {
-                    if (prim.attributes[ai].type == cgltf_attribute_type_position) {
-                        posAccessor = prim.attributes[ai].data;
-                        break;
-                    }
-                }
-                if (!posAccessor) continue;
-
-                // Count indices
-                uint32_t primIndexCount = 0;
-                if (prim.indices) {
-                    primIndexCount = (uint32_t)prim.indices->count;
-                } else {
-                    primIndexCount = (uint32_t)posAccessor->count;
-                }
-
-                if (primIndexCount < 3 || primIndexCount % 3 != 0) continue;
-
-                if (outPositions != nullptr) {
-                    // Get the node's world transform (column-major 4x4)
-                    float worldTransform[16];
-                    cgltf_node_transform_world(&node, worldTransform);
-
-                    // Read positions
-                    size_t posComponents = cgltf_num_components(posAccessor->type);
-                    std::vector<float> srcPositions(posAccessor->count * posComponents);
-                    cgltf_accessor_unpack_floats(posAccessor, srcPositions.data(), srcPositions.size());
-
-                    // Copy positions transformed to world space (3 floats per vertex)
-                    for (cgltf_size vi = 0; vi < posAccessor->count; vi++) {
-                        float x = srcPositions[vi * posComponents + 0];
-                        float y = srcPositions[vi * posComponents + 1];
-                        float z = srcPositions[vi * posComponents + 2];
-
-                        // Apply column-major 4x4 world transform
-                        outPositions[(totalVertices + vi) * 3 + 0] =
-                            worldTransform[0] * x + worldTransform[4] * y + worldTransform[8] * z + worldTransform[12];
-                        outPositions[(totalVertices + vi) * 3 + 1] =
-                            worldTransform[1] * x + worldTransform[5] * y + worldTransform[9] * z + worldTransform[13];
-                        outPositions[(totalVertices + vi) * 3 + 2] =
-                            worldTransform[2] * x + worldTransform[6] * y + worldTransform[10] * z + worldTransform[14];
-                    }
-
-                    // Read indices (offset by accumulated vertex count)
-                    if (prim.indices) {
-                        for (cgltf_size ii = 0; ii < prim.indices->count; ii++) {
-                            outIndices[totalIndices + ii] = totalVertices + (uint32_t)cgltf_accessor_read_index(prim.indices, ii);
-                        }
-                    } else {
-                        for (uint32_t ii = 0; ii < primIndexCount; ii++) {
-                            outIndices[totalIndices + ii] = totalVertices + ii;
-                        }
-                    }
-                }
-
-                totalVertices += (uint32_t)posAccessor->count;
-                totalIndices += primIndexCount;
-            }
-        }
-
-        *outVertexCount = totalVertices;
-        *outIndexCount = totalIndices;
-        return true;
-    }
-
-    SceneAsset* GltfSceneAsset::createWireframeOverlay(MaterialInstance* materialInstance)
-    {
-        // Step 1: Get counts
-        uint32_t vertexCount = 0, indexCount = 0;
-        if (!extractMeshData(nullptr, &vertexCount, nullptr, &indexCount)) {
-            Log("createWireframeOverlay: failed to extract mesh data");
-            return nullptr;
-        }
-        if (vertexCount == 0 || indexCount == 0) {
-            Log("createWireframeOverlay: no mesh data");
-            return nullptr;
-        }
-
-        // Step 2: Extract positions and indices
-        std::vector<float> positions(vertexCount * 3);
-        std::vector<uint32_t> indices(indexCount);
-        extractMeshData(positions.data(), &vertexCount, indices.data(), &indexCount);
-
-        // Step 3: Unweld vertices and assign barycentrics
-        // (same logic as applyWireframeBarycentrics)
-        uint32_t triangleCount = indexCount / 3;
-        uint32_t newVertexCount = triangleCount * 3;
-
-        size_t posDataSize = newVertexCount * 3 * sizeof(float);
-        float* newPositions = (float*)malloc(posDataSize);
-
-        size_t baryDataSize = newVertexCount * 4 * sizeof(float);
-        float* newBarycentrics = (float*)malloc(baryDataSize);
-
-        const float bary[3][4] = {
-            {1.0f, 0.0f, 0.0f, 0.0f},
-            {0.0f, 1.0f, 0.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f, 0.0f}
-        };
-
-        for (uint32_t t = 0; t < triangleCount; t++) {
-            for (int v = 0; v < 3; v++) {
-                uint32_t srcIdx = indices[t * 3 + v];
-                uint32_t dstIdx = t * 3 + v;
-
-                newPositions[dstIdx * 3 + 0] = positions[srcIdx * 3 + 0];
-                newPositions[dstIdx * 3 + 1] = positions[srcIdx * 3 + 1];
-                newPositions[dstIdx * 3 + 2] = positions[srcIdx * 3 + 2];
-
-                newBarycentrics[dstIdx * 4 + 0] = bary[v][0];
-                newBarycentrics[dstIdx * 4 + 1] = bary[v][1];
-                newBarycentrics[dstIdx * 4 + 2] = bary[v][2];
-                newBarycentrics[dstIdx * 4 + 3] = bary[v][3];
-            }
-        }
-
-        // Step 4: Build VertexBuffer with POSITION + CUSTOM0
-        // Use enableBufferObjects + BufferObject (same pattern as applyWireframeBarycentrics)
-        VertexBuffer* vb = VertexBuffer::Builder()
-            .vertexCount(newVertexCount)
-            .bufferCount(2)
-            .enableBufferObjects()
-            .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-            .attribute(VertexAttribute::CUSTOM0, 1, VertexBuffer::AttributeType::FLOAT4)
-            .build(*_engine);
-
-        BufferObject* posBO = BufferObject::Builder()
-            .size(posDataSize)
-            .build(*_engine);
-        posBO->setBuffer(*_engine,
-            BufferObject::BufferDescriptor(newPositions, posDataSize, FREE_CB));
-        vb->setBufferObjectAt(*_engine, 0, posBO);
-
-        BufferObject* baryBO = BufferObject::Builder()
-            .size(baryDataSize)
-            .build(*_engine);
-        baryBO->setBuffer(*_engine,
-            BufferObject::BufferDescriptor(newBarycentrics, baryDataSize, FREE_CB));
-        vb->setBufferObjectAt(*_engine, 1, baryBO);
-
-        // Step 5: Build IndexBuffer with sequential indices
-        size_t indexDataSize = newVertexCount * sizeof(uint32_t);
-        uint32_t* newIndices = (uint32_t*)malloc(indexDataSize);
-        for (uint32_t i = 0; i < newVertexCount; i++) {
-            newIndices[i] = i;
-        }
-
-        IndexBuffer* ib = IndexBuffer::Builder()
-            .indexCount(newVertexCount)
-            .bufferType(IndexBuffer::IndexType::UINT)
-            .build(*_engine);
-        ib->setBuffer(*_engine,
-            IndexBuffer::BufferDescriptor(newIndices, indexDataSize, FREE_CB));
-
-        // Step 6: Calculate bounding box
-        float minX = positions[0], minY = positions[1], minZ = positions[2];
-        float maxX = minX, maxY = minY, maxZ = minZ;
-        for (uint32_t i = 1; i < vertexCount; i++) {
-            float x = positions[i * 3 + 0], y = positions[i * 3 + 1], z = positions[i * 3 + 2];
-            if (x < minX) minX = x; if (x > maxX) maxX = x;
-            if (y < minY) minY = y; if (y > maxY) maxY = y;
-            if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
-        }
-        Box boundingBox;
-        boundingBox.set({minX, minY, minZ}, {maxX, maxY, maxZ});
-
-        // Step 7: Create GeometrySceneAsset
-        auto* asset = new GeometrySceneAsset(
-            _engine, vb, ib, &materialInstance, 1,
-            RenderableManager::PrimitiveType::TRIANGLES,
-            boundingBox, nullptr);
-
-        TRACE("createWireframeOverlay: created overlay with %u vertices", newVertexCount);
-        return asset;
-    }
-
-    bool GltfSceneAsset::extractMeshDataWithNormals(
-        float* outPositions, float* outNormals,
-        uint32_t* outVertexCount,
-        uint32_t* outIndices, uint32_t* outIndexCount)
-    {
-        if(!_asset) {
-            Log("extractMeshDataWithNormals: NO ASSET");
-            return false;
-        }
-        auto* sourceData = (const cgltf_data*)_asset->getSourceAsset();
-        if (!sourceData) {
-            Log("extractMeshDataWithNormals: source data already released");
-            return false;
-        }
-
-        uint32_t totalVertices = 0;
-        uint32_t totalIndices = 0;
-
-        for (cgltf_size ni = 0; ni < sourceData->nodes_count; ni++) {
-            const cgltf_node& node = sourceData->nodes[ni];
-            if (!node.mesh) continue;
-
-            for (cgltf_size pi = 0; pi < node.mesh->primitives_count; pi++) {
-                const cgltf_primitive& prim = node.mesh->primitives[pi];
-                if (prim.type != cgltf_primitive_type_triangles) continue;
-
-                const cgltf_accessor* posAccessor = nullptr;
-                const cgltf_accessor* nrmAccessor = nullptr;
-                for (cgltf_size ai = 0; ai < prim.attributes_count; ai++) {
-                    if (prim.attributes[ai].type == cgltf_attribute_type_position)
-                        posAccessor = prim.attributes[ai].data;
-                    else if (prim.attributes[ai].type == cgltf_attribute_type_normal)
-                        nrmAccessor = prim.attributes[ai].data;
-                }
-                if (!posAccessor) continue;
-
-                uint32_t primIndexCount = 0;
-                if (prim.indices) {
-                    primIndexCount = (uint32_t)prim.indices->count;
-                } else {
-                    primIndexCount = (uint32_t)posAccessor->count;
-                }
-                if (primIndexCount < 3 || primIndexCount % 3 != 0) continue;
-
-                if (outPositions != nullptr) {
-                    float worldTransform[16];
-                    cgltf_node_transform_world(&node, worldTransform);
-
-                    // Read positions
-                    size_t posComponents = cgltf_num_components(posAccessor->type);
-                    std::vector<float> srcPositions(posAccessor->count * posComponents);
-                    cgltf_accessor_unpack_floats(posAccessor, srcPositions.data(), srcPositions.size());
-
-                    // Read normals (if available)
-                    std::vector<float> srcNormals;
-                    size_t nrmComponents = 0;
-                    if (nrmAccessor) {
-                        nrmComponents = cgltf_num_components(nrmAccessor->type);
-                        srcNormals.resize(nrmAccessor->count * nrmComponents);
-                        cgltf_accessor_unpack_floats(nrmAccessor, srcNormals.data(), srcNormals.size());
-                    }
-
-                    for (cgltf_size vi = 0; vi < posAccessor->count; vi++) {
-                        float x = srcPositions[vi * posComponents + 0];
-                        float y = srcPositions[vi * posComponents + 1];
-                        float z = srcPositions[vi * posComponents + 2];
-
-                        // Transform position to world space
-                        outPositions[(totalVertices + vi) * 3 + 0] =
-                            worldTransform[0] * x + worldTransform[4] * y + worldTransform[8] * z + worldTransform[12];
-                        outPositions[(totalVertices + vi) * 3 + 1] =
-                            worldTransform[1] * x + worldTransform[5] * y + worldTransform[9] * z + worldTransform[13];
-                        outPositions[(totalVertices + vi) * 3 + 2] =
-                            worldTransform[2] * x + worldTransform[6] * y + worldTransform[10] * z + worldTransform[14];
-
-                        // Transform normal by upper-left 3x3 (rotation only, re-normalize after)
-                        if (outNormals && nrmAccessor && vi < nrmAccessor->count) {
-                            float nx = srcNormals[vi * nrmComponents + 0];
-                            float ny = srcNormals[vi * nrmComponents + 1];
-                            float nz = srcNormals[vi * nrmComponents + 2];
-
-                            float wnx = worldTransform[0] * nx + worldTransform[4] * ny + worldTransform[8] * nz;
-                            float wny = worldTransform[1] * nx + worldTransform[5] * ny + worldTransform[9] * nz;
-                            float wnz = worldTransform[2] * nx + worldTransform[6] * ny + worldTransform[10] * nz;
-
-                            float len = sqrtf(wnx*wnx + wny*wny + wnz*wnz);
-                            if (len > 1e-6f) { wnx /= len; wny /= len; wnz /= len; }
-
-                            outNormals[(totalVertices + vi) * 3 + 0] = wnx;
-                            outNormals[(totalVertices + vi) * 3 + 1] = wny;
-                            outNormals[(totalVertices + vi) * 3 + 2] = wnz;
-                        } else if (outNormals) {
-                            // No normal data — use a default up normal
-                            outNormals[(totalVertices + vi) * 3 + 0] = 0.0f;
-                            outNormals[(totalVertices + vi) * 3 + 1] = 1.0f;
-                            outNormals[(totalVertices + vi) * 3 + 2] = 0.0f;
-                        }
-                    }
-
-                    // Read indices
-                    if (prim.indices) {
-                        for (cgltf_size ii = 0; ii < prim.indices->count; ii++) {
-                            outIndices[totalIndices + ii] = totalVertices + (uint32_t)cgltf_accessor_read_index(prim.indices, ii);
-                        }
-                    } else {
-                        for (uint32_t ii = 0; ii < primIndexCount; ii++) {
-                            outIndices[totalIndices + ii] = totalVertices + ii;
-                        }
-                    }
-                }
-
-                totalVertices += (uint32_t)posAccessor->count;
-                totalIndices += primIndexCount;
-            }
-        }
-
-        *outVertexCount = totalVertices;
-        *outIndexCount = totalIndices;
-        return true;
-    }
-
-    SceneAsset* GltfSceneAsset::createSolidOverlay(MaterialInstance* materialInstance)
-    {
-        // Step 1: Get counts
-        uint32_t vertexCount = 0, indexCount = 0;
-        if (!extractMeshDataWithNormals(nullptr, nullptr, &vertexCount, nullptr, &indexCount)) {
-            Log("createSolidOverlay: failed to extract mesh data");
-            return nullptr;
-        }
-        if (vertexCount == 0 || indexCount == 0) {
-            Log("createSolidOverlay: no mesh data");
-            return nullptr;
-        }
-
-        // Step 2: Extract positions, normals, and indices
-        std::vector<float> positions(vertexCount * 3);
-        std::vector<float> normals(vertexCount * 3);
-        std::vector<uint32_t> indices(indexCount);
-        extractMeshDataWithNormals(positions.data(), normals.data(), &vertexCount,
-                                   indices.data(), &indexCount);
-
-        // Step 3: Build tangent quaternions from normals using SurfaceOrientation
-        std::vector<filament::math::ushort3> triangles(indexCount / 3);
-        for (uint32_t i = 0; i < indexCount; i += 3) {
-            triangles[i / 3] = {
-                (uint16_t)indices[i],
-                (uint16_t)indices[i + 1],
-                (uint16_t)indices[i + 2]
-            };
-        }
-
-        geometry::SurfaceOrientation::Builder orientBuilder;
-        orientBuilder.vertexCount(vertexCount)
-            .normals((filament::math::float3*)normals.data())
-            .positions((filament::math::float3*)positions.data())
-            .triangleCount(triangles.size())
-            .triangles(triangles.data());
-
-        auto orientation = orientBuilder.build();
-        auto* quats = new std::vector<filament::math::quatf>(vertexCount);
-        orientation->getQuats(quats->data(), vertexCount);
-
-        size_t posDataSize = vertexCount * 3 * sizeof(float);
-        size_t tangDataSize = vertexCount * sizeof(filament::math::quatf);
-
-        // Step 4: Build VertexBuffer with POSITION + TANGENTS
-        VertexBuffer* vb = VertexBuffer::Builder()
-            .vertexCount(vertexCount)
-            .bufferCount(2)
-            .enableBufferObjects()
-            .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-            .attribute(VertexAttribute::TANGENTS, 1, VertexBuffer::AttributeType::FLOAT4)
-            .build(*_engine);
-
-        // Upload positions via BufferObject
-        float* posData = (float*)malloc(posDataSize);
-        memcpy(posData, positions.data(), posDataSize);
-        BufferObject* posBO = BufferObject::Builder()
-            .size(posDataSize)
-            .build(*_engine);
-        posBO->setBuffer(*_engine,
-            BufferObject::BufferDescriptor(posData, posDataSize, FREE_CB));
-        vb->setBufferObjectAt(*_engine, 0, posBO);
-
-        // Upload tangent quaternions via BufferObject
-        BufferObject* tangBO = BufferObject::Builder()
-            .size(tangDataSize)
-            .build(*_engine);
-        tangBO->setBuffer(*_engine,
-            BufferObject::BufferDescriptor(quats->data(), tangDataSize,
-                [](void*, size_t, void* user) {
-                    delete (std::vector<filament::math::quatf>*)user;
-                }, quats));
-        vb->setBufferObjectAt(*_engine, 1, tangBO);
-
-        // Step 5: Build IndexBuffer
-        size_t indexDataSize = indexCount * sizeof(uint32_t);
-        uint32_t* indexData = (uint32_t*)malloc(indexDataSize);
-        memcpy(indexData, indices.data(), indexDataSize);
-
-        IndexBuffer* ib = IndexBuffer::Builder()
-            .indexCount(indexCount)
-            .bufferType(IndexBuffer::IndexType::UINT)
-            .build(*_engine);
-        ib->setBuffer(*_engine,
-            IndexBuffer::BufferDescriptor(indexData, indexDataSize, FREE_CB));
-
-        // Step 6: Bounding box
-        float minX = positions[0], minY = positions[1], minZ = positions[2];
-        float maxX = minX, maxY = minY, maxZ = minZ;
-        for (uint32_t i = 1; i < vertexCount; i++) {
-            float x = positions[i * 3], y = positions[i * 3 + 1], z = positions[i * 3 + 2];
-            if (x < minX) minX = x; if (x > maxX) maxX = x;
-            if (y < minY) minY = y; if (y > maxY) maxY = y;
-            if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
-        }
-        Box boundingBox;
-        boundingBox.set({minX, minY, minZ}, {maxX, maxY, maxZ});
-
-        // Step 7: Create GeometrySceneAsset
-        auto* asset = new GeometrySceneAsset(
-            _engine, vb, ib, &materialInstance, 1,
-            RenderableManager::PrimitiveType::TRIANGLES,
-            boundingBox, nullptr);
-
-        TRACE("createSolidOverlay: created overlay with %u vertices", vertexCount);
-        return asset;
-    }
-
-    void GltfSceneAsset::applyWireframeBarycentrics()
-    {
-        auto* sourceData = (const cgltf_data*)_asset->getSourceAsset();
-        if (!sourceData) {
-            Log("applyWireframeBarycentrics: source data already released");
+            Log("rebuildVertexBuffers: source data already released");
             return;
         }
 
-        // Build a lookup of all cgltf nodes that have meshes
+        if (_geometryPreserved) {
+            Log("rebuildVertexBuffers: already called");
+            return;
+        }
+
         std::vector<MeshEntry> meshEntries;
         collectAllMeshEntries(sourceData, meshEntries);
 
@@ -643,18 +217,41 @@ namespace thermion
 
             const cgltf_mesh* mesh = findMeshForEntity(entity, _ncm, meshEntries);
             if (!mesh) {
-                TRACE("applyWireframeBarycentrics: no cgltf mesh found for entity %zu", ei);
+                TRACE("rebuildVertexBuffers: no cgltf mesh found for entity %zu", ei);
                 continue;
             }
 
             for (cgltf_size pi = 0; pi < mesh->primitives_count; pi++) {
                 const cgltf_primitive& prim = mesh->primitives[pi];
 
-                // Only handle triangle primitives
                 if (prim.type != cgltf_primitive_type_triangles) {
-                    TRACE("applyWireframeBarycentrics: skipping non-triangle primitive");
+                    TRACE("rebuildVertexBuffers: skipping non-triangle primitive");
                     continue;
                 }
+
+                // --- Find accessors for all attributes ---
+                const cgltf_accessor* posAccessor = nullptr;
+                const cgltf_accessor* nrmAccessor = nullptr;
+                const cgltf_accessor* uvAccessor = nullptr;
+                const cgltf_accessor* jointsAccessor = nullptr;
+                const cgltf_accessor* weightsAccessor = nullptr;
+
+                for (cgltf_size ai = 0; ai < prim.attributes_count; ai++) {
+                    switch (prim.attributes[ai].type) {
+                        case cgltf_attribute_type_position:
+                            posAccessor = prim.attributes[ai].data; break;
+                        case cgltf_attribute_type_normal:
+                            nrmAccessor = prim.attributes[ai].data; break;
+                        case cgltf_attribute_type_texcoord:
+                            if (!uvAccessor) uvAccessor = prim.attributes[ai].data; break;
+                        case cgltf_attribute_type_joints:
+                            if (!jointsAccessor) jointsAccessor = prim.attributes[ai].data; break;
+                        case cgltf_attribute_type_weights:
+                            if (!weightsAccessor) weightsAccessor = prim.attributes[ai].data; break;
+                        default: break;
+                    }
+                }
+                if (!posAccessor) continue;
 
                 // --- Read indices ---
                 std::vector<uint32_t> indices;
@@ -664,13 +261,10 @@ namespace thermion
                         indices[i] = (uint32_t)cgltf_accessor_read_index(prim.indices, i);
                     }
                 } else {
-                    // No index buffer - generate trivial indices
-                    if (prim.attributes_count > 0) {
-                        cgltf_size vertexCount = prim.attributes[0].data->count;
-                        indices.resize(vertexCount);
-                        for (cgltf_size i = 0; i < vertexCount; i++) {
-                            indices[i] = (uint32_t)i;
-                        }
+                    cgltf_size vertexCount = posAccessor->count;
+                    indices.resize(vertexCount);
+                    for (cgltf_size i = 0; i < vertexCount; i++) {
+                        indices[i] = (uint32_t)i;
                     }
                 }
 
@@ -679,29 +273,52 @@ namespace thermion
                 uint32_t triangleCount = (uint32_t)(indices.size() / 3);
                 uint32_t newVertexCount = triangleCount * 3;
 
-                // --- Read position data ---
-                const cgltf_accessor* posAccessor = nullptr;
-                for (cgltf_size ai = 0; ai < prim.attributes_count; ai++) {
-                    if (prim.attributes[ai].type == cgltf_attribute_type_position) {
-                        posAccessor = prim.attributes[ai].data;
-                        break;
-                    }
-                }
-                if (!posAccessor) continue;
-
-                // Unpack all positions as floats
+                // --- Unpack source attributes ---
                 size_t posComponents = cgltf_num_components(posAccessor->type);
                 std::vector<float> srcPositions(posAccessor->count * posComponents);
                 cgltf_accessor_unpack_floats(posAccessor, srcPositions.data(), srcPositions.size());
 
+                std::vector<float> srcNormals;
+                size_t nrmComponents = 0;
+                if (nrmAccessor) {
+                    nrmComponents = cgltf_num_components(nrmAccessor->type);
+                    srcNormals.resize(nrmAccessor->count * nrmComponents);
+                    cgltf_accessor_unpack_floats(nrmAccessor, srcNormals.data(), srcNormals.size());
+                }
+
+                std::vector<float> srcUVs;
+                size_t uvComponents = 0;
+                if (uvAccessor) {
+                    uvComponents = cgltf_num_components(uvAccessor->type);
+                    srcUVs.resize(uvAccessor->count * uvComponents);
+                    cgltf_accessor_unpack_floats(uvAccessor, srcUVs.data(), srcUVs.size());
+                }
+
+                bool hasSkinning = jointsAccessor && weightsAccessor;
+                std::vector<float> srcJoints;
+                std::vector<float> srcWeights;
+                if (hasSkinning) {
+                    size_t jc = cgltf_num_components(jointsAccessor->type);
+                    srcJoints.resize(jointsAccessor->count * jc);
+                    cgltf_accessor_unpack_floats(jointsAccessor, srcJoints.data(), srcJoints.size());
+
+                    size_t wc = cgltf_num_components(weightsAccessor->type);
+                    srcWeights.resize(weightsAccessor->count * wc);
+                    cgltf_accessor_unpack_floats(weightsAccessor, srcWeights.data(), srcWeights.size());
+                }
+
                 // --- Unweld: duplicate vertices per triangle ---
-                size_t posDataSize = newVertexCount * 3 * sizeof(float);
-                float* newPositions = (float*)malloc(posDataSize);
+                std::vector<float> newPositions(newVertexCount * 3);
+                std::vector<float> newNormals(newVertexCount * 3);
+                std::vector<float> newUVs(newVertexCount * 2);
+                std::vector<float> newBarycentrics(newVertexCount * 4);
+                std::vector<uint8_t> newJoints;
+                std::vector<float> newWeights;
+                if (hasSkinning) {
+                    newJoints.resize(newVertexCount * 4);
+                    newWeights.resize(newVertexCount * 4);
+                }
 
-                size_t baryDataSize = newVertexCount * 4 * sizeof(float);
-                float* newBarycentrics = (float*)malloc(baryDataSize);
-
-                // Barycentric coordinate patterns
                 const float bary[3][4] = {
                     {1.0f, 0.0f, 0.0f, 0.0f},
                     {0.0f, 1.0f, 0.0f, 0.0f},
@@ -713,57 +330,157 @@ namespace thermion
                         uint32_t srcIdx = indices[t * 3 + v];
                         uint32_t dstIdx = t * 3 + v;
 
-                        // Copy position (3 floats)
+                        // Position
                         newPositions[dstIdx * 3 + 0] = srcPositions[srcIdx * posComponents + 0];
                         newPositions[dstIdx * 3 + 1] = srcPositions[srcIdx * posComponents + 1];
                         newPositions[dstIdx * 3 + 2] = srcPositions[srcIdx * posComponents + 2];
 
-                        // Assign barycentric
+                        // Normal
+                        if (nrmAccessor && srcIdx < nrmAccessor->count) {
+                            newNormals[dstIdx * 3 + 0] = srcNormals[srcIdx * nrmComponents + 0];
+                            newNormals[dstIdx * 3 + 1] = srcNormals[srcIdx * nrmComponents + 1];
+                            newNormals[dstIdx * 3 + 2] = srcNormals[srcIdx * nrmComponents + 2];
+                        } else {
+                            newNormals[dstIdx * 3 + 0] = 0.0f;
+                            newNormals[dstIdx * 3 + 1] = 1.0f;
+                            newNormals[dstIdx * 3 + 2] = 0.0f;
+                        }
+
+                        // UV
+                        if (uvAccessor && srcIdx < uvAccessor->count) {
+                            newUVs[dstIdx * 2 + 0] = srcUVs[srcIdx * uvComponents + 0];
+                            newUVs[dstIdx * 2 + 1] = srcUVs[srcIdx * uvComponents + 1];
+                        } else {
+                            newUVs[dstIdx * 2 + 0] = 0.0f;
+                            newUVs[dstIdx * 2 + 1] = 0.0f;
+                        }
+
+                        // Barycentric
                         newBarycentrics[dstIdx * 4 + 0] = bary[v][0];
                         newBarycentrics[dstIdx * 4 + 1] = bary[v][1];
                         newBarycentrics[dstIdx * 4 + 2] = bary[v][2];
                         newBarycentrics[dstIdx * 4 + 3] = bary[v][3];
+
+                        // Bone indices/weights
+                        if (hasSkinning) {
+                            size_t jc = cgltf_num_components(jointsAccessor->type);
+                            size_t wc = cgltf_num_components(weightsAccessor->type);
+                            for (int k = 0; k < 4; k++) {
+                                newJoints[dstIdx * 4 + k] = (k < (int)jc && srcIdx < jointsAccessor->count)
+                                    ? (uint8_t)srcJoints[srcIdx * jc + k] : 0;
+                                newWeights[dstIdx * 4 + k] = (k < (int)wc && srcIdx < weightsAccessor->count)
+                                    ? srcWeights[srcIdx * wc + k] : 0.0f;
+                            }
+                        }
                     }
                 }
 
-                // --- Build sequential index data ---
+                // --- Build tangent quaternions from normals ---
+                std::vector<filament::math::ushort3> tris(triangleCount);
+                for (uint32_t i = 0; i < newVertexCount; i += 3) {
+                    tris[i / 3] = {(uint16_t)i, (uint16_t)(i + 1), (uint16_t)(i + 2)};
+                }
+
+                geometry::SurfaceOrientation::Builder orientBuilder;
+                orientBuilder.vertexCount(newVertexCount)
+                    .normals((filament::math::float3*)newNormals.data())
+                    .positions((filament::math::float3*)newPositions.data())
+                    .triangleCount(tris.size())
+                    .triangles(tris.data());
+
+                auto orientation = orientBuilder.build();
+                std::vector<filament::math::quatf> tangentQuats(newVertexCount);
+                orientation->getQuats(tangentQuats.data(), newVertexCount);
+
+                // --- Build VertexBuffer ---
+                uint8_t bufferCount = hasSkinning ? 6 : 4;
+
+                auto vbBuilder = VertexBuffer::Builder()
+                    .vertexCount(newVertexCount)
+                    .bufferCount(bufferCount)
+                    .enableBufferObjects()
+                    .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+                    .attribute(VertexAttribute::TANGENTS, 1, VertexBuffer::AttributeType::FLOAT4)
+                    .attribute(VertexAttribute::UV0, 2, VertexBuffer::AttributeType::FLOAT2)
+                    .attribute(VertexAttribute::CUSTOM0, 3, VertexBuffer::AttributeType::FLOAT4);
+
+                if (hasSkinning) {
+                    vbBuilder
+                        .attribute(VertexAttribute::BONE_INDICES, 4, VertexBuffer::AttributeType::UBYTE4)
+                        .attribute(VertexAttribute::BONE_WEIGHTS, 5, VertexBuffer::AttributeType::FLOAT4);
+                }
+
+                VertexBuffer* vb = vbBuilder.build(*_engine);
+
+                // Buffer 0: POSITION
+                size_t posDataSize = newVertexCount * 3 * sizeof(float);
+                float* posData = (float*)malloc(posDataSize);
+                memcpy(posData, newPositions.data(), posDataSize);
+                BufferObject* posBO = BufferObject::Builder().size(posDataSize).build(*_engine);
+                posBO->setBuffer(*_engine, BufferObject::BufferDescriptor(posData, posDataSize, FREE_CB));
+                vb->setBufferObjectAt(*_engine, 0, posBO);
+
+                // Buffer 1: TANGENTS
+                size_t tangDataSize = newVertexCount * sizeof(filament::math::quatf);
+                float* tangData = (float*)malloc(tangDataSize);
+                memcpy(tangData, tangentQuats.data(), tangDataSize);
+                BufferObject* tangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
+                tangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(tangData, tangDataSize, FREE_CB));
+                vb->setBufferObjectAt(*_engine, 1, tangBO);
+
+                // Buffer 2: UV0
+                size_t uvDataSize = newVertexCount * 2 * sizeof(float);
+                float* uvData = (float*)malloc(uvDataSize);
+                memcpy(uvData, newUVs.data(), uvDataSize);
+                BufferObject* uvBO = BufferObject::Builder().size(uvDataSize).build(*_engine);
+                uvBO->setBuffer(*_engine, BufferObject::BufferDescriptor(uvData, uvDataSize, FREE_CB));
+                vb->setBufferObjectAt(*_engine, 2, uvBO);
+
+                // Buffer 3: CUSTOM0 (barycentrics)
+                size_t baryDataSize = newVertexCount * 4 * sizeof(float);
+                float* baryData = (float*)malloc(baryDataSize);
+                memcpy(baryData, newBarycentrics.data(), baryDataSize);
+                BufferObject* baryBO = BufferObject::Builder().size(baryDataSize).build(*_engine);
+                baryBO->setBuffer(*_engine, BufferObject::BufferDescriptor(baryData, baryDataSize, FREE_CB));
+                vb->setBufferObjectAt(*_engine, 3, baryBO);
+
+                _preservedBufferObjects.push_back(posBO);
+                _preservedBufferObjects.push_back(tangBO);
+                _preservedBufferObjects.push_back(uvBO);
+                _preservedBufferObjects.push_back(baryBO);
+
+                if (hasSkinning) {
+                    // Buffer 4: BONE_INDICES
+                    size_t jointDataSize = newVertexCount * 4 * sizeof(uint8_t);
+                    uint8_t* jointData = (uint8_t*)malloc(jointDataSize);
+                    memcpy(jointData, newJoints.data(), jointDataSize);
+                    BufferObject* jointBO = BufferObject::Builder().size(jointDataSize).build(*_engine);
+                    jointBO->setBuffer(*_engine, BufferObject::BufferDescriptor(jointData, jointDataSize, FREE_CB));
+                    vb->setBufferObjectAt(*_engine, 4, jointBO);
+
+                    // Buffer 5: BONE_WEIGHTS
+                    size_t weightDataSize = newVertexCount * 4 * sizeof(float);
+                    float* weightData = (float*)malloc(weightDataSize);
+                    memcpy(weightData, newWeights.data(), weightDataSize);
+                    BufferObject* weightBO = BufferObject::Builder().size(weightDataSize).build(*_engine);
+                    weightBO->setBuffer(*_engine, BufferObject::BufferDescriptor(weightData, weightDataSize, FREE_CB));
+                    vb->setBufferObjectAt(*_engine, 5, weightBO);
+
+                    _preservedBufferObjects.push_back(jointBO);
+                    _preservedBufferObjects.push_back(weightBO);
+                }
+
+                // --- Build sequential IndexBuffer ---
                 size_t indexDataSize = newVertexCount * sizeof(uint32_t);
                 uint32_t* newIndices = (uint32_t*)malloc(indexDataSize);
                 for (uint32_t i = 0; i < newVertexCount; i++) {
                     newIndices[i] = i;
                 }
 
-                // --- Build new VertexBuffer with POSITION + CUSTOM0 ---
-                VertexBuffer* vb = VertexBuffer::Builder()
-                    .vertexCount(newVertexCount)
-                    .bufferCount(2)
-                    .enableBufferObjects()
-                    .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-                    .attribute(VertexAttribute::CUSTOM0, 1, VertexBuffer::AttributeType::FLOAT4)
-                    .build(*_engine);
-
-                // Upload position data via BufferObject
-                BufferObject* posBO = BufferObject::Builder()
-                    .size(posDataSize)
-                    .build(*_engine);
-                posBO->setBuffer(*_engine,
-                    BufferObject::BufferDescriptor(newPositions, posDataSize, FREE_CB));
-                vb->setBufferObjectAt(*_engine, 0, posBO);
-
-                // Upload barycentric data via BufferObject
-                BufferObject* baryBO = BufferObject::Builder()
-                    .size(baryDataSize)
-                    .build(*_engine);
-                baryBO->setBuffer(*_engine,
-                    BufferObject::BufferDescriptor(newBarycentrics, baryDataSize, FREE_CB));
-                vb->setBufferObjectAt(*_engine, 1, baryBO);
-
-                // --- Build new IndexBuffer ---
                 IndexBuffer* ib = IndexBuffer::Builder()
                     .indexCount(newVertexCount)
                     .bufferType(IndexBuffer::IndexType::UINT)
                     .build(*_engine);
-
                 ib->setBuffer(*_engine,
                     IndexBuffer::BufferDescriptor(newIndices, indexDataSize, FREE_CB));
 
@@ -772,16 +489,15 @@ namespace thermion
                     RenderableManager::PrimitiveType::TRIANGLES,
                     vb, ib, 0, newVertexCount);
 
-                // Track for cleanup
-                _wireframeVertexBuffers.push_back(vb);
-                _wireframeIndexBuffers.push_back(ib);
-                _wireframeBufferObjects.push_back(posBO);
-                _wireframeBufferObjects.push_back(baryBO);
+                _preservedVertexBuffers.push_back(vb);
+                _preservedIndexBuffers.push_back(ib);
 
-                TRACE("applyWireframeBarycentrics: primitive %zu unwelded %zu -> %u vertices",
-                      pi, indices.size(), newVertexCount);
+                TRACE("rebuildVertexBuffers: primitive %zu unwelded %zu -> %u vertices (skinned=%d)",
+                      pi, indices.size(), newVertexCount, hasSkinning);
             }
         }
+
+        _geometryPreserved = true;
     }
 
-}
+}  // namespace thermion

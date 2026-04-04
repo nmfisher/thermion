@@ -125,6 +125,15 @@ abstract class ThermionViewer {
   //
   // Instances can be retrieved with [getInstances].
   //
+  // If [preserveGeometry] is true, vertex buffers are rebuilt after loading
+  // with a superset of attributes (POSITION, TANGENTS, UV0, CUSTOM0, and
+  // optionally BONE_INDICES/BONE_WEIGHTS). Vertices are unwelded so each
+  // triangle has unique vertices with barycentric coordinates in CUSTOM0.
+  // This allows freely swapping materials (e.g. wireframe, solid shading)
+  // via [setMaterialInstanceForAll] without creating separate overlay entities.
+  // Increases vertex memory usage (~3x vertex count) but preserves the full
+  // glTF feature set (animations, skeleton, instancing).
+  //
   // If [loadResourcesAsync] is true, resources (textures, materials, etc) will
   // be loaded asynchronously. Some material/texture pop-in is expected.
   //
@@ -132,6 +141,7 @@ abstract class ThermionViewer {
       {bool addToScene = true,
       int initialInstances = 1,
       bool releaseSourceData = false,
+      bool preserveGeometry = false,
       String? resourceUri,
       bool loadAsync = false});
 
@@ -143,6 +153,7 @@ abstract class ThermionViewer {
       {String? resourceUri,
       int initialInstances = 1,
       bool releaseSourceData = false,
+      bool preserveGeometry = false,
       bool loadResourcesAsync = false,
       bool addToScene = true});
 

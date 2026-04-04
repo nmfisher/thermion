@@ -137,34 +137,18 @@ namespace thermion
             return _asset->getBoundingBox();
         }
 
-        /// Unweld all mesh primitives so each triangle has unique vertices,
-        /// then assign barycentric coordinates to CUSTOM0 for wireframe rendering.
-        /// Requires source data to still be available (releaseSourceData not called).
-        void applyWireframeBarycentrics();
-
-        /// Extract raw vertex positions and triangle indices from all mesh primitives.
-        /// Two-pass API: call with outPositions=nullptr to get counts, then allocate
-        /// and call again to fill. Returns false if source data is unavailable.
-        bool extractMeshData(float* outPositions, uint32_t* outVertexCount,
-                             uint32_t* outIndices, uint32_t* outIndexCount);
-
-        /// Create a separate wireframe overlay entity using the same buffer
-        /// layout as applyWireframeBarycentrics (POSITION + CUSTOM0 only,
-        /// with enableBufferObjects). Returns a new GeometrySceneAsset, or
-        /// nullptr if source data is unavailable.
-        SceneAsset* createWireframeOverlay(MaterialInstance* materialInstance);
-
-        /// Extract mesh data including normals (two-pass, like extractMeshData).
-        bool extractMeshDataWithNormals(float* outPositions, float* outNormals,
-                                        uint32_t* outVertexCount,
-                                        uint32_t* outIndices, uint32_t* outIndexCount);
-
-        /// Create a solid-shaded overlay entity (POSITION + TANGENTS).
-        SceneAsset* createSolidOverlay(MaterialInstance* materialInstance);
+        /// Rebuild all mesh primitives with a superset vertex buffer layout
+        /// (POSITION + TANGENTS + UV0 + CUSTOM0 + optional BONE_INDICES/WEIGHTS).
+        /// Unwelds vertices so each triangle has unique vertices for barycentric
+        /// wireframe rendering. After this, materials can be freely swapped via
+        /// setMaterialInstanceAt. Requires source data to still be available.
+        void rebuildVertexBuffers();
 
         /// Release the underlying cgltf source data early to free memory.
         /// Safe to call multiple times; subsequent calls are no-ops.
         void releaseSourceData();
+
+        bool geometryPreserved() const { return _geometryPreserved; }
 
     private:
         gltfio::FilamentAsset *_asset;
@@ -176,11 +160,12 @@ namespace thermion
         std::vector<std::unique_ptr<GltfSceneAssetInstance>> _instances;
 
         bool _sourceDataReleased = false;
+        bool _geometryPreserved = false;
 
-        // Buffers created by applyWireframeBarycentrics, owned by this asset.
-        std::vector<VertexBuffer*> _wireframeVertexBuffers;
-        std::vector<IndexBuffer*> _wireframeIndexBuffers;
-        std::vector<BufferObject*> _wireframeBufferObjects;
+        // Buffers created by rebuildVertexBuffers, owned by this asset.
+        std::vector<VertexBuffer*> _preservedVertexBuffers;
+        std::vector<IndexBuffer*> _preservedIndexBuffers;
+        std::vector<BufferObject*> _preservedBufferObjects;
     };
 
 } // namespace thermion

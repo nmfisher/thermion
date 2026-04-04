@@ -69,7 +69,8 @@ extern "C"
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        TFilamentAsset *tFilamentAsset
+        TFilamentAsset *tFilamentAsset,
+        bool preserveGeometry
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -83,7 +84,11 @@ extern "C"
             nameComponentManager
         );
 
-        return reinterpret_cast<TSceneAsset *>(sceneAsset);        
+        if (preserveGeometry) {
+            sceneAsset->rebuildVertexBuffers();
+        }
+
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
     
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
@@ -241,16 +246,6 @@ extern "C"
     }
 
 
-    EMSCRIPTEN_KEEPALIVE void SceneAsset_applyWireframeBarycentrics(TSceneAsset *tSceneAsset) {
-        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
-        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("applyWireframeBarycentrics only supported on glTF assets");
-            return;
-        }
-        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
-        gltfAsset->applyWireframeBarycentrics();
-    }
-
     EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
@@ -259,57 +254,6 @@ extern "C"
         }
         auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
         gltfAsset->releaseSourceData();
-    }
-
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createWireframeOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance) {
-        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
-        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("createWireframeOverlay only supported on glTF assets");
-            return nullptr;
-        }
-        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
-        auto *materialInstance = reinterpret_cast<filament::MaterialInstance*>(tMaterialInstance);
-        auto *overlay = gltfAsset->createWireframeOverlay(materialInstance);
-        return reinterpret_cast<TSceneAsset*>(overlay);
-    }
-
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createSolidOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance) {
-        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
-        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("createSolidOverlay only supported on glTF assets");
-            return nullptr;
-        }
-        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
-        auto *materialInstance = reinterpret_cast<filament::MaterialInstance*>(tMaterialInstance);
-        auto *overlay = gltfAsset->createSolidOverlay(materialInstance);
-        return reinterpret_cast<TSceneAsset*>(overlay);
-    }
-
-    EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshDataSize(TSceneAsset *tSceneAsset, uint32_t *outVertexCount, uint32_t *outIndexCount) {
-        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
-        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("getMeshDataSize only supported on glTF assets");
-            return -1;
-        }
-        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
-        if (!gltfAsset->extractMeshData(nullptr, outVertexCount, nullptr, outIndexCount)) {
-            return -1;
-        }
-        return 0;
-    }
-
-    EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshData(TSceneAsset *tSceneAsset, float *outPositions, uint32_t *outIndices) {
-        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
-        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("getMeshData only supported on glTF assets");
-            return -1;
-        }
-        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
-        uint32_t vertexCount = 0, indexCount = 0;
-        if (!gltfAsset->extractMeshData(outPositions, &vertexCount, outIndices, &indexCount)) {
-            return -1;
-        }
-        return 0;
     }
 
 #ifdef __cplusplus

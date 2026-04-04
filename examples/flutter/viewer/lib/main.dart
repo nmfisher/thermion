@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:flutter/material.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_wireframe_geometry.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 void main() {
@@ -43,7 +42,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ThermionViewer? _thermionViewer;
-  ThermionAsset? _wireframeOverlay;
 
   Future _load() async {
     if (_thermionViewer != null) {
@@ -63,13 +61,13 @@ class _MyHomePageState extends State<MyHomePage> {
     // file containing a plain cube.
     // By default, all paths are treated as asset paths. To load from a file
     // instead, use file:// URIs.
-    var asset = await _thermionViewer!
-        .loadGltf("assets/FlightHelmet/FlightHelmet.gltf", addToScene: false);
+    // Setting preserveGeometry: true rebuilds vertex buffers with a superset
+    // of attributes, enabling free material swapping (wireframe, solid, etc).
+    var asset = await _thermionViewer!.loadGltf(
+        "assets/FlightHelmet/FlightHelmet.gltf",
+        preserveGeometry: true);
 
-    // Create a wireframe overlay as a separate entity
-    _wireframeOverlay = await FFIWireframeAsset.createOverlayFromAsset(asset);
-
-    await _thermionViewer!.addToScene(_wireframeOverlay!);
+    await _thermionViewer!.addToScene(asset);
 
     // Thermion uses a right-handed coordinate system where +Y is up and -Z is
     // "into" the screen.

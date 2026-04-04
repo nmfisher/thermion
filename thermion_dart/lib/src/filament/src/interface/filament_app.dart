@@ -257,6 +257,7 @@ abstract class FilamentApp<T> {
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
       bool releaseSourceData = false,
+      bool preserveGeometry = false,
       bool loadResourcesAsync = false,
       String? resourceUri});
 

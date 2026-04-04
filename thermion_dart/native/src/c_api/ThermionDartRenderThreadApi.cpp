@@ -691,12 +691,13 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
+      bool preserveGeometry,
       void (*onComplete)(TSceneAsset *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, preserveGeometry);
           PROXY(onComplete(sceneAsset));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -731,42 +732,6 @@ extern "C"
         {
           auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
           PROXY(callback(instanceAsset));
-        });
-    auto fut = _renderThread->addTask(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_applyWireframeBarycentricsRenderThread(
-      TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          SceneAsset_applyWireframeBarycentrics(tSceneAsset);
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->addTask(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createWireframeOverlayRenderThread(
-      TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance, void (*onComplete)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *overlay = SceneAsset_createWireframeOverlay(tSceneAsset, tMaterialInstance);
-          PROXY(onComplete(overlay));
-        });
-    auto fut = _renderThread->addTask(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_createSolidOverlayRenderThread(
-      TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance, void (*onComplete)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *overlay = SceneAsset_createSolidOverlay(tSceneAsset, tMaterialInstance);
-          PROXY(onComplete(overlay));
         });
     auto fut = _renderThread->addTask(lambda);
   }

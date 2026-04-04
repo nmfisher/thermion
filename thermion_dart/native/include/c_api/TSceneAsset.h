@@ -22,7 +22,8 @@ extern "C"
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        TFilamentAsset *tFilamentAsset    
+        TFilamentAsset *tFilamentAsset,
+        bool preserveGeometry
     );
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset);   
@@ -41,12 +42,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE Aabb3 SceneAsset_getBoundingBox(TSceneAsset *asset);
     EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex);
     EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex);
-    EMSCRIPTEN_KEEPALIVE void SceneAsset_applyWireframeBarycentrics(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset);
-    EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshDataSize(TSceneAsset *tSceneAsset, uint32_t *outVertexCount, uint32_t *outIndexCount);
-    EMSCRIPTEN_KEEPALIVE int SceneAsset_getMeshData(TSceneAsset *tSceneAsset, float *outPositions, uint32_t *outIndices);
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createWireframeOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance);
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createSolidOverlay(TSceneAsset *tSceneAsset, TMaterialInstance *tMaterialInstance);
 
 #ifdef __cplusplus
 }

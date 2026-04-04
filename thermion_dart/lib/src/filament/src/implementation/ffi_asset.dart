@@ -786,14 +786,6 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   @override
-  Future applyWireframeBarycentrics() async {
-    await withVoidCallback((requestId, callback) {
-      SceneAsset_applyWireframeBarycentricsRenderThread(
-          asset, requestId, callback);
-    });
-  }
-
-  @override
   VertexBuffer? getVertexBuffer({int primitiveIndex = 0}) {
     final vbPtr = SceneAsset_getVertexBuffer(asset, primitiveIndex);
     if (vbPtr == nullptr) {

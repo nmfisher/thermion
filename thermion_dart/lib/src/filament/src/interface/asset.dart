@@ -357,12 +357,6 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
 
   // Unweld all mesh primitives so each triangle has unique vertices,
   // then assign barycentric coordinates to CUSTOM0 for wireframe rendering.
-  // After calling this, set a wireframe material via [setMaterialInstanceForAll].
-  // Only supported on glTF assets. Source data must not have been released.
-  Future applyWireframeBarycentrics() async {
-    throw UnimplementedError();
-  }
-
   // Returns the underlying [VertexBuffer] for this asset, if available.
   //
   // For geometry assets this exposes the backing Filament vertex buffer so you
