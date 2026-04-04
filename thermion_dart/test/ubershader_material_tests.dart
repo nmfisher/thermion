@@ -196,4 +196,30 @@ void main() async {
       await materialInstance.destroy();
     });
   });
+
+  test('UbershaderMaterial typed wrapper', () async {
+    await testHelper.withViewer((viewer) async {
+      final ubershader = await FilamentApp.instance!.createUbershaderMaterial();
+
+      await viewer
+          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
+
+      await ubershader.setBaseColorFactor(0.0, 1.0, 0.0, 1.0);
+      await ubershader.setBaseColorUV(-1);
+      await ubershader.setMetallicFactor(0.0);
+      await ubershader.setRoughnessFactor(1.0);
+
+      await viewer.createGeometry(
+          GeometryUtils.cube(normals: true, uvs: true),
+          materialInstances: [ubershader.materialInstance]);
+
+      await testHelper.capture(
+          viewer.view, "ubershader_typed_wrapper_base_color");
+
+      // Verify the underlying instance is accessible
+      expect(ubershader.materialInstance, isNotNull);
+
+      await ubershader.materialInstance.destroy();
+    }, bg: kRed, postProcessing: true);
+  });
 }

@@ -393,7 +393,8 @@ abstract class View<T> extends NativeHandle<T> {
       int? entity,
       @Deprecated('Use outlineWidth instead') double scale = 1.05,
       double outlineWidth = 3.0,
-      int primitiveIndex = 0});
+      int primitiveIndex = 0,
+      ThermionAsset? geometrySource});
 
   /// Removes the outline around [entity]. Noop if there was no highlight.
   Future removeStencilHighlight(ThermionAsset asset);

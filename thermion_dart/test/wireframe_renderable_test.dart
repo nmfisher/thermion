@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
@@ -16,21 +15,14 @@ void main() async {
       await result.viewer.addToScene(asset);
       await testHelper.capture(result.viewer.view, "preserved_before");
 
-      // Create wireframe material
-      var material = FFIMaterial(await withPointerCallback<TMaterial>(
-        (callback) => Material_createWireframeMaterialRenderThread(
-          FilamentApp.instance!.engine,
-          callback,
-        ),
-      ));
+      // Use typed wireframe wrapper
+      final wireframe = await FilamentApp.instance!.createWireframeMaterial();
+      await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
+      await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
+      await wireframe.setEdgeWidth(0.5);
+      await wireframe.setDoubleSided(true);
 
-      final instance = await material!.createInstance();
-      await instance.setParameterFloat4("edgeColor", 0.3, 0.3, 0.3, 1.0);
-      await instance.setParameterFloat4("faceColor", 0.1, 0.1, 0.1, 1.0);
-      await instance.setParameterFloat("edgeWidth", 0.5);
-      await instance.setDoubleSided(true);
-
-      await asset.setMaterialInstanceForAll(instance);
+      await asset.setMaterialInstanceForAll(wireframe.materialInstance);
       await testHelper.capture(result.viewer.view, "preserved_wireframe");
     });
   });
@@ -43,17 +35,16 @@ void main() async {
 
       await result.viewer.addToScene(asset);
 
-      // Use ubershader for solid shading look
-      final instance = await FilamentApp.instance!
-          .createUbershaderMaterialInstance(
+      // Use typed ubershader wrapper for solid shading look
+      final ubershader = await FilamentApp.instance!.createUbershaderMaterial(
         doubleSided: true,
       );
 
-      await instance.setParameterFloat4("baseColorFactor", 0.8, 0.8, 0.8, 1.0);
-      await instance.setParameterFloat("metallicFactor", 0.0);
-      await instance.setParameterFloat("roughnessFactor", 1.0);
+      await ubershader.setBaseColorFactor(0.8, 0.8, 0.8, 1.0);
+      await ubershader.setMetallicFactor(0.0);
+      await ubershader.setRoughnessFactor(1.0);
 
-      await asset.setMaterialInstanceForAll(instance);
+      await asset.setMaterialInstanceForAll(ubershader.materialInstance);
       await testHelper.capture(result.viewer.view, "preserved_solid");
     });
   });
@@ -75,23 +66,14 @@ void main() async {
       await testHelper.capture(
           result.viewer.view, "instanced_preserved_before");
 
-      // Apply wireframe material
-      var material = FFIMaterial(await withPointerCallback<TMaterial>(
-        (callback) => Material_createWireframeMaterialRenderThread(
-          FilamentApp.instance!.engine,
-          callback,
-        ),
-      ));
+      // Use typed wireframe wrapper
+      final wireframe = await FilamentApp.instance!.createWireframeMaterial();
+      await wireframe.setEdgeColor(1.0, 0.0, 1.0, 1.0);
+      await wireframe.setFaceColor(0.0, 0.0, 0.0, 1.0);
+      await wireframe.setEdgeWidth(1.0);
+      await wireframe.setDoubleSided(true);
 
-      final wireframeInstance = await material.createInstance();
-      await wireframeInstance.setParameterFloat4(
-          "edgeColor", 1.0, 0.0, 1.0, 1.0);
-      await wireframeInstance.setParameterFloat4(
-          "faceColor", 0.0, 0.0, 0.0, 1.0);
-      await wireframeInstance.setParameterFloat("edgeWidth", 1.0);
-      await wireframeInstance.setDoubleSided(true);
-
-      await asset.setMaterialInstanceForAll(wireframeInstance);
+      await asset.setMaterialInstanceForAll(wireframe.materialInstance);
       await testHelper.capture(
           result.viewer.view, "instanced_preserved_wireframe");
     });

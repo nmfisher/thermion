@@ -653,6 +653,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         unlit: true, hasVertexColors: false);
   }
 
+  @override
+  Future<MaterialInstance> createWireframeMaterialInstance() async {
+    final material = FFIMaterial(await withPointerCallback<TMaterial>((cb) {
+      Material_createWireframeMaterialRenderThread(engine, cb);
+    }));
+    return await material.createInstance();
+  }
+
   ///
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int index) async {
