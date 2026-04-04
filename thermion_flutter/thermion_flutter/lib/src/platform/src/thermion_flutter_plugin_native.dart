@@ -111,6 +111,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static int _diagTransitSum = 0;
   static int _diagTransitCount = 0;
   static int _diagTransitMax = 0;
+  static bool _frameSchedulerPaused = false;
 
   /// Called by native FrameScheduler at vsync/timer intervals.
   /// Not async — guards against re-entrant calls with [_rendering] flag.
@@ -122,7 +123,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // or if we're in a hot restart scenario where FilamentApp is null
     if (!_schedulerActive || FilamentApp.instance == null) return;
 
-    if (_rendering || _resizing) return;
+    if (_rendering || _resizing || _frameSchedulerPaused) return;
     _rendering = true;
     _diagStopwatch.reset();
     _diagStopwatch.start();
@@ -349,7 +350,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       } else {
         throw Exception("Unsupported platform");
       }
-      
     }
 
     int? driverPlatform;
@@ -440,6 +440,14 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
 
     return swapChain;
+  }
+
+  void pauseFrameScheduler() {
+    _frameSchedulerPaused = true;
+  }
+
+  void resumeFrameScheduler() {
+    _frameSchedulerPaused = false;
   }
 
   /// Creates Filament textures + render target and binds them to [view].
