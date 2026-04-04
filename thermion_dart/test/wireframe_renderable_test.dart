@@ -35,7 +35,7 @@ void main() async {
     });
   });
 
-  test('load with preserveGeometry and apply solid material', () async {
+  test('load with preserveGeometry and apply ubershader material', () async {
     await ViewerBuilder(testHelper).addSun().execute((result) async {
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
@@ -43,19 +43,15 @@ void main() async {
 
       await result.viewer.addToScene(asset);
 
-      // Create solid material
-      var material = FFIMaterial(await withPointerCallback<TMaterial>(
-        (callback) => Material_createSolidMaterialRenderThread(
-          FilamentApp.instance!.engine,
-          callback,
-        ),
-      ));
+      // Use ubershader for solid shading look
+      final instance = await FilamentApp.instance!
+          .createUbershaderMaterialInstance(
+        doubleSided: true,
+      );
 
-      final instance = await material!.createInstance();
-      await instance.setDoubleSided(true);
-      await instance.setParameterFloat4("baseColor", 0.8, 0.8, 0.8, 1.0);
-      await instance.setParameterFloat3("lightDirection", 1.0, 1.0, 1.0);
-      await instance.setParameterFloat("intensity", 1.0);
+      await instance.setParameterFloat4("baseColorFactor", 0.8, 0.8, 0.8, 1.0);
+      await instance.setParameterFloat("metallicFactor", 0.0);
+      await instance.setParameterFloat("roughnessFactor", 1.0);
 
       await asset.setMaterialInstanceForAll(instance);
       await testHelper.capture(result.viewer.view, "preserved_solid");

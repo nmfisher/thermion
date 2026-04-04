@@ -624,17 +624,6 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createSolidMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *instance = Material_createSolidMaterial(tEngine);
-          PROXY(onComplete(instance));
-        });
-    auto fut = _renderThread->addTask(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     std::packaged_task<void()> lambda(
