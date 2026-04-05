@@ -680,13 +680,13 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
-      bool preserveGeometry,
+      bool rebuildVertices,
       void (*onComplete)(TSceneAsset *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, preserveGeometry);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices);
           PROXY(onComplete(sceneAsset));
         });
     auto fut = _renderThread->addTask(lambda);

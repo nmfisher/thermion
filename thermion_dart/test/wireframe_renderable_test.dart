@@ -6,11 +6,11 @@ void main() async {
   final testHelper = TestHelper("wireframe_renderable");
   await testHelper.setup();
 
-  test('load with preserveGeometry and apply wireframe material', () async {
+  test('load with rebuildVertices and apply wireframe material', () async {
     await ViewerBuilder(testHelper).addSun().execute((result) async {
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-          preserveGeometry: true);
+          rebuildVertices: true);
 
       await result.viewer.addToScene(asset);
       await testHelper.capture(result.viewer.view, "preserved_before");
@@ -27,11 +27,11 @@ void main() async {
     });
   });
 
-  test('load with preserveGeometry and apply ubershader material', () async {
+  test('load with rebuildVertices and apply ubershader material', () async {
     await ViewerBuilder(testHelper).addSun().execute((result) async {
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-          preserveGeometry: true);
+          rebuildVertices: true);
 
       await result.viewer.addToScene(asset);
 
@@ -49,13 +49,13 @@ void main() async {
     });
   });
 
-  test('load with preserveGeometry on instanced glTF', () async {
+  test('load with rebuildVertices on instanced glTF', () async {
     await ViewerBuilder(testHelper).addSun().execute((result) async {
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
           addToScene: true,
           initialInstances: 2,
-          preserveGeometry: true);
+          rebuildVertices: true);
 
       final instance2 = await asset.createInstance();
       await instance2.setTransform(Matrix4.translation(Vector3(2, 0, 0)));

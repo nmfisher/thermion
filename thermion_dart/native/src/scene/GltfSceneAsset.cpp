@@ -37,6 +37,7 @@ namespace thermion
         gltfio::AssetLoader *assetLoader,
         Engine *engine,
         utils::NameComponentManager *ncm,
+        bool rebuildVertices,
         MaterialInstance **materialInstances,
         size_t materialInstanceCount) : _asset(asset),
                                         _assetLoader(assetLoader),
@@ -45,6 +46,10 @@ namespace thermion
                                         _materialInstances(materialInstances),
                                         _materialInstanceCount(materialInstanceCount)
     {
+        if (rebuildVertices)
+        {
+            rebuildVertexBuffers();
+        }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
             createInstance();

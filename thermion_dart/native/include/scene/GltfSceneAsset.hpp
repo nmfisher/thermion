@@ -32,6 +32,7 @@ namespace thermion
             gltfio::AssetLoader *assetLoader,
             Engine *engine,
             utils::NameComponentManager* ncm,
+            bool rebuildVertices = false,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 

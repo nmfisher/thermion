@@ -596,7 +596,7 @@ class FFIView extends View<Pointer<TView>> {
       throw UnsupportedError(
           "Stencil highlight requires geometry info (vertexBuffer and indexBuffer). "
           "For instances, pass the root asset as geometrySource. "
-          "For glTF, ensure preserveGeometry: true was used during loading.");
+          "For glTF, ensure rebuildVertices: true was used during loading.");
     }
 
     final indexCount = IndexBuffer_getIndexCount(indexBuffer);

@@ -23,7 +23,7 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        bool preserveGeometry
+        bool rebuildVertices
     );
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset);   

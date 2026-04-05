@@ -125,7 +125,7 @@ abstract class ThermionViewer {
   //
   // Instances can be retrieved with [getInstances].
   //
-  // If [preserveGeometry] is true, vertex buffers are rebuilt after loading
+  // If [rebuildVertices] is true, vertex buffers are rebuilt after loading
   // with a superset of attributes (POSITION, TANGENTS, UV0, CUSTOM0, and
   // optionally BONE_INDICES/BONE_WEIGHTS). Vertices are unwelded so each
   // triangle has unique vertices with barycentric coordinates in CUSTOM0.
@@ -141,7 +141,7 @@ abstract class ThermionViewer {
       {bool addToScene = true,
       int initialInstances = 1,
       bool releaseSourceData = false,
-      bool preserveGeometry = false,
+      bool rebuildVertices = false,
       String? resourceUri,
       bool loadAsync = false});
 
@@ -153,7 +153,7 @@ abstract class ThermionViewer {
       {String? resourceUri,
       int initialInstances = 1,
       bool releaseSourceData = false,
-      bool preserveGeometry = false,
+      bool rebuildVertices = false,
       bool loadResourcesAsync = false,
       bool addToScene = true});
 

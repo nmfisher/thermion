@@ -245,7 +245,7 @@ abstract class FilamentApp<T> {
   Future<MaterialInstance> createUnlitMaterialInstance();
 
   /// Creates a wireframe material instance for use with assets loaded
-  /// with [preserveGeometry: true]. Set parameters (edgeColor, faceColor,
+  /// with [rebuildVertices: true]. Set parameters (edgeColor, faceColor,
   /// edgeWidth) on the returned instance, then apply with
   /// [ThermionAsset.setMaterialInstanceForAll].
   Future<MaterialInstance> createWireframeMaterialInstance();
@@ -353,7 +353,7 @@ abstract class FilamentApp<T> {
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
       bool releaseSourceData = false,
-      bool preserveGeometry = false,
+      bool rebuildVertices = false,
       bool loadResourcesAsync = false,
       String? resourceUri});
 
