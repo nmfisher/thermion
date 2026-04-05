@@ -14,7 +14,7 @@ material {
         {
             type: float,
             name: edgeWidth,
-            default: 3.0
+            default: 1.0
         }
     ],
     requires : [
