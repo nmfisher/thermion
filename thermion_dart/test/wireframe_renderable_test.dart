@@ -53,12 +53,9 @@ void main() async {
     await ViewerBuilder(testHelper).addSun().execute((result) async {
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
-          addToScene: false,
+          addToScene: true,
           initialInstances: 2,
           preserveGeometry: true);
-
-      final defaultInstance = await asset.getInstance(0);
-      await result.viewer.addToScene(defaultInstance);
 
       final instance2 = await asset.createInstance();
       await instance2.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
@@ -73,7 +70,7 @@ void main() async {
       await wireframe.setEdgeWidth(1.0);
       await wireframe.setDoubleSided(true);
 
-      await asset.setMaterialInstanceForAll(wireframe.materialInstance);
+      await instance2.setMaterialInstanceForAll(wireframe.materialInstance);
       await testHelper.capture(
           result.viewer.view, "instanced_preserved_wireframe");
     });

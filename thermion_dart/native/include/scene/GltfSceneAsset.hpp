@@ -150,6 +150,27 @@ namespace thermion
 
         bool geometryPreserved() const { return _geometryPreserved; }
 
+        /// Returns the preserved vertex buffer at the given index, or nullptr.
+        VertexBuffer* getPreservedVertexBuffer(size_t index) const {
+            if (index < _preservedVertexBuffers.size()) {
+                return _preservedVertexBuffers[index];
+            }
+            return nullptr;
+        }
+
+        /// Returns the preserved index buffer at the given index, or nullptr.
+        IndexBuffer* getPreservedIndexBuffer(size_t index) const {
+            if (index < _preservedIndexBuffers.size()) {
+                return _preservedIndexBuffers[index];
+            }
+            return nullptr;
+        }
+
+        /// Returns the number of preserved vertex buffers.
+        size_t getPreservedVertexBufferCount() const {
+            return _preservedVertexBuffers.size();
+        }
+
     private:
         gltfio::FilamentAsset *_asset;
         gltfio::AssetLoader *_assetLoader;
@@ -165,6 +186,7 @@ namespace thermion
         // Buffers created by rebuildVertexBuffers, owned by this asset.
         std::vector<VertexBuffer*> _preservedVertexBuffers;
         std::vector<IndexBuffer*> _preservedIndexBuffers;
+        std::vector<size_t> _preservedIndexCounts;
         std::vector<BufferObject*> _preservedBufferObjects;
     };
 

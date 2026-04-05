@@ -106,7 +106,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
     if (releaseSourceData) {
       throw Exception(
-          "releaseSourceData must have been specified as false when this asset was created");
+          """releaseSourceData must have been specified as false"""
+""" when this asset was created""");
     }
     var ptrList = IntPtrList(materialInstances?.length ?? 0);
     late Pointer stackPtr;
@@ -231,6 +232,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
         await setMaterialInstanceAt(instance,
             entity: entity, primitiveIndex: i);
+      }
+    }
+    // When called on the root asset, propagate to all instances.
+    if (!isInstance) {
+      for (final inst in await getInstances()) {
+        await (inst as FFIAsset).setMaterialInstanceForAll(instance);
       }
     }
   }

@@ -232,6 +232,11 @@ extern "C"
             auto *vertexBuffer = geometrySceneAsset->getVertexBuffer();
             return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
         }
+        if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto *vertexBuffer = gltfSceneAsset->getPreservedVertexBuffer(primitiveIndex);
+            return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
+        }
         return nullptr;
     }
 
@@ -240,6 +245,11 @@ extern "C"
         if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
             auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
             auto *indexBuffer = geometrySceneAsset->getIndexBuffer();
+            return reinterpret_cast<TIndexBuffer *>(indexBuffer);
+        }
+        if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto *indexBuffer = gltfSceneAsset->getPreservedIndexBuffer(primitiveIndex);
             return reinterpret_cast<TIndexBuffer *>(indexBuffer);
         }
         return nullptr;

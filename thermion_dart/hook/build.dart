@@ -100,6 +100,7 @@ outputDirectory : ${outputDirectory.path}
       'wireframe': 'native/include/material/wireframe.c',
       'translation_axis': 'native/include/material/translation_axis.c'
     };
+    
 
     // Add gizmo resources (always included)
     sources.addAll([
