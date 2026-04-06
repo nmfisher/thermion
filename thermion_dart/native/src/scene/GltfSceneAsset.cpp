@@ -161,39 +161,25 @@ namespace thermion
         {
             auto *instEntities = instance->getEntities();
             size_t instEntityCount = instance->getEntityCount();
-
-            for (size_t ei = 0; ei < instEntityCount; ei++)
+            size_t totalBuffers = _preservedVertexBuffers.size();
+            size_t bufferIndex = 0;
+            for (size_t ei = 0; ei < instEntityCount && bufferIndex < totalBuffers; ei++)
             {
                 auto instRi = rm.getInstance(instEntities[ei]);
                 if (!instRi.isValid())
                     continue;
-
-                std::string instEntityName;
-                auto ni4 = _ncm->getInstance(instEntities[ei]);
-                if (ni4.isValid())
+                size_t primCount = rm.getPrimitiveCount(instRi);
+                for (size_t pi = 0; pi < primCount && bufferIndex < totalBuffers; pi++)
                 {
-                    auto n4 = _ncm->getName(ni4);
-                    if (n4)
-                        instEntityName = n4;
+                    rm.setGeometryAt(instRi, pi,
+                                     RenderableManager::PrimitiveType::TRIANGLES,
+                                     _preservedVertexBuffers[bufferIndex],
+                                     _preservedIndexBuffers[bufferIndex],
+                                     0, _preservedIndexCounts[bufferIndex]);
+                    bufferIndex++;
                 }
-
-                // Match by name against the entityBufferMap built during rebuildVertexBuffers
-                size_t primIdx = 0;
-                for (const auto &entry : _entityBufferMap)
-                {
-                    if (entry.first == instEntityName)
-                    {
-                        size_t bufferIndex = entry.second;
-                        rm.setGeometryAt(instRi, primIdx,
-                                         RenderableManager::PrimitiveType::TRIANGLES,
-                                         _preservedVertexBuffers[bufferIndex],
-                                         _preservedIndexBuffers[bufferIndex],
-                                         0, _preservedIndexCounts[bufferIndex]);
-                        primIdx++;
-                    }
-                }
-                TRACE("createInstance: entity '%s' applied %zu primitives", instEntityName.c_str(), primIdx);
             }
+            TRACE("createInstance: applied %zu preserved geometry buffers to new instance", bufferIndex);
         }
 
         std::unique_ptr<GltfSceneAssetInstance> sceneAssetInstance = std::make_unique<GltfSceneAssetInstance>(
@@ -282,42 +268,28 @@ namespace thermion
         std::vector<MeshEntry> meshEntries;
         collectAllMeshEntries(sourceData, meshEntries);
 
-        const auto *renderableEntities = _asset->getRenderableEntities();
-        size_t renderableCount = _asset->getRenderableEntityCount();
+        // Use instance 0's getEntities() (filtered to renderables) instead of
+        // getRenderableEntities(). This ensures the primary loop enumerates
+        // entities in the same order as the instance update loops, so sequential
+        // buffer indexing is correct across all instances.
+        auto *primaryInstance = _asset->getAssetInstances()[0];
+        auto *allEntities = primaryInstance->getEntities();
+        size_t allEntityCount = primaryInstance->getEntityCount();
         auto &rm = _engine->getRenderableManager();
 
-        Log("rebuildVertexBuffers: meshEntries=%zu renderableEntities=%zu nodes=%zu",
-            meshEntries.size(), renderableCount, sourceData->nodes_count);
-
-        // Log all mesh entries for debugging
-        for (size_t mi = 0; mi < meshEntries.size(); mi++)
-        {
-            Log("  meshEntry[%zu]: nodeName='%s' meshName='%s'",
-                mi,
-                meshEntries[mi].name ? meshEntries[mi].name : "(null)",
-                meshEntries[mi].meshName ? meshEntries[mi].meshName : "(null)");
-        }
+        TRACE("rebuildVertexBuffers: meshEntries=%zu entityCount=%zu nodes=%zu",
+              meshEntries.size(), allEntityCount, sourceData->nodes_count);
 
         // Fallback index for entities without names: assign mesh entries
         // sequentially to renderable entities that fail name matching.
         size_t fallbackMeshIndex = 0;
 
-        for (size_t ei = 0; ei < renderableCount; ei++)
+        for (size_t ei = 0; ei < allEntityCount; ei++)
         {
-            auto entity = renderableEntities[ei];
+            auto entity = allEntities[ei];
             auto ri = rm.getInstance(entity);
             if (!ri.isValid())
                 continue;
-
-            // Log entity name
-            const char *entityName = "(no name)";
-            auto ni = _ncm->getInstance(entity);
-            if (ni.isValid())
-            {
-                auto n = _ncm->getName(ni);
-                if (n && strlen(n) > 0)
-                    entityName = n;
-            }
 
             const cgltf_mesh *mesh = findMeshForEntity(entity, _ncm, meshEntries);
             if (!mesh)
@@ -326,23 +298,15 @@ namespace thermion
                 if (fallbackMeshIndex < meshEntries.size())
                 {
                     mesh = meshEntries[fallbackMeshIndex].mesh;
-                    Log("rebuildVertexBuffers: entity[%zu] name='%s' -> FALLBACK mesh %zu", ei, entityName, fallbackMeshIndex);
+                    TRACE("rebuildVertexBuffers: fallback mesh %zu for entity %zu", fallbackMeshIndex, ei);
                     fallbackMeshIndex++;
                 }
                 else
                 {
-                    Log("rebuildVertexBuffers: entity[%zu] name='%s' -> NO MESH", ei, entityName);
+                    TRACE("rebuildVertexBuffers: no mesh (named or fallback) for entity %zu", ei);
                     continue;
                 }
             }
-            else
-            {
-                Log("rebuildVertexBuffers: entity[%zu] name='%s' -> matched mesh '%s'",
-                    ei, entityName, mesh->name ? mesh->name : "(null)");
-            }
-
-            size_t filamentPrimCount = rm.getPrimitiveCount(ri);
-            Log("  cgltf primitives=%zu, filament primitives=%zu", mesh->primitives_count, filamentPrimCount);
 
             for (cgltf_size pi = 0; pi < mesh->primitives_count; pi++)
             {
@@ -423,31 +387,7 @@ namespace thermion
                 // --- Unpack source attributes ---
                 size_t posComponents = cgltf_num_components(posAccessor->type);
                 std::vector<float> srcPositions(posAccessor->count * posComponents);
-                cgltf_size posUnpacked = cgltf_accessor_unpack_floats(posAccessor, srcPositions.data(), srcPositions.size());
-
-                Log("  prim[%zu]: posAccessor count=%zu components=%zu unpacked=%zu bufferView=%p",
-                    pi, (size_t)posAccessor->count, posComponents, (size_t)posUnpacked,
-                    (void*)posAccessor->buffer_view);
-                if (posAccessor->buffer_view) {
-                    Log("    bufferView: offset=%zu size=%zu buffer=%p",
-                        posAccessor->buffer_view->offset,
-                        posAccessor->buffer_view->size,
-                        (void*)posAccessor->buffer_view->buffer);
-                    if (posAccessor->buffer_view->buffer) {
-                        Log("    buffer: size=%zu data=%p",
-                            posAccessor->buffer_view->buffer->size,
-                            posAccessor->buffer_view->buffer->data);
-                    }
-                }
-                // Log first 3 positions as sample
-                if (posUnpacked >= 9) {
-                    Log("    pos[0]=(%f,%f,%f) pos[1]=(%f,%f,%f) pos[2]=(%f,%f,%f)",
-                        srcPositions[0], srcPositions[1], srcPositions[2],
-                        srcPositions[3], srcPositions[4], srcPositions[5],
-                        srcPositions[6], srcPositions[7], srcPositions[8]);
-                }
-                Log("  prim[%zu]: indices=%zu triangles=%u newVertexCount=%u",
-                    pi, indices.size(), triangleCount, newVertexCount);
+                cgltf_accessor_unpack_floats(posAccessor, srcPositions.data(), srcPositions.size());
 
                 std::vector<float> srcNormals;
                 size_t nrmComponents = 0;
@@ -464,20 +404,7 @@ namespace thermion
                 {
                     uvComponents = cgltf_num_components(uvAccessor->type);
                     srcUVs.resize(uvAccessor->count * uvComponents);
-                    cgltf_size uvUnpacked = cgltf_accessor_unpack_floats(uvAccessor, srcUVs.data(), srcUVs.size());
-                    Log("    uvAccessor: count=%zu components=%zu unpacked=%zu",
-                        (size_t)uvAccessor->count, uvComponents, (size_t)uvUnpacked);
-                    if (uvUnpacked >= 4) {
-                        Log("    uv[0]=(%f,%f) uv[1]=(%f,%f)",
-                            srcUVs[0], srcUVs[1], srcUVs[2], srcUVs[3]);
-                    }
-                    if (uvUnpacked == 0) {
-                        Log("    WARNING: cgltf_accessor_unpack_floats returned 0 for UVs!");
-                    }
-                }
-                else
-                {
-                    Log("    WARNING: no UV accessor for this primitive");
+                    cgltf_accessor_unpack_floats(uvAccessor, srcUVs.data(), srcUVs.size());
                 }
 
                 std::vector<float> srcTangents;
@@ -487,11 +414,6 @@ namespace thermion
                     tanComponents = cgltf_num_components(tanAccessor->type);
                     srcTangents.resize(tanAccessor->count * tanComponents);
                     cgltf_accessor_unpack_floats(tanAccessor, srcTangents.data(), srcTangents.size());
-                    Log("    tangentAccessor: count=%zu components=%zu", (size_t)tanAccessor->count, tanComponents);
-                }
-                else
-                {
-                    Log("    no tangent accessor, will recompute from geometry");
                 }
 
                 bool hasSkinning = jointsAccessor && weightsAccessor;
@@ -605,6 +527,9 @@ namespace thermion
                 }
 
                 // --- Build tangent quaternions ---
+                // tris must outlive orientBuilder.build() since the builder stores a pointer
+                std::vector<filament::math::uint3> tris;
+
                 geometry::SurfaceOrientation::Builder orientBuilder;
                 orientBuilder.vertexCount(newVertexCount)
                     .normals((filament::math::float3 *)newNormals.data())
@@ -618,7 +543,7 @@ namespace thermion
                 else
                 {
                     // No tangent data — recompute from geometry
-                    std::vector<filament::math::uint3> tris(triangleCount);
+                    tris.resize(triangleCount);
                     for (uint32_t i = 0; i < newVertexCount; i += 3)
                     {
                         tris[i / 3] = {i, i + 1, i + 2};
@@ -755,82 +680,35 @@ namespace thermion
             }
         }
 
-        // Also update all pre-allocated instance entities with the rebuilt geometry.
-        // Skip instance 0 — the primary loop above already set its geometry
-        // correctly via name-matched entity→mesh mapping.
-        // For instances 1+, we need to apply the preserved buffers. We match
-        // by entity name to avoid order-dependent bugs.
+        // Update pre-allocated instances 1+ with the rebuilt geometry.
+        // Instance 0 was already handled by the primary loop above.
+        // Sequential indexing is safe here because both the primary loop and
+        // this loop enumerate entities via getEntities() in the same order.
         size_t totalBuffers = _preservedVertexBuffers.size();
         auto instanceCount = _asset->getAssetInstanceCount();
-
-        // Build a map from entity name → list of (bufferIndex) for correct matching.
-        // The primary loop built preserved buffers in getRenderableEntities() order;
-        // record which entity name each buffer belongs to.
-        {
-            size_t bufIdx = 0;
-            for (size_t ei = 0; ei < renderableCount && bufIdx < totalBuffers; ei++)
-            {
-                auto ent = renderableEntities[ei];
-                auto entRi = rm.getInstance(ent);
-                if (!entRi.isValid())
-                    continue;
-                std::string eName;
-                auto ni2 = _ncm->getInstance(ent);
-                if (ni2.isValid())
-                {
-                    auto n2 = _ncm->getName(ni2);
-                    if (n2)
-                        eName = n2;
-                }
-                size_t primCount = rm.getPrimitiveCount(entRi);
-                for (size_t pi = 0; pi < primCount && bufIdx < totalBuffers; pi++)
-                {
-                    _entityBufferMap.push_back({eName, bufIdx});
-                    bufIdx++;
-                }
-            }
-        }
-
-        // Skip instance 0 — the primary loop above already set its geometry
-        // correctly via name-matched entity→mesh mapping.
         for (size_t inst = 1; inst < instanceCount; inst++)
         {
             auto *filamentInstance = _asset->getAssetInstances()[inst];
             auto *instEntities = filamentInstance->getEntities();
             size_t instEntityCount = filamentInstance->getEntityCount();
 
-            for (size_t ei = 0; ei < instEntityCount; ei++)
+            size_t bufferIndex = 0;
+            for (size_t ei = 0; ei < instEntityCount && bufferIndex < totalBuffers; ei++)
             {
                 auto instRi = rm.getInstance(instEntities[ei]);
                 if (!instRi.isValid())
                     continue;
 
-                std::string instEntityName;
-                auto ni3 = _ncm->getInstance(instEntities[ei]);
-                if (ni3.isValid())
+                size_t primCount = rm.getPrimitiveCount(instRi);
+                for (size_t pi = 0; pi < primCount && bufferIndex < totalBuffers; pi++)
                 {
-                    auto n3 = _ncm->getName(ni3);
-                    if (n3)
-                        instEntityName = n3;
+                    rm.setGeometryAt(instRi, pi,
+                                     RenderableManager::PrimitiveType::TRIANGLES,
+                                     _preservedVertexBuffers[bufferIndex],
+                                     _preservedIndexBuffers[bufferIndex],
+                                     0, _preservedIndexCounts[bufferIndex]);
+                    bufferIndex++;
                 }
-
-                // Find the matching buffer(s) by name
-                size_t primIdx = 0;
-                for (const auto &entry : _entityBufferMap)
-                {
-                    if (entry.first == instEntityName)
-                    {
-                        size_t bufferIndex = entry.second;
-                        rm.setGeometryAt(instRi, primIdx,
-                                         RenderableManager::PrimitiveType::TRIANGLES,
-                                         _preservedVertexBuffers[bufferIndex],
-                                         _preservedIndexBuffers[bufferIndex],
-                                         0, _preservedIndexCounts[bufferIndex]);
-                        primIdx++;
-                    }
-                }
-                TRACE("rebuildVertexBuffers: inst[%zu] entity '%s' applied %zu primitives",
-                      inst, instEntityName.c_str(), primIdx);
             }
         }
 
