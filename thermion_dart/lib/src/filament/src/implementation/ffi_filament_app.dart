@@ -885,6 +885,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         int numChannels = switch (pixelDataFormat) {
           PixelDataFormat.RGBA => 4,
           PixelDataFormat.RGB => 3,
+          PixelDataFormat.R => 1,
           _ => throw UnsupportedError(pixelDataFormat.toString())
         };
 
