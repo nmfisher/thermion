@@ -57,9 +57,9 @@ extension on Uri {
 
 Future<Uint8List> savePixelBufferToBmp(
     Uint8List pixelBuffer, int width, int height, String outputPath,
-    {bool hasAlpha = true, bool isFloat = true}) async {
+    {bool hasAlpha = true, bool isFloat = true, int numChannels = 0}) async {
   var data = await pixelBufferToBmp(pixelBuffer, width, height,
-      hasAlpha: hasAlpha, isFloat: isFloat);
+      hasAlpha: hasAlpha, isFloat: isFloat, numChannels: numChannels);
   File(outputPath).writeAsBytesSync(data);
   Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
@@ -67,9 +67,9 @@ Future<Uint8List> savePixelBufferToBmp(
 
 Future<Uint8List> savePixelBufferToPng(
     Uint8List pixelBuffer, int width, int height, String outputPath,
-    {bool hasAlpha = true, bool isFloat = true}) async {
+    {bool hasAlpha = true, bool isFloat = true, int numChannels = 0}) async {
   var data = await pixelBufferToPng(pixelBuffer, width, height,
-      hasAlpha: hasAlpha, isFloat: isFloat);
+      hasAlpha: hasAlpha, isFloat: isFloat, numChannels: numChannels);
   File(outputPath).writeAsBytesSync(data);
   Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
@@ -232,9 +232,13 @@ class TestHelper {
 
       if (outputFilename != null) {
         var outPath = p.join(outDir.path, "${outputFilename}_view${i}.png");
+        final numChannels = pixelDataFormat == PixelDataFormat.R
+            ? 1
+            : (pixelDataFormat == PixelDataFormat.RGBA ? 4 : 3);
         await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
             isFloat: pixelDataType == PixelDataType.FLOAT,
-            hasAlpha: pixelDataFormat == PixelDataFormat.RGBA);
+            hasAlpha: pixelDataFormat == PixelDataFormat.RGBA,
+            numChannels: numChannels);
       }
       i++;
       retval[view] = pixelBuffer;
