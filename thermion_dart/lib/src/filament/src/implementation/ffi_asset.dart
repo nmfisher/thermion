@@ -242,6 +242,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
   }
 
+  @override
+  Future setFlatShading(bool flatShading) async {
+    await withVoidCallback((requestId, cb) =>
+        SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
+  }
+
   //
   Future<Map<ThermionEntity, List<MaterialInstance>>>
       getMaterialInstancesAsMap() async {

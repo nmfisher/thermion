@@ -70,8 +70,7 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        bool rebuildVertices,
-        bool flatShading
+        bool rebuildVertices
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -83,8 +82,7 @@ extern "C"
             assetLoader,
             engine,
             nameComponentManager,
-            rebuildVertices,
-            flatShading
+            rebuildVertices
         );
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
@@ -263,6 +261,16 @@ extern "C"
         }
         auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
         gltfAsset->releaseSourceData();
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShading(TSceneAsset *tSceneAsset, bool flatShading) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("setFlatShading only supported on glTF assets");
+            return;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        gltfAsset->setFlatShading(flatShading);
     }
 
 #ifdef __cplusplus

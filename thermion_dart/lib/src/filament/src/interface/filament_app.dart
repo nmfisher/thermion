@@ -346,7 +346,6 @@ abstract class FilamentApp<T> {
       {int initialInstances = 1,
       bool releaseSourceData = false,
       bool rebuildVertices = false,
-      bool flatShading = false,
       bool loadResourcesAsync = false,
       String? resourceUri});
 

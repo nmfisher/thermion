@@ -38,7 +38,6 @@ namespace thermion
         Engine *engine,
         utils::NameComponentManager *ncm,
         bool rebuildVertices,
-        bool flatShading,
         MaterialInstance **materialInstances,
         size_t materialInstanceCount) : _asset(asset),
                                         _assetLoader(assetLoader),
@@ -49,7 +48,7 @@ namespace thermion
     {
         if (rebuildVertices)
         {
-            rebuildVertexBuffers(flatShading);
+            rebuildVertexBuffers();
         }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
@@ -70,6 +69,14 @@ namespace thermion
             _engine->destroy(ib);
         }
         for (auto *bo : _preservedBufferObjects)
+        {
+            _engine->destroy(bo);
+        }
+        for (auto *bo : _smoothTangentBOs)
+        {
+            _engine->destroy(bo);
+        }
+        for (auto *bo : _flatTangentBOs)
         {
             _engine->destroy(bo);
         }
@@ -251,7 +258,7 @@ namespace thermion
         return nullptr;
     }
 
-    void GltfSceneAsset::rebuildVertexBuffers(bool flatShading)
+    void GltfSceneAsset::rebuildVertexBuffers()
     {
         auto *sourceData = (const cgltf_data *)_asset->getSourceAsset();
         if (!sourceData)
@@ -527,57 +534,73 @@ namespace thermion
                     }
                 }
 
-                // --- Flat shading: replace per-vertex normals with face normal ---
-                if (flatShading)
-                {
-                    for (uint32_t t = 0; t < triangleCount; t++)
-                    {
-                        uint32_t i0 = t * 3 + 0, i1 = t * 3 + 1, i2 = t * 3 + 2;
-                        filament::math::float3 p0 = {newPositions[i0 * 3], newPositions[i0 * 3 + 1], newPositions[i0 * 3 + 2]};
-                        filament::math::float3 p1 = {newPositions[i1 * 3], newPositions[i1 * 3 + 1], newPositions[i1 * 3 + 2]};
-                        filament::math::float3 p2 = {newPositions[i2 * 3], newPositions[i2 * 3 + 1], newPositions[i2 * 3 + 2]};
-                        filament::math::float3 fn = normalize(cross(p1 - p0, p2 - p0));
-                        for (int v = 0; v < 3; v++)
-                        {
-                            uint32_t di = t * 3 + v;
-                            newNormals[di * 3 + 0] = fn.x;
-                            newNormals[di * 3 + 1] = fn.y;
-                            newNormals[di * 3 + 2] = fn.z;
-                        }
-                    }
-                }
-
-                // --- Build tangent quaternions ---
+                // --- Build smooth tangent quaternions ---
                 // tris must outlive orientBuilder.build() since the builder stores a pointer
                 std::vector<filament::math::uint3> tris;
 
-                geometry::SurfaceOrientation::Builder orientBuilder;
-                orientBuilder.vertexCount(newVertexCount)
+                geometry::SurfaceOrientation::Builder smoothOrientBuilder;
+                smoothOrientBuilder.vertexCount(newVertexCount)
                     .normals((filament::math::float3 *)newNormals.data())
                     .positions((filament::math::float3 *)newPositions.data());
 
                 if (tanAccessor)
                 {
-                    // Use original tangent vectors from glTF for correct normal mapping
-                    orientBuilder.tangents((filament::math::float4 *)newTangents.data());
+                    smoothOrientBuilder.tangents((filament::math::float4 *)newTangents.data());
                 }
                 else
                 {
-                    // No tangent data — recompute from geometry
                     tris.resize(triangleCount);
                     for (uint32_t i = 0; i < newVertexCount; i += 3)
                     {
                         tris[i / 3] = {i, i + 1, i + 2};
                     }
-                    orientBuilder.uvs((filament::math::float2 *)newUVs.data())
+                    smoothOrientBuilder.uvs((filament::math::float2 *)newUVs.data())
                         .triangleCount(tris.size())
                         .triangles(tris.data());
                 }
 
-                auto *orientation = orientBuilder.build();
-                std::vector<filament::math::short4> tangentQuats(newVertexCount);
-                orientation->getQuats(tangentQuats.data(), newVertexCount);
-                delete orientation;
+                auto *smoothOrientation = smoothOrientBuilder.build();
+                std::vector<filament::math::short4> smoothTangentQuats(newVertexCount);
+                smoothOrientation->getQuats(smoothTangentQuats.data(), newVertexCount);
+                delete smoothOrientation;
+
+                // --- Build flat tangent quaternions (face normals) ---
+                std::vector<float> flatNormals(newVertexCount * 3);
+                for (uint32_t t = 0; t < triangleCount; t++)
+                {
+                    uint32_t i0 = t * 3 + 0, i1 = t * 3 + 1, i2 = t * 3 + 2;
+                    filament::math::float3 p0 = {newPositions[i0 * 3], newPositions[i0 * 3 + 1], newPositions[i0 * 3 + 2]};
+                    filament::math::float3 p1 = {newPositions[i1 * 3], newPositions[i1 * 3 + 1], newPositions[i1 * 3 + 2]};
+                    filament::math::float3 p2 = {newPositions[i2 * 3], newPositions[i2 * 3 + 1], newPositions[i2 * 3 + 2]};
+                    filament::math::float3 fn = normalize(cross(p1 - p0, p2 - p0));
+                    for (int v = 0; v < 3; v++)
+                    {
+                        uint32_t di = t * 3 + v;
+                        flatNormals[di * 3 + 0] = fn.x;
+                        flatNormals[di * 3 + 1] = fn.y;
+                        flatNormals[di * 3 + 2] = fn.z;
+                    }
+                }
+
+                // For flat normals, no tangent data from glTF is meaningful, so always recompute from geometry
+                std::vector<filament::math::uint3> flatTris(triangleCount);
+                for (uint32_t i = 0; i < newVertexCount; i += 3)
+                {
+                    flatTris[i / 3] = {i, i + 1, i + 2};
+                }
+
+                geometry::SurfaceOrientation::Builder flatOrientBuilder;
+                flatOrientBuilder.vertexCount(newVertexCount)
+                    .normals((filament::math::float3 *)flatNormals.data())
+                    .positions((filament::math::float3 *)newPositions.data())
+                    .uvs((filament::math::float2 *)newUVs.data())
+                    .triangleCount(flatTris.size())
+                    .triangles(flatTris.data());
+
+                auto *flatOrientation = flatOrientBuilder.build();
+                std::vector<filament::math::short4> flatTangentQuats(newVertexCount);
+                flatOrientation->getQuats(flatTangentQuats.data(), newVertexCount);
+                delete flatOrientation;
 
                 // --- Build VertexBuffer ---
                 // Buffer layout: POSITION(0), TANGENTS(1), UV0(2), CUSTOM0(3), COLOR(4), [BONE_INDICES(5), BONE_WEIGHTS(6)]
@@ -612,12 +635,23 @@ namespace thermion
                 vb->setBufferObjectAt(*_engine, 0, posBO);
 
                 // Buffer 1: TANGENTS (SHORT4 quantized quaternions, matching gltfio's format)
+                // Create both smooth and flat tangent BOs for runtime toggling.
                 size_t tangDataSize = newVertexCount * sizeof(filament::math::short4);
-                auto *tangData = new uint8_t[tangDataSize];
-                memcpy(tangData, tangentQuats.data(), tangDataSize);
-                BufferObject *tangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
-                tangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(tangData, tangDataSize, FREE_CB));
-                vb->setBufferObjectAt(*_engine, 1, tangBO);
+
+                auto *smoothTangData = new uint8_t[tangDataSize];
+                memcpy(smoothTangData, smoothTangentQuats.data(), tangDataSize);
+                BufferObject *smoothTangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
+                smoothTangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(smoothTangData, tangDataSize, FREE_CB));
+
+                auto *flatTangData = new uint8_t[tangDataSize];
+                memcpy(flatTangData, flatTangentQuats.data(), tangDataSize);
+                BufferObject *flatTangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
+                flatTangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(flatTangData, tangDataSize, FREE_CB));
+
+                // Bind smooth by default
+                vb->setBufferObjectAt(*_engine, 1, smoothTangBO);
+                _smoothTangentBOs.push_back(smoothTangBO);
+                _flatTangentBOs.push_back(flatTangBO);
 
                 // Buffer 2: UV0
                 size_t uvDataSize = newVertexCount * 2 * sizeof(float);
@@ -647,7 +681,6 @@ namespace thermion
                 vb->setBufferObjectAt(*_engine, 4, colorBO);
 
                 _preservedBufferObjects.push_back(posBO);
-                _preservedBufferObjects.push_back(tangBO);
                 _preservedBufferObjects.push_back(uvBO);
                 _preservedBufferObjects.push_back(baryBO);
                 _preservedBufferObjects.push_back(colorBO);
@@ -737,6 +770,20 @@ namespace thermion
         }
 
         _geometryPreserved = true;
+    }
+
+    void GltfSceneAsset::setFlatShading(bool flatShading)
+    {
+        if (flatShading == _flatShading)
+            return;
+        _flatShading = flatShading;
+
+        size_t count = _preservedVertexBuffers.size();
+        for (size_t i = 0; i < count; i++)
+        {
+            auto *bo = flatShading ? _flatTangentBOs[i] : _smoothTangentBOs[i];
+            _preservedVertexBuffers[i]->setBufferObjectAt(*_engine, 1, bo);
+        }
     }
 
 } // namespace thermion

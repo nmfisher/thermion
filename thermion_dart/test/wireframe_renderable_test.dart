@@ -11,13 +11,15 @@ void main() async {
         .addSun()
         .setCameraPosition(Vector3(0, 1, 1.5))
         .execute((result) async {
-      final asset1 = await result.viewer.loadGltf(
+      
+      final original = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
           rebuildVertices: false,
           addToScene: true);
       await testHelper.capture(result.viewer.view, "rebuildVertices_false");
-      await result.viewer.removeFromScene(asset1);
-      final asset = await result.viewer.loadGltf(
+      await result.viewer.removeFromScene(original);
+      
+      final rebuilt = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
           rebuildVertices: true,
           addToScene: true);
@@ -32,7 +34,7 @@ void main() async {
       await wireframe.setEdgeWidth(0.5);
       await wireframe.setDoubleSided(true);
 
-      await asset.setMaterialInstanceForAll(wireframe.materialInstance);
+      await rebuilt.setMaterialInstanceForAll(wireframe.materialInstance);
       await testHelper.capture(
           result.viewer.view, "rebuildVertices_true_wireframe");
 
@@ -44,17 +46,18 @@ void main() async {
       await ubershader.setMetallicFactor(0.0);
       await ubershader.setRoughnessFactor(1.0);
 
-      await asset.setMaterialInstanceForAll(ubershader.materialInstance);
+      await rebuilt.setMaterialInstanceForAll(ubershader.materialInstance);
       await testHelper.capture(
           result.viewer.view, "rebuildVertices_true_ubershader");
 
-      await result.viewer.removeFromScene(asset);
+      await result.viewer.removeFromScene(rebuilt);
 
       final flatAsset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
           rebuildVertices: true,
-          flatShading: true,
           addToScene: true);
+
+      await flatAsset.setFlatShading(true);
 
       await testHelper.capture(result.viewer.view, "flat_shading_default");
 

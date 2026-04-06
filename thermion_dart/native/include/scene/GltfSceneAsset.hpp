@@ -33,7 +33,6 @@ namespace thermion
             Engine *engine,
             utils::NameComponentManager* ncm,
             bool rebuildVertices = false,
-            bool flatShading = false,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 
@@ -144,7 +143,12 @@ namespace thermion
         /// Unwelds vertices so each triangle has unique vertices for barycentric
         /// wireframe rendering. After this, materials can be freely swapped via
         /// setMaterialInstanceAt. Requires source data to still be available.
-        void rebuildVertexBuffers(bool flatShading = false);
+        void rebuildVertexBuffers();
+
+        /// Toggle between flat (per-face) and smooth (per-vertex) shading.
+        /// Only valid after rebuildVertexBuffers() has been called.
+        /// Swaps the TANGENTS buffer object on all preserved vertex buffers.
+        void setFlatShading(bool flatShading);
 
         /// Release the underlying cgltf source data early to free memory.
         /// Safe to call multiple times; subsequent calls are no-ops.
@@ -184,12 +188,15 @@ namespace thermion
 
         bool _sourceDataReleased = false;
         bool _geometryPreserved = false;
+        bool _flatShading = false;
 
         // Buffers created by rebuildVertexBuffers, owned by this asset.
         std::vector<VertexBuffer*> _preservedVertexBuffers;
         std::vector<IndexBuffer*> _preservedIndexBuffers;
         std::vector<size_t> _preservedIndexCounts;
         std::vector<BufferObject*> _preservedBufferObjects;
+        std::vector<BufferObject*> _smoothTangentBOs;
+        std::vector<BufferObject*> _flatTangentBOs;
     };
 
 } // namespace thermion

@@ -1000,7 +1000,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool releaseSourceData = false,
       bool loadResourcesAsync = false,
       bool rebuildVertices = false,
-      bool flatShading = false,
       String? resourceUri}) async {
     _logger.info("""Loading glTF from buffer (${data.lengthInBytes} bytes)"""
         """with resourceUri ${resourceUri}""");
@@ -1090,7 +1089,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final asset = await withPointerCallback<TSceneAsset>((cb) =>
           SceneAsset_createFromFilamentAssetRenderThread(engine,
               gltfAssetLoader, nameComponentManager, filamentAsset,
-              rebuildVertices, flatShading, cb));
+              rebuildVertices, cb));
 
       if (asset == nullptr) {
         throw Exception(
