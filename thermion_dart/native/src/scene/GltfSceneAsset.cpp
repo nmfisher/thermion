@@ -197,7 +197,7 @@ namespace thermion
     }
 
     static const auto FREE_CB = [](void *mem, size_t, void *)
-    { free(mem); };
+    { delete[] static_cast<uint8_t *>(mem); };
 
     // Build a map from node/mesh name to cgltf_mesh for all nodes in the asset.
     // Multiple nodes can reference the same mesh, so we also build a flat list
@@ -553,9 +553,10 @@ namespace thermion
                         .triangles(tris.data());
                 }
 
-                auto orientation = orientBuilder.build();
+                auto *orientation = orientBuilder.build();
                 std::vector<filament::math::short4> tangentQuats(newVertexCount);
                 orientation->getQuats(tangentQuats.data(), newVertexCount);
+                delete orientation;
 
                 // --- Build VertexBuffer ---
                 // Buffer layout: POSITION(0), TANGENTS(1), UV0(2), CUSTOM0(3), COLOR(4), [BONE_INDICES(5), BONE_WEIGHTS(6)]
@@ -583,7 +584,7 @@ namespace thermion
 
                 // Buffer 0: POSITION
                 size_t posDataSize = newVertexCount * 3 * sizeof(float);
-                float *posData = (float *)malloc(posDataSize);
+                auto *posData = new uint8_t[posDataSize];
                 memcpy(posData, newPositions.data(), posDataSize);
                 BufferObject *posBO = BufferObject::Builder().size(posDataSize).build(*_engine);
                 posBO->setBuffer(*_engine, BufferObject::BufferDescriptor(posData, posDataSize, FREE_CB));
@@ -591,7 +592,7 @@ namespace thermion
 
                 // Buffer 1: TANGENTS (SHORT4 quantized quaternions, matching gltfio's format)
                 size_t tangDataSize = newVertexCount * sizeof(filament::math::short4);
-                float *tangData = (float *)malloc(tangDataSize);
+                auto *tangData = new uint8_t[tangDataSize];
                 memcpy(tangData, tangentQuats.data(), tangDataSize);
                 BufferObject *tangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
                 tangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(tangData, tangDataSize, FREE_CB));
@@ -599,7 +600,7 @@ namespace thermion
 
                 // Buffer 2: UV0
                 size_t uvDataSize = newVertexCount * 2 * sizeof(float);
-                float *uvData = (float *)malloc(uvDataSize);
+                auto *uvData = new uint8_t[uvDataSize];
                 memcpy(uvData, newUVs.data(), uvDataSize);
                 BufferObject *uvBO = BufferObject::Builder().size(uvDataSize).build(*_engine);
                 uvBO->setBuffer(*_engine, BufferObject::BufferDescriptor(uvData, uvDataSize, FREE_CB));
@@ -607,7 +608,7 @@ namespace thermion
 
                 // Buffer 3: CUSTOM0 (barycentrics)
                 size_t baryDataSize = newVertexCount * 4 * sizeof(float);
-                float *baryData = (float *)malloc(baryDataSize);
+                auto *baryData = new uint8_t[baryDataSize];
                 memcpy(baryData, newBarycentrics.data(), baryDataSize);
                 BufferObject *baryBO = BufferObject::Builder().size(baryDataSize).build(*_engine);
                 baryBO->setBuffer(*_engine, BufferObject::BufferDescriptor(baryData, baryDataSize, FREE_CB));
@@ -615,9 +616,10 @@ namespace thermion
 
                 // Buffer 4: COLOR (dummy, all white = 1.0)
                 size_t colorDataSize = newVertexCount * 4 * sizeof(float);
-                float *colorData = (float *)malloc(colorDataSize);
+                auto *colorData = new uint8_t[colorDataSize];
+                auto *colorFloats = reinterpret_cast<float *>(colorData);
                 for (uint32_t i = 0; i < newVertexCount * 4; i++) {
-                    colorData[i] = 1.0f;
+                    colorFloats[i] = 1.0f;
                 }
                 BufferObject *colorBO = BufferObject::Builder().size(colorDataSize).build(*_engine);
                 colorBO->setBuffer(*_engine, BufferObject::BufferDescriptor(colorData, colorDataSize, FREE_CB));
@@ -633,7 +635,7 @@ namespace thermion
                 {
                     // Buffer 5: BONE_INDICES
                     size_t jointDataSize = newVertexCount * 4 * sizeof(uint8_t);
-                    uint8_t *jointData = (uint8_t *)malloc(jointDataSize);
+                    auto *jointData = new uint8_t[jointDataSize];
                     memcpy(jointData, newJoints.data(), jointDataSize);
                     BufferObject *jointBO = BufferObject::Builder().size(jointDataSize).build(*_engine);
                     jointBO->setBuffer(*_engine, BufferObject::BufferDescriptor(jointData, jointDataSize, FREE_CB));
@@ -641,7 +643,7 @@ namespace thermion
 
                     // Buffer 6: BONE_WEIGHTS
                     size_t weightDataSize = newVertexCount * 4 * sizeof(float);
-                    float *weightData = (float *)malloc(weightDataSize);
+                    auto *weightData = new uint8_t[weightDataSize];
                     memcpy(weightData, newWeights.data(), weightDataSize);
                     BufferObject *weightBO = BufferObject::Builder().size(weightDataSize).build(*_engine);
                     weightBO->setBuffer(*_engine, BufferObject::BufferDescriptor(weightData, weightDataSize, FREE_CB));
@@ -653,10 +655,11 @@ namespace thermion
 
                 // --- Build sequential IndexBuffer ---
                 size_t indexDataSize = newVertexCount * sizeof(uint32_t);
-                uint32_t *newIndices = (uint32_t *)malloc(indexDataSize);
+                auto *newIndices = new uint8_t[indexDataSize];
+                auto *indexPtr = reinterpret_cast<uint32_t *>(newIndices);
                 for (uint32_t i = 0; i < newVertexCount; i++)
                 {
-                    newIndices[i] = i;
+                    indexPtr[i] = i;
                 }
 
                 IndexBuffer *ib = IndexBuffer::Builder()
