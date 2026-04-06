@@ -69,7 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     await _thermionViewer!.addToScene(asset);
 
-    var wireframe = await FilamentApp.instance!.createWireframeMaterial();
+    var wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
     await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
     await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
     await wireframe.setEdgeWidth(0.5);

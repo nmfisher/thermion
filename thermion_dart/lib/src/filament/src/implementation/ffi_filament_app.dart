@@ -654,11 +654,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   @override
-  Future<MaterialInstance> createWireframeMaterialInstance() async {
+  Future<WireframeMaterialInstance> createWireframeMaterialInstance() async {
     final material = FFIMaterial(await withPointerCallback<TMaterial>((cb) {
       Material_createWireframeMaterialRenderThread(engine, cb);
     }));
-    return await material.createInstance();
+    final mi = await material.createInstance();
+    return WireframeMaterialInstance(mi);
   }
 
   ///

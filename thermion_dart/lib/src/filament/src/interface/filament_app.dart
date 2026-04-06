@@ -246,17 +246,9 @@ abstract class FilamentApp<T> {
 
   /// Creates a wireframe material instance for use with assets loaded
   /// with [rebuildVertices: true]. Set parameters (edgeColor, faceColor,
-  /// edgeWidth) on the returned instance, then apply with
+  /// edgeWidth) on the returned [WireframeMaterialInstance], then apply with
   /// [ThermionAsset.setMaterialInstanceForAll].
-  Future<MaterialInstance> createWireframeMaterialInstance();
-
-  /// Convenience that creates a [WireframeMaterialInstance] typed wrapper.
-  ///
-  /// Delegates to [createWireframeMaterialInstance] internally.
-  Future<WireframeMaterialInstance> createWireframeMaterial() async {
-    final mi = await createWireframeMaterialInstance();
-    return WireframeMaterialInstance(mi);
-  }
+  Future<WireframeMaterialInstance> createWireframeMaterialInstance();
 
   //
   Future<MaterialInstance> getMaterialInstanceAt(

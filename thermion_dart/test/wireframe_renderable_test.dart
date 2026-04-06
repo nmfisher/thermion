@@ -26,7 +26,7 @@ void main() async {
       await testHelper.capture(result.viewer.view, "flighthelmet_rebuildVertices_true");
 
       // Use typed wireframe wrapper
-      final wireframe = await FilamentApp.instance!.createWireframeMaterial();
+      final wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
       await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
       await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
       await wireframe.setEdgeWidth(0.5);
@@ -74,7 +74,7 @@ void main() async {
           result.viewer.view, "instanced_preserved_before");
 
       // Use typed wireframe wrapper
-      final wireframe = await FilamentApp.instance!.createWireframeMaterial();
+      final wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
       await wireframe.setEdgeColor(1.0, 0.0, 1.0, 1.0);
       await wireframe.setFaceColor(0.0, 0.0, 0.0, 1.0);
       await wireframe.setEdgeWidth(1.0);
