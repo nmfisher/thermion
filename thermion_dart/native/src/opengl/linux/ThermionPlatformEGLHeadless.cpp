@@ -323,6 +323,14 @@ Platform::SwapChain* ThermionPlatformEGLHeadless::createSwapChain(
     sc->flags   = flags;
     sc->surface = eglCreatePbufferSurface(mDisplay, config, attribs);
     if (sc->surface == EGL_NO_SURFACE) {
+        if (mSurfacelessContext) {
+            // EGL configs (e.g. Mesa/llvmpipe on Wayland) may only support
+            // window surfaces. Fall back to a surfaceless swapchain — the
+            // dummy 1x1 swapchain doesn't need a real surface.
+            std::cerr << "[ThermionEGLHeadless] pbuffer failed, using surfaceless"
+                      << std::endl;
+            return sc;
+        }
         delete sc;
         return nullptr;
     }
