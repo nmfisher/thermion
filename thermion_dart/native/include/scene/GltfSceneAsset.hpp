@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <filament/BufferObject.h>
@@ -189,6 +190,9 @@ namespace thermion
         std::vector<IndexBuffer*> _preservedIndexBuffers;
         std::vector<size_t> _preservedIndexCounts;
         std::vector<BufferObject*> _preservedBufferObjects;
+
+        // Maps entity name → preserved buffer index for name-based geometry matching.
+        std::vector<std::pair<std::string, size_t>> _entityBufferMap;
     };
 
 } // namespace thermion

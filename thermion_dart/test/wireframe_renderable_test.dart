@@ -7,13 +7,23 @@ void main() async {
   await testHelper.setup();
 
   test('load with rebuildVertices and apply wireframe material', () async {
-    await ViewerBuilder(testHelper).addSun().execute((result) async {
+    await ViewerBuilder(testHelper)
+        .addSun()
+        .setCameraPosition(Vector3(0, 1, 1.5))
+        .execute((result) async {
+      final asset1 = await result.viewer.loadGltf(
+          "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
+          rebuildVertices: false,
+          addToScene: true);
+      await testHelper.capture(
+          result.viewer.view, "flighthelmet_rebuildVertices_false");
+      await result.viewer.removeFromScene(asset1);
       final asset = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-          rebuildVertices: true);
+          rebuildVertices: true,
+          addToScene: true);
 
-      await result.viewer.addToScene(asset);
-      await testHelper.capture(result.viewer.view, "preserved_before");
+      await testHelper.capture(result.viewer.view, "flighthelmet_rebuildVertices_true");
 
       // Use typed wireframe wrapper
       final wireframe = await FilamentApp.instance!.createWireframeMaterial();
@@ -23,7 +33,7 @@ void main() async {
       await wireframe.setDoubleSided(true);
 
       await asset.setMaterialInstanceForAll(wireframe.materialInstance);
-      await testHelper.capture(result.viewer.view, "preserved_wireframe");
+      await testHelper.capture(result.viewer.view, "flighthelmet_rebuildVertices_true_wireframe");
     });
   });
 
