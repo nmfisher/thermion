@@ -47,6 +47,28 @@ void main() async {
       await asset.setMaterialInstanceForAll(ubershader.materialInstance);
       await testHelper.capture(
           result.viewer.view, "rebuildVertices_true_ubershader");
+
+      await result.viewer.removeFromScene(asset);
+
+      final flatAsset = await result.viewer.loadGltf(
+          "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
+          rebuildVertices: true,
+          flatShading: true,
+          addToScene: true);
+
+      await testHelper.capture(result.viewer.view, "flat_shading_default");
+
+      final flatUbershader =
+          await FilamentApp.instance!.createUbershaderMaterial(
+        doubleSided: true,
+      );
+      await flatUbershader.setBaseColorFactor(0.8, 0.8, 0.8, 1.0);
+      await flatUbershader.setMetallicFactor(0.0);
+      await flatUbershader.setRoughnessFactor(1.0);
+      await flatAsset
+          .setMaterialInstanceForAll(flatUbershader.materialInstance);
+      await testHelper.capture(
+          result.viewer.view, "flat_shading_ubershader");
     });
   });
 

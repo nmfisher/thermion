@@ -681,12 +681,13 @@ extern "C"
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
       bool rebuildVertices,
+      bool flatShading,
       void (*onComplete)(TSceneAsset *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices, flatShading);
           PROXY(onComplete(sceneAsset));
         });
     auto fut = _renderThread->addTask(lambda);

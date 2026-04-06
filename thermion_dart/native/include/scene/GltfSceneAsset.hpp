@@ -33,6 +33,7 @@ namespace thermion
             Engine *engine,
             utils::NameComponentManager* ncm,
             bool rebuildVertices = false,
+            bool flatShading = false,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 
@@ -143,7 +144,7 @@ namespace thermion
         /// Unwelds vertices so each triangle has unique vertices for barycentric
         /// wireframe rendering. After this, materials can be freely swapped via
         /// setMaterialInstanceAt. Requires source data to still be available.
-        void rebuildVertexBuffers();
+        void rebuildVertexBuffers(bool flatShading = false);
 
         /// Release the underlying cgltf source data early to free memory.
         /// Safe to call multiple times; subsequent calls are no-ops.

@@ -38,6 +38,7 @@ namespace thermion
         Engine *engine,
         utils::NameComponentManager *ncm,
         bool rebuildVertices,
+        bool flatShading,
         MaterialInstance **materialInstances,
         size_t materialInstanceCount) : _asset(asset),
                                         _assetLoader(assetLoader),
@@ -48,7 +49,7 @@ namespace thermion
     {
         if (rebuildVertices)
         {
-            rebuildVertexBuffers();
+            rebuildVertexBuffers(flatShading);
         }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
@@ -250,7 +251,7 @@ namespace thermion
         return nullptr;
     }
 
-    void GltfSceneAsset::rebuildVertexBuffers()
+    void GltfSceneAsset::rebuildVertexBuffers(bool flatShading)
     {
         auto *sourceData = (const cgltf_data *)_asset->getSourceAsset();
         if (!sourceData)
@@ -522,6 +523,26 @@ namespace thermion
                                                                  ? srcWeights[srcIdx * wc + k]
                                                                  : 0.0f;
                             }
+                        }
+                    }
+                }
+
+                // --- Flat shading: replace per-vertex normals with face normal ---
+                if (flatShading)
+                {
+                    for (uint32_t t = 0; t < triangleCount; t++)
+                    {
+                        uint32_t i0 = t * 3 + 0, i1 = t * 3 + 1, i2 = t * 3 + 2;
+                        filament::math::float3 p0 = {newPositions[i0 * 3], newPositions[i0 * 3 + 1], newPositions[i0 * 3 + 2]};
+                        filament::math::float3 p1 = {newPositions[i1 * 3], newPositions[i1 * 3 + 1], newPositions[i1 * 3 + 2]};
+                        filament::math::float3 p2 = {newPositions[i2 * 3], newPositions[i2 * 3 + 1], newPositions[i2 * 3 + 2]};
+                        filament::math::float3 fn = normalize(cross(p1 - p0, p2 - p0));
+                        for (int v = 0; v < 3; v++)
+                        {
+                            uint32_t di = t * 3 + v;
+                            newNormals[di * 3 + 0] = fn.x;
+                            newNormals[di * 3 + 1] = fn.y;
+                            newNormals[di * 3 + 2] = fn.z;
                         }
                     }
                 }
