@@ -180,8 +180,11 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
 
   @override
   Future<MaterialInstance> getMaterialInstanceAt(
-      {ThermionEntity? entity, int index = 0}) {
-    throw UnimplementedError();
+      {ThermionEntity? entity, int index = 0}) async {
+    if (index == 0 && (entity == null || entity == this.entity)) {
+      return mi;
+    }
+    throw Exception();
   }
 
   ThermionAsset? get boundingBoxAsset => throw UnimplementedError();
