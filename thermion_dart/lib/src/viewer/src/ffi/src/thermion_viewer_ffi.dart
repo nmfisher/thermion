@@ -95,16 +95,16 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   bool get rendering => _rendering;
 
-  late final SwapChain swapChain;
-
   //
   @override
   Future setRendering(bool render) async {
     _rendering = render;
     final rm = FilamentApp.instance!.renderManager;
 
+    final swapChains = await FilamentApp.instance!.getSwapChains();
+
     if (render) {
-      await rm.attach(view, swapChain);
+      await rm.attach(view, swapChains.first);
     } else {
       await rm.detach(view);
     }
