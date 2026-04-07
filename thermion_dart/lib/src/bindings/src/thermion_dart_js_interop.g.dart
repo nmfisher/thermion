@@ -2156,6 +2156,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
+    bool rebuildVertices,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>>
         onComplete,
   );
@@ -2175,13 +2176,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int materialInstanceCount,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
   );
-  external void _SceneAsset_applyWireframeBarycentricsRenderThread(
+  external void _SceneAsset_releaseSourceDataRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
     int requestId,
     VoidCallback onComplete,
   );
-  external void _SceneAsset_releaseSourceDataRenderThread(
+  external void _SceneAsset_setFlatShadingRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
+    bool flatShading,
     int requestId,
     VoidCallback onComplete,
   );
@@ -2876,6 +2878,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
+    bool rebuildVertices,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(
     Pointer<TSceneAsset> tSceneAsset,
@@ -2937,11 +2940,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> tSceneAsset,
     int primitiveIndex,
   );
-  external void _SceneAsset_applyWireframeBarycentrics(
-    Pointer<TSceneAsset> tSceneAsset,
-  );
   external void _SceneAsset_releaseSourceData(
     Pointer<TSceneAsset> tSceneAsset,
+  );
+  external void _SceneAsset_setFlatShading(
+    Pointer<TSceneAsset> tSceneAsset,
+    bool flatShading,
   );
   external Pointer<TAnimationManager> _AnimationManager_create(
     Pointer<TEngine> tEngine,
@@ -3087,11 +3091,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Float32> morphData,
     int numWeights,
   );
-  external int _AnimationManager_setGltfAnimationFrame(
+  external int _AnimationManager_setGltfAnimationTime(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int animationIndex,
-    int frame,
+    double timeInSeconds,
   );
   external void _MovementIntentExecutor_destroy(
     Pointer<TMovementIntentExecutor> executor,
@@ -7905,6 +7909,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
+  bool rebuildVertices,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance
@@ -7913,6 +7918,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
           tAssetLoader.cast(),
           tNameComponentManager.cast(),
           tFilamentAsset.cast(),
+          rebuildVertices,
           onComplete.cast());
   return result;
 }
@@ -7953,19 +7959,6 @@ void SceneAsset_createInstanceRenderThread(
   return result;
 }
 
-void SceneAsset_applyWireframeBarycentricsRenderThread(
-  Pointer<TSceneAsset> tSceneAsset,
-  int requestId,
-  DartVoidCallback onComplete,
-) {
-  final result = GeneratedBindings.instance
-      ._SceneAsset_applyWireframeBarycentricsRenderThread(
-          tSceneAsset.cast(),
-          requestId,
-          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
-  return result;
-}
-
 void SceneAsset_releaseSourceDataRenderThread(
   Pointer<TSceneAsset> tSceneAsset,
   int requestId,
@@ -7973,6 +7966,21 @@ void SceneAsset_releaseSourceDataRenderThread(
 ) {
   final result = GeneratedBindings.instance
       ._SceneAsset_releaseSourceDataRenderThread(tSceneAsset.cast(), requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void SceneAsset_setFlatShadingRenderThread(
+  Pointer<TSceneAsset> tSceneAsset,
+  bool flatShading,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_setFlatShadingRenderThread(
+          tSceneAsset.cast(),
+          flatShading,
+          requestId,
           onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
@@ -9471,12 +9479,14 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
+  bool rebuildVertices,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAsset(
       tEngine.cast(),
       tAssetLoader.cast(),
       tNameComponentManager.cast(),
-      tFilamentAsset.cast());
+      tFilamentAsset.cast(),
+      rebuildVertices);
   return Pointer<TSceneAsset>(result);
 }
 
@@ -9625,19 +9635,20 @@ Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
   return Pointer<TIndexBuffer>(result);
 }
 
-void SceneAsset_applyWireframeBarycentrics(
-  Pointer<TSceneAsset> tSceneAsset,
-) {
-  final result = GeneratedBindings.instance
-      ._SceneAsset_applyWireframeBarycentrics(tSceneAsset.cast());
-  return result;
-}
-
 void SceneAsset_releaseSourceData(
   Pointer<TSceneAsset> tSceneAsset,
 ) {
   final result = GeneratedBindings.instance
       ._SceneAsset_releaseSourceData(tSceneAsset.cast());
+  return result;
+}
+
+void SceneAsset_setFlatShading(
+  Pointer<TSceneAsset> tSceneAsset,
+  bool flatShading,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_setFlatShading(tSceneAsset.cast(), flatShading);
   return result;
 }
 
@@ -9954,15 +9965,15 @@ bool AnimationManager_setMorphTargetWeights(
   return result == 1;
 }
 
-bool AnimationManager_setGltfAnimationFrame(
+bool AnimationManager_setGltfAnimationTime(
   Pointer<TAnimationManager> tAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
-  int frame,
+  double timeInSeconds,
 ) {
   final result = GeneratedBindings.instance
-      ._AnimationManager_setGltfAnimationFrame(
-          tAnimationManager.cast(), tSceneAsset.cast(), animationIndex, frame);
+      ._AnimationManager_setGltfAnimationTime(tAnimationManager.cast(),
+          tSceneAsset.cast(), animationIndex, timeInSeconds);
   return result == 1;
 }
 

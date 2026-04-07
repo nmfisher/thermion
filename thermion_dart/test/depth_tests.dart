@@ -29,6 +29,34 @@ void checkMinMaxPixelValues(Float32List pixelBuffer, int width, int height,
   print("minVal $minVal maxVal $maxVal");
 }
 
+///
+  ///
+  ///
+  Future createView(SwapChain swapChain,
+      {TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
+    final view = await FilamentApp.instance!.createView() as FFIView;
+    await view.setFrustumCullingEnabled(false);
+    await view.setPostProcessing(false);
+    await view.setViewport(512, 512);
+
+    View_setBlendMode(view.view, TBlendMode.OPAQUE);
+    final color = await FilamentApp.instance!.createTexture(512, 512,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC
+        },
+        textureFormat: textureFormat);
+    await view.setRenderTarget(await FilamentApp.instance!
+        .createRenderTarget(512, 512, color: color) as FFIRenderTarget);
+
+    await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
+
+    return view;
+  }
+
+
 void main() async {
   final testHelper = TestHelper("depth");
   await testHelper.setup();
@@ -97,7 +125,8 @@ void main() async {
     await cube.setTransform(
         Matrix4.compose(Vector3.zero(), Quaternion.identity(), Vector3.all(1)));
     await cube.setMaterialInstanceAt(mi);
-    await FilamentApp.instance!.setRenderOrder(swapChain, view);
+    await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
     var pixelBuffers = await testHelper.capture(null, "linear_depth",
         swapChain: swapChain, pixelDataFormat: PixelDataFormat.R);
     checkMinMaxPixelValues(pixelBuffers[view]!.buffer.asFloat32List(),
@@ -115,7 +144,7 @@ void main() async {
 
         final swapChain = await FilamentApp.instance!
             .createHeadlessSwapChain(512, 512) as FFISwapChain;
-        final view = await testHelper.createView(swapChain);
+        final view = await createView(swapChain);
         await testHelper.withCube(
           viewer,
           (cube) async {

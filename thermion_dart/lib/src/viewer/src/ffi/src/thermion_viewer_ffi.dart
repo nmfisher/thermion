@@ -95,17 +95,19 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   bool get rendering => _rendering;
 
+  late final SwapChain swapChain;
+
   //
   @override
   Future setRendering(bool render) async {
     _rendering = render;
-    final swapChain = await FilamentApp.instance!.getSwapChain(view);
-    if (swapChain == null) {
-      throw Exception(
-          "TODO - could not find swapchain for view ${await view.getName()}");
+    final rm = FilamentApp.instance!.renderManager;
+
+    if (render) {
+      await rm.attach(view, swapChain);
+    } else {
+      await rm.detach(view);
     }
-    await FilamentApp.instance!
-        .setRenderOrder(swapChain, view, renderOrder: render ? 0 : -1);
   }
 
   //
@@ -659,7 +661,8 @@ class ThermionViewerFFI extends ThermionViewer {
         throw ArgumentError('axis is required when visible is true');
       }
       if (entity == null && origin == null) {
-        throw ArgumentError('either entity or origin must be provided when visible is true');
+        throw ArgumentError(
+            'either entity or origin must be provided when visible is true');
       }
 
       // Get world position from entity if provided
@@ -667,7 +670,8 @@ class ThermionViewerFFI extends ThermionViewer {
       if (origin != null) {
         worldPosition = origin;
       } else {
-        final worldTransform = await FilamentApp.instance!.getWorldTransform(entity!);
+        final worldTransform =
+            await FilamentApp.instance!.getWorldTransform(entity!);
         worldPosition = worldTransform.getTranslation();
         await FilamentApp.instance!.setPriority(entity, 0);
       }
@@ -698,14 +702,16 @@ class ThermionViewerFFI extends ThermionViewer {
       _translationAxisAsset = await createGeometry(
         GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2),
       );
-      await _translationAxisAsset!.setMaterialInstanceAt(_translationAxisMaterial!);
+      await _translationAxisAsset!
+          .setMaterialInstanceAt(_translationAxisMaterial!);
 
       // Position at world position, with rotation for Y axis
       v64.Matrix4 transform;
       if (axis == Axis.Y) {
         // Rotate plane 90° around X axis to make it vertical (XY plane)
         final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
-        transform = v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
+        transform =
+            v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
       } else {
         transform = v64.Matrix4.translation(worldPosition);
       }

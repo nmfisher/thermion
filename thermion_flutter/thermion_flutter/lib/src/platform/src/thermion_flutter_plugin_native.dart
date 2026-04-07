@@ -256,7 +256,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     // Configure native render: set render thread, render manager + post-render texture mark
     FrameScheduler_setRenderThread(app.renderThreadHandle);
-    FrameScheduler_setRenderManager(app.renderManager);
+    FrameScheduler_setRenderManager(app.renderManager.getNativeHandle());
     FrameScheduler_setPostRenderCallback(markTexturesFnPtr, pluginHandle);
 
     // Synchronize with Flutter's frame clock via persistent frame callback.
@@ -442,10 +442,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     return swapChain;
   }
 
+  @override
   void pauseFrameScheduler() {
     _frameSchedulerPaused = true;
   }
 
+  @override
   void resumeFrameScheduler() {
     _frameSchedulerPaused = false;
   }
@@ -465,7 +467,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         ThermionFlutterPlugin.instance.options.nativeOptions.backend ==
             Backend.VULKAN;
 
-    final swapChains = await FilamentApp.instance!.getSwapChains();
     final color = await FilamentApp.instance!.createTexture(
       width,
       height,
@@ -522,7 +523,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       await depth.destroy();
       await existingRenderTarget.destroy();
     }
-    await FilamentApp.instance!.setRenderOrder(swapChains.first, view);
+    final swapChains = await FilamentApp.instance!.getSwapChains();
+    await FilamentApp.instance!.renderManager.attach(view, swapChains.first);
   }
 
   /// Fire-and-forget: waits for populate() to create the GL texture,
@@ -580,22 +582,17 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // the viewport?
     // In fact we can probably do this for all platforms
     if (Platform.isAndroid) {
+      final swapChains = await FilamentApp.instance!.getSwapChains();
+
       final swapChain = await FilamentApp.instance!.createSwapChain(
         Pointer<Void>.fromAddress(descriptor.windowHandle!),
       );
 
-      final existingSwapChain = await FilamentApp.instance!.getSwapChain(view);
-
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
-
-      if (existingSwapChain != null) {
-        await FilamentApp.instance!.setRenderOrder(
-          existingSwapChain,
-          view,
-          renderOrder: -1,
-        );
-        await FilamentApp.instance!.destroySwapChain(existingSwapChain);
+      if (swapChains.isNotEmpty) {
+        await FilamentApp.instance!.destroySwapChain(swapChains.first);
       }
+
+      await FilamentApp.instance!.renderManager.attach(view, swapChain);
 
       // On other platforms, if a hardware texture ID is returned, this means
       // the texture is immediately available for rendering.
@@ -677,7 +674,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     final externalImage = result[0] as int;
 
     // Re-create Filament render target with the new external image
-    final swapChains = await FilamentApp.instance!.getSwapChains();
     final color = await FilamentApp.instance!.createTexture(
       width,
       height,
@@ -723,7 +719,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       // Clean up after 5 frames to be safe.
       _deferredRenderTargets.add((existingRenderTarget, 5));
     }
-    await FilamentApp.instance!.setRenderOrder(swapChains.first, view);
+
+    final swapChains = await FilamentApp.instance!.getSwapChains();
+    await FilamentApp.instance!.renderManager.attach(view, swapChains.first);
+
     await view.setViewport(width, height);
 
     // Update the existing descriptor in place — same Flutter texture ID

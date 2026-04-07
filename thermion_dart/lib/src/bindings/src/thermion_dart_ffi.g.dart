@@ -3936,6 +3936,7 @@ external void SceneAsset_destroyRenderThread(
             ffi.Pointer<TGltfAssetLoader>,
             ffi.Pointer<TNameComponentManager>,
             ffi.Pointer<TFilamentAsset>,
+            ffi.Bool,
             ffi.Pointer<
                 ffi
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
@@ -3945,6 +3946,7 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  bool rebuildVertices,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
       onComplete,
 );
@@ -3994,44 +3996,18 @@ external void SceneAsset_createInstanceRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
-external void SceneAsset_applyWireframeBarycentricsRenderThread(
+external void SceneAsset_releaseSourceDataRenderThread(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int requestId,
   VoidCallback onComplete,
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneAsset>,
-        ffi.Pointer<TMaterialInstance>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(isLeaf: true)
-external void SceneAsset_createSolidOverlayRenderThread(
+    ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Bool, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void SceneAsset_setFlatShadingRenderThread(
   ffi.Pointer<TSceneAsset> tSceneAsset,
-  ffi.Pointer<TMaterialInstance> tMaterialInstance,
-  ffi.Pointer<
-          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      onComplete,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TEngine>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(isLeaf: true)
-external void Material_createSolidMaterialRenderThread(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
-      onComplete,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
-external void SceneAsset_releaseSourceDataRenderThread(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
+  bool flatShading,
   int requestId,
   VoidCallback onComplete,
 );
@@ -5369,12 +5345,14 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
         ffi.Pointer<TEngine>,
         ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<TNameComponentManager>,
-        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+        ffi.Pointer<TFilamentAsset>,
+        ffi.Bool)>(isLeaf: true)
 external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  bool rebuildVertices,
 );
 
 @ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(
@@ -5485,40 +5463,14 @@ external ffi.Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
-external void SceneAsset_applyWireframeBarycentrics(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external void SceneAsset_releaseSourceData(
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TMaterialInstance>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(isLeaf: true)
-external void SceneAsset_createWireframeOverlayRenderThread(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Bool)>(isLeaf: true)
+external void SceneAsset_setFlatShading(
   ffi.Pointer<TSceneAsset> tSceneAsset,
-  ffi.Pointer<TMaterialInstance> tMaterialInstance,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>> onComplete,
-);
-
-@ffi.Native<
-    ffi.Int Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Uint32>,
-        ffi.Pointer<ffi.Uint32>)>(isLeaf: true)
-external int SceneAsset_getMeshDataSize(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-  ffi.Pointer<ffi.Uint32> outVertexCount,
-  ffi.Pointer<ffi.Uint32> outIndexCount,
-);
-
-@ffi.Native<
-    ffi.Int Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Uint32>)>(isLeaf: true)
-external int SceneAsset_getMeshData(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-  ffi.Pointer<ffi.Float> outPositions,
-  ffi.Pointer<ffi.Uint32> outIndices,
+  bool flatShading,
 );
 
 @ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(
@@ -5789,12 +5741,12 @@ external bool AnimationManager_setMorphTargetWeights(
 
 @ffi.Native<
     ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
-        ffi.Int, ffi.Int)>(isLeaf: true)
-external bool AnimationManager_setGltfAnimationFrame(
+        ffi.Int, ffi.Float)>(isLeaf: true)
+external bool AnimationManager_setGltfAnimationTime(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
-  int frame,
+  double timeInSeconds,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
