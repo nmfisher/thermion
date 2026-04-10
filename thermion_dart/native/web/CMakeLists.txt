@@ -136,6 +136,8 @@ else()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament/release)
 endif()
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament/third_party/libassimp/include)
+
 
 add_library(backend STATIC IMPORTED)
 set_property(TARGET backend PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libbackend.a")
@@ -262,6 +264,11 @@ set_property(TARGET png PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE
 set_property(TARGET png PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng.a")
 set_property(TARGET png PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng.a")
 
+add_library(assimp STATIC IMPORTED)
+set_property(TARGET assimp PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libassimp.a")
+set_property(TARGET assimp PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libassimp.a")
+set_property(TARGET assimp PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libassimp.a")
+
 # Diagnostic: Check if EXTERNAL_ALL_LIBRARIES is visible
 if(DEFINED EXTERNAL_ALL_LIBRARIES)
   message(STATUS "EXTERNAL_ALL_LIBRARIES is defined at link time: ${EXTERNAL_ALL_LIBRARIES}")
@@ -301,6 +308,7 @@ target_link_libraries(${MODULE_NAME}
  zstd
  png
  tinyexr
+ assimp
  ${EXTERNAL_ALL_LIBRARIES}
 )
 

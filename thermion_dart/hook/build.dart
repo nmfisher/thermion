@@ -8,8 +8,6 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'log.dart';
 
-
-
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
@@ -37,9 +35,9 @@ void main(List<String> args) async {
     // `hooks` section of pubspec.yaml.
     var buildMode = BuildMode.release;
 
-    if (input.userDefines["mode"] == "debug") {
+    // if (input.userDefines["mode"] == "debug") {
         buildMode = BuildMode.debug;
-    }
+    // }
 
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
@@ -98,7 +96,8 @@ outputDirectory : ${outputDirectory.path}
       'silhouette': 'native/include/material/silhouette.c',
       'edge_outline': 'native/include/material/edge_outline.c',
       'wireframe': 'native/include/material/wireframe.c',
-      'translation_axis': 'native/include/material/translation_axis.c'
+      'translation_axis': 'native/include/material/translation_axis.c',
+      'sharp_edge': 'native/include/material/sharp_edge.c'
     };
     
 
@@ -141,6 +140,7 @@ outputDirectory : ${outputDirectory.path}
       if (!{OS.linux, OS.android}.contains(targetOS)) "zstd",
       //"mikktspace",
       "geometry",
+      "assimp",
       if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...[
         "matdbg",
         "fgviewer"
@@ -177,7 +177,11 @@ outputDirectory : ${outputDirectory.path}
           ? 'native/include/filament/debug'
           : 'native/include/filament/release'
     ];
-    final includeDirs = <String>['native/include', ...filamentIncludeDir];
+    final includeDirs = <String>[
+      'native/include',
+      ...filamentIncludeDir,
+      'native/include/filament/third_party/libassimp/include'
+    ];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {

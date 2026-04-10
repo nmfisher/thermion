@@ -611,6 +611,13 @@ cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$THERMION_INCLUDE/third_par
   exit 1
 }
 
+# Copy Assimp headers (for OBJ import support)
+mkdir -p "$THERMION_INCLUDE/third_party/libassimp/include"
+cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" "$THERMION_INCLUDE/third_party/libassimp/include/" || {
+  echo "Error: Failed to copy Assimp headers"
+  exit 1
+}
+
 echo "Headers copied to: $THERMION_INCLUDE"
 
 # Create zip files

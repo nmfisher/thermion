@@ -102,4 +102,11 @@ cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$OUTPUT_INCLUDE_DIR/third_p
   exit 1
 }
 
+# Copy Assimp headers (for OBJ import support)
+mkdir -p "$OUTPUT_INCLUDE_DIR/third_party/libassimp/include"
+cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" "$OUTPUT_INCLUDE_DIR/third_party/libassimp/include/" || {
+  echo "Error: Failed to copy Assimp headers"
+  exit 1
+}
+
 echo "Headers copied to: $OUTPUT_INCLUDE_DIR"
