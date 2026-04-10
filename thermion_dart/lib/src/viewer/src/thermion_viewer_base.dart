@@ -162,6 +162,27 @@ abstract class ThermionViewer {
       bool loadResourcesAsync = false,
       bool addToScene = true});
 
+  // Load an OBJ file from [uri] (which must point to a file with the
+  // extension `.obj`. `file://` URIs are always supported;
+  // `asset://` URIs are only supported if running in a Flutter application.
+  //
+  // If [addToScene] is [true], all renderable entities in the asset will
+  // be added to the scene.
+  //
+  // Returns a list of [ThermionAsset] instances, one per object/group in the file.
+  Future<List<ThermionAsset>> loadObj(String uri,
+      {bool addToScene = true, bool flipUvs = true});
+
+  // Load an OBJ file from the specified buffer (which contains the contents
+  // of an .obj file).
+  //
+  // If [addToScene] is [true], all renderable entities in the asset will
+  // be added to the scene.
+  //
+  // Returns a list of [ThermionAsset] instances, one per object/group in the file.
+  Future<List<ThermionAsset>> loadObjFromBuffer(Uint8List data,
+      {bool addToScene = true, bool flipUvs = true});
+
   // Destroys [asset] and all underlying resources
   // (including instances, but excluding any manually created material instances).
   //

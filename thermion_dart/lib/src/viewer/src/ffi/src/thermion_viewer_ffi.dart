@@ -484,6 +484,43 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
+  Future<List<ThermionAsset>> loadObj(
+    String uri, {
+    bool addToScene = true,
+    bool flipUvs = true,
+  }) async {
+    final data = await FilamentApp.instance!.loadResource(uri);
+    return loadObjFromBuffer(
+      data,
+      addToScene: addToScene,
+      flipUvs: flipUvs,
+    );
+  }
+
+  //
+  @override
+  Future<List<ThermionAsset>> loadObjFromBuffer(
+    Uint8List data, {
+    bool addToScene = true,
+    bool flipUvs = true,
+  }) async {
+    final groups = GeometryUtils.parseObjFromBuffer(data, flipUvs: flipUvs);
+    final assets = <ThermionAsset>[];
+
+    for (final group in groups) {
+      final asset = await createGeometry(
+        group.geometry,
+        releaseSourceData: false,
+        addToScene: addToScene,
+      );
+      assets.add(asset);
+    }
+
+    return assets;
+  }
+
+  //
+  @override
   Future destroyAsset(ThermionAsset asset) async {
     _assets.remove(asset);
     await scene.remove(asset);
