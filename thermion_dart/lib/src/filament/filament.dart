@@ -15,3 +15,4 @@ export 'src/interface/index_buffer.dart';
 export 'src/interface/translation_axis_material.dart';
 export 'src/interface/ubershader_material.dart';
 export 'src/interface/wireframe_material.dart';
+export 'src/interface/sharp_edge_material.dart';
