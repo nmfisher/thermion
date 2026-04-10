@@ -136,6 +136,28 @@ if "!BUILD_RELEASE!"=="true" (
     echo Warning: imageio release build failed
   )
 
+  REM Build libassimp for release
+  echo Building libassimp for release...
+  cd "%FILAMENT_BASE_DIR%\out"
+  if not exist "cmake-release-assimp" mkdir cmake-release-assimp
+  cd cmake-release-assimp
+  cmake -G "Visual Studio 17 2022" -T v142 ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_CXX_STANDARD=17 ^
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
+    -DASSIMP_BUILD_TESTS=OFF ^
+    -DASSIMP_BUILD_SAMPLES=OFF ^
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF ^
+    "%FILAMENT_BASE_DIR%\third_party\libassimp\tnt" || (
+    echo Error: libassimp release cmake configuration failed
+    exit /b 1
+  )
+  cmake --build . --config Release || (
+    echo Error: libassimp release build failed
+    exit /b 1
+  )
+  cd "%FILAMENT_BASE_DIR%\out"
+
   REM Install release to get headers in a known location
   echo Installing release...
   cmake --install . --config Release --prefix "%FILAMENT_BASE_DIR%\out\install-release" || (
@@ -160,6 +182,28 @@ if "!BUILD_DEBUG!"=="true" (
   cmake --build . --target imageio --config Debug || (
     echo Warning: imageio debug build failed
   )
+
+  REM Build libassimp for debug
+  echo Building libassimp for debug...
+  cd "%FILAMENT_BASE_DIR%\out"
+  if not exist "cmake-debug-assimp" mkdir cmake-debug-assimp
+  cd cmake-debug-assimp
+  cmake -G "Visual Studio 17 2022" -T v142 ^
+    -DCMAKE_BUILD_TYPE=Debug ^
+    -DCMAKE_CXX_STANDARD=17 ^
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
+    -DASSIMP_BUILD_TESTS=OFF ^
+    -DASSIMP_BUILD_SAMPLES=OFF ^
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF ^
+    "%FILAMENT_BASE_DIR%\third_party\libassimp\tnt" || (
+    echo Error: libassimp debug cmake configuration failed
+    exit /b 1
+  )
+  cmake --build . --config Debug || (
+    echo Error: libassimp debug build failed
+    exit /b 1
+  )
+  cd "%FILAMENT_BASE_DIR%\out"
 
   REM Install debug to get headers in a known location
   echo Installing debug...
@@ -204,6 +248,14 @@ if "!BUILD_RELEASE!"=="true" (
     echo Expected libraries in subdirectories of: %FILAMENT_BASE_DIR%\out
     exit /b 1
   )
+
+  REM Copy libassimp
+  if exist "%FILAMENT_BASE_DIR%\out\cmake-release-assimp\Release\assimp.lib" (
+    copy /Y "%FILAMENT_BASE_DIR%\out\cmake-release-assimp\Release\assimp.lib" "%TARGET_RELEASE_DIR%\libassimp.lib" >nul
+    echo Copied libassimp to release directory
+  ) else (
+    echo Warning: libassimp.lib not found at %FILAMENT_BASE_DIR%\out\cmake-release-assimp\Release\
+  )
 )
 
 REM Copy debug libraries
@@ -220,6 +272,14 @@ if "!BUILD_DEBUG!"=="true" (
     echo Error: No debug libraries found. Check build output structure.
     echo Expected libraries in subdirectories of: %FILAMENT_BASE_DIR%\out
     exit /b 1
+  )
+
+  REM Copy libassimp
+  if exist "%FILAMENT_BASE_DIR%\out\cmake-debug-assimp\Debug\assimp.lib" (
+    copy /Y "%FILAMENT_BASE_DIR%\out\cmake-debug-assimp\Debug\assimp.lib" "%TARGET_DEBUG_DIR%\libassimp.lib" >nul
+    echo Copied libassimp to debug directory
+  ) else (
+    echo Warning: libassimp.lib not found at %FILAMENT_BASE_DIR%\out\cmake-debug-assimp\Debug\
   )
 )
 

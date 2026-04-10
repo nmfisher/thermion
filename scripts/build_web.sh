@@ -362,6 +362,31 @@ if [ "$BUILD_RELEASE" = true ]; then
     echo "Error: tinyexr release build failed"
     exit 1
   }
+
+  # Build libassimp for release
+  echo "Building libassimp (release)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-release/third_party"
+  mkdir -p libassimp && cd libassimp
+
+  cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
+    -DCMAKE_C_FLAGS="-pthread -I../libz -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-pthread -I../libz -matomics -mbulk-memory" \
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+    -DASSIMP_BUILD_TESTS=OFF \
+    -DASSIMP_BUILD_SAMPLES=OFF \
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+    ../../../../third_party/libassimp/tnt || {
+    echo "Error: libassimp release cmake configuration failed"
+    exit 1
+  }
+
+  ninja || {
+    echo "Error: libassimp release build failed"
+    exit 1
+  }
 fi
 
 # Build debug (if requested)
@@ -506,6 +531,31 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   ninja || {
     echo "Error: tinyexr debug build failed"
+    exit 1
+  }
+
+  # Build libassimp for debug
+  echo "Building libassimp (debug)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-debug/third_party"
+  mkdir -p libassimp && cd libassimp
+
+  cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
+    -DCMAKE_C_FLAGS="-pthread -I../libz -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-pthread -I../libz -matomics -mbulk-memory" \
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+    -DASSIMP_BUILD_TESTS=OFF \
+    -DASSIMP_BUILD_SAMPLES=OFF \
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+    ../../../../third_party/libassimp/tnt || {
+    echo "Error: libassimp debug cmake configuration failed"
+    exit 1
+  }
+
+  ninja || {
+    echo "Error: libassimp debug build failed"
     exit 1
   }
 fi

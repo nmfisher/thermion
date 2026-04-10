@@ -174,6 +174,22 @@ if [ "$BUILD_RELEASE" = true ]; then
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
+  # Build libassimp for release
+  echo "Building libassimp (release)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DIOS=1 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
+
   # Copy release third-party libraries
   echo "Copying release third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
@@ -184,6 +200,10 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
   cp out/cmake-ios-release-arm64/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
+    exit 1
+  }
+  cp out/cmake-ios-release-arm64/third_party/libassimp/tnt/libassimp.a "$TARGET_RELEASE_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
 fi
@@ -237,6 +257,22 @@ if [ "$BUILD_DEBUG" = true ]; then
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
+  # Build libassimp for debug
+  echo "Building libassimp (debug)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DIOS=1 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
+
   # Copy debug third-party libraries
   echo "Copying debug third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
@@ -247,6 +283,10 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
   cp out/cmake-ios-debug-arm64/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
+    exit 1
+  }
+  cp out/cmake-ios-debug-arm64/third_party/libassimp/tnt/libassimp.a "$TARGET_DEBUG_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
 fi
