@@ -42,7 +42,6 @@ class Geometry {
     bool createDummyUvs1 = true,
   }) {
     this.attribute0 = attribute0 ?? Float32List(0);
-    this.uvs = uvs ?? Float32List(0);
     this.normals = normals ?? Float32List(0);
 
     if (colors == null) {
@@ -69,6 +68,7 @@ class Geometry {
         uvs = makeFloat32List(0);
       }
     }
+    this.uvs = uvs;
 
     final numVertices = vertices.length ~/ 3;
     final expectedUvs = numVertices * 2;

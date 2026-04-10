@@ -8,6 +8,7 @@ import 'cylinder.dart';
 import 'pyramid.dart';
 import 'quad.dart';
 import 'sphere.dart';
+import '../../../filament/src/implementation/ffi_obj_importer.dart';
 
 class GeometryUtils {
 
@@ -506,4 +507,50 @@ class GeometryUtils {
 
   static Geometry sphere({bool normals = true, bool uvs = true}) =>
       SphereGeometry.sphere(normals: normals, uvs: uvs);
+
+  /// Parses an OBJ file from the given byte buffer and returns a list of
+  /// geometry groups. Each group corresponds to a named object (o/g directive)
+  /// or material partition (usemtl) in the file.
+  ///
+  /// [data] - The OBJ file contents as bytes.
+  /// [flipUvs] - If true (default), flips UV coordinates vertically.
+  ///            OBJ files use bottom-left UV origin, while Filament uses top-left.
+  ///
+  /// Returns a list of [ObjGeometryGroup] objects.
+  static List<ObjGeometryGroup> parseObjFromBuffer(Uint8List data, {bool flipUvs = true}) {
+    final meshes = ObjImporter.loadFromBuffer(data);
+    return meshes.map((mesh) {
+      final geometry = mesh.toGeometry(
+        flipUvs: flipUvs,
+        createDummyColors: true,
+        createDummyUvs: true,
+      );
+      return ObjGeometryGroup(
+        name: mesh.name,
+        materialName: mesh.materialName,
+        geometry: geometry,
+      );
+    }).toList();
+  }
+}
+
+/// Represents a geometry group from an OBJ file.
+///
+/// An OBJ file can contain multiple objects/groups, each with its own
+/// material assignment. This class represents one such group.
+class ObjGeometryGroup {
+  /// Object/group name from 'o' or 'g' directive in the OBJ file.
+  final String? name;
+
+  /// Material name from 'usemtl' directive.
+  final String? materialName;
+
+  /// The geometry data for this group.
+  final Geometry geometry;
+
+  ObjGeometryGroup({
+    this.name,
+    this.materialName,
+    required this.geometry,
+  });
 }
