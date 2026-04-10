@@ -257,6 +257,12 @@ abstract class FilamentApp<T> {
   /// [rebuildVertices: true] to have tangent data available.
   Future<NormalColorMaterialInstance> createNormalColorMaterialInstance();
 
+  /// Creates a sharp-edge material instance that highlights hard edges and
+  /// creases by detecting normal discontinuities. Adjust [threshold] and
+  /// [softness] on the returned [SharpEdgeMaterialInstance] to control
+  /// sensitivity.
+  Future<SharpEdgeMaterialInstance> createSharpEdgeMaterialInstance();
+
   //
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int primitiveIndex);

@@ -106,6 +106,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Material_createEdgeOutlineMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createWireframeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createNormalColorMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
+        EMSCRIPTEN_KEEPALIVE void Material_createSharpEdgeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
 
         EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper *toneMapper, void (*callback)(TColorGrading *));
