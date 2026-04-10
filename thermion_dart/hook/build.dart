@@ -9,7 +9,6 @@ import 'package:path/path.dart' as path;
 import 'log.dart';
 
 
-
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
@@ -98,7 +97,8 @@ outputDirectory : ${outputDirectory.path}
       'silhouette': 'native/include/material/silhouette.c',
       'edge_outline': 'native/include/material/edge_outline.c',
       'wireframe': 'native/include/material/wireframe.c',
-      'translation_axis': 'native/include/material/translation_axis.c'
+      'translation_axis': 'native/include/material/translation_axis.c',
+      'normal_color': 'native/include/material/normal_color.c'
     };
     
 

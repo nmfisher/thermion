@@ -252,6 +252,11 @@ abstract class FilamentApp<T> {
   /// [ThermionAsset.setMaterialInstanceForAll].
   Future<WireframeMaterialInstance> createWireframeMaterialInstance();
 
+  /// Creates a normal-color material instance that colors faces based on their
+  /// world-space normal direction. Requires assets loaded with
+  /// [rebuildVertices: true] to have tangent data available.
+  Future<NormalColorMaterialInstance> createNormalColorMaterialInstance();
+
   //
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int primitiveIndex);

@@ -61,6 +61,11 @@ external ffi.Pointer<TMaterial> Material_createWireframeMaterial(
 );
 
 @ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createNormalColorMaterial(
+  ffi.Pointer<TEngine> tEngine,
+);
+
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TMaterial> Material_createTranslationAxisMaterial(
   ffi.Pointer<TEngine> tEngine,
 );
@@ -1947,6 +1952,90 @@ external void IndexBuffer_destroy(
   ffi.Pointer<TIndexBuffer> buffer,
 );
 
+@ffi.Native<
+    ffi.Pointer<TObjImporter> Function(
+        ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TObjImporter> ObjImporter_loadFromBuffer(
+  ffi.Pointer<ffi.Uint8> data,
+  int size,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<TObjImporter>)>(isLeaf: true)
+external int ObjImporter_getMeshCount(
+  ffi.Pointer<TObjImporter> importer,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TObjImporter>,
+        ffi.Int,
+        ffi.Pointer<ffi.Pointer<ffi.Float>>,
+        ffi.Pointer<ffi.Int>)>(isLeaf: true)
+external void ObjImporter_getVertices(
+  ffi.Pointer<TObjImporter> importer,
+  int meshIndex,
+  ffi.Pointer<ffi.Pointer<ffi.Float>> outVertices,
+  ffi.Pointer<ffi.Int> outCount,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TObjImporter>,
+        ffi.Int,
+        ffi.Pointer<ffi.Pointer<ffi.Uint32>>,
+        ffi.Pointer<ffi.Int>)>(isLeaf: true)
+external void ObjImporter_getIndices(
+  ffi.Pointer<TObjImporter> importer,
+  int meshIndex,
+  ffi.Pointer<ffi.Pointer<ffi.Uint32>> outIndices,
+  ffi.Pointer<ffi.Int> outCount,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TObjImporter>,
+        ffi.Int,
+        ffi.Pointer<ffi.Pointer<ffi.Float>>,
+        ffi.Pointer<ffi.Int>)>(isLeaf: true)
+external void ObjImporter_getNormals(
+  ffi.Pointer<TObjImporter> importer,
+  int meshIndex,
+  ffi.Pointer<ffi.Pointer<ffi.Float>> outNormals,
+  ffi.Pointer<ffi.Int> outCount,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TObjImporter>,
+        ffi.Int,
+        ffi.Pointer<ffi.Pointer<ffi.Float>>,
+        ffi.Pointer<ffi.Int>)>(isLeaf: true)
+external void ObjImporter_getUVs(
+  ffi.Pointer<TObjImporter> importer,
+  int meshIndex,
+  ffi.Pointer<ffi.Pointer<ffi.Float>> outUVs,
+  ffi.Pointer<ffi.Int> outCount,
+);
+
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TObjImporter>, ffi.Int)>(
+    isLeaf: true)
+external ffi.Pointer<ffi.Char> ObjImporter_getMaterialName(
+  ffi.Pointer<TObjImporter> importer,
+  int meshIndex,
+);
+
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<TObjImporter>, ffi.Int)>(
+    isLeaf: true)
+external ffi.Pointer<ffi.Char> ObjImporter_getMeshName(
+  ffi.Pointer<TObjImporter> importer,
+  int meshIndex,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TObjImporter>)>(isLeaf: true)
+external void ObjImporter_destroy(
+  ffi.Pointer<TObjImporter> importer,
+);
+
 @ffi.Native<ffi.Pointer<TVertexBufferBuilder> Function()>(isLeaf: true)
 external ffi.Pointer<TVertexBufferBuilder> VertexBufferBuilder_create();
 
@@ -3459,6 +3548,19 @@ external void Material_createEdgeOutlineMaterialRenderThread(
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
     isLeaf: true)
 external void Material_createWireframeMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
+    isLeaf: true)
+external void Material_createNormalColorMaterialRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
       onComplete,
@@ -6773,6 +6875,8 @@ typedef DartGizmoPickCallbackFunction = void Function(
     int resultType, double x, double y, double z);
 typedef GizmoPickCallback
     = ffi.Pointer<ffi.NativeFunction<GizmoPickCallbackFunction>>;
+
+final class TObjImporter extends ffi.Opaque {}
 
 sealed class TProjection {
   static const Perspective = 0;
