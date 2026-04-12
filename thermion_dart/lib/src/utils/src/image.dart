@@ -4,7 +4,8 @@ import 'package:image/image.dart' as img;
 import 'package:thermion_dart/thermion_dart.dart';
 
 Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
-    {bool hasAlpha = true, bool isFloat = false}) async {
+    {bool hasAlpha = true, bool isFloat = false, int numChannels = 0}) async {
+  final channels = numChannels > 0 ? numChannels : (hasAlpha ? 4 : 3);
   final rowSize = (width * 3 + 3) & ~3;
   final padding = rowSize - (width * 3);
   final fileSize = 54 + rowSize * height;
@@ -33,26 +34,34 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
 
   if (isFloat) {
     floatData = pixelBuffer.buffer.asFloat32List(
-        pixelBuffer.offsetInBytes, width * height * (hasAlpha ? 4 : 3));
+        pixelBuffer.offsetInBytes, width * height * channels);
   }
 
   // Pixel data (BMP stores in BGR format)
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {
-      final srcIndex = (y * width + x) * (hasAlpha ? 4 : 3); // RGBA format
+      final srcIndex = (y * width + x) * channels;
       final dstIndex = 54 + y * rowSize + x * 3; // BGR format
 
-      data[dstIndex] = isFloat
-          ? (floatData![srcIndex + 2] * 255).toInt()
-          : pixelBuffer[srcIndex + 2]; // Blue
-      data[dstIndex + 1] = isFloat
-          ? (floatData![srcIndex + 1] * 255).toInt()
-          : pixelBuffer[srcIndex + 1]; // Green
-      data[dstIndex + 2] = isFloat
-          ? (floatData![srcIndex] * 255).toInt()
-          : pixelBuffer[srcIndex]; // Red
-
-      // Alpha channel is discarded
+      if (channels == 1) {
+        // Single channel (R) - replicate to grayscale BGR
+        final v = isFloat
+            ? (floatData![srcIndex] * 255).toInt()
+            : pixelBuffer[srcIndex];
+        data[dstIndex] = v;     // Blue
+        data[dstIndex + 1] = v; // Green
+        data[dstIndex + 2] = v; // Red
+      } else {
+        data[dstIndex] = isFloat
+            ? (floatData![srcIndex + 2] * 255).toInt()
+            : pixelBuffer[srcIndex + 2]; // Blue
+        data[dstIndex + 1] = isFloat
+            ? (floatData![srcIndex + 1] * 255).toInt()
+            : pixelBuffer[srcIndex + 1]; // Green
+        data[dstIndex + 2] = isFloat
+            ? (floatData![srcIndex] * 255).toInt()
+            : pixelBuffer[srcIndex]; // Red
+      }
     }
     // Add padding to the end of each row
     for (var p = 0; p < padding; p++) {
@@ -68,27 +77,37 @@ Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
     bool isFloat = false,
     bool linearToSrgb = false,
     bool invertAces = false,
-    bool flipY = false}) async {
+    bool flipY = false,
+    int numChannels = 0}) async {
+  final channels = numChannels > 0 ? numChannels : (hasAlpha ? 4 : 3);
   final image = img.Image(width: width, height: height);
 
   Float32List? floatData;
   if (isFloat) {
     floatData = pixelBuffer.buffer.asFloat32List(
-        pixelBuffer.offsetInBytes, width * height * (hasAlpha ? 4 : 3));
+        pixelBuffer.offsetInBytes, width * height * channels);
   }
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       late int pixelIndex;
       if (flipY) {
-        pixelIndex = ((height - 1 - y) * width + x) * (hasAlpha ? 4 : 3);
+        pixelIndex = ((height - 1 - y) * width + x) * channels;
       } else {
-        pixelIndex = (y * width + x) * (hasAlpha ? 4 : 3);
+        pixelIndex = (y * width + x) * channels;
       }
 
       double r, g, b, a;
 
-      if (isFloat) {
+      if (channels == 1) {
+        // Single channel (R) - replicate to grayscale
+        if (isFloat) {
+          r = g = b = floatData![pixelIndex];
+        } else {
+          r = g = b = pixelBuffer[pixelIndex] / 255.0;
+        }
+        a = 1.0;
+      } else if (isFloat) {
         r = floatData![pixelIndex];
         g = floatData[pixelIndex + 1];
         b = floatData[pixelIndex + 2];

@@ -12,7 +12,7 @@ Future<
     })> setup(ThermionViewer viewer) async {
   var blueMaterialInstance =
       await FilamentApp.instance!.createUnlitMaterialInstance();
-  final blueCube = await viewer.createGeometry(GeometryHelper.cube(),
+  final blueCube = await viewer.createGeometry(GeometryUtils.cube(),
       materialInstances: [blueMaterialInstance]);
   await blueMaterialInstance.setParameterFloat4(
       "baseColorFactor", 0.0, 0.0, 1.0, 1.0);
@@ -22,7 +22,7 @@ Future<
 
   var greenMaterialInstance =
       await FilamentApp.instance!.createUnlitMaterialInstance();
-  final greenCube = await viewer.createGeometry(GeometryHelper.cube(),
+  final greenCube = await viewer.createGeometry(GeometryUtils.cube(),
       materialInstances: [greenMaterialInstance]);
   await greenMaterialInstance.setParameterFloat4(
       "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
@@ -48,7 +48,7 @@ void main() async {
       var materialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
-          GeometryHelper.cube(normals: false, uvs: false),
+          GeometryUtils.cube(normals: false, uvs: false),
           materialInstances: [materialInstance]);
 
       await materialInstance.setParameterFloat4(
@@ -63,7 +63,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var materialInstance =
           await await FilamentApp.instance!.createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(GeometryHelper.cube(),
+      var cube = await viewer.createGeometry(GeometryUtils.cube(),
           materialInstances: [materialInstance]);
 
       await materialInstance.setParameterFloat4(
@@ -99,7 +99,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var materialInstance =
           await await FilamentApp.instance!.createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(GeometryHelper.cube(),
+      var cube = await viewer.createGeometry(GeometryUtils.cube(),
           materialInstances: [materialInstance]);
 
       await materialInstance.setParameterFloat4(
@@ -136,7 +136,7 @@ void main() async {
   test('unlit + baseColorMap (apply material after creation)', () async {
     await testHelper.withViewer((viewer) async {
       var cube = await viewer
-          .createGeometry(GeometryHelper.cube(), materialInstances: []);
+          .createGeometry(GeometryUtils.cube(), materialInstances: []);
       var materialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
       await materialInstance.setParameterFloat4(
@@ -173,7 +173,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var materialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(GeometryHelper.cube(),
+      var cube = await viewer.createGeometry(GeometryUtils.cube(),
           materialInstances: [materialInstance]);
 
       materialInstance = await cube.getMaterialInstanceAt(index: 0);
@@ -215,7 +215,7 @@ void main() async {
       var materialInstance =
           await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
-          GeometryHelper.cube(normals: false, uvs: false),
+          GeometryUtils.cube(normals: false, uvs: false),
           materialInstances: [materialInstance]);
 
       await materialInstance.setParameterFloat4(
@@ -234,7 +234,7 @@ void main() async {
     await viewer.setToneMapper(await ToneMapper.linear());
 
     var materialInstance = await viewer.createUnlitFixedSizeMaterialInstance();
-    var cube = await viewer.createGeometry(GeometryHelper.cube(),
+    var cube = await viewer.createGeometry(GeometryUtils.cube(),
         materialInstances: [materialInstance]);
 
     await materialInstance.setParameterFloat4(

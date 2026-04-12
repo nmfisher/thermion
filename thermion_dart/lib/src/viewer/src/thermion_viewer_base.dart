@@ -5,17 +5,16 @@ import 'dart:async';
 // A high-level interface for managing scene:
 // - adding/removing assets, lights and cameras
 // - setting post-processing options
-// -  
-// Broadly, an instance of [ThermionViewer] encapsulates a single Filament 
-// Scene, Camera and a View, with some additional commonly-used entities 
-// (skybox, background image, etc). 
+// -
+// Broadly, an instance of [ThermionViewer] encapsulates a single Filament
+// Scene, Camera and a View, with some additional commonly-used entities
+// (skybox, background image, etc).
 //
 // If you know what you are doing, you can use a lower level interface by
 // using the methods directly via FilamentApp.instance
 //
 // Note that this is a Dart class, not a Flutter class.
 abstract class ThermionViewer {
-  
   // The Filament [View] encapsulated by this viewer. Call View.getScene to get
   // the Filament [Scene].
   View get view;
@@ -29,7 +28,8 @@ abstract class ThermionViewer {
   // Renders a single frame (bypassing animations and plugins).
   Future renderSingleFrame();
 
-  // When [rendering] is true, sets the framerate for continuous rendering when [setRendering] is enabled.
+  // When [rendering] is true, sets the framerate for continuous rendering when
+  // [setRendering] is enabled.
   Future setFrameRate(int framerate);
 
   // Destroys/disposes the viewer (including the entire scene). You cannot use the viewer after calling this method.
@@ -39,9 +39,12 @@ abstract class ThermionViewer {
   Future<TexturedQuad> getBackgroundImage();
 
   // Set the background image to [path] (which should be .png, .jpg, or .ktx
-  // file). This will be rendered at the maximum depth (i.e. behind all other objects including the skybox).
-  // If [fillHeight] is false, the image will be rendered at its original size. Note this may cause issues with pixel density so be sure to specify the correct resolution
-  // If [fillHeight] is true, the image will be stretched/compressed to fit the height of the viewport.
+  // file). This will be rendered at the maximum depth (i.e. behind all other
+  // objects including the skybox). If [fillHeight] is false, the image will be
+  // rendered at its original size. Note this may cause issues with pixel
+  // density so be sure to specify the correct resolution If [fillHeight] is
+  // true, the image will be stretched/compressed to fit the height of the
+  // viewport.
   Future setBackgroundImage(String path, {bool fillHeight = false});
 
   // Set the background image from [texture].
@@ -65,8 +68,9 @@ abstract class ThermionViewer {
   // Removes the skybox from the scene and destroys all associated resources.
   Future removeSkybox();
 
-  // Creates an indirect light by loading the reflections/irradiance from the KTX file.
-  // Only one indirect light can be active at any given time; if an indirect light has already been loaded, it will be replaced.
+  // Creates an indirect light by loading the reflections/irradiance from the
+  // KTX file. Only one indirect light can be active at any given time; if an
+  // indirect light has already been loaded, it will be replaced.
   Future loadIbl(String lightingPath,
       {double intensity = 30000, bool destroyExisting = true});
 
@@ -115,17 +119,25 @@ abstract class ThermionViewer {
   // If [addToScene] is [true], all renderable entities (including lights)
   // in the asset will be added to the scene.
   //
-  // The [initialInstances] argument determines the number of
-  // instances created when the asset is first instantiated. If [keepData] is
-  // false, no further instances will be able to be created.
-  //
-  // If [keepData] is true, additional instances can be created by calling
-  // [createInstance] on the returned asset.
+  // The [initialInstances] argument determines the number of instances created
+  // when the asset is first instantiated. If [releaseSourceData] is true, no
+  // further instances will be able to be created. If [releaseSourceData] is
+  // false, additional instances can be created by calling [createInstance] on
+  // the returned asset.
   //
   // Creating instances at asset load time is more efficient than dynamically
   // instantating at a later time.
   //
   // Instances can be retrieved with [getInstances].
+  //
+  // If [rebuildVertices] is true, vertex buffers are rebuilt after loading
+  // with a superset of attributes (POSITION, TANGENTS, UV0, CUSTOM0, and
+  // optionally BONE_INDICES/BONE_WEIGHTS). Vertices are unwelded so each
+  // triangle has unique vertices with barycentric coordinates in CUSTOM0.
+  // This allows freely swapping materials (e.g. wireframe, solid shading)
+  // via [setMaterialInstanceForAll] without creating separate overlay entities.
+  // Increases vertex memory usage (~3x vertex count) but preserves the full
+  // glTF feature set (animations, skeleton, instancing).
   //
   // If [loadResourcesAsync] is true, resources (textures, materials, etc) will
   // be loaded asynchronously. Some material/texture pop-in is expected.
@@ -133,7 +145,8 @@ abstract class ThermionViewer {
   Future<ThermionAsset> loadGltf(String uri,
       {bool addToScene = true,
       int initialInstances = 1,
-      bool keepData = false,
+      bool releaseSourceData = false,
+      bool rebuildVertices = false,
       String? resourceUri,
       bool loadAsync = false});
 
@@ -144,9 +157,8 @@ abstract class ThermionViewer {
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {String? resourceUri,
       int initialInstances = 1,
-      bool keepData = false,
-      int priority = 4,
-      int layer = 0,
+      bool releaseSourceData = false,
+      bool rebuildVertices = false,
       bool loadResourcesAsync = false,
       bool addToScene = true});
 
@@ -156,7 +168,9 @@ abstract class ThermionViewer {
   Future destroyAsset(ThermionAsset asset);
 
   // Removes/destroys all renderable entities from the scene (including cameras).
-  // All [ThermionEntity] handles will no longer be valid after this method is called; ensure you immediately discard all references to all entities once this method is complete.
+  // All [ThermionEntity] handles will no longer be valid after this method is
+  // called; ensure you immediately discard all references to all entities once
+  // this method is complete.
   Future destroyAssets();
 
   // Sets the tone mapping (requires postprocessing).
@@ -205,16 +219,14 @@ abstract class ThermionViewer {
   //
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
 
-  //
-  // Sets the draw priority for the given entity. See RenderableManager.h for more details.
-  //
+  // Sets the draw priority for the given entity. See RenderableManager.h for
+  // more details.
   Future setPriority(ThermionEntity entityId, int priority);
 
   //
   Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
-      bool keepData = false,
-      bool addToScene = true});
+      bool releaseSourceData = false});
 
   // Returns a gizmo for translating/rotating objects.
   // Only one gizmo can be visible at any given time for this viewer.

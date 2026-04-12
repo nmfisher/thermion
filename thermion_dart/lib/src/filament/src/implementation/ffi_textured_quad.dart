@@ -3,8 +3,8 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-class FFITexturedQuad extends TexturedQuad {
-  final ThermionAsset asset;
+class FFITexturedQuad<T> extends TexturedQuad<T> {
+  final ThermionAsset<T> asset;
 
   ThermionEntity get entity => asset.entity;
 
@@ -20,8 +20,8 @@ class FFITexturedQuad extends TexturedQuad {
   FFITexturedQuad(
       {required this.asset, this.texture, this.sampler, required this.mi});
 
-  T getHandle<T>() {
-    return asset.getHandle() as T;
+  T getNativeHandle() {
+    return asset.getNativeHandle();
   }
 
   ///
@@ -180,8 +180,11 @@ class FFITexturedQuad extends TexturedQuad {
 
   @override
   Future<MaterialInstance> getMaterialInstanceAt(
-      {ThermionEntity? entity, int index = 0}) {
-    throw UnimplementedError();
+      {ThermionEntity? entity, int index = 0}) async {
+    if (index == 0 && (entity == null || entity == this.entity)) {
+      return mi;
+    }
+    throw Exception();
   }
 
   ThermionAsset? get boundingBoxAsset => throw UnimplementedError();

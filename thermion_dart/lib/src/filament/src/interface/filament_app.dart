@@ -1,12 +1,11 @@
 import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart';
+import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FilamentConfig<T, U> {
   final Backend backend;
-  final T? renderCallback;
-  final U? renderCallbackOwner;
   Future<Uint8List> Function(String)? loadResource;
   final U? platform;
   final U? sharedContext;
@@ -18,8 +17,6 @@ class FilamentConfig<T, U> {
       {required this.backend,
       required this.loadResource,
       this.uberArchivePath,
-      this.renderCallback,
-      this.renderCallbackOwner,
       this.platform,
       this.sharedContext,
       this.stereoscopicEyeCount = 1,
@@ -37,6 +34,7 @@ abstract class FilamentApp<T> {
 
   T get ubershaderMaterialProvider;
   RenderableManager get renderableManager;
+  RenderManager get renderManager;
   LightManager get lightManager;
   DebugRegistry getDebugRegistry();
   int getMaxAutomaticInstances();
@@ -163,8 +161,107 @@ abstract class FilamentApp<T> {
     bool hasVolume = false,
   });
 
+  /// Creates an ubershader material instance wrapped in a typed
+  /// [UbershaderMaterialInstance] with named setters for all standard PBR
+  /// parameters.
+  Future<UbershaderMaterialInstance> createUbershaderMaterial({
+    bool doubleSided = false,
+    bool unlit = false,
+    bool hasVertexColors = false,
+    bool hasBaseColorTexture = false,
+    bool hasNormalTexture = false,
+    bool hasOcclusionTexture = false,
+    bool hasEmissiveTexture = false,
+    bool useSpecularGlossiness = false,
+    AlphaMode alphaMode = AlphaMode.OPAQUE,
+    bool enableDiagnostics = false,
+    bool hasMetallicRoughnessTexture = false,
+    int metallicRoughnessUV = -1,
+    int baseColorUV = -1,
+    bool hasClearCoatTexture = false,
+    int clearCoatUV = -1,
+    bool hasClearCoatRoughnessTexture = false,
+    int clearCoatRoughnessUV = -1,
+    bool hasClearCoatNormalTexture = false,
+    int clearCoatNormalUV = -1,
+    bool hasClearCoat = false,
+    bool hasTransmission = false,
+    bool hasTextureTransforms = false,
+    int emissiveUV = -1,
+    int aoUV = -1,
+    int normalUV = -1,
+    bool hasTransmissionTexture = false,
+    int transmissionUV = -1,
+    bool hasSheenColorTexture = false,
+    int sheenColorUV = -1,
+    bool hasSheenRoughnessTexture = false,
+    int sheenRoughnessUV = -1,
+    bool hasVolumeThicknessTexture = false,
+    int volumeThicknessUV = -1,
+    bool hasSheen = false,
+    bool hasIOR = false,
+    bool hasVolume = false,
+  }) async {
+    final mi = await createUbershaderMaterialInstance(
+      doubleSided: doubleSided,
+      unlit: unlit,
+      hasVertexColors: hasVertexColors,
+      hasBaseColorTexture: hasBaseColorTexture,
+      hasNormalTexture: hasNormalTexture,
+      hasOcclusionTexture: hasOcclusionTexture,
+      hasEmissiveTexture: hasEmissiveTexture,
+      useSpecularGlossiness: useSpecularGlossiness,
+      alphaMode: alphaMode,
+      enableDiagnostics: enableDiagnostics,
+      hasMetallicRoughnessTexture: hasMetallicRoughnessTexture,
+      metallicRoughnessUV: metallicRoughnessUV,
+      baseColorUV: baseColorUV,
+      hasClearCoatTexture: hasClearCoatTexture,
+      clearCoatUV: clearCoatUV,
+      hasClearCoatRoughnessTexture: hasClearCoatRoughnessTexture,
+      clearCoatRoughnessUV: clearCoatRoughnessUV,
+      hasClearCoatNormalTexture: hasClearCoatNormalTexture,
+      clearCoatNormalUV: clearCoatNormalUV,
+      hasClearCoat: hasClearCoat,
+      hasTransmission: hasTransmission,
+      hasTextureTransforms: hasTextureTransforms,
+      emissiveUV: emissiveUV,
+      aoUV: aoUV,
+      normalUV: normalUV,
+      hasTransmissionTexture: hasTransmissionTexture,
+      transmissionUV: transmissionUV,
+      hasSheenColorTexture: hasSheenColorTexture,
+      sheenColorUV: sheenColorUV,
+      hasSheenRoughnessTexture: hasSheenRoughnessTexture,
+      sheenRoughnessUV: sheenRoughnessUV,
+      hasVolumeThicknessTexture: hasVolumeThicknessTexture,
+      volumeThicknessUV: volumeThicknessUV,
+      hasSheen: hasSheen,
+      hasIOR: hasIOR,
+      hasVolume: hasVolume,
+    );
+    return UbershaderMaterialInstance(mi);
+  }
+
   //
   Future<MaterialInstance> createUnlitMaterialInstance();
+
+  /// Creates a wireframe material instance for use with assets loaded
+  /// with [rebuildVertices: true]. Set parameters (edgeColor, faceColor,
+  /// edgeWidth) on the returned [WireframeMaterialInstance], then apply with
+  /// [ThermionAsset.setMaterialInstanceForAll].
+  Future<WireframeMaterialInstance> createWireframeMaterialInstance();
+
+  /// Creates a normal-color material instance that colors faces based on their
+  /// world-space normal direction. Requires assets loaded with
+  /// [rebuildVertices: true] to have tangent data available.
+  Future<NormalColorMaterialInstance> createNormalColorMaterialInstance();
+
+  /// Creates a sharp-edge material instance that highlights hard edges and
+  /// creases by detecting normal discontinuities. Adjust [threshold] and
+  /// [softness] on the returned [SharpEdgeMaterialInstance] to control
+  /// sensitivity.
+  Future<SharpEdgeMaterialInstance> createSharpEdgeMaterialInstance();
 
   //
   Future<MaterialInstance> getMaterialInstanceAt(
@@ -174,37 +271,7 @@ abstract class FilamentApp<T> {
   Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
       MaterialInstance materialInstance);
 
-  // Currently, only [View] instances that have been associated with
-  // a [SwapChain] will be rendered when [render] is called.
-  // Calling this method registers the association between [view] and
-  // [swapChain], ensuring that the view will be rendered every time [render] is
-  // called.
-  //
-  // This is still required even if [view] has an attached render target. This
-  // will change in future once we use Renderer.renderStandaloneView().
-  //
-  // If you are using the Flutter plugin, this is called automatically
-  // internally.
-  Future setRenderOrder(SwapChain swapChain, View view, {int renderOrder = 0});
-
-  // This methods
-  // a [SwapChain] will be rendered when [render] is called.
-  // Calling this method registers the association between [view] and
-  // [swapChain], ensuring that the view will be rendered every time [render] is
-  // called.
-  //
-  // This is still required even if [view] has an attached render target. This
-  // will change in future once we use Renderer.renderStandaloneView().
-  //
-  // If you are using the Flutter plugin, this is called automatically
-  // internally.
-  Future updateRenderOrder();
-
-  // Returns the [SwapChain] instance associated with [view] (or null, if
-  // no swapchain is registered.
-  Future<SwapChain?> getSwapChain(View view);
-
-  //
+  // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
 
   // Invokes one iteration of the full rendering pipeline for all
@@ -220,20 +287,18 @@ abstract class FilamentApp<T> {
   //
   Future unregisterRequestFrameHook(Future Function() hook);
 
-  // Retrieves the name assigned to the given entity (usually corresponds to the glTF mesh name).
-  //
+  // Retrieves the name assigned to the given entity (usually corresponds to the
+  // glTF mesh name).
   String? getNameForEntity(ThermionEntity entity);
 
-  // Gets the parent entity of [entity]. Returns null if the entity has no parent.
-  //
+  // Gets the parent entity of [entity]. Returns null if the entity has no
+  // parent.
   Future<ThermionEntity?> getParent(ThermionEntity entity);
 
-  //
-  // Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the entity has no parent.
-  //
+  // Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the
+  // entity has no parent.
   Future<ThermionEntity?> getAncestor(ThermionEntity entity);
 
-  //
   // Sets the parent transform of [child] to [parent].
   //
   Future setParent(ThermionEntity child, ThermionEntity? parent,
@@ -257,14 +322,11 @@ abstract class FilamentApp<T> {
   Future setClearOptions(double r, double g, double b, double a,
       {int clearStencil = 0, bool discard = false, bool clear = true});
 
-  // See [FilamentViewerFFI.loadGltf] for details.
-  //
-  //
+  // Loads a glTF asset from a raw memory buffer.
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int initialInstances = 1,
-      bool keepData = false,
-      int priority = 4,
-      int layer = 0,
+      bool releaseSourceData = false,
+      bool rebuildVertices = false,
       bool loadResourcesAsync = false,
       String? resourceUri});
 
@@ -272,11 +334,12 @@ abstract class FilamentApp<T> {
   Future<T> createColorGrading(ToneMapper mapper);
 
   //
-  Future<GizmoAsset> createGizmo(covariant View view, GizmoType type);
+  Future<GizmoAsset> createGizmo(View view, GizmoType type);
 
   //
   Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances, bool keepData = false});
+      {List<MaterialInstance>? materialInstances,
+      bool releaseSourceData = false});
 
   //
   Future<ThermionEntity> createDirectLight(DirectLight directLight);

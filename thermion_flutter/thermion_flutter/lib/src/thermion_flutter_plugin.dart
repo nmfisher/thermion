@@ -27,6 +27,10 @@ abstract class ThermionFlutterPlugin {
     _options = options;
   }
 
+  void pauseFrameScheduler();
+
+  void resumeFrameScheduler();
+
   // Initialize the plugin and create the default swapchain.
   Future<SwapChain?> initialize({bool destroySwapchain = true});
 
@@ -61,7 +65,7 @@ abstract class ThermionFlutterPlugin {
     _logger.finest("Viewer initialized");
     if (swapChain != null) {
       _logger.finest("Registering swapchain");
-      await FilamentApp.instance!.setRenderOrder(swapChain, viewer.view, renderOrder: 0);
+      await FilamentApp.instance!.renderManager.attach(viewer.view, swapChain);
       _logger.finest("Swapchain registered");
     }
 

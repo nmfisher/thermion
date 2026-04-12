@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
@@ -7,298 +6,100 @@ void main() async {
   final testHelper = TestHelper("wireframe_renderable");
   await testHelper.setup();
 
-  test('create wireframe renderable from cube geometry', () async {
+  test('load glTF with rebuildVertices and apply wireframe material', () async {
     await ViewerBuilder(testHelper)
         .addSun()
+        .setCameraPosition(Vector3(0, 1, 1.5))
         .execute((result) async {
-      // Load the wireframe material
-      final wireframeMaterial = await testHelper.loadWireframeMaterial(
-        edgeR: 1.0,
-        edgeG: 1.0,
-        edgeB: 1.0,
-        edgeA: 1.0,
-        faceR: 0.2,
-        faceG: 0.2,
-        faceB: 0.2,
-        faceA: 0.3,
-        edgeWidth: 1.5,
-      );
+      
+      final original = await result.viewer.loadGltf(
+          "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
+          rebuildVertices: false,
+          addToScene: true);
+      await testHelper.capture(result.viewer.view, "rebuildVertices_false");
+      await result.viewer.removeFromScene(original);
+      
+      final rebuilt = await result.viewer.loadGltf(
+          "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
+          rebuildVertices: true,
+          addToScene: true);
 
-      // Create cube geometry
-      final cubeGeometry = GeometryHelper.cube();
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true");
 
-      // Create wireframe renderable from geometry
-      final wireframeRenderable = await WireframeRenderable.createFromGeometry(
-        viewer: result.viewer,
-        geometry: cubeGeometry,
-        wireframeMaterial: wireframeMaterial,
-        initiallyWireframe: false,
-      );
+      // Use typed wireframe wrapper
+      final wireframe =
+          await FilamentApp.instance!.createWireframeMaterialInstance();
+      await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
+      await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
+      await wireframe.setEdgeWidth(0.5);
+      await wireframe.setDoubleSided(true);
 
-      // Verify initial state is solid
-      expect(wireframeRenderable.isWireframeVisible, isFalse);
-      expect(wireframeRenderable.solidAsset, isNotNull);
-      expect(wireframeRenderable.wireframeEntity, isNotNull);
-
-      // Capture solid view
-      await testHelper.capture(result.viewer.view, "wireframe_renderable_solid");
-
-      // Clean up
-      await wireframeRenderable.dispose();
-    });
-  });
-
-  test('toggle between solid and wireframe modes', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .execute((result) async {
-      final wireframeMaterial = await testHelper.loadWireframeMaterial(
-        edgeR: 0.0,
-        edgeG: 1.0,
-        edgeB: 0.0,
-        edgeA: 1.0,
-        faceR: 0.0,
-        faceG: 0.0,
-        faceB: 0.0,
-        faceA: 0.0,
-        edgeWidth: 1.0,
-      );
-
-      // Single triangle - absolute basics
-      final vertices = Float32List.fromList([
-        0.0, 1.0, 0.0,   // vertex 0: top
-        -1.0, -1.0, 0.0, // vertex 1: bottom-left
-        1.0, -1.0, 0.0,  // vertex 2: bottom-right
-      ]);
-
-      final indices = Int32List.fromList([0, 1, 2]);
-
-      final cubeGeometry = Geometry(
-        vertices,
-        indices,
-        primitiveType: PrimitiveType.TRIANGLES,
-        indexType: IndexType.UINT,
-      );
-
-      final wireframeRenderable = await WireframeRenderable.createFromGeometry(
-        viewer: result.viewer,
-        geometry: cubeGeometry,
-        wireframeMaterial: wireframeMaterial,
-        initiallyWireframe: false,
-      );
-
-      // Initially solid
-      expect(wireframeRenderable.isWireframeVisible, isFalse);
-      await testHelper.capture(result.viewer.view, "toggle_test_solid");
-
-      // Switch to wireframe
-      await wireframeRenderable.showWireframe();
-      expect(wireframeRenderable.isWireframeVisible, isTrue);
-      await testHelper.capture(result.viewer.view, "toggle_test_wireframe");
-
-      // Switch back to solid
-      await wireframeRenderable.showSolid();
-      expect(wireframeRenderable.isWireframeVisible, isFalse);
-      await testHelper.capture(result.viewer.view, "toggle_test_solid_again");
-
-      // Test toggle()
-      await wireframeRenderable.toggle();
-      expect(wireframeRenderable.isWireframeVisible, isTrue);
-
-      await wireframeRenderable.toggle();
-      expect(wireframeRenderable.isWireframeVisible, isFalse);
-
-      await wireframeRenderable.dispose();
-    });
-  });
-
-  test('initially wireframe mode', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .execute((result) async {
-      final wireframeMaterial = await testHelper.loadWireframeMaterial(
-        edgeR: 1.0,
-        edgeG: 0.0,
-        edgeB: 0.0,
-        edgeA: 1.0,
-        edgeWidth: 3.0,
-      );
-
-      final cubeGeometry = GeometryHelper.cube();
-
-      final wireframeRenderable = await WireframeRenderable.createFromGeometry(
-        viewer: result.viewer,
-        geometry: cubeGeometry,
-        wireframeMaterial: wireframeMaterial,
-        initiallyWireframe: true,
-      );
-
-      // Should start in wireframe mode
-      expect(wireframeRenderable.isWireframeVisible, isTrue);
+      await rebuilt.setMaterialInstanceForAll(wireframe.materialInstance);
       await testHelper.capture(
-          result.viewer.view, "initially_wireframe");
+          result.viewer.view, "rebuildVertices_true_wireframe");
 
-      await wireframeRenderable.dispose();
+      final ubershader = await FilamentApp.instance!.createUbershaderMaterial(
+        doubleSided: true,
+      );
+
+      await ubershader.setBaseColorFactor(0.8, 0.8, 0.8, 1.0);
+      await ubershader.setMetallicFactor(0.0);
+      await ubershader.setRoughnessFactor(1.0);
+
+      await rebuilt.setMaterialInstanceForAll(ubershader.materialInstance);
+      await testHelper.capture(
+          result.viewer.view, "rebuildVertices_true_ubershader");
+
+      await result.viewer.removeFromScene(rebuilt);
+
+      final flatAsset = await result.viewer.loadGltf(
+          "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
+          rebuildVertices: true,
+          addToScene: true);
+
+      await flatAsset.setFlatShading(true);
+
+      await testHelper.capture(result.viewer.view, "flat_shading_default");
+
+      final flatUbershader =
+          await FilamentApp.instance!.createUbershaderMaterial(
+        doubleSided: true,
+      );
+      await flatUbershader.setBaseColorFactor(0.8, 0.8, 0.8, 1.0);
+      await flatUbershader.setMetallicFactor(0.0);
+      await flatUbershader.setRoughnessFactor(1.0);
+      await flatAsset
+          .setMaterialInstanceForAll(flatUbershader.materialInstance);
+      await testHelper.capture(
+          result.viewer.view, "flat_shading_ubershader");
     });
   });
 
-  test('setTransform applies to both solid and wireframe', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .execute((result) async {
-      final wireframeMaterial = await testHelper.loadWireframeMaterial();
+  test('load glTF with rebuildVertices and create instance', () async {
+    await ViewerBuilder(testHelper).addSun().execute((result) async {
+      final asset = await result.viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          addToScene: true,
+          initialInstances: 2,
+          rebuildVertices: true);
 
-      final cubeGeometry = GeometryHelper.cube();
+      final instance2 = await asset.createInstance();
+      await instance2.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
+      await result.viewer.addToScene(instance2);
+      await testHelper.capture(
+          result.viewer.view, "instanced_preserved_before");
 
-      final wireframeRenderable = await WireframeRenderable.createFromGeometry(
-        viewer: result.viewer,
-        geometry: cubeGeometry,
-        wireframeMaterial: wireframeMaterial,
-      );
+      // Use typed wireframe wrapper
+      final wireframe =
+          await FilamentApp.instance!.createWireframeMaterialInstance();
+      await wireframe.setEdgeColor(1.0, 0.0, 1.0, 1.0);
+      await wireframe.setFaceColor(0.0, 0.0, 0.0, 1.0);
+      await wireframe.setEdgeWidth(1.0);
+      await wireframe.setDoubleSided(true);
 
-      // Apply transform
-      final transform = Matrix4.identity()
-        ..translateByVector3(Vector3(2.0, 0.0, 0.0))
-        ..scaleByVector3(Vector3(0.5, 0.5, 0.5));
-      await wireframeRenderable.setTransform(transform);
-
-      // Capture solid with transform
-      await testHelper.capture(result.viewer.view, "transform_solid");
-
-      // Switch to wireframe and verify transform still applies
-      await wireframeRenderable.showWireframe();
-      await testHelper.capture(result.viewer.view, "transform_wireframe");
-
-      // Get world transform
-      final worldTransform = await wireframeRenderable.getWorldTransform();
-      expect(worldTransform, isNotNull);
-
-      await wireframeRenderable.dispose();
-    });
-  });
-
-  test('activeEntity returns correct entity based on mode', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .execute((result) async {
-      final wireframeMaterial = await testHelper.loadWireframeMaterial();
-
-      final cubeGeometry = GeometryHelper.cube();
-
-      final wireframeRenderable = await WireframeRenderable.createFromGeometry(
-        viewer: result.viewer,
-        geometry: cubeGeometry,
-        wireframeMaterial: wireframeMaterial,
-      );
-
-      final solidEntity = wireframeRenderable.solidAsset!.entity;
-      final wireframeEntity = wireframeRenderable.wireframeEntity!;
-
-      // In solid mode, activeEntity should be solid
-      expect(wireframeRenderable.activeEntity, equals(solidEntity));
-
-      // In wireframe mode, activeEntity should be wireframe
-      await wireframeRenderable.showWireframe();
-      expect(wireframeRenderable.activeEntity, equals(wireframeEntity));
-
-      await wireframeRenderable.dispose();
-    });
-  });
-
-  test('dispose cleans up both entities', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .execute((result) async {
-      final wireframeMaterial = await testHelper.loadWireframeMaterial();
-
-      final cubeGeometry = GeometryHelper.cube();
-
-      final wireframeRenderable = await WireframeRenderable.createFromGeometry(
-        viewer: result.viewer,
-        geometry: cubeGeometry,
-        wireframeMaterial: wireframeMaterial,
-      );
-
-      // Dispose
-      await wireframeRenderable.dispose();
-
-      // Verify entities are null after disposal
-      expect(wireframeRenderable.solidAsset, isNull);
-      expect(wireframeRenderable.wireframeEntity, isNull);
-
-      // Calling dispose again should be safe (no-op)
-      await wireframeRenderable.dispose();
-    });
-  });
-
-  test('throws StateError after disposal', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .execute((result) async {
-      final wireframeMaterial = await testHelper.loadWireframeMaterial();
-
-      final cubeGeometry = GeometryHelper.cube();
-
-      final wireframeRenderable = await WireframeRenderable.createFromGeometry(
-        viewer: result.viewer,
-        geometry: cubeGeometry,
-        wireframeMaterial: wireframeMaterial,
-      );
-
-      await wireframeRenderable.dispose();
-
-      // All methods should throw after disposal
-      expect(() => wireframeRenderable.activeEntity, throwsStateError);
-      expect(() async => await wireframeRenderable.showWireframe(),
-          throwsStateError);
-      expect(
-          () async => await wireframeRenderable.showSolid(), throwsStateError);
-      expect(() async => await wireframeRenderable.toggle(), throwsStateError);
-      expect(
-          () async =>
-              await wireframeRenderable.setTransform(Matrix4.identity()),
-          throwsStateError);
-    });
-  });
-
-  test('create wireframe from glTF file', () async {
-    await ViewerBuilder(testHelper)
-        .addSun()
-        .execute((result) async {
-      final wireframeMaterial = await testHelper.loadWireframeMaterial(
-        edgeR: 0.0,
-        edgeG: 1.0,
-        edgeB: 0.0,
-        edgeA: 1.0,
-        faceR: 0.1,
-        faceG: 0.1,
-        faceB: 0.1,
-        faceA: 0.5,
-        edgeWidth: 2.0,
-      );
-
-      // Load glTF file from examples/assets
-      final gltfData = await File(
-        '${testHelper.assetsDir}/cube.glb',
-      ).readAsBytes();
-
-      final wireframeRenderable = await WireframeRenderable.create(
-        viewer: result.viewer,
-        gltfData: gltfData,
-        wireframeMaterial: wireframeMaterial,
-        initiallyWireframe: false,
-      );
-
-      // Initially solid
-      expect(wireframeRenderable.isWireframeVisible, isFalse);
-      await testHelper.capture(result.viewer.view, "gltf_solid");
-
-      // Switch to wireframe
-      await wireframeRenderable.showWireframe();
-      expect(wireframeRenderable.isWireframeVisible, isTrue);
-      await testHelper.capture(result.viewer.view, "gltf_wireframe");
-
-      await wireframeRenderable.dispose();
+      await instance2.setMaterialInstanceForAll(wireframe.materialInstance);
+      await testHelper.capture(
+          result.viewer.view, "instanced_preserved_wireframe");
     });
   });
 }

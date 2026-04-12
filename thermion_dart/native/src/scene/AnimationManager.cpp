@@ -374,11 +374,10 @@ namespace thermion
             count);
     }
 
-    void AnimationManager::setGltfAnimationFrame(GltfSceneAssetInstance *instance, int animationIndex, int animationFrame)
+    void AnimationManager::setGltfAnimationTime(GltfSceneAssetInstance *instance, int animationIndex, float timeInSeconds)
     {
         std::lock_guard lock(mMutex);
-        auto offset = 60 * animationFrame * 1000; // TODO - don't hardcore 60fps framerate
-        instance->getInstance()->getAnimator()->applyAnimation(animationIndex, offset);
+        instance->getInstance()->getAnimator()->applyAnimation(animationIndex, timeInSeconds);
         instance->getInstance()->getAnimator()->updateBoneMatrices();
         return;
     }

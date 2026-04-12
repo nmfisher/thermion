@@ -99,13 +99,15 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setRendering(bool render) async {
     _rendering = render;
-    final swapChain = await FilamentApp.instance!.getSwapChain(view);
-    if (swapChain == null) {
-      throw Exception(
-          "TODO - could not find swapchain for view ${await view.getName()}");
+    final rm = FilamentApp.instance!.renderManager;
+
+    final swapChains = await FilamentApp.instance!.getSwapChains();
+
+    if (render) {
+      await rm.attach(view, swapChains.first);
+    } else {
+      await rm.detach(view);
     }
-    await FilamentApp.instance!
-        .setRenderOrder(swapChain, view, renderOrder: render ? 0 : -1);
   }
 
   //
@@ -426,7 +428,8 @@ class ThermionViewerFFI extends ThermionViewer {
     String path, {
     bool addToScene = true,
     int initialInstances = 1,
-    bool keepData = false,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
     String? resourceUri,
     bool loadAsync = false,
   }) async {
@@ -444,7 +447,8 @@ class ThermionViewerFFI extends ThermionViewer {
       data,
       addToScene: addToScene,
       initialInstances: initialInstances,
-      keepData: keepData,
+      releaseSourceData: releaseSourceData,
+      rebuildVertices: rebuildVertices,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );
@@ -456,18 +460,16 @@ class ThermionViewerFFI extends ThermionViewer {
     Uint8List data, {
     bool addToScene = true,
     int initialInstances = 1,
-    bool keepData = false,
-    int priority = 4,
-    int layer = 0,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
     var asset = await FilamentApp.instance!.loadGltfFromBuffer(
       data,
       initialInstances: initialInstances,
-      keepData: keepData,
-      priority: priority,
-      layer: layer,
+      releaseSourceData: releaseSourceData,
+      rebuildVertices: rebuildVertices,
       loadResourcesAsync: loadResourcesAsync,
       resourceUri: resourceUri,
     );
@@ -497,7 +499,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future destroyAssets() async {
     _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
-      _logger.info("Destroying asset ${asset.getHandle()}");
+      _logger.info("Destroying asset ${asset.getNativeHandle()}");
       await scene.remove(asset);
       await hideBoundingBox(asset, destroy: true);
 
@@ -659,7 +661,8 @@ class ThermionViewerFFI extends ThermionViewer {
         throw ArgumentError('axis is required when visible is true');
       }
       if (entity == null && origin == null) {
-        throw ArgumentError('either entity or origin must be provided when visible is true');
+        throw ArgumentError(
+            'either entity or origin must be provided when visible is true');
       }
 
       // Get world position from entity if provided
@@ -667,7 +670,8 @@ class ThermionViewerFFI extends ThermionViewer {
       if (origin != null) {
         worldPosition = origin;
       } else {
-        final worldTransform = await FilamentApp.instance!.getWorldTransform(entity!);
+        final worldTransform =
+            await FilamentApp.instance!.getWorldTransform(entity!);
         worldPosition = worldTransform.getTranslation();
         await FilamentApp.instance!.setPriority(entity, 0);
       }
@@ -682,7 +686,8 @@ class ThermionViewerFFI extends ThermionViewer {
         Axis.Z => 2,
       };
 
-      // Material origin should be (0,0,0) in object space since we position via transform
+      // Material origin should be (0,0,0) in object space since we position via
+      // transform
       _translationAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
         originX: 0.0,
@@ -695,16 +700,18 @@ class ThermionViewerFFI extends ThermionViewer {
 
       // Create plane geometry (without material first, then apply)
       _translationAxisAsset = await createGeometry(
-        GeometryHelper.plane(width: lineLength * 2, height: lineLength * 2),
+        GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2),
       );
-      await _translationAxisAsset!.setMaterialInstanceAt(_translationAxisMaterial!);
+      await _translationAxisAsset!
+          .setMaterialInstanceAt(_translationAxisMaterial!);
 
       // Position at world position, with rotation for Y axis
       v64.Matrix4 transform;
       if (axis == Axis.Y) {
         // Rotate plane 90° around X axis to make it vertical (XY plane)
         final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
-        transform = v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
+        transform =
+            v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
       } else {
         transform = v64.Matrix4.translation(worldPosition);
       }
@@ -772,13 +779,13 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<ThermionAsset> createGeometry(
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
-    bool keepData = false,
+    bool releaseSourceData = false,
     bool addToScene = true,
   }) async {
     final asset = await FilamentApp.instance!.createGeometry(
       geometry,
       materialInstances: materialInstances,
-      keepData: keepData,
+      releaseSourceData: releaseSourceData,
     );
     _assets.add(asset);
     if (addToScene) {
@@ -941,7 +948,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final bbAsset = await FilamentApp.instance!.createGeometry(
       geometry,
       materialInstances: [material],
-      keepData: false,
+      releaseSourceData: false,
     );
 
     await bbAsset.setCastShadows(false);

@@ -10,7 +10,7 @@ void main() async {
     await ViewerBuilder(testHelper)
         .setBackgroundColor(kRed)
         .execute((result) async {
-      final asset = await result.viewer.createGeometry(GeometryHelper.cube());
+      final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       await result.viewer.addToScene(asset);
       await testHelper.capture(result.viewer.view, "add_cube");
       await result.viewer.removeFromScene(asset);
@@ -25,48 +25,48 @@ void main() async {
     await ViewerBuilder(testHelper)
         .setBackgroundColor(kRed)
         .execute((result) async {
-      final asset = await result.viewer.createGeometry(GeometryHelper.cube());
+      final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       await result.viewer.addToScene(asset);
       await testHelper.capture(result.viewer.view, "update_vertex_buffer_1");
       final vb = await asset.getVertexBuffer();
       expect(vb, isNotNull);
       final vertices = Float32List.fromList([
-      // Front face
-      -1, -1, 1, // 0
-      1, -1, 1, // 1
-      2, 2, 2, // 2
-      -1, 1, 1, // 3
+        // Front face
+        -1, -1, 1, // 0
+        1, -1, 1, // 1
+        2, 2, 2, // 2
+        -1, 1, 1, // 3
 
-      // Back face
-      -1, -1, -1, // 4
-      1, -1, -1, // 5
-      1, 1, -1, // 6
-      -1, 1, -1, // 7
+        // Back face
+        -1, -1, -1, // 4
+        1, -1, -1, // 5
+        1, 1, -1, // 6
+        -1, 1, -1, // 7
 
-      // Top face
-      -1, 1, 1, // 3 (8)
-      2, 2, 2, //2 (9)
-      1, 1, -1, //6 (10)
-      -1, 1, -1, // 7 (11)
+        // Top face
+        -1, 1, 1, // 3 (8)
+        2, 2, 2, //2 (9)
+        1, 1, -1, //6 (10)
+        -1, 1, -1, // 7 (11)
 
-      // Bottom
-      -1, -1, -1, // 4 (12)
-      1, -1, -1, // 5 (13)
-      1, -1, 1, // 1 (14)
-      -1, -1, 1, // 0 (15)
+        // Bottom
+        -1, -1, -1, // 4 (12)
+        1, -1, -1, // 5 (13)
+        1, -1, 1, // 1 (14)
+        -1, -1, 1, // 0 (15)
 
-      // Right
-      1, -1, 1, // 1 (16)
-      1, -1, -1, // 5 (17)
-      1, 1, -1, // 6 (18)
-      2, 2, 2, // 2 (19)
+        // Right
+        1, -1, 1, // 1 (16)
+        1, -1, -1, // 5 (17)
+        1, 1, -1, // 6 (18)
+        2, 2, 2, // 2 (19)
 
-      // Left
-      -1, -1, -1, // 4 (20)
-      -1, -1, 1, // 0 (21)
-      -1, 1, 1, // 3 (22)
-      -1, 1, -1 // 7 (23)
-    ]);
+        // Left
+        -1, -1, -1, // 4 (20)
+        -1, -1, 1, // 0 (21)
+        -1, 1, 1, // 3 (22)
+        -1, 1, -1 // 7 (23)
+      ]);
       await vb!.setBufferAt(0, vertices);
       await testHelper.capture(result.viewer.view, "update_vertex_buffer_2");
     });
@@ -116,7 +116,7 @@ void main() async {
     await ViewerBuilder(testHelper)
         .setBackgroundColor(kRed)
         .execute((result) async {
-      final asset = await result.viewer.createGeometry(GeometryHelper.cube());
+      final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       await result.viewer.addToScene(asset);
       await result.viewer.destroyAssets();
       await testHelper.capture(result.viewer.view, "destroyAssets_cube");
@@ -126,7 +126,7 @@ void main() async {
   test('custom geometry (no normals/uvs)', () async {
     await ViewerBuilder(testHelper).execute((result) async {
       final asset = await result.viewer
-          .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+          .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
       await result.viewer.addToScene(asset);
       await testHelper.capture(
           result.viewer.view, "geometry_cube_no_normals_uvs");
@@ -143,7 +143,7 @@ void main() async {
           "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
 
       final asset = await result.viewer.createGeometry(
-          GeometryHelper.cube(normals: false, uvs: false),
+          GeometryUtils.cube(normals: false, uvs: false),
           materialInstances: [materialInstance]);
       await result.viewer.addToScene(asset);
       await testHelper.capture(
@@ -157,7 +157,6 @@ void main() async {
     });
   });
 
-
   // test('create cube with lit ubershader material (normals/ no uvs)',
   //     () async {
   //   await testHelper.withViewer((viewer) async {
@@ -167,7 +166,7 @@ void main() async {
   //         "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
 
   //     final asset = await viewer.createGeometry(
-  //         GeometryHelper.cube(normals: true, uvs: false),
+  //         GeometryUtils.cube(normals: true, uvs: false),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset);
 
@@ -191,7 +190,7 @@ void main() async {
   // test('create instance', () async {
   //   await testHelper.withViewer((viewer) async {
   //     final asset = await viewer
-  //         .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+  //         .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
   //     await viewer.addToScene(asset);
   //     await asset.setTransform(Matrix4.translation(Vector3.all(-1)));
 
@@ -213,7 +212,7 @@ void main() async {
   //         "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
 
   //     final asset = await viewer.createGeometry(
-  //         GeometryHelper.cube(normals: true, uvs: false),
+  //         GeometryUtils.cube(normals: true, uvs: false),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset);
 
@@ -236,7 +235,7 @@ void main() async {
   // //     await materialInstance.setParameterFloat4(
   // //         "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
   // //     final asset = await viewer.createGeometry(
-  // //         GeometryHelper.cube(normals: true, uvs: false),
+  // //         GeometryUtils.cube(normals: true, uvs: false),
   // //         materialInstances: [materialInstance]);
   // //     await viewer.addToScene(asset);
 
@@ -257,7 +256,7 @@ void main() async {
   // //     await materialInstance.setParameterFloat4(
   // //         "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
   // //     final asset = await viewer.createGeometry(
-  // //         GeometryHelper.cube(normals: true, uvs: false),
+  // //         GeometryUtils.cube(normals: true, uvs: false),
   // //         materialInstances: [materialInstance]);
   // //     await viewer.addToScene(asset);
 
@@ -286,7 +285,7 @@ void main() async {
   //     var materialInstance =
   //         await viewer.createUbershaderMaterialInstance(unlit: true);
   //     final asset = await viewer.createGeometry(
-  //         GeometryHelper.cube(uvs: false, normals: true),
+  //         GeometryUtils.cube(uvs: false, normals: true),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset);
   //     await materialInstance.setParameterFloat4(
@@ -310,7 +309,7 @@ void main() async {
 
   //     var materialInstance = await viewer.createUbershaderMaterialInstance();
   //     final asset = await viewer.createGeometry(
-  //         GeometryHelper.cube(uvs: true, normals: true),
+  //         GeometryUtils.cube(uvs: true, normals: true),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset);
 
@@ -334,7 +333,7 @@ void main() async {
   // test('unlit material with color only', () async {
   //   await testHelper.withViewer((viewer) async {
   //     var materialInstance = await viewer.createUnlitMaterialInstance();
-  //     final asset = await viewer.createGeometry(GeometryHelper.cube(),
+  //     final asset = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset);
 
@@ -350,7 +349,7 @@ void main() async {
   // test('unlit material with texture', () async {
   //   await testHelper.withViewer((viewer) async {
   //     var materialInstance = await viewer.createUnlitMaterialInstance();
-  //     final asset = await viewer.createGeometry(GeometryHelper.cube(),
+  //     final asset = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset);
 
@@ -376,11 +375,11 @@ void main() async {
   //   await testHelper.withViewer((viewer) async {
   //     var materialInstance = await viewer.createUnlitMaterialInstance();
 
-  //     final asset1 = await viewer.createGeometry(GeometryHelper.cube(),
+  //     final asset1 = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset1);
 
-  //     final asset2 = await viewer.createGeometry(GeometryHelper.cube(),
+  //     final asset2 = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstances: [materialInstance]);
   //     await viewer.addToScene(asset2);
   //     await viewer.setTransform(
@@ -408,7 +407,7 @@ void main() async {
   // test('create sphere (no normals)', () async {
   //   await testHelper.withViewer((viewer) async {
   //     final asset = await viewer
-  //         .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
+  //         .createGeometry(GeometryUtils.sphere(normals: false, uvs: false));
   //     await viewer.addToScene(asset);
   //     await testHelper.capture(viewer.view, "geometry_sphere_no_normals");
   //     await viewer.removeFromScene(asset);
@@ -419,11 +418,11 @@ void main() async {
   // test('create multiple (non-instanced) geometry', () async {
   //   await testHelper.withViewer((viewer) async {
   //     final asset1 = await viewer
-  //         .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+  //         .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
   //     await viewer.addToScene(asset1);
 
   //     final asset2 = await viewer
-  //         .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+  //         .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
   //     await viewer.addToScene(asset2);
   //     await viewer.setTransform(
   //         asset2.entity, Matrix4.translation(Vector3(0, 1.5, 0)));
@@ -439,7 +438,7 @@ void main() async {
   // test('create camera geometry', () async {
   //   await testHelper.withViewer((viewer) async {
   //     final asset = await viewer.createGeometry(
-  //         GeometryHelper.wireframeCamera(normals: false, uvs: false));
+  //         GeometryUtils.wireframeCamera(normals: false, uvs: false));
   //     await viewer.addToScene(asset);
   //     await viewer.setTransform(asset.entity, Matrix4.rotationY(pi / 4));
 

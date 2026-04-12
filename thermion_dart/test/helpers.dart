@@ -6,7 +6,6 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:path/path.dart' as p;
 
@@ -57,9 +56,9 @@ extension on Uri {
 
 Future<Uint8List> savePixelBufferToBmp(
     Uint8List pixelBuffer, int width, int height, String outputPath,
-    {bool hasAlpha = true, bool isFloat = true}) async {
+    {bool hasAlpha = true, bool isFloat = true, int numChannels = 0}) async {
   var data = await pixelBufferToBmp(pixelBuffer, width, height,
-      hasAlpha: hasAlpha, isFloat: isFloat);
+      hasAlpha: hasAlpha, isFloat: isFloat, numChannels: numChannels);
   File(outputPath).writeAsBytesSync(data);
   Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
@@ -67,9 +66,9 @@ Future<Uint8List> savePixelBufferToBmp(
 
 Future<Uint8List> savePixelBufferToPng(
     Uint8List pixelBuffer, int width, int height, String outputPath,
-    {bool hasAlpha = true, bool isFloat = true}) async {
+    {bool hasAlpha = true, bool isFloat = true, int numChannels = 0}) async {
   var data = await pixelBufferToPng(pixelBuffer, width, height,
-      hasAlpha: hasAlpha, isFloat: isFloat);
+      hasAlpha: hasAlpha, isFloat: isFloat, numChannels: numChannels);
   File(outputPath).writeAsBytesSync(data);
   Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
@@ -119,26 +118,6 @@ class TestHelper {
     return material.createInstance();
   }
 
-  Future<MaterialInstance> loadWireframeMaterial({
-    double edgeR = 1.0,
-    double edgeG = 1.0,
-    double edgeB = 1.0,
-    double edgeA = 1.0,
-    double faceR = 0.2,
-    double faceG = 0.2,
-    double faceB = 0.2,
-    double faceA = 0.3,
-    double edgeWidth = 1.5,
-  }) async {
-    final material = await FilamentApp.instance!.createMaterial(
-        File("${assetsDir}/wireframe.filamat").readAsBytesSync());
-    final instance = await material.createInstance();
-    await instance.setParameterFloat4("edgeColor", edgeR, edgeG, edgeB, edgeA);
-    await instance.setParameterFloat4("faceColor", faceR, faceG, faceB, faceA);
-    await instance.setParameterFloat("edgeWidth", edgeWidth);
-    return instance;
-  }
-
   /// Load the solidcolor material and create an instance with the given color.
   ///
   /// The solidcolor material only requires POSITION vertex attribute, making it
@@ -157,38 +136,13 @@ class TestHelper {
     return instance;
   }
 
-  ///
-  ///
-  ///
-  Future createView(FFISwapChain swapChain,
-      {TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
-    final view = await FilamentApp.instance!.createView() as FFIView;
-    await view.setFrustumCullingEnabled(false);
-    await view.setPostProcessing(false);
-    await view.setViewport(512, 512);
-
-    View_setBlendMode(view.view, TBlendMode.OPAQUE);
-    final color = await FilamentApp.instance!.createTexture(512, 512,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC
-        },
-        textureFormat: textureFormat);
-    await view.setRenderTarget(await FilamentApp.instance!
-        .createRenderTarget(512, 512, color: color) as FFIRenderTarget);
-
-    await FilamentApp.instance!.setRenderOrder(swapChain, view);
-
-    return view;
-  }
-
+  
   Future<ThermionAsset> createCube(ThermionViewer viewer) async {
     var materialInstance = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
-    final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+    final cubeGeometry = GeometryUtils.cube(flipUvs: true);
     var asset = await viewer
         .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
     return asset;
@@ -200,7 +154,7 @@ class TestHelper {
         .createUbershaderMaterialInstance(unlit: true);
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
-    final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+    final cubeGeometry = GeometryUtils.cube(flipUvs: true);
     var asset = await viewer
         .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
 
@@ -232,9 +186,13 @@ class TestHelper {
 
       if (outputFilename != null) {
         var outPath = p.join(outDir.path, "${outputFilename}_view${i}.png");
+        final numChannels = pixelDataFormat == PixelDataFormat.R
+            ? 1
+            : (pixelDataFormat == PixelDataFormat.RGBA ? 4 : 3);
         await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
             isFloat: pixelDataType == PixelDataType.FLOAT,
-            hasAlpha: pixelDataFormat == PixelDataFormat.RGBA);
+            hasAlpha: pixelDataFormat == PixelDataFormat.RGBA,
+            numChannels: numChannels);
       }
       i++;
       retval[view] = pixelBuffer;
@@ -257,9 +215,9 @@ class TestHelper {
   }
 
   Future setup() async {
-    Logger.root.level = Level.SEVERE;
+    Logger.root.level = Level.FINEST;
     Logger.root.onRecord.listen((record) {
-      Logger.root.info(record.toString());
+      print(record.toString());
     });
 
     await FFIFilamentApp.create(
@@ -286,11 +244,12 @@ class TestHelper {
         viewportDimensions.width, viewportDimensions.height,
         hasStencilBuffer: createStencilBuffer) as FFISwapChain;
 
-    FFIRenderTarget? renderTarget;
+    RenderTarget? renderTarget;
     if (createRenderTarget) {
       Logger.root.info("Creating texture of size ${viewportDimensions}");
       var color = await FilamentApp.instance!.createTexture(
-        viewportDimensions.width, viewportDimensions.height,
+        viewportDimensions.width,
+        viewportDimensions.height,
         flags: {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
@@ -328,7 +287,9 @@ class TestHelper {
 
     var viewer = ThermionViewerFFI();
     await viewer.initialized;
-    await FilamentApp.instance!.setRenderOrder(swapChain!, viewer.view);
+    await FilamentApp.instance!.renderManager.attach(viewer.view, swapChain);
+
+
     if (renderTarget != null) {
       await viewer.view.setRenderTarget(renderTarget);
     }
@@ -631,7 +592,7 @@ class ViewerBuilder {
           .createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
-      final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+      final cubeGeometry = GeometryUtils.cube(flipUvs: true);
       var asset = await viewer
           .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
 
@@ -704,7 +665,7 @@ class ViewerBuilder {
       }
 
       final plane = await viewer.createGeometry(
-          GeometryHelper.plane(
+          GeometryUtils.plane(
               normals: true, uvs: true, width: 10.0, height: 10.0),
           materialInstances: [materialInstance]);
 
@@ -751,7 +712,7 @@ class ViewerBuilder {
       }
 
       final cube = await viewer.createGeometry(
-          GeometryHelper.cube(flipUvs: true),
+          GeometryUtils.cube(flipUvs: true),
           materialInstances:
               materialInstance != null ? [materialInstance] : null);
 
@@ -801,7 +762,8 @@ class ViewerBuilder {
         light.type == LightType.SUN ||
         (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0));
 
-    // If we found a sun light and have corresponding entities, get the matching entity
+    // If we found a sun light and have corresponding entities, get the matching
+    // entity
     if (sunLightIndex != -1 &&
         _lightEntities != null &&
         sunLightIndex < _lightEntities!.length) {

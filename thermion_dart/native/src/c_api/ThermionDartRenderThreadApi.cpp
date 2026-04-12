@@ -1,3 +1,4 @@
+#include <atomic>
 #include <functional>
 #include <mutex>
 #include <thread>
@@ -19,6 +20,7 @@
 #include "c_api/TRenderTarget.h"
 #include "c_api/TScene.h"
 #include "c_api/TSceneAsset.h"
+#include "c_api/TFilamentAsset.h"
 #include "c_api/TTexture.h"
 #include "c_api/TView.h"
 #include "c_api/TVertexBuffer.h"
@@ -27,13 +29,7 @@
 
 #include "rendering/RenderThread.hpp"
 #include "rendering/RenderManager.hpp"
-#include "rendering/FrameScheduler.hpp"
 #include "Log.hpp"
-
-// Dart API for port-based frame scheduling (hot restart safe)
-#ifndef __EMSCRIPTEN__
-#include "dart/dart_api_dl.h"
-#endif
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/proxying.h>
@@ -57,10 +53,9 @@ using namespace std::chrono_literals;
 extern "C"
 {
 
-  static std::unique_ptr<RenderThread> _renderThread;
-  static thermion::FrameScheduler* _frameScheduler = nullptr;
+  std::unique_ptr<RenderThread> _renderThread;
 
-  EMSCRIPTEN_KEEPALIVE void RenderThread_create()
+  EMSCRIPTEN_KEEPALIVE void* RenderThread_create()
   {
     TRACE("RenderThread_create");
     if (_renderThread)
@@ -69,15 +64,13 @@ extern "C"
     }
     _renderThread = std::make_unique<RenderThread>();
     TRACE("RenderThread created");
+    return _renderThread.get();
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderThread_destroy()
   {
     TRACE("RenderThread_destroy");
-    if (_renderThread)
-    {
-      _renderThread = nullptr;
-    }
+    _renderThread = nullptr;
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)())
@@ -113,11 +106,21 @@ extern "C"
     uint32_t requestId,
     VoidCallback onComplete)
   {
+    auto queuedAt = std::chrono::steady_clock::now();
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
+          auto startedAt = std::chrono::steady_clock::now();
+          float queueMs = std::chrono::duration_cast<std::chrono::nanoseconds>(startedAt - queuedAt).count() / 1e6f;
           RenderManager_render(tRenderManager, frameTimeInNanos);
-          _renderThread->signalRenderComplete();
+          static int cbCount = 0;
+          cbCount++;
+          if (queueMs > 5.0f) {
+            fprintf(stderr, "[QUEUE] render waited %.1fms in queue\n", queueMs);
+          }
+          if (cbCount <= 3 || cbCount % 300 == 0) {
+            fprintf(stderr, "[RenderCB] #%d completing requestId=%u queueWait=%.1fms\n", cbCount, requestId, queueMs);
+          }
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -621,6 +624,28 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Material_createNormalColorMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createNormalColorMaterial(tEngine);
+          PROXY(onComplete(instance));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Material_createSharpEdgeMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createSharpEdgeMaterial(tEngine);
+          PROXY(onComplete(instance));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Material_createTranslationAxisMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *))
   {
     std::packaged_task<void()> lambda(
@@ -677,12 +702,13 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
+      bool rebuildVertices,
       void (*onComplete)(TSceneAsset *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices);
           PROXY(onComplete(sceneAsset));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -717,6 +743,30 @@ extern "C"
         {
           auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
           PROXY(callback(instanceAsset));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceDataRenderThread(
+      TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneAsset_releaseSourceData(tSceneAsset);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShadingRenderThread(
+      TSceneAsset *tSceneAsset, bool flatShading, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneAsset_setFlatShading(tSceneAsset, flatShading);
+          PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
   }
@@ -1835,6 +1885,17 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeRenderThread(TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto entityId = FilamentAsset_getWireframe(tFilamentAsset);
+          PROXY(onComplete(entityId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Scene_removeEntityRenderThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
@@ -2118,105 +2179,6 @@ extern "C"
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps) {
-#ifndef __EMSCRIPTEN__
-    if (_frameScheduler) {
-      _frameScheduler->stop();
-      delete _frameScheduler;
-      _frameScheduler = nullptr;
-    }
-#if __APPLE__ && TARGET_OS_OSX
-    _frameScheduler = new thermion::CVDisplayLinkScheduler();
-#elif __APPLE__
-    _frameScheduler = new thermion::CADisplayLinkScheduler();
-#elif _WIN32
-    _frameScheduler = new thermion::DXGIFrameScheduler(targetFps > 0 ? targetFps : 60);
-#elif __ANDROID__
-    _frameScheduler = new thermion::AChoreographerFrameScheduler();
-#else
-    _frameScheduler = new thermion::TimerFrameScheduler(targetFps > 0 ? targetFps : 60);
-#endif
-    _frameScheduler->start(callback);
-#endif
-  }
-
-  EMSCRIPTEN_KEEPALIVE void FrameScheduler_stop() {
-#ifndef __EMSCRIPTEN__
-    if (_frameScheduler) {
-      _frameScheduler->stop();
-      delete _frameScheduler;
-      _frameScheduler = nullptr;
-    }
-#endif
-  }
-
-  // Port-based frame scheduler (hot restart safe)
-  // When the Dart isolate dies (hot restart), Dart_PostCObject_DL silently
-  // drops messages instead of crashing.
-
-#ifndef __EMSCRIPTEN__
-  static bool _dartApiInitialized = false;
-  static Dart_Port_DL _dartPort = 0;
-
-  // Callback function for port mode - posts frame time to Dart port
-  static void _portModeCallback(uint64_t frameTimeNanos) {
-    if (_dartPort == 0) return;
-
-    Dart_CObject msg;
-    msg.type = Dart_CObject_kInt64;
-    msg.value.as_int64 = static_cast<int64_t>(frameTimeNanos);
-
-    // Dart_PostCObject_DL is thread-safe and returns false if port is dead
-    // This is the key: no crash on hot restart, just silently drops
-    Dart_PostCObject_DL(_dartPort, &msg);
-  }
-#endif
-
-  EMSCRIPTEN_KEEPALIVE int FrameScheduler_initDartApi(void* data) {
-#ifndef __EMSCRIPTEN__
-    if (!_dartApiInitialized && data != nullptr) {
-      intptr_t result = Dart_InitializeApiDL(data);
-      _dartApiInitialized = (result == 0);
-      return _dartApiInitialized ? 0 : -1;
-    }
-    return _dartApiInitialized ? 0 : -1;
-#else
-    return -1;
-#endif
-  }
-
-  EMSCRIPTEN_KEEPALIVE void FrameScheduler_startWithPort(int64_t port, int targetFps) {
-#ifndef __EMSCRIPTEN__
-    if (_frameScheduler) {
-      _frameScheduler->stop();
-      delete _frameScheduler;
-      _frameScheduler = nullptr;
-    }
-
-    _dartPort = port;
-#if __APPLE__ && TARGET_OS_OSX
-    auto* macScheduler = new thermion::CVDisplayLinkScheduler();
-    macScheduler->startWithPort(port);
-    _frameScheduler = macScheduler;
-#elif __APPLE__
-    auto* iosScheduler = new thermion::CADisplayLinkScheduler();
-    iosScheduler->startWithPort(port);
-    _frameScheduler = iosScheduler;
-#elif _WIN32
-    auto* winScheduler = new thermion::DXGIFrameScheduler(targetFps > 0 ? targetFps : 60);
-    winScheduler->startWithPort(port);
-    _frameScheduler = winScheduler;
-#elif __ANDROID__
-    auto* androidScheduler = new thermion::AChoreographerFrameScheduler();
-    androidScheduler->startWithPort(port);
-    _frameScheduler = androidScheduler;
-#else
-    _frameScheduler = new thermion::TimerFrameScheduler(targetFps > 0 ? targetFps : 60);
-    _frameScheduler->start(_portModeCallback);
-#endif
-#endif
   }
 
 }

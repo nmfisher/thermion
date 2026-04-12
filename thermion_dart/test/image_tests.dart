@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
-import 'package:thermion_dart/src/utils/src/geometry.dart';
+import 'package:thermion_dart/src/utils/src/geometry/utils.dart';
 import 'package:thermion_dart/src/viewer/viewer.dart';
 import 'helpers.dart';
 
@@ -42,7 +42,7 @@ void main() async {
       final quad = await result.viewer.getBackgroundImage();
       // add a cube so we can check our depth parameters
       final asset =
-          await result.viewer.createGeometry(GeometryHelper.cube());
+          await result.viewer.createGeometry(GeometryUtils.cube());
       // render image at far plane
       await quad.setDepth(0.0);
       await testHelper.capture(

@@ -1,0 +1,12 @@
+linter:
+  rules:
+    # Warn about lines longer than 80 characters
+    - lines_longer_than_80_chars
+
+analyzer:
+  errors:
+    # Treat long lines as warnings instead of errors
+    lines_longer_than_80_chars: warning
+
+formatter:
+  page_width: 80

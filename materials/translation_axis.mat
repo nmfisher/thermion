@@ -53,54 +53,59 @@ fragment {
         vec2 pos2D = getUV0();
         float dist;
         float t;
+        float fw;
 
-        // Default to X axis color
-        vec4 color = vec4(1.0, 0.0, 0.0, 1.0);  // Red
-
-        // Compute screen-space pixel size in world units using derivatives
-        vec3 worldPos = getWorldPosition().xyz;
-        float pixelSize = length(fwidth(worldPos));
+        vec4 color;
 
         if (materialParams.axis == 0) {
-            // X axis: horizontal plane, line along x at z=origin.z
-            dist = abs(pos2D.y - materialParams.origin.z);
+            // X axis: line along X, perpendicular is Z (pos2D.y)
+            float rawDist = pos2D.y - materialParams.origin.z;
+            dist = abs(rawDist);
             t = pos2D.x - materialParams.origin.x;
-            color = vec4(1.0, 0.0, 0.0, 1.0);  // Red for X
+            float dx = dFdx(rawDist);
+            float dy = dFdy(rawDist);
+            fw = sqrt(dx * dx + dy * dy);
+            color = vec4(1.0, 0.0, 0.0, 1.0);
         } else if (materialParams.axis == 1) {
-            // Y axis: vertical plane (rotated 90° around X), line along local Z (world Y) at x=origin.x
-            // After rotation: pos2D.x = world X, pos2D.y = local Z = -world Y (sign flip due to rotation)
-            dist = abs(pos2D.x - materialParams.origin.x);
-            t = materialParams.origin.y - pos2D.y;  // Inverted to account for coordinate transform
-            color = vec4(0.0, 1.0, 0.0, 1.0);  // Green for Y
+            // Y axis: vertical plane (rotated 90° around X), perpendicular is X (pos2D.x)
+            float rawDist = pos2D.x - materialParams.origin.x;
+            dist = abs(rawDist);
+            t = materialParams.origin.y - pos2D.y;
+            float dx = dFdx(rawDist);
+            float dy = dFdy(rawDist);
+            fw = sqrt(dx * dx + dy * dy);
+            color = vec4(0.0, 1.0, 0.0, 1.0);
         } else if (materialParams.axis == 2) {
-            // Z axis: horizontal plane, line along z at x=origin.x
-            dist = abs(pos2D.x - materialParams.origin.x);
+            // Z axis: line along Z, perpendicular is X (pos2D.x)
+            float rawDist = pos2D.x - materialParams.origin.x;
+            dist = abs(rawDist);
             t = pos2D.y - materialParams.origin.z;
-            color = vec4(0.0, 0.0, 1.0, 1.0);  // Blue for Z
+            float dx = dFdx(rawDist);
+            float dy = dFdy(rawDist);
+            fw = sqrt(dx * dx + dy * dy);
+            color = vec4(0.0, 0.0, 1.0, 1.0);
         } else {
             discard;
         }
-
-        // Use screen-space width for antialiasing
-        float halfWidth = pixelSize * materialParams.lineWidth * 0.5;
 
         // Hard cutoff for length
         if (abs(t) > materialParams.lineLength) {
             discard;
         }
 
-        // Hard cutoff with a small margin for antialiasing (2-3 pixels beyond the line edge)
-        float aaMargin = pixelSize * 2.0;
-        if (dist > halfWidth + aaMargin) {
+        // Convert world-space distance to pixel-space using Euclidean
+        // gradient magnitude of the signed offset (avoids abs() discontinuity
+        // and fwidth's L1 overestimation at oblique angles)
+        float pixelDist = dist / max(fw, 1e-6);
+        float halfWidth = materialParams.lineWidth * 0.5;
+
+        // Hard cutoff with margin for antialiasing
+        if (pixelDist > halfWidth + 2.0) {
             discard;
         }
 
-        // Normalize distance by pixel size for smooth antialiasing
-        float normalizedDist = dist / pixelSize;
-        float normalizedHalfWidth = halfWidth / pixelSize;
-
-        // Apply smoothstep for antialiased edges
-        float alpha = GRID_STEP(normalizedDist - normalizedHalfWidth);
+        // Antialiased edges
+        float alpha = GRID_STEP(pixelDist - halfWidth);
 
         material.baseColor = vec4(color.rgb * alpha, alpha);
     }

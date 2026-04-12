@@ -5,8 +5,6 @@
 
 #include "thermion_flutter_plugin.h"
 
-#include <Windows.h>
-
 // Dart API DL for port-based frame scheduling (hot restart safe)
 #include "dart/dart_api_dl.h"
 
@@ -31,6 +29,7 @@
 #include <thread>
 
 #include "flutter_d3d_texture.h"
+
 
 namespace thermion::tflutter::windows
 {
@@ -72,7 +71,7 @@ namespace thermion::tflutter::windows
   }
 
   // this is only for storing Flutter surface descriptors
-  // (as opposed to the D3D/Vulkan handles, which are stored in the ThermionVulkanContext)
+  // (as opposed to the D3D/Vulkan handles, which are stored in the WindowsVulkanContext)
   static std::vector<std::unique_ptr<FlutterD3DTexture>> _flutterTextures;
 
   void ThermionFlutterPlugin::CreateTexture(
@@ -81,7 +80,7 @@ namespace thermion::tflutter::windows
   {
     if (!_context)
     {
-      _context = new thermion::windows::vulkan::ThermionVulkanContext();
+      _context = new thermion::vulkan::windows::WindowsVulkanContext();
     }
 
     const auto *args =
@@ -233,7 +232,7 @@ namespace thermion::tflutter::windows
     {
       if (!_context)
       {
-        _context = new thermion::windows::vulkan::ThermionVulkanContext();
+        _context = new thermion::vulkan::windows::WindowsVulkanContext();
       }
       result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
     }
@@ -314,7 +313,7 @@ namespace thermion::tflutter::windows
     {
       if (!_context) {
         std::cerr << "No context, creating new one" << std::endl;
-        _context = new thermion::windows::vulkan::ThermionVulkanContext();
+        _context = new thermion::vulkan::windows::WindowsVulkanContext();
        } else { 
         std::cerr << "Context already exists, returning existing" << std::endl;
        }

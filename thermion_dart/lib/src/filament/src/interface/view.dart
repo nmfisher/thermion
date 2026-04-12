@@ -281,13 +281,9 @@ abstract class View<T> extends NativeHandle<T> {
   static int STENCIL_HIGHLIGHT_REFERENCE_VALUE = 1;
 
   /// Gets the scene currently associated with this View.
-  ///
-  ///
   Future<Scene> getScene();
 
   /// Sets the scene currently associated with this View.
-  ///
-  ///
   Future setScene(Scene scene);
 
   // Sets the (debug) name for this View.
@@ -397,7 +393,8 @@ abstract class View<T> extends NativeHandle<T> {
       int? entity,
       @Deprecated('Use outlineWidth instead') double scale = 1.05,
       double outlineWidth = 3.0,
-      int primitiveIndex = 0});
+      int primitiveIndex = 0,
+      ThermionAsset? geometrySource});
 
   /// Removes the outline around [entity]. Noop if there was no highlight.
   Future removeStencilHighlight(ThermionAsset asset);

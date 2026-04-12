@@ -1,0 +1,49 @@
+material {
+    name : NormalColor,
+    requires : [ position, tangents ],
+    parameters : [
+        {
+            type: int,
+            name: useAbsoluteValue,
+            default: 0
+        },
+        {
+            type: float,
+            name: opacity,
+            default: 1.0
+        }
+    ],
+    variables : [
+        surfaceNormal
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    doubleSided : false,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : back
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.surfaceNormal.xyz = material.worldNormal;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+
+        vec3 color;
+        if (materialParams.useAbsoluteValue == 1) {
+            color = abs(normal);
+        } else {
+            color = normal * 0.5 + 0.5;
+        }
+
+        material.baseColor = vec4(color, materialParams.opacity);
+        material.baseColor.rgb *= material.baseColor.a;
+    }
+}
