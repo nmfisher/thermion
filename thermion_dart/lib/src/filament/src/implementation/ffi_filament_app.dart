@@ -1450,7 +1450,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       {bool createTransformComponent = true}) async {
     final entity = await withIntCallback((cb) => EntityManager_createEntityRenderThread(Engine_getEntityManager(engine), cb));
     if (createTransformComponent) {
-      transformManager.createComponent(entity);
+      await transformManager.createComponent(entity);
     }
     return entity;
   }
