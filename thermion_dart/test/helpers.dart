@@ -259,7 +259,7 @@ class TestHelper {
   Future setup() async {
     Logger.root.level = Level.SEVERE;
     Logger.root.onRecord.listen((record) {
-      Logger.root.info(record.toString());
+      print(record.toString());
     });
 
     await FFIFilamentApp.create(
