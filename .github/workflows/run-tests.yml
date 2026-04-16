@@ -101,8 +101,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run download 21482452235 \
-            --name golden-images-64f6bf1e43117ca0b2fcf74427bf8874849a252f \
+          gh run download 24518428090 \
+            --name golden-images-1750c1a5479d49ec0a77fd4a619ef6e75a8591e2 \
             --dir ./thermion_dart/test/golden-downloads
 
       - name: Unzip golden images
