@@ -874,6 +874,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         int numChannels = switch (pixelDataFormat) {
           PixelDataFormat.RGBA => 4,
           PixelDataFormat.RGB => 3,
+          PixelDataFormat.R => 1,
           _ => throw UnsupportedError(pixelDataFormat.toString())
         };
 
@@ -885,7 +886,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
         if (viewport.width <= 0 || viewport.height <= 0) {
           throw Exception(
-              "Invalid viewport dimensions : ${viewport.width}x${viewport.height}");
+              """Invalid viewport dimensions"""
+              """ : ${viewport.width}x${viewport.height}""");
         }
 
         final numBytes =
@@ -907,7 +909,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
         if (captureRenderTarget && renderTarget == null) {
           _logger.warning(
-              "captureRenderTarget is true but the specified view has no render target. Falling back to swapchain capture");
+              """captureRenderTarget is true but the specified view has no"""
+              """ render target. Falling back to swapchain capture""");
         }
 
         await withVoidCallback((requestId, cb) {
