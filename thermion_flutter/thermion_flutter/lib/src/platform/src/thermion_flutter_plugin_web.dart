@@ -10,7 +10,7 @@ import 'package:web/web.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 import 'package:thermion_dart/src/bindings/src/js_interop.dart'
-    show stackSave, stackRestore, resizeWebCanvas;
+    show stackSave, stackRestore;
 
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static Pointer? _stackPtr;
@@ -39,7 +39,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     FilamentApp.instance?.render();
 
     for (final descriptor in _descriptors) {
-        descriptor.markTextureFrameAvailable();
+      descriptor.markTextureFrameAvailable();
     }
     for (final descriptor in _destroyed) {
       _descriptors.remove(descriptor);
@@ -49,13 +49,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _destroyed.clear();
 
     window.requestAnimationFrame(_tick.toJS);
-  }
-
-  ///
-  void resizeCanvas(double width, double height) async {
-    _logger.info("Resizing canvas to ${width}x${height}");
-    resizeWebCanvas((window.devicePixelRatio * width).ceil(),
-        (window.devicePixelRatio * height).ceil());
   }
 
   static SwapChain? swapChain;
@@ -157,17 +150,35 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     int width,
     int height,
   ) async {
+
+    // See https://stackoverflow.com/questions/53233096/how-to-set-html5-canvas-size-to-match-display-size-in-device-pixels
+    // and https://joshondesign.com/2023/04/15/canvas_scale_smooth
+    // The HTML canvas element size and viewport should be in physical pixels 
+    // (i.e. the size in logical pixels given by Flutter, multiplied by devicePixelRatio)
+    // The HTML canvas element *CSS* properties width and height should be in *logical* pixels
+
     // On web, we don't use hardware textures but we return a descriptor
     // with dimensions so the callback can update viewport/camera
-    _logger.info(
-        "createTextureAndBindToView returning web descriptor with ${width}x$height");
-    var descriptor = WebPlatformTextureDescriptor(width: width, height: height);
+    var descriptor = WebPlatformTextureDescriptor(
+        width: width, height: height);
 
-    var overlay = await view.getHighlightOverlay();
-    if (overlay != null) {
-      await overlay!.setSwapChain(swapChain!);
-    }
-    resizeWebCanvas(width, height);
+    _logger.info(
+      "createTextureAndBindToView returning web descriptor with ${descriptor.width}x${descriptor.height} at dpr $dpr");
+
+    var overlay = view.getHighlightOverlay();
+    await overlay?.setSwapChain(swapChain!);
+
+    Thermion_setCanvasElementSize("#thermion_canvas".toNativeUtf8(), descriptor.width, descriptor.height);
+
+    // [width] and [height] have already been scaled by [devicePixelRatio]
+    // so we need to undo this when setting the CSS dimensions
+    final dpr = window.devicePixelRatio;
+    final canvas =
+        document.getElementById("thermion_canvas") as HTMLCanvasElement;
+
+    canvas.style.width = "${width / dpr}px";
+    canvas.style.height = "${height / dpr}px";
+
     return descriptor;
   }
 

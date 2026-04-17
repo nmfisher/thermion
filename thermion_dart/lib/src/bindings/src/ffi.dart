@@ -277,6 +277,3 @@ extension TypedDataListExtension on TypedData {
   }
 }
 
-void resizeWebCanvas(int width, int height) {
-  throw UnsupportedError("Not supported on non-web platforms");
-}
