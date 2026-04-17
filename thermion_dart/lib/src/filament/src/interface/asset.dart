@@ -216,7 +216,7 @@ abstract class ThermionAsset {
   ///
   ///
   ///
-  Future setGltfAnimationFrame(int index, int animationFrame) {
+  Future setGltfAnimationTime(int index, double timeInSeconds) {
     throw UnimplementedError();
   }
 

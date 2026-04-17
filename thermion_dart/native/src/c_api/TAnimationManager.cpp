@@ -351,18 +351,18 @@ extern "C"
         return true;
     }
 
-    EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationFrame(
+    EMSCRIPTEN_KEEPALIVE bool AnimationManager_setGltfAnimationTime(
         TAnimationManager *tAnimationManager,
         TSceneAsset *tSceneAsset,
         int animationIndex,
-        int frame)
+        float timeInSeconds)
     {
         auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         if (sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return false;
         }
-        
+
         GltfSceneAssetInstance *instance;
 
         if (sceneAsset->isInstance())
@@ -371,8 +371,8 @@ extern "C"
         } else {
             instance = reinterpret_cast<GltfSceneAssetInstance *>(sceneAsset->getInstanceAt(0));
         }
-        
-        animationManager->setGltfAnimationFrame(instance, animationIndex, frame);
+
+        animationManager->setGltfAnimationTime(instance, animationIndex, timeInSeconds);
 
         return true;
 

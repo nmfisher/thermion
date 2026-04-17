@@ -3044,11 +3044,11 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Float32> morphData,
     int numWeights,
   );
-  external int _AnimationManager_setGltfAnimationFrame(
+  external int _AnimationManager_setGltfAnimationTime(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
     int animationIndex,
-    int frame,
+    double timeInSeconds,
   );
   external void _MovementIntentExecutor_destroy(
     Pointer<TMovementIntentExecutor> executor,
@@ -9797,15 +9797,15 @@ bool AnimationManager_setMorphTargetWeights(
   return result == 1;
 }
 
-bool AnimationManager_setGltfAnimationFrame(
+bool AnimationManager_setGltfAnimationTime(
   Pointer<TAnimationManager> tAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
-  int frame,
+  double timeInSeconds,
 ) {
   final result = GeneratedBindings.instance
-      ._AnimationManager_setGltfAnimationFrame(
-          tAnimationManager.cast(), tSceneAsset.cast(), animationIndex, frame);
+      ._AnimationManager_setGltfAnimationTime(tAnimationManager.cast(),
+          tSceneAsset.cast(), animationIndex, timeInSeconds);
   return result == 1;
 }
 
