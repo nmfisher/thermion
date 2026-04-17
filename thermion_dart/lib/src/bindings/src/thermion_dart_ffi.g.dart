@@ -5657,12 +5657,12 @@ external bool AnimationManager_setMorphTargetWeights(
 
 @ffi.Native<
     ffi.Bool Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
-        ffi.Int, ffi.Int)>(isLeaf: true)
-external bool AnimationManager_setGltfAnimationFrame(
+        ffi.Int, ffi.Float)>(isLeaf: true)
+external bool AnimationManager_setGltfAnimationTime(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
-  int frame,
+  double timeInSeconds,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(
