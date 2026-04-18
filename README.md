@@ -65,6 +65,28 @@ In your Flutter app:
 
 > the first time you build an app that consumes this package, the Dart native-assets build system will download static binaries from Cloudflare. This may take a few minutes (depending on which platform you are compiling for). These will be cached, so subsequent builds will be much faster.
 
+### Web
+
+Before building for web, download the pre-compiled JS/WASM artifacts:
+
+```bash
+dart run thermion_dart:download_web
+```
+
+This fetches `thermion_dart.js` and `thermion_dart.wasm` from Cloudflare and copies them into your app's `web/` directory. Artifacts are cached under `.dart_tool/`, so subsequent runs are instant unless the version changes.
+
+To specify a different output directory:
+
+```bash
+dart run thermion_dart:download_web -o path/to/web
+```
+
+Then build as usual:
+
+```bash
+flutter build web
+```
+
 ### Sponsors, Contributors & Acknowledgments
 
 Thermion uses the [Filament](https://github.com/google/filament) Physically Based Rendering engine under the hood.
