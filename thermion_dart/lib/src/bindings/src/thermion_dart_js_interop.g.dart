@@ -3006,6 +3006,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double fadeOutInSecs,
     double fadeInInSecs,
     double maxDelta,
+    bool loop,
   );
   external EntityId _AnimationManager_getBone(
     Pointer<TAnimationManager> tAnimationManager,
@@ -9779,6 +9780,7 @@ bool AnimationManager_addBoneAnimation(
   double fadeOutInSecs,
   double fadeInInSecs,
   double maxDelta,
+  bool loop,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_addBoneAnimation(
       tAnimationManager.cast(),
@@ -9790,7 +9792,8 @@ bool AnimationManager_addBoneAnimation(
       frameLengthInMs,
       fadeOutInSecs,
       fadeInInSecs,
-      maxDelta);
+      maxDelta,
+      loop);
   return result == 1;
 }
 
