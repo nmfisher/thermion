@@ -28,12 +28,11 @@ namespace thermion
 
     using namespace filament;
 
-    // Despite the name, RenderManager is responsible for coordinating 
-    // the entire pipeline, not just rendering.
-    // The process is as follows:
+    // A RenderManager coordinates the whole rendering pipeline:
     // 1) updating animations
     // 2) instructing plugins to perform any updates before rendering
-    // 3) render all views/swapchains  
+    // 3) rendering all views/swapchains
+    //   
     class RenderManager
     {
 

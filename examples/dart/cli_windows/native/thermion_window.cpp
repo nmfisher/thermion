@@ -116,7 +116,7 @@ static void RenderLoop() {
 
 extern "C" {
   
- THERMION_EXPORT intptr_t create_thermion_window(int width, int height, int left, int top) { 
+ EMSCRIPTEN_KEEPALIVE intptr_t create_thermion_window(int width, int height, int left, int top) { 
                 _window = new ThermionWindow(width, height, left, top);
         
         // Start the render thread
@@ -127,13 +127,13 @@ extern "C" {
     }
 
      // Update function can now be simplified or removed since rendering happens in the thread
-    THERMION_EXPORT void update() {     
+    EMSCRIPTEN_KEEPALIVE void update() {     
         
         
     }
 
        // Add a cleanup function
-    THERMION_EXPORT void cleanup() {
+    EMSCRIPTEN_KEEPALIVE void cleanup() {
         _running = false;
         if (_renderThread.joinable()) {
             _renderThread.join();

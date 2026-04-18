@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/material.dart';
@@ -70,16 +68,6 @@ class _MyHomePageState extends State<MyHomePage> {
               initialCameraPosition: Vector3(0, 0, 6),
               background: Colors.blue,
               manipulatorType: _manipulatorType,
-              onAssetLoaded: (viewer, asset) async {
-                var last = DateTime.now();
-                Timer.periodic(Duration(milliseconds: 16), (timer) async {
-                  var now = DateTime.now();
-                  await asset.setTransform(Matrix4.rotationY(
-                      (now.millisecondsSinceEpoch.toDouble() -
-                              last.millisecondsSinceEpoch) /
-                          1000));
-                });
-              },
               onViewerAvailable: (viewer) async {
                 setState(() {
                   _viewer = viewer;

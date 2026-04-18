@@ -118,81 +118,37 @@ s|^#endif|#endif\
 GLTFIO_CMAKE="$FILAMENT_BASE_DIR/libs/gltfio/CMakeLists.txt"
 echo 'target_compile_definitions(gltfio_core PRIVATE GLTFIO_USE_FILESYSTEM=0)' >> "$GLTFIO_CMAKE"
 
-# Patch basisu CMakeLists.txt for position independent code
-echo "Patching basisu CMakeLists.txt..."
-BASISU_CMAKE="$FILAMENT_BASE_DIR/third_party/basisu/tnt/CMakeLists.txt"
-if grep -q "set(CMAKE_POSITION_INDEPENDENT_CODE ON)" "$BASISU_CMAKE"; then
-  echo "Already patched"
-else
-  sed -i '/project(basisu)/a set(CMAKE_POSITION_INDEPENDENT_CODE ON)' "$BASISU_CMAKE" || {
-    echo "Warning: Failed to patch basisu CMakeLists.txt"
-  }
-fi
-
 # Patch build.sh to add CMAKE_POSITION_INDEPENDENT_CODE to build_desktop_target
 echo "Patching build.sh to add CMAKE_POSITION_INDEPENDENT_CODE..."
 sed -i '/-DCMAKE_BUILD_TYPE="\$1"/a\            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\' "$FILAMENT_BASE_DIR/build.sh" || {
   echo "Warning: Failed to patch build.sh for POSITION_INDEPENDENT_CODE"
 }
 
-# Patch libs/filamat/CMakeLists.txt for position independent code
-echo "Patching libs/filamat/CMakeLists.txt..."
-FILAMAT_CMAKE="$FILAMENT_BASE_DIR/libs/filamat/CMakeLists.txt"
-if grep -q "set(CMAKE_POSITION_INDEPENDENT_CODE ON)" "$FILAMAT_CMAKE"; then
+# Patch libs/filameshio/CMakeLists.txt to comment out tests
+echo "Patching libs/filameshio/CMakeLists.txt to disable tests..."
+FILAMESHIO_CMAKE="$FILAMENT_BASE_DIR/libs/filameshio/CMakeLists.txt"
+if grep -q "^#if (NOT IOS AND NOT WEBGL AND NOT ANDROID)" "$FILAMESHIO_CMAKE"; then
   echo "Already patched"
 else
-  sed -i '/^project(filamat)/a set(CMAKE_POSITION_INDEPENDENT_CODE ON)' "$FILAMAT_CMAKE" || {
-    echo "Warning: Failed to patch filamat CMakeLists.txt"
+  sed -i '/^if (NOT IOS AND NOT WEBGL AND NOT ANDROID)$/,/^endif()$/{s/^if/#if/; s/^    add_executable/#    add_executable/; s/^    target_link_libraries/#    target_link_libraries/; s/^    set_target_properties/#    set_target_properties/; s/^endif()$/#endif()/}' "$FILAMESHIO_CMAKE" || {
+    echo "Warning: Failed to patch filameshio CMakeLists.txt"
+  }
+fi
+
+# Patch libs/ktxreader/CMakeLists.txt to comment out tests
+echo "Patching libs/ktxreader/CMakeLists.txt to disable tests..."
+KTXREADER_CMAKE="$FILAMENT_BASE_DIR/libs/ktxreader/CMakeLists.txt"
+if grep -q "^#if (NOT ANDROID AND NOT WEBGL AND NOT IOS)" "$KTXREADER_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i '/^if (NOT ANDROID AND NOT WEBGL AND NOT IOS)$/,/^endif()$/{s/^if/#if/; s/^    add_executable/#    add_executable/; s/^    target_link_libraries/#    target_link_libraries/; s/^    set_target_properties/#    set_target_properties/; s/^endif()$/#endif()/}' "$KTXREADER_CMAKE" || {
+    echo "Warning: Failed to patch ktxreader CMakeLists.txt"
   }
 fi
 
 # Set compiler to clang
 export CC=clang
 export CXX=clang++
-
-# Build imageio and tinyexr using cmake directly
-# build.sh doesn't properly support building these third-party libs on Linux
-build_third_party_libs() {
-  local BUILD_TYPE=$1  # Release or Debug
-  local BUILD_SUFFIX=$2  # release or debug
-  local CMAKE_DIR="$FILAMENT_BASE_DIR/out/cmake-${BUILD_SUFFIX}"
-
-  echo "Building imageio ($BUILD_SUFFIX)..."
-  mkdir -p "$CMAKE_DIR/libs/imageio" && cd "$CMAKE_DIR/libs/imageio"
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-    -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-    -DZ_HAVE_UNISTD_H=1 \
-    -DUSE_ZLIB=1 \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-    "$FILAMENT_BASE_DIR/libs/imageio" || {
-    echo "Error: imageio cmake failed for $BUILD_SUFFIX"
-    return 1
-  }
-  ninja || {
-    echo "Error: imageio build failed for $BUILD_SUFFIX"
-    return 1
-  }
-
-  echo "Building tinyexr ($BUILD_SUFFIX)..."
-  mkdir -p "$CMAKE_DIR/third_party/tinyexr" && cd "$CMAKE_DIR/third_party/tinyexr"
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-    "$FILAMENT_BASE_DIR/third_party/tinyexr" || {
-    echo "Error: tinyexr cmake failed for $BUILD_SUFFIX"
-    return 1
-  }
-  ninja || {
-    echo "Error: tinyexr build failed for $BUILD_SUFFIX"
-    return 1
-  }
-
-  cd "$FILAMENT_BASE_DIR"
-}
 
 
 # Run release build
@@ -203,10 +159,11 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Build third-party libraries for release using cmake directly
-  echo "Building third-party libraries for release..."
-  build_third_party_libs Release release || {
-    echo "Error: third-party release build failed"
+  # Build imageio and tinyexr as targets within the main cmake build
+  # (they need Filament's include paths and inherit -stdlib=libc++ from the top-level config)
+  echo "Building imageio and tinyexr (release)..."
+  ./build.sh -f -p desktop release imageio tinyexr || {
+    echo "Error: imageio/tinyexr release build failed"
     exit 1
   }
 fi
@@ -219,10 +176,10 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Build third-party libraries for debug using cmake directly
-  echo "Building third-party libraries for debug..."
-  build_third_party_libs Debug debug || {
-    echo "Error: third-party debug build failed"
+  # Build imageio and tinyexr as targets within the main cmake build
+  echo "Building imageio and tinyexr (debug)..."
+  ./build.sh -f -t -d -p desktop debug imageio tinyexr || {
+    echo "Error: imageio/tinyexr debug build failed"
     exit 1
   }
 fi

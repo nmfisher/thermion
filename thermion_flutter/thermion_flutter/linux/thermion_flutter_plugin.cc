@@ -3,790 +3,870 @@
 #include <flutter_linux/flutter_linux.h>
 #include <flutter_linux/fl_texture_registrar.h>
 #include <flutter_linux/fl_texture_gl.h>
+#include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <thread>
+#include <sys/utsname.h>
 
+#include <math.h>
+#include <iostream>
 #include <cstring>
 #include <vector>
-#include <memory>
-#include <unordered_map>
-#include <iostream>
-#include <chrono>
+#include <string> 
+#include <map>
+#include <unistd.h>
 
-#include <epoxy/egl.h>
+#include "include/thermion_flutter/filament_texture.h"
+#include "include/thermion_flutter/filament_pb_texture.h"
+#include "include/thermion_flutter/resource_loader.hpp"
+
+#include "ThermionDartApi.h"
+#include "Log.hpp"
+
+extern "C" {
+#include "ThermionFlutterApi.h"
+}
+
 #include <epoxy/gl.h>
+#include <epoxy/glx.h>
 
-#include "egl_texture.h"
-
-// EGL_KHR_gl_texture_2D_image constants (in case epoxy doesn't define them)
-#ifndef EGL_GL_TEXTURE_2D_KHR
-#define EGL_GL_TEXTURE_2D_KHR 0x30B1
-#endif
-#ifndef EGL_GL_TEXTURE_LEVEL_KHR
-#define EGL_GL_TEXTURE_LEVEL_KHR 0x30BC
-#endif
-
-#include "vulkan/linux/LinuxVulkanContext.h"
-#include "LinuxOpenGLContext.h"
-#include "ThermionPlatformEGLHeadlessAPI.h"
-#include "vulkan/ExternalVulkanImage.h"
-
-// Backend type constants (match Dart Backend enum indices)
-static const int BACKEND_OPENGL = 1;
-static const int BACKEND_VULKAN = 2;
-
-// RAII guard: saves the current EGL context/surfaces and restores on destruction.
-struct EglContextGuard {
-  EGLContext prevCtx;
-  EGLSurface prevDraw;
-  EGLSurface prevRead;
-  EGLDisplay display;
-
-  EglContextGuard(EGLDisplay dpy)
-      : prevCtx(eglGetCurrentContext()),
-        prevDraw(eglGetCurrentSurface(EGL_DRAW)),
-        prevRead(eglGetCurrentSurface(EGL_READ)),
-        display(dpy) {}
-
-  ~EglContextGuard() {
-    eglMakeCurrent(display, prevDraw, prevRead, prevCtx);
-  }
-
-  EglContextGuard(const EglContextGuard&) = delete;
-  EglContextGuard& operator=(const EglContextGuard&) = delete;
-};
-
-#define FLUTTER_FILAMENT_PLUGIN(obj)                                     \
+#define FLUTTER_FILAMENT_PLUGIN(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), thermion_flutter_plugin_get_type(), \
                               ThermionFlutterPlugin))
 
-struct _ThermionFlutterPlugin
-{
+
+struct _ThermionFlutterPlugin {
   GObject parent_instance;
-  FlTextureRegistrar *texture_registrar;
-  FlView *view;
-  int backend_type; // 0 = unset, BACKEND_VULKAN = Vulkan, BACKEND_OPENGL = OpenGL
-
-  // Vulkan path
-  thermion::vulkan::linux_platform::LinuxVulkanContext *vulkan_context;
-  std::unordered_map<int64_t, thermion::vulkan::ExternalVulkanImage *> *external_images;
-
-  // OpenGL path — direct sharing with Flutter's EGL context (preferred)
-  EGLContext flutter_egl_context;   // Flutter's own context (captured, not owned)
-  EGLContext utility_egl_context;   // our context in Flutter's share group (for GL ops)
-  EGLDisplay egl_display;           // shared EGL display
-  EGLConfig  egl_config;            // config matching Flutter's context
-  gboolean use_direct_opengl;       // TRUE if direct sharing path succeeded
-  void* thermion_platform;          // standalone OpenGLPlatform (EGLHeadless)
-
-  // OpenGL path — fallback (LinuxOpenGLContext with GBM/DMA-BUF)
-  thermion::opengl::linux_platform::LinuxOpenGLContext *opengl_context;
-
-  // Shared
-  std::vector<ThermionTextureGL *> *textures;
+  FlTextureRegistrar* texture_registrar;
+  FlView* fl_view;
+  FlTexture* texture;
+  double width = 0;
+  double height = 0;
+  bool rendering = false;
+  thermion_flutter::ThermionViewerFFI* viewer;
 };
 
 G_DEFINE_TYPE(ThermionFlutterPlugin, thermion_flutter_plugin, g_object_get_type())
 
-static void destroy_all_contexts(ThermionFlutterPlugin *self)
-{
-  if (self->vulkan_context)
-  {
-    delete self->vulkan_context;
-    self->vulkan_context = nullptr;
+static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer self) {
+  ThermionFlutterPlugin* plugin = (ThermionFlutterPlugin*)self;
+  
+ if(plugin->rendering) {
+    render(plugin->viewer, 0);
+    fl_texture_registrar_mark_texture_frame_available(plugin->texture_registrar,
+                                                        plugin->texture);
   }
-  if (self->use_direct_opengl)
-  {
-    if (self->utility_egl_context != EGL_NO_CONTEXT)
-    {
-      eglDestroyContext(self->egl_display, self->utility_egl_context);
-      self->utility_egl_context = EGL_NO_CONTEXT;
-    }
-    self->flutter_egl_context = EGL_NO_CONTEXT;
-    self->egl_display = EGL_NO_DISPLAY;
-    self->egl_config = nullptr;
-    self->use_direct_opengl = FALSE;
-    if (self->thermion_platform)
-    {
-      ThermionPlatformEGLHeadless_Destroy(self->thermion_platform);
-      self->thermion_platform = nullptr;
-    }
-  }
-  if (self->opengl_context)
-  {
-    delete self->opengl_context;
-    self->opengl_context = nullptr;
-  }
-  self->backend_type = 0;
+  return TRUE; 
 }
 
-static void ensure_vulkan_context(ThermionFlutterPlugin *self)
-{
-  if (!self->vulkan_context)
-  {
-    self->vulkan_context = new thermion::vulkan::linux_platform::LinuxVulkanContext();
-    self->backend_type = BACKEND_VULKAN;
-  }
-}
+static FlMethodResponse* _create_filament_viewer(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  auto callback = new ResourceLoaderWrapper(loadResource, freeResource);
 
-static void ensure_opengl_context(ThermionFlutterPlugin *self)
-{
-  if (self->use_direct_opengl || self->opengl_context)
-  {
-    return; // already initialized
-  }
+  FlValue* args = fl_method_call_get_args(method_call);
 
-  // === Use Flutter's render context ===
-  // The deferred texture path captures Flutter's render context during the
-  // first populate() call. Fall back to the current context (GDK) if no
-  // deferred texture has been populated yet.
-  {
-    EGLContext flutterCtx = thermion_flutter_render_context;
-    EGLDisplay flutterDpy = thermion_flutter_render_display;
+  const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
+  const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
 
-    if (flutterCtx == EGL_NO_CONTEXT) {
-      // No deferred populate yet. Try to get GDK's GL context deterministically
-      // rather than relying on whatever happens to be current on this thread.
-      GdkDisplay *gdkDisplay = gdk_display_get_default();
-      if (gdkDisplay) {
-        GdkGLContext *gdkCtx = gdk_gl_context_get_current();
-        if (!gdkCtx) {
-          // Create a temporary GDK GL context and make it current so we can
-          // query the underlying EGL state.
-          GdkWindow *gdkWindow = gdk_screen_get_root_window(
-              gdk_display_get_default_screen(gdkDisplay));
-          if (gdkWindow) {
-            GError *error = nullptr;
-            gdkCtx = gdk_window_create_gl_context(gdkWindow, &error);
-            if (gdkCtx && !error) {
-              gdk_gl_context_make_current(gdkCtx);
-              std::cerr << "[ThermionGL] Made GDK GL context current" << std::endl;
-            } else {
-              if (error) {
-                std::cerr << "[ThermionGL] GDK GL context creation failed: "
-                          << error->message << std::endl;
-                g_error_free(error);
-              }
-            }
-          }
-        }
-      }
-      flutterCtx = eglGetCurrentContext();
-      flutterDpy = eglGetCurrentDisplay();
-      if (flutterCtx != EGL_NO_CONTEXT) {
-        std::cerr << "[ThermionGL] Using GDK EGL context (no deferred populate yet)"
-                  << std::endl;
-      }
-    } else {
-      std::cerr << "[ThermionGL] Using Flutter render context="
-                << (void*)flutterCtx << std::endl;
-    }
+  self->width = width;
+  self->height = height;
 
-    if (flutterCtx != EGL_NO_CONTEXT && flutterDpy != EGL_NO_DISPLAY)
-    {
-      EGLint clientType = 0, glMajor = 0, glMinor = 0, configId = 0;
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONTEXT_CLIENT_TYPE, &clientType);
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONTEXT_MAJOR_VERSION_KHR, &glMajor);
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONTEXT_MINOR_VERSION_KHR, &glMinor);
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONFIG_ID, &configId);
+  auto context = glXGetCurrentContext();   
+  self->viewer = (thermion_flutter::ThermionViewerFFI*)create_filament_viewer(
+    (void*)context,
+    callback
+  );
 
-      std::cerr << "[ThermionGL] Captured Flutter context=" << (void *)flutterCtx
-                << " display=" << (void *)flutterDpy
-                << " type=0x" << std::hex << clientType << std::dec
-                << " (" << (clientType == EGL_OPENGL_ES_API ? "GLES" : "GL") << ")"
-                << " version=" << glMajor << "." << glMinor
-                << " config_id=" << configId << std::endl;
+  GtkWidget *w = gtk_widget_get_toplevel (GTK_WIDGET(self->fl_view));
+  gtk_widget_add_tick_callback(w, on_frame_tick, self,NULL);
 
-      // Get the matching EGL config
-      EGLConfig config = nullptr;
-      EGLint numConfigs = 0;
-      EGLint configAttribs[] = { EGL_CONFIG_ID, configId, EGL_NONE };
-      eglChooseConfig(flutterDpy, configAttribs, &config, 1, &numConfigs);
+  // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
+  create_swap_chain(self->viewer, nullptr, width, height);
+  create_render_target(self->viewer, ((FilamentTextureGL*)self->texture)->texture_id,width,height);   
+  update_viewport_and_camera_projection(self->viewer, width, height, 1.0f); 
 
-      if (numConfigs > 0 && config != nullptr)
-      {
-        // Bind the appropriate API (GL or GLES) to match Flutter
-        eglBindAPI(clientType == EGL_OPENGL_ES_API ? EGL_OPENGL_ES_API : EGL_OPENGL_API);
-
-        // Create utility context sharing with Flutter
-        EGLint ctxAttribs[] = {
-            EGL_CONTEXT_MAJOR_VERSION, glMajor > 0 ? glMajor : 3,
-            EGL_CONTEXT_MINOR_VERSION, glMinor > 0 ? glMinor : 0,
-            EGL_NONE
-        };
-        EGLContext utilityCtx = eglCreateContext(flutterDpy, config, flutterCtx, ctxAttribs);
-
-        if (utilityCtx != EGL_NO_CONTEXT)
-        {
-          self->flutter_egl_context = flutterCtx;
-          self->utility_egl_context = utilityCtx;
-          self->egl_display = flutterDpy;
-          self->egl_config = config;
-          self->use_direct_opengl = TRUE;
-          self->backend_type = BACKEND_OPENGL;
-          self->thermion_platform =
-              ThermionPlatformEGLHeadless_Create(flutterDpy);
-
-          std::cerr << "[ThermionGL] Created utility context=" << (void *)utilityCtx
-                    << " (shared with Flutter)" << std::endl;
-          return;
-        }
-        else
-        {
-          std::cerr << "[ThermionGL] eglCreateContext(shared) failed: 0x"
-                    << std::hex << eglGetError() << std::dec
-                    << ", falling back" << std::endl;
-        }
-      }
-      else
-      {
-        std::cerr << "[ThermionGL] Could not find EGL config for config_id="
-                  << configId << ", falling back" << std::endl;
-      }
-    }
-    else
-    {
-      std::cerr << "[ThermionGL] No EGL context current on this thread,"
-                << " falling back to LinuxOpenGLContext" << std::endl;
-    }
-  }
-
-  // Fallback: use the standalone LinuxOpenGLContext (GBM/DMA-BUF path)
-  std::cerr << "[ThermionGL] Using LinuxOpenGLContext fallback (DMA-BUF)" << std::endl;
-  self->opengl_context = new thermion::opengl::linux_platform::LinuxOpenGLContext();
-  self->backend_type = BACKEND_OPENGL;
-}
-
-static FlMethodResponse *handle_get_driver_platform(ThermionFlutterPlugin *self, FlMethodCall *method_call)
-{
-  FlValue *args = fl_method_call_get_args(method_call);
-  int backend = (args != nullptr && fl_value_get_type(args) == FL_VALUE_TYPE_INT)
-                    ? fl_value_get_int(args)
-                    : BACKEND_VULKAN;
-
-  int64_t platform = 0;
-  if (backend == BACKEND_OPENGL)
-  {
-    ensure_opengl_context(self);
-    if (self->use_direct_opengl)
-    {
-      platform = reinterpret_cast<int64_t>(self->thermion_platform);
-    }
-    else
-    {
-      platform = reinterpret_cast<int64_t>(self->opengl_context->GetPlatform());
-    }
-  }
-  else
-  {
-    ensure_vulkan_context(self);
-    platform = reinterpret_cast<int64_t>(self->vulkan_context->GetPlatform());
-  }
-
-  g_autoptr(FlValue) result = fl_value_new_int(platform);
+  g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<int64_t>(self->viewer));   
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-static FlMethodResponse *handle_get_shared_context(ThermionFlutterPlugin *self, FlMethodCall *method_call)
-{
-  FlValue *args = fl_method_call_get_args(method_call);
-  int backend = (args != nullptr && fl_value_get_type(args) == FL_VALUE_TYPE_INT)
-                    ? fl_value_get_int(args)
-                    : BACKEND_VULKAN;
+static FlMethodResponse* _create_texture(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+   if(self->texture) {
+      Log("Error - create_texture called when texture exists.");
+    } 
 
-  int64_t sharedCtx = 0;
-  if (backend == BACKEND_OPENGL)
-  {
-    ensure_opengl_context(self);
-    if (self->use_direct_opengl)
-    {
-      // Direct sharing: return Flutter's context (Filament contexts share with it)
-      sharedCtx = reinterpret_cast<int64_t>(self->flutter_egl_context);
-    }
-    else
-    {
-      sharedCtx = reinterpret_cast<int64_t>(self->opengl_context->GetSharedContext());
-    }
-  }
-  else
-  {
-    ensure_vulkan_context(self);
-    sharedCtx = reinterpret_cast<int64_t>(self->vulkan_context->GetSharedContext());
-  }
+    FlValue* args = fl_method_call_get_args(method_call);
 
-  g_autoptr(FlValue) result = fl_value_new_int(sharedCtx);
+    const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
+    const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
+
+    self->width = width;
+    self->height = height;
+
+    auto texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
+    //auto texture = create_filament_pb_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
+    self->texture = texture;
+
+    g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<int64_t>(texture));   
+
+    Log("Successfully created texture.");
+    
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
+
+
+static FlMethodResponse* _update_viewport_and_camera_projection(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+    FlValue* args = fl_method_call_get_args(method_call);
+
+    auto width = fl_value_get_int(fl_value_get_list_value(args, 0));
+    auto height = fl_value_get_int(fl_value_get_list_value(args, 1));
+    auto scaleFactor = fl_value_get_float(fl_value_get_list_value(args, 2));
+
+    update_viewport_and_camera_projection(self->viewer, width, height, scaleFactor);
+    
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));
+}
+
+
+static FlMethodResponse* _get_asset_manager(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+    auto assetManager = get_asset_manager(self->viewer);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_int(reinterpret_cast<int64_t>(assetManager))));
+}
+
+static FlMethodResponse* _resize(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  
+  const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
+  const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
+
+  destroy_filament_texture(self->texture, self->texture_registrar);
+
+  self->texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
+
+  create_swap_chain(self->viewer, nullptr, width, height);
+  create_render_target(self->viewer, ((FilamentTextureGL*)self->texture)->texture_id,width,height);
+
+  update_viewport_and_camera_projection(self->viewer, width, height, 1.0f);
+  
+  g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<int64_t>(self->texture));   
+      
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _loadSkybox(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+
+  const gchar* path = fl_value_get_string(args);
+
+  load_skybox(self->viewer, path);
+                                       
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-static FlMethodResponse *handle_create_texture_vulkan(ThermionFlutterPlugin *self, int width, int height)
-{
-  ensure_vulkan_context(self);
+static FlMethodResponse* _remove_ibl(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  remove_ibl(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
 
-  int64_t surfaceId = self->vulkan_context->CreateRenderingSurface(
-      static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-  if (surfaceId < 0)
-  {
-    return FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "CREATE_FAILED", "Failed to create Vulkan rendering surface", nullptr));
-  }
+static FlMethodResponse* _loadIbl(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
 
-  auto *extImg = static_cast<thermion::vulkan::ExternalVulkanImage *>(
-      self->vulkan_context->CreateExternalImageForSurface(surfaceId));
-  if (!extImg)
-  {
-    self->vulkan_context->DestroyRenderingSurface(surfaceId);
-    return FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "CREATE_FAILED", "Failed to create external image", nullptr));
-  }
+  auto path = fl_value_get_string(fl_value_get_list_value(args, 0));
+  auto intensity = fl_value_get_float(fl_value_get_list_value(args, 1));
 
-  (*self->external_images)[surfaceId] = extImg;
+  load_ibl(self->viewer, path, intensity);
+                                       
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
 
-  auto info = self->vulkan_context->GetSurfaceExportInfo(surfaceId);
+static FlMethodResponse* _removeSkybox(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  std::cout << "Removing skybox" << std::endl;
+  remove_skybox(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
 
-  ThermionTextureGL *textureGL = thermion_texture_gl_create(
-      info, surfaceId, self->texture_registrar);
+static FlMethodResponse* _set_background_image(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
 
-  FlTexture *flTexture = FL_TEXTURE(textureGL);
-  if (!fl_texture_registrar_register_texture(self->texture_registrar, flTexture))
-  {
-    delete extImg;
-    self->external_images->erase(surfaceId);
-    self->vulkan_context->DestroyRenderingSurface(surfaceId);
-    return FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "REGISTER_FAILED", "Failed to register texture with Flutter", nullptr));
-  }
+  FlValue* args = fl_method_call_get_args(method_call);
 
-  self->textures->push_back(textureGL);
+  const gchar* path = fl_value_get_string(args);
 
-  int64_t flutterTextureId = fl_texture_get_id(flTexture);
-  int64_t externalImagePtr = reinterpret_cast<int64_t>(extImg);
+  set_background_image(self->viewer, path);
+  
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
 
+static FlMethodResponse* _set_background_color(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  const float r = fl_value_get_float(fl_value_get_list_value(args, 0));
+  const float g = fl_value_get_float(fl_value_get_list_value(args, 1));
+  const float b = fl_value_get_float(fl_value_get_list_value(args, 2));
+  const float a = fl_value_get_float(fl_value_get_list_value(args, 3));
+  set_background_color(self->viewer, r,g,b,a);
+  
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _add_light(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+
+  FlValue* args = fl_method_call_get_args(method_call);
+  
+  auto type = (uint8_t)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto color = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto intensity = float(fl_value_get_float(fl_value_get_list_value(args, 2)));
+  auto posX = (float)fl_value_get_float(fl_value_get_list_value(args, 3));
+  auto posY = (float)fl_value_get_float(fl_value_get_list_value(args, 4));
+  auto posZ = (float)fl_value_get_float(fl_value_get_list_value(args, 5));
+  auto dirX = (float)fl_value_get_float(fl_value_get_list_value(args, 6));
+  auto dirY = (float)fl_value_get_float(fl_value_get_list_value(args, 7));
+  auto dirZ = (float)fl_value_get_float(fl_value_get_list_value(args, 8));
+  auto shadows = fl_value_get_bool(fl_value_get_list_value(args, 9));
+
+  auto entityId = add_light(self->viewer, type, color, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+  g_autoptr(FlValue) result = fl_value_new_int(entityId);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+
+}
+
+static FlMethodResponse* _load_glb(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+    FlValue* args = fl_method_call_get_args(method_call);
+    auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+    auto path = fl_value_get_string(fl_value_get_list_value(args, 1));
+    auto unlit = fl_value_get_bool(fl_value_get_list_value(args, 2));
+    auto entityId = load_glb(assetManager, path, unlit);
+    g_autoptr(FlValue) result = fl_value_new_int((int64_t)entityId);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _get_animation_names(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
   g_autoptr(FlValue) result = fl_value_new_list();
-  fl_value_append_take(result, fl_value_new_int(flutterTextureId));
-  fl_value_append_take(result, fl_value_new_int(externalImagePtr));
-  fl_value_append_take(result, fl_value_new_int(0));
 
-  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  auto numNames = get_animation_count(assetManager, asset);
+
+  for(int i = 0; i < numNames; i++) {
+    gchar out[255];
+    get_animation_name(assetManager, asset, out, i);
+    fl_value_append_take (result, fl_value_new_string (out));
+  }
+      
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse *handle_create_texture_opengl_direct(ThermionFlutterPlugin *self, int width, int height)
-{
-  // EGLImage bridge: create GL texture on utility context (Group B, same as
-  // Filament), then bridge to Flutter's render context (Group A) via EGLImage.
-  // - Filament imports the GL texture directly (same share group)
-  // - Flutter imports the EGLImage in populate() (cross share group)
+static FlMethodResponse* _remove_asset(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  remove_asset(self->viewer, asset);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
 
-  EGLDisplay display = self->egl_display;
-  GLuint glTexId = 0;
-  EGLImage eglImage = EGL_NO_IMAGE_KHR;
+static FlMethodResponse* _transform_to_unit_cube(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  transform_to_unit_cube(assetManager, asset);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
 
-  {
-    EglContextGuard guard(display);
+static FlMethodResponse* _rotate_start(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
 
-    // Make utility context current (Group B)
-    if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, self->utility_egl_context))
-    {
-      std::cerr << "[ThermionGL] Failed to make utility context current: 0x"
-                << std::hex << eglGetError() << std::dec << std::endl;
-      return FL_METHOD_RESPONSE(fl_method_error_response_new(
-          "EGL_ERROR", "Failed to make utility context current", nullptr));
-    }
+  grab_begin(self->viewer, x,y, false);
 
-    // Create GL texture on utility context
-    glGenTextures(1, &glTexId);
-    glBindTexture(GL_TEXTURE_2D, glTexId);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
 
-    // Create EGLImage from the GL texture (bridges Group B → Group A)
-    // Must be called while the owning context is current
-    EGLint imageAttribs[] = { EGL_GL_TEXTURE_LEVEL_KHR, 0, EGL_NONE };
-    eglImage = eglCreateImageKHR(
-        display, self->utility_egl_context,
-        EGL_GL_TEXTURE_2D_KHR,
-        (EGLClientBuffer)(uintptr_t)glTexId,
-        imageAttribs);
-  } // guard restores previous context
+static FlMethodResponse* _rotate_end(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  grab_end(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
 
-  if (eglImage == EGL_NO_IMAGE_KHR)
-  {
-    EGLint err = eglGetError();
-    std::cerr << "[ThermionGL] eglCreateImageKHR failed: 0x"
-              << std::hex << err << std::dec << std::endl;
-    {
-      EglContextGuard guard(display);
-      eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, self->utility_egl_context);
-      glDeleteTextures(1, &glTexId);
-    }
-    return FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "EGL_ERROR", "Failed to create EGLImage from GL texture", nullptr));
+static FlMethodResponse* _rotate_update(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+
+  grab_update(self->viewer, x,y);
+
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _pan_start(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+
+  FlValue* args = fl_method_call_get_args(method_call);
+
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+
+  grab_begin(self->viewer, x,y, true);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _pan_update(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+
+  grab_update(self->viewer, x,y);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _pan_end(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  grab_end(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_position(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+
+  set_position(
+    assetManager,
+    asset, 
+    (float)fl_value_get_float(fl_value_get_list_value(args, 2)), // x
+    (float)fl_value_get_float(fl_value_get_list_value(args, 3)), // y
+    (float)fl_value_get_float(fl_value_get_list_value(args, 4)) // z
+  );
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_rotation(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+
+  set_rotation(
+    assetManager,
+    asset, 
+    (float)fl_value_get_float(fl_value_get_list_value(args, 2)), // rads
+    (float)fl_value_get_float(fl_value_get_list_value(args, 3)), // x
+    (float)fl_value_get_float(fl_value_get_list_value(args, 4)), // y
+  (float)fl_value_get_float(fl_value_get_list_value(args, 5 )) // z
+  );
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+
+
+static FlMethodResponse* _set_bone_transform(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+   throw std::invalid_argument( "received negative value" );
+  // FlValue* args = fl_method_call_get_args(method_call);
+  // auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  // auto boneName = fl_value_get_string(fl_value_get_list_value(args, 1));
+  // auto meshName = fl_value_get_string(fl_value_get_list_value(args, 2));
+
+  // set_bone_transform(
+  //   assetPtr, 
+  //   boneName,
+  //   meshName,
+  //   (float)fl_value_get_float(fl_value_get_list_value(args, 3)), // transX
+  //   (float)fl_value_get_float(fl_value_get_list_value(args, 4)), // transY
+  //   (float)fl_value_get_float(fl_value_get_list_value(args, 5)), // transZ
+  //   (float)fl_value_get_float(fl_value_get_list_value(args, 6)), // quatX
+  //   (float)fl_value_get_float(fl_value_get_list_value(args, 7)), // quatY
+  //   (float)fl_value_get_float(fl_value_get_list_value(args, 8)), // quatZ
+  //   (float)fl_value_get_float(fl_value_get_list_value(args, 9)) // quatW
+  // );
+  // g_autoptr(FlValue) result = fl_value_new_string("OK");
+  // return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_camera(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto cameraName = fl_value_get_string(fl_value_get_list_value(args, 1)) ;
+  
+  set_camera(self->viewer, asset, cameraName);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_camera_model_matrix(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  set_camera_model_matrix(self->viewer, fl_value_get_float32_list(args));
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_camera_exposure(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto aperture = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto shutter_speed = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto sensitivity = (float)fl_value_get_float(fl_value_get_list_value(args, 2));
+  set_camera_exposure(self->viewer, aperture, shutter_speed, sensitivity);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_camera_position(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto z = (float)fl_value_get_float(fl_value_get_list_value(args, 2));
+  set_camera_position(self->viewer, x,y, z);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_camera_rotation(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto rads = (float)fl_value_get_float(fl_value_get_list_value(args,0 ));
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 2));
+  auto z = (float)fl_value_get_float(fl_value_get_list_value(args, 3));
+  
+  set_camera_rotation(self->viewer, rads, x,y, z);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_rendering(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  self->rendering = (bool)fl_value_get_bool(args);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_frame_interval(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto val = (float) fl_value_get_float(args);
+  set_frame_interval(self->viewer, val);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _grab_begin(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto pan = (bool)fl_value_get_bool(fl_value_get_list_value(args, 2));
+  grab_begin(self->viewer, x, y, pan);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _grab_end(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  grab_end(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _grab_update(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  
+  grab_update(self->viewer, x,y);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _scroll_begin(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  scroll_begin(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _scroll_end(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  scroll_end(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _scroll_update(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto z = (float)fl_value_get_float(fl_value_get_list_value(args, 2));
+  
+  scroll_update(self->viewer, x,y, z);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _play_animation(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  auto animationId = (int)fl_value_get_int(fl_value_get_list_value(args, 2));  
+  auto loop = (bool)fl_value_get_bool(fl_value_get_list_value(args, 3));  
+  auto reverse = (bool)fl_value_get_bool(fl_value_get_list_value(args, 4));  
+  auto replaceActive = (bool)fl_value_get_bool(fl_value_get_list_value(args, 5));  
+  auto crossfade = (bool)fl_value_get_float(fl_value_get_list_value(args, 6));  
+  play_animation(assetManager, asset, animationId, loop, reverse, replaceActive, crossfade);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+
+static FlMethodResponse* _stop_animation(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  auto animationId = (int)fl_value_get_int(fl_value_get_list_value(args, 2));  
+  stop_animation(assetManager, asset, animationId);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+
+static FlMethodResponse* _set_morph_target_weights(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  auto entityName = fl_value_get_string(fl_value_get_list_value(args, 2));
+  auto flWeights = fl_value_get_list_value(args, 3);
+  size_t numWeights = fl_value_get_length(flWeights);
+
+  std::vector<float> weights(numWeights);
+  for(int i =0; i < numWeights; i++) {
+      float val = fl_value_get_float(fl_value_get_list_value(flWeights, i));
+      weights[i] = val;
+  }
+    
+  set_morph_target_weights(assetManager, asset, entityName, weights.data(), (int)numWeights);
+  
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+template class std::vector<int>;
+
+static FlMethodResponse* _set_morph_animation(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  auto entityName = fl_value_get_string(fl_value_get_list_value(args, 2));
+  
+  auto morphDataList = fl_value_get_list_value(args, 3);
+  auto morphDataListLength = fl_value_get_length(morphDataList);
+  auto morphData = std::vector<float>(morphDataListLength);
+  
+  for(int i =0; i < morphDataListLength; i++) {
+    morphData[i] = fl_value_get_float(fl_value_get_list_value(morphDataList, i));
   }
 
-  // Register with Flutter using the EGLImage bridge path — populate() will
-  // import the EGLImage into a new texture on Flutter's render context
-  ThermionTextureGL *textureGL = thermion_texture_gl_create_shared(
-      static_cast<uint32_t>(width), static_cast<uint32_t>(height),
-      glTexId, eglImage,
-      static_cast<int64_t>(glTexId),  // surface_id = GL texture ID (for Filament import)
-      self->texture_registrar);
-
-  FlTexture *flTexture = FL_TEXTURE(textureGL);
-  if (!fl_texture_registrar_register_texture(self->texture_registrar, flTexture))
-  {
-    eglDestroyImageKHR(display, eglImage);
-    {
-      EglContextGuard guard(display);
-      eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, self->utility_egl_context);
-      glDeleteTextures(1, &glTexId);
-    }
-    return FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "REGISTER_FAILED", "Failed to register texture with Flutter", nullptr));
+  auto morphIndicesList = fl_value_get_list_value(args, 4);
+  auto morphIndicesListLength =  fl_value_get_length(morphIndicesList);
+  auto indices = std::vector<int32_t>(morphIndicesListLength);
+  
+  for(int i =0; i < morphIndicesListLength; i++) {
+    FlValue* flMorphIndex = fl_value_get_list_value(morphIndicesList, i);
+    indices[i] = static_cast<int32_t>(fl_value_get_int(flMorphIndex));
   }
+  
+  int64_t numMorphTargets = fl_value_get_int(fl_value_get_list_value(args, 5));
+  int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 6));
+  float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 7));
 
-  self->textures->push_back(textureGL);
-  int64_t flutterTextureId = fl_texture_get_id(flTexture);
+  bool success = set_morph_animation(
+      assetManager, 
+      asset, 
+      (const char *const)entityName, 
+      (const float *const)morphData.data(), 
+      (const int* const)indices.data(), 
+      static_cast<int>(numMorphTargets), 
+      static_cast<int>(numFrames), 
+      frameLengthInMs
+  );  
+  g_autoptr(FlValue) result = fl_value_new_bool(success);
 
-  std::cerr << "[ThermionGL] EGLImage bridge: GL=" << glTexId
-            << " EGLImage=" << (void*)eglImage
-            << " flutterId=" << flutterTextureId
-            << " (" << width << "x" << height << ")" << std::endl;
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
 
+static FlMethodResponse* _set_animation(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+   throw std::invalid_argument( "received negative value" );
+  // FlValue* args = fl_method_call_get_args(method_call);
+  // auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+
+  // const char* entityName = fl_value_get_string(fl_value_get_list_value(args, 1));  
+  
+  // float* const morphData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(args, 2));  
+  
+  // int64_t numMorphWeights = fl_value_get_int(fl_value_get_list_value(args, 3));
+
+  // FlValue* flBoneAnimations = fl_value_get_list_value(args, 4);
+
+  // size_t numBoneAnimations = fl_value_get_length(flBoneAnimations);
+
+  // vector<BoneAnimation> boneAnimations;
+
+  // for(int i = 0; i < numBoneAnimations; i++) {  
+    
+  //   FlValue* flBoneAnimation = fl_value_get_list_value(flBoneAnimations, i);
+
+  //   FlValue* flBoneNames = fl_value_get_list_value(flBoneAnimation, 0);  
+  //   FlValue* flMeshNames = fl_value_get_list_value(flBoneAnimation, 1);  
+  //   float* const frameData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(flBoneAnimation, 2));  
+
+  //   Log("Framedata %f", frameData);
+
+  //   vector<const char*> boneNames;
+  //   boneNames.resize(fl_value_get_length(flBoneNames));
+
+  //   for(int i=0; i < boneNames.size(); i++) {
+  //     boneNames[i] = fl_value_get_string(fl_value_get_list_value(flBoneNames, i)) ;
+  //   }
+
+  //   vector<const char*> meshNames;
+  //   meshNames.resize(fl_value_get_length(flMeshNames));
+  //   for(int i=0; i < meshNames.size(); i++) {
+  //     meshNames[i] = fl_value_get_string(fl_value_get_list_value(flMeshNames, i));
+  //   }
+  
+  //   const char** boneNamesPtr = (const char**)malloc(boneNames.size() * sizeof(char*));
+  //   memcpy((void*)boneNamesPtr, (void*)boneNames.data(), boneNames.size() * sizeof(char*));
+  //   auto meshNamesPtr = (const char**)malloc(meshNames.size() * sizeof(char*));
+  //   memcpy((void*)meshNamesPtr, (void*)meshNames.data(), meshNames.size() * sizeof(char*));
+
+  //   BoneAnimation animation {
+  //     .boneNames = boneNamesPtr,
+  //     .meshNames = meshNamesPtr,
+  //     .data = frameData,
+  //     .numBones = boneNames.size(),
+  //     .numMeshTargets = meshNames.size()
+  //   };
+
+  //   boneAnimations.push_back(animation);
+
+  // }
+
+  // int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 5));
+  
+  // float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 6));
+
+  // auto boneAnimationsPointer = boneAnimations.data();
+  // auto boneAnimationsSize = boneAnimations.size();
+  
+  // set_animation(
+  //   assetPtr, 
+  //   entityName,
+  //   morphData, 
+  //   numMorphWeights, 
+  //   boneAnimationsPointer,
+  //   boneAnimationsSize,
+  //   numFrames, 
+  //   frameLengthInMs);
+
+  // g_autoptr(FlValue) result = fl_value_new_string("OK");
+  // return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _get_morph_target_names(ThermionFlutterPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  auto meshName = fl_value_get_string(fl_value_get_list_value(args, 2));
+  
   g_autoptr(FlValue) result = fl_value_new_list();
-  fl_value_append_take(result, fl_value_new_int(flutterTextureId));
-  fl_value_append_take(result, fl_value_new_int(static_cast<int64_t>(glTexId)));  // hardwareId = GL texture (visible to Filament)
-  fl_value_append_take(result, fl_value_new_int(0));
 
-  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  auto numNames = get_morph_target_name_count(assetManager, asset, meshName);
+
+  for(int i = 0; i < numNames; i++) {
+    gchar out[255];
+    get_morph_target_name(assetManager, asset, meshName, out, i);
+    fl_value_append_take (result, fl_value_new_string (out));
+  }
+      
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-// DMA-BUF fallback path for OpenGL
-static FlMethodResponse *handle_create_texture_opengl_dmabuf(ThermionFlutterPlugin *self, int width, int height)
-{
-  int64_t surfaceId = self->opengl_context->CreateRenderingSurface(
-      static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-  if (surfaceId < 0)
-  {
-    return FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "CREATE_FAILED", "Failed to create OpenGL rendering surface", nullptr));
-  }
-
-  auto info = self->opengl_context->GetSurfaceExportInfo(surfaceId);
-
-  ThermionTextureGL *textureGL = thermion_texture_gl_create(
-      info, surfaceId, self->texture_registrar);
-
-  FlTexture *flTexture = FL_TEXTURE(textureGL);
-  if (!fl_texture_registrar_register_texture(self->texture_registrar, flTexture))
-  {
-    self->opengl_context->DestroyRenderingSurface(surfaceId);
-    return FL_METHOD_RESPONSE(fl_method_error_response_new(
-        "REGISTER_FAILED", "Failed to register texture with Flutter", nullptr));
-  }
-
-  self->textures->push_back(textureGL);
-
-  int64_t flutterTextureId = fl_texture_get_id(flTexture);
-  // For OpenGL, hardwareId is the GL texture ID (used by Dart for Texture::Builder().import())
-  uint32_t glTextureId = self->opengl_context->GetGLTextureId(surfaceId);
-
-  g_autoptr(FlValue) result = fl_value_new_list();
-  fl_value_append_take(result, fl_value_new_int(flutterTextureId));
-  fl_value_append_take(result, fl_value_new_int(static_cast<int64_t>(glTextureId)));
-  fl_value_append_take(result, fl_value_new_int(0));
-
-  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+static FlMethodResponse* _set_tone_mapping(ThermionFlutterPlugin* self, FlMethodCall* method_call) {
+  FlValue* args = fl_method_call_get_args(method_call);
+  thermion_flutter::ToneMapping toneMapping = static_cast<thermion_flutter::ToneMapping>(fl_value_get_int(args)); 
+  set_tone_mapping(self->viewer, toneMapping);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
 }
 
-static FlMethodResponse *handle_create_texture_opengl(ThermionFlutterPlugin *self, int width, int height)
-{
-  ensure_opengl_context(self);
-
-  if (self->use_direct_opengl)
-  {
-    return handle_create_texture_opengl_direct(self, width, height);
-  }
-  return handle_create_texture_opengl_dmabuf(self, width, height);
-}
-
-
-static FlMethodResponse *handle_create_texture(ThermionFlutterPlugin *self, FlMethodCall *method_call)
-{
-  FlValue *args = fl_method_call_get_args(method_call);
-  int width = fl_value_get_int(fl_value_get_list_value(args, 0));
-  int height = fl_value_get_int(fl_value_get_list_value(args, 1));
-
-  if (self->backend_type == BACKEND_OPENGL)
-  {
-    return handle_create_texture_opengl(self, width, height);
-  }
-  else
-  {
-    return handle_create_texture_vulkan(self, width, height);
-  }
-}
-
-static FlMethodResponse *handle_destroy_texture(ThermionFlutterPlugin *self, FlMethodCall *method_call)
-{
-  FlValue *args = fl_method_call_get_args(method_call);
-  int64_t flutterTextureId = fl_value_get_int(args);
-
-  for (auto it = self->textures->begin(); it != self->textures->end(); ++it)
-  {
-    ThermionTextureGL *tex = *it;
-    if (fl_texture_get_id(FL_TEXTURE(tex)) == flutterTextureId)
-    {
-      int64_t surfaceId = tex->surface_id;
-
-      fl_texture_registrar_unregister_texture(self->texture_registrar, FL_TEXTURE(tex));
-
-      if (self->backend_type == BACKEND_OPENGL)
-      {
-        if (tex->use_direct_sharing || tex->use_egl_image)
-        {
-          // Direct sharing / EGLImage bridge: delete the source GL texture on utility context
-          GLuint texId = tex->gl_texture_id;
-          if (texId != 0 && self->utility_egl_context != EGL_NO_CONTEXT)
-          {
-            EglContextGuard guard(self->egl_display);
-            eglMakeCurrent(self->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                           self->utility_egl_context);
-            glDeleteTextures(1, &texId);
-          }
-        }
-        else if (self->opengl_context)
-        {
-          self->opengl_context->DestroyRenderingSurface(surfaceId);
-        }
-      }
-      else
-      {
-        // Vulkan path: clean up external image
-        auto extIt = self->external_images->find(surfaceId);
-        if (extIt != self->external_images->end())
-        {
-          delete extIt->second;
-          self->external_images->erase(extIt);
-        }
-        if (self->vulkan_context)
-        {
-          self->vulkan_context->DestroyRenderingSurface(surfaceId);
-        }
-      }
-
-      self->textures->erase(it);
-      break;
-    }
-  }
-
-  g_autoptr(FlValue) result = fl_value_new_null();
-  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-}
-
-static FlMethodResponse *handle_mark_texture_frame_available(ThermionFlutterPlugin *self, FlMethodCall *method_call)
-{
-  static auto lastMark = std::chrono::high_resolution_clock::now();
-  auto now = std::chrono::high_resolution_clock::now();
-  auto intervalUs = std::chrono::duration_cast<std::chrono::microseconds>(now - lastMark).count();
-  // fprintf(stderr, "[TexMark] %.2f ms\n", intervalUs / 1000.0);
-  lastMark = now;
-
-  FlValue *args = fl_method_call_get_args(method_call);
-  int64_t flutterTextureId = fl_value_get_int(args);
-
-  for (auto *tex : *self->textures)
-  {
-    if (fl_texture_get_id(FL_TEXTURE(tex)) == flutterTextureId)
-    {
-      // Direct OpenGL path: ensure Filament's rendering is flushed
-      // before Flutter reads the texture
-      if (self->backend_type == BACKEND_OPENGL && self->use_direct_opengl)
-      {
-        static int markCount = 0;
-        markCount++;
-        if (markCount <= 5 || markCount % 60 == 0) {
-          fprintf(stderr, "[MarkFrame] #%d tex_id=%lld\n", markCount, (long long)tex->surface_id);
-        }
-      }
-
-      // Vulkan path may need blit; OpenGL path never needs blit
-      if (self->backend_type == BACKEND_VULKAN && self->vulkan_context)
-      {
-        if (self->vulkan_context->NeedsBlit(tex->surface_id))
-        {
-          self->vulkan_context->BlitToExport(tex->surface_id);
-        }
-      }
-
-      fl_texture_registrar_mark_texture_frame_available(
-          self->texture_registrar, FL_TEXTURE(tex));
-      break;
-    }
-  }
-
-  g_autoptr(FlValue) result = fl_value_new_null();
-  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-}
-
-static FlMethodResponse *handle_destroy_context(ThermionFlutterPlugin *self)
-{
-  destroy_all_contexts(self);
-  g_autoptr(FlValue) result = fl_value_new_null();
-  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-}
-
-// Deferred response: returns the GL texture ID once populate() has created it.
-// If the texture is already ready, responds immediately.
-// Otherwise, stores the method_call and responds later from populate().
-static void handle_await_texture_ready(ThermionFlutterPlugin *self, FlMethodCall *method_call)
-{
-  FlValue *args = fl_method_call_get_args(method_call);
-  int64_t flutterTextureId = fl_value_get_int(args);
-
-  for (auto *tex : *self->textures)
-  {
-    if (fl_texture_get_id(FL_TEXTURE(tex)) == flutterTextureId)
-    {
-      if (tex->gl_texture_id != 0)
-      {
-        // Already ready (populate already ran)
-        g_autoptr(FlValue) result = fl_value_new_int(
-            static_cast<int64_t>(tex->gl_texture_id));
-        fl_method_call_respond(method_call,
-                               FL_METHOD_RESPONSE(fl_method_success_response_new(result)), nullptr);
-      }
-      else
-      {
-        // Defer — store method_call, respond later from populate()
-        g_object_ref(method_call);
-        tex->pending_ready_call = method_call;
-        std::cerr << "[ThermionGL] awaitTextureReady: deferred for flutterId=" << flutterTextureId << std::endl;
-      }
-      return;
-    }
-  }
-
-  // Not found
-  fl_method_call_respond(method_call,
-                         FL_METHOD_RESPONSE(fl_method_error_response_new(
-                             "NOT_FOUND", "Texture not registered", nullptr)),
-                         nullptr);
+static FlMethodResponse* _set_bloom(ThermionFlutterPlugin* self, FlMethodCall* method_call) {
+  FlValue* args = fl_method_call_get_args(method_call);
+  set_bloom(self->viewer, fl_value_get_float(args));
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
 }
 
 // Called when a method call is received from Flutter.
 static void thermion_flutter_plugin_handle_method_call(
-    ThermionFlutterPlugin *self,
-    FlMethodCall *method_call)
-{
+    ThermionFlutterPlugin* self,
+    FlMethodCall* method_call) {
 
   g_autoptr(FlMethodResponse) response = nullptr;
-  const gchar *method = fl_method_call_get_name(method_call);
 
-  // awaitTextureReady manages its own response (deferred pattern)
-  if (strcmp(method, "awaitTextureReady") == 0)
-  {
-    handle_await_texture_ready(self, method_call);
-    return;
-  }
+  const gchar* method = fl_method_call_get_name(method_call);
 
-  if (strcmp(method, "getDriverPlatform") == 0)
-  {
-    response = handle_get_driver_platform(self, method_call);
-  }
-  else if (strcmp(method, "getSharedContext") == 0)
-  {
-    response = handle_get_shared_context(self, method_call);
-  }
-  else if (strcmp(method, "createTexture") == 0)
-  {
-    response = handle_create_texture(self, method_call);
-  }
-  else if (strcmp(method, "destroyTexture") == 0)
-  {
-    response = handle_destroy_texture(self, method_call);
-  }
-  else if (strcmp(method, "markTextureFrameAvailable") == 0)
-  {
-    response = handle_mark_texture_frame_available(self, method_call);
-  }
-  else if (strcmp(method, "destroyContext") == 0)
-  {
-    response = handle_destroy_context(self);
-  }
-  else
-  {
+  if(strcmp(method, "createThermionViewerFFI") == 0) {
+    response = _create_filament_viewer(self, method_call);
+  } else if(strcmp(method, "createTexture") == 0) {
+    response = _create_texture(self, method_call);    
+  } else if(strcmp(method, "updateViewportAndCameraProjection")==0){ 
+    response = _update_viewport_and_camera_projection(self, method_call);
+  } else if(strcmp(method, "getAssetManager") ==0){ 
+    response = _get_asset_manager(self, method_call);
+  } else if(strcmp(method, "setToneMapping") == 0) {
+    response = _set_tone_mapping(self, method_call);
+  } else if(strcmp(method, "setBloom") == 0) {
+    response = _set_bloom(self, method_call);
+  } else if(strcmp(method, "resize") == 0) {
+    response = _resize(self, method_call);
+  } else if(strcmp(method, "getContext") == 0) {
+    g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<int64_t>(glXGetCurrentContext()));   
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  } else if(strcmp(method, "getGlTextureId") == 0) {
+    g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<unsigned int>(((FilamentTextureGL*)self->texture)->texture_id));   
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  } else if(strcmp(method, "getResourceLoader") == 0) {
+    ResourceLoaderWrapper* resourceLoader = new ResourceLoaderWrapper(loadResource, freeResource);
+    g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<int64_t>(resourceLoader));   
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  } else if(strcmp(method, "setRendering") == 0) {
+    self->rendering =  fl_value_get_bool(fl_method_call_get_args(method_call));
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
+  } else if(strcmp(method, "loadSkybox") == 0) {
+    response = _loadSkybox(self, method_call);
+  } else if(strcmp(method, "loadIbl") == 0) {
+    response = _loadIbl(self, method_call);
+  } else if(strcmp(method, "removeIbl") ==0) { 
+    response = _remove_ibl(self, method_call);
+  } else if(strcmp(method, "removeSkybox") == 0) {
+    response = _removeSkybox(self, method_call);    
+  } else if(strcmp(method, "render") == 0) {
+    render(self->viewer, 0);
+    g_autoptr(FlValue) result = fl_value_new_string("OK");
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+  } else if(strcmp(method, "setBackgroundColor") == 0) {
+    response = _set_background_color(self, method_call);
+  } else if(strcmp(method, "setBackgroundImage") == 0) {
+    response = _set_background_image(self, method_call);
+  } else if(strcmp(method, "addLight") == 0) {
+    response = _add_light(self, method_call);  
+  } else if(strcmp(method, "loadGlb") == 0) {
+    response = _load_glb(self, method_call);
+  } else if(strcmp(method, "getAnimationNames") == 0) {
+    response = _get_animation_names(self, method_call);
+  } else if(strcmp(method, "clearAssets") == 0) {
+    clear_assets(self->viewer);
+    g_autoptr(FlValue) result = fl_value_new_string("OK");
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+  } else if(strcmp(method, "removeAsset") == 0) {
+    response = _remove_asset(self, method_call);
+  } else if(strcmp(method, "transformToUnitCube") == 0) {
+    response = _transform_to_unit_cube(self, method_call);
+  } else if(strcmp(method, "clearLights") == 0) {
+    clear_lights(self->viewer);
+    g_autoptr(FlValue) result = fl_value_new_string("OK");
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+  } else if(strcmp(method, "panStart") == 0) {
+    response = _pan_start(self, method_call);
+  } else if(strcmp(method, "panEnd") == 0) {
+    response = _pan_end(self, method_call);
+  } else if(strcmp(method, "panUpdate") == 0) {
+    response = _pan_update(self, method_call);
+  } else if(strcmp(method, "rotateStart") == 0) {
+    response = _rotate_start(self, method_call);
+  } else if(strcmp(method, "rotateEnd") == 0) {
+    response = _rotate_end(self, method_call);
+  } else if(strcmp(method, "rotateUpdate") == 0) {
+    response = _rotate_update(self, method_call);
+  } else if(strcmp(method, "setRotation") == 0) {
+    response = _set_rotation(self, method_call);
+  } else if(strcmp(method, "setCamera") == 0) {
+    response = _set_camera(self, method_call);
+  } else if(strcmp(method, "setCameraModelMatrix") == 0) {
+    response = _set_camera_model_matrix(self, method_call);
+  } else if(strcmp(method, "setCameraExposure") == 0) {
+    response = _set_camera_exposure(self, method_call);
+  } else if(strcmp(method, "setCameraPosition") == 0) {
+    response = _set_camera_position(self, method_call);
+  } else if(strcmp(method, "setCameraRotation") == 0) {
+    response = _set_camera_rotation(self, method_call);
+  } else if(strcmp(method, "setFrameInterval") == 0) {
+    response = _set_frame_interval(self, method_call);
+  } else if(strcmp(method, "scrollBegin") == 0) {
+    response = _scroll_begin(self, method_call);
+  } else if(strcmp(method, "scrollEnd") == 0) {
+    response = _scroll_end(self, method_call);
+  } else if(strcmp(method, "scrollUpdate") == 0) {
+    response = _scroll_update(self, method_call);
+  } else if(strcmp(method, "grabBegin") == 0) {
+    response = _grab_begin(self, method_call);
+  } else if(strcmp(method, "grabEnd") == 0) {
+    response = _grab_end(self, method_call);
+  } else if(strcmp(method, "grabUpdate") == 0) {
+    response = _grab_update(self, method_call);
+  } else if(strcmp(method, "playAnimation") == 0) {
+    response = _play_animation(self, method_call);
+  } else if(strcmp(method, "stopAnimation") == 0) {
+    response = _stop_animation(self, method_call);
+  } else if(strcmp(method, "setMorphTargetWeights") == 0) {
+    response = _set_morph_target_weights(self, method_call);
+  } else if(strcmp(method, "setMorphAnimation") == 0) {
+    response = _set_morph_animation(self, method_call);
+  } else if(strcmp(method, "getMorphTargetNames") == 0) {
+    response = _get_morph_target_names(self, method_call);
+  } else if(strcmp(method, "setPosition") == 0) {
+    response = _set_position(self, method_call);
+  } else if(strcmp(method, "setBoneTransform") == 0) {
+    response = _set_bone_transform(self, method_call);
+  } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
   fl_method_call_respond(method_call, response, nullptr);
+
 }
 
-static void thermion_flutter_plugin_dispose(GObject *object)
-{
-  ThermionFlutterPlugin *self = FLUTTER_FILAMENT_PLUGIN(object);
-
-  destroy_all_contexts(self);
-
-  if (self->textures)
-  {
-    delete self->textures;
-    self->textures = nullptr;
-  }
-  if (self->external_images)
-  {
-    for (auto &pair : *self->external_images)
-    {
-      delete pair.second;
-    }
-    delete self->external_images;
-    self->external_images = nullptr;
-  }
+static void thermion_flutter_plugin_dispose(GObject* object) {
   G_OBJECT_CLASS(thermion_flutter_plugin_parent_class)->dispose(object);
 }
 
-static void thermion_flutter_plugin_class_init(ThermionFlutterPluginClass *klass)
-{
+static void thermion_flutter_plugin_class_init(ThermionFlutterPluginClass* klass) {
   G_OBJECT_CLASS(klass)->dispose = thermion_flutter_plugin_dispose;
 }
 
-static void thermion_flutter_plugin_init(ThermionFlutterPlugin *self)
-{
-  self->backend_type = 0;
-  self->view = nullptr;
-  self->vulkan_context = nullptr;
-  self->flutter_egl_context = EGL_NO_CONTEXT;
-  self->utility_egl_context = EGL_NO_CONTEXT;
-  self->egl_display = EGL_NO_DISPLAY;
-  self->egl_config = nullptr;
-  self->use_direct_opengl = FALSE;
-  self->thermion_platform = nullptr;
-  self->opengl_context = nullptr;
-  self->textures = new std::vector<ThermionTextureGL *>();
-  self->external_images = new std::unordered_map<int64_t, thermion::vulkan::ExternalVulkanImage *>();
-}
+static void thermion_flutter_plugin_init(ThermionFlutterPlugin* self) {}
 
-static void method_call_cb(FlMethodChannel *channel, FlMethodCall *method_call,
-                           gpointer user_data)
-{
-  ThermionFlutterPlugin *plugin = FLUTTER_FILAMENT_PLUGIN(user_data);
+static void method_call_cb(FlMethodChannel* channel, FlMethodCall* method_call,
+                           gpointer user_data) {
+  ThermionFlutterPlugin* plugin = FLUTTER_FILAMENT_PLUGIN(user_data);
   thermion_flutter_plugin_handle_method_call(plugin, method_call);
 }
 
-// Global plugin instance for cross-library access (native render loop)
-static ThermionFlutterPlugin* g_plugin_instance = nullptr;
-
-void thermion_flutter_plugin_register_with_registrar(FlPluginRegistrar *registrar)
-{
-  ThermionFlutterPlugin *plugin = FLUTTER_FILAMENT_PLUGIN(
+void thermion_flutter_plugin_register_with_registrar(FlPluginRegistrar* registrar) {
+  ThermionFlutterPlugin* plugin = FLUTTER_FILAMENT_PLUGIN(
       g_object_new(thermion_flutter_plugin_get_type(), nullptr));
+
+  FlView* fl_view = fl_plugin_registrar_get_view(registrar);
+  plugin->fl_view = fl_view;
 
   plugin->texture_registrar =
       fl_plugin_registrar_get_texture_registrar(registrar);
-  plugin->view = fl_plugin_registrar_get_view(registrar);
-
-  g_plugin_instance = plugin;
 
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   g_autoptr(FlMethodChannel) channel =
@@ -800,22 +880,10 @@ void thermion_flutter_plugin_register_with_registrar(FlPluginRegistrar *registra
   g_object_unref(plugin);
 }
 
-// === Exported symbols for cross-library native render loop ===
 
-extern "C" __attribute__((visibility("default")))
-void* thermion_flutter_get_plugin_handle() {
-  return g_plugin_instance;
-}
 
-// Called from thermion_dart's native render loop (post-render callback)
-// after each frame. Marks all textures as frame-available so Flutter
-// picks up the new content on its next raster pass.
-extern "C" __attribute__((visibility("default")))
-void thermion_flutter_mark_textures(void* pluginPtr) {
-  auto* self = FLUTTER_FILAMENT_PLUGIN(pluginPtr);
-  if (!self || !self->textures || !self->texture_registrar) return;
-  for (auto* tex : *self->textures) {
-    fl_texture_registrar_mark_texture_frame_available(
-        self->texture_registrar, FL_TEXTURE(tex));
-  }
-}
+
+
+
+
+  

@@ -1,4 +1,3 @@
-#define GDK_WINDOWING_X11 TRUE
 #include "my_application.h"
 
 int main(int argc, char** argv) {

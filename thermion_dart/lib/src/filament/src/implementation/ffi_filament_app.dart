@@ -45,7 +45,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
   final Pointer<TRenderer> renderer;
   final Pointer<TRenderManager> renderManager;
-  final Pointer<Void> renderThreadHandle;
 
   final Pointer<TMaterialProvider> ubershaderMaterialProvider;
 
@@ -66,7 +65,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Pointer<TTransformManager> transformManagerPtr,
       this.ubershaderMaterialProvider,
       this.renderManager,
-      this.renderThreadHandle,
       this.nameComponentManager,
       Future<Uint8List> Function(String uri)? loadResource,
       Pointer<TLightManager> lightManagerPointer,
@@ -107,7 +105,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     RenderThread_destroy();
-    final renderThreadHandle = RenderThread_create();
+    RenderThread_create();
 
     final engine = await withPointerCallback<TEngine>((cb) =>
         Engine_createRenderThread(
@@ -149,7 +147,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         transformManager,
         ubershaderMaterialProvider,
         renderManager,
-        renderThreadHandle,
         nameComponentManager,
         config.loadResource,
         lightManager,
@@ -750,7 +747,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     _processingRenderHooks = false;
 
-    final frameTimeInNanos = DateTime.now().microsecondsSinceEpoch * 1000;
+    final frameTimeInNanos = DateTime.now().microsecond * 1000000;
 
     await withVoidCallback((requestId, cb) {
       RenderManager_renderRenderThread(

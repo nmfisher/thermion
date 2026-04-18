@@ -19,22 +19,7 @@ public:
 
     virtual ~FrameScheduler() = default;
     virtual void start(Callback callback) = 0;
-    virtual void startWithPort(int64_t port) {}
     virtual void stop() = 0;
-
-    void setRenderThread(void* renderThread) { _renderThread = renderThread; }
-    void* renderThread() const { return _renderThread; }
-
-    static FrameScheduler* create(int targetFps);
-
-protected:
-    Callback _callback = nullptr;
-    int64_t _dartPort = 0;
-    bool _usePortMode = false;
-    void* _renderThread = nullptr;
-
-    void dispatchFrame(uint64_t nanos);
-    void resetState();
 };
 
 /// Timer-based fallback (Windows, Linux, Android, etc.).
@@ -46,7 +31,6 @@ public:
     explicit TimerFrameScheduler(int targetFps) : _targetFps(targetFps) {}
     ~TimerFrameScheduler() override { stop(); }
     void start(Callback callback) override;
-    void startWithPort(int64_t port) override;
     void stop() override;
 };
 
@@ -54,10 +38,13 @@ public:
 /// iOS CADisplayLink-based scheduler for proper vsync timing.
 class CADisplayLinkScheduler : public FrameScheduler {
     void* _wrapper = nullptr;
+    Callback _callback = nullptr;
+    int64_t _dartPort = 0;
+    bool _usePortMode = false;
 public:
     ~CADisplayLinkScheduler() override { stop(); }
     void start(Callback callback) override;
-    void startWithPort(int64_t port) override;
+    void startWithPort(int64_t port);
     void stop() override;
 private:
     static void displayLinkCallback(uint64_t frameTimeNanos, void* context);
@@ -68,10 +55,13 @@ private:
 /// macOS CVDisplayLink-based scheduler for proper vsync timing.
 class CVDisplayLinkScheduler : public FrameScheduler {
     CVDisplayLinkRef _displayLink = nullptr;
+    Callback _callback = nullptr;
+    int64_t _dartPort = 0;
+    bool _usePortMode = false;
 public:
     ~CVDisplayLinkScheduler() override { stop(); }
     void start(Callback callback) override;
-    void startWithPort(int64_t port) override;
+    void startWithPort(int64_t port);
     void stop() override;
 private:
     static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink,
@@ -85,12 +75,15 @@ private:
 class DXGIFrameScheduler : public FrameScheduler {
     std::thread* _thread = nullptr;
     std::atomic<bool> _running{false};
+    Callback _callback = nullptr;
+    int64_t _dartPort = 0;
+    bool _usePortMode = false;
     int _targetFps;
 public:
     explicit DXGIFrameScheduler(int targetFps) : _targetFps(targetFps) {}
     ~DXGIFrameScheduler() override { stop(); }
     void start(Callback callback) override;
-    void startWithPort(int64_t port) override;
+    void startWithPort(int64_t port);
     void stop() override;
 };
 #endif
@@ -101,12 +94,15 @@ public:
 class AChoreographerFrameScheduler : public FrameScheduler {
     std::thread* _thread = nullptr;
     std::atomic<bool> _running{false};
+    Callback _callback = nullptr;
+    int64_t _dartPort = 0;
+    bool _usePortMode = false;
     void* _looper = nullptr;  // ALooper*
     void* _choreographer = nullptr;  // AChoreographer*
 public:
     ~AChoreographerFrameScheduler() override { stop(); }
     void start(Callback callback) override;
-    void startWithPort(int64_t port) override;
+    void startWithPort(int64_t port);
     void stop() override;
 private:
     void scheduleNextFrame();

@@ -1649,110 +1649,6 @@ external void TextureSampler_destroy(
   ffi.Pointer<TTextureSampler> sampler,
 );
 
-@ffi.Native<
-    ffi.Pointer<TRenderManager> Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>(isLeaf: true)
-external ffi.Pointer<TRenderManager> RenderManager_create(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TRenderer> tRenderer,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
-external void RenderManager_destroy(
-  ffi.Pointer<TRenderManager> tRenderer,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TRenderManager>,
-        ffi.Pointer<TAnimationManager>)>(isLeaf: true)
-external void RenderManager_addAnimationManager(
-  ffi.Pointer<TRenderManager> tRenderer,
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TRenderManager>,
-        ffi.Pointer<TAnimationManager>)>(isLeaf: true)
-external void RenderManager_removeAnimationManager(
-  ffi.Pointer<TRenderManager> tRenderer,
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Uint64)>(
-    isLeaf: true)
-external void RenderManager_render(
-  ffi.Pointer<TRenderManager> tRenderer,
-  int frameTimeInNanos,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TSwapChain>,
-        ffi.Pointer<ffi.Pointer<TView>>, ffi.Uint8)>(isLeaf: true)
-external void RenderManager_setRenderable(
-  ffi.Pointer<TRenderManager> tRenderer,
-  ffi.Pointer<TSwapChain> swapChain,
-  ffi.Pointer<ffi.Pointer<TView>> views,
-  int numViews,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TRenderManager>, ffi.Pointer<TSwapChain>)>(isLeaf: true)
-external void RenderManager_removeSwapChain(
-  ffi.Pointer<TRenderManager> tRenderer,
-  ffi.Pointer<TSwapChain> swapChain,
-);
-
-@ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
-external void FrameScheduler_start(
-  FrameCallback callback,
-  int targetFps,
-);
-
-@ffi.Native<ffi.Void Function()>(isLeaf: true)
-external void FrameScheduler_stop();
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external void FrameScheduler_setRenderThread(
-  ffi.Pointer<ffi.Void> renderThread,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
-external void FrameScheduler_setRenderManager(
-  ffi.Pointer<TRenderManager> rm,
-);
-
-@ffi.Native<ffi.Void Function(PostRenderCallback, ffi.Pointer<ffi.Void>)>(
-    isLeaf: true)
-external void FrameScheduler_setPostRenderCallback(
-  PostRenderCallback callback,
-  ffi.Pointer<ffi.Void> userData,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Uint64)>(isLeaf: true)
-external void FrameScheduler_requestRender(
-  int frameTimeNanos,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
-external void FrameScheduler_startNativeRenderLoop(
-  int targetFps,
-);
-
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external int FrameScheduler_initDartApi(
-  ffi.Pointer<ffi.Void> data,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Int64, ffi.Int)>(isLeaf: true)
-external void FrameScheduler_startWithPort(
-  int port,
-  int targetFps,
-);
-
-@ffi.Native<ffi.Int64 Function()>(isLeaf: true)
-external int FrameScheduler_steadyClockUs();
-
 @ffi.Native<ffi.Void Function(ffi.UnsignedInt)>(isLeaf: true)
 external void Gizmo_dummy(
   int t,
@@ -2062,6 +1958,60 @@ external void Scene_setIndirectLight(
 external void Scene_addFilamentAsset(
   ffi.Pointer<TScene> tScene,
   ffi.Pointer<TFilamentAsset> asset,
+);
+
+@ffi.Native<
+    ffi.Pointer<TRenderManager> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TRenderer>)>(isLeaf: true)
+external ffi.Pointer<TRenderManager> RenderManager_create(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TRenderer> tRenderer,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
+external void RenderManager_destroy(
+  ffi.Pointer<TRenderManager> tRenderer,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderManager>,
+        ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+external void RenderManager_addAnimationManager(
+  ffi.Pointer<TRenderManager> tRenderer,
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderManager>,
+        ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+external void RenderManager_removeAnimationManager(
+  ffi.Pointer<TRenderManager> tRenderer,
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Uint64)>(
+    isLeaf: true)
+external void RenderManager_render(
+  ffi.Pointer<TRenderManager> tRenderer,
+  int frameTimeInNanos,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Pointer<TSwapChain>,
+        ffi.Pointer<ffi.Pointer<TView>>, ffi.Uint8)>(isLeaf: true)
+external void RenderManager_setRenderable(
+  ffi.Pointer<TRenderManager> tRenderer,
+  ffi.Pointer<TSwapChain> swapChain,
+  ffi.Pointer<ffi.Pointer<TView>> views,
+  int numViews,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderManager>, ffi.Pointer<TSwapChain>)>(isLeaf: true)
+external void RenderManager_removeSwapChain(
+  ffi.Pointer<TRenderManager> tRenderer,
+  ffi.Pointer<TSwapChain> swapChain,
 );
 
 @ffi.Native<
@@ -2758,8 +2708,8 @@ external bool DebugRegistry_getProperty_float(
   ffi.Pointer<ffi.Float> outValue,
 );
 
-@ffi.Native<ffi.Pointer<ffi.Void> Function()>(isLeaf: true)
-external ffi.Pointer<ffi.Void> RenderThread_create();
+@ffi.Native<ffi.Void Function()>(isLeaf: true)
+external void RenderThread_create();
 
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void RenderThread_destroy();
@@ -4776,6 +4726,26 @@ external void RenderableManager_destroyEntityRenderThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
+external void FrameScheduler_start(
+  FrameCallback callback,
+  int targetFps,
+);
+
+@ffi.Native<ffi.Void Function()>(isLeaf: true)
+external void FrameScheduler_stop();
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external int FrameScheduler_initDartApi(
+  ffi.Pointer<ffi.Void> data,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Int64, ffi.Int)>(isLeaf: true)
+external void FrameScheduler_startWithPort(
+  int port,
+  int targetFps,
+);
+
 @ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(
     isLeaf: true)
 external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
@@ -6689,16 +6659,6 @@ sealed class TSamplerCompareMode {
   static const COMPARE_MODE_COMPARE_TO_TEXTURE = 1;
 }
 
-typedef FrameCallbackFunction = ffi.Void Function(ffi.Uint64 frameTimeNanos);
-typedef DartFrameCallbackFunction = void Function(int frameTimeNanos);
-typedef FrameCallback = ffi.Pointer<ffi.NativeFunction<FrameCallbackFunction>>;
-typedef PostRenderCallbackFunction = ffi.Void Function(
-    ffi.Pointer<ffi.Void> userData);
-typedef DartPostRenderCallbackFunction = void Function(
-    ffi.Pointer<ffi.Void> userData);
-typedef PostRenderCallback
-    = ffi.Pointer<ffi.NativeFunction<PostRenderCallbackFunction>>;
-
 sealed class TGizmoAxis {
   static const X = 0;
   static const Y = 1;
@@ -6748,6 +6708,9 @@ typedef DartFilamentRenderCallbackFunction = void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef FilamentRenderCallback
     = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
+typedef FrameCallbackFunction = ffi.Void Function(ffi.Uint64 frameTimeNanos);
+typedef DartFrameCallbackFunction = void Function(int frameTimeNanos);
+typedef FrameCallback = ffi.Pointer<ffi.NativeFunction<FrameCallbackFunction>>;
 
 final class TGltfMeshData extends ffi.Struct {
   external ffi.Pointer<ffi.Float> vertices;

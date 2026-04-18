@@ -269,9 +269,11 @@ class TestHelper {
     await FFIFilamentApp.create(
         config: FFIFilamentConfig(
             loadResource: _loadResource,
-            backend: Platform.isLinux ? Backend.OPENGL : Platform.isWindows
-                ? Backend.VULKAN
-                : Backend.DEFAULT));
+            backend: Platform.isLinux
+                ? Backend.OPENGL
+                : Platform.isWindows
+                    ? Backend.VULKAN
+                    : Backend.DEFAULT));
   }
 
   Future<(ThermionViewer viewer, SwapChain swapChain)> createViewer(
@@ -292,8 +294,7 @@ class TestHelper {
     if (createRenderTarget) {
       Logger.root.info("Creating texture of size ${viewportDimensions}");
       var color = await FilamentApp.instance!.createTexture(
-        viewportDimensions.width,
-        viewportDimensions.height,
+        viewportDimensions.width, viewportDimensions.height,
         flags: {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,

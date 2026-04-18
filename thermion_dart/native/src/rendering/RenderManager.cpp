@@ -113,7 +113,6 @@ namespace thermion
 
     bool rendered = false;
     int swapChainIndex = 0;
-    int skippedCount = 0;
 
     // Render each swapchain
     for (auto &attachment : mViewAttachments)
@@ -124,11 +123,7 @@ namespace thermion
         continue;
       }
 
-      auto beforeBegin = std::chrono::high_resolution_clock::now();
       bool beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
-      auto afterBegin = std::chrono::high_resolution_clock::now();
-      float beginMs = std::chrono::duration_cast<std::chrono::nanoseconds>(afterBegin - beforeBegin).count() / 1e6f;
-
       if (beginFrame)
       {
         durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
@@ -144,28 +139,18 @@ namespace thermion
           mRenderer->render(attachment.views[i]);
         }
 
-        auto beforeEnd = std::chrono::high_resolution_clock::now();
-        mRenderer->endFrame();
         mLastRender = std::chrono::high_resolution_clock::now();
-        float endFrameMs = std::chrono::duration_cast<std::chrono::nanoseconds>(mLastRender - beforeEnd).count() / 1e6f;
+        mRenderer->endFrame();
 
         TRACE("%d views rendered for swapchain %d", numRendered, swapChainIndex);
         if (numRendered > 0) {
           rendered = true;
         }
-
-        // Log if endFrame took a long time (GPU stall / sync)
-        if (endFrameMs > 5.0f) {
-          fprintf(stderr, "[RENDER] endFrame() took %.1fms (GPU stall?)\n", endFrameMs);
-        }
       }
       else
       {
-        skippedCount++;
         durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
         TRACE("Skipping frame for swapchain %d (%.3f ms since last endFrame())", swapChainIndex, durationNs);
-        fprintf(stderr, "[RENDER] beginFrame() REJECTED sc=%d (%.1fms since last, beginFrame took %.1fms)\n",
-                swapChainIndex, durationNs, beginMs);
       }
       swapChainIndex++;
     }
@@ -179,26 +164,6 @@ namespace thermion
     float durationMs = durationNs / 1e6f;
 
     TRACE("Total render() time for %d swapchains: %.3f ms", swapChainIndex, durationMs);
-
-    static int renderCount = 0;
-    static int totalSkips = 0;
-    static float maxRenderMs = 0;
-    static float sumRenderMs = 0;
-    renderCount++;
-    totalSkips += skippedCount;
-    if (durationMs > maxRenderMs) maxRenderMs = durationMs;
-    sumRenderMs += durationMs;
-
-    if (renderCount <= 3 || renderCount % 120 == 0) {
-      float avgMs = sumRenderMs / (renderCount <= 3 ? renderCount : 120);
-      fprintf(stderr, "[RENDER] #%d %.1fms (avg=%.1fms max=%.1fms) skips=%d rendered=%d\n",
-              renderCount, durationMs, avgMs, maxRenderMs, totalSkips, rendered);
-      if (renderCount > 3) {
-        maxRenderMs = 0;
-        sumRenderMs = 0;
-        totalSkips = 0;
-      }
-    }
     return rendered;
   }
 

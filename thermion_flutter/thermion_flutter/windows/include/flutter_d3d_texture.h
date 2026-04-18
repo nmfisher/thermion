@@ -1,8 +1,13 @@
 #pragma once
 
+#include <d3d.h>
+#include <d3d11.h>
 #include <memory>
 #include <mutex>
 
+#include <flutter/method_channel.h>
+#include <flutter/plugin_registrar_windows.h>
+#include <flutter/standard_method_codec.h>
 #include <flutter/texture_registrar.h>
 #include <flutter_texture_registrar.h>
 
