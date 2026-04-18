@@ -134,15 +134,15 @@ jobs:
       - name: Package and upload web artifacts to R2
         if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
         env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: https://260d4efc65af500536ea376de6452ece.r2.cloudflarestorage.com
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
           cd thermion_dart/native/web/build/build/out
           zip "thermion_dart-${SHORT_SHA}-web.zip" thermion_dart.js thermion_dart.wasm
           aws s3 cp "thermion_dart-${SHORT_SHA}-web.zip" \
-            "s3://thermion-artifacts/thermion_dart-${SHORT_SHA}-web.zip" \
+            "s3://thermion/thermion_dart-${SHORT_SHA}-web.zip" \
             --endpoint-url "$R2_ENDPOINT" \
             --region auto
           # Write the SHA so the download script knows which artifact to fetch
