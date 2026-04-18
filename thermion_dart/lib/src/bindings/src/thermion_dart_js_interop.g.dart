@@ -20,7 +20,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     NativeLibrary.instance = lib as NativeLibrary;
   }
 
-  external void _Thermion_resizeCanvas(
+  external void _Thermion_setCanvasElementSize(
+    Pointer<Char> name,
     int width,
     int height,
   );
@@ -3122,12 +3123,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
 }
 
-void Thermion_resizeCanvas(
+void Thermion_setCanvasElementSize(
+  Pointer<Char> name,
   int width,
   int height,
 ) {
-  final result =
-      GeneratedBindings.instance._Thermion_resizeCanvas(width, height);
+  final result = GeneratedBindings.instance
+      ._Thermion_setCanvasElementSize(name, width, height);
   return result;
 }
 

@@ -24,8 +24,13 @@ using emscripten::val;
 extern "C"
 {
 
-  EMSCRIPTEN_KEEPALIVE void Thermion_resizeCanvas(int width, int height) {
-    emscripten_set_canvas_element_size("#thermion_canvas", width, height);
+  EMSCRIPTEN_KEEPALIVE void Thermion_setCanvasElementSize(const char *elementName, int width, int height) {
+    if(emscripten_set_canvas_element_size(elementName, width, height) == EM_TRUE) {
+      std::cerr << "Set canvas " << elementName << " to size " << width << "x" << height << std::endl;
+    } else {
+      std::cerr << "Failed to size for canvas " << elementName << std::endl;
+    }
+    
   }
 
   EMSCRIPTEN_KEEPALIVE void Thermion_destroyCanvas() {

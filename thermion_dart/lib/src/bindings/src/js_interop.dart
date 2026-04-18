@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'thermion_dart_js_interop.g.dart';
 import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
 
 export 'dart:typed_data';
 
@@ -192,6 +192,3 @@ Pointer stackSave() => NativeLibrary.instance.stackSave();
 void stackRestore(Pointer ptr) =>
     NativeLibrary.instance.stackRestore(ptr.cast());
 
-void resizeWebCanvas(int width, int height) {
-  Thermion_resizeCanvas(width, height);
-}
