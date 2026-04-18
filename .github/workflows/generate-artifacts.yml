@@ -130,6 +130,7 @@ jobs:
           git add -f thermion_dart/native/include/material/*.S || true
           git add -f thermion_dart/native/include/material/*.apple.S || true
           git add -f thermion_dart/native/include/material/*.bin || true
+          git add -f examples/assets/*.filamat || true
           git commit -m "chore: update generated artifacts
 
           🤖 Generated with GitHub Actions"
