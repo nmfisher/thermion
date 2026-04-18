@@ -2,6 +2,9 @@ name: Generate Artifacts
 
 on:
   push:
+    branches: [ "develop" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
@@ -94,12 +97,6 @@ jobs:
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
           git update-index --no-assume-unchanged thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
 
-      - name: Ensure generated web files are tracked
-        if: steps.changes.outputs.native-changed == 'true'
-        run: |
-          git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.js
-          git update-index --no-assume-unchanged thermion_dart/native/web/build/build/out/thermion_dart.wasm
-
       - name: Ensure generated material files are tracked
         if: steps.changes.outputs.materials-changed == 'true'
         run: |
@@ -122,8 +119,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
           git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
-          git add -f thermion_dart/native/web/build/build/out/thermion_dart.js || true
-          git add -f thermion_dart/native/web/build/build/out/thermion_dart.wasm || true
           git add -f thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart || true
           git add -f thermion_dart/native/include/material/*.h || true
           git add -f thermion_dart/native/include/material/*.c || true
@@ -134,6 +129,32 @@ jobs:
           git commit -m "chore: update generated artifacts
 
           🤖 Generated with GitHub Actions"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+
+      - name: Package and upload web artifacts to R2
+        if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          cd thermion_dart/native/web/build/build/out
+          zip "thermion_dart-${SHORT_SHA}-web.zip" thermion_dart.js thermion_dart.wasm
+          aws s3 cp "thermion_dart-${SHORT_SHA}-web.zip" \
+            "s3://thermion-artifacts/thermion_dart-${SHORT_SHA}-web.zip" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --region auto
+          # Write the SHA so the download script knows which artifact to fetch
+          echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
+
+      - name: Commit web.version
+        if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f thermion_dart/native/web/web.version
+          git diff --cached --quiet || git commit -m "chore: update web.version"
           git push origin HEAD:${{ github.head_ref || github.ref_name }}
 
       - name: Upload artifacts
