@@ -235,19 +235,6 @@ jobs:
         if: matrix.name == 'Linux'
         run: cd picking && flutter pub get && flutter build linux
 
-      # Web builds (Linux only to avoid duplication)
-      - name: Build quickstart (web)
-        if: matrix.name == 'Linux'
-        run: cd quickstart && flutter build web
-
-      - name: Build picking (web)
-        if: matrix.name == 'Linux'
-        run: cd picking && flutter build web
-
-      - name: Build viewer (web)
-        if: matrix.name == 'Linux'
-        run: cd viewer && flutter pub get && flutter build web
-
       - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@v4

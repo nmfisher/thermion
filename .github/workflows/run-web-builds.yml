@@ -1,0 +1,41 @@
+name: Flutter Web Builds
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  web-builds:
+    name: Flutter Web Builds (Linux)
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: examples/flutter
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: beta
+          architecture: X64
+
+      - name: Build quickstart (web)
+        run: cd quickstart && flutter pub get && flutter build web
+
+      - name: Build picking (web)
+        run: cd picking && flutter pub get && flutter build web
+
+      - name: Build viewer (web)
+        run: cd viewer && flutter pub get && flutter build web
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-flutter-web
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
