@@ -131,7 +131,7 @@ jobs:
 
   flutter-examples:
     name: Flutter Examples (${{ matrix.name }})
-    if: always() && needs.dart-tests.result == 'success'
+    if: always()
     needs: dart-tests
     strategy:
       fail-fast: false
