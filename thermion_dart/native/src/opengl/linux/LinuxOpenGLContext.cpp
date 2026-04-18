@@ -14,6 +14,7 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 
+#include "opengl/linux/ThermionPlatformEGLHeadlessAPI.h"
 #include "Log.hpp"
 
 namespace thermion::opengl::linux_platform {
@@ -22,6 +23,11 @@ class LinuxOpenGLContext::Impl {
 public:
     ~Impl() {
         _surfaces.clear();
+
+        if (_platform) {
+            ThermionPlatformEGLHeadless_Destroy(_platform);
+            _platform = nullptr;
+        }
 
         if (_context != EGL_NO_CONTEXT && _display != EGL_NO_DISPLAY) {
             eglMakeCurrent(_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -66,13 +72,22 @@ public:
         }
         std::cerr << "[ThermionGL:Context] GBM device created OK" << std::endl;
 
-        // Step 3: Get EGL display
-        // Use EGL_DEFAULT_DISPLAY so we share the same display as Flutter's
-        // X11-backed EGL. Filament's PlatformEGL is patched to also use
-        // EGL_DEFAULT_DISPLAY when a shared context is provided (skipping
-        // EGL_PLATFORM_DEVICE_EXT which crashes NVIDIA's driver on Flutter's
-        // raster thread).
-        _display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+        // Step 3: Get EGL display from the GBM device.
+        // Using eglGetPlatformDisplay(EGL_PLATFORM_GBM_KHR, ...) ties the
+        // display to the GPU that owns the render node. On NVIDIA systems
+        // this selects NVIDIA's EGL instead of Mesa's software fallback.
+        PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT =
+            (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
+        if (eglGetPlatformDisplayEXT) {
+            _display = eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_KHR,
+                    _gbmDevice, nullptr);
+        }
+        if (_display == EGL_NO_DISPLAY) {
+            // Fallback to default display
+            std::cerr << "[ThermionGL:Context] GBM platform display failed, "
+                      << "trying default" << std::endl;
+            _display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+        }
         if (_display == EGL_NO_DISPLAY) {
             LOG_ERROR("Failed to get EGL display");
             return;
@@ -125,7 +140,13 @@ public:
             return;
         }
 
-        // Make context current with no surface (surfaceless)
+        // Verify the context works by briefly making it current, then restore
+        // whatever context was active (likely Flutter/GDK's).
+        EGLDisplay prevDisplay = eglGetCurrentDisplay();
+        EGLContext prevContext = eglGetCurrentContext();
+        EGLSurface prevDraw = eglGetCurrentSurface(EGL_DRAW);
+        EGLSurface prevRead = eglGetCurrentSurface(EGL_READ);
+
         if (!eglMakeCurrent(_display, EGL_NO_SURFACE, EGL_NO_SURFACE, _context)) {
             // Some drivers require a pbuffer surface
             EGLint pbufferAttribs[] = {
@@ -140,6 +161,13 @@ public:
         }
 
         std::cerr << "[ThermionGL:Context] EGL context created OK" << std::endl;
+
+        // Restore the previous context so we don't clobber Flutter/GDK's state
+        if (prevContext != EGL_NO_CONTEXT && prevDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(prevDisplay, prevDraw, prevRead, prevContext);
+        } else {
+            eglMakeCurrent(_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        }
     }
 
     int64_t CreateRenderingSurface(uint32_t width, uint32_t height) {
@@ -190,7 +218,10 @@ public:
     }
 
     void* GetPlatform() {
-        return nullptr;
+        if (!_platform) {
+            _platform = ThermionPlatformEGLHeadless_Create(_display);
+        }
+        return _platform;
     }
 
 private:
@@ -198,6 +229,7 @@ private:
     EGLContext _context = EGL_NO_CONTEXT;
     struct gbm_device* _gbmDevice = nullptr;
     int _drmFd = -1;
+    ThermionPlatformEGLHeadlessHandle _platform = nullptr;
 
     std::unordered_map<int64_t, std::unique_ptr<LinuxOpenGLTexture>> _surfaces;
     int64_t _nextSurfaceId = 1;

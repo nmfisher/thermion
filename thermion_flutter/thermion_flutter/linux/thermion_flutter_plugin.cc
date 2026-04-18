@@ -143,10 +143,38 @@ static void ensure_opengl_context(ThermionFlutterPlugin *self)
     EGLDisplay flutterDpy = thermion_flutter_render_display;
 
     if (flutterCtx == EGL_NO_CONTEXT) {
+      // No deferred populate yet. Try to get GDK's GL context deterministically
+      // rather than relying on whatever happens to be current on this thread.
+      GdkDisplay *gdkDisplay = gdk_display_get_default();
+      if (gdkDisplay) {
+        GdkGLContext *gdkCtx = gdk_gl_context_get_current();
+        if (!gdkCtx) {
+          // Create a temporary GDK GL context and make it current so we can
+          // query the underlying EGL state.
+          GdkWindow *gdkWindow = gdk_screen_get_root_window(
+              gdk_display_get_default_screen(gdkDisplay));
+          if (gdkWindow) {
+            GError *error = nullptr;
+            gdkCtx = gdk_window_create_gl_context(gdkWindow, &error);
+            if (gdkCtx && !error) {
+              gdk_gl_context_make_current(gdkCtx);
+              std::cerr << "[ThermionGL] Made GDK GL context current" << std::endl;
+            } else {
+              if (error) {
+                std::cerr << "[ThermionGL] GDK GL context creation failed: "
+                          << error->message << std::endl;
+                g_error_free(error);
+              }
+            }
+          }
+        }
+      }
       flutterCtx = eglGetCurrentContext();
       flutterDpy = eglGetCurrentDisplay();
-      std::cerr << "[ThermionGL] WARNING: Using current context (no deferred populate yet), "
-                << "may be in wrong share group" << std::endl;
+      if (flutterCtx != EGL_NO_CONTEXT) {
+        std::cerr << "[ThermionGL] Using GDK EGL context (no deferred populate yet)"
+                  << std::endl;
+      }
     } else {
       std::cerr << "[ThermionGL] Using Flutter render context="
                 << (void*)flutterCtx << std::endl;
