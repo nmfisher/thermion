@@ -161,9 +161,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // with dimensions so the callback can update viewport/camera
     var descriptor = WebPlatformTextureDescriptor(
         width: width, height: height);
-
+    final dpr = window.devicePixelRatio;
     _logger.info(
-      "createTextureAndBindToView returning web descriptor with ${descriptor.width}x${descriptor.height} at dpr $dpr");
+      "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr");
 
     var overlay = view.getHighlightOverlay();
     await overlay?.setSwapChain(swapChain!);
@@ -172,7 +172,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     // [width] and [height] have already been scaled by [devicePixelRatio]
     // so we need to undo this when setting the CSS dimensions
-    final dpr = window.devicePixelRatio;
+
     final canvas =
         document.getElementById("thermion_canvas") as HTMLCanvasElement;
 
