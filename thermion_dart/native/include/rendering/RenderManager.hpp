@@ -45,10 +45,21 @@ namespace thermion
         }
         ~RenderManager();
 
-        /// @brief
-        /// @param frameTimeInNanos
+        /// Synchronously render every attached swapchain's views in one pass.
+        /// Used by the native path, where Dart awaits a queued task that
+        /// invokes this directly.
         bool render(
             uint64_t frameTimeInNanos);
+
+        /// Flip the "render wanted" flag. Used on web — the actual work is
+        /// driven from RenderThread::iter() on each rAF via tick().
+        void requestRender();
+
+        /// Web path: called once per rAF from RenderThread::iter().
+        /// Renders at most one swapchain per invocation so the browser can
+        /// commit the frame between swapchains. Returns true when a full
+        /// frame (all swapchains) has been completed.
+        bool tick(uint64_t frameTimeInNanos);
 
         /// @brief
         /// @param swapChain
@@ -77,12 +88,23 @@ namespace thermion
             View *views[numViewAttachments];
         };
 
+        // Factored out of render() so tick() can invoke them piecewise.
+        // Both assume mMutex is held by the caller.
+        void updateAnimationsAndPlugins(uint64_t frameTimeInNanos);
+        bool renderSwapChainAt(size_t index, uint64_t frameTimeInNanos);
+
         std::mutex mMutex;
         Engine *mEngine = nullptr;
         Renderer *mRenderer = nullptr;
         std::vector<AnimationManager *> mAnimationManagers;
         std::vector<ViewAttachment> mViewAttachments;
         std::chrono::high_resolution_clock::time_point mLastRender;
+
+        // Web: tick() checks this flag and renders if set, then clears it.
+        // Set by Dart via RenderManager_requestRender() on each main-thread
+        // rAF. Rejection retries (beginFrame failing) keep the flag set so
+        // RenderThread's 12ms iter-loop can retry in the same rAF.
+        bool mRenderRequested = false;
     };
 
 }

@@ -1703,6 +1703,16 @@ external void RenderManager_removeSwapChain(
   ffi.Pointer<TSwapChain> swapChain,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
+external void RenderManager_requestRender(
+  ffi.Pointer<TRenderManager> tRenderer,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
+external void RenderManager_attachToRenderThread(
+  ffi.Pointer<TRenderManager> tRenderer,
+);
+
 @ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
 external void FrameScheduler_start(
   FrameCallback callback,

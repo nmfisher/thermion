@@ -982,6 +982,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderManager> tRenderer,
     Pointer<TSwapChain> swapChain,
   );
+  external void _RenderManager_requestRender(
+    Pointer<TRenderManager> tRenderer,
+  );
+  external void _RenderManager_attachToRenderThread(
+    Pointer<TRenderManager> tRenderer,
+  );
   external void _FrameScheduler_start(
     FrameCallback callback,
     int targetFps,
@@ -5256,6 +5262,22 @@ void RenderManager_removeSwapChain(
 ) {
   final result = GeneratedBindings.instance
       ._RenderManager_removeSwapChain(tRenderer.cast(), swapChain.cast());
+  return result;
+}
+
+void RenderManager_requestRender(
+  Pointer<TRenderManager> tRenderer,
+) {
+  final result =
+      GeneratedBindings.instance._RenderManager_requestRender(tRenderer.cast());
+  return result;
+}
+
+void RenderManager_attachToRenderThread(
+  Pointer<TRenderManager> tRenderer,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_attachToRenderThread(tRenderer.cast());
   return result;
 }
 

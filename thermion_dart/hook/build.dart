@@ -567,6 +567,41 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   final packageRoot =
       input.packageRoot.toFilePath(windows: Platform.isWindows);
 
+  // Local-build override: skip the R2 download and copy from the emscripten
+  // build output instead. Set THERMION_WEB_LOCAL=1 when iterating on native
+  // C++ that needs to ship to web.
+  if (Platform.environment['THERMION_WEB_LOCAL'] == '1') {
+    final localOut = Directory(
+        path.join(packageRoot, 'native', 'web', 'build', 'build', 'out'));
+    if (!localOut.existsSync()) {
+      logger.warning(
+          'THERMION_WEB_LOCAL=1 but ${localOut.path} does not exist; '
+          'build the web target first, then re-run.');
+      return;
+    }
+    final consumingPackageRoot =
+        _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+    if (consumingPackageRoot == null) {
+      logger.warning('Could not determine consuming package root');
+      return;
+    }
+    final webDir = Directory(path.join(consumingPackageRoot, 'web'));
+    if (!webDir.existsSync()) {
+      logger.info('No web/ directory at ${webDir.path}; skipping');
+      return;
+    }
+    for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
+      final src = File(path.join(localOut.path, name));
+      if (!src.existsSync()) {
+        logger.warning('$name not found in ${localOut.path}');
+        continue;
+      }
+      src.copySync(path.join(webDir.path, name));
+      logger.info('[THERMION_WEB_LOCAL] Copied $name from ${localOut.path}');
+    }
+    return;
+  }
+
   final versionFile =
       File(path.join(packageRoot, 'native', 'web', 'web.version'));
   if (!versionFile.existsSync()) {

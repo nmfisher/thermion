@@ -1,4 +1,5 @@
 #include "rendering/RenderThread.hpp"
+#include "rendering/RenderManager.hpp"
 
 #include <functional>
 #include <stdlib.h>
@@ -106,6 +107,16 @@ void RenderThread::iter()
         taskLock.unlock();
         task();
         taskLock.lock();
+    }
+    taskLock.unlock();
+
+    // Render at most one swapchain per rAF so Filament's WebGL backend can
+    // commit the frame between iterations. When no render has been requested,
+    // tick() is a cheap flag-check and returns immediately.
+    if (mRenderManager) {
+        auto frameTimeInNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    now.time_since_epoch()).count();
+        mRenderManager->tick(frameTimeInNanos);
     }
 #else
     // On native, process one task then wait for more
