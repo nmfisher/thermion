@@ -4,9 +4,11 @@ import 'package:hooks/hooks.dart';
 void main(List<String> args) async {
 
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
-    // thermion_dart's hook skips metadata when buildCodeAssets is false
+    // thermion_dart's hook skips metadata when not building code assets
     // (e.g. web builds); there's no native CMake step to feed in that case.
-    if (!input.config.buildCodeAssets) {
+    // Matches code_assets's buildCodeAssets getter without importing that
+    // package just for a single gate.
+    if (!input.config.buildAssetTypes.contains('code_assets/code')) {
       return;
     }
 
