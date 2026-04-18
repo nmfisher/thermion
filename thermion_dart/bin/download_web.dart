@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
@@ -6,11 +7,19 @@ import 'package:path/path.dart' as path;
 const _r2BaseUrl =
     'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
-String _getWebVersion() {
-  final scriptPath = Platform.script.toFilePath();
-  // script is at thermion_dart/bin/download_web.dart
-  final versionPath = path.join(
-      path.dirname(path.dirname(scriptPath)), 'native', 'web', 'web.version');
+Future<String> _getWebVersion() async {
+  // Resolve package:thermion_dart/ to its lib/ directory so we can locate
+  // native/web/web.version regardless of how this script was invoked.
+  final resolved =
+      await Isolate.resolvePackageUri(Uri.parse('package:thermion_dart/'));
+  if (resolved == null) {
+    stderr.writeln('Could not resolve package:thermion_dart');
+    exit(1);
+  }
+  final packageRoot = path.dirname(
+      path.normalize(resolved.toFilePath().replaceAll(RegExp(r'[\\/]$'), '')));
+  final versionPath =
+      path.join(packageRoot, 'native', 'web', 'web.version');
   final versionFile = File(versionPath);
   if (!versionFile.existsSync()) {
     stderr.writeln('Could not find web.version at $versionPath');
@@ -102,7 +111,7 @@ void main(List<String> args) async {
     }
   }
 
-  final version = _getWebVersion();
+  final version = await _getWebVersion();
   stdout.writeln('Web artifact version: $version');
 
   outputDir = path.normalize(outputDir);
