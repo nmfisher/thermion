@@ -17,6 +17,7 @@ void main(List<String> args) async {
 
     if (!input.config.buildCodeAssets) {
       logger.info("buildCodeAssets is false, assumed to be building for web");
+      await _downloadWebArtifacts(input, logger);
       return;
     }
 
@@ -558,6 +559,106 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
     successToken.writeAsStringSync("SUCCESS");
   }
   return libDir;
+}
+
+const _webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
+
+Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
+  final packageRoot =
+      input.packageRoot.toFilePath(windows: Platform.isWindows);
+
+  final versionFile =
+      File(path.join(packageRoot, 'native', 'web', 'web.version'));
+  if (!versionFile.existsSync()) {
+    logger.warning(
+        'web.version not found at ${versionFile.path}; skipping web artifact download');
+    return;
+  }
+  final version = versionFile.readAsStringSync().trim();
+  if (version.isEmpty || version == 'pending') {
+    logger.warning(
+        'web.version contains "$version"; skipping download (CI may not have uploaded yet)');
+    return;
+  }
+  logger.info('Web artifact version: $version');
+
+  final consumingPackageRoot =
+      _extractConsumingPackageRoot(input.outputDirectory.toString(), logger);
+  if (consumingPackageRoot == null) {
+    logger.warning(
+        'Could not determine consuming package root; skipping web artifact copy');
+    return;
+  }
+
+  final cacheDir = Directory(path.join(
+      packageRoot, '.dart_tool', 'thermion_dart', 'web', version));
+
+  try {
+    await _fetchWebZip(version, cacheDir, logger);
+  } catch (e) {
+    logger.warning('Failed to download web artifacts: $e');
+    return;
+  }
+
+  final webDir = Directory(path.join(consumingPackageRoot, 'web'));
+  if (!webDir.existsSync()) {
+    logger.info(
+        'No web/ directory at ${webDir.path}; skipping artifact copy');
+    return;
+  }
+  for (final name in ['thermion_dart.js', 'thermion_dart.wasm']) {
+    final src = File(path.join(cacheDir.path, name));
+    if (!src.existsSync()) {
+      logger.warning('$name not found in cache ${cacheDir.path}');
+      continue;
+    }
+    final dest = File(path.join(webDir.path, name));
+    src.copySync(dest.path);
+    logger.info('Copied $name to ${dest.path}');
+  }
+}
+
+Future<void> _fetchWebZip(
+    String version, Directory cacheDir, Logger logger) async {
+  final successToken = File(path.join(cacheDir.path, 'success'));
+  if (successToken.existsSync()) {
+    logger.info('Web artifacts already cached at ${cacheDir.path}');
+    return;
+  }
+
+  if (!cacheDir.existsSync()) {
+    cacheDir.createSync(recursive: true);
+  }
+
+  final zipName = 'thermion_dart-$version-web.zip';
+  final url = '$_webR2BaseUrl/$zipName';
+  final zipFile = File(path.join(cacheDir.path, zipName));
+
+  logger.info('Downloading $url');
+  final request = await HttpClient().getUrl(Uri.parse(url));
+  final response = await request.close();
+
+  if (response.statusCode != 200) {
+    throw Exception('HTTP ${response.statusCode} fetching $url');
+  }
+
+  await response.pipe(zipFile.openWrite());
+  final bytes = await zipFile.readAsBytes();
+
+  final archive = ZipDecoder().decodeBytes(bytes);
+  for (final file in archive) {
+    final filePath = path.join(cacheDir.path, file.name);
+    if (file.isFile) {
+      final f = File(filePath);
+      await f.create(recursive: true);
+      await f.writeAsBytes(file.content as List<int>);
+    } else {
+      await Directory(filePath).create(recursive: true);
+    }
+  }
+
+  successToken.writeAsStringSync('SUCCESS');
+  logger.info('Extracted web artifacts to ${cacheDir.path}');
 }
 
 //
