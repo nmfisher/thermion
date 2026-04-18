@@ -22,6 +22,13 @@ jobs:
           channel: beta
           architecture: X64
 
+      - name: Download web artifacts
+        shell: bash
+        run: |
+          cd thermion_dart && dart pub get && dart run bin/download_web.dart -o ../examples/flutter/quickstart/web
+          cd thermion_dart && dart run bin/download_web.dart -o ../examples/flutter/picking/web
+          cd thermion_dart && dart run bin/download_web.dart -o ../examples/flutter/viewer/web
+
       - name: Build quickstart (web)
         run: cd quickstart && flutter pub get && flutter build web
 
