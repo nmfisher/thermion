@@ -101,9 +101,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static bool _usePortMode = false;
   static bool _dartApiInitialized = false;
 
-<<<<<<< HEAD
   static bool _frameSchedulerPaused = false;
-=======
+
   // Diagnostic timing state
   static int _diagFrameCount = 0;
   static int _diagDropCount = 0;
@@ -114,7 +113,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static int _diagTransitSum = 0;
   static int _diagTransitCount = 0;
   static int _diagTransitMax = 0;
->>>>>>> 49c6c75d (refactor:)
 
   /// Called by native FrameScheduler at vsync/timer intervals.
   /// Not async — guards against re-entrant calls with [_rendering] flag.
