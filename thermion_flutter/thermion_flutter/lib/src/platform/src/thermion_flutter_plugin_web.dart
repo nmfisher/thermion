@@ -170,4 +170,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     resizeWebCanvas(width, height);
     return descriptor;
   }
+
+  @override
+  void pauseFrameScheduler() {}
+
+  @override
+  void resumeFrameScheduler() {}
 }
