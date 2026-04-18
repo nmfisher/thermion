@@ -8,7 +8,6 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'log.dart';
 
-
 void main(List<String> args) async {
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
@@ -25,6 +24,8 @@ void main(List<String> args) async {
 
     final config = input.config;
 
+    logger.info("Config : ${input.config}");
+
     // Most users will only need release builds of Filament.
     // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue.
     // Also note that there are known driver issues with Android debug builds, e.g.:
@@ -35,7 +36,7 @@ void main(List<String> args) async {
     var buildMode = BuildMode.release;
 
     if (input.userDefines["mode"] == "debug") {
-      buildMode = BuildMode.debug;
+        buildMode = BuildMode.debug;
     }
 
     final packageName = input.packageName;
@@ -70,11 +71,19 @@ outputDirectory : ${outputDirectory.path}
         .listSync(recursive: true)
         .whereType<File>()
         .map((f) => f.path)
-        .where((f) => !(f.contains("CMakeLists") || f.contains("main.cpp") || f.contains("build")))
+        .where((f) => !(f.contains("CMakeLists") ||
+            f.contains("main.cpp") ||
+            f.contains("build")))
         .toList();
 
     if (targetOS != OS.windows) {
-      sources = sources.where((p) => !p.contains("windows")).toList();
+      sources = sources
+          .where((p) => !p.contains("windows") && !p.contains("d3d"))
+          .toList();
+    }
+
+    if (targetOS != OS.linux) {
+      sources = sources.where((p) => !p.contains("linux")).toList();
     }
 
     // Material source paths (used by _processMaterials below)
@@ -99,14 +108,14 @@ outputDirectory : ${outputDirectory.path}
     ]);
 
     // Add Dart API DL for port-based frame scheduling (hot restart safe)
-    sources.add(path.join(pkgRootFilePath, "native", "include", "dart",
-        "dart_api_dl.c"));
+    sources.add(path.join(
+        pkgRootFilePath, "native", "include", "dart", "dart_api_dl.c"));
 
     var libs = [
       "filament",
       "backend",
       "filameshio",
-	if (targetOS != OS.iOS) "filamat",
+      if (targetOS != OS.iOS) "filamat",
       if (targetOS == OS.linux) "shaders",
       "utils",
       "filabridge",
@@ -129,7 +138,10 @@ outputDirectory : ${outputDirectory.path}
       if (!{OS.linux, OS.android}.contains(targetOS)) "zstd",
       //"mikktspace",
       "geometry",
-      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
+      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...[
+        "matdbg",
+        "fgviewer"
+      ],
     ];
 
     if (targetOS == OS.windows) {
@@ -153,17 +165,16 @@ outputDirectory : ${outputDirectory.path}
 
     final flags = <String>[]; //"-fsanitize=address"];
 
-
     // Collect include directories including plugin includes
     // Use debug or release Filament headers based on build mode
     // Headers are under filament/debug or filament/release so includes like <filament/SomeHeader.h> work
-    final filamentIncludeDir = ['native/include/filament', buildMode == BuildMode.debug
-        ? 
-          'native/include/filament/debug' : 'native/include/filament/release'];
-    final includeDirs = <String>[
-      'native/include',
-      ...filamentIncludeDir,
+    final filamentIncludeDir = [
+      'native/include/filament',
+      buildMode == BuildMode.debug
+          ? 'native/include/filament/debug'
+          : 'native/include/filament/release'
     ];
+    final includeDirs = <String>['native/include', ...filamentIncludeDir];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {
@@ -172,8 +183,10 @@ outputDirectory : ${outputDirectory.path}
     }
 
     // Process materials configuration
-    final materialConfigs = input.userDefines["materials"] as Map<String, dynamic>?;
-    _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
+    final materialConfigs =
+        input.userDefines["materials"] as Map<String, dynamic>?;
+    _processMaterials(materialConfigs, materialSources, sources, defines,
+        logger, pkgRootFilePath);
 
     var frameworks = [];
 
@@ -224,7 +237,8 @@ outputDirectory : ${outputDirectory.path}
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
       flags.add("-Wl,-z,max-page-size=16384");
     } else if (targetOS == OS.linux) {
-      libs.addAll(["bluevk", "bluegl"]);
+      libs.addAll(["bluevk", "bluegl", "drm", "EGL", "GL", "gbm"]);
+      flags.add("-I/usr/include/libdrm");
     }
 
     if ({OS.linux, OS.macOS}.contains(targetOS) &&
@@ -249,31 +263,42 @@ outputDirectory : ${outputDirectory.path}
     final objcObjectFiles = <String>[];
     if (objcSources.isNotEmpty && targetOS == OS.iOS) {
       final cc = config.code.cCompiler?.compiler.toFilePath() ?? 'clang';
-      final archStr = targetArchitecture == Architecture.arm64 ? 'arm64' : 'x86_64';
+      final archStr =
+          targetArchitecture == Architecture.arm64 ? 'arm64' : 'x86_64';
       // Detect simulator vs device from the iOS config
       final isSimulator = config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
       final sdkName = isSimulator ? 'iphonesimulator' : 'iphoneos';
-      final sdkPath = (await Process.run('xcrun', ['--sdk', sdkName, '--show-sdk-path'])).stdout.toString().trim();
-      final targetTriple = isSimulator
-          ? '$archStr-apple-ios-simulator'
-          : '$archStr-apple-ios';
+      final sdkPath =
+          (await Process.run('xcrun', ['--sdk', sdkName, '--show-sdk-path']))
+              .stdout
+              .toString()
+              .trim();
+      final targetTriple =
+          isSimulator ? '$archStr-apple-ios-simulator' : '$archStr-apple-ios';
 
       for (final objcSource in objcSources) {
-        final objFile = path.join(Directory.systemTemp.path, '${path.basenameWithoutExtension(objcSource)}.o');
+        final objFile = path.join(Directory.systemTemp.path,
+            '${path.basenameWithoutExtension(objcSource)}.o');
         final result = await Process.run(cc, [
-          '-x', 'objective-c',
-          '-target', targetTriple,
+          '-x',
+          'objective-c',
+          '-target',
+          targetTriple,
           '-mios-version-min=13.0',
-          '-isysroot', sdkPath,
+          '-isysroot',
+          sdkPath,
           '-fPIC',
           '-fobjc-arc',
           '-O3',
           ...includeDirs.map((d) => '-I${path.join(pkgRootFilePath, d)}'),
-          '-c', objcSource,
-          '-o', objFile,
+          '-c',
+          objcSource,
+          '-o',
+          objFile,
         ]);
         if (result.exitCode != 0) {
-          logger.severe('Failed to compile ObjC source $objcSource:\n${result.stderr}');
+          logger.severe(
+              'Failed to compile ObjC source $objcSource:\n${result.stderr}');
           throw Exception('ObjC compilation failed for $objcSource');
         }
         objcObjectFiles.add(objFile);
@@ -283,10 +308,13 @@ outputDirectory : ${outputDirectory.path}
       // Create a static library from the ObjC object files so it can be
       // linked without -x c++ interfering (ar archives are recognized by extension).
       if (objcObjectFiles.isNotEmpty) {
-        final objcLib = path.join(Directory.systemTemp.path, 'libthermion_objc.a');
-        final arResult = await Process.run('ar', ['rcs', objcLib, ...objcObjectFiles]);
+        final objcLib =
+            path.join(Directory.systemTemp.path, 'libthermion_objc.a');
+        final arResult =
+            await Process.run('ar', ['rcs', objcLib, ...objcObjectFiles]);
         if (arResult.exitCode != 0) {
-          logger.severe('Failed to create ObjC static library:\n${arResult.stderr}');
+          logger.severe(
+              'Failed to create ObjC static library:\n${arResult.stderr}');
           throw Exception('ar failed');
         }
         objcObjectFiles.clear();
@@ -310,7 +338,10 @@ outputDirectory : ${outputDirectory.path}
       flags: [
         if (targetOS == OS.macOS) '-mmacosx-version-min=13.0',
         if (targetOS == OS.iOS) '-mios-version-min=13.0',
-        if (objcObjectFiles.isNotEmpty) ...['-lthermion_objc', '-L${Directory.systemTemp.path}'],
+        if (objcObjectFiles.isNotEmpty) ...[
+          '-lthermion_objc',
+          '-L${Directory.systemTemp.path}'
+        ],
         ...flags,
         ...frameworks,
         if (targetOS == OS.linux) ...["-Wl,--whole-archive"],
@@ -331,9 +362,7 @@ outputDirectory : ${outputDirectory.path}
         else if (targetOS != OS.windows)
           '-lc++',
         if (platform == "windows") ...[
-          "/I${path.join(pkgRootFilePath, "native", "include")}",
-          ...filamentIncludeDir.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
-          "/I${path.join(pkgRootFilePath, "native", "include", "windows", "vulkan")}",
+          ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
           "@${srcs.uri.toFilePath(windows: true)}",
           // ...sources,
           // '/link',
@@ -387,10 +416,12 @@ outputDirectory : ${outputDirectory.path}
 
       output.assets.addEncodedAsset(libcpp.encode());
     }
-        
-    output.metadata.addAll({"includeDirs":includeDirs.map((dir) => path.join(pkgRootFilePath,dir)).toList()});
-    output.metadata.addAll({"outputDir":outputDirectory.path});
-   
+
+    output.metadata.addAll({
+      "includeDirs":
+          includeDirs.map((dir) => path.join(pkgRootFilePath, dir)).toList()
+    });
+    output.metadata.addAll({"outputDir": outputDirectory.path});
 
     if (targetOS == OS.windows) {
       var importLib = File(path.join(
@@ -403,43 +434,15 @@ outputDirectory : ${outputDirectory.path}
         linkMode: DynamicLoadingBundled(),
         file: importLib.uri,
       ));
-
-      for (final dir in ["windows/vulkan"]) {
-        // , "filament/bluevk", "filament/vulkan"
-        final targetSubdir =
-            path.join(outputDirectory.path, "include", dir).substring(1);
-        if (!Directory(targetSubdir).existsSync()) {
-          Directory(targetSubdir).createSync(recursive: true);
-        }
-
-        for (var file
-            in Directory(path.join(pkgRootFilePath, "native", "include", dir))
-                .listSync()) {
-          if (file is File) {
-            final targetPath =
-                path.join(targetSubdir, path.basename(file.path));
-            file.copySync(targetPath);
-            final include = CodeAsset(
-              package: packageName,
-              name: "include/$dir/${path.basename(file.path)}",
-              linkMode: DynamicLoadingBundled(),
-              file: file.uri,
-            );
-            output.assets.addEncodedAsset(include.encode());
-          }
-        }
-      }
     }
   });
 }
 
-
-
 String _getFilamentVersion() {
   final versionFile = File(path.join(
-    path.dirname(path.dirname(Platform.script.toFilePath(windows: Platform.isWindows))),
-    'filament.version'
-  ));
+      path.dirname(path
+          .dirname(Platform.script.toFilePath(windows: Platform.isWindows))),
+      'filament.version'));
   if (versionFile.existsSync()) {
     final parts = versionFile.readAsStringSync().trim().split(RegExp(r'\s+'));
     // Format: "<repo> <version>" - return the version (second field)
@@ -503,14 +506,14 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
   final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
-  final successToken = File(path.join(
-      unzipDir, "success"));
+  final successToken = File(path.join(unzipDir, "success"));
   final libraryZip = File(path.join(unzipDir, filename));
 
   if (libraryZip.existsSync()) {
     final zipBytes = await libraryZip.readAsBytes();
     final zipHash = md5.convert(zipBytes);
-    logger.info("Existing library zip hash: $zipHash, size: ${zipBytes.length} bytes (${libraryZip.path})");
+    logger.info(
+        "Existing library zip hash: $zipHash, size: ${zipBytes.length} bytes (${libraryZip.path})");
   }
 
   if (!successToken.existsSync()) {
@@ -527,7 +530,7 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
     final request = await HttpClient().getUrl(Uri.parse(url));
     final response = await request.close();
 
-    if(response.statusCode != 200) {
+    if (response.statusCode != 200) {
       throw Exception("Libraries not found at $url");
     }
 
@@ -535,7 +538,8 @@ Future<Directory> getLibDir(Uri packageRoot, OS targetOS,
 
     final downloadedBytes = await libraryZip.readAsBytes();
     final downloadedHash = md5.convert(downloadedBytes);
-    logger.info("Downloaded library zip hash: $downloadedHash, size: ${downloadedBytes.length} bytes (${libraryZip.path})");
+    logger.info(
+        "Downloaded library zip hash: $downloadedHash, size: ${downloadedBytes.length} bytes (${libraryZip.path})");
 
     final archive = ZipDecoder().decodeBytes(downloadedBytes);
 

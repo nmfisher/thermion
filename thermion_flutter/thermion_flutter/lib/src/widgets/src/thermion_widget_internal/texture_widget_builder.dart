@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart' hide View;
-import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
-
 import '../../../platform/src/platform_texture_descriptor.dart';
 
 Widget surfaceWidgetBuilder(PlatformTextureDescriptor? descriptor) {
