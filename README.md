@@ -67,25 +67,42 @@ In your Flutter app:
 
 ### Web
 
-Before building for web, download the pre-compiled JS/WASM artifacts:
-
-```bash
-dart run thermion_dart:download_web
-```
-
-This fetches `thermion_dart.js` and `thermion_dart.wasm` from Cloudflare and copies them into your app's `web/` directory. Artifacts are cached under `.dart_tool/`, so subsequent runs are instant unless the version changes.
-
-To specify a different output directory:
-
-```bash
-dart run thermion_dart:download_web -o path/to/web
-```
-
-Then build as usual:
+Web builds need two files (`thermion_dart.js` and `thermion_dart.wasm`) sitting alongside your app's `web/index.html`. In the normal case, `thermion_dart`'s build hook fetches them for you on `flutter run`/`flutter build web` — no extra step required:
 
 ```bash
 flutter build web
 ```
+
+The hook reads `native/web/web.version`, downloads the matching artifacts from Cloudflare R2, caches them under `.dart_tool/thermion_dart/web/<sha>/`, and copies them into your app's `web/` directory. Subsequent builds are instant unless the version changes.
+
+If you want to fetch them ahead of time (e.g. for an offline build), you can do so manually:
+
+```bash
+dart run thermion_dart:download_web            # → ./web/
+dart run thermion_dart:download_web -o custom  # → custom/
+```
+
+#### Iterating on native C++ against web
+
+If you're modifying `thermion_dart`'s native code and want to test on web without bumping `native/web/web.version` and waiting for CI to rebuild the R2 artifacts, build the emscripten target locally and opt in via your app's `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      web_local: true
+```
+
+```bash
+# Build the wasm (from native/web/build):
+emcmake cmake ..
+emmake make
+
+# Then run/build your Flutter app:
+flutter run -d chrome
+```
+
+When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Remove the flag (or set it to `false`) to go back to the pinned prebuilt.
 
 ### Sponsors, Contributors & Acknowledgments
 

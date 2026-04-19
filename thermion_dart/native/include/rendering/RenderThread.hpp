@@ -16,6 +16,8 @@
 
 namespace thermion {
 
+class RenderManager;
+
 /**
  * @brief A render loop implementation that manages rendering on a separate thread.
  * 
@@ -69,6 +71,11 @@ public:
     #ifdef __EMSCRIPTEN__
     emscripten::ProxyingQueue queue;
     pthread_t outer;
+
+    // Web-only: iter() invokes mRenderManager->tick() on each rAF so rendering
+    // is driven by the browser's frame cadence rather than a Dart-queued task.
+    void setRenderManager(RenderManager* rm) { mRenderManager = rm; }
+    RenderManager* mRenderManager = nullptr;
     #endif
 
 private:

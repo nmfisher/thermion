@@ -17,6 +17,13 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderable(TRenderManager *tRenderer, TSwapChain *swapChain, TView **views, uint8_t numViews);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChain(TRenderManager *tRenderer, TSwapChain *swapChain);
 
+	// Web path. On native these are either no-ops (attach) or equivalent to a
+	// synchronous render (requestRender). Dart branches on FILAMENT_SINGLE_THREADED
+	// and only calls these on the web build.
+	EMSCRIPTEN_KEEPALIVE void RenderManager_requestRender(TRenderManager *tRenderer);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_attachToRenderThread(TRenderManager *tRenderer);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused);
+
 #ifdef __cplusplus
 }
 #endif

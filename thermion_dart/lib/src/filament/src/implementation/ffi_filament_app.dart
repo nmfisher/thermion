@@ -134,6 +134,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final renderManager = RenderManager_create(engine, renderer);
 
+    // On web, rendering is driven by the RenderThread's rAF mainLoop via
+    // RenderManager::tick(). Wire the two together; no-op on native.
+    RenderManager_attachToRenderThread(renderManager);
+
     final animationManager = await withPointerCallback<TAnimationManager>(
       (cb) => AnimationManager_createRenderThread(engine, cb),
     );
@@ -752,10 +756,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final frameTimeInNanos = DateTime.now().microsecondsSinceEpoch * 1000;
 
-    await withVoidCallback((requestId, cb) {
-      RenderManager_renderRenderThread(
-          renderManager, frameTimeInNanos.toBigInt, requestId, cb);
-    });
+    if (FILAMENT_SINGLE_THREADED) {
+      // Web: fire-and-forget. The render completes across the next N rAF
+      // cycles (N = number of swapchains) driven by RenderThread::iter()
+      // calling RenderManager::tick(). We cannot await completion without
+      // deadlocking the worker's main loop from the main browser thread,
+      // and pre-refactor web was already fire-and-forget via requestFrame.
+      RenderManager_requestRender(renderManager);
+    } else {
+      await withVoidCallback((requestId, cb) {
+        RenderManager_renderRenderThread(
+            renderManager, frameTimeInNanos.toBigInt, requestId, cb);
+      });
+    }
   }
 
   ///

@@ -82,6 +82,20 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void RenderManager_attachToRenderThread(TRenderManager *tRenderManager)
+  {
+#ifdef __EMSCRIPTEN__
+    if (!_renderThread) {
+      Log("WARNING - RenderManager_attachToRenderThread called with no RenderThread active.");
+      return;
+    }
+    auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
+    _renderThread->setRenderManager(rm);
+#else
+    (void)tRenderManager; // no-op on native
+#endif
+  }
+
   EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(
     TRenderManager *tRenderer,
     TSwapChain *tSwapChain,

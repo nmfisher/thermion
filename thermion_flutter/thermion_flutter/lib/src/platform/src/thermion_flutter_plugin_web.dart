@@ -183,8 +183,18 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   @override
-  void pauseFrameScheduler() {}
+  void pauseFrameScheduler() {
+    final app = FilamentApp.instance as FFIFilamentApp?;
+    if (app != null) {
+      RenderManager_setPaused(app.renderManager, true);
+    }
+  }
 
   @override
-  void resumeFrameScheduler() {}
+  void resumeFrameScheduler() {
+    final app = FilamentApp.instance as FFIFilamentApp?;
+    if (app != null) {
+      RenderManager_setPaused(app.renderManager, false);
+    }
+  }
 }
