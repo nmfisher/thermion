@@ -1537,7 +1537,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await mi.setParameterMat4("transform", transform);
 
     await quad.setMaterialInstanceAt(mi);
-    return FFITexturedQuad(asset: quad as ThermionAsset<NativeHandle>, mi: mi);
+    return FFITexturedQuad(asset: quad, mi: mi);
   }
 
   //
