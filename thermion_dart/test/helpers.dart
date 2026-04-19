@@ -6,7 +6,6 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:path/path.dart' as p;
 
@@ -137,32 +136,7 @@ class TestHelper {
     return instance;
   }
 
-  ///
-  ///
-  ///
-  Future createView(FFISwapChain swapChain,
-      {TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
-    final view = await FilamentApp.instance!.createView() as FFIView;
-    await view.setFrustumCullingEnabled(false);
-    await view.setPostProcessing(false);
-    await view.setViewport(512, 512);
-
-    View_setBlendMode(view.view, TBlendMode.OPAQUE);
-    final color = await FilamentApp.instance!.createTexture(512, 512,
-        flags: {
-          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          TextureUsage.TEXTURE_USAGE_BLIT_SRC
-        },
-        textureFormat: textureFormat);
-    await view.setRenderTarget(await FilamentApp.instance!
-        .createRenderTarget(512, 512, color: color) as FFIRenderTarget);
-
-    await FilamentApp.instance!.setRenderOrder(swapChain, view);
-
-    return view;
-  }
-
+  
   Future<ThermionAsset> createCube(ThermionViewer viewer) async {
     var materialInstance = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
@@ -241,7 +215,7 @@ class TestHelper {
   }
 
   Future setup() async {
-    Logger.root.level = Level.SEVERE;
+    Logger.root.level = Level.FINEST;
     Logger.root.onRecord.listen((record) {
       print(record.toString());
     });
@@ -249,9 +223,11 @@ class TestHelper {
     await FFIFilamentApp.create(
         config: FFIFilamentConfig(
             loadResource: _loadResource,
-            backend: Platform.isLinux ? Backend.OPENGL : Platform.isWindows
-                ? Backend.VULKAN
-                : Backend.DEFAULT));
+            backend: Platform.isLinux
+                ? Backend.OPENGL
+                : Platform.isWindows
+                    ? Backend.VULKAN
+                    : Backend.DEFAULT));
   }
 
   Future<(ThermionViewer viewer, SwapChain swapChain)> createViewer(
@@ -268,7 +244,7 @@ class TestHelper {
         viewportDimensions.width, viewportDimensions.height,
         hasStencilBuffer: createStencilBuffer) as FFISwapChain;
 
-    FFIRenderTarget? renderTarget;
+    RenderTarget? renderTarget;
     if (createRenderTarget) {
       Logger.root.info("Creating texture of size ${viewportDimensions}");
       var color = await FilamentApp.instance!.createTexture(
@@ -311,7 +287,9 @@ class TestHelper {
 
     var viewer = ThermionViewerFFI();
     await viewer.initialized;
-    await FilamentApp.instance!.setRenderOrder(swapChain!, viewer.view);
+    await FilamentApp.instance!.renderManager.attach(viewer.view, swapChain);
+
+
     if (renderTarget != null) {
       await viewer.view.setRenderTarget(renderTarget);
     }
@@ -784,7 +762,8 @@ class ViewerBuilder {
         light.type == LightType.SUN ||
         (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0));
 
-    // If we found a sun light and have corresponding entities, get the matching entity
+    // If we found a sun light and have corresponding entities, get the matching
+    // entity
     if (sunLightIndex != -1 &&
         _lightEntities != null &&
         sunLightIndex < _lightEntities!.length) {

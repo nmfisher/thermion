@@ -80,7 +80,8 @@ void main() async {
       await view.setViewport(
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
+      await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
       views.add(view);
     }
 
@@ -142,7 +143,8 @@ void main() async {
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
       await view.setPostProcessing(false);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
+      await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
       views.add(view);
       await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
         viewportDimensions.width,
@@ -197,7 +199,8 @@ void main() async {
           viewportDimensions.width, viewportDimensions.height);
       await view.setFrustumCullingEnabled(false);
       await view.setPostProcessing(false);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
+      await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
       views.add(view);
     }
 
@@ -244,7 +247,8 @@ void main() async {
       await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
               viewportDimensions.width, viewportDimensions.height)
           as FFIRenderTarget);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
+      await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
       await view.setCamera(camera);
       views.add(view);
     }
@@ -332,7 +336,8 @@ void main() async {
 
       await view.setRenderTarget(renderTarget);
 
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
+      await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
       await view.setCamera(camera);
       views.add(view);
 
@@ -366,6 +371,7 @@ void main() async {
     final viewportDimensions = (width: 500, height: 500);
     final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height);
+    
     final views = <FFIView>[];
     final scene = await FilamentApp.instance!.createScene() as FFIScene;
     final camera = await FilamentApp.instance!.createCamera() as FFICamera;
@@ -383,7 +389,8 @@ void main() async {
       await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
               viewportDimensions.width, viewportDimensions.height)
           as FFIRenderTarget);
-      await FilamentApp.instance!.setRenderOrder(swapChain, view);
+      await FilamentApp.instance!.renderManager.attach(view, swapChain);
+      
       await view.setCamera(camera);
       views.add(view);
     }
@@ -439,7 +446,7 @@ void main() async {
         p.join(testHelper.outDir.path, "render_target_as_texture.bmp"),
         isFloat: true);
 
-      await FilamentApp.instance!.destroySwapChain(swapChain);
+    await FilamentApp.instance!.destroySwapChain(swapChain);
   });
 
   test('fog tests', () async {
@@ -623,8 +630,7 @@ void main() async {
 
       var materialInstance = await FilamentApp.instance!
           .createUbershaderMaterialInstance(unlit: true);
-      await materialInstance.setParameterFloat4(
-          "baseColorFactor", 1, 1, 1, 1);
+      await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
       var plane = await FilamentApp.instance!.createGeometry(
           GeometryUtils.plane(width: 2, height: 2),
           materialInstances: [materialInstance]);
@@ -645,16 +651,14 @@ void main() async {
       await camera.lookAt(Vector3(0, 5, 0.1), focus: Vector3(0, 0, 0));
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(
-          null, "stencil_highlight_plane_front",
+      await testHelper.capture(null, "stencil_highlight_plane_front",
           render: true, captureRenderTarget: true);
 
       // View from below (back face) - highlight should still be visible
       await camera.lookAt(Vector3(0, -5, 0.1), focus: Vector3(0, 0, 0));
       await FilamentApp.instance!.render();
 
-      await testHelper.capture(
-          null, "stencil_highlight_plane_back",
+      await testHelper.capture(null, "stencil_highlight_plane_back",
           captureRenderTarget: true, render: false);
 
       await result.viewer.view.removeStencilHighlight(plane);
