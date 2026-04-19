@@ -70,7 +70,7 @@ On web, Thermion compiles to a single emscripten pthread + WebGL build. Native C
 
 The emscripten build produces two files — `thermion_dart.js` and `thermion_dart.wasm` — that need to sit alongside the Flutter app's `web/index.html`. In normal use, `thermion_dart`'s build hook (`hook/build.dart`, `_downloadWebArtifacts`) reads `native/web/web.version`, downloads the matching zip from Cloudflare R2, caches it under `.dart_tool/thermion_dart/web/<sha>/`, and copies the two files into the consuming package's `web/` directory. CI rebuilds and uploads these artifacts when `web.version` is bumped.
 
-For local iteration on native C++ that needs to ship to web: set `THERMION_WEB_LOCAL=1`, build the emscripten target (`native/web/build/build/out/thermion_dart.{js,wasm}`), and the build hook will copy from that local path instead of hitting R2. See `_downloadWebArtifacts` in `hook/build.dart`.
+For local iteration on native C++ that needs to ship to web: add `web_local: true` under `hooks.user_defines.thermion_dart` in the consuming app's pubspec.yaml, build the emscripten target (`native/web/build/build/out/thermion_dart.{js,wasm}`), and the build hook will copy from that local path instead of hitting R2. See `_downloadWebArtifacts` in `hook/build.dart`.
 
 ### Threading model
 

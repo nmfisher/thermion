@@ -84,17 +84,25 @@ dart run thermion_dart:download_web -o custom  # → custom/
 
 #### Iterating on native C++ against web
 
-If you're modifying `thermion_dart`'s native code and want to test on web without bumping `native/web/web.version` and waiting for CI to rebuild the R2 artifacts, build the emscripten target locally and set `THERMION_WEB_LOCAL=1`:
+If you're modifying `thermion_dart`'s native code and want to test on web without bumping `native/web/web.version` and waiting for CI to rebuild the R2 artifacts, build the emscripten target locally and opt in via your app's `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      web_local: true
+```
 
 ```bash
 # Build the wasm (from native/web/build):
-cmake --build .
+emcmake cmake ..
+emmake make
 
-# Then run/build your Flutter app with the env var set:
-THERMION_WEB_LOCAL=1 flutter run -d chrome
+# Then run/build your Flutter app:
+flutter run -d chrome
 ```
 
-When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Unset the variable to go back to the pinned prebuilt.
+When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Remove the flag (or set it to `false`) to go back to the pinned prebuilt.
 
 ### Sponsors, Contributors & Acknowledgments
 

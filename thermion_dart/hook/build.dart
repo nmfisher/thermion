@@ -568,14 +568,16 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
       input.packageRoot.toFilePath(windows: Platform.isWindows);
 
   // Local-build override: skip the R2 download and copy from the emscripten
-  // build output instead. Set THERMION_WEB_LOCAL=1 when iterating on native
-  // C++ that needs to ship to web.
-  if (Platform.environment['THERMION_WEB_LOCAL'] == '1') {
+  // build output instead. Set `web_local: true` under
+  // `hooks.user_defines.thermion_dart` in the consuming app's pubspec.yaml
+  // when iterating on native C++ that needs to ship to web.
+  final webLocal = input.userDefines["web_local"];
+  if (webLocal == true || webLocal == "true" || webLocal == 1 || webLocal == "1") {
     final localOut = Directory(
         path.join(packageRoot, 'native', 'web', 'build', 'build', 'out'));
     if (!localOut.existsSync()) {
       logger.warning(
-          'THERMION_WEB_LOCAL=1 but ${localOut.path} does not exist; '
+          'web_local: true set but ${localOut.path} does not exist; '
           'build the web target first, then re-run.');
       return;
     }
@@ -597,7 +599,7 @@ Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
         continue;
       }
       src.copySync(path.join(webDir.path, name));
-      logger.info('[THERMION_WEB_LOCAL] Copied $name from ${localOut.path}');
+      logger.info('[web_local] Copied $name from ${localOut.path}');
     }
     return;
   }
