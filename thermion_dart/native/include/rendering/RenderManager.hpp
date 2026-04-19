@@ -62,9 +62,10 @@ namespace thermion
         void setPaused(bool paused);
 
         /// Web path: called once per rAF from RenderThread::iter().
-        /// Renders at most one swapchain per invocation so the browser can
-        /// commit the frame between swapchains. Returns true when a full
-        /// frame (all swapchains) has been completed.
+        /// Renders all attached swapchains synchronously (in practice there
+        /// is only one on web — see ARCHITECTURE.md), then calls
+        /// mEngine->execute() to drain the Filament WebGL backend command
+        /// buffer. Returns true if any swapchain produced a visible frame.
         bool tick(uint64_t frameTimeInNanos);
 
         /// @brief

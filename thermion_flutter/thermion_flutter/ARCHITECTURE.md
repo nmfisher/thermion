@@ -165,6 +165,10 @@ The emscripten build produces two files — `thermion_dart.js` and `thermion_dar
 
 For local iteration on native C++ that needs to ship to web: add `web_local: true` under `hooks.user_defines.thermion_dart` in the consuming app's pubspec.yaml, build the emscripten target (`native/web/build/build/out/thermion_dart.{js,wasm}`), and the build hook will copy from that local path instead of hitting R2. See `_downloadWebArtifacts` in `hook/build.dart`.
 
+### Single-swapchain invariant
+
+Web is fundamentally single-swapchain. `emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas")` transfers exactly one canvas to the render worker, and the WebGL context lives on that canvas. There is no second canvas to bind a second swapchain to without re-architecting the worker model. The `RenderManager::tick()` loop over `mViewAttachments` is therefore always a one-iteration loop in practice — the generality is kept for parity with the native `render()` path, not because multiple swapchains are expected. Anything that would require a second render target on web (picture-in-picture, offscreen capture) has to be built on views + RTT into a texture, not additional swapchains.
+
 ### Threading model
 
 Two threads matter:
