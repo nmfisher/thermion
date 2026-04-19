@@ -115,7 +115,10 @@ namespace thermion
         // Web: when true, tick() short-circuits animations + swapchain render.
         // mEngine->execute() still runs so the backend command buffer keeps
         // draining (matches native "scheduler keeps ticking" pause semantics).
-        bool mPaused = false;
+        // Note: this gates *rendering only* — task queue drain in
+        // RenderThread::iter() is outside this flag, so FFI state changes
+        // (setTransform, addEntity, etc.) continue to apply while paused.
+        bool mRenderPaused = false;
     };
 
 }

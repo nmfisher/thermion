@@ -34,7 +34,7 @@ The `FrameScheduler` dispatches its callback to Dart in one of two ways:
 On each vsync tick, the following runs:
 
 1. **`_onFrame(frameTimeNanos)`** (`thermion_flutter_plugin_native.dart`) — the Dart-side entry point.
-   - Returns early if `_schedulerActive`, `FilamentApp.instance`, `_rendering`, `_resizing`, or `_frameSchedulerPaused` are set. The `_rendering` re-entrancy guard is what protects against frame pile-up if a render runs long — late frames are **dropped**, not queued.
+   - Returns early if `_schedulerActive`, `FilamentApp.instance`, `_rendering`, `_resizing`, or `_renderPaused` are set. The `_rendering` re-entrancy guard is what protects against frame pile-up if a render runs long — late frames are **dropped**, not queued.
 2. **`_renderFrame()`** (async) awaits `FilamentApp.instance.render()`.
 3. **`FFIFilamentApp.render()`** (`thermion_dart/lib/src/filament/src/implementation/ffi_filament_app.dart`) runs registered render hooks, then on the native branch:
    ```dart
@@ -80,7 +80,20 @@ The deque is lock-protected (`_taskMutex`); `iter()` holds the lock only long en
 
 ### Pause/resume
 
-`pauseFrameScheduler()` / `resumeFrameScheduler()` on `ThermionFlutterPluginImpl` toggle a Dart-side `_frameSchedulerPaused` flag. The **native** `FrameScheduler` keeps ticking — Dart just short-circuits `_onFrame`. This keeps the scheduler's vsync subscription warm (no cost to resuming) but avoids queuing tasks onto the render thread while paused. If you need the scheduler itself to stop (e.g. app backgrounding on platforms that penalise active display-link subscriptions), call `FrameScheduler_stop` explicitly.
+**The invariant (both platforms): pause stops rendering only. The task queue keeps draining.**
+
+`pauseFrameScheduler()` / `resumeFrameScheduler()` gate the **render pipeline** — on native, Dart's `_onFrame` short-circuits (so no `RenderManager_render` task is queued); on web, `RenderManager::tick()` skips `updateAnimationsAndPlugins` + the swapchain loop. Neither path touches `RenderThread::_tasks`, so every `*_RenderThread` FFI call (`setTransform`, `addEntity`, material/camera updates, etc.) continues to queue and execute exactly as it does when running. `await`-ing an FFI call during pause will not hang; state accumulated during pause is visible on the first render after resume.
+
+On native this means:
+
+- the platform `FrameScheduler` keeps ticking — Dart just ignores the callbacks. Scheduler vsync subscription stays warm so resume is free. If you need the scheduler itself stopped (e.g. to avoid penalties from active display-link subscriptions when backgrounded), call `FrameScheduler_stop` explicitly.
+- `_renderPaused` (`thermion_flutter_plugin_native.dart`) is the Dart-side gate. It is checked only in `_onFrame`; nothing else in the plugin reads it.
+
+On web this means:
+
+- `mRenderPaused` on `RenderManager` is flipped via `RenderManager_setPaused`. `tick()` consults it around the animation + render block; `mEngine->execute()` stays unconditional so the Filament WebGL backend command buffer keeps draining (otherwise GL-queuing tasks like texture uploads would pile up and burst on resume).
+- animations freeze during pause because `updateAnimationsAndPlugins` is part of the render pipeline. This matches native (where `render()` is not called at all, so animations also don't advance). Callers who need the animation clock to keep running without visible frames should not use pause — render into an offscreen swapchain instead.
+- the worker rAF itself can't be cleanly cancelled from another thread under emscripten's main loop, so the per-rAF wakeup still happens; pause is a flag-check, not a subscription cancel.
 
 ### Diagnostics
 
@@ -204,9 +217,7 @@ The fix is to render unconditionally on every worker rAF and let Dart's flag-set
 
 ### Pause/resume on web
 
-`pauseFrameScheduler()` / `resumeFrameScheduler()` call `RenderManager_setPaused(renderManager, bool)`, which flips an `mPaused` flag on the RenderManager. When paused, `tick()` skips `updateAnimationsAndPlugins` and the swapchain loop, but **still calls `mEngine->execute()`**. This matches the native pause semantics (scheduler keeps ticking, render work short-circuits) and is necessary because the Filament WebGL backend queues commands in a backend buffer that must be drained every rAF — otherwise any FFI state changes issued while paused would pile up and flush in a burst on resume.
-
-The worker rAF itself can't be cleanly cancelled from another thread in emscripten's main loop, so we can't avoid the per-rAF wakeup entirely; the pause is a flag-check, not a subscription cancel.
+See [Pause/resume](#pauseresume) in the native lifecycle section — the invariant and the web-specific notes (`mRenderPaused`, `mEngine->execute()` staying unconditional, animation freeze) are documented together.
 
 ### Key files
 

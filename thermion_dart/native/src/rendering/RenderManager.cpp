@@ -217,7 +217,7 @@ namespace thermion
   void RenderManager::setPaused(bool paused)
   {
     std::lock_guard lock(mMutex);
-    mPaused = paused;
+    mRenderPaused = paused;
   }
 
   bool RenderManager::tick(uint64_t frameTimeInNanos)
@@ -239,7 +239,7 @@ namespace thermion
     // independent of whether a visible frame was produced. Skipping
     // execute() stalls the backend and causes a burst on resume.
     bool anyRendered = false;
-    if (!mPaused) {
+    if (!mRenderPaused) {
       updateAnimationsAndPlugins(frameTimeInNanos);
 
       for (size_t i = 0; i < mViewAttachments.size(); i++)

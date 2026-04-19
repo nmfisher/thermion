@@ -101,7 +101,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static bool _usePortMode = false;
   static bool _dartApiInitialized = false;
 
-  static bool _frameSchedulerPaused = false;
+  static bool _renderPaused = false;
 
   // Diagnostic timing state
   static int _diagFrameCount = 0;
@@ -124,7 +124,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // or if we're in a hot restart scenario where FilamentApp is null
     if (!_schedulerActive || FilamentApp.instance == null) return;
 
-    if (_rendering || _resizing || _frameSchedulerPaused) return;
+    if (_rendering || _resizing || _renderPaused) return;
     _rendering = true;
     _diagStopwatch.reset();
     _diagStopwatch.start();
@@ -445,11 +445,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   void pauseFrameScheduler() {
-    _frameSchedulerPaused = true;
+    _renderPaused = true;
   }
 
   void resumeFrameScheduler() {
-    _frameSchedulerPaused = false;
+    _renderPaused = false;
   }
 
   /// Creates Filament textures + render target and binds them to [view].
