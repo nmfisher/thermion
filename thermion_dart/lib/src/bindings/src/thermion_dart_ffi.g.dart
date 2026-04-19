@@ -1714,6 +1714,23 @@ external void RenderManager_removeSwapChain(
   ffi.Pointer<TSwapChain> swapChain,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
+external void RenderManager_requestRender(
+  ffi.Pointer<TRenderManager> tRenderer,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
+external void RenderManager_attachToRenderThread(
+  ffi.Pointer<TRenderManager> tRenderer,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Bool)>(
+    isLeaf: true)
+external void RenderManager_setPaused(
+  ffi.Pointer<TRenderManager> tRenderer,
+  bool paused,
+);
+
 @ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
 external void FrameScheduler_start(
   FrameCallback callback,
@@ -3946,7 +3963,7 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
+  bool preserveGeometry,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
       onComplete,
 );
@@ -3998,16 +4015,6 @@ external void SceneAsset_createInstanceRenderThread(
         ffi.Pointer<TSceneAsset>, ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void SceneAsset_releaseSourceDataRenderThread(
   ffi.Pointer<TSceneAsset> tSceneAsset,
-  int requestId,
-  VoidCallback onComplete,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Bool, ffi.Uint32,
-        VoidCallback)>(isLeaf: true)
-external void SceneAsset_setFlatShadingRenderThread(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-  bool flatShading,
   int requestId,
   VoidCallback onComplete,
 );
@@ -5352,7 +5359,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
+  bool preserveGeometry,
 );
 
 @ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(
@@ -5465,12 +5472,6 @@ external ffi.Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external void SceneAsset_releaseSourceData(
   ffi.Pointer<TSceneAsset> tSceneAsset,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Bool)>(isLeaf: true)
-external void SceneAsset_setFlatShading(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-  bool flatShading,
 );
 
 @ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(

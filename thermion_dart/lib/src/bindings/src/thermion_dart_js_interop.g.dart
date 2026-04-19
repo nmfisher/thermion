@@ -20,7 +20,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     NativeLibrary.instance = lib as NativeLibrary;
   }
 
-  external void _Thermion_resizeCanvas(
+  external void _Thermion_setCanvasElementSize(
+    Pointer<Char> name,
     int width,
     int height,
   );
@@ -986,6 +987,16 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderManager_removeSwapChain(
     Pointer<TRenderManager> tRenderer,
     Pointer<TSwapChain> swapChain,
+  );
+  external void _RenderManager_requestRender(
+    Pointer<TRenderManager> tRenderer,
+  );
+  external void _RenderManager_attachToRenderThread(
+    Pointer<TRenderManager> tRenderer,
+  );
+  external void _RenderManager_setPaused(
+    Pointer<TRenderManager> tRenderer,
+    bool paused,
   );
   external void _FrameScheduler_start(
     FrameCallback callback,
@@ -2156,7 +2167,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    bool rebuildVertices,
+    bool preserveGeometry,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>>
         onComplete,
   );
@@ -2178,12 +2189,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _SceneAsset_releaseSourceDataRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
-    int requestId,
-    VoidCallback onComplete,
-  );
-  external void _SceneAsset_setFlatShadingRenderThread(
-    Pointer<TSceneAsset> tSceneAsset,
-    bool flatShading,
     int requestId,
     VoidCallback onComplete,
   );
@@ -2878,7 +2883,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    bool rebuildVertices,
+    bool preserveGeometry,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(
     Pointer<TSceneAsset> tSceneAsset,
@@ -2942,10 +2947,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _SceneAsset_releaseSourceData(
     Pointer<TSceneAsset> tSceneAsset,
-  );
-  external void _SceneAsset_setFlatShading(
-    Pointer<TSceneAsset> tSceneAsset,
-    bool flatShading,
   );
   external Pointer<TAnimationManager> _AnimationManager_create(
     Pointer<TEngine> tEngine,
@@ -3169,12 +3170,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
 }
 
-void Thermion_resizeCanvas(
+void Thermion_setCanvasElementSize(
+  Pointer<Char> name,
   int width,
   int height,
 ) {
-  final result =
-      GeneratedBindings.instance._Thermion_resizeCanvas(width, height);
+  final result = GeneratedBindings.instance
+      ._Thermion_setCanvasElementSize(name, width, height);
   return result;
 }
 
@@ -5300,6 +5302,31 @@ void RenderManager_removeSwapChain(
 ) {
   final result = GeneratedBindings.instance
       ._RenderManager_removeSwapChain(tRenderer.cast(), swapChain.cast());
+  return result;
+}
+
+void RenderManager_requestRender(
+  Pointer<TRenderManager> tRenderer,
+) {
+  final result =
+      GeneratedBindings.instance._RenderManager_requestRender(tRenderer.cast());
+  return result;
+}
+
+void RenderManager_attachToRenderThread(
+  Pointer<TRenderManager> tRenderer,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_attachToRenderThread(tRenderer.cast());
+  return result;
+}
+
+void RenderManager_setPaused(
+  Pointer<TRenderManager> tRenderer,
+  bool paused,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_setPaused(tRenderer.cast(), paused);
   return result;
 }
 
@@ -7909,7 +7936,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
+  bool preserveGeometry,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance
@@ -7918,7 +7945,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
           tAssetLoader.cast(),
           tNameComponentManager.cast(),
           tFilamentAsset.cast(),
-          rebuildVertices,
+          preserveGeometry,
           onComplete.cast());
   return result;
 }
@@ -7966,21 +7993,6 @@ void SceneAsset_releaseSourceDataRenderThread(
 ) {
   final result = GeneratedBindings.instance
       ._SceneAsset_releaseSourceDataRenderThread(tSceneAsset.cast(), requestId,
-          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
-  return result;
-}
-
-void SceneAsset_setFlatShadingRenderThread(
-  Pointer<TSceneAsset> tSceneAsset,
-  bool flatShading,
-  int requestId,
-  DartVoidCallback onComplete,
-) {
-  final result = GeneratedBindings.instance
-      ._SceneAsset_setFlatShadingRenderThread(
-          tSceneAsset.cast(),
-          flatShading,
-          requestId,
           onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
@@ -9479,14 +9491,14 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
+  bool preserveGeometry,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAsset(
       tEngine.cast(),
       tAssetLoader.cast(),
       tNameComponentManager.cast(),
       tFilamentAsset.cast(),
-      rebuildVertices);
+      preserveGeometry);
   return Pointer<TSceneAsset>(result);
 }
 
@@ -9640,15 +9652,6 @@ void SceneAsset_releaseSourceData(
 ) {
   final result = GeneratedBindings.instance
       ._SceneAsset_releaseSourceData(tSceneAsset.cast());
-  return result;
-}
-
-void SceneAsset_setFlatShading(
-  Pointer<TSceneAsset> tSceneAsset,
-  bool flatShading,
-) {
-  final result = GeneratedBindings.instance
-      ._SceneAsset_setFlatShading(tSceneAsset.cast(), flatShading);
   return result;
 }
 
