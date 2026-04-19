@@ -2167,7 +2167,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    bool preserveGeometry,
+    bool rebuildVertices,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>>
         onComplete,
   );
@@ -2189,6 +2189,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _SceneAsset_releaseSourceDataRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _SceneAsset_setFlatShadingRenderThread(
+    Pointer<TSceneAsset> tSceneAsset,
+    bool flatShading,
     int requestId,
     VoidCallback onComplete,
   );
@@ -2883,7 +2889,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    bool preserveGeometry,
+    bool rebuildVertices,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(
     Pointer<TSceneAsset> tSceneAsset,
@@ -2947,6 +2953,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _SceneAsset_releaseSourceData(
     Pointer<TSceneAsset> tSceneAsset,
+  );
+  external void _SceneAsset_setFlatShading(
+    Pointer<TSceneAsset> tSceneAsset,
+    bool flatShading,
   );
   external Pointer<TAnimationManager> _AnimationManager_create(
     Pointer<TEngine> tEngine,
@@ -7936,7 +7946,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  bool preserveGeometry,
+  bool rebuildVertices,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance
@@ -7945,7 +7955,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
           tAssetLoader.cast(),
           tNameComponentManager.cast(),
           tFilamentAsset.cast(),
-          preserveGeometry,
+          rebuildVertices,
           onComplete.cast());
   return result;
 }
@@ -7993,6 +8003,21 @@ void SceneAsset_releaseSourceDataRenderThread(
 ) {
   final result = GeneratedBindings.instance
       ._SceneAsset_releaseSourceDataRenderThread(tSceneAsset.cast(), requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void SceneAsset_setFlatShadingRenderThread(
+  Pointer<TSceneAsset> tSceneAsset,
+  bool flatShading,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_setFlatShadingRenderThread(
+          tSceneAsset.cast(),
+          flatShading,
+          requestId,
           onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
@@ -9491,14 +9516,14 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  bool preserveGeometry,
+  bool rebuildVertices,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAsset(
       tEngine.cast(),
       tAssetLoader.cast(),
       tNameComponentManager.cast(),
       tFilamentAsset.cast(),
-      preserveGeometry);
+      rebuildVertices);
   return Pointer<TSceneAsset>(result);
 }
 
@@ -9652,6 +9677,15 @@ void SceneAsset_releaseSourceData(
 ) {
   final result = GeneratedBindings.instance
       ._SceneAsset_releaseSourceData(tSceneAsset.cast());
+  return result;
+}
+
+void SceneAsset_setFlatShading(
+  Pointer<TSceneAsset> tSceneAsset,
+  bool flatShading,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_setFlatShading(tSceneAsset.cast(), flatShading);
   return result;
 }
 
