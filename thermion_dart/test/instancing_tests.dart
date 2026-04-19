@@ -56,7 +56,8 @@ void main() async {
     }, bg: kRed);
   });
 
-  test('gltf assets are created with initialInstances instances', () async {
+  test("""When initialInstances is passed to loadGltf, a gltf asset is created
+  with at least that many instances""", () async {
     await testHelper.withViewer((viewer) async {
       var asset = await viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
@@ -65,6 +66,17 @@ void main() async {
 
       asset = await viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
+          initialInstances: 2);
+      expect(await asset.getInstanceCount(), 2);
+    });
+  });
+
+  test("""When loadGltf is called with releaseSourceData=true, only the 
+  pre-allocated instances can be created""", () async {
+    await testHelper.withViewer((viewer) async {
+      var asset = await viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          releaseSourceData: true,
           initialInstances: 2);
       expect(await asset.getInstanceCount(), 2);
 
