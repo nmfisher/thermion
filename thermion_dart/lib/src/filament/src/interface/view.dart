@@ -281,13 +281,9 @@ abstract class View<T> extends NativeHandle<T> {
   static int STENCIL_HIGHLIGHT_REFERENCE_VALUE = 1;
 
   /// Gets the scene currently associated with this View.
-  ///
-  ///
   Future<Scene> getScene();
 
   /// Sets the scene currently associated with this View.
-  ///
-  ///
   Future setScene(Scene scene);
 
   // Sets the (debug) name for this View.

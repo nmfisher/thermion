@@ -16,7 +16,7 @@ class FFIScene extends Scene<Pointer<TScene>> {
 
   @override
   Future add(ThermionAsset asset) async {
-    SceneAsset_addToScene(asset.getHandle(), scene);
+    SceneAsset_addToScene(asset.getNativeHandle(), scene);
   }
 
   ///
@@ -32,7 +32,7 @@ class FFIScene extends Scene<Pointer<TScene>> {
   ///
   @override
   Future remove(ThermionAsset asset) async {
-    SceneAsset_removeFromScene(asset.getHandle(), scene);
+    SceneAsset_removeFromScene(asset.getNativeHandle(), scene);
   }
 
   ///

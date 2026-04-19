@@ -139,7 +139,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var camera = await viewer.getActiveCamera();
 
-      await viewer.createGeometry(GeometryHelper.cube());
+      await viewer.createGeometry(GeometryUtils.cube());
 
       await camera.setProjection(
           Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
@@ -158,17 +158,17 @@ void main() async {
       // In orthographic: objects maintain the same size regardless of distance.
 
       // Near cube (Z = -2)
-      var nearCube = await viewer.createGeometry(GeometryHelper.cube());
+      var nearCube = await viewer.createGeometry(GeometryUtils.cube());
       await FilamentApp.instance!.setTransform(
           nearCube.entity, Matrix4.translation(Vector3(-1.5, 0, -2)));
 
       // Middle cube (Z = -5)
-      var midCube = await viewer.createGeometry(GeometryHelper.cube());
+      var midCube = await viewer.createGeometry(GeometryUtils.cube());
       await FilamentApp.instance!
           .setTransform(midCube.entity, Matrix4.translation(Vector3(0, 0, -5)));
 
       // Far cube (Z = -8)
-      var farCube = await viewer.createGeometry(GeometryHelper.cube());
+      var farCube = await viewer.createGeometry(GeometryUtils.cube());
       await FilamentApp.instance!.setTransform(
           farCube.entity, Matrix4.translation(Vector3(1.5, 0, -8)));
 
@@ -195,7 +195,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       var camera = await viewer.getActiveCamera();
 
-      await viewer.createGeometry(GeometryHelper.cube());
+      await viewer.createGeometry(GeometryUtils.cube());
 
       await camera.setProjectionFromHorizontalFieldOfView(90, 0.1, 100, 1.0);
       await testHelper.capture(viewer.view, "camera_fov_90_degrees_horizontal");
@@ -214,7 +214,7 @@ void main() async {
   test('set perspective projection/culling matrix', () async {
     await testHelper.withViewer((viewer) async {
       var camera = await viewer.getActiveCamera();
-      final cube = await viewer.createGeometry(GeometryHelper.cube());
+      final cube = await viewer.createGeometry(GeometryUtils.cube());
 
       var fovY = pi / 2;
       await camera.setProjectionMatrixWithCulling(
@@ -236,7 +236,7 @@ void main() async {
   // test('set custom projection/culling matrix (orthographic)', () async {
   //   await testHelper.withViewer((viewer) async {
   //     var camera = await viewer.getMainCamera();
-  //     final cube = await viewer.createGeometry(GeometryHelper.cube());
+  //     final cube = await viewer.createGeometry(GeometryUtils.cube());
 
   //     // cube is visible when inside the frustum, cube is visible
   //     var projectionMatrix =
@@ -280,7 +280,7 @@ void main() async {
   //     var cameraEntity = await viewer.getMainCameraEntity();
   //     var camera = await viewer.getMainCamera();
 
-  //     var parent = await viewer.createGeometry(GeometryHelper.cube());
+  //     var parent = await viewer.createGeometry(GeometryUtils.cube());
 
   //     await viewer.setParent(camera.getEntity(), parent.entity);
   //     await viewer.setTransform(
@@ -309,7 +309,7 @@ void main() async {
   //     var camera = await viewer.createCamera();
 
   //     var child = await viewer
-  //         .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+  //         .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
   //     await viewer.setParent(child.entity, camera.getEntity());
 
   //     await testHelper.capture(viewer, "camera_as_parent1");
@@ -325,7 +325,7 @@ void main() async {
   //     await viewer.setCameraPosition(0, 0, 5);
   //     await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
   //     await viewer
-  //         .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+  //         .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
   //     await testHelper.capture(viewer, "create_camera_main_camera");
 
   //     expect(viewer.getCameraCount(), 1);

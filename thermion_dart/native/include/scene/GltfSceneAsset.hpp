@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include <filament/BufferObject.h>
 #include <filament/Engine.h>
 #include <filament/RenderableManager.h>
 #include <filament/VertexBuffer.h>
@@ -136,6 +137,19 @@ namespace thermion
             return _asset->getBoundingBox();
         }
 
+        /// Rebuild all mesh primitives with a superset vertex buffer layout
+        /// (POSITION + TANGENTS + UV0 + CUSTOM0 + optional BONE_INDICES/WEIGHTS).
+        /// Unwelds vertices so each triangle has unique vertices for barycentric
+        /// wireframe rendering. After this, materials can be freely swapped via
+        /// setMaterialInstanceAt. Requires source data to still be available.
+        void rebuildVertexBuffers();
+
+        /// Release the underlying cgltf source data early to free memory.
+        /// Safe to call multiple times; subsequent calls are no-ops.
+        void releaseSourceData();
+
+        bool geometryPreserved() const { return _geometryPreserved; }
+
     private:
         gltfio::FilamentAsset *_asset;
         gltfio::AssetLoader *_assetLoader;
@@ -144,6 +158,14 @@ namespace thermion
         MaterialInstance **_materialInstances = nullptr;
         size_t _materialInstanceCount = 0;
         std::vector<std::unique_ptr<GltfSceneAssetInstance>> _instances;
+
+        bool _sourceDataReleased = false;
+        bool _geometryPreserved = false;
+
+        // Buffers created by rebuildVertexBuffers, owned by this asset.
+        std::vector<VertexBuffer*> _preservedVertexBuffers;
+        std::vector<IndexBuffer*> _preservedIndexBuffers;
+        std::vector<BufferObject*> _preservedBufferObjects;
     };
 
 } // namespace thermion

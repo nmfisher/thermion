@@ -11,7 +11,6 @@ class FFIGltfMeshData extends GltfMeshData {
   /// Returns vertex positions (xyz) and optional indices.
   /// If [meshName] is specified, only extracts data for that specific mesh.
   static Future<GltfMeshData> parse(Uint8List data, {String? meshName}) async {
-
     final meshNamePtr =
         meshName != null ? meshName.toNativeUtf8().cast<Char>() : nullptr;
 
@@ -32,7 +31,8 @@ class FFIGltfMeshData extends GltfMeshData {
 
       // Copy to Dart lists
       final vertices = Float32List(meshData.vertexCount);
-      vertices.setRange(0, vertices.length, meshData.vertices.asTypedList(meshData.vertexCount));
+      vertices.setRange(0, vertices.length,
+          meshData.vertices.asTypedList(meshData.vertexCount));
 
       Uint32List? indices;
       if (meshData.indices != nullptr && meshData.indexCount > 0) {

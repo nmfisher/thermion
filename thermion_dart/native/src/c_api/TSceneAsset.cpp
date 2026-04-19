@@ -69,7 +69,8 @@ extern "C"
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        TFilamentAsset *tFilamentAsset
+        TFilamentAsset *tFilamentAsset,
+        bool preserveGeometry
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -83,7 +84,11 @@ extern "C"
             nameComponentManager
         );
 
-        return reinterpret_cast<TSceneAsset *>(sceneAsset);        
+        if (preserveGeometry) {
+            sceneAsset->rebuildVertexBuffers();
+        }
+
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
     
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
@@ -240,6 +245,16 @@ extern "C"
         return nullptr;
     }
 
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("releaseSourceData only supported on glTF assets");
+            return;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        gltfAsset->releaseSourceData();
+    }
 
 #ifdef __cplusplus
 }

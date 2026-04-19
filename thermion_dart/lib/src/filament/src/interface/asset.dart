@@ -1,196 +1,163 @@
 library;
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/src/filament/src/interface/layers.dart';
-import 'package:thermion_dart/src/filament/src/interface/scene.dart';
+import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 
-///
-/// A high-level interface for a renderable object
-/// (i.e. not a camera or light).
-///
-/// Filament represents most "objects" with an integer handle (in C++,
-/// filament::Entity).
-///
-/// In practice, working with filament::Entity at a higher level is difficult
-/// because certain objects don't map exactly to entities (e.g. glTF assets, which
-/// are represented by a hierarchy of entities) and creating instances
-/// directly from entities is not possible.
-///
-///
-abstract class ThermionAsset {
-  ///
-  ///
-  ///
-  T getHandle<T>() {
-    throw UnimplementedError();
-  }
-
-  ///
-  /// The top-most entity in the hierarchy. If this is a glTF asset
-  ///
+// filament::utils::Entity is the core C++ Filament "handle" type, used to
+// represent lights, renderables, cameras, etc. ThermionEntity is the equivalent
+// Dart type.
+//
+// However, it can be cumbersome to work directly with [ThermionEntity]; glTF
+// assets, for example, are stored as collections of entities. Generally users
+// would want to add/remove these from a scene at once, rather than tracking and
+// processing each entity individually.
+//
+// [ThermionAsset] is a higher-level interface over a one or more renderable
+// entities.
+//
+abstract class ThermionAsset<T> extends NativeHandle<T> {
+  // The top-most entity in the hierarchy.
+  // If this is a glTF asset
   ThermionEntity get entity;
 
-  ///
-  ///
-  ///
-  Future<List<ThermionEntity>> getChildEntities()  async {
+  //
+  Future<List<ThermionEntity>> getChildEntities() async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
+  //
   Future<bool> containsChild(ThermionEntity entity) {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  Future<List<String?>> getChildEntityNames()  async {
+  //
+  Future<List<String?>> getChildEntityNames() async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  Future<ThermionEntity?> getChildEntity(String childName)  async {
+  //
+  Future<ThermionEntity?> getChildEntity(String childName) async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
+  //
   Future<MaterialInstance> getMaterialInstanceAt(
-      {ThermionEntity? entity, int index = 0})  async {
+      {ThermionEntity? entity, int index = 0}) async {
     throw UnimplementedError();
   }
 
-  /// Sets the material instance for the primitive at [primitiveIndex] in
-  /// [entity].
-  ///
-  /// If [entity] is null, the top-most parent for this asset will be used.
-  ///
-  ///
+  // Sets the material instance for the primitive at [primitiveIndex] in
+  // [entity]. If [entity] is null, the top-most parent for this asset will be
+  // used.
   Future setMaterialInstanceAt(covariant MaterialInstance instance,
       {int? entity = null, int primitiveIndex = 0}) {
     throw UnimplementedError();
   }
 
-  /// Sets the material instance for all primitives in all entities to
-  /// [instance].
-  ///
+  // Sets the material instance for all primitives in all entities to
+  // [instance].
+  //
   Future setMaterialInstanceForAll(covariant MaterialInstance instance) {
     throw UnimplementedError();
   }
 
-  /// Returns a map of all renderable entities attached to this asset, and
-  /// a list of material instances for each primitive for the respective
-  /// entity.
-  ///
+  // Returns a map of all renderable entities attached to this asset, and
+  // a list of material instances for each primitive for the respective
+  // entity.
+  //
   Future<Map<ThermionEntity, List<MaterialInstance>>>
       getMaterialInstancesAsMap() {
     throw UnimplementedError();
   }
 
-  /// For each entity in the given map, set the material instance
-  /// for the respective primitive.
-  ///
-  /// Mainly intended for use with [getMaterialInstancesAsMap] so you can
-  /// easily save/restore an asset's material instances.
-  ///
+  // For each entity in the given map, set the material instance
+  // for the respective primitive.
+  //
+  // Mainly intended for use with [getMaterialInstancesAsMap] so you can
+  // easily save/restore an asset's material instances.
+  //
   Future setMaterialInstancesFromMap(
       Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
     throw UnimplementedError();
   }
 
-  /// The dimensions of the bounding box for this asset.
-  Future<Aabb3> getBoundingBox()  async {
+  // The dimensions of the bounding box for this asset.
+  Future<Aabb3> getBoundingBox() async {
     throw UnimplementedError();
   }
 
-  /// Gets the instance attached to this asset at index [index]
-  Future<ThermionAsset> getInstance(int index)  async {
+  // Gets the instance attached to this asset at index [index]
+  Future<ThermionAsset> getInstance(int index) async {
     throw UnimplementedError();
   }
 
-  /// Create a new instance of [entity].
-  /// Instances are not automatically added to the scene; you must
-  /// call [Scene.add].
+  // Create a new instance of [entity].
+  // Instances are not automatically added to the scene; you must
+  // call [Scene.add].
   Future<ThermionAsset> createInstance(
       {List<MaterialInstance>? materialInstances = null});
 
-  /// Returns the number of instances associated with this asset.
-  Future<int> getInstanceCount()  async {
+  // Returns the number of instances associated with this asset.
+  Future<int> getInstanceCount() async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Returns all instances of associated with this asset.
-  ///
-  Future<List<ThermionAsset>> getInstances()  async {
+  //
+  // Returns all instances of associated with this asset.
+  //
+  Future<List<ThermionAsset>> getInstances() async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  Future setCastShadows(bool castShadows)  async {
+  //
+  Future setCastShadows(bool castShadows) async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  Future setReceiveShadows(bool castShadows)  async {
+  //
+  Future setReceiveShadows(bool castShadows) async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  Future<bool> isCastShadowsEnabled({ThermionEntity? entity})  async {
+  //
+  Future<bool> isCastShadowsEnabled({ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity})  async {
+  //
+  Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  Future transformToUnitCube()  async {
+  //
+  Future transformToUnitCube() async {
     throw UnimplementedError();
   }
 
-  ///
-  /// All renderable entities are assigned a layer mask.
-  ///
-  /// By calling [setLayerVisibility], all renderable entities allocated to
-  /// the given layer can be efficiently hidden/revealed.
-  ///
-  /// By default, all renderable entities are assigned to layer 0 (and this
-  /// layer is enabled by default). Call [setVisibilityLayer] to change the
-  /// layer for the specified entity.
-  ///
-  /// Note that we currently also assign gizmos to layer 1 (enabled by default)
-  /// and the world grid to layer 2 (disabled by default). We suggest you avoid
-  /// using these layers.
-  ///
-  Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer)  async {
+  //
+  // All renderable entities are assigned a layer mask.
+  //
+  // By calling [setLayerVisibility], all renderable entities allocated to
+  // the given layer can be efficiently hidden/revealed.
+  //
+  // By default, all renderable entities are assigned to layer 0 (and this
+  // layer is enabled by default). Call [setVisibilityLayer] to change the
+  // layer for the specified entity.
+  //
+  // Note that we currently also assign gizmos to layer 1 (enabled by default)
+  // and the world grid to layer 2 (disabled by default). We suggest you avoid
+  // using these layers.
+  //
+  Future setVisibilityLayer(
+      ThermionEntity entity, VisibilityLayers layer) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
-  ///
+  // Schedules the glTF animation at [index] in [asset] to start playing on the
+  // next frame.
   Future playGltfAnimation(int index,
       {bool loop = false,
       bool reverse = false,
@@ -201,9 +168,8 @@ abstract class ThermionAsset {
     throw UnimplementedError();
   }
 
-  ///
-  /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
-  ///
+  // Schedules the glTF animation at [index] in [entity] to start playing on the
+  // next frame.
   Future playGltfAnimationByName(String name,
       {bool loop = false,
       bool reverse = false,
@@ -220,206 +186,188 @@ abstract class ThermionAsset {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
+  //
   Future stopGltfAnimation(int animationIndex) {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
+  //
   Future stopGltfAnimationByName(String name) {
     throw UnimplementedError();
   }
 
-  ///
-  /// Set the weights for all morph targets in [entity] to [weights].
-  /// Note that [weights] must contain values for ALL morph targets, but no exception will be thrown if you don't do so (you'll just get incorrect results).
-  /// If you only want to set one value, set all others to zero (check [getMorphTargetNames] if you need the get a list of all morph targets).
-  /// IMPORTANT - this accepts the actual ThermionEntity with the relevant morph targets (unlike [getMorphTargetNames], which uses the parent entity and the child mesh name).
-  /// Use [getChildEntityByName] if you are setting the weights for a child mesh.
-  ///
+  // Set the weights for all morph targets in [entity] to [weights]. Note that
+  // [weights] must contain values for ALL morph targets, but no exception will
+  // be thrown if you don't do so (you'll just get incorrect results). If you
+  // only want to set one value, set all others to zero (check
+  // [getMorphTargetNames] if you need the get a list of all morph targets).
+  // IMPORTANT - this accepts the actual ThermionEntity with the relevant morph
+  // targets (unlike [getMorphTargetNames], which uses the parent entity and the
+  // child mesh name). Use [getChildEntityByName] if you are setting the weights
+  // for a child mesh.
   Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) {
     throw UnimplementedError();
   }
 
-  ///
-  /// Gets the names of all morph targets for [entity] (which must be a renderable entity)
-  ///
+  // Gets the names of all morph targets for [entity] (which must be a
+  // renderable entity)
   Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) {
     throw UnimplementedError();
   }
 
-  ///
-  /// Gets the names of all bones for the skin at [skinIndex].
-  ///
+  // Gets the names of all bones for the skin at [skinIndex].
   Future<List<String>> getBoneNames({int skinIndex = 0}) {
     throw UnimplementedError();
   }
 
-  ///
-  /// Gets the names of all glTF animations embedded in the specified entity.
-  ///
+  // Gets the names of all glTF animations embedded in the specified entity.
   Future<List<String>> getGltfAnimationNames() {
     throw UnimplementedError();
   }
 
-  ///
-  /// Returns the length (in seconds) of the animation at the given index.
-  ///
+  // Returns the length (in seconds) of the animation at the given index.
   Future<double> getGltfAnimationDuration(int animationIndex) {
     throw UnimplementedError();
   }
 
-  ///
-  /// Construct animation(s) for every entity under [asset]. If [targetMeshNames] is provided, only entities with matching names will be animated.
-  /// [MorphTargetAnimation] for an explanation as to how to construct the animation frame data.
-  /// This method will check the morph target names specified in [animation] against the morph target names that actually exist exist under [meshName] in [entity],
-  /// throwing an exception if any cannot be found.
-  /// It is permissible for [animation] to omit any targets that do exist under [meshName]; these simply won't be animated.
-  ///
+  // Construct animation(s) for every entity under [asset]. If [targetMeshNames]
+  // is provided, only entities with matching names will be animated.
+  // [MorphTargetAnimation] for an explanation as to how to construct the
+  // animation frame data. This method will check the morph target names
+  // specified in [animation] against the morph target names that actually exist
+  // exist under [meshName] in [entity], throwing an exception if any cannot be
+  // found. It is permissible for [animation] to omit any targets that do exist
+  // under [meshName]; these simply won't be animated.
+  //
   Future setMorphAnimationData(MorphAnimationData animation,
       {List<String>? targetMeshNames}) {
     throw UnimplementedError();
   }
 
-  ///
-  /// Clear all current morph animations for [entity].
-  ///
+  //
+  // Clear all current morph animations for [entity].
+  //
   Future clearMorphAnimationData(ThermionEntity entity) {
     throw UnimplementedError();
   }
 
-  ///
-  /// Resets all bones in the given entity to their rest pose.
-  /// This should be done before every call to addBoneAnimation.
-  ///
-  Future resetBones()  async {
+  //
+  // Resets all bones in the given entity to their rest pose.
+  // This should be done before every call to addBoneAnimation.
+  //
+  Future resetBones() async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Enqueues and plays the [animation] for the specified bone(s).
-  /// By default, frame data is interpreted as being in *parent* bone space;
-  /// a 45 degree around Y means the bone will rotate 45 degrees around the
-  /// Y axis of the parent bone *in its current orientation*.
-  /// (i.e NOT the parent bone's rest position!).
-  /// Currently, only [Space.ParentBone] and [Space.Model] are supported; if you want
-  /// to transform to another space, you will need to do so manually.
-  ///
-  /// [fadeInInSecs]/[fadeOutInSecs]/[maxDelta] are used to cross-fade between
-  /// the current active glTF animation ("animation1") and the animation you
-  /// set via this method ("animation2"). The bone orientations will be
-  /// linearly interpolated between animation1 and animation2; at time 0,
-  /// the orientation will be 100% animation1, at time [fadeInInSecs], the
-  /// animation will be ((1 - maxDelta) * animation1) + (maxDelta * animation2).
-  /// This will be applied in reverse after [fadeOutInSecs].
-  ///
-  ///
+  // Enqueues and plays the [animation] for the specified bone(s). By default,
+  // frame data is interpreted as being in *parent* bone space; a 45 degree
+  // around Y means the bone will rotate 45 degrees around the Y axis of the
+  // parent bone *in its current orientation*. (i.e NOT the parent bone's rest
+  // position!). Currently, only [Space.ParentBone] and [Space.Model] are
+  // supported; if you want to transform to another space, you will need to do
+  // so manually.
+  //
+  // [fadeInInSecs]/[fadeOutInSecs]/[maxDelta] are used to cross-fade between
+  // the current active glTF animation ("animation1") and the animation you set
+  // via this method ("animation2"). The bone orientations will be linearly
+  // interpolated between animation1 and animation2; at time 0, the orientation
+  // will be 100% animation1, at time [fadeInInSecs], the animation will be ((1
+  // - maxDelta) * animation1) + (maxDelta * animation2). This will be applied
+  // in reverse after [fadeOutInSecs].
   Future addBoneAnimation(BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
       double fadeOutInSecs = 0.0,
-      double maxDelta = 1.0})  async {
+      double maxDelta = 1.0}) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Gets the entity representing the bone at [boneIndex]/[skinIndex].
-  /// The returned entity is only intended for use with [getWorldTransform].
-  ///
-  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0})  async {
+  //
+  // Gets the entity representing the bone at [boneIndex]/[skinIndex].
+  // The returned entity is only intended for use with [getWorldTransform].
+  //
+  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0}) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Gets the local (relative to parent) transform for [entity].
-  ///
-  Future<Matrix4> getLocalTransform({ThermionEntity? entity})  async {
+  //
+  // Gets the local (relative to parent) transform for [entity].
+  //
+  Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Gets the world transform for [entity].
-  ///
-  Future<Matrix4> getWorldTransform({ThermionEntity? entity})  async {
+  //
+  // Gets the world transform for [entity].
+  //
+  Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Gets the inverse bind (pose) matrix for the bone.
-  /// Note that [parent] must be the ThermionEntity returned by [loadGlb/loadGltf], not any other method ([getChildEntity] etc).
-  /// This is because all joint information is internally stored with the parent entity.
-  ///
-  Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0})  async {
+  // Gets the inverse bind (pose) matrix for the bone. Note that [parent] must
+  // be the ThermionEntity returned by [loadGlb/loadGltf], not any other method
+  // ([getChildEntity] etc). This is because all joint information is internally
+  // stored with the parent entity.
+  Future<Matrix4> getInverseBindMatrix(int boneIndex,
+      {int skinIndex = 0}) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Sets the transform (relative to its parent) for [entity].
-  ///
+  // Sets the transform (relative to its parent) for [entity].
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Updates the bone matrices for [entity] (which must be the ThermionEntity
-  /// returned by [loadGlb/loadGltf]).
-  /// Under the hood, this just calls [updateBoneMatrices] on the Animator
-  /// instance of the relevant FilamentInstance (which uses the local
-  /// bone transform and the inverse bind matrix to set the bone matrix).
-  ///
+  // Updates the bone matrices for [entity] (which must be the ThermionEntity
+  // returned by [loadGlb/loadGltf]). Under the hood, this just calls
+  // [updateBoneMatrices] on the Animator instance of the relevant
+  // FilamentInstance (which uses the local bone transform and the inverse bind
+  // matrix to set the bone matrix).
+  //
   Future updateBoneMatrices(ThermionEntity entity) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Directly set the bone matrix for the bone at the given index.
-  /// Don't call this manually unless you know what you're doing.
-  ///
+  //
+  // Directly set the bone matrix for the bone at the given index.
+  // Don't call this manually unless you know what you're doing.
+  //
   Future setBoneTransform(
       ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) async {
     throw UnimplementedError();
   }
 
-  ///
-  /// An [entity] will only be animatable after an animation component is attached.
-  /// Any calls to [playAnimation]/[setBoneAnimation]/[setMorphAnimation] will have no visual effect until [addAnimationComponent] has been called on the instance.
-  ///
+  // An [entity] will only be animatable after an animation component is
+  // attached. Any calls to
+  // [playAnimation]/[setBoneAnimation]/[setMorphAnimation] will have no visual
+  // effect until [addAnimationComponent] has been called on the instance.
   Future addAnimationComponent() async {
     throw UnimplementedError();
   }
 
-  ///
-  /// Removes an animation component from [entity].
-  ///
+  // Removes an animation component from [entity].
   Future removeAnimationComponent() async {
     throw UnimplementedError();
   }
 
-  /// Returns the number of primitives in [entity] (which is assumed to have
-  /// a Renderable component attached).
-  ///
-  ///
+  // Returns the number of primitives in [entity] (which is assumed to have
+  // a Renderable component attached).
   Future<int> getPrimitiveCount({ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
-  /// Returns the underlying [VertexBuffer] for this asset, if available.
-  ///
-  /// For geometry assets this exposes the backing Filament vertex buffer so you
-  /// can update data via [VertexBuffer.setBufferAt].
-  ///
-  /// [primitiveIndex] is reserved for future use. Geometry assets currently
-  /// only support a single primitive, so it is ignored.
-  ///
-  /// Returns null if this asset type does not expose a vertex buffer.
+  // Unweld all mesh primitives so each triangle has unique vertices,
+  // then assign barycentric coordinates to CUSTOM0 for wireframe rendering.
+  // Returns the underlying [VertexBuffer] for this asset, if available.
+  //
+  // For geometry assets this exposes the backing Filament vertex buffer so you
+  // can update data via [VertexBuffer.setBufferAt].
+  //
+  // [primitiveIndex] is reserved for future use. Geometry assets currently
+  // only support a single primitive, so it is ignored.
+  //
+  // Returns null if this asset type does not expose a vertex buffer.
   VertexBuffer? getVertexBuffer({int primitiveIndex = 0}) {
     throw UnimplementedError();
   }

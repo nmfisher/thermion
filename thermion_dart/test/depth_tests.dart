@@ -90,7 +90,7 @@ void main() async {
     var umi = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
     var cube = await FilamentApp.instance!
-        .createGeometry(GeometryHelper.cube());
+        .createGeometry(GeometryUtils.cube());
     await scene.add(cube as FFIAsset);
     await umi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
@@ -103,6 +103,7 @@ void main() async {
     checkMinMaxPixelValues(pixelBuffers[view]!.buffer.asFloat32List(),
         viewportDimensions.width, viewportDimensions.height);
   });
+
 
   group('depth sampling', () {
     test("depth sampling", () async {

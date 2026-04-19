@@ -136,7 +136,7 @@ void main() async {
   //         DirectLight.sun(direction: Vector3(0, 0, -1)..normalize()));
 
   //     final unlitMaterialInstance = await viewer.createUnlitMaterialInstance();
-  //     final cube = await viewer.createGeometry(GeometryHelper.cube(),
+  //     final cube = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstance: unlitMaterialInstance);
   //     await viewer.setMaterialPropertyFloat4(
   //         cube, 'baseColorFactor', 0, 1, 1, 1, 1);
@@ -177,7 +177,7 @@ void main() async {
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
   //     var materialInstance =
   //         await viewer.createUbershaderMaterialInstance(unlit: true);
-  //     var cube = await viewer.createGeometry(GeometryHelper.cube(),
+  //     var cube = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstances: [materialInstance]);
 
   //     await viewer.setPostProcessing(true);
@@ -212,7 +212,7 @@ void main() async {
   //         Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
   //             Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
   //     var cube =
-  //         await viewer.createGeometry(GeometryHelper.cube(), keepData: true);
+  //         await viewer.createGeometry(GeometryUtils.cube(), keepData: true);
   //     await viewer.setMaterialPropertyFloat4(
   //         cube, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1.0);
   //     var textureData =
@@ -298,7 +298,7 @@ void main() async {
 
   //     final unlit = await viewer.createUnlitMaterialInstance();
   //     await viewer.destroyAsset(cube);
-  //     cube = await viewer.createGeometry(GeometryHelper.cube(),
+  //     cube = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstance: unlit);
   //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);
   //     await viewer.applyTexture(reconstructedTexture, cube);

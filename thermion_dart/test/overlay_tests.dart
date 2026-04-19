@@ -149,7 +149,7 @@ void main() async {
 
         // Create a cube and position it at (0, 10, 0)
         final cube = await viewer.createGeometry(
-          GeometryHelper.cube(),
+          GeometryUtils.cube(),
         );
         await FilamentApp.instance!.setTransform(
           cube.entity,

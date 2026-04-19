@@ -426,7 +426,8 @@ class ThermionViewerFFI extends ThermionViewer {
     String path, {
     bool addToScene = true,
     int initialInstances = 1,
-    bool keepData = false,
+    bool releaseSourceData = false,
+    bool preserveGeometry = false,
     String? resourceUri,
     bool loadAsync = false,
   }) async {
@@ -444,7 +445,8 @@ class ThermionViewerFFI extends ThermionViewer {
       data,
       addToScene: addToScene,
       initialInstances: initialInstances,
-      keepData: keepData,
+      releaseSourceData: releaseSourceData,
+      preserveGeometry: preserveGeometry,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );
@@ -456,18 +458,16 @@ class ThermionViewerFFI extends ThermionViewer {
     Uint8List data, {
     bool addToScene = true,
     int initialInstances = 1,
-    bool keepData = false,
-    int priority = 4,
-    int layer = 0,
+    bool releaseSourceData = false,
+    bool preserveGeometry = false,
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
     var asset = await FilamentApp.instance!.loadGltfFromBuffer(
       data,
       initialInstances: initialInstances,
-      keepData: keepData,
-      priority: priority,
-      layer: layer,
+      releaseSourceData: releaseSourceData,
+      preserveGeometry: preserveGeometry,
       loadResourcesAsync: loadResourcesAsync,
       resourceUri: resourceUri,
     );
@@ -497,7 +497,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future destroyAssets() async {
     _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
-      _logger.info("Destroying asset ${asset.getHandle()}");
+      _logger.info("Destroying asset ${asset.getNativeHandle()}");
       await scene.remove(asset);
       await hideBoundingBox(asset, destroy: true);
 
@@ -682,7 +682,8 @@ class ThermionViewerFFI extends ThermionViewer {
         Axis.Z => 2,
       };
 
-      // Material origin should be (0,0,0) in object space since we position via transform
+      // Material origin should be (0,0,0) in object space since we position via
+      // transform
       _translationAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
         originX: 0.0,
@@ -695,7 +696,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
       // Create plane geometry (without material first, then apply)
       _translationAxisAsset = await createGeometry(
-        GeometryHelper.plane(width: lineLength * 2, height: lineLength * 2),
+        GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2),
       );
       await _translationAxisAsset!.setMaterialInstanceAt(_translationAxisMaterial!);
 
@@ -772,13 +773,13 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<ThermionAsset> createGeometry(
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
-    bool keepData = false,
+    bool releaseSourceData = false,
     bool addToScene = true,
   }) async {
     final asset = await FilamentApp.instance!.createGeometry(
       geometry,
       materialInstances: materialInstances,
-      keepData: keepData,
+      releaseSourceData: releaseSourceData,
     );
     _assets.add(asset);
     if (addToScene) {
@@ -941,7 +942,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final bbAsset = await FilamentApp.instance!.createGeometry(
       geometry,
       materialInstances: [material],
-      keepData: false,
+      releaseSourceData: false,
     );
 
     await bbAsset.setCastShadows(false);

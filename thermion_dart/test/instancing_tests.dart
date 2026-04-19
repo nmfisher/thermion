@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:test/test.dart';
 import 'package:thermion_dart/src/filament/src/interface/asset.dart';
 import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
-import 'package:thermion_dart/src/utils/src/geometry.dart';
+import 'package:thermion_dart/src/utils/src/geometry/utils.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
@@ -27,8 +27,8 @@ void main() async {
   test('create/destroy instance for geometry asset', () async {
     await testHelper.withViewer((viewer) async {
       final mi = await FilamentApp.instance!.createUbershaderMaterialInstance();
-      var asset = await viewer.createGeometry(GeometryHelper.cube(),
-          materialInstances: [mi], addToScene: true, keepData: true);
+      var asset = await viewer.createGeometry(GeometryUtils.cube(),
+          materialInstances: [mi]);
 
       await testHelper.capture(viewer.view, "geometry_no_instance");
       expect(await asset.getInstanceCount(), 0);
@@ -86,8 +86,7 @@ void main() async {
       var asset = await viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
           addToScene: false,
-          initialInstances: 2,
-          keepData: true);
+          initialInstances: 2);
       var defaultInstance = await asset.getInstance(0);
       await viewer.addToScene(defaultInstance);
       await testHelper.capture(viewer.view, "gltf_without_instance");

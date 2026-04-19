@@ -11,7 +11,7 @@ Future<
     })> setup(ThermionViewer viewer) async {
   var blueMaterialInstance =
       await FilamentApp.instance!.createUnlitMaterialInstance();
-  final blueCube = await viewer.createGeometry(GeometryHelper.cube(),
+  final blueCube = await viewer.createGeometry(GeometryUtils.cube(),
       materialInstances: [blueMaterialInstance]);
   await blueMaterialInstance.setParameterFloat4(
       "baseColorFactor", 0.0, 0.0, 1.0, 1.0);
@@ -21,7 +21,7 @@ Future<
 
   var greenMaterialInstance =
       await FilamentApp.instance!.createUnlitMaterialInstance();
-  final greenCube = await viewer.createGeometry(GeometryHelper.cube(),
+  final greenCube = await viewer.createGeometry(GeometryUtils.cube(),
       materialInstances: [greenMaterialInstance]);
   await greenMaterialInstance.setParameterFloat4(
       "baseColorFactor", 0.0, 1.0, 0.0, 1.0);

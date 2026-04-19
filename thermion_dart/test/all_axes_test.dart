@@ -13,7 +13,7 @@ void main() async {
         await viewer.setGridOverlayVisibility(true);
 
         // Create a cube at origin
-        final cube = await viewer.createGeometry(GeometryHelper.cube());
+        final cube = await viewer.createGeometry(GeometryUtils.cube());
         await FilamentApp.instance!.setTransform(
           cube.entity,
           Matrix4.translation(Vector3(0, 3, 0)),
@@ -25,7 +25,7 @@ void main() async {
 
         // Create three separate axis entities (one for each axis)
         final xAxis = await viewer.createGeometry(
-          GeometryHelper.plane(width: 100, height: 100),
+          GeometryUtils.plane(width: 100, height: 100),
         );
         final xAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
           originX: 0.0, originY: 0.0, originZ: 0.0,
@@ -41,7 +41,7 @@ void main() async {
         await viewer.addToScene(xAxis);
 
         final yAxis = await viewer.createGeometry(
-          GeometryHelper.plane(width: 100, height: 100),
+          GeometryUtils.plane(width: 100, height: 100),
         );
         final yAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
           originX: 0.0, originY: 0.0, originZ: 0.0,
@@ -58,7 +58,7 @@ void main() async {
         await viewer.addToScene(yAxis);
 
         final zAxis = await viewer.createGeometry(
-          GeometryHelper.plane(width: 100, height: 100),
+          GeometryUtils.plane(width: 100, height: 100),
         );
         final zAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
           originX: 0.0, originY: 0.0, originZ: 0.0,

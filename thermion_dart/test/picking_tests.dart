@@ -17,7 +17,7 @@ void main() async {
         .setCameraLookAt(Vector3(10, 10, 10), focus: Vector3(0, 0, 0))
         .execute((result) async {
       final viewer = result.viewer;
-      final cube = await viewer.createGeometry(GeometryHelper.cube());
+      final cube = await viewer.createGeometry(GeometryUtils.cube());
       final view = await viewer.view;
       final viewport = await view.getViewport();
 
@@ -58,7 +58,7 @@ void main() async {
   //         hasClearCoat: false,
   //         hasIOR: false);
   //     await mi.setParameterFloat4("baseColorFactor", 1, 0, 0, 0.5);
-  //     final cubeGeometry = GeometryHelper.cube();
+  //     final cubeGeometry = GeometryUtils.cube();
   //     final cube =
   //         await viewer.createGeometry(cubeGeometry, materialInstances: [mi]);
   //     final view = await viewer.view;
