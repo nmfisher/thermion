@@ -572,7 +572,8 @@ class FFIView extends View<Pointer<TView>> {
       int? entity,
       double scale = 1.05,
       double outlineWidth = 3.0,
-      int primitiveIndex = 0}) async {
+      int primitiveIndex = 0,
+      ThermionAsset? geometrySource}) async {
     if (_highlightOverlayManager == null) {
       await setHighlightOverlayEnabled(true);
     }
@@ -580,19 +581,22 @@ class FFIView extends View<Pointer<TView>> {
     entity ??= asset.entity;
     final entities = [entity, ...await asset.getChildEntities()];
 
+    // Use geometrySource for vertex/index buffers when provided (e.g. for
+    // instances where the root asset has the preserved geometry data).
+    final geoAsset = geometrySource ?? asset;
+    final ffiGeoAsset = geoAsset as FFIAsset;
+
     // Get geometry info for creating silhouette entity.
-    // Only works for geometry assets or glTF loaded via parseGltf.
-    final ffiAsset = asset as FFIAsset;
-    final vertexBuffer = asset.getVertexBuffer(primitiveIndex: primitiveIndex);
+    final vertexBuffer = geoAsset.getVertexBuffer(primitiveIndex: primitiveIndex);
     final indexBuffer =
-        SceneAsset_getIndexBuffer(ffiAsset.asset, primitiveIndex);
+        SceneAsset_getIndexBuffer(ffiGeoAsset.asset, primitiveIndex);
     final hasGeometry = vertexBuffer != null && indexBuffer != nullptr;
 
     if (!hasGeometry || vertexBuffer is! FFIVertexBuffer) {
       throw UnsupportedError(
           "Stencil highlight requires geometry info (vertexBuffer and indexBuffer). "
-          "glTF assets loaded via loadGlb/loadGltf are not supported. "
-          "Use geometry assets or parseGltf instead.");
+          "For instances, pass the root asset as geometrySource. "
+          "For glTF, ensure rebuildVertices: true was used during loading.");
     }
 
     final indexCount = IndexBuffer_getIndexCount(indexBuffer);

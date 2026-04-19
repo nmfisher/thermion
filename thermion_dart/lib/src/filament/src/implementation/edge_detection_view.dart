@@ -266,7 +266,8 @@ class EdgeDetectionView extends FFIView {
       int? entity,
       @Deprecated('Use outlineWidth instead') double scale = 1.05,
       double outlineWidth = 3.0,
-      int primitiveIndex = 0}) async {
+      int primitiveIndex = 0,
+      ThermionAsset? geometrySource}) async {
     throw Exception(
         "disableHighlightOverlay cannot be called on a highlight view");
   }

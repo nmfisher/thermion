@@ -32,6 +32,7 @@ namespace thermion
             gltfio::AssetLoader *assetLoader,
             Engine *engine,
             utils::NameComponentManager* ncm,
+            bool rebuildVertices = false,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 
@@ -144,11 +145,37 @@ namespace thermion
         /// setMaterialInstanceAt. Requires source data to still be available.
         void rebuildVertexBuffers();
 
+        /// Toggle between flat (per-face) and smooth (per-vertex) shading.
+        /// Only valid after rebuildVertexBuffers() has been called.
+        /// Swaps the TANGENTS buffer object on all preserved vertex buffers.
+        void setFlatShading(bool flatShading);
+
         /// Release the underlying cgltf source data early to free memory.
         /// Safe to call multiple times; subsequent calls are no-ops.
         void releaseSourceData();
 
         bool geometryPreserved() const { return _geometryPreserved; }
+
+        /// Returns the preserved vertex buffer at the given index, or nullptr.
+        VertexBuffer* getPreservedVertexBuffer(size_t index) const {
+            if (index < _preservedVertexBuffers.size()) {
+                return _preservedVertexBuffers[index];
+            }
+            return nullptr;
+        }
+
+        /// Returns the preserved index buffer at the given index, or nullptr.
+        IndexBuffer* getPreservedIndexBuffer(size_t index) const {
+            if (index < _preservedIndexBuffers.size()) {
+                return _preservedIndexBuffers[index];
+            }
+            return nullptr;
+        }
+
+        /// Returns the number of preserved vertex buffers.
+        size_t getPreservedVertexBufferCount() const {
+            return _preservedVertexBuffers.size();
+        }
 
     private:
         gltfio::FilamentAsset *_asset;
@@ -161,11 +188,15 @@ namespace thermion
 
         bool _sourceDataReleased = false;
         bool _geometryPreserved = false;
+        bool _flatShading = false;
 
         // Buffers created by rebuildVertexBuffers, owned by this asset.
         std::vector<VertexBuffer*> _preservedVertexBuffers;
         std::vector<IndexBuffer*> _preservedIndexBuffers;
+        std::vector<size_t> _preservedIndexCounts;
         std::vector<BufferObject*> _preservedBufferObjects;
+        std::vector<BufferObject*> _smoothTangentBOs;
+        std::vector<BufferObject*> _flatTangentBOs;
     };
 
 } // namespace thermion

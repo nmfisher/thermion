@@ -70,7 +70,7 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        bool preserveGeometry
+        bool rebuildVertices
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -81,12 +81,9 @@ extern "C"
             filamentAsset,
             assetLoader,
             engine,
-            nameComponentManager
+            nameComponentManager,
+            rebuildVertices
         );
-
-        if (preserveGeometry) {
-            sceneAsset->rebuildVertexBuffers();
-        }
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
@@ -232,6 +229,11 @@ extern "C"
             auto *vertexBuffer = geometrySceneAsset->getVertexBuffer();
             return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
         }
+        if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto *vertexBuffer = gltfSceneAsset->getPreservedVertexBuffer(primitiveIndex);
+            return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
+        }
         return nullptr;
     }
 
@@ -240,6 +242,11 @@ extern "C"
         if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
             auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
             auto *indexBuffer = geometrySceneAsset->getIndexBuffer();
+            return reinterpret_cast<TIndexBuffer *>(indexBuffer);
+        }
+        if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto *indexBuffer = gltfSceneAsset->getPreservedIndexBuffer(primitiveIndex);
             return reinterpret_cast<TIndexBuffer *>(indexBuffer);
         }
         return nullptr;
@@ -254,6 +261,16 @@ extern "C"
         }
         auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
         gltfAsset->releaseSourceData();
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShading(TSceneAsset *tSceneAsset, bool flatShading) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("setFlatShading only supported on glTF assets");
+            return;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        gltfAsset->setFlatShading(flatShading);
     }
 
 #ifdef __cplusplus

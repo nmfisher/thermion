@@ -69,6 +69,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
     await _thermionViewer!.addToScene(asset);
 
+    var wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
+    await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
+    await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
+    await wireframe.setEdgeWidth(0.5);
+    await asset.setMaterialInstanceForAll(wireframe.materialInstance);
+
     // Thermion uses a right-handed coordinate system where +Y is up and -Z is
     // "into" the screen.
     // By default, the camera is located at (0,0,0) looking at (0,0,-1); this
