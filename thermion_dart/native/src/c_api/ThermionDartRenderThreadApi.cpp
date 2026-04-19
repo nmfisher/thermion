@@ -694,13 +694,13 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
-      bool preserveGeometry,
+      bool rebuildVertices,
       void (*onComplete)(TSceneAsset *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, preserveGeometry);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices);
           PROXY(onComplete(sceneAsset));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -746,6 +746,18 @@ extern "C"
         [=]() mutable
         {
           SceneAsset_releaseSourceData(tSceneAsset);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShadingRenderThread(
+      TSceneAsset *tSceneAsset, bool flatShading, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneAsset_setFlatShading(tSceneAsset, flatShading);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);

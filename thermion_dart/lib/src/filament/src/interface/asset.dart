@@ -64,6 +64,12 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
+  // Toggle between flat (per-face) and smooth (per-vertex) shading.
+  // Only has effect if the asset was loaded with rebuildVertices: true.
+  Future setFlatShading(bool flatShading) {
+    throw UnimplementedError();
+  }
+
   // Returns a map of all renderable entities attached to this asset, and
   // a list of material instances for each primitive for the respective
   // entity.
@@ -179,9 +185,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
+  //
   Future setGltfAnimationTime(int index, double timeInSeconds) {
     throw UnimplementedError();
   }

@@ -427,7 +427,7 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    bool preserveGeometry = false,
+    bool rebuildVertices = false,
     String? resourceUri,
     bool loadAsync = false,
   }) async {
@@ -446,7 +446,7 @@ class ThermionViewerFFI extends ThermionViewer {
       addToScene: addToScene,
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
-      preserveGeometry: preserveGeometry,
+      rebuildVertices: rebuildVertices,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );
@@ -459,7 +459,7 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    bool preserveGeometry = false,
+    bool rebuildVertices = false,
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
@@ -467,7 +467,7 @@ class ThermionViewerFFI extends ThermionViewer {
       data,
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
-      preserveGeometry: preserveGeometry,
+      rebuildVertices: rebuildVertices,
       loadResourcesAsync: loadResourcesAsync,
       resourceUri: resourceUri,
     );
@@ -659,7 +659,8 @@ class ThermionViewerFFI extends ThermionViewer {
         throw ArgumentError('axis is required when visible is true');
       }
       if (entity == null && origin == null) {
-        throw ArgumentError('either entity or origin must be provided when visible is true');
+        throw ArgumentError(
+            'either entity or origin must be provided when visible is true');
       }
 
       // Get world position from entity if provided
@@ -667,7 +668,8 @@ class ThermionViewerFFI extends ThermionViewer {
       if (origin != null) {
         worldPosition = origin;
       } else {
-        final worldTransform = await FilamentApp.instance!.getWorldTransform(entity!);
+        final worldTransform =
+            await FilamentApp.instance!.getWorldTransform(entity!);
         worldPosition = worldTransform.getTranslation();
         await FilamentApp.instance!.setPriority(entity, 0);
       }
@@ -698,14 +700,16 @@ class ThermionViewerFFI extends ThermionViewer {
       _translationAxisAsset = await createGeometry(
         GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2),
       );
-      await _translationAxisAsset!.setMaterialInstanceAt(_translationAxisMaterial!);
+      await _translationAxisAsset!
+          .setMaterialInstanceAt(_translationAxisMaterial!);
 
       // Position at world position, with rotation for Y axis
       v64.Matrix4 transform;
       if (axis == Axis.Y) {
         // Rotate plane 90° around X axis to make it vertical (XY plane)
         final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
-        transform = v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
+        transform =
+            v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
       } else {
         transform = v64.Matrix4.translation(worldPosition);
       }

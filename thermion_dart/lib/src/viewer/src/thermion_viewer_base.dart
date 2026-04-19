@@ -28,7 +28,8 @@ abstract class ThermionViewer {
   // Renders a single frame (bypassing animations and plugins).
   Future renderSingleFrame();
 
-  // When [rendering] is true, sets the framerate for continuous rendering when [setRendering] is enabled.
+  // When [rendering] is true, sets the framerate for continuous rendering when
+  // [setRendering] is enabled.
   Future setFrameRate(int framerate);
 
   // Destroys/disposes the viewer (including the entire scene). You cannot use the viewer after calling this method.
@@ -38,9 +39,12 @@ abstract class ThermionViewer {
   Future<TexturedQuad> getBackgroundImage();
 
   // Set the background image to [path] (which should be .png, .jpg, or .ktx
-  // file). This will be rendered at the maximum depth (i.e. behind all other objects including the skybox).
-  // If [fillHeight] is false, the image will be rendered at its original size. Note this may cause issues with pixel density so be sure to specify the correct resolution
-  // If [fillHeight] is true, the image will be stretched/compressed to fit the height of the viewport.
+  // file). This will be rendered at the maximum depth (i.e. behind all other
+  // objects including the skybox). If [fillHeight] is false, the image will be
+  // rendered at its original size. Note this may cause issues with pixel
+  // density so be sure to specify the correct resolution If [fillHeight] is
+  // true, the image will be stretched/compressed to fit the height of the
+  // viewport.
   Future setBackgroundImage(String path, {bool fillHeight = false});
 
   // Set the background image from [texture].
@@ -64,8 +68,9 @@ abstract class ThermionViewer {
   // Removes the skybox from the scene and destroys all associated resources.
   Future removeSkybox();
 
-  // Creates an indirect light by loading the reflections/irradiance from the KTX file.
-  // Only one indirect light can be active at any given time; if an indirect light has already been loaded, it will be replaced.
+  // Creates an indirect light by loading the reflections/irradiance from the
+  // KTX file. Only one indirect light can be active at any given time; if an
+  // indirect light has already been loaded, it will be replaced.
   Future loadIbl(String lightingPath,
       {double intensity = 30000, bool destroyExisting = true});
 
@@ -125,7 +130,7 @@ abstract class ThermionViewer {
   //
   // Instances can be retrieved with [getInstances].
   //
-  // If [preserveGeometry] is true, vertex buffers are rebuilt after loading
+  // If [rebuildVertices] is true, vertex buffers are rebuilt after loading
   // with a superset of attributes (POSITION, TANGENTS, UV0, CUSTOM0, and
   // optionally BONE_INDICES/BONE_WEIGHTS). Vertices are unwelded so each
   // triangle has unique vertices with barycentric coordinates in CUSTOM0.
@@ -141,7 +146,7 @@ abstract class ThermionViewer {
       {bool addToScene = true,
       int initialInstances = 1,
       bool releaseSourceData = false,
-      bool preserveGeometry = false,
+      bool rebuildVertices = false,
       String? resourceUri,
       bool loadAsync = false});
 
@@ -153,7 +158,7 @@ abstract class ThermionViewer {
       {String? resourceUri,
       int initialInstances = 1,
       bool releaseSourceData = false,
-      bool preserveGeometry = false,
+      bool rebuildVertices = false,
       bool loadResourcesAsync = false,
       bool addToScene = true});
 
@@ -163,7 +168,9 @@ abstract class ThermionViewer {
   Future destroyAsset(ThermionAsset asset);
 
   // Removes/destroys all renderable entities from the scene (including cameras).
-  // All [ThermionEntity] handles will no longer be valid after this method is called; ensure you immediately discard all references to all entities once this method is complete.
+  // All [ThermionEntity] handles will no longer be valid after this method is
+  // called; ensure you immediately discard all references to all entities once
+  // this method is complete.
   Future destroyAssets();
 
   // Sets the tone mapping (requires postprocessing).

@@ -26,7 +26,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   final bool releaseSourceData;
 
   //
-  FFIAsset(this.asset, {this.instanceOwner = null, this.releaseSourceData = false}) {
+  FFIAsset(this.asset,
+      {this.instanceOwner = null, this.releaseSourceData = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -105,7 +106,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
     if (releaseSourceData) {
       throw Exception(
-          "releaseSourceData must have been specified as false when this asset was created");
+          """releaseSourceData must have been specified as false"""
+""" when this asset was created""");
     }
     var ptrList = IntPtrList(materialInstances?.length ?? 0);
     late Pointer stackPtr;
@@ -136,7 +138,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, instanceOwner: this, releaseSourceData: releaseSourceData);
+    return FFIAsset(created,
+        instanceOwner: this, releaseSourceData: releaseSourceData);
   }
 
   //
@@ -231,6 +234,18 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
             entity: entity, primitiveIndex: i);
       }
     }
+    // When called on the root asset, propagate to all instances.
+    if (!isInstance) {
+      for (final inst in await getInstances()) {
+        await (inst as FFIAsset).setMaterialInstanceForAll(instance);
+      }
+    }
+  }
+
+  @override
+  Future setFlatShading(bool flatShading) async {
+    await withVoidCallback((requestId, cb) =>
+        SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
   }
 
   //
