@@ -1,10 +1,9 @@
 import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
-import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-class FFITexturedQuad<T extends NativeHandle> extends TexturedQuad<T> {
+class FFITexturedQuad<T> extends TexturedQuad<T> {
   final ThermionAsset<T> asset;
 
   ThermionEntity get entity => asset.entity;
