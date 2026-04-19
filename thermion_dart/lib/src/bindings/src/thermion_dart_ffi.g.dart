@@ -1713,6 +1713,13 @@ external void RenderManager_attachToRenderThread(
   ffi.Pointer<TRenderManager> tRenderer,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Bool)>(
+    isLeaf: true)
+external void RenderManager_setPaused(
+  ffi.Pointer<TRenderManager> tRenderer,
+  bool paused,
+);
+
 @ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
 external void FrameScheduler_start(
   FrameCallback callback,

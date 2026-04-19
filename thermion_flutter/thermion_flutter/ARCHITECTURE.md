@@ -202,7 +202,11 @@ The flag was originally intended to gate rendering so Dart could control when fr
 
 The fix is to render unconditionally on every worker rAF and let Dart's flag-setting be a no-op. This matches pre-refactor semantics (the `RenderTicker` also ran every worker rAF once it was requested). The flag is kept in the API for symmetry with native but is not gating on the web path.
 
-**Trade-off**: there's currently no way to *pause* rendering on web — `pauseFrameScheduler()` / `resumeFrameScheduler()` on `ThermionFlutterPluginImpl` are empty. If a pause path is needed (e.g. for tab visibility), wire those hooks to a `mPaused` flag checked at the top of `tick()`.
+### Pause/resume on web
+
+`pauseFrameScheduler()` / `resumeFrameScheduler()` call `RenderManager_setPaused(renderManager, bool)`, which flips an `mPaused` flag on the RenderManager. When paused, `tick()` skips `updateAnimationsAndPlugins` and the swapchain loop, but **still calls `mEngine->execute()`**. This matches the native pause semantics (scheduler keeps ticking, render work short-circuits) and is necessary because the Filament WebGL backend queues commands in a backend buffer that must be drained every rAF — otherwise any FFI state changes issued while paused would pile up and flush in a burst on resume.
+
+The worker rAF itself can't be cleanly cancelled from another thread in emscripten's main loop, so we can't avoid the per-rAF wakeup entirely; the pause is a flag-check, not a subscription cancel.
 
 ### Key files
 

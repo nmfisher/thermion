@@ -214,6 +214,12 @@ namespace thermion
     mRenderRequested = true;
   }
 
+  void RenderManager::setPaused(bool paused)
+  {
+    std::lock_guard lock(mMutex);
+    mPaused = paused;
+  }
+
   bool RenderManager::tick(uint64_t frameTimeInNanos)
   {
     std::lock_guard<std::mutex> lock(mMutex);
@@ -228,18 +234,20 @@ namespace thermion
 
     // Match pre-refactor RenderTicker semantics: render all swapchains
     // synchronously and ALWAYS call mEngine->execute() — even if every
-    // beginFrame rejected. Filament's WebGL backend queues commands in an
-    // internal buffer that needs to be drained every rAF, independent of
-    // whether a visible frame was produced. Skipping execute() on rejection
-    // stalls the backend.
-    updateAnimationsAndPlugins(frameTimeInNanos);
-
+    // beginFrame rejected or we're paused. Filament's WebGL backend queues
+    // commands in an internal buffer that needs to be drained every rAF,
+    // independent of whether a visible frame was produced. Skipping
+    // execute() stalls the backend and causes a burst on resume.
     bool anyRendered = false;
-    for (size_t i = 0; i < mViewAttachments.size(); i++)
-    {
-      if (!mViewAttachments[i].swapChain) continue;
-      if (renderSwapChainAt(i, frameTimeInNanos)) {
-        anyRendered = true;
+    if (!mPaused) {
+      updateAnimationsAndPlugins(frameTimeInNanos);
+
+      for (size_t i = 0; i < mViewAttachments.size(); i++)
+      {
+        if (!mViewAttachments[i].swapChain) continue;
+        if (renderSwapChainAt(i, frameTimeInNanos)) {
+          anyRendered = true;
+        }
       }
     }
 

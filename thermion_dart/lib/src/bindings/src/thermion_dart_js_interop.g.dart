@@ -988,6 +988,10 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderManager_attachToRenderThread(
     Pointer<TRenderManager> tRenderer,
   );
+  external void _RenderManager_setPaused(
+    Pointer<TRenderManager> tRenderer,
+    bool paused,
+  );
   external void _FrameScheduler_start(
     FrameCallback callback,
     int targetFps,
@@ -5278,6 +5282,15 @@ void RenderManager_attachToRenderThread(
 ) {
   final result = GeneratedBindings.instance
       ._RenderManager_attachToRenderThread(tRenderer.cast());
+  return result;
+}
+
+void RenderManager_setPaused(
+  Pointer<TRenderManager> tRenderer,
+  bool paused,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderManager_setPaused(tRenderer.cast(), paused);
   return result;
 }
 

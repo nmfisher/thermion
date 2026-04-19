@@ -22,6 +22,7 @@ extern "C"
 	// and only calls these on the web build.
 	EMSCRIPTEN_KEEPALIVE void RenderManager_requestRender(TRenderManager *tRenderer);
 	EMSCRIPTEN_KEEPALIVE void RenderManager_attachToRenderThread(TRenderManager *tRenderer);
+	EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused);
 
 #ifdef __cplusplus
 }

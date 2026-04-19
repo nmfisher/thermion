@@ -55,6 +55,12 @@ namespace thermion
         /// driven from RenderThread::iter() on each rAF via tick().
         void requestRender();
 
+        /// Web: pause/resume rendering. When paused, tick() skips animation
+        /// updates and swapchain rendering but still drains the Filament
+        /// backend command buffer (mEngine->execute()) so any state changes
+        /// queued before pause complete cleanly and don't burst on resume.
+        void setPaused(bool paused);
+
         /// Web path: called once per rAF from RenderThread::iter().
         /// Renders at most one swapchain per invocation so the browser can
         /// commit the frame between swapchains. Returns true when a full
@@ -105,6 +111,11 @@ namespace thermion
         // rAF. Rejection retries (beginFrame failing) keep the flag set so
         // RenderThread's 12ms iter-loop can retry in the same rAF.
         bool mRenderRequested = false;
+
+        // Web: when true, tick() short-circuits animations + swapchain render.
+        // mEngine->execute() still runs so the backend command buffer keeps
+        // draining (matches native "scheduler keeps ticking" pause semantics).
+        bool mPaused = false;
     };
 
 }

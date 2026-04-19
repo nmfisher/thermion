@@ -50,6 +50,11 @@ EMSCRIPTEN_KEEPALIVE void RenderManager_requestRender(TRenderManager *tRenderer)
     renderManager->requestRender();
 }
 
+EMSCRIPTEN_KEEPALIVE void RenderManager_setPaused(TRenderManager *tRenderer, bool paused) {
+    auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
+    renderManager->setPaused(paused);
+}
+
 EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderable(TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews) {
     auto *renderManager = reinterpret_cast<RenderManager *>(tRenderer);
     auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
