@@ -763,13 +763,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       // deadlocking the worker's main loop from the main browser thread,
       // and pre-refactor web was already fire-and-forget via requestFrame.
       RenderManager_requestRender(renderManager);
-      return;
+    } else {
+      await withVoidCallback((requestId, cb) {
+        RenderManager_renderRenderThread(
+            renderManager, frameTimeInNanos.toBigInt, requestId, cb);
+      });
     }
-
-    await withVoidCallback((requestId, cb) {
-      RenderManager_renderRenderThread(
-          renderManager, frameTimeInNanos.toBigInt, requestId, cb);
-    });
   }
 
   ///
