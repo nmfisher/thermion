@@ -494,17 +494,17 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future setMorphAnimationData(MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
-    var meshEntities = await getChildEntities();
+    var childEntities = await getChildEntities();
 
-    var meshNames = meshEntities
+    var childNames = childEntities
         .map((e) => FilamentApp.instance!.getNameForEntity(e))
         .toList();
     if (targetMeshNames != null) {
       for (final targetMeshName in targetMeshNames) {
-        if (!meshNames.contains(targetMeshName)) {
+        if (!childNames.contains(targetMeshName)) {
           throw Exception(
               """Mesh ${targetMeshName} does not exist under the specified entity."""
-              """Available meshes : ${meshNames}""");
+              """Available meshes : ${childNames}""");
         }
       }
     }
@@ -516,12 +516,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     // the number of Frames, and M is the number of morph targets in the mesh).
     // we call [extract] on [animation] to return frame data only for morph
     // targets that present in both the mesh and the animation
-    for (int i = 0; i < meshNames.length; i++) {
-      var meshName = meshNames[i];
-      var meshEntity = meshEntities[i];
+    for (int i = 0; i < childNames.length; i++) {
+      var childName = childNames[i];
+      var meshEntity = childEntities[i];
 
-      if (targetMeshNames?.contains(meshName) == false) {
-        // _logger.info("Skipping $meshName, not contained in target");
+      if (targetMeshNames?.contains(childName) == false) {
+        // _logger.info("Skipping $childName, not contained in target");
         continue;
       }
 
@@ -534,11 +534,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
       if (intersection.isEmpty) {
         throw Exception(
-            """No morph targets specified in animation are present on mesh $meshName. 
+            """No morph targets specified in animation are present on entity $childName. 
             If you weren't intending to animate every mesh, specify [targetMeshNames] when invoking this method.
             Animation morph targets: ${animation.morphTargets}\n
             Mesh morph targets ${meshMorphTargets}
-            Child meshes: ${meshNames}""");
+            Child entities: ${childNames}""");
       }
 
       var indices = Uint32List.fromList(
@@ -562,7 +562,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       indices.free();
 
       if (!result) {
-        throw Exception("Failed to set morph animation data for ${meshName}");
+        throw Exception("Failed to set morph animation data for ${childName}");
       }
     }
   }
