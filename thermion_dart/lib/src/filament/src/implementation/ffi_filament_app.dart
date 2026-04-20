@@ -877,8 +877,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool loadResourcesAsync = false,
       bool rebuildVertices = false,
       String? resourceUri}) async {
-    _logger.info("""Loading glTF from buffer (${data.lengthInBytes} bytes)"""
-        """with resourceUri ${resourceUri}""");
+    if (initialInstances <= 0) {
+      throw Exception("initialInstances must be at least 1");
+    }
+    _logger.info("Loading glTF from buffer (${data.lengthInBytes} bytes)"
+        " with resourceUri ${resourceUri}");
     final resources = <FinalizableUint8List>[];
 
     if (resourceUri != null && !resourceUri.endsWith("/")) {
