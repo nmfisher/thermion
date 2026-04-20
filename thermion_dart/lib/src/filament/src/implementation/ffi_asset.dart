@@ -391,7 +391,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       throw Exception("Weights must not be empty");
     }
 
-    final success = FilamentApp.instance!.animationManager
+    final success = await FilamentApp.instance!.animationManager
         .setMorphTargetWeights(entity, weights);
     if (!success) {
       throw Exception(

@@ -103,7 +103,8 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [entityId] The entity to set weights for
   // [weights] List of morph target weights (0.0 to 1.0)
   // Returns true if successful, false otherwise
-  bool setMorphTargetWeights(ThermionEntity entityId, List<double> weights);
+  Future<bool> setMorphTargetWeights(
+      ThermionEntity entityId, List<double> weights);
 
   // Sets up a morph animation with keyframe data.
   //

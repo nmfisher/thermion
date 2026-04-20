@@ -144,7 +144,8 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   }
 
   @override
-  bool setMorphTargetWeights(ThermionEntity entityId, List<double> weights) {
+  Future<bool> setMorphTargetWeights(
+      ThermionEntity entityId, List<double> weights) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -154,8 +155,9 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     weightsPtr.setRange(0, weights.length, weights);
 
     try {
-      return AnimationManager_setMorphTargetWeights(
-          animationManager, entityId, weightsPtr.address, weights.length);
+      return await withBoolCallback((cb) =>
+          AnimationManager_setMorphTargetWeightsRenderThread(animationManager,
+              entityId, weightsPtr.address, weights.length, cb));
     } finally {
       weightsPtr.free();
       if (FILAMENT_WASM) {
