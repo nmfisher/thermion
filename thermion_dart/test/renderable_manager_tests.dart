@@ -43,12 +43,17 @@ void main() async {
     test('material instance management', () async {
       final builder = ViewerBuilder(testHelper)
           .setRenderTargetEnabled(true)
+          .addSun()
           .addCube(color: kRed);
 
       await builder.execute((result) async {
         final cube = result.assets[0];
         final app = FilamentApp.instance!;
         final renderableManager = app.renderableManager;
+
+        // Capture to verify color change
+        await testHelper.capture(
+            result.viewer.view, "material_default");
 
         // Get the current material instance
         final originalMaterial =
