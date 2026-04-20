@@ -6,6 +6,16 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 
+enum SceneAssetType {
+  gltf,
+  geometry,
+  light,
+  skybox,
+  ibl,
+  image,
+  gizmo,
+}
+
 // filament::utils::Entity is the core C++ Filament "handle" type, used to
 // represent lights, renderables, cameras, etc. ThermionEntity is the equivalent
 // Dart type.
@@ -19,9 +29,19 @@ export 'geometry.dart';
 // entities.
 //
 abstract class ThermionAsset<T> extends NativeHandle<T> {
-  // The top-most entity in the hierarchy.
-  // If this is a glTF asset
+  // The top-most entity in the hierarchy (if this is a glTF asset, this
+  // entity will have a transform that sits at the top of the transform
+  // hierarchy but is not itself renderable.
   ThermionEntity get entity;
+
+  // The type of the underlying scene asset.
+  SceneAssetType get type;
+
+  // Whether or not this asset is an instance.
+  bool get isInstance;
+
+  // If this asset is an instance, the asset that owns this instance.
+  ThermionAsset? get instanceOwner;
 
   //
   Future<List<ThermionEntity>> getChildEntities() async {
@@ -59,7 +79,6 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
 
   // Sets the material instance for all primitives in all entities to
   // [instance].
-  //
   Future setMaterialInstanceForAll(covariant MaterialInstance instance) {
     throw UnimplementedError();
   }
@@ -73,7 +92,6 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // Returns a map of all renderable entities attached to this asset, and
   // a list of material instances for each primitive for the respective
   // entity.
-  //
   Future<Map<ThermionEntity, List<MaterialInstance>>>
       getMaterialInstancesAsMap() {
     throw UnimplementedError();
@@ -84,7 +102,6 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   //
   // Mainly intended for use with [getMaterialInstancesAsMap] so you can
   // easily save/restore an asset's material instances.
-  //
   Future setMaterialInstancesFromMap(
       Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
     throw UnimplementedError();
@@ -100,9 +117,8 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  // Create a new instance of [entity].
-  // Instances are not automatically added to the scene; you must
-  // call [Scene.add].
+  // Create a new instance of [entity]. Note that instances are not
+  // automatically added to the scene; you must call [Scene.add].
   Future<ThermionAsset> createInstance(
       {List<MaterialInstance>? materialInstances = null});
 
@@ -111,24 +127,22 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  //
   // Returns all instances of associated with this asset.
-  //
   Future<List<ThermionAsset>> getInstances() async {
     throw UnimplementedError();
   }
 
-  //
+  // Enable/disable casting shadows.
   Future setCastShadows(bool castShadows) async {
     throw UnimplementedError();
   }
 
-  //
+  // Enable/disable receiving shadows.
   Future setReceiveShadows(bool castShadows) async {
     throw UnimplementedError();
   }
 
-  //
+  // Whether casting shadows is enabled.
   Future<bool> isCastShadowsEnabled({ThermionEntity? entity}) async {
     throw UnimplementedError();
   }
@@ -143,7 +157,6 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  //
   // All renderable entities are assigned a layer mask.
   //
   // By calling [setLayerVisibility], all renderable entities allocated to
@@ -219,8 +232,18 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
+  // Returns all bone entities for the skin at [skinIndex].
+  Future<List<ThermionEntity>> getBones({int skinIndex = 0}) {
+    throw UnimplementedError();
+  }
+
   // Gets the names of all bones for the skin at [skinIndex].
   Future<List<String>> getBoneNames({int skinIndex = 0}) {
+    throw UnimplementedError();
+  }
+
+  // Gets the number of bones for the given skinning index.
+  Future<int> getBoneCount({int skinIndex = 0}) {
     throw UnimplementedError();
   }
 
@@ -322,23 +345,18 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  // Updates the bone matrices for [entity] (which must be the ThermionEntity
-  // returned by [loadGlb/loadGltf]). Under the hood, this just calls
-  // [updateBoneMatrices] on the Animator instance of the relevant
-  // FilamentInstance (which uses the local bone transform and the inverse bind
-  // matrix to set the bone matrix).
+  // Directly set the bone matrix for the bone at [boneIndex] on a skinned mesh
+  // in this asset.
   //
-  Future updateBoneMatrices(ThermionEntity entity) async {
-    throw UnimplementedError();
-  }
-
+  // [entity] is the specific skinned mesh entity to target. If null, defaults
+  // to the asset's own entity if it is renderable, otherwise the first
+  // renderable child. Pass [entity] explicitly when the asset contains more
+  // than one skinned mesh.
   //
-  // Directly set the bone matrix for the bone at the given index.
   // Don't call this manually unless you know what you're doing.
   //
-  Future setBoneTransform(
-      ThermionEntity entity, int boneIndex, Matrix4 transform,
-      {int skinIndex = 0}) async {
+  Future setBoneTransform(int boneIndex, Matrix4 transform,
+      {ThermionEntity? entity, int skinIndex = 0}) async {
     throw UnimplementedError();
   }
 

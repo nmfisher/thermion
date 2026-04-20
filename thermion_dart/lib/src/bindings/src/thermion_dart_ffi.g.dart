@@ -4453,24 +4453,6 @@ external void TextureSampler_destroyRenderThread(
 );
 
 @ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TAnimationManager>,
-            EntityId,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
-    isLeaf: true)
-external void AnimationManager_setBoneTransformRenderThread(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-  int asset,
-  int skinIndex,
-  int boneIndex,
-  ffi.Pointer<ffi.Float> transform,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
-);
-
-@ffi.Native<
     ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
         ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void AnimationManager_resetToRestPoseRenderThread(
@@ -5192,6 +5174,17 @@ external int RenderableManager_getMorphTargetCount(
   int entityId,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId,
+        ffi.Pointer<ffi.Float>, ffi.Size, ffi.Size)>(isLeaf: true)
+external void RenderableManager_setBones(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> transforms,
+  int boneCount,
+  int offset,
+);
+
 @ffi.Native<ffi.Pointer<TRenderableBuilder> Function(ffi.Size)>(isLeaf: true)
 external ffi.Pointer<TRenderableBuilder> RenderableBuilder_create(
   int primitiveCount,
@@ -5378,6 +5371,11 @@ external ffi.Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external int SceneAsset_getType(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external void SceneAsset_destroy(
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -5490,6 +5488,30 @@ external void SceneAsset_setFlatShading(
   bool flatShading,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Size,
+        ffi.Pointer<EntityId>)>(isLeaf: true)
+external void SceneAsset_getBones(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int skinIndex,
+  ffi.Pointer<EntityId> out,
+);
+
+@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneAsset>, ffi.Size)>(isLeaf: true)
+external int SceneAsset_getBoneCount(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int skinIndex,
+);
+
+@ffi.Native<
+    ffi.Pointer<ffi.Char> Function(
+        ffi.Pointer<TSceneAsset>, ffi.Size, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<ffi.Char> SceneAsset_getBoneName(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int skinIndex,
+  int boneIndex,
+);
+
 @ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(
     isLeaf: true)
 external ffi.Pointer<TAnimationManager> AnimationManager_create(
@@ -5594,7 +5616,8 @@ external void AnimationManager_resetToRestPose(
         ffi.Float,
         ffi.Float,
         ffi.Float,
-        ffi.Float)>(isLeaf: true)
+        ffi.Float,
+        ffi.Bool)>(isLeaf: true)
 external bool AnimationManager_addBoneAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -5606,16 +5629,7 @@ external bool AnimationManager_addBoneAnimation(
   double fadeOutInSecs,
   double fadeInInSecs,
   double maxDelta,
-);
-
-@ffi.Native<
-    EntityId Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
-        ffi.Int, ffi.Int)>(isLeaf: true)
-external int AnimationManager_getBone(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-  ffi.Pointer<TSceneAsset> sceneAsset,
-  int skinIndex,
-  int boneIndex,
+  bool loop,
 );
 
 @ffi.Native<
@@ -5697,25 +5711,6 @@ external void AnimationManager_getGltfAnimationName(
   ffi.Pointer<TSceneAsset> sceneAsset,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
-);
-
-@ffi.Native<
-    ffi.Int Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
-        ffi.Int)>(isLeaf: true)
-external int AnimationManager_getBoneCount(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-  ffi.Pointer<TSceneAsset> sceneAsset,
-  int skinIndex,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
-        ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Int)>(isLeaf: true)
-external void AnimationManager_getBoneNames(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-  ffi.Pointer<TSceneAsset> sceneAsset,
-  ffi.Pointer<ffi.Pointer<ffi.Char>> out,
-  int skinIndex,
 );
 
 @ffi.Native<
@@ -6053,6 +6048,16 @@ final class Aabb3 extends ffi.Struct {
 sealed class TGizmoType {
   static const GIZMO_TYPE_TRANSLATION = 0;
   static const GIZMO_TYPE_ROTATION = 1;
+}
+
+sealed class TSceneAssetType {
+  static const SCENE_ASSET_TYPE_GLTF = 0;
+  static const SCENE_ASSET_TYPE_GEOMETRY = 1;
+  static const SCENE_ASSET_TYPE_LIGHT = 2;
+  static const SCENE_ASSET_TYPE_SKYBOX = 3;
+  static const SCENE_ASSET_TYPE_IBL = 4;
+  static const SCENE_ASSET_TYPE_IMAGE = 5;
+  static const SCENE_ASSET_TYPE_GIZMO = 6;
 }
 
 sealed class TFeatureLevel {

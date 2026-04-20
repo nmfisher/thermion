@@ -1,8 +1,6 @@
-import 'dart:async';
-import 'dart:typed_data';
+import 'dart:math';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
@@ -106,7 +104,7 @@ void main() async {
 
       await viewer.destroyAsset(cube);
 
-      await viewer.render();
+      await viewer.renderSingleFrame();
     }, bg: kRed);
   });
 
@@ -139,7 +137,7 @@ void main() async {
 
       await viewer.destroyAsset(cube);
 
-      await viewer.render();
+      await viewer.renderSingleFrame();
     }, bg: kRed);
   });
 
@@ -172,7 +170,7 @@ void main() async {
 
       await viewer.destroyAsset(cube);
 
-      await viewer.render();
+      await viewer.renderSingleFrame();
     }, bg: kRed);
   });
 
@@ -190,12 +188,87 @@ void main() async {
       await cube.playGltfAnimation(1, crossfade: 0.5, replaceActive: true);
       FilamentApp.instance!.animationManager.update(500_000_001);
       FilamentApp.instance!.animationManager.update(750_000_000);
-    
-      await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
 
-      // FilamentApp.instance!.animationManager.update(2_000_000_001);
-      // FilamentApp.instance!.animationManager.update(2_250_000_001);
-      // await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
+      await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
+    }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
+  });
+
+  test('setBoneAnimation animations', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
+
+      await viewer.addToScene(cube);
+
+      final boneNames = await cube.getBoneNames();
+      expect(boneNames.first, "MyBone");
+
+      await cube.setBoneTransform(0, Matrix4.rotationY(pi / 2));
+
+      await testHelper.capture(viewer.view, "set_bone_transform");
+    }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
+  });
+
+  test('resetToRestPose restores original pose visually', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
+      await viewer.addToScene(cube);
+
+      await viewer.addDirectLight(DirectLight.sun(
+          direction: Vector3(0.7, -1, -0.8).normalized(),
+          intensity: 100000.0));
+
+      final am = FilamentApp.instance!.animationManager;
+      final tm = FilamentApp.instance!.transformManager;
+
+      final bones = await cube.getBones();
+      expect(bones.length, 1);
+
+      // Capture initial rest pose.
+      final initialCapture =
+          await testHelper.capture(viewer.view, "resetToRestPose_0_initial");
+      final initialPixels = initialCapture.values.first;
+
+      // Rotate the single bone 45 degrees around Y via TransformManager,
+      // then flush to the skinning buffer via updateBoneMatrices.
+      final boneEntity = bones[0];
+      final originalLocal = tm.getLocalTransform(boneEntity);
+      final translation = originalLocal.getTranslation();
+      final rotatedLocal = Matrix4.compose(
+        translation,
+        Quaternion.axisAngle(Vector3(0, 1, 0), pi / 4),
+        Vector3.all(1.0),
+      );
+      tm.setTransform(boneEntity, rotatedLocal);
+      am.updateBoneMatrices(cube);
+
+      final rotatedCapture =
+          await testHelper.capture(viewer.view, "resetToRestPose_1_rotated");
+      final rotatedPixels = rotatedCapture.values.first;
+
+      // Restore rest pose.
+      am.resetToRestPose(cube);
+
+      final resetCapture =
+          await testHelper.capture(viewer.view, "resetToRestPose_2_reset");
+      final resetPixels = resetCapture.values.first;
+
+      int initialVsRotatedDiff = 0;
+      int initialVsResetDiff = 0;
+      for (int i = 0; i < initialPixels.length; i++) {
+        if ((initialPixels[i] - rotatedPixels[i]).abs() > 1) {
+          initialVsRotatedDiff++;
+        }
+        if ((initialPixels[i] - resetPixels[i]).abs() > 1) {
+          initialVsResetDiff++;
+        }
+      }
+
+      expect(initialVsRotatedDiff, greaterThan(1000),
+          reason: 'Rotated pose should look different from initial rest pose');
+      expect(initialVsResetDiff, lessThan(100),
+          reason: 'Reset pose should visually match initial rest pose');
     }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
   });
 }

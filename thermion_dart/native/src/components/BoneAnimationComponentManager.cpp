@@ -40,7 +40,7 @@ namespace thermion
                 ///                    
                 for (int i = (int)boneAnimations.size() - 1; i >= 0; i--)
                 {
-                    auto animationStatus = boneAnimations[i];
+                    auto &animationStatus = boneAnimations[i];
 
                     // Initialize start time on first use
                     if (animationStatus.startTimeInNanos == 0) {

@@ -107,6 +107,17 @@ extern "C"
 	};
 	typedef enum TGizmoType TGizmoType;
 
+	enum TSceneAssetType {
+		SCENE_ASSET_TYPE_GLTF = 0,
+		SCENE_ASSET_TYPE_GEOMETRY = 1,
+		SCENE_ASSET_TYPE_LIGHT = 2,
+		SCENE_ASSET_TYPE_SKYBOX = 3,
+		SCENE_ASSET_TYPE_IBL = 4,
+		SCENE_ASSET_TYPE_IMAGE = 5,
+		SCENE_ASSET_TYPE_GIZMO = 6
+	};
+	typedef enum TSceneAssetType TSceneAssetType;
+
 	enum TFeatureLevel {
 		FEATURE_LEVEL_0 = 0,
 		FEATURE_LEVEL_1 = 1,

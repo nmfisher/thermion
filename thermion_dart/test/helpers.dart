@@ -527,7 +527,7 @@ class ViewerBuilder {
       colorTemperature: colorTemperature,
       intensity: intensity,
       castShadows: castShadows,
-      direction: direction,
+      direction: direction ?? Vector3(0.5, -0.5, -0.5).normalized(),
       sunAngularRadius: sunAngularRadius,
       sunHaloSize: sunHaloSize,
       sunHaloFalloff: sunHaloFalloff,
