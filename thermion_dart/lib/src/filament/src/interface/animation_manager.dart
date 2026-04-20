@@ -89,7 +89,8 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// [animationIndex] The animation index
   /// [timeInSeconds] The time position in the animation in seconds
   /// Returns true if successful, false otherwise
-  bool setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds);
+  bool setGltfAnimationTime(
+      ThermionAsset asset, int animationIndex, double timeInSeconds);
 
   /// Gets the duration of a glTF animation in seconds.
   ///
@@ -131,7 +132,8 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// [numFrames] Number of animation frames
   /// [frameLengthInMs] Length of each frame in milliseconds
   /// Returns true if successful, false otherwise
-  bool setMorphAnimation(ThermionEntity entityId,
+  bool setMorphAnimation(
+      ThermionEntity entityId,
       List<double> morphData,
       List<int> morphIndices,
       int numMorphTargets,
@@ -157,7 +159,8 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// [entityId] The entity to query
   /// [index] The morph target index
   /// Returns the morph target name, or null if not found
-  String? getMorphTargetName(ThermionAsset asset, ThermionEntity entityId, int index);
+  String? getMorphTargetName(
+      ThermionAsset asset, ThermionEntity entityId, int index);
 
   // ========================================================================
   // Bone animation
@@ -175,44 +178,20 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// [fadeInInSecs] Fade in duration in seconds
   /// [maxDelta] Maximum transformation delta per frame
   /// Returns true if successful, false otherwise
-  bool addBoneAnimation(ThermionAsset asset,
-      int skinIndex,
-      int boneIndex,
-      List<double> frameData,
-      int numFrames,
-      double frameLengthInMs,
+  bool addBoneAnimation(ThermionAsset asset, int skinIndex, int boneIndex,
+      List<double> frameData, int numFrames, double frameLengthInMs,
       {double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
-      double maxDelta = 0.1});
-
-  /// Gets the entity ID for a specific bone.
-  ///
-  /// [asset] The asset containing the bones
-  /// [skinIndex] The skin index containing the bones
-  /// [boneIndex] The bone index
-  /// Returns the bone entity ID, or null if not found
-  ThermionEntity? getBone(ThermionAsset asset, int skinIndex, int boneIndex);
-
-  /// Gets the number of bones in a skin.
-  ///
-  /// [asset] The asset containing the skin
-  /// [skinIndex] The skin index
-  /// Returns the number of bones, or 0 if not found
-  int getBoneCount(ThermionAsset asset, int skinIndex);
-
-  /// Gets the names of all bones in a skin.
-  ///
-  /// [asset] The asset containing the bones
-  /// [skinIndex] The skin index
-  /// Returns a list of bone names
-  List<String> getBoneNames(ThermionAsset asset, int skinIndex);
+      double maxDelta = 0.1,
+      bool loop});
 
   /// Gets the rest pose local transforms for all bones in a skin.
   ///
   /// [asset] The asset containing the bones
   /// [skinIndex] The skin index
   /// Returns a list of 4x4 transformation matrices (16 floats per bone)
-  List<double> getRestLocalTransforms(ThermionAsset asset, int skinIndex);
+  Future<List<double>> getRestLocalTransforms(
+      ThermionAsset asset, int skinIndex);
 
   /// Gets the inverse bind matrix for a specific bone.
   ///
@@ -220,7 +199,8 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// [skinIndex] The skin index
   /// [boneIndex] The bone index
   /// Returns the 4x4 inverse bind matrix (16 floats), or empty list if not found
-  List<double> getInverseBindMatrix(ThermionAsset asset, int skinIndex, int boneIndex);
+  List<double> getInverseBindMatrix(
+      ThermionAsset asset, int skinIndex, int boneIndex);
 
   /// Updates bone matrices for an asset.
   ///
@@ -235,7 +215,8 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// [boneIndex] The bone index
   /// [transform] The 4x4 transform matrix
   /// Returns true if successful, false otherwise
-  Future<bool> setBoneTransform(ThermionEntity entity, int skinIndex, int boneIndex, Matrix4 transform);
+  Future<bool> setBoneTransform(
+      ThermionEntity entity, int skinIndex, int boneIndex, Matrix4 transform);
 
   // ========================================================================
   // Animation state and pose management

@@ -219,26 +219,6 @@ extern "C"
 
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId AnimationManager_getBone(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *sceneAsset,
-        int skinIndex,
-        int boneIndex)
-    {
-        auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto asset = reinterpret_cast<SceneAsset *>(sceneAsset);
-        if (asset->getType() == SceneAsset::SceneAssetType::Gltf && asset->isInstance())
-        {
-            auto entities = animationManager->getBoneEntities(reinterpret_cast<GltfSceneAssetInstance *>(asset), skinIndex);
-            if (boneIndex < entities.size())
-            {
-                return utils::Entity::smuggle(entities[boneIndex]);
-            }
-        }
-
-        return 0;
-    }
-
     EMSCRIPTEN_KEEPALIVE void AnimationManager_getRestLocalTransforms(
         TAnimationManager *tAnimationManager,
         TSceneAsset *sceneAsset,
@@ -449,27 +429,6 @@ extern "C"
         auto names = animationManager->getGltfAnimationNames(instance);
         std::string name = names[index];
         strcpy(outPtr, name.c_str());
-    }
-
-    EMSCRIPTEN_KEEPALIVE int AnimationManager_getBoneCount(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *sceneAsset,
-        int skinIndex)
-    {
-        auto instance = ((GltfSceneAssetInstance *)sceneAsset);
-        auto entities = ((AnimationManager *)tAnimationManager)->getBoneEntities(instance, skinIndex);
-        return (int)entities.size();
-    }
-
-    EMSCRIPTEN_KEEPALIVE void AnimationManager_getBoneNames(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *sceneAsset,
-        const char **out,
-        int skinIndex)
-    {
-        auto instance = ((GltfSceneAssetInstance *)sceneAsset);
-        auto entities = ((AnimationManager *)tAnimationManager)->getBoneEntities(instance, skinIndex);
-        
     }
 
     EMSCRIPTEN_KEEPALIVE bool AnimationManager_updateBoneMatrices(

@@ -105,9 +105,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
           .createInstance(materialInstances: materialInstances);
     }
     if (releaseSourceData) {
-      throw Exception(
-          """releaseSourceData must have been specified as false"""
-""" when this asset was created""");
+      throw Exception("""releaseSourceData must have been specified as false"""
+          """ when this asset was created""");
     }
     var ptrList = IntPtrList(materialInstances?.length ?? 0);
     late Pointer stackPtr;
@@ -245,7 +244,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future setFlatShading(bool flatShading) async {
     await withVoidCallback((requestId, cb) =>
-        SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
+        SceneAsset_setFlatShadingRenderThread(
+            asset, flatShading, requestId, cb));
   }
 
   //
@@ -396,18 +396,26 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
-    // The native getBoneCount/getBoneNames requires a GltfSceneAssetInstance,
-    // not a top-level GltfSceneAsset. Auto-resolve to instance(0) if needed.
-    ThermionAsset target = this;
-    if (!isInstance) {
-      try {
-        target = await getInstance(0);
-      } catch (_) {
-        // Fall through with self
+    var boneCount = await getBoneCount(skinIndex: skinIndex);
+    var names = <String>[];
+    for (int i = 0; i < boneCount; i++) {
+      var boneName = SceneAsset_getBoneName(asset, skinIndex, i);
+      if (boneName == nullptr) {
+        names.add("");
+      } else {
+        names.add(boneName.cast<Utf8>().toDartString());
       }
     }
-    return FilamentApp.instance!.animationManager
-        .getBoneNames(target, skinIndex);
+    return names;
+  }
+
+  /// Gets the number of bones in a skin.
+  ///
+  /// [asset] The asset containing the skin
+  /// [skinIndex] The skin index
+  /// Returns the number of bones, or 0 if not found
+  Future<int> getBoneCount({int skinIndex = 0}) async {
+    return SceneAsset_getBoneCount(asset, skinIndex);
   }
 
   List<String>? _gltfAnimationNames;
@@ -564,7 +572,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       }
     }
     var boneNames = await instanceAsset.getBoneNames(skinIndex: skinIndex);
-    var restLocalTransformsData = FilamentApp.instance!.animationManager
+    var restLocalTransformsData = await FilamentApp.instance!.animationManager
         .getRestLocalTransforms(instanceAsset, skinIndex);
     var restLocalTransforms = <Matrix4>[];
     for (int i = 0; i < boneNames.length; i++) {
@@ -686,13 +694,13 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   //
-  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0}) async {
+  Future<List<ThermionEntity>> getBones({int skinIndex = 0}) async {
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
-    return FilamentApp.instance!.animationManager
-            .getBone(this, skinIndex, boneIndex) ??
-        0;
+    final out = makeInt32List(await getBoneCount(skinIndex: skinIndex));
+    SceneAsset_getBones(asset, skinIndex, out.address);
+    return out;
   }
 
   //

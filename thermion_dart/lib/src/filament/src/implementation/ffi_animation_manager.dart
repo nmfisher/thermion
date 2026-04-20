@@ -267,50 +267,9 @@ class FFIAnimationManager
   }
 
   @override
-  ThermionEntity? getBone(ThermionAsset asset, int skinIndex, int boneIndex) {
-    final boneId = bindings.AnimationManager_getBone(
-        animationManager, asset.getNativeHandle(), skinIndex, boneIndex);
-    return boneId == 0 ? null : boneId;
-  }
-
-  @override
-  int getBoneCount(ThermionAsset asset, int skinIndex) {
-    return bindings.AnimationManager_getBoneCount(
-        animationManager, asset.getNativeHandle(), skinIndex);
-  }
-
-  @override
-  List<String> getBoneNames(ThermionAsset asset, int skinIndex) {
-    final boneCount = getBoneCount(asset, skinIndex);
-
-    if (boneCount <= 0) {
-      return [];
-    }
-
-    // The native AnimationManager_getBoneNames is unimplemented (no-op),
-    // so we resolve bone names via NameComponentManager instead.
-    // For each bone entity, look up its name in the NameComponentManager.
-    final boneNames = <String>[];
-    for (int i = 0; i < boneCount; i++) {
-      final boneEntity = getBone(asset, skinIndex, i);
-      if (boneEntity != null) {
-        final namePtr = bindings.NameComponentManager_getName(
-            app.nameComponentManager, boneEntity);
-        if (namePtr != bindings.nullptr) {
-          boneNames.add(namePtr.cast<Utf8>().toDartString());
-        } else {
-          boneNames.add('');
-        }
-      } else {
-        boneNames.add('');
-      }
-    }
-    return boneNames;
-  }
-
-  @override
-  List<double> getRestLocalTransforms(ThermionAsset asset, int skinIndex) {
-    final boneCount = getBoneCount(asset, skinIndex);
+  Future<List<double>> getRestLocalTransforms(ThermionAsset asset, int skinIndex) 
+  async {
+    final boneCount = await asset.getBoneCount(skinIndex:skinIndex);
 
     if (boneCount <= 0) {
       return [];

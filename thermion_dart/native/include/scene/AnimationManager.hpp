@@ -55,13 +55,6 @@ namespace thermion
         /// @param childEntity
         /// @return
         std::vector<std::string> getMorphTargetNames(GltfSceneAsset *asset, EntityId childEntity);
-
-        
-        /// @param instance
-        /// @param skinIndex
-        /// @return
-        std::vector<Entity> getBoneEntities(GltfSceneAssetInstance *instance, int skinIndex);
-
         
         /// @param sceneAsset
         /// @param morphData

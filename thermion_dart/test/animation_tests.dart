@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:test/test.dart';
@@ -192,10 +193,22 @@ void main() async {
       FilamentApp.instance!.animationManager.update(750_000_000);
 
       await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
+    }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
+  });
 
-      // FilamentApp.instance!.animationManager.update(2_000_000_001);
-      // FilamentApp.instance!.animationManager.update(2_250_000_001);
-      // await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
+  test('setBoneAnimation animations', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
+
+      await viewer.addToScene(cube);
+
+      final boneNames = await cube.getBoneNames();
+      expect(boneNames.first, "MyBone");
+
+      await cube.setBoneTransform(cube.entity, 0, Matrix4.rotationY(pi / 2));
+
+      await testHelper.capture(viewer.view, "set_bone_transform");
     }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
   });
 }

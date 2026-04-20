@@ -5594,7 +5594,8 @@ external void AnimationManager_resetToRestPose(
         ffi.Float,
         ffi.Float,
         ffi.Float,
-        ffi.Float)>(isLeaf: true)
+        ffi.Float,
+        ffi.Bool)>(isLeaf: true)
 external bool AnimationManager_addBoneAnimation(
   ffi.Pointer<TAnimationManager> tAnimationManager,
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -5606,6 +5607,7 @@ external bool AnimationManager_addBoneAnimation(
   double fadeOutInSecs,
   double fadeInInSecs,
   double maxDelta,
+  bool loop,
 );
 
 @ffi.Native<

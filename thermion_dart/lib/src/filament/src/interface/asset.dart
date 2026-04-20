@@ -219,8 +219,18 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
+  // Returns all bone entities for the skin at [skinIndex].
+  Future<List<ThermionEntity>> getBones({int skinIndex = 0}) {
+    throw UnimplementedError();
+  }
+
   // Gets the names of all bones for the skin at [skinIndex].
   Future<List<String>> getBoneNames({int skinIndex = 0}) {
+    throw UnimplementedError();
+  }
+
+  // Gets the number of bones for the given skinning index.
+  Future<int> getBoneCount({int skinIndex = 0}) {
     throw UnimplementedError();
   }
 

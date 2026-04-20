@@ -1289,6 +1289,23 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_setBoneTransformRenderThread(
+            TAnimationManager *tAnimationManager,
+            EntityId asset,
+            int skinIndex,
+            int boneIndex,
+            const float *const transform,
+            void (*callback)(bool)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          AnimationManager_setBoneTransformRenderThread(tAnimationManager, tSceneAsset);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+
+            }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
         [=]() mutable
