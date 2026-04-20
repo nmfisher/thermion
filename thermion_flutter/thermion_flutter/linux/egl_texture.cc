@@ -50,11 +50,11 @@ thermion_texture_populate(FlTextureGL *texture,
     if (intervalMs > popMaxMs) popMaxMs = intervalMs;
     if (intervalMs > 20.0) popJank++;
     if (intervalMs > 20.0) {
-        fprintf(stderr, "[POPULATE] #%d JANK interval=%.1fms\n", popCount, intervalMs);
+        TRACE( "[POPULATE] #%d JANK interval=%.1fms\n", popCount, intervalMs);
     }
     if (popCount % 120 == 0) {
         double avgMs = popSumMs / 120.0;
-        fprintf(stderr, "[POPULATE] 120-frame avg=%.1fms max=%.1fms jank=%d\n",
+        TRACE( "[POPULATE] 120-frame avg=%.1fms max=%.1fms jank=%d\n",
                 avgMs, popMaxMs, popJank);
         popJank = 0;
         popMaxMs = 0;
@@ -89,7 +89,7 @@ thermion_texture_populate(FlTextureGL *texture,
             glBindTexture(GL_TEXTURE_2D, 0);
             self->surface_id = static_cast<int64_t>(self->gl_texture_id);
 
-            fprintf(stderr, "[DirectPop] Created deferred GL texture %u (%ux%u) on ctx=%p\n",
+            TRACE( "[DirectPop] Created deferred GL texture %u (%ux%u) on ctx=%p\n",
                     self->gl_texture_id, self->width, self->height,
                     (void*)eglGetCurrentContext());
 
@@ -98,7 +98,7 @@ thermion_texture_populate(FlTextureGL *texture,
             if (thermion_flutter_render_context == EGL_NO_CONTEXT) {
                 thermion_flutter_render_context = eglGetCurrentContext();
                 thermion_flutter_render_display = eglGetCurrentDisplay();
-                fprintf(stderr, "[DirectPop] Captured Flutter render context=%p display=%p\n",
+                TRACE( "[DirectPop] Captured Flutter render context=%p display=%p\n",
                         (void*)thermion_flutter_render_context,
                         (void*)thermion_flutter_render_display);
             }

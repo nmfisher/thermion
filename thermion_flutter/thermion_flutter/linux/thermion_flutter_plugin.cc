@@ -590,7 +590,6 @@ static FlMethodResponse *handle_mark_texture_frame_available(ThermionFlutterPlug
   static auto lastMark = std::chrono::high_resolution_clock::now();
   auto now = std::chrono::high_resolution_clock::now();
   auto intervalUs = std::chrono::duration_cast<std::chrono::microseconds>(now - lastMark).count();
-  // fprintf(stderr, "[TexMark] %.2f ms\n", intervalUs / 1000.0);
   lastMark = now;
 
   FlValue *args = fl_method_call_get_args(method_call);
@@ -607,7 +606,7 @@ static FlMethodResponse *handle_mark_texture_frame_available(ThermionFlutterPlug
         static int markCount = 0;
         markCount++;
         if (markCount <= 5 || markCount % 60 == 0) {
-          fprintf(stderr, "[MarkFrame] #%d tex_id=%lld\n", markCount, (long long)tex->surface_id);
+          TRACE( "[MarkFrame] #%d tex_id=%lld\n", markCount, (long long)tex->surface_id);
         }
       }
 

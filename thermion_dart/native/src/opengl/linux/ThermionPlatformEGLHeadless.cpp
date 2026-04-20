@@ -386,7 +386,7 @@ void ThermionPlatformEGLHeadless::commit(SwapChain* swapChain) noexcept {
             glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                 GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &attachName);
         }
-        fprintf(stderr, "[Commit] #%d fbo=%d attachType=0x%x attachName=%d\n",
+        TRACE("[Commit] #%d fbo=%d attachType=0x%x attachName=%d\n",
                 commitCount, currentFbo, attachType, attachName);
 
         // If there's a texture attached, try to read a pixel
@@ -395,10 +395,10 @@ void ThermionPlatformEGLHeadless::commit(SwapChain* swapChain) noexcept {
             if (fbStatus == GL_FRAMEBUFFER_COMPLETE) {
                 uint8_t pixel[4] = {0};
                 glReadPixels(640, 360, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
-                fprintf(stderr, "[Commit]   pixel at (640,360): R=%d G=%d B=%d A=%d\n",
+                TRACE("[Commit]   pixel at (640,360): R=%d G=%d B=%d A=%d\n",
                         pixel[0], pixel[1], pixel[2], pixel[3]);
             } else {
-                fprintf(stderr, "[Commit]   FBO status: 0x%x\n", fbStatus);
+                TRACE("[Commit]   FBO status: 0x%x\n", fbStatus);
             }
         }
     }

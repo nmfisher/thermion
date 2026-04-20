@@ -148,7 +148,7 @@ namespace thermion
     TRACE("%d views rendered for swapchain %zu", numRendered, index);
 
     if (endFrameMs > 5.0f) {
-      fprintf(stderr, "[RENDER] endFrame() took %.1fms (GPU stall?)\n", endFrameMs);
+      TRACE( "[RENDER] endFrame() took %.1fms (GPU stall?)\n", endFrameMs);
     }
 
     return numRendered > 0;
@@ -197,7 +197,7 @@ namespace thermion
 
     if (renderCount <= 3 || renderCount % 120 == 0) {
       float avgMs = sumRenderMs / (renderCount <= 3 ? renderCount : 120);
-      fprintf(stderr, "[RENDER] #%d %.1fms (avg=%.1fms max=%.1fms) skips=%d rendered=%d\n",
+      TRACE( "[RENDER] #%d %.1fms (avg=%.1fms max=%.1fms) skips=%d rendered=%d\n",
               renderCount, durationMs, avgMs, maxRenderMs, totalSkips, rendered);
       if (renderCount > 3) {
         maxRenderMs = 0;

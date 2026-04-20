@@ -130,10 +130,10 @@ extern "C"
           static int cbCount = 0;
           cbCount++;
           if (queueMs > 5.0f) {
-            fprintf(stderr, "[QUEUE] render waited %.1fms in queue\n", queueMs);
+            TRACE("[QUEUE] render waited %.1fms in queue\n", queueMs);
           }
           if (cbCount <= 3 || cbCount % 300 == 0) {
-            fprintf(stderr, "[RenderCB] #%d completing requestId=%u queueWait=%.1fms\n", cbCount, requestId, queueMs);
+            TRACE("[RenderCB] #%d completing requestId=%u queueWait=%.1fms\n", cbCount, requestId, queueMs);
           }
           PROXY(onComplete(requestId));
         });
