@@ -1303,7 +1303,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         EntityManager_createEntityRenderThread(
             Engine_getEntityManager(engine), cb));
     if (createTransformComponent) {
-      transformManager.createComponent(entity);
+      await transformManager.createComponent(entity);
     }
     return entity;
   }
