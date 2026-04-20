@@ -409,15 +409,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return names;
   }
 
-  // Gets the number of bones in a skin.
-  //
-  // [asset] The asset containing the skin
-  // [skinIndex] The skin index
-  // Returns the number of bones, or 0 if not found
+  // Gets the number of bones at skin [skinIndex].
+  // Returns the number of bones, or 0 if none found.
   Future<int> getBoneCount({int skinIndex = 0}) async {
     return SceneAsset_getBoneCount(asset, skinIndex);
   }
 
+  // glTF animation names are immutable, so we cache them here to avoid 
+  // retrieving unnecessarily.
   List<String>? _gltfAnimationNames;
 
   //
