@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
@@ -34,7 +33,6 @@ class FFIView extends View<Pointer<TView>> {
     _onPickResultHolder = _onPickResult.asCallback();
   }
 
-  ///
   Future destroy() async {
     _onPickResultHolder.dispose();
 
@@ -72,14 +70,14 @@ class FFIView extends View<Pointer<TView>> {
         // This is a Flutter RT - redirect to EdgeDetectionView
         await _highlightOverlayManager!
             .setRenderTarget(this, renderTarget as FFIRenderTarget);
-        await FilamentApp.instance!.updateRenderOrder();
         return;
       }
     }
 
     if (renderTarget != null) {
       await withVoidCallback((requestId, cb) =>
-          View_setRenderTargetRenderThread(view, renderTarget.getNativeHandle(), requestId, cb));
+          View_setRenderTargetRenderThread(
+              view, renderTarget.getNativeHandle(), requestId, cb));
       this.renderTarget = renderTarget;
     } else {
       await withVoidCallback((requestId, cb) =>
@@ -94,8 +92,8 @@ class FFIView extends View<Pointer<TView>> {
       await withVoidCallback((requestId, cb) =>
           View_setCameraRenderThread(view, nullptr, requestId, cb));
     } else {
-      await withVoidCallback((requestId, cb) =>
-          View_setCameraRenderThread(view, camera.getNativeHandle(), requestId, cb));
+      await withVoidCallback((requestId, cb) => View_setCameraRenderThread(
+          view, camera.getNativeHandle(), requestId, cb));
     }
 
     // Sync the silhouette view's camera with the main view
@@ -129,7 +127,8 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future setFrustumCullingEnabled(bool enabled) async {
     await withVoidCallback((requestId, cb) =>
-        View_setFrustumCullingEnabledRenderThread(view, enabled, requestId, cb));
+        View_setFrustumCullingEnabledRenderThread(
+            view, enabled, requestId, cb));
   }
 
   @override
@@ -219,14 +218,14 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future setScene(Scene scene) async {
-    await withVoidCallback((requestId, cb) =>
-        View_setSceneRenderThread(view, scene.getNativeHandle(), requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setSceneRenderThread(
+        view, scene.getNativeHandle(), requestId, cb));
   }
 
   @override
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
-    await withVoidCallback((requestId, cb) =>
-        View_setLayerEnabledRenderThread(view, layer.value, visible, requestId, cb));
+    await withVoidCallback((requestId, cb) => View_setLayerEnabledRenderThread(
+        view, layer.value, visible, requestId, cb));
   }
 
   Future setBlendMode(BlendMode blendMode) async {
@@ -277,7 +276,8 @@ class FFIView extends View<Pointer<TView>> {
     final modRequestId = requestId % kMaxPickRequests;
     if (_pickRequests[modRequestId] == null) {
       _logger.severe(
-          "Warning : pick result received with no matching request ID. This indicates you're clearing the pick cache too quickly");
+          """Warning : pick result received with no matching request ID. """
+          """This indicates you're clearing the pick cache too quickly""");
       return;
     }
     final (:handler, :x, :y) = _pickRequests[modRequestId]!;
@@ -385,7 +385,8 @@ class FFIView extends View<Pointer<TView>> {
     tAmbientOcclusionOptions.ssct.enabled = options.ssct.enabled;
 
     await withVoidCallback((requestId, cb) =>
-        View_setAmbientOcclusionOptionsRenderThread(view, tAmbientOcclusionOptions, requestId, cb));
+        View_setAmbientOcclusionOptionsRenderThread(
+            view, tAmbientOcclusionOptions, requestId, cb));
   }
 
   @override
@@ -427,7 +428,8 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future setFrontFaceWindingInverted(bool inverted) async {
     await withVoidCallback((requestId, cb) =>
-        View_setFrontFaceWindingInvertedRenderThread(view, inverted, requestId, cb));
+        View_setFrontFaceWindingInvertedRenderThread(
+            view, inverted, requestId, cb));
   }
 
   Future setShadowsEnabled(bool enabled) async {
@@ -453,7 +455,8 @@ class FFIView extends View<Pointer<TView>> {
     tSoftShadowOptions.penumbraScale = options.penumbraScale;
     tSoftShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
     await withVoidCallback((requestId, cb) =>
-        View_setSoftShadowOptionsRenderThread(view, tSoftShadowOptions, requestId, cb));
+        View_setSoftShadowOptionsRenderThread(
+            view, tSoftShadowOptions, requestId, cb));
   }
 
   @override
@@ -475,7 +478,8 @@ class FFIView extends View<Pointer<TView>> {
     tVsmShadowOptions.minVarianceScale = options.minVarianceScale;
     tVsmShadowOptions.lightBleedReduction = options.lightBleedReduction;
     await withVoidCallback((requestId, cb) =>
-        View_setVsmShadowOptionsRenderThread(view, tVsmShadowOptions, requestId, cb));
+        View_setVsmShadowOptionsRenderThread(
+            view, tVsmShadowOptions, requestId, cb));
   }
 
   @override
@@ -498,72 +502,86 @@ class FFIView extends View<Pointer<TView>> {
     return _highlightOverlayManager;
   }
 
-  @override
-  Future setHighlightOverlayEnabled(bool enabled) async {
-    if (enabled) {
-      if (_highlightOverlayManager == null) {
-        final vp = await getViewport();
-        final width = vp.width > 0 ? vp.width : 1;
-        final height = vp.height > 0 ? vp.height : 1;
+  //
+  Future _enableHighlightOverlay() async {
+    if (_highlightOverlayManager == null) {
+      final vp = await getViewport();
+      final width = vp.width > 0 ? vp.width : 1;
+      final height = vp.height > 0 ? vp.height : 1;
 
-        // Create manager if not exists
-        _highlightOverlayManager = await HighlightOverlayManager.create(
-          width,
-          height,
-        );
+      // Create manager if not exists
+      _highlightOverlayManager = await HighlightOverlayManager.create(
+        width,
+        height,
+      );
 
-        // Set the camera - silhouette view shares the main camera
-        final camera = await getCamera();
-        await _highlightOverlayManager!.setCamera(camera);
-      }
-
-      // Configure output: render target (macOS/iOS) or swapchain (web/Android)
-      if (renderTarget != null) {
-        await _highlightOverlayManager!
-            .setRenderTarget(this, renderTarget as FFIRenderTarget);
-        _logger.info("Highlight overlay enabled (render target mode)");
-      } else {
-        final swapChain =
-            await FilamentApp.instance!.getSwapChain(this) as FFISwapChain?;
-        if (swapChain != null) {
-          await _highlightOverlayManager!.setSwapChain(swapChain);
-          _logger.info("Highlight overlay enabled (swapchain mode)");
-        } else {
-          _logger.warning(
-              "No render target or swapchain available for highlight overlay");
-        }
-      }
-
-      await FilamentApp.instance!.updateRenderOrder();
-    } else {
-      if (_highlightOverlayManager == null) {
-        return;
-      }
-
-      // Set to null BEFORE calling destroy to prevent the setRenderTarget
-      // interceptor from redirecting to the already-destroyed EdgeDetectionView
-      final manager = _highlightOverlayManager;
-      _highlightOverlayManager = null;
-      await manager!.destroy();
+      // Set the camera - silhouette view shares the main camera
+      final camera = await getCamera();
+      await _highlightOverlayManager!.setCamera(camera);
     }
-    // Update render order to remove silhouette/overlay views
-    await FilamentApp.instance!.updateRenderOrder();
+
+    final rm = FilamentApp.instance!.renderManager;
+    final swapChains = rm.getAttachedSwapChains(this).toList();
+
+    // Configure output: render target (macOS/iOS) or swapchain (web/Android)
+    rm.detach(this, swapChain: swapChains.first);
+    rm.attach(_highlightOverlayManager!.silhouetteView, swapChains.first,
+        renderOrder: 0);
+    rm.attach(this, swapChains.first, renderOrder: 1);
+    rm.attach(_highlightOverlayManager!.overlayView, swapChains.first,
+        renderOrder: 2);
+
+    if (renderTarget != null) {
+      await _highlightOverlayManager!.setRenderTarget(this, renderTarget!);
+      _logger.fine("Highlight overlay enabled (render target mode)");
+    } else {
+      await _highlightOverlayManager!.setSwapChain(swapChains.first!);
+      _logger.fine("Highlight overlay enabled (swapchain mode)");
+    }
+  }
+
+  //
+  Future _disableHighlightOverlay() async {
+    if (_highlightOverlayManager == null) {
+      return;
+    }
+
+    final rm = FilamentApp.instance!.renderManager;
+
+    await rm.detach(_highlightOverlayManager!.silhouetteView);
+    await rm.detach(_highlightOverlayManager!.overlayView);
+
+    // Set to null BEFORE calling destroy to prevent the setRenderTarget
+    // interceptor from redirecting to the already-destroyed EdgeDetectionView
+    final manager = _highlightOverlayManager;
+    _highlightOverlayManager = null;
+    await manager!.destroy();
 
     _logger.info("Highlight overlay disabled");
   }
 
-  ///
-  /// Highlights an entity with a screen-space outline.
-  ///
-  /// The overlay system must be enabled first via [enableHighlightOverlay].
-  ///
-  /// The outline width is specified in pixels and remains constant regardless
-  /// of camera distance (screen-space expansion).
-  ///
-  /// Uses a two-pass post-process rendering approach:
-  /// 1. Silhouette pass: Render highlighted entities to a texture as white silhouettes
-  /// 2. Edge detection pass: Fullscreen shader samples silhouette, draws outline where edges are detected
-  ///
+  @override
+  Future setHighlightOverlayEnabled(bool enabled) async {
+    if (enabled) {
+      await _enableHighlightOverlay();
+    } else {
+      await _disableHighlightOverlay();
+    }
+  }
+
+  // Highlights an entity with a screen-space outline.
+  //
+  // The overlay system must be enabled first via [enableHighlightOverlay].
+  //
+  // The outline width is specified in pixels and remains constant regardless
+  // of camera distance (screen-space expansion).
+  //
+  // Uses a two-pass post-process rendering approach:
+  // 1. Silhouette pass: Render highlighted entities to a texture as white
+  //    silhouettes
+  // 2. Edge detection pass: Fullscreen shader samples silhouette, draws
+  //    outline where edges are detected
+  //
   @override
   Future setStencilHighlight(ThermionAsset asset,
       {double r = 1.0,
@@ -587,16 +605,17 @@ class FFIView extends View<Pointer<TView>> {
     final ffiGeoAsset = geoAsset as FFIAsset;
 
     // Get geometry info for creating silhouette entity.
-    final vertexBuffer = geoAsset.getVertexBuffer(primitiveIndex: primitiveIndex);
+    final vertexBuffer =
+        geoAsset.getVertexBuffer(primitiveIndex: primitiveIndex);
     final indexBuffer =
         SceneAsset_getIndexBuffer(ffiGeoAsset.asset, primitiveIndex);
     final hasGeometry = vertexBuffer != null && indexBuffer != nullptr;
 
     if (!hasGeometry || vertexBuffer is! FFIVertexBuffer) {
       throw UnsupportedError(
-          "Stencil highlight requires geometry info (vertexBuffer and indexBuffer). "
-          "For instances, pass the root asset as geometrySource. "
-          "For glTF, ensure rebuildVertices: true was used during loading.");
+          """Stencil highlight requires geometry info (vertexBuffer and """
+          """indexBuffer). For instances, pass the root asset as geometrySource. """
+          """For glTF, ensure rebuildVertices: true was used during loading.""");
     }
 
     final indexCount = IndexBuffer_getIndexCount(indexBuffer);
@@ -619,9 +638,6 @@ class FFIView extends View<Pointer<TView>> {
       );
     }
 
-    // Update render order to include silhouette/overlay views
-    await FilamentApp.instance!.updateRenderOrder();
-
     _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
   }
 
@@ -638,9 +654,6 @@ class FFIView extends View<Pointer<TView>> {
     for (final entity in entities) {
       await _highlightOverlayManager!.removeHighlight(entity);
     }
-
-    // Update render order to remove silhouette/overlay views if no more highlights
-    await FilamentApp.instance!.updateRenderOrder();
   }
 
   Future setName(String name) async {
@@ -661,7 +674,8 @@ class FFIView extends View<Pointer<TView>> {
 
   Future setTransparentPickingEnabled(bool enabled) async {
     await withVoidCallback((requestId, cb) =>
-        View_setTransparentPickingEnabledRenderThread(getNativeHandle(), enabled, requestId, cb));
+        View_setTransparentPickingEnabledRenderThread(
+            getNativeHandle(), enabled, requestId, cb));
   }
 
   Future<bool> isTransparentPickingEnabled() async {

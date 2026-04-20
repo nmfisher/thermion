@@ -1,7 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/src/filament/src/implementation/edge_detection_view.dart';
 import 'package:thermion_dart/src/filament/src/implementation/silhouette_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -391,10 +390,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
           .setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
     }
 
-    // If EdgeDetectionView was registered with swapchain, unregister it
     if (_swapChain != null) {
-      await FilamentApp.instance!
-          .setRenderOrder(_swapChain!, overlayView as FFIView, renderOrder: -1);
       _swapChain = null;
       _logger.info("EdgeDetectionView unregistered from swapchain");
     }

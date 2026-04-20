@@ -186,7 +186,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   void pauseFrameScheduler() {
     final app = FilamentApp.instance as FFIFilamentApp?;
     if (app != null) {
-      RenderManager_setPaused(app.renderManager, true);
+      RenderManager_setPaused(app.renderManager.getNativeHandle(), true);
     }
   }
 
@@ -194,7 +194,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   void resumeFrameScheduler() {
     final app = FilamentApp.instance as FFIFilamentApp?;
     if (app != null) {
-      RenderManager_setPaused(app.renderManager, false);
+      RenderManager_setPaused(app.renderManager.getNativeHandle(), false);
     }
   }
 }

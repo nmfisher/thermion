@@ -71,14 +71,14 @@ void main() async {
 
       // Create a parent entity
       final parent = await FilamentApp.instance!.createEntity();
-      transformManager.createComponent(parent);
+      await transformManager.createComponent(parent);
 
       // Create several child entities
       final children = <ThermionEntity>[];
       for (int i = 0; i < 3; i++) {
         final child = await FilamentApp.instance!.createEntity();
         children.add(child);
-        transformManager.createComponent(child);
+        await transformManager.createComponent(child);
 
         // Set parent relationship
         await FilamentApp.instance!.setParent(child, parent);
@@ -133,7 +133,7 @@ void main() async {
             1.0);
 
         // Associate the geometry with our entity
-        transformManager.createComponent(entity);
+        await transformManager.createComponent(entity);
         assets.add(cube);
         await viewer.addToScene(cube);
       }

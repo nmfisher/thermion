@@ -1,4 +1,5 @@
 import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart';
+import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -33,6 +34,7 @@ abstract class FilamentApp<T> {
 
   T get ubershaderMaterialProvider;
   RenderableManager get renderableManager;
+  RenderManager get renderManager;
   LightManager get lightManager;
   DebugRegistry getDebugRegistry();
   int getMaxAutomaticInstances();
@@ -258,37 +260,7 @@ abstract class FilamentApp<T> {
   Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
       MaterialInstance materialInstance);
 
-  // Currently, only [View] instances that have been associated with
-  // a [SwapChain] will be rendered when [render] is called.
-  // Calling this method registers the association between [view] and
-  // [swapChain], ensuring that the view will be rendered every time [render] is
-  // called.
-  //
-  // This is still required even if [view] has an attached render target. This
-  // will change in future once we use Renderer.renderStandaloneView().
-  //
-  // If you are using the Flutter plugin, this is called automatically
-  // internally.
-  Future setRenderOrder(SwapChain swapChain, View view, {int renderOrder = 0});
-
-  // This methods
-  // a [SwapChain] will be rendered when [render] is called.
-  // Calling this method registers the association between [view] and
-  // [swapChain], ensuring that the view will be rendered every time [render] is
-  // called.
-  //
-  // This is still required even if [view] has an attached render target. This
-  // will change in future once we use Renderer.renderStandaloneView().
-  //
-  // If you are using the Flutter plugin, this is called automatically
-  // internally.
-  Future updateRenderOrder();
-
-  // Returns the [SwapChain] instance associated with [view] (or null, if
-  // no swapchain is registered.
-  Future<SwapChain?> getSwapChain(View view);
-
-  //
+  // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
 
   // Invokes one iteration of the full rendering pipeline for all
@@ -304,20 +276,18 @@ abstract class FilamentApp<T> {
   //
   Future unregisterRequestFrameHook(Future Function() hook);
 
-  // Retrieves the name assigned to the given entity (usually corresponds to the glTF mesh name).
-  //
+  // Retrieves the name assigned to the given entity (usually corresponds to the
+  // glTF mesh name).
   String? getNameForEntity(ThermionEntity entity);
 
-  // Gets the parent entity of [entity]. Returns null if the entity has no parent.
-  //
+  // Gets the parent entity of [entity]. Returns null if the entity has no
+  // parent.
   Future<ThermionEntity?> getParent(ThermionEntity entity);
 
-  //
-  // Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the entity has no parent.
-  //
+  // Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the
+  // entity has no parent.
   Future<ThermionEntity?> getAncestor(ThermionEntity entity);
 
-  //
   // Sets the parent transform of [child] to [parent].
   //
   Future setParent(ThermionEntity child, ThermionEntity? parent,
