@@ -289,6 +289,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await renderManager.detachAll(swapChain);
       await destroySwapChain(swapChain);
     }
+    renderManager.destroy();
     await withVoidCallback((requestId, cb) async {
       Engine_destroyRenderThread(engine, requestId, cb);
     });
