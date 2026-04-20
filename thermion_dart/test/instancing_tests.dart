@@ -1,6 +1,4 @@
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
-import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
 import 'package:thermion_dart/src/utils/src/geometry/utils.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
