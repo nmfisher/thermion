@@ -332,17 +332,6 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  // Updates the bone matrices for [entity] (which must be the ThermionEntity
-  // returned by [loadGlb/loadGltf]). Under the hood, this just calls
-  // [updateBoneMatrices] on the Animator instance of the relevant
-  // FilamentInstance (which uses the local bone transform and the inverse bind
-  // matrix to set the bone matrix).
-  //
-  Future updateBoneMatrices(ThermionEntity entity) async {
-    throw UnimplementedError();
-  }
-
-  //
   // Directly set the bone matrix for the bone at [boneIndex] on a skinned mesh
   // in this asset.
   //
