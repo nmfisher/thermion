@@ -55,7 +55,7 @@ add_executable(${PROJECT_NAME}_test
 target_compile_features(${PROJECT_NAME}_test PUBLIC cxx_std_20)
 
 target_link_directories(${PROJECT_NAME}_test PRIVATE
-    "C:\\Users\\nickh\\Documents\\thermion\\thermion_dart\\.dart_tool\\thermion_dart\\lib\\v1.58.0\\windows\\debug"
+    "C:\\Users\\nickh\\Documents\\thermion\\thermion_dart\\.dart_tool\\thermion_dart\\lib\\v1.69.1\\windows\\debug"
 )
 
 target_link_libraries(${PROJECT_NAME}_test PRIVATE

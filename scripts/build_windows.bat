@@ -233,15 +233,15 @@ call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! ||
   exit /b 1
 )
 
-REM Download vulkan-1.lib from v1.58.0 (reusable across versions)
-set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.58.0-windows-release-vulkan.zip"
+REM Download vulkan-1.lib from v1.69.1 (reusable across versions)
+set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.69.1-windows-release-vulkan.zip"
 set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
 set "VULKAN_LIB_EXTRACT=%OUTPUT_BASE_DIR%\vulkan-1-temp"
 
 if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
-  echo Downloading filament v1.58.0 to extract vulkan-1.lib...
+  echo Downloading filament v1.69.1 to extract vulkan-1.lib...
   powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
-    echo Error: Failed to download filament v1.58.0 zip
+    echo Error: Failed to download filament v1.69.1 zip
     exit /b 1
   )
 
@@ -249,7 +249,7 @@ if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
   if exist "%VULKAN_LIB_EXTRACT%" rmdir /s /q "%VULKAN_LIB_EXTRACT%"
   mkdir "%VULKAN_LIB_EXTRACT%"
   powershell -Command "Expand-Archive -Path '%VULKAN_LIB_ZIP%' -DestinationPath '%VULKAN_LIB_EXTRACT%' -Force" || (
-    echo Error: Failed to extract filament v1.58.0 zip
+    echo Error: Failed to extract filament v1.69.1 zip
     exit /b 1
   )
 
@@ -257,7 +257,7 @@ if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
   if exist "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" (
     copy /Y "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
   ) else (
-    echo Error: vulkan-1.lib not found in v1.58.0 zip
+    echo Error: vulkan-1.lib not found in v1.69.1 zip
     echo Contents of extracted zip:
     dir /b "%VULKAN_LIB_EXTRACT%"
     exit /b 1
