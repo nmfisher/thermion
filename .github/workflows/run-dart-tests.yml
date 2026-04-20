@@ -75,6 +75,7 @@ jobs:
             test/image_tests.dart \
             test/animation_tests.dart \
             test/renderable_manager_tests.dart \
+            test/gltf_parser_tests.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
