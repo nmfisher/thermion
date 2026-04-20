@@ -235,7 +235,8 @@ class FFIAnimationManager
       List<double> frameData, int numFrames, double frameLengthInMs,
       {double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
-      double maxDelta = 0.1}) {
+      double maxDelta = 0.1,
+      bool loop = false}) {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -255,7 +256,8 @@ class FFIAnimationManager
           frameLengthInMs,
           fadeOutInSecs,
           fadeInInSecs,
-          maxDelta);
+          maxDelta,
+          loop);
     } finally {
       frameDataPtr.free();
       if (FILAMENT_WASM) {
@@ -285,34 +287,25 @@ class FFIAnimationManager
       return [];
     }
 
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
+    // The native AnimationManager_getBoneNames is unimplemented (no-op),
+    // so we resolve bone names via NameComponentManager instead.
+    // For each bone entity, look up its name in the NameComponentManager.
+    final boneNames = <String>[];
+    for (int i = 0; i < boneCount; i++) {
+      final boneEntity = getBone(asset, skinIndex, i);
+      if (boneEntity != null) {
+        final namePtr = bindings.NameComponentManager_getName(
+            app.nameComponentManager, boneEntity);
+        if (namePtr != bindings.nullptr) {
+          boneNames.add(namePtr.cast<Utf8>().toDartString());
+        } else {
+          boneNames.add('');
+        }
+      } else {
+        boneNames.add('');
+      }
     }
-
-    throw UnimplementedError();
-
-    // final namePointers = allocate<Char>(boneCount);
-    // try {
-    //   bindings.AnimationManager_getBoneNames(
-    //       animationManager, asset.getNativeHandle(), namePointers.cast(), skinIndex);
-
-    //   final boneNames = <String>[];
-    //   for (int i = 0; i < boneCount; i++) {
-    //     final namePtr = namePointers[i];
-    //     if (namePtr != nullptr) {
-    //       final name = namePtr.cast<Utf8>().toDartString();
-    //       boneNames.add(name);
-    //     }
-    //   }
-
-    //   return boneNames;
-    // } finally {
-    //   free(namePointers.cast());
-    //   if (FILAMENT_WASM) {
-    //     stackRestore(stackPtr);
-    //   }
-    // }
+    return boneNames;
   }
 
   @override

@@ -106,7 +106,7 @@ void main() async {
 
       await viewer.destroyAsset(cube);
 
-      await viewer.render();
+      await viewer.renderSingleFrame();
     }, bg: kRed);
   });
 
@@ -139,7 +139,7 @@ void main() async {
 
       await viewer.destroyAsset(cube);
 
-      await viewer.render();
+      await viewer.renderSingleFrame();
     }, bg: kRed);
   });
 
@@ -172,7 +172,7 @@ void main() async {
 
       await viewer.destroyAsset(cube);
 
-      await viewer.render();
+      await viewer.renderSingleFrame();
     }, bg: kRed);
   });
 
@@ -190,7 +190,7 @@ void main() async {
       await cube.playGltfAnimation(1, crossfade: 0.5, replaceActive: true);
       FilamentApp.instance!.animationManager.update(500_000_001);
       FilamentApp.instance!.animationManager.update(750_000_000);
-    
+
       await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
 
       // FilamentApp.instance!.animationManager.update(2_000_000_001);

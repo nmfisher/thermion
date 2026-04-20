@@ -115,7 +115,8 @@ namespace thermion
             float frameLengthInMs,
             float fadeOutInSecs,
             float fadeInInSecs,
-            float maxDelta);
+            float maxDelta,
+            bool loop = false);
 
         
         /// @param instance
