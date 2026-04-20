@@ -63,7 +63,7 @@ void main() async {
           ["Key 1"],
           frameLengthInMs: 1000.0 / 60.0);
 
-      await cube.setMorphAnimationData(morphData);
+      await cube.setMorphAnimationData(morphData, targetMeshNames: ["Cube"]);
       FilamentApp.instance!.animationManager.update(1_000_000_000);
 
       await testHelper.capture(viewer.view, "cube_morph_animation_start");
