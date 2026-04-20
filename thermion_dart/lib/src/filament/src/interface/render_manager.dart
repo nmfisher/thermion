@@ -11,7 +11,5 @@ abstract class RenderManager<T> extends NativeHandle<T> {
   Future render();
 
   void destroy();
-
-  static RenderManager? _instance;
-  static RenderManager get instance => _instance!;
+  
 }
