@@ -35,8 +35,7 @@ void main() async {
       final assetData =
           File('${testHelper.testDir}/assets/cube_with_armature.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+      final asset = await viewer.loadGltfFromBuffer(assetData, keepData: true);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -51,7 +50,8 @@ void main() async {
       final boneEntities = am.getBoneEntities(asset, 0);
       print('Found ${boneEntities.length} bone entities');
       for (int i = 0; i < boneEntities.length; i++) {
-        final name = await FilamentApp.instance!.getNameForEntity(boneEntities[i]);
+        final name =
+            await FilamentApp.instance!.getNameForEntity(boneEntities[i]);
         print('  Bone $i: entity ${boneEntities[i]}, name: $name');
       }
 
@@ -116,12 +116,14 @@ void main() async {
         am.updateBoneMatrices(asset);
 
         await testHelper.capture(viewer.view, "test1_3_rot_${i * 25}deg");
-        print('Captured at ${(angle * 180 / math.pi).toStringAsFixed(0)} degrees');
+        print(
+            'Captured at ${(angle * 180 / math.pi).toStringAsFixed(0)} degrees');
       }
 
       print('\n=== Test 1 Complete ===');
       print('Check test/output/bone_skinning/ for screenshots');
-      print('If the mesh deforms, TransformManager + updateBoneMatrices works for skinning');
+      print(
+          'If the mesh deforms, TransformManager + updateBoneMatrices works for skinning');
     }, cameraPosition: Vector3(3, 3, 5));
   });
 
@@ -131,8 +133,7 @@ void main() async {
       final assetData =
           File('${testHelper.testDir}/assets/cube_with_armature.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+      final asset = await viewer.loadGltfFromBuffer(assetData, keepData: true);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -150,7 +151,8 @@ void main() async {
         fail('Could not find renderable entity');
       }
 
-      print('Found ${boneEntities.length} bones, renderable: $renderableEntity');
+      print(
+          'Found ${boneEntities.length} bones, renderable: $renderableEntity');
 
       // Capture initial state
       await testHelper.capture(viewer.view, "test2_0_initial");
@@ -181,7 +183,8 @@ void main() async {
         await rm.setBones(renderableEntity, transforms);
 
         await testHelper.capture(viewer.view, "test2_2_rot_${i * 25}deg");
-        print('Captured at ${(angle * 180 / math.pi).toStringAsFixed(0)} degrees');
+        print(
+            'Captured at ${(angle * 180 / math.pi).toStringAsFixed(0)} degrees');
       }
 
       print('\n=== Test 2 Complete ===');
@@ -196,8 +199,7 @@ void main() async {
       final assetData =
           File('${testHelper.testDir}/assets/cube_with_armature.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+      final asset = await viewer.loadGltfFromBuffer(assetData, keepData: true);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -230,15 +232,18 @@ void main() async {
 
         // Get inverse bind matrix
         final invBind = am.getInverseBindMatrix(asset, 0, i);
-        print('  Inverse bind matrix diagonal: [${invBind[0]}, ${invBind[5]}, ${invBind[10]}, ${invBind[15]}]');
-        print('  Inverse bind translation: ${Vector3(invBind[12], invBind[13], invBind[14])}');
+        print(
+            '  Inverse bind matrix diagonal: [${invBind[0]}, ${invBind[5]}, ${invBind[10]}, ${invBind[15]}]');
+        print(
+            '  Inverse bind translation: ${Vector3(invBind[12], invBind[13], invBind[14])}');
         print('');
       }
 
       // Get rest transforms (returns flat list of 16 floats per bone)
       final restTransforms = am.getRestLocalTransforms(asset, 0);
       final boneCount = boneEntities.length;
-      print('\nRest transforms (raw floats, $boneCount bones, ${restTransforms.length} values):');
+      print(
+          '\nRest transforms (raw floats, $boneCount bones, ${restTransforms.length} values):');
       for (int i = 0; i < boneCount && i * 16 < restTransforms.length; i++) {
         final offset = i * 16;
         // Translation is at [12], [13], [14] in a 4x4 column-major matrix
@@ -260,8 +265,7 @@ void main() async {
       final assetData =
           File('${testHelper.testDir}/assets/cube_with_armature.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+      final asset = await viewer.loadGltfFromBuffer(assetData, keepData: true);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -306,7 +310,8 @@ void main() async {
 
       if (meshEntity != null) {
         print('\n--- Testing setBones on mesh entity $meshEntity ---');
-        final transforms = List.generate(boneEntities.length, (_) => Matrix4.identity());
+        final transforms =
+            List.generate(boneEntities.length, (_) => Matrix4.identity());
         transforms[0] = Matrix4.rotationY(math.pi / 4);
 
         try {
@@ -336,14 +341,14 @@ void main() async {
     }, cameraPosition: Vector3(3, 3, 5));
   });
 
-  test('Test 5: resetToRestPose should restore original pose visually', () async {
+  test('Test 5: resetToRestPose should restore original pose visually',
+      () async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
       final assetData =
           File('${testHelper.testDir}/assets/cube_with_armature.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+      final asset = await viewer.loadGltfFromBuffer(assetData, keepData: true);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -359,7 +364,8 @@ void main() async {
 
       // Capture 1: Initial rest pose
       print('\n--- Capturing initial rest pose ---');
-      final initialCapture = await testHelper.capture(viewer.view, "test5_0_initial");
+      final initialCapture =
+          await testHelper.capture(viewer.view, "test5_0_initial");
       final initialPixels = initialCapture.values.first;
       final viewport = await viewer.view.getViewport();
       print('Captured initial: ${viewport.width}x${viewport.height}');
@@ -380,7 +386,8 @@ void main() async {
       am.updateBoneMatrices(asset);
 
       // Capture 2: After rotation (mesh should be deformed)
-      final rotatedCapture = await testHelper.capture(viewer.view, "test5_1_after_rotation");
+      final rotatedCapture =
+          await testHelper.capture(viewer.view, "test5_1_after_rotation");
       final rotatedPixels = rotatedCapture.values.first;
       print('Captured rotated pose');
 
@@ -389,7 +396,8 @@ void main() async {
       am.resetToRestPose(asset);
 
       // Capture 3: After reset (should match initial)
-      final resetCapture = await testHelper.capture(viewer.view, "test5_2_after_reset");
+      final resetCapture =
+          await testHelper.capture(viewer.view, "test5_2_after_reset");
       final resetPixels = resetCapture.values.first;
       print('Captured reset pose');
 
@@ -408,11 +416,15 @@ void main() async {
       }
 
       final totalPixelValues = initialPixels.length;
-      final rotatedDiffPercent = (initialVsRotatedDiff / totalPixelValues * 100).toStringAsFixed(2);
-      final resetDiffPercent = (initialVsResetDiff / totalPixelValues * 100).toStringAsFixed(2);
+      final rotatedDiffPercent =
+          (initialVsRotatedDiff / totalPixelValues * 100).toStringAsFixed(2);
+      final resetDiffPercent =
+          (initialVsResetDiff / totalPixelValues * 100).toStringAsFixed(2);
 
-      print('Initial vs Rotated: $initialVsRotatedDiff different values ($rotatedDiffPercent%)');
-      print('Initial vs Reset: $initialVsResetDiff different values ($resetDiffPercent%)');
+      print(
+          'Initial vs Rotated: $initialVsRotatedDiff different values ($rotatedDiffPercent%)');
+      print(
+          'Initial vs Reset: $initialVsResetDiff different values ($resetDiffPercent%)');
 
       // The rotated pose should be significantly different from initial
       expect(initialVsRotatedDiff, greaterThan(1000),
@@ -423,7 +435,8 @@ void main() async {
           reason: 'Reset pose should visually match initial rest pose');
 
       print('\n=== Test 5 Complete ===');
-      print('SUCCESS: resetToRestPose correctly restored the visual appearance');
+      print(
+          'SUCCESS: resetToRestPose correctly restored the visual appearance');
     }, cameraPosition: Vector3(3, 3, 5));
   });
 }

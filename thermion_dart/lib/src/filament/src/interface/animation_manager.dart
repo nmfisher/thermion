@@ -208,16 +208,6 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   /// Returns true if successful, false otherwise
   bool updateBoneMatrices(ThermionAsset asset);
 
-  /// Sets the bone transform for the specified entity and bone.
-  ///
-  /// [entity] The entity containing the bone
-  /// [skinIndex] The skin index containing the bone
-  /// [boneIndex] The bone index
-  /// [transform] The 4x4 transform matrix
-  /// Returns true if successful, false otherwise
-  Future<bool> setBoneTransform(
-      ThermionEntity entity, int skinIndex, int boneIndex, Matrix4 transform);
-
   // ========================================================================
   // Animation state and pose management
   // ========================================================================

@@ -68,6 +68,10 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeights(TRenderableManager *tRenderableManager, EntityId entityId, const float *weights, size_t count, size_t offset);
     EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getMorphTargetCount(TRenderableManager *tRenderableManager, EntityId entityId);
 
+    // Skinning / bone transforms
+    // transforms is an array of boneCount 4x4 matrices in column-major order (16 floats per matrix).
+    EMSCRIPTEN_KEEPALIVE void RenderableManager_setBones(TRenderableManager *tRenderableManager, EntityId entityId, const float *transforms, size_t boneCount, size_t offset);
+
     // ============================================================================
     // RenderableBuilder
     // ============================================================================

@@ -434,28 +434,6 @@ namespace thermion
         return instance->getInstance()->getInverseBindMatricesAt(skinIndex)[boneIndex];
     }
 
-    bool AnimationManager::setBoneTransform(GltfSceneAssetInstance *instance, int32_t skinIndex, int boneIndex, math::mat4f transform)
-    {
-        std::lock_guard lock(mMutex);
-
-        RenderableManager &rm = mEngine->getRenderableManager();
-
-        const auto &renderableInstance = rm.getInstance(instance->getEntity());
-
-        if (!renderableInstance.isValid())
-        {
-            Log("Specified entity is not a renderable. You probably provided the ultimate parent entity of a glTF asset, which is non-renderable. ");
-            return false;
-        }
-
-        rm.setBones(
-            renderableInstance,
-            &transform,
-            1,
-            boneIndex);
-        return true;
-    }
-
     bool AnimationManager::addGltfAnimationComponent(GltfSceneAssetInstance *instance)
     {
         std::lock_guard lock(mMutex);

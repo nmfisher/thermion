@@ -709,14 +709,15 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) async {
     if (skinIndex != 0) {
-      throw UnimplementedError("TOOD");
+      throw UnimplementedError("TODO - support skinIndex != 0");
     }
-    var result = await FilamentApp.instance!.animationManager
-        .setBoneTransform(entity, skinIndex, boneIndex, transform);
-
-    if (!result) {
-      throw Exception("Failed to set bone transform");
+    if (!FilamentApp.instance!.renderableManager.isRenderable(entity)) {
+      throw Exception(
+          "Entity $entity is not a renderable; setBoneTransform must target "
+          "the skinned mesh entity, not the glTF root or a bone entity");
     }
+    await FilamentApp.instance!.renderableManager
+        .setBones(entity, [transform], offset: boneIndex);
   }
 
   //

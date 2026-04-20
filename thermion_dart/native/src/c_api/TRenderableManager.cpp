@@ -1,5 +1,6 @@
 #include <filament/MaterialInstance.h>
 #include <filament/RenderableManager.h>
+#include <math/mat4.h>
 #include <utils/Entity.h>
 
 #include "Log.hpp"
@@ -354,6 +355,19 @@ namespace thermion
                 return 0;
             }
             return renderableManager->getMorphTargetCount(renderableInstance);
+        }
+
+        // Skinning / bone transforms
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setBones(TRenderableManager *tRenderableManager, EntityId entityId, const float *transforms, size_t boneCount, size_t offset) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            auto *mat4Transforms = reinterpret_cast<const filament::math::mat4f *>(transforms);
+            renderableManager->setBones(renderableInstance, mat4Transforms, boneCount, offset);
         }
 
         // ============================================================================

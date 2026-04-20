@@ -266,6 +266,34 @@ class FFIRenderableManager
   }
 
   // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  @override
+  Future setBones(ThermionEntity entity, List<Matrix4> transforms,
+      {int offset = 0}) async {
+    final boneCount = transforms.length;
+    if (boneCount == 0) {
+      return;
+    }
+
+    final transformsPtr = makeFloat32List(boneCount * 16);
+    for (int i = 0; i < boneCount; i++) {
+      final storage = transforms[i].storage;
+      for (int j = 0; j < 16; j++) {
+        transformsPtr[i * 16 + j] = storage[j];
+      }
+    }
+
+    RenderableManager_setBones(
+        renderableManager, entity, transformsPtr.address, boneCount, offset);
+
+    if (FILAMENT_WASM) {
+      transformsPtr.free();
+    }
+  }
+
+  // ============================================================================
   // Builder
   // ============================================================================
 

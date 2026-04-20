@@ -323,35 +323,6 @@ class FFIAnimationManager
         animationManager, asset.getNativeHandle());
   }
 
-  @override
-  Future<bool> setBoneTransform(ThermionEntity entity, int skinIndex,
-      int boneIndex, Matrix4 transform) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    final transformPtr = makeFloat32List(16);
-    transformPtr.setRange(0, 16, transform.storage);
-
-    try {
-      return await withBoolCallback((cb) {
-        return bindings.AnimationManager_setBoneTransformRenderThread(
-            animationManager,
-            entity,
-            skinIndex,
-            boneIndex,
-            transformPtr.address,
-            cb);
-      });
-    } finally {
-      transformPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
-  }
-
   // ========================================================================
   // Animation state and pose management
   // ========================================================================

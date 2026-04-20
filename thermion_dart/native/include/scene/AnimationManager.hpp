@@ -83,15 +83,6 @@ namespace thermion
         /// @return
         math::mat4f getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex);
 
-        /// Set the local transform for the bone at boneIndex/skinIndex in the given entity.
-        /// @param entityId the parent entity
-        /// @param entityName the name of the mesh under entityId for which the bone will be set.
-        /// @param skinIndex the index of the joint skin. Currently only 0 is supported.
-        /// @param boneName the name of the bone
-        /// @param transform the 4x4 matrix representing the local transform for the bone
-        /// @return true if the transform was successfully set, false otherwise
-        bool setBoneTransform(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex, math::mat4f transform);
-
         /// Immediately start animating the bone at [boneIndex] under the parent instance [entity] at skin [skinIndex].
         /// @param entity the mesh entity to animate
         /// @param frameData frame data as quaternions

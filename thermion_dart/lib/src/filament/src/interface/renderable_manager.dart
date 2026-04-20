@@ -251,6 +251,23 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   int getMorphTargetCount(ThermionEntity entity);
 
   // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  /// Updates the bone transforms for a skinned renderable.
+  ///
+  /// The renderable must have been built with skinning enabled (via the
+  /// builder's `skinning()` method, or implicitly when loading a skinned
+  /// glTF asset). Transforms are applied in the range
+  /// `[offset, offset + transforms.length)`.
+  ///
+  /// [entity] The entity containing the skinned renderable
+  /// [transforms] A list of 4x4 bone transforms (column-major)
+  /// [offset] Index of the first bone to update (default 0)
+  Future setBones(ThermionEntity entity, List<Matrix4> transforms,
+      {int offset = 0});
+
+  // ============================================================================
   // Builder
   // ============================================================================
 

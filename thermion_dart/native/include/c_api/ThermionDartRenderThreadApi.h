@@ -332,14 +332,6 @@ namespace thermion
             uint32_t requestId, VoidCallback onComplete
         );
 
-        EMSCRIPTEN_KEEPALIVE void AnimationManager_setBoneTransformRenderThread(
-            TAnimationManager *tAnimationManager,
-            EntityId asset,
-            int skinIndex,
-            int boneIndex,
-            const float *const transform,
-            void (*callback)(bool));
-
         EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager, void (*callback)(TGltfAssetLoader *));
