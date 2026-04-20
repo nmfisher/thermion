@@ -91,8 +91,8 @@ class FFIAnimationManager
   @override
   bool setGltfAnimationTime(
       ThermionAsset asset, int animationIndex, double timeInSeconds) {
-    return bindings.AnimationManager_setGltfAnimationTime(
-        animationManager, asset.getNativeHandle(), animationIndex, timeInSeconds);
+    return bindings.AnimationManager_setGltfAnimationTime(animationManager,
+        asset.getNativeHandle(), animationIndex, timeInSeconds);
   }
 
   @override
@@ -213,8 +213,8 @@ class FFIAnimationManager
 
     final nameBuffer = allocate<Char>(256); // Allocate buffer for name
     try {
-      bindings.AnimationManager_getMorphTargetName(
-          animationManager, asset.getNativeHandle(), entityId, nameBuffer, index);
+      bindings.AnimationManager_getMorphTargetName(animationManager,
+          asset.getNativeHandle(), entityId, nameBuffer, index);
 
       final name = nameBuffer.cast<Utf8>().toDartString();
       return name.isEmpty ? null : name;
@@ -267,9 +267,9 @@ class FFIAnimationManager
   }
 
   @override
-  Future<List<double>> getRestLocalTransforms(ThermionAsset asset, int skinIndex) 
-  async {
-    final boneCount = await asset.getBoneCount(skinIndex:skinIndex);
+  Future<List<double>> getRestLocalTransforms(
+      ThermionAsset asset, int skinIndex) async {
+    final boneCount = await asset.getBoneCount(skinIndex: skinIndex);
 
     if (boneCount <= 0) {
       return [];
