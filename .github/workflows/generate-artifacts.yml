@@ -90,6 +90,15 @@ jobs:
         if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'
         run: make dart-bindings
 
+      - name: Cache Filament web binaries
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: thermion_dart/native/web/lib/release
+          key: filament-web-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            filament-web-
+
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'
         run: make wasm
