@@ -343,12 +343,18 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   //
-  // Directly set the bone matrix for the bone at the given index.
+  // Directly set the bone matrix for the bone at [boneIndex] on a skinned mesh
+  // in this asset.
+  //
+  // [entity] is the specific skinned mesh entity to target. If null, defaults
+  // to the asset's own entity if it is renderable, otherwise the first
+  // renderable child. Pass [entity] explicitly when the asset contains more
+  // than one skinned mesh.
+  //
   // Don't call this manually unless you know what you're doing.
   //
-  Future setBoneTransform(
-      ThermionEntity entity, int boneIndex, Matrix4 transform,
-      {int skinIndex = 0}) async {
+  Future setBoneTransform(int boneIndex, Matrix4 transform,
+      {ThermionEntity? entity, int skinIndex = 0}) async {
     throw UnimplementedError();
   }
 

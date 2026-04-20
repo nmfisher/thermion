@@ -705,19 +705,37 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   @override
-  Future setBoneTransform(
-      ThermionEntity entity, int boneIndex, Matrix4 transform,
-      {int skinIndex = 0}) async {
+  Future setBoneTransform(int boneIndex, Matrix4 transform,
+      {ThermionEntity? entity, int skinIndex = 0}) async {
     if (skinIndex != 0) {
       throw UnimplementedError("TODO - support skinIndex != 0");
     }
-    if (!FilamentApp.instance!.renderableManager.isRenderable(entity)) {
+    final renderableManager = FilamentApp.instance!.renderableManager;
+
+    ThermionEntity? meshEntity = entity;
+    if (meshEntity == null) {
+      if (renderableManager.isRenderable(this.entity)) {
+        meshEntity = this.entity;
+      } else {
+        for (final child in await getChildEntities()) {
+          if (renderableManager.isRenderable(child)) {
+            meshEntity = child;
+            break;
+          }
+        }
+      }
+      if (meshEntity == null) {
+        throw Exception(
+            "Could not find a renderable (skinned mesh) entity for this asset");
+      }
+    } else if (!renderableManager.isRenderable(meshEntity)) {
       throw Exception(
-          "Entity $entity is not a renderable; setBoneTransform must target "
-          "the skinned mesh entity, not the glTF root or a bone entity");
+          "Entity $meshEntity is not a renderable; setBoneTransform must "
+          "target a skinned mesh entity, not the glTF root or a bone entity");
     }
-    await FilamentApp.instance!.renderableManager
-        .setBones(entity, [transform], offset: boneIndex);
+
+    await renderableManager
+        .setBones(meshEntity, [transform], offset: boneIndex);
   }
 
   //

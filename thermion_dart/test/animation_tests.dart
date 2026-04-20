@@ -206,7 +206,7 @@ void main() async {
       final boneNames = await cube.getBoneNames();
       expect(boneNames.first, "MyBone");
 
-      await cube.setBoneTransform(cube.entity, 0, Matrix4.rotationY(pi / 2));
+      await cube.setBoneTransform(0, Matrix4.rotationY(pi / 2));
 
       await testHelper.capture(viewer.view, "set_bone_transform");
     }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
