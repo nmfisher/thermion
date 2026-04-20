@@ -1,0 +1,64 @@
+name: Generate Swift Bindings
+
+on:
+  push:
+    branches: [ "develop" ]
+    tags:
+      - 'v*'
+    paths:
+      - 'thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
+      - 'thermion_flutter/thermion_flutter/darwin/include/generated/MetalTextureWrapperObjCAPI.h'
+  pull_request:
+    branches: [ "develop" ]
+    paths:
+      - 'thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
+      - 'thermion_flutter/thermion_flutter/darwin/include/generated/MetalTextureWrapperObjCAPI.h'
+  workflow_dispatch:
+
+concurrency:
+  group: generate-swift-bindings-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-swift-bindings:
+    name: Generate Swift Bindings
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-flutter-${{ runner.os }}-${{ hashFiles('thermion_flutter/thermion_flutter/pubspec.lock', 'thermion_flutter/thermion_flutter/pubspec.yaml') }}
+          restore-keys: |
+            pub-flutter-${{ runner.os }}-
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+          architecture: X64
+
+      - name: Generate Swift bindings
+        run: make flutter-bindings
+
+      - name: Ensure generated binding file is tracked
+        run: git update-index --no-assume-unchanged thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
+
+      - name: Check for changes
+        id: git-check
+        run: git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
+          git commit -m "chore: update generated swift bindings
+
+          🤖 Generated with GitHub Actions"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
