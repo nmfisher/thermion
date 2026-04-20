@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "opengl/linux/ThermionPlatformEGLHeadlessAPI.h"
+#include "Log.hpp"
 
 #ifndef EGL_NO_CONFIG_KHR
 #define EGL_NO_CONFIG_KHR ((EGLConfig)0)
