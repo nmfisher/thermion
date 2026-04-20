@@ -1,12 +1,8 @@
-@Timeout(const Duration(seconds: 600))
-import 'dart:math';
-
 import 'package:test/test.dart';
 import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
 import 'package:thermion_dart/src/utils/src/geometry/utils.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
-
 
 void main() async {
   final testHelper = TestHelper("instancing");
@@ -15,8 +11,8 @@ void main() async {
   test('create/destroy instance for geometry asset', () async {
     await testHelper.withViewer((viewer) async {
       final mi = await FilamentApp.instance!.createUbershaderMaterialInstance();
-      var asset = await viewer.createGeometry(GeometryUtils.cube(),
-          materialInstances: [mi]);
+      var asset = await viewer
+          .createGeometry(GeometryUtils.cube(), materialInstances: [mi]);
 
       await testHelper.capture(viewer.view, "geometry_no_instance");
       expect(await asset.getInstanceCount(), 0);
@@ -44,23 +40,31 @@ void main() async {
     }, bg: kRed);
   });
 
-  test("""When initialInstances is passed to loadGltf, a gltf asset is created
-  with at least that many instances""", () async {
+  test("loadGltf throws an Exception when initialInstances is 0", () async {
     await testHelper.withViewer((viewer) async {
-      var asset = await viewer.loadGltf(
+      await expectLater(viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
+          initialInstances: 0), throwsA(isA<Exception>()));
+    });
+  });
+
+  test("loadGltf creates the number of instances passed via initialInstances",
+      () async {
+    await testHelper.withViewer((viewer) async {
+      
+      var asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb",
           initialInstances: 1);
       expect(await asset.getInstanceCount(), 1);
 
-      asset = await viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
+      asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb",
           initialInstances: 2);
       expect(await asset.getInstanceCount(), 2);
     });
   });
 
-  test("""When loadGltf is called with releaseSourceData=true, only the 
-  pre-allocated instances can be created""", () async {
+  test(
+      "When loadGltf is called with releaseSourceData=true, only the "
+      "pre-allocated instances can be created", () async {
     await testHelper.withViewer((viewer) async {
       var asset = await viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
@@ -69,7 +73,6 @@ void main() async {
       expect(await asset.getInstanceCount(), 2);
 
       await expectLater(asset.createInstance(), throwsA(isA<Exception>()));
-
     });
   });
 
@@ -100,7 +103,7 @@ void main() async {
       await testHelper.capture(viewer.view, "gltf_instance_remove_from_scene");
 
       // above, we pre-allocated two instances and have used all of them
-      // calling createInstance now will still create another instance, but 
+      // calling createInstance now will still create another instance, but
       // will be slower than specifying initialInstances on load.
       var instance2 = await asset.createInstance();
       await instance2.setTransform(Matrix4.translation(Vector3(-1, 0, 0)));
@@ -108,6 +111,4 @@ void main() async {
       await testHelper.capture(viewer.view, "gltf_instance2_add_to_scene");
     }, addSkybox: true);
   });
-
-
 }
