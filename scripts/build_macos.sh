@@ -282,6 +282,73 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
+# Copy header files to target directories (for inclusion in R2 upload zips)
+echo "Copying header files to target directories..."
+
+if [ "$BUILD_RELEASE" = true ]; then
+  HEADER_SOURCE="out/release/filament/include"
+  echo "Copying headers to $TARGET_RELEASE_DIR/include..."
+  mkdir -p "$TARGET_RELEASE_DIR/include"
+  cp -R "$FILAMENT_BASE_DIR/$HEADER_SOURCE"/* "$TARGET_RELEASE_DIR/include/" || {
+    echo "Error: Failed to copy release headers to target"
+    exit 1
+  }
+
+  # Copy imageio headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/imageio/" || {
+    echo "Error: Failed to copy imageio headers to target"
+    exit 1
+  }
+
+  # Copy stb_image.h
+  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
+  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
+    echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy release-specific uberarchive.h
+  mkdir -p "$TARGET_RELEASE_DIR/include/release/gltfio/materials"
+  cp "$FILAMENT_BASE_DIR/out/release/filament/include/gltfio/materials/uberarchive.h" \
+    "$TARGET_RELEASE_DIR/include/release/gltfio/materials/" || {
+    echo "Error: Failed to copy release uberarchive.h to target"
+    exit 1
+  }
+fi
+
+if [ "$BUILD_DEBUG" = true ]; then
+  HEADER_SOURCE="out/debug/filament/include"
+  echo "Copying headers to $TARGET_DEBUG_DIR/include..."
+  mkdir -p "$TARGET_DEBUG_DIR/include"
+  cp -R "$FILAMENT_BASE_DIR/$HEADER_SOURCE"/* "$TARGET_DEBUG_DIR/include/" || {
+    echo "Error: Failed to copy debug headers to target"
+    exit 1
+  }
+
+  # Copy imageio headers
+  mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/imageio/" || {
+    echo "Error: Failed to copy imageio headers to target"
+    exit 1
+  }
+
+  # Copy stb_image.h
+  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
+  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
+    echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy debug-specific uberarchive.h
+  mkdir -p "$TARGET_DEBUG_DIR/include/debug/gltfio/materials"
+  cp "$FILAMENT_BASE_DIR/out/debug/filament/include/gltfio/materials/uberarchive.h" \
+    "$TARGET_DEBUG_DIR/include/debug/gltfio/materials/" || {
+    echo "Error: Failed to copy debug uberarchive.h to target"
+    exit 1
+  }
+fi
+
 # Copy header files to thermion_dart
 COPY_HEADERS_OPTS=""
 if [ "$BUILD_RELEASE" = true ] && [ "$BUILD_DEBUG" = false ]; then

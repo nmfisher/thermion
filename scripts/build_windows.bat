@@ -223,6 +223,101 @@ if "!BUILD_DEBUG!"=="true" (
   )
 )
 
+REM Copy header files to target directories (for inclusion in R2 upload zips)
+echo Copying header files to target directories...
+
+if "!BUILD_RELEASE!"=="true" (
+  echo Copying headers to %TARGET_RELEASE_DIR%\include...
+  mkdir "%TARGET_RELEASE_DIR%\include" 2>nul
+
+  REM Copy all headers from install directory
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\out\install-release\include\*" "%TARGET_RELEASE_DIR%\include\" || (
+    echo Error: Failed to copy release headers to target
+    exit /b 1
+  )
+
+  REM Copy imageio headers
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_RELEASE_DIR%\include\imageio\" || (
+    echo Error: Failed to copy imageio headers to target
+    exit /b 1
+  )
+
+  REM Copy bluevk headers (Windows-specific)
+  if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" (
+    mkdir "%TARGET_RELEASE_DIR%\include\bluevk" 2>nul
+    xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk\*" "%TARGET_RELEASE_DIR%\include\bluevk\" 2>nul
+  )
+
+  REM Copy vulkan headers (Windows-specific)
+  if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan" (
+    mkdir "%TARGET_RELEASE_DIR%\include\vulkan" 2>nul
+    xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan\*" "%TARGET_RELEASE_DIR%\include\vulkan\" 2>nul
+  )
+
+  REM Copy vk_video headers (Windows-specific)
+  if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video" (
+    mkdir "%TARGET_RELEASE_DIR%\include\vk_video" 2>nul
+    xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video\*" "%TARGET_RELEASE_DIR%\include\vk_video\" 2>nul
+  )
+
+  REM Copy stb_image.h
+  mkdir "%TARGET_RELEASE_DIR%\include\third_party\stb" 2>nul
+  copy /Y "%FILAMENT_BASE_DIR%\third_party\stb\stb_image.h" "%TARGET_RELEASE_DIR%\include\third_party\stb\" || (
+    echo Error: Failed to copy stb_image.h to target
+    exit /b 1
+  )
+
+  REM Copy uberarchive.h for release
+  mkdir "%TARGET_RELEASE_DIR%\include\release\gltfio\materials" 2>nul
+  copy /Y "%FILAMENT_BASE_DIR%\out\install-release\include\gltfio\materials\uberarchive.h" "%TARGET_RELEASE_DIR%\include\release\gltfio\materials\" 2>nul
+)
+
+if "!BUILD_DEBUG!"=="true" (
+  echo Copying headers to %TARGET_DEBUG_DIR%\include...
+  mkdir "%TARGET_DEBUG_DIR%\include" 2>nul
+
+  REM Copy all headers from install directory
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\out\install-debug\include\*" "%TARGET_DEBUG_DIR%\include\" || (
+    echo Error: Failed to copy debug headers to target
+    exit /b 1
+  )
+
+  REM Copy imageio headers
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_DEBUG_DIR%\include\imageio\" || (
+    echo Error: Failed to copy imageio headers to target
+    exit /b 1
+  )
+
+  REM Copy bluevk headers (Windows-specific)
+  if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" (
+    mkdir "%TARGET_DEBUG_DIR%\include\bluevk" 2>nul
+    xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk\*" "%TARGET_DEBUG_DIR%\include\bluevk\" 2>nul
+  )
+
+  REM Copy vulkan headers (Windows-specific)
+  if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan" (
+    mkdir "%TARGET_DEBUG_DIR%\include\vulkan" 2>nul
+    xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vulkan\*" "%TARGET_DEBUG_DIR%\include\vulkan\" 2>nul
+  )
+
+  REM Copy vk_video headers (Windows-specific)
+  if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video" (
+    mkdir "%TARGET_DEBUG_DIR%\include\vk_video" 2>nul
+    xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\vk_video\*" "%TARGET_DEBUG_DIR%\include\vk_video\" 2>nul
+  )
+
+  REM Copy stb_image.h
+  mkdir "%TARGET_DEBUG_DIR%\include\third_party\stb" 2>nul
+  copy /Y "%FILAMENT_BASE_DIR%\third_party\stb\stb_image.h" "%TARGET_DEBUG_DIR%\include\third_party\stb\" || (
+    echo Error: Failed to copy stb_image.h to target
+    exit /b 1
+  )
+
+  REM Copy uberarchive.h for debug
+  mkdir "%TARGET_DEBUG_DIR%\include\debug\gltfio\materials" 2>nul
+  copy /Y "%FILAMENT_BASE_DIR%\out\install-debug\include\gltfio\materials\uberarchive.h" "%TARGET_DEBUG_DIR%\include\debug\gltfio\materials\" 2>nul
+)
+
 REM Copy header files to thermion_dart
 set "COPY_HEADERS_OPTS="
 if "!BUILD_RELEASE!"=="true" if "!BUILD_DEBUG!"=="false" set "COPY_HEADERS_OPTS=--release"
