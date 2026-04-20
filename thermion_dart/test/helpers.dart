@@ -215,7 +215,7 @@ class TestHelper {
   }
 
   Future setup() async {
-    Logger.root.level = Level.FINEST;
+    Logger.root.level = Level.SEVERE;
     Logger.root.onRecord.listen((record) {
       print(record.toString());
     });
