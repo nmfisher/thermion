@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
 import 'package:thermion_dart/src/utils/src/geometry/utils.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -10,16 +11,14 @@ void main() async {
 
   test('create/destroy instance for geometry asset', () async {
     await testHelper.withViewer((viewer) async {
-      final mi = await FilamentApp.instance!.createUbershaderMaterialInstance();
-      var asset = await viewer
-          .createGeometry(GeometryUtils.cube(), materialInstances: [mi]);
+      var asset = await viewer.createGeometry(GeometryUtils.cube());
 
-      await testHelper.capture(viewer.view, "geometry_no_instance");
+      expect(asset.isInstance, false);
       expect(await asset.getInstanceCount(), 0);
 
       var instance = await asset.createInstance();
-
       expect(await asset.getInstanceCount(), 1);
+      expect(instance.isInstance, true);
 
       await viewer.addToScene(instance);
       await instance.setTransform(Matrix4.translation(Vector3(1, 0, 0)));
@@ -42,19 +41,26 @@ void main() async {
 
   test("loadGltf throws an Exception when initialInstances is 0", () async {
     await testHelper.withViewer((viewer) async {
-      await expectLater(viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          initialInstances: 0), throwsA(isA<Exception>()));
+      await expectLater(
+          viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb",
+              initialInstances: 0),
+          throwsA(isA<Exception>()));
     });
   });
 
   test("loadGltf creates the number of instances passed via initialInstances",
       () async {
     await testHelper.withViewer((viewer) async {
-      
-      var asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb",
+      var asset = await viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
           initialInstances: 1);
+
       expect(await asset.getInstanceCount(), 1);
+      expect(asset.isInstance, false);
+
+      final instances = await asset.getInstances();
+      expect(instances[0] == asset, false);
+      expect(instances[0].isInstance, true);
 
       asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb",
           initialInstances: 2);

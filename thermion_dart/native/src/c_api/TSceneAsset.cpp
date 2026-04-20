@@ -101,7 +101,12 @@ extern "C"
         return reinterpret_cast<TFilamentAsset *>(filamentAsset);
     }
 
-    EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) { 
+    EMSCRIPTEN_KEEPALIVE TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        return static_cast<TSceneAssetType>(asset->getType());
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if(asset->isInstance()) {
             TRACE("Destroyed instance");

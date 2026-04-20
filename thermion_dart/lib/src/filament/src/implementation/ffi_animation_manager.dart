@@ -1,66 +1,71 @@
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
-import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart';
 
-/// FFI implementation of AnimationManager for native platforms.
-///
-/// This class wraps the native Filament AnimationManager and provides
-/// a type-safe Dart API for managing animation components.
-class FFIAnimationManager
-    extends AnimationManager<bindings.Pointer<bindings.TAnimationManager>> {
-  final bindings.Pointer<bindings.TAnimationManager> animationManager;
+class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
+  final Pointer<TAnimationManager> animationManager;
   final FFIFilamentApp app;
 
   FFIAnimationManager(this.animationManager, this.app);
 
   @override
-  bindings.Pointer<bindings.TAnimationManager> getNativeHandle() =>
-      animationManager;
-
-  // ========================================================================
-  // Animation component management
-  // ========================================================================
+  Pointer<TAnimationManager> getNativeHandle() => animationManager;
 
   @override
-  bool addGltfAnimationComponent(ThermionAsset asset) {
-    return bindings.AnimationManager_addGltfAnimationComponent(
+  Future<bool> addGltfAnimationComponent(ThermionAsset asset) async {
+    if (asset.type != SceneAssetType.gltf) {
+      throw Exception("Only supported for glTF assets");
+    }
+
+    if (!asset.isInstance) {
+      asset = (await asset.getInstances())[0];
+    }
+
+    return AnimationManager_addGltfAnimationComponent(
         animationManager, asset.getNativeHandle());
   }
 
+  late final _logger = Logger(this.runtimeType.toString());
+
   @override
-  bool removeGltfAnimationComponent(ThermionAsset asset) {
-    return bindings.AnimationManager_removeGltfAnimationComponent(
+  Future<bool> removeGltfAnimationComponent(ThermionAsset asset) async {
+    if (asset.type != SceneAssetType.gltf) {
+      _logger.warning("removeGltfAnimationComponent called on non-glTF asset");
+      return false;
+    }
+    if (!asset.isInstance) {
+      asset = (await asset.getInstances())[0];
+    }
+
+    return AnimationManager_removeGltfAnimationComponent(
         animationManager, asset.getNativeHandle());
   }
 
   @override
   void addMorphAnimationComponent(ThermionEntity entityId) {
-    bindings.AnimationManager_addMorphAnimationComponent(
-        animationManager, entityId);
+    AnimationManager_addMorphAnimationComponent(animationManager, entityId);
   }
 
   @override
   void removeMorphAnimationComponent(ThermionEntity entityId) {
-    bindings.AnimationManager_removeMorphAnimationComponent(
-        animationManager, entityId);
+    AnimationManager_removeMorphAnimationComponent(animationManager, entityId);
   }
 
   @override
-  bool addBoneAnimationComponent(ThermionAsset asset) {
-    return bindings.AnimationManager_addBoneAnimationComponent(
+  Future<bool> addBoneAnimationComponent(ThermionAsset asset) async {
+    return AnimationManager_addBoneAnimationComponent(
         animationManager, asset.getNativeHandle());
   }
 
   @override
-  bool removeBoneAnimationComponent(ThermionAsset asset) {
-    return bindings.AnimationManager_removeBoneAnimationComponent(
+  Future<bool> removeBoneAnimationComponent(ThermionAsset asset) async {
+    if (!asset.isInstance && asset.type == SceneAssetType.gltf) {
+      asset = (await asset.getInstances())[0];
+    }
+    return AnimationManager_removeBoneAnimationComponent(
         animationManager, asset.getNativeHandle());
   }
-
-  // ========================================================================
-  // glTF Animation control
-  // ========================================================================
 
   @override
   bool playGltfAnimation(ThermionAsset asset, int index,
@@ -70,7 +75,10 @@ class FFIAnimationManager
       double crossfade = 0.0,
       double startOffset = 0.0,
       double speed = 1.0}) {
-    return bindings.AnimationManager_playGltfAnimation(
+        if (asset.type != SceneAssetType.gltf) {
+      throw Exception("Only supported for glTF assets");
+    }
+    return AnimationManager_playGltfAnimation(
         animationManager,
         asset.getNativeHandle(),
         index,
@@ -84,26 +92,32 @@ class FFIAnimationManager
 
   @override
   bool stopGltfAnimation(ThermionAsset asset, int index) {
-    return bindings.AnimationManager_stopGltfAnimation(
+    if (asset.type != SceneAssetType.gltf) {
+      throw Exception("Only supported for glTF assets");
+    }
+    return AnimationManager_stopGltfAnimation(
         animationManager, asset.getNativeHandle(), index);
   }
 
   @override
   bool setGltfAnimationTime(
       ThermionAsset asset, int animationIndex, double timeInSeconds) {
-    return bindings.AnimationManager_setGltfAnimationTime(animationManager,
+    if (asset.type != SceneAssetType.gltf) {
+      throw Exception("Only supported for glTF assets");
+    }
+    return AnimationManager_setGltfAnimationTime(animationManager,
         asset.getNativeHandle(), animationIndex, timeInSeconds);
   }
 
   @override
   double getGltfAnimationDuration(ThermionAsset asset, int animationIndex) {
-    return bindings.AnimationManager_getGltfAnimationDuration(
+    return AnimationManager_getGltfAnimationDuration(
         animationManager, asset.getNativeHandle(), animationIndex);
   }
 
   @override
   int getGltfAnimationCount(ThermionAsset asset) {
-    return bindings.AnimationManager_getGltfAnimationCount(
+    return AnimationManager_getGltfAnimationCount(
         animationManager, asset.getNativeHandle());
   }
 
@@ -116,7 +130,7 @@ class FFIAnimationManager
 
     final nameBuffer = allocate<Char>(256); // Allocate buffer for name
     try {
-      bindings.AnimationManager_getGltfAnimationName(
+      AnimationManager_getGltfAnimationName(
           animationManager, asset.getNativeHandle(), nameBuffer, index);
 
       final name = nameBuffer.cast<Utf8>().toDartString();
@@ -129,10 +143,6 @@ class FFIAnimationManager
     }
   }
 
-  // ========================================================================
-  // Morph target animation
-  // ========================================================================
-
   @override
   bool setMorphTargetWeights(ThermionEntity entityId, List<double> weights) {
     late Pointer stackPtr;
@@ -144,7 +154,7 @@ class FFIAnimationManager
     weightsPtr.setRange(0, weights.length, weights);
 
     try {
-      return bindings.AnimationManager_setMorphTargetWeights(
+      return AnimationManager_setMorphTargetWeights(
           animationManager, entityId, weightsPtr.address, weights.length);
     } finally {
       weightsPtr.free();
@@ -174,7 +184,7 @@ class FFIAnimationManager
     morphIndicesPtr.setRange(0, morphIndices.length, morphIndices);
 
     try {
-      return bindings.AnimationManager_setMorphAnimation(
+      return AnimationManager_setMorphAnimation(
           animationManager,
           entityId,
           morphDataPtr.address,
@@ -193,13 +203,12 @@ class FFIAnimationManager
 
   @override
   bool clearMorphAnimation(ThermionEntity entityId) {
-    return bindings.AnimationManager_clearMorphAnimation(
-        animationManager, entityId);
+    return AnimationManager_clearMorphAnimation(animationManager, entityId);
   }
 
   @override
   int getMorphTargetNameCount(ThermionAsset asset, ThermionEntity entityId) {
-    return bindings.AnimationManager_getMorphTargetNameCount(
+    return AnimationManager_getMorphTargetNameCount(
         animationManager, asset.getNativeHandle(), entityId);
   }
 
@@ -213,7 +222,7 @@ class FFIAnimationManager
 
     final nameBuffer = allocate<Char>(256); // Allocate buffer for name
     try {
-      bindings.AnimationManager_getMorphTargetName(animationManager,
+      AnimationManager_getMorphTargetName(animationManager,
           asset.getNativeHandle(), entityId, nameBuffer, index);
 
       final name = nameBuffer.cast<Utf8>().toDartString();
@@ -226,17 +235,22 @@ class FFIAnimationManager
     }
   }
 
-  // ========================================================================
-  // Bone animation
-  // ========================================================================
-
   @override
-  bool addBoneAnimation(ThermionAsset asset, int skinIndex, int boneIndex,
-      List<double> frameData, int numFrames, double frameLengthInMs,
+  Future<bool> addBoneAnimation(
+      ThermionAsset asset,
+      int skinIndex,
+      int boneIndex,
+      List<double> frameData,
+      int numFrames,
+      double frameLengthInMs,
       {double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
       double maxDelta = 0.1,
-      bool loop = false}) {
+      bool loop = false}) async {
+    if (!asset.isInstance) {
+      asset = (await asset.getInstances())[0];
+    }
+
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -246,7 +260,7 @@ class FFIAnimationManager
     frameDataPtr.setRange(0, frameData.length, frameData);
 
     try {
-      return bindings.AnimationManager_addBoneAnimation(
+      return AnimationManager_addBoneAnimation(
           animationManager,
           asset.getNativeHandle(),
           skinIndex,
@@ -269,6 +283,10 @@ class FFIAnimationManager
   @override
   Future<List<double>> getRestLocalTransforms(
       ThermionAsset asset, int skinIndex) async {
+    if (!asset.isInstance) {
+      asset = (await asset.getInstances())[0];
+    }
+
     final boneCount = await asset.getBoneCount(skinIndex: skinIndex);
 
     if (boneCount <= 0) {
@@ -283,7 +301,7 @@ class FFIAnimationManager
     // 16 floats per bone (4x4 matrix)
     final transformsPtr = makeFloat32List(boneCount * 16);
     try {
-      bindings.AnimationManager_getRestLocalTransforms(animationManager,
+      AnimationManager_getRestLocalTransforms(animationManager,
           asset.getNativeHandle(), skinIndex, transformsPtr.address, boneCount);
 
       return transformsPtr.toList();
@@ -296,8 +314,12 @@ class FFIAnimationManager
   }
 
   @override
-  List<double> getInverseBindMatrix(
-      ThermionAsset asset, int skinIndex, int boneIndex) {
+  Future<List<double>> getInverseBindMatrix(
+      ThermionAsset asset, int skinIndex, int boneIndex) async {
+    if (!asset.isInstance) {
+      asset = (await asset.getInstances())[0];
+    }
+
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
@@ -305,7 +327,7 @@ class FFIAnimationManager
 
     final matrixPtr = makeFloat32List(16); // 4x4 matrix
     try {
-      bindings.AnimationManager_getInverseBindMatrix(animationManager,
+      AnimationManager_getInverseBindMatrix(animationManager,
           asset.getNativeHandle(), skinIndex, boneIndex, matrixPtr.address);
 
       return matrixPtr.toList();
@@ -318,24 +340,26 @@ class FFIAnimationManager
   }
 
   @override
-  bool updateBoneMatrices(ThermionAsset asset) {
-    return bindings.AnimationManager_updateBoneMatrices(
+  Future<bool> updateBoneMatrices(ThermionAsset asset) async {
+    if (!asset.isInstance) {
+      asset = (await asset.getInstances())[0];
+    }
+
+    return AnimationManager_updateBoneMatrices(
         animationManager, asset.getNativeHandle());
   }
 
-  // ========================================================================
-  // Animation state and pose management
-  // ========================================================================
-
   @override
-  void resetToRestPose(ThermionAsset asset) {
-    bindings.AnimationManager_resetToRestPose(
-        animationManager, asset.getNativeHandle());
+  void resetToRestPose(ThermionAsset asset) async {
+    if (!asset.isInstance) {
+      asset = (await asset.getInstances())[0];
+    }
+
+    AnimationManager_resetToRestPose(animationManager, asset.getNativeHandle());
   }
 
   @override
   void update(int frameTimeInNanos) {
-    bindings.AnimationManager_update(
-        animationManager, frameTimeInNanos.toBigInt);
+    AnimationManager_update(animationManager, frameTimeInNanos.toBigInt);
   }
 }

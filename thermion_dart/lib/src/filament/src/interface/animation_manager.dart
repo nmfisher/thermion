@@ -19,16 +19,15 @@ import 'package:thermion_dart/thermion_dart.dart';
 // The (Dart) AnimationManager class is a thin wrapper over the C++ class.
 abstract class AnimationManager<T> extends NativeHandle<T> {
 
-  // Adds a glTF animation component to [asset].
-  // These are added at the asset level (rather than entity) because
-  // the underlying animator drives the entire FilamentInstance, rather than 
-  // individual entities.
+  // Adds a glTF animation component to [asset]. These are added at the asset
+  // level (rather than entity) because the underlying animator drives the 
+  // entire FilamentInstance, rather than individual entities.
   // Returns true if successful, false otherwise
-  bool addGltfAnimationComponent(ThermionAsset asset);
+  Future<bool> addGltfAnimationComponent(ThermionAsset asset);
 
   // Removes the glTF animation component from [asset].
   // Returns true if successful, false otherwise.
-  bool removeGltfAnimationComponent(ThermionAsset asset);
+  Future<bool> removeGltfAnimationComponent(ThermionAsset asset);
 
   // Adds a morph animation component to [entity].
   // These are added at the entity level (rather than the asset level) because
@@ -39,10 +38,10 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   void removeMorphAnimationComponent(ThermionEntity entity);
 
   // Adds a bone animation component to the specified asset.
-  bool addBoneAnimationComponent(ThermionAsset asset);
+  Future<bool> addBoneAnimationComponent(ThermionAsset asset);
 
   // Removes the bone animation component from the specified asset.
-  bool removeBoneAnimationComponent(ThermionAsset asset);
+  Future<bool> removeBoneAnimationComponent(ThermionAsset asset);
 
   // Plays a glTF animation with the specified parameters.
   //
@@ -158,7 +157,7 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [fadeInInSecs] Fade in duration in seconds
   // [maxDelta] Maximum transformation delta per frame
   // Returns true if successful, false otherwise
-  bool addBoneAnimation(ThermionAsset asset, int skinIndex, int boneIndex,
+  Future<bool> addBoneAnimation(ThermionAsset asset, int skinIndex, int boneIndex,
       List<double> frameData, int numFrames, double frameLengthInMs,
       {double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
@@ -178,14 +177,14 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [asset] The asset containing the bones [skinIndex] The skin index
   // [boneIndex] The bone index Returns the 4x4 inverse bind matrix (16
   // floats), or empty list if not found
-  List<double> getInverseBindMatrix(
+  Future<List<double>> getInverseBindMatrix(
       ThermionAsset asset, int skinIndex, int boneIndex);
 
-  // Calls [updateBoneMatrices] on the Animator instance for the
+  // Calls [updateBoneMatrices] on the Animator instance for the 
   // FilamentInstance (which uses the local bone transform and the inverse bind
   // matrix to set the bone matrix). [asset] The asset to update. This must be
   // an instance. Returns true if successful, false otherwise
-  bool updateBoneMatrices(ThermionAsset asset);
+  Future<bool> updateBoneMatrices(ThermionAsset asset);
 
   // Resets [asset] to its rest pose.
   void resetToRestPose(ThermionAsset asset);
