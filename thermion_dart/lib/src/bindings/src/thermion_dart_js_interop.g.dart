@@ -2893,6 +2893,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(
     Pointer<TSceneAsset> tSceneAsset,
   );
+  external int _SceneAsset_getType(
+    Pointer<TSceneAsset> tSceneAsset,
+  );
   external void _SceneAsset_destroy(
     Pointer<TSceneAsset> tSceneAsset,
   );
@@ -9530,6 +9533,14 @@ Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(
   return Pointer<TFilamentAsset>(result);
 }
 
+int SceneAsset_getType(
+  Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result =
+      GeneratedBindings.instance._SceneAsset_getType(tSceneAsset.cast());
+  return result;
+}
+
 void SceneAsset_destroy(
   Pointer<TSceneAsset> tSceneAsset,
 ) {
@@ -12564,6 +12575,16 @@ final class TGltfMeshData extends Struct {
     return Pointer<TGltfMeshData>(
         NativeLibrary.instance.stackAlloc<TGltfMeshData>(20));
   }
+}
+
+sealed class TSceneAssetType {
+  static const SCENE_ASSET_TYPE_GLTF = 0;
+  static const SCENE_ASSET_TYPE_GEOMETRY = 1;
+  static const SCENE_ASSET_TYPE_LIGHT = 2;
+  static const SCENE_ASSET_TYPE_SKYBOX = 3;
+  static const SCENE_ASSET_TYPE_IBL = 4;
+  static const SCENE_ASSET_TYPE_IMAGE = 5;
+  static const SCENE_ASSET_TYPE_GIZMO = 6;
 }
 
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {

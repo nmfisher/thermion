@@ -5371,6 +5371,11 @@ external ffi.Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(
   ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external int SceneAsset_getType(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external void SceneAsset_destroy(
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -6043,6 +6048,16 @@ final class Aabb3 extends ffi.Struct {
 sealed class TGizmoType {
   static const GIZMO_TYPE_TRANSLATION = 0;
   static const GIZMO_TYPE_ROTATION = 1;
+}
+
+sealed class TSceneAssetType {
+  static const SCENE_ASSET_TYPE_GLTF = 0;
+  static const SCENE_ASSET_TYPE_GEOMETRY = 1;
+  static const SCENE_ASSET_TYPE_LIGHT = 2;
+  static const SCENE_ASSET_TYPE_SKYBOX = 3;
+  static const SCENE_ASSET_TYPE_IBL = 4;
+  static const SCENE_ASSET_TYPE_IMAGE = 5;
+  static const SCENE_ASSET_TYPE_GIZMO = 6;
 }
 
 sealed class TFeatureLevel {
