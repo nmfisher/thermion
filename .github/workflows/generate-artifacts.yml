@@ -34,6 +34,7 @@ jobs:
         id: changes
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') && github.event.before || '' }}
           filters: |
             source-changed:
               - 'thermion_dart/ffigen/**'
