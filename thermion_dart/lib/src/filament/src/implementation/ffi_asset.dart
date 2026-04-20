@@ -14,11 +14,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return asset;
   }
 
-  ///
+  //
   bool get isInstance => instanceOwner != null;
   final FFIAsset? instanceOwner;
 
-  ///
+  //
   late final ThermionEntity entity;
 
   late final _logger = Logger(this.runtimeType.toString());
@@ -409,11 +409,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return names;
   }
 
-  /// Gets the number of bones in a skin.
-  ///
-  /// [asset] The asset containing the skin
-  /// [skinIndex] The skin index
-  /// Returns the number of bones, or 0 if not found
+  // Gets the number of bones in a skin.
+  //
+  // [asset] The asset containing the skin
+  // [skinIndex] The skin index
+  // Returns the number of bones, or 0 if not found
   Future<int> getBoneCount({int skinIndex = 0}) async {
     return SceneAsset_getBoneCount(asset, skinIndex);
   }
@@ -544,8 +544,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     }
   }
 
-  /// Currently, scale is not supported.
-  ///
+  // Currently, scale is not supported.
+  //
   @override
   Future addBoneAnimation(BoneAnimationData animation,
       {int skinIndex = 0,
@@ -649,7 +649,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     free(data);
   }
 
-  ///
+  //
   Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
     entity ??= this.entity;
     final transform =
@@ -657,26 +657,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return transform;
   }
 
-  ///
+  //
   Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
     return FilamentApp.instance!.getWorldTransform(entity ?? this.entity);
   }
 
-  ///
+  //
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
     await FilamentApp.instance!.setTransform(entity ?? this.entity, transform);
-  }
-
-  ///
-  Future updateBoneMatrices(ThermionEntity entity) async {
-    throw UnimplementedError();
-
-    // var result = await withBoolCallback((cb) {
-    //   update_bone_matrices_render_thread(_sceneManager!, entity, cb);
-    // });
-    // if (!result) {
-    //   throw Exception("Failed to update bone matrices");
-    // }
   }
 
   //
