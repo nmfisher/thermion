@@ -1,13 +1,20 @@
 name: 'Setup Build Environment'
-description: 'Set up LLVM, MESA, and Flutter for builds'
+description: 'Set up LLVM, MESA, and Dart for Dart-only builds'
 runs:
   using: 'composite'
   steps:
     - uses: actions/checkout@v4
+    - name: Cache LLVM
+      id: cache-llvm
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/llvm
+        key: llvm-16-${{ runner.os }}
     - name: Setup LLVM
       uses: KyleMayes/install-llvm-action@v1
       with:
         version: "16"
+        cached: ${{ steps.cache-llvm.outputs.cache-hit }}
     - name: Add LLVM to PATH
       shell: bash
       run: |
@@ -22,8 +29,5 @@ runs:
         sudo apt-get update
         sudo apt-get install -y xvfb
         sudo apt-get install -y libosmesa6-dev
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        channel: master
-        architecture: X64
+    - name: Set up Dart
+      uses: dart-lang/setup-dart@v1

@@ -22,6 +22,14 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
       - name: Check for source changes
         id: changes
         uses: dorny/paths-filter@v3
@@ -51,6 +59,7 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: 'latest'
+          actions-cache-folder: 'emsdk-cache'
 
       - name: Set up Flutter
         if: steps.changes.outputs.source-changed == 'true'
