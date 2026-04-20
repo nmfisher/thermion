@@ -112,13 +112,13 @@ Special thanks to [odd-io](https://github.com/odd-io/) for sponsoring work on su
 
 Thank you to the following people:
 
-- [@Hannnes1] for help migrating to `native-assets`
-- [@jarrodcolburn] for documentation contributions
-- [@daverin] for MacOS library contributions
-- [@LukasPoque] for CI/refactoring work
-- [@alexmercerind] for his work on integrating ANGLE textures on Flutter Windows
-- [@BrutalCoding] for documentation fixes
-- [@chenriji] for testing and bug fixes
-- [@JesperBellenbaum] for Vulkan/Windows improvements
-- [@repentsinner] for Linux/EGL/Windows stability + improvements
-
+- [@Hannnes1](https://github.com/Hannnes1) for help migrating to `native-assets`
+- [@jarrodcolburn](https://github.com/jarrodcolburn) for documentation contributions
+- [@daverin](https://github.com/daverin) for MacOS library contributions
+- [@LukasPoque](https://github.com/LukasPoque) for CI/refactoring work
+- [@alexmercerind](https://github.com/alexmercerind) for his work on integrating ANGLE textures on Flutter Windows
+- [@BrutalCoding](https://github.com/BrutalCoding) for documentation fixes
+- [@chenriji](https://github.com/chenriji) for testing and bug fixes
+- [@JesperBellenbaum](https://github.com/JesperBellenbaum) for Vulkan/Windows improvements
+- [@repentsinner](https://github.com/repentsinner) for Linux/EGL/Windows stability + improvements
+- [@mwahnish](https://github.com/mwahnish) for bug fixes and web improvements
