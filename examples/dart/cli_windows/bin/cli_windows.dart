@@ -23,7 +23,7 @@ void main(List<String> arguments) async {
   await view.setViewport(500, 500);
   var camera = await viewer.getActiveCamera();
   await camera.setLensProjection();
-  await FilamentApp.instance!.setRenderOrder(swapChain, view);
+  await FilamentApp.instance!.renderManager.attach(view, swapChain);
 
   await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
 
@@ -31,7 +31,7 @@ void main(List<String> arguments) async {
   await viewer.loadSkybox(
       "file://${skyboxPath.uri.toFilePath(windows: Platform.isWindows)}");
 
-  final cube = await viewer.createGeometry(GeometryHelper.cube());
+  final cube = await viewer.createGeometry(GeometryUtils.cube());
 
   var stopwatch = Stopwatch();
   stopwatch.start();

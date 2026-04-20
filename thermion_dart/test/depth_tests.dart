@@ -10,6 +10,29 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
+Future createView(SwapChain swapChain,
+    {TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
+  final view = await FilamentApp.instance!.createView() as FFIView;
+  await view.setFrustumCullingEnabled(false);
+  await view.setPostProcessing(false);
+  await view.setViewport(512, 512);
+
+  View_setBlendMode(view.view, TBlendMode.OPAQUE);
+  final color = await FilamentApp.instance!.createTexture(512, 512,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC
+      },
+      textureFormat: textureFormat);
+  await view.setRenderTarget(await FilamentApp.instance!
+      .createRenderTarget(512, 512, color: color) as FFIRenderTarget);
+
+  await FilamentApp.instance!.renderManager.attach(view, swapChain);
+
+  return view;
+}
+
 void checkMinMaxPixelValues(Float32List pixelBuffer, int width, int height,
     {int channels = 1}) {
   var minVal = 99999.0;
@@ -89,21 +112,19 @@ void main() async {
 
     var umi = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
-    var cube = await FilamentApp.instance!
-        .createGeometry(GeometryUtils.cube());
+    var cube = await FilamentApp.instance!.createGeometry(GeometryUtils.cube());
     await scene.add(cube as FFIAsset);
     await umi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
     await cube.setTransform(
         Matrix4.compose(Vector3.zero(), Quaternion.identity(), Vector3.all(1)));
     await cube.setMaterialInstanceAt(mi);
-    await FilamentApp.instance!.setRenderOrder(swapChain, view);
+    await FilamentApp.instance!.renderManager.attach(view, swapChain);
     var pixelBuffers = await testHelper.capture(null, "linear_depth",
         swapChain: swapChain, pixelDataFormat: PixelDataFormat.R);
     checkMinMaxPixelValues(pixelBuffers[view]!.buffer.asFloat32List(),
         viewportDimensions.width, viewportDimensions.height);
   });
-
 
   group('depth sampling', () {
     test("depth sampling", () async {
@@ -115,7 +136,7 @@ void main() async {
 
         final swapChain = await FilamentApp.instance!
             .createHeadlessSwapChain(512, 512) as FFISwapChain;
-        final view = await testHelper.createView(swapChain);
+        final view = await createView(swapChain);
         await testHelper.withCube(
           viewer,
           (cube) async {
