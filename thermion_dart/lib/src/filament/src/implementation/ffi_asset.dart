@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
@@ -584,7 +583,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       throw UnimplementedError("TODO - support skinIndex != 0 ");
     }
     // Resolve to instance(0) if this is a top-level asset — the native
-    // bone APIs (getBoneCount, getBone, getRestLocalTransforms) require
+    // bone APIs (getBoneCount, getBones, getRestLocalTransforms) require
     // a GltfSceneAssetInstance, not a GltfSceneAsset.
     FFIAsset instanceAsset = this;
     if (!isInstance) {
@@ -611,8 +610,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     var data = makeFloat32List(numFrames * 16);
 
     try {
-      var bones = await Future.wait(List<Future<ThermionEntity>>.generate(
-          boneNames.length, (i) => instanceAsset.getBone(i)));
+      var bones = await instanceAsset.getBones(skinIndex: skinIndex);
 
       for (int i = 0; i < animation.bones.length; i++) {
         var boneName = animation.bones[i];

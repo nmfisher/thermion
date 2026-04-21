@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
@@ -193,7 +192,7 @@ void main() async {
     }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
   });
 
-  test('setBoneAnimation animations', () async {
+  test('setBoneTransform', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
           .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
@@ -206,6 +205,54 @@ void main() async {
       await cube.setBoneTransform(0, Matrix4.rotationY(pi / 2));
 
       await testHelper.capture(viewer.view, "set_bone_transform");
+    }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
+  });
+
+  test('addBoneAnimation plays a keyframed rotation', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
+
+      await viewer.addToScene(cube);
+
+      await viewer.addDirectLight(DirectLight.sun(
+          direction: Vector3(0.7, -1, -0.8).normalized(),
+          intensity: 100000.0));
+
+      final boneNames = await cube.getBoneNames();
+      expect(boneNames.first, "MyBone");
+
+      // 60-frame animation rotating MyBone from 0 to pi/2 about Y in bone space.
+      const numFrames = 60;
+      final frameData = <SkeletonTransform>[];
+      for (int i = 0; i < numFrames; i++) {
+        final angle = (pi / 2) * (i / (numFrames - 1));
+        frameData.add([
+          (
+            rotation: Quaternion.axisAngle(Vector3(0, 1, 0), angle),
+            translation: Vector3.zero()
+          ),
+        ]);
+      }
+
+      final animation = BoneAnimationData(["MyBone"], frameData,
+          frameLengthInMs: 1000.0 / 60.0, space: Space.Bone);
+
+      await cube.addBoneAnimation(animation);
+
+      final am = FilamentApp.instance!.animationManager;
+
+      // First update records the start time; renderable remains at rest.
+      am.update(1_000_000_000);
+      await testHelper.capture(viewer.view, "bone_animation_start");
+
+      // Advance ~0.5s — halfway through the 1s animation.
+      am.update(1_500_000_000);
+      await testHelper.capture(viewer.view, "bone_animation_mid");
+
+      // Advance to the end of the animation.
+      am.update(2_000_000_000);
+      await testHelper.capture(viewer.view, "bone_animation_end");
     }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
   });
 

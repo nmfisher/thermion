@@ -1,6 +1,5 @@
 library;
 
-import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -310,14 +309,6 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   //
-  // Gets the entity representing the bone at [boneIndex]/[skinIndex].
-  // The returned entity is only intended for use with [getWorldTransform].
-  //
-  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0}) async {
-    throw UnimplementedError();
-  }
-
-  //
   // Gets the local (relative to parent) transform for [entity].
   //
   Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
@@ -362,7 +353,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
 
   // An [entity] will only be animatable after an animation component is
   // attached. Any calls to
-  // [playAnimation]/[setBoneAnimation]/[setMorphAnimation] will have no visual
+  // [playAnimation]/[addBoneAnimation]/[setMorphAnimation] will have no visual
   // effect until [addAnimationComponent] has been called on the instance.
   Future addAnimationComponent() async {
     throw UnimplementedError();
