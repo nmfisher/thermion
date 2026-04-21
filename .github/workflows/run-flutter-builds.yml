@@ -2,7 +2,17 @@ name: Flutter Example Builds
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
 
 jobs:
   flutter-examples:
@@ -30,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref }}
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2

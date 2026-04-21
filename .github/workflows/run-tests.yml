@@ -2,12 +2,26 @@ name: Dart/Flutter Tests and Example Apps
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
 
 jobs:
   dart-tests:
     uses: ./.github/workflows/run-dart-tests.yml
+    with:
+      ref: ${{ inputs.ref }}
 
   flutter-builds:
     needs: dart-tests
     uses: ./.github/workflows/run-flutter-builds.yml
+    with:
+      ref: ${{ inputs.ref }}
