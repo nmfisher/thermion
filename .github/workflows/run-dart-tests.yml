@@ -126,10 +126,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run download 24704021820 \
-            --name golden-images-cb130f7df034a15372616ba73e689e26f8f9a7e8  \
+          gh run download 24727481760 \
+            --name golden-images-44e99c7248855dffb488bafbb53ef44fb2cebbe4  \
             --dir ./thermion_dart/test/golden-downloads
-
       - name: Unzip golden images
         if: matrix.name == 'Linux'
         run: |
