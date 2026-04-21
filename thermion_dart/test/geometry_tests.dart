@@ -11,6 +11,7 @@ void main() async {
         .setBackgroundColor(kRed)
         .execute((result) async {
       final asset = await result.viewer.createGeometry(GeometryUtils.cube());
+      expect(asset.type, SceneAssetType.geometry);
       await result.viewer.addToScene(asset);
       await testHelper.capture(result.viewer.view, "add_cube");
       await result.viewer.removeFromScene(asset);
@@ -31,42 +32,42 @@ void main() async {
       final vb = await asset.getVertexBuffer();
       expect(vb, isNotNull);
       final vertices = Float32List.fromList([
-      // Front face
-      -1, -1, 1, // 0
-      1, -1, 1, // 1
-      2, 2, 2, // 2
-      -1, 1, 1, // 3
+        // Front face
+        -1, -1, 1, // 0
+        1, -1, 1, // 1
+        2, 2, 2, // 2
+        -1, 1, 1, // 3
 
-      // Back face
-      -1, -1, -1, // 4
-      1, -1, -1, // 5
-      1, 1, -1, // 6
-      -1, 1, -1, // 7
+        // Back face
+        -1, -1, -1, // 4
+        1, -1, -1, // 5
+        1, 1, -1, // 6
+        -1, 1, -1, // 7
 
-      // Top face
-      -1, 1, 1, // 3 (8)
-      2, 2, 2, //2 (9)
-      1, 1, -1, //6 (10)
-      -1, 1, -1, // 7 (11)
+        // Top face
+        -1, 1, 1, // 3 (8)
+        2, 2, 2, //2 (9)
+        1, 1, -1, //6 (10)
+        -1, 1, -1, // 7 (11)
 
-      // Bottom
-      -1, -1, -1, // 4 (12)
-      1, -1, -1, // 5 (13)
-      1, -1, 1, // 1 (14)
-      -1, -1, 1, // 0 (15)
+        // Bottom
+        -1, -1, -1, // 4 (12)
+        1, -1, -1, // 5 (13)
+        1, -1, 1, // 1 (14)
+        -1, -1, 1, // 0 (15)
 
-      // Right
-      1, -1, 1, // 1 (16)
-      1, -1, -1, // 5 (17)
-      1, 1, -1, // 6 (18)
-      2, 2, 2, // 2 (19)
+        // Right
+        1, -1, 1, // 1 (16)
+        1, -1, -1, // 5 (17)
+        1, 1, -1, // 6 (18)
+        2, 2, 2, // 2 (19)
 
-      // Left
-      -1, -1, -1, // 4 (20)
-      -1, -1, 1, // 0 (21)
-      -1, 1, 1, // 3 (22)
-      -1, 1, -1 // 7 (23)
-    ]);
+        // Left
+        -1, -1, -1, // 4 (20)
+        -1, -1, 1, // 0 (21)
+        -1, 1, 1, // 3 (22)
+        -1, 1, -1 // 7 (23)
+      ]);
       await vb!.setBufferAt(0, vertices);
       await testHelper.capture(result.viewer.view, "update_vertex_buffer_2");
     });
@@ -156,7 +157,6 @@ void main() async {
       await result.viewer.destroyAsset(asset);
     });
   });
-
 
   // test('create cube with lit ubershader material (normals/ no uvs)',
   //     () async {
