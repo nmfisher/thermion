@@ -1762,6 +1762,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<NativeFunction<void Function(PointerClass<TMaterialInstance>)>>
         callback,
   );
+  external void _AnimationManager_updateRenderThread(
+    Pointer<TAnimationManager> tAnimationManager,
+    JSBigInt frameTimeInNanos,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _AnimationManager_updateBoneMatricesRenderThread(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
@@ -2096,6 +2102,24 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderableManager_destroyEntityRenderThread(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _RenderableManager_setBonesFromMat4RenderThread(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    Pointer<Float32> transforms,
+    size_t boneCount,
+    size_t offset,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _RenderableManager_setBonesFromBoneRenderThread(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    Pointer<Float32> bones,
+    size_t boneCount,
+    size_t offset,
     int requestId,
     VoidCallback onComplete,
   );
@@ -7122,6 +7146,21 @@ void MaterialProvider_createMaterialInstanceRenderThread(
   return result;
 }
 
+void AnimationManager_updateRenderThread(
+  Pointer<TAnimationManager> tAnimationManager,
+  BigInt frameTimeInNanos,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._AnimationManager_updateRenderThread(
+          tAnimationManager.cast(),
+          frameTimeInNanos.toJSBigInt,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
 void AnimationManager_updateBoneMatricesRenderThread(
   Pointer<TAnimationManager> tAnimationManager,
   Pointer<TSceneAsset> sceneAsset,
@@ -7860,6 +7899,48 @@ void RenderableManager_destroyEntityRenderThread(
       ._RenderableManager_destroyEntityRenderThread(
           tRenderableManager.cast(),
           entityId,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void RenderableManager_setBonesFromMat4RenderThread(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  Pointer<Float32> transforms,
+  Dartsize_t boneCount,
+  Dartsize_t offset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableManager_setBonesFromMat4RenderThread(
+          tRenderableManager.cast(),
+          entityId,
+          transforms,
+          boneCount,
+          offset,
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void RenderableManager_setBonesFromBoneRenderThread(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  Pointer<Float32> bones,
+  Dartsize_t boneCount,
+  Dartsize_t offset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableManager_setBonesFromBoneRenderThread(
+          tRenderableManager.cast(),
+          entityId,
+          bones,
+          boneCount,
+          offset,
           requestId,
           onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;

@@ -3295,6 +3295,16 @@ external void MaterialProvider_createMaterialInstanceRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Uint64, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void AnimationManager_updateRenderThread(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  int frameTimeInNanos,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TAnimationManager>,
             ffi.Pointer<TSceneAsset>,
@@ -3987,6 +3997,44 @@ external void TransformManager_removeComponentRenderThread(
 external void RenderableManager_destroyEntityRenderThread(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Size,
+        ffi.Size,
+        ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void RenderableManager_setBonesFromMat4RenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> transforms,
+  int boneCount,
+  int offset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Size,
+        ffi.Size,
+        ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void RenderableManager_setBonesFromBoneRenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> bones,
+  int boneCount,
+  int offset,
   int requestId,
   VoidCallback onComplete,
 );
