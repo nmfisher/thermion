@@ -780,8 +780,8 @@ class ViewerBuilder {
       await fn.call(viewerBuildResult);
     } finally {
       await buildResult.viewer.dispose();
+      await FilamentApp.instance!.destroySwapChain(buildResult.swapChain);
     }
-    await FilamentApp.instance!.destroySwapChain(buildResult.swapChain);
   }
 }
 

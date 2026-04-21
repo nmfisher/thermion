@@ -445,12 +445,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<List<String>> getGltfAnimationNames() async {
+    if (type != SceneAssetType.gltf) {
+      _logger.warning("getGltfAnimationNames should only be called on gltf assets");
+      return [];
+    }
     if (_gltfAnimationNames == null) {
       var animationCount =
           FilamentApp.instance!.animationManager.getGltfAnimationCount(this);
-      if (animationCount <= 0) {
-        throw Exception("This is not a glTF asset");
-      }
+
       _gltfAnimationNames = [];
       for (int i = 0; i < animationCount; i++) {
         final name = FilamentApp.instance!.animationManager
@@ -467,13 +469,21 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<double> getGltfAnimationDuration(int animationIndex) async {
+    if (type != SceneAssetType.gltf) {
+      throw Exception(
+          "getGltfAnimationDuration can only be called on glTF assets");
+    }
     final duration = FilamentApp.instance!.animationManager
         .getGltfAnimationDuration(this, animationIndex);
     return duration;
   }
 
   //
-  Future<double> getAnimationDurationByName(String name) async {
+  Future<double> getGltfAnimationDurationByName(String name) async {
+    if (type != SceneAssetType.gltf) {
+      throw Exception(
+          "getGltfAnimationDurationByName can only be called on glTF assets");
+    }
     var animations = await getGltfAnimationNames();
     var index = animations.indexOf(name);
     if (index == -1) {
@@ -662,7 +672,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
           frameDataList.add(data[i]);
         }
 
-        FilamentApp.instance!.animationManager.addBoneAnimation(
+        await FilamentApp.instance!.animationManager.addBoneAnimation(
             this,
             skinIndex,
             entityBoneIndex,

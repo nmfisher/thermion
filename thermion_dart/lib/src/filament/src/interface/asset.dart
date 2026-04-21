@@ -304,7 +304,8 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
       double fadeOutInSecs = 0.0,
-      double maxDelta = 1.0}) async {
+      double maxDelta = 1.0,
+      bool loop = false}) async {
     throw UnimplementedError();
   }
 

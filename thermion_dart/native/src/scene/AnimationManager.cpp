@@ -81,8 +81,6 @@ namespace thermion
 
         morphAnimations.emplace_back(morphAnimation);
 
-        auto& foo = morphAnimations[morphAnimations.size() - 1];
-
         return true;
     }
 
@@ -312,6 +310,7 @@ namespace thermion
 
         animation.frameLengthInMs = frameLengthInMs;
         animation.startTimeInNanos = 0; // Will be set when first update() is called
+        animation.startOffset = 0.0f;
         animation.reverse = false;
         animation.loop = loop;
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
@@ -360,7 +359,7 @@ namespace thermion
                                      [=](GltfAnimation &anim)
                                      { return anim.index == index; });
         animationComponent.animations.erase(erased,
-                                                animationComponent.animations.end());
+                                            animationComponent.animations.end());
         return;
     }
 
@@ -418,7 +417,6 @@ namespace thermion
         }
         return names;
     }
-
 
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {

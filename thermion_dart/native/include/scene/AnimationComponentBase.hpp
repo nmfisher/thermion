@@ -10,7 +10,7 @@ namespace thermion
         uint64_t startTimeInNanos = 0;
 
         // Whether the animation should be played from its first frame, or at some later time.
-        float startOffset;
+        float startOffset = 0.0f;
 
         // Whether the animation should loop back to the start when it finishes.
         bool loop = false;

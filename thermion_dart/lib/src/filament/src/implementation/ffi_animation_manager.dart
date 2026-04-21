@@ -372,7 +372,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   }
 
   @override
-  void resetToRestPose(ThermionAsset asset) async {
+  Future resetToRestPose(ThermionAsset asset) async {
     if (asset.type != SceneAssetType.gltf &&
         asset.type != SceneAssetType.geometry) {
       throw UnimplementedError("TODO");

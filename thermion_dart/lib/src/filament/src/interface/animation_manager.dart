@@ -188,7 +188,7 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   Future<bool> updateBoneMatrices(ThermionAsset asset);
 
   // Resets [asset] to its rest pose.
-  void resetToRestPose(ThermionAsset asset);
+  Future resetToRestPose(ThermionAsset asset);
 
   // Updates the animation system with the current frame time.
   // [frameTimeInNanos] Frame time in nanoseconds
