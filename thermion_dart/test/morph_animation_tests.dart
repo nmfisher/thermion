@@ -50,11 +50,9 @@ void main() async {
   test('set morph target animation', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
-          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
+          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
 
-      await viewer.addToScene(cube);
-
-      await testHelper.capture(viewer.view, "cube_morph_animation_rest");
+      await testHelper.capture(viewer.view, "cube_morph_animation_0");
 
       var morphData = MorphAnimationData(
           Float32List.fromList(List<double>.generate(60, (i) => i / 60)),
@@ -62,11 +60,10 @@ void main() async {
           frameLengthInMs: 1000.0 / 60.0);
 
       await cube.setMorphAnimationData(morphData, targetMeshNames: ["Cube"]);
-      await FilamentApp.instance!.animationManager.update(1_000_000_000);
-
-      await testHelper.capture(viewer.view, "cube_morph_animation_start");
-      await FilamentApp.instance!.animationManager.update(1_500_000_000);
-      await testHelper.capture(viewer.view, "cube_morph_animation_playing");
+      await FilamentApp.instance!.animationManager.update(1);
+      await testHelper.capture(viewer.view, "cube_morph_animation_1");
+      await FilamentApp.instance!.animationManager.update(500_000_000);
+      await testHelper.capture(viewer.view, "cube_morph_animation_2");
     }, bg: kRed, cameraPosition: Vector3(3, 2, -6));
   });
 }
