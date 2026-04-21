@@ -249,6 +249,11 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       double fadeInInSecs = 0.0,
       double maxDelta = 0.1,
       bool loop = false}) async {
+    if (asset.type != SceneAssetType.gltf &&
+        asset.type != SceneAssetType.geometry) {
+      throw UnimplementedError("TODO");
+    }
+
     if (!asset.isInstance) {
       asset = (await asset.getInstances())[0];
     }
@@ -285,6 +290,11 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   @override
   Future<List<double>> getRestLocalTransforms(
       ThermionAsset asset, int skinIndex) async {
+    if (asset.type != SceneAssetType.gltf &&
+        asset.type != SceneAssetType.geometry) {
+      throw UnimplementedError("TODO");
+    }
+
     if (!asset.isInstance) {
       asset = (await asset.getInstances())[0];
     }
@@ -318,6 +328,11 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   @override
   Future<List<double>> getInverseBindMatrix(
       ThermionAsset asset, int skinIndex, int boneIndex) async {
+    if (asset.type != SceneAssetType.gltf &&
+        asset.type != SceneAssetType.geometry) {
+      throw UnimplementedError("TODO");
+    }
+
     if (!asset.isInstance) {
       asset = (await asset.getInstances())[0];
     }
@@ -343,6 +358,10 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   Future<bool> updateBoneMatrices(ThermionAsset asset) async {
+    if (asset.type != SceneAssetType.gltf &&
+        asset.type != SceneAssetType.geometry) {
+      throw UnimplementedError("TODO");
+    }
     if (!asset.isInstance) {
       asset = (await asset.getInstances())[0];
     }
@@ -354,6 +373,11 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
 
   @override
   void resetToRestPose(ThermionAsset asset) async {
+    if (asset.type != SceneAssetType.gltf &&
+        asset.type != SceneAssetType.geometry) {
+      throw UnimplementedError("TODO");
+    }
+
     if (!asset.isInstance) {
       asset = (await asset.getInstances())[0];
     }

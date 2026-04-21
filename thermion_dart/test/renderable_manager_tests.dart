@@ -387,6 +387,118 @@ void main() async {
       }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
     });
 
+    test('create skinned geometry with two bones', () async {
+      await ViewerBuilder(testHelper)
+          .setRenderTargetEnabled(true)
+          .setBackgroundColor(kGrey)
+          .execute((result) async {
+        final app = FilamentApp.instance!;
+        final renderableManager = app.renderableManager;
+
+        // Build a skinned quad: bone 0 owns the bottom half (verts 0,1),
+        // bone 1 owns the top half (verts 2,3).
+        final vertexBuffer =
+            await (renderableManager.createVertexBufferBuilder()
+                  ..bufferCount(3)
+                  ..vertexCount(4)
+                  ..attribute(
+                      VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
+                  ..attribute(VertexAttribute.BONE_INDICES, 1,
+                      VertexAttributeType.UBYTE4)
+                  ..attribute(VertexAttribute.BONE_WEIGHTS, 2,
+                      VertexAttributeType.FLOAT4))
+                .build();
+
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(6)
+              ..bufferType(IndexType.USHORT))
+            .build();
+
+        final positions = Float32List.fromList([
+          -0.5, -0.5, 0.0, // vertex 0 (bottom-left)
+          0.5, -0.5, 0.0, // vertex 1 (bottom-right)
+          0.5, 0.5, 0.0, // vertex 2 (top-right)
+          -0.5, 0.5, 0.0, // vertex 3 (top-left)
+        ]);
+        await vertexBuffer.setBufferAt(0, positions);
+
+        final boneIndices = Uint8List.fromList([
+          0, 0, 0, 0, // vertex 0: bone 0
+          0, 0, 0, 0, // vertex 1: bone 0
+          1, 0, 0, 0, // vertex 2: bone 1
+          1, 0, 0, 0, // vertex 3: bone 1
+        ]);
+        await vertexBuffer.setBufferAt(1, boneIndices);
+
+        final boneWeights = Float32List.fromList([
+          1.0, 0.0, 0.0, 0.0, // vertex 0: 100% bone 0
+          1.0, 0.0, 0.0, 0.0, // vertex 1: 100% bone 0
+          1.0, 0.0, 0.0, 0.0, // vertex 2: 100% bone 1
+          1.0, 0.0, 0.0, 0.0, // vertex 3: 100% bone 1
+        ]);
+        await vertexBuffer.setBufferAt(2, boneWeights);
+
+        await indexBuffer.setBuffer(Uint16List.fromList([
+          0, 1, 2,
+          2, 3, 0,
+        ]));
+
+        final material = await app.createUnlitMaterialInstance();
+        await material.setParameterFloat4(
+            "baseColorFactor", 1.0, 0.5, 0.0, 1.0); // Orange
+
+        final entity = await app.createEntity();
+        final renderableBuilder = renderableManager.createBuilder(1)
+          ..boundingBox(
+              Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+          ..geometry(
+              0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 6)
+          ..material(0, material)
+          ..skinning(2, [Matrix4.identity(), Matrix4.identity()]);
+
+        final success = await renderableBuilder.build(entity);
+        expect(success, true);
+
+        final scene = await result.viewer.view.getScene();
+        await scene.addEntity(entity);
+
+        final camera = await result.viewer.view.getCamera();
+        await camera.lookAt(Vector3(0, 0, 2),
+            focus: Vector3.zero(), up: Vector3(0, 1, 0));
+
+        // Initial pose: both bones identity.
+        await testHelper.capture(result.viewer.view, "skinned_initial_pose");
+
+        // Rotate bone 1 (top half) ~45 degrees around Z.
+        await renderableManager.setBonesFromMat4(entity, [
+          Matrix4.identity(),
+          Matrix4.rotationZ(0.78),
+        ]);
+        await testHelper.capture(
+            result.viewer.view, "skinned_after_bone_rotation");
+
+        expect(renderableManager.isRenderable(entity), true);
+
+        // Same update via BoneData (quaternion+translation) path.
+        final boneData = [
+          BoneData(
+            rotation: Quaternion.identity(),
+            translation: Vector3.zero(),
+          ),
+          BoneData(
+            rotation: Quaternion.axisAngle(Vector3(0, 0, 1), 1.57),
+            translation: Vector3(0.0, 0.5, 0.0),
+          ),
+        ];
+        await renderableManager.setBonesFromBone(entity, boneData);
+        await testHelper.capture(
+            result.viewer.view, "skinned_after_bonedata_update");
+
+        await vertexBuffer.destroy();
+        await indexBuffer.destroy();
+      });
+    });
+
     test('morph target operations', () async {
       // Note: This test uses a cube which doesn't have morph targets,
       // but we can test the API returns correct values

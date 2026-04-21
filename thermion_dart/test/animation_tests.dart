@@ -208,7 +208,7 @@ void main() async {
     }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
   });
 
-  test('addBoneAnimation plays a keyframed rotation', () async {
+  test('addBoneAnimation on a gltf asset plays a keyframed rotation', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer
           .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");

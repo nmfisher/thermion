@@ -414,20 +414,19 @@ abstract class RenderableBuilder {
   /// [bones] Initial bone transforms
   void skinningFromBone(int boneCount, List<BoneData> bones);
 
-  /// Enables skinning buffer mode for sharing bone data between renderables.
-  ///
-  /// When enabled, use setSkinningBuffer on the renderable instead of setBonesFromMat4.
-  /// [enabled] Whether to enable skinning buffer mode
+  // Enables skinning buffer mode for sharing bone data between renderables.
+  //
+  // When enabled, use setSkinningBuffer on the renderable instead of
+  // setBonesFromMat4. [enabled] Whether to enable skinning buffer mode
   void enableSkinningBuffers(bool enabled);
 
-  /// Sets bone indices and weights for a primitive.
-  ///
-  /// Each bone-weight pair is a Float32List with 2 elements: [boneIndex, weight].
-  /// The data must be rectangular with the same number of pairs for all vertices.
-  ///
-  /// [primitiveIndex] The primitive index
-  /// [indicesAndWeights] Bone index and weight pairs for all vertices
-  /// [bonesPerVertex] Number of bones influencing each vertex
+  // Sets bone indices and weights for a primitive. Each bone-weight pair is a
+  // Float32List with 2 elements: [boneIndex, weight]. The data must be
+  // rectangular with the same number of pairs for all vertices.
+  //
+  // [primitiveIndex] The primitive index [indicesAndWeights] Bone index and
+  // weight pairs for all vertices [bonesPerVertex] Number of bones influencing
+  // each vertex
   void boneIndicesAndWeights(int primitiveIndex,
       List<Float32List> indicesAndWeights, int bonesPerVertex);
 
@@ -438,6 +437,4 @@ abstract class RenderableBuilder {
   ///
   /// The builder is consumed after this call and cannot be reused.
   Future<bool> build(ThermionEntity entity);
-
-  
 }
