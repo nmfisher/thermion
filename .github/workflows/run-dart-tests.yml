@@ -2,7 +2,17 @@ name: Dart Tests
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
 
 jobs:
   dart-tests:
@@ -19,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref }}
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -73,6 +83,11 @@ jobs:
             test/scene_tests.dart \
             test/picking_tests.dart \
             test/image_tests.dart \
+            test/gltf_animation_tests.dart \
+            test/bone_animation_tests.dart \
+            test/morph_animation_tests.dart \
+            test/renderable_manager_tests.dart \
+            test/gltf_parser_tests.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
@@ -111,10 +126,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run download 24648626732 \
-            --name golden-images-08317ba562a3fa82ee1e2547b1b20c5c1ef2fd65  \
+          gh run download 24727481760 \
+            --name golden-images-44e99c7248855dffb488bafbb53ef44fb2cebbe4  \
             --dir ./thermion_dart/test/golden-downloads
-
       - name: Unzip golden images
         if: matrix.name == 'Linux'
         run: |

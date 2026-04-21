@@ -42,13 +42,8 @@ extern "C"
 		float frameLengthInMs,
 		float fadeOutInSecs,
 		float fadeInInSecs,
-		float maxDelta);
-
-	EMSCRIPTEN_KEEPALIVE EntityId AnimationManager_getBone(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset,
-		int skinIndex,
-		int boneIndex);
+		float maxDelta, 
+		bool loop);
 
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_getRestLocalTransforms(
 		TAnimationManager *tAnimationManager,
@@ -94,17 +89,6 @@ extern "C"
 		TSceneAsset *sceneAsset,
 		char *const outPtr,
 		int index);
-
-	EMSCRIPTEN_KEEPALIVE int AnimationManager_getBoneCount(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset,
-		int skinIndex);
-
-	EMSCRIPTEN_KEEPALIVE void AnimationManager_getBoneNames(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *sceneAsset,
-		const char **out,
-		int skinIndex);
 
 	EMSCRIPTEN_KEEPALIVE int AnimationManager_getMorphTargetNameCount(
 		TAnimationManager *tAnimationManager,

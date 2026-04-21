@@ -56,7 +56,17 @@ class SceneAsset {
 
         virtual const filament::Aabb getBoundingBox() const = 0;
 
+        virtual size_t getBoneCount(size_t skinIndex) const {
+            return 0;
+        }
 
-    
+        virtual const Entity *getBones(size_t skinIndex) const {
+            return nullptr;
+        }
+
+        virtual const char *getBoneName(size_t skinIndex, size_t boneIndex) const {
+            return nullptr;
+        }
+
 };
 }

@@ -16,7 +16,6 @@ dependencies:
   vector_math: ^2.1.2
   plugin_platform_interface: ^2.0.0
   ffi: ^2.1.2
-  animation_tools_dart: ^0.1.0
   thermion_dart: ^0.3.4+1
   hooks: ^1.0.0
   logging: ^1.2.0

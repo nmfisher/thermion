@@ -81,8 +81,6 @@ namespace thermion
 
         morphAnimations.emplace_back(morphAnimation);
 
-        auto& foo = morphAnimations[morphAnimations.size() - 1];
-
         return true;
     }
 
@@ -277,7 +275,8 @@ namespace thermion
                                             float frameLengthInMs,
                                             float fadeOutInSecs,
                                             float fadeInInSecs,
-                                            float maxDelta)
+                                            float maxDelta,
+                                            bool loop)
     {
         std::lock_guard lock(mMutex);
 
@@ -311,7 +310,9 @@ namespace thermion
 
         animation.frameLengthInMs = frameLengthInMs;
         animation.startTimeInNanos = 0; // Will be set when first update() is called
+        animation.startOffset = 0.0f;
         animation.reverse = false;
+        animation.loop = loop;
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
         animation.lengthInFrames = numFrames;
         animation.frameLengthInMs = frameLengthInMs;
@@ -358,7 +359,7 @@ namespace thermion
                                      [=](GltfAnimation &anim)
                                      { return anim.index == index; });
         animationComponent.animations.erase(erased,
-                                                animationComponent.animations.end());
+                                            animationComponent.animations.end());
         return;
     }
 
@@ -417,14 +418,6 @@ namespace thermion
         return names;
     }
 
-    std::vector<Entity> AnimationManager::getBoneEntities(GltfSceneAssetInstance *instance, int skinIndex)
-    {
-        auto *joints = instance->getInstance()->getJointsAt(skinIndex);
-        auto jointCount = instance->getInstance()->getJointCountAt(skinIndex);
-        std::vector<Entity> boneEntities(joints, joints + jointCount);
-        return boneEntities;
-    }
-
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(mMutex);
@@ -437,28 +430,6 @@ namespace thermion
     math::mat4f AnimationManager::getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex)
     {
         return instance->getInstance()->getInverseBindMatricesAt(skinIndex)[boneIndex];
-    }
-
-    bool AnimationManager::setBoneTransform(GltfSceneAssetInstance *instance, int32_t skinIndex, int boneIndex, math::mat4f transform)
-    {
-        std::lock_guard lock(mMutex);
-
-        RenderableManager &rm = mEngine->getRenderableManager();
-
-        const auto &renderableInstance = rm.getInstance(instance->getEntity());
-
-        if (!renderableInstance.isValid())
-        {
-            Log("Specified entity is not a renderable. You probably provided the ultimate parent entity of a glTF asset, which is non-renderable. ");
-            return false;
-        }
-
-        rm.setBones(
-            renderableInstance,
-            &transform,
-            1,
-            boneIndex);
-        return true;
     }
 
     bool AnimationManager::addGltfAnimationComponent(GltfSceneAssetInstance *instance)

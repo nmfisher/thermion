@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdint>
 #include <variant>
 
@@ -112,18 +113,28 @@ namespace thermion
                 }
 
                 uint64_t elapsedInNanos = frameTimeInNanos - animationStatus.startTimeInNanos;
+
                 float elapsedInSeconds = float(elapsedInNanos) / 1'000'000'000.0f;
                 auto animationTargetTime = (animationStatus.startOffset + elapsedInSeconds) * animationStatus.speed;
 
-                if (!animationStatus.loop && animationTargetTime >= animationStatus.durationInSecs)
+                if (animationTargetTime >= animationStatus.durationInSecs)
                 {
-                    animator->applyAnimation(animationStatus.index, animationStatus.durationInSecs - 0.001);
-                    animator->updateBoneMatrices();
-                    gltfAnimations.erase(gltfAnimations.begin() + i);
-                    TRACE("glTF animation at index %d finished", animationStatus.index);
-                    animationComponent.fadeOutAnimation.index = -1;
-                    continue;
+                    if (!animationStatus.loop)
+                    {
+                        TRACE("glTF animation at index %d finished", animationStatus.index);
+                        float endTime = animationStatus.durationInSecs - 1e-8;
+                        if(endTime >= 0.0f) {
+                            animator->applyAnimation(animationStatus.index, endTime);
+                        }
+                        animator->updateBoneMatrices();
+                        gltfAnimations.erase(gltfAnimations.begin() + i);
+                        animationComponent.fadeOutAnimation.index = -1;
+                        continue;
+                    }
+                    animationTargetTime = std::fmod(animationTargetTime, animationStatus.durationInSecs);
+                    TRACE("Looping glTF animation at index %d", animationStatus.index);
                 }
+                TRACE("Applying glTF animation at index %d and time %f", animationStatus.index, animationTargetTime);
                 animator->applyAnimation(animationStatus.index, animationTargetTime);
 
                 auto &fadeOutAnimation = animationComponent.fadeOutAnimation;

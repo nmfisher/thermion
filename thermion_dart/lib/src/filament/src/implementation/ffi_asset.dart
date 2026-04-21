@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
@@ -8,29 +7,51 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
 class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
+  late final _logger = Logger(this.runtimeType.toString());
+
   final Pointer<TSceneAsset> asset;
 
   Pointer<TSceneAsset> getNativeHandle() {
     return asset;
   }
 
-  ///
   bool get isInstance => instanceOwner != null;
+
   final FFIAsset? instanceOwner;
 
-  ///
   late final ThermionEntity entity;
-
-  late final _logger = Logger(this.runtimeType.toString());
 
   final bool releaseSourceData;
 
-  //
   FFIAsset(this.asset,
       {this.instanceOwner = null, this.releaseSourceData = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
+  @override
+  SceneAssetType get type {
+    final t = SceneAsset_getType(asset);
+    switch (t) {
+      case TSceneAssetType.SCENE_ASSET_TYPE_GLTF:
+        return SceneAssetType.gltf;
+      case TSceneAssetType.SCENE_ASSET_TYPE_GEOMETRY:
+        return SceneAssetType.geometry;
+      case TSceneAssetType.SCENE_ASSET_TYPE_LIGHT:
+        return SceneAssetType.light;
+      case TSceneAssetType.SCENE_ASSET_TYPE_SKYBOX:
+        return SceneAssetType.skybox;
+      case TSceneAssetType.SCENE_ASSET_TYPE_IBL:
+        return SceneAssetType.ibl;
+      case TSceneAssetType.SCENE_ASSET_TYPE_IMAGE:
+        return SceneAssetType.image;
+      case TSceneAssetType.SCENE_ASSET_TYPE_GIZMO:
+        return SceneAssetType.gizmo;
+      default:
+        throw Exception("Unknown SceneAssetType: $t");
+    }
+  }
+
+  // childEntities are (currently) immutable, so we cache them here.
   Int32List? _childEntities;
 
   //
@@ -86,14 +107,15 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future<ThermionAsset> getInstance(int index) async {
     if (isInstance) {
-      throw Exception(
-          "This is itself an instance. Call getInstance on the original asset that this instance was created from");
+      throw Exception("""This is itself an instance. Call getInstance on the """
+          """original asset that this instance was created from""");
     }
     var instance = SceneAsset_getInstance(asset, index);
     if (instance == nullptr) {
       throw Exception("No instance available at index $index");
     }
-    return FFIAsset(instance);
+    return FFIAsset(instance,
+        instanceOwner: this, releaseSourceData: releaseSourceData);
   }
 
   //
@@ -105,9 +127,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
           .createInstance(materialInstances: materialInstances);
     }
     if (releaseSourceData) {
-      throw Exception(
-          """releaseSourceData must have been specified as false"""
-""" when this asset was created""");
+      throw Exception("""releaseSourceData must have been specified as false"""
+          """ when this asset was created""");
     }
     var ptrList = IntPtrList(materialInstances?.length ?? 0);
     late Pointer stackPtr;
@@ -158,7 +179,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
-      return FFIAsset(instance);
+      return FFIAsset(instance,
+          instanceOwner: this, releaseSourceData: releaseSourceData);
     });
 
     return result;
@@ -245,7 +267,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future setFlatShading(bool flatShading) async {
     await withVoidCallback((requestId, cb) =>
-        SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
+        SceneAsset_setFlatShadingRenderThread(
+            asset, flatShading, requestId, cb));
   }
 
   //
@@ -367,7 +390,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       throw Exception("Weights must not be empty");
     }
 
-    final success = FilamentApp.instance!.animationManager
+    final success = await FilamentApp.instance!.animationManager
         .setMorphTargetWeights(entity, weights);
     if (!success) {
       throw Exception(
@@ -396,20 +419,40 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
-    return FilamentApp.instance!.animationManager.getBoneNames(this, skinIndex);
+    var boneCount = await getBoneCount(skinIndex: skinIndex);
+    var names = <String>[];
+    for (int i = 0; i < boneCount; i++) {
+      var boneName = SceneAsset_getBoneName(asset, skinIndex, i);
+      if (boneName == nullptr) {
+        names.add("");
+      } else {
+        names.add(boneName.cast<Utf8>().toDartString());
+      }
+    }
+    return names;
   }
 
+  // Gets the number of bones at skin [skinIndex].
+  // Returns the number of bones, or 0 if none found.
+  Future<int> getBoneCount({int skinIndex = 0}) async {
+    return SceneAsset_getBoneCount(asset, skinIndex);
+  }
+
+  // glTF animation names are immutable, so we cache them here to avoid
+  // retrieving unnecessarily.
   List<String>? _gltfAnimationNames;
 
   //
   @override
   Future<List<String>> getGltfAnimationNames() async {
+    if (type != SceneAssetType.gltf) {
+      _logger.warning("getGltfAnimationNames should only be called on gltf assets");
+      return [];
+    }
     if (_gltfAnimationNames == null) {
       var animationCount =
           FilamentApp.instance!.animationManager.getGltfAnimationCount(this);
-      if (animationCount <= 0) {
-        throw Exception("This is not a glTF asset");
-      }
+
       _gltfAnimationNames = [];
       for (int i = 0; i < animationCount; i++) {
         final name = FilamentApp.instance!.animationManager
@@ -426,13 +469,21 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<double> getGltfAnimationDuration(int animationIndex) async {
+    if (type != SceneAssetType.gltf) {
+      throw Exception(
+          "getGltfAnimationDuration can only be called on glTF assets");
+    }
     final duration = FilamentApp.instance!.animationManager
         .getGltfAnimationDuration(this, animationIndex);
     return duration;
   }
 
   //
-  Future<double> getAnimationDurationByName(String name) async {
+  Future<double> getGltfAnimationDurationByName(String name) async {
+    if (type != SceneAssetType.gltf) {
+      throw Exception(
+          "getGltfAnimationDurationByName can only be called on glTF assets");
+    }
     var animations = await getGltfAnimationNames();
     var index = animations.indexOf(name);
     if (index == -1) {
@@ -452,17 +503,17 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future setMorphAnimationData(MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
-    var meshEntities = await getChildEntities();
+    var childEntities = await getChildEntities();
 
-    var meshNames = meshEntities
+    var childNames = childEntities
         .map((e) => FilamentApp.instance!.getNameForEntity(e))
         .toList();
     if (targetMeshNames != null) {
       for (final targetMeshName in targetMeshNames) {
-        if (!meshNames.contains(targetMeshName)) {
+        if (!childNames.contains(targetMeshName)) {
           throw Exception(
               """Mesh ${targetMeshName} does not exist under the specified entity."""
-              """Available meshes : ${meshNames}""");
+              """Available meshes : ${childNames}""");
         }
       }
     }
@@ -474,12 +525,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     // the number of Frames, and M is the number of morph targets in the mesh).
     // we call [extract] on [animation] to return frame data only for morph
     // targets that present in both the mesh and the animation
-    for (int i = 0; i < meshNames.length; i++) {
-      var meshName = meshNames[i];
-      var meshEntity = meshEntities[i];
+    for (int i = 0; i < childNames.length; i++) {
+      var childName = childNames[i];
+      var meshEntity = childEntities[i];
 
-      if (targetMeshNames?.contains(meshName) == false) {
-        // _logger.info("Skipping $meshName, not contained in target");
+      if (targetMeshNames?.contains(childName) == false) {
+        // _logger.info("Skipping $childName, not contained in target");
         continue;
       }
 
@@ -492,11 +543,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
       if (intersection.isEmpty) {
         throw Exception(
-            """No morph targets specified in animation are present on mesh $meshName. 
+            """No morph targets specified in animation are present on entity $childName. 
             If you weren't intending to animate every mesh, specify [targetMeshNames] when invoking this method.
             Animation morph targets: ${animation.morphTargets}\n
             Mesh morph targets ${meshMorphTargets}
-            Child meshes: ${meshNames}""");
+            Child entities: ${childNames}""");
       }
 
       var indices = Uint32List.fromList(
@@ -520,19 +571,20 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       indices.free();
 
       if (!result) {
-        throw Exception("Failed to set morph animation data for ${meshName}");
+        throw Exception("Failed to set morph animation data for ${childName}");
       }
     }
   }
 
-  /// Currently, scale is not supported.
-  ///
+  // Currently, scale is not supported.
+  //
   @override
   Future addBoneAnimation(BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
-      double maxDelta = 1.0}) async {
+      double maxDelta = 1.0,
+      bool loop = false}) async {
     if (animation.space != Space.Bone &&
         animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
@@ -540,9 +592,20 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (skinIndex != 0) {
       throw UnimplementedError("TODO - support skinIndex != 0 ");
     }
-    var boneNames = await getBoneNames();
-    var restLocalTransformsData = FilamentApp.instance!.animationManager
-        .getRestLocalTransforms(this, skinIndex);
+    // Resolve to instance(0) if this is a top-level asset — the native
+    // bone APIs (getBoneCount, getBones, getRestLocalTransforms) require
+    // a GltfSceneAssetInstance, not a GltfSceneAsset.
+    FFIAsset instanceAsset = this;
+    if (!isInstance) {
+      try {
+        instanceAsset = (await getInstance(0)) as FFIAsset;
+      } catch (_) {
+        // Fall through with self
+      }
+    }
+    var boneNames = await instanceAsset.getBoneNames(skinIndex: skinIndex);
+    var restLocalTransformsData = await FilamentApp.instance!.animationManager
+        .getRestLocalTransforms(instanceAsset, skinIndex);
     var restLocalTransforms = <Matrix4>[];
     for (int i = 0; i < boneNames.length; i++) {
       var values = <double>[];
@@ -554,70 +617,79 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
     var numFrames = animation.frameData.length;
 
-    var data = allocate<Float>(numFrames * 16);
+    var data = makeFloat32List(numFrames * 16);
 
-    var bones = await Future.wait(List<Future<ThermionEntity>>.generate(
-        boneNames.length, (i) => getBone(i)));
+    try {
+      var bones = await instanceAsset.getBones(skinIndex: skinIndex);
 
-    for (int i = 0; i < animation.bones.length; i++) {
-      var boneName = animation.bones[i];
-      var entityBoneIndex = boneNames.indexOf(boneName);
-      if (entityBoneIndex == -1) {
-        _logger.warning("Bone $boneName not found, skipping");
-        continue;
-      }
-      var boneEntity = bones[entityBoneIndex];
-
-      var baseTransform = restLocalTransforms[entityBoneIndex];
-
-      var world = Matrix4.identity();
-      // this odd use of ! is intentional, without it, the WASM optimizer gets in trouble
-      var parentBoneEntity =
-          (await FilamentApp.instance!.getParent(boneEntity))!;
-      while (true) {
-        if (!bones.contains(parentBoneEntity!)) {
-          break;
+      for (int i = 0; i < animation.bones.length; i++) {
+        var boneName = animation.bones[i];
+        var entityBoneIndex = boneNames.indexOf(boneName);
+        if (entityBoneIndex == -1) {
+          _logger.warning("Bone $boneName not found, skipping");
+          continue;
         }
-        world = restLocalTransforms[bones.indexOf(parentBoneEntity!)] * world;
-        parentBoneEntity =
-            (await FilamentApp.instance!.getParent(parentBoneEntity))!;
-      }
+        var boneEntity = bones[entityBoneIndex];
 
-      world = Matrix4.identity()..setRotation(world.getRotation());
-      var worldInverse = Matrix4.identity()..copyInverse(world);
+        var baseTransform = restLocalTransforms[entityBoneIndex];
 
-      for (int frameNum = 0; frameNum < numFrames; frameNum++) {
-        var rotation = animation.frameData[frameNum][i].rotation;
-        var translation = animation.frameData[frameNum][i].translation;
-        var frameTransform =
-            Matrix4.compose(translation, rotation, Vector3.all(1.0));
-        var newLocalTransform = frameTransform.clone();
-        if (animation.space == Space.Bone) {
-          newLocalTransform = baseTransform * frameTransform;
-        } else if (animation.space == Space.ParentWorldRotation) {
-          newLocalTransform =
-              baseTransform * (worldInverse * frameTransform * world);
+        var world = Matrix4.identity();
+        // this odd use of ! is intentional, without it, the WASM optimizer gets
+        // in trouble
+        var parentBoneEntity =
+            (await FilamentApp.instance!.getParent(boneEntity))!;
+        while (true) {
+          if (!bones.contains(parentBoneEntity!)) {
+            break;
+          }
+          world = restLocalTransforms[bones.indexOf(parentBoneEntity!)] * world;
+          parentBoneEntity =
+              (await FilamentApp.instance!.getParent(parentBoneEntity))!;
         }
-        for (int j = 0; j < 16; j++) {
-          data[(frameNum * 16) + j] = newLocalTransform.storage[j];
+
+        world = Matrix4.identity()..setRotation(world.getRotation());
+        var worldInverse = Matrix4.identity()..copyInverse(world);
+
+        for (int frameNum = 0; frameNum < numFrames; frameNum++) {
+          var rotation = animation.frameData[frameNum][i].rotation;
+          var translation = animation.frameData[frameNum][i].translation;
+          var frameTransform =
+              Matrix4.compose(translation, rotation, Vector3.all(1.0));
+          var newLocalTransform = frameTransform.clone();
+          if (animation.space == Space.Bone) {
+            newLocalTransform = baseTransform * frameTransform;
+          } else if (animation.space == Space.ParentWorldRotation) {
+            newLocalTransform =
+                baseTransform * (worldInverse * frameTransform * world);
+          }
+          for (int j = 0; j < 16; j++) {
+            data[(frameNum * 16) + j] = newLocalTransform.storage[j];
+          }
         }
-      }
 
-      var frameDataList = <double>[];
-      for (int i = 0; i < numFrames * 16; i++) {
-        frameDataList.add(data[i]);
-      }
+        var frameDataList = <double>[];
+        for (int i = 0; i < numFrames * 16; i++) {
+          frameDataList.add(data[i]);
+        }
 
-      FilamentApp.instance!.animationManager.addBoneAnimation(this, skinIndex,
-          entityBoneIndex, frameDataList, numFrames, animation.frameLengthInMs,
-          fadeOutInSecs: fadeOutInSecs,
-          fadeInInSecs: fadeInInSecs,
-          maxDelta: maxDelta);
+        await FilamentApp.instance!.animationManager.addBoneAnimation(
+            this,
+            skinIndex,
+            entityBoneIndex,
+            frameDataList,
+            numFrames,
+            animation.frameLengthInMs,
+            fadeOutInSecs: fadeOutInSecs,
+            fadeInInSecs: fadeInInSecs,
+            maxDelta: maxDelta,
+            loop: loop);
+      }
+    } finally {
+      data.free();
     }
-    free(data);
   }
 
-  ///
+  //
   Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
     entity ??= this.entity;
     final transform =
@@ -625,66 +697,72 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return transform;
   }
 
-  ///
+  //
   Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
     return FilamentApp.instance!.getWorldTransform(entity ?? this.entity);
   }
 
-  ///
+  //
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
     await FilamentApp.instance!.setTransform(entity ?? this.entity, transform);
-  }
-
-  ///
-  Future updateBoneMatrices(ThermionEntity entity) async {
-    throw UnimplementedError();
-
-    // var result = await withBoolCallback((cb) {
-    //   update_bone_matrices_render_thread(_sceneManager!, entity, cb);
-    // });
-    // if (!result) {
-    //   throw Exception("Failed to update bone matrices");
-    // }
   }
 
   //
   Future<Matrix4> getInverseBindMatrix(int boneIndex,
       {int skinIndex = 0}) async {
     if (!isInstance) {
-      print(await getInstance(0));
       throw Exception(
           "getInverseBindMatrix can only be called on an instance of an asset");
     }
-    var matrixData = FilamentApp.instance!.animationManager
+    var matrixData = await FilamentApp.instance!.animationManager
         .getInverseBindMatrix(this, skinIndex, boneIndex);
     var matrixOut = Matrix4.fromList(matrixData);
     return matrixOut;
   }
 
   //
-  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0}) async {
+  Future<List<ThermionEntity>> getBones({int skinIndex = 0}) async {
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
-    return FilamentApp.instance!.animationManager
-            .getBone(this, skinIndex, boneIndex) ??
-        0;
+    final out = makeInt32List(await getBoneCount(skinIndex: skinIndex));
+    SceneAsset_getBones(asset, skinIndex, out.address);
+    return out;
   }
 
   //
   @override
-  Future setBoneTransform(
-      ThermionEntity entity, int boneIndex, Matrix4 transform,
-      {int skinIndex = 0}) async {
+  Future setBoneTransform(int boneIndex, Matrix4 transform,
+      {ThermionEntity? entity, int skinIndex = 0}) async {
     if (skinIndex != 0) {
-      throw UnimplementedError("TOOD");
+      throw UnimplementedError("TODO - support skinIndex != 0");
     }
-    var result = await FilamentApp.instance!.animationManager
-        .setBoneTransform(entity, skinIndex, boneIndex, transform);
+    final renderableManager = FilamentApp.instance!.renderableManager;
 
-    if (!result) {
-      throw Exception("Failed to set bone transform");
+    ThermionEntity? meshEntity = entity;
+    if (meshEntity == null) {
+      if (renderableManager.isRenderable(this.entity)) {
+        meshEntity = this.entity;
+      } else {
+        for (final child in await getChildEntities()) {
+          if (renderableManager.isRenderable(child)) {
+            meshEntity = child;
+            break;
+          }
+        }
+      }
+      if (meshEntity == null) {
+        throw Exception(
+            "Could not find a renderable (skinned mesh) entity for this asset");
+      }
+    } else if (!renderableManager.isRenderable(meshEntity)) {
+      throw Exception(
+          "Entity $meshEntity is not a renderable; setBoneTransform must "
+          "target a skinned mesh entity, not the glTF root or a bone entity");
     }
+
+    await renderableManager.setBonesFromMat4(meshEntity, [transform],
+        offset: boneIndex);
   }
 
   //
@@ -758,23 +836,34 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future setGltfAnimationTime(int index, double timeInSeconds) async {
-    FilamentApp.instance!.animationManager
+    await FilamentApp.instance!.animationManager
         .setGltfAnimationTime(this, index, timeInSeconds);
   }
 
   //
   @override
   Future addAnimationComponent() async {
+    if (!{SceneAssetType.geometry, SceneAssetType.gltf, SceneAssetType.light}
+        .contains(this.type)) {
+      throw Exception("Only geometry, gltf and lights support adding animation "
+          "components");
+    }
     FilamentApp.instance!.animationManager.addGltfAnimationComponent(this);
   }
 
   //
   Future removeAnimationComponent() async {
-    if (!FilamentApp.instance!.animationManager
-        .removeGltfAnimationComponent(this)) {
+    if (!{SceneAssetType.geometry, SceneAssetType.gltf, SceneAssetType.light}
+        .contains(this.type)) {
+      return;
+    }
+
+    if (type == SceneAssetType.gltf &&
+        !await FilamentApp.instance!.animationManager
+            .removeGltfAnimationComponent(this)) {
       _logger.warning("Failed to remove glTF animation component");
     }
-    if (!FilamentApp.instance!.animationManager
+    if (!await FilamentApp.instance!.animationManager
         .removeBoneAnimationComponent(this)) {
       _logger.warning("Failed to remove bone animation component");
     }

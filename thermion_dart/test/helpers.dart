@@ -215,7 +215,7 @@ class TestHelper {
   }
 
   Future setup() async {
-    Logger.root.level = Level.FINEST;
+    Logger.root.level = Level.SEVERE;
     Logger.root.onRecord.listen((record) {
       print(record.toString());
     });
@@ -527,7 +527,7 @@ class ViewerBuilder {
       colorTemperature: colorTemperature,
       intensity: intensity,
       castShadows: castShadows,
-      direction: direction,
+      direction: direction ?? Vector3(0.5, -0.5, -0.5).normalized(),
       sunAngularRadius: sunAngularRadius,
       sunHaloSize: sunHaloSize,
       sunHaloFalloff: sunHaloFalloff,
@@ -780,8 +780,8 @@ class ViewerBuilder {
       await fn.call(viewerBuildResult);
     } finally {
       await buildResult.viewer.dispose();
+      await FilamentApp.instance!.destroySwapChain(buildResult.swapChain);
     }
-    await FilamentApp.instance!.destroySwapChain(buildResult.swapChain);
   }
 }
 

@@ -17,6 +17,8 @@ jobs:
   generate-artifacts:
     name: Generate Artifacts
     runs-on: ubuntu-22.04
+    outputs:
+      sha: ${{ steps.resolve-sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -175,7 +177,17 @@ jobs:
           name: web-wasm-${{ github.sha }}
           path: thermion_dart/native/web/build/build/out/
 
+      - name: Resolve post-push SHA
+        id: resolve-sha
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          git fetch origin "$BRANCH" --depth=1
+          SHA=$(git rev-parse "origin/$BRANCH")
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
   run-tests:
     name: Run Tests
     needs: generate-artifacts
     uses: ./.github/workflows/run-tests.yml
+    with:
+      ref: ${{ needs.generate-artifacts.outputs.sha }}
