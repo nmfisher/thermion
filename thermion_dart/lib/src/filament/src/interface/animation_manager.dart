@@ -192,5 +192,5 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
 
   // Updates the animation system with the current frame time.
   // [frameTimeInNanos] Frame time in nanoseconds
-  void update(int frameTimeInNanos);
+  Future update(int frameTimeInNanos);
 }

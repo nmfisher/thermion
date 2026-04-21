@@ -388,7 +388,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   }
 
   @override
-  void update(int frameTimeInNanos) async {
+  Future update(int frameTimeInNanos) async {
     await withVoidCallback((requestId, cb) =>
         AnimationManager_updateRenderThread(
             animationManager, frameTimeInNanos.toBigInt, requestId, cb));
