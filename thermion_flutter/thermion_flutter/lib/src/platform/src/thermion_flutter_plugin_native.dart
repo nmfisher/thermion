@@ -137,11 +137,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       if (frameMs > 20.0) _diagJankCount++;
       if (frameMs > 20.0) {
         _logger.warning(
-            '[DART] #$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms');
+            '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms');
       }
       if (_diagFrameCount % 120 == 0) {
         final avgMs = _diagSumFrameMs / 120.0;
-        _logger.info('[DART] 120-frame avg=${avgMs.toStringAsFixed(1)}ms '
+        _logger.finest('120-frame avg=${avgMs.toStringAsFixed(1)}ms '
             'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
             'jank=$_diagJankCount drop=$_diagDropCount');
         _diagJankCount = 0;
