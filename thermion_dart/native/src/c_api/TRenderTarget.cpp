@@ -27,7 +27,7 @@ namespace thermion
                 ERROR("Color & depth attachments must be provided");
                 return nullptr;
             }
-            TRACE("Creating render target %dx%d", width, height);
+
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto color = reinterpret_cast<filament::Texture *>(tColor);
             auto depth = reinterpret_cast<filament::Texture *>(tDepth);

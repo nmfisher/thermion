@@ -101,7 +101,12 @@ extern "C"
         return reinterpret_cast<TFilamentAsset *>(filamentAsset);
     }
 
-    EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) { 
+    EMSCRIPTEN_KEEPALIVE TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        return static_cast<TSceneAssetType>(asset->getType());
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if(asset->isInstance()) {
             TRACE("Destroyed instance");
@@ -271,6 +276,25 @@ extern "C"
         }
         auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
         gltfAsset->setFlatShading(flatShading);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_getBones(TSceneAsset *tSceneAsset, size_t skinIndex, EntityId *out) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        auto *bones = asset->getBones(skinIndex);
+        for(int i = 0; i < asset->getBoneCount(skinIndex); i++) {
+            out[i] = utils::Entity::smuggle(bones[i]);
+        }
+    }
+
+
+    EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getBoneCount(TSceneAsset *tSceneAsset, size_t skinIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        return asset->getBoneCount(skinIndex);
+    }
+
+    EMSCRIPTEN_KEEPALIVE const char *SceneAsset_getBoneName(TSceneAsset *tSceneAsset, size_t skinIndex, size_t boneIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        return asset->getBoneName(skinIndex, boneIndex);
     }
 
 #ifdef __cplusplus

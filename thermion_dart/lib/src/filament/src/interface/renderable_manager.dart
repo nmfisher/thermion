@@ -3,10 +3,10 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 /// Manager for renderable components in Filament.
 ///
-/// RenderableManager is responsible for managing renderable entities - entities that
-/// can be drawn. Renderables consist of primitives, each with their own geometry and
-/// material. All primitives in a renderable share rendering attributes like shadow
-/// casting, frustum culling, and layer visibility.
+/// RenderableManager is responsible for managing renderable entities - entities
+/// that can be drawn. Renderables consist of primitives, each with their own
+/// geometry and material. All primitives in a renderable share rendering
+/// attributes like shadow casting, frustum culling, and layer visibility.
 ///
 /// This is the primary interface for:
 /// - Managing material instances on primitives
@@ -41,8 +41,8 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [entity] The entity containing the renderable
   /// [primitiveIndex] The index of the primitive (0-based)
   /// [materialInstance] The material instance to bind
-  Future<bool> setMaterialInstanceAt(
-      ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
+  Future<bool> setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
+      MaterialInstance materialInstance);
 
   /// Gets the material instance bound to the specified primitive.
   ///
@@ -244,11 +244,39 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [weights] Array of morph target weights
   /// [count] Number of weights to set
   /// [offset] Index of the first weight to set (default 0)
-  Future setMorphWeights(
-      ThermionEntity entity, List<double> weights, int count, {int offset = 0});
+  Future setMorphWeights(ThermionEntity entity, List<double> weights, int count,
+      {int offset = 0});
 
   /// Returns the number of morph targets.
   int getMorphTargetCount(ThermionEntity entity);
+
+  // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  /// Updates the bone transforms for a skinned renderable.
+  ///
+  /// The renderable must have been built with skinning enabled (via the
+  /// builder's `skinning()` method, or implicitly when loading a skinned
+  /// glTF asset). Transforms are applied in the range
+  /// `[offset, offset + transforms.length)`.
+  ///
+  /// [entity] The entity containing the skinned renderable
+  /// [transforms] A list of 4x4 bone transforms (column-major)
+  /// [offset] Index of the first bone to update (default 0)
+  Future setBonesFromMat4(ThermionEntity entity, List<Matrix4> transforms,
+      {int offset = 0});
+
+  /// Sets bone transforms for a skinned renderable using BoneData.
+  ///
+  /// The renderable must have been built with skinning enabled.
+  /// BoneData uses quaternion+translation format which is more memory efficient.
+  ///
+  /// [entity] The entity containing the renderable
+  /// [bones] List of bone transforms
+  /// [offset] Index of the first bone to set (default 0)
+  Future setBonesFromBone(ThermionEntity entity, List<BoneData> bones,
+      {int offset = 0});
 
   // ============================================================================
   // Builder
@@ -302,8 +330,8 @@ abstract class RenderableBuilder {
   /// [indices] Index buffer (u16 or u32)
   /// [offset] Where to start reading in the index buffer (in indices)
   /// [count] Number of indices to read
-  void geometry(int primitiveIndex, PrimitiveType type,
-      VertexBuffer vertices, IndexBuffer indices, int offset, int count);
+  void geometry(int primitiveIndex, PrimitiveType type, VertexBuffer vertices,
+      IndexBuffer indices, int offset, int count);
 
   /// Sets the rendering priority (0-7, where 7 is lowest/rendered last).
   ///
@@ -370,6 +398,39 @@ abstract class RenderableBuilder {
   /// [instanceCount] The number of instances, silently clamped between 1 and 32767.
   void instances(int instanceCount);
 
+  // ============================================================================
+  // Skinning
+  // ============================================================================
+
+  /// Configures skinning with 4x4 transformation matrices.
+  ///
+  /// [boneCount] Number of bones
+  /// [transforms] Initial bone transforms as 4x4 matrices in column-major order
+  void skinning(int boneCount, List<Matrix4> transforms);
+
+  /// Configures skinning with BoneData (quaternion + translation).
+  ///
+  /// [boneCount] Number of bones
+  /// [bones] Initial bone transforms
+  void skinningFromBone(int boneCount, List<BoneData> bones);
+
+  /// Enables skinning buffer mode for sharing bone data between renderables.
+  ///
+  /// When enabled, use setSkinningBuffer on the renderable instead of setBonesFromMat4.
+  /// [enabled] Whether to enable skinning buffer mode
+  void enableSkinningBuffers(bool enabled);
+
+  /// Sets bone indices and weights for a primitive.
+  ///
+  /// Each bone-weight pair is a Float32List with 2 elements: [boneIndex, weight].
+  /// The data must be rectangular with the same number of pairs for all vertices.
+  ///
+  /// [primitiveIndex] The primitive index
+  /// [indicesAndWeights] Bone index and weight pairs for all vertices
+  /// [bonesPerVertex] Number of bones influencing each vertex
+  void boneIndicesAndWeights(int primitiveIndex,
+      List<Float32List> indicesAndWeights, int bonesPerVertex);
+
   /// Builds the renderable and attaches it to the entity.
   ///
   /// [entity] The entity to attach the renderable component to
@@ -377,4 +438,6 @@ abstract class RenderableBuilder {
   ///
   /// The builder is consumed after this call and cannot be reused.
   Future<bool> build(ThermionEntity entity);
+
+  
 }
