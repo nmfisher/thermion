@@ -285,8 +285,9 @@ class FFIRenderableManager
       }
     }
 
-    RenderableManager_setBonesFromMat4(
-        renderableManager, entity, transformsPtr.address, boneCount, offset);
+    await withVoidCallback((requestId, cb) =>
+        RenderableManager_setBonesFromMat4RenderThread(renderableManager, entity,
+            transformsPtr.address, boneCount, offset, requestId, cb));
 
     if (FILAMENT_WASM) {
       transformsPtr.free();
@@ -306,8 +307,9 @@ class FFIRenderableManager
       bonesPtr[i] = bonesData[i];
     }
 
-    RenderableManager_setBonesFromBone(
-        renderableManager, entity, bonesPtr.address, bones.length, offset);
+    await withVoidCallback((requestId, cb) =>
+        RenderableManager_setBonesFromBoneRenderThread(renderableManager, entity,
+            bonesPtr.address, bones.length, offset, requestId, cb));
 
     if (FILAMENT_WASM) {
       bonesPtr.free();

@@ -1310,6 +1310,16 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_updateRenderThread(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          AnimationManager_update(tAnimationManager, frameTimeInNanos);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
       TAnimationManager *tAnimationManager,
       TSceneAsset *sceneAsset,
@@ -2168,6 +2178,42 @@ extern "C"
         [=]() mutable
         {
           RenderableManager_destroyEntity(tRenderableManager, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4RenderThread(
+      TRenderableManager *tRenderableManager,
+      EntityId entityId,
+      const float *transforms,
+      size_t boneCount,
+      size_t offset,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderableManager_setBonesFromMat4(tRenderableManager, entityId, transforms, boneCount, offset);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBoneRenderThread(
+      TRenderableManager *tRenderableManager,
+      EntityId entityId,
+      const float *bones,
+      size_t boneCount,
+      size_t offset,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderableManager_setBonesFromBone(tRenderableManager, entityId, bones, boneCount, offset);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);

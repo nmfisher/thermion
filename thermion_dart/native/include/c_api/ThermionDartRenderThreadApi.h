@@ -215,6 +215,8 @@ namespace thermion
             bool hasVolume,
             void (*callback)(TMaterialInstance *));
 
+        EMSCRIPTEN_KEEPALIVE void AnimationManager_updateRenderThread(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
+
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
             TAnimationManager *tAnimationManager,
             TSceneAsset *sceneAsset,
@@ -448,6 +450,26 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderableManager_destroyEntityRenderThread(
             TRenderableManager *tRenderableManager,
             EntityId entityId,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4RenderThread(
+            TRenderableManager *tRenderableManager,
+            EntityId entityId,
+            const float *transforms,
+            size_t boneCount,
+            size_t offset,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBoneRenderThread(
+            TRenderableManager *tRenderableManager,
+            EntityId entityId,
+            const float *bones,
+            size_t boneCount,
+            size_t offset,
             uint32_t requestId,
             VoidCallback onComplete
         );

@@ -75,7 +75,7 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       double crossfade = 0.0,
       double startOffset = 0.0,
       double speed = 1.0}) {
-        if (asset.type != SceneAssetType.gltf) {
+    if (asset.type != SceneAssetType.gltf) {
       throw Exception("Only supported for glTF assets");
     }
     return AnimationManager_playGltfAnimation(
@@ -347,8 +347,9 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    return AnimationManager_updateBoneMatrices(
-        animationManager, asset.getNativeHandle());
+    return await withBoolCallback((cb) =>
+        AnimationManager_updateBoneMatricesRenderThread(
+            animationManager, asset.getNativeHandle(), cb));
   }
 
   @override
@@ -357,11 +358,15 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
       asset = (await asset.getInstances())[0];
     }
 
-    AnimationManager_resetToRestPose(animationManager, asset.getNativeHandle());
+    await withVoidCallback((requestId, cb) =>
+        AnimationManager_resetToRestPoseRenderThread(
+            animationManager, asset.getNativeHandle(), requestId, cb));
   }
 
   @override
-  void update(int frameTimeInNanos) {
-    AnimationManager_update(animationManager, frameTimeInNanos.toBigInt);
+  void update(int frameTimeInNanos) async {
+    await withVoidCallback((requestId, cb) =>
+        AnimationManager_updateRenderThread(
+            animationManager, frameTimeInNanos.toBigInt, requestId, cb));
   }
 }
