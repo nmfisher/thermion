@@ -122,3 +122,4 @@ Thank you to the following people:
 - [@JesperBellenbaum](https://github.com/JesperBellenbaum) for Vulkan/Windows improvements
 - [@repentsinner](https://github.com/repentsinner) for Linux/EGL/Windows stability + improvements
 - [@mwahnish](https://github.com/mwahnish) for bug fixes and web improvements
+- [@aenriqu](https://github.com/aenriqu) for bone animation fixes 
