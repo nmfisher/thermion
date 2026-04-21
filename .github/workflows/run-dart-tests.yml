@@ -83,7 +83,9 @@ jobs:
             test/scene_tests.dart \
             test/picking_tests.dart \
             test/image_tests.dart \
-            test/animation_tests.dart \
+            test/gltf_animation_tests.dart \
+            test/bone_animation_tests.dart \
+            test/morph_animation_tests.dart \
             test/renderable_manager_tests.dart \
             test/gltf_parser_tests.dart \
             --concurrency=1
