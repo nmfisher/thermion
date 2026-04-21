@@ -786,4 +786,20 @@ namespace thermion
         }
     }
 
+    size_t GltfSceneAsset::getBoneCount(size_t skinIndex) const
+    {
+        auto &instance = _instances.front();
+        return instance->getBoneCount(skinIndex);
+    }
+
+    const utils::Entity *GltfSceneAsset::getBones(size_t skinIndex) const {
+        auto &instance = _instances.front();
+        return instance->getBones(skinIndex);
+    }
+
+    const char *GltfSceneAsset::getBoneName(size_t skinIndex, size_t boneIndex) const {
+        auto &instance = _instances.front();
+        return instance->getBoneName(skinIndex, boneIndex);
+    }
+
 } // namespace thermion

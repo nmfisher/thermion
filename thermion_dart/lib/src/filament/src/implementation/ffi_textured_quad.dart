@@ -135,9 +135,6 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     throw UnimplementedError();
   }
 
-  ///
-  ///
-  ///
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
     return [];
@@ -198,4 +195,13 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     await mi.setDepthWriteEnabled(true);
     await mi.setParameterFloat("depth", depth);
   }
+
+  @override
+  ThermionAsset<dynamic>? get instanceOwner => null;
+
+  @override
+  bool get isInstance => false;
+
+  @override
+  SceneAssetType get type => SceneAssetType.geometry;
 }

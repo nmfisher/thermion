@@ -308,18 +308,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // its resources may not actually be destroyed until the parent asset is
   // destroyed. It may be marked as unused, and recycled the next time
   // createInstance is called.
-  //
-  //
   Future destroyAsset(covariant FFIAsset asset) async {
-    await asset.removeAnimationComponent();
-    if (!asset.isInstance) {
-      for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
-        await instance.removeAnimationComponent();
-        await withVoidCallback((requestId, cb) =>
-            SceneAsset_destroyRenderThread(instance.asset, requestId, cb));
-        await instance.dispose();
+      await asset.removeAnimationComponent();
+      if (!asset.isInstance) {
+        for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
+          await instance.removeAnimationComponent();
+          await withVoidCallback((requestId, cb) =>
+              SceneAsset_destroyRenderThread(instance.asset, requestId, cb));
+          await instance.dispose();
+        }
       }
-    }
 
     await withVoidCallback((requestId, cb) =>
         SceneAsset_destroyRenderThread(asset.asset, requestId, cb));
@@ -879,8 +877,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool loadResourcesAsync = false,
       bool rebuildVertices = false,
       String? resourceUri}) async {
-    _logger.info("""Loading glTF from buffer (${data.lengthInBytes} bytes)"""
-        """with resourceUri ${resourceUri}""");
+    if (initialInstances <= 0) {
+      throw Exception("initialInstances must be at least 1");
+    }
+    _logger.info("Loading glTF from buffer (${data.lengthInBytes} bytes)"
+        " with resourceUri ${resourceUri}");
     final resources = <FinalizableUint8List>[];
 
     if (resourceUri != null && !resourceUri.endsWith("/")) {

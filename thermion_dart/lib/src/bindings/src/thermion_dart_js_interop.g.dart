@@ -2398,14 +2398,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
-  external void _AnimationManager_setBoneTransformRenderThread(
-    Pointer<TAnimationManager> tAnimationManager,
-    EntityId asset,
-    int skinIndex,
-    int boneIndex,
-    Pointer<Float32> transform,
-    Pointer<NativeFunction<void Function(bool)>> callback,
-  );
   external void _AnimationManager_resetToRestPoseRenderThread(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> tSceneAsset,
@@ -2794,6 +2786,20 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
   );
+  external void _RenderableManager_setBonesFromMat4(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    Pointer<Float32> transforms,
+    size_t boneCount,
+    size_t offset,
+  );
+  external void _RenderableManager_setBonesFromBone(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    Pointer<Float32> bones,
+    size_t boneCount,
+    size_t offset,
+  );
   external Pointer<TRenderableBuilder> _RenderableBuilder_create(
     size_t primitiveCount,
   );
@@ -2870,6 +2876,27 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TRenderableBuilder> builder,
     size_t instanceCount,
   );
+  external void _RenderableBuilder_skinningFromMat4(
+    Pointer<TRenderableBuilder> builder,
+    size_t boneCount,
+    Pointer<Float32> transforms,
+  );
+  external void _RenderableBuilder_skinningFromBone(
+    Pointer<TRenderableBuilder> builder,
+    size_t boneCount,
+    Pointer<Float32> bones,
+  );
+  external void _RenderableBuilder_enableSkinningBuffers(
+    Pointer<TRenderableBuilder> builder,
+    bool enabled,
+  );
+  external void _RenderableBuilder_boneIndicesAndWeights(
+    Pointer<TRenderableBuilder> builder,
+    size_t primitiveIndex,
+    Pointer<Float32> indicesAndWeights,
+    size_t count,
+    size_t bonesPerVertex,
+  );
   external int _RenderableBuilder_build(
     Pointer<TRenderableBuilder> builder,
     Pointer<TEngine> engine,
@@ -2892,6 +2919,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     bool rebuildVertices,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(
+    Pointer<TSceneAsset> tSceneAsset,
+  );
+  external int _SceneAsset_getType(
     Pointer<TSceneAsset> tSceneAsset,
   );
   external void _SceneAsset_destroy(
@@ -2958,6 +2988,20 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> tSceneAsset,
     bool flatShading,
   );
+  external void _SceneAsset_getBones(
+    Pointer<TSceneAsset> tSceneAsset,
+    size_t skinIndex,
+    Pointer<Int32> out,
+  );
+  external size_t _SceneAsset_getBoneCount(
+    Pointer<TSceneAsset> tSceneAsset,
+    size_t skinIndex,
+  );
+  external Pointer<Char> _SceneAsset_getBoneName(
+    Pointer<TSceneAsset> tSceneAsset,
+    size_t skinIndex,
+    size_t boneIndex,
+  );
   external Pointer<TAnimationManager> _AnimationManager_create(
     Pointer<TEngine> tEngine,
   );
@@ -3017,12 +3061,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double fadeOutInSecs,
     double fadeInInSecs,
     double maxDelta,
-  );
-  external EntityId _AnimationManager_getBone(
-    Pointer<TAnimationManager> tAnimationManager,
-    Pointer<TSceneAsset> sceneAsset,
-    int skinIndex,
-    int boneIndex,
+    bool loop,
   );
   external void _AnimationManager_getRestLocalTransforms(
     Pointer<TAnimationManager> tAnimationManager,
@@ -3068,17 +3107,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TSceneAsset> sceneAsset,
     Pointer<Char> outPtr,
     int index,
-  );
-  external int _AnimationManager_getBoneCount(
-    Pointer<TAnimationManager> tAnimationManager,
-    Pointer<TSceneAsset> sceneAsset,
-    int skinIndex,
-  );
-  external void _AnimationManager_getBoneNames(
-    Pointer<TAnimationManager> tAnimationManager,
-    Pointer<TSceneAsset> sceneAsset,
-    Pointer<PointerClass<Char>> out,
-    int skinIndex,
   );
   external int _AnimationManager_getMorphTargetNameCount(
     Pointer<TAnimationManager> tAnimationManager,
@@ -8440,20 +8468,6 @@ void TextureSampler_destroyRenderThread(
   return result;
 }
 
-void AnimationManager_setBoneTransformRenderThread(
-  Pointer<TAnimationManager> tAnimationManager,
-  DartEntityId asset,
-  int skinIndex,
-  int boneIndex,
-  Pointer<Float32> transform,
-  Pointer<NativeFunction<void Function(bool)>> callback,
-) {
-  final result = GeneratedBindings.instance
-      ._AnimationManager_setBoneTransformRenderThread(tAnimationManager.cast(),
-          asset, skinIndex, boneIndex, transform, callback.cast());
-  return result;
-}
-
 void AnimationManager_resetToRestPoseRenderThread(
   Pointer<TAnimationManager> tAnimationManager,
   Pointer<TSceneAsset> tSceneAsset,
@@ -9311,6 +9325,30 @@ Dart__darwin_size_t RenderableManager_getMorphTargetCount(
   return result;
 }
 
+void RenderableManager_setBonesFromMat4(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  Pointer<Float32> transforms,
+  Dart__darwin_size_t boneCount,
+  Dart__darwin_size_t offset,
+) {
+  final result = GeneratedBindings.instance._RenderableManager_setBonesFromMat4(
+      tRenderableManager.cast(), entityId, transforms, boneCount, offset);
+  return result;
+}
+
+void RenderableManager_setBonesFromBone(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  Pointer<Float32> bones,
+  Dart__darwin_size_t boneCount,
+  Dart__darwin_size_t offset,
+) {
+  final result = GeneratedBindings.instance._RenderableManager_setBonesFromBone(
+      tRenderableManager.cast(), entityId, bones, boneCount, offset);
+  return result;
+}
+
 Pointer<TRenderableBuilder> RenderableBuilder_create(
   Dart__darwin_size_t primitiveCount,
 ) {
@@ -9480,6 +9518,48 @@ void RenderableBuilder_instances(
   return result;
 }
 
+void RenderableBuilder_skinningFromMat4(
+  Pointer<TRenderableBuilder> builder,
+  Dart__darwin_size_t boneCount,
+  Pointer<Float32> transforms,
+) {
+  final result = GeneratedBindings.instance._RenderableBuilder_skinningFromMat4(
+      builder.cast(), boneCount, transforms);
+  return result;
+}
+
+void RenderableBuilder_skinningFromBone(
+  Pointer<TRenderableBuilder> builder,
+  Dart__darwin_size_t boneCount,
+  Pointer<Float32> bones,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableBuilder_skinningFromBone(builder.cast(), boneCount, bones);
+  return result;
+}
+
+void RenderableBuilder_enableSkinningBuffers(
+  Pointer<TRenderableBuilder> builder,
+  bool enabled,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableBuilder_enableSkinningBuffers(builder.cast(), enabled);
+  return result;
+}
+
+void RenderableBuilder_boneIndicesAndWeights(
+  Pointer<TRenderableBuilder> builder,
+  Dart__darwin_size_t primitiveIndex,
+  Pointer<Float32> indicesAndWeights,
+  Dart__darwin_size_t count,
+  Dart__darwin_size_t bonesPerVertex,
+) {
+  final result = GeneratedBindings.instance
+      ._RenderableBuilder_boneIndicesAndWeights(builder.cast(), primitiveIndex,
+          indicesAndWeights, count, bonesPerVertex);
+  return result;
+}
+
 int RenderableBuilder_build(
   Pointer<TRenderableBuilder> builder,
   Pointer<TEngine> engine,
@@ -9533,6 +9613,14 @@ Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(
   final result = GeneratedBindings.instance
       ._SceneAsset_getFilamentAsset(tSceneAsset.cast());
   return Pointer<TFilamentAsset>(result);
+}
+
+int SceneAsset_getType(
+  Pointer<TSceneAsset> tSceneAsset,
+) {
+  final result =
+      GeneratedBindings.instance._SceneAsset_getType(tSceneAsset.cast());
+  return result;
 }
 
 void SceneAsset_destroy(
@@ -9689,6 +9777,35 @@ void SceneAsset_setFlatShading(
   return result;
 }
 
+void SceneAsset_getBones(
+  Pointer<TSceneAsset> tSceneAsset,
+  Dart__darwin_size_t skinIndex,
+  Pointer<Int32> out,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_getBones(tSceneAsset.cast(), skinIndex, out);
+  return result;
+}
+
+Dart__darwin_size_t SceneAsset_getBoneCount(
+  Pointer<TSceneAsset> tSceneAsset,
+  Dart__darwin_size_t skinIndex,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_getBoneCount(tSceneAsset.cast(), skinIndex);
+  return result;
+}
+
+Pointer<Char> SceneAsset_getBoneName(
+  Pointer<TSceneAsset> tSceneAsset,
+  Dart__darwin_size_t skinIndex,
+  Dart__darwin_size_t boneIndex,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_getBoneName(tSceneAsset.cast(), skinIndex, boneIndex);
+  return Pointer<Char>(result);
+}
+
 Pointer<TAnimationManager> AnimationManager_create(
   Pointer<TEngine> tEngine,
 ) {
@@ -9816,6 +9933,7 @@ bool AnimationManager_addBoneAnimation(
   double fadeOutInSecs,
   double fadeInInSecs,
   double maxDelta,
+  bool loop,
 ) {
   final result = GeneratedBindings.instance._AnimationManager_addBoneAnimation(
       tAnimationManager.cast(),
@@ -9827,19 +9945,9 @@ bool AnimationManager_addBoneAnimation(
       frameLengthInMs,
       fadeOutInSecs,
       fadeInInSecs,
-      maxDelta);
+      maxDelta,
+      loop);
   return result == 1;
-}
-
-DartEntityId AnimationManager_getBone(
-  Pointer<TAnimationManager> tAnimationManager,
-  Pointer<TSceneAsset> sceneAsset,
-  int skinIndex,
-  int boneIndex,
-) {
-  final result = GeneratedBindings.instance._AnimationManager_getBone(
-      tAnimationManager.cast(), sceneAsset.cast(), skinIndex, boneIndex);
-  return result;
 }
 
 void AnimationManager_getRestLocalTransforms(
@@ -9932,27 +10040,6 @@ void AnimationManager_getGltfAnimationName(
   final result = GeneratedBindings.instance
       ._AnimationManager_getGltfAnimationName(
           tAnimationManager.cast(), sceneAsset.cast(), outPtr, index);
-  return result;
-}
-
-int AnimationManager_getBoneCount(
-  Pointer<TAnimationManager> tAnimationManager,
-  Pointer<TSceneAsset> sceneAsset,
-  int skinIndex,
-) {
-  final result = GeneratedBindings.instance._AnimationManager_getBoneCount(
-      tAnimationManager.cast(), sceneAsset.cast(), skinIndex);
-  return result;
-}
-
-void AnimationManager_getBoneNames(
-  Pointer<TAnimationManager> tAnimationManager,
-  Pointer<TSceneAsset> sceneAsset,
-  Pointer<PointerClass<Char>> out,
-  int skinIndex,
-) {
-  final result = GeneratedBindings.instance._AnimationManager_getBoneNames(
-      tAnimationManager.cast(), sceneAsset.cast(), out, skinIndex);
   return result;
 }
 
@@ -12572,6 +12659,16 @@ final class TGltfMeshData extends Struct {
   }
 }
 
+sealed class TSceneAssetType {
+  static const SCENE_ASSET_TYPE_GLTF = 0;
+  static const SCENE_ASSET_TYPE_GEOMETRY = 1;
+  static const SCENE_ASSET_TYPE_LIGHT = 2;
+  static const SCENE_ASSET_TYPE_SKYBOX = 3;
+  static const SCENE_ASSET_TYPE_IBL = 4;
+  static const SCENE_ASSET_TYPE_IMAGE = 5;
+  static const SCENE_ASSET_TYPE_GIZMO = 6;
+}
+
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
   TMovementIntentExecutor toDart() {
     return TMovementIntentExecutor(this);
@@ -12819,7 +12916,7 @@ extension NativeFunctionPointer47<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer62<T extends NativeType> on void Function(
+extension NativeFunctionPointer61<T extends NativeType> on void Function(
     double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(NativeLibrary.instance
