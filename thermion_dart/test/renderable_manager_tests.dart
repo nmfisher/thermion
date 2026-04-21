@@ -338,7 +338,7 @@ void main() async {
       });
     });
 
-    test('setBones deforms a skinned mesh', () async {
+    test('setBonesFromMat4 deforms a skinned mesh', () async {
       // cube_with_morph_targets.glb is a skinned cube with a single joint
       // ("MyBone"). Per its glTF definition, the Armature root node is the
       // asset entity and the Cube mesh is a child; only the mesh has a
@@ -367,21 +367,21 @@ void main() async {
         expect(boneNames.first, "MyBone");
 
         // Identity transform should leave the mesh in its rest pose.
-        await renderableManager.setBones(meshEntity!, [Matrix4.identity()]);
+        await renderableManager.setBonesFromMat4(meshEntity!, [Matrix4.identity()]);
         await testHelper.capture(viewer.view, "set_bones_identity");
 
         // Rotating the single bone 90 degrees should visibly deform the mesh.
         await renderableManager
-            .setBones(meshEntity, [Matrix4.rotationY(pi / 4)]);
+            .setBonesFromMat4(meshEntity, [Matrix4.rotationY(pi / 4)]);
         await testHelper.capture(viewer.view, "set_bones_rotated");
 
         // offset parameter should be accepted (writing past end of buffer is
         // a no-op when boneCount is 1 and only one bone is allocated).
-        await renderableManager.setBones(meshEntity, [Matrix4.identity()],
+        await renderableManager.setBonesFromMat4(meshEntity, [Matrix4.identity()],
             offset: 0);
 
         // Empty list is a safe no-op (short-circuits before FFI call).
-        await renderableManager.setBones(meshEntity, <Matrix4>[]);
+        await renderableManager.setBonesFromMat4(meshEntity, <Matrix4>[]);
 
         expect(renderableManager.isRenderable(meshEntity), true);
       }, bg: kRed, cameraPosition: Vector3(0, 5, 15));

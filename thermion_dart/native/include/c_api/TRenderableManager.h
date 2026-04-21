@@ -70,7 +70,9 @@ extern "C"
 
     // Skinning / bone transforms
     // transforms is an array of boneCount 4x4 matrices in column-major order (16 floats per matrix).
-    EMSCRIPTEN_KEEPALIVE void RenderableManager_setBones(TRenderableManager *tRenderableManager, EntityId entityId, const float *transforms, size_t boneCount, size_t offset);
+    EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4(TRenderableManager *tRenderableManager, EntityId entityId, const float *transforms, size_t boneCount, size_t offset);
+    // bones is an array of boneCount Bone structs (8 floats per bone: quat4 + translation3 + reserved1).
+    EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBone(TRenderableManager *tRenderableManager, EntityId entityId, const float *bones, size_t boneCount, size_t offset);
 
     // ============================================================================
     // RenderableBuilder
@@ -96,6 +98,12 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_blendOrder(TRenderableBuilder *builder, size_t primitiveIndex, uint16_t order);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_globalBlendOrderEnabled(TRenderableBuilder *builder, size_t primitiveIndex, bool enabled);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_instances(TRenderableBuilder *builder, size_t instanceCount);
+
+    // Skinning
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromMat4(TRenderableBuilder *builder, size_t boneCount, const float *transforms);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromBone(TRenderableBuilder *builder, size_t boneCount, const float *bones);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_enableSkinningBuffers(TRenderableBuilder *builder, bool enabled);
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_boneIndicesAndWeights(TRenderableBuilder *builder, size_t primitiveIndex, const float *indicesAndWeights, size_t count, size_t bonesPerVertex);
 
     // Build the renderable
     EMSCRIPTEN_KEEPALIVE int RenderableBuilder_build(TRenderableBuilder *builder, TEngine *engine, EntityId entity);

@@ -358,7 +358,7 @@ namespace thermion
         }
 
         // Skinning / bone transforms
-        EMSCRIPTEN_KEEPALIVE void RenderableManager_setBones(TRenderableManager *tRenderableManager, EntityId entityId, const float *transforms, size_t boneCount, size_t offset) {
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4(TRenderableManager *tRenderableManager, EntityId entityId, const float *transforms, size_t boneCount, size_t offset) {
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
@@ -368,6 +368,19 @@ namespace thermion
             }
             auto *mat4Transforms = reinterpret_cast<const filament::math::mat4f *>(transforms);
             renderableManager->setBones(renderableInstance, mat4Transforms, boneCount, offset);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromBone(TRenderableManager *tRenderableManager, EntityId entityId, const float *bones, size_t boneCount, size_t offset) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            // Cast float* to RenderableManager::Bone* (Bone is 8 floats: quat4 + translation3 + reserved1)
+            auto *boneTransforms = reinterpret_cast<const filament::RenderableManager::Bone*>(bones);
+            renderableManager->setBones(renderableInstance, boneTransforms, boneCount, offset);
         }
 
         // ============================================================================
@@ -464,6 +477,29 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_instances(TRenderableBuilder *tBuilder, size_t instanceCount) {
             auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
             builder->instances(instanceCount);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromMat4(TRenderableBuilder *tBuilder, size_t boneCount, const float *transforms) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            auto *mat4Transforms = reinterpret_cast<const filament::math::mat4f*>(transforms);
+            builder->skinning(boneCount, mat4Transforms);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_skinningFromBone(TRenderableBuilder *tBuilder, size_t boneCount, const float *bones) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            auto *boneTransforms = reinterpret_cast<const filament::RenderableManager::Bone*>(bones);
+            builder->skinning(boneCount, boneTransforms);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_enableSkinningBuffers(TRenderableBuilder *tBuilder, bool enabled) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            builder->enableSkinningBuffers(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_boneIndicesAndWeights(TRenderableBuilder *tBuilder, size_t primitiveIndex, const float *indicesAndWeights, size_t count, size_t bonesPerVertex) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            auto *float2Data = reinterpret_cast<const filament::math::float2*>(indicesAndWeights);
+            builder->boneIndicesAndWeights(primitiveIndex, float2Data, count, bonesPerVertex);
         }
 
         EMSCRIPTEN_KEEPALIVE int RenderableBuilder_build(TRenderableBuilder *tBuilder, TEngine *tEngine, EntityId entityId) {

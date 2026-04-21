@@ -753,7 +753,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
           "target a skinned mesh entity, not the glTF root or a bone entity");
     }
 
-    await renderableManager.setBones(meshEntity, [transform],
+    await renderableManager.setBonesFromMat4(meshEntity, [transform],
         offset: boneIndex);
   }
 
