@@ -504,6 +504,12 @@ class FFIView extends View<Pointer<TView>> {
 
   //
   Future _enableHighlightOverlay() async {
+    final rm = FilamentApp.instance!.renderManager;
+    final swapChains = rm.getAttachedSwapChains(this).toList();
+    if (swapChains.isEmpty) {
+      throw Exception("View must be attached to a swapchain first");
+    }
+
     if (_highlightOverlayManager == null) {
       final vp = await getViewport();
       final width = vp.width > 0 ? vp.width : 1;
@@ -520,15 +526,12 @@ class FFIView extends View<Pointer<TView>> {
       await _highlightOverlayManager!.setCamera(camera);
     }
 
-    final rm = FilamentApp.instance!.renderManager;
-    final swapChains = rm.getAttachedSwapChains(this).toList();
-
     // Configure output: render target (macOS/iOS) or swapchain (web/Android)
-    rm.detach(this, swapChain: swapChains.first);
-    rm.attach(_highlightOverlayManager!.silhouetteView, swapChains.first,
+    await rm.detach(this, swapChain: swapChains.first);
+    await rm.attach(_highlightOverlayManager!.silhouetteView, swapChains.first,
         renderOrder: 0);
-    rm.attach(this, swapChains.first, renderOrder: 1);
-    rm.attach(_highlightOverlayManager!.overlayView, swapChains.first,
+    await rm.attach(this, swapChains.first, renderOrder: 1);
+    await rm.attach(_highlightOverlayManager!.overlayView, swapChains.first,
         renderOrder: 2);
 
     if (renderTarget != null) {
