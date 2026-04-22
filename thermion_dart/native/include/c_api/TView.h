@@ -55,6 +55,12 @@ enum TBlendMode {
 };
 typedef enum TBlendMode TBlendMode;
 
+enum TLutFormat {
+    INTEGER,
+    FLOAT
+};
+typedef enum TLutFormat TLutFormat;
+
 // View
 EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *view);
 EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createLinear(TEngine* tEngine);
@@ -81,6 +87,8 @@ EMSCRIPTEN_KEEPALIVE void ColorGrading_destroy(TEngine* engine, TColorGrading* c
 
 // Quality and format
 EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_quality(TColorGradingBuilder* builder, TQualityLevel level);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_format(TColorGradingBuilder* builder, TLutFormat format);
+EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_dimensions(TColorGradingBuilder* builder, uint8_t dim);
 EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_toneMapper(TColorGradingBuilder* builder, TToneMapper* toneMapper);
 
 // Basic adjustments

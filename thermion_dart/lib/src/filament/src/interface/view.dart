@@ -111,6 +111,8 @@ class Viewport {
 
 enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
+enum LutFormat { INTEGER, FLOAT }
+
 // ColorGrading object that holds color grading configuration.
 // ColorGrading is treated as const
 // Created via View.createColorGradingBuilder().build() and applied to a view.
@@ -146,6 +148,16 @@ abstract class ColorGradingBuilder {
   /// - HIGH: 32x32x32 16-bit LUT
   /// - ULTRA: 64x64x64 16-bit LUT
   ColorGradingBuilder quality(QualityLevel level);
+
+  /// Sets the internal storage format of the color grading LUT.
+  ///
+  /// Overrides the format implied by [quality]. INTEGER is 10-bit, FLOAT is 16-bit.
+  ColorGradingBuilder format(LutFormat format);
+
+  /// Sets the dimensions of the color grading LUT cube (e.g. 16, 32, 64).
+  ///
+  /// Overrides the dimensions implied by [quality]. Clamped to [8, 64] internally.
+  ColorGradingBuilder dimensions(int dim);
 
   /// Sets the tone mapping operator.
   ///

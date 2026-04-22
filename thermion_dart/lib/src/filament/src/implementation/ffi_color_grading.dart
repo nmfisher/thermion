@@ -38,6 +38,20 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   }
 
   @override
+  ColorGradingBuilder format(LutFormat format) {
+    _checkNotBuilt();
+    ColorGradingBuilder_format(_builder, format.index);
+    return this;
+  }
+
+  @override
+  ColorGradingBuilder dimensions(int dim) {
+    _checkNotBuilt();
+    ColorGradingBuilder_dimensions(_builder, dim);
+    return this;
+  }
+
+  @override
   ColorGradingBuilder toneMapper(ToneMapper mapper) {
     _checkNotBuilt();
     // Extract the native pointer from the ToneMapper object
