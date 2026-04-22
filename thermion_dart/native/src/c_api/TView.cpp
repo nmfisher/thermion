@@ -282,6 +282,18 @@ namespace thermion
             builder->quality(static_cast<ColorGrading::QualityLevel>(level));
         }
 
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_format(TColorGradingBuilder* tBuilder, TLutFormat format)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->format(static_cast<ColorGrading::LutFormat>(format));
+        }
+
+        EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_dimensions(TColorGradingBuilder* tBuilder, uint8_t dim)
+        {
+            auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
+            builder->dimensions(dim);
+        }
+
         EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_toneMapper(TColorGradingBuilder* tBuilder, TToneMapper* toneMapper)
         {
             auto builder = reinterpret_cast<ColorGrading::Builder*>(tBuilder);
