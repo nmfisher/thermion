@@ -1220,6 +1220,21 @@ external void ColorGradingBuilder_quality(
 );
 
 @ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TColorGradingBuilder>, ffi.UnsignedInt)>(isLeaf: true)
+external void ColorGradingBuilder_format(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  int format,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TColorGradingBuilder>, ffi.Uint8)>(
+    isLeaf: true)
+external void ColorGradingBuilder_dimensions(
+  ffi.Pointer<TColorGradingBuilder> builder,
+  int dim,
+);
+
+@ffi.Native<
     ffi.Void Function(ffi.Pointer<TColorGradingBuilder>,
         ffi.Pointer<TToneMapper>)>(isLeaf: true)
 external void ColorGradingBuilder_toneMapper(
@@ -6646,6 +6661,11 @@ sealed class TQualityLevel {
 sealed class TBlendMode {
   static const OPAQUE = 0;
   static const TRANSLUCENT = 1;
+}
+
+sealed class TLutFormat {
+  static const INTEGER = 0;
+  static const FLOAT = 1;
 }
 
 final class TColorGradingBuilder extends ffi.Opaque {}

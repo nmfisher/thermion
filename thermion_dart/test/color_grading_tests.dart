@@ -114,6 +114,102 @@ void main() async {
     });
   });
 
+  test('ColorGrading LUT format and dimensions', () async {
+    await ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(0, 2, 8), focus: Vector3.zero())
+        .setPostProcessing(true)
+        .addCube(color: kWhite, createUbershader: true)
+        .addSun()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: kWhite,
+            createUbershader: true)
+        .execute((result) async {
+
+          await testHelper.capture(
+            result.viewer.view, "color_grading_lut_none");
+      final configs = [
+        (LutFormat.INTEGER, 16, 'integer_16'),
+        (LutFormat.INTEGER, 32, 'integer_32'),
+        (LutFormat.FLOAT, 32, 'float_32'),
+        (LutFormat.FLOAT, 64, 'float_64'),
+      ];
+
+      for (final (format, dim, name) in configs) {
+        final builder = await result.viewer.view.createColorGradingBuilder();
+        final colorGrading = await builder
+            .format(format)
+            .dimensions(dim)
+            .toneMapper(await ToneMapper.aces())
+            .saturation(1.3)
+            .contrast(1.2)
+            .build();
+
+        expect(colorGrading, isNotNull);
+        await result.viewer.view.setColorGrading(colorGrading);
+        await testHelper.capture(
+            result.viewer.view, "color_grading_lut_$name");
+      }
+    });
+  });
+
+  test('ColorGrading channelMixer', () async {
+    await ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(0, 2, 8), focus: Vector3.zero())
+        .setPostProcessing(true)
+        .addSun()
+        .addCube(color: kRed, createUbershader: true)
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            color: kGreen,
+            createUbershader: true)
+        .execute((result) async {
+      final configs = <(Vector3, Vector3, Vector3, String)>[
+        (
+          Vector3(1, 0, 0),
+          Vector3(0, 1, 0),
+          Vector3(0, 0, 1),
+          'identity',
+        ),
+        (
+          Vector3(0.393, 0.769, 0.189),
+          Vector3(0.349, 0.686, 0.168),
+          Vector3(0.272, 0.534, 0.131),
+          'sepia',
+        ),
+        (
+          Vector3(0, 0, 1),
+          Vector3(0, 1, 0),
+          Vector3(1, 0, 0),
+          'swap_rb',
+        ),
+        (
+          Vector3(0.299, 0.587, 0.114),
+          Vector3(0.299, 0.587, 0.114),
+          Vector3(0.299, 0.587, 0.114),
+          'luminance',
+        ),
+      ];
+
+      for (final (outRed, outGreen, outBlue, name) in configs) {
+        final builder = await result.viewer.view.createColorGradingBuilder();
+        final colorGrading = await builder
+            .toneMapper(await ToneMapper.linear())
+            .channelMixer(outRed, outGreen, outBlue)
+            .build();
+
+        expect(colorGrading, isNotNull);
+        await result.viewer.view.setColorGrading(colorGrading);
+        await testHelper.capture(
+            result.viewer.view, "color_grading_channel_mixer_$name");
+      }
+    });
+  });
+
   test('getColorGrading - retrieve and verify color grading', () async {
     await ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(0, 2, 8), focus: Vector3.zero())

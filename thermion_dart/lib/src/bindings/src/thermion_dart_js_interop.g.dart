@@ -703,6 +703,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TColorGradingBuilder> builder,
     int level,
   );
+  external void _ColorGradingBuilder_format(
+    Pointer<TColorGradingBuilder> builder,
+    int format,
+  );
+  external void _ColorGradingBuilder_dimensions(
+    Pointer<TColorGradingBuilder> builder,
+    int dim,
+  );
   external void _ColorGradingBuilder_toneMapper(
     Pointer<TColorGradingBuilder> builder,
     Pointer<TToneMapper> toneMapper,
@@ -4781,6 +4789,24 @@ void ColorGradingBuilder_quality(
 ) {
   final result = GeneratedBindings.instance
       ._ColorGradingBuilder_quality(builder.cast(), level);
+  return result;
+}
+
+void ColorGradingBuilder_format(
+  Pointer<TColorGradingBuilder> builder,
+  int format,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_format(builder.cast(), format);
+  return result;
+}
+
+void ColorGradingBuilder_dimensions(
+  Pointer<TColorGradingBuilder> builder,
+  int dim,
+) {
+  final result = GeneratedBindings.instance
+      ._ColorGradingBuilder_dimensions(builder.cast(), dim);
   return result;
 }
 
@@ -11352,6 +11378,11 @@ sealed class TQualityLevel {
   static const MEDIUM = 1;
   static const HIGH = 2;
   static const ULTRA = 3;
+}
+
+sealed class TLutFormat {
+  static const INTEGER = 0;
+  static const FLOAT = 1;
 }
 
 sealed class TBlendMode {
