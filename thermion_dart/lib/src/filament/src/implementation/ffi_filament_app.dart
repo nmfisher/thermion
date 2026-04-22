@@ -469,6 +469,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFILinearImage(ptr);
   }
 
+  @override
+  Future<Material> createGizmoMaterial() async {
+    _gizmoMaterial ??= FFIMaterial(await withPointerCallback<TMaterial>((cb) {
+      Material_createGizmoMaterialRenderThread(engine, cb);
+    }));
+    return _gizmoMaterial!;
+  }
+
+  FFIMaterial? _gizmoMaterial;
+
   //
   Future<Material> createMaterial(Uint8List data) async {
     late Pointer stackPtr;
