@@ -388,6 +388,15 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   }
 
   @override
+  int getBoneParent(ThermionAsset asset, int skinIndex, int boneIndex) {
+    if (asset.type != SceneAssetType.gltf) {
+      return -1;
+    }
+    return AnimationManager_getBoneParent(
+        animationManager, asset.getNativeHandle(), skinIndex, boneIndex);
+  }
+
+  @override
   Future update(int frameTimeInNanos) async {
     await withVoidCallback((requestId, cb) =>
         AnimationManager_updateRenderThread(

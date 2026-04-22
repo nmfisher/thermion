@@ -15,7 +15,7 @@ void main() async {
           File('${testHelper.testDir}/assets/cube_with_armature.glb')
               .readAsBytesSync();
       final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+          await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting so we can see the cube
@@ -40,8 +40,7 @@ void main() async {
       print('Bone visualizer visible: ${boneVisualizer.isVisible}');
 
       // 3. Get bone world positions for logging
-      final boneEntities =
-          FilamentApp.instance!.animationManager.getBoneEntities(asset, 0);
+      final boneEntities = await asset.getBones(skinIndex: 0);
       final tm = FilamentApp.instance!.transformManager;
 
       print('Found ${boneEntities.length} bones');
@@ -101,7 +100,7 @@ void main() async {
           File('${testHelper.testDir}/assets/cube_with_armature.glb')
               .readAsBytesSync();
       final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+          await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting

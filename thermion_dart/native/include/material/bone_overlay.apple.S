@@ -1,0 +1,12 @@
+    .global _BONE_OVERLAY_BONE_OVERLAY_OFFSET;
+    .global _BONE_OVERLAY_BONE_OVERLAY_SIZE;
+
+    .global _BONE_OVERLAY_PACKAGE
+    .section __TEXT,__const
+_BONE_OVERLAY_PACKAGE:
+    .incbin "bone_overlay.bin"
+_BONE_OVERLAY_BONE_OVERLAY_OFFSET:
+    .int 0
+_BONE_OVERLAY_BONE_OVERLAY_SIZE:
+    .int 232763
+

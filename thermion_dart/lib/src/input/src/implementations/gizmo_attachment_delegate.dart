@@ -138,8 +138,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   ///
   /// Returns a list of [BoneInfo] containing bone names, indices, and entities.
   Future<List<BoneInfo>> getBones(ThermionAsset asset, {int skinIndex = 0}) async {
-    final boneEntities = FilamentApp.instance!.animationManager
-        .getBoneEntities(asset, skinIndex);
+    final boneEntities = await asset.getBones(skinIndex: skinIndex);
 
     final bones = <BoneInfo>[];
     for (int i = 0; i < boneEntities.length; i++) {
@@ -254,8 +253,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
       }
 
       // Check if asset has bones
-      final boneCount = await FilamentApp.instance!.animationManager
-          .getBoneCount(asset, 0);
+      final boneCount = await asset.getBoneCount(skinIndex: 0);
       if (boneCount == 0) {
         // No bones, attach to entity directly
         await attachTo(AttachmentTarget.entity(result.entity));
@@ -294,8 +292,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
     _lastPickWorldPosition = (worldPos.xyz / worldPos.w);
 
     // Find nearest bone
-    final boneEntities = FilamentApp.instance!.animationManager
-        .getBoneEntities(asset, skinIndex);
+    final boneEntities = await asset.getBones(skinIndex: skinIndex);
 
     int? nearestBoneIndex;
     double nearestDistance = double.infinity;
@@ -317,11 +314,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
 
     if (nearestBoneIndex != null) {
       final boneEntity =
-          await FilamentApp.instance!.animationManager.getBone(
-        asset,
-        skinIndex,
-        nearestBoneIndex,
-      );
+          (await asset.getBones(skinIndex: skinIndex))[nearestBoneIndex];
       await attachTo(AttachmentTarget(
         entity: boneEntity!,
         asset: asset,

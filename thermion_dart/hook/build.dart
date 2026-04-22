@@ -109,6 +109,7 @@ outputDirectory : ${outputDirectory.path}
       'edge_outline': 'native/include/material/edge_outline.c',
       'wireframe': 'native/include/material/wireframe.c',
       'translation_axis': 'native/include/material/translation_axis.c',
+      'bone_overlay': 'native/include/material/bone_overlay.c',
     };
 
     // Add gizmo resources (always included)

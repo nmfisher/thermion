@@ -7,9 +7,9 @@
 extern "C"
 {
 #endif
-	
+
 	EMSCRIPTEN_KEEPALIVE TAnimationManager *AnimationManager_create(TEngine *tEngine);
-	
+
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_update(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos);
 
 	EMSCRIPTEN_KEEPALIVE bool AnimationManager_addGltfAnimationComponent(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset);
@@ -42,7 +42,7 @@ extern "C"
 		float frameLengthInMs,
 		float fadeOutInSecs,
 		float fadeInInSecs,
-		float maxDelta, 
+		float maxDelta,
 		bool loop);
 
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_getRestLocalTransforms(
@@ -106,7 +106,6 @@ extern "C"
 		TAnimationManager *tAnimationManager,
 		TSceneAsset *sceneAsset);
 
-
 	EMSCRIPTEN_KEEPALIVE bool AnimationManager_setMorphTargetWeights(
 		TAnimationManager *tAnimationManager,
 		EntityId entityId,
@@ -120,7 +119,11 @@ extern "C"
 		float timeInSeconds
 	);
 
-
+	EMSCRIPTEN_KEEPALIVE int AnimationManager_getBoneParent(
+		TAnimationManager *tAnimationManager,
+		TSceneAsset *tSceneAsset,
+		int skinIndex,
+		int boneIndex);
 
 #ifdef __cplusplus
 }

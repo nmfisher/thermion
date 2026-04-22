@@ -18,6 +18,7 @@
 #include "material/edge_outline.h"
 #include "material/translation_axis.h"
 #include "material/wireframe.h"
+#include "material/bone_overlay.h"
 
 #include "c_api/TMaterialInstance.h"
 
@@ -103,6 +104,14 @@ namespace thermion
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
                 .package(TRANSLATION_AXIS_TRANSLATION_AXIS_DATA, TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(BONE_OVERLAY_BONE_OVERLAY_DATA, BONE_OVERLAY_BONE_OVERLAY_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }

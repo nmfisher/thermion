@@ -212,8 +212,7 @@ class BoneVisualizer {
   Future<void> show() async {
     if (_isVisible) return;
 
-    final boneEntities = FilamentApp.instance!.animationManager
-        .getBoneEntities(asset, skinIndex);
+    final boneEntities = await asset.getBones(skinIndex: skinIndex);
     final boneCount = boneEntities.length;
 
     if (boneCount == 0) {
@@ -298,7 +297,7 @@ class BoneVisualizer {
           "baseColorFactor", jointColor.r, jointColor.g, jointColor.b, jointColor.a);
 
       final jointAsset = await viewer.createGeometry(sphereGeom,
-          materialInstances: [jointMatInst], addToScene: false);
+          materialInstances: [jointMatInst]);
 
       await jointAsset.setTransform(Matrix4.compose(
         headPos,
@@ -319,7 +318,7 @@ class BoneVisualizer {
             "baseColorFactor", boneColor.r, boneColor.g, boneColor.b, boneColor.a);
 
         envelopeAsset = await viewer.createGeometry(cylinderGeom,
-            materialInstances: [envelopeMatInst], addToScene: false);
+            materialInstances: [envelopeMatInst]);
 
         // Calculate tail position using bone rotation
         final tailPos = _calculateTailPosition(transform, boneLength);

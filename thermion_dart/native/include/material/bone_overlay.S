@@ -1,0 +1,12 @@
+    .global BONE_OVERLAY_BONE_OVERLAY_OFFSET;
+    .global BONE_OVERLAY_BONE_OVERLAY_SIZE;
+
+    .global BONE_OVERLAY_PACKAGE
+    .section .rodata
+BONE_OVERLAY_PACKAGE:
+    .incbin "bone_overlay.bin"
+BONE_OVERLAY_BONE_OVERLAY_OFFSET:
+    .int 0
+BONE_OVERLAY_BONE_OVERLAY_SIZE:
+    .int 232763
+

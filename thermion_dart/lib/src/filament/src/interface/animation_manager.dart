@@ -190,6 +190,10 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // Resets [asset] to its rest pose.
   Future resetToRestPose(ThermionAsset asset);
 
+  // Gets the parent bone index for a specific bone in a skin.
+  // Returns -1 if the bone has no parent (root bone).
+  int getBoneParent(ThermionAsset asset, int skinIndex, int boneIndex);
+
   // Updates the animation system with the current frame time.
   // [frameTimeInNanos] Frame time in nanoseconds
   Future update(int frameTimeInNanos);

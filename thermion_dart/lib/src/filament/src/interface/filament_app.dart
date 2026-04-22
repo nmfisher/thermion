@@ -121,6 +121,8 @@ abstract class FilamentApp<T> {
   //
   Future<Material> createGizmoMaterial();
 
+  Future<Material> createBoneOverlayMaterial();
+
   //
   Future<Material> createMaterial(Uint8List data);
 

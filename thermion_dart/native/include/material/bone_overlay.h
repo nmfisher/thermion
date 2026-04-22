@@ -1,0 +1,13 @@
+#ifndef BONE_OVERLAY_H_
+#define BONE_OVERLAY_H_
+
+#include <stdint.h>
+
+extern "C" {
+    extern const uint8_t BONE_OVERLAY_PACKAGE[];
+    extern int BONE_OVERLAY_BONE_OVERLAY_OFFSET;
+    extern int BONE_OVERLAY_BONE_OVERLAY_SIZE;
+}
+#define BONE_OVERLAY_BONE_OVERLAY_DATA (BONE_OVERLAY_PACKAGE + BONE_OVERLAY_BONE_OVERLAY_OFFSET)
+
+#endif

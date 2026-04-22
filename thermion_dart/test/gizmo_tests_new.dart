@@ -15,7 +15,7 @@ void main() async {
         .execute((result) async {
       // Create the gizmo
       final gizmo = custom_gizmo.TransformationGizmo(result.viewer);
-      await gizmo.create(type: custom_gizmo.GizmoType.translation);
+      await gizmo.create(type: custom_gizmo.TransformationGizmoType.translation);
 
       // Update gizmo with camera position for proper scaling
       final camera = await result.viewer.getActiveCamera();
@@ -33,7 +33,7 @@ void main() async {
         .execute((result) async {
       // Create the gizmo
       final gizmo = custom_gizmo.TransformationGizmo(result.viewer);
-      await gizmo.create(type: custom_gizmo.GizmoType.rotation);
+      await gizmo.create(type: custom_gizmo.TransformationGizmoType.rotation);
 
       // Update gizmo with camera position for proper scaling
       final camera = await result.viewer.getActiveCamera();
