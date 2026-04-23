@@ -52,7 +52,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   final ThermionViewer viewer;
 
   // Configuration
-  final TransformationGizmoType gizmoType;
+  TransformationGizmoType gizmoType;
   final BonePickStrategy bonePickStrategy;
   final double bonePickThreshold; // Max world distance for "nearest" bone
   final bool allowGizmoOnly; // If true, can only pick gizmo axes
@@ -160,6 +160,10 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   Future<void> setGizmoType(TransformationGizmoType type) async {
     if (_isGizmoInitialized && _gizmo != null) {
       final oldTarget = _currentTarget;
+
+      // Update gizmo type before recreating
+      gizmoType = type;
+
       await _gizmo!.dispose();
       _gizmo = null;
       _isGizmoInitialized = false;
