@@ -17,6 +17,7 @@
 #include "material/silhouette.h"
 #include "material/edge_outline.h"
 #include "material/translation_axis.h"
+#include "material/gizmo.h"
 #include "material/wireframe.h"
 #include "material/bone_overlay.h"
 
@@ -71,7 +72,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
-                .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
+                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
