@@ -12,7 +12,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
       final assetData =
-          File('${testHelper.assetsDir}/cube_with_armature.glb')
+          File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
       final asset =
           await viewer.loadGltfFromBuffer(assetData);
@@ -168,7 +168,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
       final assetData =
-          File('${testHelper.assetsDir}/cube_with_armature.glb')
+          File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
       final asset =
           await viewer.loadGltfFromBuffer(assetData);
@@ -314,7 +314,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
       final assetData =
-          File('${testHelper.assetsDir}/cube_with_armature.glb')
+          File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
       final asset =
           await viewer.loadGltfFromBuffer(assetData);
