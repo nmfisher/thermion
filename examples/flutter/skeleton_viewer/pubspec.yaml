@@ -1,0 +1,31 @@
+name: skeleton_viewer
+description: "Thermion skeleton/bone visualization example."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  vector_math: ^2.1.4
+  thermion_flutter: ^0.2.1-dev.7
+
+dependency_overrides:
+  thermion_dart:
+    path: ../../../thermion_dart
+  thermion_flutter:
+    path: ../../../thermion_flutter/thermion_flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
