@@ -57,7 +57,6 @@ class TransformationGizmo {
   GizmoAxis _activeAxis = GizmoAxis.none;
   Vector2? _dragStartScreen;
   Matrix4? _targetStartTransform;
-  Vector3? _gizmoStartPosition; // Store gizmo position at drag start
   Matrix4? _lastComputedWorldTransform; // Last computed world transform for callback
 
   // Hover state
@@ -68,10 +67,6 @@ class TransformationGizmo {
 
   // Visibility state
   bool _isVisible = true;
-
-  // If true, gizmo computes transforms but doesn't set them on the entity
-  // (useful for bones where AnimationManager handles transforms via callbacks)
-  bool _updateEntityTransform = true;
 
   TransformationGizmo(this.viewer);
 
@@ -409,11 +404,9 @@ class TransformationGizmo {
     return mat;
   }
 
-  Future<void> attachTo(ThermionEntity entity,
-      {bool updateEntityTransform = true}) async {
+  Future<void> attachTo(ThermionEntity entity) async {
     if (_isDisposed) return;
     _attachedTarget = entity;
-    _updateEntityTransform = updateEntityTransform;
 
     // Re-add to scene if previously hidden
     if (!_isVisible) {
@@ -605,7 +598,6 @@ class TransformationGizmo {
     _dragStartScreen = Vector2(screenX.toDouble(), screenY.toDouble());
     _targetStartTransform = await FilamentApp.instance!.transformManager
         .getWorldTransform(_attachedTarget!);
-    _gizmoStartPosition = _targetStartTransform!.getTranslation();
     _lastComputedWorldTransform = null;
 
     if (_isDisposed) return false;
@@ -713,11 +705,10 @@ class TransformationGizmo {
     _lastComputedWorldTransform = newWorldTransform;
 
     if (_attachedTarget != null && !_isDisposed) {
-      if (_updateEntityTransform) {
-        // Convert world transform to local transform for proper hierarchy handling
-        final localTransform = await _worldToLocalTransform(_attachedTarget!, newWorldTransform);
-        await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
-      }
+      // Convert world transform to local transform for proper hierarchy handling
+      final localTransform =
+          _worldToLocalTransform(_attachedTarget!, newWorldTransform);
+      await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
 
       // Update gizmo position directly only if still alive
       if (!_isDisposed) {
@@ -801,17 +792,16 @@ class TransformationGizmo {
     _lastComputedWorldTransform = newWorldTransform;
 
     if (_attachedTarget != null && !_isDisposed) {
-      if (_updateEntityTransform) {
-        // Convert world transform to local transform for proper hierarchy handling
-        final localTransform = await _worldToLocalTransform(_attachedTarget!, newWorldTransform);
-        await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
-      }
+      // Convert world transform to local transform for proper hierarchy handling
+      final localTransform =
+          _worldToLocalTransform(_attachedTarget!, newWorldTransform);
+      await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
     }
   }
 
   /// Converts a world transform to a local transform for the given entity.
   /// Takes into account the entity's parent hierarchy.
-  Future<Matrix4> _worldToLocalTransform(ThermionEntity entity, Matrix4 worldTransform) async {
+  Matrix4 _worldToLocalTransform(ThermionEntity entity, Matrix4 worldTransform) {
     final tm = FilamentApp.instance!.transformManager;
     final parent = tm.getParent(entity);
 
@@ -834,7 +824,6 @@ class TransformationGizmo {
     _activeAxis = GizmoAxis.none;
     _dragStartScreen = null;
     _targetStartTransform = null;
-    _gizmoStartPosition = null;
     _lastComputedWorldTransform = null;
 
     if (!_isDisposed) {
@@ -850,7 +839,6 @@ class TransformationGizmo {
     _activeAxis = GizmoAxis.none;
     _dragStartScreen = null;
     _targetStartTransform = null;
-    _gizmoStartPosition = null;
     _lastComputedWorldTransform = null;
 
     if (_isDisposed) return;

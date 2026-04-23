@@ -96,6 +96,11 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   /// Whether the gizmo is currently attached to a bone.
   bool get isAttachedToBone => _currentTarget?.isBone ?? false;
 
+  /// While an axis drag is in progress, consume events so subsequent delegates
+  /// in the chain (e.g. orbit camera) don't also react to them.
+  @override
+  bool get consumesEvents => _isDraggingGizmo;
+
   /// Initialize the gizmo (called automatically on first use).
   Future<void> _ensureGizmo() async {
     if (_isGizmoInitialized) return;
@@ -112,11 +117,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   Future<void> attachTo(AttachmentTarget target) async {
     await _ensureGizmo();
 
-    // For bones in skinned meshes, don't update the entity transform directly
-    // The AnimationManager handles bone transforms via setBoneTransform callback
-    final updateEntityTransform = !target.isBone;
-    await _gizmo!.attachTo(target.entity,
-        updateEntityTransform: updateEntityTransform);
+    await _gizmo!.attachTo(target.entity);
 
     _currentTarget = target;
     onAttached?.call(target);
