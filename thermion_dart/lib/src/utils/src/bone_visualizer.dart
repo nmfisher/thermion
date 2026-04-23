@@ -390,9 +390,26 @@ class BoneVisualizer {
     ));
   }
 
+  /// Same as [_setEnvelopeTransform] but uses render-thread-safe async method.
+  Future<void> _setEnvelopeTransformAsync(
+      ThermionAsset envelope, Vector3 head, Vector3 tail, double length) async {
+    final direction = (tail - head).normalized();
+    final rotation = Quaternion.fromTwoVectors(Vector3(0, 1, 0), direction);
+    final midpoint = head + direction * (length / 2);
+
+    await FilamentApp.instance!.transformManager.setTransformAsync(
+        envelope.entity,
+        Matrix4.compose(
+          midpoint,
+          rotation,
+          Vector3(envelopeRadius, length, envelopeRadius),
+        ));
+  }
+
   /// Update visualization positions to match current bone transforms.
   ///
   /// Call this after modifying bone transforms to update the visualization.
+  /// Uses render-thread-safe async transform updates to avoid race conditions.
   Future<void> update() async {
     if (!_isVisible) return;
 
@@ -400,11 +417,11 @@ class BoneVisualizer {
 
     for (final bone in _bones) {
       // Get current bone transform
-      final transform = await tm.getWorldTransform(bone.boneEntity);
+      final transform = tm.getWorldTransform(bone.boneEntity);
       final headPos = transform.getTranslation();
 
-      // Update joint sphere position
-      await bone.jointAsset.setTransform(Matrix4.compose(
+      // Update joint sphere position using async (thread-safe) method
+      await tm.setTransformAsync(bone.jointAsset.entity, Matrix4.compose(
         headPos,
         Quaternion.identity(),
         Vector3.all(sphereRadius),
@@ -413,7 +430,7 @@ class BoneVisualizer {
       // Update envelope if exists
       if (bone.envelopeAsset != null && bone.boneLength > 0.001) {
         final tailPos = _calculateTailPosition(transform, bone.boneLength);
-        await _setEnvelopeTransform(
+        await _setEnvelopeTransformAsync(
             bone.envelopeAsset!, headPos, tailPos, bone.boneLength);
       }
     }
