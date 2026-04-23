@@ -112,16 +112,11 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   Future<void> attachTo(AttachmentTarget target) async {
     await _ensureGizmo();
 
-    if (target.isBone && target.asset != null && target.boneIndex != null) {
-      // await _gizmo!.attachToBone(
-      //   target.asset!,
-      //   target.boneIndex!,
-      //   skinIndex: target.skinIndex,
-      // );
-    } else {
-      _gizmo!.attachTo(target.entity);
-      await _gizmo!.update();
-    }
+    // For bones in skinned meshes, don't update the entity transform directly
+    // The AnimationManager handles bone transforms via setBoneTransform callback
+    final updateEntityTransform = !target.isBone;
+    await _gizmo!.attachTo(target.entity,
+        updateEntityTransform: updateEntityTransform);
 
     _currentTarget = target;
     onAttached?.call(target);

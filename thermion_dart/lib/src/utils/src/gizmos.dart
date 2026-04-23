@@ -69,6 +69,10 @@ class TransformationGizmo {
   // Visibility state
   bool _isVisible = true;
 
+  // If true, gizmo computes transforms but doesn't set them on the entity
+  // (useful for bones where AnimationManager handles transforms via callbacks)
+  bool _updateEntityTransform = true;
+
   TransformationGizmo(this.viewer);
 
   Future<void> create(
@@ -405,9 +409,11 @@ class TransformationGizmo {
     return mat;
   }
 
-  Future<void> attachTo(ThermionEntity entity) async {
+  Future<void> attachTo(ThermionEntity entity,
+      {bool updateEntityTransform = true}) async {
     if (_isDisposed) return;
     _attachedTarget = entity;
+    _updateEntityTransform = updateEntityTransform;
 
     // Re-add to scene if previously hidden
     if (!_isVisible) {
@@ -707,9 +713,11 @@ class TransformationGizmo {
     _lastComputedWorldTransform = newWorldTransform;
 
     if (_attachedTarget != null && !_isDisposed) {
-      // Convert world transform to local transform for proper hierarchy handling
-      final localTransform = await _worldToLocalTransform(_attachedTarget!, newWorldTransform);
-      await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
+      if (_updateEntityTransform) {
+        // Convert world transform to local transform for proper hierarchy handling
+        final localTransform = await _worldToLocalTransform(_attachedTarget!, newWorldTransform);
+        await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
+      }
 
       // Update gizmo position directly only if still alive
       if (!_isDisposed) {
@@ -793,9 +801,11 @@ class TransformationGizmo {
     _lastComputedWorldTransform = newWorldTransform;
 
     if (_attachedTarget != null && !_isDisposed) {
-      // Convert world transform to local transform for proper hierarchy handling
-      final localTransform = await _worldToLocalTransform(_attachedTarget!, newWorldTransform);
-      await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
+      if (_updateEntityTransform) {
+        // Convert world transform to local transform for proper hierarchy handling
+        final localTransform = await _worldToLocalTransform(_attachedTarget!, newWorldTransform);
+        await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
+      }
     }
   }
 
