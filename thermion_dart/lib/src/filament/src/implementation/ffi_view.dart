@@ -595,40 +595,61 @@ class FFIView extends View<Pointer<TView>> {
       double outlineWidth = 3.0,
       int primitiveIndex = 0,
       ThermionAsset? geometrySource}) async {
+    // primitiveIndex parameter is deprecated and ignored
+    // The offset is now computed automatically from the entity
     if (_highlightOverlayManager == null) {
       await setHighlightOverlayEnabled(true);
     }
 
     entity ??= asset.entity;
-    final entities = [entity, ...await asset.getChildEntities()];
 
     // Use geometrySource for vertex/index buffers when provided (e.g. for
     // instances where the root asset has the preserved geometry data).
     final geoAsset = geometrySource ?? asset;
     final ffiGeoAsset = geoAsset as FFIAsset;
 
-    // Get geometry info for creating silhouette entity.
-    final vertexBuffer =
-        geoAsset.getVertexBuffer(primitiveIndex: primitiveIndex);
-    final indexBuffer =
-        SceneAsset_getIndexBuffer(ffiGeoAsset.asset, primitiveIndex);
-    final hasGeometry = vertexBuffer != null && indexBuffer != nullptr;
-
-    if (!hasGeometry || vertexBuffer is! FFIVertexBuffer) {
-      throw UnsupportedError(
-          """Stencil highlight requires geometry info (vertexBuffer and """
-          """indexBuffer). For instances, pass the root asset as geometrySource. """
-          """For glTF, ensure rebuildVertices: true was used during loading.""");
+    // Get the starting primitive offset for this entity
+    final offset =
+        await ffiGeoAsset.getPrimitiveOffsetForEntity(entity);
+    if (offset < 0) {
+      _logger.warning(
+          "Stencil highlight: no preserved geometry for entity $entity. "
+          "Either the asset wasn't loaded with rebuildVertices: true, or this "
+          "entity's primitives are all non-triangles (lines/points) and have "
+          "no rebuilt buffers.");
+      return;
     }
 
-    final indexCount = IndexBuffer_getIndexCount(indexBuffer);
-    final ffiIndexBuffer =
-        FFIIndexBuffer(indexBuffer, FilamentApp.instance!.engine);
+    // Get the primitive count for this entity
+    final primCount = await FilamentApp.instance!.getPrimitiveCount(entity);
 
-    for (final entity in entities) {
-      if (!await FilamentApp.instance!.isRenderable(entity)) {
+    // Iterate all primitives for this entity and create silhouettes
+    for (int i = 0; i < primCount; i++) {
+      final flatPrimIndex = offset + i;
+
+      // Get geometry for this primitive
+      final vertexBuffer =
+          geoAsset.getVertexBuffer(primitiveIndex: flatPrimIndex);
+      final indexBuffer =
+          SceneAsset_getIndexBuffer(ffiGeoAsset.asset, flatPrimIndex);
+
+      // Skip non-triangle primitives (null buffers)
+      if (vertexBuffer == null || indexBuffer == nullptr) {
         continue;
       }
+
+      if (vertexBuffer is! FFIVertexBuffer) {
+        _logger.warning(
+            "Stencil highlight: unexpected vertex buffer type for entity $entity "
+            "primitive $i");
+        continue;
+      }
+
+      final indexCount = IndexBuffer_getIndexCount(indexBuffer);
+      final ffiIndexBuffer =
+          FFIIndexBuffer(indexBuffer, FilamentApp.instance!.engine);
+
+      // Create silhouette for this primitive
       await _highlightOverlayManager!.addHighlight(
         target: entity,
         vertexBuffer: vertexBuffer,
@@ -641,7 +662,7 @@ class FFIView extends View<Pointer<TView>> {
       );
     }
 
-    _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
+    _logger.info("Added stencil highlight for entity $entity");
   }
 
   ///

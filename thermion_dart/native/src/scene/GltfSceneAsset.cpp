@@ -171,6 +171,7 @@ namespace thermion
             size_t instEntityCount = instance->getEntityCount();
             size_t totalBuffers = _preservedVertexBuffers.size();
             size_t bufferIndex = 0;
+            size_t appliedCount = 0;
             for (size_t ei = 0; ei < instEntityCount && bufferIndex < totalBuffers; ei++)
             {
                 auto instRi = rm.getInstance(instEntities[ei]);
@@ -179,15 +180,24 @@ namespace thermion
                 size_t primCount = rm.getPrimitiveCount(instRi);
                 for (size_t pi = 0; pi < primCount && bufferIndex < totalBuffers; pi++)
                 {
+                    // Placeholder slots (non-triangle prims, or entities
+                    // that had no mesh match): leave the gltfio-built
+                    // geometry on this primitive untouched.
+                    if (!_preservedVertexBuffers[bufferIndex])
+                    {
+                        bufferIndex++;
+                        continue;
+                    }
                     rm.setGeometryAt(instRi, pi,
                                      RenderableManager::PrimitiveType::TRIANGLES,
                                      _preservedVertexBuffers[bufferIndex],
                                      _preservedIndexBuffers[bufferIndex],
                                      0, _preservedIndexCounts[bufferIndex]);
                     bufferIndex++;
+                    appliedCount++;
                 }
             }
-            TRACE("createInstance: applied %zu preserved geometry buffers to new instance", bufferIndex);
+            TRACE("createInstance: applied %zu preserved geometry buffers to new instance", appliedCount);
         }
 
         std::unique_ptr<GltfSceneAssetInstance> sceneAssetInstance = std::make_unique<GltfSceneAssetInstance>(
@@ -276,13 +286,11 @@ namespace thermion
         std::vector<MeshEntry> meshEntries;
         collectAllMeshEntries(sourceData, meshEntries);
 
-        // Use instance 0's getEntities() (filtered to renderables) instead of
-        // getRenderableEntities(). This ensures the primary loop enumerates
-        // entities in the same order as the instance update loops, so sequential
-        // buffer indexing is correct across all instances.
-        auto *primaryInstance = _asset->getAssetInstances()[0];
-        auto *allEntities = primaryInstance->getEntities();
-        size_t allEntityCount = primaryInstance->getEntityCount();
+        // Use the root asset's getEntities() to match what getChildEntities() returns.
+        // This ensures the entity enumeration order is consistent between rebuild
+        // and queries.
+        auto *allEntities = _asset->getEntities();
+        size_t allEntityCount = _asset->getEntityCount();
         auto &rm = _engine->getRenderableManager();
 
         TRACE("rebuildVertexBuffers: meshEntries=%zu entityCount=%zu nodes=%zu",
@@ -299,6 +307,10 @@ namespace thermion
             if (!ri.isValid())
                 continue;
 
+            // Store the mapping from entity to its starting primitive offset
+            // BEFORE processing this entity's primitives
+            _entityToPrimitiveOffset[utils::Entity::smuggle(entity)] = _preservedVertexBuffers.size();
+
             const cgltf_mesh *mesh = findMeshForEntity(entity, _ncm, meshEntries);
             if (!mesh)
             {
@@ -311,7 +323,22 @@ namespace thermion
                 }
                 else
                 {
-                    TRACE("rebuildVertexBuffers: no mesh (named or fallback) for entity %zu", ei);
+                    // Pad placeholder slots so _preservedVertexBuffers stays
+                    // 1:1 with the renderable's primitives. Downstream code
+                    // (Dart's getFlatPrimitiveIndex, the per-instance update
+                    // loops below) treats each slot as "the i-th renderable
+                    // primitive of this asset" — skipping silently here would
+                    // shift every subsequent entity's flat index.
+                    size_t skippedPrimCount = rm.getPrimitiveCount(ri);
+                    TRACE("rebuildVertexBuffers: no mesh (named or fallback) for entity %zu — padding %zu placeholder slots", ei, skippedPrimCount);
+                    for (size_t pi = 0; pi < skippedPrimCount; pi++)
+                    {
+                        _preservedVertexBuffers.push_back(nullptr);
+                        _preservedIndexBuffers.push_back(nullptr);
+                        _preservedIndexCounts.push_back(0);
+                        _smoothTangentBOs.push_back(nullptr);
+                        _flatTangentBOs.push_back(nullptr);
+                    }
                     continue;
                 }
             }
@@ -322,7 +349,18 @@ namespace thermion
 
                 if (prim.type != cgltf_primitive_type_triangles)
                 {
-                    TRACE("rebuildVertexBuffers: skipping non-triangle primitive");
+                    // Push a placeholder so _preservedVertexBuffers stays
+                    // 1:1 with the renderable's primitives. The unweld +
+                    // barycentric pipeline only makes sense for triangles,
+                    // so we leave the gltfio-built geometry untouched on
+                    // this primitive. Callers (e.g. setStencilHighlight)
+                    // null-check getPreservedVertexBuffer.
+                    TRACE("rebuildVertexBuffers: placeholder for non-triangle primitive at entity %zu prim %zu", ei, pi);
+                    _preservedVertexBuffers.push_back(nullptr);
+                    _preservedIndexBuffers.push_back(nullptr);
+                    _preservedIndexCounts.push_back(0);
+                    _smoothTangentBOs.push_back(nullptr);
+                    _flatTangentBOs.push_back(nullptr);
                     continue;
                 }
 
@@ -759,6 +797,13 @@ namespace thermion
                 size_t primCount = rm.getPrimitiveCount(instRi);
                 for (size_t pi = 0; pi < primCount && bufferIndex < totalBuffers; pi++)
                 {
+                    // Placeholder slots: skip — the gltfio-built geometry
+                    // remains in place on this primitive.
+                    if (!_preservedVertexBuffers[bufferIndex])
+                    {
+                        bufferIndex++;
+                        continue;
+                    }
                     rm.setGeometryAt(instRi, pi,
                                      RenderableManager::PrimitiveType::TRIANGLES,
                                      _preservedVertexBuffers[bufferIndex],
@@ -772,6 +817,16 @@ namespace thermion
         _geometryPreserved = true;
     }
 
+    int GltfSceneAsset::getPrimitiveOffsetForEntity(utils::Entity entity) const
+    {
+        auto it = _entityToPrimitiveOffset.find(utils::Entity::smuggle(entity));
+        if (it == _entityToPrimitiveOffset.end())
+        {
+            return -1; // Entity not found or has no preserved geometry
+        }
+        return it->second;
+    }
+
     void GltfSceneAsset::setFlatShading(bool flatShading)
     {
         if (flatShading == _flatShading)
@@ -781,6 +836,12 @@ namespace thermion
         size_t count = _preservedVertexBuffers.size();
         for (size_t i = 0; i < count; i++)
         {
+            // Placeholder slots (non-triangle prims, missing-mesh entities)
+            // have no preserved vertex buffer or tangent BOs. Skip them —
+            // their original gltfio geometry is unaffected by flat-shading
+            // toggling because we never replaced it.
+            if (!_preservedVertexBuffers[i])
+                continue;
             auto *bo = flatShading ? _flatTangentBOs[i] : _smoothTangentBOs[i];
             _preservedVertexBuffers[i]->setBufferObjectAt(*_engine, 1, bo);
         }

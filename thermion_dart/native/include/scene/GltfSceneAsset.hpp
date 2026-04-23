@@ -1,7 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
+
+#include "../c_api/APIBoundaryTypes.h"
 
 #include <filament/BufferObject.h>
 #include <filament/Engine.h>
@@ -177,6 +180,11 @@ namespace thermion
             return _preservedVertexBuffers.size();
         }
 
+        /// Returns the starting primitive offset for the given entity, or -1 if
+        /// the entity has no preserved geometry (e.g., non-triangle primitives
+        /// or no mesh match during rebuild).
+        int getPrimitiveOffsetForEntity(utils::Entity entity) const;
+
         size_t getBoneCount(size_t skinIndex) const override;
         const utils::Entity *getBones(size_t skinIndex) const override;
         const char *getBoneName(size_t skinIndex, size_t boneIndex) const override;
@@ -201,6 +209,11 @@ namespace thermion
         std::vector<BufferObject*> _preservedBufferObjects;
         std::vector<BufferObject*> _smoothTangentBOs;
         std::vector<BufferObject*> _flatTangentBOs;
+
+        // Map from entity ID to starting offset in _preservedVertexBuffers.
+        // Built during rebuildVertexBuffers to enable O(1) lookup.
+        // Uses EntityId (int32_t) instead of utils::Entity for hashability.
+        std::unordered_map<EntityId, size_t> _entityToPrimitiveOffset;
     };
 
 } // namespace thermion

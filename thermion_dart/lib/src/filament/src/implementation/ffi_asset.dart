@@ -881,6 +881,18 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     return FilamentApp.instance!.getPrimitiveCount(entity ??= this.entity);
   }
 
+  /// Returns the starting primitive offset for the given entity, or -1 if
+  /// the entity has no preserved geometry (e.g., non-triangle primitives
+  /// or no mesh match during rebuild).
+  ///
+  /// This is used by setStencilHighlight to map from a Filament entity to
+  /// the corresponding offset in the preserved buffer arrays. The offset
+  /// points to the entity's first primitive; if the entity has multiple
+  /// primitives, they occupy consecutive indices [offset, offset + primitiveCount).
+  Future<int> getPrimitiveOffsetForEntity(ThermionEntity entity) async {
+    return SceneAsset_getPrimitiveOffsetForEntity(asset, entity);
+  }
+
   //
   @override
   Future<bool> containsChild(ThermionEntity entity) async {

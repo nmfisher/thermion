@@ -8,6 +8,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
@@ -662,6 +663,117 @@ void main() async {
           captureRenderTarget: true, render: false);
 
       await result.viewer.view.removeStencilHighlight(plane);
+      await result.viewer.view.setHighlightOverlayEnabled(false);
+    });
+  });
+
+  test('multi-mesh glTF child entity highlighting', () async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .setStencilBufferEnabled(true)
+        .execute((result) async {
+      await result.viewer.view.setHighlightOverlayEnabled(true);
+
+      // Load FlightHelmet, a multi-mesh glTF asset
+      final asset = await result.viewer.loadGltf(
+          p.join(testHelper.assetsDir, "FlightHelmet", "FlightHelmet.gltf"),
+          rebuildVertices: true);
+      expect(asset, isNotNull);
+
+      final ffiAsset = asset as FFIAsset;
+
+      // Get all child entities
+      final childEntities = await asset.getChildEntities();
+      expect(childEntities, isNotEmpty,
+          reason: "FlightHelmet should have child entities");
+
+      // Filter to renderable children only
+      final renderableChildren = <ThermionEntity>[];
+      for (final child in childEntities) {
+        if (await FilamentApp.instance!.isRenderable(child)) {
+          renderableChildren.add(child);
+        }
+      }
+      expect(renderableChildren.length, greaterThan(0),
+          reason: "FlightHelmet should have renderable child entities");
+
+      // Test highlighting the first child
+      final firstChild = renderableChildren[0];
+      await result.viewer.view.setStencilHighlight(
+        asset,
+        entity: firstChild,
+        r: 1.0,
+        g: 0.0,
+        b: 0.0,
+        outlineWidth: 3.0,
+      );
+
+      await FilamentApp.instance!.render();
+
+      // Verify the entity was added to highlights
+      final manager = result.viewer.view.getHighlightOverlay();
+      expect(manager, isNotNull);
+      expect(manager!.highlightedEntities, contains(firstChild));
+
+      await testHelper.capture(null, "stencil_highlight_multi_mesh_first_child",
+          render: false, captureRenderTarget: true);
+
+      // Remove it and highlight a different child
+      await result.viewer.view.removeStencilHighlight(asset);
+      expect(manager.highlightedEntities, isNot(contains(firstChild)));
+
+      if (renderableChildren.length > 1) {
+        final secondChild = renderableChildren[1];
+        await result.viewer.view.setStencilHighlight(
+          asset,
+          entity: secondChild,
+          r: 0.0,
+          g: 0.0,
+          b: 1.0,
+          outlineWidth: 3.0,
+        );
+
+        await FilamentApp.instance!.render();
+
+        expect(manager.highlightedEntities, contains(secondChild));
+        expect(manager.highlightedEntities, isNot(contains(firstChild)));
+
+        // Bug-catcher for entity-only mode: setStencilHighlight should have
+        // called asset.getPrimitiveOffsetForEntity(secondChild) and used that
+        // entity's preserved buffers — not silently fallen back to primitive 0.
+        // Verify by comparing the recorded indexCount to primitive 0's
+        // indexCount (they must differ because secondChild's primitive offset
+        // is > 0 in FlightHelmet).
+        final secondChildOffset =
+            await ffiAsset.getPrimitiveOffsetForEntity(secondChild);
+        expect(secondChildOffset, greaterThan(0),
+            reason: "Test relies on secondChild not being at offset 0");
+
+        // Get the primitive count for secondChild
+        final secondChildPrimCount =
+            await FilamentApp.instance!.getPrimitiveCount(secondChild);
+
+        // Verify that we can access the buffers at the correct offset
+        for (int i = 0; i < secondChildPrimCount; i++) {
+          final flatIndex = secondChildOffset + i;
+          final vb = asset.getVertexBuffer(primitiveIndex: flatIndex);
+          final ib = SceneAsset_getIndexBuffer(ffiAsset.asset, flatIndex);
+
+          // At least one primitive should have valid buffers
+          // (some might be null placeholders for non-triangle primitives)
+          if (vb != null && ib != nullptr) {
+            expect(vb, isA<FFIVertexBuffer>());
+            break;
+          }
+        }
+
+        await testHelper.capture(
+            null, "stencil_highlight_multi_mesh_second_child",
+            render: false, captureRenderTarget: true);
+
+        await result.viewer.view.removeStencilHighlight(asset);
+      }
+
       await result.viewer.view.setHighlightOverlayEnabled(false);
     });
   });

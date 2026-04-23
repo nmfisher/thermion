@@ -257,6 +257,16 @@ extern "C"
         return nullptr;
     }
 
+    EMSCRIPTEN_KEEPALIVE int SceneAsset_getPrimitiveOffsetForEntity(TSceneAsset *tSceneAsset, EntityId entity) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            return -1;
+        }
+        auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+        // Convert EntityId to utils::Entity for the internal method
+        return gltfSceneAsset->getPrimitiveOffsetForEntity(utils::Entity::import(entity));
+    }
+
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);

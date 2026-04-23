@@ -14,6 +14,7 @@ abstract class HighlightOverlayManager {
   Future setRenderTarget(View mainView, RenderTarget renderTarget);
   Future destroy();
   bool isInternalRenderTarget(RenderTarget renderTarget);
+  Set<ThermionEntity> get highlightedEntities;
 
   Future<void> addHighlight({
     required ThermionEntity target,
@@ -101,6 +102,9 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   final EdgeDetectionView overlayView;
 
   final _highlightedEntities = <ThermionEntity>{};
+
+  @override
+  Set<ThermionEntity> get highlightedEntities => Set.unmodifiable(_highlightedEntities);
 
   // State
   View? _mainView;
