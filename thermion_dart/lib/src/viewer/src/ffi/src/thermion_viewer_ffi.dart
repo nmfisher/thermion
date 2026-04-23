@@ -835,15 +835,18 @@ class ThermionViewerFFI extends ThermionViewer {
 
     final boundingBox = await asset.getBoundingBox();
 
+    // Aabb3.min/max are absolute object-space corners, not offsets from
+    // center. The wireframe asset is parented to `asset` below, so these
+    // values are already in the right frame.
     final min = [
-      boundingBox.center.x + boundingBox.min.x,
-      boundingBox.center.y + boundingBox.min.y,
-      boundingBox.center.z + boundingBox.min.z
+      boundingBox.min.x,
+      boundingBox.min.y,
+      boundingBox.min.z,
     ];
     final max = [
-      boundingBox.center.x + boundingBox.max.x,
-      boundingBox.center.y + boundingBox.max.y,
-      boundingBox.center.z + boundingBox.max.z
+      boundingBox.max.x,
+      boundingBox.max.y,
+      boundingBox.max.z,
     ];
 
     // Create vertices for the bounding box wireframe
