@@ -342,12 +342,12 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   void _reportTransformChange() async {
     if (_currentTarget == null || _gizmo == null) return;
 
-    // final attachment = _gizmo!.attachment;
-    // if (attachment == null) return;
-
-    // final transform = await FilamentApp.instance!.transformManager
-    //     .getWorldTransform(attachment.entity);
-    // onTransformChanged?.call(transform);
+    // Use the last computed world transform from the gizmo to avoid
+    // floating point drift from reading back via getWorldTransform
+    final transform = _gizmo!.lastComputedWorldTransform;
+    if (transform != null) {
+      onTransformChanged?.call(transform);
+    }
   }
 
   @override
