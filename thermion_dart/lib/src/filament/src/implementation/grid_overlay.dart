@@ -137,11 +137,11 @@ class GridOverlay {
   static Future<GridOverlay> create({
     List<LinearColor> axisColors = kDefaultAxisColors,
     LinearColor gridColor = kDefaultGridColor,
-    List<double> spacing = const [1.0, 10.0, 100.0],
-    List<double> fadeInStart = const [0.001, 5.0, 50.0],
-    List<double> fadeInEnd = const [0.001, 50.0, 500.0],
-    List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
-    List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0],
+    List<double> spacing = const [1.0, 10.0, 100.0, 1000.0, 10000.0],
+    List<double> fadeInStart = const [0.001, 5.0, 50.0, 500.0, 5000.0],
+    List<double> fadeInEnd = const [0.001, 50.0, 500.0, 5000.0, 50000.0],
+    List<double> fadeOutStart = const [10.0, 500.0, 5000.0, 50000.0, 500000.0],
+    List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0, 200000.0, 2000000.0],
   }) async {
     if (_instance != null) {
       return _instance!;
@@ -177,10 +177,10 @@ class GridOverlay {
     final indexBuffer = await ibBuilder.build();
     await indexBuffer.setBuffer(indices);
 
-    // Create the 3 LOD levels
+    final levelCount = spacing.length;
     final levels = <_GridLevel>[];
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < levelCount; i++) {
       // Create entity
       final entity = await app.createEntity();
 
@@ -196,15 +196,15 @@ class GridOverlay {
           'axisColorY', axisColors[1].r, axisColors[1].g, axisColors[1].b);
       await materialInstance.setParameterFloat3(
           'axisColorZ', axisColors[2].r, axisColors[2].g, axisColors[2].b);
-      await materialInstance.setParameterFloat('distance', 10000.0);
+      await materialInstance.setParameterFloat('distance', spacing[i] * 100.0);
       await materialInstance.setParameterFloat('interval', spacing[i]);
       await materialInstance.setParameterFloat('fadeInStart', fadeInStart[i]);
       await materialInstance.setParameterFloat('fadeInEnd', fadeInEnd[i]);
       await materialInstance.setParameterFloat('fadeOutStart', fadeOutStart[i]);
       await materialInstance.setParameterFloat('fadeOutEnd', fadeOutEnd[i]);
 
-      // Show axis lines only on the largest grid (index 2)
-      if (i == 2) {
+      // Show axis lines only on the largest grid level
+      if (i == levelCount - 1) {
         await materialInstance.setParameterBool('showAxisX', true);
         await materialInstance.setParameterBool('showAxisZ', true);
       }
