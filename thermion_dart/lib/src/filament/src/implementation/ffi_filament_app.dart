@@ -914,7 +914,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       for (int i = 0; i < resourceUriCount; i++) {
         final resourceUriDart = resourceUris[i].cast<Utf8>().toDartString();
-        final resolvedResourceUri = "${resourceUri ?? ""}${resourceUriDart}";
+
+        // glTF URIs are percent-encoded (e.g. "City%20Atlas.png"), decode
+        // for the filesystem so the OS file API finds the real filename.
+        var resolvedResourceUri =
+            "${resourceUri ?? ""}${Uri.decodeFull(resourceUriDart)}";
 
         final resourceData = await loadResource(resolvedResourceUri);
 
