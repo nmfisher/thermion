@@ -26,9 +26,15 @@ bool loopExitTimeValid = false;
 
 static void mainLoop(void* arg) {
     auto *rt = static_cast<RenderThread *>(arg);
-    if (!rt->mStop) {
-        rt->iter();
+    // If the render thread has been asked to stop, break the loop and exit immediately.
+    if (rt->mStop) {
+        emscripten_cancel_main_loop();
+        loopExitTime = std::chrono::high_resolution_clock::now();
+        loopExitTimeValid = true;
+        return;
     }
+
+    rt->iter();
     loopExitTime = std::chrono::high_resolution_clock::now();
     loopExitTimeValid = true;
 }
@@ -82,7 +88,11 @@ RenderThread::~RenderThread()
         _tasks.pop_front();
         task();
     }
-    #ifndef __EMSCRIPTEN__
+
+    #ifdef __EMSCRIPTEN__
+    // Waiting for the main loop to exit before continuing
+    pthread_join(t, nullptr);
+    #else
     t->join();
     delete t;
     #endif
