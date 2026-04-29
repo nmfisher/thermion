@@ -119,6 +119,11 @@ abstract class FilamentApp<T> {
   Future<LinearImage> createImage(int width, int height, int channels);
 
   //
+  Future<Material> createGizmoMaterial();
+
+  Future<Material> createBoneOverlayMaterial();
+
+  //
   Future<Material> createMaterial(Uint8List data);
 
   //

@@ -1,0 +1,46 @@
+material {
+    name : BoneOverlay,
+    requires : [ position, tangents ],
+    parameters : [
+        { type : float4, name : baseColorFactor }
+    ],
+    variables : [
+        surfaceNormal
+    ],
+    depthWrite : true,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : back
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // worldNormal is available when tangents are required
+        // Pass it to fragment shader via custom variable
+        material.surfaceNormal.xyz = material.worldNormal;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        // Get world-space normal from vertex shader
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+
+        // Get view direction (camera to fragment)
+        vec3 viewDir = normalize(getWorldCameraPosition() - getWorldPosition().xyz);
+
+        // View-dependent lighting: surfaces facing camera are brighter
+        float viewDot = abs(dot(normal, viewDir));
+
+        // Ambient + diffuse based on view angle
+        float lighting = 0.3 + viewDot * 0.7;
+
+        // Apply lighting to base color
+        vec3 litColor = materialParams.baseColorFactor.rgb * lighting;
+        material.baseColor = vec4(litColor, materialParams.baseColorFactor.a);
+        material.baseColor.rgb *= material.baseColor.a;
+    }
+}

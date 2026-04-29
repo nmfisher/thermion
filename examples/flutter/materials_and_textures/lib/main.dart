@@ -97,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       _asset = await _viewer!.createGeometry(
-        GeometryHelper.cube(),
+        CubeGeometry.cube(),
         materialInstances: [_unlitMaterial],
       );
 

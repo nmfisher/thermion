@@ -4,6 +4,18 @@ import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
+/// Get the parent bone index for a bone.
+///
+/// Returns -1 if the bone has no parent (root bone) or parent is not in the bone list.
+Future<int> getBoneParentIndex(ThermionAsset asset, int skinIndex, int boneIndex) async {
+  final bones = await asset.getBones(skinIndex: skinIndex);
+  if (boneIndex < 0 || boneIndex >= bones.length) return -1;
+  final boneEntity = bones[boneIndex];
+  final parentEntity = await FilamentApp.instance!.getParent(boneEntity);
+  if (parentEntity == null) return -1;
+  return bones.indexOf(parentEntity);
+}
+
 void main() async {
   final testHelper = TestHelper("gizmo_rotation");
   await testHelper.setup();
@@ -12,7 +24,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
       final assetData =
-          File('${testHelper.assetsDir}/cube_with_armature.glb')
+          File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
       final asset =
           await viewer.loadGltfFromBuffer(assetData);
@@ -25,13 +37,13 @@ void main() async {
       // Get bone entities
       final am = FilamentApp.instance!.animationManager;
       final tm = FilamentApp.instance!.transformManager;
-      final boneEntities = am.getBoneEntities(asset, 0);
+      final boneEntities = await asset.getBones(skinIndex: 0);
       print('Found ${boneEntities.length} bones');
 
       // Use the CHILD bone (index 1) - this has a parent
       final boneIndex = boneEntities.length > 1 ? 1 : 0;
       final boneEntity = boneEntities[boneIndex];
-      final parentBoneIndex = am.getBoneParent(asset, 0, boneIndex);
+      final parentBoneIndex = await getBoneParentIndex(asset, 0, boneIndex);
       print('Using bone $boneIndex (entity $boneEntity), parent: $parentBoneIndex');
 
       // Track transforms received by callback
@@ -168,10 +180,10 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
       final assetData =
-          File('${testHelper.assetsDir}/cube_with_armature.glb')
+          File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
       final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+          await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -179,8 +191,7 @@ void main() async {
           direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0));
 
       // Get bone entities
-      final boneEntities =
-          FilamentApp.instance!.animationManager.getBoneEntities(asset, 0);
+      final boneEntities = await asset.getBones(skinIndex: 0);
       print('Found ${boneEntities.length} bones');
 
       if (boneEntities.isEmpty) {
@@ -197,7 +208,7 @@ void main() async {
       await gizmo.create(type: TransformationGizmoType.rotation);
 
       // Attach to bone
-      await gizmo.attachTo(boneEntity);
+      gizmo.attachTo(boneEntity);
 
       // Get initial gizmo position
       final tm = FilamentApp.instance!.transformManager;
@@ -315,10 +326,10 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
       final assetData =
-          File('${testHelper.assetsDir}/cube_with_armature.glb')
+          File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
       final asset =
-          await viewer.loadGltfFromBuffer(assetData, keepData: true);
+          await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -326,8 +337,7 @@ void main() async {
           direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0));
 
       final tm = FilamentApp.instance!.transformManager;
-      final boneEntities =
-          FilamentApp.instance!.animationManager.getBoneEntities(asset, 0);
+      final boneEntities = await asset.getBones(skinIndex: 0);
 
       final boneEntity = boneEntities[0];
 
