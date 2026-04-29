@@ -1,0 +1,29 @@
+material {
+    name : GizmoOverlay,
+    requires : [ position ],
+    parameters : [
+        {
+            type : float4,
+            name : baseColorFactor
+        }
+    ],
+    depthWrite : true,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending: transparent,
+    culling: back 
+}
+  
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);           
+        
+        // Simple flat color
+        material.baseColor = materialParams.baseColorFactor;
+        
+        // Pre-multiply alpha for correct transparency blending
+        material.baseColor.rgb *= material.baseColor.a;
+
+        gl_FragDepth = 0.999f;
+    }
+}

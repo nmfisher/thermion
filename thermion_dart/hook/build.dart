@@ -1,3 +1,4 @@
+
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
@@ -109,6 +110,8 @@ outputDirectory : ${outputDirectory.path}
       'edge_outline': 'native/include/material/edge_outline.c',
       'wireframe': 'native/include/material/wireframe.c',
       'translation_axis': 'native/include/material/translation_axis.c',
+      'gizmo': 'native/include/material/gizmo.c',
+      'bone_overlay': 'native/include/material/bone_overlay.c',
     };
 
     // Add gizmo resources (always included)

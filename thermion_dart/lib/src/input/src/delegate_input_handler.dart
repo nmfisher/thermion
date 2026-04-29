@@ -9,6 +9,11 @@ abstract class InputHandlerDelegate {
   Future handle(List<InputEvent> events) async {
     // noop, override to implement
   }
+
+  // Whether this delegate has consumed the most recent batch of events.
+  // When true, [ChainedDelegate] will stop propagating to subsequent delegates.
+  bool get consumesEvents => false;
+
   Future dispose() async {
     // noop, override if you need
   }
