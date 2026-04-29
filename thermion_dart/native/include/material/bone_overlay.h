@@ -3,11 +3,16 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
     extern const uint8_t BONE_OVERLAY_PACKAGE[];
-    extern int BONE_OVERLAY_BONE_OVERLAY_OFFSET;
-    extern int BONE_OVERLAY_BONE_OVERLAY_SIZE;
+#ifdef __cplusplus
 }
+#endif
+
+#define BONE_OVERLAY_BONE_OVERLAY_OFFSET 0
+#define BONE_OVERLAY_BONE_OVERLAY_SIZE 128382
 #define BONE_OVERLAY_BONE_OVERLAY_DATA (BONE_OVERLAY_PACKAGE + BONE_OVERLAY_BONE_OVERLAY_OFFSET)
 
 #endif
