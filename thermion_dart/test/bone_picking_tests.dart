@@ -88,6 +88,17 @@ class BoneVisualizer {
     return _entityToBoneIndex[entity];
   }
 
+  /// Get the parent bone index for a bone.
+  ///
+  /// Returns -1 if the bone has no parent (root bone) or parent is not in the bone list.
+  Future<int> _getBoneParentIndex(int boneIndex, List<ThermionEntity> bones) async {
+    if (boneIndex < 0 || boneIndex >= bones.length) return -1;
+    final boneEntity = bones[boneIndex];
+    final parentEntity = await FilamentApp.instance!.getParent(boneEntity);
+    if (parentEntity == null) return -1;
+    return bones.indexOf(parentEntity);
+  }
+
   /// Get the bone entity for a given bone index.
   ///
   /// Returns null if the index is out of range or visualization is not visible.
@@ -226,13 +237,12 @@ class BoneVisualizer {
       return;
     }
 
-    final am = FilamentApp.instance!.animationManager;
     final tm = FilamentApp.instance!.transformManager;
 
     // Build parent-child mapping
     _childrenOf = {};
     for (int i = 0; i < boneCount; i++) {
-      final parentIdx = am.getBoneParent(asset, skinIndex, i);
+      final parentIdx = await _getBoneParentIndex(i, boneEntities);
       if (parentIdx >= 0) {
         _childrenOf.putIfAbsent(parentIdx, () => []).add(i);
       }
@@ -265,7 +275,7 @@ class BoneVisualizer {
       final children = _childrenOf[i] ?? [];
       if (children.isEmpty) {
         // Leaf bone: use parent's length
-        final parentIdx = am.getBoneParent(asset, skinIndex, i);
+        final parentIdx = await _getBoneParentIndex(i, boneEntities);
         if (parentIdx >= 0) {
           boneLengths[i] = boneLengths[parentIdx];
         }
@@ -290,7 +300,7 @@ class BoneVisualizer {
       final boneEntity = boneEntities[i];
       if (boneEntity == 0) continue;
 
-      final parentIndex = am.getBoneParent(asset, skinIndex, i);
+      final parentIndex = await _getBoneParentIndex(i, boneEntities);
       final boneLength = boneLengths[i];
 
       // Get bone transform

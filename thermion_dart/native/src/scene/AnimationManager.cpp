@@ -462,31 +462,6 @@ namespace thermion
         TRACE("Removed bone animation component");
     }
 
-    int AnimationManager::getBoneParent(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex)
-    {
-        auto &transformManager = mEngine->getTransformManager();
-        auto *filamentInstance = instance->getInstance();
-
-        auto *joints = filamentInstance->getJointsAt(skinIndex);
-        auto jointCount = filamentInstance->getJointCountAt(skinIndex);
-
-        if (boneIndex < 0 || boneIndex >= jointCount) {
-            return -1;
-        }
-
-        Entity boneEntity = joints[boneIndex];
-        auto boneInstance = transformManager.getInstance(boneEntity);
-        Entity parentEntity = transformManager.getParent(boneInstance);
-
-        for (int i = 0; i < jointCount; i++) {
-            if (joints[i] == parentEntity) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
     bool AnimationManager::addMorphAnimationComponent(utils::Entity entity)
     {
         std::lock_guard lock(mMutex);

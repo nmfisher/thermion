@@ -478,22 +478,4 @@ extern "C"
         std::string name = names[index];
         strcpy(outPtr, name.c_str());
     }
-
-    EMSCRIPTEN_KEEPALIVE int AnimationManager_getBoneParent(
-        TAnimationManager *tAnimationManager,
-        TSceneAsset *tSceneAsset,
-        int skinIndex,
-        int boneIndex)
-    {
-        auto *animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
-        auto *asset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-
-        if (asset->getType() != SceneAsset::SceneAssetType::Gltf || !asset->isInstance())
-        {
-            return -1;
-        }
-
-        auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset);
-        return animationManager->getBoneParent(instance, skinIndex, boneIndex);
-    }
 }

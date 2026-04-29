@@ -173,10 +173,6 @@ namespace thermion
         /// @param instance
         void removeBoneAnimationComponent(GltfSceneAssetInstance *instance);
 
-        /// Gets the parent bone index for a specific bone in a skin.
-        /// Returns -1 if the bone has no parent (root bone).
-        int getBoneParent(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex);
-
         /// @param asset
         /// @return
         bool addMorphAnimationComponent(utils::Entity entity);

@@ -119,12 +119,6 @@ extern "C"
 		float timeInSeconds
 	);
 
-	EMSCRIPTEN_KEEPALIVE int AnimationManager_getBoneParent(
-		TAnimationManager *tAnimationManager,
-		TSceneAsset *tSceneAsset,
-		int skinIndex,
-		int boneIndex);
-
 #ifdef __cplusplus
 }
 #endif
