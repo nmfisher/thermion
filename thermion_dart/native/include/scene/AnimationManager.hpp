@@ -173,6 +173,7 @@ namespace thermion
         /// @param instance
         void removeBoneAnimationComponent(GltfSceneAssetInstance *instance);
 
+        
         /// @param asset
         /// @return
         bool addMorphAnimationComponent(utils::Entity entity);
