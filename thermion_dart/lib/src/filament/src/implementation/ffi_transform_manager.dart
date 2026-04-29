@@ -102,6 +102,26 @@ class FFITransformManager
   }
 
   @override
+  Future setTransformAsync(ThermionEntity entity, Matrix4 transform) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      stackPtr = stackSave();
+    }
+
+    await withVoidCallback((requestId, cb) =>
+        bindings.TransformManager_setTransformRenderThread(
+            transformManager,
+            entity,
+            matrix4ToDouble4x4(transform),
+            requestId,
+            cb));
+
+    if (FILAMENT_WASM) {
+      stackRestore(stackPtr);
+    }
+  }
+
+  @override
   bool transformToUnitCube(ThermionEntity entity, Aabb3 boundingBox) {
     // Convert Aabb3 to C struct format
     final cAabb = bindings.StructAllocator.create<bindings.Aabb3>();
