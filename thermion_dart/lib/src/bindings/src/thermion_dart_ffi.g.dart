@@ -252,11 +252,6 @@ external ffi.Pointer<TMaterial> Material_createTranslationAxisMaterial(
   ffi.Pointer<TEngine> tEngine,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createBoneOverlayMaterial(
-  ffi.Pointer<TEngine> tEngine,
-);
-
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external bool Material_hasParameter(
@@ -5856,16 +5851,6 @@ external bool AnimationManager_setGltfAnimationTime(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
   double timeInSeconds,
-);
-
-@ffi.Native<
-    ffi.Int Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>,
-        ffi.Int, ffi.Int)>(isLeaf: true)
-external int AnimationManager_getBoneParent(
-  ffi.Pointer<TAnimationManager> tAnimationManager,
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-  int skinIndex,
-  int boneIndex,
 );
 
 @ffi.Native<ffi.Uint32 Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
