@@ -5,8 +5,9 @@ for material in image unlit_fixed_size grid linear_depth silhouette edge_outline
     echo '#include "'$material'.h"' | cat - thermion_dart/native/include/material/$material.c > thermion_dart/native/include/material/$material.c.new; \
     mv thermion_dart/native/include/material/$material.c.new thermion_dart/native/include/material/$material.c; \
     # Add #ifdef __cplusplus guards around extern "C" in the header file
-    sed -i '' 's/extern "C" {/#ifdef __cplusplus\nextern "C" {\n#endif/' thermion_dart/native/include/material/$material.h; \
-    sed -i '' 's/^}$/#ifdef __cplusplus\n}\n#endif/' thermion_dart/native/include/material/$material.h; \
+    # Use perl for portability between macOS and Linux sed
+    perl -i -pe 's/extern "C" {/#ifdef __cplusplus\nextern "C" {\n#endif/' thermion_dart/native/include/material/$material.h; \
+    perl -i -pe 's/^}$/#ifdef __cplusplus\n}\n#endif/' thermion_dart/native/include/material/$material.h; \
 done
 
 # Compile example asset materials (no embedded resources)
