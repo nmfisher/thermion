@@ -284,8 +284,8 @@ class BoneVisualizer {
     }
 
     // Create shared geometry
-    final sphereGeom = GeometryHelper.sphere(normals: true, uvs: false);
-    final cylinderGeom = GeometryHelper.cylinder(
+    final sphereGeom = SphereGeometry.sphere(normals: true, uvs: false);
+    final cylinderGeom = CylinderGeometry.cylinder(
       radius: 1.0, // Unit cylinder, will be scaled
       length: 1.0,
       normals: true,
