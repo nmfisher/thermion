@@ -1,7 +1,6 @@
 library;
 
 export 'src/bone_data.dart';
-export 'src/geometry/aabb.dart';
 export 'src/geometry/camera.dart';
 export 'src/geometry/capsule.dart';
 export 'src/geometry/cone.dart';
