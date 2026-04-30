@@ -355,7 +355,10 @@ namespace thermion
         );
         EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void FilamentAsset_getWireframeRenderThread(TFilamentAsset *tFilamentAsset, void (*onComplete)(EntityId));
+        EMSCRIPTEN_KEEPALIVE void Scene_addEntityRenderThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Scene_removeEntityRenderThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_addToSceneRenderThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromSceneRenderThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Scene_setSkyboxRenderThread(TScene *tScene, TSkybox *tSkybox, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLightRenderThread(TScene *tScene, TIndirectLight *tIndirectLight, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Gizmo_createRenderThread(
@@ -429,6 +432,15 @@ namespace thermion
             TTransformManager *tTransformManager,
             EntityId entityId,
             double4x4 transform,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        EMSCRIPTEN_KEEPALIVE void TransformManager_setParentRenderThread(
+            TTransformManager *tTransformManager,
+            EntityId child,
+            EntityId parent,
+            bool preserveScaling,
             uint32_t requestId,
             VoidCallback onComplete
         );
