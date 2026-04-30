@@ -2887,9 +2887,27 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TFilamentAsset> tFilamentAsset,
     Pointer<NativeFunction<void Function(EntityId)>> onComplete,
   );
+  external void _Scene_addEntityRenderThread(
+    Pointer<TScene> tScene,
+    EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _Scene_removeEntityRenderThread(
     Pointer<TScene> tScene,
     EntityId entityId,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _SceneAsset_addToSceneRenderThread(
+    Pointer<TSceneAsset> tSceneAsset,
+    Pointer<TScene> tScene,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _SceneAsset_removeFromSceneRenderThread(
+    Pointer<TSceneAsset> tSceneAsset,
+    Pointer<TScene> tScene,
     int requestId,
     VoidCallback onComplete,
   );
@@ -2978,6 +2996,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
     Pointer<double4x4> transformPtr,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _TransformManager_setParentRenderThread(
+    Pointer<TTransformManager> tTransformManager,
+    EntityId child,
+    EntityId parent,
+    bool preserveScaling,
     int requestId,
     VoidCallback onComplete,
   );
@@ -9568,6 +9594,20 @@ void FilamentAsset_getWireframeRenderThread(
   return result;
 }
 
+void Scene_addEntityRenderThread(
+  Pointer<TScene> tScene,
+  DartEntityId entityId,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._Scene_addEntityRenderThread(
+      tScene.cast(),
+      entityId,
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
 void Scene_removeEntityRenderThread(
   Pointer<TScene> tScene,
   DartEntityId entityId,
@@ -9579,6 +9619,35 @@ void Scene_removeEntityRenderThread(
       entityId,
       requestId,
       onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void SceneAsset_addToSceneRenderThread(
+  Pointer<TSceneAsset> tSceneAsset,
+  Pointer<TScene> tScene,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._SceneAsset_addToSceneRenderThread(
+      tSceneAsset.cast(),
+      tScene.cast(),
+      requestId,
+      onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void SceneAsset_removeFromSceneRenderThread(
+  Pointer<TSceneAsset> tSceneAsset,
+  Pointer<TScene> tScene,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._SceneAsset_removeFromSceneRenderThread(
+          tSceneAsset.cast(),
+          tScene.cast(),
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;
 }
 
@@ -9775,6 +9844,25 @@ void TransformManager_setTransformRenderThread(
           tTransformManager.cast(),
           entityId,
           transformPtr.cast(),
+          requestId,
+          onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
+  return result;
+}
+
+void TransformManager_setParentRenderThread(
+  Pointer<TTransformManager> tTransformManager,
+  DartEntityId child,
+  DartEntityId parent,
+  bool preserveScaling,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance
+      ._TransformManager_setParentRenderThread(
+          tTransformManager.cast(),
+          child,
+          parent,
+          preserveScaling,
           requestId,
           onComplete as Pointer<NativeFunction<VoidCallbackFunction>>);
   return result;

@@ -1909,12 +1909,45 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Scene_addEntityRenderThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Scene_addEntity(tScene, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Scene_removeEntityRenderThread(TScene *tScene, EntityId entityId, uint32_t requestId, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           Scene_removeEntity(tScene, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_addToSceneRenderThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneAsset_addToScene(tSceneAsset, tScene);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromSceneRenderThread(TSceneAsset *tSceneAsset, TScene *tScene, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneAsset_removeFromScene(tSceneAsset, tScene);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);
@@ -2144,6 +2177,23 @@ extern "C"
         [=]() mutable
         {
           TransformManager_setTransform(tTransformManager, entityId, transform);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setParentRenderThread(
+      TTransformManager *tTransformManager,
+      EntityId child,
+      EntityId parent,
+      bool preserveScaling,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TransformManager_setParent(tTransformManager, child, parent, preserveScaling);
           PROXY(onComplete(requestId));
         });
     auto fut = _renderThread->addTask(lambda);

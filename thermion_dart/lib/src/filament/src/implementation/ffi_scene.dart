@@ -16,28 +16,24 @@ class FFIScene extends Scene<Pointer<TScene>> {
 
   @override
   Future add(ThermionAsset asset) async {
-    SceneAsset_addToScene(asset.getNativeHandle(), scene);
+    await withVoidCallback((requestId, cb) =>
+        SceneAsset_addToSceneRenderThread(
+            asset.getNativeHandle(), scene, requestId, cb));
   }
 
-  ///
-  ///
-  ///
   @override
   Future addEntity(ThermionEntity entity) async {
-    Scene_addEntity(scene, entity);
+    await withVoidCallback((requestId, cb) =>
+        Scene_addEntityRenderThread(scene, entity, requestId, cb));
   }
 
-  ///
-  ///
-  ///
   @override
   Future remove(ThermionAsset asset) async {
-    SceneAsset_removeFromScene(asset.getNativeHandle(), scene);
+    await withVoidCallback((requestId, cb) =>
+        SceneAsset_removeFromSceneRenderThread(
+            asset.getNativeHandle(), scene, requestId, cb));
   }
 
-  ///
-  ///
-  ///
   @override
   Future removeEntity(ThermionEntity entity) async {
     await withVoidCallback((requestId, cb) =>
@@ -46,9 +42,6 @@ class FFIScene extends Scene<Pointer<TScene>> {
 
   IndirectLight? _indirectLight;
 
-  ///
-  ///
-  ///
   Future setIndirectLight(IndirectLight? indirectLight) async {
     if (indirectLight == null) {
       await withVoidCallback((requestId, cb) =>

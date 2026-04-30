@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
 import '../../../bindings/bindings.dart' as bindings;
@@ -146,16 +148,12 @@ class FFITransformManager
   // ============================================================================
 
   @override
-  void setParent(ThermionEntity child, ThermionEntity? parent,
-      {bool preserveScaling = false}) {
-    if (parent == null) {
-      // Use 0 as null parent entity ID
-      bindings.TransformManager_setParent(
-          transformManager, child, 0, preserveScaling);
-    } else {
-      bindings.TransformManager_setParent(
-          transformManager, child, parent, preserveScaling);
-    }
+  Future setParent(ThermionEntity child, ThermionEntity? parent,
+      {bool preserveScaling = false}) async {
+    final parentId = parent ?? 0; // 0 = null parent in Filament
+    await withVoidCallback((requestId, cb) =>
+        bindings.TransformManager_setParentRenderThread(
+            transformManager, child, parentId, preserveScaling, requestId, cb));
   }
 
   @override
