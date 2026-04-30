@@ -5339,9 +5339,39 @@ external void FilamentAsset_getWireframeRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TScene>, EntityId, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void Scene_addEntityRenderThread(
+  ffi.Pointer<TScene> tScene,
+  int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TScene>, EntityId, ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void Scene_removeEntityRenderThread(
   ffi.Pointer<TScene> tScene,
   int entityId,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void SceneAsset_addToSceneRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<TScene> tScene,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>, ffi.Uint32,
+        VoidCallback)>(isLeaf: true)
+external void SceneAsset_removeFromSceneRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<TScene> tScene,
   int requestId,
   VoidCallback onComplete,
 );
@@ -5518,6 +5548,18 @@ external void TransformManager_setTransformRenderThread(
   ffi.Pointer<TTransformManager> tTransformManager,
   int entityId,
   double4x4 transform,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, EntityId,
+        ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void TransformManager_setParentRenderThread(
+  ffi.Pointer<TTransformManager> tTransformManager,
+  int child,
+  int parent,
+  bool preserveScaling,
   int requestId,
   VoidCallback onComplete,
 );
