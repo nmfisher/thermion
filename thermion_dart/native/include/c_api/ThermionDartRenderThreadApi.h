@@ -350,7 +350,7 @@ namespace thermion
             TGltfAssetLoader *tAssetLoader,
             uint8_t *data,
             size_t length,
-            uint8_t numInstances,
+            uint32_t numInstances,
             void (*callback)(TFilamentAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, uint32_t requestId, VoidCallback onComplete);

@@ -1875,7 +1875,7 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       uint8_t *data,
       size_t length,
-      uint8_t numInstances,
+      uint32_t numInstances,
       void (*callback)(TFilamentAsset *))
   {
     std::packaged_task<void()> lambda(
