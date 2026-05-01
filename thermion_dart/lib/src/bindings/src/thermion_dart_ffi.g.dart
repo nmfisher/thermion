@@ -5302,7 +5302,7 @@ external void GltfResourceLoader_asyncGetLoadProgressRenderThread(
         ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<ffi.Uint8>,
         ffi.Size,
-        ffi.Uint8,
+        ffi.Uint32,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(ffi.Pointer<TFilamentAsset>)>>)>(isLeaf: true)
@@ -5666,7 +5666,7 @@ external ffi.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
         ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<ffi.Uint8>,
         ffi.Size,
-        ffi.Uint8)>(isLeaf: true)
+        ffi.Uint32)>(isLeaf: true)
 external ffi.Pointer<TFilamentAsset> GltfAssetLoader_load(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
