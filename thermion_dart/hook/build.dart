@@ -118,7 +118,11 @@ outputDirectory : ${outputDirectory.path}
       'edge_outline': 'native/include/material/edge_outline.c',
       'wireframe': 'native/include/material/wireframe.c',
       'translation_axis': 'native/include/material/translation_axis.c',
-      'gizmo': 'native/include/material/gizmo.c',
+      // Renamed from gizmo.c to avoid a case-insensitive .obj collision
+      // with scene/Gizmo.cpp on Windows (both produced gizmo.obj, the
+      // material write-clobbered the class .obj, and the linker reported
+      // four LNK2019s for thermion::Gizmo::{Gizmo,pick,highlight,unhighlight}).
+      'gizmo': 'native/include/material/gizmo_material.c',
       'bone_overlay': 'native/include/material/bone_overlay.c',
     };
 
