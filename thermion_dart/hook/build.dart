@@ -426,10 +426,15 @@ outputDirectory : ${outputDirectory.path}
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
           "@${srcs.uri.toFilePath(windows: true)}",
-          // ...sources,
-          // '/link',
-          // "/LIBPATH:$libDir",
-          // '/DLL',
+          // Library inputs (filament.lib, backend.lib, bluevk.lib, etc.)
+          // are declared via #pragma comment(lib, ...) directives in
+          // native/include/ThermionWin32.h, which is transitively included
+          // by the c_api headers and the Windows vulkan/d3d sources. The
+          // linker only needs to know WHERE to find those .lib files —
+          // /LIBPATH points at the prebuilt Filament directory that pub
+          // get downloads. Everything after /link is forwarded to LINK.exe.
+          '/link',
+          "/LIBPATH:$libDir",
         ],
       ],
       libraryDirectories: [libDir],
