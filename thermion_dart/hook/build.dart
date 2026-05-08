@@ -260,7 +260,11 @@ outputDirectory : ${outputDirectory.path}
         "/std:c++20",
         if (buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
         if (buildMode == BuildMode.release) "/MD",
-        "/VERBOSE",
+        // /VERBOSE is a linker option, not a compiler one — cl.exe parses it
+        // as the deprecated /V<string> and emits warning D9035. If the
+        // verbose link map is ever needed for diagnostics, pass it after
+        // native_toolchain_c's own /link separator (see libraryDirectories
+        // / linkerOptions paths in run_cbuilder.dart).
         ...defines.keys.map((k) => "/D$k=${defines[k]}").toList(),
       ]);
     }
@@ -431,10 +435,12 @@ outputDirectory : ${outputDirectory.path}
           // native/include/ThermionWin32.h, which is transitively included
           // by the c_api headers and the Windows vulkan/d3d sources. The
           // linker only needs to know WHERE to find those .lib files —
-          // /LIBPATH points at the prebuilt Filament directory that pub
-          // get downloads. Everything after /link is forwarded to LINK.exe.
-          '/link',
-          "/LIBPATH:$libDir",
+          // that is wired via `libraryDirectories: [libDir]` below, which
+          // native_toolchain_c emits after its own /link separator
+          // (run_cbuilder.dart). Adding a second /link here puts cl.exe's
+          // auto-generated /LD and /Fe: AFTER our separator, where LINK
+          // ignores them as LNK4044 — the resulting binary has no /DLL
+          // and no entry point, failing with LNK1561.
         ],
       ],
       libraryDirectories: [libDir],
