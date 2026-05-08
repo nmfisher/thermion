@@ -29,16 +29,21 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 set(GENERATED_HEADERS_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/generated_headers.cmake")
 include("${GENERATED_HEADERS_CMAKE}")
 
-target_include_directories(${PLUGIN_NAME} INTERFACE
+# PUBLIC scope: thermion_flutter_plugin.cpp itself needs the Filament
+# headers (Platform.h transitively pulls in `utils::io::ostream`, etc.)
+# AND any consumer that includes thermion_flutter_plugin.h needs them
+# too. The previous INTERFACE-only scope hid the headers from this
+# target's own compile, so `error C3083: 'io': the symbol to the left
+# of a '::' must be a type` triggered on Platform.h:99.
+#
+# The second `include_directories(${PLUGIN_NAME} INTERFACE ...)` call
+# below is also invalid CMake syntax — `include_directories` takes
+# only paths, no target or scope keyword — so it silently does
+# nothing. Removed.
+target_include_directories(${PLUGIN_NAME} PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${CMAKE_CURRENT_SOURCE_DIR}"
-  "${DART_PKG_HEADERS}"
-)
-
-include_directories(${PLUGIN_NAME} INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${CMAKE_CURRENT_SOURCE_DIR}"
-  "${DART_PKG_HEADERS}"
+  ${DART_PKG_HEADERS}
 )
 
 get_cmake_property(_variableNames VARIABLES)
