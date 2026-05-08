@@ -99,6 +99,14 @@ outputDirectory : ${outputDirectory.path}
       sources = sources.where((p) => !p.contains("linux")).toList();
     }
 
+    // iOS is Metal-only — exclude Vulkan-utility sources whose symbols
+    // resolve through `bluevk` (which iOS does not link). Without this
+    // exclusion, linking fails with "Undefined symbols: bluevk::vk*".
+    // See native/src/vulkan/{VulkanUtils,BaseVulkanTexture}.cpp.
+    if (targetOS == OS.iOS) {
+      sources = sources.where((p) => !p.contains("vulkan")).toList();
+    }
+
     // Material source paths (used by _processMaterials below)
     final materialSources = <String, String>{
       'capture_uv': 'native/include/material/capture_uv.c',
