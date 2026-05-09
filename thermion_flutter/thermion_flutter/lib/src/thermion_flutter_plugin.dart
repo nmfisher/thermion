@@ -57,6 +57,18 @@ abstract class ThermionFlutterPlugin {
     int height,
   );
 
+  /// Release plugin-side resources bound to this view (e.g. the per-view
+  /// `SwapChain` the Android plugin tracks). Call this BEFORE destroying
+  /// the underlying texture / surface descriptor — otherwise on Android
+  /// the SurfaceTexture is released first, the swap chain's native
+  /// window becomes invalid, and Filament's next `eglSwapBuffers` call
+  /// for that swap chain returns `EGL_BAD_SURFACE` until the widget
+  /// finishes unmounting.
+  ///
+  /// Safe to call on platforms that don't track per-view bindings (e.g.
+  /// the web plugin) — it's a no-op there.
+  Future<void> releaseTextureBindingForView(View view);
+
   static Future<ThermionViewer> createViewer(
       {bool destroySwapchain = true}) async {
     _logger.finest("Creating viewer");

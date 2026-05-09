@@ -145,6 +145,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   @override
+  Future<void> releaseTextureBindingForView(View view) async {
+    // No per-view swap-chain bookkeeping on the web plugin. Surfaces
+    // are managed via the canvas + WebGL context lifecycle.
+  }
+
+  @override
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
     View view,
     int width,
