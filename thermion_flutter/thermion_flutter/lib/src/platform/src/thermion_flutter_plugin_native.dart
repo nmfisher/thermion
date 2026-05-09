@@ -87,6 +87,14 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   // has been redirected to an internal RT (e.g., in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
 
+  // Track the SwapChain currently bound to each view (Android only).
+  // The Android branch of createTextureAndBindToView destroys this view's
+  // *previous* swap chain after creating the new one. Keying by view
+  // (rather than iterating FilamentApp's global swap-chain list) is what
+  // makes multi-viewer apps work — without this, mounting viewer #N
+  // would destroy viewer #(N-1)'s swap chain and freeze it.
+  static final _viewSwapChains = <View, SwapChain>{};
+
   // Deferred Filament render target cleanup for Windows resize.
   // Old RT stays alive so native can Blit from it during the swap window.
   static final _deferredRenderTargets = <(RenderTarget, int)>[];
@@ -582,17 +590,27 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // the viewport?
     // In fact we can probably do this for all platforms
     if (Platform.isAndroid) {
-      final swapChains = await FilamentApp.instance!.getSwapChains();
+      // The OLD swap chain to destroy is the one *previously bound to
+      // this view* — not whatever happens to be at the front of
+      // FilamentApp's global list. Earlier code iterated
+      // `getSwapChains()` and destroyed `swapChains.first`, which in a
+      // multi-viewer app destroyed *another* viewer's swap chain, freezing
+      // its viewport. Tracking per-view in `_viewSwapChains` scopes the
+      // destroy to this view only.
+      final oldSwapChain = _viewSwapChains[view];
 
       final swapChain = await FilamentApp.instance!.createSwapChain(
         Pointer<Void>.fromAddress(descriptor.windowHandle!),
       );
 
-      if (swapChains.isNotEmpty) {
-        await FilamentApp.instance!.destroySwapChain(swapChains.first);
-      }
-
       await FilamentApp.instance!.renderManager.attach(view, swapChain);
+      _viewSwapChains[view] = swapChain;
+
+      // Destroy the old swap chain after the new one is attached so the
+      // view never has a window of being unattached.
+      if (oldSwapChain != null) {
+        await FilamentApp.instance!.destroySwapChain(oldSwapChain);
+      }
 
       // On other platforms, if a hardware texture ID is returned, this means
       // the texture is immediately available for rendering.
