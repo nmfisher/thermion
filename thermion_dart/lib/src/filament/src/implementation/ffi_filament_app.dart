@@ -256,6 +256,33 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _logger.info("Destroying swapchain");
     await renderManager.detachAll(swapChain);
 
+    // Drain Filament's backend command queue before releasing the
+    // SwapChain. `RenderManager::removeSwapChain` (called inside
+    // detachAll) takes Thermion's render-manager mutex and finishes
+    // synchronously, so no future RenderManager::render iteration
+    // will touch this swap chain. But Filament has its own internal
+    // command stream that processes BEGIN_FRAME / render / END_FRAME
+    // on its backend thread, independently of Thermion's render
+    // thread. If a frame's endFrame is still queued on that backend
+    // when `engine->destroy(swapChain)` runs synchronously on our
+    // thread, the SwapChain memory is freed before endFrame
+    // executes — and Filament aborts at Renderer.cpp:490 with
+    // "SwapChain must remain valid until endFrame is called."
+    //
+    // `flushAndWait()` blocks until the backend has processed every
+    // command submitted up to this point, guaranteeing the pending
+    // endFrame ran on a still-valid swap chain. Filament's docs for
+    // `Engine::destroy(SwapChain*)` explicitly recommend this when a
+    // frame might be in flight; the upstream pattern wasn't enforcing
+    // it because the implicit-drain-by-luck in single-viewer apps
+    // hid the requirement.
+    //
+    // Surfaced in multi-viewer Flutter apps: with one viewer
+    // disposing while another mounts, the frame scheduler keeps
+    // firing renders, and Filament's backend has commands in flight
+    // from the very recent renders when our destroy runs.
+    await flush();
+
     await withVoidCallback((requestId, callback) {
       Engine_destroySwapChainRenderThread(
           engine, swapChain.getNativeHandle(), requestId, callback);
