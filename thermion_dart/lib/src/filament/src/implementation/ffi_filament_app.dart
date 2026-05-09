@@ -638,7 +638,29 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<Iterable<SwapChain>> getSwapChains() async {
-    return _swapChains;
+    // Return a snapshot, not the live list. Returning the live list lets
+    // mutations from concurrent createSwapChain / destroySwapChain calls
+    // leak back to callers — which is exactly what happened in
+    // thermion_flutter's Android `createTextureAndBindToView`:
+    //
+    //   final swapChains = await FilamentApp.instance!.getSwapChains();
+    //   final swapChain  = await FilamentApp.instance!.createSwapChain(...);
+    //   if (swapChains.isNotEmpty) {
+    //     await FilamentApp.instance!.destroySwapChain(swapChains.first);
+    //   }
+    //
+    // The intent was "snapshot existing chains, create the new one,
+    // tear down the old one", but `swapChains` aliased `_swapChains`,
+    // so after `createSwapChain` appended, `swapChains.first` was the
+    // *new* swap chain. The plugin then destroyed it and attached the
+    // view to a freed pointer — the next render hit Filament's
+    // "SwapChain must remain valid until endFrame is called" assert
+    // and the process aborted on every viewer mount on Android.
+    //
+    // Returning an unmodifiable snapshot fixes this at the API layer
+    // and makes the function safe regardless of how callers are
+    // structured.
+    return List<SwapChain>.unmodifiable(_swapChains);
   }
 
   final _hooks = <Future Function()>[];
