@@ -750,4 +750,15 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     return texture;
   }
+
+  @override
+  Future<void> releaseTextureBindingForView(View view) async {
+    // Only Android keeps per-view swap-chain bookkeeping in this plugin
+    // (see `_viewSwapChains` and the size-change branch of
+    // `createTextureAndBindToView`). Other platforms are no-ops.
+    final swapChain = _viewSwapChains.remove(view);
+    if (swapChain != null) {
+      await FilamentApp.instance!.destroySwapChain(swapChain);
+    }
+  }
 }
