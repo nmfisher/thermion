@@ -173,6 +173,25 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     View_setScene(view.getNativeHandle(), nullptr);
 
+    // Detach from any swap chain in the RenderManager BEFORE destroying
+    // the view. RenderManager's `_attachments` map (Dart side) keys
+    // each swap-chain entry to a list of (renderOrder, View) tuples;
+    // if `destroyView` runs while this view is still listed, the next
+    // `attach`/`detach`/`_syncViews` call from any other viewer will
+    // pass the dangling native pointer to
+    // `RenderManager_setRenderableRenderThread`, where Filament does
+    // a `handle_cast` and aborts with
+    // "Postcondition: corrupted heap Handle ... tag=(no tag)" — the
+    // generic symptom of dereferencing a freed handle.
+    //
+    // Reproduces in multi-viewer Flutter apps when one viewer is
+    // disposed while another is concurrently attaching its view: the
+    // disposing viewer's `View_destroy` runs before the surviving
+    // viewer's `_syncViews`, the survivor walks `_attachments`,
+    // pushes the freed pointer to RenderManager, and crashes.
+    // Detach-before-destroy keeps `_attachments` consistent.
+    await FilamentApp.instance!.renderManager.detach(view);
+
     await FilamentApp.instance!.destroyScene(scene);
     await FilamentApp.instance!.destroyView(view);
 
