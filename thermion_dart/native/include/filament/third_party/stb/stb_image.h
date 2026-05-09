@@ -1503,8 +1503,10 @@ static void stbi__skip(stbi__context *s, int n)
 
 static int stbi__getn(stbi__context *s, stbi_uc *buffer, int n)
 {
+   if (n < 0) return 0;
    if (s->io.read) {
       int blen = (int) (s->img_buffer_end - s->img_buffer);
+      if (blen < 0) return 0;
       if (blen < n) {
          int res, count;
 
