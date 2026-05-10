@@ -114,6 +114,35 @@ namespace thermion
       return false;
     }
 
+    // Skip the entire begin/render/end cycle if no views are
+    // attached. setRendering(false) and detach(view) both remove the
+    // view from this entry's view list but leave the swap chain
+    // entry behind for later reattachment, so we can land in this
+    // function with the swap chain still in `mViewAttachments` but
+    // nothing to render. Calling beginFrame / endFrame on a swap
+    // chain that has no work is wasteful in single-viewer apps and
+    // dangerous in multi-viewer ones: Filament's Renderer is
+    // documented as one-Renderer-per-one-window, but Thermion shares
+    // a single Renderer across every swap chain in the engine, so
+    // its `mSwapChain` member gets set/cleared rapidly across the
+    // iteration. An empty-views begin/end fires the same internal
+    // state machine as a real frame, opening a window for the
+    // SwapChain validity assertion at endFrame:490 to trip during
+    // dispose / mount transitions.
+    bool hasAnyView = false;
+    for (int i = 0; i < numViewAttachments; i++)
+    {
+      if (attachment.views[i])
+      {
+        hasAnyView = true;
+        break;
+      }
+    }
+    if (!hasAnyView)
+    {
+      return false;
+    }
+
     auto beforeBegin = std::chrono::high_resolution_clock::now();
     bool beginFrame = mRenderer->beginFrame(attachment.swapChain, frameTimeInNanos);
     auto afterBegin = std::chrono::high_resolution_clock::now();
