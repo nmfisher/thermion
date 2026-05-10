@@ -251,45 +251,65 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb)));
   }
 
+  /// Serial chain that prevents multiple `destroySwapChain` calls
+  /// from running concurrently. Each call awaits `_destroyChain`,
+  /// runs detach + flush + destroy + bookkeeping, then completes the
+  /// chain so the next destroy can start.
+  ///
+  /// Why: in multi-viewer apps, mass dispose (e.g. toggling stress-
+  /// test viewer count from 8 → 1) triggers eight concurrent
+  /// destroySwapChain calls. Each call's flush() drains the backend
+  /// at the moment it runs — but if other concurrent destroys are
+  /// queueing new commands on the backend at the same time, no
+  /// individual flush guarantees the backend is empty afterwards.
+  /// Filament's internal Renderer mSwapChain state can end up
+  /// pointing at a SwapChain that another destroy is in the middle
+  /// of freeing, tripping the `endFrame:490` precondition.
+  ///
+  /// Serialising destroys gives flush() a stable target: nothing
+  /// else is queueing destroy work, so the flush truly drains and
+  /// the synchronous engine->destroy can proceed safely.
+  static Future<void> _destroyChain = Future.value();
+
   //
   Future destroySwapChain(SwapChain swapChain) async {
-    _logger.info("Destroying swapchain");
-    await renderManager.detachAll(swapChain);
+    final completer = Completer<void>();
+    final prev = _destroyChain;
+    _destroyChain = completer.future;
+    await prev;
+    try {
+      _logger.info("Destroying swapchain");
+      await renderManager.detachAll(swapChain);
 
-    // Drain Filament's backend command queue before releasing the
-    // SwapChain. `RenderManager::removeSwapChain` (called inside
-    // detachAll) takes Thermion's render-manager mutex and finishes
-    // synchronously, so no future RenderManager::render iteration
-    // will touch this swap chain. But Filament has its own internal
-    // command stream that processes BEGIN_FRAME / render / END_FRAME
-    // on its backend thread, independently of Thermion's render
-    // thread. If a frame's endFrame is still queued on that backend
-    // when `engine->destroy(swapChain)` runs synchronously on our
-    // thread, the SwapChain memory is freed before endFrame
-    // executes — and Filament aborts at Renderer.cpp:490 with
-    // "SwapChain must remain valid until endFrame is called."
-    //
-    // `flushAndWait()` blocks until the backend has processed every
-    // command submitted up to this point, guaranteeing the pending
-    // endFrame ran on a still-valid swap chain. Filament's docs for
-    // `Engine::destroy(SwapChain*)` explicitly recommend this when a
-    // frame might be in flight; the upstream pattern wasn't enforcing
-    // it because the implicit-drain-by-luck in single-viewer apps
-    // hid the requirement.
-    //
-    // Surfaced in multi-viewer Flutter apps: with one viewer
-    // disposing while another mounts, the frame scheduler keeps
-    // firing renders, and Filament's backend has commands in flight
-    // from the very recent renders when our destroy runs.
-    await flush();
+      // Drain Filament's backend command queue before releasing the
+      // SwapChain. `RenderManager::removeSwapChain` (called inside
+      // detachAll) takes Thermion's render-manager mutex and finishes
+      // synchronously, so no future RenderManager::render iteration
+      // will touch this swap chain. But Filament has its own internal
+      // command stream that processes BEGIN_FRAME / render / END_FRAME
+      // on its backend thread, independently of Thermion's render
+      // thread. If a frame's endFrame is still queued on that backend
+      // when `engine->destroy(swapChain)` runs synchronously on our
+      // thread, the SwapChain memory is freed before endFrame
+      // executes — and Filament aborts at Renderer.cpp:490 with
+      // "SwapChain must remain valid until endFrame is called."
+      //
+      // `flushAndWait()` blocks until the backend has processed every
+      // command submitted up to this point. Combined with the destroy
+      // serialisation above, this guarantees a quiet backend at the
+      // moment we synchronously call engine->destroy.
+      await flush();
 
-    await withVoidCallback((requestId, callback) {
-      Engine_destroySwapChainRenderThread(
-          engine, swapChain.getNativeHandle(), requestId, callback);
-    });
+      await withVoidCallback((requestId, callback) {
+        Engine_destroySwapChainRenderThread(
+            engine, swapChain.getNativeHandle(), requestId, callback);
+      });
 
-    _swapChains.remove(swapChain);
-    _logger.info("Destroyed swapchain");
+      _swapChains.remove(swapChain);
+      _logger.info("Destroyed swapchain");
+    } finally {
+      completer.complete();
+    }
   }
 
   // Destroys the specified entity. You must ensure that the entity has already
