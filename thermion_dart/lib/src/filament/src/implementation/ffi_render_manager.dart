@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
@@ -16,34 +18,70 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   static final _attachments = <Pointer<TSwapChain>, List<(int, View)>>{};
 
-  @override
-  Future attach(View view, SwapChain swapChain, {int renderOrder = 0}) async {
-    final handle = swapChain.getNativeHandle();
-    if (!_attachments.containsKey(handle)) {
-      _attachments[handle] = [];
-    }
+  /// Serialises every operation that mutates `_attachments` and runs
+  /// `_syncViews` (attach / detach / detachAll). Concurrent calls from
+  /// sibling viewers in multi-viewer apps were running in parallel,
+  /// each taking its own `_syncViews` snapshot at a different moment.
+  /// One viewer's snapshot could include another viewer's view that
+  /// was being concurrently destroyed via `destroyView`; the
+  /// `setRenderable` call then passed a dangling native pointer to
+  /// Filament and the process took a SIGSEGV at the next access.
+  ///
+  /// Serialising means each attach/detach/_syncViews completes before
+  /// the next can begin — the snapshot it takes is always a stable
+  /// view of the world for the duration of its setRenderable round-
+  /// trips. View destruction (which awaits `detach(view)` first via
+  /// `destroyView`) cannot interleave inside another viewer's sync.
+  static Future<void> _opChain = Future.value();
 
-    _attachments[handle]!.removeWhere((v) => v.$2 == view);
-    _attachments[handle]!.add((renderOrder, view));
-    _attachments[handle]!.sort((a, b) => a.$1.compareTo(b.$1));
-    await _syncViews();
+  Future<T> _serialize<T>(Future<T> Function() op) {
+    final completer = Completer<T>();
+    final prev = _opChain;
+    _opChain = completer.future.then((_) {}, onError: (_) {});
+    return prev.then((_) async {
+      try {
+        final result = await op();
+        completer.complete(result);
+        return result;
+      } catch (e, st) {
+        completer.completeError(e, st);
+        rethrow;
+      }
+    });
   }
 
   @override
-  Future detach(View view, {SwapChain? swapChain}) async {
-    if (swapChain == null) {
-      for (final swapChainHandle in _attachments.keys) {
-        _attachments[swapChainHandle]!.removeWhere((v) => v.$2 == view);
-      }
-    } else {
-      if (!_attachments.containsKey(swapChain.getNativeHandle())) {
-        _attachments[swapChain.getNativeHandle()] = [];
+  Future attach(View view, SwapChain swapChain, {int renderOrder = 0}) {
+    return _serialize(() async {
+      final handle = swapChain.getNativeHandle();
+      if (!_attachments.containsKey(handle)) {
+        _attachments[handle] = [];
       }
 
-      _attachments[swapChain.getNativeHandle()]!
-          .removeWhere((v) => v.$2 == view);
-    }
-    await _syncViews();
+      _attachments[handle]!.removeWhere((v) => v.$2 == view);
+      _attachments[handle]!.add((renderOrder, view));
+      _attachments[handle]!.sort((a, b) => a.$1.compareTo(b.$1));
+      await _syncViews();
+    });
+  }
+
+  @override
+  Future detach(View view, {SwapChain? swapChain}) {
+    return _serialize(() async {
+      if (swapChain == null) {
+        for (final swapChainHandle in _attachments.keys) {
+          _attachments[swapChainHandle]!.removeWhere((v) => v.$2 == view);
+        }
+      } else {
+        if (!_attachments.containsKey(swapChain.getNativeHandle())) {
+          _attachments[swapChain.getNativeHandle()] = [];
+        }
+
+        _attachments[swapChain.getNativeHandle()]!
+            .removeWhere((v) => v.$2 == view);
+      }
+      await _syncViews();
+    });
   }
 
   Future _syncViews() async {
@@ -86,11 +124,13 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     }
   }
 
-  Future detachAll(SwapChain swapChain) async {
-    await withVoidCallback((requestId, cb) =>
-        RenderManager_removeSwapChainRenderThread(
-            pointer, swapChain.getNativeHandle(), requestId, cb));
-    _attachments.remove(swapChain.getNativeHandle());
+  Future detachAll(SwapChain swapChain) {
+    return _serialize(() async {
+      await withVoidCallback((requestId, cb) =>
+          RenderManager_removeSwapChainRenderThread(
+              pointer, swapChain.getNativeHandle(), requestId, cb));
+      _attachments.remove(swapChain.getNativeHandle());
+    });
   }
 
   void destroy() {
