@@ -47,8 +47,30 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   }
 
   Future _syncViews() async {
-    for (final swapChainHandle in _attachments.keys) {
-      final views = _attachments[swapChainHandle]!;
+    // Snapshot the keys and the per-key view list BEFORE iterating.
+    // Concurrent `attach` / `detach` calls (common in multi-viewer
+    // apps where multiple viewers mount or dispose at the same time)
+    // mutate `_attachments` while we await on the render thread
+    // round-trip. A naive `for (final h in _attachments.keys) { … }`
+    // loop yields to the event loop on the await, lets a concurrent
+    // attach/detach modify the live map, then resumes with stale
+    // iterator state — `_syncViews` ends up pushing inconsistent
+    // view lists to C++ RenderManager (some swap chains skipped,
+    // others written with old data). The downstream symptom is the
+    // `endFrame:490 — SwapChain must remain valid` precondition
+    // when the render iteration touches the inconsistent state.
+    //
+    // Snapshotting also tolerates removal: if an entry was deleted
+    // by the time we get back to it, the views list will be null
+    // and we skip it.
+    final snapshot = <Pointer<TSwapChain>, List<(int, View)>>{};
+    for (final entry in _attachments.entries) {
+      snapshot[entry.key] = List.of(entry.value);
+    }
+
+    for (final swapChainHandle in snapshot.keys) {
+      final views = snapshot[swapChainHandle];
+      if (views == null) continue;
       final pointers = allocate<PointerClass>(views.length);
       for (int i = 0; i < views.length; i++) {
         pointers[i] = views[i].$2.getNativeHandle();
