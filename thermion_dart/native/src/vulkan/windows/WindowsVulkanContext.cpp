@@ -414,8 +414,29 @@ class WindowsVulkanContext::Impl {
             // submitInfo.signalSemaphoreCount = 1;
             // submitInfo.pSignalSemaphores = &sharedSemaphore;
 
-            // Wait for any previous blit to complete and reset fence
-            result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
+            // Wait for any previous blit to complete and reset fence.
+            //
+            // Bounded to 50 ms. With UINT64_MAX we deadlocked the whole
+            // app on Windows multi-viewer at sustained 60 fps × N
+            // viewers: Blit runs on the Flutter UI thread (called from
+            // ThermionFlutterPlugin::HandleMethodCall for
+            // markTextureFrameAvailable), the keyed-mutex-style fence
+            // chain between Vulkan (writer) and D3D11 (Flutter
+            // compositor reader on its own raster thread) needs the
+            // UI thread to pump Win32 messages for the compositor to
+            // advance, and the GPU can't signal this fence until the
+            // compositor has consumed the previous frame. Three-way
+            // wait — UI thread → GPU → compositor → UI thread.
+            //
+            // On timeout, skip this frame's blit entirely so the UI
+            // thread returns, the Win32 message pump dispatches,
+            // Flutter's compositor drains, and the next Blit retries.
+            // Visual effect is one stale frame on a backed-up GPU;
+            // far preferable to a hard hang.
+            result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, 50'000'000);
+            if (result == VK_TIMEOUT) {
+                return;
+            }
             if (result != VK_SUCCESS) {
                 std::cerr << "vkWaitForFences failed: " << result << std::endl;
                 return;
@@ -428,9 +449,23 @@ class WindowsVulkanContext::Impl {
                 return;
             }
 
-            // Wait for blit to complete before returning
-            result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, UINT64_MAX);
-            if (result != VK_SUCCESS) {
+            // Wait for blit to complete before returning.
+            //
+            // Bounded to 50 ms for the same reason as above. On
+            // timeout we return without an error: the submit has
+            // been accepted by the queue, the keyed mutex on the
+            // shared texture will serialise D3D11's read on its own
+            // thread, and the *next* call's pre-submit wait above
+            // will catch up. Returning unblocks the UI thread.
+            bool postBlitTimedOut = false;
+            result = bluevk::vkWaitForFences(device, 1, &blitFence, VK_TRUE, 50'000'000);
+            if (result == VK_TIMEOUT) {
+                postBlitTimedOut = true;
+                std::cerr << "vkWaitForFences (post-blit) timed out after 50 ms; "
+                             "GPU still processing. Returning to unblock UI thread; "
+                             "next Blit will sync."
+                          << std::endl;
+            } else if (result != VK_SUCCESS) {
                 std::cerr << "vkWaitForFences (post-blit) failed: " << result << std::endl;
             }
 
@@ -439,14 +474,37 @@ class WindowsVulkanContext::Impl {
             // owns them), so clearing _graveyardRT just frees the wrapper.
             // The D3D and interop textures are freed here after the driver
             // has retired all references.
-            if (!_graveyardD3D.empty()) {
+            //
+            // SKIP the drain entirely if the post-blit wait just timed
+            // out — `vkDeviceWaitIdle` has NO timeout parameter in the
+            // Vulkan API, and if the GPU is busy enough that our
+            // bounded fence wait timed out, `vkDeviceWaitIdle` will
+            // block this thread (the Flutter UI thread) forever, which
+            // is exactly the original hang we're trying to fix.
+            // Defer the drain to a future Blit call when the GPU
+            // has caught up. The graveyard accumulates briefly but
+            // bounded: drain resumes as soon as steady-state catches
+            // up. Diagnostic stderr around the drain confirms whether
+            // this skip path is being hit and whether `vkDeviceWaitIdle`
+            // ever returns when we do invoke it.
+            if (!_graveyardD3D.empty() && !postBlitTimedOut) {
                 _graveyardFrames++;
                 if (_graveyardFrames >= GRAVEYARD_DRAIN_FRAMES) {
+                    std::cerr << "Blit: graveyard drain start (size="
+                              << _graveyardD3D.size()
+                              << ", frames=" << _graveyardFrames << ")"
+                              << std::endl;
                     bluevk::vkDeviceWaitIdle(device);
+                    std::cerr << "Blit: graveyard drain done (vkDeviceWaitIdle returned)"
+                              << std::endl;
                     _graveyardRT.clear();
                     _graveyardVk.clear();
                     _graveyardD3D.clear();
                 }
+            } else if (!_graveyardD3D.empty() && postBlitTimedOut) {
+                std::cerr << "Blit: graveyard drain DEFERRED (postBlit timed out, size="
+                          << _graveyardD3D.size() << ")"
+                          << std::endl;
             }
         }
 
