@@ -42,12 +42,13 @@ set(_TD_FILAMENT_RELEASE "")
 set(_TD_VULKAN_LINUX "")
 set(_TD_OPENGL_LINUX "")
 
-# Walk up from CMAKE_CURRENT_SOURCE_DIR to find the Flutter app root
+# Walk up from CMAKE_BINARY_DIR to find the Flutter app root
 # (the directory containing .dart_tool/package_config.json).
-# CMAKE_CURRENT_SOURCE_DIR is always available regardless of how the plugin
-# was included (symlinks, or direct add_subdirectory).
+# CMAKE_BINARY_DIR is always under the consuming Flutter app's build/ tree.
+# CMAKE_CURRENT_SOURCE_DIR may point to the real source (resolved symlinks)
+# outside the app tree.
 set(_PKG_CONFIG "")
-set(_search_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+set(_search_dir "${CMAKE_BINARY_DIR}")
 foreach(_i RANGE 1 15)
   if(EXISTS "${_search_dir}/.dart_tool/package_config.json")
     set(_PKG_CONFIG "${_search_dir}/.dart_tool/package_config.json")
