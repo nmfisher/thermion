@@ -1,4 +1,5 @@
 #include "egl_texture.h"
+#include "Log.hpp"
 
 #include <chrono>
 #include <cstring>
