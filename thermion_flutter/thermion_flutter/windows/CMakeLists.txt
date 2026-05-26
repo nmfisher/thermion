@@ -73,21 +73,21 @@ set(_TD_FILAMENT_DEBUG "")
 set(_TD_FILAMENT_RELEASE "")
 set(_TD_VULKAN_WINDOWS "")
 
-# Walk up from runner_BINARY_DIR to find the Flutter app root
+# Walk up from CMAKE_CURRENT_SOURCE_DIR to find the Flutter app root
 # (the directory containing .dart_tool/package_config.json).
-# Avoids hardcoding a specific nesting depth for the build directory.
+# CMAKE_CURRENT_SOURCE_DIR is always available regardless of how the plugin
+# was included (symlinks, junctions, or direct add_subdirectory).
+# Use get_filename_component(... DIRECTORY) instead of ../.. to avoid
+# mixed-slash issues on Windows.
 set(_PKG_CONFIG "")
-set(_search_dir "${runner_BINARY_DIR}")
-foreach(_i RANGE 1 10)
+set(_search_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+foreach(_i RANGE 1 15)
   if(EXISTS "${_search_dir}/.dart_tool/package_config.json")
     set(_PKG_CONFIG "${_search_dir}/.dart_tool/package_config.json")
+    message(STATUS "thermion_flutter: found package_config at ${_PKG_CONFIG}")
     break()
   endif()
-  get_filename_component(_parent "${_search_dir}/.." ABSOLUTE)
-  if(_parent STREQUAL _search_dir)
-    break()
-  endif()
-  set(_search_dir "${_parent}")
+  get_filename_component(_search_dir "${_search_dir}" DIRECTORY)
 endforeach()
 
 if(_PKG_CONFIG)
@@ -109,8 +109,11 @@ if(_PKG_CONFIG)
       endforeach()
 
       if(_td_rootUri)
-        # rootUri may be a file:// absolute URI or a relative path like "../../thermion_dart"
-        string(REGEX REPLACE "^file://" "" _td_root "${_td_rootUri}")
+        # rootUri may be a file:/// URI (e.g. file:///D:/path on Windows,
+        # file:///home on Linux) or a relative path like "../../thermion_dart".
+        # Strip file:/// (3 slashes) first, then file:// (2 slashes) as fallback.
+        string(REGEX REPLACE "^file:///" "" _td_root "${_td_rootUri}")
+        string(REGEX REPLACE "^file://" "" _td_root "${_td_root}")
         if(NOT IS_ABSOLUTE "${_td_root}")
           get_filename_component(_pkg_dir "${_PKG_CONFIG}" DIRECTORY)
           get_filename_component(_td_root "${_pkg_dir}/${_td_root}" ABSOLUTE)
