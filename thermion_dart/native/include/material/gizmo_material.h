@@ -1,5 +1,5 @@
-#ifndef GIZMO_H_
-#define GIZMO_H_
+#ifndef GIZMO_MATERIAL_H_
+#define GIZMO_MATERIAL_H_
 
 #include <stdint.h>
 
