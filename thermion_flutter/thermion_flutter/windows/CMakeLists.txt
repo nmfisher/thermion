@@ -67,14 +67,30 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 # Preference 3: fall back to the monorepo layout relative to the REAL plugin
 #   source directory (follows symlinks / junctions).
 
-set(_PKG_CONFIG "${runner_BINARY_DIR}/../../../.dart_tool/package_config.json")
 set(_TD_INCLUDE "")
 set(_TD_FILAMENT_INCLUDE "")
 set(_TD_FILAMENT_DEBUG "")
 set(_TD_FILAMENT_RELEASE "")
 set(_TD_VULKAN_WINDOWS "")
 
-if(EXISTS "${_PKG_CONFIG}")
+# Walk up from runner_BINARY_DIR to find the Flutter app root
+# (the directory containing .dart_tool/package_config.json).
+# Avoids hardcoding a specific nesting depth for the build directory.
+set(_PKG_CONFIG "")
+set(_search_dir "${runner_BINARY_DIR}")
+foreach(_i RANGE 1 10)
+  if(EXISTS "${_search_dir}/.dart_tool/package_config.json")
+    set(_PKG_CONFIG "${_search_dir}/.dart_tool/package_config.json")
+    break()
+  endif()
+  get_filename_component(_parent "${_search_dir}/.." ABSOLUTE)
+  if(_parent STREQUAL _search_dir)
+    break()
+  endif()
+  set(_search_dir "${_parent}")
+endforeach()
+
+if(_PKG_CONFIG)
   file(READ "${_PKG_CONFIG}" _pkg_json)
   if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.19")
     string(JSON _pkg_len ERROR_VARIABLE _json_err LENGTH "${_pkg_json}" packages)
