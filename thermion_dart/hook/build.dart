@@ -118,7 +118,11 @@ outputDirectory : ${outputDirectory.path}
       'edge_outline': 'native/include/material/edge_outline.c',
       'wireframe': 'native/include/material/wireframe.c',
       'translation_axis': 'native/include/material/translation_axis.c',
-      'gizmo': 'native/include/material/gizmo.c',
+      // Renamed from gizmo.c to avoid a case-insensitive .obj collision
+      // with scene/Gizmo.cpp on Windows (both produced gizmo.obj, the
+      // material write-clobbered the class .obj, and the linker reported
+      // four LNK2019s for thermion::Gizmo::{Gizmo,pick,highlight,unhighlight}).
+      'gizmo': 'native/include/material/gizmo_material.c',
       'bone_overlay': 'native/include/material/bone_overlay.c',
     };
 
@@ -260,7 +264,11 @@ outputDirectory : ${outputDirectory.path}
         "/std:c++20",
         if (buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
         if (buildMode == BuildMode.release) "/MD",
-        "/VERBOSE",
+        // /VERBOSE is a linker option, not a compiler one — cl.exe parses it
+        // as the deprecated /V<string> and emits warning D9035. If the
+        // verbose link map is ever needed for diagnostics, pass it after
+        // native_toolchain_c's own /link separator (see libraryDirectories
+        // / linkerOptions paths in run_cbuilder.dart).
         ...defines.keys.map((k) => "/D$k=${defines[k]}").toList(),
       ]);
     }
@@ -426,10 +434,17 @@ outputDirectory : ${outputDirectory.path}
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
           "@${srcs.uri.toFilePath(windows: true)}",
-          // ...sources,
-          // '/link',
-          // "/LIBPATH:$libDir",
-          // '/DLL',
+          // Library inputs (filament.lib, backend.lib, bluevk.lib, etc.)
+          // are declared via #pragma comment(lib, ...) directives in
+          // native/include/ThermionWin32.h, which is transitively included
+          // by the c_api headers and the Windows vulkan/d3d sources. The
+          // linker only needs to know WHERE to find those .lib files —
+          // that is wired via `libraryDirectories: [libDir]` below, which
+          // native_toolchain_c emits after its own /link separator
+          // (run_cbuilder.dart). Adding a second /link here puts cl.exe's
+          // auto-generated /LD and /Fe: AFTER our separator, where LINK
+          // ignores them as LNK4044 — the resulting binary has no /DLL
+          // and no entry point, failing with LNK1561.
         ],
       ],
       libraryDirectories: [libDir],
