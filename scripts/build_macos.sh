@@ -148,7 +148,9 @@ if [ "$BUILD_RELEASE" = true ]; then
   cd out/cmake-release/third_party
   rm -rf libz
   mkdir -p libz && cd libz
-  cmake -G Ninja -DCMAKE_BUILD_TYPE=Release "$FILAMENT_BASE_DIR/third_party/libz"
+  cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+    "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
   # Build imageio for release
@@ -157,6 +159,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   mkdir -p imageio && cd imageio
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
           -DCMAKE_CXX_STANDARD=17 \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 \
@@ -172,6 +175,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
           -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
@@ -187,7 +191,9 @@ if [ "$BUILD_DEBUG" = true ]; then
   git checkout -- third_party/libz/zconf.h
   cd out/cmake-debug/third_party
   mkdir -p libz && cd libz
-  cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug "$FILAMENT_BASE_DIR/third_party/libz"
+  cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+    "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
   # Build imageio for debug
@@ -196,6 +202,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p imageio && cd imageio
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
           -DCMAKE_CXX_STANDARD=17 \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 \
@@ -211,6 +218,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 \
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
           -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
