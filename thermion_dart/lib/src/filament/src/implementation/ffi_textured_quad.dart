@@ -87,17 +87,19 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   Future setImage(Uint8List imageData) async {
     final image = await FilamentApp.instance!.decodeImage(imageData);
     final channels = await image.getChannels();
-    final textureFormat = channels == 4
+    if (channels != 3 && channels != 4) {
+      throw UnimplementedError("Currently only 3 or 4 channels are supported");
+    }
+    // 3-channel float formats (e.g. RGB32F, format 49) aren't supported on the
+    // Windows backend, which fails with "Texture format 49 not supported". On
+    // Windows, allocate the 4-channel RGBA32F internal format instead; the RGB
+    // source data is expanded to RGBA (alpha = 1) by the backend on upload.
+    // Other platforms keep the tighter RGB32F format.
+    final textureFormat = (channels == 4 || IS_WINDOWS)
         ? TextureFormat.RGBA32F
-        : channels == 3
-            ? TextureFormat.RGB32F
-            : throw UnimplementedError(
-                "Currently only 3 or 4 channels are supported");
-    final pixelFormat = channels == 4
-        ? PixelDataFormat.RGBA
-        : channels == 3
-            ? PixelDataFormat.RGB
-            : throw UnimplementedError();
+        : TextureFormat.RGB32F;
+    final pixelFormat =
+        channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB;
 
     final texture = await FilamentApp.instance!.createTexture(
         await image.getWidth(), await image.getHeight(),
