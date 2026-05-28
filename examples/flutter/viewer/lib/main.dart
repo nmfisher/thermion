@@ -64,8 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // Setting preserveGeometry: true rebuilds vertex buffers with a superset
     // of attributes, enabling free material swapping (wireframe, solid, etc).
     var asset = await _thermionViewer!.loadGltf(
-        "assets/FlightHelmet/FlightHelmet.gltf",
-        preserveGeometry: true);
+        "assets/FlightHelmet/FlightHelmet.gltf");
 
     await _thermionViewer!.addToScene(asset);
 
