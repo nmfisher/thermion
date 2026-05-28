@@ -132,8 +132,24 @@ Future<void> withVoidCallback(
   final completer = Completer();
   _requests[requestId] = completer;
 
-  _voidCallbackNativeCallable =
-      NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
+  // Use the module-scoped `_voidCallbackNativeCallable` initialised at
+  // file load. Do NOT reassign it per call: every reassignment orphans
+  // the previous NativeCallable, which native code may still hold a
+  // pointer to. When Dart GC sweeps the orphan, its trampoline
+  // metadata is freed; the next invocation from the native side
+  // calls a removed trampoline, hits the
+  // `DLRT_GetFfiCallbackMetadata` release-assert, and the VM aborts.
+  // On Windows multi-viewer (8 viewers × ~60 fps × multiple FFI
+  // awaits per frame), churn is high enough that GC reliably sweeps
+  // a stale entry within ~20 seconds and the embedder dies — observed
+  // as "Not Responding" on the main window. The single global
+  // listener's handler (`_voidCallbackHandler`) is stateless; it
+  // dispatches by `requestId` through `_requests`, so one trampoline
+  // is sufficient and correct.
+  //
+  // Upstream introduced the reassignment in 760ae8ed8 as a drive-by
+  // change inside an unrelated commit ("add makeInt32List method").
+  // To file upstream once verified.
   func.call(requestId, _voidCallbackNativeCallable.nativeFunction.cast());
 
   await completer.future;

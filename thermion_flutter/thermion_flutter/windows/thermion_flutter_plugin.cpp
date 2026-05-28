@@ -27,6 +27,10 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <atomic>
 
 #include "flutter_d3d_texture.h"
 
@@ -66,13 +70,110 @@ namespace thermion::tflutter::windows
                                    { this->HandleMethodCall(call, std::move(result)); });
   }
 
-  ThermionFlutterPlugin::~ThermionFlutterPlugin() {
-    StopFrameScheduler();
-  }
-
   // this is only for storing Flutter surface descriptors
   // (as opposed to the D3D/Vulkan handles, which are stored in the WindowsVulkanContext)
   static std::vector<std::unique_ptr<FlutterD3DTexture>> _flutterTextures;
+
+  // ────────────────────────────────────────────────────────────────
+  // Dedicated Blit-worker thread
+  // ────────────────────────────────────────────────────────────────
+  //
+  // Why: `markTextureFrameAvailable` was originally synchronous on
+  // the Flutter UI thread, calling `WindowsVulkanContext::Blit` which
+  // includes vkQueueSubmit + vkWaitForFences. Under multi-viewer
+  // load (8 viewers × Filament frames) this saturated the UI
+  // thread, killed the Win32 message pump, and Windows declared
+  // "Not Responding". A first naive fix spawned a detached
+  // `std::thread` per call — but `WindowsVulkanContext::Blit`'s
+  // shared command pool / queue / fence are NOT thread-safe (the
+  // Vulkan spec requires app-side synchronisation of VkQueue
+  // access), and the Intel driver crashed with `0xC0000005`
+  // access-violation inside `igvk64.dll` as soon as two Blits
+  // overlapped.
+  //
+  // Correct fix: ONE worker thread, ONE queue, one Blit in flight
+  // at any moment. The UI thread enqueues and returns immediately.
+  // If the queue grows past kMaxBlitQueueDepth the OLDEST entry is
+  // dropped — Flutter shows a previously-blitted texture for one
+  // frame, which is preferable to unbounded queue growth under
+  // sustained GPU pressure.
+  struct BlitJob {
+    thermion::vulkan::windows::WindowsVulkanContext* context;
+    flutter::TextureRegistrar* registrar;
+    HANDLE handle;
+    int64_t flutterTextureId;
+  };
+
+  static constexpr size_t kMaxBlitQueueDepth = 16;
+
+  static std::mutex _blitMutex;
+  static std::condition_variable _blitCv;
+  static std::queue<BlitJob> _blitQueue;
+  static std::thread _blitWorker;
+  static std::atomic<bool> _blitWorkerStarted{false};
+  static std::atomic<bool> _blitWorkerShouldStop{false};
+
+  static void BlitWorkerLoop() {
+    while (true) {
+      BlitJob job;
+      {
+        std::unique_lock<std::mutex> lock(_blitMutex);
+        _blitCv.wait(lock, [] {
+          return !_blitQueue.empty() || _blitWorkerShouldStop.load();
+        });
+        if (_blitWorkerShouldStop.load() && _blitQueue.empty()) {
+          return;
+        }
+        job = _blitQueue.front();
+        _blitQueue.pop();
+      }
+      if (job.context) {
+        job.context->Blit(job.handle);
+      }
+      if (job.registrar) {
+        job.registrar->MarkTextureFrameAvailable(job.flutterTextureId);
+      }
+    }
+  }
+
+  static void EnsureBlitWorkerStarted() {
+    bool expected = false;
+    if (_blitWorkerStarted.compare_exchange_strong(expected, true)) {
+      _blitWorker = std::thread(BlitWorkerLoop);
+    }
+  }
+
+  static void EnqueueBlit(BlitJob&& job) {
+    EnsureBlitWorkerStarted();
+    {
+      std::lock_guard<std::mutex> lock(_blitMutex);
+      // Bounded queue — drop oldest under sustained GPU pressure
+      // rather than growing without limit. Visual effect under
+      // overload: one stale frame, no hang, no crash.
+      while (_blitQueue.size() >= kMaxBlitQueueDepth) {
+        _blitQueue.pop();
+      }
+      _blitQueue.push(std::move(job));
+    }
+    _blitCv.notify_one();
+  }
+
+  ThermionFlutterPlugin::~ThermionFlutterPlugin() {
+    StopFrameScheduler();
+
+    // Stop the Blit worker thread cleanly. We signal the stop flag,
+    // wake the worker (it may be sleeping on the condition variable
+    // with an empty queue), and join. The worker drains queued
+    // jobs first, then returns. Safe against hot restart / app
+    // teardown.
+    if (_blitWorkerStarted.load()) {
+      _blitWorkerShouldStop.store(true);
+      _blitCv.notify_all();
+      if (_blitWorker.joinable()) {
+        _blitWorker.join();
+      }
+    }
+  }
 
   void ThermionFlutterPlugin::CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
@@ -294,8 +395,24 @@ namespace thermion::tflutter::windows
             _pendingSwaps.erase(swapIt);
           }
         } else {
+          // Enqueue the Blit + MarkTextureFrameAvailable on the
+          // dedicated worker thread. Synchronous Blit on the UI
+          // thread saturates the Win32 message pump under multi-
+          // viewer load and the per-call detached-thread variant
+          // crashed inside the Intel Vulkan driver because Blit's
+          // command pool / queue / fence are not thread-safe. The
+          // worker thread serialises all Blits process-wide and
+          // returns the UI thread immediately. See BlitWorkerLoop
+          // / EnqueueBlit above.
           HANDLE d3dTextureHandle = (*it)->GetD3DTextureHandle();
-          _context->Blit(d3dTextureHandle);
+          EnqueueBlit(BlitJob{
+              _context,
+              _textureRegistrar,
+              d3dTextureHandle,
+              *flutterTextureId,
+          });
+          result->Success(flutter::EncodableValue((int64_t) nullptr));
+          return;
         }
 
         _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
