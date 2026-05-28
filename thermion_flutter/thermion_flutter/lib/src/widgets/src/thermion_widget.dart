@@ -86,7 +86,20 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     _debounceTimer?.cancel();
     var texture = _texture;
     _texture = null;
-    texture?.destroy();
+    // Tear down per-view plugin bindings (Android: SwapChain bound to
+    // this view) BEFORE releasing the underlying texture. The
+    // SurfaceTexture release frees the swap chain's native window, so
+    // if the swap chain is still attached to the RenderManager when
+    // that happens Filament's next render fires `eglSwapBuffers` on a
+    // null buffer and the emulator/EGL stack logs `EGL_BAD_SURFACE`
+    // until the widget unmount finishes propagating. Sequencing the
+    // two awaits inside an unawaited closure keeps `dispose()` synchronous
+    // for the framework while still ordering the calls.
+    final view = widget.view;
+    () async {
+      await ThermionFlutterPlugin.instance.releaseTextureBindingForView(view);
+      await texture?.destroy();
+    }();
   }
 
   @override

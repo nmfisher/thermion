@@ -348,7 +348,16 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
           (_EagerScaleGestureRecognizer instance) {
             instance
               ..onStart = (ScaleStartDetails event) {
-                _scaleStartFocal = event.focalPoint;
+                // Capture the *local* focal point (widget-relative) for
+                // tap synthesis. The synthesised tap dispatches via
+                // TouchEvent.localPosition, which is what
+                // `View.pick(x, y, ...)` consumes — pick wants viewport-
+                // relative pixels, not screen-global. Using
+                // `event.focalPoint` (global) here was wrong: picks
+                // landed outside the rendered viewport whenever the
+                // widget wasn't at (0,0) on the screen, which is
+                // basically every real layout.
+                _scaleStartFocal = event.localFocalPoint;
                 _scaleStartTime = DateTime.now();
                 _scaleMaxMovement = 0;
                 widget.inputHandler.handle(ScaleStartEvent(
@@ -360,8 +369,12 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
               }
               ..onUpdate = (ScaleUpdateDetails event) {
                 if (_scaleStartFocal != null) {
+                  // Compare local-to-local for the tap-vs-drag movement
+                  // threshold. Mixing global with local would inflate
+                  // the distance by the widget's screen position and
+                  // misclassify static taps as drags.
                   final movement =
-                      (event.focalPoint - _scaleStartFocal!).distance;
+                      (event.localFocalPoint - _scaleStartFocal!).distance;
                   if (movement > _scaleMaxMovement) {
                     _scaleMaxMovement = movement;
                   }

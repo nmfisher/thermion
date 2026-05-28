@@ -21,7 +21,6 @@ jobs:
       ref: ${{ inputs.ref }}
 
   flutter-builds:
-    needs: dart-tests
     uses: ./.github/workflows/run-flutter-builds.yml
     with:
       ref: ${{ inputs.ref }}

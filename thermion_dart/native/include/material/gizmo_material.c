@@ -1,4 +1,4 @@
-#include "gizmo.h"
+#include "gizmo_material.h"
 #include <stdint.h>
 const uint8_t GIZMO_PACKAGE[] = {
 // GIZMO

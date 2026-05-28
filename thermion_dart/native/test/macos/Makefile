@@ -34,7 +34,7 @@ MATERIAL_SOURCES = $(NATIVE_INCLUDE_DIR)/material/unlit_fixed_size.c \
                   $(NATIVE_INCLUDE_DIR)/material/image.c \
                   $(NATIVE_INCLUDE_DIR)/material/grid.c \
                   $(NATIVE_INCLUDE_DIR)/material/unlit.c \
-                  $(NATIVE_INCLUDE_DIR)/material/gizmo.c
+                  $(NATIVE_INCLUDE_DIR)/material/gizmo_material.c
 RESOURCE_SOURCES = $(NATIVE_INCLUDE_DIR)/resources/translation_gizmo_glb.c \
                   $(NATIVE_INCLUDE_DIR)/resources/rotation_gizmo_glb.c
 

@@ -109,7 +109,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev
 
       - name: Build quickstart (Linux)
         if: matrix.name == 'Linux'

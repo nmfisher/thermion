@@ -1,4 +1,5 @@
 #include "include/thermion_flutter/thermion_flutter_plugin.h"
+#include "Log.hpp"
 
 #include <flutter_linux/flutter_linux.h>
 #include <flutter_linux/fl_texture_registrar.h>

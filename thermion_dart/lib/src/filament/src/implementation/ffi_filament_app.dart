@@ -251,18 +251,65 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb)));
   }
 
+  /// Serial chain that prevents multiple `destroySwapChain` calls
+  /// from running concurrently. Each call awaits `_destroyChain`,
+  /// runs detach + flush + destroy + bookkeeping, then completes the
+  /// chain so the next destroy can start.
+  ///
+  /// Why: in multi-viewer apps, mass dispose (e.g. toggling stress-
+  /// test viewer count from 8 → 1) triggers eight concurrent
+  /// destroySwapChain calls. Each call's flush() drains the backend
+  /// at the moment it runs — but if other concurrent destroys are
+  /// queueing new commands on the backend at the same time, no
+  /// individual flush guarantees the backend is empty afterwards.
+  /// Filament's internal Renderer mSwapChain state can end up
+  /// pointing at a SwapChain that another destroy is in the middle
+  /// of freeing, tripping the `endFrame:490` precondition.
+  ///
+  /// Serialising destroys gives flush() a stable target: nothing
+  /// else is queueing destroy work, so the flush truly drains and
+  /// the synchronous engine->destroy can proceed safely.
+  static Future<void> _destroyChain = Future.value();
+
   //
   Future destroySwapChain(SwapChain swapChain) async {
-    _logger.info("Destroying swapchain");
-    await renderManager.detachAll(swapChain);
+    final completer = Completer<void>();
+    final prev = _destroyChain;
+    _destroyChain = completer.future;
+    await prev;
+    try {
+      _logger.info("Destroying swapchain");
+      await renderManager.detachAll(swapChain);
 
-    await withVoidCallback((requestId, callback) {
-      Engine_destroySwapChainRenderThread(
-          engine, swapChain.getNativeHandle(), requestId, callback);
-    });
+      // Drain Filament's backend command queue before releasing the
+      // SwapChain. `RenderManager::removeSwapChain` (called inside
+      // detachAll) takes Thermion's render-manager mutex and finishes
+      // synchronously, so no future RenderManager::render iteration
+      // will touch this swap chain. But Filament has its own internal
+      // command stream that processes BEGIN_FRAME / render / END_FRAME
+      // on its backend thread, independently of Thermion's render
+      // thread. If a frame's endFrame is still queued on that backend
+      // when `engine->destroy(swapChain)` runs synchronously on our
+      // thread, the SwapChain memory is freed before endFrame
+      // executes — and Filament aborts at Renderer.cpp:490 with
+      // "SwapChain must remain valid until endFrame is called."
+      //
+      // `flushAndWait()` blocks until the backend has processed every
+      // command submitted up to this point. Combined with the destroy
+      // serialisation above, this guarantees a quiet backend at the
+      // moment we synchronously call engine->destroy.
+      await flush();
 
-    _swapChains.remove(swapChain);
-    _logger.info("Destroyed swapchain");
+      await withVoidCallback((requestId, callback) {
+        Engine_destroySwapChainRenderThread(
+            engine, swapChain.getNativeHandle(), requestId, callback);
+      });
+
+      _swapChains.remove(swapChain);
+      _logger.info("Destroyed swapchain");
+    } finally {
+      completer.complete();
+    }
   }
 
   // Destroys the specified entity. You must ensure that the entity has already
@@ -638,7 +685,29 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<Iterable<SwapChain>> getSwapChains() async {
-    return _swapChains;
+    // Return a snapshot, not the live list. Returning the live list lets
+    // mutations from concurrent createSwapChain / destroySwapChain calls
+    // leak back to callers — which is exactly what happened in
+    // thermion_flutter's Android `createTextureAndBindToView`:
+    //
+    //   final swapChains = await FilamentApp.instance!.getSwapChains();
+    //   final swapChain  = await FilamentApp.instance!.createSwapChain(...);
+    //   if (swapChains.isNotEmpty) {
+    //     await FilamentApp.instance!.destroySwapChain(swapChains.first);
+    //   }
+    //
+    // The intent was "snapshot existing chains, create the new one,
+    // tear down the old one", but `swapChains` aliased `_swapChains`,
+    // so after `createSwapChain` appended, `swapChains.first` was the
+    // *new* swap chain. The plugin then destroyed it and attached the
+    // view to a freed pointer — the next render hit Filament's
+    // "SwapChain must remain valid until endFrame is called" assert
+    // and the process aborted on every viewer mount on Android.
+    //
+    // Returning an unmodifiable snapshot fixes this at the API layer
+    // and makes the function safe regardless of how callers are
+    // structured.
+    return List<SwapChain>.unmodifiable(_swapChains);
   }
 
   final _hooks = <Future Function()>[];

@@ -435,7 +435,8 @@ class ThermionViewerFFI extends ThermionViewer {
   }) async {
     final data = await FilamentApp.instance!.loadResource(path);
     if (resourceUri == null) {
-      var split = path.split("/");
+      var normalised = path.replaceAll("\\", "/");
+      var split = normalised.split("/");
       resourceUri ??= split.take(split.length - 1).join("/");
     }
 
