@@ -17,6 +17,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static final _descriptors = <PlatformTextureDescriptor>[];
   static final _destroyed = <PlatformTextureDescriptor>[];
   static final _logger = Logger('ThermionFlutterPluginImpl');
+  static int? _frameRequestId;
 
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
@@ -48,13 +49,37 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
     _destroyed.clear();
 
-    window.requestAnimationFrame(_tick.toJS);
+    _frameRequestId = window.requestAnimationFrame(_tick.toJS);
+  }
+
+  static void _ensureFrameLoopRunning() {
+    _frameRequestId ??= window.requestAnimationFrame(_tick.toJS);
+  }
+
+
+  static void _resetWebState() {
+    if (_frameRequestId != null) {
+      window.cancelAnimationFrame(_frameRequestId!);
+      _frameRequestId = null;
+    }
+
+    _stackPtr = null;
+    swapChain = null;
+    _descriptors.clear();
+    _destroyed.clear();
   }
 
   static SwapChain? swapChain;
 
   @override
   Future<SwapChain> initialize({bool destroySwapchain = true}) async {
+    if (FilamentApp.instance != null && swapChain != null) {
+      // Hot reload re-enters initialize without disposing the existing web
+      // engine. Reuse the live app instead of spawning another em-pthread.
+      _ensureFrameLoopRunning();
+      return swapChain!;
+    }
+
     HTMLCanvasElement? canvas;
     // first, try and initialize bindings to see if the user has included thermion_dart.js manually in index.html
     try {
@@ -118,6 +143,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         sharedContext: null,
         uberArchivePath: options.uberarchivePath);
     await FFIFilamentApp.create(config: config);
+    // resetting the web state when the app is destroyed
+    (FilamentApp.instance as FFIFilamentApp).onDestroy(() async {
+      _resetWebState();
+    });
 
     // Use createSwapChain with nullptr to render to the canvas's default
     // framebuffer (framebuffer 0). createHeadlessSwapChain creates an offscreen
@@ -126,7 +155,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     print("Created 1x1 headless swapchain");
 
-    window.requestAnimationFrame(_tick.toJS);
+    _ensureFrameLoopRunning();
 
     return swapChain!;
   }

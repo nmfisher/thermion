@@ -103,6 +103,12 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
 
   func.call(onComplete_interopFnPtr.cast());
 
+
+  while (!completer.isCompleted) {
+    _NativeLibrary.instance._execute_queue();
+    await Future.delayed(Duration(milliseconds: 1));
+  }
+
   var ptr = await completer.future;
   onComplete_interopFnPtr.dispose();
 
@@ -120,7 +126,11 @@ Future<bool> withBoolCallback(
   final onComplete_interopFnPtr = callback.addFunction();
 
   func.call(onComplete_interopFnPtr.cast());
-  await completer.future;
+
+  while (!completer.isCompleted) {
+    _NativeLibrary.instance._execute_queue();
+    await Future.delayed(Duration(milliseconds: 1));
+  }
 
   return completer.future;
 }
@@ -134,20 +144,26 @@ Future<double> withFloatCallback(
   };
   var ptr = callback.addFunction();
   func.call(ptr);
-  await completer.future;
+  while (!completer.isCompleted) {
+    _NativeLibrary.instance._execute_queue();
+    await Future.delayed(Duration(milliseconds: 1));
+  }
   return completer.future;
 }
 
 Future<int> withIntCallback(
     Function(Pointer<NativeFunction<void Function(int)>>) func) async {
-    final completer = Completer<int>();
+  final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
     completer.complete(result);
   };
   var ptr = callback.addFunction();
   func.call(ptr);
-  await completer.future;
+  while (!completer.isCompleted) {
+    _NativeLibrary.instance._execute_queue();
+    await Future.delayed(Duration(milliseconds: 1));
+  }
   return completer.future;
 }
 
