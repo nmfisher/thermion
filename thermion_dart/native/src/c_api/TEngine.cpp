@@ -104,6 +104,13 @@ namespace thermion
             return reinterpret_cast<TRenderer *>(renderer);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderer(TEngine *tEngine, TRenderer *tRenderer)
+        {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *renderer = reinterpret_cast<Renderer *>(tRenderer);
+            engine->destroy(renderer);
+        }
+
         EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
