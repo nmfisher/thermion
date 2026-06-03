@@ -411,8 +411,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             (animationManager as FFIAnimationManager).animationManager,
             requestId,
             cb));
-    await withVoidCallback((requestId, cb) => GltfAssetLoader_destroyRenderThread(
-        gltfAssetLoader, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        GltfAssetLoader_destroyRenderThread(gltfAssetLoader, requestId, cb));
     NameComponentManager_destroy(nameComponentManager);
 
     await withVoidCallback((requestId, cb) =>
@@ -943,6 +943,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Future Function(View)? beforeRender,
     bool render = true,
   }) async {
+    // Web: the worker rAF loop (RenderManager::tick) drives begin/render/end on
+    // the *shared* Renderer. If it fires between our beginFrame() and the
+    // swapchain readPixels() below, it ends the frame and clears the active
+    // SwapChain, tripping Filament's "readPixels() ... must be called after
+    // beginFrame() and before endFrame()" precondition. Pause ticking across
+    // the critical section and resume it in the finally.
+    final pauseTicking = FILAMENT_SINGLE_THREADED;
+    if (pauseTicking) {
+      RenderManager_setPaused(renderManager.getNativeHandle(), true);
+      await Future.delayed(Duration(milliseconds: 17)); // TODO - replace this
+    }
+
     if (swapChain == null) {
       if (_swapChains.isEmpty) {
         throw Exception("No swapchains registered");
@@ -955,7 +967,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       swapChain = _swapChains.first;
     }
-    final beginFrame = await withBoolCallback((cb) {
+    var beginFrame = false;
+    const MAX_BEGIN_FRAME_RETRIES = 3;
+
+    for (int i = 0; i < MAX_BEGIN_FRAME_RETRIES; i++) {
+      beginFrame = await withBoolCallback((cb) {
       Renderer_beginFrameRenderThread(
         renderer,
         swapChain!.getNativeHandle(),
@@ -963,6 +979,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         cb,
       );
     });
+      if (beginFrame) {
+        break;
+      }
+    }
+
+    if (!beginFrame) {
+      if (pauseTicking) {
+        RenderManager_setPaused(renderManager.getNativeHandle(), false);
+      }
+      throw Exception("Failed to begin frame");
+    }
+
 
     final pixelBuffers = <(View, Uint8List)>[];
 
@@ -984,7 +1012,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
     }
 
-    if (beginFrame) {
       _logger.finest("Starting capture for ${views.length} views");
 
       for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
@@ -1061,9 +1088,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         });
         pixelBuffers.add((view, pixelBuffer));
       }
-    } else {
-      _logger.severe("beginFrame returned false");
-    }
 
     await withVoidCallback((requestId, cb) {
       Renderer_endFrameRenderThread(renderer, requestId, cb);
@@ -1072,11 +1096,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await flush();
 
     // on web/WebGL backend, the callback in readPixels isn't actually
-    // fired until a subsequent render call (and possibly the presentation to the
-    // canvas when the render thread yields).
+    // fired until a subsequent render call (and possibly the presentation to 
+    // the canvas when the render thread yields).
     // We need to wait at least one frame before the pixel buffer is populated;
     // by this point, we've called setRendering(true), but this is actually
-    // synchronous, so we'll add a ~2 frame delay to wait for this to be available.
+    // synchronous, so we'll add a ~2 frame delay to wait for this to be 
+    // available.
     if (FILAMENT_SINGLE_THREADED) {
       await withBoolCallback(
         (cb) => Renderer_beginFrameRenderThread(
@@ -1111,6 +1136,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         element.$2.free();
         return wrapped;
       }).toList();
+    }
+
+    if(pauseTicking) {
+      RenderManager_setPaused(renderManager.getNativeHandle(), false);
     }
 
     return pixelBuffers;
