@@ -1,5 +1,6 @@
 // ignore_for_file: unused_local_variable
 import 'src/test_io.dart';
+export 'src/test_io.dart';
 import 'package:image/image.dart' as img;
 import 'package:image/image.dart';
 import 'package:logging/logging.dart';

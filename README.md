@@ -104,6 +104,21 @@ flutter run -d chrome
 
 When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Remove the flag (or set it to `false`) to go back to the pinned prebuilt.
 
+#### Running the test suite on web
+
+The package:test suite runs on Chrome via a wrapper. Do not invoke `dart test -p chrome` directly — the multithreaded WASM build needs `crossOriginIsolated` (a COOP/COEP proxy), and each test file needs an HTML host that loads `thermion_dart.js` and the `thermion_canvas`. The wrapper handles both:
+
+```bash
+# from thermion_dart/
+dart run tool/web_test_runner.dart --assets=../examples/assets test/texture_tests.dart
+```
+
+It stamps per-file `test/<name>.html`, starts `tool/coi_proxy.dart` on port 8899 (injecting the isolation headers and bridging `thermion.assets` / `thermion.output` sentinel hosts for asset reads and capture writes), runs `dart test -p chrome`, and prints a per-file summary.
+
+Flags: `--port=N`, `--timeout=DUR`, `--concurrency=N`, `--assets=DIR`, `--no-proxy` (reuse an external proxy), `--clean` (delete the generated HTML on exit). With no test file arguments, it runs every `test/*_test.dart` and `test/*_tests.dart`.
+
+`test/thermion_dart.{js,wasm}` are gitignored symlinks into `native/web/build/build/out/`, so they stay current after every `make wasm`.
+
 ### Sponsors, Contributors & Acknowledgments
 
 Thermion uses the [Filament](https://github.com/google/filament) Physically Based Rendering engine under the hood.
