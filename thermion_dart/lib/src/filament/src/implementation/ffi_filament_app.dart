@@ -1031,13 +1031,42 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
       _logger.finest("Starting capture for ${views.length} views");
 
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      stackPtr = stackSave();
+    }
+
+    // Per-view "was this read as UBYTE for a FLOAT request?" flags. The
+    // downgrade-on-web rule depends on the framebuffer being read from
+    // (RGBA8 swapchain/RT → must use UBYTE; FLOAT RT → must use FLOAT),
+    // so we compute it per-view and inflate back to FLOAT in the return.
+    final inflateFromUByte = <bool>[];
+
       for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
         final view = views[viewIndex];
-        bool hasRenderTarget = (await view.getRenderTarget()) != null;
-        _logger.finest(
-          """Capturing view ${viewIndex} (renderTarget: """
-          """${hasRenderTarget ? 'yes' : 'no'})""",
-        );
+      final renderTarget = await view.getRenderTarget();
+      bool hasRenderTarget = renderTarget != null;
+      _logger.finest("""Capturing view ${viewIndex} (renderTarget: """
+          """${hasRenderTarget ? 'yes' : 'no'})""");
+
+      // WebGL/ANGLE constrains the format/type combo for readPixels by the
+      // bound framebuffer's color format:
+      //   - RGBA8 (swapchain / RGBA8 RT)  → only UBYTE is allowed
+      //   - FLOAT RT (RGBA16F / RGBA32F)  → only FLOAT is allowed
+      // Read FLOAT requests from RGBA8 as UBYTE and inflate in the return so
+      // callers still get the FLOAT buffer they asked for. Keep FLOAT when
+      // the RT itself is FLOAT, otherwise WebGL throws INVALID_OPERATION.
+      var rtIsFloat = false;
+      if (renderTarget != null) {
+        final colorTex = await renderTarget.getColorTexture();
+        rtIsFloat = _isFloatTextureFormat(await colorTex.getFormat());
+      }
+      final readAsUByteForFloat = FILAMENT_SINGLE_THREADED &&
+          pixelDataType == PixelDataType.FLOAT &&
+          !rtIsFloat;
+      final readType =
+          readAsUByteForFloat ? PixelDataType.UBYTE : pixelDataType;
+      inflateFromUByte.add(readAsUByteForFloat);
 
         beforeRender?.call(view);
 
@@ -1050,17 +1079,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           _ => throw UnsupportedError(pixelDataFormat.toString()),
         };
 
-        int channelSizeInBytes = switch (pixelDataType) {
+      int channelSizeInBytes = switch (readType) {
           PixelDataType.FLOAT => sizeOf<Float>(),
           PixelDataType.UBYTE || PixelDataType.BYTE => 1,
-          _ => throw UnsupportedError(pixelDataFormat.toString()),
+        _ => throw UnsupportedError(readType.toString())
         };
 
         if (viewport.width <= 0 || viewport.height <= 0) {
-          throw Exception(
-            """Invalid viewport dimensions"""
-            """ : ${viewport.width}x${viewport.height}""",
-          );
+        throw Exception("Invalid viewport dimensions: "
+            "${viewport.width}x${viewport.height}");
         }
 
         final numBytes =
@@ -1078,8 +1105,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           });
         }
 
-        final renderTarget = await view.getRenderTarget();
-
         if (captureRenderTarget && renderTarget == null) {
           _logger.warning(
             """captureRenderTarget is true but the specified view has no"""
@@ -1096,12 +1121,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             0,
             renderTarget == null ? nullptr : renderTarget.getNativeHandle(),
             pixelDataFormat.value,
-            pixelDataType.value,
+            readType.value,
             pixelBuffer.address,
             pixelBuffer.length,
             requestId,
-            cb,
-          );
+            cb);
         });
         pixelBuffers.add((view, pixelBuffer));
       }
@@ -1148,14 +1172,32 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       // now copy the pixel buffer into a GC'd Uint8List and destroy the
       // manually allocated buffer so invokers don't have to worry about taking
       // ownership of malloc memory
-      return pixelBuffers.map((element) {
-        final wrapped = (element.$1, Uint8List.fromList(element.$2));
-        element.$2.free();
-        return wrapped;
-      }).toList();
+      final result = <(View, Uint8List)>[];
+      for (var i = 0; i < pixelBuffers.length; i++) {
+        final (view, raw) = pixelBuffers[i];
+        final Uint8List out;
+        if (inflateFromUByte[i]) {
+          // Inflate the 8-bit readback to the float buffer callers expect:
+          // one float32 in [0,1] per source byte.
+          final floats = Float32List(raw.length);
+          for (var j = 0; j < raw.length; j++) {
+            floats[j] = raw[j] / 255.0;
+          }
+          out = floats.buffer.asUint8List();
+        } else {
+          out = Uint8List.fromList(raw);
+        }
+        raw.free();
+        result.add((view, out));
     }
 
-    if(pauseTicking) {
+      if (FILAMENT_WASM) {
+        stackRestore(stackPtr);
+      }
+      return result;
+    }
+
+    if (pauseTicking) {
       RenderManager_setPaused(renderManager.getNativeHandle(), false);
     }
 
@@ -1832,5 +1874,23 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName}) {
     return FFIGltfMeshData.parse(data, meshName: meshName);
+  }
+}
+
+bool _isFloatTextureFormat(TextureFormat f) {
+  switch (f) {
+    case TextureFormat.R16F:
+    case TextureFormat.RG16F:
+    case TextureFormat.RGB16F:
+    case TextureFormat.RGBA16F:
+    case TextureFormat.R32F:
+    case TextureFormat.RG32F:
+    case TextureFormat.RGB32F:
+    case TextureFormat.RGBA32F:
+    case TextureFormat.R11F_G11F_B10F:
+    case TextureFormat.RGB9_E5:
+      return true;
+    default:
+      return false;
   }
 }
