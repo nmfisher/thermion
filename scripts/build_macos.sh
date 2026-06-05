@@ -9,15 +9,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.75.0 /path/to/output"
+  echo "         $0 /path/to/filament latest /path/to/output --webgpu --upload"
+  echo "         $0 /path/to/filament v1.75.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.75.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
   echo "  --release       Build release only"
   echo "  --debug         Build debug only"
-  echo "  (default)       Build both release and debug"
+  echo "  --webgpu        Build with FILAMENT_SUPPORTS_WEBGPU=ON (includes Dawn)"
+  echo "  --upload        Upload resulting zip(s) to Cloudflare R2 after build"
+  echo "  (default)       Build both release and debug, no WebGPU, no upload"
+  echo ""
+  echo "If FILAMENT_VERSION is 'latest', the newest v*.* tag on"
+  echo "https://github.com/google/filament is resolved and checked out."
   exit 1
 fi
 
@@ -30,6 +36,8 @@ shift 3
 CLEAN_FLAG=""
 BUILD_RELEASE=true
 BUILD_DEBUG=true
+WEBGPU_FLAG=false
+UPLOAD_FLAG=false
 
 for arg in "$@"; do
   case $arg in
@@ -42,12 +50,32 @@ for arg in "$@"; do
     --debug)
       BUILD_RELEASE=false
       ;;
+    --webgpu)
+      WEBGPU_FLAG=true
+      ;;
+    --upload)
+      UPLOAD_FLAG=true
+      ;;
     *)
       echo "Unknown option: $arg"
       exit 1
       ;;
   esac
 done
+
+# Resolve FILAMENT_VERSION=latest by querying github for the newest v*.* tag.
+if [ "$FILAMENT_VERSION" = "latest" ]; then
+  echo "Resolving latest Filament tag..."
+  FILAMENT_VERSION=$(git ls-remote --tags --refs --sort=-version:refname \
+    https://github.com/google/filament 'v*' \
+    | awk -F/ '{print $NF}' \
+    | head -1)
+  if [ -z "$FILAMENT_VERSION" ]; then
+    echo "Error: could not resolve latest Filament tag from github"
+    exit 1
+  fi
+  echo "Latest Filament: $FILAMENT_VERSION"
+fi
 
 # Validate OUTPUT_BASE_DIR exists
 if [ ! -d "$OUTPUT_BASE_DIR" ]; then
@@ -108,9 +136,15 @@ git checkout "${FILAMENT_VERSION}" || {
 # Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
 python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
 
-# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
-echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands).
+# When --webgpu is set, also inject -DFILAMENT_SUPPORTS_WEBGPU=ON so the
+# Dawn-based WebGPU backend gets built into libbackend.a.
+CMAKE_INJECT="-DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON"
+if [ "$WEBGPU_FLAG" = true ]; then
+  CMAKE_INJECT="$CMAKE_INJECT -DFILAMENT_SUPPORTS_WEBGPU=ON"
+fi
+echo "Patching Filament build.sh to inject: $CMAKE_INJECT"
+sed -i.bak "s|\${architectures} \\\\\$|\${architectures} $CMAKE_INJECT \\\\|g" build.sh
 
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
@@ -319,6 +353,34 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
 fi
 
+# Copy Dawn / WebGPU libs and headers when --webgpu was set.
+# Dawn is built as a third-party subproject and produces many granular
+# static libs (dawn_native, dawn_proc, webgpu_dawn, the Tint compiler
+# stack, absl, etc.) scattered through its build tree — so we recurse.
+copy_dawn_artifacts() {
+  local cmake_dir="$1"
+  local target_dir="$2"
+  local dawn_root="$FILAMENT_BASE_DIR/$cmake_dir/third_party/dawn"
+  if [ ! -d "$dawn_root" ]; then
+    echo "Warning: dawn build dir not found at $dawn_root — skipping"
+    return 0
+  fi
+  echo "Copying Dawn static libs from $dawn_root..."
+  find "$dawn_root" -name '*.a' -type f -exec cp {} "$target_dir/" \;
+  # Generated webgpu_cpp.h lives under dawn's build tree alongside the
+  # other generated bindings.
+  local generated_inc="$dawn_root/gen/include"
+  if [ -d "$generated_inc/webgpu" ]; then
+    echo "Copying generated webgpu headers from $generated_inc/webgpu..."
+    mkdir -p "$target_dir/include/webgpu"
+    cp -R "$generated_inc/webgpu"/* "$target_dir/include/webgpu/" || true
+  fi
+}
+
+if [ "$WEBGPU_FLAG" = true ] && [ "$BUILD_RELEASE" = true ]; then
+  copy_dawn_artifacts "out/cmake-release" "$TARGET_RELEASE_DIR"
+fi
+
 # Copy debug libraries
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Copying debug libraries..."
@@ -344,6 +406,10 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
+fi
+
+if [ "$WEBGPU_FLAG" = true ] && [ "$BUILD_DEBUG" = true ]; then
+  copy_dawn_artifacts "out/cmake-debug" "$TARGET_DEBUG_DIR"
 fi
 
 # Copy header files to target directories (for inclusion in R2 upload zips)
@@ -473,4 +539,24 @@ fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
   echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug.zip"
+fi
+
+# Optional upload to Cloudflare R2. Uses scripts/upload_r2.sh, which picks
+# wrangler vs aws CLI based on file size. Credentials must already be
+# configured (wrangler login or R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY env vars).
+if [ "$UPLOAD_FLAG" = true ]; then
+  echo ""
+  echo "Uploading artifacts to Cloudflare R2..."
+  if [ "$BUILD_RELEASE" = true ]; then
+    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release.zip" || {
+      echo "Error: Failed to upload release zip"
+      exit 1
+    }
+  fi
+  if [ "$BUILD_DEBUG" = true ]; then
+    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug.zip" || {
+      echo "Error: Failed to upload debug zip"
+      exit 1
+    }
+  fi
 fi
