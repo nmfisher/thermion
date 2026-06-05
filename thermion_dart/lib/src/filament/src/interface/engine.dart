@@ -11,8 +11,11 @@ enum Backend {
   /// !< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
   METAL(3),
 
+  /// !< Selects the WebGPU driver if the platform supports webgpu.
+  WEBGPU(4),
+
   /// !< Selects the no-op driver for testing purposes.
-  NOOP(4);
+  NOOP(5);
 
   final int value;
   const Backend(this.value);
@@ -22,7 +25,8 @@ enum Backend {
     1 => OPENGL,
     2 => VULKAN,
     3 => METAL,
-    4 => NOOP,
+    4 => WEBGPU,
+    5 => NOOP,
     _ => throw ArgumentError("Unknown value for TBackend: $value"),
   };
 }

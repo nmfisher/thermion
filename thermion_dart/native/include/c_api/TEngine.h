@@ -15,7 +15,8 @@ enum TBackend {
     BACKEND_OPENGL = 1,   //!< Selects the OpenGL/ES driver (default on Android)
     BACKEND_VULKAN = 2,   //!< Selects the Vulkan driver if the platform supports it (default on Linux/Windows)
     BACKEND_METAL = 3,    //!< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
-    BACKEND_NOOP = 4,     //!< Selects the no-op driver for testing purposes.
+    BACKEND_WEBGPU = 4,   //!< Selects the WebGPU driver if the platform supports webgpu.
+    BACKEND_NOOP = 5,     //!< Selects the no-op driver for testing purposes.
 };
 typedef enum TBackend TBackend;
 

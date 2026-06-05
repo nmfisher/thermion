@@ -107,6 +107,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _sun = DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
+    if (kIsWeb) {
+      final wantsWebGpu = Uri.base.queryParameters['backend'] == 'webgpu';
+      final backend = wantsWebGpu && WebGpu.isSupported()
+          ? Backend.WEBGPU
+          : Backend.OPENGL;
+      ThermionFlutterPlugin.instance.setOptions(ThermionFlutterOptions(
+          webOptions: WebOptions(backend: backend)));
+    }
   }
 
   /// Applies the batch: mounts `_batch` viewers at once when the grid is

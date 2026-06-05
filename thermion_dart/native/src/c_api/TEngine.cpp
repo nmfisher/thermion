@@ -65,12 +65,17 @@ namespace thermion
             bool disableHandleUseAfterFreeCheck)
         {
             #ifdef __EMSCRIPTEN__
-            // Engine_create runs inside the engine's RenderThread task, so the
-            // active thread IS this engine's thread — create the WebGL context
-            // on the canvas that was transferred to it.
-            auto handle = Thermion_createGLContext(RenderThread_getActiveCanvasSelector());
-            tSharedContext = (void*)handle;
-            tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            if (backend == BACKEND_WEBGPU) {
+                tPlatform = Thermion_createWebGPUPlatform();
+                tSharedContext = nullptr;
+            } else {
+                // Engine_create runs inside the engine's RenderThread task, so
+                // the active thread IS this engine's thread — create the WebGL
+                // context on the canvas that was transferred to it.
+                auto handle = Thermion_createGLContext(RenderThread_getActiveCanvasSelector());
+                tSharedContext = (void*)handle;
+                tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            }
             #endif
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;

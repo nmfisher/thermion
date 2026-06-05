@@ -4,9 +4,12 @@
 #include <mutex>
 #include <future>
 #include <iostream>
+#include <vector>
 
 #include <backend/Platform.h>
 #include <backend/platforms/PlatformWebGL.h>
+#include <backend/platforms/WebGPUPlatform.h>
+#include <webgpu/webgpu_cpp.h>
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
@@ -20,6 +23,36 @@
 #include <emscripten/bind.h>
 
 using emscripten::val;
+
+namespace {
+
+class ThermionWebGPUPlatform : public filament::backend::WebGPUPlatform {
+public:
+    wgpu::Extent2D getSurfaceExtent(void* /*nativeWindow*/) const override {
+        int width = 0;
+        int height = 0;
+        emscripten_get_canvas_element_size("#thermion_canvas", &width, &height);
+        return wgpu::Extent2D{
+            .width = static_cast<uint32_t>(width),
+            .height = static_cast<uint32_t>(height),
+        };
+    }
+
+    wgpu::Surface createSurface(void* /*nativeWindow*/, uint64_t /*flags*/) override {
+        wgpu::SurfaceDescriptorFromCanvasHTMLSelector canvasDesc{};
+        canvasDesc.selector = "#thermion_canvas";
+        wgpu::SurfaceDescriptor surfDesc{};
+        surfDesc.nextInChain = &canvasDesc;
+        return mInstance.CreateSurface(&surfDesc);
+    }
+
+protected:
+    std::vector<wgpu::RequestAdapterOptions> getAdapterOptions() override {
+        return { wgpu::RequestAdapterOptions{} };
+    }
+};
+
+} // namespace
 
 extern "C"
 {
@@ -91,6 +124,11 @@ extern "C"
     }
     std::cout << "Returning context" << std::endl;
     return _context;
+  }
+
+  EMSCRIPTEN_KEEPALIVE void *Thermion_createWebGPUPlatform() {
+    std::cout << "Creating WebGPU platform." << std::endl;
+    return static_cast<filament::backend::Platform *>(new ThermionWebGPUPlatform());
   }
 
 }

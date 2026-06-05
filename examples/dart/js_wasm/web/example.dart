@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 import 'dart:math';
 import 'package:web/web.dart';
 import 'package:logging/logging.dart';
@@ -8,6 +9,25 @@ import 'package:thermion_dart/thermion_dart.dart'
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'web_input_handler.dart';
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
+
+bool _webGpuAvailable() {
+  final nav = globalContext.getProperty('navigator'.toJS);
+  if (nav == null) return false;
+  return (nav as JSObject).getProperty('gpu'.toJS) != null;
+}
+
+Backend _resolveBackend() {
+  final query = Uri.parse(window.location.href).queryParameters['backend'];
+  if (query == 'webgpu') {
+    if (!_webGpuAvailable()) {
+      print('?backend=webgpu requested but navigator.gpu unavailable; '
+          'falling back to OPENGL.');
+      return Backend.OPENGL;
+    }
+    return Backend.WEBGPU;
+  }
+  return Backend.OPENGL;
+}
 
 void main(List<String> arguments) async {
   Logger.root.onRecord.listen((record) {
@@ -25,7 +45,9 @@ void main(List<String> arguments) async {
     print(err.toString());
   }
 
-  final config = FFIFilamentConfig(backend: Backend.OPENGL);
+  final backend = _resolveBackend();
+  print('Using backend: $backend');
+  final config = FFIFilamentConfig(backend: backend);
 
   await FFIFilamentApp.create(config: config);
 
