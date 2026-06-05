@@ -2,6 +2,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/html5.h>
 #include "WebGLContext.hpp"
+#include "ThermionWebApi.h"
 #include <backend/platforms/PlatformWebGL.h>
 #endif
 
@@ -89,10 +90,15 @@ namespace thermion
         {
             THERMION_ENGINE_API_GUARD;
             #ifdef __EMSCRIPTEN__
-            auto handle = createWebGLContextForCurrentJob();
-            if (!handle) return nullptr;
-            tSharedContext = (void*)handle;
-            tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            if (backend == BACKEND_WEBGPU) {
+                tPlatform = Thermion_createWebGPUPlatform();
+                tSharedContext = nullptr;
+            } else {
+                auto handle = createWebGLContextForCurrentJob();
+                if (!handle) return nullptr;
+                tSharedContext = (void*)handle;
+                tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            }
             #endif
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;
