@@ -6,6 +6,21 @@
 #include <backend/platforms/PlatformWebGL.h>
 #endif
 
+// Native WebGPU support is opt-in: consuming app must set
+// `hooks.user_defines.thermion_dart.webgpu: true` in pubspec, which causes
+// the build hook to define THERMION_SUPPORTS_WEBGPU and link the Dawn libs.
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+  #if defined(__APPLE__)
+    #include <backend/platforms/WebGPUPlatformApple.h>
+  #elif defined(__linux__)
+    #include <backend/platforms/WebGPUPlatformLinux.h>
+  #elif defined(_WIN32)
+    #include <backend/platforms/WebGPUPlatformWindows.h>
+  #elif defined(__ANDROID__)
+    #include <backend/platforms/WebGPUPlatformAndroid.h>
+  #endif
+#endif
+
 #include "c_api/TEngine.h"
 #include "c_api/TMaterialPackage.h"
 
@@ -98,6 +113,18 @@ namespace thermion
                 if (!handle) return nullptr;
                 tSharedContext = (void*)handle;
                 tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            }
+            #elif defined(THERMION_SUPPORTS_WEBGPU)
+            if (backend == BACKEND_WEBGPU && !tPlatform) {
+                #if defined(__APPLE__)
+                tPlatform = new filament::backend::WebGPUPlatformApple();
+                #elif defined(__linux__)
+                tPlatform = new filament::backend::WebGPUPlatformLinux();
+                #elif defined(_WIN32)
+                tPlatform = new filament::backend::WebGPUPlatformWindows();
+                #elif defined(__ANDROID__)
+                tPlatform = new filament::backend::WebGPUPlatformAndroid();
+                #endif
             }
             #endif
             filament::Engine::Config config;
