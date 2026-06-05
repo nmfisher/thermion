@@ -512,11 +512,19 @@ fi
 # thermion_dart/native/include/filament — consumers source them from the
 # version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
-# Create zip files
+# Create zip files. Suffix with -webgpu when --webgpu was set so the
+# WebGPU-enabled build is uploaded under a distinct R2 key and never
+# overwrites the canonical artifact that downstream consumers fetch via
+# hook/build.dart.
+ZIP_SUFFIX=""
+if [ "$WEBGPU_FLAG" = true ]; then
+  ZIP_SUFFIX="-webgpu"
+fi
+
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release${ZIP_SUFFIX}.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
@@ -525,7 +533,7 @@ fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug zip..."
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug${ZIP_SUFFIX}.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
@@ -534,11 +542,11 @@ fi
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release${ZIP_SUFFIX}.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug${ZIP_SUFFIX}.zip"
 fi
 
 # Optional upload to Cloudflare R2. Uses scripts/upload_r2.sh, which picks
@@ -548,13 +556,13 @@ if [ "$UPLOAD_FLAG" = true ]; then
   echo ""
   echo "Uploading artifacts to Cloudflare R2..."
   if [ "$BUILD_RELEASE" = true ]; then
-    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release.zip" || {
+    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release${ZIP_SUFFIX}.zip" || {
       echo "Error: Failed to upload release zip"
       exit 1
     }
   fi
   if [ "$BUILD_DEBUG" = true ]; then
-    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug.zip" || {
+    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug${ZIP_SUFFIX}.zip" || {
       echo "Error: Failed to upload debug zip"
       exit 1
     }

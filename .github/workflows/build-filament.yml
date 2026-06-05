@@ -120,6 +120,14 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Compute zip suffix
+        run: |
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            echo "ZIP_SUFFIX=-webgpu" >> $GITHUB_ENV
+          else
+            echo "ZIP_SUFFIX=" >> $GITHUB_ENV
+          fi
+
       - name: Build Filament
         run: |
           mkdir -p output
@@ -133,15 +141,15 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-macos-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
+          name: filament-macos-release${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-macos-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+          name: filament-macos-debug${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -150,8 +158,8 @@ jobs:
           pip3 install --break-system-packages awscli
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:
