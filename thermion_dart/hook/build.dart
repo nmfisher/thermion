@@ -284,6 +284,33 @@ outputDirectory : ${outputDirectory.path}
       defines["ENABLE_TRACING"] = "1";
     }
 
+    // Opt-in native WebGPU support. Requires a Filament build with
+    // FILAMENT_SUPPORTS_WEBGPU=ON whose Dawn static libs are co-located
+    // with the regular filament libs in libDir. Intended for local
+    // testing only — shipping native builds should continue to use
+    // Metal/Vulkan/OpenGL.
+    final webgpuRaw = input.userDefines["webgpu"];
+    final webgpuEnabled = webgpuRaw == true ||
+        webgpuRaw == "true" ||
+        webgpuRaw == 1 ||
+        webgpuRaw == "1";
+    if (webgpuEnabled) {
+      logger.info("Enabling native WebGPU (Dawn)");
+      defines["THERMION_SUPPORTS_WEBGPU"] = "1";
+      // TODO: enumerate exact Dawn lib names from a real Filament build
+      // with FILAMENT_SUPPORTS_WEBGPU=ON. The set below is a placeholder
+      // sketch — the actual output includes a webgpu_dawn wrapper plus
+      // the Tint compiler stack split into ~15-25 granular targets.
+      libs.addAll(<String>[
+        // "webgpu_dawn",
+        // "dawn_native",
+        // "dawn_proc",
+        // "tint_api",
+        // "tint_lang_wgsl_reader",
+        // "tint_lang_msl_writer",
+      ]);
+    }
+
     // Check for plugin configuration
     final pluginConfigs = input.userDefines["plugins"] as List<dynamic>?;
 
