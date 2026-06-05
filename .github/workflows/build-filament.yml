@@ -129,6 +129,14 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Compute zip suffix
+        run: |
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            echo "ZIP_SUFFIX=-webgpu" >> $GITHUB_ENV
+          else
+            echo "ZIP_SUFFIX=" >> $GITHUB_ENV
+          fi
+
       - name: Build Filament
         run: |
           mkdir -p output
@@ -142,30 +150,37 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-macos-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
+          name: filament-macos-release${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-macos-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+          name: filament-macos-debug${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Verify packaged universal matc and resgen
         run: |
           python3 scripts/verify-material-host-tools.py \
-            output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip \
-            output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-release${{ env.ZIP_SUFFIX }}.zip \
+            output/filament-${{ env.FILAMENT_VERSION }}-macos-debug${{ env.ZIP_SUFFIX }}.zip
 
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
           pip3 install --break-system-packages awscli
           for variant in release debug; do
-            bash scripts/upload_filament_hashed.sh \
-              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip"
+            if [ -n "${{ env.ZIP_SUFFIX }}" ]; then
+              aws s3 cp \
+                "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip" \
+                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}${{ env.ZIP_SUFFIX }}.zip" \
+                --endpoint-url "${{ env.R2_ENDPOINT }}"
+            else
+              bash scripts/upload_filament_hashed.sh \
+                "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip"
+            fi
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
