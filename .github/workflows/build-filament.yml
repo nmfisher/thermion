@@ -34,6 +34,11 @@ on:
         required: false
         default: true
         type: boolean
+      webgpu:
+        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS only for now)'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
@@ -67,6 +72,21 @@ jobs:
           # Override individually if provided
           [ -n "${{ inputs.filament_repo }}" ] && REPO="${{ inputs.filament_repo }}"
           [ -n "${{ inputs.filament_version }}" ] && VERSION="${{ inputs.filament_version }}"
+          # Resolve VERSION=latest to the newest v*.* tag on the chosen repo.
+          # The per-platform jobs do `git clone --branch $VERSION` so we must
+          # produce a concrete tag here, not the literal string "latest".
+          if [ "$VERSION" = "latest" ]; then
+            echo "Resolving latest tag on $REPO..."
+            VERSION=$(git ls-remote --tags --refs --sort=-version:refname \
+              "$REPO" 'v*' \
+              | awk -F/ '{print $NF}' \
+              | head -1)
+            if [ -z "$VERSION" ]; then
+              echo "Error: could not resolve latest tag on $REPO"
+              exit 1
+            fi
+            echo "Resolved latest -> $VERSION"
+          fi
           echo "repo=$REPO" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building Filament repo: $REPO ref: $VERSION"
@@ -104,7 +124,11 @@ jobs:
         run: |
           mkdir -p output
           chmod +x scripts/build_macos.sh
-          scripts/build_macos.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            EXTRA_FLAGS="--webgpu"
+          fi
+          scripts/build_macos.sh filament ${{ env.FILAMENT_VERSION }} output --clean $EXTRA_FLAGS
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
