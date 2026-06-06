@@ -325,10 +325,21 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          # libx11-xcb-dev provides X11/Xlib-xcb.h — Dawn's X11 backend
-          # (DAWN_USE_X11) includes it via dawn/common/xlib_with_undefs.h.
-          # libxcb1-dev pulls in the underlying xcb headers.
-          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libx11-xcb-dev libxcb1-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          # Base X11 + Mesa for Filament's own OpenGL/Vulkan paths.
+          # The libxcb-* set is for Dawn's X11/XCB backend (DAWN_USE_X11)
+          # — Dawn pulls in dri3, present, randr, sync, shape, xfixes,
+          # shm-fence and friends. Adding them all up front to avoid the
+          # one-at-a-time CI ping-pong.
+          sudo apt-get install -y \
+            clang libc++-dev libc++abi-dev ninja-build \
+            libx11-dev libx11-xcb-dev \
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev \
+            libxxf86vm-dev libgl1-mesa-dev libglu1-mesa-dev \
+            libxcb1-dev libxcb-dri3-dev libxcb-present-dev \
+            libxcb-randr0-dev libxcb-sync-dev libxcb-shape0-dev \
+            libxcb-xfixes0-dev libxcb-image0-dev libxcb-render0-dev \
+            libxcb-keysyms1-dev libxcb-util-dev libxcb-xkb-dev \
+            libxshmfence-dev libxkbcommon-dev libxkbcommon-x11-dev
 
       - name: Compute zip suffix
         run: |
