@@ -332,7 +332,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   @override
   Future destroy() async {
-    for (final swapChain in _swapChains) {
+    for (final swapChain in _swapChains.toList()) {
       await renderManager.detachAll(swapChain);
       await destroySwapChain(swapChain);
     }
