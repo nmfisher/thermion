@@ -35,7 +35,7 @@ on:
         default: true
         type: boolean
       webgpu:
-        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS only for now)'
+        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS, Linux)'
         required: false
         default: false
         type: boolean
@@ -389,11 +389,23 @@ jobs:
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 200
           clang --version
 
+      - name: Compute zip suffix
+        run: |
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            echo "ZIP_SUFFIX=-webgpu" >> $GITHUB_ENV
+          else
+            echo "ZIP_SUFFIX=" >> $GITHUB_ENV
+          fi
+
       - name: Build Filament
         run: |
           mkdir -p output
           chmod +x scripts/build_linux.sh
-          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            EXTRA_FLAGS="--webgpu"
+          fi
+          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean $EXTRA_FLAGS
 
       - name: Reject glibc symbol references newer than 2.35
         # Guards the glibc baseline described in the runs-on comment above:
@@ -449,23 +461,30 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-linux-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
+          name: filament-linux-release${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-linux-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
+          name: filament-linux-debug${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload to R2
         if: inputs.upload_to_r2
         run: |
           for variant in release debug; do
-            bash scripts/upload_filament_hashed.sh \
-              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip"
+            if [ -n "${{ env.ZIP_SUFFIX }}" ]; then
+              aws s3 cp \
+                "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip" \
+                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip" \
+                --endpoint-url "${{ env.R2_ENDPOINT }}"
+            else
+              bash scripts/upload_filament_hashed.sh \
+                "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip"
+            fi
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
