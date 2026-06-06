@@ -371,9 +371,12 @@ jobs:
           # (azure.archive.ubuntu.com); cap each command and retry the batch.
           retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i/3 failed: $*" >&2; sleep 20; done; return 1; }
           retry sudo apt-get update -o Acquire::http::Timeout=30 -o Acquire::Retries=3
+          # libx11-xcb-dev provides X11/Xlib-xcb.h — Dawn's X11 backend
+          # (DAWN_USE_X11) includes it via dawn/common/xlib_with_undefs.h.
+          # libxcb1-dev pulls in the underlying xcb headers.
           retry sudo apt-get install -y -o Acquire::http::Timeout=30 \
             ca-certificates wget ninja-build \
-            libx11-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libx11-dev libx11-xcb-dev libxcb1-dev libxcursor-dev libxrandr-dev libxinerama-dev \
             libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev \
             libgbm-dev
           # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
