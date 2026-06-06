@@ -35,7 +35,7 @@ on:
         default: true
         type: boolean
       webgpu:
-        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS only for now)'
+        description: 'Build Filament with FILAMENT_SUPPORTS_WEBGPU=ON (macOS, Linux)'
         required: false
         default: false
         type: boolean
@@ -327,24 +327,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
 
+      - name: Compute zip suffix
+        run: |
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            echo "ZIP_SUFFIX=-webgpu" >> $GITHUB_ENV
+          else
+            echo "ZIP_SUFFIX=" >> $GITHUB_ENV
+          fi
+
       - name: Build Filament
         run: |
           mkdir -p output
           chmod +x scripts/build_linux.sh
-          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            EXTRA_FLAGS="--webgpu"
+          fi
+          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean $EXTRA_FLAGS
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-linux-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
+          name: filament-linux-release${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
-          name: filament-linux-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
+          name: filament-linux-debug${{ env.ZIP_SUFFIX }}
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug${{ env.ZIP_SUFFIX }}.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -352,8 +364,8 @@ jobs:
         run: |
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}${{ env.ZIP_SUFFIX }}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:
