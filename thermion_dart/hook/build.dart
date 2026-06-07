@@ -193,6 +193,12 @@ outputDirectory : ${outputDirectory.path}
       backend = "native";
     }
 
+    // Native WebGPU (Dawn) opt-in: either the legacy `webgpu: true`
+    // user-define or `backend: "webgpu"`. Detected before getLibDir so the
+    // build hook can download the -webgpu suffixed zip from R2 instead of
+    // the canonical artifact.
+    final webgpuEnabled = backend == "webgpu";
+
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
     // Runtime material compilation (filamat). Opt-in because it bakes
@@ -231,6 +237,7 @@ outputDirectory : ${outputDirectory.path}
       logger,
       buildMode,
       isIOSSimulator: isIOSSimulator,
+      webgpuEnabled: webgpuEnabled,
     );
     var libDir = libResult.libDir.path;
     // Version-matched Filament headers extracted from the same R2 artifact as
@@ -400,12 +407,8 @@ outputDirectory : ${outputDirectory.path}
     // FILAMENT_SUPPORTS_WEBGPU=ON whose Dawn static libs are co-located
     // with the regular filament libs in libDir. Intended for local
     // testing only — shipping native builds should continue to use
-    // Metal/Vulkan/OpenGL.
-    final webgpuRaw = input.userDefines["webgpu"];
-    final webgpuEnabled = webgpuRaw == true ||
-        webgpuRaw == "true" ||
-        webgpuRaw == 1 ||
-        webgpuRaw == "1";
+    // Metal/Vulkan/OpenGL. (webgpuEnabled is detected above, before
+    // getLibDir, so the -webgpu artifact is downloaded.)
     if (webgpuEnabled) {
       logger.info("Enabling native WebGPU (Dawn)");
       defines["THERMION_SUPPORTS_WEBGPU"] = "1";
@@ -804,6 +807,13 @@ Future<void> _downloadWithRetry(String url, File destination, Logger logger) asy
       await Future<void>.delayed(delay);
     }
   }
+
+/// Legacy (mutable) R2 key for Filament artifact zips. Used for the
+/// -webgpu suffixed artifacts published by build-filament.yml's webgpu
+/// input, which are not covered by the filament.libs.json pin.
+String _getLibraryUrl(String version, String platform, String mode, {bool webgpu = false}) {
+  final suffix = webgpu ? "-webgpu" : "";
+  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}${suffix}.zip";
 }
 
 //
@@ -821,6 +831,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   Logger logger,
   BuildMode buildMode, {
   bool isIOSSimulator = false,
+  bool webgpuEnabled = false,
 }) async {
   var platform = targetOS.toString().toLowerCase();
 
@@ -883,22 +894,32 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   // flipping the pin lands in a fresh dir, so the old `success` token can
   // never mask new contents (and reverting the pin reuses the old cache).
   // Unpinned artifacts keep the exact legacy path — existing caches stay valid.
+  // WebGPU (Dawn) builds download a different zip (-webgpu suffix); keep
+  // their cache separate from the canonical artifact's.
   final artifact = resolveFilamentArtifact(version, platform, mode, pin);
-  if (artifact.cacheSuffix.isNotEmpty) {
+  var cacheSuffix = artifact.cacheSuffix;
+  if (webgpuEnabled) {
+    cacheSuffix = '$cacheSuffix-webgpu';
+  }
+  if (cacheSuffix.isNotEmpty) {
     if (platform == 'android') {
       // Every ABI shares this zip's extraction root and success token.
       // Keep the ABI directory names exactly as packaged in the archive.
-      libDir = Directory(path.join('${libDir.parent.path}${artifact.cacheSuffix}', path.basename(libDir.path)));
+      libDir = Directory(path.join('${libDir.parent.path}$cacheSuffix', path.basename(libDir.path)));
     } else {
-      libDir = Directory('${libDir.path}${artifact.cacheSuffix}');
+      libDir = Directory('${libDir.path}$cacheSuffix');
     }
   }
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  final url = artifact.url;
+  // WebGPU (Dawn) artifacts are published by build-filament.yml's webgpu
+  // input under legacy (mutable, non-content-addressed) keys with a -webgpu
+  // suffix; they are not covered by the filament.libs.json pin, so bypass
+  // pin resolution for them.
+  final url = webgpuEnabled ? _getLibraryUrl(version, platform, mode, webgpu: true) : artifact.url;
 
-  final filename = artifact.zipName;
+  final filename = webgpuEnabled ? url.split("/").last : artifact.zipName;
 
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
@@ -936,8 +957,9 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     // Content-addressed artifacts are verified against the pin's full
     // SHA-256 before extraction: a corrupt/truncated download (or a proxy
     // serving an error page with HTTP 200) must never be cached under the
-    // success token. Legacy (unpinned) artifacts have no digest to check.
-    final expectedSha = artifact.sha256;
+    // success token. Legacy (unpinned) artifacts have no digest to check,
+    // and neither do the -webgpu suffixed artifacts.
+    final expectedSha = webgpuEnabled ? null : artifact.sha256;
     if (expectedSha != null) {
       final actualSha = sha256.convert(downloadedBytes).toString();
       if (actualSha != expectedSha) {
