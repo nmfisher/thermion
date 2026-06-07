@@ -26,6 +26,13 @@
 
 #include <filament/Camera.h>
 #include <backend/DriverEnums.h>
+
+// Global WebGPU platform pointer, set during Engine_create when the WebGPU
+// backend is selected.  Other translation units (e.g. TRenderer.cpp) can
+// use this to access the Dawn wgpu::Instance for event processing.
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+filament::backend::WebGPUPlatform* g_webgpuPlatform = nullptr;
+#endif
 #include <filament/DebugRegistry.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>
@@ -125,6 +132,8 @@ namespace thermion
                 #elif defined(__ANDROID__)
                 tPlatform = new filament::backend::WebGPUPlatformAndroid();
                 #endif
+                g_webgpuPlatform =
+                    static_cast<filament::backend::WebGPUPlatform*>(tPlatform);
             }
             #endif
             filament::Engine::Config config;
