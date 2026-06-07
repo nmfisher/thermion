@@ -360,20 +360,40 @@ fi
 copy_dawn_artifacts() {
   local cmake_dir="$1"
   local target_dir="$2"
-  local dawn_root="$FILAMENT_BASE_DIR/$cmake_dir/third_party/dawn"
-  if [ ! -d "$dawn_root" ]; then
-    echo "Warning: dawn build dir not found at $dawn_root — skipping"
+  local dawn_build="$FILAMENT_BASE_DIR/$cmake_dir/third_party/dawn"
+  local dawn_src="$FILAMENT_BASE_DIR/third_party/dawn"
+  if [ ! -d "$dawn_build" ]; then
+    echo "Warning: dawn build dir not found at $dawn_build — skipping"
     return 0
   fi
-  echo "Copying Dawn static libs from $dawn_root..."
-  find "$dawn_root" -name '*.a' -type f -exec cp {} "$target_dir/" \;
-  # Generated webgpu_cpp.h lives under dawn's build tree alongside the
-  # other generated bindings.
-  local generated_inc="$dawn_root/gen/include"
-  if [ -d "$generated_inc/webgpu" ]; then
-    echo "Copying generated webgpu headers from $generated_inc/webgpu..."
-    mkdir -p "$target_dir/include/webgpu"
-    cp -R "$generated_inc/webgpu"/* "$target_dir/include/webgpu/" || true
+  echo "Copying Dawn static libs from $dawn_build..."
+  find "$dawn_build" -name '*.a' -type f -exec cp {} "$target_dir/" \;
+
+  # Dawn's webgpu headers live in two places that we need to merge into
+  # the target include dir:
+  #   1. third_party/dawn/include/webgpu/*       (source tree — webgpu_cpp.h, webgpu.h)
+  #   2. <build>/third_party/dawn/gen/include/webgpu/*  (generated — chained-struct etc)
+  # The previous logic only copied (2) which left consumers unable to
+  # #include <webgpu/webgpu_cpp.h>.
+  mkdir -p "$target_dir/include/webgpu"
+  if [ -d "$dawn_src/include/webgpu" ]; then
+    echo "Copying source-tree webgpu headers from $dawn_src/include/webgpu..."
+    cp -R "$dawn_src/include/webgpu"/* "$target_dir/include/webgpu/" || true
+  fi
+  if [ -d "$dawn_build/gen/include/webgpu" ]; then
+    echo "Copying generated webgpu headers from $dawn_build/gen/include/webgpu..."
+    cp -R "$dawn_build/gen/include/webgpu"/* "$target_dir/include/webgpu/" || true
+  fi
+
+  # Some configurations include via <dawn/webgpu.h> instead of <webgpu/...>.
+  # Capture dawn/* as well so either include path works.
+  if [ -d "$dawn_src/include/dawn" ]; then
+    mkdir -p "$target_dir/include/dawn"
+    cp -R "$dawn_src/include/dawn"/* "$target_dir/include/dawn/" || true
+  fi
+  if [ -d "$dawn_build/gen/include/dawn" ]; then
+    mkdir -p "$target_dir/include/dawn"
+    cp -R "$dawn_build/gen/include/dawn"/* "$target_dir/include/dawn/" || true
   fi
 }
 
