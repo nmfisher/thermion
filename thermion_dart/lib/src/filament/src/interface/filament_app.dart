@@ -245,7 +245,11 @@ abstract class FilamentApp<T> {
       hasIOR: hasIOR,
       hasVolume: hasVolume,
     );
-    return UbershaderMaterialInstance(mi);
+    final ubershader = UbershaderMaterialInstance(mi);
+    if (hasBaseColorTexture) {
+      await ubershader.setBaseColorFactor(1.0, 1.0, 1.0, 1.0);
+    }
+    return ubershader;
   }
 
   //
