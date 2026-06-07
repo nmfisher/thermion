@@ -409,17 +409,16 @@ outputDirectory : ${outputDirectory.path}
     if (webgpuEnabled) {
       logger.info("Enabling native WebGPU (Dawn)");
       defines["THERMION_SUPPORTS_WEBGPU"] = "1";
-      // TODO: enumerate exact Dawn lib names from a real Filament build
-      // with FILAMENT_SUPPORTS_WEBGPU=ON. The set below is a placeholder
-      // sketch — the actual output includes a webgpu_dawn wrapper plus
-      // the Tint compiler stack split into ~15-25 granular targets.
+      // libwebgpu_dawn.a is a "monolithic" archive built by Dawn's
+      // `webgpu_dawn` target — it already includes dawn_native,
+      // dawn_proc, dawn_common, dawn_platform, dawn_wire AND the full
+      // Tint compiler stack. Linking the granular libs alongside it
+      // produces multiple-definition errors. Use the monolith alone;
+      // add abseil because it's required by webgpu_dawn but exported
+      // as a separate archive.
       libs.addAll(<String>[
-        // "webgpu_dawn",
-        // "dawn_native",
-        // "dawn_proc",
-        // "tint_api",
-        // "tint_lang_wgsl_reader",
-        // "tint_lang_msl_writer",
+        "webgpu_dawn",
+        "abseil",
       ]);
     }
 
@@ -579,6 +578,21 @@ outputDirectory : ${outputDirectory.path}
 
     if (targetOS == OS.linux) {
       flags.add("-Wl,--export-dynamic");
+      // Filament's libbackend.a is built with -fno-rtti, so classes
+      // like backend::OpenGLPlatform have no typeinfo. Compiling
+      // Thermion's subclasses (ThermionPlatformEGLHeadless etc) with
+      // RTTI on creates vtables that reference the missing typeinfo
+      // symbol and the resulting .so fails to load. Match Filament's
+      // flag to keep vtables minimal.
+      flags.add("-fno-rtti");
+      // Dawn's webgpu_dawn monolithic archive bundles its own copy of
+      // SPIRV-Tools, which collides at link time with the SPIRV-Tools
+      // objects that Filament's filamat bundles. Let the linker pick
+      // one — both copies are compatible for symbol resolution and we
+      // don't care which gets exported. Only enable when webgpu is on.
+      if (webgpuEnabled) {
+        flags.add("-Wl,--allow-multiple-definition");
+      }
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
