@@ -64,8 +64,9 @@ class TestHelper {
   late String outDirPath;
   late String testDir;
   late String assetsDir;
+  final Backend? _backend;
 
-  TestHelper(String? subDir) {
+  TestHelper(String? subDir, {Backend? backend}) : _backend = backend {
     final packageUri = findPackageRoot('thermion_dart').toFilePath();
     assetsDir = p.normalize(p.join(packageUri, '..', 'examples', 'assets'));
     if (subDir != null) {
@@ -208,7 +209,10 @@ class TestHelper {
     await initTestBindings();
 
     await FFIFilamentApp.create(
-      config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: defaultTestBackend),
+      config: FFIFilamentConfig(
+        loadResource: loadResourceBytes,
+        backend: _backend ?? defaultTestBackend,
+      ),
     );
   }
 
