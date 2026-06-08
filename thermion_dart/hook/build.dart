@@ -120,23 +120,36 @@ outputDirectory : ${outputDirectory.path}
       sources = sources.where((p) => !p.contains("vulkan")).toList();
     }
 
-    // Material source paths (used by _processMaterials below)
+    // Material source paths — platform-specific variants.
+    // Each material has _native (OpenGL+Metal+Vulkan) and _webgpu (WGSL)
+    // variants with identical C symbols. The build hook compiles only one.
+    // Falls back to unsuffixed .c files if the platform variant doesn't
+    // exist yet (i.e., make materials hasn't been re-run).
+    final materialSuffix = webgpuEnabled ? '_webgpu' : '_native';
+    final materialDir = path.join(pkgRootFilePath, 'native/include/material');
+    String materialPath(String name, String suffix) {
+      final suffixed =
+          path.join(materialDir, '${name}$suffix.c');
+      if (File(suffixed).existsSync()) return 'native/include/material/${name}$suffix.c';
+      // Fallback: unsuffixed .c (pre-split materials)
+      final fallbackName = name == 'gizmo' ? 'gizmo_material' : name;
+      return 'native/include/material/$fallbackName.c';
+    }
+
     final materialSources = <String, String>{
-      'capture_uv': 'native/include/material/capture_uv.c',
-      'grid': 'native/include/material/grid.c',
-      'image': 'native/include/material/image.c',
-      'linear_depth': 'native/include/material/linear_depth.c',
-      'unlit_fixed_size': 'native/include/material/unlit_fixed_size.c',
-      'silhouette': 'native/include/material/silhouette.c',
-      'edge_outline': 'native/include/material/edge_outline.c',
-      'wireframe': 'native/include/material/wireframe.c',
-      'translation_axis': 'native/include/material/translation_axis.c',
+      'capture_uv': materialPath('capture_uv', materialSuffix),
+      'grid': materialPath('grid', materialSuffix),
+      'image': materialPath('image', materialSuffix),
+      'linear_depth': materialPath('linear_depth', materialSuffix),
+      'unlit_fixed_size': materialPath('unlit_fixed_size', materialSuffix),
+      'silhouette': materialPath('silhouette', materialSuffix),
+      'edge_outline': materialPath('edge_outline', materialSuffix),
+      'wireframe': materialPath('wireframe', materialSuffix),
+      'translation_axis': materialPath('translation_axis', materialSuffix),
       // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-      // with scene/Gizmo.cpp on Windows (both produced gizmo.obj, the
-      // material write-clobbered the class .obj, and the linker reported
-      // four LNK2019s for thermion::Gizmo::{Gizmo,pick,highlight,unhighlight}).
-      'gizmo': 'native/include/material/gizmo_material.c',
-      'bone_overlay': 'native/include/material/bone_overlay.c',
+      // with scene/Gizmo.cpp on Windows.
+      'gizmo': materialPath('gizmo_material', materialSuffix),
+      'bone_overlay': materialPath('bone_overlay', materialSuffix),
     };
 
     // Add gizmo resources (always included)
