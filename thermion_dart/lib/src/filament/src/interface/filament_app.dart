@@ -27,6 +27,11 @@ abstract class FilamentApp<T> {
 
   /// A handle to the native Filament Engine instance attached to this application.
   Pointer<TEngine> get engine;
+
+  /// The backend this app was created with (e.g. [Backend.WEBGPU] when the
+  /// Dawn-backed WebGPU path is enabled).
+  Backend get backend;
+
   T get gltfAssetLoader;
   T get renderer;
   AnimationManager<T> get animationManager;
