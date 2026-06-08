@@ -1,18 +1,10 @@
 #ifndef EDGE_OUTLINE_H_
 #define EDGE_OUTLINE_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef THERMION_SUPPORTS_WEBGPU
+#include "edge_outline_webgpu.h"
+#else
+#include "edge_outline_native.h"
 #endif
-    extern const uint8_t EDGE_OUTLINE_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define EDGE_OUTLINE_EDGE_OUTLINE_OFFSET 0
-#define EDGE_OUTLINE_EDGE_OUTLINE_SIZE 160365
-#define EDGE_OUTLINE_EDGE_OUTLINE_DATA (EDGE_OUTLINE_PACKAGE + EDGE_OUTLINE_EDGE_OUTLINE_OFFSET)
 
 #endif

@@ -1,18 +1,10 @@
 #ifndef IMAGE_H_
 #define IMAGE_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef THERMION_SUPPORTS_WEBGPU
+#include "image_webgpu.h"
+#else
+#include "image_native.h"
 #endif
-    extern const uint8_t IMAGE_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define IMAGE_IMAGE_OFFSET 0
-#define IMAGE_IMAGE_SIZE 68627
-#define IMAGE_IMAGE_DATA (IMAGE_PACKAGE + IMAGE_IMAGE_OFFSET)
 
 #endif

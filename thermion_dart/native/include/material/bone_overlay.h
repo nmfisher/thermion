@@ -1,18 +1,10 @@
 #ifndef BONE_OVERLAY_H_
 #define BONE_OVERLAY_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef THERMION_SUPPORTS_WEBGPU
+#include "bone_overlay_webgpu.h"
+#else
+#include "bone_overlay_native.h"
 #endif
-    extern const uint8_t BONE_OVERLAY_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define BONE_OVERLAY_BONE_OVERLAY_OFFSET 0
-#define BONE_OVERLAY_BONE_OVERLAY_SIZE 192300
-#define BONE_OVERLAY_BONE_OVERLAY_DATA (BONE_OVERLAY_PACKAGE + BONE_OVERLAY_BONE_OVERLAY_OFFSET)
 
 #endif

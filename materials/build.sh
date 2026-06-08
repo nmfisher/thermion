@@ -53,8 +53,8 @@ for material in "${MATERIALS[@]}"; do
 
     echo "=== $material (webgpu: wgsl) ==="
     ${MATC} -a webgpu \
-        -o "materials/${material}_webgpu.filamat" "materials/${material}.mat" || exit 1
-    ${RESGEN} -c -p "${material}" -x "${MATERIAL_DIR}/" "materials/${material}_webgpu.filamat" || exit 1
+        -o "materials/${material}.filamat" "materials/${material}.mat" || exit 1
+    ${RESGEN} -c -p "${material}" -x "${MATERIAL_DIR}/" "materials/${material}.filamat" || exit 1
 
     # Rename to _webgpu suffix
     mv "${MATERIAL_DIR}/${material}.c" "${MATERIAL_DIR}/${material}_webgpu.c"
@@ -89,7 +89,7 @@ for material in "${MATERIALS[@]}"; do
 EOF
 
     # Clean up intermediate .filamat
-    rm -f "materials/${material}.filamat" "materials/${material}_webgpu.filamat"
+    rm -f "materials/${material}.filamat"
 
     echo ""
 done

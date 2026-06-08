@@ -1,18 +1,10 @@
 #ifndef TRANSLATION_AXIS_H_
 #define TRANSLATION_AXIS_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef THERMION_SUPPORTS_WEBGPU
+#include "translation_axis_webgpu.h"
+#else
+#include "translation_axis_native.h"
 #endif
-    extern const uint8_t TRANSLATION_AXIS_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define TRANSLATION_AXIS_TRANSLATION_AXIS_OFFSET 0
-#define TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE 64426
-#define TRANSLATION_AXIS_TRANSLATION_AXIS_DATA (TRANSLATION_AXIS_PACKAGE + TRANSLATION_AXIS_TRANSLATION_AXIS_OFFSET)
 
 #endif

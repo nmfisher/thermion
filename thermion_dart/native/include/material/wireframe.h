@@ -1,18 +1,10 @@
 #ifndef WIREFRAME_H_
 #define WIREFRAME_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef THERMION_SUPPORTS_WEBGPU
+#include "wireframe_webgpu.h"
+#else
+#include "wireframe_native.h"
 #endif
-    extern const uint8_t WIREFRAME_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define WIREFRAME_WIREFRAME_OFFSET 0
-#define WIREFRAME_WIREFRAME_SIZE 118505
-#define WIREFRAME_WIREFRAME_DATA (WIREFRAME_PACKAGE + WIREFRAME_WIREFRAME_OFFSET)
 
 #endif

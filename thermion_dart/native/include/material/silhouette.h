@@ -1,18 +1,10 @@
 #ifndef SILHOUETTE_H_
 #define SILHOUETTE_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef THERMION_SUPPORTS_WEBGPU
+#include "silhouette_webgpu.h"
+#else
+#include "silhouette_native.h"
 #endif
-    extern const uint8_t SILHOUETTE_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define SILHOUETTE_SILHOUETTE_OFFSET 0
-#define SILHOUETTE_SILHOUETTE_SIZE 138611
-#define SILHOUETTE_SILHOUETTE_DATA (SILHOUETTE_PACKAGE + SILHOUETTE_SILHOUETTE_OFFSET)
 
 #endif
