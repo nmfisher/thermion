@@ -44,6 +44,10 @@ class FFIFilamentConfig extends FilamentConfig {
 }
 
 class FFIFilamentApp extends FilamentApp<Pointer> {
+  final Backend _backend;
+  @override
+  Backend get backend => _backend;
+
   final Pointer<TEngine> engine;
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
   Pointer<TRenderer> renderer;
@@ -64,6 +68,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   static final _logger = Logger("FFIFilamentApp");
 
   FFIFilamentApp(
+    this._backend,
     this.engine,
     this.gltfAssetLoader,
     this.renderer,
@@ -186,6 +191,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
 
     FilamentApp.instance = FFIFilamentApp(
+      config.backend,
       engine,
       gltfAssetLoader,
       renderer,
@@ -893,6 +899,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await Future.delayed(Duration(milliseconds: 17)); // TODO - replace this
     }
 
+    // Workaround: Filament's WebGPU blitter unconditionally enables blending,
+    // which fails on non-blendable formats (e.g. RGBA32Float).  If the
+    // requested pixel type doesn't match the source texture format, the blitter
+    // tries to create a conversion pipeline against a non-blendable destination
+    // and the entire command encoder is invalidated, yielding all-zero pixels.
+    // Force UBYTE when reading from the headless swapchain (RGBA8Unorm) to
+    // avoid the conversion blit.  See docs/upstream.md for details.
+    // TODO: remove this once the upstream blitter disables blending for non-blendable formats.
+    if (backend == Backend.WEBGPU && pixelDataType == PixelDataType.FLOAT && !captureRenderTarget) {
+      _logger.info("WebGPU readPixels: forcing UBYTE to avoid format-conversion blit");
+      pixelDataType = PixelDataType.UBYTE;
+    }
     if (swapChain == null) {
       if (_swapChains.isEmpty) {
         throw Exception("No swapchains registered");
