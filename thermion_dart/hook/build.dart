@@ -75,6 +75,36 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
+    // Detect backend early — it affects which R2 artifact we download,
+    // which static libs we link, and which material variant we compile.
+    //
+    // The "backend" user define selects the material/shader variant:
+    //   "native"  (default) — OpenGL + Metal + Vulkan (GLSL, SPIR-V, MSL)
+    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
+    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
+    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
+    //                         enables runtime backend selection.
+    //
+    // Legacy: "webgpu: true" is equivalent to backend: "webgpu".
+    final backendRaw = input.userDefines["backend"];
+    final legacyWebgpu = input.userDefines["webgpu"];
+    final String backend;
+    if (backendRaw == "webgpu" || backendRaw == "WebGPU") {
+      backend = "webgpu";
+    } else if (backendRaw == "webgl2" || backendRaw == "WebGL2") {
+      backend = "webgl2";
+    } else if (backendRaw == "hybrid" || backendRaw == "combined") {
+      backend = "hybrid";
+    } else if (legacyWebgpu == true ||
+        legacyWebgpu == "true" ||
+        legacyWebgpu == 1 ||
+        legacyWebgpu == "1") {
+      backend = "webgpu"; // legacy compat
+    } else {
+      backend = "native";
+    }
+    final bool webgpuEnabled = backend == "webgpu";
+
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
     final libResult = await getLibDir(
@@ -121,11 +151,25 @@ outputDirectory : ${outputDirectory.path}
     }
 
     // Material source paths — platform-specific variants.
-    // Each material has _native (OpenGL+Metal+Vulkan) and _webgpu (WGSL)
+    // Each material has _native, _webgpu, _web_webgl, and _web_combined
     // variants with identical C symbols. The build hook compiles only one.
     // Falls back to unsuffixed .c files if the platform variant doesn't
     // exist yet (i.e., make materials hasn't been re-run).
-    final materialSuffix = webgpuEnabled ? '_webgpu' : '_native';
+    final materialSuffix = switch (backend) {
+      'webgpu' => '_webgpu',
+      'webgl2' => '_web_webgl',
+      'hybrid' => '_web_combined',
+      _ => '_native',
+    };
+    final materialDefine = switch (backend) {
+      'webgpu' => 'THERMION_MATERIAL_WEBGPU',
+      'webgl2' => 'THERMION_MATERIAL_WEB_WEBGL',
+      'hybrid' => 'THERMION_MATERIAL_WEB_COMBINED',
+      _ => 'THERMION_MATERIAL_NATIVE',
+    };
+
+    final defines = <String, String?>{};
+    defines[materialDefine] = "1";
     final materialDir = path.join(pkgRootFilePath, 'native/include/material');
     String materialPath(String name, String suffix) {
       final suffixed =
@@ -234,8 +278,6 @@ outputDirectory : ${outputDirectory.path}
       // (these are linked via ThermionWin32.h)
       libDir = Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
     }
-
-    final defines = <String, String?>{};
 
     if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
       logger.info("Enabling tracing");

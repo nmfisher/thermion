@@ -13,7 +13,6 @@
 #include "material/image.h"
 #include "material/grid.h"
 #include "material/unlit_fixed_size.h"
-#include "material/outline.h"
 #include "material/silhouette.h"
 #include "material/edge_outline.h"
 #include "material/translation_axis.h"

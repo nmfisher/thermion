@@ -36,17 +36,22 @@ file(GLOB_RECURSE SOURCES
 # Exclude specific files
 list(FILTER SOURCES EXCLUDE REGEX "CMakeLists.txt|main.cpp|windows|linux|d3d|build")
 
-# Material and resource sources
+# Material and resource sources — use _native variant for macOS (Metal)
+set(THERMION_MATERIAL_VARIANT "native")
+add_definitions(-DTHERMION_MATERIAL_NATIVE)
+
 set(MATERIAL_SOURCES
-    "${NATIVE_ROOT}/include/material/capture_uv.c"
-    "${NATIVE_ROOT}/include/material/grid.c"
-    "${NATIVE_ROOT}/include/material/image.c"
-    "${NATIVE_ROOT}/include/material/linear_depth.c"
-    "${NATIVE_ROOT}/include/material/unlit_fixed_size.c"
-    "${NATIVE_ROOT}/include/material/silhouette.c"
-    "${NATIVE_ROOT}/include/material/edge_outline.c"
-    "${NATIVE_ROOT}/include/material/wireframe.c"
-    "${NATIVE_ROOT}/include/material/translation_axis.c"
+    "${NATIVE_ROOT}/include/material/capture_uv_native.c"
+    "${NATIVE_ROOT}/include/material/grid_native.c"
+    "${NATIVE_ROOT}/include/material/image_native.c"
+    "${NATIVE_ROOT}/include/material/linear_depth_native.c"
+    "${NATIVE_ROOT}/include/material/unlit_fixed_size_native.c"
+    "${NATIVE_ROOT}/include/material/silhouette_native.c"
+    "${NATIVE_ROOT}/include/material/edge_outline_native.c"
+    "${NATIVE_ROOT}/include/material/wireframe_native.c"
+    "${NATIVE_ROOT}/include/material/translation_axis_native.c"
+    "${NATIVE_ROOT}/include/material/bone_overlay_native.c"
+    "${NATIVE_ROOT}/include/material/gizmo_material_native.c"
 )
 
 set_source_files_properties(${MATERIAL_SOURCES} PROPERTIES LANGUAGE CXX)
