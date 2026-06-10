@@ -1,3 +1,8 @@
+## 0.4.0+1
+
+ - **FIX**: default baseColorFactor to white when hasBaseColorTexture is true.
+ - **FIX**: prevent concurrent modification in FFIFilamentApp.destroy to prevent exception when 2+ swap chains existed.
+
 ## 0.4.0
 
 ### New features:

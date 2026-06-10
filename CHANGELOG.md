@@ -3,6 +3,35 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-06-10
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.4.0+1`](#thermion_dart---v0401)
+ - [`thermion_flutter` - `v0.4.0+1`](#thermion_flutter---v0401)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.4.0+1`
+
+---
+
+#### `thermion_dart` - `v0.4.0+1`
+
+ - **FIX**: default baseColorFactor to white when hasBaseColorTexture is true.
+ - **FIX**: prevent concurrent modification in FFIFilamentApp.destroy to prevent exception when 2+ swap chains existed.
+
+
 ## 2026-06-05
 
 ### Changes
