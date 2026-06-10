@@ -705,7 +705,8 @@ class TransformationGizmo {
     _lastComputedWorldTransform = newWorldTransform;
 
     if (_attachedTarget != null && !_isDisposed) {
-      // Convert world transform to local transform for proper hierarchy handling
+      // Convert world transform to local transform for proper hierarchy 
+      // handling
       final localTransform =
           _worldToLocalTransform(_attachedTarget!, newWorldTransform);
       await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
 enum ManipulatorType { NONE, ORBIT, FREE_FLIGHT }
@@ -78,6 +79,8 @@ class ViewerWidget extends StatefulWidget {
 
 class _ViewerWidgetState extends State<ViewerWidget> {
   ThermionViewer? viewer;
+
+  late final _logger = Logger(runtimeType.toString());
 
   @override
   void initState() {
@@ -220,7 +223,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     if (widget.background != null) {
       if (widget.skyboxPath != null) {
-        print("Specify skyboxPath or background, not both");
+        _logger.error("Specify skyboxPath or background, not both");
       } else {
         await viewer!.setBackgroundColor(widget.background!.r,
             widget.background!.g, widget.background!.b, widget.background!.a);

@@ -174,10 +174,6 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// Returns whether a light channel is enabled.
   bool getLightChannel(ThermionEntity entity, int channel);
 
-  // ============================================================================
-  // Shadow options
-  // ============================================================================
-
   /// Controls whether this renderable casts shadows.
   ///
   /// For VSM shadows, castShadows should only be disabled if either:
@@ -231,10 +227,6 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   Future setGlobalBlendOrderEnabledAt(
       ThermionEntity entity, int primitiveIndex, bool enabled);
 
-  // ============================================================================
-  // Morph targets
-  // ============================================================================
-
   /// Updates vertex morphing weights.
   ///
   /// The renderable must have been built with morphing enabled.
@@ -278,13 +270,11 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   Future setBonesFromBone(ThermionEntity entity, List<BoneData> bones,
       {int offset = 0});
 
-  // ============================================================================
-  // Builder
-  // ============================================================================
 
   /// Creates a builder for constructing renderables.
   ///
-  /// [primitiveCount] The number of primitives that will be supplied to the builder
+  /// [primitiveCount] The number of primitives that will be supplied to the 
+  /// builder
   RenderableBuilder createBuilder(int primitiveCount);
 
   /// Creates a builder for constructing vertex buffers.

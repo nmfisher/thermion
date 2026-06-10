@@ -54,7 +54,7 @@ class _CameraOrientationWidgetState extends State<CameraOrientationWidget>
     return Container(
       padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
+        color: Colors.black.withAlpha(175),
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Column(
