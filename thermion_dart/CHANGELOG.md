@@ -1,194 +1,176 @@
 ## 0.4.0
 
-> Note: This release has breaking changes.
+### New features:
+- improved Windows Vulkan support (including improvements for resizing to eliminate texture jank on/black frame flash)
+- experimental Linux desktop support (Wayland + Vulkan) 
+- improved web support, almost at feature parity with native platforms (#150). 
+- use platform-specific vsync to schedule frames, rather than Flutter's SchedulerBinding. (#112). In debug mode, uses a Dart Send/ReceivePort to communicate the frame callback. In release mode, the raw function pointer is used. Only applicable to macos, ios, Android and Windows.
+- added `parseGltf` method to FilamentApp (#95). Allows parsing/manipulating vertex/index buffers from a raw glTF file.
+- updated Filament to `v1.69.1`
+- added custom attribute support in createGeometry.
+- fixed various issues with multiple viewers (simultaneous and sequential).
+- expose geometry VertexBuffer from ThermionAsset.
+- create Dart `LightManager` interface. 
 
- - **REFACTOR**: replace Struct.create with StructAllocator.create (for JS interop compatibility).
- - **REFACTOR**: add RenderThread methods for TransformManager createComponent/removeComponent.
- - **REFACTOR**: use render (engine) thread methods for Vertex/IndexBufferBuilder.
- - **REFACTOR**: rename SceneAsset_createGeometry to SceneAsset_createGeometryWithBuilder.
- - **REFACTOR**: (Windows) use render target/imported Vulkan texture (#109).
- - **REFACTOR**: (flutter) migrate overlay implementation to use stacked widgets, each with a render target. Only macOS, iOS and Windows supported in this commit. (#110).
- - **REFACTOR**: pass frame start in nanos, not delta in float.
- - **REFACTOR**: move equality/hashcode overrides to NativeHandle. This allows us to treat all instances of classes that wrap native handles (FFIView, FFIRenderTarget) etc as the same (since they carry no state and only exist to pass-through to native methods.
- - **REFACTOR**: merge macOS/iOS thermion_flutter plugin files into a single darwin/ folder.
- - **REFACTOR**: (web) remove emscripten typed data accessors (these have been implemented directly in Dart in ffigen_js.
- - **REFACTOR**: expose isMacos arg to createHeadlessSwapchain to use TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER.
- - **REFACTOR**: bump ffigen_js dependency.
- - **REFACTOR**: use explicitSwapControl on web. In theory this should require emscripten_webgl_commit_frame() but in practice this works without it - I'm not sure it actually makes a difference but (without profiling) it feels slightly smoother.
- - **REFACTOR**: rename and consolidate Metal Texture creation classes on macOS/iOS.
- - **REFACTOR**: use FilamentApp.instance instead of passing app parameter.
- - **REFACTOR**: various changes needed to support HighlightOverlayManager on web.
- - **REFACTOR**: add Dart RenderManager class.
- - **REFACTOR**: move gltf parsing to FilamentApp (#95).
- - **REFACTOR**: create View_getNameRenderThread to help debug crash. also add FFIView.create() for the same reason.
- - **REFACTOR**: stop passing FilamentApp instance around and stop casting to FFI* classes.
- - **REFACTOR**: rename Swift texture wrapper filename and update tests.
- - **REFACTOR**: change shadow transform to Quaternion (not List<double>).
- - **REFACTOR**: remove useDefaultRenderOrder.
- - **REFACTOR**: rename (T)ToneMapping to (T)ToneMapper.
- - **REFACTOR**: return double3 from LightManager_getColor.
- - **REFACTOR**: create RenderableManager Dart interface/implementation.
- - **REFACTOR**: set translation axis priority to 0 (renders first).
- - **REFACTOR**: set grid priority to 6 (renders second-last).
- - **REFACTOR**: remove width/height from RenderTarget_create functions. The… (#128).
- - **REFACTOR**: replace C++ GridOverlay implementation with Dart.
- - **REFACTOR**: ubershader expects UV0 and UV1. Create these for geometry if not otherwise specified.
- - **REFACTOR**: use platform-specific vsync to schedule frames, rather than Flutter's SchedulerBinding. The latter renders a Flutter frame on every request, which isn't necessarily needed - often we just need the Thermion/Filament surface to update independently. (#112).
- - **REFACTOR**: FreeFlightInputHandlerDelegateV2 manages its own frame hook.
- - **REFACTOR**: remove old NativeLibrary.instance._emscripten_stack_get_free.
- - **REFACTOR**: add StructAllocator typedef and replace Struct.create with StructAllocator.create (for JS interop compatibility).
- - **REFACTOR**: replace InputHandlerManagerException with Exception and remove ffi. prefix from InputPipeline.
- - **REFACTOR**: move Swift/ObjC interop lib/headers from thermion_dart to thermion_flutter. In theory we can use these on macOS to create/import external textures as render targets in Dart applications. In practice, this requires the Flutter SDK (for objective_c) so it's not actually very practical. We previously used these to test external texture render targets; now that we run tests mostly on Linux, this is no longer used (render targets are created, but bound to textures created by Filament). However this may be useful to revisit in future so we will preserve the files in thermion_flutter.
- - **REFACTOR**: remove Scene* from AnimationManager, this is no longer needed as components are used for animation, not the Scene object list.
- - **REFACTOR**: rename TInputHandlerPipeline to TTransformPipeline and add ffigen_fix.h to fix problem with ffigen not generating EMSCRIPTEN_KEEPALIVE for definition in APIExport.h header outside the directory for TTransformPipeline.h etc.
- - **REFACTOR**: remove uberarchive.h (this should be routed to debug/release folders.
- - **REFACTOR**: add debug headers for uberarchive.
- - **REFACTOR**: implementing highlight overlays with Flutter widgets showed bad performance. (#111).
- - **REFACTOR**: call clearBackgroundImage in ThermionViewer.dispose().
- - **FIX**: fix setting highlight color consecutively not updating color.
- - **FIX**: add/use RenderThread methods for EntityManager_createEntity/destroyEntity.
- - **FIX**: destroy renderable in GeometrySceneAsset destructor.
- - **FIX**: add iOS ObjC implementation for CADisplayLink frame scheduler.
- - **FIX**: add check/log/return for bluevk::initialize() failure.
- - **FIX**: force RGBA decode on Windows for PNG background uploads.
- - **FIX**: destroy an entity's renderable component before destroying the entity. We also convert TransformManager methods to use RenderThread to help debugging.
- - **FIX**: copy gltf resource data to heap allocated std::vector<uint8_t>.
- - **FIX**: add 30 second timeout to Engine_createRenderThread call in FFIFilamentApp to ensure an exception is thrown if some fatal failure is encountered (e.g. Vulkan drivers can't be found).
- - **FIX**: throw Exception when failing to pull static lib zip file.
- - **FIX**(windows): eliminate texture jank on resize.
- - **FIX**: make sure String pointers are freed after use.
- - **FIX**(windows): eliminate black frame flash on resize.
- - **FIX**: bump ffigen_js dependency for missing Pointer.fromAddress on web.
- - **FIX**: In createEntity() in ffi_filament_app.dart, transformManager.createComponent() was being called without an await. This led to cases where calls to the transform would silently fail after calling createEntity() because the transform hadn't added yet. (#138).
- - **FIX**: consistent screen-space axis line width on the translation gizmo (#143).
- - **FIX**: use RenderThread methods for various Scene_/View_ calls.
- - **FIX**: dont destroy the camera entity after destroying the camera component (presumably the latter does the former internally; if we try and destory again, this will crash when assertions are enabled.
- - **FIX**: (windows) fix multi-viewer runtime hang (UI-thread Blit + FFI callback orphan) (#172).
- - **FIX**: enable postProcessing on highlight view but disable tone mapping.
- - **FIX**: delete duplicated tone mapper.
- - **FIX**: remove public dispose() method from ColorGrading, this should be managed by the relevant View.
- - **FIX**: properly export GltfMeshData.
- - **FIX**: temporarily disable AO options for ffigen/js compat.
- - **FIX**: if irradiance/reflections texture are the same in FFIIndirectLight, don't destroy both.
- - **FIX**: correctly remove views from internal swapchain mapping when destroyView is called.
- - **FIX**: return actual MaterialInstance from FFITexturedQuad.getMaterialInstanceAt (#147).
- - **FIX**: restore 60fps web rendering (#150).
- - **FIX**: migrate FFITexturedQuad.
- - **FIX**: move setName call to first after view creation.
- - **FIX**: set default name for view.
- - **FIX**: dont throw Exception if removeStencilHighlight is called when no overlay manager is available.
- - **FIX**: change View.getName() interface to return String?
- - **FIX**: in debug mode, the vsync frame scheduler will crash when hot restarting (because the Dart callback no longer exists). To fix this, in debug mode we use a Dart Send/ReceivePort to communicate the frame callback. In release mode, the raw function pointer is used. Only applicable to macos, ios, Android and Windows.
- - **FIX**: bugs in wireframe/rebuildVertices and add flatShading toggle (#149).
- - **FIX**: add missing Log include on Linux.
- - **FIX**: check for no swapchain before enabling highlight overlay, and make sure calls to RenderManager.attach/detach are properly awaited.
- - **FIX**: always loadResourcesAsync when FILAMENT_SINGLE_THREADED is true.
- - **FIX**: make sure view handles are freed and cleanup some logging.
- - **FIX**: bounding box calculation.
- - **FIX**: only check path relative to package root when checking which source files to exclude. Prevents false exclusions when the parent directory names contain excluded strings (e.g., "/fix-rebuild-vertices/thermion").
- - **FIX**: fix incorrect pixel buffer format key for macOS texture wrapper.
- - **FIX**: add entity→primitive offset mapping for multi-mesh highlighting.
- - **FIX**: gltf animation cross-fading.
- - **FIX**: temporarily disable gltfmesh parsing, ambient occlusion options and bone names (require support in ffigen_js) first.
- - **FIX**: throw exception in setProjectionFromFieldOfView where inputs are invalid (NaN/non-positive FOV etc).
- - **FIX**: late initialization of HighlightOverlayManager.
- - **FIX**: call destroyAsset when TexturedQuad is disposed and correctly set texture usage flags.
- - **FIX**: temporary fix to ensure JS bindings for TGltfMeshData are properly generated.
- - **FIX**: correct the order in which highlight overlay resources are disposed, and disable postprocessing/use correct texture format for colour correctness.
- - **FIX**: (linux) remove incorrect linked libraries.
- - **FIX**: use ifdef __cplusplus guards for edge_outline.h for Emscripten compatibility.
- - **FIX**: don't import dart:ffi into FFIView (access nullptr via the Thermion ffi.dart instead).
- - **FIX**: reinstate ambient occlusion options (these had been disabled due to compatibility issues on Windows & web.
- - **FIX**: percent-decode resource URIs before filesystem lookup.
- - **FIX**: reinstate rendering with multiple swapchains. I'm not sure if we can create a hardware texture rendertarget on the GLES backend for Android (though this should be possible on Vulkan), so to implement overlays we need to allow multiple swapchains.
- - **FIX**: add #ifdef __cplusplus guards for new overlay materials.
- - **FIX**: add #ifdef __cplusplus guards for new overlay materials.
- - **FIX**: use render thread methods for TransformManager.setParent, Scene.… (#159).
- - **FIX**: use uint32_t for gltf instances, not uint8_t.
- - **FIX**: Ubuntu LLVM libc++ fails to compile since.
- - **FIX**: temporarily disable TGltfParser.cpp.
- - **FIX**: add LOG_ERROR def for Windows compatibility.
- - **FIX**: orthographic projection not being set correctly.
- - **FIX**: use LOG_ERROR in TAnimationManager.cpp for Windows compatibility.
- - **FIX**: windows used different vulkan devices.
- - **FIX**: add message to exception when captureRenderTarget is true but view has no render target.
- - **FIX**: define __builtin_popcountll __popcnt64for Windows compatibility.
- - **FIX**: in loadGltf, normalise paths in Windows so we can correctly determine resourceUri.
- - **FIX**: reinstate raw gltf parsing (this was broken on Windows due to MSVC incompatibilities (#90).
- - **FIX**: use RGBA32F instead of RGB32F for 3-channel background images on Windows.
- - **FIX**: return camera frustum in cameraspace (not worldspace, returned by Filament by default).
- - **FIX**: implement missing js_interop withIntCallback.
- - **FIX**(windows): prevent VkImage double-free on texture resize.
- - **FEAT**: add Dart LightManager.
- - **FEAT**: add quad() to GeometryHelper (different from fullscreenQuad).
- - **FEAT**: expose Engine.setAutomaticInstancingEnabled (#92).
- - **FEAT**: expose SurfaceOrientationBuilder (#91).
- - **FEAT**: custom attribute support in createGeometry.
- - **FEAT**: expose geometry VertexBuffer from ThermionAsset.
- - **FEAT**: (web) define PLUGIN_SOURCES compiled for web.
- - **FEAT**: set camera projection from horizontal/vertical field of view.
- - **FEAT**: support all alphanumeric keys in InputHandler.
- - **FEAT**: add FilamentApp.createColoredSkybox.
- - **FEAT**: add FilamentApp.createColoredSkybox.
- - **FEAT**: expose View.getName().
- - **FEAT**: add createScene option to FilamentApp.createView.
- - **FEAT**: add getFogOptions() to View.
- - **FEAT**: implement dummy plugin system with on_frame_update.
- - **FEAT**: export includeDirs and outputDir in build.dart to facilitate plugin builds.
- - **FEAT**: allow creating a Camera for an arbitrary entity (equivalent to attaching a camera component).
- - **FEAT**: allow setting grid overlay axis colors directly (and allow showing/hiding spcific axes).
- - **FEAT**: expose Engine.getMaxAutomaticInstances().
- - **FEAT**: add speed argument for playGltfAnimation.
- - **FEAT**: remove unnecessary Texture format check in Texture_setImage.
- - **FEAT**: add mouse button bindings for InputPipeline.
- - **FEAT**: add custom key bindings/intents and use int mask for intents.
- - **FEAT**: expose instances() on RenderableManagerBuilder (#93).
- - **FEAT**: allow setting grid spacing/fade distances in ThermionViewer setGridOverlayVisibility.
- - **FEAT**: add setAmbientOcclusionOptions for View.
- - **FEAT**: add wireframe material.
- - **FEAT**: add setTransformAsync method. This may sometimes be needed when something during the internal render() call sets a transform and you need strict ordering guarantees.
- - **FEAT**: add translation axis material.
- - **FEAT**: add setParameterMat3.
- - **FEAT**: add translation axis material.
- - **FEAT**: add raw gltf parser (via cgltf).
- - **FEAT**: add Material.getBlendingMode()/MaterialInstance.getTransparencyMode().
- - **FEAT**: Transform Pipeline.
- - **FEAT**: auto-download web artifacts from thermion_dart build hook.
- - **FEAT**: add Camera getAperture/getShutterSpeed/getSensitivity.
- - **FEAT**: expose LUT format and dimensions on ColorGradingBuilder (#155).
- - **FEAT**: add registerTransformExecutor to pipeline.
- - **FEAT**: add shadow/winding order methods to Dart View.
- - **FEAT**: add Dart LightManager interface.
- - **FEAT**: add const consturctor to DirectLight.
- - **FEAT**: add set/getVsmShadowOptions to View.
- - **FEAT**: add static LightManager methods to compute shadow cascade splits.
- - **FEAT**: add static LightManager methods to compute shadow cascade splits.
- - **FEAT**: add/expand TransformManager, RenderableBuilder and RenderableManager interfaces.
- - **FEAT**: destroyEntity().
- - **FEAT**: add DebugRegistry and getLocalTransform to FilamentApp.
- - **FEAT**: add groundPlane() to GeometryHelper.
- - **FEAT**: add moveOnHover argument to input handler delegates.
- - **FEAT**: add 2 more grid LOD levels.
- - **FEAT**: PixelDataFormat.R support in pixel buffer conversion and capture (#140).
- - **DOCS**: update BUILDING.md.
- - **DOCS**: update BUILDING.md.
- - **BREAKING** **REFACTOR**: (flutter) use ObjC FFI for Swift interop to create textures.
- - **BREAKING** **REFACTOR**: \.
- - **BREAKING** **REFACTOR**: delete old flight/orbit camera delegate.
- - **BREAKING** **REFACTOR**: use const LinearColor for default DirectLight.
- - **BREAKING** **REFACTOR**: remove batch option from DelegateInputHandler.
- - **BREAKING** **REFACTOR**: remove createImageMaterialInstance from FilamentApp API.
- - **BREAKING** **REFACTOR**: move AnimationManager to FilamentApp.
- - **BREAKING** **REFACTOR**: remove hasHighlights() from View. This means the overlay will be rendered if enableHighlightOverlay() has been called, even if no assets are highlighted.
- - **BREAKING** **REFACTOR**: replace register/unregiser/updateRenderOrder on FilamentApp with a single method setRenderOrder.
- - **BREAKING** **FIX**: remove unused entity parameter from DelegateInputHandler parameters.
- - **BREAKING** **FEAT**: rename setGltfAnimationFrame to setGltfAnimationTime (correct time units) (#141).
- - **BREAKING** **FEAT**: add ColorGradingBuilder. you can no longer set ColorGrading on a View with a ToneMapping/ToneMapper enum; now, create an instance of ToneMapper and use the ColorGradingBuilder.toneMapper() method.
- - **BREAKING** **FEAT**: change existing setColor to setColorTemperature, and add method to setColor with linear RGB.
- - **BREAKING** **FEAT**: create AnimationManager interface (allowing users to manually progress the animation time for testing.
- - **BREAKING** **FEAT**: bump hooks/code_assets/test dependencies.
- - **BREAKING** **CI**: upload JS/WASM to Cloudflare R2 rather than storing in repository (#148).
+### Breaking changes:
+- replace register/unregiser/updateRenderOrder on FilamentApp with a `RenderManager` interface. Call `attach` and `detach` to mark a view as renderable.
+- GeometryHelper renamed to GeometryUtils
+- rename setGltfAnimationFrame to setGltfAnimationTime (correct time units) (#141).
+- remove unused entity parameter from DelegateInputHandler parameters.
+- remove `batch` arg from DelegateInputHandler.
+- add ColorGradingBuilder. you can no longer set ColorGrading on a View with a ToneMapping/ToneMapper enum; now, create an instance of ToneMapper and use the ColorGradingBuilder.toneMapper() method.
+- change existing setColor to setColorTemperature, and add method to setColor with linear RGB.
+- create AnimationManager interface (allowing users to manually progress the animation time for testing).
+- bump hooks/code_assets/test dependencies. This release now requires Flutter >=
+- add quad() to GeometryHelper (different from fullscreenQuad).
+- expose Engine.setAutomaticInstancingEnabled (#92).
+- (flutter) migrate overlay implementation to use stacked widgets, each with a render target. Only macOS, iOS and Windows supported in this commit. (#110).
+- change shadow transform to Quaternion (not List<double>).
+- return double3 from LightManager_getColor.
+- create RenderableManager Dart interface/implementation.
+- set translation axis priority to 0 (renders first).
+- set grid priority to 6 (renders second-last).
+- FreeFlightInputHandlerDelegateV2 manages its own frame hook.
+- replace InputHandlerManagerException with Exception and remove ffi. prefix from InputPipeline.
+- move Swift/ObjC interop lib/headers from thermion_dart to thermion_flutter. In theory we can use these on macOS to create/import external textures as render targets in Dart applications. In practice, this requires the Flutter SDK (for objective_c) so it's not actually very practical. We previously used these to test external texture render targets; now that we run tests mostly on Linux, this is no longer used (render targets are created, but bound to textures created by Filament). However this may be useful to revisit in future so we will preserve the files in thermion_flutter.
+- use const LinearColor for default DirectLight.
+ - remove createImageMaterialInstance from FilamentApp API.
+ - move AnimationManager to FilamentApp.
+ - remove hasHighlights() from View. This means the overlay will be rendered if enableHighlightOverlay() has been called, even if no assets are highlighted.
+   
+### Miscellaneous:
+-  In createEntity() in ffi_filament_app.dart, transformManager.createComponent() was being called without an await. This led to cases where calls to the transform would silently fail after calling createEntity() because the transform hadn't added yet. (#138).
+- add RenderThread methods for TransformManager createComponent/removeComponent.
+- rename (T)ToneMapping to (T)ToneMapper.
+- expose isMacos arg to createHeadlessSwapchain to use TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER.
+- remove width/height from RenderTarget_create functions. The… (#128).
+- replace C++ GridOverlay implementation with Dart.
+- ubershader expects UV0 and UV1. Create these for geometry if not otherwise specified.
+- rename TInputHandlerPipeline to TTransformPipeline and add ffigen_fix.h to fix problem with ffigen not generating EMSCRIPTEN_KEEPALIVE for definition in APIExport.h header outside the directory for TTransformPipeline.h etc.
+- remove Scene* from AnimationManager, this is no longer needed as components are used for animation, not the Scene object list.
+- move equality/hashcode overrides to NativeHandle. This allows us to treat all instances of classes that wrap native handles (FFIView, FFIRenderTarget) etc as the same (since they carry no state and only exist to pass-through to native methods).
+- merge macOS/iOS thermion_flutter plugin files into a single darwin/ folder.
+- upload JS/WASM to Cloudflare R2 rather than storing in repository (#148).
+- fix setting highlight color consecutively not updating color.
+- add/use RenderThread methods for EntityManager_createEntity/destroyEntity.
+- destroy renderable in GeometrySceneAsset destructor.
+- add check/log/return for bluevk::initialize() failure.
+- force RGBA decode on Windows for PNG background uploads.
+- destroy an entity's renderable component before destroying the entity. We also convert TransformManager methods to use RenderThread to help debugging.
+- copy gltf resource data to heap allocated std::vector<uint8_t>.
+- add 30 second timeout to Engine_createRenderThread call in FFIFilamentApp to ensure an exception is thrown if some fatal failure is encountered (e.g. Vulkan drivers can't be found).
+- throw Exception when failing to pull static lib zip file.
+- pass frame start in nanos, not delta in float. 
+-  make sure String pointers are freed after use.
+-  bump ffigen_js dependency for missing Pointer.fromAddress on web.
+-  consistent screen-space axis line width on the translation gizmo (#143).
+-  use RenderThread methods for various Scene_/View_ calls.
+-  dont destroy the camera entity after destroying the camera component (presumably the latter does the former internally; if we try and destory again, this will crash when assertions are enabled.
+-  enable postProcessing on highlight view but disable tone mapping.
+ -  delete duplicated tone mapper.
+ -  remove public dispose() method from ColorGrading, this should be managed by the relevant View.
+ -  properly export GltfMeshData.
+ -  temporarily disable AO options for ffigen/js compat.
+ -  if irradiance/reflections texture are the same in FFIIndirectLight, don't destroy both.
+ -  correctly remove views from internal swapchain mapping when destroyView is called.
+ -  return actual MaterialInstance from FFITexturedQuad.getMaterialInstanceAt (#147).
+ -  migrate FFITexturedQuad.
+ -  move setName call to first after view creation.
+ -  set default name for view.
+ -  dont throw Exception if removeStencilHighlight is called when no overlay manager is available.
+ -  change View.getName() interface to return String?
+ -  bugs in wireframe/rebuildVertices and add flatShading toggle (#149).
+ -  add missing Log include on Linux.
+ -  check for no swapchain before enabling highlight overlay, and make sure calls to RenderManager.attach/detach are properly awaited.
+ -  always loadResourcesAsync when FILAMENT_SINGLE_THREADED is true.
+ -  make sure view handles are freed and cleanup some logging.
+ -  bounding box calculation.
+ -  only check path relative to package root when checking which source files to exclude. Prevents false exclusions when the parent directory names contain excluded strings (e.g., "/fix-rebuild-vertices/thermion").
+ -  fix incorrect pixel buffer format key for macOS texture wrapper.
+ -  add entity→primitive offset mapping for multi-mesh highlighting.
+ -  gltf animation cross-fading.
+ -  temporarily disable gltfmesh parsing, ambient occlusion options and bone names (require support in ffigen_js) first.
+ -  throw exception in setProjectionFromFieldOfView where inputs are invalid (NaN/non-positive FOV etc).
+ -  late initialization of HighlightOverlayManager.
+ -  call destroyAsset when TexturedQuad is disposed and correctly set texture usage flags.
+  -  correct the order in which highlight overlay resources are disposed, and disable postprocessing/use correct texture format for colour correctness.
+ -  (linux) remove incorrect linked libraries.
+  -  don't import dart:ffi into FFIView (access nullptr via the Thermion ffi.dart instead).
+  -  percent-decode resource URIs before filesystem lookup.
+ -  reinstate rendering with multiple swapchains. I'm not sure if we can create a hardware texture rendertarget on the GLES backend for Android (though this should be possible on Vulkan), so to implement overlays we need to allow multiple swapchains.
+ -  add #ifdef __cplusplus guards for new overlay materials.
+  -  use render thread methods for TransformManager.setParent, Scene.… (#159).
+ -  use uint32_t for gltf instances, not uint8_t.
+ -  Ubuntu LLVM libc++ fails to compile since.
+  -  add LOG_ERROR def for Windows compatibility.
+ -  orthographic projection not being set correctly.
+ -  use LOG_ERROR in TAnimationManager.cpp for Windows compatibility.
+ -  windows used different vulkan devices.
+ -  add message to exception when captureRenderTarget is true but view has no render target.
+ -  define __builtin_popcountll __popcnt64for Windows compatibility.
+ -  in loadGltf, normalise paths in Windows so we can correctly determine resourceUri.
+ -  reinstate raw gltf parsing (this was broken on Windows due to MSVC incompatibilities (#90).
+ -  use RGBA32F instead of RGB32F for 3-channel background images on Windows.
+ -  return camera frustum in cameraspace (not worldspace, returned by Filament by default).
+ -  implement missing js_interop withIntCallback.
+ - (windows): prevent VkImage double-free on texture resize.
+  - use explicitSwapControl on web. In theory this should require emscripten_webgl_commit_frame() but in practice this works without it - I'm not sure it actually makes a difference but (without profiling) it feels slightly smoother.
+ - rename and consolidate Metal Texture creation classes on macOS/iOS.
+  - various changes needed to support HighlightOverlayManager on web.
+- add Dart RenderManager class.
+- create View_getNameRenderThread to help debug crash. also add FFIView.create() for the same reason.
+- stop passing FilamentApp instance around and stop casting to FFI* classes.
+- rename Swift texture wrapper filename and update tests. 
+- expose SurfaceOrientationBuilder (#91).
+- (web) define PLUGIN_SOURCES compiled for web.
+ - set camera projection from horizontal/vertical field of view.
+ - support all alphanumeric keys in InputHandler.
+ - add FilamentApp.createColoredSkybox.
+ - add FilamentApp.createColoredSkybox.
+ - expose View.getName().
+ - add createScene option to FilamentApp.createView.
+ - add getFogOptions() to View.
+ - implement dummy plugin system with on_frame_update.
+ - export includeDirs and outputDir in build.dart to facilitate plugin builds.
+ - allow creating a Camera for an arbitrary entity (equivalent to attaching a camera component).
+ - allow setting grid overlay axis colors directly (and allow showing/hiding spcific axes).
+ - expose Engine.getMaxAutomaticInstances().
+ - add speed argument for playGltfAnimation.
+ - remove unnecessary Texture format check in Texture_setImage.
+ - add mouse button bindings for InputPipeline.
+ - add custom key bindings/intents and use int mask for intents.
+ - expose instances() on RenderableManagerBuilder (#93).
+ - allow setting grid spacing/fade distances in ThermionViewer setGridOverlayVisibility.
+ - add setAmbientOcclusionOptions for View.
+ - add wireframe material.
+ - add setTransformAsync method. This may sometimes be needed when something during the internal render() call sets a transform and you need strict ordering guarantees.
+ - add translation axis material.
+ - add setParameterMat3.
+ - add translation axis material.
+ - add raw gltf parser (via cgltf).
+ - add Material.getBlendingMode()/MaterialInstance.getTransparencyMode().
+ - Transform Pipeline.
+ - auto-download web artifacts from thermion_dart build hook.
+ - add Camera getAperture/getShutterSpeed/getSensitivity.
+ - expose LUT format and dimensions on ColorGradingBuilder (#155).
+ - add registerTransformExecutor to pipeline.
+ - add shadow/winding order methods to Dart View.
+ - add Dart LightManager interface.
+ - add const consturctor to DirectLight.
+ - add set/getVsmShadowOptions to View.
+ - add static LightManager methods to compute shadow cascade splits.
+ - add static LightManager methods to compute shadow cascade splits.
+ - add/expand TransformManager, RenderableBuilder and RenderableManager interfaces.
+ - destroyEntity().
+ - add DebugRegistry and getLocalTransform to FilamentApp.
+ - add groundPlane() to GeometryHelper.
+ - add moveOnHover argument to input handler delegates.
+ - add 2 more grid LOD levels.
+ - PixelDataFormat.R now supported in pixel buffer conversion and capture (#140).
+ - added BUILDING.md with instructions for compiling Filament from source.
+ - delete old flight/orbit camera delegate.
 
+ 
 ## 0.3.4+1
 
  - **FIX**: loosen dependency versions for code_assets, hooks and native_toolchain_c.
