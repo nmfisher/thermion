@@ -3,7 +3,6 @@ import 'intent_action.dart';
 import 'key_binding.dart';
 import 'mouse_button_binding.dart';
 
-
 /// Configuration for input processing.
 ///
 /// This can be modified at runtime to change keybindings and behavior.
@@ -25,8 +24,8 @@ class InputConfiguration {
     List<MouseButtonBinding>? mouseButtonBindings,
     this.mouseSensitivity = 1.0,
     this.invertMouseY = false,
-  }) : keyBindings = keyBindings ?? [],
-       mouseButtonBindings = mouseButtonBindings ?? [];
+  })  : keyBindings = keyBindings ?? [],
+        mouseButtonBindings = mouseButtonBindings ?? [];
 
   /// Add a keybinding to the configuration
   void addBinding(LogicalKey key, IntentAction action, {double value = 1.0}) {
@@ -34,8 +33,10 @@ class InputConfiguration {
   }
 
   /// Add a mouse button binding to the configuration
-  void addMouseButtonBinding(MouseButton button, IntentAction action, {double value = 1.0}) {
-    mouseButtonBindings.add(MouseButtonBinding(button: button, action: action, value: value));
+  void addMouseButtonBinding(MouseButton button, IntentAction action,
+      {double value = 1.0}) {
+    mouseButtonBindings
+        .add(MouseButtonBinding(button: button, action: action, value: value));
   }
 
   /// Remove all bindings for a specific key
@@ -116,4 +117,3 @@ InputConfiguration createNumpadConfiguration() {
     invertMouseY: false,
   );
 }
-

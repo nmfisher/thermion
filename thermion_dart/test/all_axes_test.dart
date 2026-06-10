@@ -27,7 +27,8 @@ void main() async {
         final xAxis = await viewer.createGeometry(
           GeometryUtils.plane(width: 100, height: 100),
         );
-        final xAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+        final xAxisMaterial =
+            await TranslationAxisMaterial.createMaterialInstance(
           originX: 0.0, originY: 0.0, originZ: 0.0,
           axis: 0, // X
           lineWidth: 1.0,
@@ -43,14 +44,16 @@ void main() async {
         final yAxis = await viewer.createGeometry(
           GeometryUtils.plane(width: 100, height: 100),
         );
-        final yAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+        final yAxisMaterial =
+            await TranslationAxisMaterial.createMaterialInstance(
           originX: 0.0, originY: 0.0, originZ: 0.0,
           axis: 1, // Y
           lineWidth: 1.0,
           lineLength: 50.0,
         );
         await yAxis.setMaterialInstanceAt(yAxisMaterial);
-        final rotation = Quaternion.axisAngle(Vector3(1, 0, 0), 3.14159265359 / 2);
+        final rotation =
+            Quaternion.axisAngle(Vector3(1, 0, 0), 3.14159265359 / 2);
         await FilamentApp.instance!.setTransform(
           yAxis.entity,
           Matrix4.compose(Vector3(0, 3, 0), rotation, Vector3.all(1.0)),
@@ -60,7 +63,8 @@ void main() async {
         final zAxis = await viewer.createGeometry(
           GeometryUtils.plane(width: 100, height: 100),
         );
-        final zAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+        final zAxisMaterial =
+            await TranslationAxisMaterial.createMaterialInstance(
           originX: 0.0, originY: 0.0, originZ: 0.0,
           axis: 2, // Z
           lineWidth: 1.0,

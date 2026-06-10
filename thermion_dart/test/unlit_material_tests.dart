@@ -115,9 +115,12 @@ void main() async {
       final channels = await image.getChannels();
       final texture = await await FilamentApp.instance!.createTexture(
           width, height,
-          textureFormat: channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F);
+          textureFormat:
+              channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F);
       await texture.setLinearImage(
-          image, channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB, PixelDataType.FLOAT);
+          image,
+          channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB,
+          PixelDataType.FLOAT);
       final sampler = await await FilamentApp.instance!.createTextureSampler();
 
       await materialInstance.setParameterTexture(

@@ -14,10 +14,8 @@ Logger createLogger(String packageRoot, String logFilename) {
   final logger = Logger("")
     ..level = Level.ALL
     ..onRecord.listen((record) {
-      logFile.writeAsStringSync(
-          record.message + "\n",
-          mode: FileMode.append,
-          flush: true);
+      logFile.writeAsStringSync(record.message + "\n",
+          mode: FileMode.append, flush: true);
       // Tee SEVERE records to stderr so subprocess errors (cl.exe,
       // clang, ld) actually surface to whoever's watching the
       // build. `native_toolchain_c.runProcess` routes captured

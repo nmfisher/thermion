@@ -26,7 +26,11 @@ void main() {
     test('should accept correct number of split positions for 4 cascades', () {
       final options = ShadowOptions(
         shadowCascades: 4,
-        cascadeSplitPositions: [0.125, 0.25, 0.50], // 3 splits needed for 4 cascades
+        cascadeSplitPositions: [
+          0.125,
+          0.25,
+          0.50
+        ], // 3 splits needed for 4 cascades
       );
 
       expect(options.shadowCascades, equals(4));

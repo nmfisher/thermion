@@ -15,9 +15,8 @@ void main() async {
         .setRenderTargetEnabled(true)
         .execute((result) async {
       // Create a solid black skybox
-      final skybox = await FilamentApp.instance!.createColoredSkybox(
-        r: 0.0, g: 0.0, b: 0.0, a: 1.0
-      );
+      final skybox = await FilamentApp.instance!
+          .createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
       expect(skybox, isNotNull);
 
       final scene = (result.viewer as ThermionViewerFFI).scene;
@@ -33,14 +32,14 @@ void main() async {
         .setRenderTargetEnabled(true)
         .execute((result) async {
       // Create a fully transparent skybox (for overlay clearing)
-      final skybox = await FilamentApp.instance!.createColoredSkybox(
-        r: 0.0, g: 0.0, b: 0.0, a: 0.0
-      );
+      final skybox = await FilamentApp.instance!
+          .createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 0.0);
       expect(skybox, isNotNull);
 
       final scene = (result.viewer as ThermionViewerFFI).scene;
       await scene.setSkybox(skybox);
-      await testHelper.capture(result.viewer.view, "colored_skybox_transparent");
+      await testHelper.capture(
+          result.viewer.view, "colored_skybox_transparent");
 
       await skybox.destroy();
     });
@@ -51,9 +50,8 @@ void main() async {
         .setRenderTargetEnabled(true)
         .execute((result) async {
       // Create a solid red skybox
-      final skybox = await FilamentApp.instance!.createColoredSkybox(
-        r: 1.0, g: 0.0, b: 0.0, a: 1.0
-      );
+      final skybox = await FilamentApp.instance!
+          .createColoredSkybox(r: 1.0, g: 0.0, b: 0.0, a: 1.0);
       expect(skybox, isNotNull);
 
       final scene = (result.viewer as ThermionViewerFFI).scene;

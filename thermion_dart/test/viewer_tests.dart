@@ -11,5 +11,4 @@ void main() async {
       await camera.destroy();
     });
   });
-
 }

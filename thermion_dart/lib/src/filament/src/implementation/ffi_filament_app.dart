@@ -336,7 +336,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await renderManager.detachAll(swapChain);
       await destroySwapChain(swapChain);
     }
-    
+
     FilamentApp.instance = null;
     renderManager.destroy();
     await withVoidCallback((requestId, cb) async {
@@ -356,15 +356,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // destroyed. It may be marked as unused, and recycled the next time
   // createInstance is called.
   Future destroyAsset(covariant FFIAsset asset) async {
-      await asset.removeAnimationComponent();
-      if (!asset.isInstance) {
-        for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
-          await instance.removeAnimationComponent();
-          await withVoidCallback((requestId, cb) =>
-              SceneAsset_destroyRenderThread(instance.asset, requestId, cb));
-          await instance.dispose();
-        }
+    await asset.removeAnimationComponent();
+    if (!asset.isInstance) {
+      for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
+        await instance.removeAnimationComponent();
+        await withVoidCallback((requestId, cb) =>
+            SceneAsset_destroyRenderThread(instance.asset, requestId, cb));
+        await instance.dispose();
       }
+    }
 
     await withVoidCallback((requestId, cb) =>
         SceneAsset_destroyRenderThread(asset.asset, requestId, cb));

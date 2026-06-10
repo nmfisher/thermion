@@ -5,7 +5,6 @@ import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIScene extends Scene<Pointer<TScene>> {
-
   final Pointer<TScene> scene;
 
   FFIScene(this.scene);
@@ -16,9 +15,8 @@ class FFIScene extends Scene<Pointer<TScene>> {
 
   @override
   Future add(ThermionAsset asset) async {
-    await withVoidCallback((requestId, cb) =>
-        SceneAsset_addToSceneRenderThread(
-            asset.getNativeHandle(), scene, requestId, cb));
+    await withVoidCallback((requestId, cb) => SceneAsset_addToSceneRenderThread(
+        asset.getNativeHandle(), scene, requestId, cb));
   }
 
   @override
@@ -49,8 +47,8 @@ class FFIScene extends Scene<Pointer<TScene>> {
       _indirectLight = null;
     } else {
       await withVoidCallback((requestId, cb) =>
-          Scene_setIndirectLightRenderThread(
-              scene, (indirectLight as FFIIndirectLight).pointer, requestId, cb));
+          Scene_setIndirectLightRenderThread(scene,
+              (indirectLight as FFIIndirectLight).pointer, requestId, cb));
       _indirectLight = indirectLight;
     }
   }
@@ -70,8 +68,8 @@ class FFIScene extends Scene<Pointer<TScene>> {
       await withVoidCallback((requestId, cb) =>
           Scene_setSkyboxRenderThread(scene, nullptr, requestId, cb));
     } else {
-      await withVoidCallback((requestId, cb) =>
-          Scene_setSkyboxRenderThread(scene, (skybox as FFISkybox).pointer, requestId, cb));
+      await withVoidCallback((requestId, cb) => Scene_setSkyboxRenderThread(
+          scene, (skybox as FFISkybox).pointer, requestId, cb));
     }
   }
 
@@ -79,8 +77,7 @@ class FFIScene extends Scene<Pointer<TScene>> {
   /// Destroys this scene and releases its resources.
   ///
   Future destroy() async {
-    await withVoidCallback((requestId, cb) =>
-        Engine_destroySceneRenderThread(
-            FilamentApp.instance!.engine, scene, requestId, cb));
+    await withVoidCallback((requestId, cb) => Engine_destroySceneRenderThread(
+        FilamentApp.instance!.engine, scene, requestId, cb));
   }
 }

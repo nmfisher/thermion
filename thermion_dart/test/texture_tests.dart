@@ -256,8 +256,6 @@ void main() async {
         .setCameraLookAt(Vector3(10, 10, 10), focus: Vector3.zero())
         .addPlane(color: kGreen, createUbershader: true, unlit: true)
         .execute((result) async {
-
-
       const textureSize = 256;
       const paintSize = 64;
       const paintX = 96;

@@ -1,10 +1,7 @@
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-
-
 abstract class LightManager<T> extends NativeHandle<T> {
-  
   /// Creates a new light entity with the specified type.
   /// The light must be added to a scene before it is visible.
   ThermionEntity createLight(LightType type);
@@ -169,7 +166,8 @@ abstract class LightManager<T> extends NativeHandle<T> {
   /// [lambda] is a value in the range [0, 1] that interpolates between log and uniform split schemes.
   /// Start with a lambda value of 0.5f and adjust for your scene.
   /// Returns a list of cascade split positions (length will be cascades-1).
-  List<double> computePracticalSplits(int cascades, double near, double far, double lambda);
+  List<double> computePracticalSplits(
+      int cascades, double near, double far, double lambda);
 
   // ============================================================================
   // Color temperature utilities

@@ -11,14 +11,13 @@ void main() async {
         .addSun()
         .setCameraPosition(Vector3(0, 1, 1.5))
         .execute((result) async {
-      
       final original = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
           rebuildVertices: false,
           addToScene: true);
       await testHelper.capture(result.viewer.view, "rebuildVertices_false");
       await result.viewer.removeFromScene(original);
-      
+
       final rebuilt = await result.viewer.loadGltf(
           "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
           rebuildVertices: true,
@@ -70,8 +69,7 @@ void main() async {
       await flatUbershader.setRoughnessFactor(1.0);
       await flatAsset
           .setMaterialInstanceForAll(flatUbershader.materialInstance);
-      await testHelper.capture(
-          result.viewer.view, "flat_shading_ubershader");
+      await testHelper.capture(result.viewer.view, "flat_shading_ubershader");
     });
   });
 

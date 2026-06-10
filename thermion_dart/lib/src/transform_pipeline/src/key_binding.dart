@@ -34,4 +34,3 @@ class KeyBinding {
   @override
   int get hashCode => Object.hash(key, action, value);
 }
-

@@ -2,12 +2,11 @@ import 'package:thermion_dart/thermion_dart.dart';
 import '../../bindings/bindings.dart' as bindings;
 import 'intent_action.dart';
 
-
-/// Dart wrapper around the native TMovementIntent//MovementIntent struct 
+/// Dart wrapper around the native TMovementIntent//MovementIntent struct
 /// (represents what the player wants to do this frame).
-/// 
-/// You probably don't need to use this - a MovementIntent is calculated 
-/// every frame (see Pipeline.hpp and MovementIntentCalculator.hpp). This Dart 
+///
+/// You probably don't need to use this - a MovementIntent is calculated
+/// every frame (see Pipeline.hpp and MovementIntentCalculator.hpp). This Dart
 /// wrapper is intended for testing only.
 ///
 
@@ -109,7 +108,9 @@ class MovementIntent {
   static MovementIntent fromNative(bindings.TMovementIntent native) {
     // Convert custom intents from parallel arrays to map
     final customIntents = <IntentAction, double>{};
-    for (int i = 0; i < native.customIntentCount && i < bindings.MAX_CUSTOM_INTENTS; i++) {
+    for (int i = 0;
+        i < native.customIntentCount && i < bindings.MAX_CUSTOM_INTENTS;
+        i++) {
       final action = IntentAction.fromNative(native.customIntentActions[i]);
       customIntents[action] = native.customIntentValues[i];
     }

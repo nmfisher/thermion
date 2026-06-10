@@ -35,8 +35,8 @@ abstract class ThermionFlutterPlugin {
   Future<SwapChain?> initialize({bool destroySwapchain = true});
 
   // Creates a rendering surface and binds to the given [View].
-  // This is an internal method, don't call this yourself unless you are a 
-  // thermion package developer. 
+  // This is an internal method, don't call this yourself unless you are a
+  // thermion package developer.
 
   // The specific surface type created will depend on the platform.
   // [width] and [height] are expected to be in physical pixels; make sure

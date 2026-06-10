@@ -31,7 +31,7 @@ void main() async {
       await testHelper.capture(viewer.view, "play_gltf_animation_0");
       final duration = await cube.getGltfAnimationDuration(0);
       final durationNanos = (duration * 1_000_000_000).toInt();
-      
+
       final halfDurationNanos = durationNanos ~/ 2;
       await cube.playGltfAnimation(0);
 
@@ -137,14 +137,14 @@ void main() async {
 
       // First update records the animation start time; elapsed = 0.
       await am.update(1);
-      
+
       // should show cube at rest
       await testHelper.capture(viewer.view, "gltf_loop_1");
 
       // should show cube at max Y-axis
       await am.update(halfDurationNanos);
       await testHelper.capture(viewer.view, "gltf_loop_2");
-      
+
       // should show cube at max X-axis (subtract 1000 because)
       await am.update(durationNanos - 10000);
       await testHelper.capture(viewer.view, "gltf_loop_3");

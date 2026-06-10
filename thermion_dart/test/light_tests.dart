@@ -61,7 +61,6 @@ void main() async {
 
       await result.viewer.removeIbl(destroy: true);
       await testHelper.capture(result.viewer.view, "ibl_from_texture_removed");
-
     });
   });
 

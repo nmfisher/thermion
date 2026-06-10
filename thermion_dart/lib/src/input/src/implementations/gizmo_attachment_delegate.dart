@@ -133,13 +133,15 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   /// Get all bones for an asset (for explicit selection UI).
   ///
   /// Returns a list of [BoneInfo] containing bone names, indices, and entities.
-  Future<List<BoneInfo>> getBones(ThermionAsset asset, {int skinIndex = 0}) async {
+  Future<List<BoneInfo>> getBones(ThermionAsset asset,
+      {int skinIndex = 0}) async {
     final boneEntities = await asset.getBones(skinIndex: skinIndex);
 
     final bones = <BoneInfo>[];
     for (int i = 0; i < boneEntities.length; i++) {
       final boneEntity = boneEntities[i];
-      final boneName = FilamentApp.instance!.getNameForEntity(boneEntity) ?? 'Bone $i';
+      final boneName =
+          FilamentApp.instance!.getNameForEntity(boneEntity) ?? 'Bone $i';
       bones.add(BoneInfo(
         name: boneName,
         index: i,
@@ -207,9 +209,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
           }
           break;
 
-        case MouseEvent(
-            type: MouseEventType.move || MouseEventType.hover
-          ):
+        case MouseEvent(type: MouseEventType.move || MouseEventType.hover):
           if (_isDraggingGizmo) {
             final x = event.localPosition.x.toInt();
             final y = event.localPosition.y.toInt();

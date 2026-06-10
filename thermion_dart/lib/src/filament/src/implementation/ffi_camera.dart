@@ -29,12 +29,10 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   Future setProjectionFromHorizontalFieldOfView(
       double degrees, double near, double far, double aspect) async {
     if (degrees.isNaN) {
-      throw FormatException(
-          'fov must not be NaN, but was $degrees.');
+      throw FormatException('fov must not be NaN, but was $degrees.');
     }
     if (degrees <= 0) {
-      throw FormatException(
-          'fov must be positive, but was $degrees.');
+      throw FormatException('fov must be positive, but was $degrees.');
     }
     if (degrees >= 180) {
       throw FormatException(
@@ -47,19 +45,16 @@ class FFICamera extends Camera<Pointer<TCamera>> {
       throw FormatException('far must not be NaN, but was $far.');
     }
     if (near.isNegative || near == 0) {
-      throw FormatException(
-          'near must be positive, but was $near.');
+      throw FormatException('near must be positive, but was $near.');
     }
     if (far.isNegative || far == 0) {
-      throw FormatException(
-          'far must be positive, but was $far.');
+      throw FormatException('far must be positive, but was $far.');
     }
     if (aspect.isNaN) {
       throw FormatException('aspect must not be NaN, but was $aspect.');
     }
     if (aspect.isNegative || aspect == 0) {
-      throw FormatException(
-          'aspect must be positive, but was $aspect.');
+      throw FormatException('aspect must be positive, but was $aspect.');
     }
     Camera_setProjectionFromFov(camera, degrees, aspect, near, far, true);
   }
@@ -69,12 +64,10 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   Future setProjectionFromVerticalFieldOfView(
       double degrees, double near, double far, double aspect) async {
     if (degrees.isNaN) {
-      throw FormatException(
-          'fov must not be NaN, but was $degrees.');
+      throw FormatException('fov must not be NaN, but was $degrees.');
     }
     if (degrees <= 0) {
-      throw FormatException(
-          'fov must be positive, but was $degrees.');
+      throw FormatException('fov must be positive, but was $degrees.');
     }
     if (degrees >= 180) {
       throw FormatException(
@@ -87,19 +80,16 @@ class FFICamera extends Camera<Pointer<TCamera>> {
       throw FormatException('far must not be NaN, but was $far.');
     }
     if (near.isNegative || near == 0) {
-      throw FormatException(
-          'near must be positive, but was $near.');
+      throw FormatException('near must be positive, but was $near.');
     }
     if (far.isNegative || far == 0) {
-      throw FormatException(
-          'far must be positive, but was $far.');
+      throw FormatException('far must be positive, but was $far.');
     }
     if (aspect.isNaN) {
       throw FormatException('aspect must not be NaN, but was $aspect.');
     }
     if (aspect.isNegative || aspect == 0) {
-      throw FormatException(
-          'aspect must be positive, but was $aspect.');
+      throw FormatException('aspect must be positive, but was $aspect.');
     }
     Camera_setProjectionFromFov(camera, degrees, aspect, near, far, false);
   }
@@ -345,9 +335,8 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   }
 
   Future destroy() async {
-    await withVoidCallback((requestId, cb) =>
-        Engine_destroyCameraRenderThread(
-            FilamentApp.instance!.engine, camera, requestId, cb));
+    await withVoidCallback((requestId, cb) => Engine_destroyCameraRenderThread(
+        FilamentApp.instance!.engine, camera, requestId, cb));
   }
 
   Future setExposure(

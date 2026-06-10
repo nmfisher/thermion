@@ -66,7 +66,7 @@ void main() async {
           viewer.view, "material_instance_depth_write_disabled_with_priority");
     });
   });
-  
+
   test('set depth func to NEVER', () async {
     await testHelper.withViewer((viewer) async {
       final (

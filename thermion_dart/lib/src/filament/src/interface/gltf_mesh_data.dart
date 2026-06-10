@@ -16,5 +16,4 @@ abstract class GltfMeshData {
     this.indices,
     required this.primitiveType,
   });
-
 }

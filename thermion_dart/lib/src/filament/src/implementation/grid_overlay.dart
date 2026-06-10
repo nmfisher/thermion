@@ -51,7 +51,8 @@ class GridOverlay {
     const stepSize = 0.25;
     const gridSize = 8; // Number of cells in each direction
     const vertexCount = gridSize * gridSize * 4; // 4 vertices per quad
-    const indexCount = gridSize * gridSize * 6; // 6 indices per quad (2 triangles)
+    const indexCount =
+        gridSize * gridSize * 6; // 6 indices per quad (2 triangles)
 
     final positions = Float32List(vertexCount * 3);
     final indices = Uint32List(indexCount);
@@ -141,7 +142,13 @@ class GridOverlay {
     List<double> fadeInStart = const [0.001, 5.0, 50.0, 500.0, 5000.0],
     List<double> fadeInEnd = const [0.001, 50.0, 500.0, 5000.0, 50000.0],
     List<double> fadeOutStart = const [10.0, 500.0, 5000.0, 50000.0, 500000.0],
-    List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0, 200000.0, 2000000.0],
+    List<double> fadeOutEnd = const [
+      200.0,
+      2000.0,
+      20000.0,
+      200000.0,
+      2000000.0
+    ],
   }) async {
     if (_instance != null) {
       return _instance!;

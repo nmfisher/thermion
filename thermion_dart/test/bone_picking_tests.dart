@@ -75,7 +75,8 @@ class BoneVisualizer {
     Vector4? highlightColor,
   })  : jointColor = jointColor ?? Vector4(1.0, 1.0, 0.0, 1.0), // Yellow
         boneColor = boneColor ?? Vector4(0.3, 0.8, 1.0, 1.0), // Light blue
-        highlightColor = highlightColor ?? Vector4(1.0, 0.5, 0.0, 1.0); // Orange
+        highlightColor =
+            highlightColor ?? Vector4(1.0, 0.5, 0.0, 1.0); // Orange
 
   /// Whether the visualization is currently visible.
   bool get isVisible => _isVisible;
@@ -91,7 +92,8 @@ class BoneVisualizer {
   /// Get the parent bone index for a bone.
   ///
   /// Returns -1 if the bone has no parent (root bone) or parent is not in the bone list.
-  Future<int> _getBoneParentIndex(int boneIndex, List<ThermionEntity> bones) async {
+  Future<int> _getBoneParentIndex(
+      int boneIndex, List<ThermionEntity> bones) async {
     if (boneIndex < 0 || boneIndex >= bones.length) return -1;
     final boneEntity = bones[boneIndex];
     final parentEntity = await FilamentApp.instance!.getParent(boneEntity);
@@ -170,7 +172,8 @@ class BoneVisualizer {
       // Also check distance to envelope cylinder if bone has length
       if (bone.boneLength > 0) {
         // Calculate tail position same way as _calculateTailPosition
-        final tailWorldPos = _calculateTailPosition(headTransform, bone.boneLength);
+        final tailWorldPos =
+            _calculateTailPosition(headTransform, bone.boneLength);
         final tailScreenPos = projectToScreen(tailWorldPos);
 
         // Distance to cylinder line segment
@@ -201,13 +204,14 @@ class BoneVisualizer {
     if (boneIndex == _highlightedBoneIndex) return;
 
     // Unhighlight previous bone
-    if (_highlightedBoneIndex != null && _highlightedBoneIndex! < _bones.length) {
+    if (_highlightedBoneIndex != null &&
+        _highlightedBoneIndex! < _bones.length) {
       final prevBone = _bones[_highlightedBoneIndex!];
-      await prevBone.jointMaterial.setParameterFloat4(
-          "baseColorFactor", jointColor.r, jointColor.g, jointColor.b, jointColor.a);
+      await prevBone.jointMaterial.setParameterFloat4("baseColorFactor",
+          jointColor.r, jointColor.g, jointColor.b, jointColor.a);
       if (prevBone.envelopeMaterial != null) {
-        await prevBone.envelopeMaterial!.setParameterFloat4(
-            "baseColorFactor", boneColor.r, boneColor.g, boneColor.b, boneColor.a);
+        await prevBone.envelopeMaterial!.setParameterFloat4("baseColorFactor",
+            boneColor.r, boneColor.g, boneColor.b, boneColor.a);
       }
     }
 
@@ -217,10 +221,18 @@ class BoneVisualizer {
     if (boneIndex != null && boneIndex >= 0 && boneIndex < _bones.length) {
       final bone = _bones[boneIndex];
       await bone.jointMaterial.setParameterFloat4(
-          "baseColorFactor", highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
+          "baseColorFactor",
+          highlightColor.r,
+          highlightColor.g,
+          highlightColor.b,
+          highlightColor.a);
       if (bone.envelopeMaterial != null) {
         await bone.envelopeMaterial!.setParameterFloat4(
-            "baseColorFactor", highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
+            "baseColorFactor",
+            highlightColor.r,
+            highlightColor.g,
+            highlightColor.b,
+            highlightColor.a);
       }
     }
   }
@@ -293,7 +305,8 @@ class BoneVisualizer {
     );
 
     // Create bone overlay material for view-dependent flat shading
-    final boneMaterial = await FilamentApp.instance!.createBoneOverlayMaterial();
+    final boneMaterial =
+        await FilamentApp.instance!.createBoneOverlayMaterial();
 
     // Third pass: create visualization for each bone
     for (int i = 0; i < boneCount; i++) {
@@ -309,11 +322,11 @@ class BoneVisualizer {
 
       // Create joint sphere
       final jointMatInst = await boneMaterial.createInstance();
-      await jointMatInst.setParameterFloat4(
-          "baseColorFactor", jointColor.r, jointColor.g, jointColor.b, jointColor.a);
+      await jointMatInst.setParameterFloat4("baseColorFactor", jointColor.r,
+          jointColor.g, jointColor.b, jointColor.a);
 
-      final jointAsset = await viewer.createGeometry(sphereGeom,
-          materialInstances: [jointMatInst]);
+      final jointAsset = await viewer
+          .createGeometry(sphereGeom, materialInstances: [jointMatInst]);
 
       await jointAsset.setTransform(Matrix4.compose(
         headPos,
@@ -330,15 +343,16 @@ class BoneVisualizer {
       if (boneLength > 0.001) {
         // Skip zero-length bones
         envelopeMatInst = await boneMaterial.createInstance();
-        await envelopeMatInst.setParameterFloat4(
-            "baseColorFactor", boneColor.r, boneColor.g, boneColor.b, boneColor.a);
+        await envelopeMatInst.setParameterFloat4("baseColorFactor", boneColor.r,
+            boneColor.g, boneColor.b, boneColor.a);
 
-        envelopeAsset = await viewer.createGeometry(cylinderGeom,
-            materialInstances: [envelopeMatInst]);
+        envelopeAsset = await viewer
+            .createGeometry(cylinderGeom, materialInstances: [envelopeMatInst]);
 
         // Calculate tail position using bone rotation
         final tailPos = _calculateTailPosition(transform, boneLength);
-        await _setEnvelopeTransform(envelopeAsset, headPos, tailPos, boneLength);
+        await _setEnvelopeTransform(
+            envelopeAsset, headPos, tailPos, boneLength);
 
         await viewer.addToScene(envelopeAsset);
         await FilamentApp.instance!.setPriority(envelopeAsset.entity, 7);
@@ -437,11 +451,13 @@ class BoneVisualizer {
       final headPos = transform.getTranslation();
 
       // Update joint sphere position using async (thread-safe) method
-      await tm.setTransformAsync(bone.jointAsset.entity, Matrix4.compose(
-        headPos,
-        Quaternion.identity(),
-        Vector3.all(sphereRadius),
-      ));
+      await tm.setTransformAsync(
+          bone.jointAsset.entity,
+          Matrix4.compose(
+            headPos,
+            Quaternion.identity(),
+            Vector3.all(sphereRadius),
+          ));
 
       // Update envelope if exists
       if (bone.envelopeAsset != null && bone.boneLength > 0.001) {
@@ -493,7 +509,6 @@ class _BoneViz {
   });
 }
 
-
 void main() async {
   final testHelper = TestHelper("bone_picking");
   await testHelper.setup();
@@ -504,8 +519,7 @@ void main() async {
       final assetData =
           File('${testHelper.testDir}/assets/cube_with_morph_targets.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData);
+      final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting so we can see the cube
@@ -559,7 +573,8 @@ void main() async {
         final screenX = ((ndcPos.x + 1) / 2 * viewport.width).toInt();
         final screenY = ((1 - ndcPos.y) / 2 * viewport.height).toInt();
 
-        print('Bone $boneIndex: worldPos=$worldPos -> screen=($screenX, $screenY)');
+        print(
+            'Bone $boneIndex: worldPos=$worldPos -> screen=($screenX, $screenY)');
 
         // 5. Use screen-space picking (bypasses depth buffer!)
         final pickedBoneIndex =
@@ -572,7 +587,8 @@ void main() async {
 
         // 6. Verify screen-space picking works for ALL bones
         expect(pickedBoneIndex, boneIndex,
-            reason: 'Screen-space picking at bone $boneIndex should return that bone');
+            reason:
+                'Screen-space picking at bone $boneIndex should return that bone');
 
         // Highlight and capture
         await boneVisualizer.highlightBone(pickedBoneIndex);
@@ -589,8 +605,7 @@ void main() async {
       final assetData =
           File('${testHelper.testDir}/assets/cube_with_morph_targets.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData);
+      final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting

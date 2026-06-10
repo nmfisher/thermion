@@ -81,15 +81,15 @@ class DirectLight {
     Vector3? position,
     double falloffRadius = 1.0,
   }) : this(
-    type: LightType.POINT,
-    color: color ?? LinearColor.white,
-    colorTemperature: colorTemperature,
-    intensity: intensity,
-    castShadows: castShadows,
-    position: position ?? Vector3(0, 1, 0),
-    direction: Vector3.zero(),
-    falloffRadius: falloffRadius,
-  );
+          type: LightType.POINT,
+          color: color ?? LinearColor.white,
+          colorTemperature: colorTemperature,
+          intensity: intensity,
+          castShadows: castShadows,
+          position: position ?? Vector3(0, 1, 0),
+          direction: Vector3.zero(),
+          falloffRadius: falloffRadius,
+        );
 
   DirectLight.sun({
     LinearColor? color,
@@ -101,17 +101,17 @@ class DirectLight {
     double sunHaloSize = 10.0,
     double sunHaloFalloff = 80.0,
   }) : this(
-    type: LightType.DIRECTIONAL,
-    color: color ?? LinearColor.white,
-    colorTemperature: colorTemperature,
-    intensity: intensity,
-    castShadows: castShadows,
-    position: Vector3(0, 0, 0),
-    direction: direction ?? Vector3(0, -1, 0),
-    sunAngularRadius: sunAngularRadius,
-    sunHaloSize: sunHaloSize,
-    sunHaloFallof: sunHaloFalloff,
-  );
+          type: LightType.DIRECTIONAL,
+          color: color ?? LinearColor.white,
+          colorTemperature: colorTemperature,
+          intensity: intensity,
+          castShadows: castShadows,
+          position: Vector3(0, 0, 0),
+          direction: direction ?? Vector3(0, -1, 0),
+          sunAngularRadius: sunAngularRadius,
+          sunHaloSize: sunHaloSize,
+          sunHaloFallof: sunHaloFalloff,
+        );
 
   DirectLight.spot({
     LinearColor? color,
@@ -124,15 +124,15 @@ class DirectLight {
     double spotLightConeInner = pi / 8,
     double spotLightConeOuter = pi / 4,
   }) : this(
-    type: LightType.SPOT,
-    color: color ?? LinearColor.white,
-    colorTemperature: colorTemperature,
-    intensity: intensity,
-    castShadows: castShadows,
-    position: position ?? Vector3(0, 1, 0),
-    direction: direction ?? Vector3(0, -1, 0),
-    falloffRadius: falloffRadius,
-    spotLightConeInner: spotLightConeInner,
-    spotLightConeOuter: spotLightConeOuter,
-  );
+          type: LightType.SPOT,
+          color: color ?? LinearColor.white,
+          colorTemperature: colorTemperature,
+          intensity: intensity,
+          castShadows: castShadows,
+          position: position ?? Vector3(0, 1, 0),
+          direction: direction ?? Vector3(0, -1, 0),
+          falloffRadius: falloffRadius,
+          spotLightConeInner: spotLightConeInner,
+          spotLightConeOuter: spotLightConeOuter,
+        );
 }

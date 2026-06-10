@@ -15,4 +15,3 @@ enum VisibilityLayers {
   final int value;
   const VisibilityLayers(this.value);
 }
-

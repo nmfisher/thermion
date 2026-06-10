@@ -136,7 +136,6 @@ class TestHelper {
     return instance;
   }
 
-  
   Future<ThermionAsset> createCube(ThermionViewer viewer) async {
     var materialInstance = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
@@ -288,7 +287,6 @@ class TestHelper {
     var viewer = ThermionViewerFFI();
     await viewer.initialized;
     await FilamentApp.instance!.renderManager.attach(viewer.view, swapChain);
-
 
     if (renderTarget != null) {
       await viewer.view.setRenderTarget(renderTarget);

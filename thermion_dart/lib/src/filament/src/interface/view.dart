@@ -382,8 +382,8 @@ abstract class View<T> extends NativeHandle<T> {
   //
   // Returns true if initialization succeeded, false if already enabled.
   Future setHighlightOverlayEnabled(bool enabled);
-  
-  // Returns the highlight manager (or null if [setHighlightOverlayEnabled] was 
+
+  // Returns the highlight manager (or null if [setHighlightOverlayEnabled] was
   // called with false).
   HighlightOverlayManager? getHighlightOverlay();
 

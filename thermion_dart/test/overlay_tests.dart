@@ -16,7 +16,7 @@ void main() async {
         await camera.lookAt(Vector3(0, 5, 10));
         await testHelper.capture(viewer.view, "grid_visible_angle");
         for (int i = 0; i < 10; i++) {
-          await camera.lookAt(Vector3(0, 1 + (i* 10), 0.005),
+          await camera.lookAt(Vector3(0, 1 + (i * 10), 0.005),
               focus: Vector3.zero());
           await testHelper.capture(viewer.view, "grid_visible_fade${i}");
         }
@@ -31,8 +31,7 @@ void main() async {
     await testHelper.withViewer(
       (viewer) async {
         // Test with tighter spacing
-        await viewer.setGridOverlayVisibility(true,
-            spacing: [0.5, 2.0, 10.0]);
+        await viewer.setGridOverlayVisibility(true, spacing: [0.5, 2.0, 10.0]);
         await testHelper.capture(viewer.view, "grid_custom_spacing");
         final camera = await viewer.getActiveCamera();
         await camera.lookAt(Vector3(0, 5, 10));
@@ -163,10 +162,11 @@ void main() async {
           true,
           entity: cube.entity,
           axis: Axis.X,
-          lineWidth: 1.0,  // 1px screen-space
+          lineWidth: 1.0, // 1px screen-space
           lineLength: 50.0,
         );
-        await testHelper.capture(viewer.view, "translation_axis_from_entity_x_pos1");
+        await testHelper.capture(
+            viewer.view, "translation_axis_from_entity_x_pos1");
 
         // Change to Y axis at same position
         await viewer.setTranslationAxisVisibility(
@@ -176,7 +176,8 @@ void main() async {
           lineWidth: 1.0,
           lineLength: 50.0,
         );
-        await testHelper.capture(viewer.view, "translation_axis_from_entity_y_pos1");
+        await testHelper.capture(
+            viewer.view, "translation_axis_from_entity_y_pos1");
 
         // Change to Z axis at same position
         await viewer.setTranslationAxisVisibility(
@@ -186,7 +187,8 @@ void main() async {
           lineWidth: 1.0,
           lineLength: 50.0,
         );
-        await testHelper.capture(viewer.view, "translation_axis_from_entity_z_pos1");
+        await testHelper.capture(
+            viewer.view, "translation_axis_from_entity_z_pos1");
 
         // Move cube to a different position (-5, 5, 8)
         await FilamentApp.instance!.setTransform(
@@ -203,7 +205,8 @@ void main() async {
           lineWidth: 1.0,
           lineLength: 50.0,
         );
-        await testHelper.capture(viewer.view, "translation_axis_from_entity_x_pos2");
+        await testHelper.capture(
+            viewer.view, "translation_axis_from_entity_x_pos2");
 
         // Show Y axis at new position (critical test for the fix)
         await viewer.setTranslationAxisVisibility(
@@ -213,7 +216,8 @@ void main() async {
           lineWidth: 1.0,
           lineLength: 50.0,
         );
-        await testHelper.capture(viewer.view, "translation_axis_from_entity_y_pos2");
+        await testHelper.capture(
+            viewer.view, "translation_axis_from_entity_y_pos2");
 
         // Show Z axis at new position
         await viewer.setTranslationAxisVisibility(
@@ -223,7 +227,8 @@ void main() async {
           lineWidth: 1.0,
           lineLength: 50.0,
         );
-        await testHelper.capture(viewer.view, "translation_axis_from_entity_z_pos2");
+        await testHelper.capture(
+            viewer.view, "translation_axis_from_entity_z_pos2");
 
         await viewer.removeFromScene(cube);
       },

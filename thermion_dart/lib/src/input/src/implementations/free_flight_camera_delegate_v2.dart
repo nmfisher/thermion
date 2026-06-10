@@ -41,11 +41,12 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
       try {
         final camera = await view.getCamera();
         final current = await camera.getModelMatrix();
-        final updated = current * Matrix4.compose(
-          translation,
-          Quaternion.identity(),
-          Vector3.all(1),
-        );
+        final updated = current *
+            Matrix4.compose(
+              translation,
+              Quaternion.identity(),
+              Vector3.all(1),
+            );
         await camera.setModelMatrix(updated);
       } catch (_) {
         // Camera may have been disposed

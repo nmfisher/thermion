@@ -23,7 +23,7 @@ void main() async {
     await builder.execute((result) async {
       final plane = result.assets[0];
       final cube = result.assets[1];
-      
+
       expect(await plane.isReceiveShadowsEnabled(), true);
       expect(await cube.isCastShadowsEnabled(), true);
 

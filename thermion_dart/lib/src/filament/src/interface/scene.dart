@@ -3,7 +3,6 @@ import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 abstract class Scene<T> extends NativeHandle<T> {
-  
   /// Adds all renderable entities in [asset] to this scene.
   ///
   ///

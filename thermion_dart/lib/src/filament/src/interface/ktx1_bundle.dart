@@ -10,7 +10,8 @@ abstract class Ktx1Bundle {
   ///
   ///
   Future<Texture> createTexture(
-      {VoidCallback? onTextureUploadComplete, int? textureUploadCompleteRequestId});
+      {VoidCallback? onTextureUploadComplete,
+      int? textureUploadCompleteRequestId});
 
   ///
   ///

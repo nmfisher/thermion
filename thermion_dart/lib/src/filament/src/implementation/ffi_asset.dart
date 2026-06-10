@@ -446,7 +446,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   @override
   Future<List<String>> getGltfAnimationNames() async {
     if (type != SceneAssetType.gltf) {
-      _logger.warning("getGltfAnimationNames should only be called on gltf assets");
+      _logger.warning(
+          "getGltfAnimationNames should only be called on gltf assets");
       return [];
     }
     if (_gltfAnimationNames == null) {

@@ -13,7 +13,8 @@ class FFIColorGrading extends ColorGrading {
   @override
   Future dispose() async {
     await withVoidCallback((requestId, cb) =>
-        Engine_destroyColorGradingRenderThread(FilamentApp.instance!.engine, pointer, requestId, cb));
+        Engine_destroyColorGradingRenderThread(
+            FilamentApp.instance!.engine, pointer, requestId, cb));
   }
 }
 
@@ -108,9 +109,15 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     _checkNotBuilt();
     ColorGradingBuilder_channelMixer(
       _builder,
-      outRed.x, outRed.y, outRed.z,
-      outGreen.x, outGreen.y, outGreen.z,
-      outBlue.x, outBlue.y, outBlue.z,
+      outRed.x,
+      outRed.y,
+      outRed.z,
+      outGreen.x,
+      outGreen.y,
+      outGreen.z,
+      outBlue.x,
+      outBlue.y,
+      outBlue.z,
     );
     return this;
   }
@@ -121,10 +128,22 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     _checkNotBuilt();
     ColorGradingBuilder_shadowsMidtonesHighlights(
       _builder,
-      shadows.x, shadows.y, shadows.z, shadows.w,
-      midtones.x, midtones.y, midtones.z, midtones.w,
-      highlights.x, highlights.y, highlights.z, highlights.w,
-      ranges.x, ranges.y, ranges.z, ranges.w,
+      shadows.x,
+      shadows.y,
+      shadows.z,
+      shadows.w,
+      midtones.x,
+      midtones.y,
+      midtones.z,
+      midtones.w,
+      highlights.x,
+      highlights.y,
+      highlights.z,
+      highlights.w,
+      ranges.x,
+      ranges.y,
+      ranges.z,
+      ranges.w,
     );
     return this;
   }
@@ -135,9 +154,15 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     _checkNotBuilt();
     ColorGradingBuilder_slopeOffsetPower(
       _builder,
-      slope.x, slope.y, slope.z,
-      offset.x, offset.y, offset.z,
-      power.x, power.y, power.z,
+      slope.x,
+      slope.y,
+      slope.z,
+      offset.x,
+      offset.y,
+      offset.z,
+      power.x,
+      power.y,
+      power.z,
     );
     return this;
   }
@@ -148,9 +173,15 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     _checkNotBuilt();
     ColorGradingBuilder_curves(
       _builder,
-      shadowGamma.x, shadowGamma.y, shadowGamma.z,
-      midPoint.x, midPoint.y, midPoint.z,
-      highlightScale.x, highlightScale.y, highlightScale.z,
+      shadowGamma.x,
+      shadowGamma.y,
+      shadowGamma.z,
+      midPoint.x,
+      midPoint.y,
+      midPoint.z,
+      highlightScale.x,
+      highlightScale.y,
+      highlightScale.z,
     );
     return this;
   }
@@ -174,7 +205,8 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     _checkNotBuilt();
     _built = true;
     final ptr = await withPointerCallback<TColorGrading>((cb) =>
-        ColorGradingBuilder_buildRenderThread(_builder, FilamentApp.instance!.engine, cb));
+        ColorGradingBuilder_buildRenderThread(
+            _builder, FilamentApp.instance!.engine, cb));
     await withVoidCallback((requestId, cb) =>
         ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb));
     if (ptr == nullptr) {

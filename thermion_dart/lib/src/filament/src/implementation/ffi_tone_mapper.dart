@@ -14,8 +14,8 @@ class FFIToneMapper extends ToneMapper {
   /// Useful for debugging
   static Future<ToneMapper> linear() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createLinearRenderThread(filamentApp.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+        (cb) => ToneMapper_createLinearRenderThread(filamentApp.engine, cb));
     return FFIToneMapper._(pointer);
   }
 
@@ -23,8 +23,8 @@ class FFIToneMapper extends ToneMapper {
   /// combined with the Output Device Transform (ODT) for sRGB monitors
   static Future<ToneMapper> aces() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createACESRenderThread(filamentApp.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+        (cb) => ToneMapper_createACESRenderThread(filamentApp.engine, cb));
     return FFIToneMapper._(pointer);
   }
 
@@ -41,8 +41,8 @@ class FFIToneMapper extends ToneMapper {
   /// for Rec.709. Exists for backward compatibility.
   static Future<ToneMapper> filmic() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createFilmicRenderThread(filamentApp.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+        (cb) => ToneMapper_createFilmicRenderThread(filamentApp.engine, cb));
     return FFIToneMapper._(pointer);
   }
 
@@ -64,7 +64,8 @@ class FFIToneMapper extends ToneMapper {
   static Future<ToneMapper> agx({AgxLook look = AgxLook.none}) async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
     final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createAGXWithLookRenderThread(filamentApp.engine, look.index, cb));
+        ToneMapper_createAGXWithLookRenderThread(
+            filamentApp.engine, look.index, cb));
     return FFIToneMapper._(pointer);
   }
 
@@ -87,12 +88,7 @@ class FFIToneMapper extends ToneMapper {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
     final pointer = await withPointerCallback<TToneMapper>((cb) =>
         ToneMapper_createGenericRenderThread(
-          filamentApp.engine,
-          contrast,
-          midGrayIn,
-          midGrayOut,
-          hdrMax,
-          cb));
+            filamentApp.engine, contrast, midGrayIn, midGrayOut, hdrMax, cb));
     return FFIToneMapper._(pointer);
   }
 

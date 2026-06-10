@@ -103,7 +103,6 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
 
   func.call(onComplete_interopFnPtr.cast());
 
-
   while (!completer.isCompleted) {
     _NativeLibrary.instance._execute_queue();
     await Future.delayed(Duration(milliseconds: 1));
@@ -207,4 +206,3 @@ Pointer stackSave() => NativeLibrary.instance.stackSave();
 
 void stackRestore(Pointer ptr) =>
     NativeLibrary.instance.stackRestore(ptr.cast());
-

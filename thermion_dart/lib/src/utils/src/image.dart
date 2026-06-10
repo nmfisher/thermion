@@ -33,8 +33,8 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
   Float32List? floatData;
 
   if (isFloat) {
-    floatData = pixelBuffer.buffer.asFloat32List(
-        pixelBuffer.offsetInBytes, width * height * channels);
+    floatData = pixelBuffer.buffer
+        .asFloat32List(pixelBuffer.offsetInBytes, width * height * channels);
   }
 
   // Pixel data (BMP stores in BGR format)
@@ -48,7 +48,7 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
         final v = isFloat
             ? (floatData![srcIndex] * 255).toInt()
             : pixelBuffer[srcIndex];
-        data[dstIndex] = v;     // Blue
+        data[dstIndex] = v; // Blue
         data[dstIndex + 1] = v; // Green
         data[dstIndex + 2] = v; // Red
       } else {
@@ -84,8 +84,8 @@ Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
 
   Float32List? floatData;
   if (isFloat) {
-    floatData = pixelBuffer.buffer.asFloat32List(
-        pixelBuffer.offsetInBytes, width * height * channels);
+    floatData = pixelBuffer.buffer
+        .asFloat32List(pixelBuffer.offsetInBytes, width * height * channels);
   }
 
   for (int y = 0; y < height; y++) {

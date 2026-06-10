@@ -17,7 +17,7 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
     if (_destroyed) {
       throw Exception();
     }
-    // set flag early to ensure markTextureFrameAvailable is not called 
+    // set flag early to ensure markTextureFrameAvailable is not called
     // with a destroyed texture handle
     _destroyed = true;
     SwiftThermionFlutterPluginObjCAPI

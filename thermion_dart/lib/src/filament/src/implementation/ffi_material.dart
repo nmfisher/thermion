@@ -3,7 +3,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIMaterial extends Material<Pointer<TMaterial>> {
-  
   final Pointer<TMaterial> pointer;
 
   FFIMaterial(this.pointer);
@@ -18,7 +17,8 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialRenderThread(FilamentApp.instance!.engine, pointer, requestId, cb);
+      Engine_destroyMaterialRenderThread(
+          FilamentApp.instance!.engine, pointer, requestId, cb);
     });
   }
 
@@ -194,7 +194,8 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future<TransparencyMode> getTransparencyMode() async {
-    return TransparencyMode.values[MaterialInstance_getTransparencyMode(pointer)];
+    return TransparencyMode
+        .values[MaterialInstance_getTransparencyMode(pointer)];
   }
 
   @override

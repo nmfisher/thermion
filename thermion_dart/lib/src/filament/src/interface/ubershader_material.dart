@@ -21,8 +21,7 @@ class UbershaderMaterialInstance {
   Future setBaseColorFactor(double r, double g, double b, double a) =>
       _mi.setParameterFloat4('baseColorFactor', r, g, b, a);
 
-  Future setBaseColorTexture(
-          Texture texture, TextureSampler sampler) =>
+  Future setBaseColorTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('baseColorMap', texture, sampler);
 
   Future setBaseColorUV(int index) =>
@@ -39,8 +38,7 @@ class UbershaderMaterialInstance {
   Future setRoughnessFactor(double value) =>
       _mi.setParameterFloat('roughnessFactor', value);
 
-  Future setMetallicRoughnessTexture(
-          Texture texture, TextureSampler sampler) =>
+  Future setMetallicRoughnessTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('metallicRoughnessMap', texture, sampler);
 
   Future setMetallicRoughnessUV(int index) =>
@@ -51,16 +49,14 @@ class UbershaderMaterialInstance {
   Future setNormalTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('normalMap', texture, sampler);
 
-  Future setNormalUV(int index) =>
-      _mi.setParameterInt('normalIndex', index);
+  Future setNormalUV(int index) => _mi.setParameterInt('normalIndex', index);
 
   // -- Occlusion --
 
   Future setOcclusionTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('occlusionMap', texture, sampler);
 
-  Future setOcclusionUV(int index) =>
-      _mi.setParameterInt('aoIndex', index);
+  Future setOcclusionUV(int index) => _mi.setParameterInt('aoIndex', index);
 
   // -- Emissive --
 
@@ -88,8 +84,7 @@ class UbershaderMaterialInstance {
           Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('clearCoatRoughnessMap', texture, sampler);
 
-  Future setClearCoatNormalTexture(
-          Texture texture, TextureSampler sampler) =>
+  Future setClearCoatNormalTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('clearCoatNormalMap', texture, sampler);
 
   // -- Transmission --

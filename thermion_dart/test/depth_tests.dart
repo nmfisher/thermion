@@ -169,130 +169,129 @@ void main() async {
     });
   });
 }
-  
 
-  // group('projection', () {
-  //   test('project texture & UV unwrap', () async {
-  //     await testHelper.withViewer((viewer) async {
-  //       final camera = await viewer.getActiveCamera();
-  //       await viewer.view.setFrustumCullingEnabled(false);
-  //       await camera.setLensProjection(near: 0.01, far: 100);
-  //       final dist = 26.0;
-  //       await camera.lookAt(
-  //         Vector3(
-  //           -0.5,
-  //           dist,
-  //           dist,
-  //         ),
-  //       );
-  //       await FilamentApp.instance!
-  //           .unregister(testHelper.swapChain, viewer.view);
+// group('projection', () {
+//   test('project texture & UV unwrap', () async {
+//     await testHelper.withViewer((viewer) async {
+//       final camera = await viewer.getActiveCamera();
+//       await viewer.view.setFrustumCullingEnabled(false);
+//       await camera.setLensProjection(near: 0.01, far: 100);
+//       final dist = 26.0;
+//       await camera.lookAt(
+//         Vector3(
+//           -0.5,
+//           dist,
+//           dist,
+//         ),
+//       );
+//       await FilamentApp.instance!
+//           .unregister(testHelper.swapChain, viewer.view);
 
-  //       await withView(testHelper.swapChain, viewer, (linearDepthView) async {
-  //         await withView(testHelper.swapChain, viewer, (manualDepthView) async {
-  //           await manualDepthView.setRenderOrder(1);
-  //           await linearDepthView.setRenderOrder(0);
+//       await withView(testHelper.swapChain, viewer, (linearDepthView) async {
+//         await withView(testHelper.swapChain, viewer, (manualDepthView) async {
+//           await manualDepthView.setRenderOrder(1);
+//           await linearDepthView.setRenderOrder(0);
 
-  //           await viewer.view.setRenderOrder(2);
-  //           await withManualDepthMaterial(testHelper, viewer, (
-  //             manualDepthMi,
-  //           ) async {
-  //             await withSampledDepthMaterial(testHelper, viewer, (
-  //               sampledDepthMi,
-  //             ) async {
-  //               await sampledDepthMi.setParameterTexture(
-  //                   "depth",
-  //                   await (await manualDepthView.getRenderTarget())!
-  //                       .getColorTexture(),
-  //                   await FilamentApp.instance!.createTextureSampler());
+//           await viewer.view.setRenderOrder(2);
+//           await withManualDepthMaterial(testHelper, viewer, (
+//             manualDepthMi,
+//           ) async {
+//             await withSampledDepthMaterial(testHelper, viewer, (
+//               sampledDepthMi,
+//             ) async {
+//               await sampledDepthMi.setParameterTexture(
+//                   "depth",
+//                   await (await manualDepthView.getRenderTarget())!
+//                       .getColorTexture(),
+//                   await FilamentApp.instance!.createTextureSampler());
 
-  //               await withLinearDepthMaterial(testHelper, viewer, (
-  //                 linearDepthMi,
-  //               ) async {
-  //                 await withProjectionMaterial(testHelper, viewer, (
-  //                   projectMi,
-  //                 ) async {
-  //                   await FilamentApp.instance!.setClearOptions(0, 0, 0, 1,
-  //                       clearStencil: 0, discard: false, clear: true);
-  //                   await testHelper.withCube(viewer, (cube2) async {
-  //                     var ubershader = await cube2.getMaterialInstanceAt();
-  //                     (await manualDepthView.getScene()).remove(cube2);
-  //                     await ubershader.setParameterFloat4(
-  //                         "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
-  //                     await cube2.setTransform(Matrix4.compose(
-  //                         Vector3(-0.5, 0, -0.5),
-  //                         Quaternion.identity(),
-  //                         Vector3.all(1)));
-  //                     await testHelper.withCube(viewer, (cube) async {
-  //                       await cube.setTransform(Matrix4.compose(Vector3.zero(),
-  //                           Quaternion.identity(), Vector3.all(1)));
-  //                       var divisions = 1;
-  //                       var ubershader = await cube.getMaterialInstanceAt();
-  //                       await ubershader.setDepthCullingEnabled(true);
-  //                       await ubershader.setDepthWriteEnabled(true);
-  //                       await ubershader.setCullingMode(CullingMode.BACK);
-  //                       await ubershader.setParameterInt("baseColorIndex", 0);
+//               await withLinearDepthMaterial(testHelper, viewer, (
+//                 linearDepthMi,
+//               ) async {
+//                 await withProjectionMaterial(testHelper, viewer, (
+//                   projectMi,
+//                 ) async {
+//                   await FilamentApp.instance!.setClearOptions(0, 0, 0, 1,
+//                       clearStencil: 0, discard: false, clear: true);
+//                   await testHelper.withCube(viewer, (cube2) async {
+//                     var ubershader = await cube2.getMaterialInstanceAt();
+//                     (await manualDepthView.getScene()).remove(cube2);
+//                     await ubershader.setParameterFloat4(
+//                         "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+//                     await cube2.setTransform(Matrix4.compose(
+//                         Vector3(-0.5, 0, -0.5),
+//                         Quaternion.identity(),
+//                         Vector3.all(1)));
+//                     await testHelper.withCube(viewer, (cube) async {
+//                       await cube.setTransform(Matrix4.compose(Vector3.zero(),
+//                           Quaternion.identity(), Vector3.all(1)));
+//                       var divisions = 1;
+//                       var ubershader = await cube.getMaterialInstanceAt();
+//                       await ubershader.setDepthCullingEnabled(true);
+//                       await ubershader.setDepthWriteEnabled(true);
+//                       await ubershader.setCullingMode(CullingMode.BACK);
+//                       await ubershader.setParameterInt("baseColorIndex", 0);
 
-  //                       await ubershader.setParameterTexture(
-  //                           "baseColorMap",
-  //                           await createTextureFromImage(testHelper),
-  //                           await FilamentApp.instance!.createTextureSampler());
+//                       await ubershader.setParameterTexture(
+//                           "baseColorMap",
+//                           await createTextureFromImage(testHelper),
+//                           await FilamentApp.instance!.createTextureSampler());
 
-  //                       // final color = await (await linearDepthView.getRenderTarget())!
-  //                       //     .getColorTexture();
-  //                       // final depth = await (await manualDepthView.getRenderTarget())!
-  //                       //     .getColorTexture();
+//                       // final color = await (await linearDepthView.getRenderTarget())!
+//                       //     .getColorTexture();
+//                       // final depth = await (await manualDepthView.getRenderTarget())!
+//                       //     .getColorTexture();
 
-  //                       // await projectMi.setParameterTexture("color", color,
-  //                       //     await FilamentApp.instance!.createTextureSampler());
-  //                       // await projectMi.setParameterTexture("depth", depth,
-  //                       //     await FilamentApp.instance!.createTextureSampler());
-  //                       // await projectMi.setDepthCullingEnabled(true);
-  //                       // await projectMi.setParameterBool("useDepth", true);
+//                       // await projectMi.setParameterTexture("color", color,
+//                       //     await FilamentApp.instance!.createTextureSampler());
+//                       // await projectMi.setParameterTexture("depth", depth,
+//                       //     await FilamentApp.instance!.createTextureSampler());
+//                       // await projectMi.setDepthCullingEnabled(true);
+//                       // await projectMi.setParameterBool("useDepth", true);
 
-  //                       // for (int i = 0; i < divisions; i++) {
-  //                       //   await camera.lookAt(
-  //                       //     Vector3(
-  //                       //       sin(i / divisions * pi) * dist,
-  //                       //       dist,
-  //                       //       cos(i / divisions * pi) * dist,
-  //                       //     ),
-  //                       //   );
-  //                       //   await cube.setMaterialInstanceAt(manualDepthMi);
+//                       // for (int i = 0; i < divisions; i++) {
+//                       //   await camera.lookAt(
+//                       //     Vector3(
+//                       //       sin(i / divisions * pi) * dist,
+//                       //       dist,
+//                       //       cos(i / divisions * pi) * dist,
+//                       //     ),
+//                       //   );
+//                       //   await cube.setMaterialInstanceAt(manualDepthMi);
 
-  //                       var pixelBuffers = await testHelper
-  //                           .capture(null, "project_texture_color",
-  //                               beforeRender: (view) async {
-  //                         if (view == linearDepthView) {
-  //                           await cube.setMaterialInstanceAt(linearDepthMi);
-  //                         } else if (view == manualDepthView) {
-  //                           await cube.setMaterialInstanceAt(manualDepthMi);
-  //                         } else {
-  //                           throw Exception();
-  //                         }
-  //                       });
-  //                       // var comparison = comparePixelBuffers(
-  //                       //     pixelBuffers[1], pixelBuffers[2], 512, 512);
-  //                       // savePixelBufferToBmp(comparison, 512, 512, "cmparison");
-  //                       // await cube.setMaterialInstanceAt(ubershader);
-  //                       checkRedFromRGBAPixelBuffer(
-  //                           pixelBuffers[manualDepthView]!
-  //                               .buffer
-  //                               .asFloat32List(),
-  //                           512,
-  //                           512);
-  //                       // }
-  //                     });
-  //                   });
-  //                 });
-  //               });
-  //             });
-  //           });
-  //         });
-  //       });
-  //     }, createRenderTarget: true);
-  //   });
-  // });
+//                       var pixelBuffers = await testHelper
+//                           .capture(null, "project_texture_color",
+//                               beforeRender: (view) async {
+//                         if (view == linearDepthView) {
+//                           await cube.setMaterialInstanceAt(linearDepthMi);
+//                         } else if (view == manualDepthView) {
+//                           await cube.setMaterialInstanceAt(manualDepthMi);
+//                         } else {
+//                           throw Exception();
+//                         }
+//                       });
+//                       // var comparison = comparePixelBuffers(
+//                       //     pixelBuffers[1], pixelBuffers[2], 512, 512);
+//                       // savePixelBufferToBmp(comparison, 512, 512, "cmparison");
+//                       // await cube.setMaterialInstanceAt(ubershader);
+//                       checkRedFromRGBAPixelBuffer(
+//                           pixelBuffers[manualDepthView]!
+//                               .buffer
+//                               .asFloat32List(),
+//                           512,
+//                           512);
+//                       // }
+//                     });
+//                   });
+//                 });
+//               });
+//             });
+//           });
+//         });
+//       });
+//     }, createRenderTarget: true);
+//   });
+// });
 // }
 
 //                   final projectedImage = await viewer.createImage(512, 512, 4);

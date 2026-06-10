@@ -143,6 +143,4 @@ void main() async {
         createStencilBuffer: true,
         createRenderTarget: false);
   });
-
-
 }

@@ -372,7 +372,7 @@ void main() async {
     final viewportDimensions = (width: 500, height: 500);
     final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height);
-    
+
     final views = <FFIView>[];
     final scene = await FilamentApp.instance!.createScene() as FFIScene;
     final camera = await FilamentApp.instance!.createCamera() as FFICamera;
@@ -391,7 +391,7 @@ void main() async {
               viewportDimensions.width, viewportDimensions.height)
           as FFIRenderTarget);
       await FilamentApp.instance!.renderManager.attach(view, swapChain);
-      
+
       await view.setCamera(camera);
       views.add(view);
     }
@@ -1473,8 +1473,8 @@ void main() async {
 
 //     test('one swapchain, render view to render target', () async {
 //       await ViewerBuilder(testHelper)
-        // .setRenderTargetEnabled(true)
-        // .execute((result) async {
+// .setRenderTargetEnabled(true)
+// .execute((result) async {
 //         final texture = await testHelper.createTexture(500, 500);
 //         final renderTarget = await result.viewer.createRenderTarget(
 //             500, 500, texture.metalTextureAddress);
@@ -1496,8 +1496,8 @@ void main() async {
 
 //     test('create secondary view, default swapchain', () async {
 //       await ViewerBuilder(testHelper)
-        // .setRenderTargetEnabled(true)
-        // .execute((result) async {
+// .setRenderTargetEnabled(true)
+// .execute((result) async {
 //         final cube = await viewer
 //             .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
@@ -1534,8 +1534,8 @@ void main() async {
 
 //     test('create secondary view, different swapchain', () async {
 //       await ViewerBuilder(testHelper)
-        // .setRenderTargetEnabled(true)
-        // .execute((result) async {
+// .setRenderTargetEnabled(true)
+// .execute((result) async {
 //         final cube = await result.viewer.createGeometry(GeometryUtils.cube());
 
 //         var mainCamera = await result.viewer.getMainCamera();

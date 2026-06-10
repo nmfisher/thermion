@@ -27,8 +27,8 @@ class FFISurfaceOrientation extends SurfaceOrientation {
     // Calculate buffer size based on format
     final elementSize = switch (format) {
       QuaternionFormat.FLOAT4 => 16, // 4 floats * 4 bytes
-      QuaternionFormat.SHORT4 => 8,  // 4 shorts * 2 bytes
-      QuaternionFormat.HALF4 => 8,   // 4 halfs * 2 bytes
+      QuaternionFormat.SHORT4 => 8, // 4 shorts * 2 bytes
+      QuaternionFormat.HALF4 => 8, // 4 halfs * 2 bytes
     };
 
     final bufferSize = quatCount * elementSize;
@@ -178,7 +178,8 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   Future<SurfaceOrientation> build() async {
     _checkNotBuilt();
 
-    final orientationPtr = bindings.SurfaceOrientationBuilder_build(_builderPtr!);
+    final orientationPtr =
+        bindings.SurfaceOrientationBuilder_build(_builderPtr!);
 
     bindings.SurfaceOrientationBuilder_destroy(_builderPtr!);
     _builderPtr = null;

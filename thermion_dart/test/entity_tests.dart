@@ -23,8 +23,7 @@ void main() async {
   });
 
   test('get entity bounding boxes', () async {
-    var cube =
-        await FilamentApp.instance!.createGeometry(GeometryUtils.cube());
+    var cube = await FilamentApp.instance!.createGeometry(GeometryUtils.cube());
     var bb = await FilamentApp.instance!.getBoundingBox(cube.entity);
 
     expect(bb.center.x, 0.0);

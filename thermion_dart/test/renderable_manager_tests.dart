@@ -52,8 +52,7 @@ void main() async {
         final renderableManager = app.renderableManager;
 
         // Capture to verify color change
-        await testHelper.capture(
-            result.viewer.view, "material_default");
+        await testHelper.capture(result.viewer.view, "material_default");
 
         // Get the current material instance
         final originalMaterial =
@@ -367,7 +366,8 @@ void main() async {
         expect(boneNames.first, "MyBone");
 
         // Identity transform should leave the mesh in its rest pose.
-        await renderableManager.setBonesFromMat4(meshEntity!, [Matrix4.identity()]);
+        await renderableManager
+            .setBonesFromMat4(meshEntity!, [Matrix4.identity()]);
         await testHelper.capture(viewer.view, "set_bones_identity");
 
         // Rotating the single bone 90 degrees should visibly deform the mesh.
@@ -377,8 +377,8 @@ void main() async {
 
         // offset parameter should be accepted (writing past end of buffer is
         // a no-op when boneCount is 1 and only one bone is allocated).
-        await renderableManager.setBonesFromMat4(meshEntity, [Matrix4.identity()],
-            offset: 0);
+        await renderableManager
+            .setBonesFromMat4(meshEntity, [Matrix4.identity()], offset: 0);
 
         // Empty list is a safe no-op (short-circuits before FFI call).
         await renderableManager.setBonesFromMat4(meshEntity, <Matrix4>[]);
@@ -397,17 +397,17 @@ void main() async {
 
         // Build a skinned quad: bone 0 owns the bottom half (verts 0,1),
         // bone 1 owns the top half (verts 2,3).
-        final vertexBuffer =
-            await (renderableManager.createVertexBufferBuilder()
-                  ..bufferCount(3)
-                  ..vertexCount(4)
-                  ..attribute(
-                      VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
-                  ..attribute(VertexAttribute.BONE_INDICES, 1,
-                      VertexAttributeType.UBYTE4)
-                  ..attribute(VertexAttribute.BONE_WEIGHTS, 2,
-                      VertexAttributeType.FLOAT4))
-                .build();
+        final vertexBuffer = await (renderableManager
+                .createVertexBufferBuilder()
+              ..bufferCount(3)
+              ..vertexCount(4)
+              ..attribute(
+                  VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
+              ..attribute(
+                  VertexAttribute.BONE_INDICES, 1, VertexAttributeType.UBYTE4)
+              ..attribute(
+                  VertexAttribute.BONE_WEIGHTS, 2, VertexAttributeType.FLOAT4))
+            .build();
 
         final indexBuffer = await (renderableManager.createIndexBufferBuilder()
               ..indexCount(6)
@@ -439,8 +439,12 @@ void main() async {
         await vertexBuffer.setBufferAt(2, boneWeights);
 
         await indexBuffer.setBuffer(Uint16List.fromList([
-          0, 1, 2,
-          2, 3, 0,
+          0,
+          1,
+          2,
+          2,
+          3,
+          0,
         ]));
 
         final material = await app.createUnlitMaterialInstance();

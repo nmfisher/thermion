@@ -11,14 +11,14 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// a type-safe Dart API for managing transform components.
 class FFITransformManager
     extends TransformManager<bindings.Pointer<bindings.TTransformManager>> {
-
   final bindings.Pointer<bindings.TTransformManager> transformManager;
   final FFIFilamentApp app;
 
   FFITransformManager(this.transformManager, this.app);
 
   @override
-  bindings.Pointer<bindings.TTransformManager> getNativeHandle() => transformManager;
+  bindings.Pointer<bindings.TTransformManager> getNativeHandle() =>
+      transformManager;
 
   // ============================================================================
   // Component queries
@@ -45,12 +45,16 @@ class FFITransformManager
 
   @override
   Future createComponent(ThermionEntity entity) async {
-    await withVoidCallback((requestId, cb) => bindings.TransformManager_createComponentRenderThread(transformManager, entity, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        bindings.TransformManager_createComponentRenderThread(
+            transformManager, entity, requestId, cb));
   }
 
   @override
   Future removeComponent(ThermionEntity entity) async {
-    await withVoidCallback((requestId, cb) => bindings.TransformManager_removeComponentRenderThread(transformManager, entity, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        bindings.TransformManager_removeComponentRenderThread(
+            transformManager, entity, requestId, cb));
   }
 
   // ============================================================================
@@ -111,12 +115,8 @@ class FFITransformManager
     }
 
     await withVoidCallback((requestId, cb) =>
-        bindings.TransformManager_setTransformRenderThread(
-            transformManager,
-            entity,
-            matrix4ToDouble4x4(transform),
-            requestId,
-            cb));
+        bindings.TransformManager_setTransformRenderThread(transformManager,
+            entity, matrix4ToDouble4x4(transform), requestId, cb));
 
     if (FILAMENT_WASM) {
       stackRestore(stackPtr);
@@ -204,7 +204,8 @@ class FFITransformManager
 
     final children = makeInt32List(count);
     if (count > 0) {
-      bindings.TransformManager_getChildren(transformManager, parent, children.address, count);
+      bindings.TransformManager_getChildren(
+          transformManager, parent, children.address, count);
     }
 
     return Int32List.fromList(children).cast<ThermionEntity>();

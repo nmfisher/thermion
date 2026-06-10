@@ -350,12 +350,13 @@ void main() async {
         final renderableManager = app.renderableManager;
 
         // Create vertex buffer with POSITION only
-        final vertexBuffer = await (renderableManager
-                .createVertexBufferBuilder()
-              ..bufferCount(1)
-              ..vertexCount(3)
-              ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
-            .build();
+        final vertexBuffer =
+            await (renderableManager.createVertexBufferBuilder()
+                  ..bufferCount(1)
+                  ..vertexCount(3)
+                  ..attribute(
+                      VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
+                .build();
 
         // Create index buffer
         final indexBuffer = await (renderableManager.createIndexBufferBuilder()
@@ -366,8 +367,8 @@ void main() async {
         // Upload vertex data (positions only)
         final vertexData = Float32List.fromList([
           -0.5, -0.5, 0.0, // vertex 0
-           0.5, -0.5, 0.0, // vertex 1
-           0.0,  0.5, 0.0, // vertex 2
+          0.5, -0.5, 0.0, // vertex 1
+          0.0, 0.5, 0.0, // vertex 2
         ]);
         await vertexBuffer.setBufferAt(0, vertexData);
 
@@ -882,11 +883,13 @@ void main() async {
         final renderableManager = app.renderableManager;
 
         // Create vertex buffer
-        final vertexBuffer = await (renderableManager.createVertexBufferBuilder()
-              ..bufferCount(1)
-              ..vertexCount(3)
-              ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
-            .build();
+        final vertexBuffer =
+            await (renderableManager.createVertexBufferBuilder()
+                  ..bufferCount(1)
+                  ..vertexCount(3)
+                  ..attribute(
+                      VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3))
+                .build();
 
         // Create index buffer
         final indexBuffer = await (renderableManager.createIndexBufferBuilder()
@@ -898,24 +901,31 @@ void main() async {
         await vertexBuffer.setBufferAt(
             0,
             Float32List.fromList([
-              -0.5, -0.5, 0.0,
-              0.5, -0.5, 0.0,
-              0.0, 0.5, 0.0,
+              -0.5,
+              -0.5,
+              0.0,
+              0.5,
+              -0.5,
+              0.0,
+              0.0,
+              0.5,
+              0.0,
             ]));
 
         // Upload index data
         await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2]));
 
         // Create material
-        final material = await testHelper.loadSolidColorMaterial(
-            r: 1.0, g: 0.0, b: 0.0);
+        final material =
+            await testHelper.loadSolidColorMaterial(r: 1.0, g: 0.0, b: 0.0);
 
         // Create entity and renderable with multiple instances
         final entity = await app.createEntity();
         final renderableBuilder = renderableManager.createBuilder(1)
           ..boundingBox(
               Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
-          ..geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
+          ..geometry(
+              0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
           ..material(0, material)
           ..instances(10); // Set 10 draw instances
 
@@ -945,9 +955,9 @@ void main() async {
         // Define a quad with positions, normals, and UVs
         final positions = Float32List.fromList([
           -0.5, -0.5, 0.0, // vertex 0
-          0.5, -0.5, 0.0,  // vertex 1
-          0.5, 0.5, 0.0,   // vertex 2
-          -0.5, 0.5, 0.0,  // vertex 3
+          0.5, -0.5, 0.0, // vertex 1
+          0.5, 0.5, 0.0, // vertex 2
+          -0.5, 0.5, 0.0, // vertex 3
         ]);
 
         // Face forward along +Z
@@ -985,10 +995,8 @@ void main() async {
         final orientation = await orientationBuilder.build();
 
         // Get quaternions as float4
-        final quats = await orientation.getQuats(
-          QuaternionFormat.FLOAT4,
-          4
-        ) as Float32List;
+        final quats = await orientation.getQuats(QuaternionFormat.FLOAT4, 4)
+            as Float32List;
 
         // Verify we got 4 quaternions (one per vertex)
         expect(quats.length, equals(16)); // 4 vertices * 4 components
@@ -1005,15 +1013,15 @@ void main() async {
         }
 
         // Create vertex buffer with position + TANGENTS
-        final vertexBuffer = await (renderableManager
-                .createVertexBufferBuilder()
-              ..bufferCount(2)
-              ..vertexCount(4)
-              ..attribute(
-                  VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
-              ..attribute(
-                  VertexAttribute.TANGENTS, 1, VertexAttributeType.FLOAT4))
-            .build();
+        final vertexBuffer =
+            await (renderableManager.createVertexBufferBuilder()
+                  ..bufferCount(2)
+                  ..vertexCount(4)
+                  ..attribute(
+                      VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
+                  ..attribute(
+                      VertexAttribute.TANGENTS, 1, VertexAttributeType.FLOAT4))
+                .build();
 
         // Create index buffer
         final indexBuffer = await (renderableManager.createIndexBufferBuilder()
@@ -1035,8 +1043,7 @@ void main() async {
             hasVertexColors: false, hasNormalTexture: false, unlit: false);
         await material.setParameterFloat4(
             "baseColorFactor", 1.0, 0.5, 0.5, 1.0); // Light red
-        await material.setParameterFloat3(
-            "normalScale", 1.0, 1.0, 1.0);
+        await material.setParameterFloat3("normalScale", 1.0, 1.0, 1.0);
 
         // Create entity and renderable
         final entity = await app.createEntity();
@@ -1055,7 +1062,8 @@ void main() async {
         final scene = await result.viewer.view.getScene();
         await scene.addEntity(entity);
 
-        await testHelper.capture(result.viewer.view, "quad_with_generated_tangents");
+        await testHelper.capture(
+            result.viewer.view, "quad_with_generated_tangents");
 
         // Cleanup
         await vertexBuffer.destroy();
@@ -1070,27 +1078,46 @@ void main() async {
           .execute((result) async {
         // Simple triangle data
         final positions = Float32List.fromList([
-          0.0, 0.0, 0.0,
-          1.0, 0.0, 0.0,
-          0.5, 1.0, 0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.5,
+          1.0,
+          0.0,
         ]);
 
         final normals = Float32List.fromList([
-          0.0, 0.0, 1.0,
-          0.0, 0.0, 1.0,
-          0.0, 0.0, 1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
         ]);
 
         final uvs = Float32List.fromList([
-          0.5, 0.0,
-          1.0, 1.0,
-          0.0, 1.0,
+          0.5,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0,
         ]);
 
         final indices = Uint16List.fromList([0, 1, 2]);
 
         // Test all quaternion formats
-        for (final format in [QuaternionFormat.FLOAT4, QuaternionFormat.SHORT4, QuaternionFormat.HALF4]) {
+        for (final format in [
+          QuaternionFormat.FLOAT4,
+          QuaternionFormat.SHORT4,
+          QuaternionFormat.HALF4
+        ]) {
           final orientationBuilder = FFISurfaceOrientationBuilder()
             ..vertexCount(3)
             ..positions(positions)
@@ -1131,11 +1158,11 @@ void main() async {
         final positions = Float32List.fromList([
           // Base vertices
           -0.5, -0.5, -0.5, // vertex 0
-          0.5, -0.5, -0.5,  // vertex 1
-          0.5, -0.5, 0.5,   // vertex 2
-          -0.5, -0.5, 0.5,  // vertex 3
+          0.5, -0.5, -0.5, // vertex 1
+          0.5, -0.5, 0.5, // vertex 2
+          -0.5, -0.5, 0.5, // vertex 3
           // Apex
-          0.0, 0.5, 0.0,    // vertex 4
+          0.0, 0.5, 0.0, // vertex 4
         ]);
 
         // Indices for pyramid faces (4 triangular faces + base)
@@ -1158,18 +1185,19 @@ void main() async {
           ..trianglesUint32(indices);
 
         final orientation = await orientationBuilder.build();
-        final quats = await orientation.getQuats(
-          QuaternionFormat.FLOAT4,
-          5
-        ) as Float32List;
+        final quats = await orientation.getQuats(QuaternionFormat.FLOAT4, 5)
+            as Float32List;
 
         // Verify we got quaternions for all vertices
         expect(quats.length, equals(20)); // 5 vertices * 4 components
 
         // Quaternions should be valid (not all zeros)
         for (int i = 0; i < 5; i++) {
-          final sum = (quats[i * 4] + quats[i * 4 + 1] +
-                      quats[i * 4 + 2] + quats[i * 4 + 3]).abs();
+          final sum = (quats[i * 4] +
+                  quats[i * 4 + 1] +
+                  quats[i * 4 + 2] +
+                  quats[i * 4 + 3])
+              .abs();
           expect(sum, greaterThan(0.0));
         }
 
@@ -1184,15 +1212,27 @@ void main() async {
           .setBackgroundColor(kWhite)
           .execute((result) async {
         final positions = Float32List.fromList([
-          0.0, 0.0, 0.0,
-          1.0, 0.0, 0.0,
-          0.5, 1.0, 0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.5,
+          1.0,
+          0.0,
         ]);
 
         final normals = Float32List.fromList([
-          0.0, 0.0, 1.0,
-          0.0, 0.0, 1.0,
-          0.0, 0.0, 1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
         ]);
 
         // Provide existing tangents (xyz direction + w handedness)
@@ -1214,10 +1254,8 @@ void main() async {
           ..trianglesUint16(indices);
 
         final orientation = await orientationBuilder.build();
-        final quats = await orientation.getQuats(
-          QuaternionFormat.FLOAT4,
-          3
-        ) as Float32List;
+        final quats = await orientation.getQuats(QuaternionFormat.FLOAT4, 3)
+            as Float32List;
 
         // Verify quaternions were generated
         expect(quats.length, equals(12));

@@ -68,7 +68,8 @@ class VirtualControllerInputHandler {
     _lastAnalogPosition = null;
   }
 
-  void _sendKeyEvent(LogicalKey logicalKey, PhysicalKey physicalKey, bool pressed) {
+  void _sendKeyEvent(
+      LogicalKey logicalKey, PhysicalKey physicalKey, bool pressed) {
     final eventType = pressed ? KeyEventType.down : KeyEventType.up;
 
     inputHandler.handle(KeyEvent(

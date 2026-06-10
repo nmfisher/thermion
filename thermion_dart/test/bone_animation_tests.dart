@@ -109,8 +109,7 @@ void main() async {
 
       // Midway through the first cycle.
       await am.update(halfDurationNanos - 1000);
-      await testHelper.capture(
-          viewer.view, "bone_animation_loop_1");
+      await testHelper.capture(viewer.view, "bone_animation_loop_1");
 
       // await am.update(durationNanos - 1000);
       // await testHelper.capture(
@@ -119,7 +118,6 @@ void main() async {
       // await am.update(durationNanos + halfDurationNanos);
       // await testHelper.capture(
       //     viewer.view, "bone_animation_loop_3");
-
     });
   });
 

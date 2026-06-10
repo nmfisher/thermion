@@ -104,7 +104,8 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   final _highlightedEntities = <ThermionEntity>{};
 
   @override
-  Set<ThermionEntity> get highlightedEntities => Set.unmodifiable(_highlightedEntities);
+  Set<ThermionEntity> get highlightedEntities =>
+      Set.unmodifiable(_highlightedEntities);
 
   // State
   View? _mainView;
@@ -237,7 +238,6 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       await _resizeMainViewRenderTarget(width, height);
     }
   }
-
 
   Future<void> _createMainViewRenderTarget(int width, int height) async {
     // Create color texture with sampleable flag.

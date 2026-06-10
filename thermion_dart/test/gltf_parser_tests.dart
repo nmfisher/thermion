@@ -11,7 +11,6 @@ void main() async {
     await testHelper.setup();
   });
 
-
   test('parse cube.glb for physics', () async {
     final glbPath = "${testHelper.assetsDir}/cube.glb";
     final buffer = File(glbPath).readAsBytesSync();

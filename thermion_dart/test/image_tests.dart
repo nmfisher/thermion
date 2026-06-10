@@ -11,9 +11,8 @@ void main() async {
   await testHelper.setup();
   test('decode KTX', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      final ktx1Data =
-          File("${testHelper.assetsDir}/default_env_skybox.ktx")
-              .readAsBytesSync();
+      final ktx1Data = File("${testHelper.assetsDir}/default_env_skybox.ktx")
+          .readAsBytesSync();
       final bundle = await FFIKtx1Bundle.create(ktx1Data);
     });
   });
@@ -37,27 +36,23 @@ void main() async {
 
   test('move textured quad from near plane to far plane', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      await result.viewer.setBackgroundImage(
-          "file://${testHelper.assetsDir}/background.ktx");
+      await result.viewer
+          .setBackgroundImage("file://${testHelper.assetsDir}/background.ktx");
       final quad = await result.viewer.getBackgroundImage();
       // add a cube so we can check our depth parameters
-      final asset =
-          await result.viewer.createGeometry(GeometryUtils.cube());
+      final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       // render image at far plane
       await quad.setDepth(0.0);
-      await testHelper.capture(
-          result.viewer.view, "textured_quad_far_plane");
+      await testHelper.capture(result.viewer.view, "textured_quad_far_plane");
       // render the quad at the near plane
       await quad.setDepth(1.0);
-      await testHelper.capture(
-          result.viewer.view, "textured_quad_near_plane");
+      await testHelper.capture(result.viewer.view, "textured_quad_near_plane");
 
       // set the clear color so we can confirm it's definitely removed
       await FilamentApp.instance!.setClearOptions(0, 0, 1, 0);
       await result.viewer.clearBackgroundImage(destroy: true);
 
-      await testHelper.capture(
-          result.viewer.view, "textured_quad_removed");
+      await testHelper.capture(result.viewer.view, "textured_quad_removed");
     });
   });
 }

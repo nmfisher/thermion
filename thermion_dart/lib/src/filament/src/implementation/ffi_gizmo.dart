@@ -104,8 +104,7 @@ class FFIGizmo extends GizmoAsset {
     final viewport = await view.getViewport();
     y = viewport.height - y;
 
-    Gizmo_pick(
-        handle, x, y, _callbackHolder.pointer);
+    Gizmo_pick(handle, x, y, _callbackHolder.pointer);
   }
 
   @override

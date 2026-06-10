@@ -4,8 +4,7 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 
-const _r2BaseUrl =
-    'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
+const _r2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 
 Future<String> _getWebVersion() async {
   // Resolve package:thermion_dart/ to its lib/ directory so we can locate
@@ -18,13 +17,11 @@ Future<String> _getWebVersion() async {
   }
   final packageRoot = path.dirname(
       path.normalize(resolved.toFilePath().replaceAll(RegExp(r'[\\/]$'), '')));
-  final versionPath =
-      path.join(packageRoot, 'native', 'web', 'web.version');
+  final versionPath = path.join(packageRoot, 'native', 'web', 'web.version');
   final versionFile = File(versionPath);
   if (!versionFile.existsSync()) {
     stderr.writeln('Could not find web.version at $versionPath');
-    stderr.writeln(
-        'Ensure you are on a branch where web artifacts have been '
+    stderr.writeln('Ensure you are on a branch where web artifacts have been '
         'built by CI.');
     exit(1);
   }
@@ -59,8 +56,8 @@ Future<Directory> _downloadToCache(String version, Directory cacheDir) async {
   await response.pipe(zipFile.openWrite());
 
   final bytes = await zipFile.readAsBytes();
-  stdout.writeln(
-      'Downloaded ${bytes.length} bytes (md5: ${md5.convert(bytes)})');
+  stdout
+      .writeln('Downloaded ${bytes.length} bytes (md5: ${md5.convert(bytes)})');
 
   final archive = ZipDecoder().decodeBytes(bytes);
   for (final file in archive) {

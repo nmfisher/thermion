@@ -292,4 +292,3 @@ extension TypedDataListExtension on TypedData {
     return this.buffer.asUint8List(this.offsetInBytes);
   }
 }
-

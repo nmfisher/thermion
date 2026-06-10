@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Auto-formats staged .dart files and re-stages them.
+# Install via: ./scripts/install-hooks.sh
+#
+# Caveat: if a .dart file has both staged and unstaged changes, the unstaged
+# portion will also be formatted and added. Avoid partial-staging .dart files.
+
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- '*.dart')
+
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+if ! command -v dart >/dev/null 2>&1; then
+  echo "pre-commit: dart not on PATH; skipping format"
+  exit 0
+fi
+
+echo "$staged" | xargs dart format
+echo "$staged" | xargs git add

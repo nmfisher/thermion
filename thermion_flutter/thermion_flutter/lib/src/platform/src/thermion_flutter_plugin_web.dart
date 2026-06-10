@@ -56,7 +56,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _frameRequestId ??= window.requestAnimationFrame(_tick.toJS);
   }
 
-
   static void _resetWebState() {
     if (_frameRequestId != null) {
       window.cancelAnimationFrame(_frameRequestId!);
@@ -185,25 +184,24 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     int width,
     int height,
   ) async {
-
     // See https://stackoverflow.com/questions/53233096/how-to-set-html5-canvas-size-to-match-display-size-in-device-pixels
     // and https://joshondesign.com/2023/04/15/canvas_scale_smooth
-    // The HTML canvas element size and viewport should be in physical pixels 
+    // The HTML canvas element size and viewport should be in physical pixels
     // (i.e. the size in logical pixels given by Flutter, multiplied by devicePixelRatio)
     // The HTML canvas element *CSS* properties width and height should be in *logical* pixels
 
     // On web, we don't use hardware textures but we return a descriptor
     // with dimensions so the callback can update viewport/camera
-    var descriptor = WebPlatformTextureDescriptor(
-        width: width, height: height);
+    var descriptor = WebPlatformTextureDescriptor(width: width, height: height);
     final dpr = window.devicePixelRatio;
     _logger.info(
-      "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr");
+        "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr");
 
     var overlay = view.getHighlightOverlay();
     await overlay?.setSwapChain(swapChain!);
 
-    Thermion_setCanvasElementSize("#thermion_canvas".toNativeUtf8(), descriptor.width, descriptor.height);
+    Thermion_setCanvasElementSize(
+        "#thermion_canvas".toNativeUtf8(), descriptor.width, descriptor.height);
 
     // [width] and [height] have already been scaled by [devicePixelRatio]
     // so we need to undo this when setting the CSS dimensions

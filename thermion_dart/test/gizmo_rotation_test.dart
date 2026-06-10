@@ -7,7 +7,8 @@ import 'helpers.dart';
 /// Get the parent bone index for a bone.
 ///
 /// Returns -1 if the bone has no parent (root bone) or parent is not in the bone list.
-Future<int> getBoneParentIndex(ThermionAsset asset, int skinIndex, int boneIndex) async {
+Future<int> getBoneParentIndex(
+    ThermionAsset asset, int skinIndex, int boneIndex) async {
   final bones = await asset.getBones(skinIndex: skinIndex);
   if (boneIndex < 0 || boneIndex >= bones.length) return -1;
   final boneEntity = bones[boneIndex];
@@ -26,8 +27,7 @@ void main() async {
       final assetData =
           File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData);
+      final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -44,7 +44,8 @@ void main() async {
       final boneIndex = boneEntities.length > 1 ? 1 : 0;
       final boneEntity = boneEntities[boneIndex];
       final parentBoneIndex = await getBoneParentIndex(asset, 0, boneIndex);
-      print('Using bone $boneIndex (entity $boneEntity), parent: $parentBoneIndex');
+      print(
+          'Using bone $boneIndex (entity $boneEntity), parent: $parentBoneIndex');
 
       // Track transforms received by callback
       final receivedTransforms = <Matrix4>[];
@@ -90,7 +91,8 @@ void main() async {
       final camera = await viewer.getActiveCamera();
       final projMatrix = await camera.getProjectionMatrix();
       final viewMatrix = await camera.getViewMatrix();
-      final clipPos = projMatrix * viewMatrix *
+      final clipPos = projMatrix *
+          viewMatrix *
           Vector4(initialBonePos.x, initialBonePos.y, initialBonePos.z, 1.0);
       final ndc = clipPos / clipPos.w;
       final screenX = ((ndc.x + 1) / 2 * viewport.width).toInt();
@@ -153,7 +155,8 @@ void main() async {
         bonePositions.add(bonePos.clone());
 
         if (i % 5 == 0) {
-          await testHelper.capture(viewer.view, "child_2_rot_${i.toString().padLeft(2, '0')}");
+          await testHelper.capture(
+              viewer.view, "child_2_rot_${i.toString().padLeft(2, '0')}");
           print('Frame $i: bone pos = $bonePos');
         }
       }
@@ -182,8 +185,7 @@ void main() async {
       final assetData =
           File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData);
+      final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -291,7 +293,8 @@ void main() async {
 
         // Capture every 9th frame
         if (i % 9 == 0) {
-          await testHelper.capture(viewer.view, "2_rotation_${i.toString().padLeft(2, '0')}");
+          await testHelper.capture(
+              viewer.view, "2_rotation_${i.toString().padLeft(2, '0')}");
           print('Frame $i: bone pos = $bonePos');
         }
       }
@@ -328,8 +331,7 @@ void main() async {
       final assetData =
           File('${testHelper.assetsDir}/cube_with_morph_targets.glb')
               .readAsBytesSync();
-      final asset =
-          await viewer.loadGltfFromBuffer(assetData);
+      final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
@@ -356,18 +358,15 @@ void main() async {
         final newRotation = axisRotation * initialRot;
 
         // Extract scale from initial transform
-        final scaleX = math.sqrt(
-            initialWorld[0] * initialWorld[0] +
-                initialWorld[1] * initialWorld[1] +
-                initialWorld[2] * initialWorld[2]);
-        final scaleY = math.sqrt(
-            initialWorld[4] * initialWorld[4] +
-                initialWorld[5] * initialWorld[5] +
-                initialWorld[6] * initialWorld[6]);
-        final scaleZ = math.sqrt(
-            initialWorld[8] * initialWorld[8] +
-                initialWorld[9] * initialWorld[9] +
-                initialWorld[10] * initialWorld[10]);
+        final scaleX = math.sqrt(initialWorld[0] * initialWorld[0] +
+            initialWorld[1] * initialWorld[1] +
+            initialWorld[2] * initialWorld[2]);
+        final scaleY = math.sqrt(initialWorld[4] * initialWorld[4] +
+            initialWorld[5] * initialWorld[5] +
+            initialWorld[6] * initialWorld[6]);
+        final scaleZ = math.sqrt(initialWorld[8] * initialWorld[8] +
+            initialWorld[9] * initialWorld[9] +
+            initialWorld[10] * initialWorld[10]);
         final scale = Vector3(scaleX, scaleY, scaleZ);
 
         // Compose new world transform (same position, new rotation)

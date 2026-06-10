@@ -119,24 +119,24 @@ abstract class ThermionViewer {
   // If [addToScene] is [true], all renderable entities (including lights)
   // in the asset will be added to the scene.
   //
-  // [initialInstances] must be >= 1, and determines the number of instances 
+  // [initialInstances] must be >= 1, and determines the number of instances
   // that are pre-allocated when the asset is created. See [AssetLoader.h]
   // for a detailed explanation of glTF instances.
-  
+
   // The [ThermionAsset] returned by [loadGltf] will always have at least one
   // instance. If only one instance is created, then the parent [ThermionAsset]
   // and the "instance" [ThermionAsset] can be used interchangeably.
   //
-  // If [releaseSourceData] is false, you can create additional instances by 
+  // If [releaseSourceData] is false, you can create additional instances by
   // calling [createInstance] on the returned asset. Instances can be retrieved
   // with [getInstances].
   //
   // If [releaseSourceData] is true, [initialInstances] will be created but no
-  // further instances will be able to be created. 
+  // further instances will be able to be created.
   //
-  // Creating instances by specifying [initialInstances] at asset load time is 
+  // Creating instances by specifying [initialInstances] at asset load time is
   // generally more efficient than dynamically instantating at a later time.
-  // 
+  //
   // If [rebuildVertices] is true, vertex buffers are rebuilt after loading
   // with a superset of attributes (POSITION, TANGENTS, UV0, CUSTOM0, and
   // optionally BONE_INDICES/BONE_WEIGHTS). Vertices are unwelded so each

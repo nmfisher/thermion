@@ -10,19 +10,37 @@ class QuadGeometry {
 
   static Geometry quad() {
     final vertices = Float32List.fromList([
-      -1, -1, 1,
-      1, -1, 1,
-      1, 1, 1,
-      -1, 1, 1,
+      -1,
+      -1,
+      1,
+      1,
+      -1,
+      1,
+      1,
+      1,
+      1,
+      -1,
+      1,
+      1,
     ]);
     final indices = Uint16List.fromList([
-      0, 1, 2, 0, 2, 3,
+      0,
+      1,
+      2,
+      0,
+      2,
+      3,
     ]);
     final uvs = Float32List.fromList([
-      0, 1, 1, 1, 1, 0, 0, 0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
     ]);
-    return Geometry(vertices, indices,
-        uvs: uvs
-    );
+    return Geometry(vertices, indices, uvs: uvs);
   }
 }

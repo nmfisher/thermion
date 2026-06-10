@@ -27,8 +27,6 @@ class MovementConfig {
   bool invertHorizontalMovement = false;
 }
 
-
-
 /// Singleton wrapper for Thermion Input Handler system functionality.
 ///
 /// This class provides a clean, type-safe API around the lower-level native bindings,
@@ -199,9 +197,11 @@ class InputPipeline {
   /// [value] - Optional value multiplier (default 1.0)
   ///
   /// Throws [Exception] if the operation fails.
-  void addKeyBinding(LogicalKey key, IntentAction action, {double value = 1.0}) {
+  void addKeyBinding(LogicalKey key, IntentAction action,
+      {double value = 1.0}) {
     try {
-      bindings.TransformPipeline_addKeyBinding(key.index, action.nativeValue, value);
+      bindings.TransformPipeline_addKeyBinding(
+          key.index, action.nativeValue, value);
     } catch (e) {
       throw Exception('Failed to add key binding: $e');
     }
@@ -277,9 +277,11 @@ class InputPipeline {
   /// [value] - Optional value multiplier (default 1.0)
   ///
   /// Throws [Exception] if the operation fails.
-  void addMouseButtonBinding(MouseButton button, IntentAction action, {double value = 1.0}) {
+  void addMouseButtonBinding(MouseButton button, IntentAction action,
+      {double value = 1.0}) {
     try {
-      bindings.TransformPipeline_addMouseButtonBinding(button.index, action.nativeValue, value);
+      bindings.TransformPipeline_addMouseButtonBinding(
+          button.index, action.nativeValue, value);
     } catch (e) {
       throw Exception('Failed to add mouse button binding: $e');
     }
@@ -318,14 +320,16 @@ class InputPipeline {
 
       // Add all mouse button bindings from config
       for (final binding in config.mouseButtonBindings) {
-        addMouseButtonBinding(binding.button, binding.action, value: binding.value);
+        addMouseButtonBinding(binding.button, binding.action,
+            value: binding.value);
       }
 
       // Set mouse settings
       setMouseSensitivity(config.mouseSensitivity);
       setInvertMouseY(config.invertMouseY);
 
-      _logger.info('Applied input configuration with ${config.keyBindings.length} key bindings and ${config.mouseButtonBindings.length} mouse button bindings');
+      _logger.info(
+          'Applied input configuration with ${config.keyBindings.length} key bindings and ${config.mouseButtonBindings.length} mouse button bindings');
     } catch (e) {
       throw Exception('Failed to set input configuration: $e');
     }

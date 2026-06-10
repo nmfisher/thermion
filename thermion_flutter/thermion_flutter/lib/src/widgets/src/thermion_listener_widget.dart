@@ -217,7 +217,8 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
   }
 
   /// Detects which button was released by comparing previous and current button states
-  t.MouseButton? _detectButtonReleased(int previousButtons, int currentButtons) {
+  t.MouseButton? _detectButtonReleased(
+      int previousButtons, int currentButtons) {
     final released = previousButtons & ~currentButtons;
 
     if (released & kPrimaryMouseButton != 0) {
@@ -275,7 +276,8 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
                 event.delta.toVector2() * pixelRatio));
           },
           onPointerUp: (event) {
-            final button = _detectButtonReleased(_buttonsPressed, event.buttons);
+            final button =
+                _detectButtonReleased(_buttonsPressed, event.buttons);
             _buttonsPressed = event.buttons;
 
             var mouseEvent = MouseEvent(
@@ -415,10 +417,8 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
                     _lastTapPosition = null;
                     _lastTapTime = null;
                   } else {
-                    widget.inputHandler.handle(TouchEvent(
-                        TouchEventType.tap,
-                        tapPosition.toVector2() * widget.pixelRatio,
-                        null));
+                    widget.inputHandler.handle(TouchEvent(TouchEventType.tap,
+                        tapPosition.toVector2() * widget.pixelRatio, null));
                     _lastTapPosition = tapPosition;
                     _lastTapTime = now;
                   }

@@ -19,7 +19,8 @@ class MouseButtonBinding {
   });
 
   @override
-  String toString() => 'MouseButtonBinding(button: $button, action: $action, value: $value)';
+  String toString() =>
+      'MouseButtonBinding(button: $button, action: $action, value: $value)';
 
   @override
   bool operator ==(Object other) =>

@@ -270,10 +270,9 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   Future setBonesFromBone(ThermionEntity entity, List<BoneData> bones,
       {int offset = 0});
 
-
   /// Creates a builder for constructing renderables.
   ///
-  /// [primitiveCount] The number of primitives that will be supplied to the 
+  /// [primitiveCount] The number of primitives that will be supplied to the
   /// builder
   RenderableBuilder createBuilder(int primitiveCount);
 

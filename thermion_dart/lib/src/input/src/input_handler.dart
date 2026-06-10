@@ -3,7 +3,6 @@ import 'input_types.dart';
 
 // An abstract interface for handling user device input events.
 abstract class InputHandler {
-  
   // Handle a single InputEvent.
   void handle(InputEvent event);
 

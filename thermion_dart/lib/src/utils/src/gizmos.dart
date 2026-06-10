@@ -57,7 +57,8 @@ class TransformationGizmo {
   GizmoAxis _activeAxis = GizmoAxis.none;
   Vector2? _dragStartScreen;
   Matrix4? _targetStartTransform;
-  Matrix4? _lastComputedWorldTransform; // Last computed world transform for callback
+  Matrix4?
+      _lastComputedWorldTransform; // Last computed world transform for callback
 
   // Hover state
   GizmoAxis _hoveredAxis = GizmoAxis.none;
@@ -156,7 +157,7 @@ class TransformationGizmo {
       Geometry ring, MaterialInstance mat, Vector3 axis) async {
     final ringAsset = await FilamentApp.instance!
         .createGeometry(ring, materialInstances: [mat]);
-    
+
     // Safety check before using the asset
     if (_isDisposed) {
       await viewer.removeFromScene(ringAsset);
@@ -195,12 +196,12 @@ class TransformationGizmo {
     // Create Shaft
     final shaftAsset = await FilamentApp.instance!
         .createGeometry(shaft, materialInstances: [mat]);
-    
+
     if (_isDisposed) {
-        // cleanup immediately if disposed during creation
-        await viewer.removeFromScene(shaftAsset);
-        // return dummy, loop will catch disposed flag
-        return (shaftAsset.entity, shaftAsset.entity); 
+      // cleanup immediately if disposed during creation
+      await viewer.removeFromScene(shaftAsset);
+      // return dummy, loop will catch disposed flag
+      return (shaftAsset.entity, shaftAsset.entity);
     }
 
     await viewer.addToScene(shaftAsset);
@@ -209,10 +210,10 @@ class TransformationGizmo {
     // Create Head
     final headAsset = await FilamentApp.instance!
         .createGeometry(head, materialInstances: [mat]);
-        
+
     if (_isDisposed) {
-        await viewer.removeFromScene(headAsset);
-        return (shaftAsset.entity, headAsset.entity);
+      await viewer.removeFromScene(headAsset);
+      return (shaftAsset.entity, headAsset.entity);
     }
 
     await viewer.addToScene(headAsset);
@@ -395,8 +396,8 @@ class TransformationGizmo {
         primitiveType: PrimitiveType.TRIANGLES);
   }
 
-  Future<MaterialInstance> _createGizmoMaterial(
-      double r, double g, double b, {double alpha = 0.5}) async {
+  Future<MaterialInstance> _createGizmoMaterial(double r, double g, double b,
+      {double alpha = 0.5}) async {
     if (_isDisposed) throw Exception("Gizmo disposed");
     final material = await FilamentApp.instance!.createGizmoMaterial();
     final mat = await material.createInstance();
@@ -604,7 +605,8 @@ class TransformationGizmo {
 
     // For rotation gizmos, position markers at click location on ring
     if (_type == TransformationGizmoType.rotation) {
-      final startPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
+      final startPos =
+          await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
       if (_isDisposed) return false;
 
       if (startPos != null) {
@@ -636,7 +638,8 @@ class TransformationGizmo {
   }
 
   Future<void> updateDrag(int screenX, int screenY) async {
-    if (_isDisposed || _activeAxis == GizmoAxis.none || _attachedTarget == null) return;
+    if (_isDisposed || _activeAxis == GizmoAxis.none || _attachedTarget == null)
+      return;
 
     if (_type == TransformationGizmoType.rotation) {
       await _updateRotationDrag(screenX, screenY);
@@ -705,11 +708,12 @@ class TransformationGizmo {
     _lastComputedWorldTransform = newWorldTransform;
 
     if (_attachedTarget != null && !_isDisposed) {
-      // Convert world transform to local transform for proper hierarchy 
+      // Convert world transform to local transform for proper hierarchy
       // handling
       final localTransform =
           _worldToLocalTransform(_attachedTarget!, newWorldTransform);
-      await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
+      await FilamentApp.instance!
+          .setTransform(_attachedTarget!, localTransform);
 
       // Update gizmo position directly only if still alive
       if (!_isDisposed) {
@@ -752,7 +756,8 @@ class TransformationGizmo {
 
     // Update current marker position on the ring
     if (_currentMarker != null) {
-      final currentPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
+      final currentPos =
+          await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
       if (currentPos != null && !_isDisposed) {
         await _updateMarkerPosition(_currentMarker!, currentPos);
       }
@@ -796,13 +801,15 @@ class TransformationGizmo {
       // Convert world transform to local transform for proper hierarchy handling
       final localTransform =
           _worldToLocalTransform(_attachedTarget!, newWorldTransform);
-      await FilamentApp.instance!.setTransform(_attachedTarget!, localTransform);
+      await FilamentApp.instance!
+          .setTransform(_attachedTarget!, localTransform);
     }
   }
 
   /// Converts a world transform to a local transform for the given entity.
   /// Takes into account the entity's parent hierarchy.
-  Matrix4 _worldToLocalTransform(ThermionEntity entity, Matrix4 worldTransform) {
+  Matrix4 _worldToLocalTransform(
+      ThermionEntity entity, Matrix4 worldTransform) {
     final tm = FilamentApp.instance!.transformManager;
     final parent = tm.getParent(entity);
 
@@ -938,8 +945,10 @@ class TransformationGizmo {
       final angle2 = ((i + 1) % sampleCount / sampleCount) * 2 * math.pi;
 
       // Get two consecutive points on the ring in local space
-      final localPos1 = (basis1 * math.cos(angle1) + basis2 * math.sin(angle1)) * _ringRadius;
-      final localPos2 = (basis1 * math.cos(angle2) + basis2 * math.sin(angle2)) * _ringRadius;
+      final localPos1 =
+          (basis1 * math.cos(angle1) + basis2 * math.sin(angle1)) * _ringRadius;
+      final localPos2 =
+          (basis1 * math.cos(angle2) + basis2 * math.sin(angle2)) * _ringRadius;
 
       // Project to screen space
       final screenPos1 = projectToScreen(localPos1);
@@ -1070,14 +1079,14 @@ class TransformationGizmo {
 
     // Destroy Root Entity
     if (_rootEntity != null) {
-        // Assuming removeEntity exists in your version of FilamentApp
-        // If not, just null it out, as child removal usually handles it.
-        try {
-            // await FilamentApp.instance!.removeEntity(_rootEntity!);
-        } catch (e) {
-            // ignore
-        }
-        _rootEntity = null;
+      // Assuming removeEntity exists in your version of FilamentApp
+      // If not, just null it out, as child removal usually handles it.
+      try {
+        // await FilamentApp.instance!.removeEntity(_rootEntity!);
+      } catch (e) {
+        // ignore
+      }
+      _rootEntity = null;
     }
 
     _xAxisShaft = null;

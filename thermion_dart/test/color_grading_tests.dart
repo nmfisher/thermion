@@ -109,8 +109,8 @@ void main() async {
       await result.viewer.view.setColorGrading(colorGrading);
 
       // Capture the viewport after applying color grading
-      await testHelper.capture(result.viewer.view, "color_grading_builder_applied");
-
+      await testHelper.capture(
+          result.viewer.view, "color_grading_builder_applied");
     });
   });
 
@@ -127,9 +127,7 @@ void main() async {
             color: kWhite,
             createUbershader: true)
         .execute((result) async {
-
-          await testHelper.capture(
-            result.viewer.view, "color_grading_lut_none");
+      await testHelper.capture(result.viewer.view, "color_grading_lut_none");
       final configs = [
         (LutFormat.INTEGER, 16, 'integer_16'),
         (LutFormat.INTEGER, 32, 'integer_32'),
@@ -149,8 +147,7 @@ void main() async {
 
         expect(colorGrading, isNotNull);
         await result.viewer.view.setColorGrading(colorGrading);
-        await testHelper.capture(
-            result.viewer.view, "color_grading_lut_$name");
+        await testHelper.capture(result.viewer.view, "color_grading_lut_$name");
       }
     });
   });
@@ -255,7 +252,6 @@ void main() async {
 
       // Capture the viewport with color grading cleared
       await testHelper.capture(result.viewer.view, "color_grading_cleared");
-
     });
   });
 }

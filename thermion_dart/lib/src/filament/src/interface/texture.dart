@@ -312,7 +312,7 @@ abstract class TextureSampler {
 }
 
 /// Defines a texture object
-abstract class Texture <T> extends NativeHandle {
+abstract class Texture<T> extends NativeHandle {
   /// Returns the width of the texture at the specified mipmap level
   Future<int> getWidth([int level = 0]);
 
@@ -358,7 +358,6 @@ abstract class Texture <T> extends NativeHandle {
 
   // Destroys this texture.
   Future destroy();
-
 }
 
 /// Pixel data format enum, representing different channel combinations

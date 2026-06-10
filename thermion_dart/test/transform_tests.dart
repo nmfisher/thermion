@@ -15,15 +15,15 @@ void main() async {
           .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
       await testHelper.capture(viewer.view, "create_entity_before_parent");
-      
+
       final entity = await FilamentApp.instance!.createEntity();
 
       await FilamentApp.instance!.setParent(cube.entity, entity);
 
-      await FilamentApp.instance!.setTransform(entity, Matrix4.translation(Vector3.all(-1)));
+      await FilamentApp.instance!
+          .setTransform(entity, Matrix4.translation(Vector3.all(-1)));
 
       await testHelper.capture(viewer.view, "create_entity_after_parent");
-
     });
   });
 
@@ -99,7 +99,6 @@ void main() async {
 
       final emptyChildren = transformManager.getChildren(children[0]);
       expect(emptyChildren, isEmpty);
-
     });
   });
 
@@ -119,7 +118,8 @@ void main() async {
         final entity = await FilamentApp.instance!.createEntity();
         entities.add(entity);
 
-        var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUnlitMaterialInstance();
         final cube = await viewer.createGeometry(
             GeometryUtils.cube(normals: false, uvs: false),
             materialInstances: [materialInstance]);
@@ -127,9 +127,9 @@ void main() async {
         // Set different colors for each cube
         await materialInstance.setParameterFloat4(
             "baseColorFactor",
-            (i % 2 == 0) ? 1.0 : 0.0,  // Red channel
-            (i % 3 == 0) ? 1.0 : 0.0,  // Green channel
-            (i % 5 == 0) ? 1.0 : 0.0,  // Blue channel
+            (i % 2 == 0) ? 1.0 : 0.0, // Red channel
+            (i % 3 == 0) ? 1.0 : 0.0, // Green channel
+            (i % 5 == 0) ? 1.0 : 0.0, // Blue channel
             1.0);
 
         // Associate the geometry with our entity
@@ -147,10 +147,10 @@ void main() async {
       for (int i = 0; i < entities.length; i++) {
         final entity = entities[i];
         final transform = Matrix4.translation(Vector3(
-          (i - 2) * 2.0,  // Spread cubes horizontally
-          0.0,
-          0.0
-        )) * Matrix4.rotationY(i * 0.5); // Rotate each cube differently
+                (i - 2) * 2.0, // Spread cubes horizontally
+                0.0,
+                0.0)) *
+            Matrix4.rotationY(i * 0.5); // Rotate each cube differently
 
         transformManager.setTransform(entity, transform);
       }

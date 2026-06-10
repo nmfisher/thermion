@@ -50,8 +50,7 @@ class SilhouetteView extends FFIView {
   final Map<ThermionEntity, _SilhouetteComponent> _components = {};
 
   SilhouetteView._(
-    super.view,
-    {
+    super.view, {
     required FFIMaterial material,
     required FFITexture colorTexture,
     required FFITexture depthTexture,
@@ -66,17 +65,17 @@ class SilhouetteView extends FFIView {
         _skybox = skybox;
 
   /// Creates and initializes a new [SilhouetteView].
-  static Future<SilhouetteView> create(
-  {
+  static Future<SilhouetteView> create({
     required int width,
     required int height,
   }) async {
-    final viewPtr = await withPointerCallback<TView>(
-        (cb) => Engine_createViewRenderThread(FilamentApp.instance!.engine, cb));
+    final viewPtr = await withPointerCallback<TView>((cb) =>
+        Engine_createViewRenderThread(FilamentApp.instance!.engine, cb));
 
     // Create silhouette material
-    final materialPtr = await withPointerCallback<TMaterial>(
-        (cb) => Material_createSilhouetteMaterialRenderThread(FilamentApp.instance!.engine, cb));
+    final materialPtr = await withPointerCallback<TMaterial>((cb) =>
+        Material_createSilhouetteMaterialRenderThread(
+            FilamentApp.instance!.engine, cb));
     final silhouetteMaterial = FFIMaterial(materialPtr);
 
     // Create textures and render target
@@ -103,9 +102,10 @@ class SilhouetteView extends FFIView {
     ) as FFIRenderTarget;
 
     // Create scene with black skybox to clear render target
-    final silhouetteScene = await FilamentApp.instance!.createScene() as FFIScene;
-    final skybox =
-        await FilamentApp.instance!.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
+    final silhouetteScene =
+        await FilamentApp.instance!.createScene() as FFIScene;
+    final skybox = await FilamentApp.instance!
+        .createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
     await silhouetteScene.setSkybox(skybox);
 
     // Create the SilhouetteView with all resources
@@ -137,18 +137,21 @@ class SilhouetteView extends FFIView {
 
   @override
   Future setViewport(int width, int height) async {
-    _logger.info("setViewport $width x $height (current texture: ${_textureWidth}x${_textureHeight})");
+    _logger.info(
+        "setViewport $width x $height (current texture: ${_textureWidth}x${_textureHeight})");
     await super.setViewport(width, height);
 
     // Resize if dimensions are valid and different from current texture size
-    if (width > 0 && height > 0 &&
+    if (width > 0 &&
+        height > 0 &&
         (width != _textureWidth || height != _textureHeight)) {
       await _resizeRenderTarget(width, height);
     }
   }
 
   Future _resizeRenderTarget(int width, int height) async {
-    _logger.info("Resizing render target from ${_textureWidth}x${_textureHeight} to ${width}x${height}");
+    _logger.info(
+        "Resizing render target from ${_textureWidth}x${_textureHeight} to ${width}x${height}");
 
     // Store old resources for cleanup
     final oldColorTexture = _colorTexture;
@@ -250,7 +253,8 @@ class SilhouetteView extends FFIView {
     final silhouetteEntity = await FilamentApp.instance!.createEntity();
 
     // Get original bounding box
-    final boundingBox = FilamentApp.instance!.renderableManager.getAxisAlignedBoundingBox(target);
+    final boundingBox = FilamentApp.instance!.renderableManager
+        .getAxisAlignedBoundingBox(target);
 
     // Build silhouette renderable
     final builder = FilamentApp.instance!.renderableManager.createBuilder(1);

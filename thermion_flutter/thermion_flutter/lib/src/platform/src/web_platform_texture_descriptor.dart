@@ -4,7 +4,6 @@ import 'platform_texture_descriptor.dart';
 /// Unlike native implementations, this doesn't manage hardware textures
 /// but provides dimension information for viewport/camera updates.
 class WebPlatformTextureDescriptor extends PlatformTextureDescriptor {
-
   WebPlatformTextureDescriptor({
     required super.width,
     required super.height,

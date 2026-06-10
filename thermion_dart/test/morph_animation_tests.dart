@@ -49,8 +49,9 @@ void main() async {
 
   test('set morph target animation', () async {
     await testHelper.withViewer((viewer) async {
-      final cube = await viewer
-          .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
+      final cube = await viewer.loadGltf(
+          "${testHelper.assetsDir}/cube_with_morph_targets.glb",
+          addToScene: true);
 
       await testHelper.capture(viewer.view, "cube_morph_animation_0");
 

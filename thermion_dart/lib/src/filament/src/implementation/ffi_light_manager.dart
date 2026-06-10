@@ -308,8 +308,8 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   }
 
   @override
-  List<double> computePracticalSplits(int cascades,
-      double near, double far, double lambda) {
+  List<double> computePracticalSplits(
+      int cascades, double near, double far, double lambda) {
     if (cascades < 2 || cascades > 4) {
       throw ArgumentError("Cascades must be between 2 and 4");
     }

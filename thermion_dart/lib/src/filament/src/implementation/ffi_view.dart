@@ -609,8 +609,7 @@ class FFIView extends View<Pointer<TView>> {
     final ffiGeoAsset = geoAsset as FFIAsset;
 
     // Get the starting primitive offset for this entity
-    final offset =
-        await ffiGeoAsset.getPrimitiveOffsetForEntity(entity);
+    final offset = await ffiGeoAsset.getPrimitiveOffsetForEntity(entity);
     if (offset < 0) {
       _logger.warning(
           "Stencil highlight: no preserved geometry for entity $entity. "

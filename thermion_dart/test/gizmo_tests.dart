@@ -4,7 +4,7 @@ import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("gizmo");
-  
+
   await testHelper.setup();
 
   group("gizmo tests", () {
@@ -19,16 +19,15 @@ void main() async {
     });
   });
 
-    test('add/remove rotation gizmo', () async {
-      await testHelper.withViewer((viewer) async {
-        
-        final gizmo = await viewer.getGizmo(GizmoType.rotation);
-        await viewer.addToScene(gizmo);
-        await testHelper.capture(viewer.view, "rotation_gizmo");
-        await viewer.removeFromScene(gizmo);
-        await testHelper.capture(viewer.view, "rotation_gizmo_removed");
-      }, postProcessing: true, bg: kWhite);
-    });
+  test('add/remove rotation gizmo', () async {
+    await testHelper.withViewer((viewer) async {
+      final gizmo = await viewer.getGizmo(GizmoType.rotation);
+      await viewer.addToScene(gizmo);
+      await testHelper.capture(viewer.view, "rotation_gizmo");
+      await viewer.removeFromScene(gizmo);
+      await testHelper.capture(viewer.view, "rotation_gizmo_removed");
+    }, postProcessing: true, bg: kWhite);
+  });
 
   //   test('set gizmo transform', () async {
   //     await testHelper.withViewer((viewer) async {

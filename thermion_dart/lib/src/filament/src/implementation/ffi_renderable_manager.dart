@@ -286,8 +286,8 @@ class FFIRenderableManager
     }
 
     await withVoidCallback((requestId, cb) =>
-        RenderableManager_setBonesFromMat4RenderThread(renderableManager, entity,
-            transformsPtr.address, boneCount, offset, requestId, cb));
+        RenderableManager_setBonesFromMat4RenderThread(renderableManager,
+            entity, transformsPtr.address, boneCount, offset, requestId, cb));
 
     if (FILAMENT_WASM) {
       transformsPtr.free();
@@ -308,8 +308,8 @@ class FFIRenderableManager
     }
 
     await withVoidCallback((requestId, cb) =>
-        RenderableManager_setBonesFromBoneRenderThread(renderableManager, entity,
-            bonesPtr.address, bones.length, offset, requestId, cb));
+        RenderableManager_setBonesFromBoneRenderThread(renderableManager,
+            entity, bonesPtr.address, bones.length, offset, requestId, cb));
 
     if (FILAMENT_WASM) {
       bonesPtr.free();
@@ -377,12 +377,13 @@ class FFIRenderableBuilder implements RenderableBuilder {
   void material(int primitiveIndex, MaterialInstance materialInstance) {
     _checkNotBuilt();
     final materialPtr = (materialInstance as FFIMaterialInstance).pointer;
-    bindings.RenderableBuilder_material(_builderPtr!, primitiveIndex, materialPtr);
+    bindings.RenderableBuilder_material(
+        _builderPtr!, primitiveIndex, materialPtr);
   }
 
   @override
-  void geometry(int primitiveIndex, PrimitiveType type,
-      VertexBuffer vertices, IndexBuffer indices, int offset, int count) {
+  void geometry(int primitiveIndex, PrimitiveType type, VertexBuffer vertices,
+      IndexBuffer indices, int offset, int count) {
     _checkNotBuilt();
 
     // Extract native handles from the buffer objects
@@ -390,16 +391,16 @@ class FFIRenderableBuilder implements RenderableBuilder {
     final indicesPtr = (indices as FFIIndexBuffer).getNativeHandle();
 
     final typeValue = switch (type) {
-    PrimitiveType.POINTS => 0,
-    PrimitiveType.LINES => 1,
-    PrimitiveType.UNUSED1 => 2,
-    PrimitiveType.LINE_STRIP => 3,
-    PrimitiveType.TRIANGLES => 4,
-    PrimitiveType.TRIANGLE_STRIP => 5,
-  };
+      PrimitiveType.POINTS => 0,
+      PrimitiveType.LINES => 1,
+      PrimitiveType.UNUSED1 => 2,
+      PrimitiveType.LINE_STRIP => 3,
+      PrimitiveType.TRIANGLES => 4,
+      PrimitiveType.TRIANGLE_STRIP => 5,
+    };
 
-  bindings.RenderableBuilder_geometry(
-      _builderPtr!, primitiveIndex, typeValue, verticesPtr, indicesPtr, offset, count);
+    bindings.RenderableBuilder_geometry(_builderPtr!, primitiveIndex, typeValue,
+        verticesPtr, indicesPtr, offset, count);
   }
 
   @override
@@ -465,7 +466,8 @@ class FFIRenderableBuilder implements RenderableBuilder {
   @override
   void globalBlendOrderEnabled(int primitiveIndex, bool enabled) {
     _checkNotBuilt();
-    bindings.RenderableBuilder_globalBlendOrderEnabled(_builderPtr!, primitiveIndex, enabled);
+    bindings.RenderableBuilder_globalBlendOrderEnabled(
+        _builderPtr!, primitiveIndex, enabled);
   }
 
   @override
@@ -545,7 +547,8 @@ class FFIRenderableBuilder implements RenderableBuilder {
     _checkNotBuilt();
 
     final result = await withIntCallback((cb) =>
-        bindings.RenderableBuilder_buildRenderThread(_builderPtr!, _app.engine, entity, cb.cast()));
+        bindings.RenderableBuilder_buildRenderThread(
+            _builderPtr!, _app.engine, entity, cb.cast()));
 
     // Clean up the builder
     bindings.RenderableBuilder_destroy(_builderPtr!);
