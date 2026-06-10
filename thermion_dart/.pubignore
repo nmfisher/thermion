@@ -1,0 +1,45 @@
+# NOTE: pub uses .pubignore *instead of* .gitignore when present, so the
+# .gitignore rules below must be mirrored here.
+
+# Mirror of .gitignore (excluding **/*.g.dart so generated bindings ship):
+native/build/
+native/web/lib/**/*
+pubspec.lock
+test/output/*
+test/generated/libThermionTextureSwift.dylib
+
+# Re-include generated bindings — the repo-root .gitignore excludes **/*.g.dart,
+# but consumers need these checked-in generated files.
+!lib/src/bindings/src/thermion_dart_ffi.g.dart
+!lib/src/bindings/src/thermion_dart_js_interop.g.dart
+
+# Swift/ObjC bindings are unused in thermion_dart (the real copy lives in
+# thermion_flutter, which declares objective_c). Excluding here avoids forcing
+# objective_c into thermion_dart's deps.
+lib/src/swift/
+
+# Web build output (also gets created locally outside .gitignore patterns)
+native/web/build-debug/
+native/test/thermion_dart.js
+native/test/thermion_dart.wasm
+
+# Test assets are a symlink to ../../examples/assets (~68 MB) — never ship.
+test/assets/
+
+# Built/downloaded test artifacts
+test/golden-downloads/
+test/thermion_dart.js
+test/thermion_dart.wasm
+test/*.html
+
+# Scratch / debug
+output.png
+*.patch
+
+# Internal-only docs
+BONE_VISUALIZATION.md
+BONE_VISUALIZATION_IMPROVEMENTS.md
+RM_BONES.md
+
+# IDE metadata
+*.iml

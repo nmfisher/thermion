@@ -7,6 +7,11 @@ analyzer:
   errors:
     # Treat long lines as warnings instead of errors
     lines_longer_than_80_chars: warning
+  exclude:
+    # Unused in thermion_dart — real Swift bindings live in thermion_flutter.
+    # Excluded from publish via .pubignore; also exclude from analysis so
+    # the missing objective_c import doesn't fail `dart analyze` on publish.
+    - lib/src/swift/**
 
 formatter:
   page_width: 80
