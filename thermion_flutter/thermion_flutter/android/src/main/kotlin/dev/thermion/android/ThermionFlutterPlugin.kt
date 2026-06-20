@@ -19,7 +19,7 @@ import io.flutter.embedding.engine.plugins.lifecycle.HiddenLifecycleReference
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.view.TextureRegistry.SurfaceTextureEntry
+import io.flutter.view.TextureRegistry
 import java.io.File
 import java.util.*
 
@@ -42,14 +42,16 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
   private var lifecycle: Lifecycle? = null
 
+  // GH#61 (FREN): the legacy SurfaceTexture external-texture path composites
+  // OPAQUE/with broken premultiplied alpha under Impeller, so a transparent
+  // Filament render reads as a grey veil on Android (iOS/Metal is clean). The
+  // modern SurfaceProducer path composites premultiplied alpha correctly with
+  // Impeller — migrate the texture to it.
   private data class TextureEntry(
-      val surfaceTextureEntry: SurfaceTextureEntry,
-      val surfaceTexture: SurfaceTexture,
+      val surfaceProducer: TextureRegistry.SurfaceProducer,
       val surface: Surface
   )
-  
-  var _surfaceTexture: SurfaceTexture? = null
-  private var _surfaceTextureEntry: SurfaceTextureEntry? = null
+
   var _surface: Surface? = null
   private val textures: MutableMap<Long, TextureEntry> = mutableMapOf()
 
@@ -81,24 +83,20 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.error("DIMENSION_MISMATCH", "Both dimensions must be greater than zero (you provided $width x $height)", null)
                     return
                 }
-                Log.d("thermion_flutter", "Creating SurfaceTexture ${width}x${height}")
-                
-                val surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
-                val surfaceTexture = surfaceTextureEntry.surfaceTexture()
-                surfaceTexture.setDefaultBufferSize(width, height)
+                Log.d("thermion_flutter", "Creating SurfaceProducer ${width}x${height}")
 
-                val surface = Surface(surfaceTexture)
+                val producer = flutterPluginBinding.textureRegistry.createSurfaceProducer()
+                producer.setSize(width, height)
+                val surface = producer.getSurface()
 
                 if (!surface.isValid) {
                     result.error("SURFACE_INVALID", "Failed to create valid surface", null)
                 } else {
-                    val flutterTextureId = surfaceTextureEntry.id()   
-                    textures[flutterTextureId] = TextureEntry(surfaceTextureEntry, surfaceTexture, surface)
-                    //val surface = surfaceView.holder.surface
+                    val flutterTextureId = producer.id()
+                    textures[flutterTextureId] = TextureEntry(producer, surface)
                     Log.d("thermion_flutter", "Loading library")
                     System.loadLibrary("thermion_flutter_android")
                     val nativeWindowPtr = NativeWindowHelper.getNativeWindowFromSurface(surface)
-                    //val nativeWindow = _lib.get_native_window_from_surface(surface as Object, JNIEnv.CURRENT)
                     result.success(listOf(flutterTextureId, flutterTextureId, nativeWindowPtr))
                 }
             }
@@ -107,7 +105,7 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                 val textureEntry = textures[textureId]
                 if (textureEntry != null) {
                     textureEntry.surface.release()
-                    textureEntry.surfaceTextureEntry.release()
+                    textureEntry.surfaceProducer.release()
                     textures.remove(textureId)
                     result.success(true)
                 } else {
@@ -140,7 +138,7 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         // Release all textures
         for ((_, textureEntry) in textures) {
             textureEntry.surface.release()
-            textureEntry.surfaceTextureEntry.release()
+            textureEntry.surfaceProducer.release()
         }
         textures.clear()
   }
