@@ -271,10 +271,24 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     // 1. Find a suitable queue family
     resources.queueFamilyIndex = findGraphicsQueueFamily(physicalDevice);
 
-    // 2. Get the queue handle
+    // 2. Get the queue handle. Use the SECOND queue in the family when the
+    //    hardware has one (the device requests two — see createLogicalDevice):
+    //    queue 0 belongs to Filament's render thread via VulkanSharedContext,
+    //    and submitting to it concurrently from the platform thread is a
+    //    data race (VK_ERROR_DEVICE_LOST on newer NVIDIA drivers). Fall back
+    //    to queue 0 only on hardware exposing a single graphics queue.
+    uint32_t familyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> families(familyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, families.data());
+    const uint32_t queueIndex =
+        families[resources.queueFamilyIndex].queueCount >= 2 ? 1u : 0u;
+    std::cout << "[INFO] Blit/command queue: family " << resources.queueFamilyIndex
+              << ", queue index " << queueIndex << std::endl;
+
     vkGetDeviceQueue(device,
         resources.queueFamilyIndex,
-        0,  // First queue in family
+        queueIndex,
         &resources.queue);
 
     // 3. Create command pool
@@ -591,12 +605,27 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
         #endif
         VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, };
 
-    float queuePriority = 1.0f;
+    // Request a second queue in the family when the hardware exposes one.
+    // Queue 0 is handed to Filament via VulkanSharedContext (render thread);
+    // the D3D-interop Blit submits from the Flutter platform thread. VkQueue
+    // access is externally synchronized, so sharing one queue across those
+    // two threads is a data race — tolerated by some drivers, but newer
+    // NVIDIA drivers (observed on RTX 5090 / 610.62) fail the first
+    // concurrent submission with VK_ERROR_DEVICE_LOST. With two queues the
+    // blit gets its own (see createCommandResources).
+    uint32_t familyCount = 0;
+    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> families(familyCount);
+    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, families.data());
+    const uint32_t queueCount =
+        families[*queueFamilyIndex].queueCount >= 2 ? 2u : 1u;
+
+    float queuePriorities[2] = {1.0f, 1.0f};
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = *queueFamilyIndex;
-    queueCreateInfo.queueCount = 1;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    queueCreateInfo.queueCount = queueCount;
+    queueCreateInfo.pQueuePriorities = queuePriorities;
 
     VkDeviceCreateInfo deviceCreateInfo = {};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
