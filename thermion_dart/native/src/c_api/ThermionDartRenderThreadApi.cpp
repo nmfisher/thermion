@@ -1506,6 +1506,24 @@ extern "C"
   #endif
 
   
+  // Web callers must go through this variant — Ktx2Reader::load reaches into
+  // Filament Engine state (Texture::Builder().build, internal job queues) and
+  // those calls assert / abort when invoked from anywhere except the engine's
+  // render thread. We also copy the input bytes synchronously here so the
+  // lambda doesn't dangle when data was stack-allocated by the caller (the
+  // ffigen_js Uint8List.address path uses stackAlloc for buffers < 32KB).
+  EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureRenderThread(
+    TEngine *tEngine, uint8_t* data, size_t size, void (*onComplete)(TTexture *)) {
+    std::vector<uint8_t> bytes(data, data + size);
+    std::packaged_task<void()> lambda(
+        [tEngine, bytes = std::move(bytes), onComplete]() mutable
+        {
+          auto *texture = Ktx2Reader_createTexture(tEngine, bytes.data(), bytes.size());
+          PROXY(onComplete(texture));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Ktx1Reader_createTextureRenderThread(
     TEngine *tEngine, TKtx1Bundle *tBundle, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *)) {
 
