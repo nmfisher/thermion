@@ -9,8 +9,9 @@ void main() async {
 
   group("RenderableManager tests", () {
     test('hasComponent and isRenderable', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -26,8 +27,9 @@ void main() async {
     });
 
     test('getPrimitiveCount', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -41,10 +43,9 @@ void main() async {
     });
 
     test('material instance management', () async {
-      final builder = ViewerBuilder(testHelper)
-          .setRenderTargetEnabled(true)
-          .addSun()
-          .addCube(color: kRed);
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addSun().addCube(color: kRed);
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -55,29 +56,43 @@ void main() async {
         await testHelper.capture(result.viewer.view, "material_default");
 
         // Get the current material instance
-        final originalMaterial =
-            await renderableManager.getMaterialInstanceAt(cube.entity, 0);
+        final originalMaterial = await renderableManager.getMaterialInstanceAt(
+          cube.entity,
+          0,
+        );
         expect(originalMaterial, isNotNull);
 
         // Create a new material instance with a different color
-        final newMaterial =
-            await FilamentApp.instance!.createUbershaderMaterialInstance();
+        final newMaterial = await FilamentApp.instance!
+            .createUbershaderMaterialInstance();
         await newMaterial.setParameterFloat4(
-            'baseColorFactor', 0.0, 1.0, 0.0, 1.0); // Green
+          'baseColorFactor',
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+        ); // Green
 
         // Set the new material
         final success = await renderableManager.setMaterialInstanceAt(
-            cube.entity, 0, newMaterial);
+          cube.entity,
+          0,
+          newMaterial,
+        );
         expect(success, true);
 
         // Verify the material was changed
-        final updatedMaterial =
-            await renderableManager.getMaterialInstanceAt(cube.entity, 0);
+        final updatedMaterial = await renderableManager.getMaterialInstanceAt(
+          cube.entity,
+          0,
+        );
         expect(updatedMaterial, isNotNull);
 
         // Capture to verify color change
         await testHelper.capture(
-            result.viewer.view, "material_changed_to_green");
+          result.viewer.view,
+          "material_changed_to_green",
+        );
 
         // Clear the material instance
         await renderableManager.clearMaterialInstanceAt(cube.entity, 0);
@@ -85,8 +100,9 @@ void main() async {
     });
 
     test('bounding box operations', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -107,14 +123,17 @@ void main() async {
         expect(aabb2.center.z, equals(aabb.center.z));
 
         // Set a new bounding box
-        final newAabb =
-            Aabb3.centerAndHalfExtents(Vector3(0, 0, 0), Vector3(2, 2, 2));
+        final newAabb = Aabb3.centerAndHalfExtents(
+          Vector3(0, 0, 0),
+          Vector3(2, 2, 2),
+        );
         await renderableManager.setAxisAlignedBoundingBox(cube.entity, newAabb);
 
         // Verify the bounding box was updated
         // Extract center and halfExtents from the updated AABB
-        final updatedAabb =
-            renderableManager.getAxisAlignedBoundingBox(cube.entity);
+        final updatedAabb = renderableManager.getAxisAlignedBoundingBox(
+          cube.entity,
+        );
         final updatedCenter = Vector3.zero();
         final updatedHalfExtents = Vector3.zero();
         updatedAabb.copyCenterAndHalfExtents(updatedCenter, updatedHalfExtents);
@@ -126,8 +145,9 @@ void main() async {
     });
 
     test('layer mask and visibility', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -151,8 +171,9 @@ void main() async {
     });
 
     test('priority and channel', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -168,8 +189,9 @@ void main() async {
     });
 
     test('culling control', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -185,8 +207,9 @@ void main() async {
     });
 
     test('fog control', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -208,8 +231,9 @@ void main() async {
     });
 
     test('light channels', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -218,19 +242,25 @@ void main() async {
 
         // Enable light channel 2
         await renderableManager.setLightChannel(cube.entity, 2, true);
-        final channel2Enabled =
-            renderableManager.getLightChannel(cube.entity, 2);
+        final channel2Enabled = renderableManager.getLightChannel(
+          cube.entity,
+          2,
+        );
         expect(channel2Enabled, true);
 
         // Disable light channel 2
         await renderableManager.setLightChannel(cube.entity, 2, false);
-        final channel2Disabled =
-            renderableManager.getLightChannel(cube.entity, 2);
+        final channel2Disabled = renderableManager.getLightChannel(
+          cube.entity,
+          2,
+        );
         expect(channel2Disabled, false);
 
         // Channel 0 is enabled by default
-        final channel0Enabled =
-            renderableManager.getLightChannel(cube.entity, 0);
+        final channel0Enabled = renderableManager.getLightChannel(
+          cube.entity,
+          0,
+        );
         expect(channel0Enabled, true);
       });
     });
@@ -240,9 +270,10 @@ void main() async {
           .setRenderTargetEnabled(true)
           .setShadowsEnabled(true)
           .addSun(
-              intensity: 50000,
-              castShadows: true,
-              direction: Vector3(1, -1, 0).normalized())
+            intensity: 50000,
+            castShadows: true,
+            direction: Vector3(1, -1, 0).normalized(),
+          )
           .addCube(castShadows: true)
           .addPlane(receiveShadows: true);
 
@@ -274,7 +305,9 @@ void main() async {
         expect(renderableManager.isShadowReceiver(plane.entity), false);
 
         await testHelper.capture(
-            result.viewer.view, "shadows_receive_disabled");
+          result.viewer.view,
+          "shadows_receive_disabled",
+        );
 
         await renderableManager.setReceiveShadows(plane.entity, true);
         expect(renderableManager.isShadowReceiver(plane.entity), true);
@@ -288,9 +321,10 @@ void main() async {
           .setRenderTargetEnabled(true)
           .setShadowsEnabled(true)
           .addSun(
-              intensity: 50000,
-              castShadows: true,
-              direction: Vector3(1, -1, 0).normalized())
+            intensity: 50000,
+            castShadows: true,
+            direction: Vector3(1, -1, 0).normalized(),
+          )
           .addCube();
 
       await builder.execute((result) async {
@@ -305,15 +339,18 @@ void main() async {
 
         // Disable screen space contact shadows
         await renderableManager.setScreenSpaceContactShadows(
-            cube.entity, false);
+          cube.entity,
+          false,
+        );
 
         await testHelper.capture(result.viewer.view, "sscs_disabled");
       });
     });
 
     test('blend order operations', () async {
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -328,11 +365,17 @@ void main() async {
 
           // Set global blend order enabled
           await renderableManager.setGlobalBlendOrderEnabledAt(
-              cube.entity, 0, true);
+            cube.entity,
+            0,
+            true,
+          );
 
           // Set global blend order disabled
           await renderableManager.setGlobalBlendOrderEnabledAt(
-              cube.entity, 0, false);
+            cube.entity,
+            0,
+            false,
+          );
         }
       });
     });
@@ -342,77 +385,99 @@ void main() async {
       // ("MyBone"). Per its glTF definition, the Armature root node is the
       // asset entity and the Cube mesh is a child; only the mesh has a
       // renderable component with a skinning buffer.
-      await testHelper.withViewer((viewer) async {
-        final cube = await viewer
-            .loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
-        await viewer.addToScene(cube);
+      await testHelper.withViewer(
+        (viewer) async {
+          final cube = await viewer.loadGltf(
+            "${testHelper.assetsDir}/cube_with_morph_targets.glb",
+          );
+          await viewer.addToScene(cube);
 
-        final renderableManager = FilamentApp.instance!.renderableManager;
+          final renderableManager = FilamentApp.instance!.renderableManager;
 
-        // Locate the renderable child (the skinned mesh).
-        ThermionEntity? meshEntity;
-        for (final child in await cube.getChildEntities()) {
-          if (renderableManager.isRenderable(child)) {
-            meshEntity = child;
-            break;
+          // Locate the renderable child (the skinned mesh).
+          ThermionEntity? meshEntity;
+          for (final child in await cube.getChildEntities()) {
+            if (renderableManager.isRenderable(child)) {
+              meshEntity = child;
+              break;
+            }
           }
-        }
-        expect(meshEntity, isNotNull,
-            reason: "Expected a renderable child entity for the skinned cube");
+          expect(
+            meshEntity,
+            isNotNull,
+            reason: "Expected a renderable child entity for the skinned cube",
+          );
 
-        // Sanity check the bone count from the asset matches what we pass.
-        final boneNames = await cube.getBoneNames();
-        expect(boneNames.length, 1);
-        expect(boneNames.first, "MyBone");
+          // Sanity check the bone count from the asset matches what we pass.
+          final boneNames = await cube.getBoneNames();
+          expect(boneNames.length, 1);
+          expect(boneNames.first, "MyBone");
 
-        // Identity transform should leave the mesh in its rest pose.
-        await renderableManager
-            .setBonesFromMat4(meshEntity!, [Matrix4.identity()]);
-        await testHelper.capture(viewer.view, "set_bones_identity");
+          // Identity transform should leave the mesh in its rest pose.
+          await renderableManager.setBonesFromMat4(meshEntity!, [
+            Matrix4.identity(),
+          ]);
+          await testHelper.capture(viewer.view, "set_bones_identity");
 
-        // Rotating the single bone 90 degrees should visibly deform the mesh.
-        await renderableManager
-            .setBonesFromMat4(meshEntity, [Matrix4.rotationY(pi / 4)]);
-        await testHelper.capture(viewer.view, "set_bones_rotated");
+          // Rotating the single bone 90 degrees should visibly deform the mesh.
+          await renderableManager.setBonesFromMat4(meshEntity, [
+            Matrix4.rotationY(pi / 4),
+          ]);
+          await testHelper.capture(viewer.view, "set_bones_rotated");
 
-        // offset parameter should be accepted (writing past end of buffer is
-        // a no-op when boneCount is 1 and only one bone is allocated).
-        await renderableManager
-            .setBonesFromMat4(meshEntity, [Matrix4.identity()], offset: 0);
+          // offset parameter should be accepted (writing past end of buffer is
+          // a no-op when boneCount is 1 and only one bone is allocated).
+          await renderableManager.setBonesFromMat4(meshEntity, [
+            Matrix4.identity(),
+          ], offset: 0);
 
-        // Empty list is a safe no-op (short-circuits before FFI call).
-        await renderableManager.setBonesFromMat4(meshEntity, <Matrix4>[]);
+          // Empty list is a safe no-op (short-circuits before FFI call).
+          await renderableManager.setBonesFromMat4(meshEntity, <Matrix4>[]);
 
-        expect(renderableManager.isRenderable(meshEntity), true);
-      }, bg: kRed, cameraPosition: Vector3(0, 5, 15));
+          expect(renderableManager.isRenderable(meshEntity), true);
+        },
+        bg: kRed,
+        cameraPosition: Vector3(0, 5, 15),
+      );
     });
 
     test('create skinned geometry with two bones', () async {
-      await ViewerBuilder(testHelper)
-          .setRenderTargetEnabled(true)
-          .setBackgroundColor(kGrey)
-          .execute((result) async {
+      await ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).setBackgroundColor(kGrey).execute((
+        result,
+      ) async {
         final app = FilamentApp.instance!;
         final renderableManager = app.renderableManager;
 
         // Build a skinned quad: bone 0 owns the bottom half (verts 0,1),
         // bone 1 owns the top half (verts 2,3).
-        final vertexBuffer = await (renderableManager
-                .createVertexBufferBuilder()
-              ..bufferCount(3)
-              ..vertexCount(4)
-              ..attribute(
-                  VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3)
-              ..attribute(
-                  VertexAttribute.BONE_INDICES, 1, VertexAttributeType.UBYTE4)
-              ..attribute(
-                  VertexAttribute.BONE_WEIGHTS, 2, VertexAttributeType.FLOAT4))
-            .build();
+        final vertexBuffer =
+            await (renderableManager.createVertexBufferBuilder()
+                  ..bufferCount(3)
+                  ..vertexCount(4)
+                  ..attribute(
+                    VertexAttribute.POSITION,
+                    0,
+                    VertexAttributeType.FLOAT3,
+                  )
+                  ..attribute(
+                    VertexAttribute.BONE_INDICES,
+                    1,
+                    VertexAttributeType.UBYTE4,
+                  )
+                  ..attribute(
+                    VertexAttribute.BONE_WEIGHTS,
+                    2,
+                    VertexAttributeType.FLOAT4,
+                  ))
+                .build();
 
-        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
-              ..indexCount(6)
-              ..bufferType(IndexType.USHORT))
-            .build();
+        final indexBuffer =
+            await (renderableManager.createIndexBufferBuilder()
+                  ..indexCount(6)
+                  ..bufferType(IndexType.USHORT))
+                .build();
 
         final positions = Float32List.fromList([
           -0.5, -0.5, 0.0, // vertex 0 (bottom-left)
@@ -438,25 +503,30 @@ void main() async {
         ]);
         await vertexBuffer.setBufferAt(2, boneWeights);
 
-        await indexBuffer.setBuffer(Uint16List.fromList([
-          0,
-          1,
-          2,
-          2,
-          3,
-          0,
-        ]));
+        await indexBuffer.setBuffer(Uint16List.fromList([0, 1, 2, 2, 3, 0]));
 
         final material = await app.createUnlitMaterialInstance();
         await material.setParameterFloat4(
-            "baseColorFactor", 1.0, 0.5, 0.0, 1.0); // Orange
+          "baseColorFactor",
+          1.0,
+          0.5,
+          0.0,
+          1.0,
+        ); // Orange
 
         final entity = await app.createEntity();
         final renderableBuilder = renderableManager.createBuilder(1)
           ..boundingBox(
-              Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)))
+            Aabb3.minMax(Vector3(-0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0)),
+          )
           ..geometry(
-              0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 6)
+            0,
+            PrimitiveType.TRIANGLES,
+            vertexBuffer,
+            indexBuffer,
+            0,
+            6,
+          )
           ..material(0, material)
           ..skinning(2, [Matrix4.identity(), Matrix4.identity()]);
 
@@ -467,8 +537,11 @@ void main() async {
         await scene.addEntity(entity);
 
         final camera = await result.viewer.view.getCamera();
-        await camera.lookAt(Vector3(0, 0, 2),
-            focus: Vector3.zero(), up: Vector3(0, 1, 0));
+        await camera.lookAt(
+          Vector3(0, 0, 2),
+          focus: Vector3.zero(),
+          up: Vector3(0, 1, 0),
+        );
 
         // Initial pose: both bones identity.
         await testHelper.capture(result.viewer.view, "skinned_initial_pose");
@@ -479,7 +552,9 @@ void main() async {
           Matrix4.rotationZ(0.78),
         ]);
         await testHelper.capture(
-            result.viewer.view, "skinned_after_bone_rotation");
+          result.viewer.view,
+          "skinned_after_bone_rotation",
+        );
 
         expect(renderableManager.isRenderable(entity), true);
 
@@ -496,7 +571,9 @@ void main() async {
         ];
         await renderableManager.setBonesFromBone(entity, boneData);
         await testHelper.capture(
-            result.viewer.view, "skinned_after_bonedata_update");
+          result.viewer.view,
+          "skinned_after_bonedata_update",
+        );
 
         await vertexBuffer.destroy();
         await indexBuffer.destroy();
@@ -506,8 +583,9 @@ void main() async {
     test('morph target operations', () async {
       // Note: This test uses a cube which doesn't have morph targets,
       // but we can test the API returns correct values
-      final builder =
-          ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube();
+      final builder = ViewerBuilder(
+        testHelper,
+      ).setRenderTargetEnabled(true).addCube();
 
       await builder.execute((result) async {
         final cube = result.assets[0];
@@ -530,9 +608,10 @@ void main() async {
           .setBackgroundColor(kBlue)
           .setShadowsEnabled(true)
           .addSun(
-              intensity: 50000,
-              castShadows: true,
-              direction: Vector3(1, -1, 0).normalized())
+            intensity: 50000,
+            castShadows: true,
+            direction: Vector3(1, -1, 0).normalized(),
+          )
           .addCube(color: kRed, castShadows: true)
           .addPlane(receiveShadows: true);
 
@@ -560,7 +639,9 @@ void main() async {
         await renderableManager.setCastShadows(cube.entity, true);
         await renderableManager.setReceiveShadows(plane.entity, false);
         await testHelper.capture(
-            result.viewer.view, "workflow_no_plane_shadow");
+          result.viewer.view,
+          "workflow_no_plane_shadow",
+        );
 
         // Restore shadows
         await renderableManager.setReceiveShadows(plane.entity, true);

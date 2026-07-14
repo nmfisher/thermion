@@ -76,7 +76,8 @@ void Function(int) _voidCallback = (int requestId) {
 final _voidCallbackPtr = _voidCallback.addFunction();
 
 Future<void> withVoidCallback(
-    Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
+  Function(int, Pointer<NativeFunction<Void Function(int)>>) func,
+) async {
   final completer = Completer();
   var requestId = _lastRequestId;
   _lastRequestId++;
@@ -92,7 +93,8 @@ Future<void> withVoidCallback(
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
-    Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func,
+) async {
   final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<T>) callback = (Pointer<T> ptr) {
@@ -115,7 +117,8 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
 }
 
 Future<bool> withBoolCallback(
-    Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Bool)>>) func,
+) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
@@ -135,7 +138,8 @@ Future<bool> withBoolCallback(
 }
 
 Future<double> withFloatCallback(
-    void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
+  void Function(Pointer<NativeFunction<void Function(double)>>) func,
+) async {
   final completer = Completer<double>();
   // ignore: prefer_function_declarations_over_variables
   void Function(double) callback = (double result) {
@@ -151,7 +155,8 @@ Future<double> withFloatCallback(
 }
 
 Future<int> withIntCallback(
-    Function(Pointer<NativeFunction<void Function(int)>>) func) async {
+  Function(Pointer<NativeFunction<void Function(int)>>) func,
+) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
@@ -178,7 +183,8 @@ Pointer<T> allocate<T extends NativeType>(int count) {
 }
 
 Future<int> withUInt32Callback(
-    Function(Pointer<NativeFunction<Void Function(int)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(int)>>) func,
+) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
@@ -191,8 +197,8 @@ Future<int> withUInt32Callback(
 }
 
 Future<String> withCharPtrCallback(
-    Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>)
-        func) async {
+  Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func,
+) async {
   throw UnimplementedError();
 }
 

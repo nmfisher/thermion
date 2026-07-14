@@ -48,7 +48,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     for (final descriptor in _destroyed) {
       _descriptors.remove(descriptor);
       _logger.info(
-          "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId})");
+        "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId})",
+      );
     }
     _destroyed.clear();
 
@@ -88,27 +89,29 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       NativeLibrary.initBindings("thermion_dart");
     } catch (err) {
       _logger.info(
-          "Failed to find thermion_dart in window context, appending manually");
+        "Failed to find thermion_dart in window context, appending manually",
+      );
       // if not, manually add the script to the DOM
       var scriptElement = document.createElement("script") as HTMLScriptElement;
       scriptElement.src = options.webOptions.jsPath;
       document.head!.appendChild(scriptElement);
       final completer = Completer<JSObject?>();
       scriptElement.addEventListener(
-          "load",
-          () {
-            final constructor =
-                globalContext.getProperty("thermion_dart".toJS) as JSFunction?;
-            if (constructor == null) {
-              _logger.severe("Failed to find JS library constructor");
-              completer.complete(null);
-            } else {
-              final lib = constructor.callAsFunction() as JSPromise;
-              lib.toDart.then((resolved) {
-                completer.complete(resolved as JSObject);
-              });
-            }
-          }.toJS);
+        "load",
+        () {
+          final constructor =
+              globalContext.getProperty("thermion_dart".toJS) as JSFunction?;
+          if (constructor == null) {
+            _logger.severe("Failed to find JS library constructor");
+            completer.complete(null);
+          } else {
+            final lib = constructor.callAsFunction() as JSPromise;
+            lib.toDart.then((resolved) {
+              completer.complete(resolved as JSObject);
+            });
+          }
+        }.toJS,
+      );
       final lib = await completer.future;
       globalContext.setProperty("thermion_dart".toJS, lib);
       NativeLibrary.initBindings("thermion_dart");
@@ -139,11 +142,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
 
     final config = FFIFilamentConfig(
-        backend: Backend.OPENGL,
-        loadResource: loadAsset,
-        platform: nullptr,
-        sharedContext: null,
-        uberArchivePath: options.uberarchivePath);
+      backend: Backend.OPENGL,
+      loadResource: loadAsset,
+      platform: nullptr,
+      sharedContext: null,
+      uberArchivePath: options.uberarchivePath,
+    );
     await FFIFilamentApp.create(config: config);
     // resetting the web state when the app is destroyed
     (FilamentApp.instance as FFIFilamentApp).onDestroy(() async {
@@ -198,13 +202,17 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     var descriptor = WebPlatformTextureDescriptor(width: width, height: height);
     final dpr = window.devicePixelRatio;
     _logger.info(
-        "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr");
+      "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr",
+    );
 
     var overlay = view.getHighlightOverlay();
     await overlay?.setSwapChain(swapChain!);
 
     Thermion_setCanvasElementSize(
-        "#thermion_canvas".toNativeUtf8(), descriptor.width, descriptor.height);
+      "#thermion_canvas".toNativeUtf8(),
+      descriptor.width,
+      descriptor.height,
+    );
 
     // [width] and [height] have already been scaled by [devicePixelRatio]
     // so we need to undo this when setting the CSS dimensions

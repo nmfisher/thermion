@@ -21,8 +21,14 @@ class FFIRenderTarget extends RenderTarget<Pointer<TRenderTarget>> {
 
   @override
   Future destroy() async {
-    await withVoidCallback((requestId, cb) => RenderTarget_destroyRenderThread(
-        FilamentApp.instance!.engine, renderTarget, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => RenderTarget_destroyRenderThread(
+        FilamentApp.instance!.engine,
+        renderTarget,
+        requestId,
+        cb,
+      ),
+    );
   }
 
   @override

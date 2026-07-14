@@ -1,11 +1,12 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
 class PlaneGeometry {
-  static Geometry plane(
-      {double width = 1.0,
-      double height = 1.0,
-      bool normals = true,
-      bool uvs = true}) {
+  static Geometry plane({
+    double width = 1.0,
+    double height = 1.0,
+    bool normals = true,
+    bool uvs = true,
+  }) {
     Float32List vertices = Float32List.fromList([
       -width / 2,
       0,
@@ -22,43 +23,14 @@ class PlaneGeometry {
     ]);
 
     Float32List? _normals = normals
-        ? Float32List.fromList([
-            0,
-            1,
-            0,
-            0,
-            1,
-            0,
-            0,
-            1,
-            0,
-            0,
-            1,
-            0,
-          ])
+        ? Float32List.fromList([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0])
         : null;
 
     Float32List? _uvs = uvs
-        ? Float32List.fromList([
-            0,
-            0,
-            1,
-            0,
-            1,
-            1,
-            0,
-            1,
-          ])
+        ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1])
         : null;
 
-    final indices = Uint16List.fromList([
-      0,
-      1,
-      2,
-      0,
-      2,
-      3,
-    ]);
+    final indices = Uint16List.fromList([0, 1, 2, 0, 2, 3]);
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
@@ -105,17 +77,13 @@ class PlaneGeometry {
       -1, 1, 1, // 3
     ]);
     final normals = Float32List.fromList([0, 0, 1, 0, 0, 1]);
-    final indices = Uint16List.fromList([
-      0,
-      1,
-      2,
-      0,
-      2,
-      3,
-    ]);
+    final indices = Uint16List.fromList([0, 1, 2, 0, 2, 3]);
     final uvs = Float32List.fromList([0, 1, 1, 1, 1, 0, 0, 0]);
-    return Geometry(vertices, indices,
-        // normals: normals,
-        uvs: uvs);
+    return Geometry(
+      vertices,
+      indices,
+      // normals: normals,
+      uvs: uvs,
+    );
   }
 }

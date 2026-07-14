@@ -7,36 +7,51 @@ import 'dart:ffi' as ffi;
 import 'package:objective_c/objective_c.dart' as objc;
 
 @ffi.Native<
-    ffi.Pointer<objc.ObjCObject> Function(
-        ffi.Pointer<objc.ObjCObject>, ffi.Pointer<ffi.Void>)>()
+  ffi.Pointer<objc.ObjCObject> Function(
+    ffi.Pointer<objc.ObjCObject>,
+    ffi.Pointer<ffi.Void>,
+  )
+>()
 external ffi.Pointer<objc.ObjCObject>
-    _MetalTextureWrapper_protocolTrampoline_1mbt9g9(
+_MetalTextureWrapper_protocolTrampoline_1mbt9g9(
   ffi.Pointer<objc.ObjCObject> target,
   ffi.Pointer<ffi.Void> arg0,
 );
 
-late final _class_MetalTextureWrapper =
-    objc.getClass("thermion_flutter.MetalTextureWrapper");
+late final _class_MetalTextureWrapper = objc.getClass(
+  "thermion_flutter.MetalTextureWrapper",
+);
 late final _sel_isKindOfClass_ = objc.registerName("isKindOfClass:");
 final _objc_msgSend_19nvye5 = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Bool Function(
-                ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>,
-                ffi.Pointer<objc.ObjCObject>)>>()
+      ffi.NativeFunction<
+        ffi.Bool Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+          ffi.Pointer<objc.ObjCObject>,
+        )
+      >
+    >()
     .asFunction<
-        bool Function(ffi.Pointer<objc.ObjCObject>,
-            ffi.Pointer<objc.ObjCSelector>, ffi.Pointer<objc.ObjCObject>)>();
+      bool Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+        ffi.Pointer<objc.ObjCObject>,
+      )
+    >();
 late final _sel_pixelBuffer = objc.registerName("pixelBuffer");
 final _objc_msgSend_13yqbb6 = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Int Function(ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>)>>()
+      ffi.NativeFunction<
+        ffi.Int Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+        )
+      >
+    >()
     .asFunction<
-        int Function(
-            ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)>();
+      int Function(ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)
+    >();
 late final _sel_cvMetalTextureCache = objc.registerName("cvMetalTextureCache");
 
 /// WARNING: MTLDevice is a stub. To generate bindings for this class, include
@@ -44,29 +59,40 @@ late final _sel_cvMetalTextureCache = objc.registerName("cvMetalTextureCache");
 ///
 /// MTLDevice
 interface class MTLDevice extends objc.ObjCProtocolBase {
-  MTLDevice._(ffi.Pointer<objc.ObjCObject> pointer,
-      {bool retain = false, bool release = false})
-      : super(pointer, retain: retain, release: release);
+  MTLDevice._(
+    ffi.Pointer<objc.ObjCObject> pointer, {
+    bool retain = false,
+    bool release = false,
+  }) : super(pointer, retain: retain, release: release);
 
   /// Constructs a [MTLDevice] that points to the same underlying object as [other].
   MTLDevice.castFrom(objc.ObjCObjectBase other)
-      : this._(other.ref.pointer, retain: true, release: true);
+    : this._(other.ref.pointer, retain: true, release: true);
 
   /// Constructs a [MTLDevice] that wraps the given raw object pointer.
-  MTLDevice.castFromPointer(ffi.Pointer<objc.ObjCObject> other,
-      {bool retain = false, bool release = false})
-      : this._(other, retain: retain, release: release);
+  MTLDevice.castFromPointer(
+    ffi.Pointer<objc.ObjCObject> other, {
+    bool retain = false,
+    bool release = false,
+  }) : this._(other, retain: retain, release: release);
 }
 
 late final _sel_metalDevice = objc.registerName("metalDevice");
 final _objc_msgSend_151sglz = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>)>>()
-    .asFunction<
+      ffi.NativeFunction<
         ffi.Pointer<objc.ObjCObject> Function(
-            ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)>();
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+        )
+      >
+    >()
+    .asFunction<
+      ffi.Pointer<objc.ObjCObject> Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+      )
+    >();
 late final _sel_cvMetalTexture = objc.registerName("cvMetalTexture");
 
 /// WARNING: MTLTexture is a stub. To generate bindings for this class, include
@@ -74,74 +100,112 @@ late final _sel_cvMetalTexture = objc.registerName("cvMetalTexture");
 ///
 /// MTLTexture
 interface class MTLTexture extends objc.ObjCProtocolBase {
-  MTLTexture._(ffi.Pointer<objc.ObjCObject> pointer,
-      {bool retain = false, bool release = false})
-      : super(pointer, retain: retain, release: release);
+  MTLTexture._(
+    ffi.Pointer<objc.ObjCObject> pointer, {
+    bool retain = false,
+    bool release = false,
+  }) : super(pointer, retain: retain, release: release);
 
   /// Constructs a [MTLTexture] that points to the same underlying object as [other].
   MTLTexture.castFrom(objc.ObjCObjectBase other)
-      : this._(other.ref.pointer, retain: true, release: true);
+    : this._(other.ref.pointer, retain: true, release: true);
 
   /// Constructs a [MTLTexture] that wraps the given raw object pointer.
-  MTLTexture.castFromPointer(ffi.Pointer<objc.ObjCObject> other,
-      {bool retain = false, bool release = false})
-      : this._(other, retain: retain, release: release);
+  MTLTexture.castFromPointer(
+    ffi.Pointer<objc.ObjCObject> other, {
+    bool retain = false,
+    bool release = false,
+  }) : this._(other, retain: retain, release: release);
 }
 
 late final _sel_metalTexture = objc.registerName("metalTexture");
 late final _sel_metalTextureAddress = objc.registerName("metalTextureAddress");
 final _objc_msgSend_1hz7y9r = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Long Function(ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>)>>()
+      ffi.NativeFunction<
+        ffi.Long Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+        )
+      >
+    >()
     .asFunction<
-        int Function(
-            ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)>();
+      int Function(ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)
+    >();
 late final _sel_width = objc.registerName("width");
 final _objc_msgSend_pysgoz = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Int64 Function(ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>)>>()
+      ffi.NativeFunction<
+        ffi.Int64 Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+        )
+      >
+    >()
     .asFunction<
-        int Function(
-            ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)>();
+      int Function(ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)
+    >();
 late final _sel_height = objc.registerName("height");
-late final _sel_allocateWithWidth_height_isDepth_isStencil_ =
-    objc.registerName("allocateWithWidth:height:isDepth:isStencil:");
+late final _sel_allocateWithWidth_height_isDepth_isStencil_ = objc.registerName(
+  "allocateWithWidth:height:isDepth:isStencil:",
+);
 final _objc_msgSend_1v8gk45 = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Pointer<objc.ObjCObject> Function(
-                ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>,
-                ffi.Int64,
-                ffi.Int64,
-                ffi.Bool,
-                ffi.Bool)>>()
+      ffi.NativeFunction<
+        ffi.Pointer<objc.ObjCObject> Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+          ffi.Int64,
+          ffi.Int64,
+          ffi.Bool,
+          ffi.Bool,
+        )
+      >
+    >()
     .asFunction<
-        ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<objc.ObjCObject>,
-            ffi.Pointer<objc.ObjCSelector>, int, int, bool, bool)>();
-late final _sel_supportsRenderTarget =
-    objc.registerName("supportsRenderTarget");
+      ffi.Pointer<objc.ObjCObject> Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+        int,
+        int,
+        bool,
+        bool,
+      )
+    >();
+late final _sel_supportsRenderTarget = objc.registerName(
+  "supportsRenderTarget",
+);
 final _objc_msgSend_91o635 = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Bool Function(ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>)>>()
+      ffi.NativeFunction<
+        ffi.Bool Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+        )
+      >
+    >()
     .asFunction<
-        bool Function(
-            ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)>();
+      bool Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+      )
+    >();
 late final _sel_destroyTexture = objc.registerName("destroyTexture");
 final _objc_msgSend_1pl9qdv = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Void Function(ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>)>>()
+      ffi.NativeFunction<
+        ffi.Void Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+        )
+      >
+    >()
     .asFunction<
-        void Function(
-            ffi.Pointer<objc.ObjCObject>, ffi.Pointer<objc.ObjCSelector>)>();
+      void Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+      )
+    >();
 typedef instancetype = ffi.Pointer<objc.ObjCObject>;
 typedef Dartinstancetype = objc.ObjCObjectBase;
 late final _sel_init = objc.registerName("init");
@@ -149,72 +213,100 @@ late final _sel_new = objc.registerName("new");
 late final _sel_allocWithZone_ = objc.registerName("allocWithZone:");
 final _objc_msgSend_1cwp428 = objc.msgSendPointer
     .cast<
-        ffi.NativeFunction<
-            ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<objc.ObjCObject>,
-                ffi.Pointer<objc.ObjCSelector>, ffi.Pointer<objc.NSZone>)>>()
+      ffi.NativeFunction<
+        ffi.Pointer<objc.ObjCObject> Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+          ffi.Pointer<objc.NSZone>,
+        )
+      >
+    >()
     .asFunction<
-        ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<objc.ObjCObject>,
-            ffi.Pointer<objc.ObjCSelector>, ffi.Pointer<objc.NSZone>)>();
+      ffi.Pointer<objc.ObjCObject> Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+        ffi.Pointer<objc.NSZone>,
+      )
+    >();
 late final _sel_alloc = objc.registerName("alloc");
 late final _sel_self = objc.registerName("self");
 ffi.Pointer<objc.ObjCObject> _ObjCBlock_objcObjCObject_ffiVoid_fnPtrTrampoline(
-        ffi.Pointer<objc.ObjCBlockImpl> block, ffi.Pointer<ffi.Void> arg0) =>
-    block.ref.target
-        .cast<
-            ffi.NativeFunction<
-                ffi.Pointer<objc.ObjCObject> Function(
-                    ffi.Pointer<ffi.Void> arg0)>>()
-        .asFunction<
-            ffi.Pointer<objc.ObjCObject> Function(
-                ffi.Pointer<ffi.Void>)>()(arg0);
+  ffi.Pointer<objc.ObjCBlockImpl> block,
+  ffi.Pointer<ffi.Void> arg0,
+) => block.ref.target
+    .cast<
+      ffi.NativeFunction<
+        ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void> arg0)
+      >
+    >()
+    .asFunction<
+      ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+    >()(arg0);
 ffi.Pointer<ffi.Void> _ObjCBlock_objcObjCObject_ffiVoid_fnPtrCallable =
     ffi.Pointer.fromFunction<
-                ffi.Pointer<objc.ObjCObject> Function(
-                    ffi.Pointer<objc.ObjCBlockImpl>, ffi.Pointer<ffi.Void>)>(
-            _ObjCBlock_objcObjCObject_ffiVoid_fnPtrTrampoline)
+          ffi.Pointer<objc.ObjCObject> Function(
+            ffi.Pointer<objc.ObjCBlockImpl>,
+            ffi.Pointer<ffi.Void>,
+          )
+        >(_ObjCBlock_objcObjCObject_ffiVoid_fnPtrTrampoline)
         .cast();
 ffi.Pointer<objc.ObjCObject>
-    _ObjCBlock_objcObjCObject_ffiVoid_closureTrampoline(
-            ffi.Pointer<objc.ObjCBlockImpl> block,
-            ffi.Pointer<ffi.Void> arg0) =>
-        (objc.getBlockClosure(block) as ffi.Pointer<objc.ObjCObject> Function(
-            ffi.Pointer<ffi.Void>))(arg0);
+_ObjCBlock_objcObjCObject_ffiVoid_closureTrampoline(
+  ffi.Pointer<objc.ObjCBlockImpl> block,
+  ffi.Pointer<ffi.Void> arg0,
+) =>
+    (objc.getBlockClosure(block)
+        as ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>))(arg0);
 ffi.Pointer<ffi.Void> _ObjCBlock_objcObjCObject_ffiVoid_closureCallable =
     ffi.Pointer.fromFunction<
-                ffi.Pointer<objc.ObjCObject> Function(
-                    ffi.Pointer<objc.ObjCBlockImpl>, ffi.Pointer<ffi.Void>)>(
-            _ObjCBlock_objcObjCObject_ffiVoid_closureTrampoline)
+          ffi.Pointer<objc.ObjCObject> Function(
+            ffi.Pointer<objc.ObjCBlockImpl>,
+            ffi.Pointer<ffi.Void>,
+          )
+        >(_ObjCBlock_objcObjCObject_ffiVoid_closureTrampoline)
         .cast();
 
 /// Construction methods for `objc.ObjCBlock<ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>`.
 abstract final class ObjCBlock_objcObjCObject_ffiVoid {
   /// Returns a block that wraps the given raw block pointer.
-  static objc
-      .ObjCBlock<ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>
-      castFromPointer(ffi.Pointer<objc.ObjCBlockImpl> pointer,
-              {bool retain = false, bool release = false}) =>
-          objc.ObjCBlock<
-                  ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>(
-              pointer,
-              retain: retain,
-              release: release);
+  static objc.ObjCBlock<
+    ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+  >
+  castFromPointer(
+    ffi.Pointer<objc.ObjCBlockImpl> pointer, {
+    bool retain = false,
+    bool release = false,
+  }) =>
+      objc.ObjCBlock<
+        ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+      >(pointer, retain: retain, release: release);
 
   /// Creates a block from a C function pointer.
   ///
   /// This block must be invoked by native code running on the same thread as
   /// the isolate that registered it. Invoking the block on the wrong thread
   /// will result in a crash.
-  static objc.ObjCBlock<ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>
-      fromFunctionPointer(
-              ffi.Pointer<
-                      ffi.NativeFunction<
-                          ffi.Pointer<objc.ObjCObject> Function(
-                              ffi.Pointer<ffi.Void> arg0)>>
-                  ptr) =>
-          objc.ObjCBlock<ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>(
-              objc.newPointerBlock(_ObjCBlock_objcObjCObject_ffiVoid_fnPtrCallable, ptr.cast()),
-              retain: false,
-              release: true);
+  static objc.ObjCBlock<
+    ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+  >
+  fromFunctionPointer(
+    ffi.Pointer<
+      ffi.NativeFunction<
+        ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void> arg0)
+      >
+    >
+    ptr,
+  ) =>
+      objc.ObjCBlock<
+        ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+      >(
+        objc.newPointerBlock(
+          _ObjCBlock_objcObjCObject_ffiVoid_fnPtrCallable,
+          ptr.cast(),
+        ),
+        retain: false,
+        release: true,
+      );
 
   /// Creates a block from a Dart function.
   ///
@@ -224,37 +316,51 @@ abstract final class ObjCBlock_objcObjCObject_ffiVoid {
   ///
   /// If `keepIsolateAlive` is true, this block will keep this isolate alive
   /// until it is garbage collected by both Dart and ObjC.
-  static objc
-      .ObjCBlock<ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>
-      fromFunction(objc.ObjCObjectBase Function(ffi.Pointer<ffi.Void>) fn,
-              {bool keepIsolateAlive = true}) =>
-          objc.ObjCBlock<
-                  ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>(
-              objc.newClosureBlock(
-                  _ObjCBlock_objcObjCObject_ffiVoid_closureCallable,
-                  (ffi.Pointer<ffi.Void> arg0) =>
-                      fn(arg0).ref.retainAndAutorelease(),
-                  keepIsolateAlive),
-              retain: false,
-              release: true);
+  static objc.ObjCBlock<
+    ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+  >
+  fromFunction(
+    objc.ObjCObjectBase Function(ffi.Pointer<ffi.Void>) fn, {
+    bool keepIsolateAlive = true,
+  }) =>
+      objc.ObjCBlock<
+        ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+      >(
+        objc.newClosureBlock(
+          _ObjCBlock_objcObjCObject_ffiVoid_closureCallable,
+          (ffi.Pointer<ffi.Void> arg0) => fn(arg0).ref.retainAndAutorelease(),
+          keepIsolateAlive,
+        ),
+        retain: false,
+        release: true,
+      );
 }
 
 /// Call operator for `objc.ObjCBlock<ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)>`.
-extension ObjCBlock_objcObjCObject_ffiVoid_CallExtension on objc
-    .ObjCBlock<ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)> {
+extension ObjCBlock_objcObjCObject_ffiVoid_CallExtension
+    on
+        objc.ObjCBlock<
+          ffi.Pointer<objc.ObjCObject> Function(ffi.Pointer<ffi.Void>)
+        > {
   objc.ObjCObjectBase call(ffi.Pointer<ffi.Void> arg0) => objc.ObjCObjectBase(
-      ref.pointer.ref.invoke
-          .cast<
-              ffi.NativeFunction<
-                  ffi.Pointer<objc.ObjCObject> Function(
-                      ffi.Pointer<objc.ObjCBlockImpl> block,
-                      ffi.Pointer<ffi.Void> arg0)>>()
-          .asFunction<
-              ffi.Pointer<objc.ObjCObject> Function(
-                  ffi.Pointer<objc.ObjCBlockImpl>,
-                  ffi.Pointer<ffi.Void>)>()(ref.pointer, arg0),
-      retain: true,
-      release: true);
+    ref.pointer.ref.invoke
+        .cast<
+          ffi.NativeFunction<
+            ffi.Pointer<objc.ObjCObject> Function(
+              ffi.Pointer<objc.ObjCBlockImpl> block,
+              ffi.Pointer<ffi.Void> arg0,
+            )
+          >
+        >()
+        .asFunction<
+          ffi.Pointer<objc.ObjCObject> Function(
+            ffi.Pointer<objc.ObjCBlockImpl>,
+            ffi.Pointer<ffi.Void>,
+          )
+        >()(ref.pointer, arg0),
+    retain: true,
+    release: true,
+  );
 }
 
 late final _sel_retain = objc.registerName("retain");
@@ -262,23 +368,30 @@ late final _sel_autorelease = objc.registerName("autorelease");
 
 /// MetalTextureWrapper
 class MetalTextureWrapper extends objc.NSObject {
-  MetalTextureWrapper._(ffi.Pointer<objc.ObjCObject> pointer,
-      {bool retain = false, bool release = false})
-      : super.castFromPointer(pointer, retain: retain, release: release);
+  MetalTextureWrapper._(
+    ffi.Pointer<objc.ObjCObject> pointer, {
+    bool retain = false,
+    bool release = false,
+  }) : super.castFromPointer(pointer, retain: retain, release: release);
 
   /// Constructs a [MetalTextureWrapper] that points to the same underlying object as [other].
   MetalTextureWrapper.castFrom(objc.ObjCObjectBase other)
-      : this._(other.ref.pointer, retain: true, release: true);
+    : this._(other.ref.pointer, retain: true, release: true);
 
   /// Constructs a [MetalTextureWrapper] that wraps the given raw object pointer.
-  MetalTextureWrapper.castFromPointer(ffi.Pointer<objc.ObjCObject> other,
-      {bool retain = false, bool release = false})
-      : this._(other, retain: retain, release: release);
+  MetalTextureWrapper.castFromPointer(
+    ffi.Pointer<objc.ObjCObject> other, {
+    bool retain = false,
+    bool release = false,
+  }) : this._(other, retain: retain, release: release);
 
   /// Returns whether [obj] is an instance of [MetalTextureWrapper].
   static bool isInstance(objc.ObjCObjectBase obj) {
     return _objc_msgSend_19nvye5(
-        obj.ref.pointer, _sel_isKindOfClass_, _class_MetalTextureWrapper);
+      obj.ref.pointer,
+      _sel_isKindOfClass_,
+      _class_MetalTextureWrapper,
+    );
   }
 
   /// pixelBuffer
@@ -329,16 +442,24 @@ class MetalTextureWrapper extends objc.NSObject {
 
   /// allocateWithWidth:height:isDepth:isStencil:
   static MetalTextureWrapper allocateWithWidth_height_isDepth_isStencil_(
-      int width, int height, bool isDepth, bool isStencil) {
+    int width,
+    int height,
+    bool isDepth,
+    bool isStencil,
+  ) {
     final _ret = _objc_msgSend_1v8gk45(
-        _class_MetalTextureWrapper,
-        _sel_allocateWithWidth_height_isDepth_isStencil_,
-        width,
-        height,
-        isDepth,
-        isStencil);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: true, release: true);
+      _class_MetalTextureWrapper,
+      _sel_allocateWithWidth_height_isDepth_isStencil_,
+      width,
+      height,
+      isDepth,
+      isStencil,
+    );
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
   }
 
   /// supportsRenderTarget
@@ -353,53 +474,79 @@ class MetalTextureWrapper extends objc.NSObject {
 
   /// init
   MetalTextureWrapper init() {
-    final _ret =
-        _objc_msgSend_151sglz(this.ref.retainAndReturnPointer(), _sel_init);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: false, release: true);
+    final _ret = _objc_msgSend_151sglz(
+      this.ref.retainAndReturnPointer(),
+      _sel_init,
+    );
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
   }
 
   /// new
   static MetalTextureWrapper new$() {
     final _ret = _objc_msgSend_151sglz(_class_MetalTextureWrapper, _sel_new);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: false, release: true);
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
   }
 
   /// allocWithZone:
   static MetalTextureWrapper allocWithZone_(ffi.Pointer<objc.NSZone> zone) {
     final _ret = _objc_msgSend_1cwp428(
-        _class_MetalTextureWrapper, _sel_allocWithZone_, zone);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: false, release: true);
+      _class_MetalTextureWrapper,
+      _sel_allocWithZone_,
+      zone,
+    );
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
   }
 
   /// alloc
   static MetalTextureWrapper alloc() {
     final _ret = _objc_msgSend_151sglz(_class_MetalTextureWrapper, _sel_alloc);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: false, release: true);
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
   }
 
   /// self
   MetalTextureWrapper self$1() {
     final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_self);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: true, release: true);
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
   }
 
   /// retain
   MetalTextureWrapper retain() {
     final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_retain);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: true, release: true);
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
   }
 
   /// autorelease
   MetalTextureWrapper autorelease() {
     final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_autorelease);
-    return MetalTextureWrapper.castFromPointer(_ret,
-        retain: true, release: true);
+    return MetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
   }
 
   /// Returns a new instance of MetalTextureWrapper constructed with the default `new` method.

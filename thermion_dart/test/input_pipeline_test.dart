@@ -49,7 +49,9 @@ void main() {
       final config = InputConfiguration();
       config.addBinding(LogicalKey.w, IntentAction.moveForward);
       config.addBinding(
-          LogicalKey.w, IntentAction.sprint); // Multiple bindings on same key
+        LogicalKey.w,
+        IntentAction.sprint,
+      ); // Multiple bindings on same key
       config.addBinding(LogicalKey.s, IntentAction.moveBackward);
 
       expect(config.keyBindings.length, equals(3));
@@ -63,8 +65,10 @@ void main() {
     test('should remove bindings for specific action', () {
       final config = InputConfiguration();
       config.addBinding(LogicalKey.w, IntentAction.moveForward);
-      config.addBinding(LogicalKey.numpad8,
-          IntentAction.moveForward); // Multiple keys for same action
+      config.addBinding(
+        LogicalKey.numpad8,
+        IntentAction.moveForward,
+      ); // Multiple keys for same action
       config.addBinding(LogicalKey.s, IntentAction.moveBackward);
 
       expect(config.keyBindings.length, equals(3));
@@ -108,8 +112,9 @@ void main() {
       config.addBinding(LogicalKey.numpad8, IntentAction.moveForward);
       config.addBinding(LogicalKey.s, IntentAction.moveBackward);
 
-      final forwardBindings =
-          config.getBindingsForAction(IntentAction.moveForward);
+      final forwardBindings = config.getBindingsForAction(
+        IntentAction.moveForward,
+      );
 
       expect(forwardBindings.length, equals(2));
       expect(forwardBindings[0].key, equals(LogicalKey.w));
@@ -126,28 +131,34 @@ void main() {
       expect(config.invertMouseY, equals(false));
 
       // Check WASD bindings
-      final wBinding =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.w);
+      final wBinding = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.w,
+      );
       expect(wBinding.action, equals(IntentAction.moveForward));
 
-      final sBinding =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.s);
+      final sBinding = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.s,
+      );
       expect(sBinding.action, equals(IntentAction.moveBackward));
 
-      final aBinding =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.a);
+      final aBinding = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.a,
+      );
       expect(aBinding.action, equals(IntentAction.moveLeft));
 
-      final dBinding =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.d);
+      final dBinding = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.d,
+      );
       expect(dBinding.action, equals(IntentAction.moveRight));
 
-      final spaceBinding =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.space);
+      final spaceBinding = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.space,
+      );
       expect(spaceBinding.action, equals(IntentAction.jump));
 
-      final shiftBinding =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.shiftLeft);
+      final shiftBinding = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.shiftLeft,
+      );
       expect(shiftBinding.action, equals(IntentAction.sprint));
     });
 
@@ -157,20 +168,24 @@ void main() {
       expect(config.keyBindings.length, equals(6));
 
       // Check numpad bindings
-      final numpad8 =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.numpad8);
+      final numpad8 = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.numpad8,
+      );
       expect(numpad8.action, equals(IntentAction.moveForward));
 
-      final numpad2 =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.numpad2);
+      final numpad2 = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.numpad2,
+      );
       expect(numpad2.action, equals(IntentAction.moveBackward));
 
-      final numpad4 =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.numpad4);
+      final numpad4 = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.numpad4,
+      );
       expect(numpad4.action, equals(IntentAction.moveLeft));
 
-      final numpad6 =
-          config.keyBindings.firstWhere((b) => b.key == LogicalKey.numpad6);
+      final numpad6 = config.keyBindings.firstWhere(
+        (b) => b.key == LogicalKey.numpad6,
+      );
       expect(numpad6.action, equals(IntentAction.moveRight));
     });
   });
@@ -325,7 +340,9 @@ void main() {
       expect(intent.hasCustomIntent(IntentAction.crouch), equals(false));
       expect(intent.hasCustomIntent(IntentAction.altFire), equals(false));
       expect(
-          intent.customIntents.length, equals(2)); // interact and reload remain
+        intent.customIntents.length,
+        equals(2),
+      ); // interact and reload remain
     });
 
     test('should handle custom intent limits correctly', () {
@@ -358,8 +375,10 @@ void main() {
 
       // Convert to native and back to test the MAX_CUSTOM_INTENTS limit
       final native = intent.toNative();
-      expect(native.customIntentCount,
-          lessThanOrEqualTo(16)); // MAX_CUSTOM_INTENTS
+      expect(
+        native.customIntentCount,
+        lessThanOrEqualTo(16),
+      ); // MAX_CUSTOM_INTENTS
 
       final restored = MovementIntent.fromNative(native);
 
@@ -407,7 +426,9 @@ void main() {
       expect(forwardIntent.movementDirection.z, equals(-1.0));
       expect(forwardIntent.jumpIntent, equals(true));
       expect(
-          forwardIntent.hasCustomIntent(IntentAction.interact), equals(true));
+        forwardIntent.hasCustomIntent(IntentAction.interact),
+        equals(true),
+      );
 
       expect(strafeIntent.movementDirection.x, equals(-1.0));
       expect(strafeIntent.movementSpeed, equals(0.5));
@@ -486,7 +507,8 @@ void main() {
           'sprintIntent': true,
           'hasMovementIntent': true,
           'hasRotationIntent': true,
-          'expectedMask': JUMP_INTENT_MASK |
+          'expectedMask':
+              JUMP_INTENT_MASK |
               SPRINT_INTENT_MASK |
               MOVEMENT_INTENT_MASK |
               ROTATION_INTENT_MASK,
@@ -510,21 +532,34 @@ void main() {
         );
 
         final native = intent.toNative();
-        expect(native.intentStates, equals(testCase['expectedMask'] as int),
-            reason: 'Failed for case: ${testCase['name']}');
+        expect(
+          native.intentStates,
+          equals(testCase['expectedMask'] as int),
+          reason: 'Failed for case: ${testCase['name']}',
+        );
 
         // Test round-trip
         final restored = MovementIntent.fromNative(native);
-        expect(restored.jumpIntent, equals(testCase['jumpIntent']),
-            reason: 'Jump intent mismatch for case: ${testCase['name']}');
-        expect(restored.sprintIntent, equals(testCase['sprintIntent']),
-            reason: 'Sprint intent mismatch for case: ${testCase['name']}');
         expect(
-            restored.hasMovementIntent, equals(testCase['hasMovementIntent']),
-            reason: 'Movement intent mismatch for case: ${testCase['name']}');
+          restored.jumpIntent,
+          equals(testCase['jumpIntent']),
+          reason: 'Jump intent mismatch for case: ${testCase['name']}',
+        );
         expect(
-            restored.hasRotationIntent, equals(testCase['hasRotationIntent']),
-            reason: 'Rotation intent mismatch for case: ${testCase['name']}');
+          restored.sprintIntent,
+          equals(testCase['sprintIntent']),
+          reason: 'Sprint intent mismatch for case: ${testCase['name']}',
+        );
+        expect(
+          restored.hasMovementIntent,
+          equals(testCase['hasMovementIntent']),
+          reason: 'Movement intent mismatch for case: ${testCase['name']}',
+        );
+        expect(
+          restored.hasRotationIntent,
+          equals(testCase['hasRotationIntent']),
+          reason: 'Rotation intent mismatch for case: ${testCase['name']}',
+        );
       }
     });
 

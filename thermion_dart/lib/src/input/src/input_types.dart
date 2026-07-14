@@ -36,19 +36,14 @@ class ScaleStartEvent extends InputEvent {
   final ScaleEventType type = ScaleEventType.start;
   final (double, double) localFocalPoint;
 
-  ScaleStartEvent({
-    required this.numPointers,
-    required this.localFocalPoint,
-  });
+  ScaleStartEvent({required this.numPointers, required this.localFocalPoint});
 }
 
 class ScaleEndEvent extends InputEvent {
   final int numPointers;
   final ScaleEventType type = ScaleEventType.end;
 
-  ScaleEndEvent({
-    required this.numPointers,
-  });
+  ScaleEndEvent({required this.numPointers});
 }
 
 class ScaleUpdateEvent extends InputEvent {
@@ -61,14 +56,15 @@ class ScaleUpdateEvent extends InputEvent {
   final double horizontalScale;
   final double verticalScale;
 
-  ScaleUpdateEvent(
-      {required this.numPointers,
-      required this.localFocalPoint,
-      required this.localFocalPointDelta,
-      required this.rotation,
-      required this.scale,
-      required this.horizontalScale,
-      required this.verticalScale});
+  ScaleUpdateEvent({
+    required this.numPointers,
+    required this.localFocalPoint,
+    required this.localFocalPointDelta,
+    required this.rotation,
+    required this.scale,
+    required this.horizontalScale,
+    required this.verticalScale,
+  });
 }
 
 class ScrollEvent extends InputEvent {
@@ -84,8 +80,12 @@ class KeyEvent extends InputEvent {
   final PhysicalKey physicalKey;
   final bool synthesized;
 
-  KeyEvent(this.type, this.logicalKey, this.physicalKey,
-      {this.synthesized = false});
+  KeyEvent(
+    this.type,
+    this.logicalKey,
+    this.physicalKey, {
+    this.synthesized = false,
+  });
 }
 
 enum KeyEventType { down, up }
@@ -146,7 +146,7 @@ enum LogicalKey {
   numpad9,
   numpadPeriod,
   numpadEnter,
-  enter
+  enter,
 }
 
 enum PhysicalKey {
@@ -205,7 +205,7 @@ enum PhysicalKey {
   numpad8,
   numpad9,
   numpadPeriod,
-  numpadEnter
+  numpadEnter,
 }
 
 enum InputAction { TRANSLATE, ROTATE, PICK, ZOOM, NONE }

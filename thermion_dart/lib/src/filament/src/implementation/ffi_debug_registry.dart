@@ -57,7 +57,10 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
       final outValue = makeInt32List(1);
 
       final success = DebugRegistry_getProperty_bool(
-          debugRegistry, ptr.cast(), outValue.address.cast());
+        debugRegistry,
+        ptr.cast(),
+        outValue.address.cast(),
+      );
       if (!success) {
         return null;
       }
@@ -74,7 +77,10 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
       final outValue = Int32List(1);
 
       final success = DebugRegistry_getProperty_int(
-          debugRegistry, ptr.cast(), outValue.address.cast());
+        debugRegistry,
+        ptr.cast(),
+        outValue.address.cast(),
+      );
       if (!success) {
         return null;
       }
@@ -91,7 +97,10 @@ class FFIDebugRegistry extends DebugRegistry<Pointer<TDebugRegistry>> {
       final outValue = Float32List(1);
 
       final success = DebugRegistry_getProperty_float(
-          debugRegistry, ptr.cast(), outValue.address);
+        debugRegistry,
+        ptr.cast(),
+        outValue.address,
+      );
       if (!success) {
         return null;
       }

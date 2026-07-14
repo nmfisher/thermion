@@ -88,14 +88,16 @@ class FinalizableUint8List implements Finalizable {
 
 extension GPFBP on void Function(int, double, double, double) {
   CallbackHolder<GizmoPickCallbackFunction> asCallback() {
-    var nativeCallable =
-        NativeCallable<GizmoPickCallbackFunction>.listener(this);
+    var nativeCallable = NativeCallable<GizmoPickCallbackFunction>.listener(
+      this,
+    );
     return CallbackHolder(nativeCallable);
   }
 }
 
 CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(
-    DartPickCallbackFunction fn) {
+  DartPickCallbackFunction fn,
+) {
   final nc = NativeCallable<PickCallbackFunction>.listener(fn);
   final cbh = CallbackHolder(nc);
   return cbh;
@@ -126,7 +128,8 @@ late NativeCallable<Void Function(Int32)> _voidCallbackNativeCallable =
     NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
 
 Future<void> withVoidCallback(
-    Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func) async {
+  Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func,
+) async {
   var requestId = _requestId;
   _requestId++;
   final completer = Completer();
@@ -156,7 +159,8 @@ Future<void> withVoidCallback(
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
-    Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func,
+) async {
   final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<NativeType>) callback = (Pointer<NativeType> ptr) {
@@ -171,7 +175,8 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
 }
 
 Future<bool> withBoolCallback(
-    Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Bool)>>) func,
+) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
   void Function(bool) callback = (bool result) {
@@ -185,14 +190,16 @@ Future<bool> withBoolCallback(
 }
 
 Future<double> withFloatCallback(
-    Function(Pointer<NativeFunction<Void Function(Float)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Float)>>) func,
+) async {
   final completer = Completer<double>();
   // ignore: prefer_function_declarations_over_variables
   void Function(double) callback = (double result) {
     completer.complete(result);
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Float)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Float)>.listener(
+    callback,
+  );
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
@@ -200,14 +207,16 @@ Future<double> withFloatCallback(
 }
 
 Future<int> withIntCallback(
-    Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Int32)>>) func,
+) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
     completer.complete(result);
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Int32)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Int32)>.listener(
+    callback,
+  );
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
@@ -215,14 +224,16 @@ Future<int> withIntCallback(
 }
 
 Future<int> withUInt32Callback(
-    Function(Pointer<NativeFunction<Void Function(Uint32)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Uint32)>>) func,
+) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
     completer.complete(result);
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Uint32)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Uint32)>.listener(
+    callback,
+  );
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
@@ -230,15 +241,16 @@ Future<int> withUInt32Callback(
 }
 
 Future<String> withCharPtrCallback(
-    Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>)
-        func) async {
+  Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func,
+) async {
   final completer = Completer<String>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<Char>) callback = (Pointer<Char> result) {
     completer.complete(result.cast<Utf8>().toDartString());
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Pointer<Char>)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Pointer<Char>)>.listener(
+    callback,
+  );
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();

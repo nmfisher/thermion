@@ -29,8 +29,10 @@ class SphereGeometry {
         verticesList.addAll([x, y, z]);
         normalsList.addAll([x, y, z]);
 
-        uvsList
-            .addAll([longNumber / longitudeBands, latNumber / latitudeBands]);
+        uvsList.addAll([
+          longNumber / longitudeBands,
+          latNumber / latitudeBands,
+        ]);
       }
     }
 
@@ -39,8 +41,14 @@ class SphereGeometry {
         int first = (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices
-            .addAll([first, second, first + 1, second, second + 1, first + 1]);
+        indices.addAll([
+          first,
+          second,
+          first + 1,
+          second,
+          second + 1,
+          first + 1,
+        ]);
       }
     }
 
@@ -48,7 +56,11 @@ class SphereGeometry {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, Uint16List.fromList(indices),
-        normals: _normals, uvs: _uvs);
+    return Geometry(
+      vertices,
+      Uint16List.fromList(indices),
+      normals: _normals,
+      uvs: _uvs,
+    );
   }
 }

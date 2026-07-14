@@ -18,11 +18,12 @@ class InputSensitivityOptions {
   final double keySensitivity;
   final double scrollWheelSensitivity;
 
-  const InputSensitivityOptions(
-      {this.touchSensitivity = 0.001,
-      this.touchScaleSensitivity = 2.0,
-      this.mouseSensitivity = 0.001,
-      this.mousePanSensitivity = 0.01,
-      this.scrollWheelSensitivity = 0.01,
-      this.keySensitivity = 0.1});
+  const InputSensitivityOptions({
+    this.touchSensitivity = 0.001,
+    this.touchScaleSensitivity = 2.0,
+    this.mouseSensitivity = 0.001,
+    this.mousePanSensitivity = 0.01,
+    this.scrollWheelSensitivity = 0.01,
+    this.keySensitivity = 0.1,
+  });
 }

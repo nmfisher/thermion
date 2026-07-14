@@ -71,14 +71,19 @@ abstract class ThermionViewer {
   // Creates an indirect light by loading the reflections/irradiance from the
   // KTX file. Only one indirect light can be active at any given time; if an
   // indirect light has already been loaded, it will be replaced.
-  Future loadIbl(String lightingPath,
-      {double intensity = 30000, bool destroyExisting = true});
+  Future loadIbl(
+    String lightingPath, {
+    double intensity = 30000,
+    bool destroyExisting = true,
+  });
 
   //
-  Future loadIblFromTexture(Texture texture,
-      {Texture? reflectionsTexture,
-      double intensity = 30000,
-      bool destroyExisting = true});
+  Future loadIblFromTexture(
+    Texture texture, {
+    Texture? reflectionsTexture,
+    double intensity = 30000,
+    bool destroyExisting = true,
+  });
 
   //
   // Rotates the IBL & skybox.
@@ -149,25 +154,29 @@ abstract class ThermionViewer {
   // If [loadResourcesAsync] is true, resources (textures, materials, etc) will
   // be loaded asynchronously. Some material/texture pop-in is expected.
   //
-  Future<ThermionAsset> loadGltf(String uri,
-      {bool addToScene = true,
-      int initialInstances = 1,
-      bool releaseSourceData = false,
-      bool rebuildVertices = false,
-      String? resourceUri,
-      bool loadAsync = false});
+  Future<ThermionAsset> loadGltf(
+    String uri, {
+    bool addToScene = true,
+    int initialInstances = 1,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
+    String? resourceUri,
+    bool loadAsync = false,
+  });
 
   // Loads a gltf asset from the specified buffer (which contains the contents
   // of a .glb file).
   //
   // See the [loadGltf] method for documentation on arguments.
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
-      {String? resourceUri,
-      int initialInstances = 1,
-      bool releaseSourceData = false,
-      bool rebuildVertices = false,
-      bool loadResourcesAsync = false,
-      bool addToScene = true});
+  Future<ThermionAsset> loadGltfFromBuffer(
+    Uint8List data, {
+    String? resourceUri,
+    int initialInstances = 1,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
+    bool loadResourcesAsync = false,
+    bool addToScene = true,
+  });
 
   // Destroys [asset] and all underlying resources
   // (including instances, but excluding any manually created material instances).
@@ -199,7 +208,11 @@ abstract class ThermionViewer {
   // Set the world space position for [lightEntity] to the given coordinates.
   //
   Future setLightPosition(
-      ThermionEntity lightEntity, double x, double y, double z);
+    ThermionEntity lightEntity,
+    double x,
+    double y,
+    double z,
+  );
 
   //
   // Sets the world space direction for [lightEntity] to the given vector.
@@ -231,9 +244,11 @@ abstract class ThermionViewer {
   Future setPriority(ThermionEntity entityId, int priority);
 
   //
-  Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances,
-      bool releaseSourceData = false});
+  Future<ThermionAsset> createGeometry(
+    Geometry geometry, {
+    List<MaterialInstance>? materialInstances,
+    bool releaseSourceData = false,
+  });
 
   // Returns a gizmo for translating/rotating objects.
   // Only one gizmo can be visible at any given time for this viewer.
@@ -259,14 +274,16 @@ abstract class ThermionViewer {
   Future<Aabb2> getViewportBoundingBox(ThermionEntity entity);
 
   //
-  Future setGridOverlayVisibility(bool visible,
-      {List<LinearColor> axisColors = kDefaultAxisColors,
-      LinearColor gridColor = kDefaultGridColor,
-      List<double> spacing = const [1.0, 10.0, 100.0],
-      List<double> fadeInStart = const [0.001, 5.0, 50.0],
-      List<double> fadeInEnd = const [0.001, 50.0, 500.0],
-      List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
-      List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0]});
+  Future setGridOverlayVisibility(
+    bool visible, {
+    List<LinearColor> axisColors = kDefaultAxisColors,
+    LinearColor gridColor = kDefaultGridColor,
+    List<double> spacing = const [1.0, 10.0, 100.0],
+    List<double> fadeInStart = const [0.001, 5.0, 50.0],
+    List<double> fadeInEnd = const [0.001, 50.0, 500.0],
+    List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
+    List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0],
+  });
 
   /// Shows or hides a translation axis line overlay.
   ///
@@ -275,12 +292,14 @@ abstract class ThermionViewer {
   /// If [origin] is provided, it overrides the entity position.
   /// The line extends [lineLength] in both directions along [axis].
   /// Colors are hardcoded: X=red, Y=green, Z=blue.
-  Future setTranslationAxisVisibility(bool visible,
-      {ThermionEntity? entity,
-      Vector3? origin,
-      Axis? axis,
-      double lineWidth = 5.0,
-      double lineLength = 500.0});
+  Future setTranslationAxisVisibility(
+    bool visible, {
+    ThermionEntity? entity,
+    Vector3? origin,
+    Axis? axis,
+    double lineWidth = 5.0,
+    double lineLength = 500.0,
+  });
 
   //
   Future<Camera> createCamera();

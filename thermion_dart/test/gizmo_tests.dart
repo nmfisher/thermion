@@ -9,24 +9,32 @@ void main() async {
 
   group("gizmo tests", () {
     test('add/remove translation gizmo', () async {
-      await testHelper.withViewer((viewer) async {
-        final gizmo = await viewer.getGizmo(GizmoType.translation);
-        await viewer.addToScene(gizmo);
-        await testHelper.capture(viewer.view, "translation_gizmo");
-        await viewer.removeFromScene(gizmo);
-        await testHelper.capture(viewer.view, "translation_gizmo_removed");
-      }, postProcessing: true, bg: kWhite);
+      await testHelper.withViewer(
+        (viewer) async {
+          final gizmo = await viewer.getGizmo(GizmoType.translation);
+          await viewer.addToScene(gizmo);
+          await testHelper.capture(viewer.view, "translation_gizmo");
+          await viewer.removeFromScene(gizmo);
+          await testHelper.capture(viewer.view, "translation_gizmo_removed");
+        },
+        postProcessing: true,
+        bg: kWhite,
+      );
     });
   });
 
   test('add/remove rotation gizmo', () async {
-    await testHelper.withViewer((viewer) async {
-      final gizmo = await viewer.getGizmo(GizmoType.rotation);
-      await viewer.addToScene(gizmo);
-      await testHelper.capture(viewer.view, "rotation_gizmo");
-      await viewer.removeFromScene(gizmo);
-      await testHelper.capture(viewer.view, "rotation_gizmo_removed");
-    }, postProcessing: true, bg: kWhite);
+    await testHelper.withViewer(
+      (viewer) async {
+        final gizmo = await viewer.getGizmo(GizmoType.rotation);
+        await viewer.addToScene(gizmo);
+        await testHelper.capture(viewer.view, "rotation_gizmo");
+        await viewer.removeFromScene(gizmo);
+        await testHelper.capture(viewer.view, "rotation_gizmo_removed");
+      },
+      postProcessing: true,
+      bg: kWhite,
+    );
   });
 
   //   test('set gizmo transform', () async {

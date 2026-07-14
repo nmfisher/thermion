@@ -53,7 +53,7 @@ final physicalKeyMap = {
   PhysicalKeyboardKey.numpad9: PhysicalKey.numpad9,
   PhysicalKeyboardKey.numpadDecimal: PhysicalKey.numpadPeriod,
   PhysicalKeyboardKey.enter: PhysicalKey.enter,
-  PhysicalKeyboardKey.numpadEnter: PhysicalKey.numpadEnter
+  PhysicalKeyboardKey.numpadEnter: PhysicalKey.numpadEnter,
 };
 
 final logicalKeyMap = {
@@ -94,7 +94,7 @@ final logicalKeyMap = {
   LogicalKeyboardKey.numpad9: LogicalKey.numpad9,
   LogicalKeyboardKey.numpadDecimal: LogicalKey.numpadPeriod,
   LogicalKeyboardKey.enter: LogicalKey.enter,
-  LogicalKeyboardKey.numpadEnter: LogicalKey.numpadEnter
+  LogicalKeyboardKey.numpadEnter: LogicalKey.numpadEnter,
 };
 
 ///
@@ -132,14 +132,14 @@ class ThermionListenerWidget extends StatefulWidget {
   ///
   ///
   ///
-  const ThermionListenerWidget(
-      {Key? key,
-      required this.inputHandler,
-      this.focusNode,
-      this.child,
-      this.addKeyboardListener = true,
-      this.propagateEvents = true})
-      : super(key: key);
+  const ThermionListenerWidget({
+    Key? key,
+    required this.inputHandler,
+    this.focusNode,
+    this.child,
+    this.addKeyboardListener = true,
+    this.propagateEvents = true,
+  }) : super(key: key);
 
   @override
   State<ThermionListenerWidget> createState() => _ThermionListenerWidgetState();
@@ -177,13 +177,23 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     }
 
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      widget.inputHandler.handle(t.KeyEvent(
-          KeyEventType.down, logicalKey, physicalKey,
-          synthesized: event.synthesized));
+      widget.inputHandler.handle(
+        t.KeyEvent(
+          KeyEventType.down,
+          logicalKey,
+          physicalKey,
+          synthesized: event.synthesized,
+        ),
+      );
     } else if (event is KeyUpEvent) {
-      widget.inputHandler.handle(t.KeyEvent(
-          KeyEventType.up, logicalKey, physicalKey,
-          synthesized: event.synthesized));
+      widget.inputHandler.handle(
+        t.KeyEvent(
+          KeyEventType.up,
+          logicalKey,
+          physicalKey,
+          synthesized: event.synthesized,
+        ),
+      );
       return true;
     }
     return !widget.propagateEvents;
@@ -218,7 +228,9 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 
   /// Detects which button was released by comparing previous and current button states
   t.MouseButton? _detectButtonReleased(
-      int previousButtons, int currentButtons) {
+    int previousButtons,
+    int currentButtons,
+  ) {
     final released = previousButtons & ~currentButtons;
 
     if (released & kPrimaryMouseButton != 0) {
@@ -233,77 +245,94 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 
   Widget _desktop(double pixelRatio) {
     return Focus(
-        focusNode: widget.focusNode,
-        onKeyEvent: (focusNode, keyEvent) {
-          return KeyEventResult.handled;
+      focusNode: widget.focusNode,
+      onKeyEvent: (focusNode, keyEvent) {
+        return KeyEventResult.handled;
+      },
+      child: Listener(
+        onPointerHover: (event) async {
+          widget.inputHandler.handle(
+            MouseEvent(
+              MouseEventType.hover,
+              _mouseButtonFromEvent(event),
+              event.localPosition.toVector2() * pixelRatio,
+              event.delta.toVector2() * pixelRatio,
+            ),
+          );
         },
-        child: Listener(
-          onPointerHover: (event) async {
-            widget.inputHandler.handle(MouseEvent(
-                MouseEventType.hover,
-                _mouseButtonFromEvent(event),
-                event.localPosition.toVector2() * pixelRatio,
-                event.delta.toVector2() * pixelRatio));
-          },
-          onPointerSignal: (PointerSignalEvent pointerSignal) async {
-            if (pointerSignal is PointerScrollEvent) {
-              widget.inputHandler.handle(ScrollEvent(
-                  localPosition:
-                      pointerSignal.localPosition.toVector2() * pixelRatio,
-                  delta: pointerSignal.scrollDelta.dy * pixelRatio));
-            }
-          },
-          onPointerPanZoomStart: (pzs) {
-            throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
-          },
-          onPointerDown: (event) async {
-            widget.focusNode?.requestFocus();
+        onPointerSignal: (PointerSignalEvent pointerSignal) async {
+          if (pointerSignal is PointerScrollEvent) {
+            widget.inputHandler.handle(
+              ScrollEvent(
+                localPosition:
+                    pointerSignal.localPosition.toVector2() * pixelRatio,
+                delta: pointerSignal.scrollDelta.dy * pixelRatio,
+              ),
+            );
+          }
+        },
+        onPointerPanZoomStart: (pzs) {
+          throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
+        },
+        onPointerDown: (event) async {
+          widget.focusNode?.requestFocus();
 
-            final button = _detectButtonPressed(_buttonsPressed, event.buttons);
-            _buttonsPressed = event.buttons;
+          final button = _detectButtonPressed(_buttonsPressed, event.buttons);
+          _buttonsPressed = event.buttons;
 
-            widget.inputHandler.handle(MouseEvent(
-                MouseEventType.buttonDown,
-                button,
-                event.localPosition.toVector2() * pixelRatio,
-                event.delta.toVector2() * pixelRatio));
-          },
-          onPointerMove: (PointerMoveEvent event) {
-            widget.inputHandler.handle(MouseEvent(
-                MouseEventType.move,
-                _mouseButtonFromEvent(event),
-                event.localPosition.toVector2() * pixelRatio,
-                event.delta.toVector2() * pixelRatio));
-          },
-          onPointerUp: (event) {
-            final button =
-                _detectButtonReleased(_buttonsPressed, event.buttons);
-            _buttonsPressed = event.buttons;
+          widget.inputHandler.handle(
+            MouseEvent(
+              MouseEventType.buttonDown,
+              button,
+              event.localPosition.toVector2() * pixelRatio,
+              event.delta.toVector2() * pixelRatio,
+            ),
+          );
+        },
+        onPointerMove: (PointerMoveEvent event) {
+          widget.inputHandler.handle(
+            MouseEvent(
+              MouseEventType.move,
+              _mouseButtonFromEvent(event),
+              event.localPosition.toVector2() * pixelRatio,
+              event.delta.toVector2() * pixelRatio,
+            ),
+          );
+        },
+        onPointerUp: (event) {
+          final button = _detectButtonReleased(_buttonsPressed, event.buttons);
+          _buttonsPressed = event.buttons;
 
-            var mouseEvent = MouseEvent(
-                MouseEventType.buttonUp,
-                button,
-                event.localPosition.toVector2() * pixelRatio,
-                event.delta.toVector2() * pixelRatio);
-            widget.inputHandler.handle(mouseEvent);
-          },
-          child: widget.child,
-        ));
+          var mouseEvent = MouseEvent(
+            MouseEventType.buttonUp,
+            button,
+            event.localPosition.toVector2() * pixelRatio,
+            event.delta.toVector2() * pixelRatio,
+          );
+          widget.inputHandler.handle(mouseEvent);
+        },
+        child: widget.child,
+      ),
+    );
   }
 
   Widget _mobile(double pixelRatio) {
     return _MobileListenerWidget(
-        inputHandler: widget.inputHandler,
-        pixelRatio: pixelRatio,
-        child: widget.child);
+      inputHandler: widget.inputHandler,
+      pixelRatio: pixelRatio,
+      child: widget.child,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return PixelRatioAware(builder: (ctx, pixelRatio) {
-      return SizedBox.expand(
-          child: isDesktop ? _desktop(pixelRatio) : _mobile(pixelRatio));
-    });
+    return PixelRatioAware(
+      builder: (ctx, pixelRatio) {
+        return SizedBox.expand(
+          child: isDesktop ? _desktop(pixelRatio) : _mobile(pixelRatio),
+        );
+      },
+    );
   }
 }
 
@@ -312,12 +341,12 @@ class _MobileListenerWidget extends StatefulWidget {
   final double pixelRatio;
   final Widget? child;
 
-  const _MobileListenerWidget(
-      {Key? key,
-      required this.inputHandler,
-      required this.pixelRatio,
-      this.child})
-      : super(key: key);
+  const _MobileListenerWidget({
+    Key? key,
+    required this.inputHandler,
+    required this.pixelRatio,
+    this.child,
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => _MobileListenerWidgetState();
@@ -346,91 +375,105 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
       gestures: <Type, GestureRecognizerFactory>{
         _EagerScaleGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<_EagerScaleGestureRecognizer>(
-          () => _EagerScaleGestureRecognizer(),
-          (_EagerScaleGestureRecognizer instance) {
-            instance
-              ..onStart = (ScaleStartDetails event) {
-                // Capture the *local* focal point (widget-relative) for
-                // tap synthesis. The synthesised tap dispatches via
-                // TouchEvent.localPosition, which is what
-                // `View.pick(x, y, ...)` consumes — pick wants viewport-
-                // relative pixels, not screen-global. Using
-                // `event.focalPoint` (global) here was wrong: picks
-                // landed outside the rendered viewport whenever the
-                // widget wasn't at (0,0) on the screen, which is
-                // basically every real layout.
-                _scaleStartFocal = event.localFocalPoint;
-                _scaleStartTime = DateTime.now();
-                _scaleMaxMovement = 0;
-                widget.inputHandler.handle(ScaleStartEvent(
-                    numPointers: event.pointerCount,
-                    localFocalPoint: (
-                      event.focalPoint.dx * widget.pixelRatio,
-                      event.focalPoint.dy * widget.pixelRatio
-                    )));
-              }
-              ..onUpdate = (ScaleUpdateDetails event) {
-                if (_scaleStartFocal != null) {
-                  // Compare local-to-local for the tap-vs-drag movement
-                  // threshold. Mixing global with local would inflate
-                  // the distance by the widget's screen position and
-                  // misclassify static taps as drags.
-                  final movement =
-                      (event.localFocalPoint - _scaleStartFocal!).distance;
-                  if (movement > _scaleMaxMovement) {
-                    _scaleMaxMovement = movement;
-                  }
-                }
-                widget.inputHandler.handle(ScaleUpdateEvent(
-                  numPointers: event.pointerCount,
-                  localFocalPoint: (
-                    event.focalPoint.dx * widget.pixelRatio,
-                    event.focalPoint.dy * widget.pixelRatio
-                  ),
-                  localFocalPointDelta: (
-                    event.focalPointDelta.dx * widget.pixelRatio,
-                    event.focalPointDelta.dy * widget.pixelRatio
-                  ),
-                  rotation: event.rotation,
-                  horizontalScale: event.horizontalScale,
-                  verticalScale: event.verticalScale,
-                  scale: event.scale,
-                ));
-              }
-              ..onEnd = (ScaleEndDetails event) {
-                final now = DateTime.now();
-                final wasTap = _scaleStartTime != null &&
-                    _scaleStartFocal != null &&
-                    now.difference(_scaleStartTime!) < _kTapMaxDuration &&
-                    _scaleMaxMovement < _kTapMaxMovement &&
-                    event.pointerCount == 0;
-                if (wasTap) {
-                  final tapPosition = _scaleStartFocal!;
-                  final isDoubleTap = _lastTapPosition != null &&
-                      _lastTapTime != null &&
-                      now.difference(_lastTapTime!) < _kDoubleTapInterval &&
-                      (tapPosition - _lastTapPosition!).distance <
-                          _kTapMaxMovement;
-                  if (isDoubleTap) {
+              () => _EagerScaleGestureRecognizer(),
+              (_EagerScaleGestureRecognizer instance) {
+                instance
+                  ..onStart = (ScaleStartDetails event) {
+                    // Capture the *local* focal point (widget-relative) for
+                    // tap synthesis. The synthesised tap dispatches via
+                    // TouchEvent.localPosition, which is what
+                    // `View.pick(x, y, ...)` consumes — pick wants viewport-
+                    // relative pixels, not screen-global. Using
+                    // `event.focalPoint` (global) here was wrong: picks
+                    // landed outside the rendered viewport whenever the
+                    // widget wasn't at (0,0) on the screen, which is
+                    // basically every real layout.
+                    _scaleStartFocal = event.localFocalPoint;
+                    _scaleStartTime = DateTime.now();
+                    _scaleMaxMovement = 0;
                     widget.inputHandler.handle(
-                        TouchEvent(TouchEventType.doubleTap, null, null));
-                    _lastTapPosition = null;
-                    _lastTapTime = null;
-                  } else {
-                    widget.inputHandler.handle(TouchEvent(TouchEventType.tap,
-                        tapPosition.toVector2() * widget.pixelRatio, null));
-                    _lastTapPosition = tapPosition;
-                    _lastTapTime = now;
+                      ScaleStartEvent(
+                        numPointers: event.pointerCount,
+                        localFocalPoint: (
+                          event.focalPoint.dx * widget.pixelRatio,
+                          event.focalPoint.dy * widget.pixelRatio,
+                        ),
+                      ),
+                    );
                   }
-                }
-                widget.inputHandler
-                    .handle(ScaleEndEvent(numPointers: event.pointerCount));
-                _scaleStartFocal = null;
-                _scaleStartTime = null;
-                _scaleMaxMovement = 0;
-              };
-          },
-        ),
+                  ..onUpdate = (ScaleUpdateDetails event) {
+                    if (_scaleStartFocal != null) {
+                      // Compare local-to-local for the tap-vs-drag movement
+                      // threshold. Mixing global with local would inflate
+                      // the distance by the widget's screen position and
+                      // misclassify static taps as drags.
+                      final movement =
+                          (event.localFocalPoint - _scaleStartFocal!).distance;
+                      if (movement > _scaleMaxMovement) {
+                        _scaleMaxMovement = movement;
+                      }
+                    }
+                    widget.inputHandler.handle(
+                      ScaleUpdateEvent(
+                        numPointers: event.pointerCount,
+                        localFocalPoint: (
+                          event.focalPoint.dx * widget.pixelRatio,
+                          event.focalPoint.dy * widget.pixelRatio,
+                        ),
+                        localFocalPointDelta: (
+                          event.focalPointDelta.dx * widget.pixelRatio,
+                          event.focalPointDelta.dy * widget.pixelRatio,
+                        ),
+                        rotation: event.rotation,
+                        horizontalScale: event.horizontalScale,
+                        verticalScale: event.verticalScale,
+                        scale: event.scale,
+                      ),
+                    );
+                  }
+                  ..onEnd = (ScaleEndDetails event) {
+                    final now = DateTime.now();
+                    final wasTap =
+                        _scaleStartTime != null &&
+                        _scaleStartFocal != null &&
+                        now.difference(_scaleStartTime!) < _kTapMaxDuration &&
+                        _scaleMaxMovement < _kTapMaxMovement &&
+                        event.pointerCount == 0;
+                    if (wasTap) {
+                      final tapPosition = _scaleStartFocal!;
+                      final isDoubleTap =
+                          _lastTapPosition != null &&
+                          _lastTapTime != null &&
+                          now.difference(_lastTapTime!) < _kDoubleTapInterval &&
+                          (tapPosition - _lastTapPosition!).distance <
+                              _kTapMaxMovement;
+                      if (isDoubleTap) {
+                        widget.inputHandler.handle(
+                          TouchEvent(TouchEventType.doubleTap, null, null),
+                        );
+                        _lastTapPosition = null;
+                        _lastTapTime = null;
+                      } else {
+                        widget.inputHandler.handle(
+                          TouchEvent(
+                            TouchEventType.tap,
+                            tapPosition.toVector2() * widget.pixelRatio,
+                            null,
+                          ),
+                        );
+                        _lastTapPosition = tapPosition;
+                        _lastTapTime = now;
+                      }
+                    }
+                    widget.inputHandler.handle(
+                      ScaleEndEvent(numPointers: event.pointerCount),
+                    );
+                    _scaleStartFocal = null;
+                    _scaleStartTime = null;
+                    _scaleMaxMovement = 0;
+                  };
+              },
+            ),
       },
       child: widget.child,
     );

@@ -24,12 +24,14 @@ class FFITranslationAxisMaterial {
     double lineLength = 100.0,
   }) async {
     // Create translation axis material
-    final material = FFIMaterial(await withPointerCallback<TMaterial>(
-      (callback) => Material_createTranslationAxisMaterialRenderThread(
-        FilamentApp.instance!.engine,
-        callback,
+    final material = FFIMaterial(
+      await withPointerCallback<TMaterial>(
+        (callback) => Material_createTranslationAxisMaterialRenderThread(
+          FilamentApp.instance!.engine,
+          callback,
+        ),
       ),
-    ));
+    );
 
     // Create and configure material instance
     final instance = await material.createInstance();

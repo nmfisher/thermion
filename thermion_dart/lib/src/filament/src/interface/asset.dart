@@ -5,15 +5,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 
-enum SceneAssetType {
-  gltf,
-  geometry,
-  light,
-  skybox,
-  ibl,
-  image,
-  gizmo,
-}
+enum SceneAssetType { gltf, geometry, light, skybox, ibl, image, gizmo }
 
 // filament::utils::Entity is the core C++ Filament "handle" type, used to
 // represent lights, renderables, cameras, etc. ThermionEntity is the equivalent
@@ -63,16 +55,21 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   //
-  Future<MaterialInstance> getMaterialInstanceAt(
-      {ThermionEntity? entity, int index = 0}) async {
+  Future<MaterialInstance> getMaterialInstanceAt({
+    ThermionEntity? entity,
+    int index = 0,
+  }) async {
     throw UnimplementedError();
   }
 
   // Sets the material instance for the primitive at [primitiveIndex] in
   // [entity]. If [entity] is null, the top-most parent for this asset will be
   // used.
-  Future setMaterialInstanceAt(covariant MaterialInstance instance,
-      {int? entity = null, int primitiveIndex = 0}) {
+  Future setMaterialInstanceAt(
+    covariant MaterialInstance instance, {
+    int? entity = null,
+    int primitiveIndex = 0,
+  }) {
     throw UnimplementedError();
   }
 
@@ -92,7 +89,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // a list of material instances for each primitive for the respective
   // entity.
   Future<Map<ThermionEntity, List<MaterialInstance>>>
-      getMaterialInstancesAsMap() {
+  getMaterialInstancesAsMap() {
     throw UnimplementedError();
   }
 
@@ -102,7 +99,8 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // Mainly intended for use with [getMaterialInstancesAsMap] so you can
   // easily save/restore an asset's material instances.
   Future setMaterialInstancesFromMap(
-      Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
+    Map<ThermionEntity, List<MaterialInstance>> materialInstances,
+  ) async {
     throw UnimplementedError();
   }
 
@@ -118,8 +116,9 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
 
   // Create a new instance of [entity]. Note that instances are not
   // automatically added to the scene; you must call [Scene.add].
-  Future<ThermionAsset> createInstance(
-      {List<MaterialInstance>? materialInstances = null});
+  Future<ThermionAsset> createInstance({
+    List<MaterialInstance>? materialInstances = null,
+  });
 
   // Returns the number of instances associated with this asset.
   Future<int> getInstanceCount() async {
@@ -170,30 +169,36 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // using these layers.
   //
   Future setVisibilityLayer(
-      ThermionEntity entity, VisibilityLayers layer) async {
+    ThermionEntity entity,
+    VisibilityLayers layer,
+  ) async {
     throw UnimplementedError();
   }
 
   // Schedules the glTF animation at [index] in [asset] to start playing on the
   // next frame.
-  Future playGltfAnimation(int index,
-      {bool loop = false,
-      bool reverse = false,
-      bool replaceActive = true,
-      double crossfade = 0.0,
-      double startOffset = 0.0,
-      double speed = 1.0}) {
+  Future playGltfAnimation(
+    int index, {
+    bool loop = false,
+    bool reverse = false,
+    bool replaceActive = true,
+    double crossfade = 0.0,
+    double startOffset = 0.0,
+    double speed = 1.0,
+  }) {
     throw UnimplementedError();
   }
 
   // Schedules the glTF animation at [index] in [entity] to start playing on the
   // next frame.
-  Future playGltfAnimationByName(String name,
-      {bool loop = false,
-      bool reverse = false,
-      bool replaceActive = true,
-      double crossfade = 0.0,
-      double speed = 1.0}) {
+  Future playGltfAnimationByName(
+    String name, {
+    bool loop = false,
+    bool reverse = false,
+    bool replaceActive = true,
+    double crossfade = 0.0,
+    double speed = 1.0,
+  }) {
     throw UnimplementedError();
   }
 
@@ -265,8 +270,10 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // found. It is permissible for [animation] to omit any targets that do exist
   // under [meshName]; these simply won't be animated.
   //
-  Future setMorphAnimationData(MorphAnimationData animation,
-      {List<String>? targetMeshNames}) {
+  Future setMorphAnimationData(
+    MorphAnimationData animation, {
+    List<String>? targetMeshNames,
+  }) {
     throw UnimplementedError();
   }
 
@@ -300,12 +307,14 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // will be 100% animation1, at time [fadeInInSecs], the animation will be ((1
   // - maxDelta) * animation1) + (maxDelta * animation2). This will be applied
   // in reverse after [fadeOutInSecs].
-  Future addBoneAnimation(BoneAnimationData animation,
-      {int skinIndex = 0,
-      double fadeInInSecs = 0.0,
-      double fadeOutInSecs = 0.0,
-      double maxDelta = 1.0,
-      bool loop = false}) async {
+  Future addBoneAnimation(
+    BoneAnimationData animation, {
+    int skinIndex = 0,
+    double fadeInInSecs = 0.0,
+    double fadeOutInSecs = 0.0,
+    double maxDelta = 1.0,
+    bool loop = false,
+  }) async {
     throw UnimplementedError();
   }
 
@@ -327,8 +336,10 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // be the ThermionEntity returned by [loadGlb/loadGltf], not any other method
   // ([getChildEntity] etc). This is because all joint information is internally
   // stored with the parent entity.
-  Future<Matrix4> getInverseBindMatrix(int boneIndex,
-      {int skinIndex = 0}) async {
+  Future<Matrix4> getInverseBindMatrix(
+    int boneIndex, {
+    int skinIndex = 0,
+  }) async {
     throw UnimplementedError();
   }
 
@@ -347,8 +358,12 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   //
   // Don't call this manually unless you know what you're doing.
   //
-  Future setBoneTransform(int boneIndex, Matrix4 transform,
-      {ThermionEntity? entity, int skinIndex = 0}) async {
+  Future setBoneTransform(
+    int boneIndex,
+    Matrix4 transform, {
+    ThermionEntity? entity,
+    int skinIndex = 0,
+  }) async {
     throw UnimplementedError();
   }
 

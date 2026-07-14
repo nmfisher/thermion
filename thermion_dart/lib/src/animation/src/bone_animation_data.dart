@@ -40,14 +40,22 @@ class BoneAnimationData {
 
   Duration get duration =>
       Duration(milliseconds: (frameData.length * frameLengthInMs).toInt());
-  BoneAnimationData(this.bones, this.frameData,
-      {this.frameLengthInMs = 1000.0 / 60.0, this.space = Space.Bone});
+  BoneAnimationData(
+    this.bones,
+    this.frameData, {
+    this.frameLengthInMs = 1000.0 / 60.0,
+    this.space = Space.Bone,
+  });
 
   int get numFrames => frameData.length;
 
   BoneAnimationData frame(int frame) {
-    return BoneAnimationData(bones, [frameData[frame]],
-        frameLengthInMs: frameLengthInMs, space: space);
+    return BoneAnimationData(
+      bones,
+      [frameData[frame]],
+      frameLengthInMs: frameLengthInMs,
+      space: space,
+    );
   }
 
   List<Transform> bone(String bone) {
@@ -73,11 +81,17 @@ class BoneAnimationData {
       var newZ = min(max(oldRotation.z, minRotation.z), maxRotation.z);
       var newW = min(max(oldRotation.w, minRotation.w), maxRotation.w);
       var newRotation = Quaternion(newX, newY, newZ, newW).normalized();
-      newFrame[boneIndex] =
-          (rotation: newRotation, translation: oldBoneTransform.translation);
+      newFrame[boneIndex] = (
+        rotation: newRotation,
+        translation: oldBoneTransform.translation,
+      );
       return newFrame;
     }).toList();
-    return BoneAnimationData(bones, newFrameData,
-        frameLengthInMs: frameLengthInMs, space: space);
+    return BoneAnimationData(
+      bones,
+      newFrameData,
+      frameLengthInMs: frameLengthInMs,
+      space: space,
+    );
   }
 }

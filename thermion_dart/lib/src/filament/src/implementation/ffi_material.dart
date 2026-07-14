@@ -18,14 +18,20 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialRenderThread(
-          FilamentApp.instance!.engine, pointer, requestId, cb);
+        FilamentApp.instance!.engine,
+        pointer,
+        requestId,
+        cb,
+      );
     });
   }
 
   @override
   Future<bool> hasParameter(String propertyName) async {
     return Material_hasParameter(
-        pointer, propertyName.toNativeUtf8().cast<Char>());
+      pointer,
+      propertyName.toNativeUtf8().cast<Char>(),
+    );
   }
 
   @override
@@ -65,19 +71,31 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   @override
   Future setParameterFloat(String name, double value) async {
     MaterialInstance_setParameterFloat(
-        pointer, name.toNativeUtf8().cast<Char>(), value);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      value,
+    );
   }
 
   @override
   Future setParameterFloat2(String name, double x, double y) async {
     MaterialInstance_setParameterFloat2(
-        pointer, name.toNativeUtf8().cast<Char>(), x, y);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      x,
+      y,
+    );
   }
 
   @override
   Future setParameterFloat3(String name, double x, double y, double z) async {
     MaterialInstance_setParameterFloat3(
-        pointer, name.toNativeUtf8().cast<Char>(), x, y, z);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      x,
+      y,
+      z,
+    );
   }
 
   @override
@@ -96,7 +114,11 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
       i += 3;
     }
     MaterialInstance_setParameterFloat3Array(
-        pointer, ptr, data.address, array.length * 3);
+      pointer,
+      ptr,
+      data.address,
+      array.length * 3,
+    );
 
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
@@ -106,15 +128,29 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future setParameterFloat4(
-      String name, double x, double y, double z, double w) async {
+    String name,
+    double x,
+    double y,
+    double z,
+    double w,
+  ) async {
     MaterialInstance_setParameterFloat4(
-        pointer, name.toNativeUtf8().cast<Char>(), x, y, z, w);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      x,
+      y,
+      z,
+      w,
+    );
   }
 
   @override
   Future setParameterInt(String name, int value) async {
     MaterialInstance_setParameterInt(
-        pointer, name.toNativeUtf8().cast<Char>(), value);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      value,
+    );
   }
 
   @override
@@ -123,34 +159,50 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   }
 
   @override
-  Future setStencilCompareFunction(SamplerCompareFunction func,
-      [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+  Future setStencilCompareFunction(
+    SamplerCompareFunction func, [
+    StencilFace face = StencilFace.FRONT_AND_BACK,
+  ]) async {
     MaterialInstance_setStencilCompareFunction(
-        pointer, func.index, face.toFFI());
+      pointer,
+      func.index,
+      face.toFFI(),
+    );
   }
 
   @override
-  Future setStencilOpDepthFail(StencilOperation op,
-      [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+  Future setStencilOpDepthFail(
+    StencilOperation op, [
+    StencilFace face = StencilFace.FRONT_AND_BACK,
+  ]) async {
     MaterialInstance_setStencilOpDepthFail(pointer, op.index, face.toFFI());
   }
 
   @override
-  Future setStencilOpDepthStencilPass(StencilOperation op,
-      [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+  Future setStencilOpDepthStencilPass(
+    StencilOperation op, [
+    StencilFace face = StencilFace.FRONT_AND_BACK,
+  ]) async {
     MaterialInstance_setStencilOpDepthStencilPass(
-        pointer, op.index, face.toFFI());
+      pointer,
+      op.index,
+      face.toFFI(),
+    );
   }
 
   @override
-  Future setStencilOpStencilFail(StencilOperation op,
-      [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+  Future setStencilOpStencilFail(
+    StencilOperation op, [
+    StencilFace face = StencilFace.FRONT_AND_BACK,
+  ]) async {
     MaterialInstance_setStencilOpStencilFail(pointer, op.index, face.toFFI());
   }
 
   @override
-  Future setStencilReferenceValue(int value,
-      [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+  Future setStencilReferenceValue(
+    int value, [
+    StencilFace face = StencilFace.FRONT_AND_BACK,
+  ]) async {
     MaterialInstance_setStencilReferenceValue(pointer, value, face.toFFI());
   }
 
@@ -183,7 +235,11 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialInstanceRenderThread(
-          FilamentApp.instance!.engine, this.pointer, requestId, cb);
+        FilamentApp.instance!.engine,
+        this.pointer,
+        requestId,
+        cb,
+      );
     });
   }
 
@@ -194,21 +250,32 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future<TransparencyMode> getTransparencyMode() async {
-    return TransparencyMode
-        .values[MaterialInstance_getTransparencyMode(pointer)];
+    return TransparencyMode.values[MaterialInstance_getTransparencyMode(
+      pointer,
+    )];
   }
 
   @override
-  Future setParameterTexture(String name, covariant FFITexture texture,
-      covariant FFITextureSampler sampler) async {
-    MaterialInstance_setParameterTexture(pointer,
-        name.toNativeUtf8().cast<Char>(), texture.pointer, sampler.pointer);
+  Future setParameterTexture(
+    String name,
+    covariant FFITexture texture,
+    covariant FFITextureSampler sampler,
+  ) async {
+    MaterialInstance_setParameterTexture(
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      texture.pointer,
+      sampler.pointer,
+    );
   }
 
   @override
   Future setParameterBool(String name, bool value) async {
     MaterialInstance_setParameterBool(
-        pointer, name.toNativeUtf8().cast<Char>(), value);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      value,
+    );
   }
 
   @override
@@ -219,7 +286,10 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
     }
 
     MaterialInstance_setParameterMat3(
-        pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      matrix.storage.address,
+    );
 
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
@@ -230,7 +300,10 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   @override
   Future setParameterMat4(String name, Matrix4 matrix) async {
     MaterialInstance_setParameterMat4(
-        pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+      pointer,
+      name.toNativeUtf8().cast<Char>(),
+      matrix.storage.address,
+    );
   }
 
   @override
@@ -244,7 +317,7 @@ extension TStencilFaceExt on StencilFace {
     return switch (this) {
       StencilFace.FRONT => TStencilFace.STENCIL_FACE_FRONT,
       StencilFace.BACK => TStencilFace.STENCIL_FACE_BACK,
-      StencilFace.FRONT_AND_BACK => TStencilFace.STENCIL_FACE_FRONT_AND_BACK
+      StencilFace.FRONT_AND_BACK => TStencilFace.STENCIL_FACE_FRONT_AND_BACK,
     };
   }
 }

@@ -7,9 +7,9 @@ void main() async {
   await testHelper.setup();
 
   test('add/remove geometry', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       expect(asset.type, SceneAssetType.geometry);
       await result.viewer.addToScene(asset);
@@ -23,9 +23,9 @@ void main() async {
   });
 
   test('update vertex buffer', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       await result.viewer.addToScene(asset);
       await testHelper.capture(result.viewer.view, "update_vertex_buffer_1");
@@ -37,36 +37,31 @@ void main() async {
         1, -1, 1, // 1
         2, 2, 2, // 2
         -1, 1, 1, // 3
-
         // Back face
         -1, -1, -1, // 4
         1, -1, -1, // 5
         1, 1, -1, // 6
         -1, 1, -1, // 7
-
         // Top face
         -1, 1, 1, // 3 (8)
         2, 2, 2, //2 (9)
         1, 1, -1, //6 (10)
         -1, 1, -1, // 7 (11)
-
         // Bottom
         -1, -1, -1, // 4 (12)
         1, -1, -1, // 5 (13)
         1, -1, 1, // 1 (14)
         -1, -1, 1, // 0 (15)
-
         // Right
         1, -1, 1, // 1 (16)
         1, -1, -1, // 5 (17)
         1, 1, -1, // 6 (18)
         2, 2, 2, // 2 (19)
-
         // Left
         -1, -1, -1, // 4 (20)
         -1, -1, 1, // 0 (21)
         -1, 1, 1, // 3 (22)
-        -1, 1, -1 // 7 (23)
+        -1, 1, -1, // 7 (23)
       ]);
       await vb!.setBufferAt(0, vertices);
       await testHelper.capture(result.viewer.view, "update_vertex_buffer_2");
@@ -78,16 +73,20 @@ void main() async {
         .setBackgroundColor(kBlue)
         .setCameraLookAt(Vector3(0, 0, 0), focus: Vector3(0, 0, -1))
         .execute((result) async {
-      var material = await testHelper.loadViewSpaceMaterial();
-      await material.setCullingMode(CullingMode.NONE);
-      var geo = await Geometry(
-          Float32List.fromList([-1, -1, -15, 1, -1, -15, 1, 1, -15]),
-          Int16List.fromList([0, 1, 2]));
-      await result.viewer.setViewFrustumCulling(false);
-      await result.viewer.createGeometry(geo, materialInstances: [material]);
+          var material = await testHelper.loadViewSpaceMaterial();
+          await material.setCullingMode(CullingMode.NONE);
+          var geo = await Geometry(
+            Float32List.fromList([-1, -1, -15, 1, -1, -15, 1, 1, -15]),
+            Int16List.fromList([0, 1, 2]),
+          );
+          await result.viewer.setViewFrustumCulling(false);
+          await result.viewer.createGeometry(
+            geo,
+            materialInstances: [material],
+          );
 
-      await testHelper.capture(result.viewer.view, "vertex_domain_view");
-    });
+          await testHelper.capture(result.viewer.view, "vertex_domain_view");
+        });
   });
 
   test('material with custom0 attribute: view', () async {
@@ -95,28 +94,43 @@ void main() async {
         .setBackgroundColor(kBlue)
         .setCameraLookAt(Vector3(0, 0, 0), focus: Vector3(0, 0, -1))
         .execute((result) async {
-      var material = await testHelper.loadCustomAttributeMaterial();
-      await material.setCullingMode(CullingMode.NONE);
-      var geo = await Geometry(
-        // these vertices don't matter since we're going to use the custom0
-        // attribute to set the position in the shader. We just need to make
-        // sure Filament can calculate a non-degenerate bounding box.
-        Float32List.fromList([0, 1, 2, 0, 10, 20, 0, 20, 30]),
-        Int16List.fromList([0, 1, 2]),
-        attribute0:
-            Float32List.fromList([-1, -1, -15, 0, 1, -1, -15, 0, 1, 1, -15, 0]),
-      );
-      await result.viewer.setViewFrustumCulling(false);
-      await result.viewer.createGeometry(geo, materialInstances: [material]);
+          var material = await testHelper.loadCustomAttributeMaterial();
+          await material.setCullingMode(CullingMode.NONE);
+          var geo = await Geometry(
+            // these vertices don't matter since we're going to use the custom0
+            // attribute to set the position in the shader. We just need to make
+            // sure Filament can calculate a non-degenerate bounding box.
+            Float32List.fromList([0, 1, 2, 0, 10, 20, 0, 20, 30]),
+            Int16List.fromList([0, 1, 2]),
+            attribute0: Float32List.fromList([
+              -1,
+              -1,
+              -15,
+              0,
+              1,
+              -1,
+              -15,
+              0,
+              1,
+              1,
+              -15,
+              0,
+            ]),
+          );
+          await result.viewer.setViewFrustumCulling(false);
+          await result.viewer.createGeometry(
+            geo,
+            materialInstances: [material],
+          );
 
-      await testHelper.capture(result.viewer.view, "custom_attribute");
-    });
+          await testHelper.capture(result.viewer.view, "custom_attribute");
+        });
   });
 
   test('ensure geometry is removed when destroyAll is called ', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       await result.viewer.addToScene(asset);
       await result.viewer.destroyAssets();
@@ -126,11 +140,14 @@ void main() async {
 
   test('custom geometry (no normals/uvs)', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      final asset = await result.viewer
-          .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
+      final asset = await result.viewer.createGeometry(
+        GeometryUtils.cube(normals: false, uvs: false),
+      );
       await result.viewer.addToScene(asset);
       await testHelper.capture(
-          result.viewer.view, "geometry_cube_no_normals_uvs");
+        result.viewer.view,
+        "geometry_cube_no_normals_uvs",
+      );
       await result.viewer.removeFromScene(asset);
       await result.viewer.destroyAsset(asset);
     });
@@ -141,18 +158,33 @@ void main() async {
       final materialInstance = await FilamentApp.instance!
           .createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4(
-          "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        "baseColorFactor",
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+      );
 
       final asset = await result.viewer.createGeometry(
-          GeometryUtils.cube(normals: false, uvs: false),
-          materialInstances: [materialInstance]);
+        GeometryUtils.cube(normals: false, uvs: false),
+        materialInstances: [materialInstance],
+      );
       await result.viewer.addToScene(asset);
       await testHelper.capture(
-          result.viewer.view, "geometry_cube_ubershader_red");
+        result.viewer.view,
+        "geometry_cube_ubershader_red",
+      );
       await materialInstance.setParameterFloat4(
-          "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+        "baseColorFactor",
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+      );
       await testHelper.capture(
-          result.viewer.view, "geometry_cube_ubershader_green");
+        result.viewer.view,
+        "geometry_cube_ubershader_green",
+      );
       await result.viewer.removeFromScene(asset);
       await result.viewer.destroyAsset(asset);
     });

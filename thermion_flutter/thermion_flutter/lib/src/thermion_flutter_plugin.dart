@@ -69,14 +69,17 @@ abstract class ThermionFlutterPlugin {
   /// the web plugin) — it's a no-op there.
   Future<void> releaseTextureBindingForView(View view);
 
-  static Future<ThermionViewer> createViewer(
-      {bool destroySwapchain = true}) async {
+  static Future<ThermionViewer> createViewer({
+    bool destroySwapchain = true,
+  }) async {
     _logger.finest("Creating viewer");
-    final swapChain =
-        await instance.initialize(destroySwapchain: destroySwapchain);
+    final swapChain = await instance.initialize(
+      destroySwapchain: destroySwapchain,
+    );
     _logger.finest("Plugin initialized");
     final viewer = ThermionViewerFFI(
-        createOverlay: instance.options.nativeOptions.createOverlay);
+      createOverlay: instance.options.nativeOptions.createOverlay,
+    );
     await viewer.initialized;
     _logger.finest("Viewer initialized");
     if (swapChain != null) {

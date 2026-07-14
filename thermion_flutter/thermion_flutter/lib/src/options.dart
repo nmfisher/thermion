@@ -6,10 +6,11 @@ class ThermionFlutterOptions {
   final WebOptions webOptions;
   final NativeOptions nativeOptions;
 
-  const ThermionFlutterOptions(
-      {this.webOptions = const WebOptions(),
-      this.nativeOptions = const NativeOptions(),
-      this.uberarchivePath});
+  const ThermionFlutterOptions({
+    this.webOptions = const WebOptions(),
+    this.nativeOptions = const NativeOptions(),
+    this.uberarchivePath,
+  });
 }
 
 class NativeOptions {
@@ -27,11 +28,12 @@ class NativeOptions {
   /// The overlay persists for the lifetime of the viewer.
   final bool createOverlay;
 
-  const NativeOptions(
-      {this.backend,
-      this.renderTargetColorTextureFormat = TextureFormat.RGBA8,
-      this.renderTargetDepthTextureFormat = TextureFormat.DEPTH24_STENCIL8,
-      this.createOverlay = false});
+  const NativeOptions({
+    this.backend,
+    this.renderTargetColorTextureFormat = TextureFormat.RGBA8,
+    this.renderTargetDepthTextureFormat = TextureFormat.DEPTH24_STENCIL8,
+    this.createOverlay = false,
+  });
 }
 
 class WebOptions {
@@ -39,8 +41,9 @@ class WebOptions {
   final bool importCanvasAsWidget;
   final String jsPath;
 
-  const WebOptions(
-      {this.importCanvasAsWidget = false,
-      this.createCanvas = true,
-      this.jsPath = "./thermion_dart.js"});
+  const WebOptions({
+    this.importCanvasAsWidget = false,
+    this.createCanvas = true,
+    this.jsPath = "./thermion_dart.js",
+  });
 }

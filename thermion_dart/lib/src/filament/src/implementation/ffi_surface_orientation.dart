@@ -178,8 +178,9 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   Future<SurfaceOrientation> build() async {
     _checkNotBuilt();
 
-    final orientationPtr =
-        bindings.SurfaceOrientationBuilder_build(_builderPtr!);
+    final orientationPtr = bindings.SurfaceOrientationBuilder_build(
+      _builderPtr!,
+    );
 
     bindings.SurfaceOrientationBuilder_destroy(_builderPtr!);
     _builderPtr = null;

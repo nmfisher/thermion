@@ -17,10 +17,7 @@ class BoneData {
   /// Translation vector.
   final Vector3 translation;
 
-  const BoneData({
-    required this.rotation,
-    required this.translation,
-  });
+  const BoneData({required this.rotation, required this.translation});
 
   /// Creates a bone with an identity transform (no rotation, no translation).
   factory BoneData.identity() {
@@ -73,10 +70,7 @@ class BoneData {
   factory BoneData.fromMatrix4(Matrix4 matrix) {
     final rotation = Quaternion.fromRotation(matrix.getRotation());
     final translation = matrix.getTranslation();
-    return BoneData(
-      rotation: rotation,
-      translation: translation,
-    );
+    return BoneData(rotation: rotation, translation: translation);
   }
 
   /// Creates a list of BoneData from a list of Matrix4 transforms.

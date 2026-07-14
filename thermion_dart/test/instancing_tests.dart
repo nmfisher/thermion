@@ -42,40 +42,48 @@ void main() async {
   test("loadGltf throws an Exception when initialInstances is 0", () async {
     await testHelper.withViewer((viewer) async {
       await expectLater(
-          viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb",
-              initialInstances: 0),
-          throwsA(isA<Exception>()));
-    });
-  });
-
-  test("loadGltf creates the number of instances passed via initialInstances",
-      () async {
-    await testHelper.withViewer((viewer) async {
-      var asset = await viewer.loadGltf(
+        viewer.loadGltf(
           "file://${testHelper.assetsDir}/cube.glb",
-          initialInstances: 1);
-
-      expect(await asset.getInstanceCount(), 1);
-      expect(asset.isInstance, false);
-
-      final instances = await asset.getInstances();
-      expect(instances[0] == asset, false);
-      expect(instances[0].isInstance, true);
-
-      asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb",
-          initialInstances: 2);
-      expect(await asset.getInstanceCount(), 2);
+          initialInstances: 0,
+        ),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 
   test(
-      "When loadGltf is called with releaseSourceData=true, only the "
+    "loadGltf creates the number of instances passed via initialInstances",
+    () async {
+      await testHelper.withViewer((viewer) async {
+        var asset = await viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          initialInstances: 1,
+        );
+
+        expect(await asset.getInstanceCount(), 1);
+        expect(asset.isInstance, false);
+
+        final instances = await asset.getInstances();
+        expect(instances[0] == asset, false);
+        expect(instances[0].isInstance, true);
+
+        asset = await viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          initialInstances: 2,
+        );
+        expect(await asset.getInstanceCount(), 2);
+      });
+    },
+  );
+
+  test("When loadGltf is called with releaseSourceData=true, only the "
       "pre-allocated instances can be created", () async {
     await testHelper.withViewer((viewer) async {
       var asset = await viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          releaseSourceData: true,
-          initialInstances: 2);
+        "file://${testHelper.assetsDir}/cube.glb",
+        releaseSourceData: true,
+        initialInstances: 2,
+      );
       expect(await asset.getInstanceCount(), 2);
 
       await expectLater(asset.createInstance(), throwsA(isA<Exception>()));
@@ -93,9 +101,10 @@ void main() async {
       // When creating multiple instances, however,you usually want to work
       // with each instance individually, rather than the owning asset.
       var asset = await viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          addToScene: false,
-          initialInstances: 2);
+        "file://${testHelper.assetsDir}/cube.glb",
+        addToScene: false,
+        initialInstances: 2,
+      );
       var defaultInstance = await asset.getInstance(0);
       await viewer.addToScene(defaultInstance);
       await testHelper.capture(viewer.view, "gltf_without_instance");

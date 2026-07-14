@@ -1,14 +1,15 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
 class PyramidGeometry {
-  static Geometry halfPyramid(
-      {double startX = 0.25,
-      double startY = 0.25,
-      double width = 1.0,
-      double height = 1.0,
-      double depth = 1.0,
-      bool normals = true,
-      bool uvs = true}) {
+  static Geometry halfPyramid({
+    double startX = 0.25,
+    double startY = 0.25,
+    double width = 1.0,
+    double height = 1.0,
+    double depth = 1.0,
+    bool normals = true,
+    bool uvs = true,
+  }) {
     Float32List vertices = Float32List.fromList([
       startX,
       startY,
@@ -54,20 +55,7 @@ class PyramidGeometry {
         : null;
 
     Float32List? _uvs = uvs
-        ? Float32List.fromList([
-            0,
-            0,
-            1,
-            0,
-            1,
-            1,
-            0,
-            1,
-            0,
-            0.5,
-            1,
-            0.5,
-          ])
+        ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1, 0, 0.5, 1, 0.5])
         : null;
 
     Uint16List indices = Uint16List.fromList([

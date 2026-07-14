@@ -53,13 +53,16 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [startOffset] The offset into the animation to start from (0.0 to 1.0)
   // [speed] The playback speed multiplier (1.0 = normal speed)
   // Returns true if successful, false otherwise
-  bool playGltfAnimation(ThermionAsset asset, int index,
-      {bool loop = false,
-      bool reverse = false,
-      bool replaceActive = true,
-      double crossfade = 0.0,
-      double startOffset = 0.0,
-      double speed = 1.0});
+  bool playGltfAnimation(
+    ThermionAsset asset,
+    int index, {
+    bool loop = false,
+    bool reverse = false,
+    bool replaceActive = true,
+    double crossfade = 0.0,
+    double startOffset = 0.0,
+    double speed = 1.0,
+  });
 
   // Stops a currently playing glTF animation.
   //
@@ -75,7 +78,10 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [timeInSeconds] The time position in the animation in seconds
   // Returns true if successful, false otherwise
   bool setGltfAnimationTime(
-      ThermionAsset asset, int animationIndex, double timeInSeconds);
+    ThermionAsset asset,
+    int animationIndex,
+    double timeInSeconds,
+  );
 
   // Gets the duration of a glTF animation in seconds.
   //
@@ -103,7 +109,9 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [weights] List of morph target weights (0.0 to 1.0)
   // Returns true if successful, false otherwise
   Future<bool> setMorphTargetWeights(
-      ThermionEntity entityId, List<double> weights);
+    ThermionEntity entityId,
+    List<double> weights,
+  );
 
   // Sets up a morph animation with keyframe data.
   //
@@ -115,12 +123,13 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [frameLengthInMs] Length of each frame in milliseconds
   // Returns true if successful, false otherwise
   bool setMorphAnimation(
-      ThermionEntity entityId,
-      List<double> morphData,
-      List<int> morphIndices,
-      int numMorphTargets,
-      int numFrames,
-      double frameLengthInMs);
+    ThermionEntity entityId,
+    List<double> morphData,
+    List<int> morphIndices,
+    int numMorphTargets,
+    int numFrames,
+    double frameLengthInMs,
+  );
 
   // Clears all morph animation data for an entity.
   //
@@ -142,7 +151,10 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [index] The morph target index
   // Returns the morph target name, or null if not found
   String? getMorphTargetName(
-      ThermionAsset asset, ThermionEntity entityId, int index);
+    ThermionAsset asset,
+    ThermionEntity entityId,
+    int index,
+  );
 
   // Adds bone animation data with keyframes.
   //
@@ -157,16 +169,17 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [maxDelta] Maximum transformation delta per frame
   // Returns true if successful, false otherwise
   Future<bool> addBoneAnimation(
-      ThermionAsset asset,
-      int skinIndex,
-      int boneIndex,
-      List<double> frameData,
-      int numFrames,
-      double frameLengthInMs,
-      {double fadeOutInSecs = 0.0,
-      double fadeInInSecs = 0.0,
-      double maxDelta = 0.1,
-      bool loop});
+    ThermionAsset asset,
+    int skinIndex,
+    int boneIndex,
+    List<double> frameData,
+    int numFrames,
+    double frameLengthInMs, {
+    double fadeOutInSecs = 0.0,
+    double fadeInInSecs = 0.0,
+    double maxDelta = 0.1,
+    bool loop,
+  });
 
   // Gets the rest pose local transforms for all bones in a skin.
   //
@@ -174,7 +187,9 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [skinIndex] The skin index
   // Returns a list of 4x4 transformation matrices (16 floats per bone)
   Future<List<double>> getRestLocalTransforms(
-      ThermionAsset asset, int skinIndex);
+    ThermionAsset asset,
+    int skinIndex,
+  );
 
   // Gets the inverse bind matrix for a specific bone.
   //
@@ -182,7 +197,10 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [boneIndex] The bone index Returns the 4x4 inverse bind matrix (16
   // floats), or empty list if not found
   Future<List<double>> getInverseBindMatrix(
-      ThermionAsset asset, int skinIndex, int boneIndex);
+    ThermionAsset asset,
+    int skinIndex,
+    int boneIndex,
+  );
 
   // Calls [updateBoneMatrices] on the Animator instance for the
   // FilamentInstance (which uses the local bone transform and the inverse bind

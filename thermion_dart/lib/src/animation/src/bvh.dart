@@ -93,13 +93,15 @@ class BVHParser {
   /// Currently only XYZ or ZYX are supported.
   /// Pass [frameLengthInMs] if you want to override the frame length specified in the BVH data.
   ///
-  static BoneAnimationData parse(String data,
-      {Map<String, String>? remap,
-      RegExp? boneRegex,
-      RotationMode rotationMode = RotationMode.ZYX,
-      Vector3? rootTranslationOffset,
-      Matrix3? basis,
-      double? frameLengthInMs}) {
+  static BoneAnimationData parse(
+    String data, {
+    Map<String, String>? remap,
+    RegExp? boneRegex,
+    RotationMode rotationMode = RotationMode.ZYX,
+    Vector3? rootTranslationOffset,
+    Matrix3? basis,
+    double? frameLengthInMs,
+  }) {
     basis ??= Matrix3.identity();
     // parse the list/hierarchy of bones
     final bones = <BVHBone>[];
@@ -163,7 +165,8 @@ class BVHParser {
       }
       if (frameValues.length != totalChannels) {
         throw Exception(
-            "Length mismatch, got ${frameValues.length} frame values when ${totalChannels} channels specified");
+          "Length mismatch, got ${frameValues.length} frame values when ${totalChannels} channels specified",
+        );
       }
       late Vector3 rootTranslation = Vector3(
         frameValues[0],
@@ -238,8 +241,12 @@ class BVHParser {
           .map((b) => b.name)
           .toList();
     }
-    return BoneAnimationData(filteredBones, animation,
-        frameLengthInMs: frameLengthInMs!, space: Space.ParentWorldRotation);
+    return BoneAnimationData(
+      filteredBones,
+      animation,
+      frameLengthInMs: frameLengthInMs!,
+      space: Space.ParentWorldRotation,
+    );
   }
 
   static double radians(double degrees) => degrees * (pi / 180.0);

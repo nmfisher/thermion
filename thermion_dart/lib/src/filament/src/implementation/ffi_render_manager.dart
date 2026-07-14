@@ -77,8 +77,9 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
           _attachments[swapChain.getNativeHandle()] = [];
         }
 
-        _attachments[swapChain.getNativeHandle()]!
-            .removeWhere((v) => v.$2 == view);
+        _attachments[swapChain.getNativeHandle()]!.removeWhere(
+          (v) => v.$2 == view,
+        );
       }
       await _syncViews();
     });
@@ -114,21 +115,34 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
         pointers[i] = views[i].$2.getNativeHandle();
       }
 
-      await withVoidCallback((requestId, cb) =>
-          RenderManager_setRenderableRenderThread(pointer, swapChainHandle,
-              pointers.cast(), views.length, requestId, cb));
+      await withVoidCallback(
+        (requestId, cb) => RenderManager_setRenderableRenderThread(
+          pointer,
+          swapChainHandle,
+          pointers.cast(),
+          views.length,
+          requestId,
+          cb,
+        ),
+      );
 
       free(pointers);
       _logger.fine(
-          """Synced ${views.length} views for swapchain $swapChainHandle""");
+        """Synced ${views.length} views for swapchain $swapChainHandle""",
+      );
     }
   }
 
   Future detachAll(SwapChain swapChain) {
     return _serialize(() async {
-      await withVoidCallback((requestId, cb) =>
-          RenderManager_removeSwapChainRenderThread(
-              pointer, swapChain.getNativeHandle(), requestId, cb));
+      await withVoidCallback(
+        (requestId, cb) => RenderManager_removeSwapChainRenderThread(
+          pointer,
+          swapChain.getNativeHandle(),
+          requestId,
+          cb,
+        ),
+      );
       _attachments.remove(swapChain.getNativeHandle());
     });
   }
@@ -150,7 +164,11 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
       await withVoidCallback((requestId, cb) {
         RenderManager_renderRenderThread(
-            pointer, frameTimeInNanos.toBigInt, requestId, cb);
+          pointer,
+          frameTimeInNanos.toBigInt,
+          requestId,
+          cb,
+        );
       });
     }
   }

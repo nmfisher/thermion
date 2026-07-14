@@ -13,11 +13,7 @@ class KeyBinding {
   /// The value/strength of this intent (default 1.0)
   final double value;
 
-  const KeyBinding({
-    required this.key,
-    required this.action,
-    this.value = 1.0,
-  });
+  const KeyBinding({required this.key, required this.action, this.value = 1.0});
 
   @override
   String toString() => 'KeyBinding(key: $key, action: $action, value: $value)';

@@ -29,7 +29,7 @@ void main() {
         cascadeSplitPositions: [
           0.125,
           0.25,
-          0.50
+          0.50,
         ], // 3 splits needed for 4 cascades
       );
 
@@ -38,9 +38,7 @@ void main() {
     });
 
     test('should use default split positions for maximum cascades', () {
-      final options = ShadowOptions(
-        shadowCascades: 4,
-      );
+      final options = ShadowOptions(shadowCascades: 4);
 
       expect(options.shadowCascades, equals(4));
       expect(options.cascadeSplitPositions.length, equals(3));

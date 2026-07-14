@@ -6,11 +6,13 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
 
   bool _destroyed = false;
 
-  DarwinPlatformTextureDescriptorImpl(this.texture,
-      {required super.flutterTextureId,
-      required super.hardwareId,
-      required super.width,
-      required super.height});
+  DarwinPlatformTextureDescriptorImpl(
+    this.texture, {
+    required super.flutterTextureId,
+    required super.hardwareId,
+    required super.width,
+    required super.height,
+  });
 
   @override
   Future destroy() async {
@@ -20,8 +22,9 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
     // set flag early to ensure markTextureFrameAvailable is not called
     // with a destroyed texture handle
     _destroyed = true;
-    SwiftThermionFlutterPluginObjCAPI
-        .unregisterFlutterTextureWithFlutterTextureId_(flutterTextureId);
+    SwiftThermionFlutterPluginObjCAPI.unregisterFlutterTextureWithFlutterTextureId_(
+      flutterTextureId,
+    );
     texture.release();
   }
 
@@ -30,25 +33,33 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
     if (_destroyed) {
       return;
     }
-    SwiftThermionFlutterPluginObjCAPI
-        .markTextureFrameAvailableWithFlutterTextureId_(flutterTextureId);
+    SwiftThermionFlutterPluginObjCAPI.markTextureFrameAvailableWithFlutterTextureId_(
+      flutterTextureId,
+    );
   }
 
   static DarwinPlatformTextureDescriptorImpl allocate(int width, int height) {
     final metalTexture =
         MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
-            width, height, false, false);
+          width,
+          height,
+          false,
+          false,
+        );
     metalTexture.retain();
     final flutterTextureId =
         SwiftThermionFlutterPluginObjCAPI.registerTextureWithTexture_(
-            metalTexture);
+          metalTexture,
+        );
     if (flutterTextureId == -1) {
       throw Exception("Failed to register Flutter texture");
     }
-    return DarwinPlatformTextureDescriptorImpl(metalTexture,
-        flutterTextureId: flutterTextureId,
-        hardwareId: metalTexture.metalTextureAddress,
-        width: width,
-        height: height);
+    return DarwinPlatformTextureDescriptorImpl(
+      metalTexture,
+      flutterTextureId: flutterTextureId,
+      hardwareId: metalTexture.metalTextureAddress,
+      width: width,
+      height: height,
+    );
   }
 }

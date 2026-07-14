@@ -13,14 +13,15 @@ class FilamentConfig<T, U> {
   final int stereoscopicEyeCount;
   final bool disableHandleUseAfterFreeCheck;
 
-  FilamentConfig(
-      {required this.backend,
-      required this.loadResource,
-      this.uberArchivePath,
-      this.platform,
-      this.sharedContext,
-      this.stereoscopicEyeCount = 1,
-      this.disableHandleUseAfterFreeCheck = false});
+  FilamentConfig({
+    required this.backend,
+    required this.loadResource,
+    this.uberArchivePath,
+    this.platform,
+    this.sharedContext,
+    this.stereoscopicEyeCount = 1,
+    this.disableHandleUseAfterFreeCheck = false,
+  });
 }
 
 abstract class FilamentApp<T> {
@@ -44,8 +45,11 @@ abstract class FilamentApp<T> {
   Future<Uint8List> loadResource(String uri);
 
   //
-  Future<SwapChain> createHeadlessSwapChain(int width, int height,
-      {bool hasStencilBuffer = false});
+  Future<SwapChain> createHeadlessSwapChain(
+    int width,
+    int height, {
+    bool hasStencilBuffer = false,
+  });
 
   //
   Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
@@ -82,36 +86,47 @@ abstract class FilamentApp<T> {
   Future destroyAsset(covariant ThermionAsset asset);
 
   //
-  Future<RenderTarget> createRenderTarget(int width, int height,
-      {covariant Texture? color, covariant Texture? depth});
+  Future<RenderTarget> createRenderTarget(
+    int width,
+    int height, {
+    covariant Texture? color,
+    covariant Texture? depth,
+  });
 
   //
-  Future<Texture> createTexture(int width, int height,
-      {int depth = 1,
-      int levels = 1,
-      Set<TextureUsage> flags = const {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
-      TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
-      TextureFormat textureFormat = TextureFormat.RGBA32F,
-      int? importedTextureHandle});
+  Future<Texture> createTexture(
+    int width,
+    int height, {
+    int depth = 1,
+    int levels = 1,
+    Set<TextureUsage> flags = const {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
+    TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
+    TextureFormat textureFormat = TextureFormat.RGBA32F,
+    int? importedTextureHandle,
+  });
 
   Future<void> setExternalImage(Texture texture, int externalImagePtr);
 
   //
-  Future<TextureSampler> createTextureSampler(
-      {TextureMinFilter minFilter = TextureMinFilter.LINEAR,
-      TextureMagFilter magFilter = TextureMagFilter.LINEAR,
-      TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
-      TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
-      TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
-      double anisotropy = 0.0,
-      TextureCompareMode compareMode = TextureCompareMode.NONE,
-      TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL});
+  Future<TextureSampler> createTextureSampler({
+    TextureMinFilter minFilter = TextureMinFilter.LINEAR,
+    TextureMagFilter magFilter = TextureMagFilter.LINEAR,
+    TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
+    TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
+    TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
+    double anisotropy = 0.0,
+    TextureCompareMode compareMode = TextureCompareMode.NONE,
+    TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL,
+  });
 
   //
   // Decodes the specified image data.
   //
-  Future<LinearImage> decodeImage(Uint8List data,
-      {String name = "image", bool requireAlpha = false});
+  Future<LinearImage> decodeImage(
+    Uint8List data, {
+    String name = "image",
+    bool requireAlpha = false,
+  });
 
   //
   // Creates an (empty) imge with the given dimensions.
@@ -263,11 +278,16 @@ abstract class FilamentApp<T> {
 
   //
   Future<MaterialInstance> getMaterialInstanceAt(
-      ThermionEntity entity, int primitiveIndex);
+    ThermionEntity entity,
+    int primitiveIndex,
+  );
 
   //
-  Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
-      MaterialInstance materialInstance);
+  Future setMaterialInstanceAt(
+    ThermionEntity entity,
+    int primitiveIndex,
+    MaterialInstance materialInstance,
+  );
 
   // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
@@ -299,8 +319,11 @@ abstract class FilamentApp<T> {
 
   // Sets the parent transform of [child] to [parent].
   //
-  Future setParent(ThermionEntity child, ThermionEntity? parent,
-      {bool preserveScaling});
+  Future setParent(
+    ThermionEntity child,
+    ThermionEntity? parent, {
+    bool preserveScaling,
+  });
 
   //
   // Returns pixel buffer(s) for [view] (or, if null, all views associated
@@ -308,25 +331,36 @@ abstract class FilamentApp<T> {
   //
   // Pixel buffers will be returned in RGBA float32 format.
   //
-  Future<List<(View, Uint8List)>> capture(SwapChain? swapChain,
-      {View? view,
-      bool captureRenderTarget = false,
-      PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
-      PixelDataType pixelDataType = PixelDataType.FLOAT,
-      Future Function(View)? beforeRender,
-      bool render = true});
+  Future<List<(View, Uint8List)>> capture(
+    SwapChain? swapChain, {
+    View? view,
+    bool captureRenderTarget = false,
+    PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
+    PixelDataType pixelDataType = PixelDataType.FLOAT,
+    Future Function(View)? beforeRender,
+    bool render = true,
+  });
 
   //
-  Future setClearOptions(double r, double g, double b, double a,
-      {int clearStencil = 0, bool discard = false, bool clear = true});
+  Future setClearOptions(
+    double r,
+    double g,
+    double b,
+    double a, {
+    int clearStencil = 0,
+    bool discard = false,
+    bool clear = true,
+  });
 
   // Loads a glTF asset from a raw memory buffer.
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
-      {int initialInstances = 1,
-      bool releaseSourceData = false,
-      bool rebuildVertices = false,
-      bool loadResourcesAsync = false,
-      String? resourceUri});
+  Future<ThermionAsset> loadGltfFromBuffer(
+    Uint8List data, {
+    int initialInstances = 1,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
+    bool loadResourcesAsync = false,
+    String? resourceUri,
+  });
 
   //
   Future<T> createColorGrading(ToneMapper mapper);
@@ -335,9 +369,11 @@ abstract class FilamentApp<T> {
   Future<GizmoAsset> createGizmo(View view, GizmoType type);
 
   //
-  Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances,
-      bool releaseSourceData = false});
+  Future<ThermionAsset> createGeometry(
+    Geometry geometry, {
+    List<MaterialInstance>? materialInstances,
+    bool releaseSourceData = false,
+  });
 
   //
   Future<ThermionEntity> createDirectLight(DirectLight directLight);

@@ -5,12 +5,13 @@ abstract class PlatformTextureDescriptor {
   int width;
   int height;
 
-  PlatformTextureDescriptor(
-      {required this.flutterTextureId,
-      required this.hardwareId,
-      this.windowHandle,
-      required this.width,
-      required this.height});
+  PlatformTextureDescriptor({
+    required this.flutterTextureId,
+    required this.hardwareId,
+    this.windowHandle,
+    required this.width,
+    required this.height,
+  });
 
   void markTextureFrameAvailable();
   Future destroy();

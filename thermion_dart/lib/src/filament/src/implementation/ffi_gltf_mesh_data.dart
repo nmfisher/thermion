@@ -11,8 +11,9 @@ class FFIGltfMeshData extends GltfMeshData {
   /// Returns vertex positions (xyz) and optional indices.
   /// If [meshName] is specified, only extracts data for that specific mesh.
   static Future<GltfMeshData> parse(Uint8List data, {String? meshName}) async {
-    final meshNamePtr =
-        meshName != null ? meshName.toNativeUtf8().cast<Char>() : nullptr;
+    final meshNamePtr = meshName != null
+        ? meshName.toNativeUtf8().cast<Char>()
+        : nullptr;
 
     final meshData = Struct.create<TGltfMeshData>();
 
@@ -26,19 +27,26 @@ class FFIGltfMeshData extends GltfMeshData {
 
       if (result != 0) {
         throw Exception(
-            "Failed to parse glTF for physics (error code: $result)");
+          "Failed to parse glTF for physics (error code: $result)",
+        );
       }
 
       // Copy to Dart lists
       final vertices = Float32List(meshData.vertexCount);
-      vertices.setRange(0, vertices.length,
-          meshData.vertices.asTypedList(meshData.vertexCount));
+      vertices.setRange(
+        0,
+        vertices.length,
+        meshData.vertices.asTypedList(meshData.vertexCount),
+      );
 
       Uint32List? indices;
       if (meshData.indices != nullptr && meshData.indexCount > 0) {
         indices = Uint32List(meshData.indexCount);
-        indices.setRange(0, indices.length,
-            meshData.indices.asTypedList(meshData.indexCount));
+        indices.setRange(
+          0,
+          indices.length,
+          meshData.indices.asTypedList(meshData.indexCount),
+        );
       }
 
       GltfParser_freeMeshData(meshData.address);

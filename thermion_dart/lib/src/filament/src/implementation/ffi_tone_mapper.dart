@@ -15,7 +15,8 @@ class FFIToneMapper extends ToneMapper {
   static Future<ToneMapper> linear() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
     final pointer = await withPointerCallback<TToneMapper>(
-        (cb) => ToneMapper_createLinearRenderThread(filamentApp.engine, cb));
+      (cb) => ToneMapper_createLinearRenderThread(filamentApp.engine, cb),
+    );
     return FFIToneMapper._(pointer);
   }
 
@@ -24,7 +25,8 @@ class FFIToneMapper extends ToneMapper {
   static Future<ToneMapper> aces() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
     final pointer = await withPointerCallback<TToneMapper>(
-        (cb) => ToneMapper_createACESRenderThread(filamentApp.engine, cb));
+      (cb) => ToneMapper_createACESRenderThread(filamentApp.engine, cb),
+    );
     return FFIToneMapper._(pointer);
   }
 
@@ -32,8 +34,9 @@ class FFIToneMapper extends ToneMapper {
   /// the perceived brightness of FilmicToneMapper (applies ~1.6x brightness)
   static Future<ToneMapper> acesLegacy() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createACESLegacyRenderThread(filamentApp.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+      (cb) => ToneMapper_createACESLegacyRenderThread(filamentApp.engine, cb),
+    );
     return FFIToneMapper._(pointer);
   }
 
@@ -42,7 +45,8 @@ class FFIToneMapper extends ToneMapper {
   static Future<ToneMapper> filmic() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
     final pointer = await withPointerCallback<TToneMapper>(
-        (cb) => ToneMapper_createFilmicRenderThread(filamentApp.engine, cb));
+      (cb) => ToneMapper_createFilmicRenderThread(filamentApp.engine, cb),
+    );
     return FFIToneMapper._(pointer);
   }
 
@@ -50,8 +54,9 @@ class FFIToneMapper extends ToneMapper {
   /// designed to preserve material appearance across lighting conditions
   static Future<ToneMapper> pbrNeutral() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createPBRNeutralRenderThread(filamentApp.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+      (cb) => ToneMapper_createPBRNeutralRenderThread(filamentApp.engine, cb),
+    );
     return FFIToneMapper._(pointer);
   }
 
@@ -63,9 +68,13 @@ class FFIToneMapper extends ToneMapper {
   ///   - AgxLook.golden: Golden tinted look for BT.1886 displays
   static Future<ToneMapper> agx({AgxLook look = AgxLook.none}) async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createAGXWithLookRenderThread(
-            filamentApp.engine, look.index, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+      (cb) => ToneMapper_createAGXWithLookRenderThread(
+        filamentApp.engine,
+        look.index,
+        cb,
+      ),
+    );
     return FFIToneMapper._(pointer);
   }
 
@@ -86,9 +95,16 @@ class FFIToneMapper extends ToneMapper {
     double hdrMax = 10.0,
   }) async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createGenericRenderThread(
-            filamentApp.engine, contrast, midGrayIn, midGrayOut, hdrMax, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+      (cb) => ToneMapper_createGenericRenderThread(
+        filamentApp.engine,
+        contrast,
+        midGrayIn,
+        midGrayOut,
+        hdrMax,
+        cb,
+      ),
+    );
     return FFIToneMapper._(pointer);
   }
 
@@ -96,8 +112,9 @@ class FFIToneMapper extends ToneMapper {
   /// representing pixel exposure levels. Useful for validating scene lighting.
   static Future<ToneMapper> displayRange() async {
     final filamentApp = FilamentApp.instance as FFIFilamentApp;
-    final pointer = await withPointerCallback<TToneMapper>((cb) =>
-        ToneMapper_createDisplayRangeRenderThread(filamentApp.engine, cb));
+    final pointer = await withPointerCallback<TToneMapper>(
+      (cb) => ToneMapper_createDisplayRangeRenderThread(filamentApp.engine, cb),
+    );
     return FFIToneMapper._(pointer);
   }
 

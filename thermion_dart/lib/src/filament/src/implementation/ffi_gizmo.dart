@@ -14,11 +14,7 @@ class FFIGizmo extends GizmoAsset {
 
   final Pointer<TGizmo> handle;
 
-  FFIGizmo({
-    required this.handle,
-    required this.view,
-    required this.entities,
-  }) {
+  FFIGizmo({required this.handle, required this.view, required this.entities}) {
     _callbackHolder = _onPickResult.asCallback();
   }
 
@@ -42,33 +38,39 @@ class FFIGizmo extends GizmoAsset {
     }
 
     var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-        (cb) => GltfResourceLoader_createRenderThread(engine, cb));
+      (cb) => GltfResourceLoader_createRenderThread(engine, cb),
+    );
 
     final gizmo = await withPointerCallback<TGizmo>((cb) {
       Gizmo_createRenderThread(
-          engine,
-          FilamentApp.instance!.gltfAssetLoader,
-          gltfResourceLoader,
-          nullptr,
-          view.getNativeHandle(),
-          _gizmoMaterial!.pointer,
-          gizmoType.index,
-          cb);
+        engine,
+        FilamentApp.instance!.gltfAssetLoader,
+        gltfResourceLoader,
+        nullptr,
+        view.getNativeHandle(),
+        _gizmoMaterial!.pointer,
+        gizmoType.index,
+        cb,
+      );
     });
     if (gizmo == nullptr) {
       throw Exception("Failed to create gizmo");
     }
-    final gizmoEntityCount =
-        SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
+    final gizmoEntityCount = SceneAsset_getChildEntityCount(
+      gizmo.cast<TSceneAsset>(),
+    );
     final gizmoEntities = Int32List(gizmoEntityCount);
     SceneAsset_getChildEntities(
-        gizmo.cast<TSceneAsset>(), gizmoEntities.address);
+      gizmo.cast<TSceneAsset>(),
+      gizmoEntities.address,
+    );
 
     final gizmoAsset = FFIGizmo(
-        handle: gizmo,
-        view: view,
-        entities: gizmoEntities.toSet()
-          ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
+      handle: gizmo,
+      view: view,
+      entities: gizmoEntities.toSet()
+        ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())),
+    );
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
       gizmoEntities.free();
@@ -84,7 +86,7 @@ class FFIGizmo extends GizmoAsset {
       TGizmoPickResultType.AxisZ => GizmoPickResultType.AxisZ,
       TGizmoPickResultType.None => GizmoPickResultType.None,
       TGizmoPickResultType.Parent => GizmoPickResultType.Parent,
-      _ => throw UnsupportedError(resultType.toString())
+      _ => throw UnsupportedError(resultType.toString()),
     };
     _callback?.call(type, Vector3(x, y, z));
   }
@@ -97,9 +99,11 @@ class FFIGizmo extends GizmoAsset {
   bool isGizmoEntity(ThermionEntity entity) => entities.contains(entity);
 
   @override
-  Future pick(int x, int y,
-      {Future Function(GizmoPickResultType result, Vector3 coords)?
-          handler}) async {
+  Future pick(
+    int x,
+    int y, {
+    Future Function(GizmoPickResultType result, Vector3 coords)? handler,
+  }) async {
     _callback = handler;
     final viewport = await view.getViewport();
     y = viewport.height - y;
@@ -113,7 +117,7 @@ class FFIGizmo extends GizmoAsset {
     final tAxis = switch (axis) {
       Axis.X => TGizmoAxis.X,
       Axis.Y => TGizmoAxis.Y,
-      Axis.Z => TGizmoAxis.Z
+      Axis.Z => TGizmoAxis.Z,
     };
     Gizmo_highlight(handle, tAxis);
   }

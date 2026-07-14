@@ -32,7 +32,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   ThermionViewerFFI({bool createOverlay = false})
-      : _createOverlay = createOverlay {
+    : _createOverlay = createOverlay {
     if (FilamentApp.instance == null) {
       throw Exception("FilamentApp has not been created");
     }
@@ -128,14 +128,18 @@ class ThermionViewerFFI extends ThermionViewer {
 
       await withVoidCallback(
         (requestId, cb) => Renderer_renderRenderThread(
-            FilamentApp.instance!.renderer,
-            view.getNativeHandle(),
-            requestId,
-            cb),
+          FilamentApp.instance!.renderer,
+          view.getNativeHandle(),
+          requestId,
+          cb,
+        ),
       );
       await withVoidCallback(
         (requestId, cb) => Renderer_endFrameRenderThread(
-            FilamentApp.instance!.renderer, requestId, cb),
+          FilamentApp.instance!.renderer,
+          requestId,
+          cb,
+        ),
       );
       await FilamentApp.instance!.flush();
     }
@@ -266,21 +270,25 @@ class ThermionViewerFFI extends ThermionViewer {
 
     _skyboxTextureUploadComplete =
         withVoidCallback((requestId, onTextureUploadComplete) async {
-      var bundle = await FFIKtx1Bundle.create(data);
+          var bundle = await FFIKtx1Bundle.create(data);
 
-      _skyboxTexture = await bundle.createTexture(
-          onTextureUploadComplete: onTextureUploadComplete,
-          textureUploadCompleteRequestId: requestId) as FFITexture;
+          _skyboxTexture =
+              await bundle.createTexture(
+                    onTextureUploadComplete: onTextureUploadComplete,
+                    textureUploadCompleteRequestId: requestId,
+                  )
+                  as FFITexture;
 
-      _skybox = await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
-          as FFISkybox;
+          _skybox =
+              await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
+                  as FFISkybox;
 
-      await scene.setSkybox(_skybox!);
+          await scene.setSkybox(_skybox!);
 
-      completer.complete();
-    }).then((_) async {
-      _skyboxTextureUploadComplete = null;
-    });
+          completer.complete();
+        }).then((_) async {
+          _skyboxTextureUploadComplete = null;
+        });
     await completer.future;
   }
 
@@ -288,61 +296,72 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future loadIbl(String lightingPath,
-      {double intensity = 30000, bool destroyExisting = true}) async {
+  Future loadIbl(
+    String lightingPath, {
+    double intensity = 30000,
+    bool destroyExisting = true,
+  }) async {
     await removeIbl(destroy: destroyExisting);
 
     final completer = Completer();
     _iblTextureUploadComplete =
         withVoidCallback((requestId, onTextureUploadComplete) async {
-      late Pointer stackPtr;
-      if (FILAMENT_WASM) {
-        //stackPtr = stackSave();
-      }
+              late Pointer stackPtr;
+              if (FILAMENT_WASM) {
+                //stackPtr = stackSave();
+              }
 
-      var data = await FilamentApp.instance!.loadResource(lightingPath);
+              var data = await FilamentApp.instance!.loadResource(lightingPath);
 
-      final bundle = await FFIKtx1Bundle.create(data);
+              final bundle = await FFIKtx1Bundle.create(data);
 
-      final texture = await bundle.createTexture(
-          onTextureUploadComplete: onTextureUploadComplete,
-          textureUploadCompleteRequestId: requestId);
-      final harmonics = bundle.getSphericalHarmonics();
+              final texture = await bundle.createTexture(
+                onTextureUploadComplete: onTextureUploadComplete,
+                textureUploadCompleteRequestId: requestId,
+              );
+              final harmonics = bundle.getSphericalHarmonics();
 
-      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
-        harmonics,
-        reflectionsTexture: texture,
-        intensity: intensity,
-      );
+              final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
+                harmonics,
+                reflectionsTexture: texture,
+                intensity: intensity,
+              );
 
-      await scene.setIndirectLight(ibl);
+              await scene.setIndirectLight(ibl);
 
-      if (FILAMENT_WASM) {
-        //stackRestore(stackPtr);
-        data.free();
-      }
-      data.free();
+              if (FILAMENT_WASM) {
+                //stackRestore(stackPtr);
+                data.free();
+              }
+              data.free();
 
-      completer.complete();
-      _logger.info("IBL texture upload complete");
-    }).then((_) {
-      _logger.info("IBL texture upload complete");
-      _iblTextureUploadComplete = null;
-    }).onError((err, st) {
-      _logger.severe(err.toString());
-    });
+              completer.complete();
+              _logger.info("IBL texture upload complete");
+            })
+            .then((_) {
+              _logger.info("IBL texture upload complete");
+              _iblTextureUploadComplete = null;
+            })
+            .onError((err, st) {
+              _logger.severe(err.toString());
+            });
     await completer.future;
   }
 
   //
-  Future loadIblFromTexture(Texture texture,
-      {Texture? reflectionsTexture = null,
-      double intensity = 30000,
-      bool destroyExisting = true}) async {
+  Future loadIblFromTexture(
+    Texture texture, {
+    Texture? reflectionsTexture = null,
+    double intensity = 30000,
+    bool destroyExisting = true,
+  }) async {
     await removeIbl(destroy: destroyExisting);
 
-    final ibl = await FFIIndirectLight.fromIrradianceTexture(texture,
-        reflectionsTexture: reflectionsTexture, intensity: intensity);
+    final ibl = await FFIIndirectLight.fromIrradianceTexture(
+      texture,
+      reflectionsTexture: reflectionsTexture,
+      intensity: intensity,
+    );
 
     await scene.setIndirectLight(ibl);
   }
@@ -576,8 +595,12 @@ class ThermionViewerFFI extends ThermionViewer {
     Vector3 direction,
   ) async {
     direction.normalize();
-    FilamentApp.instance!.lightManager
-        .setDirection(lightEntity, direction.x, direction.y, direction.z);
+    FilamentApp.instance!.lightManager.setDirection(
+      lightEntity,
+      direction.x,
+      direction.y,
+      direction.z,
+    );
   }
 
   //
@@ -589,7 +612,8 @@ class ThermionViewerFFI extends ThermionViewer {
   //
   @override
   @Deprecated(
-      "Call FilamentApp.instance!.renderableManager.getBoundingBox instead")
+    "Call FilamentApp.instance!.renderableManager.getBoundingBox instead",
+  )
   Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
     return FilamentApp.instance!.renderableManager.getBoundingBox(entityId);
   }
@@ -603,22 +627,25 @@ class ThermionViewerFFI extends ThermionViewer {
   GridOverlay? _grid;
 
   //
-  Future setGridOverlayVisibility(bool visible,
-      {List<LinearColor> axisColors = kDefaultAxisColors,
-      LinearColor gridColor = kDefaultGridColor,
-      List<double> spacing = const [1.0, 10.0, 100.0],
-      List<double> fadeInStart = const [0.001, 5.0, 50.0],
-      List<double> fadeInEnd = const [0.001, 50.0, 500.0],
-      List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
-      List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0]}) async {
+  Future setGridOverlayVisibility(
+    bool visible, {
+    List<LinearColor> axisColors = kDefaultAxisColors,
+    LinearColor gridColor = kDefaultGridColor,
+    List<double> spacing = const [1.0, 10.0, 100.0],
+    List<double> fadeInStart = const [0.001, 5.0, 50.0],
+    List<double> fadeInEnd = const [0.001, 50.0, 500.0],
+    List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
+    List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0],
+  }) async {
     _grid ??= await GridOverlay.create(
-        axisColors: axisColors,
-        gridColor: gridColor,
-        spacing: spacing,
-        fadeInStart: fadeInStart,
-        fadeInEnd: fadeInEnd,
-        fadeOutStart: fadeOutStart,
-        fadeOutEnd: fadeOutEnd);
+      axisColors: axisColors,
+      gridColor: gridColor,
+      spacing: spacing,
+      fadeInStart: fadeInStart,
+      fadeInEnd: fadeInEnd,
+      fadeOutStart: fadeOutStart,
+      fadeOutEnd: fadeOutEnd,
+    );
 
     await _grid!.setAxisColor(axisColors);
 
@@ -651,19 +678,22 @@ class ThermionViewerFFI extends ThermionViewer {
   MaterialInstance? _translationAxisMaterial;
 
   @override
-  Future setTranslationAxisVisibility(bool visible,
-      {ThermionEntity? entity,
-      v64.Vector3? origin,
-      Axis? axis,
-      double lineWidth = 5.0,
-      double lineLength = 500.0}) async {
+  Future setTranslationAxisVisibility(
+    bool visible, {
+    ThermionEntity? entity,
+    v64.Vector3? origin,
+    Axis? axis,
+    double lineWidth = 5.0,
+    double lineLength = 500.0,
+  }) async {
     if (visible) {
       if (axis == null) {
         throw ArgumentError('axis is required when visible is true');
       }
       if (entity == null && origin == null) {
         throw ArgumentError(
-            'either entity or origin must be provided when visible is true');
+          'either entity or origin must be provided when visible is true',
+        );
       }
 
       // Get world position from entity if provided
@@ -671,8 +701,9 @@ class ThermionViewerFFI extends ThermionViewer {
       if (origin != null) {
         worldPosition = origin;
       } else {
-        final worldTransform =
-            await FilamentApp.instance!.getWorldTransform(entity!);
+        final worldTransform = await FilamentApp.instance!.getWorldTransform(
+          entity!,
+        );
         worldPosition = worldTransform.getTranslation();
         await FilamentApp.instance!.setPriority(entity, 0);
       }
@@ -691,33 +722,39 @@ class ThermionViewerFFI extends ThermionViewer {
       // transform
       _translationAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
-        originX: 0.0,
-        originY: 0.0,
-        originZ: 0.0,
-        axis: axisInt,
-        lineWidth: lineWidth,
-        lineLength: lineLength,
-      );
+            originX: 0.0,
+            originY: 0.0,
+            originZ: 0.0,
+            axis: axisInt,
+            lineWidth: lineWidth,
+            lineLength: lineLength,
+          );
 
       // Create plane geometry (without material first, then apply)
       _translationAxisAsset = await createGeometry(
         GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2),
       );
-      await _translationAxisAsset!
-          .setMaterialInstanceAt(_translationAxisMaterial!);
+      await _translationAxisAsset!.setMaterialInstanceAt(
+        _translationAxisMaterial!,
+      );
 
       // Position at world position, with rotation for Y axis
       v64.Matrix4 transform;
       if (axis == Axis.Y) {
         // Rotate plane 90° around X axis to make it vertical (XY plane)
         final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
-        transform =
-            v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
+        transform = v64.Matrix4.compose(
+          worldPosition,
+          rotation,
+          v64.Vector3.all(1.0),
+        );
       } else {
         transform = v64.Matrix4.translation(worldPosition);
       }
-      await FilamentApp.instance!
-          .setTransform(_translationAxisAsset!.entity, transform);
+      await FilamentApp.instance!.setTransform(
+        _translationAxisAsset!.entity,
+        transform,
+      );
     } else {
       await _removeTranslationAxis();
     }
@@ -839,16 +876,8 @@ class ThermionViewerFFI extends ThermionViewer {
     // Aabb3.min/max are absolute object-space corners, not offsets from
     // center. The wireframe asset is parented to `asset` below, so these
     // values are already in the right frame.
-    final min = [
-      boundingBox.min.x,
-      boundingBox.min.y,
-      boundingBox.min.z,
-    ];
-    final max = [
-      boundingBox.max.x,
-      boundingBox.max.y,
-      boundingBox.max.z,
-    ];
+    final min = [boundingBox.min.x, boundingBox.min.y, boundingBox.min.z];
+    final max = [boundingBox.max.x, boundingBox.max.y, boundingBox.max.z];
 
     // Create vertices for the bounding box wireframe
     // 8 vertices for a cube
@@ -889,58 +918,65 @@ class ThermionViewerFFI extends ThermionViewer {
       // Top face
       4, 5, 5, 6, 6, 7, 7, 4,
       // Vertical edges
-      0, 4, 1, 5, 2, 6, 3, 7
+      0, 4, 1, 5, 2, 6, 3, 7,
     ]);
 
     // Create unlit material instance for the wireframe
-    final materialInstancePtr =
-        await withPointerCallback<TMaterialInstance>((cb) {
+    final materialInstancePtr = await withPointerCallback<TMaterialInstance>((
+      cb,
+    ) {
       MaterialProvider_createMaterialInstanceRenderThread(
-          FilamentApp.instance!.ubershaderMaterialProvider,
-          false,
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          0,
-          false,
-          false,
-          0,
-          false,
-          0,
-          0,
-          false,
-          0,
-          false,
-          0,
-          false,
-          0,
-          false,
-          false,
-          false,
-          0,
-          0,
-          0,
-          false,
-          0,
-          false,
-          0,
-          false,
-          0,
-          false,
-          0,
-          false,
-          false,
-          false,
-          cb);
+        FilamentApp.instance!.ubershaderMaterialProvider,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        0,
+        false,
+        false,
+        0,
+        false,
+        0,
+        0,
+        false,
+        0,
+        false,
+        0,
+        false,
+        0,
+        false,
+        false,
+        false,
+        0,
+        0,
+        0,
+        false,
+        0,
+        false,
+        0,
+        false,
+        0,
+        false,
+        0,
+        false,
+        false,
+        false,
+        cb,
+      );
     });
 
     final material = FFIMaterialInstance(materialInstancePtr);
     await material.setParameterFloat4(
-        "baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
+      "baseColorFactor",
+      1.0,
+      1.0,
+      0.0,
+      1.0,
+    ); // Yellow wireframe
 
     // Create geometry for the bounding box
     final geometry = Geometry(
@@ -959,10 +995,11 @@ class ThermionViewerFFI extends ThermionViewer {
     await bbAsset.setReceiveShadows(false);
 
     TransformManager_setParent(
-        Engine_getTransformManager(FilamentApp.instance!.engine),
-        bbAsset.entity,
-        asset.entity,
-        false);
+      Engine_getTransformManager(FilamentApp.instance!.engine),
+      bbAsset.entity,
+      asset.entity,
+      false,
+    );
     geometry.dispose();
 
     completer.complete(bbAsset);

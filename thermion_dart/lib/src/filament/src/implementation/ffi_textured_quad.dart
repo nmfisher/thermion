@@ -17,8 +17,12 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   int? width;
   int? height;
 
-  FFITexturedQuad(
-      {required this.asset, this.texture, this.sampler, required this.mi});
+  FFITexturedQuad({
+    required this.asset,
+    this.texture,
+    this.sampler,
+    required this.mi,
+  });
 
   T getNativeHandle() {
     return asset.getNativeHandle();
@@ -65,11 +69,15 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     final texture = await bundle.createTexture();
 
     if (bundle.isCubemap()) {
-      sampler ??= await FilamentApp.instance!.createTextureSampler()
-          as FFITextureSampler;
+      sampler ??=
+          await FilamentApp.instance!.createTextureSampler()
+              as FFITextureSampler;
       this.texture = texture;
       await mi.setParameterTexture(
-          "cubeMap", texture as FFITexture, sampler as FFITextureSampler);
+        "cubeMap",
+        texture as FFITexture,
+        sampler as FFITextureSampler,
+      );
       await setBackgroundColor(1, 1, 1, 0);
       await mi.setParameterInt("showImage", 1);
       await mi.setParameterInt("isCubeMap", 1);
@@ -90,24 +98,30 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     // RGBA32F texture. So on Windows force an alpha channel at decode time:
     // this yields 4-channel RGBA source data that uploads cleanly into RGBA32F.
     // Other platforms keep the tighter 3-channel RGB32F path.
-    final image = await FilamentApp.instance!
-        .decodeImage(imageData, requireAlpha: IS_WINDOWS);
+    final image = await FilamentApp.instance!.decodeImage(
+      imageData,
+      requireAlpha: IS_WINDOWS,
+    );
     final channels = await image.getChannels();
     if (channels != 3 && channels != 4) {
       throw UnimplementedError("Currently only 3 or 4 channels are supported");
     }
-    final textureFormat =
-        channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F;
-    final pixelFormat =
-        channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB;
+    final textureFormat = channels == 4
+        ? TextureFormat.RGBA32F
+        : TextureFormat.RGB32F;
+    final pixelFormat = channels == 4
+        ? PixelDataFormat.RGBA
+        : PixelDataFormat.RGB;
 
     final texture = await FilamentApp.instance!.createTexture(
-        await image.getWidth(), await image.getHeight(),
-        flags: {
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          TextureUsage.TEXTURE_USAGE_UPLOADABLE
-        },
-        textureFormat: textureFormat);
+      await image.getWidth(),
+      await image.getHeight(),
+      flags: {
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_UPLOADABLE,
+      },
+      textureFormat: textureFormat,
+    );
     await texture.setLinearImage(image, pixelFormat, PixelDataType.FLOAT);
     await setImageFromTexture(texture);
   }
@@ -121,7 +135,10 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
         await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
     await mi.setParameterInt("isCubeMap", 0);
     await mi.setParameterTexture(
-        "image", texture as FFITexture, sampler as FFITextureSampler);
+      "image",
+      texture as FFITexture,
+      sampler as FFITextureSampler,
+    );
     await setBackgroundColor(1, 1, 1, 0);
     await mi.setParameterInt("showImage", 1);
     width = await texture.getWidth();
@@ -132,8 +149,9 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   ///
   ///
   @override
-  Future<ThermionAsset> createInstance(
-      {covariant List<MaterialInstance>? materialInstances = null}) {
+  Future<ThermionAsset> createInstance({
+    covariant List<MaterialInstance>? materialInstances = null,
+  }) {
     throw UnimplementedError();
   }
 
@@ -178,8 +196,10 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   }
 
   @override
-  Future<MaterialInstance> getMaterialInstanceAt(
-      {ThermionEntity? entity, int index = 0}) async {
+  Future<MaterialInstance> getMaterialInstanceAt({
+    ThermionEntity? entity,
+    int index = 0,
+  }) async {
     if (index == 0 && (entity == null || entity == this.entity)) {
       return mi;
     }

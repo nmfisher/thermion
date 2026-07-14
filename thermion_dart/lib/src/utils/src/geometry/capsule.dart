@@ -50,8 +50,10 @@ class CapsuleGeometry {
 
         verticesList.addAll([x, y, z]);
         normalsList.addAll([nx, ny, nz]);
-        uvsList.addAll(
-            [longNumber / longitudeBands, latNumber / latitudeBands / 2]);
+        uvsList.addAll([
+          longNumber / longitudeBands,
+          latNumber / latitudeBands / 2,
+        ]);
       }
     }
 
@@ -83,7 +85,7 @@ class CapsuleGeometry {
         normalsList.addAll([nx, ny, nz]);
         uvsList.addAll([
           longNumber / longitudeBands,
-          0.5 + (latNumber / bottomHemiLatBands / 2)
+          0.5 + (latNumber / bottomHemiLatBands / 2),
         ]);
       }
     }
@@ -94,8 +96,14 @@ class CapsuleGeometry {
         int first = (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices
-            .addAll([first, second, first + 1, second, second + 1, first + 1]);
+        indices.addAll([
+          first,
+          second,
+          first + 1,
+          second,
+          second + 1,
+          first + 1,
+        ]);
       }
     }
 
@@ -120,13 +128,20 @@ class CapsuleGeometry {
     // Generate indices for bottom hemisphere
     for (int latNumber = 0; latNumber < bottomHemiLatBands; latNumber++) {
       for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
-        int first = topHemiVertexCount +
+        int first =
+            topHemiVertexCount +
             (latNumber * (longitudeBands + 1)) +
             longNumber;
         int second = first + longitudeBands + 1;
 
-        indices
-            .addAll([first, second, first + 1, second, second + 1, first + 1]);
+        indices.addAll([
+          first,
+          second,
+          first + 1,
+          second,
+          second + 1,
+          first + 1,
+        ]);
       }
     }
 
@@ -134,7 +149,11 @@ class CapsuleGeometry {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, Uint16List.fromList(indices),
-        normals: _normals, uvs: _uvs);
+    return Geometry(
+      vertices,
+      Uint16List.fromList(indices),
+      normals: _normals,
+      uvs: _uvs,
+    );
   }
 }

@@ -11,8 +11,9 @@ void main() async {
   await testHelper.setup();
   test('decode KTX', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      final ktx1Data = File("${testHelper.assetsDir}/default_env_skybox.ktx")
-          .readAsBytesSync();
+      final ktx1Data = File(
+        "${testHelper.assetsDir}/default_env_skybox.ktx",
+      ).readAsBytesSync();
       final bundle = await FFIKtx1Bundle.create(ktx1Data);
     });
   });
@@ -29,15 +30,17 @@ void main() async {
   test('set background image from PNG', () async {
     await ViewerBuilder(testHelper).execute((result) async {
       await result.viewer.setBackgroundImage(
-          "file://${testHelper.assetsDir}/cube_texture_512x512.png");
+        "file://${testHelper.assetsDir}/cube_texture_512x512.png",
+      );
       await testHelper.capture(result.viewer.view, "background_png_image");
     });
   });
 
   test('move textured quad from near plane to far plane', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      await result.viewer
-          .setBackgroundImage("file://${testHelper.assetsDir}/background.ktx");
+      await result.viewer.setBackgroundImage(
+        "file://${testHelper.assetsDir}/background.ktx",
+      );
       final quad = await result.viewer.getBackgroundImage();
       // add a cube so we can check our depth parameters
       final asset = await result.viewer.createGeometry(GeometryUtils.cube());

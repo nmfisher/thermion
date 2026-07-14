@@ -16,7 +16,7 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
   double _radiusScaleFactor = 1.0;
   double _azimuth; // Angle around worldUp (Y-axis), in radians
   double
-      _elevation; // Angle above the XZ plane (around local X-axis), in radians
+  _elevation; // Angle above the XZ plane (around local X-axis), in radians
 
   bool _isInitialized = false;
   bool _isMouseDown = false;
@@ -25,17 +25,18 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
 
   final bool moveOnHover;
 
-  OrbitInputHandlerDelegate(this.view,
-      {this.sensitivity = const InputSensitivityOptions(),
-      Vector3? targetPoint,
-      this.minZoomDistance = 1.0,
-      this.maxZoomDistance = 100.0,
-      this.moveOnHover = false})
-      : targetPoint = targetPoint ?? Vector3.zero(),
-        _radius =
-            (minZoomDistance + maxZoomDistance) / 2, // Initial default radius
-        _azimuth = 0.0,
-        _elevation = math.pi / 4;
+  OrbitInputHandlerDelegate(
+    this.view, {
+    this.sensitivity = const InputSensitivityOptions(),
+    Vector3? targetPoint,
+    this.minZoomDistance = 1.0,
+    this.maxZoomDistance = 100.0,
+    this.moveOnHover = false,
+  }) : targetPoint = targetPoint ?? Vector3.zero(),
+       _radius =
+           (minZoomDistance + maxZoomDistance) / 2, // Initial default radius
+       _azimuth = 0.0,
+       _elevation = math.pi / 4;
 
   Future<void> _initializeFromCamera(Camera activeCamera) async {
     final currentModelMatrix = await activeCamera.getModelMatrix();
@@ -62,8 +63,11 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
       if (projectionOnPlane.length2 < 0.0001 &&
           worldUp.dot(Vector3(0, 0, 1)).abs() < 0.99) {
         // looking straight up/down, pick a default reference for azimuth
-        projectionOnPlane =
-            Vector3(0, 0, 1); // if worldUp is Y, project onto XZ plane
+        projectionOnPlane = Vector3(
+          0,
+          0,
+          1,
+        ); // if worldUp is Y, project onto XZ plane
       } else if (projectionOnPlane.length2 < 0.0001) {
         // if worldUp is Z, project onto XY plane
         projectionOnPlane = Vector3(1, 0, 0);
@@ -77,16 +81,20 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
         referenceAzimuthVector = Vector3(1, 0, 0);
       }
       // Ensure referenceAzimuthVector is also in the plane
-      referenceAzimuthVector = (referenceAzimuthVector -
-              worldUp * referenceAzimuthVector.dot(worldUp))
-          .normalized();
+      referenceAzimuthVector =
+          (referenceAzimuthVector -
+                  worldUp * referenceAzimuthVector.dot(worldUp))
+              .normalized();
 
       _azimuth = math.atan2(
-          projectionOnPlane.cross(referenceAzimuthVector).dot(worldUp),
-          projectionOnPlane.dot(referenceAzimuthVector));
+        projectionOnPlane.cross(referenceAzimuthVector).dot(worldUp),
+        projectionOnPlane.dot(referenceAzimuthVector),
+      );
     }
     _elevation = _elevation.clamp(
-        -math.pi / 2 + 0.01, math.pi / 2 - 0.01); // Clamp elevation
+      -math.pi / 2 + 0.01,
+      math.pi / 2 - 0.01,
+    ); // Clamp elevation
     _isInitialized = true;
   }
 
@@ -109,11 +117,11 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
           break;
 
         case MouseEvent(
-            type: final type,
-            button: final button,
-            localPosition: final localPosition,
-            // delta: final mouseDelta // Using localPosition to calculate delta from _lastPointerPosition
-          ):
+          type: final type,
+          button: final button,
+          localPosition: final localPosition,
+          // delta: final mouseDelta // Using localPosition to calculate delta from _lastPointerPosition
+        ):
           switch (type) {
             case MouseEventType.buttonDown:
               if (button == MouseButton.left) {
@@ -130,16 +138,18 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
               break;
             case MouseEventType.move:
             case MouseEventType
-                  .hover: // Some systems might only send hover when no buttons pressed
+                .hover: // Some systems might only send hover when no buttons pressed
               if (event.type == MouseEventType.hover && !moveOnHover) {
                 continue;
               }
               if (_isMouseDown && _lastPointerPosition != null) {
                 final dragDelta = localPosition - _lastPointerPosition!;
                 // X-drag affects azimuth, Y-drag affects elevation
-                deltaAzimuth -= dragDelta.x *
+                deltaAzimuth -=
+                    dragDelta.x *
                     sensitivity.mouseSensitivity; // Invert X for natural feel
-                deltaElevation -= dragDelta.y *
+                deltaElevation -=
+                    dragDelta.y *
                     sensitivity.mouseSensitivity; // Invert Y for natural feel
                 _lastPointerPosition = localPosition;
               } else if (type == MouseEventType.hover) {
@@ -150,10 +160,10 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
           }
           break;
         case TouchEvent(
-            type: final type,
-            localPosition: final localPosition,
-            delta: final touchDelta,
-          ):
+          type: final type,
+          localPosition: final localPosition,
+          delta: final touchDelta,
+        ):
           switch (type) {
             case TouchEventType.tap:
               break;
@@ -163,11 +173,11 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
           break;
 
         case ScaleUpdateEvent(
-            numPointers: final numPointers,
-            scale: final scaleFactor,
-            localFocalPoint: final localFocalPoint,
-            localFocalPointDelta: final localFocalPointDelta
-          ):
+          numPointers: final numPointers,
+          scale: final scaleFactor,
+          localFocalPoint: final localFocalPoint,
+          localFocalPointDelta: final localFocalPointDelta,
+        ):
           if (numPointers == 1) {
             deltaAzimuth -=
                 localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
@@ -198,8 +208,10 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
     var radius = _radius * _radiusScaleFactor;
 
     // Clamp parameters
-    _elevation = _elevation.clamp(-math.pi / 2 + 0.01,
-        math.pi / 2 - 0.01); // Prevent gimbal lock at poles
+    _elevation = _elevation.clamp(
+      -math.pi / 2 + 0.01,
+      math.pi / 2 - 0.01,
+    ); // Prevent gimbal lock at poles
     radius = radius.clamp(minZoomDistance, maxZoomDistance);
     _azimuth =
         _azimuth % (2 * math.pi); // Keep azimuth within 0-2PI range (optional)
@@ -213,12 +225,13 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
       // Standard Y-up
       cameraPosition = targetPoint + Vector3(xOffset, yOffset, zOffset);
     } else if (worldUp.dot(Vector3(0, 0, 1)).abs() > 0.99) {
-      cameraPosition = targetPoint +
+      cameraPosition =
+          targetPoint +
           Vector3(
-              radius * math.cos(_elevation) * math.cos(_azimuth), // x
-              radius * math.cos(_elevation) * math.sin(_azimuth), // y
-              radius * math.sin(_elevation) // z
-              );
+            radius * math.cos(_elevation) * math.cos(_azimuth), // x
+            radius * math.cos(_elevation) * math.sin(_azimuth), // y
+            radius * math.sin(_elevation), // z
+          );
     } else {
       cameraPosition = targetPoint + Vector3(xOffset, yOffset, zOffset);
     }

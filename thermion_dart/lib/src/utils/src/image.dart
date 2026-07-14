@@ -3,8 +3,14 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:thermion_dart/thermion_dart.dart';
 
-Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
-    {bool hasAlpha = true, bool isFloat = false, int numChannels = 0}) async {
+Future<Uint8List> pixelBufferToBmp(
+  Uint8List pixelBuffer,
+  int width,
+  int height, {
+  bool hasAlpha = true,
+  bool isFloat = false,
+  int numChannels = 0,
+}) async {
   final channels = numChannels > 0 ? numChannels : (hasAlpha ? 4 : 3);
   final rowSize = (width * 3 + 3) & ~3;
   final padding = rowSize - (width * 3);
@@ -33,8 +39,10 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
   Float32List? floatData;
 
   if (isFloat) {
-    floatData = pixelBuffer.buffer
-        .asFloat32List(pixelBuffer.offsetInBytes, width * height * channels);
+    floatData = pixelBuffer.buffer.asFloat32List(
+      pixelBuffer.offsetInBytes,
+      width * height * channels,
+    );
   }
 
   // Pixel data (BMP stores in BGR format)
@@ -72,20 +80,26 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
   return data;
 }
 
-Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
-    {bool hasAlpha = true,
-    bool isFloat = false,
-    bool linearToSrgb = false,
-    bool invertAces = false,
-    bool flipY = false,
-    int numChannels = 0}) async {
+Future<Uint8List> pixelBufferToPng(
+  Uint8List pixelBuffer,
+  int width,
+  int height, {
+  bool hasAlpha = true,
+  bool isFloat = false,
+  bool linearToSrgb = false,
+  bool invertAces = false,
+  bool flipY = false,
+  int numChannels = 0,
+}) async {
   final channels = numChannels > 0 ? numChannels : (hasAlpha ? 4 : 3);
   final image = img.Image(width: width, height: height);
 
   Float32List? floatData;
   if (isFloat) {
-    floatData = pixelBuffer.buffer
-        .asFloat32List(pixelBuffer.offsetInBytes, width * height * channels);
+    floatData = pixelBuffer.buffer.asFloat32List(
+      pixelBuffer.offsetInBytes,
+      width * height * channels,
+    );
   }
 
   for (int y = 0; y < height; y++) {
@@ -134,18 +148,22 @@ Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
       if (linearToSrgb) {
         // Convert from linear to sRGB
         image.setPixel(
-            x,
-            y,
-            img.ColorUint8(4)
-              ..setRgba(
-                  _linearToSRGB(r), _linearToSRGB(g), _linearToSRGB(b), a));
+          x,
+          y,
+          img.ColorUint8(4)
+            ..setRgba(_linearToSRGB(r), _linearToSRGB(g), _linearToSRGB(b), a),
+        );
       } else {
         image.setPixel(
-            x,
-            y,
-            img.ColorUint8(4)
-              ..setRgba((r * 255).toInt(), (g * 255).toInt(), (b * 255).toInt(),
-                  (a * 255).toInt()));
+          x,
+          y,
+          img.ColorUint8(4)..setRgba(
+            (r * 255).toInt(),
+            (g * 255).toInt(),
+            (b * 255).toInt(),
+            (a * 255).toInt(),
+          ),
+        );
       }
     }
   }

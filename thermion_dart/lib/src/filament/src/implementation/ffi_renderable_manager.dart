@@ -51,17 +51,29 @@ class FFIRenderableManager
   // ============================================================================
 
   @override
-  Future<bool> setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
-      MaterialInstance materialInstance) async {
-    return RenderableManager_setMaterialInstanceAt(renderableManager, entity,
-        primitiveIndex, (materialInstance as FFIMaterialInstance).pointer);
+  Future<bool> setMaterialInstanceAt(
+    ThermionEntity entity,
+    int primitiveIndex,
+    MaterialInstance materialInstance,
+  ) async {
+    return RenderableManager_setMaterialInstanceAt(
+      renderableManager,
+      entity,
+      primitiveIndex,
+      (materialInstance as FFIMaterialInstance).pointer,
+    );
   }
 
   @override
   Future<MaterialInstance?> getMaterialInstanceAt(
-      ThermionEntity entity, int primitiveIndex) async {
+    ThermionEntity entity,
+    int primitiveIndex,
+  ) async {
     final instancePtr = RenderableManager_getMaterialInstanceAt(
-        renderableManager, entity, primitiveIndex);
+      renderableManager,
+      entity,
+      primitiveIndex,
+    );
 
     if (instancePtr == nullptr) {
       return null;
@@ -72,9 +84,14 @@ class FFIRenderableManager
 
   @override
   Future clearMaterialInstanceAt(
-      ThermionEntity entity, int primitiveIndex) async {
+    ThermionEntity entity,
+    int primitiveIndex,
+  ) async {
     RenderableManager_clearMaterialInstanceAt(
-        renderableManager, entity, primitiveIndex);
+      renderableManager,
+      entity,
+      primitiveIndex,
+    );
   }
 
   // ============================================================================
@@ -92,11 +109,14 @@ class FFIRenderableManager
 
   @override
   Aabb3 getAxisAlignedBoundingBox(ThermionEntity entity) {
-    final bb =
-        RenderableManager_getAxisAlignedBoundingBox(renderableManager, entity);
+    final bb = RenderableManager_getAxisAlignedBoundingBox(
+      renderableManager,
+      entity,
+    );
     return Aabb3.centerAndHalfExtents(
-        Vector3(bb.centerX, bb.centerY, bb.centerZ),
-        Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ));
+      Vector3(bb.centerX, bb.centerY, bb.centerZ),
+      Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ),
+    );
   }
 
   @override
@@ -111,15 +131,19 @@ class FFIRenderableManager
     cAabb.halfExtentZ = (aabb.max.z - aabb.min.z) / 2;
 
     RenderableManager_setAxisAlignedBoundingBox(
-        renderableManager, entity, cAabb);
+      renderableManager,
+      entity,
+      cAabb,
+    );
   }
 
   @override
   Aabb3 getBoundingBox(ThermionEntity entity) {
     final bb = RenderableManager_getBoundingBox(renderableManager, entity);
     return Aabb3.centerAndHalfExtents(
-        Vector3(bb.centerX, bb.centerY, bb.centerZ),
-        Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ));
+      Vector3(bb.centerX, bb.centerY, bb.centerZ),
+      Vector3(bb.halfExtentX, bb.halfExtentY, bb.halfExtentZ),
+    );
   }
 
   // ============================================================================
@@ -180,15 +204,25 @@ class FFIRenderableManager
 
   @override
   Future setLightChannel(
-      ThermionEntity entity, int channel, bool enable) async {
+    ThermionEntity entity,
+    int channel,
+    bool enable,
+  ) async {
     RenderableManager_setLightChannel(
-        renderableManager, entity, channel, enable);
+      renderableManager,
+      entity,
+      channel,
+      enable,
+    );
   }
 
   @override
   bool getLightChannel(ThermionEntity entity, int channel) {
     return RenderableManager_getLightChannel(
-        renderableManager, entity, channel);
+      renderableManager,
+      entity,
+      channel,
+    );
   }
 
   // ============================================================================
@@ -217,9 +251,14 @@ class FFIRenderableManager
 
   @override
   Future setScreenSpaceContactShadows(
-      ThermionEntity entity, bool enabled) async {
+    ThermionEntity entity,
+    bool enabled,
+  ) async {
     RenderableManager_setScreenSpaceContactShadows(
-        renderableManager, entity, enabled);
+      renderableManager,
+      entity,
+      enabled,
+    );
   }
 
   // ============================================================================
@@ -228,16 +267,30 @@ class FFIRenderableManager
 
   @override
   Future setBlendOrderAt(
-      ThermionEntity entity, int primitiveIndex, int order) async {
+    ThermionEntity entity,
+    int primitiveIndex,
+    int order,
+  ) async {
     RenderableManager_setBlendOrderAt(
-        renderableManager, entity, primitiveIndex, order);
+      renderableManager,
+      entity,
+      primitiveIndex,
+      order,
+    );
   }
 
   @override
   Future setGlobalBlendOrderEnabledAt(
-      ThermionEntity entity, int primitiveIndex, bool enabled) async {
+    ThermionEntity entity,
+    int primitiveIndex,
+    bool enabled,
+  ) async {
     RenderableManager_setGlobalBlendOrderEnabledAt(
-        renderableManager, entity, primitiveIndex, enabled);
+      renderableManager,
+      entity,
+      primitiveIndex,
+      enabled,
+    );
   }
 
   // ============================================================================
@@ -245,15 +298,24 @@ class FFIRenderableManager
   // ============================================================================
 
   @override
-  Future setMorphWeights(ThermionEntity entity, List<double> weights, int count,
-      {int offset = 0}) async {
+  Future setMorphWeights(
+    ThermionEntity entity,
+    List<double> weights,
+    int count, {
+    int offset = 0,
+  }) async {
     final weightsPtr = makeFloat32List(weights.length);
     for (int i = 0; i < weights.length; i++) {
       weightsPtr[i] = weights[i];
     }
 
     RenderableManager_setMorphWeights(
-        renderableManager, entity, weightsPtr.address, count, offset);
+      renderableManager,
+      entity,
+      weightsPtr.address,
+      count,
+      offset,
+    );
 
     if (FILAMENT_WASM) {
       weightsPtr.free();
@@ -270,8 +332,11 @@ class FFIRenderableManager
   // ============================================================================
 
   @override
-  Future setBonesFromMat4(ThermionEntity entity, List<Matrix4> transforms,
-      {int offset = 0}) async {
+  Future setBonesFromMat4(
+    ThermionEntity entity,
+    List<Matrix4> transforms, {
+    int offset = 0,
+  }) async {
     final boneCount = transforms.length;
     if (boneCount == 0) {
       return;
@@ -285,9 +350,17 @@ class FFIRenderableManager
       }
     }
 
-    await withVoidCallback((requestId, cb) =>
-        RenderableManager_setBonesFromMat4RenderThread(renderableManager,
-            entity, transformsPtr.address, boneCount, offset, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => RenderableManager_setBonesFromMat4RenderThread(
+        renderableManager,
+        entity,
+        transformsPtr.address,
+        boneCount,
+        offset,
+        requestId,
+        cb,
+      ),
+    );
 
     if (FILAMENT_WASM) {
       transformsPtr.free();
@@ -295,8 +368,11 @@ class FFIRenderableManager
   }
 
   @override
-  Future setBonesFromBone(ThermionEntity entity, List<BoneData> bones,
-      {int offset = 0}) async {
+  Future setBonesFromBone(
+    ThermionEntity entity,
+    List<BoneData> bones, {
+    int offset = 0,
+  }) async {
     if (bones.isEmpty) {
       return;
     }
@@ -307,9 +383,17 @@ class FFIRenderableManager
       bonesPtr[i] = bonesData[i];
     }
 
-    await withVoidCallback((requestId, cb) =>
-        RenderableManager_setBonesFromBoneRenderThread(renderableManager,
-            entity, bonesPtr.address, bones.length, offset, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => RenderableManager_setBonesFromBoneRenderThread(
+        renderableManager,
+        entity,
+        bonesPtr.address,
+        bones.length,
+        offset,
+        requestId,
+        cb,
+      ),
+    );
 
     if (FILAMENT_WASM) {
       bonesPtr.free();
@@ -378,12 +462,21 @@ class FFIRenderableBuilder implements RenderableBuilder {
     _checkNotBuilt();
     final materialPtr = (materialInstance as FFIMaterialInstance).pointer;
     bindings.RenderableBuilder_material(
-        _builderPtr!, primitiveIndex, materialPtr);
+      _builderPtr!,
+      primitiveIndex,
+      materialPtr,
+    );
   }
 
   @override
-  void geometry(int primitiveIndex, PrimitiveType type, VertexBuffer vertices,
-      IndexBuffer indices, int offset, int count) {
+  void geometry(
+    int primitiveIndex,
+    PrimitiveType type,
+    VertexBuffer vertices,
+    IndexBuffer indices,
+    int offset,
+    int count,
+  ) {
     _checkNotBuilt();
 
     // Extract native handles from the buffer objects
@@ -399,8 +492,15 @@ class FFIRenderableBuilder implements RenderableBuilder {
       PrimitiveType.TRIANGLE_STRIP => 5,
     };
 
-    bindings.RenderableBuilder_geometry(_builderPtr!, primitiveIndex, typeValue,
-        verticesPtr, indicesPtr, offset, count);
+    bindings.RenderableBuilder_geometry(
+      _builderPtr!,
+      primitiveIndex,
+      typeValue,
+      verticesPtr,
+      indicesPtr,
+      offset,
+      count,
+    );
   }
 
   @override
@@ -467,7 +567,10 @@ class FFIRenderableBuilder implements RenderableBuilder {
   void globalBlendOrderEnabled(int primitiveIndex, bool enabled) {
     _checkNotBuilt();
     bindings.RenderableBuilder_globalBlendOrderEnabled(
-        _builderPtr!, primitiveIndex, enabled);
+      _builderPtr!,
+      primitiveIndex,
+      enabled,
+    );
   }
 
   @override
@@ -490,7 +593,10 @@ class FFIRenderableBuilder implements RenderableBuilder {
     }
 
     bindings.RenderableBuilder_skinningFromMat4(
-        _builderPtr!, boneCount, transformsPtr.address);
+      _builderPtr!,
+      boneCount,
+      transformsPtr.address,
+    );
 
     if (FILAMENT_WASM) {
       transformsPtr.free();
@@ -507,7 +613,10 @@ class FFIRenderableBuilder implements RenderableBuilder {
     }
 
     bindings.RenderableBuilder_skinningFromBone(
-        _builderPtr!, boneCount, bonesPtr.address);
+      _builderPtr!,
+      boneCount,
+      bonesPtr.address,
+    );
 
     if (FILAMENT_WASM) {
       bonesPtr.free();
@@ -521,8 +630,11 @@ class FFIRenderableBuilder implements RenderableBuilder {
   }
 
   @override
-  void boneIndicesAndWeights(int primitiveIndex,
-      List<Float32List> indicesAndWeights, int bonesPerVertex) {
+  void boneIndicesAndWeights(
+    int primitiveIndex,
+    List<Float32List> indicesAndWeights,
+    int bonesPerVertex,
+  ) {
     _checkNotBuilt();
 
     final totalPairs = indicesAndWeights.length;
@@ -534,8 +646,13 @@ class FFIRenderableBuilder implements RenderableBuilder {
       dataPtr[offset++] = pair[1]; // weight
     }
 
-    bindings.RenderableBuilder_boneIndicesAndWeights(_builderPtr!,
-        primitiveIndex, dataPtr.address, totalPairs, bonesPerVertex);
+    bindings.RenderableBuilder_boneIndicesAndWeights(
+      _builderPtr!,
+      primitiveIndex,
+      dataPtr.address,
+      totalPairs,
+      bonesPerVertex,
+    );
 
     if (FILAMENT_WASM) {
       dataPtr.free();
@@ -546,9 +663,14 @@ class FFIRenderableBuilder implements RenderableBuilder {
   Future<bool> build(ThermionEntity entity) async {
     _checkNotBuilt();
 
-    final result = await withIntCallback((cb) =>
-        bindings.RenderableBuilder_buildRenderThread(
-            _builderPtr!, _app.engine, entity, cb.cast()));
+    final result = await withIntCallback(
+      (cb) => bindings.RenderableBuilder_buildRenderThread(
+        _builderPtr!,
+        _app.engine,
+        entity,
+        cb.cast(),
+      ),
+    );
 
     // Clean up the builder
     bindings.RenderableBuilder_destroy(_builderPtr!);

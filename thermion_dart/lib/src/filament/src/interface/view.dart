@@ -18,19 +18,20 @@ class FogOptions {
   final Texture? skyColor;
   final bool enabled;
 
-  FogOptions(
-      {this.enabled = false,
-      this.distance = 0.0,
-      this.cutOffDistance = double.infinity,
-      this.maximumOpacity = 1.0,
-      this.height = 0,
-      this.heightFalloff = 1,
-      Vector3? linearColor = null,
-      this.density = 0.1,
-      this.inScatteringStart = 0,
-      this.inScatteringSize = -1,
-      this.fogColorFromIbl = false,
-      this.skyColor = null}) {
+  FogOptions({
+    this.enabled = false,
+    this.distance = 0.0,
+    this.cutOffDistance = double.infinity,
+    this.maximumOpacity = 1.0,
+    this.height = 0,
+    this.heightFalloff = 1,
+    Vector3? linearColor = null,
+    this.density = 0.1,
+    this.inScatteringStart = 0,
+    this.inScatteringSize = -1,
+    this.fogColorFromIbl = false,
+    this.skyColor = null,
+  }) {
     this.linearColor = linearColor ?? Vector3(1, 1, 1);
   }
 }
@@ -229,7 +230,10 @@ abstract class ColorGradingBuilder {
   /// )
   /// ```
   ColorGradingBuilder channelMixer(
-      Vector3 outRed, Vector3 outGreen, Vector3 outBlue);
+    Vector3 outRed,
+    Vector3 outGreen,
+    Vector3 outBlue,
+  );
 
   /// Adjusts colors in shadows, mid-tones, and highlights separately.
   ///
@@ -239,7 +243,11 @@ abstract class ColorGradingBuilder {
   /// Default: all (1,1,1,0), ranges (0, 0.333, 0.550, 1)
   /// Applied in linear space.
   ColorGradingBuilder shadowsMidtonesHighlights(
-      Vector4 shadows, Vector4 midtones, Vector4 highlights, Vector4 ranges);
+    Vector4 shadows,
+    Vector4 midtones,
+    Vector4 highlights,
+    Vector4 ranges,
+  );
 
   /// Applies ASC CDL slope/offset/power adjustment.
   ///
@@ -250,7 +258,10 @@ abstract class ColorGradingBuilder {
   ///
   /// Applied in log space.
   ColorGradingBuilder slopeOffsetPower(
-      Vector3 slope, Vector3 offset, Vector3 power);
+    Vector3 slope,
+    Vector3 offset,
+    Vector3 power,
+  );
 
   /// Applies per-channel curves.
   ///
@@ -260,7 +271,10 @@ abstract class ColorGradingBuilder {
   ///
   /// Applied in linear space.
   ColorGradingBuilder curves(
-      Vector3 shadowGamma, Vector3 midPoint, Vector3 highlightScale);
+    Vector3 shadowGamma,
+    Vector3 midPoint,
+    Vector3 highlightScale,
+  );
 
   // ============================================================================
   // Flags
@@ -398,15 +412,17 @@ abstract class View<T> extends NativeHandle<T> {
   /// outlines.
   ///
   /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
-  Future setStencilHighlight(ThermionAsset asset,
-      {double r = 1.0,
-      double g = 0.0,
-      double b = 0.0,
-      int? entity,
-      @Deprecated('Use outlineWidth instead') double scale = 1.05,
-      double outlineWidth = 3.0,
-      int primitiveIndex = 0,
-      ThermionAsset? geometrySource});
+  Future setStencilHighlight(
+    ThermionAsset asset, {
+    double r = 1.0,
+    double g = 0.0,
+    double b = 0.0,
+    int? entity,
+    @Deprecated('Use outlineWidth instead') double scale = 1.05,
+    double outlineWidth = 3.0,
+    int primitiveIndex = 0,
+    ThermionAsset? geometrySource,
+  });
 
   /// Removes the outline around [entity]. Noop if there was no highlight.
   Future removeStencilHighlight(ThermionAsset asset);

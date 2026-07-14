@@ -8,14 +8,16 @@ void main() async {
   await testHelper.setup();
 
   test('decode PNG and set 2D texture', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       var imageData = File(
         "${testHelper.assetsDir}/cube_texture_512x512.png",
       ).readAsBytesSync();
-      final image = await FilamentApp.instance!
-          .decodeImage(imageData, requireAlpha: true);
+      final image = await FilamentApp.instance!.decodeImage(
+        imageData,
+        requireAlpha: true,
+      );
       expect(await image.getChannels(), 4);
       expect(await image.getWidth(), 512);
       expect(await image.getHeight(), 512);
@@ -35,14 +37,16 @@ void main() async {
   });
 
   test('decode JPEG and set 2D texture', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       var imageData = File(
         "${testHelper.assetsDir}/cube_texture_512x512.jpeg",
       ).readAsBytesSync();
-      final image = await FilamentApp.instance!
-          .decodeImage(imageData, requireAlpha: true);
+      final image = await FilamentApp.instance!.decodeImage(
+        imageData,
+        requireAlpha: true,
+      );
       expect(await image.getChannels(), 4);
       expect(await image.getWidth(), 512);
       expect(await image.getHeight(), 512);
@@ -62,9 +66,9 @@ void main() async {
   });
 
   test('set cubemap texture from pixel buffer', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       final texture = await FilamentApp.instance!.createTexture(
         1,
         1,
@@ -72,12 +76,7 @@ void main() async {
         textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
         textureFormat: TextureFormat.RGBA32F,
       );
-      final byteBuffer = Float32List.fromList([
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-      ]);
+      final byteBuffer = Float32List.fromList([1.0, 1.0, 1.0, 1.0]);
       for (int i = 0; i < 6; i++) {
         await texture.setImage(
           0,
@@ -94,9 +93,9 @@ void main() async {
   });
 
   test('generate mipmaps', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       var imageData = File(
         "${testHelper.assetsDir}/cube_texture_512x512.png",
       ).readAsBytesSync();
@@ -108,14 +107,16 @@ void main() async {
   });
 
   test('create 2D texture and set image from raw buffer', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       var imageData = File(
         "${testHelper.assetsDir}/cube_texture_512x512.png",
       ).readAsBytesSync();
-      final image = await FilamentApp.instance!
-          .decodeImage(imageData, requireAlpha: true);
+      final image = await FilamentApp.instance!.decodeImage(
+        imageData,
+        requireAlpha: true,
+      );
       expect(await image.getChannels(), 4);
       expect(await image.getWidth(), 512);
       expect(await image.getHeight(), 512);
@@ -140,9 +141,9 @@ void main() async {
   });
 
   test('create 3D texture and set image from buffers', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
       final width = 128;
       final height = 128;
       final channels = 4;
@@ -240,11 +241,12 @@ void main() async {
   // });
 
   test('load KTX2 texture ', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kRed)
-        .execute((result) async {
-      final data =
-          File("${testHelper.assetsDir}/2d_uastc.ktx2").readAsBytesSync();
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+      result,
+    ) async {
+      final data = File(
+        "${testHelper.assetsDir}/2d_uastc.ktx2",
+      ).readAsBytesSync();
       final texture = await FilamentApp.instance!.loadKtx2(data);
       expect(await texture.getHeight(), 40);
       expect(await texture.getWidth(), 40);
@@ -256,79 +258,88 @@ void main() async {
         .setCameraLookAt(Vector3(10, 10, 10), focus: Vector3.zero())
         .addPlane(color: kGreen, createUbershader: true, unlit: true)
         .execute((result) async {
-      const textureSize = 256;
-      const paintSize = 64;
-      const paintX = 96;
-      const paintY = 96;
+          const textureSize = 256;
+          const paintSize = 64;
+          const paintX = 96;
+          const paintY = 96;
 
-      // Create a blue texture initially
-      final texture = await FilamentApp.instance!.createTexture(
-        textureSize,
-        textureSize,
-        textureFormat: TextureFormat.RGBA32F,
-      );
+          // Create a blue texture initially
+          final texture = await FilamentApp.instance!.createTexture(
+            textureSize,
+            textureSize,
+            textureFormat: TextureFormat.RGBA32F,
+          );
 
-      // Fill initial texture with blue color
-      final initialBuffer = Float32List(textureSize * textureSize * 4);
-      for (int i = 0; i < initialBuffer.length; i += 4) {
-        initialBuffer[i] = 0.2; // R
-        initialBuffer[i + 1] = 0.2; // G
-        initialBuffer[i + 2] = 1.0; // B (blue)
-        initialBuffer[i + 3] = 1.0; // A
-      }
+          // Fill initial texture with blue color
+          final initialBuffer = Float32List(textureSize * textureSize * 4);
+          for (int i = 0; i < initialBuffer.length; i += 4) {
+            initialBuffer[i] = 0.2; // R
+            initialBuffer[i + 1] = 0.2; // G
+            initialBuffer[i + 2] = 1.0; // B (blue)
+            initialBuffer[i + 3] = 1.0; // A
+          }
 
-      await texture.setImage(
-        0,
-        initialBuffer.buffer.asUint8List(),
-        textureSize,
-        textureSize,
-        PixelDataFormat.RGBA,
-        PixelDataType.FLOAT,
-      );
+          await texture.setImage(
+            0,
+            initialBuffer.buffer.asUint8List(),
+            textureSize,
+            textureSize,
+            PixelDataFormat.RGBA,
+            PixelDataType.FLOAT,
+          );
 
-      final plane = result.assets.first;
+          final plane = result.assets.first;
 
-      // Apply texture to the plane's material
-      final materialInstance = await plane.getMaterialInstanceAt();
-      await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
-      await materialInstance.setParameterInt("baseColorIndex", 0);
-      final sampler = await FilamentApp.instance!.createTextureSampler();
-      await materialInstance.setParameterTexture(
-          "baseColorMap", texture, sampler);
-      await testHelper.capture(result.viewer.view, "paint_test_initial");
+          // Apply texture to the plane's material
+          final materialInstance = await plane.getMaterialInstanceAt();
+          await materialInstance.setParameterFloat4(
+            "baseColorFactor",
+            1,
+            1,
+            1,
+            0,
+          );
+          await materialInstance.setParameterInt("baseColorIndex", 0);
+          final sampler = await FilamentApp.instance!.createTextureSampler();
+          await materialInstance.setParameterTexture(
+            "baseColorMap",
+            texture,
+            sampler,
+          );
+          await testHelper.capture(result.viewer.view, "paint_test_initial");
 
-      // Create a red "paint" buffer
-      final paintBuffer = Float32List(paintSize * paintSize * 4);
-      for (int i = 0; i < paintBuffer.length; i += 4) {
-        paintBuffer[i] = 1.0; // R (red)
-        paintBuffer[i + 1] = 0.0; // G
-        paintBuffer[i + 2] = 0.0; // B
-        paintBuffer[i + 3] = 1.0; // A
-      }
+          // Create a red "paint" buffer
+          final paintBuffer = Float32List(paintSize * paintSize * 4);
+          for (int i = 0; i < paintBuffer.length; i += 4) {
+            paintBuffer[i] = 1.0; // R (red)
+            paintBuffer[i + 1] = 0.0; // G
+            paintBuffer[i + 2] = 0.0; // B
+            paintBuffer[i + 3] = 1.0; // A
+          }
 
-      // Apply the paint to a sub-region of the texture
-      await texture.setImage(
-        0,
-        paintBuffer.buffer.asUint8List(),
-        paintSize,
-        paintSize,
-        PixelDataFormat.RGBA,
-        PixelDataType.FLOAT,
-        xOffset: paintX,
-        yOffset: paintY,
-      );
+          // Apply the paint to a sub-region of the texture
+          await texture.setImage(
+            0,
+            paintBuffer.buffer.asUint8List(),
+            paintSize,
+            paintSize,
+            PixelDataFormat.RGBA,
+            PixelDataType.FLOAT,
+            xOffset: paintX,
+            yOffset: paintY,
+          );
 
-      // Capture the modified state (blue plane with red square)
-      await testHelper.capture(result.viewer.view, "paint_test_modified");
-      await texture.dispose();
-    });
+          // Capture the modified state (blue plane with red square)
+          await testHelper.capture(result.viewer.view, "paint_test_modified");
+          await texture.dispose();
+        });
   });
 
   group("sampler", () {
     test('create sampler', () async {
-      await ViewerBuilder(testHelper)
-          .setBackgroundColor(kRed)
-          .execute((result) async {
+      await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
+        result,
+      ) async {
         final sampler = FilamentApp.instance!.createTextureSampler();
       });
     });

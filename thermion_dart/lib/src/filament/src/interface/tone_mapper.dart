@@ -12,7 +12,7 @@ enum AgxLook {
   punchy,
 
   /// A golden tinted, slightly washed look for BT.1886 displays
-  golden
+  golden,
 }
 
 /// Abstract tone mapper interface
@@ -77,10 +77,11 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
     double hdrMax = 10.0,
   }) async {
     return FFIToneMapper.generic(
-        contrast: contrast,
-        midGrayIn: midGrayIn,
-        midGrayOut: midGrayOut,
-        hdrMax: hdrMax);
+      contrast: contrast,
+      midGrayIn: midGrayIn,
+      midGrayOut: midGrayOut,
+      hdrMax: hdrMax,
+    );
   }
 
   /// Create a DisplayRangeToneMapper - converts HDR RGB to 16 debug colors

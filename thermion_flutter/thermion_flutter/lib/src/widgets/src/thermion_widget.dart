@@ -9,10 +9,7 @@ class ThermionWidget extends StatefulWidget {
   // The viewer whose content will be rendered into this widget.
   final ThermionViewer viewer;
 
-  const ThermionWidget({
-    Key? key,
-    required this.viewer,
-  }) : super(key: key);
+  const ThermionWidget({Key? key, required this.viewer}) : super(key: key);
 
   @override
   State<ThermionWidget> createState() => _ThermionWidgetState();
@@ -35,10 +32,11 @@ class _ThermionWidgetState extends State<ThermionWidget> {
         var focalLength = await camera.getFocalLength();
 
         await camera.setLensProjection(
-            near: near,
-            far: far,
-            focalLength: focalLength,
-            aspect: descriptor.width.toDouble() / descriptor.height.toDouble());
+          near: near,
+          far: far,
+          focalLength: focalLength,
+          aspect: descriptor.width.toDouble() / descriptor.height.toDouble(),
+        );
 
         await view.setViewport(descriptor.width, descriptor.height);
       },
@@ -106,29 +104,31 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   Widget build(BuildContext context) {
     var dpr = MediaQuery.of(context).devicePixelRatio;
 
-    return LayoutBuilder(builder: (ctx, constraints) {
-      var width = (constraints.maxWidth * dpr).ceil();
-      var height = (constraints.maxHeight * dpr).ceil();
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        var width = (constraints.maxWidth * dpr).ceil();
+        var height = (constraints.maxHeight * dpr).ceil();
 
-      if (width == 0 || height == 0) {
-        return const SizedBox.shrink();
-      }
-
-      // If size hasn't changed, keep using current texture
-      if (width == _currentWidth && height == _currentHeight) {
-        if (_texture == null) {
-          // Initial case - no texture yet
-          _scheduleTextureAllocation(width, height);
+        if (width == 0 || height == 0) {
+          return const SizedBox.shrink();
         }
+
+        // If size hasn't changed, keep using current texture
+        if (width == _currentWidth && height == _currentHeight) {
+          if (_texture == null) {
+            // Initial case - no texture yet
+            _scheduleTextureAllocation(width, height);
+          }
+          return widget.surfaceWidgetBuilder(_texture);
+        }
+
+        // Size changed - schedule a debounced allocation
+        _scheduleTextureAllocation(width, height);
+
+        // Keep showing the old texture during debounce
         return widget.surfaceWidgetBuilder(_texture);
-      }
-
-      // Size changed - schedule a debounced allocation
-      _scheduleTextureAllocation(width, height);
-
-      // Keep showing the old texture during debounce
-      return widget.surfaceWidgetBuilder(_texture);
-    });
+      },
+    );
   }
 
   void _scheduleTextureAllocation(int width, int height) {
@@ -149,11 +149,18 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     if (_texture != null) {
       // Resize existing texture (on Windows this reuses the Flutter
       // texture ID to avoid a black frame flash).
-      texture = await ThermionFlutterPlugin.instance
-          .resizeTexture(_texture!, widget.view, width, height);
+      texture = await ThermionFlutterPlugin.instance.resizeTexture(
+        _texture!,
+        widget.view,
+        width,
+        height,
+      );
     } else {
-      texture = await ThermionFlutterPlugin.instance
-          .createTextureAndBindToView(widget.view, width, height);
+      texture = await ThermionFlutterPlugin.instance.createTextureAndBindToView(
+        widget.view,
+        width,
+        height,
+      );
     }
 
     widget.onTextureUpdated?.call(texture);

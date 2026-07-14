@@ -12,9 +12,14 @@ class FFIColorGrading extends ColorGrading {
 
   @override
   Future dispose() async {
-    await withVoidCallback((requestId, cb) =>
-        Engine_destroyColorGradingRenderThread(
-            FilamentApp.instance!.engine, pointer, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => Engine_destroyColorGradingRenderThread(
+        FilamentApp.instance!.engine,
+        pointer,
+        requestId,
+        cb,
+      ),
+    );
   }
 }
 
@@ -105,7 +110,10 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder channelMixer(
-      Vector3 outRed, Vector3 outGreen, Vector3 outBlue) {
+    Vector3 outRed,
+    Vector3 outGreen,
+    Vector3 outBlue,
+  ) {
     _checkNotBuilt();
     ColorGradingBuilder_channelMixer(
       _builder,
@@ -124,7 +132,11 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder shadowsMidtonesHighlights(
-      Vector4 shadows, Vector4 midtones, Vector4 highlights, Vector4 ranges) {
+    Vector4 shadows,
+    Vector4 midtones,
+    Vector4 highlights,
+    Vector4 ranges,
+  ) {
     _checkNotBuilt();
     ColorGradingBuilder_shadowsMidtonesHighlights(
       _builder,
@@ -150,7 +162,10 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder slopeOffsetPower(
-      Vector3 slope, Vector3 offset, Vector3 power) {
+    Vector3 slope,
+    Vector3 offset,
+    Vector3 power,
+  ) {
     _checkNotBuilt();
     ColorGradingBuilder_slopeOffsetPower(
       _builder,
@@ -169,7 +184,10 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder curves(
-      Vector3 shadowGamma, Vector3 midPoint, Vector3 highlightScale) {
+    Vector3 shadowGamma,
+    Vector3 midPoint,
+    Vector3 highlightScale,
+  ) {
     _checkNotBuilt();
     ColorGradingBuilder_curves(
       _builder,
@@ -204,11 +222,17 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   Future<ColorGrading> build() async {
     _checkNotBuilt();
     _built = true;
-    final ptr = await withPointerCallback<TColorGrading>((cb) =>
-        ColorGradingBuilder_buildRenderThread(
-            _builder, FilamentApp.instance!.engine, cb));
-    await withVoidCallback((requestId, cb) =>
-        ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb));
+    final ptr = await withPointerCallback<TColorGrading>(
+      (cb) => ColorGradingBuilder_buildRenderThread(
+        _builder,
+        FilamentApp.instance!.engine,
+        cb,
+      ),
+    );
+    await withVoidCallback(
+      (requestId, cb) =>
+          ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb),
+    );
     if (ptr == nullptr) {
       throw Exception('Failed to build ColorGrading');
     }

@@ -46,28 +46,30 @@ class ViewerWidget extends StatefulWidget {
   // A callback that is invoked when the asset has been loaded.
   // Only called if [assetPath] is provided.
   final Future Function(ThermionViewer viewer, ThermionAsset asset)?
-      onAssetLoaded;
+  onAssetLoaded;
 
   // When true, enable the highlight overlay system for rendering entity outlines.
   final bool enableHighlights;
 
-  ViewerWidget(
-      {super.key,
-      this.initial =
-          const DecoratedBox(decoration: BoxDecoration(color: Colors.red)),
-      Vector3? initialCameraPosition,
-      this.transformToUnitCube = true,
-      this.postProcessing = true,
-      this.destroyEngineOnUnload = false,
-      this.assetPath,
-      this.skyboxPath,
-      this.iblPath,
-      this.directLight,
-      this.background,
-      this.onViewerAvailable,
-      this.onAssetLoaded,
-      this.manipulatorType = ManipulatorType.ORBIT,
-      this.enableHighlights = false}) {
+  ViewerWidget({
+    super.key,
+    this.initial = const DecoratedBox(
+      decoration: BoxDecoration(color: Colors.red),
+    ),
+    Vector3? initialCameraPosition,
+    this.transformToUnitCube = true,
+    this.postProcessing = true,
+    this.destroyEngineOnUnload = false,
+    this.assetPath,
+    this.skyboxPath,
+    this.iblPath,
+    this.directLight,
+    this.background,
+    this.onViewerAvailable,
+    this.onAssetLoaded,
+    this.manipulatorType = ManipulatorType.ORBIT,
+    this.enableHighlights = false,
+  }) {
     this.initialCameraPosition = initialCameraPosition ?? Vector3(0, 0, 5);
   }
 
@@ -140,27 +142,33 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       }
     } else if (oldWidget.background != widget.background) {
       viewer!.setBackgroundColor(
-          widget.background?.r ?? 0,
-          widget.background?.g ?? 0,
-          widget.background?.b ?? 0,
-          widget.background?.a ?? 0);
+        widget.background?.r ?? 0,
+        widget.background?.g ?? 0,
+        widget.background?.b ?? 0,
+        widget.background?.a ?? 0,
+      );
     } else if (oldWidget.initialCameraPosition !=
         widget.initialCameraPosition) {
       throw UnsupportedError(
-          "initialCameraPosition cannot be changed at runtime. Create a new widget to change this property.");
+        "initialCameraPosition cannot be changed at runtime. Create a new widget to change this property.",
+      );
     } else if (oldWidget.assetPath != widget.assetPath) {
       throw UnsupportedError(
-          "assetPath cannot be changed at runtime. Create a new widget to change this property.");
+        "assetPath cannot be changed at runtime. Create a new widget to change this property.",
+      );
     } else if (oldWidget.directLight != widget.directLight) {
       throw UnsupportedError(
-          "directLight cannot be changed at runtime. Create a new widget to change this property.");
+        "directLight cannot be changed at runtime. Create a new widget to change this property.",
+      );
     } else if (oldWidget.transformToUnitCube != widget.transformToUnitCube) {
       throw UnsupportedError(
-          "transformToUnitCube cannot be changed at runtime. Create a new widget to change this property.");
+        "transformToUnitCube cannot be changed at runtime. Create a new widget to change this property.",
+      );
     } else if (oldWidget.destroyEngineOnUnload !=
         widget.destroyEngineOnUnload) {
       throw UnsupportedError(
-          "destroyEngineOnUnload cannot be changed at runtime. Create a new widget to change this property.");
+        "destroyEngineOnUnload cannot be changed at runtime. Create a new widget to change this property.",
+      );
     }
   }
 
@@ -173,9 +181,11 @@ class _ViewerWidgetState extends State<ViewerWidget> {
         _inputHandler = null;
         break;
       case ManipulatorType.ORBIT:
-        _inputHandler = DelegateInputHandler.fixedOrbit(viewer!,
-            minimumDistance: widget.initialCameraPosition.length,
-            moveOnHover: false);
+        _inputHandler = DelegateInputHandler.fixedOrbit(
+          viewer!,
+          minimumDistance: widget.initialCameraPosition.length,
+          moveOnHover: false,
+        );
         break;
       case ManipulatorType.FREE_FLIGHT:
         _inputHandler = DelegateInputHandler.flight(viewer!);
@@ -186,9 +196,10 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       viewport = thermionWidget;
     } else {
       viewport = ThermionListenerWidget(
-          focusNode: _focusNode,
-          inputHandler: _inputHandler!,
-          child: thermionWidget);
+        focusNode: _focusNode,
+        inputHandler: _inputHandler!,
+        child: thermionWidget,
+      );
       _focusNode.requestFocus();
     }
   }
@@ -225,8 +236,12 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       if (widget.skyboxPath != null) {
         _logger.severe("Specify skyboxPath or background, not both");
       } else {
-        await viewer!.setBackgroundColor(widget.background!.r,
-            widget.background!.g, widget.background!.b, widget.background!.a);
+        await viewer!.setBackgroundColor(
+          widget.background!.r,
+          widget.background!.g,
+          widget.background!.b,
+          widget.background!.a,
+        );
       }
     }
 

@@ -58,7 +58,8 @@ class Geometry {
     if (this.colors.length != 0 &&
         this.colors.length != (vertices.length ~/ 3 * 4)) {
       throw Exception(
-          "Expected ${vertices.length ~/ 3 * 4} color values (RGBA), got ${this.colors.length}");
+        "Expected ${vertices.length ~/ 3 * 4} color values (RGBA), got ${this.colors.length}",
+      );
     }
 
     if (uvs == null) {
@@ -100,7 +101,8 @@ class Geometry {
     if (hasAttribute0 &&
         this.attribute0.length != (this.vertices.length ~/ 3 * 4)) {
       throw Exception(
-          "Expected ${indices.length * 4} ATTRIBUTE0, got ${this.attribute0.length}");
+        "Expected ${indices.length * 4} ATTRIBUTE0, got ${this.attribute0.length}",
+      );
     }
   }
 

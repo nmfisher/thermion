@@ -167,7 +167,11 @@ abstract class LightManager<T> extends NativeHandle<T> {
   /// Start with a lambda value of 0.5f and adjust for your scene.
   /// Returns a list of cascade split positions (length will be cascades-1).
   List<double> computePracticalSplits(
-      int cascades, double near, double far, double lambda);
+    int cascades,
+    double near,
+    double far,
+    double lambda,
+  );
 
   // ============================================================================
   // Color temperature utilities
