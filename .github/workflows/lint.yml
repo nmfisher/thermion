@@ -23,16 +23,9 @@ jobs:
           key: pub-lint-${{ hashFiles('thermion_dart/pubspec.yaml') }}
           restore-keys: pub-lint-
 
-      - name: Check formatting
-        run: |
-          dart format --output=none --set-exit-if-changed \
-            thermion_dart/lib \
-            thermion_dart/bin \
-            thermion_dart/hook \
-            thermion_dart/tool \
-            thermion_dart/test \
-            thermion_flutter/thermion_flutter/lib
-
+      # Formatting is enforced and auto-fixed by format.yml; this job only
+      # checks analyze. Don't re-add a --set-exit-if-changed gate here or it
+      # will double-gate against the pre-format commit on PRs.
       - name: Get deps (thermion_dart)
         working-directory: thermion_dart
         run: dart pub get
