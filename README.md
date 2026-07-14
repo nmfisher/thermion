@@ -123,3 +123,4 @@ Thank you to the following people:
 - [@repentsinner](https://github.com/repentsinner) for Linux/EGL/Windows stability + improvements
 - [@mwahnish](https://github.com/mwahnish) for bug fixes and web improvements
 - [@aenriqu](https://github.com/aenriqu) for bone animation fixes 
+- [@mushogenshin](https://github.com/mushogenshin) for Android & Windows swapchain & backend fixes

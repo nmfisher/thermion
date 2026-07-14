@@ -1,8 +1,3 @@
-## 0.4.0+1
-
- - **FIX**: default baseColorFactor to white when hasBaseColorTexture is true.
- - **FIX**: prevent concurrent modification in FFIFilamentApp.destroy to prevent exception when 2+ swap chains existed.
-
 ## 0.4.0
 
 ### New features:
@@ -39,11 +34,13 @@
 - replace InputHandlerManagerException with Exception and remove ffi. prefix from InputPipeline.
 - move Swift/ObjC interop lib/headers from thermion_dart to thermion_flutter. In theory we can use these on macOS to create/import external textures as render targets in Dart applications. In practice, this requires the Flutter SDK (for objective_c) so it's not actually very practical. We previously used these to test external texture render targets; now that we run tests mostly on Linux, this is no longer used (render targets are created, but bound to textures created by Filament). However this may be useful to revisit in future so we will preserve the files in thermion_flutter.
 - use const LinearColor for default DirectLight.
- - remove createImageMaterialInstance from FilamentApp API.
- - move AnimationManager to FilamentApp.
- - remove hasHighlights() from View. This means the overlay will be rendered if enableHighlightOverlay() has been called, even if no assets are highlighted.
+- remove createImageMaterialInstance from FilamentApp API.
+- move AnimationManager to FilamentApp.
+- remove hasHighlights() from View. This means the overlay will be rendered if enableHighlightOverlay() has been called, even if no assets are highlighted.
    
 ### Miscellaneous:
+- prevent concurrent modification in FFIFilamentApp.destroy to prevent exception when 2+ swap chains existed.
+- default baseColorFactor to white when hasBaseColorTexture is true.
 -  In createEntity() in ffi_filament_app.dart, transformManager.createComponent() was being called without an await. This led to cases where calls to the transform would silently fail after calling createEntity() because the transform hadn't added yet. (#138).
 - add RenderThread methods for TransformManager createComponent/removeComponent.
 - rename (T)ToneMapping to (T)ToneMapper.
