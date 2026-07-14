@@ -62,12 +62,12 @@
 //                           for (int i = 0; i < 60; i++) {
 //                             var frame = <BoneAnimationFrame>[];
 //                             frame.add((
-//                               rotation: 
+//                               rotation:
 //                               Quaternion.axisAngle(
-//                                       Vector3(1, 0, 0), i/60 * pi/4) * 
+//                                       Vector3(1, 0, 0), i/60 * pi/4) *
 //                                       (Quaternion.axisAngle(
-//                                           Vector3(0, 0, 1), i/60*-pi/4) 
-//                                        * 
+//                                           Vector3(0, 0, 1), i/60*-pi/4)
+//                                        *
 //                                       Quaternion.axisAngle(
 //                                           Vector3(0, 1, 0), i/60 * pi/4) ),
 //                               translation: Vector3.zero()

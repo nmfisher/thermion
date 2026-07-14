@@ -19,7 +19,8 @@
 
 #include <utils/compiler.h>
 #include <utils/PrivateImplementation.h>
-#include <utils/CString.h>
+#include <utils/ImmutableCString.h>
+#include <utils/StaticString.h>
 
 #include <stddef.h>
 
@@ -56,20 +57,34 @@ template<typename T>
 using BuilderBase = utils::PrivateImplementation<T>;
 
 // This needs to be public because it is used in the following template.
-UTILS_PUBLIC void builderMakeName(utils::CString& outName, const char* name, size_t len) noexcept;
+UTILS_PUBLIC void builderMakeName(utils::ImmutableCString& outName, const char* name, size_t len) noexcept;
 
 template <typename Builder>
 class UTILS_PUBLIC BuilderNameMixin {
 public:
+    UTILS_DEPRECATED
     Builder& name(const char* name, size_t len) noexcept {
         builderMakeName(mName, name, len);
         return static_cast<Builder&>(*this);
     }
 
-    utils::CString const& getName() const noexcept { return mName; }
+    Builder& name(utils::StaticString const& name) noexcept {
+        builderMakeName(mName, name.data(), name.size());
+        return static_cast<Builder&>(*this);
+    }
+
+    utils::ImmutableCString const& getName() const noexcept { return mName; }
+
+    utils::ImmutableCString const& getNameOrDefault() const noexcept {
+        if (const auto& name = getName(); !name.empty()) {
+            return name;
+        }
+        static const utils::ImmutableCString sDefaultName = "(none)";
+        return sDefaultName;
+    }
 
 private:
-    utils::CString mName;
+    utils::ImmutableCString mName;
 };
 
 } // namespace filament

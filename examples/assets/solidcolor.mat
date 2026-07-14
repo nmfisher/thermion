@@ -3,12 +3,24 @@ material {
     shadingModel : unlit,
     culling : none,
     featureLevel : 1,
-    vertexDomain: object
+    vertexDomain: object,
+    parameters : [
+    {
+        type : float4,
+        name : color
+    }],
+    instanced: true
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.worldPosition.x += float(getInstanceIndex());
+    }
 }
 
 fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
-        material.baseColor = vec4(0.1f, 0.5f, 0.9f, 1.0f);
+        material.baseColor = materialParams.color;
     }
 }

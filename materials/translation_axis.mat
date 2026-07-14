@@ -1,0 +1,112 @@
+material {
+    name : TranslationAxis,
+    parameters : [
+        {
+            type : float3,
+            name : origin,
+            precision : high  // Origin in object space (typically 0,0,0 when positioned via transform)
+        },
+        {
+            type : int,
+            name : axis
+        },
+        {
+            type : float,
+            name : lineWidth,
+            default : 5.0
+        },
+        {
+            type : float,
+            name : lineLength,
+            default : 100.0
+        }
+    ],
+    requires : [uv0],
+    shadingModel : unlit,
+    blending : transparent,
+    depthWrite : true,
+    depthCulling : true,
+    culling : none,
+    instanced : false,
+    vertexDomain : object,
+    variantFilter : [ dynamicLighting, directionalLighting, shadowReceiver, skinning, ssr, stereo ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Pass the object-space position through UV
+        material.uv0 = getPosition().xz;
+    }
+}
+
+fragment {
+    // Antialiasing constants (from grid.mat)
+    #define _1_DIV_SQRTPI 0.5641895835477563
+    #define RADIUS (_1_DIV_SQRTPI * 1.05)
+    #define GRID_START (0.5 + RADIUS)
+    #define GRID_END (0.5 - RADIUS)
+    #define GRID_STEP(dist) smoothstep(GRID_START, GRID_END, dist)
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec2 pos2D = getUV0();
+        float dist;
+        float t;
+        float fw;
+
+        vec4 color;
+
+        if (materialParams.axis == 0) {
+            // X axis: line along X, perpendicular is Z (pos2D.y)
+            float rawDist = pos2D.y - materialParams.origin.z;
+            dist = abs(rawDist);
+            t = pos2D.x - materialParams.origin.x;
+            float dx = dFdx(rawDist);
+            float dy = dFdy(rawDist);
+            fw = sqrt(dx * dx + dy * dy);
+            color = vec4(1.0, 0.0, 0.0, 1.0);
+        } else if (materialParams.axis == 1) {
+            // Y axis: vertical plane (rotated 90° around X), perpendicular is X (pos2D.x)
+            float rawDist = pos2D.x - materialParams.origin.x;
+            dist = abs(rawDist);
+            t = materialParams.origin.y - pos2D.y;
+            float dx = dFdx(rawDist);
+            float dy = dFdy(rawDist);
+            fw = sqrt(dx * dx + dy * dy);
+            color = vec4(0.0, 1.0, 0.0, 1.0);
+        } else if (materialParams.axis == 2) {
+            // Z axis: line along Z, perpendicular is X (pos2D.x)
+            float rawDist = pos2D.x - materialParams.origin.x;
+            dist = abs(rawDist);
+            t = pos2D.y - materialParams.origin.z;
+            float dx = dFdx(rawDist);
+            float dy = dFdy(rawDist);
+            fw = sqrt(dx * dx + dy * dy);
+            color = vec4(0.0, 0.0, 1.0, 1.0);
+        } else {
+            discard;
+        }
+
+        // Hard cutoff for length
+        if (abs(t) > materialParams.lineLength) {
+            discard;
+        }
+
+        // Convert world-space distance to pixel-space using Euclidean
+        // gradient magnitude of the signed offset (avoids abs() discontinuity
+        // and fwidth's L1 overestimation at oblique angles)
+        float pixelDist = dist / max(fw, 1e-6);
+        float halfWidth = materialParams.lineWidth * 0.5;
+
+        // Hard cutoff with margin for antialiasing
+        if (pixelDist > halfWidth + 2.0) {
+            discard;
+        }
+
+        // Antialiased edges
+        float alpha = GRID_STEP(pixelDist - halfWidth);
+
+        material.baseColor = vec4(color.rgb * alpha, alpha);
+    }
+}

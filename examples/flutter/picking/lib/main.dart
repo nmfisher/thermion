@@ -1,13 +1,9 @@
 import 'dart:async';
-import 'package:logging/logging.dart';
 import 'package:flutter/material.dart' hide View;
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 void main() {
   runApp(const MyApp());
-  Logger.root.onRecord.listen((record) {
-    print(record);
-  });
 }
 
 class MyApp extends StatelessWidget {
@@ -46,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _thermionViewer = await ThermionFlutterPlugin.createViewer();
       var asset = await _thermionViewer!
-          .loadGltf("assets/cube.glb", keepData: true, initialInstances: 4);
+          .loadGltf("assets/cube.glb", initialInstances: 4);
       var instances = <ThermionAsset>[
         await asset.getInstance(0),
         await asset.createInstance(),
@@ -61,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Vector2(-1, -1),
       ];
 
-      final speed = 0.03;
+      const speed = 0.03;
 
       FilamentApp.instance!.registerRequestFrameHook(() async {
         for (int i = 0; i < instances.length; i++) {
@@ -90,9 +86,8 @@ class _MyHomePageState extends State<MyHomePage> {
       await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
       await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
       await _thermionViewer!.setPostProcessing(true);
-      await _thermionViewer!.setRendering(true);
 
-      var delegate = _InputHandlerDelegate(_thermionViewer!.view,
+      var pickingDelegate = _InputHandlerDelegate(_thermionViewer!.view,
           (ThermionEntity entity, int x, int y) async {
         int picked = -1;
         for (int i = 0; i < instances.length; i++) {
@@ -111,16 +106,18 @@ class _MyHomePageState extends State<MyHomePage> {
         }
         setState(() {});
       });
-      _inputHandler =
-          DelegateInputHandler(viewer: _thermionViewer!, delegates: [delegate]);
+
+      _inputHandler = DelegateInputHandler.flight(_thermionViewer!);
+      _inputHandler.delegate = ChainedDelegate([
+        pickingDelegate,
+        _inputHandler.delegate!,
+      ]);
 
       setState(() {});
     });
   }
 
   ThermionViewer? _thermionViewer;
-
-  bool isOrbit = true;
 
   @override
   Widget build(BuildContext context) {
@@ -163,25 +160,19 @@ class _InputHandlerDelegate extends InputHandlerDelegate {
   Future handle(List<InputEvent> events) async {
     for (final event in events) {
       switch (event) {
-        case TouchEvent(
-            type: final type,
-            localPosition: final localPosition,
-            delta: final delta
-          ):
-          await view.pick(localPosition!.x.toInt(), localPosition!.y.toInt(),
-              _onPickResult);
-          break;
-        case MouseEvent(
-            type: final type,
-            localPosition: final localPosition,
-            delta: final delta
-          ):
+        case MouseEvent(:final type, :final localPosition):
           switch (type) {
             case MouseEventType.buttonDown:
-              await view.pick(localPosition!.x.toInt(),
-                  localPosition!.y.toInt(), _onPickResult);
+              await view.pick(
+                  localPosition.x.toInt(), localPosition.y.toInt(), _onPickResult);
             default:
               break;
+          }
+          break;
+        case TouchEvent(:final localPosition):
+          if (localPosition != null) {
+            await view.pick(
+                localPosition.x.toInt(), localPosition.y.toInt(), _onPickResult);
           }
           break;
         default:

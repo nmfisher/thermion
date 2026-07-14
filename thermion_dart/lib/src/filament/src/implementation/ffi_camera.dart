@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import '../../../utils/src/matrix.dart';
@@ -11,15 +10,12 @@ class FFICamera extends Camera<Pointer<TCamera>> {
     return camera;
   }
 
-  final FFIFilamentApp app;
   late ThermionEntity _entity;
 
-  FFICamera(this.camera, this.app) {
+  FFICamera(this.camera) {
     _entity = Camera_getEntity(camera);
   }
 
-  ///
-  ///
   ///
   @override
   Future setProjectionMatrixWithCulling(
@@ -28,8 +24,76 @@ class FFICamera extends Camera<Pointer<TCamera>> {
         camera, matrix4ToDouble4x4(projectionMatrix), near, far);
   }
 
-  ///
-  ///
+  //
+  @override
+  Future setProjectionFromHorizontalFieldOfView(
+      double degrees, double near, double far, double aspect) async {
+    if (degrees.isNaN) {
+      throw FormatException('fov must not be NaN, but was $degrees.');
+    }
+    if (degrees <= 0) {
+      throw FormatException('fov must be positive, but was $degrees.');
+    }
+    if (degrees >= 180) {
+      throw FormatException(
+          'fov must be less than 180 degrees, but was $degrees.');
+    }
+    if (near.isNaN) {
+      throw FormatException('near must not be NaN, but was $near.');
+    }
+    if (far.isNaN) {
+      throw FormatException('far must not be NaN, but was $far.');
+    }
+    if (near.isNegative || near == 0) {
+      throw FormatException('near must be positive, but was $near.');
+    }
+    if (far.isNegative || far == 0) {
+      throw FormatException('far must be positive, but was $far.');
+    }
+    if (aspect.isNaN) {
+      throw FormatException('aspect must not be NaN, but was $aspect.');
+    }
+    if (aspect.isNegative || aspect == 0) {
+      throw FormatException('aspect must be positive, but was $aspect.');
+    }
+    Camera_setProjectionFromFov(camera, degrees, aspect, near, far, true);
+  }
+
+  //
+  @override
+  Future setProjectionFromVerticalFieldOfView(
+      double degrees, double near, double far, double aspect) async {
+    if (degrees.isNaN) {
+      throw FormatException('fov must not be NaN, but was $degrees.');
+    }
+    if (degrees <= 0) {
+      throw FormatException('fov must be positive, but was $degrees.');
+    }
+    if (degrees >= 180) {
+      throw FormatException(
+          'fov must be less than 180 degrees, but was $degrees.');
+    }
+    if (near.isNaN) {
+      throw FormatException('near must not be NaN, but was $near.');
+    }
+    if (far.isNaN) {
+      throw FormatException('far must not be NaN, but was $far.');
+    }
+    if (near.isNegative || near == 0) {
+      throw FormatException('near must be positive, but was $near.');
+    }
+    if (far.isNegative || far == 0) {
+      throw FormatException('far must be positive, but was $far.');
+    }
+    if (aspect.isNaN) {
+      throw FormatException('aspect must not be NaN, but was $aspect.');
+    }
+    if (aspect.isNegative || aspect == 0) {
+      throw FormatException('aspect must be positive, but was $aspect.');
+    }
+    Camera_setProjectionFromFov(camera, degrees, aspect, near, far, false);
+  }
+
   ///
   Future<Matrix4> getModelMatrix() async {
     late Pointer stackPtr;
@@ -81,8 +145,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   @override
   Future setTransform(Matrix4 transform) async {
     var entity = Camera_getEntity(camera);
-    TransformManager_setTransform(
-        app.transformManager, entity, matrix4ToDouble4x4(transform));
+    FilamentApp.instance!.transformManager.setTransform(entity, transform);
   }
 
   @override
@@ -191,12 +254,59 @@ class FFICamera extends Camera<Pointer<TCamera>> {
     Camera_getFrustum(camera, out.address);
 
     var frustum = Frustum();
-    frustum.plane0.setFromComponents(out[0], out[1], out[2], out[3]);
-    frustum.plane1.setFromComponents(out[4], out[5], out[6], out[7]);
-    frustum.plane2.setFromComponents(out[8], out[9], out[10], out[11]);
-    frustum.plane3.setFromComponents(out[12], out[13], out[14], out[15]);
-    frustum.plane4.setFromComponents(out[16], out[17], out[18], out[19]);
-    frustum.plane5.setFromComponents(out[20], out[21], out[22], out[23]);
+
+    // Filament returns the frustum in world space
+    // Transform planes to camera space using (V^-1)^T = modelMatrix^T
+    final transformMatrix = await getViewMatrix();
+    transformMatrix.invert();
+
+    // Transform each plane from world space to camera space
+    for (int i = 0; i < 6; i++) {
+      int idx = i * 4;
+
+      // Extract plane as Vector4 (nx, ny, nz, d)
+      var planeWorld =
+          Vector4(out[idx], out[idx + 1], out[idx + 2], out[idx + 3]);
+
+      // Transform plane to camera space: plane_camera = (V^-1)^T * plane_world
+      var planeCamera = transformMatrix.transform(planeWorld);
+
+      // Normalize the plane
+      var normalLength =
+          Vector3(planeCamera.x, planeCamera.y, planeCamera.z).length;
+      if (normalLength > 0) {
+        planeCamera = planeCamera / normalLength;
+      }
+
+      // Set the transformed plane
+      switch (i) {
+        case 0:
+          frustum.plane0.setFromComponents(
+              planeCamera.x, planeCamera.y, planeCamera.z, planeCamera.w);
+          break;
+        case 1:
+          frustum.plane1.setFromComponents(
+              planeCamera.x, planeCamera.y, planeCamera.z, planeCamera.w);
+          break;
+        case 2:
+          frustum.plane2.setFromComponents(
+              planeCamera.x, planeCamera.y, planeCamera.z, planeCamera.w);
+          break;
+        case 3:
+          frustum.plane3.setFromComponents(
+              planeCamera.x, planeCamera.y, planeCamera.z, planeCamera.w);
+          break;
+        case 4:
+          frustum.plane4.setFromComponents(
+              planeCamera.x, planeCamera.y, planeCamera.z, planeCamera.w);
+          break;
+        case 5:
+          frustum.plane5.setFromComponents(
+              planeCamera.x, planeCamera.y, planeCamera.z, planeCamera.w);
+          break;
+      }
+    }
+
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
       out.free();
@@ -225,13 +335,23 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   }
 
   Future destroy() async {
-    Engine_destroyCamera(app.engine, camera);
+    await withVoidCallback((requestId, cb) => Engine_destroyCameraRenderThread(
+        FilamentApp.instance!.engine, camera, requestId, cb));
   }
 
   Future setExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     Camera_setExposure(camera, aperture, shutterSpeed, sensitivity);
   }
+
+  @override
+  Future<double> getAperture() async => Camera_getAperture(camera);
+
+  @override
+  Future<double> getShutterSpeed() async => Camera_getShutterSpeed(camera);
+
+  @override
+  Future<double> getSensitivity() async => Camera_getSensitivity(camera);
 
   Future<double> getFocusDistance() async => Camera_getFocusDistance(camera);
   Future setFocusDistance(double focusDistance) async =>

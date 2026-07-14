@@ -1,0 +1,193 @@
+name: Generate Artifacts
+
+on:
+  push:
+    branches: [ "develop" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "develop" ]
+  workflow_dispatch:
+
+concurrency:
+  group: generate-artifacts-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-artifacts:
+    name: Generate Artifacts
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.resolve-sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Check for source changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') && github.event.before || '' }}
+          filters: |
+            source-changed:
+              - 'thermion_dart/ffigen/**'
+              - 'thermion_dart/lib/src/bindings/**'
+              - 'thermion_dart/native/**'
+            native-changed:
+              - 'thermion_dart/native/**'
+            materials-changed:
+              - 'materials/**'
+              - 'examples/assets/*.mat'
+
+      - name: Setup CMake
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.0'
+
+      - name: Setup Emscripten
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 'latest'
+          actions-cache-folder: 'emsdk-cache'
+
+      - name: Set up Dart
+        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'
+        uses: dart-lang/setup-dart@v1
+
+      - name: Read Filament version
+        if: steps.changes.outputs.materials-changed == 'true'
+        id: filament-version
+        run: |
+          FILAMENT_VERSION=$(awk '{print $2}' filament.version)
+          echo "version=$FILAMENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download Filament binaries (Linux)
+        if: steps.changes.outputs.materials-changed == 'true'
+        run: |
+          FILAMENT_VERSION=${{ steps.filament-version.outputs.version }}
+          curl -L -o filament.tgz "https://github.com/google/filament/releases/download/${FILAMENT_VERSION}/filament-${FILAMENT_VERSION}-linux.tgz"
+          mkdir -p filament-binaries
+          tar xzf filament.tgz -C filament-binaries --strip-components=1
+
+      - name: Compile materials
+        if: steps.changes.outputs.materials-changed == 'true'
+        env:
+          FILAMENT_PATH: ${{ github.workspace }}/filament-binaries/bin
+        run: |
+          chmod +x materials/build.sh
+          make materials
+
+      - name: Generate bindings
+        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'
+        run: make dart-bindings
+
+      - name: Cache Filament web binaries
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: thermion_dart/native/web/lib/release
+          key: filament-web-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            filament-web-
+
+      - name: Compile web
+        if: steps.changes.outputs.native-changed == 'true'
+        run: make wasm
+
+      - name: Ensure generated binding files are tracked
+        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'
+        run: |
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
+          git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
+
+      - name: Ensure generated material files are tracked
+        if: steps.changes.outputs.materials-changed == 'true'
+        run: |
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.h || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.c || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.S || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.apple.S || true
+          git update-index --no-assume-unchanged thermion_dart/native/include/material/*.bin || true
+
+      - name: Check for changes
+        id: git-check
+        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true' || steps.changes.outputs.materials-changed == 'true'
+        run: |
+          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart || true
+          git add -f thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart || true
+          git add -f thermion_dart/native/include/material/*.h || true
+          git add -f thermion_dart/native/include/material/*.c || true
+          git add -f thermion_dart/native/include/material/*.S || true
+          git add -f thermion_dart/native/include/material/*.apple.S || true
+          git add -f thermion_dart/native/include/material/*.bin || true
+          git add -f examples/assets/*.filamat || true
+          git commit -m "chore: update generated artifacts
+
+          🤖 Generated with GitHub Actions"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+
+      - name: Package and upload web artifacts to R2
+        if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: https://260d4efc65af500536ea376de6452ece.r2.cloudflarestorage.com
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          cd thermion_dart/native/web/build/build/out
+          zip "thermion_dart-${SHORT_SHA}-web.zip" thermion_dart.js thermion_dart.wasm
+          aws s3 cp "thermion_dart-${SHORT_SHA}-web.zip" \
+            "s3://thermion/thermion_dart-${SHORT_SHA}-web.zip" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --region auto
+          # Write the SHA so the download script knows which artifact to fetch
+          echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
+
+      - name: Commit web.version
+        if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f thermion_dart/native/web/web.version
+          git diff --cached --quiet || git commit -m "chore: update web.version"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+
+      - name: Upload artifacts
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-wasm-${{ github.sha }}
+          path: thermion_dart/native/web/build/build/out/
+
+      - name: Resolve post-push SHA
+        id: resolve-sha
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          git fetch origin "$BRANCH" --depth=1
+          SHA=$(git rev-parse "origin/$BRANCH")
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+  run-tests:
+    name: Run Tests
+    needs: generate-artifacts
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      ref: ${{ needs.generate-artifacts.outputs.sha }}

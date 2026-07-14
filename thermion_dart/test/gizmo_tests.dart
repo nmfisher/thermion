@@ -4,7 +4,7 @@ import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("gizmo");
-  
+
   await testHelper.setup();
 
   group("gizmo tests", () {
@@ -19,16 +19,15 @@ void main() async {
     });
   });
 
-    test('add/remove rotation gizmo', () async {
-      await testHelper.withViewer((viewer) async {
-        
-        final gizmo = await viewer.getGizmo(GizmoType.rotation);
-        await viewer.addToScene(gizmo);
-        await testHelper.capture(viewer.view, "rotation_gizmo");
-        await viewer.removeFromScene(gizmo);
-        await testHelper.capture(viewer.view, "rotation_gizmo_removed");
-      }, postProcessing: true, bg: kWhite);
-    });
+  test('add/remove rotation gizmo', () async {
+    await testHelper.withViewer((viewer) async {
+      final gizmo = await viewer.getGizmo(GizmoType.rotation);
+      await viewer.addToScene(gizmo);
+      await testHelper.capture(viewer.view, "rotation_gizmo");
+      await viewer.removeFromScene(gizmo);
+      await testHelper.capture(viewer.view, "rotation_gizmo_removed");
+    }, postProcessing: true, bg: kWhite);
+  });
 
   //   test('set gizmo transform', () async {
   //     await testHelper.withViewer((viewer) async {
@@ -136,7 +135,7 @@ void main() async {
   //         DirectLight.sun(direction: Vector3(0, 0, -1)..normalize()));
 
   //     final unlitMaterialInstance = await viewer.createUnlitMaterialInstance();
-  //     final cube = await viewer.createGeometry(GeometryHelper.cube(),
+  //     final cube = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstance: unlitMaterialInstance);
   //     await viewer.setMaterialPropertyFloat4(
   //         cube, 'baseColorFactor', 0, 1, 1, 1, 1);
@@ -144,7 +143,7 @@ void main() async {
   //     unlitMaterialInstance.setParameterFloat2("uvScale", 2.0, 4.0);
 
   //     var textureData =
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png")
   //             .readAsBytesSync();
   //     var texture = await viewer.createTexture(textureData);
   //     await viewer.applyTexture(texture, cube);
@@ -158,7 +157,7 @@ void main() async {
   //     var viewer = await testHelper.createViewer();
 
   //     var textureData =
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png")
   //             .readAsBytesSync();
 
   //     var texture = await viewer.createTexture(textureData);
@@ -177,7 +176,7 @@ void main() async {
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
   //     var materialInstance =
   //         await viewer.createUbershaderMaterialInstance(unlit: true);
-  //     var cube = await viewer.createGeometry(GeometryHelper.cube(),
+  //     var cube = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstances: [materialInstance]);
 
   //     await viewer.setPostProcessing(true);
@@ -212,11 +211,11 @@ void main() async {
   //         Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
   //             Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
   //     var cube =
-  //         await viewer.createGeometry(GeometryHelper.cube(), keepData: true);
+  //         await viewer.createGeometry(GeometryUtils.cube(), keepData: true);
   //     await viewer.setMaterialPropertyFloat4(
   //         cube, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1.0);
   //     var textureData =
-  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
+  //         File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync();
   //     var texture = await viewer.createTexture(textureData);
   //     await viewer.applyTexture(texture, cube,
   //         materialIndex: 0, parameterName: "baseColorMap");
@@ -298,7 +297,7 @@ void main() async {
 
   //     final unlit = await viewer.createUnlitMaterialInstance();
   //     await viewer.destroyAsset(cube);
-  //     cube = await viewer.createGeometry(GeometryHelper.cube(),
+  //     cube = await viewer.createGeometry(GeometryUtils.cube(),
   //         materialInstance: unlit);
   //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);
   //     await viewer.applyTexture(reconstructedTexture, cube);

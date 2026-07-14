@@ -1,6 +1,17 @@
 export 'src/interface/filament_app.dart';
 export 'src/interface/engine.dart';
 export 'src/interface/layers.dart';
+export 'src/interface/light_manager.dart';
 export 'src/interface/light_options.dart';
+export 'src/interface/renderable_manager.dart';
+export 'src/interface/transform_manager.dart';
 export 'src/interface/axis.dart';
 export 'src/interface/textured_quad.dart';
+export 'src/interface/debug_registry.dart';
+export 'src/interface/tone_mapper.dart';
+export 'src/interface/gltf_mesh_data.dart';
+export 'src/interface/vertex_buffer.dart';
+export 'src/interface/index_buffer.dart';
+export 'src/interface/translation_axis_material.dart';
+export 'src/interface/ubershader_material.dart';
+export 'src/interface/wireframe_material.dart';

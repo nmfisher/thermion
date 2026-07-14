@@ -11,7 +11,6 @@
 
 #include "Log.hpp"
 #include "scene/GeometrySceneAsset.hpp"
-#include "scene/GeometrySceneAssetBuilder.hpp"
 
 namespace thermion
 {
@@ -37,12 +36,15 @@ namespace thermion
 
         _entity = utils::EntityManager::get().create();
 
+        auto& tm = engine->getTransformManager();
+        tm.create(_entity);
+
         RenderableManager::Builder builder(1);
         builder.boundingBox(boundingBox)
             .geometry(0, _primitiveType, _vertexBuffer, _indexBuffer)
-            .culling(true)
-            .receiveShadows(true)
-            .castShadows(true);
+            .culling(false)
+            .receiveShadows(false)
+            .castShadows(false);
 
         _boundingBox.min = boundingBox.getMin();
         _boundingBox.max = boundingBox.getMax();
@@ -56,13 +58,24 @@ namespace thermion
 
     GeometrySceneAsset::~GeometrySceneAsset()
     {
-        if (_engine)
-        {
-            if (_vertexBuffer && !isInstance())
-                _engine->destroy(_vertexBuffer);
-            if (_indexBuffer && !isInstance())
-                _engine->destroy(_indexBuffer);
+        auto &rm = _engine->getRenderableManager();
+        auto ri = rm.getInstance(_entity);
+        if (ri.isValid()) {
+            rm.destroy(_entity);
         }
+
+        auto& tm = _engine->getTransformManager();
+        if (tm.getInstance(_entity).isValid()) {
+            tm.destroy(_entity);
+        }
+
+        utils::EntityManager::get().destroy(_entity);
+
+        if (_vertexBuffer && !isInstance())
+            _engine->destroy(_vertexBuffer);
+        if (_indexBuffer && !isInstance())
+            _engine->destroy(_indexBuffer);
+        
     }
 
     SceneAsset *GeometrySceneAsset::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)

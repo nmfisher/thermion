@@ -1,5 +1,7 @@
 #pragma once
 
+#include "APIExport.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -7,8 +9,6 @@ extern "C"
 
 #include <stddef.h>
 #include <stdint.h>
-
-#include "APIExport.h"
 
 	typedef void (*VoidCallback)(int32_t requestId);
 	
@@ -19,8 +19,8 @@ extern "C"
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;
 	typedef struct TLightManager TLightManager;
+	typedef struct TRenderManager TRenderManager;
 	typedef struct TRenderer TRenderer;
-	typedef struct TRenderTicker TRenderTicker;
 	typedef struct TFence TFence;
 	typedef struct TRenderTarget TRenderTarget;
 	typedef struct TSwapChain TSwapChain;
@@ -31,7 +31,6 @@ extern "C"
 	typedef struct TIndirectLight TIndirectLight;
 	typedef struct TTransformManager TTransformManager;
 	typedef struct TAnimationManager TAnimationManager;
-	typedef struct TCollisionComponentManager TCollisionComponentManager;
 	typedef struct TSceneAsset TSceneAsset;
 	typedef struct TNameComponentManager TNameComponentManager;
 	typedef struct TMaterial TMaterial;
@@ -47,7 +46,14 @@ extern "C"
 	typedef struct TFilamentAsset TFilamentAsset;
 	typedef struct TColorGrading TColorGrading;
 	typedef struct TKtx1Bundle TKtx1Bundle;
-	typedef struct TOverlayManager TOverlayManager;
+	typedef struct TDebugRegistry TDebugRegistry;
+	typedef struct TRenderableBuilder TRenderableBuilder;
+	typedef struct TVertexBuffer TVertexBuffer;
+	typedef struct TIndexBuffer TIndexBuffer;
+	typedef struct TVertexBufferBuilder TVertexBufferBuilder;
+	typedef struct TIndexBufferBuilder TIndexBufferBuilder;
+	typedef struct TSurfaceOrientation TSurfaceOrientation;
+	typedef struct TSurfaceOrientationBuilder TSurfaceOrientationBuilder;
 	
 	typedef struct { 
 		double x;
@@ -101,6 +107,17 @@ extern "C"
 	};
 	typedef enum TGizmoType TGizmoType;
 
+	enum TSceneAssetType {
+		SCENE_ASSET_TYPE_GLTF = 0,
+		SCENE_ASSET_TYPE_GEOMETRY = 1,
+		SCENE_ASSET_TYPE_LIGHT = 2,
+		SCENE_ASSET_TYPE_SKYBOX = 3,
+		SCENE_ASSET_TYPE_IBL = 4,
+		SCENE_ASSET_TYPE_IMAGE = 5,
+		SCENE_ASSET_TYPE_GIZMO = 6
+	};
+	typedef enum TSceneAssetType TSceneAssetType;
+
 	enum TFeatureLevel {
 		FEATURE_LEVEL_0 = 0,
 		FEATURE_LEVEL_1 = 1,
@@ -118,6 +135,65 @@ extern "C"
 		PRIMITIVETYPE_TRIANGLE_STRIP = 5     //!< triangle strip
 	};
 	typedef enum TPrimitiveType TPrimitiveType;
+
+	// Vertex attribute types (must match filament::VertexAttribute)
+	enum TVertexAttribute {
+		TVERTEX_ATTRIBUTE_POSITION        = 0,
+		TVERTEX_ATTRIBUTE_TANGENTS        = 1,
+		TVERTEX_ATTRIBUTE_COLOR           = 2,
+		TVERTEX_ATTRIBUTE_UV0             = 3,
+		TVERTEX_ATTRIBUTE_UV1             = 4,
+		TVERTEX_ATTRIBUTE_BONE_INDICES    = 5,
+		TVERTEX_ATTRIBUTE_BONE_WEIGHTS    = 6,
+		TVERTEX_ATTRIBUTE_CUSTOM0         = 8,
+		TVERTEX_ATTRIBUTE_CUSTOM1         = 9,
+		TVERTEX_ATTRIBUTE_CUSTOM2         = 10,
+		TVERTEX_ATTRIBUTE_CUSTOM3         = 11,
+		TVERTEX_ATTRIBUTE_CUSTOM4         = 12,
+		TVERTEX_ATTRIBUTE_CUSTOM5         = 13,
+		TVERTEX_ATTRIBUTE_CUSTOM6         = 14,
+		TVERTEX_ATTRIBUTE_CUSTOM7         = 15
+	};
+	typedef enum TVertexAttribute TVertexAttribute;
+
+	// Attribute element types (must match backend::ElementType)
+	enum TVertexAttributeType {
+		TVERTEXATTRIBUTE_TYPE_BYTE     = 0,
+		TVERTEXATTRIBUTE_TYPE_BYTE2    = 1,
+		TVERTEXATTRIBUTE_TYPE_BYTE3    = 2,
+		TVERTEXATTRIBUTE_TYPE_BYTE4    = 3,
+		TVERTEXATTRIBUTE_TYPE_UBYTE    = 4,
+		TVERTEXATTRIBUTE_TYPE_UBYTE2   = 5,
+		TVERTEXATTRIBUTE_TYPE_UBYTE3   = 6,
+		TVERTEXATTRIBUTE_TYPE_UBYTE4   = 7,
+		TVERTEXATTRIBUTE_TYPE_SHORT    = 8,
+		TVERTEXATTRIBUTE_TYPE_SHORT2   = 9,
+		TVERTEXATTRIBUTE_TYPE_SHORT3   = 10,
+		TVERTEXATTRIBUTE_TYPE_SHORT4   = 11,
+		TVERTEXATTRIBUTE_TYPE_USHORT   = 12,
+		TVERTEXATTRIBUTE_TYPE_USHORT2  = 13,
+		TVERTEXATTRIBUTE_TYPE_USHORT3  = 14,
+		TVERTEXATTRIBUTE_TYPE_USHORT4  = 15,
+		TVERTEXATTRIBUTE_TYPE_INT      = 16,
+		TVERTEXATTRIBUTE_TYPE_UINT     = 17,
+		TVERTEXATTRIBUTE_TYPE_FLOAT    = 18,
+		TVERTEXATTRIBUTE_TYPE_FLOAT2   = 19,
+		TVERTEXATTRIBUTE_TYPE_FLOAT3   = 20,
+		TVERTEXATTRIBUTE_TYPE_FLOAT4   = 21,
+		TVERTEXATTRIBUTE_TYPE_HALF     = 22,
+		TVERTEXATTRIBUTE_TYPE_HALF2    = 23,
+		TVERTEXATTRIBUTE_TYPE_HALF3    = 24,
+		TVERTEXATTRIBUTE_TYPE_HALF4    = 25
+	};
+	typedef enum TVertexAttributeType TVertexAttributeType;
+
+	// Index buffer types
+	// Note: These are abstract values that get mapped to backend::ElementType internally
+	enum TIndexType {
+		TINDEX_TYPE_USHORT = 0,  // 16-bit indices
+		TINDEX_TYPE_UINT   = 1   // 32-bit indices
+	};
+	typedef enum TIndexType TIndexType;
 
 	extern uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT;
 	extern uint64_t TSWAP_CHAIN_CONFIG_READABLE;

@@ -9,9 +9,16 @@
 
 #include <gltfio/Animator.h>
 
+#include <utils/Panic.h>
+
 #include "Log.hpp"
 
 #include "scene/AnimationManager.hpp"
+
+#include "components/GltfAnimationComponentManager.hpp"
+#include "components/MorphAnimationComponentManager.hpp"
+#include "components/BoneAnimationComponentManager.hpp"
+
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 
@@ -21,13 +28,17 @@ namespace thermion
     using namespace filament;
     using namespace utils;
 
-    AnimationManager::AnimationManager(Engine *engine, Scene *scene) : _engine(engine), _scene(scene)
+    AnimationManager::AnimationManager(Engine *engine) : mEngine(engine)
     {
-        auto &transformManager = _engine->getTransformManager();
-        auto &renderableManager = _engine->getRenderableManager();
-        _gltfAnimationComponentManager = std::make_unique<GltfAnimationComponentManager>(transformManager, renderableManager);
-        _morphAnimationComponentManager = std::make_unique<MorphAnimationComponentManager>(transformManager, renderableManager);
-        _boneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(transformManager, renderableManager);
+        auto &transformManager = mEngine->getTransformManager();
+        auto &renderableManager = mEngine->getRenderableManager();
+        mGltfAnimationComponentManager = std::make_unique<GltfAnimationComponentManager>(transformManager, renderableManager);
+        mMorphAnimationComponentManager = std::make_unique<MorphAnimationComponentManager>(transformManager, renderableManager);
+        mBoneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(transformManager, renderableManager);
+    }
+
+    AnimationManager::~AnimationManager()
+    {
     }
 
     bool AnimationManager::setMorphAnimationBuffer(
@@ -39,15 +50,15 @@ namespace thermion
         float frameLengthInMs)
     {
 
-        std::lock_guard lock(_mutex);
+        std::lock_guard lock(mMutex);
 
-        if (!_morphAnimationComponentManager->hasComponent(entity))
+        if (!mMorphAnimationComponentManager->hasComponent(entity))
         {
-            _morphAnimationComponentManager->addAnimationComponent(entity);
+            mMorphAnimationComponentManager->addAnimationComponent(entity);
         }
 
-        auto animationComponentInstance = _morphAnimationComponentManager->getInstance(entity);
-        auto &animationComponent = _morphAnimationComponentManager->elementAt<0>(animationComponentInstance);
+        auto animationComponentInstance = mMorphAnimationComponentManager->getInstance(entity);
+        auto &animationComponent = mMorphAnimationComponentManager->elementAt<0>(animationComponentInstance);
         auto &morphAnimations = animationComponent.animations;
 
         MorphAnimation morphAnimation;
@@ -65,12 +76,10 @@ namespace thermion
         }
         morphAnimation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
 
-        morphAnimation.start = high_resolution_clock::now();
+        morphAnimation.startTimeInNanos = 0; // Will be set when first update() is called
         morphAnimation.lengthInFrames = numFrames;
 
         morphAnimations.emplace_back(morphAnimation);
-
-        auto& foo = morphAnimations[morphAnimations.size() - 1];
 
         return true;
     }
@@ -78,22 +87,22 @@ namespace thermion
     void AnimationManager::clearMorphAnimationBuffer(
         utils::Entity entity)
     {
-        std::lock_guard lock(_mutex);
+        std::lock_guard lock(mMutex);
 
-        auto animationComponentInstance = _morphAnimationComponentManager->getInstance(entity);
-        auto &animationComponent = _morphAnimationComponentManager->elementAt<0>(animationComponentInstance);
+        auto animationComponentInstance = mMorphAnimationComponentManager->getInstance(entity);
+        auto &animationComponent = mMorphAnimationComponentManager->elementAt<0>(animationComponentInstance);
         auto &morphAnimations = animationComponent.animations;
         morphAnimations.clear();
     }
 
     void AnimationManager::resetToRestPose(GltfSceneAssetInstance *instance)
     {
-        std::lock_guard lock(_mutex);
+        std::lock_guard lock(mMutex);
 
         auto filamentInstance = instance->getInstance();
         auto skinCount = filamentInstance->getSkinCount();
 
-        TransformManager &transformManager = _engine->getTransformManager();
+        TransformManager &transformManager = mEngine->getTransformManager();
 
         //
         // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(),
@@ -148,7 +157,7 @@ namespace thermion
         auto filamentInstance = instance->getInstance();
         auto skinCount = filamentInstance->getSkinCount();
 
-        TransformManager &transformManager = _engine->getTransformManager();
+        TransformManager &transformManager = mEngine->getTransformManager();
 
         transforms.resize(filamentInstance->getJointCountAt(skinIndex));
 
@@ -254,7 +263,7 @@ namespace thermion
 
     void AnimationManager::updateBoneMatrices(GltfSceneAssetInstance *instance)
     {
-        std::lock_guard lock(_mutex);
+        std::lock_guard lock(mMutex);
         instance->getInstance()->getAnimator()->updateBoneMatrices();
     }
 
@@ -266,9 +275,10 @@ namespace thermion
                                             float frameLengthInMs,
                                             float fadeOutInSecs,
                                             float fadeInInSecs,
-                                            float maxDelta)
+                                            float maxDelta,
+                                            bool loop)
     {
-        std::lock_guard lock(_mutex);
+        std::lock_guard lock(mMutex);
 
         BoneAnimation animation;
         animation.boneIndex = boneIndex;
@@ -299,8 +309,10 @@ namespace thermion
         }
 
         animation.frameLengthInMs = frameLengthInMs;
-        animation.start = std::chrono::high_resolution_clock::now();
+        animation.startTimeInNanos = 0; // Will be set when first update() is called
+        animation.startOffset = 0.0f;
         animation.reverse = false;
+        animation.loop = loop;
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
         animation.lengthInFrames = numFrames;
         animation.frameLengthInMs = frameLengthInMs;
@@ -308,24 +320,24 @@ namespace thermion
         animation.fadeInInSecs = fadeInInSecs;
         animation.maxDelta = maxDelta;
         animation.skinIndex = skinIndex;
-        if (!_boneAnimationComponentManager->hasComponent(instance->getInstance()->getRoot()))
+        if (!mBoneAnimationComponentManager->hasComponent(instance->getInstance()->getRoot()))
         {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return false;
         }
-        auto animationComponentInstance = _boneAnimationComponentManager->getInstance(instance->getInstance()->getRoot());
+        auto animationComponentInstance = mBoneAnimationComponentManager->getInstance(instance->getInstance()->getRoot());
 
-        auto &animationComponent = _boneAnimationComponentManager->elementAt<0>(animationComponentInstance);
-        // auto &boneAnimations = animationComponent.boneAnimations;
+        auto &animationComponent = mBoneAnimationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &boneAnimations = animationComponent.animations;
 
-        // boneAnimations.emplace_back(animation);
+        boneAnimations.emplace_back(animation);
 
         return true;
     }
 
-    void AnimationManager::playGltfAnimation(GltfSceneAssetInstance *instance, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset)
+    void AnimationManager::playGltfAnimation(GltfSceneAssetInstance *instance, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed)
     {
-        std::lock_guard lock(_mutex);
+        std::lock_guard lock(mMutex);
 
         if (index < 0)
         {
@@ -333,28 +345,28 @@ namespace thermion
             return;
         }
 
-        _gltfAnimationComponentManager->addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset);
+        mGltfAnimationComponentManager->addGltfAnimation(instance->getInstance(), index, loop, reverse, replaceActive, crossfade, startOffset, speed);
     }
 
     void AnimationManager::stopGltfAnimation(GltfSceneAssetInstance *instance, int index)
     {
-        std::lock_guard lock(_mutex);
-        auto animationComponentInstance = _gltfAnimationComponentManager->getInstance(instance->getEntity());
-        auto &animationComponent = _gltfAnimationComponentManager->elementAt<0>(animationComponentInstance);
+        std::lock_guard lock(mMutex);
+        auto animationComponentInstance = mGltfAnimationComponentManager->getInstance(instance->getEntity());
+        auto &animationComponent = mGltfAnimationComponentManager->elementAt<0>(animationComponentInstance);
 
         auto erased = std::remove_if(animationComponent.animations.begin(),
                                      animationComponent.animations.end(),
                                      [=](GltfAnimation &anim)
                                      { return anim.index == index; });
         animationComponent.animations.erase(erased,
-                                                animationComponent.animations.end());
+                                            animationComponent.animations.end());
         return;
     }
 
     void AnimationManager::setMorphTargetWeights(utils::Entity entity, const float *const weights, const int count)
     {
-        std::lock_guard lock(_mutex);
-        RenderableManager &rm = _engine->getRenderableManager();
+        std::lock_guard lock(mMutex);
+        RenderableManager &rm = mEngine->getRenderableManager();
         auto renderableInstance = rm.getInstance(entity);
 
         rm.setMorphWeights(
@@ -363,11 +375,10 @@ namespace thermion
             count);
     }
 
-    void AnimationManager::setGltfAnimationFrame(GltfSceneAssetInstance *instance, int animationIndex, int animationFrame)
+    void AnimationManager::setGltfAnimationTime(GltfSceneAssetInstance *instance, int animationIndex, float timeInSeconds)
     {
-        std::lock_guard lock(_mutex);
-        auto offset = 60 * animationFrame * 1000; // TODO - don't hardcore 60fps framerate
-        instance->getInstance()->getAnimator()->applyAnimation(animationIndex, offset);
+        std::lock_guard lock(mMutex);
+        instance->getInstance()->getAnimator()->applyAnimation(animationIndex, timeInSeconds);
         instance->getInstance()->getAnimator()->updateBoneMatrices();
         return;
     }
@@ -407,20 +418,13 @@ namespace thermion
         return names;
     }
 
-    vector<Entity> AnimationManager::getBoneEntities(GltfSceneAssetInstance *instance, int skinIndex)
-    {
-        auto *joints = instance->getInstance()->getJointsAt(skinIndex);
-        auto jointCount = instance->getInstance()->getJointCountAt(skinIndex);
-        std::vector<Entity> boneEntities(joints, joints + jointCount);
-        return boneEntities;
-    }
-
     void AnimationManager::update(uint64_t frameTimeInNanos)
     {
-        std::lock_guard lock(_mutex);
-        _gltfAnimationComponentManager->update();
-        _morphAnimationComponentManager->update();
-        _boneAnimationComponentManager->update();
+        std::lock_guard lock(mMutex);
+        mGltfAnimationComponentManager->update(frameTimeInNanos);
+        mMorphAnimationComponentManager->update(frameTimeInNanos);
+        mBoneAnimationComponentManager->update(frameTimeInNanos);
+        mLastUpdateTime = frameTimeInNanos;
     }
 
     math::mat4f AnimationManager::getInverseBindMatrix(GltfSceneAssetInstance *instance, int skinIndex, int boneIndex)
@@ -428,70 +432,48 @@ namespace thermion
         return instance->getInstance()->getInverseBindMatricesAt(skinIndex)[boneIndex];
     }
 
-    bool AnimationManager::setBoneTransform(GltfSceneAssetInstance *instance, int32_t skinIndex, int boneIndex, math::mat4f transform)
-    {
-        std::lock_guard lock(_mutex);
-
-        RenderableManager &rm = _engine->getRenderableManager();
-
-        const auto &renderableInstance = rm.getInstance(instance->getEntity());
-
-        if (!renderableInstance.isValid())
-        {
-            Log("Specified entity is not a renderable. You probably provided the ultimate parent entity of a glTF asset, which is non-renderable. ");
-            return false;
-        }
-
-        rm.setBones(
-            renderableInstance,
-            &transform,
-            1,
-            boneIndex);
-        return true;
-    }
-
     bool AnimationManager::addGltfAnimationComponent(GltfSceneAssetInstance *instance)
     {
-        std::lock_guard lock(_mutex);
-        _gltfAnimationComponentManager->addAnimationComponent(instance->getInstance());
+        std::lock_guard lock(mMutex);
+        mGltfAnimationComponentManager->addAnimationComponent(instance->getInstance());
         TRACE("Added glTF animation component");
         return true;
     }
 
     void AnimationManager::removeGltfAnimationComponent(GltfSceneAssetInstance *instance)
     {
-        std::lock_guard lock(_mutex);
-        _gltfAnimationComponentManager->removeAnimationComponent(instance->getInstance());
+        std::lock_guard lock(mMutex);
+        mGltfAnimationComponentManager->removeAnimationComponent(instance->getInstance());
         TRACE("Removed glTF animation component");
     }
 
     bool AnimationManager::addBoneAnimationComponent(GltfSceneAssetInstance *instance)
     {
-        std::lock_guard lock(_mutex);
-        _boneAnimationComponentManager->addAnimationComponent(instance->getInstance());
+        std::lock_guard lock(mMutex);
+        mBoneAnimationComponentManager->addAnimationComponent(instance->getInstance());
         TRACE("Added bone animation component");
         return true;
     }
 
     void AnimationManager::removeBoneAnimationComponent(GltfSceneAssetInstance *instance)
     {
-        std::lock_guard lock(_mutex);
-        _boneAnimationComponentManager->removeAnimationComponent(instance->getInstance());
+        std::lock_guard lock(mMutex);
+        mBoneAnimationComponentManager->removeAnimationComponent(instance->getInstance());
         TRACE("Removed bone animation component");
     }
 
     bool AnimationManager::addMorphAnimationComponent(utils::Entity entity)
     {
-        std::lock_guard lock(_mutex);
-        _morphAnimationComponentManager->addAnimationComponent(entity);
+        std::lock_guard lock(mMutex);
+        mMorphAnimationComponentManager->addAnimationComponent(entity);
         TRACE("Added morph animation component");
         return true;
     }
 
     void AnimationManager::removeMorphAnimationComponent(utils::Entity entity)
     {
-        std::lock_guard lock(_mutex);
-        _morphAnimationComponentManager->removeAnimationComponent(entity);
+        std::lock_guard lock(mMutex);
+        mMorphAnimationComponentManager->removeAnimationComponent(entity);
         TRACE("Removed morph animation component");
     }
 

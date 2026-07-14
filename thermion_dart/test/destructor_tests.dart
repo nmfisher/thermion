@@ -5,7 +5,6 @@ import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("app");
-  
 
   test('destroy app', () async {
     await testHelper.setup();
@@ -13,6 +12,5 @@ void main() async {
     await viewer.dispose();
     await FilamentApp.instance!.destroy();
     await testHelper.setup();
-
   });
 }

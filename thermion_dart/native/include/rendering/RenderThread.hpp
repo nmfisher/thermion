@@ -1,13 +1,12 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <future>
 #include <mutex>
 #include <thread>
-
-#include "RenderTicker.hpp"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/threading.h>
@@ -16,6 +15,8 @@
 #endif
 
 namespace thermion {
+
+class RenderManager;
 
 /**
  * @brief A render loop implementation that manages rendering on a separate thread.
@@ -36,27 +37,14 @@ public:
     ~RenderThread();
 
     /**
-     * @brief Requests a frame to be rendered.
-     * 
-     * @param callback Callback function to be called after rendering completes
-     */
-    void requestFrame();
-
-    /**
-     * @brief Sets the render ticker used.
-     */
-    void setRenderTicker(RenderTicker *renderTicker) {
-        mRenderTicker = renderTicker;
-    }
-
-    /**
      * @brief Adds a task to the render thread's task queue.
      * 
      * @param pt The packaged task to be executed
      * @return std::future<Rt> Future for the task result
      */
     template <class Rt>
-    auto add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt>;
+    auto addTask(std::packaged_task<Rt()>& pt) -> std::future<Rt>;
+
 
     /**
      * @brief Main iteration of the render loop.
@@ -76,17 +64,19 @@ public:
     bool mStop = false;
 
     /**
-     * 
+     *
      */
     bool mRestart = false;
-    
+
     #ifdef __EMSCRIPTEN__
     emscripten::ProxyingQueue queue;
     pthread_t outer;
-    #endif
 
-    bool mRendered = false;
-    bool mRender = false;
+    // Web-only: iter() invokes mRenderManager->tick() on each rAF so rendering
+    // is driven by the browser's frame cadence rather than a Dart-queued task.
+    void setRenderManager(RenderManager* rm) { mRenderManager = rm; }
+    RenderManager* mRenderManager = nullptr;
+    #endif
 
 private:
     std::mutex _taskMutex;
@@ -103,13 +93,11 @@ private:
 #else
     std::thread* t = nullptr;
 #endif
-    RenderTicker* mRenderTicker = nullptr;
 };
 
 // Template implementation
 template <class Rt>
-auto RenderThread::add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
-    
+auto RenderThread::addTask(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
     
     std::unique_lock<std::mutex> lock(_taskMutex);
     

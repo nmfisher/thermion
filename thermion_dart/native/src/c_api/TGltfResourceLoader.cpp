@@ -1,8 +1,8 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
+ 
 
 #include "c_api/TGltfResourceLoader.h"
+
+#include <vector>
 
 #include <filament/Engine.h>
 #include <filament/Fence.h>
@@ -59,9 +59,12 @@ EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfReso
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length) {
     TRACE("Adding data (length %d) for glTF resource URI %s", length, uri);
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
-    gltfResourceLoader->addResourceData(uri, { 
-        data,
-        length});
+    auto *vec = new std::vector<uint8_t>(data, data + length);
+    gltfResourceLoader->addResourceData(uri, {
+        vec->data(),
+        vec->size(),
+        [](void *, size_t, void *user) { delete static_cast<std::vector<uint8_t>*>(user); },
+        vec});
 }
 
 EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {    

@@ -8,6 +8,7 @@
 
 #include <filament/Camera.h>
 #include <filament/backend/DriverEnums.h>
+#include <filament/DebugRegistry.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>
 #include <filament/IndirectLight.h>
@@ -205,10 +206,20 @@ namespace thermion
             return reinterpret_cast<TEntityManager *>(&entityManager);
         }
 
-        EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine)
+        EMSCRIPTEN_KEEPALIVE void Engine_setAutomaticInstancingEnabled(TEngine *tEngine, bool enabled) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            engine->setAutomaticInstancingEnabled(enabled);
+        }
+
+        EMSCRIPTEN_KEEPALIVE size_t Engine_getMaxAutomaticInstances(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            return engine->getMaxAutomaticInstances();
+        }
+
+        EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine, EntityId entityId)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-            utils::Entity entity = utils::EntityManager::get().create();
+            utils::Entity entity = utils::Entity::import(entityId);
             auto *camera = engine->createCamera(entity);
             return reinterpret_cast<TCamera *>(camera);
         }
@@ -216,8 +227,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroyCamera(TEngine *tEngine, TCamera *tCamera) {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *camera = reinterpret_cast<Camera *>(tCamera);
+            auto &em = utils::EntityManager::get();
             engine->destroyCameraComponent(camera->getEntity());
-            utils::EntityManager::get().destroy(camera->getEntity());
         }
 
         EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
@@ -319,12 +330,21 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *texture = reinterpret_cast<Texture *>(tTexture);
-            
+
             auto *skybox =
                 filament::Skybox::Builder()
                     .environment(texture)
                     .build(*engine);
 
+            return reinterpret_cast<TSkybox *>(skybox);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildColoredSkybox(TEngine *tEngine, float r, float g, float b, float a)
+        {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *skybox = filament::Skybox::Builder()
+                .color({r, g, b, a})
+                .build(*engine);
             return reinterpret_cast<TSkybox *>(skybox);
         }
 
@@ -390,6 +410,52 @@ namespace thermion
             auto entityManager = reinterpret_cast<utils::EntityManager *>(tEntityManager);
             auto entity = entityManager->create();
             return utils::Entity::smuggle(entity);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void EntityManager_destroyEntity(TEntityManager *tEntityManager, EntityId entityId) {
+            auto entityManager = reinterpret_cast<utils::EntityManager *>(tEntityManager);
+            entityManager->destroy(utils::Entity::import(entityId));
+        }
+
+        EMSCRIPTEN_KEEPALIVE TDebugRegistry *Engine_getDebugRegistry(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto &debugRegistry = engine->getDebugRegistry();
+            return reinterpret_cast<TDebugRegistry *>(&debugRegistry);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_hasProperty(TDebugRegistry *tDebugRegistry, const char *name) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->hasProperty(name);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_setProperty_bool(TDebugRegistry *tDebugRegistry, const char *name, bool value) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->setProperty(name, value);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_setProperty_int(TDebugRegistry *tDebugRegistry, const char *name, int value) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->setProperty(name, value);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_setProperty_float(TDebugRegistry *tDebugRegistry, const char *name, float value) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->setProperty(name, value);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_bool(TDebugRegistry *tDebugRegistry, const char *name, bool *outValue) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->getProperty(name, outValue);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_int(TDebugRegistry *tDebugRegistry, const char *name, int *outValue) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->getProperty(name, outValue);
+        }
+
+        EMSCRIPTEN_KEEPALIVE bool DebugRegistry_getProperty_float(TDebugRegistry *tDebugRegistry, const char *name, float *outValue) {
+            auto *debugRegistry = reinterpret_cast<filament::DebugRegistry *>(tDebugRegistry);
+            return debugRegistry->getProperty(name, outValue);
         }
 
 #ifdef __cplusplus

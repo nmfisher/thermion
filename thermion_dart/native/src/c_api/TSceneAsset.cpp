@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
+ 
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/ResourceLoader.h>
@@ -9,10 +7,10 @@
 
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
-#include "scene/GridOverlay.hpp"
-#include "scene/SceneAsset.hpp"
+
+#include "scene/GeometrySceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
-#include "scene/GeometrySceneAssetBuilder.hpp"
+#include "scene/SceneAsset.hpp"
 
 using namespace thermion;
 
@@ -22,58 +20,57 @@ extern "C"
 {
 #endif
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometry(
-        TEngine *tEngine, 
-        float *vertices,
-        uint32_t numVertices,
-        float *normals,
-        uint32_t numNormals,
-        float *uvs,
-        uint32_t numUvs,
-        uint16_t *indices,
-        uint32_t numIndices,
-        TPrimitiveType tPrimitiveType,
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromBuffers(
+        TEngine *tEngine,
+        TVertexBuffer *tVertexBuffer,
+        TIndexBuffer *tIndexBuffer,
         TMaterialInstance **materialInstances,
-		int materialInstanceCount
+        int materialInstanceCount,
+        TPrimitiveType tPrimitiveType,
+        Aabb3 boundingBox
     ) {
-        utils::Entity entity;
-
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+        auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer *>(tVertexBuffer);
+        auto *indexBuffer = reinterpret_cast<filament::IndexBuffer *>(tIndexBuffer);
+        auto **matInstances = reinterpret_cast<filament::MaterialInstance **>(materialInstances);
+        auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(tPrimitiveType);
 
-        auto builder = GeometrySceneAssetBuilder(engine)
-                           .vertices(vertices, numVertices)
-                           .indices(indices, numIndices)
-                           .primitiveType(static_cast<filament::RenderableManager::PrimitiveType>(tPrimitiveType));
+        // Convert Aabb3 to filament::Box
+        filament::Box box;
+        box.set(
+            filament::math::float3{
+                boundingBox.centerX - boundingBox.halfExtentX,
+                boundingBox.centerY - boundingBox.halfExtentY,
+                boundingBox.centerZ - boundingBox.halfExtentZ
+            },
+            filament::math::float3{
+                boundingBox.centerX + boundingBox.halfExtentX,
+                boundingBox.centerY + boundingBox.halfExtentY,
+                boundingBox.centerZ + boundingBox.halfExtentZ
+            }
+        );
 
-        if (normals)
-        {
-            builder.normals(normals, numNormals);
-        }
+        // Create the GeometrySceneAsset directly
+        auto *sceneAsset = new GeometrySceneAsset(
+            engine,
+            vertexBuffer,
+            indexBuffer,
+            matInstances,
+            materialInstanceCount,
+            primitiveType,
+            box,
+            nullptr  // instanceOwner - this is not an instance
+        );
 
-        if (uvs)
-        {
-            builder.uvs(uvs, numUvs);
-        }
-
-        builder.materials(reinterpret_cast<MaterialInstance**>(materialInstances), materialInstanceCount);
-
-        auto sceneAsset = builder.build();
-
-        if (!sceneAsset)
-        {
-            Log("Failed to create geometry");
-            return std::nullptr_t();
-        }
-
-        return reinterpret_cast<TSceneAsset*>(sceneAsset.release());
-        
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        TFilamentAsset *tFilamentAsset
+        TFilamentAsset *tFilamentAsset,
+        bool rebuildVertices
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -84,10 +81,11 @@ extern "C"
             filamentAsset,
             assetLoader,
             engine,
-            nameComponentManager
+            nameComponentManager,
+            rebuildVertices
         );
 
-        return reinterpret_cast<TSceneAsset *>(sceneAsset);        
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
     
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
@@ -103,14 +101,12 @@ extern "C"
         return reinterpret_cast<TFilamentAsset *>(filamentAsset);
     }
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial* tMaterial) {
-        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-        auto *material = reinterpret_cast<filament::Material *>(tMaterial);
-        auto *asset = new GridOverlay(*engine, material);
-        return reinterpret_cast<TSceneAsset *>(asset);
+    EMSCRIPTEN_KEEPALIVE TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        return static_cast<TSceneAssetType>(asset->getType());
     }
-    
-    EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) { 
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if(asset->isInstance()) {
             TRACE("Destroyed instance");
@@ -231,6 +227,85 @@ extern "C"
         return Aabb3{box.center().x, box.center().y, box.center().z, box.extent().x, box.extent().y, box.extent().z};
     }
 
+    EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
+            auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
+            auto *vertexBuffer = geometrySceneAsset->getVertexBuffer();
+            return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
+        }
+        if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto *vertexBuffer = gltfSceneAsset->getPreservedVertexBuffer(primitiveIndex);
+            return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
+        }
+        return nullptr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
+            auto geometrySceneAsset = reinterpret_cast<GeometrySceneAsset *>(asset);
+            auto *indexBuffer = geometrySceneAsset->getIndexBuffer();
+            return reinterpret_cast<TIndexBuffer *>(indexBuffer);
+        }
+        if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto *indexBuffer = gltfSceneAsset->getPreservedIndexBuffer(primitiveIndex);
+            return reinterpret_cast<TIndexBuffer *>(indexBuffer);
+        }
+        return nullptr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE int SceneAsset_getPrimitiveOffsetForEntity(TSceneAsset *tSceneAsset, EntityId entity) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            return -1;
+        }
+        auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+        // Convert EntityId to utils::Entity for the internal method
+        return gltfSceneAsset->getPrimitiveOffsetForEntity(utils::Entity::import(entity));
+    }
+
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("releaseSourceData only supported on glTF assets");
+            return;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        gltfAsset->releaseSourceData();
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShading(TSceneAsset *tSceneAsset, bool flatShading) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("setFlatShading only supported on glTF assets");
+            return;
+        }
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        gltfAsset->setFlatShading(flatShading);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_getBones(TSceneAsset *tSceneAsset, size_t skinIndex, EntityId *out) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        auto *bones = asset->getBones(skinIndex);
+        for(int i = 0; i < asset->getBoneCount(skinIndex); i++) {
+            out[i] = utils::Entity::smuggle(bones[i]);
+        }
+    }
+
+
+    EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getBoneCount(TSceneAsset *tSceneAsset, size_t skinIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        return asset->getBoneCount(skinIndex);
+    }
+
+    EMSCRIPTEN_KEEPALIVE const char *SceneAsset_getBoneName(TSceneAsset *tSceneAsset, size_t skinIndex, size_t boneIndex) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        return asset->getBoneName(skinIndex, boneIndex);
+    }
 
 #ifdef __cplusplus
 }

@@ -19,7 +19,7 @@
 
 #include "Log.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
-#include "components/Animation.hpp"
+#include "scene/AnimationComponentBase.hpp"
 
 template class std::vector<float>;
 namespace thermion
@@ -29,13 +29,13 @@ namespace thermion
     using namespace utils;
     using namespace std::chrono;
 
-    /// @brief 
+    /// @brief
     /// The status of an animation embedded in a glTF object.
     /// @param index refers to the index of the animation in the animations property of the underlying object.
     ///
-    struct GltfAnimation : Animation
+    struct GltfAnimation : AnimationComponentBase
     {
-        int index = -1;
+        int8_t index = -1;
     };
 
 
@@ -47,9 +47,11 @@ namespace thermion
         filament::gltfio::FilamentInstance * target;
         // the index of the last active glTF animation,
         // used to cross-fade
-        int fadeGltfAnimationIndex = -1;
-        float fadeDuration = 0.0f;
-        float fadeOutAnimationStart = 0.0f;
+        GltfAnimation fadeOutAnimation;
+        
+        // the time (in seconds) to fade out the last animation
+        float fadeOutDuration = 0.0f;
+
         std::vector<GltfAnimation> animations;
     };
 
@@ -63,12 +65,14 @@ namespace thermion
             void addAnimationComponent(FilamentInstance *target);
             void removeAnimationComponent(FilamentInstance *target);
 
-            bool addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset);
+            bool addGltfAnimation(FilamentInstance *target, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset, float speed = 1.0f);
             // GltfAnimationComponent getAnimationComponentInstance(FilamentInstance *target);
-            void update(); 
+            void update(uint64_t frameTimeInNanos); 
 
         private:
             filament::TransformManager &mTransformManager;
             filament::RenderableManager &mRenderableManager;
+            uint64_t mLastUpdateTime;
+
     };
 }

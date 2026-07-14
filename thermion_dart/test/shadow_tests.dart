@@ -1,126 +1,186 @@
 import 'dart:math';
-
-import 'package:thermion_dart/src/filament/src/interface/light_options.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
-  final testHelper = TestHelper("material");
+  final testHelper = TestHelper("shadows");
   await testHelper.setup();
 
-  group("shadow tests", () {
-    test('enable/disable shadows', () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.setShadowsEnabled(false);
-        await viewer.setShadowType(ShadowType.PCF);
-        var materialInstance =
-            await FilamentApp.instance!.createUbershaderMaterialInstance();
-        await materialInstance.setCullingMode(CullingMode.NONE);
-        await materialInstance.setParameterFloat4(
-            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
-        await viewer.addDirectLight(DirectLight.sun(
+  test('toggle cast/receive shadows', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setBackgroundColor(kRed)
+        .setPostProcessing(true)
+        .setRenderTargetEnabled(true)
+        .setShadowsEnabled(true)
+        .addSun(
             intensity: 50000,
             castShadows: true,
-            direction: Vector3(1, -0.5, 0).normalized()));
+            direction: Vector3(1, -0.5, 0).normalized())
+        .addPlane(receiveShadows: true, createUbershader: true)
+        .addCube(castShadows: true, createUbershader: true);
 
-        final plane = await viewer.createGeometry(
-            GeometryHelper.plane(
-                normals: true, uvs: true, width: 10, height: 10),
-            materialInstances: [materialInstance]);
-        // await plane.setTransform(Matrix4.rotationX(pi));
-        // await viewer.addToScene(plane);
-        expect(await plane.isCastShadowsEnabled(), true);
-        expect(await plane.isReceiveShadowsEnabled(), true);
-        final cube = await viewer.createGeometry(
-            GeometryHelper.cube(
-              normals: true,
-              uvs: true,
-            ),
-            materialInstances: [materialInstance]);
-        await viewer.setShadowsEnabled(true);
+    await builder.execute((result) async {
+      final plane = result.assets[0];
+      final cube = result.assets[1];
 
-        await testHelper.capture(viewer.view, "shadows_enabled");
+      expect(await plane.isReceiveShadowsEnabled(), true);
+      expect(await cube.isCastShadowsEnabled(), true);
 
-        await viewer.setShadowsEnabled(false);
+      await testHelper.capture(result.viewer.view, "cast_and_receive_shadows");
 
-        await testHelper.capture(viewer.view, "shadows_disabled");
-      }, bg: kRed, createRenderTarget: true, postProcessing: true);
+      await plane.setReceiveShadows(false);
+      expect(await plane.isReceiveShadowsEnabled(), false);
+      await testHelper.capture(result.viewer.view, "cast_noreceive_shadows");
+
+      await plane.setReceiveShadows(true);
+      await cube.setCastShadows(false);
+      expect(await plane.isReceiveShadowsEnabled(), true);
+      expect(await cube.isCastShadowsEnabled(), false);
+      await testHelper.capture(result.viewer.view, "nocast_receive_shadows");
     });
+  });
 
-    test('enable/disable cast shadows', () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.setPostProcessing(true);
-        await viewer.setShadowsEnabled(true);
-        await viewer.setShadowType(ShadowType.PCF);
-        var materialInstance =
-            await FilamentApp.instance!.createUbershaderMaterialInstance();
-        await materialInstance.setCullingMode(CullingMode.NONE);
-
-        await materialInstance.setParameterFloat4(
-            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
-        await viewer.addDirectLight(DirectLight.sun(
-            intensity: 50000,
+  test(
+      'setShadowsEnabled with circular camera movement and changing sun direction',
+      () async {
+    await ViewerBuilder(testHelper)
+        .setBackgroundColor(kRed)
+        .setPostProcessing(true)
+        .setRenderTargetEnabled(false)
+        .setShadowType(ShadowType.PCF)
+        .addSun(
+            intensity: 100000,
             castShadows: true,
-            direction: Vector3(1, -0.5, 0).normalized()));
+            direction: Vector3(1, -0.5, 0).normalized())
+        .addCube(castShadows: true)
+        .addPlane(
+            receiveShadows: true, castShadows: true, createUbershader: true)
+        .execute((result) async {
+      final plane = result.assets[1]; // The plane is the first asset
+      final camera = await result.viewer.getActiveCamera();
 
-        final plane = await viewer.createGeometry(
-            GeometryHelper.plane(
-                normals: true, uvs: true, width: 10, height: 10),
-            materialInstances: [materialInstance]);
+      expect(await plane.isCastShadowsEnabled(), true);
+      expect(await plane.isReceiveShadowsEnabled(), true);
 
-        final cube = await viewer.createGeometry(
-            GeometryHelper.cube(
-              normals: true,
-              uvs: true,
-            ),
-            materialInstances: [materialInstance]);
+      await result.viewer.setShadowsEnabled(true);
 
-        expect(await cube.isCastShadowsEnabled(), true);
-        await testHelper.capture(viewer.view, "cast_shadows_enabled");
+      // Move camera in 8 positions around a circle
+      final int numPositions = 8;
 
-        await cube.setCastShadows(false);
-        expect(await cube.isCastShadowsEnabled(), false);
-        await testHelper.capture(viewer.view, "cast_shadows_disabled");
-      }, bg: kRed, createRenderTarget: true, postProcessing: true);
+      for (int i = 0; i < numPositions; i++) {
+        final double angle = (i * 2 * pi) / numPositions;
+
+        // Change sun direction based on camera position
+        // Sun will rotate around the scene, always pointing towards the center from a slightly elevated angle
+        final double sunAngle = angle + pi; // Sun opposite to camera position
+        final double sunX = sin(sunAngle) * 0.7;
+        final double sunY = -0.5; // Sun pointing downward
+        final double sunZ = cos(sunAngle) * 0.7;
+        final Vector3 sunDirection = Vector3(sunX, sunY, sunZ).normalized();
+
+        // Update sun direction
+        await result.viewer.setLightDirection(result.sun!, sunDirection);
+
+        // Capture the view from this position
+        await testHelper.capture(
+            result.viewer.view, "shadows_circular_sun_pos_$i");
+      }
     });
+  });
 
-    test('enable/disable receive shadows', () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.setPostProcessing(true);
-        await viewer.setShadowsEnabled(true);
-        await viewer.setShadowType(ShadowType.PCF);
-        var materialInstance =
-            await FilamentApp.instance!.createUbershaderMaterialInstance();
-        await materialInstance.setParameterFloat4(
-            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
-        await materialInstance.setCullingMode(CullingMode.NONE);
-
-        await viewer.addDirectLight(DirectLight.sun(
-            intensity: 50000,
+  test('set shadow type', () async {
+    // Create a builder with shadow setup and include render target
+    final builder = ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .addSun(
+            intensity: 100000,
             castShadows: true,
-            direction: Vector3(1, -0.5, 0).normalized()));
+            direction: Vector3(1, -1, 0).normalized())
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addCube(color: kRed, castShadows: true)
+        .addPlane(receiveShadows: true)
+        .setShadowsEnabled(true);
 
-        final plane = await viewer.createGeometry(
-            GeometryHelper.plane(
-                normals: true, uvs: true, width: 10, height: 10),
-            materialInstances: [materialInstance]);
+    await builder.execute((result) async {
+      await testHelper.capture(result.viewer.view, "shadow_type_default");
 
-        final cube = await viewer.createGeometry(
-            GeometryHelper.cube(
-              normals: true,
-              uvs: true,
-            ),
-            materialInstances: [materialInstance]);
+      // Test different shadow types and capture each
+      await result.viewer.view.setShadowType(ShadowType.PCF);
+      await testHelper.capture(result.viewer.view, "shadow_type_pcf");
 
-        expect(await plane.isReceiveShadowsEnabled(), true);
-        await testHelper.capture(viewer.view, "receive_shadows_enabled");
+      await result.viewer.view.setShadowType(ShadowType.VSM);
+      await testHelper.capture(result.viewer.view, "shadow_type_vsm");
 
-        await plane.setReceiveShadows(false);
-        expect(await plane.isReceiveShadowsEnabled(), false);
-        await testHelper.capture(viewer.view, "receive_shadows_disabled");
-      }, bg: kRed, createRenderTarget: true, postProcessing: true);
+      await result.viewer.view.setShadowType(ShadowType.DPCF);
+      await testHelper.capture(result.viewer.view, "shadow_type_dpcf");
+
+      await result.viewer.view.setShadowType(ShadowType.PCSS);
+      await testHelper.capture(result.viewer.view, "shadow_type_pcss");
+    });
+  });
+
+  test('set soft shadow options', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .setShadowsEnabled(true)
+        .setShadowType(ShadowType.PCSS)
+        .addSun(
+            intensity: 100000,
+            castShadows: true,
+            direction: Vector3(-0.5, -1, -0.5).normalized())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            receiveShadows: true,
+            castShadows: false,
+            color: null // Use default ubershader material
+            );
+
+    await builder.execute((result) async {
+      // Test different soft shadow options and capture each
+      await result.viewer.view.setSoftShadowOptions(
+          SoftShadowOptions(penumbraScale: 0.1, penumbraRatioScale: 0.1));
+      await testHelper.capture(result.viewer.view, "soft_shadow_options_0.1");
+
+      await result.viewer.view.setSoftShadowOptions(
+          SoftShadowOptions(penumbraScale: 0.5, penumbraRatioScale: 0.5));
+      await testHelper.capture(result.viewer.view, "soft_shadow_options_0.5");
+
+      await result.viewer.view.setSoftShadowOptions(
+          SoftShadowOptions(penumbraScale: 1, penumbraRatioScale: 1));
+      await testHelper.capture(result.viewer.view, "soft_shadow_options_1.0");
+    });
+  });
+
+  test('set front face winding inverted', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
+        .addSun(
+            intensity: 100000,
+            castShadows: true,
+            direction: Vector3(-0.5, -1, -0.5).normalized())
+        .addCube()
+        .addPlane(
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            receiveShadows: true,
+            castShadows: false,
+            color: null // Use default ubershader material
+            );
+
+    await builder.execute((result) async {
+      // Capture with normal winding
+      await result.viewer.view.setFrontFaceWindingInverted(false);
+      await testHelper.capture(result.viewer.view, "front_face_winding_normal");
+
+      // Capture with inverted winding (should show inside-out)
+      await result.viewer.view.setFrontFaceWindingInverted(true);
+      await testHelper.capture(
+          result.viewer.view, "front_face_winding_inverted");
     });
   });
 }

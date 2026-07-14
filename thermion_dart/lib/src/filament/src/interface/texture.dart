@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// Defines the type of sampler to use with a texture
@@ -311,7 +312,7 @@ abstract class TextureSampler {
 }
 
 /// Defines a texture object
-abstract class Texture {
+abstract class Texture<T> extends NativeHandle {
   /// Returns the width of the texture at the specified mipmap level
   Future<int> getWidth([int level = 0]);
 
@@ -351,8 +352,12 @@ abstract class Texture {
   /// Generates mipmaps automatically for the texture
   Future generateMipmaps();
 
-  /// Disposes the texture resources
+  // Destroys this texture.
+  @Deprecated("Call destroy() instead")
   Future dispose();
+
+  // Destroys this texture.
+  Future destroy();
 }
 
 /// Pixel data format enum, representing different channel combinations

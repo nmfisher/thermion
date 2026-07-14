@@ -6,7 +6,8 @@
 extern "C" {
 #endif
 
-void Thermion_resizeCanvas(int width, int height);
+void Thermion_setCanvasElementSize(const char *name, int width, int height);
+void Thermion_destroyCanvas();
 EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext();
 EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_getGLContext();
 

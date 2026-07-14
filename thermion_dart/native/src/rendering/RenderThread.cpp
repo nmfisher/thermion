@@ -1,4 +1,5 @@
 #include "rendering/RenderThread.hpp"
+#include "rendering/RenderManager.hpp"
 
 #include <functional>
 #include <stdlib.h>
@@ -20,31 +21,22 @@ namespace thermion {
 #include "ThermionWebApi.h"
 
 std::chrono::high_resolution_clock::time_point loopStart;
+std::chrono::high_resolution_clock::time_point loopExitTime;
+bool loopExitTimeValid = false;
 
 static void mainLoop(void* arg) {
     auto *rt = static_cast<RenderThread *>(arg);
-  
-    auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto timeSinceLastLoopStart = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - loopStart).count();
-
-    loopStart = startTime;
-    rt->mRestart = false;
-    rt->mRendered = false;
-    long long elapsed = 0;
-    int numIters = 0;
-    while (!rt->mStop && !rt->mRestart && elapsed < 12) {
-        rt->iter();
-        numIters++;
-        auto now = std::chrono::high_resolution_clock::now();
-        elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
-    } 
-
-    if(rt->mStop) {
-        Log("RenderThread stopped")
-        emscripten_set_main_loop_arg(nullptr, nullptr, 0, true);
+    // If the render thread has been asked to stop, break the loop and exit immediately.
+    if (rt->mStop) {
+        emscripten_cancel_main_loop();
+        loopExitTime = std::chrono::high_resolution_clock::now();
+        loopExitTimeValid = true;
+        return;
     }
 
+    rt->iter();
+    loopExitTime = std::chrono::high_resolution_clock::now();
+    loopExitTimeValid = true;
 }
 
 static void *startHelper(void * parm) {
@@ -64,7 +56,9 @@ void RenderThread::restart() {
 RenderThread::RenderThread()
 {
     srand(time(NULL));
+    _lastFrameTime = std::chrono::high_resolution_clock::now();
     #ifdef __EMSCRIPTEN__
+    Log("Starting RenderThread")
     outer = pthread_self();
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -74,7 +68,6 @@ RenderThread::RenderThread()
     t = new std::thread([this]() { 
         while (!mStop) {
             iter();
-            mRendered = false;
         }
     });
     #endif
@@ -84,7 +77,7 @@ RenderThread::RenderThread()
 
 RenderThread::~RenderThread()
 {
-    Log("Destroying RenderThread (%d tasks remaining)", _tasks.size());
+    TRACE("Destroying RenderThread (%lu tasks remaining)", _tasks.size());
     mStop = true;
     _cv.notify_one();
     TRACE("Joining RenderThread thread..");    
@@ -95,8 +88,10 @@ RenderThread::~RenderThread()
         _tasks.pop_front();
         task();
     }
+
     #ifdef __EMSCRIPTEN__
-    pthread_join(t, NULL);
+    // Waiting for the main loop to exit before continuing
+    pthread_join(t, nullptr);
     #else
     t->join();
     delete t;
@@ -105,47 +100,36 @@ RenderThread::~RenderThread()
     TRACE("RenderThread destructor complete");    
 }
 
-void RenderThread::requestFrame()
-{
-    if(mRendered) {
-        return;
-    }
-    if(mRender) {
-        TRACE("Warning - frame requested before previous frame has completed rendering");
-    }
-    mRender = true;
-    #ifndef __EMSCRIPTEN__
-    _cv.notify_one();
-    #endif
-}
-
 void RenderThread::iter()
 {
-    if (mRender && !mRendered)
-    {
-        if(mRenderTicker->render(0)) {
-            mRender = false;
-            mRendered = true;
-        
-            // Calculate and print FPS
-            auto currentTime = std::chrono::high_resolution_clock::now();
-            float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
-            _lastFrameTime = currentTime;
+    // FPS measurement
+    auto now = std::chrono::high_resolution_clock::now();
+    float deltaTime = std::chrono::duration<float>(now - _lastFrameTime).count();
 
-            _frameCount++;
-            _accumulatedTime += deltaTime;
-
-            if (_accumulatedTime >= 1.0f) // Update FPS every second
-            {
-                _fps = _frameCount / _accumulatedTime;
-                _frameCount = 0;
-                _accumulatedTime = 0.0f;
-            }
-        }
-    }
-    
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
+#ifdef __EMSCRIPTEN__
+    // On Emscripten, drain all queued tasks then yield to browser.
+    while (!_tasks.empty())
+    {
+        auto task = std::move(_tasks.front());
+        _tasks.pop_front();
+        taskLock.unlock();
+        task();
+        taskLock.lock();
+    }
+    taskLock.unlock();
+
+    // Render at most one swapchain per rAF so Filament's WebGL backend can
+    // commit the frame between iterations. When no render has been requested,
+    // tick() is a cheap flag-check and returns immediately.
+    if (mRenderManager) {
+        auto frameTimeInNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    now.time_since_epoch()).count();
+        mRenderManager->tick(frameTimeInNanos);
+    }
+#else
+    // On native, process one task then wait for more
     if (!_tasks.empty())
     {
         auto task = std::move(_tasks.front());
@@ -154,12 +138,9 @@ void RenderThread::iter()
         task();
         taskLock.lock();
     }
-    #ifndef __EMSCRIPTEN__
     _cv.wait_for(taskLock, std::chrono::microseconds(2000), [this]
                 { return !_tasks.empty() || mStop; });
-    #endif
-
+#endif
 }
-
 
 } // namespace thermion

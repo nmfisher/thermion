@@ -5,6 +5,9 @@
 #include <future>
 #include <iostream>
 
+#include <backend/Platform.h>
+#include <backend/platforms/PlatformWebGL.h>
+
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -21,8 +24,24 @@ using emscripten::val;
 extern "C"
 {
 
-  EMSCRIPTEN_KEEPALIVE void Thermion_resizeCanvas(int width, int height) {
-    emscripten_set_canvas_element_size("#thermion_canvas", width, height);
+  EMSCRIPTEN_KEEPALIVE void Thermion_setCanvasElementSize(const char *elementName, int width, int height) {
+    if(emscripten_set_canvas_element_size(elementName, width, height) == EM_TRUE) {
+      std::cerr << "Set canvas " << elementName << " to size " << width << "x" << height << std::endl;
+    } else {
+      std::cerr << "Failed to size for canvas " << elementName << std::endl;
+    }
+    
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Thermion_destroyCanvas() {
+    val document = val::global("document");
+    val canvas = document.call<val>("querySelector", val("#thermion_canvas"));
+    if (!canvas.isNull() && !canvas.isUndefined()) {
+      canvas.call<void>("remove");
+      std::cout << "Removed #thermion_canvas element" << std::endl;
+    } else {
+      std::cout << "#thermion_canvas element not found" << std::endl;
+    }
   }
 
   static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _context;
@@ -42,7 +61,7 @@ extern "C"
     attr.depth = EM_TRUE;  
     attr.stencil = EM_TRUE; 
     attr.antialias = EM_FALSE; 
-    attr.explicitSwapControl = EM_FALSE; 
+    attr.explicitSwapControl = EM_TRUE; 
     attr.preserveDrawingBuffer = EM_FALSE; 
     attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_DISALLOW; 
     attr.enableExtensionsByDefault = EM_TRUE;
@@ -74,55 +93,4 @@ extern "C"
     return _context;
   }
 
-  emscripten::val emscripten_make_uint8_buffer(int ptr, int length) {
-    uint8_t *buffer = (uint8_t*)ptr;
-    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    return v;
-  }
-
-  emscripten::val emscripten_make_int16_buffer(int ptr, int length) {
-    int16_t *buffer = (int16_t*)ptr;
-    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    return v;
-  }
-
-  emscripten::val emscripten_make_uint16_buffer(int ptr, int length) {
-    uint16_t *buffer = (uint16_t*)ptr;
-    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    return v;
-  }
-
-  emscripten::val emscripten_make_int32_buffer(int ptr, int length) {
-    int32_t *buffer = (int32_t*)ptr;
-    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    return v;
-  }
-
-  emscripten::val emscripten_make_f32_buffer(int ptr, int length) {
-    float *buffer = (float*)ptr;
-    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    return v;
-  }
-
-  emscripten::val emscripten_make_f64_buffer(int ptr, int length) {
-    double *buffer = (double*)ptr;
-    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
-    return v;
-  }
-
-
-  intptr_t emscripten_get_byte_offset(emscripten::val v) {
-    return v["byteOffset"].as<int>();
-  }
-
-EMSCRIPTEN_BINDINGS(module) {
-  emscripten::function("_emscripten_make_uint8_buffer", &emscripten_make_uint8_buffer, emscripten::allow_raw_pointers());
-  emscripten::function("_emscripten_make_uint16_buffer", &emscripten_make_uint16_buffer, emscripten::allow_raw_pointers());
-  emscripten::function("_emscripten_make_int16_buffer", &emscripten_make_int16_buffer, emscripten::allow_raw_pointers());
-  emscripten::function("_emscripten_make_int32_buffer", &emscripten_make_int32_buffer, emscripten::allow_raw_pointers());
-  emscripten::function("_emscripten_make_f32_buffer", &emscripten_make_f32_buffer, emscripten::allow_raw_pointers());
-  emscripten::function("_emscripten_make_f64_buffer", &emscripten_make_f64_buffer, emscripten::allow_raw_pointers());
-  emscripten::function("_emscripten_get_byte_offset", &emscripten_get_byte_offset, emscripten::allow_raw_pointers());
-}
-  
 }

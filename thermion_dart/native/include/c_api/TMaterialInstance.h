@@ -54,7 +54,7 @@ extern "C"
 	};
 	typedef enum TCullingMode TCullingMode;
 
-	enum TTransparencyMode { 
+	enum TTransparencyMode {
 		//! the transparent object is drawn honoring the raster state
 		DEFAULT,
 		/**
@@ -72,17 +72,33 @@ extern "C"
 	};
 	typedef enum TTransparencyMode TTransparencyMode;
 
+	enum TBlendingMode {
+		BLENDING_MODE_OPAQUE = 0,
+		BLENDING_MODE_TRANSPARENT,
+		BLENDING_MODE_ADD,
+		BLENDING_MODE_MASKED,
+		BLENDING_MODE_FADE,
+		BLENDING_MODE_MULTIPLY,
+		BLENDING_MODE_SCREEN,
+		BLENDING_MODE_CUSTOM
+	};
+	typedef enum TBlendingMode TBlendingMode;
+
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial);
 	EMSCRIPTEN_KEEPALIVE TFeatureLevel Material_getFeatureLevel(TMaterial *tMaterial);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine);
-	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createOutlineMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine);
+	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine);
 	EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName);
 	EMSCRIPTEN_KEEPALIVE bool MaterialInstance_isStencilWriteEnabled(TMaterialInstance *materialInstance);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilWrite(TMaterialInstance *materialInstance, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setCullingMode(TMaterialInstance *materialInstance, TCullingMode culling);
-
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDoubleSided(TMaterialInstance *materialInstance, bool doubleSided);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance *materialInstance, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance *materialInstance, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *materialInstance, const char *propertyName, double value);
@@ -90,6 +106,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat3(TMaterialInstance *materialInstance, const char *propertyName, double x, double y, double z);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat3Array(TMaterialInstance *tMaterialInstance, const char *propertyName, double *raw, uint32_t length);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance *materialInstance, const char *propertyName, double x, double y, double w, double z);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterMat3(TMaterialInstance *materialInstance, const char *propertyName, double *matrix);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterMat4(TMaterialInstance *materialInstance, const char *propertyName, double *matrix);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *materialInstance, const char *propertyName, int value);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterBool(TMaterialInstance *materialInstance, const char *propertyName, bool value);
@@ -133,6 +150,10 @@ extern "C"
             TMaterialInstance *materialInstance,
             TTransparencyMode transparencyMode);
 
+	EMSCRIPTEN_KEEPALIVE TTransparencyMode MaterialInstance_getTransparencyMode(
+            TMaterialInstance *materialInstance);
+
+	EMSCRIPTEN_KEEPALIVE TBlendingMode Material_getBlendingMode(TMaterial *material);
 
 #ifdef __cplusplus
 }

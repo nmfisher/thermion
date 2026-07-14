@@ -15,8 +15,28 @@ Uint8List makeUint8List(int length) {
   return Uint8List(length);
 }
 
+Uint32List makeUint32List(int length) {
+  return Uint32List(length);
+}
+
+Int16List makeInt16List(int length) {
+  return Int16List(length);
+}
+
+Uint16List makeUint16List(int length) {
+  return Uint16List(length);
+}
+
 Int32List makeInt32List(int length) {
   return Int32List(length);
+}
+
+Float32List makeFloat32List(int length) {
+  return Float32List(length);
+}
+
+IntPtrList makeIntPtrList(int length) {
+  return IntPtrList(length);
 }
 
 class NativeLibrary {
@@ -29,6 +49,7 @@ typedef IntPtrList = Int64List;
 typedef Float64 = Double;
 typedef PointerClass<T extends NativeType> = Pointer<T>;
 typedef VoidPointerClass = Pointer<Void>;
+typedef StructAllocator = Struct;
 
 class CallbackHolder<T extends Function> {
   final NativeCallable<T> nativeCallable;
@@ -111,8 +132,24 @@ Future<void> withVoidCallback(
   final completer = Completer();
   _requests[requestId] = completer;
 
-  _voidCallbackNativeCallable =
-      NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
+  // Use the module-scoped `_voidCallbackNativeCallable` initialised at
+  // file load. Do NOT reassign it per call: every reassignment orphans
+  // the previous NativeCallable, which native code may still hold a
+  // pointer to. When Dart GC sweeps the orphan, its trampoline
+  // metadata is freed; the next invocation from the native side
+  // calls a removed trampoline, hits the
+  // `DLRT_GetFfiCallbackMetadata` release-assert, and the VM aborts.
+  // On Windows multi-viewer (8 viewers × ~60 fps × multiple FFI
+  // awaits per frame), churn is high enough that GC reliably sweeps
+  // a stale entry within ~20 seconds and the embedder dies — observed
+  // as "Not Responding" on the main window. The single global
+  // listener's handler (`_voidCallbackHandler`) is stateless; it
+  // dispatches by `requestId` through `_requests`, so one trampoline
+  // is sufficient and correct.
+  //
+  // Upstream introduced the reassignment in 760ae8ed8 as a drive-by
+  // change inside an unrelated commit ("add makeInt32List method").
+  // To file upstream once verified.
   func.call(requestId, _voidCallbackNativeCallable.nativeFunction.cast());
 
   await completer.future;
@@ -226,6 +263,32 @@ extension Float32ListExtension on Float32List {
   }
 }
 
-void resizeWebCanvas(int width, int height) {
-  throw UnsupportedError("Not supported on non-web platforms");
+extension Int16ListExtension on Int32List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension Int32ListExtension on Int32List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension UInt16ListExtension on Uint16List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension Uint32ListExtension on Uint32List {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
+}
+
+extension TypedDataListExtension on TypedData {
+  Uint8List asUint8List() {
+    return this.buffer.asUint8List(this.offsetInBytes);
+  }
 }

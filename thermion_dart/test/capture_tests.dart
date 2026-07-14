@@ -12,8 +12,12 @@ void main() async {
 
   test("capture with RGBA byte", () async {
     await testHelper.withViewer((viewer) async {
-      await testHelper.capture(viewer.view, "capture_rgba_float", pixelDataFormat: PixelDataFormat.RGBA, pixelDataType: PixelDataType.FLOAT);
-      await testHelper.capture(viewer.view, "capture_rgba_byte", pixelDataFormat: PixelDataFormat.RGBA, pixelDataType: PixelDataType.UBYTE);
+      await testHelper.capture(viewer.view, "capture_rgba_float",
+          pixelDataFormat: PixelDataFormat.RGBA,
+          pixelDataType: PixelDataType.FLOAT);
+      await testHelper.capture(viewer.view, "capture_rgba_byte",
+          pixelDataFormat: PixelDataFormat.RGBA,
+          pixelDataType: PixelDataType.UBYTE);
     }, bg: kRed);
   });
 }

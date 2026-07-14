@@ -1,0 +1,24 @@
+material {
+    name : ViewSpace,
+    parameters : [
+        {
+            type : float4,
+            name : baseColorFactor,
+            precision : low
+        }
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending : opaque,
+    variantFilter : [ skinning, shadowReceiver, vsm ],
+    culling : none,
+    vertexDomain : view
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = materialParams.baseColorFactor;
+    }
+}

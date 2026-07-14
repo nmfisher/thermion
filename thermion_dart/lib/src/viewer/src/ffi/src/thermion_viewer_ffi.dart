@@ -1,53 +1,45 @@
 import 'dart:async';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_textured_quad.dart';
+import 'dart:math' show pi;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
-import '../../../../filament/src/implementation/ffi_asset.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
-import '../../../../filament/src/implementation/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import '../../../../filament/src/implementation/grid_overlay.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:logging/logging.dart';
 
 import '../../../../filament/src/implementation/ffi_camera.dart';
-import '../../../../filament/src/implementation/ffi_view.dart';
+import '../../../../filament/src/interface/defaults.dart';
 
 const FILAMENT_ASSET_ERROR = 0;
 
-///
-///
-///
+//
+//
+//
 class ThermionViewerFFI extends ThermionViewer {
   late final _logger = Logger(runtimeType.toString());
 
   final _initialized = Completer<bool>();
   Future<bool> get initialized => _initialized.future;
 
-  late final FFIFilamentApp app;
+  late final View view;
+  late final Scene scene;
 
-  late final FFIView view;
-  late final FFIScene scene;
-  late final Pointer<TAnimationManager> animationManager;
+  final bool _createOverlay;
 
-  ///
-  ///
-  ///
-  ThermionViewerFFI() {
+  //
+  ThermionViewerFFI({bool createOverlay = false})
+      : _createOverlay = createOverlay {
     if (FilamentApp.instance == null) {
       throw Exception("FilamentApp has not been created");
     }
-    app = FilamentApp.instance as FFIFilamentApp;
-
     _initialize();
   }
 
-  ///
-  ///
-  ///
+  //
   Future setViewport(int width, int height) async {
     await view.setViewport(width.toInt(), height.toInt());
 
@@ -76,61 +68,58 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future _initialize() async {
-    view = await FilamentApp.instance!.createView() as FFIView;
+    view = await FilamentApp.instance!.createView(createScene: true);
 
-    await view.setRenderable(true);
-
+    await view.setName("main_view");
     await FilamentApp.instance!.setClearOptions(0.0, 0.0, 0.0, 0.0);
-    scene = await FilamentApp.instance!.createScene() as FFIScene;
+    scene = await view.getScene();
 
     await view.setScene(scene);
-    final camera = await FilamentApp.instance!.createCamera() as FFICamera;
+    final camera = await FilamentApp.instance!.createCamera();
 
     _cameras.add(camera);
     await camera.setLensProjection();
 
     await view.setCamera(camera);
 
-    animationManager = await withPointerCallback<TAnimationManager>(
-      (cb) => AnimationManager_createRenderThread(app.engine, scene.scene, cb),
-    );
-
-    RenderTicker_addAnimationManager(app.renderTicker, animationManager);
+    if (_createOverlay) {
+      await view.setHighlightOverlayEnabled(true);
+    }
 
     this._initialized.complete(true);
   }
 
   bool _rendering = false;
 
-  ///
-  ///
-  ///
+  //
   @override
   bool get rendering => _rendering;
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setRendering(bool render) async {
     _rendering = render;
-    await view.setRenderable(render);
+    final rm = FilamentApp.instance!.renderManager;
+
+    final swapChains = await FilamentApp.instance!.getSwapChains();
+
+    if (render) {
+      await rm.attach(view, swapChains.first);
+    } else {
+      await rm.detach(view);
+    }
   }
 
-  ///
-  ///
-  ///
-  @override
-  Future render() async {
-    final swapChains =
-        await (FilamentApp.instance as FFIFilamentApp).getSwapChains();
+  //
+  Future renderSingleFrame() async {
+    final swapChains = await FilamentApp.instance!.getSwapChains();
     if (swapChains.isEmpty) {
       throw Exception("No swapchain available");
     }
     for (final swapChain in swapChains) {
       await withBoolCallback(
         (cb) => Renderer_beginFrameRenderThread(
-          app.renderer,
+          FilamentApp.instance!.renderer,
           swapChain.getNativeHandle(),
           0.toBigInt,
           cb,
@@ -138,12 +127,15 @@ class ThermionViewerFFI extends ThermionViewer {
       );
 
       await withVoidCallback(
-        (requestId, cb) =>
-            Renderer_renderRenderThread(app.renderer, view.view, requestId, cb),
+        (requestId, cb) => Renderer_renderRenderThread(
+            FilamentApp.instance!.renderer,
+            view.getNativeHandle(),
+            requestId,
+            cb),
       );
       await withVoidCallback(
-        (requestId, cb) =>
-            Renderer_endFrameRenderThread(app.renderer, requestId, cb),
+        (requestId, cb) => Renderer_endFrameRenderThread(
+            FilamentApp.instance!.renderer, requestId, cb),
       );
       await FilamentApp.instance!.flush();
     }
@@ -151,16 +143,12 @@ class ThermionViewerFFI extends ThermionViewer {
 
   double _msPerFrame = 1000.0 / 60.0;
 
-  ///
-  ///
-  ///
+  //
   double get msPerFrame {
     return _msPerFrame;
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setFrameRate(int framerate) async {
     _msPerFrame = 1000.0 / framerate;
@@ -169,16 +157,13 @@ class ThermionViewerFFI extends ThermionViewer {
   final _onDispose = <Future Function()>[];
   bool _disposed = false;
 
-  ///
-  ///
-  ///
+  //
   @override
   Future dispose() async {
     _disposed = true;
     await setRendering(false);
 
-    await _backgroundImage?.destroy();
-    _backgroundImage = null;
+    await clearBackgroundImage(destroy: true);
 
     await destroyAssets();
     await destroyLights();
@@ -186,7 +171,7 @@ class ThermionViewerFFI extends ThermionViewer {
     for (final callback in _onDispose) {
       await callback.call();
     }
-    View_setScene(view.view, nullptr);
+    View_setScene(view.getNativeHandle(), nullptr);
 
     await FilamentApp.instance!.destroyScene(scene);
     await FilamentApp.instance!.destroyView(view);
@@ -194,32 +179,29 @@ class ThermionViewerFFI extends ThermionViewer {
     _onDispose.clear();
   }
 
-  ///
-  ///
-  ///
+  //
   void onDispose(Future Function() callback) {
     _onDispose.add(callback);
   }
 
   TexturedQuad? _backgroundImage;
 
-  ///
-  ///
-  ///
+  //
   @override
   Future clearBackgroundImage({bool destroy = false}) async {
+    if (_backgroundImage == null) {
+      return;
+    }
     if (destroy) {
       await scene.remove(_backgroundImage!);
-      await _backgroundImage?.destroy();
+      await _backgroundImage!.destroy();
       _backgroundImage = null;
     } else {
-      _backgroundImage?.hideImage();
+      _backgroundImage!.hideImage();
     }
   }
 
-  ///
-  ///
-  ///
+  //
   Future<TexturedQuad> getBackgroundImage() async {
     if (_backgroundImage == null) {
       _backgroundImage ??= await FilamentApp.instance!.createTexturedQuad();
@@ -228,17 +210,13 @@ class ThermionViewerFFI extends ThermionViewer {
     return _backgroundImage!;
   }
 
-  ///
-  ///
-  ///
+  //
   Future setBackgroundImageFromTexture(Texture texture) async {
     var backgroundImage = await getBackgroundImage();
     await backgroundImage.setImageFromTexture(texture);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await FilamentApp.instance!.loadResource(path);
@@ -254,9 +232,7 @@ class ThermionViewerFFI extends ThermionViewer {
     return (_backgroundImage!.width!, _backgroundImage!.height!);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setBackgroundColor(double r, double g, double b, double a) async {
     await removeSkybox();
@@ -265,9 +241,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await _skybox!.setColor(r, g, b, a);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setBackgroundImagePosition(
     double x,
@@ -281,9 +255,7 @@ class ThermionViewerFFI extends ThermionViewer {
   FFITexture? _skyboxTexture;
   FFISkybox? _skybox;
 
-  ///
-  ///
-  ///
+  //
   @override
   Future loadSkybox(String skyboxPath) async {
     await removeSkybox();
@@ -314,9 +286,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future? _iblTextureUploadComplete;
 
-  ///
-  ///
-  ///
+  //
   @override
   Future loadIbl(String lightingPath,
       {double intensity = 30000, bool destroyExisting = true}) async {
@@ -364,9 +334,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await completer.future;
   }
 
-  ///
-  ///
-  ///
+  //
   Future loadIblFromTexture(Texture texture,
       {Texture? reflectionsTexture = null,
       double intensity = 30000,
@@ -379,9 +347,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await scene.setIndirectLight(ibl);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future rotateIbl(Matrix3 rotationMatrix) async {
     var ibl = await scene.getIndirectLight();
@@ -390,9 +356,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future removeSkybox() async {
     if (_disposed) {
@@ -410,9 +374,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _skyboxTexture = null;
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future removeIbl({bool destroy = true}) async {
     var ibl = await scene.getIndirectLight();
@@ -429,9 +391,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   final _lights = <ThermionEntity>{};
 
-  ///
-  ///
-  ///
+  //
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
     var light = await FilamentApp.instance!.createDirectLight(directLight);
@@ -443,19 +403,15 @@ class ThermionViewerFFI extends ThermionViewer {
     return light;
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future removeLight(ThermionEntity entity) async {
-    Scene_removeEntity(scene.scene, entity);
-    LightManager_destroyLight(app.lightManager, entity);
+    await scene.removeEntity(entity);
+    FilamentApp.instance!.lightManager.destroyLight(entity);
     _lights.remove(entity);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future destroyLights() async {
     for (final light in _lights.toList()) {
@@ -463,24 +419,24 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  final _assets = <FFIAsset>{};
-  final _cameras = <FFICamera>{};
+  final _assets = <ThermionAsset>{};
+  final _cameras = <Camera>{};
 
-  ///
-  ///
-  ///
+  //
   @override
   Future<ThermionAsset> loadGltf(
     String path, {
     bool addToScene = true,
     int initialInstances = 1,
-    bool keepData = false,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
     String? resourceUri,
     bool loadAsync = false,
   }) async {
     final data = await FilamentApp.instance!.loadResource(path);
     if (resourceUri == null) {
-      var split = path.split("/");
+      var normalised = path.replaceAll("\\", "/");
+      var split = normalised.split("/");
       resourceUri ??= split.take(split.length - 1).join("/");
     }
 
@@ -492,36 +448,32 @@ class ThermionViewerFFI extends ThermionViewer {
       data,
       addToScene: addToScene,
       initialInstances: initialInstances,
-      keepData: keepData,
+      releaseSourceData: releaseSourceData,
+      rebuildVertices: rebuildVertices,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future<ThermionAsset> loadGltfFromBuffer(
     Uint8List data, {
     bool addToScene = true,
     int initialInstances = 1,
-    bool keepData = false,
-    int priority = 4,
-    int layer = 0,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
     var asset = await FilamentApp.instance!.loadGltfFromBuffer(
       data,
-      animationManager,
       initialInstances: initialInstances,
-      keepData: keepData,
-      priority: priority,
-      layer: layer,
+      releaseSourceData: releaseSourceData,
+      rebuildVertices: rebuildVertices,
       loadResourcesAsync: loadResourcesAsync,
       resourceUri: resourceUri,
-    ) as FFIAsset;
+    );
 
     _assets.add(asset);
     if (addToScene) {
@@ -531,9 +483,7 @@ class ThermionViewerFFI extends ThermionViewer {
     return asset;
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future destroyAsset(ThermionAsset asset) async {
     _assets.remove(asset);
@@ -545,18 +495,16 @@ class ThermionViewerFFI extends ThermionViewer {
     await FilamentApp.instance!.destroyAsset(asset);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future destroyAssets() async {
     _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
-      _logger.info("Destroying asset ${asset.getHandle()}");
+      _logger.info("Destroying asset ${asset.getNativeHandle()}");
       await scene.remove(asset);
       await hideBoundingBox(asset, destroy: true);
 
-      for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
+      for (final instance in (await asset.getInstances())) {
         await scene.remove(instance);
         await hideBoundingBox(instance, destroy: true);
       }
@@ -566,77 +514,51 @@ class ThermionViewerFFI extends ThermionViewer {
     _assets.clear();
   }
 
-  ///
-  ///
-  ///
+  //
   @override
-  Future setToneMapping(ToneMapper mapper) async {
+  Future setToneMapper(ToneMapper mapper) async {
     await view.setToneMapper(mapper);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setPostProcessing(bool enabled) async {
-    View_setPostProcessing(view.view, enabled);
+    await view.setPostProcessing(enabled);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setShadowsEnabled(bool enabled) async {
-    View_setShadowsEnabled(view.view, enabled);
+    await view.setShadowsEnabled(enabled);
   }
 
-  ///
-  ///
-  ///
+  //
   Future setShadowType(ShadowType shadowType) async {
-    View_setShadowType(view.view, shadowType.index);
+    await view.setShadowType(shadowType);
   }
 
-  ///
-  ///
-  ///
-  Future setSoftShadowOptions(
-    double penumbraScale,
-    double penumbraRatioScale,
-  ) async {
-    View_setSoftShadowOptions(view.view, penumbraScale, penumbraRatioScale);
-  }
-
-  ///
-  ///
-  ///
+  //
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
     if (!FILAMENT_SINGLE_THREADED && IS_WINDOWS && msaa) {
       throw Exception("MSAA is not currently supported on Windows");
     }
-    View_setAntiAliasing(view.view, msaa, fxaa, taa);
+    View_setAntiAliasing(view.getNativeHandle(), msaa, fxaa, taa);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setBloom(bool enabled, double strength) async {
-    View_setBloom(view.view, enabled, strength);
+    View_setBloom(view.getNativeHandle(), enabled, strength);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setViewFrustumCulling(bool enabled) async {
     await view.setFrustumCullingEnabled(enabled);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setLightPosition(
     ThermionEntity lightEntity,
@@ -644,50 +566,35 @@ class ThermionViewerFFI extends ThermionViewer {
     double y,
     double z,
   ) async {
-    LightManager_setPosition(app.lightManager, lightEntity, x, y, z);
+    FilamentApp.instance!.lightManager.setPosition(lightEntity, x, y, z);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setLightDirection(
     ThermionEntity lightEntity,
     Vector3 direction,
   ) async {
     direction.normalize();
-    LightManager_setPosition(
-      app.lightManager,
-      lightEntity,
-      direction.x,
-      direction.y,
-      direction.z,
-    );
+    FilamentApp.instance!.lightManager
+        .setDirection(lightEntity, direction.x, direction.y, direction.z);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future setPriority(ThermionEntity entity, int priority) async {
     return FilamentApp.instance!.setPriority(entity, priority);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
+  @Deprecated(
+      "Call FilamentApp.instance!.renderableManager.getBoundingBox instead")
   Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
-    final result = RenderableManager_getAabb(app.renderableManager, entityId);
-    return v64.Aabb3.centerAndHalfExtents(
-      Vector3(result.centerX, result.centerY, result.centerZ),
-      Vector3(result.halfExtentX, result.halfExtentY, result.halfExtentZ),
-    );
+    return FilamentApp.instance!.renderableManager.getBoundingBox(entityId);
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future<v64.Aabb2> getViewportBoundingBox(ThermionEntity entityId) async {
     throw UnimplementedError();
@@ -695,11 +602,25 @@ class ThermionViewerFFI extends ThermionViewer {
 
   GridOverlay? _grid;
 
-  ///
-  ///
-  ///
-  Future setGridOverlayVisibility(bool visible) async {
-    _grid ??= await GridOverlay.create(app, animationManager);
+  //
+  Future setGridOverlayVisibility(bool visible,
+      {List<LinearColor> axisColors = kDefaultAxisColors,
+      LinearColor gridColor = kDefaultGridColor,
+      List<double> spacing = const [1.0, 10.0, 100.0],
+      List<double> fadeInStart = const [0.001, 5.0, 50.0],
+      List<double> fadeInEnd = const [0.001, 50.0, 500.0],
+      List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
+      List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0]}) async {
+    _grid ??= await GridOverlay.create(
+        axisColors: axisColors,
+        gridColor: gridColor,
+        spacing: spacing,
+        fadeInStart: fadeInStart,
+        fadeInEnd: fadeInEnd,
+        fadeOutStart: fadeOutStart,
+        fadeOutEnd: fadeOutEnd);
+
+    await _grid!.setAxisColor(axisColors);
 
     if (visible) {
       await _grid!.addToScene(scene);
@@ -710,16 +631,12 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  ///
-  ///
-  ///
+  //
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
     await view.setLayerVisibility(layer, visible);
   }
 
-  ///
-  ///
-  ///
+  //
   Future removeGridOverlay({bool destroy = false}) async {
     if (_grid != null) {
       await _grid!.removeFromScene(scene);
@@ -730,78 +647,147 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  ///
-  ///
-  ///
+  ThermionAsset? _translationAxisAsset;
+  MaterialInstance? _translationAxisMaterial;
+
+  @override
+  Future setTranslationAxisVisibility(bool visible,
+      {ThermionEntity? entity,
+      v64.Vector3? origin,
+      Axis? axis,
+      double lineWidth = 5.0,
+      double lineLength = 500.0}) async {
+    if (visible) {
+      if (axis == null) {
+        throw ArgumentError('axis is required when visible is true');
+      }
+      if (entity == null && origin == null) {
+        throw ArgumentError(
+            'either entity or origin must be provided when visible is true');
+      }
+
+      // Get world position from entity if provided
+      v64.Vector3 worldPosition;
+      if (origin != null) {
+        worldPosition = origin;
+      } else {
+        final worldTransform =
+            await FilamentApp.instance!.getWorldTransform(entity!);
+        worldPosition = worldTransform.getTranslation();
+        await FilamentApp.instance!.setPriority(entity, 0);
+      }
+
+      // Remove existing if any
+      await _removeTranslationAxis();
+
+      // Create material
+      final axisInt = switch (axis) {
+        Axis.X => 0,
+        Axis.Y => 1,
+        Axis.Z => 2,
+      };
+
+      // Material origin should be (0,0,0) in object space since we position via
+      // transform
+      _translationAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
+        originX: 0.0,
+        originY: 0.0,
+        originZ: 0.0,
+        axis: axisInt,
+        lineWidth: lineWidth,
+        lineLength: lineLength,
+      );
+
+      // Create plane geometry (without material first, then apply)
+      _translationAxisAsset = await createGeometry(
+        GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2),
+      );
+      await _translationAxisAsset!
+          .setMaterialInstanceAt(_translationAxisMaterial!);
+
+      // Position at world position, with rotation for Y axis
+      v64.Matrix4 transform;
+      if (axis == Axis.Y) {
+        // Rotate plane 90° around X axis to make it vertical (XY plane)
+        final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
+        transform =
+            v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
+      } else {
+        transform = v64.Matrix4.translation(worldPosition);
+      }
+      await FilamentApp.instance!
+          .setTransform(_translationAxisAsset!.entity, transform);
+    } else {
+      await _removeTranslationAxis();
+    }
+  }
+
+  Future _removeTranslationAxis() async {
+    if (_translationAxisAsset != null) {
+      _assets.remove(_translationAxisAsset!);
+      await scene.remove(_translationAxisAsset!);
+      await FilamentApp.instance!.destroyAsset(_translationAxisAsset!);
+      _translationAxisAsset = null;
+    }
+    _translationAxisMaterial = null;
+  }
+
+  //
   Future<Camera> createCamera() async {
-    var cameraPtr = await withPointerCallback<TCamera>((cb) {
-      Engine_createCameraRenderThread(app.engine, cb);
-    });
-    var camera = FFICamera(cameraPtr, app);
+    var camera = await FilamentApp.instance!.createCamera();
+
     final viewport = await view.getViewport();
     var aspect = viewport.width / viewport.height;
     if (viewport.width == 0 || viewport.height == 0) {
       aspect = 1.0;
     }
     await camera.setLensProjection(aspect: aspect);
-    _cameras.add(camera);
+    _cameras.add(camera as FFICamera);
     return camera;
   }
 
-  ///
-  ///
-  ///
+  //
   Future destroyCamera(FFICamera camera) async {
     await camera.destroy();
     _cameras.remove(camera);
   }
 
-  ///
-  ///
-  ///
+  //
   Future setActiveCamera(FFICamera camera) async {
     await view.setCamera(camera);
   }
 
-  ///
-  ///
-  ///
+  //
   Future<Camera> getActiveCamera() async {
     return view.getCamera();
   }
 
-  ///
-  ///
-  ///
+  //
   int getCameraCount() {
     return _cameras.length;
   }
 
-  ///
-  ///
-  ///
+  //
   Iterable<Camera> getCameras() sync* {
     for (final camera in _cameras) {
       yield camera;
     }
   }
 
-  ///
-  ///
-  ///
+  //
   @override
   Future<ThermionAsset> createGeometry(
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
-    bool keepData = false,
+    bool releaseSourceData = false,
     bool addToScene = true,
   }) async {
     final asset = await FilamentApp.instance!.createGeometry(
       geometry,
-      animationManager,
       materialInstances: materialInstances,
-      keepData: keepData,
-    ) as FFIAsset;
+      releaseSourceData: releaseSourceData,
+    );
     _assets.add(asset);
     if (addToScene) {
       await scene.add(asset);
@@ -812,31 +798,24 @@ class ThermionViewerFFI extends ThermionViewer {
 
   final _gizmos = <GizmoType, GizmoAsset>{};
 
-  ///
-  ///
-  ///
+  //
   @override
   Future<GizmoAsset> getGizmo(GizmoType gizmoType) async {
     if (_gizmos[gizmoType] == null) {
       _gizmos[gizmoType] = await FilamentApp.instance!.createGizmo(
         view,
-        animationManager,
         gizmoType,
       );
     }
     return _gizmos[gizmoType]!;
   }
 
-  ///
-  ///
-  ///
+  //
   Future addToScene(ThermionAsset asset) async {
     await scene.add(asset);
   }
 
-  ///
-  ///
-  ///
+  //
   Future removeFromScene(ThermionAsset asset) async {
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
@@ -844,9 +823,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   final _boundingBoxAssets = <ThermionAsset, Completer<ThermionAsset>>{};
 
-  ///
-  ///
-  ///
+  //
   Future showBoundingBox(ThermionAsset asset) async {
     if (_boundingBoxAssets.containsKey(asset)) {
       final bbAsset = await _boundingBoxAssets[asset]!.future;
@@ -859,15 +836,18 @@ class ThermionViewerFFI extends ThermionViewer {
 
     final boundingBox = await asset.getBoundingBox();
 
+    // Aabb3.min/max are absolute object-space corners, not offsets from
+    // center. The wireframe asset is parented to `asset` below, so these
+    // values are already in the right frame.
     final min = [
-      boundingBox.center.x + boundingBox.min.x,
-      boundingBox.center.y + boundingBox.min.y,
-      boundingBox.center.z + boundingBox.min.z
+      boundingBox.min.x,
+      boundingBox.min.y,
+      boundingBox.min.z,
     ];
     final max = [
-      boundingBox.center.x + boundingBox.max.x,
-      boundingBox.center.y + boundingBox.max.y,
-      boundingBox.center.z + boundingBox.max.z
+      boundingBox.max.x,
+      boundingBox.max.y,
+      boundingBox.max.z,
     ];
 
     // Create vertices for the bounding box wireframe
@@ -916,7 +896,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final materialInstancePtr =
         await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceRenderThread(
-          app.ubershaderMaterialProvider,
+          FilamentApp.instance!.ubershaderMaterialProvider,
           false,
           true,
           false,
@@ -958,7 +938,7 @@ class ThermionViewerFFI extends ThermionViewer {
           cb);
     });
 
-    final material = FFIMaterialInstance(materialInstancePtr, app);
+    final material = FFIMaterialInstance(materialInstancePtr);
     await material.setParameterFloat4(
         "baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
 
@@ -971,20 +951,20 @@ class ThermionViewerFFI extends ThermionViewer {
 
     final bbAsset = await FilamentApp.instance!.createGeometry(
       geometry,
-      animationManager,
       materialInstances: [material],
-      keepData: false,
-    ) as FFIAsset;
+      releaseSourceData: false,
+    );
 
     await bbAsset.setCastShadows(false);
     await bbAsset.setReceiveShadows(false);
 
-    TransformManager_setParent(Engine_getTransformManager(app.engine),
-        bbAsset.entity, asset.entity, false);
-    geometry.uvs.free();
-    geometry.normals.free();
-    geometry.vertices.free();
-    geometry.indices.free();
+    TransformManager_setParent(
+        Engine_getTransformManager(FilamentApp.instance!.engine),
+        bbAsset.entity,
+        asset.entity,
+        false);
+    geometry.dispose();
+
     completer.complete(bbAsset);
 
     await scene.add(bbAsset);

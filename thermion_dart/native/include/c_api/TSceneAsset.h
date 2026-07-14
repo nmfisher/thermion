@@ -8,28 +8,25 @@
 extern "C"
 {
 #endif
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometry(
-        TEngine *tEngine, 
-        float *vertices,
-        uint32_t numVertices,
-        float *normals,
-        uint32_t numNormals,
-        float *uvs,
-        uint32_t numUvs,
-        uint16_t *indices,
-        uint32_t numIndices,
-        enum TPrimitiveType tPrimitiveType,
+
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromBuffers(
+        TEngine *tEngine,
+        TVertexBuffer *tVertexBuffer,
+        TIndexBuffer *tIndexBuffer,
         TMaterialInstance **materialInstances,
-		int materialInstanceCount
+        int materialInstanceCount,
+        enum TPrimitiveType tPrimitiveType,
+        Aabb3 boundingBox
     );
     EMSCRIPTEN_KEEPALIVE TSceneAsset * SceneAsset_createFromFilamentAsset(
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        TFilamentAsset *tFilamentAsset    
+        TFilamentAsset *tFilamentAsset,
+        bool rebuildVertices
     );
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial * tMaterial);
+    EMSCRIPTEN_KEEPALIVE enum TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset);   
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromScene(TSceneAsset *tSceneAsset, TScene *tScene);
@@ -44,7 +41,15 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getInstanceCount(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE TSceneAsset * SceneAsset_createInstance(TSceneAsset *asset, TMaterialInstance **materialInstances, int materialInstanceCount);
     EMSCRIPTEN_KEEPALIVE Aabb3 SceneAsset_getBoundingBox(TSceneAsset *asset);
-        
+    EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex);
+    EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex);
+    EMSCRIPTEN_KEEPALIVE int SceneAsset_getPrimitiveOffsetForEntity(TSceneAsset *tSceneAsset, EntityId entity);
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_releaseSourceData(TSceneAsset *tSceneAsset);
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_setFlatShading(TSceneAsset *tSceneAsset, bool flatShading);
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_getBones(TSceneAsset *tSceneAsset, size_t skinIndex, EntityId *out);
+    EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getBoneCount(TSceneAsset *tSceneAsset, size_t skinIndex);
+    EMSCRIPTEN_KEEPALIVE const char *SceneAsset_getBoneName(TSceneAsset *tSceneAsset, size_t skinIndex, size_t boneIndex);
+
 #ifdef __cplusplus
 }
 #endif

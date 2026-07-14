@@ -1,82 +1,58 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
+import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import 'ffi_camera.dart';
 
 class FFIView extends View<Pointer<TView>> {
   late final _logger = Logger(this.runtimeType.toString());
-  int _renderOrder = 0;
-  int get renderOrder => _renderOrder;
 
   final Pointer<TView> view;
 
   Pointer<TView> getNativeHandle() => view;
 
-  final FFIFilamentApp app;
-
-  bool _renderable = false;
-  bool get renderable => _renderable;
-
   RenderTarget? renderTarget;
 
   late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
 
-  FFIView(this.view, this.app) {
+  FFIView(this.view) {
     final renderTargetPtr = View_getRenderTarget(view);
     if (renderTargetPtr != nullptr) {
-      renderTarget = FFIRenderTarget(renderTargetPtr, app);
+      renderTarget = FFIRenderTarget(renderTargetPtr);
     }
 
     _onPickResultHolder = _onPickResult.asCallback();
   }
 
-  ///
-  ///
-  ///
-  Future dispose() async {
+  Future destroy() async {
     _onPickResultHolder.dispose();
-  }
 
-  ///
-  ///
-  ///
-  Future setRenderOrder(int order) async {
-    this._renderOrder = order;
-    await FilamentApp.instance!.updateRenderOrder();
+    await withVoidCallback((requestId, cb) =>
+        View_setColorGradingRenderThread(view, nullptr, requestId, cb));
+    if (_colorGrading != null && _colorGrading != nullptr) {
+      await withVoidCallback((requestId, cb) =>
+          Engine_destroyColorGradingRenderThread(
+              FilamentApp.instance!.engine, _colorGrading!, requestId, cb));
+    }
+    await withVoidCallback((requestId, cb) => Engine_destroyViewRenderThread(
+        FilamentApp.instance!.engine, view, requestId, cb));
   }
-
-  ///
-  ///
-  ///
-  Future setRenderable(bool renderable) async {
-    this._renderable = renderable;
-    await FilamentApp.instance!.updateRenderOrder();
-  }
-
-  Timer? _overlayResize;
 
   @override
   Future setViewport(int width, int height) async {
-    View_setViewport(view, width, height);
+    await withVoidCallback((requestId, cb) =>
+        View_setViewportRenderThread(view, width, height, requestId, cb));
 
-    if (overlayManager != null) {
-      _overlayResize?.cancel();
-      _overlayResize = Timer(Duration(milliseconds: 33), () async {
-        var oldRenderTarget = overlayRenderTarget;
-        overlayRenderTarget =
-            await FilamentApp.instance!.createRenderTarget(width, height);
-        OverlayManager_setRenderTarget(
-            overlayManager!, overlayRenderTarget!.getNativeHandle());
-        await oldRenderTarget!.destroy();
-      });
-    }
+    await _highlightOverlayManager?.setViewport(width, height);
   }
 
   Future<RenderTarget?> getRenderTarget() async {
@@ -85,19 +61,43 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderTarget(RenderTarget? renderTarget) async {
+    // When highlight overlay is enabled, the main view renders to an internal
+    // render target. Flutter-provided render targets go to EdgeDetectionView.
+    if (_highlightOverlayManager != null && renderTarget != null) {
+      final isInternalRT =
+          _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
+      if (!isInternalRT) {
+        // This is a Flutter RT - redirect to EdgeDetectionView
+        await _highlightOverlayManager!
+            .setRenderTarget(this, renderTarget as FFIRenderTarget);
+        return;
+      }
+    }
+
     if (renderTarget != null) {
-      View_setRenderTarget(view, renderTarget.getNativeHandle());
+      await withVoidCallback((requestId, cb) =>
+          View_setRenderTargetRenderThread(
+              view, renderTarget.getNativeHandle(), requestId, cb));
       this.renderTarget = renderTarget;
     } else {
-      View_setRenderTarget(view, nullptr);
+      await withVoidCallback((requestId, cb) =>
+          View_setRenderTargetRenderThread(view, nullptr, requestId, cb));
+      this.renderTarget = null;
     }
-    // await overlayView?.setRenderTarget(renderTarget);
   }
 
   @override
-  Future setCamera(Camera camera) async {
-    View_setCamera(view, camera.getNativeHandle());
-    // await overlayView?.setCamera(camera.getNativeHandle());
+  Future setCamera(Camera? camera) async {
+    if (camera == null) {
+      await withVoidCallback((requestId, cb) =>
+          View_setCameraRenderThread(view, nullptr, requestId, cb));
+    } else {
+      await withVoidCallback((requestId, cb) => View_setCameraRenderThread(
+          view, camera.getNativeHandle(), requestId, cb));
+    }
+
+    // Sync the silhouette view's camera with the main view
+    await _highlightOverlayManager?.setCamera(camera);
   }
 
   @override
@@ -109,22 +109,26 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future<Camera> getCamera() async {
     final cameraPtr = View_getCamera(view);
-    return FFICamera(cameraPtr, app);
+    return FFICamera(cameraPtr);
   }
 
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    View_setAntiAliasing(view, msaa, fxaa, taa);
+    await withVoidCallback((requestId, cb) =>
+        View_setAntiAliasingRenderThread(view, msaa, fxaa, taa, requestId, cb));
   }
 
   @override
   Future setPostProcessing(bool enabled) async {
-    View_setPostProcessing(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setPostProcessingRenderThread(view, enabled, requestId, cb));
   }
 
   @override
   Future setFrustumCullingEnabled(bool enabled) async {
-    View_setFrustumCullingEnabled(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setFrustumCullingEnabledRenderThread(
+            view, enabled, requestId, cb));
   }
 
   @override
@@ -134,23 +138,64 @@ class FFIView extends View<Pointer<TView>> {
     });
   }
 
-  final colorGrading = <ToneMapper, Pointer<TColorGrading>>{};
+  Pointer<TColorGrading>? _colorGrading;
 
   @override
   Future setToneMapper(ToneMapper mapper) async {
-    if (colorGrading[mapper] == null) {
-      colorGrading[mapper] =
-          await FilamentApp.instance!.createColorGrading(mapper);
-      if (colorGrading[mapper] == nullptr) {
-        throw Exception("Failed to create color grading");
-      }
+    final colorGrading = await withPointerCallback<TColorGrading>((cb) =>
+        ColorGrading_createRenderThread(
+            FilamentApp.instance!.engine, mapper.getNativeHandle(), cb));
+    if (colorGrading == nullptr) {
+      throw Exception("Failed to create color grading");
     }
 
-    View_setColorGrading(view, colorGrading[mapper]!);
+    await withVoidCallback((requestId, cb) =>
+        View_setColorGradingRenderThread(view, colorGrading, requestId, cb));
+
+    if (_colorGrading != null) {
+      await withVoidCallback((requestId, cb) =>
+          Engine_destroyColorGradingRenderThread(
+              FilamentApp.instance!.engine, _colorGrading!, requestId, cb));
+    }
+    _colorGrading = colorGrading;
+  }
+
+  @override
+  Future<ColorGradingBuilder> createColorGradingBuilder() async {
+    final builderPtr = await withPointerCallback<TColorGradingBuilder>(
+        (cb) => ColorGradingBuilder_createRenderThread(cb));
+    if (builderPtr == nullptr) {
+      throw Exception('Failed to create ColorGradingBuilder');
+    }
+    return FFIColorGradingBuilder(builderPtr);
+  }
+
+  @override
+  Future setColorGrading(ColorGrading? colorGrading) async {
+    if (colorGrading == null) {
+      // Clear color grading by setting nullptr
+      await withVoidCallback((requestId, cb) =>
+          View_setColorGradingRenderThread(view, nullptr, requestId, cb));
+    } else {
+      // Set color grading with provided object
+      await withVoidCallback((requestId, cb) =>
+          View_setColorGradingRenderThread(
+              view, colorGrading.getNativeHandle(), requestId, cb));
+    }
+  }
+
+  @override
+  Future<ColorGrading?> getColorGrading() async {
+    final colorGradingPtr = View_getColorGrading(view);
+    if (colorGradingPtr == nullptr) {
+      return null;
+    }
+    return FFIColorGrading(colorGradingPtr);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
-    return View_setStencilBufferEnabled(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setStencilBufferEnabledRenderThread(view, enabled, requestId, cb));
   }
 
   Future<bool> isStencilBufferEnabled() async {
@@ -158,7 +203,8 @@ class FFIView extends View<Pointer<TView>> {
   }
 
   Future setDithering(bool enabled) async {
-    View_setDitheringEnabled(view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setDitheringEnabledRenderThread(view, enabled, requestId, cb));
   }
 
   Future<bool> isDitheringEnabled() async {
@@ -167,20 +213,24 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderQuality(QualityLevel quality) async {
-    View_setRenderQuality(view, quality.index);
+    await withVoidCallback((requestId, cb) =>
+        View_setRenderQualityRenderThread(view, quality.index, requestId, cb));
   }
 
   Future setScene(Scene scene) async {
-    View_setScene(view, scene.getNativeHandle());
+    await withVoidCallback((requestId, cb) => View_setSceneRenderThread(
+        view, scene.getNativeHandle(), requestId, cb));
   }
 
   @override
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
-    View_setLayerEnabled(view, layer.value, visible);
+    await withVoidCallback((requestId, cb) => View_setLayerEnabledRenderThread(
+        view, layer.value, visible, requestId, cb));
   }
 
   Future setBlendMode(BlendMode blendMode) async {
-    View_setBlendMode(view, blendMode.index);
+    await withVoidCallback((requestId, cb) =>
+        View_setBlendModeRenderThread(view, blendMode.index, requestId, cb));
   }
 
   FFIScene? _scene;
@@ -226,7 +276,8 @@ class FFIView extends View<Pointer<TView>> {
     final modRequestId = requestId % kMaxPickRequests;
     if (_pickRequests[modRequestId] == null) {
       _logger.severe(
-          "Warning : pick result received with no matching request ID. This indicates you're clearing the pick cache too quickly");
+          """Warning : pick result received with no matching request ID. """
+          """This indicates you're clearing the pick cache too quickly""");
       return;
     }
     final (:handler, :x, :y) = _pickRequests[modRequestId]!;
@@ -247,7 +298,7 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setFogOptions(FogOptions options) async {
-    final tFogOptions = Struct.create<TFogOptions>();
+    final tFogOptions = StructAllocator.create<TFogOptions>();
 
     tFogOptions.distance = options.distance;
     tFogOptions.cutOffDistance = options.cutOffDistance;
@@ -264,24 +315,276 @@ class FFIView extends View<Pointer<TView>> {
     tFogOptions.linearColorG = options.linearColor.g;
     tFogOptions.linearColorB = options.linearColor.b;
     tFogOptions.enabled = options.enabled;
-    View_setFogOptions(this.view, tFogOptions);
+    await withVoidCallback((requestId, cb) =>
+        View_setFogOptionsRenderThread(this.view, tFogOptions, requestId, cb));
+  }
+
+  @override
+  FogOptions getFogOptions() {
+    final tOptions = View_getFogOptions(view);
+
+    Texture? skyColor;
+    if (tOptions.skyColor != nullptr) {
+      skyColor = FFITexture(FilamentApp.instance!.engine, tOptions.skyColor);
+    }
+
+    return FogOptions(
+      enabled: tOptions.enabled,
+      distance: tOptions.distance,
+      cutOffDistance: tOptions.cutOffDistance,
+      maximumOpacity: tOptions.maximumOpacity,
+      height: tOptions.height,
+      heightFalloff: tOptions.heightFalloff,
+      linearColor: Vector3(
+        tOptions.linearColorR,
+        tOptions.linearColorG,
+        tOptions.linearColorB,
+      ),
+      density: tOptions.density,
+      inScatteringStart: tOptions.inScatteringStart,
+      inScatteringSize: tOptions.inScatteringSize,
+      fogColorFromIbl: tOptions.fogColorFromIbl,
+      skyColor: skyColor,
+    );
+  }
+
+  @override
+  Future setAmbientOcclusionOptions(AmbientOcclusionOptions options) async {
+    final tAmbientOcclusionOptions =
+        StructAllocator.create<TAmbientOcclusionOptions>();
+
+    tAmbientOcclusionOptions.radius = options.radius;
+    tAmbientOcclusionOptions.power = options.power;
+    tAmbientOcclusionOptions.bias = options.bias;
+    tAmbientOcclusionOptions.resolution = options.resolution;
+    tAmbientOcclusionOptions.intensity = options.intensity;
+    tAmbientOcclusionOptions.bilateralThreshold = options.bilateralThreshold;
+    tAmbientOcclusionOptions.quality = options.quality.index;
+    tAmbientOcclusionOptions.lowPassFilter = options.lowPassFilter.index;
+    tAmbientOcclusionOptions.upsampling = options.upsampling.index;
+    tAmbientOcclusionOptions.enabled = options.enabled;
+    tAmbientOcclusionOptions.bentNormals = options.bentNormals;
+    tAmbientOcclusionOptions.minHorizonAngleRad = options.minHorizonAngleRad;
+
+    // Copy SSCT options
+    tAmbientOcclusionOptions.ssct.lightConeRad = options.ssct.lightConeRad;
+    tAmbientOcclusionOptions.ssct.shadowDistance = options.ssct.shadowDistance;
+    tAmbientOcclusionOptions.ssct.contactDistanceMax =
+        options.ssct.contactDistanceMax;
+    tAmbientOcclusionOptions.ssct.intensity = options.ssct.intensity;
+    tAmbientOcclusionOptions.ssct.lightDirectionX =
+        options.ssct.lightDirection[0];
+    tAmbientOcclusionOptions.ssct.lightDirectionY =
+        options.ssct.lightDirection[1];
+    tAmbientOcclusionOptions.ssct.lightDirectionZ =
+        options.ssct.lightDirection[2];
+    tAmbientOcclusionOptions.ssct.depthBias = options.ssct.depthBias;
+    tAmbientOcclusionOptions.ssct.depthSlopeBias = options.ssct.depthSlopeBias;
+    tAmbientOcclusionOptions.ssct.sampleCount = options.ssct.sampleCount;
+    tAmbientOcclusionOptions.ssct.rayCount = options.ssct.rayCount;
+    tAmbientOcclusionOptions.ssct.enabled = options.ssct.enabled;
+
+    await withVoidCallback((requestId, cb) =>
+        View_setAmbientOcclusionOptionsRenderThread(
+            view, tAmbientOcclusionOptions, requestId, cb));
+  }
+
+  @override
+  AmbientOcclusionOptions getAmbientOcclusionOptions() {
+    final tOptions = View_getAmbientOcclusionOptions(view);
+
+    return AmbientOcclusionOptions(
+      radius: tOptions.radius,
+      power: tOptions.power,
+      bias: tOptions.bias,
+      resolution: tOptions.resolution,
+      intensity: tOptions.intensity,
+      bilateralThreshold: tOptions.bilateralThreshold,
+      quality: QualityLevel.values[tOptions.quality],
+      lowPassFilter: QualityLevel.values[tOptions.lowPassFilter],
+      upsampling: QualityLevel.values[tOptions.upsampling],
+      enabled: tOptions.enabled,
+      bentNormals: tOptions.bentNormals,
+      minHorizonAngleRad: tOptions.minHorizonAngleRad,
+      ssct: SsctOptions(
+        lightConeRad: tOptions.ssct.lightConeRad,
+        shadowDistance: tOptions.ssct.shadowDistance,
+        contactDistanceMax: tOptions.ssct.contactDistanceMax,
+        intensity: tOptions.ssct.intensity,
+        lightDirection: [
+          tOptions.ssct.lightDirectionX,
+          tOptions.ssct.lightDirectionY,
+          tOptions.ssct.lightDirectionZ,
+        ],
+        depthBias: tOptions.ssct.depthBias,
+        depthSlopeBias: tOptions.ssct.depthSlopeBias,
+        sampleCount: tOptions.ssct.sampleCount,
+        rayCount: tOptions.ssct.rayCount,
+        enabled: tOptions.ssct.enabled,
+      ),
+    );
+  }
+
+  @override
+  Future setFrontFaceWindingInverted(bool inverted) async {
+    await withVoidCallback((requestId, cb) =>
+        View_setFrontFaceWindingInvertedRenderThread(
+            view, inverted, requestId, cb));
   }
 
   Future setShadowsEnabled(bool enabled) async {
-    View_setShadowsEnabled(this.view, enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setShadowsEnabledRenderThread(this.view, enabled, requestId, cb));
   }
 
-  Pointer<TOverlayManager>? overlayManager;
-  View? overlayView;
-  Scene? overlayScene;
-  RenderTarget? overlayRenderTarget;
-  Material? highlightMaterial;
+  @override
+  Future setShadowType(ShadowType shadowType) async {
+    await withVoidCallback((requestId, cb) =>
+        View_setShadowTypeRenderThread(view, shadowType.index, requestId, cb));
+  }
 
-  final _highlighted = <ThermionEntity, MaterialInstance>{};
+  @override
+  Future<ShadowType> getShadowType() async {
+    final shadowTypeIndex = View_getShadowType(view);
+    return ShadowType.values[shadowTypeIndex];
+  }
 
-  ///
-  ///
-  ///
+  @override
+  Future setSoftShadowOptions(SoftShadowOptions options) async {
+    final tSoftShadowOptions = StructAllocator.create<TSoftShadowOptions>();
+    tSoftShadowOptions.penumbraScale = options.penumbraScale;
+    tSoftShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
+    await withVoidCallback((requestId, cb) =>
+        View_setSoftShadowOptionsRenderThread(
+            view, tSoftShadowOptions, requestId, cb));
+  }
+
+  @override
+  SoftShadowOptions getSoftShadowOptions() {
+    final tSoftShadowOptions = View_getSoftShadowOptions(view);
+    return SoftShadowOptions(
+      penumbraScale: tSoftShadowOptions.penumbraScale,
+      penumbraRatioScale: tSoftShadowOptions.penumbraRatioScale,
+    );
+  }
+
+  @override
+  Future setVsmShadowOptions(VsmShadowOptions options) async {
+    final tVsmShadowOptions = StructAllocator.create<TVsmShadowOptions>();
+    tVsmShadowOptions.anisotropy = options.anisotropy;
+    tVsmShadowOptions.mipmapping = options.mipmapping;
+    tVsmShadowOptions.msaaSamples = options.msaaSamples;
+    tVsmShadowOptions.highPrecision = options.highPrecision;
+    tVsmShadowOptions.minVarianceScale = options.minVarianceScale;
+    tVsmShadowOptions.lightBleedReduction = options.lightBleedReduction;
+    await withVoidCallback((requestId, cb) =>
+        View_setVsmShadowOptionsRenderThread(
+            view, tVsmShadowOptions, requestId, cb));
+  }
+
+  @override
+  VsmShadowOptions getVsmShadowOptions() {
+    final tVsmShadowOptions = View_getVsmShadowOptions(view);
+    return VsmShadowOptions(
+      anisotropy: tVsmShadowOptions.anisotropy,
+      mipmapping: tVsmShadowOptions.mipmapping,
+      msaaSamples: tVsmShadowOptions.msaaSamples,
+      highPrecision: tVsmShadowOptions.highPrecision,
+      minVarianceScale: tVsmShadowOptions.minVarianceScale,
+      lightBleedReduction: tVsmShadowOptions.lightBleedReduction,
+    );
+  }
+
+  HighlightOverlayManager? _highlightOverlayManager;
+
+  @override
+  HighlightOverlayManager? getHighlightOverlay() {
+    return _highlightOverlayManager;
+  }
+
+  //
+  Future _enableHighlightOverlay() async {
+    final rm = FilamentApp.instance!.renderManager;
+    final swapChains = rm.getAttachedSwapChains(this).toList();
+    if (swapChains.isEmpty) {
+      throw Exception("View must be attached to a swapchain first");
+    }
+
+    if (_highlightOverlayManager == null) {
+      final vp = await getViewport();
+      final width = vp.width > 0 ? vp.width : 1;
+      final height = vp.height > 0 ? vp.height : 1;
+
+      // Create manager if not exists
+      _highlightOverlayManager = await HighlightOverlayManager.create(
+        width,
+        height,
+      );
+
+      // Set the camera - silhouette view shares the main camera
+      final camera = await getCamera();
+      await _highlightOverlayManager!.setCamera(camera);
+    }
+
+    // Configure output: render target (macOS/iOS) or swapchain (web/Android)
+    await rm.detach(this, swapChain: swapChains.first);
+    await rm.attach(_highlightOverlayManager!.silhouetteView, swapChains.first,
+        renderOrder: 0);
+    await rm.attach(this, swapChains.first, renderOrder: 1);
+    await rm.attach(_highlightOverlayManager!.overlayView, swapChains.first,
+        renderOrder: 2);
+
+    if (renderTarget != null) {
+      await _highlightOverlayManager!.setRenderTarget(this, renderTarget!);
+      _logger.fine("Highlight overlay enabled (render target mode)");
+    } else {
+      await _highlightOverlayManager!.setSwapChain(swapChains.first!);
+      _logger.fine("Highlight overlay enabled (swapchain mode)");
+    }
+  }
+
+  //
+  Future _disableHighlightOverlay() async {
+    if (_highlightOverlayManager == null) {
+      return;
+    }
+
+    final rm = FilamentApp.instance!.renderManager;
+
+    await rm.detach(_highlightOverlayManager!.silhouetteView);
+    await rm.detach(_highlightOverlayManager!.overlayView);
+
+    // Set to null BEFORE calling destroy to prevent the setRenderTarget
+    // interceptor from redirecting to the already-destroyed EdgeDetectionView
+    final manager = _highlightOverlayManager;
+    _highlightOverlayManager = null;
+    await manager!.destroy();
+
+    _logger.info("Highlight overlay disabled");
+  }
+
+  @override
+  Future setHighlightOverlayEnabled(bool enabled) async {
+    if (enabled) {
+      await _enableHighlightOverlay();
+    } else {
+      await _disableHighlightOverlay();
+    }
+  }
+
+  // Highlights an entity with a screen-space outline.
+  //
+  // The overlay system must be enabled first via [enableHighlightOverlay].
+  //
+  // The outline width is specified in pixels and remains constant regardless
+  // of camera distance (screen-space expansion).
+  //
+  // Uses a two-pass post-process rendering approach:
+  // 1. Silhouette pass: Render highlighted entities to a texture as white
+  //    silhouettes
+  // 2. Edge detection pass: Fullscreen shader samples silhouette, draws
+  //    outline where edges are detected
+  //
   @override
   Future setStencilHighlight(ThermionAsset asset,
       {double r = 1.0,
@@ -289,94 +592,122 @@ class FFIView extends View<Pointer<TView>> {
       double b = 0.0,
       int? entity,
       double scale = 1.05,
-      int primitiveIndex = 0}) async {
-    if (overlayScene == null) {
-      overlayScene = await FilamentApp.instance!.createScene();
-      final vp = await getViewport();
-      overlayRenderTarget =
-          await FilamentApp.instance!.createRenderTarget(vp.width, vp.height);
-      overlayManager = OverlayManager_create(
-          app.engine,
-          app.renderer,
-          getNativeHandle(),
-          overlayScene!.getNativeHandle(),
-          overlayRenderTarget!.getNativeHandle());
-      RenderTicker_setOverlayManager(app.renderTicker, overlayManager!);
-      final highlightMaterialPtr = await withPointerCallback<TMaterial>(
-          (cb) => Material_createOutlineMaterialRenderThread(app.engine, cb));
-      highlightMaterial =
-          FFIMaterial(highlightMaterialPtr, app);
+      double outlineWidth = 3.0,
+      int primitiveIndex = 0,
+      ThermionAsset? geometrySource}) async {
+    // primitiveIndex parameter is deprecated and ignored
+    // The offset is now computed automatically from the entity
+    if (_highlightOverlayManager == null) {
+      await setHighlightOverlayEnabled(true);
     }
-
-    MaterialInstance? highlightMaterialInstance;
 
     entity ??= asset.entity;
-    final entities = [entity, ...await asset.getChildEntities()];
 
-    for (final entity in entities) {
-      if (!await FilamentApp.instance!.isRenderable(entity)) {
-        continue;
-      }
-      if (_highlighted.containsKey(entity)) {
-        _highlighted[entity]!.setParameterFloat4("color", r, g, b, 1.0);
-      } else {
-        if (highlightMaterialInstance == null) {
-          highlightMaterialInstance = await highlightMaterial!.createInstance();
-          await highlightMaterialInstance!.setParameterFloat("scale", scale);
-          await highlightMaterialInstance!
-              .setParameterFloat4("color", r, g, b, 1.0);
+    // Use geometrySource for vertex/index buffers when provided (e.g. for
+    // instances where the root asset has the preserved geometry data).
+    final geoAsset = geometrySource ?? asset;
+    final ffiGeoAsset = geoAsset as FFIAsset;
 
-          await highlightMaterialInstance!.setDepthCullingEnabled(true);
-          await highlightMaterialInstance!.setDepthWriteEnabled(true);
-        }
-        OverlayManager_addComponent(overlayManager!, entity,
-            highlightMaterialInstance.getNativeHandle());
-        _highlighted[entity] = highlightMaterialInstance!;
-      }
+    // Get the starting primitive offset for this entity
+    final offset = await ffiGeoAsset.getPrimitiveOffsetForEntity(entity);
+    if (offset < 0) {
+      _logger.warning(
+          "Stencil highlight: no preserved geometry for entity $entity. "
+          "Either the asset wasn't loaded with rebuildVertices: true, or this "
+          "entity's primitives are all non-triangles (lines/points) and have "
+          "no rebuilt buffers.");
+      return;
     }
 
-    _logger.info("Added stencil highlight for asset (entity ${asset.entity})");
+    // Get the primitive count for this entity
+    final primCount = await FilamentApp.instance!.getPrimitiveCount(entity);
+
+    // Iterate all primitives for this entity and create silhouettes
+    for (int i = 0; i < primCount; i++) {
+      final flatPrimIndex = offset + i;
+
+      // Get geometry for this primitive
+      final vertexBuffer =
+          geoAsset.getVertexBuffer(primitiveIndex: flatPrimIndex);
+      final indexBuffer =
+          SceneAsset_getIndexBuffer(ffiGeoAsset.asset, flatPrimIndex);
+
+      // Skip non-triangle primitives (null buffers)
+      if (vertexBuffer == null || indexBuffer == nullptr) {
+        continue;
+      }
+
+      if (vertexBuffer is! FFIVertexBuffer) {
+        _logger.warning(
+            "Stencil highlight: unexpected vertex buffer type for entity $entity "
+            "primitive $i");
+        continue;
+      }
+
+      final indexCount = IndexBuffer_getIndexCount(indexBuffer);
+      final ffiIndexBuffer =
+          FFIIndexBuffer(indexBuffer, FilamentApp.instance!.engine);
+
+      // Create silhouette for this primitive
+      await _highlightOverlayManager!.addHighlight(
+        target: entity,
+        vertexBuffer: vertexBuffer,
+        indexBuffer: ffiIndexBuffer,
+        indexCount: indexCount,
+        outlineWidth: outlineWidth,
+        r: r,
+        g: g,
+        b: b,
+      );
+    }
+
+    _logger.info("Added stencil highlight for entity $entity");
   }
 
   ///
-  ///
+  /// Removes the stencil highlight from an asset.
   ///
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
-    if (overlayManager == null) {
+    if (_highlightOverlayManager == null) {
       return;
     }
     final entities = [asset.entity, ...await asset.getChildEntities()];
 
     for (final entity in entities) {
-      OverlayManager_removeComponent(overlayManager!, entity);
-    }
-
-    final destroyed = <MaterialInstance>{};
-    for (final entity in entities) {
-      final materialInstance = _highlighted[entity];
-      if (!await FilamentApp.instance!.isRenderable(entity) ||
-          materialInstance == null) {
-        continue;
-      }
-
-      _highlighted.remove(entity);
-      if (!destroyed.contains(materialInstance)) {
-        await materialInstance.destroy();
-        destroyed.add(materialInstance);
-      }
+      await _highlightOverlayManager!.removeHighlight(entity);
     }
   }
 
-  void setName(String name) {
-    View_setName(getNativeHandle(), name.toNativeUtf8().cast());
+  Future setName(String name) async {
+    final ptr = name.toNativeUtf8();
+    await withVoidCallback((requestId, cb) =>
+        View_setNameRenderThread(getNativeHandle(), ptr.cast(), requestId, cb));
+    free(ptr);
+  }
+
+  Future<String?> getName() async {
+    final ptr = await withPointerCallback<Char>(
+        (cb) => View_getNameRenderThread(getNativeHandle(), cb));
+    if (ptr != nullptr) {
+      return ptr.cast<Utf8>().toDartString();
+    }
+    return null;
   }
 
   Future setTransparentPickingEnabled(bool enabled) async {
-    View_setTransparentPickingEnabled(getNativeHandle(), enabled);
+    await withVoidCallback((requestId, cb) =>
+        View_setTransparentPickingEnabledRenderThread(
+            getNativeHandle(), enabled, requestId, cb));
   }
 
   Future<bool> isTransparentPickingEnabled() async {
     return View_isTransparentPickingEnabled(getNativeHandle());
+  }
+
+  static Future<View> create() async {
+    final ptr = await withPointerCallback<TView>((cb) =>
+        Engine_createViewRenderThread(FilamentApp.instance!.engine, cb));
+    return FFIView(ptr);
   }
 }

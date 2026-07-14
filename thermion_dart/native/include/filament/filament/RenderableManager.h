@@ -166,6 +166,17 @@ public:
         };
 
         /**
+         * Type of morphing for a Renderable.
+         * This usually acts as a bitmask of multiple types.
+         */
+        enum class MorphType : uint8_t {
+            NONE = 0,
+            POSITION = 1,
+            TANGENT = 2,
+            CUSTOM = 4
+        };
+
+        /**
          * Creates a builder for renderable components.
          *
          * @param count the number of primitives that will be supplied to the builder
@@ -217,7 +228,7 @@ public:
         /**
          * Specify the type of geometry for this renderable. DYNAMIC geometry has no restriction,
          * STATIC_BOUNDS geometry means that both the bounds and the world-space transform of the
-         * the renderable are immutable.
+         * renderable are immutable.
          * STATIC geometry has the same restrictions as STATIC_BOUNDS, but in addition disallows
          * skinning, morphing and changing the VertexBuffer or IndexBuffer in any way.
          * @param type type of geometry.
@@ -297,7 +308,7 @@ public:
         Builder& priority(uint8_t priority) noexcept;
 
         /**
-         * Set the channel this renderable is associated to. There can be 4 channels.
+         * Set the channel this renderable is associated to. There can be 8 channels.
          * All renderables in a given channel are rendered together, regardless of anything else.
          * They are sorted as usual within a channel.
          * Channels work similarly to priorities, except that they enforce the strongest ordering.
@@ -305,7 +316,7 @@ public:
          * Channels 0 and 1 may not have render primitives using a material with `refractionType`
          * set to `screenspace`.
          *
-         * @param channel clamped to the range [0..3], defaults to 2.
+         * @param channel clamped to the range [0..7], defaults to 2.
          *
          * @return Builder reference for chaining calls.
          *
@@ -782,6 +793,13 @@ public:
      * Gets the immutable number of primitives in the given renderable.
      */
     size_t getPrimitiveCount(Instance instance) const noexcept;
+
+    /**
+     * Returns the number of instances for this renderable.
+     * @param instance Instance of the component obtained from getInstance().
+     * @return The number of instances.
+     */
+    size_t getInstanceCount(Instance instance) const noexcept;
 
     /**
      * Changes the material instance binding for the given primitive.

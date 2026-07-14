@@ -5,7 +5,8 @@
 
 #include "thermion_flutter_plugin.h"
 
-#include <Windows.h>
+// Dart API DL for port-based frame scheduling (hot restart safe)
+#include "dart/dart_api_dl.h"
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -26,13 +27,21 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <atomic>
 
 #include "flutter_d3d_texture.h"
+
 
 namespace thermion::tflutter::windows
 {
 
   using namespace std::chrono_literals;
+
+  // Static member initialization for Dart API DL
+  bool ThermionFlutterPlugin::_dartApiInitialized = false;
 
   void ThermionFlutterPlugin::RegisterWithRegistrar(
       flutter::PluginRegistrarWindows *registrar)
@@ -61,11 +70,110 @@ namespace thermion::tflutter::windows
                                    { this->HandleMethodCall(call, std::move(result)); });
   }
 
-  ThermionFlutterPlugin::~ThermionFlutterPlugin() {}
-
   // this is only for storing Flutter surface descriptors
-  // (as opposed to the D3D/Vulkan handles, which are stored in the ThermionVulkanContext)
+  // (as opposed to the D3D/Vulkan handles, which are stored in the WindowsVulkanContext)
   static std::vector<std::unique_ptr<FlutterD3DTexture>> _flutterTextures;
+
+  // ────────────────────────────────────────────────────────────────
+  // Dedicated Blit-worker thread
+  // ────────────────────────────────────────────────────────────────
+  //
+  // Why: `markTextureFrameAvailable` was originally synchronous on
+  // the Flutter UI thread, calling `WindowsVulkanContext::Blit` which
+  // includes vkQueueSubmit + vkWaitForFences. Under multi-viewer
+  // load (8 viewers × Filament frames) this saturated the UI
+  // thread, killed the Win32 message pump, and Windows declared
+  // "Not Responding". A first naive fix spawned a detached
+  // `std::thread` per call — but `WindowsVulkanContext::Blit`'s
+  // shared command pool / queue / fence are NOT thread-safe (the
+  // Vulkan spec requires app-side synchronisation of VkQueue
+  // access), and the Intel driver crashed with `0xC0000005`
+  // access-violation inside `igvk64.dll` as soon as two Blits
+  // overlapped.
+  //
+  // Correct fix: ONE worker thread, ONE queue, one Blit in flight
+  // at any moment. The UI thread enqueues and returns immediately.
+  // If the queue grows past kMaxBlitQueueDepth the OLDEST entry is
+  // dropped — Flutter shows a previously-blitted texture for one
+  // frame, which is preferable to unbounded queue growth under
+  // sustained GPU pressure.
+  struct BlitJob {
+    thermion::vulkan::windows::WindowsVulkanContext* context;
+    flutter::TextureRegistrar* registrar;
+    HANDLE handle;
+    int64_t flutterTextureId;
+  };
+
+  static constexpr size_t kMaxBlitQueueDepth = 16;
+
+  static std::mutex _blitMutex;
+  static std::condition_variable _blitCv;
+  static std::queue<BlitJob> _blitQueue;
+  static std::thread _blitWorker;
+  static std::atomic<bool> _blitWorkerStarted{false};
+  static std::atomic<bool> _blitWorkerShouldStop{false};
+
+  static void BlitWorkerLoop() {
+    while (true) {
+      BlitJob job;
+      {
+        std::unique_lock<std::mutex> lock(_blitMutex);
+        _blitCv.wait(lock, [] {
+          return !_blitQueue.empty() || _blitWorkerShouldStop.load();
+        });
+        if (_blitWorkerShouldStop.load() && _blitQueue.empty()) {
+          return;
+        }
+        job = _blitQueue.front();
+        _blitQueue.pop();
+      }
+      if (job.context) {
+        job.context->Blit(job.handle);
+      }
+      if (job.registrar) {
+        job.registrar->MarkTextureFrameAvailable(job.flutterTextureId);
+      }
+    }
+  }
+
+  static void EnsureBlitWorkerStarted() {
+    bool expected = false;
+    if (_blitWorkerStarted.compare_exchange_strong(expected, true)) {
+      _blitWorker = std::thread(BlitWorkerLoop);
+    }
+  }
+
+  static void EnqueueBlit(BlitJob&& job) {
+    EnsureBlitWorkerStarted();
+    {
+      std::lock_guard<std::mutex> lock(_blitMutex);
+      // Bounded queue — drop oldest under sustained GPU pressure
+      // rather than growing without limit. Visual effect under
+      // overload: one stale frame, no hang, no crash.
+      while (_blitQueue.size() >= kMaxBlitQueueDepth) {
+        _blitQueue.pop();
+      }
+      _blitQueue.push(std::move(job));
+    }
+    _blitCv.notify_one();
+  }
+
+  ThermionFlutterPlugin::~ThermionFlutterPlugin() {
+    StopFrameScheduler();
+
+    // Stop the Blit worker thread cleanly. We signal the stop flag,
+    // wake the worker (it may be sleeping on the condition variable
+    // with an empty queue), and join. The worker drains queued
+    // jobs first, then returns. Safe against hot restart / app
+    // teardown.
+    if (_blitWorkerStarted.load()) {
+      _blitWorkerShouldStop.store(true);
+      _blitCv.notify_all();
+      if (_blitWorker.joinable()) {
+        _blitWorker.join();
+      }
+    }
+  }
 
   void ThermionFlutterPlugin::CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
@@ -73,7 +181,7 @@ namespace thermion::tflutter::windows
   {
     if (!_context)
     {
-      _context = new thermion::windows::vulkan::ThermionVulkanContext();
+      _context = new thermion::vulkan::windows::WindowsVulkanContext();
     }
 
     const auto *args =
@@ -96,6 +204,8 @@ namespace thermion::tflutter::windows
       return;
     }
 
+    auto externalImage = _context->CreateExternalImageForSurface(d3dHandle);
+
     auto flutterTexture = std::make_unique<FlutterD3DTexture>(d3dHandle, width, height);
 
     auto flutterTextureId = _textureRegistrar->RegisterTexture(flutterTexture->GetFlutterTexture());
@@ -107,8 +217,58 @@ namespace thermion::tflutter::windows
 
     std::vector<flutter::EncodableValue> resultList;
     resultList.push_back(flutter::EncodableValue(flutterTextureId));
+    resultList.push_back(flutter::EncodableValue((int64_t)externalImage));
     resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
-    resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+    result->Success(resultList);
+  }
+
+  void ThermionFlutterPlugin::ResizeTexture(
+      const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
+  {
+    if (!_context)
+    {
+      result->Error("NO_CONTEXT", "No rendering context");
+      return;
+    }
+
+    const auto *args =
+        std::get_if<flutter::EncodableList>(methodCall.arguments());
+
+    int64_t flutterTextureId = std::get<int64_t>(args->at(0));
+    int dWidth = std::get<int>(args->at(1));
+    int dHeight = std::get<int>(args->at(2));
+    auto width = static_cast<uint32_t>(dWidth);
+    auto height = static_cast<uint32_t>(dHeight);
+
+    // Find the existing FlutterD3DTexture
+    auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
+                           { return ft->GetFlutterTextureId() == flutterTextureId; });
+    if (it == _flutterTextures.end()) {
+      result->Error("NOT_FOUND", "Flutter texture not found");
+      return;
+    }
+
+    HANDLE oldD3DHandle = (*it)->GetD3DTextureHandle();
+
+    // Create new D3D + Vulkan textures
+    auto newD3DHandle = _context->CreateRenderingSurface(width, height, 0, 0);
+    if (!newD3DHandle) {
+      result->Error("CREATE_FAILED", "Failed to create new D3D texture");
+      return;
+    }
+
+    auto externalImage = _context->CreateExternalImageForSurface(newD3DHandle);
+
+    // Store pending swap — will be applied after first successful Blit
+    _pendingSwaps[flutterTextureId] = PendingSwap{
+      oldD3DHandle, newD3DHandle, width, height,
+      static_cast<int64_t>(reinterpret_cast<intptr_t>(externalImage))
+    };
+
+    // Return [externalImage] to Dart
+    std::vector<flutter::EncodableValue> resultList;
+    resultList.push_back(flutter::EncodableValue(static_cast<int64_t>(reinterpret_cast<intptr_t>(externalImage))));
     result->Success(resultList);
   }
 
@@ -173,10 +333,9 @@ namespace thermion::tflutter::windows
     {
       if (!_context)
       {
-        _context = new thermion::windows::vulkan::ThermionVulkanContext();
+        _context = new thermion::vulkan::windows::WindowsVulkanContext();
       }
-      // result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
-      result->Success(flutter::EncodableValue((int64_t) nullptr));
+      result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
     }
     else if (methodCall.method_name() == "createTexture")
     {
@@ -187,21 +346,77 @@ namespace thermion::tflutter::windows
       // result->Success(flutter::EncodableValue((int64_t) nullptr));
       DestroyTexture(methodCall, std::move(result));
     }
+    else if (methodCall.method_name() == "resizeTexture")
+    {
+      ResizeTexture(methodCall, std::move(result));
+    }
     else if (methodCall.method_name() == "markTextureFrameAvailable")
     {
       if (_context)
       {
-        _context->BlitFromSwapchain();
         const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
 
         if (!flutterTextureId || *flutterTextureId == -1)
         {
           std::cout << "Bad texture" << std::endl;
+          result->Success(flutter::EncodableValue((int64_t) nullptr));
           return;
         }
-        // std::cout << "Marking texture" << (*flutterTextureId) << "available" << std::endl;
+
+        // Find the FlutterD3DTexture for this flutterTextureId
+        auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
+                               { return ft->GetFlutterTextureId() == *flutterTextureId; });
+
+        if (it == _flutterTextures.end()) {
+          std::cerr << "Failed to find Flutter texture for ID " << *flutterTextureId << std::endl;
+          result->Success(flutter::EncodableValue((int64_t) nullptr));
+          return;
+        }
+
+        auto swapIt = _pendingSwaps.find(*flutterTextureId);
+        if (swapIt != _pendingSwaps.end()) {
+          auto& swap = swapIt->second;
+          swap.frameCount++;
+
+          if (swap.frameCount < 2) {
+            // Frame 1: Filament is rendering into the new RT.
+            // Blit OLD handle — old RT VkImage is still valid because
+            // Dart deferred its Filament texture cleanup.
+            // Flutter keeps showing last valid frame via old D3D texture.
+            _context->Blit(swap.oldD3DHandle);
+          } else {
+            // Frame 2+: new RT has valid content from previous render.
+            // Blit new handle, swap descriptor, retire old textures.
+            _context->ClearPendingFirstBlit(swap.newD3DHandle);
+            _context->Blit(swap.newD3DHandle);
+
+            (*it)->SwapDescriptor(swap.newD3DHandle, swap.width, swap.height);
+            _context->DestroyRenderingSurface(swap.oldD3DHandle);
+            _pendingSwaps.erase(swapIt);
+          }
+        } else {
+          // Enqueue the Blit + MarkTextureFrameAvailable on the
+          // dedicated worker thread. Synchronous Blit on the UI
+          // thread saturates the Win32 message pump under multi-
+          // viewer load and the per-call detached-thread variant
+          // crashed inside the Intel Vulkan driver because Blit's
+          // command pool / queue / fence are not thread-safe. The
+          // worker thread serialises all Blits process-wide and
+          // returns the UI thread immediately. See BlitWorkerLoop
+          // / EnqueueBlit above.
+          HANDLE d3dTextureHandle = (*it)->GetD3DTextureHandle();
+          EnqueueBlit(BlitJob{
+              _context,
+              _textureRegistrar,
+              d3dTextureHandle,
+              *flutterTextureId,
+          });
+          result->Success(flutter::EncodableValue((int64_t) nullptr));
+          return;
+        }
+
         _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
-      } else { 
+      } else {
         std::cout << "No context" << std::endl;
       }
       result->Success(flutter::EncodableValue((int64_t) nullptr));
@@ -215,17 +430,148 @@ namespace thermion::tflutter::windows
     {
       if (!_context) {
         std::cerr << "No context, creating new one" << std::endl;
-        _context = new thermion::windows::vulkan::ThermionVulkanContext();
+        _context = new thermion::vulkan::windows::WindowsVulkanContext();
        } else { 
         std::cerr << "Context already exists, returning existing" << std::endl;
        }
       result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
+    }
+    else if (methodCall.method_name() == "startFrameScheduler")
+    {
+      const auto *args = std::get_if<flutter::EncodableList>(methodCall.arguments());
+      int64_t callbackAddress = std::get<int64_t>(args->at(0));
+      int targetFps = std::get<int>(args->at(1));
+      StartFrameScheduler(callbackAddress, targetFps);
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
+    }
+    else if (methodCall.method_name() == "stopFrameScheduler")
+    {
+      StopFrameScheduler();
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
+    }
+    else if (methodCall.method_name() == "initDartApi")
+    {
+      // Initialize Dart API DL for port-based messaging (hot restart safe)
+      int64_t dataAddress = std::get<int64_t>(*methodCall.arguments());
+      void* data = reinterpret_cast<void*>(dataAddress);
+      if (!_dartApiInitialized && data != nullptr) {
+        intptr_t initResult = Dart_InitializeApiDL(data);
+        _dartApiInitialized = (initResult == 0);
+      }
+      result->Success(flutter::EncodableValue(_dartApiInitialized ? 0 : -1));
+    }
+    else if (methodCall.method_name() == "startFrameSchedulerWithPort")
+    {
+      // Port-based frame scheduling (hot restart safe)
+      const auto *args = std::get_if<flutter::EncodableList>(methodCall.arguments());
+      int64_t port = std::get<int64_t>(args->at(0));
+      int targetFps = std::get<int>(args->at(1));
+      StartFrameSchedulerWithPort(port, targetFps);
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
     }
     else
     {
       result->Error("NOT_IMPLEMENTED", "Method is not implemented %s",
                     methodCall.method_name());
     }
+  }
+
+  void ThermionFlutterPlugin::StartFrameScheduler(int64_t callbackAddress, int targetFps) {
+    StopFrameScheduler();
+    _frameCallback = reinterpret_cast<FrameCallback>(callbackAddress);
+    _frameSchedulerRunning = true;
+    _frameSchedulerThread = std::thread([this]() {
+      IDXGIFactory1* factory = nullptr;
+      IDXGIAdapter* adapter = nullptr;
+      IDXGIOutput* output = nullptr;
+
+      HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory);
+      if (SUCCEEDED(hr) && factory) {
+        hr = factory->EnumAdapters(0, &adapter);
+        if (SUCCEEDED(hr) && adapter) {
+          hr = adapter->EnumOutputs(0, &output);
+          if (FAILED(hr)) {
+            output = nullptr;
+            std::cerr << "Failed to get DXGI output for WaitForVBlank, falling back to timer" << std::endl;
+          }
+        }
+      }
+
+      while (_frameSchedulerRunning) {
+        if (output) {
+          output->WaitForVBlank();
+        } else {
+          std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000 / 60));
+        }
+        if (_frameCallback && _frameSchedulerRunning) {
+          auto now = std::chrono::high_resolution_clock::now();
+          uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+              now.time_since_epoch()).count();
+          _frameCallback(nanos);
+        }
+      }
+
+      if (output) output->Release();
+      if (adapter) adapter->Release();
+      if (factory) factory->Release();
+    });
+  }
+
+  void ThermionFlutterPlugin::StartFrameSchedulerWithPort(int64_t port, int targetFps) {
+    StopFrameScheduler();
+    _dartPort = port;
+    _usePortMode = true;
+    _frameSchedulerRunning = true;
+    _frameSchedulerThread = std::thread([this]() {
+      IDXGIFactory1* factory = nullptr;
+      IDXGIAdapter* adapter = nullptr;
+      IDXGIOutput* output = nullptr;
+
+      HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory);
+      if (SUCCEEDED(hr) && factory) {
+        hr = factory->EnumAdapters(0, &adapter);
+        if (SUCCEEDED(hr) && adapter) {
+          hr = adapter->EnumOutputs(0, &output);
+          if (FAILED(hr)) {
+            output = nullptr;
+            std::cerr << "Failed to get DXGI output for WaitForVBlank, falling back to timer" << std::endl;
+          }
+        }
+      }
+
+      while (_frameSchedulerRunning) {
+        if (output) {
+          output->WaitForVBlank();
+        } else {
+          std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000 / 60));
+        }
+        if (_usePortMode && _dartPort != 0 && _frameSchedulerRunning) {
+          auto now = std::chrono::high_resolution_clock::now();
+          uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+              now.time_since_epoch()).count();
+
+          // Post to Dart port - silently drops if isolate is dead (hot restart safe)
+          Dart_CObject msg;
+          msg.type = Dart_CObject_kInt64;
+          msg.value.as_int64 = static_cast<int64_t>(nanos);
+          Dart_PostCObject_DL(_dartPort, &msg);
+        }
+      }
+
+      if (output) output->Release();
+      if (adapter) adapter->Release();
+      if (factory) factory->Release();
+    });
+  }
+
+  void ThermionFlutterPlugin::StopFrameScheduler() {
+    _frameSchedulerRunning = false;
+    if (_frameSchedulerThread.joinable()) {
+      _frameSchedulerThread.join();
+    }
+    _frameCallback = nullptr;
+    _dartPort = 0;
+    _usePortMode = false;
   }
 
 } // namespace thermion_flutter

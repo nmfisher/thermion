@@ -1,3 +1,67 @@
+## 0.4.0+2
+
+ - Update a dependency to the latest release.
+
+## 0.4.0+1
+
+ - Update a dependency to the latest release.
+
+## 0.4.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: (Windows) use render target/imported Vulkan texture (#109).
+ - **REFACTOR**: add Dart RenderManager class.
+ - **REFACTOR**: merge macOS/iOS thermion_flutter plugin files into a single darwin/ folder.
+ - **REFACTOR**: merge macOS/iOS thermion_flutter plugin files into a single darwin/ folder.
+ - **REFACTOR**: change construction logic for ThermionListenerWidget inside ViewerWidget to avoid recreating the rendering surface simply when the manipulator type changes.
+ - **REFACTOR**: remove destroyed as public property from PlatformTextureDescriptor (implementations should store/check this internally when markTextuerFrameAvailable is called.
+ - **REFACTOR**: move Swift/ObjC interop lib/headers from thermion_dart to thermion_flutter. In theory we can use these on macOS to create/import external textures as render targets in Dart applications. In practice, this requires the Flutter SDK (for objective_c) so it's not actually very practical. We previously used these to test external texture render targets; now that we run tests mostly on Linux, this is no longer used (render targets are created, but bound to textures created by Filament). However this may be useful to revisit in future so we will preserve the files in thermion_flutter.
+ - **REFACTOR**: various changes needed to support HighlightOverlayManager on web.
+ - **REFACTOR**: rename and consolidate Metal Texture creation classes on macOS/iOS.
+ - **REFACTOR**: (flutter) allow returning null SwapChain (for Android) when plugin is first initialized.
+ - **REFACTOR**: remove enableHighlights from ThermionWidget.
+ - **REFACTOR**: use platform-specific vsync to schedule frames, rather than Flutter's SchedulerBinding. The latter renders a Flutter frame on every request, which isn't necessarily needed - often we just need the Thermion/Filament surface to update independently. (#112).
+ - **REFACTOR**: implementing highlight overlays with Flutter widgets showed bad performance. (#111).
+ - **REFACTOR**: remove redundant method channel calls to getDriverPlatform and getSharedContext on macOS/iOS.
+ - **REFACTOR**: (flutter) migrate overlay implementation to use stacked widgets, each with a render target. Only macOS, iOS and Windows supported in this commit. (#110).
+ - **FIX**: throw separate errors for frozen properties in ViewerWidget.
+ - **FIX**: (windows) fix multi-viewer runtime hang (UI-thread Blit + FFI callback orphan) (#172).
+ - **FIX**: set local _texture reference to null in ThermionWidget before destroying.
+ - **FIX**: resolve thermion_dart include paths from package_config.json in Flutter plugin CMake.
+ - **FIX**: fix broken RenderManager merge for ThermionFlutterPluginImpl.
+ - **FIX**: in debug mode, the vsync frame scheduler will crash when hot restarting (because the Dart callback no longer exists). To fix this, in debug mode we use a Dart Send/ReceivePort to communicate the frame callback. In release mode, the raw function pointer is used. Only applicable to macos, ios, Android and Windows.
+ - **FIX**: add missing #include "Log.hpp" in Linux Flutter plugin files.
+ - **FIX**: restore 60fps web rendering (#150).
+ - **FIX**: remove enableHighlights arg from ThermionWidget.
+ - **FIX**: gate thermion_flutter hook on buildAssetTypes, not buildCodeAssets.
+ - **FIX**: search from build dir, not source dir, for package_config.json.
+ - **FIX**: fix FrameCallback imports.
+ - **FIX**: add missing Darwin frame scheduler.
+ - **FIX**: resolve thermion_dart include paths via package_config.json.
+ - **FIX**(windows): eliminate black frame flash on resize.
+ - **FIX**(windows): eliminate texture jank on resize.
+ - **FIX**(windows): prevent VkImage double-free on texture resize.
+ - **FIX**: use walk-up search for package_config.json instead of hardcoded depth.
+ - **FIX**: hide VoidCallback to stop export/import conflicts with Flutter.
+ - **FIX**: windows used different vulkan devices.
+ - **FIX**: revert FilterQuality for TextureWidget to none.
+ - **FIX**: pass destroySwapChain flag through and tweak logging.
+ - **FIX**: reinstate rendering with multiple swapchains. I'm not sure if we can create a hardware texture rendertarget on the GLES backend for Android (though this should be possible on Vulkan), so to implement overlays we need to allow multiple swapchains.
+ - **FEAT**: add VirtualGameController widget.
+ - **FEAT**: add pauseFrameScheduler/resumeFrameScheduler (#142).
+ - **FEAT**: auto-download web artifacts from thermion_dart build hook.
+ - **FEAT**: update ThermionListenerWidget to support shiftLeft/shiftRight keys and track pressed buttons internally (to correctly identify the button for a mouseUp event).
+ - **BREAKING** **REFACTOR**: replace register/unregiser/updateRenderOrder on FilamentApp with a single method setRenderOrder.
+ - **BREAKING** **REFACTOR**: \.
+ - **BREAKING** **REFACTOR**: (flutter) use ObjC FFI for Swift interop to create textures.
+ - **BREAKING** **REFACTOR**: replace register/unregiser/updateRenderOrder on FilamentApp with a single method setRenderOrder.
+ - **BREAKING** **FEAT**: remove directLightType, add directLight argument to ViewerWidget.
+
+## 0.3.4
+
+ - Bump "thermion_flutter" to `0.3.4`.
+
 ## 0.3.3+2
 
  - Update a dependency to the latest release.

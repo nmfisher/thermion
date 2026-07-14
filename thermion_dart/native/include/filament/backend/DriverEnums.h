@@ -25,20 +25,25 @@
 #include <backend/PresentCallable.h>
 
 #include <utils/BitmaskEnum.h>
+#include <utils/CString.h>
 #include <utils/FixedCapacityVector.h>
 #include <utils/Invocable.h>
-#include <utils/compiler.h>
+#include <utils/StaticString.h>
 #include <utils/debug.h>
-#include <utils/ostream.h>
 
 #include <math/vec4.h>
 
 #include <array>
 #include <type_traits>
 #include <variant>
+#include <string_view>
 
 #include <stddef.h>
 #include <stdint.h>
+
+namespace utils::io {
+class ostream;
+} // namespace utils::io
 
 /**
  * Types and enums used by filament's driver.
@@ -96,6 +101,16 @@ static constexpr uint64_t SWAP_CHAIN_HAS_STENCIL_BUFFER         = SWAP_CHAIN_CON
  */
 static constexpr uint64_t SWAP_CHAIN_CONFIG_PROTECTED_CONTENT   = 0x40;
 
+/**
+ * Indicates that the SwapChain is configured to use Multi-Sample Anti-Aliasing (MSAA) with the
+ * given sample points within each pixel. Only supported when isMSAASwapChainSupported(4) is
+ * true.
+ *
+ * This is only supported by EGL(Android). Other GL platforms (GLX, WGL, etc) don't support it
+ * because the swapchain MSAA settings must be configured before window creation.
+ */
+static constexpr uint64_t SWAP_CHAIN_CONFIG_MSAA_4_SAMPLES      = 0x80;
+
 static constexpr size_t MAX_VERTEX_ATTRIBUTE_COUNT  = 16;   // This is guaranteed by OpenGL ES.
 static constexpr size_t MAX_SAMPLER_COUNT           = 62;   // Maximum needed at feature level 3.
 static constexpr size_t MAX_VERTEX_BUFFER_COUNT     = 16;   // Max number of bound buffer objects.
@@ -114,8 +129,8 @@ static constexpr struct {
     const size_t MAX_FRAGMENT_SAMPLER_COUNT;
 } FEATURE_LEVEL_CAPS[4] = {
         {  0,  0 }, // do not use
-        { 16, 16 }, // guaranteed by OpenGL ES, Vulkan and Metal
-        { 16, 16 }, // guaranteed by OpenGL ES, Vulkan and Metal
+        { 16, 16 }, // guaranteed by OpenGL ES, Vulkan, Metal And WebGPU
+        { 16, 16 }, // guaranteed by OpenGL ES, Vulkan, Metal And WebGPU
         { 31, 31 }, // guaranteed by Metal
 };
 
@@ -125,6 +140,10 @@ static_assert(MAX_VERTEX_BUFFER_COUNT <= MAX_VERTEX_ATTRIBUTE_COUNT,
 
 static constexpr size_t CONFIG_UNIFORM_BINDING_COUNT = 9;   // This is guaranteed by OpenGL ES.
 static constexpr size_t CONFIG_SAMPLER_BINDING_COUNT = 4;   // This is guaranteed by OpenGL ES.
+
+static constexpr uint8_t EXTERNAL_SAMPLER_DATA_INDEX_UNUSED =
+        uint8_t(-1);// Case where the descriptor set binding isnt using any external sampler state
+                     // and therefore doesn't have a valid entry.
 
 /**
  * Defines the backend's feature levels.
@@ -154,7 +173,7 @@ enum class TimerQueryResult : int8_t {
     AVAILABLE = 1,  // result is available
 };
 
-static constexpr const char* backendToString(Backend backend) {
+constexpr std::string_view to_string(Backend const backend) noexcept {
     switch (backend) {
         case Backend::NOOP:
             return "Noop";
@@ -166,9 +185,10 @@ static constexpr const char* backendToString(Backend backend) {
             return "Metal";
         case Backend::WEBGPU:
             return "WebGPU";
-        default:
-            return "Unknown";
+        case Backend::DEFAULT:
+            return "Default";
     }
+    return "Unknown";
 }
 
 /**
@@ -177,14 +197,16 @@ static constexpr const char* backendToString(Backend backend) {
  * - The Metal backend can prefer precompiled Metal libraries, while falling back to MSL.
  */
 enum class ShaderLanguage {
+    UNSPECIFIED = -1,
     ESSL1 = 0,
     ESSL3 = 1,
     SPIRV = 2,
     MSL = 3,
     METAL_LIBRARY = 4,
+    WGSL = 5,
 };
 
-static constexpr const char* shaderLanguageToString(ShaderLanguage shaderLanguage) {
+constexpr const char* shaderLanguageToString(ShaderLanguage shaderLanguage) noexcept {
     switch (shaderLanguage) {
         case ShaderLanguage::ESSL1:
             return "ESSL 1.0";
@@ -196,7 +218,12 @@ static constexpr const char* shaderLanguageToString(ShaderLanguage shaderLanguag
             return "MSL";
         case ShaderLanguage::METAL_LIBRARY:
             return "Metal precompiled library";
+        case ShaderLanguage::WGSL:
+            return "WGSL";
+        case ShaderLanguage::UNSPECIFIED:
+            return "Unspecified";
     }
+    return "UNKNOWN";
 }
 
 enum class ShaderStage : uint8_t {
@@ -214,7 +241,7 @@ enum class ShaderStageFlags : uint8_t {
     ALL_SHADER_STAGE_FLAGS = VERTEX | FRAGMENT | COMPUTE
 };
 
-static inline constexpr bool hasShaderType(ShaderStageFlags flags, ShaderStage type) noexcept {
+constexpr bool hasShaderType(ShaderStageFlags flags, ShaderStage type) noexcept {
     switch (type) {
         case ShaderStage::VERTEX:
             return bool(uint8_t(flags) & uint8_t(ShaderStageFlags::VERTEX));
@@ -225,44 +252,275 @@ static inline constexpr bool hasShaderType(ShaderStageFlags flags, ShaderStage t
     }
 }
 
-enum class DescriptorType : uint8_t {
-    UNIFORM_BUFFER,
-    SHADER_STORAGE_BUFFER,
-    SAMPLER,
-    INPUT_ATTACHMENT,
-    SAMPLER_EXTERNAL
+enum class TextureType : uint8_t {
+    FLOAT,
+    INT,
+    UINT,
+    DEPTH,
+    STENCIL,
+    DEPTH_STENCIL
 };
+
+constexpr std::string_view to_string(TextureType type) noexcept {
+    switch (type) {
+        case TextureType::FLOAT:            return "FLOAT";
+        case TextureType::INT:              return "INT";
+        case TextureType::UINT:             return "UINT";
+        case TextureType::DEPTH:            return "DEPTH";
+        case TextureType::STENCIL:          return "STENCIL";
+        case TextureType::DEPTH_STENCIL:    return "DEPTH_STENCIL";
+    }
+    return "UNKNOWN";
+}
+
+ enum class DescriptorType : uint8_t {
+     SAMPLER_2D_FLOAT,
+     SAMPLER_2D_INT,
+     SAMPLER_2D_UINT,
+     SAMPLER_2D_DEPTH,
+
+     SAMPLER_2D_ARRAY_FLOAT,
+     SAMPLER_2D_ARRAY_INT,
+     SAMPLER_2D_ARRAY_UINT,
+     SAMPLER_2D_ARRAY_DEPTH,
+
+     SAMPLER_CUBE_FLOAT,
+     SAMPLER_CUBE_INT,
+     SAMPLER_CUBE_UINT,
+     SAMPLER_CUBE_DEPTH,
+
+     SAMPLER_CUBE_ARRAY_FLOAT,
+     SAMPLER_CUBE_ARRAY_INT,
+     SAMPLER_CUBE_ARRAY_UINT,
+     SAMPLER_CUBE_ARRAY_DEPTH,
+
+     SAMPLER_3D_FLOAT,
+     SAMPLER_3D_INT,
+     SAMPLER_3D_UINT,
+
+     SAMPLER_2D_MS_FLOAT,
+     SAMPLER_2D_MS_INT,
+     SAMPLER_2D_MS_UINT,
+
+     SAMPLER_2D_MS_ARRAY_FLOAT,
+     SAMPLER_2D_MS_ARRAY_INT,
+     SAMPLER_2D_MS_ARRAY_UINT,
+
+     SAMPLER_EXTERNAL,
+     UNIFORM_BUFFER,
+     SHADER_STORAGE_BUFFER,
+     INPUT_ATTACHMENT,
+ };
+
+constexpr bool isDepthDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_2D_DEPTH:
+        case DescriptorType::SAMPLER_2D_ARRAY_DEPTH:
+        case DescriptorType::SAMPLER_CUBE_DEPTH:
+        case DescriptorType::SAMPLER_CUBE_ARRAY_DEPTH:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool isFloatDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_2D_FLOAT:
+        case DescriptorType::SAMPLER_2D_ARRAY_FLOAT:
+        case DescriptorType::SAMPLER_CUBE_FLOAT:
+        case DescriptorType::SAMPLER_CUBE_ARRAY_FLOAT:
+        case DescriptorType::SAMPLER_3D_FLOAT:
+        case DescriptorType::SAMPLER_2D_MS_FLOAT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_FLOAT:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool isIntDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_2D_INT:
+        case DescriptorType::SAMPLER_2D_ARRAY_INT:
+        case DescriptorType::SAMPLER_CUBE_INT:
+        case DescriptorType::SAMPLER_CUBE_ARRAY_INT:
+        case DescriptorType::SAMPLER_3D_INT:
+        case DescriptorType::SAMPLER_2D_MS_INT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_INT:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool isUnsignedIntDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_2D_UINT:
+        case DescriptorType::SAMPLER_2D_ARRAY_UINT:
+        case DescriptorType::SAMPLER_CUBE_UINT:
+        case DescriptorType::SAMPLER_CUBE_ARRAY_UINT:
+        case DescriptorType::SAMPLER_3D_UINT:
+        case DescriptorType::SAMPLER_2D_MS_UINT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_UINT:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool is3dTypeDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_3D_FLOAT:
+        case DescriptorType::SAMPLER_3D_INT:
+        case DescriptorType::SAMPLER_3D_UINT:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool is2dTypeDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_2D_FLOAT:
+        case DescriptorType::SAMPLER_2D_INT:
+        case DescriptorType::SAMPLER_2D_UINT:
+        case DescriptorType::SAMPLER_2D_DEPTH:
+        case DescriptorType::SAMPLER_2D_MS_FLOAT:
+        case DescriptorType::SAMPLER_2D_MS_INT:
+        case DescriptorType::SAMPLER_2D_MS_UINT:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool is2dArrayTypeDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_2D_ARRAY_FLOAT:
+        case DescriptorType::SAMPLER_2D_ARRAY_INT:
+        case DescriptorType::SAMPLER_2D_ARRAY_UINT:
+        case DescriptorType::SAMPLER_2D_ARRAY_DEPTH:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_FLOAT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_INT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_UINT:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool isCubeTypeDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_CUBE_FLOAT:
+        case DescriptorType::SAMPLER_CUBE_INT:
+        case DescriptorType::SAMPLER_CUBE_UINT:
+        case DescriptorType::SAMPLER_CUBE_DEPTH:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool isCubeArrayTypeDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_CUBE_ARRAY_FLOAT:
+        case DescriptorType::SAMPLER_CUBE_ARRAY_INT:
+        case DescriptorType::SAMPLER_CUBE_ARRAY_UINT:
+        case DescriptorType::SAMPLER_CUBE_ARRAY_DEPTH:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr bool isMultiSampledTypeDescriptor(DescriptorType const type) noexcept {
+    switch (type) {
+        case DescriptorType::SAMPLER_2D_MS_FLOAT:
+        case DescriptorType::SAMPLER_2D_MS_INT:
+        case DescriptorType::SAMPLER_2D_MS_UINT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_FLOAT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_INT:
+        case DescriptorType::SAMPLER_2D_MS_ARRAY_UINT:
+            return true;
+        default: ;
+    }
+    return false;
+}
+
+constexpr std::string_view to_string(DescriptorType type) noexcept {
+    #define DESCRIPTOR_TYPE_CASE(TYPE)  case DescriptorType::TYPE: return #TYPE;
+    switch (type) {
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_FLOAT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_INT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_UINT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_DEPTH)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_ARRAY_FLOAT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_ARRAY_INT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_ARRAY_UINT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_ARRAY_DEPTH)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_FLOAT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_INT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_UINT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_DEPTH)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_ARRAY_FLOAT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_ARRAY_INT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_ARRAY_UINT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_CUBE_ARRAY_DEPTH)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_3D_FLOAT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_3D_INT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_3D_UINT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_MS_FLOAT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_MS_INT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_MS_UINT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_MS_ARRAY_FLOAT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_MS_ARRAY_INT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_2D_MS_ARRAY_UINT)
+        DESCRIPTOR_TYPE_CASE(SAMPLER_EXTERNAL)
+        DESCRIPTOR_TYPE_CASE(UNIFORM_BUFFER)
+        DESCRIPTOR_TYPE_CASE(SHADER_STORAGE_BUFFER)
+        DESCRIPTOR_TYPE_CASE(INPUT_ATTACHMENT)
+    }
+    return "UNKNOWN";
+    #undef DESCRIPTOR_TYPE_CASE
+}
 
 enum class DescriptorFlags : uint8_t {
     NONE = 0x00,
-    DYNAMIC_OFFSET = 0x01
+
+    // Indicate a UNIFORM_BUFFER will have dynamic offsets.
+    DYNAMIC_OFFSET = 0x01,
+
+    // To indicate a texture/sampler type should be unfiltered.
+    UNFILTERABLE = 0x02,
 };
 
 using descriptor_set_t = uint8_t;
 
 using descriptor_binding_t = uint8_t;
 
-struct DescriptorSetLayoutBinding {
+struct DescriptorSetLayoutDescriptor {
+    static bool isSampler(DescriptorType type) noexcept {
+        return int(type) <= int(DescriptorType::SAMPLER_EXTERNAL);
+    }
+    static bool isBuffer(DescriptorType type) noexcept {
+        return type == DescriptorType::UNIFORM_BUFFER ||
+               type == DescriptorType::SHADER_STORAGE_BUFFER;
+    }
     DescriptorType type;
     ShaderStageFlags stageFlags;
     descriptor_binding_t binding;
     DescriptorFlags flags = DescriptorFlags::NONE;
     uint16_t count = 0;
 
-    friend inline bool operator==(
-            DescriptorSetLayoutBinding const& lhs,
-            DescriptorSetLayoutBinding const& rhs) noexcept {
+    friend bool operator==(DescriptorSetLayoutDescriptor const& lhs,
+            DescriptorSetLayoutDescriptor const& rhs) noexcept {
         return lhs.type == rhs.type &&
                lhs.flags == rhs.flags &&
                lhs.count == rhs.count &&
                lhs.stageFlags == rhs.stageFlags;
     }
 };
-
-struct DescriptorSetLayout {
-    utils::FixedCapacityVector<DescriptorSetLayoutBinding> bindings;
-};
-
 
 /**
  * Bitmask for selecting render buffers
@@ -286,7 +544,7 @@ enum class TargetBufferFlags : uint32_t {
     ALL = COLOR_ALL | DEPTH | STENCIL       //!< Color, depth and stencil buffer selected.
 };
 
-inline constexpr TargetBufferFlags getTargetBufferFlagsAt(size_t index) noexcept {
+constexpr TargetBufferFlags getTargetBufferFlagsAt(size_t index) noexcept {
     if (index == 0u) return TargetBufferFlags::COLOR0;
     if (index == 1u) return TargetBufferFlags::COLOR1;
     if (index == 2u) return TargetBufferFlags::COLOR2;
@@ -301,12 +559,21 @@ inline constexpr TargetBufferFlags getTargetBufferFlagsAt(size_t index) noexcept
 }
 
 /**
- * Frequency at which a buffer is expected to be modified and used. This is used as an hint
- * for the driver to make better decisions about managing memory internally.
+ * How the buffer will be used.
  */
 enum class BufferUsage : uint8_t {
-    STATIC,      //!< content modified once, used many times
-    DYNAMIC,     //!< content modified frequently, used many times
+    STATIC              = 0,    //!< (legacy) content modified once, used many times
+    DYNAMIC             = 1,    //!< (legacy) content modified frequently, used many times
+    DYNAMIC_BIT         = 0x1,  //!< buffer can be modified frequently, used many times
+    SHARED_WRITE_BIT    = 0x04, //!< buffer can be memory mapped for write operations
+};
+
+/**
+ * How the buffer will be mapped.
+ */
+enum class MapBufferAccessFlags : uint8_t {
+    WRITE_BIT               = 0x2,  //!< buffer is mapped from writing
+    INVALIDATE_RANGE_BIT    = 0x4,  //!< the mapped range content is lost
 };
 
 /**
@@ -372,6 +639,15 @@ enum class ShaderModel : uint8_t {
 };
 static constexpr size_t SHADER_MODEL_COUNT = 2;
 
+constexpr std::string_view to_string(ShaderModel model) noexcept {
+    switch (model) {
+        case ShaderModel::MOBILE:
+            return "mobile";
+        case ShaderModel::DESKTOP:
+            return "desktop";
+    }
+}
+
 /**
  * Primitive types
  */
@@ -383,6 +659,18 @@ enum class PrimitiveType : uint8_t {
     TRIANGLES      = 4,    //!< triangles
     TRIANGLE_STRIP = 5     //!< triangle strip
 };
+
+[[nodiscard]] constexpr bool isStripPrimitiveType(const PrimitiveType type) {
+    switch (type) {
+        case PrimitiveType::POINTS:
+        case PrimitiveType::LINES:
+        case PrimitiveType::TRIANGLES:
+            return false;
+        case PrimitiveType::LINE_STRIP:
+        case PrimitiveType::TRIANGLE_STRIP:
+            return true;
+    }
+}
 
 /**
  * Supported uniform types
@@ -425,11 +713,29 @@ enum class Precision : uint8_t {
     DEFAULT
 };
 
+union ConstantValue {
+    int32_t i;
+    float f;
+    bool b;
+};
+
 /**
  * Shader compiler priority queue
+ *
+ * On platforms which support parallel shader compilation, compilation requests will be processed in
+ * order of priority, then insertion order. See Material::compile().
  */
 enum class CompilerPriorityQueue : uint8_t {
+    /** We need this program NOW.
+     *
+     * When passed as an argument to Material::compile(), if the platform doesn't support parallel
+     * compilation, but does support amortized shader compilation, the given shader program will be
+     * synchronously compiled.
+     */
+    CRITICAL,
+    /** We will need this program soon. */
     HIGH,
+    /** We will need this program eventually. */
     LOW
 };
 
@@ -443,6 +749,24 @@ enum class SamplerType : uint8_t {
     SAMPLER_CUBEMAP_ARRAY,  //!< Cube map array texture (feature level 2)
 };
 
+constexpr std::string_view to_string(SamplerType const type) noexcept {
+    switch (type) {
+        case SamplerType::SAMPLER_2D:
+            return "SAMPLER_2D";
+        case SamplerType::SAMPLER_2D_ARRAY:
+            return "SAMPLER_2D_ARRAY";
+        case SamplerType::SAMPLER_CUBEMAP:
+            return "SAMPLER_CUBEMAP";
+        case SamplerType::SAMPLER_EXTERNAL:
+            return "SAMPLER_EXTERNAL";
+        case SamplerType::SAMPLER_3D:
+            return "SAMPLER_3D";
+        case SamplerType::SAMPLER_CUBEMAP_ARRAY:
+            return "SAMPLER_CUBEMAP_ARRAY";
+    }
+    return "Unknown";
+}
+
 //! Subpass type
 enum class SubpassType : uint8_t {
     SUBPASS_INPUT
@@ -455,6 +779,20 @@ enum class SamplerFormat : uint8_t {
     FLOAT = 2,      //!< float sampler
     SHADOW = 3      //!< shadow sampler (PCF)
 };
+
+constexpr std::string_view to_string(SamplerFormat const format) noexcept {
+    switch (format) {
+        case SamplerFormat::INT:
+            return "INT";
+        case SamplerFormat::UINT:
+            return "UINT";
+        case SamplerFormat::FLOAT:
+            return "FLOAT";
+        case SamplerFormat::SHADOW:
+            return "SHADOW";
+    }
+    return "Unknown";
+}
 
 /**
  * Supported element types
@@ -494,6 +832,15 @@ enum class BufferObjectBinding : uint8_t {
     UNIFORM,
     SHADER_STORAGE
 };
+
+constexpr std::string_view to_string(BufferObjectBinding type) noexcept {
+    switch (type) {
+        case BufferObjectBinding::VERTEX:           return "VERTEX";
+        case BufferObjectBinding::UNIFORM:          return "UNIFORM";
+        case BufferObjectBinding::SHADER_STORAGE:   return "SHADER_STORAGE";
+    }
+    return "UNKNOWN";
+}
 
 //! Face culling Mode
 enum class CullingMode : uint8_t {
@@ -662,99 +1009,102 @@ enum class CompressedPixelDataType : uint16_t {
  *
  * @see Texture
  */
+// The [index] comments indicate the corresponding uint16_t values.
 enum class TextureFormat : uint16_t {
     // 8-bits per element
-    R8, R8_SNORM, R8UI, R8I, STENCIL8,
+    R8, R8_SNORM, R8UI, R8I, STENCIL8, // [0 - 4]
 
     // 16-bits per element
-    R16F, R16UI, R16I,
-    RG8, RG8_SNORM, RG8UI, RG8I,
-    RGB565,
-    RGB9_E5, // 9995 is actually 32 bpp but it's here for historical reasons.
-    RGB5_A1,
-    RGBA4,
-    DEPTH16,
+    R16F, R16UI, R16I, // [5 - 7]
+    RG8, RG8_SNORM, RG8UI, RG8I, // [8 - 11]
+    RGB565, // [12]
+    RGB9_E5, // 9995 is actually 32 bpp but it's here for historical reasons. [13]
+    RGB5_A1, // [14]
+    RGBA4, // [15]
+    DEPTH16, // [16]
 
     // 24-bits per element
-    RGB8, SRGB8, RGB8_SNORM, RGB8UI, RGB8I,
-    DEPTH24,
+    RGB8, SRGB8, RGB8_SNORM, RGB8UI, RGB8I, // [17 - 21]
+    DEPTH24, // [22]
 
     // 32-bits per element
-    R32F, R32UI, R32I,
-    RG16F, RG16UI, RG16I,
-    R11F_G11F_B10F,
-    RGBA8, SRGB8_A8,RGBA8_SNORM,
-    UNUSED, // used to be rgbm
-    RGB10_A2, RGBA8UI, RGBA8I,
-    DEPTH32F, DEPTH24_STENCIL8, DEPTH32F_STENCIL8,
+    R32F, R32UI, R32I, // [23 - 25]
+    RG16F, RG16UI, RG16I, // [26 - 28]
+    R11F_G11F_B10F, // [29]
+    RGBA8, SRGB8_A8,RGBA8_SNORM, // [30 - 32]
+    UNUSED, // used to be rgbm [33]
+    RGB10_A2, RGBA8UI, RGBA8I, // [34 - 36]
+    DEPTH32F, DEPTH24_STENCIL8, DEPTH32F_STENCIL8, // [37 - 39]
 
     // 48-bits per element
-    RGB16F, RGB16UI, RGB16I,
+    RGB16F, RGB16UI, RGB16I, // [40 - 42]
 
     // 64-bits per element
-    RG32F, RG32UI, RG32I,
-    RGBA16F, RGBA16UI, RGBA16I,
+    RG32F, RG32UI, RG32I, // [43 - 45]
+    RGBA16F, RGBA16UI, RGBA16I, // [46 - 48]
 
     // 96-bits per element
-    RGB32F, RGB32UI, RGB32I,
+    RGB32F, RGB32UI, RGB32I, // [49 - 51]
 
     // 128-bits per element
-    RGBA32F, RGBA32UI, RGBA32I,
+    RGBA32F, RGBA32UI, RGBA32I, // [52 - 54]
 
     // compressed formats
 
     // Mandatory in GLES 3.0 and GL 4.3
-    EAC_R11, EAC_R11_SIGNED, EAC_RG11, EAC_RG11_SIGNED,
-    ETC2_RGB8, ETC2_SRGB8,
-    ETC2_RGB8_A1, ETC2_SRGB8_A1,
-    ETC2_EAC_RGBA8, ETC2_EAC_SRGBA8,
+    EAC_R11, EAC_R11_SIGNED, EAC_RG11, EAC_RG11_SIGNED, // [55 - 58]
+    ETC2_RGB8, ETC2_SRGB8, // [59 - 60]
+    ETC2_RGB8_A1, ETC2_SRGB8_A1, // [61 - 62]
+    ETC2_EAC_RGBA8, ETC2_EAC_SRGBA8, // [63 - 64]
 
     // Available everywhere except Android/iOS
-    DXT1_RGB, DXT1_RGBA, DXT3_RGBA, DXT5_RGBA,
-    DXT1_SRGB, DXT1_SRGBA, DXT3_SRGBA, DXT5_SRGBA,
+    DXT1_RGB, DXT1_RGBA, DXT3_RGBA, DXT5_RGBA, // [65 - 68]
+    DXT1_SRGB, DXT1_SRGBA, DXT3_SRGBA, DXT5_SRGBA, // [69 - 72]
 
     // ASTC formats are available with a GLES extension
-    RGBA_ASTC_4x4,
-    RGBA_ASTC_5x4,
-    RGBA_ASTC_5x5,
-    RGBA_ASTC_6x5,
-    RGBA_ASTC_6x6,
-    RGBA_ASTC_8x5,
-    RGBA_ASTC_8x6,
-    RGBA_ASTC_8x8,
-    RGBA_ASTC_10x5,
-    RGBA_ASTC_10x6,
-    RGBA_ASTC_10x8,
-    RGBA_ASTC_10x10,
-    RGBA_ASTC_12x10,
-    RGBA_ASTC_12x12,
-    SRGB8_ALPHA8_ASTC_4x4,
-    SRGB8_ALPHA8_ASTC_5x4,
-    SRGB8_ALPHA8_ASTC_5x5,
-    SRGB8_ALPHA8_ASTC_6x5,
-    SRGB8_ALPHA8_ASTC_6x6,
-    SRGB8_ALPHA8_ASTC_8x5,
-    SRGB8_ALPHA8_ASTC_8x6,
-    SRGB8_ALPHA8_ASTC_8x8,
-    SRGB8_ALPHA8_ASTC_10x5,
-    SRGB8_ALPHA8_ASTC_10x6,
-    SRGB8_ALPHA8_ASTC_10x8,
-    SRGB8_ALPHA8_ASTC_10x10,
-    SRGB8_ALPHA8_ASTC_12x10,
-    SRGB8_ALPHA8_ASTC_12x12,
+    RGBA_ASTC_4x4, // [73]
+    RGBA_ASTC_5x4, // [74]
+    RGBA_ASTC_5x5, // [75]
+    RGBA_ASTC_6x5, // [76]
+    RGBA_ASTC_6x6, // [77]
+    RGBA_ASTC_8x5, // [78]
+    RGBA_ASTC_8x6, // [79]
+    RGBA_ASTC_8x8, // [80]
+    RGBA_ASTC_10x5, // [81]
+    RGBA_ASTC_10x6, // [82]
+    RGBA_ASTC_10x8, // [83]
+    RGBA_ASTC_10x10, // [84]
+    RGBA_ASTC_12x10, // [85]
+    RGBA_ASTC_12x12, // [86]
+    SRGB8_ALPHA8_ASTC_4x4, // [87]
+    SRGB8_ALPHA8_ASTC_5x4, // [88]
+    SRGB8_ALPHA8_ASTC_5x5, // [89]
+    SRGB8_ALPHA8_ASTC_6x5, // [90]
+    SRGB8_ALPHA8_ASTC_6x6, // [91]
+    SRGB8_ALPHA8_ASTC_8x5, // [92]
+    SRGB8_ALPHA8_ASTC_8x6, // [93]
+    SRGB8_ALPHA8_ASTC_8x8, // [94]
+    SRGB8_ALPHA8_ASTC_10x5, // [95]
+    SRGB8_ALPHA8_ASTC_10x6, // [96]
+    SRGB8_ALPHA8_ASTC_10x8, // [97]
+    SRGB8_ALPHA8_ASTC_10x10, // [98]
+    SRGB8_ALPHA8_ASTC_12x10, // [99]
+    SRGB8_ALPHA8_ASTC_12x12, // [100]
 
     // RGTC formats available with a GLES extension
-    RED_RGTC1,              // BC4 unsigned
-    SIGNED_RED_RGTC1,       // BC4 signed
-    RED_GREEN_RGTC2,        // BC5 unsigned
-    SIGNED_RED_GREEN_RGTC2, // BC5 signed
+    RED_RGTC1,              // BC4 unsigned [101]
+    SIGNED_RED_RGTC1,       // BC4 signed [102]
+    RED_GREEN_RGTC2,        // BC5 unsigned [103]
+    SIGNED_RED_GREEN_RGTC2, // BC5 signed [104]
 
     // BPTC formats available with a GLES extension
-    RGB_BPTC_SIGNED_FLOAT,  // BC6H signed
-    RGB_BPTC_UNSIGNED_FLOAT,// BC6H unsigned
-    RGBA_BPTC_UNORM,        // BC7
-    SRGB_ALPHA_BPTC_UNORM,  // BC7 sRGB
+    RGB_BPTC_SIGNED_FLOAT,  // BC6H signed [105]
+    RGB_BPTC_UNSIGNED_FLOAT,// BC6H unsigned [106]
+    RGBA_BPTC_UNORM,        // BC7 [107]
+    SRGB_ALPHA_BPTC_UNORM,  // BC7 sRGB [108]
 };
+
+TextureType getTextureType(TextureFormat format) noexcept;
 
 //! Bitmask describing the intended Texture Usage
 enum class TextureUsage : uint16_t {
@@ -768,6 +1118,7 @@ enum class TextureUsage : uint16_t {
     BLIT_SRC            = 0x0040,            //!< Texture can be used the source of a blit()
     BLIT_DST            = 0x0080,            //!< Texture can be used the destination of a blit()
     PROTECTED           = 0x0100,            //!< Texture can be used for protected content
+    GEN_MIPMAPPABLE     = 0x0200,            //!< Texture can be used with generateMipmaps()
     DEFAULT             = UPLOADABLE | SAMPLEABLE,   //!< Default texture usage
     ALL_ATTACHMENTS     = COLOR_ATTACHMENT | DEPTH_ATTACHMENT | STENCIL_ATTACHMENT | SUBPASS_INPUT,   //!< Mask of all attachments
 };
@@ -783,7 +1134,7 @@ enum class TextureSwizzle : uint8_t {
 };
 
 //! returns whether this format a depth format
-static constexpr bool isDepthFormat(TextureFormat format) noexcept {
+constexpr bool isDepthFormat(TextureFormat format) noexcept {
     switch (format) {
         case TextureFormat::DEPTH32F:
         case TextureFormat::DEPTH24:
@@ -796,7 +1147,7 @@ static constexpr bool isDepthFormat(TextureFormat format) noexcept {
     }
 }
 
-static constexpr bool isStencilFormat(TextureFormat format) noexcept {
+constexpr bool isStencilFormat(TextureFormat format) noexcept {
     switch (format) {
         case TextureFormat::STENCIL8:
         case TextureFormat::DEPTH24_STENCIL8:
@@ -807,7 +1158,34 @@ static constexpr bool isStencilFormat(TextureFormat format) noexcept {
     }
 }
 
-static constexpr bool isUnsignedIntFormat(TextureFormat format) {
+constexpr bool isColorFormat(TextureFormat format) noexcept {
+    switch (format) {
+        // Standard color formats
+        case TextureFormat::R8:
+        case TextureFormat::RG8:
+        case TextureFormat::RGBA8:
+        case TextureFormat::R16F:
+        case TextureFormat::RG16F:
+        case TextureFormat::RGBA16F:
+        case TextureFormat::R32F:
+        case TextureFormat::RG32F:
+        case TextureFormat::RGBA32F:
+        case TextureFormat::RGB10_A2:
+        case TextureFormat::R11F_G11F_B10F:
+        case TextureFormat::SRGB8:
+        case TextureFormat::SRGB8_A8:
+        case TextureFormat::RGB8:
+        case TextureFormat::RGB565:
+        case TextureFormat::RGB5_A1:
+        case TextureFormat::RGBA4:
+            return true;
+        default:
+            break;
+    }
+    return false;
+}
+
+constexpr bool isUnsignedIntFormat(TextureFormat format) {
     switch (format) {
         case TextureFormat::R8UI:
         case TextureFormat::R16UI:
@@ -828,7 +1206,7 @@ static constexpr bool isUnsignedIntFormat(TextureFormat format) {
     }
 }
 
-static constexpr bool isSignedIntFormat(TextureFormat format) {
+constexpr bool isSignedIntFormat(TextureFormat format) {
     switch (format) {
         case TextureFormat::R8I:
         case TextureFormat::R16I:
@@ -850,35 +1228,35 @@ static constexpr bool isSignedIntFormat(TextureFormat format) {
 }
 
 //! returns whether this format is a compressed format
-static constexpr bool isCompressedFormat(TextureFormat format) noexcept {
+constexpr bool isCompressedFormat(TextureFormat format) noexcept {
     return format >= TextureFormat::EAC_R11;
 }
 
 //! returns whether this format is an ETC2 compressed format
-static constexpr bool isETC2Compression(TextureFormat format) noexcept {
+constexpr bool isETC2Compression(TextureFormat format) noexcept {
     return format >= TextureFormat::EAC_R11 && format <= TextureFormat::ETC2_EAC_SRGBA8;
 }
 
 //! returns whether this format is an S3TC compressed format
-static constexpr bool isS3TCCompression(TextureFormat format) noexcept {
+constexpr bool isS3TCCompression(TextureFormat format) noexcept {
     return format >= TextureFormat::DXT1_RGB && format <= TextureFormat::DXT5_SRGBA;
 }
 
-static constexpr bool isS3TCSRGBCompression(TextureFormat format) noexcept {
+constexpr bool isS3TCSRGBCompression(TextureFormat format) noexcept {
     return format >= TextureFormat::DXT1_SRGB && format <= TextureFormat::DXT5_SRGBA;
 }
 
 //! returns whether this format is an RGTC compressed format
-static constexpr bool isRGTCCompression(TextureFormat format) noexcept {
+constexpr bool isRGTCCompression(TextureFormat format) noexcept {
     return format >= TextureFormat::RED_RGTC1 && format <= TextureFormat::SIGNED_RED_GREEN_RGTC2;
 }
 
 //! returns whether this format is an BPTC compressed format
-static constexpr bool isBPTCCompression(TextureFormat format) noexcept {
+constexpr bool isBPTCCompression(TextureFormat format) noexcept {
     return format >= TextureFormat::RGB_BPTC_SIGNED_FLOAT && format <= TextureFormat::SRGB_ALPHA_BPTC_UNORM;
 }
 
-static constexpr bool isASTCCompression(TextureFormat format) noexcept {
+constexpr bool isASTCCompression(TextureFormat format) noexcept {
     return format >= TextureFormat::RGBA_ASTC_4x4 && format <= TextureFormat::SRGB8_ALPHA8_ASTC_12x12;
 }
 
@@ -939,7 +1317,7 @@ enum class SamplerCompareFunc : uint8_t {
 };
 
 //! Sampler parameters
-struct SamplerParams { // NOLINT
+struct SamplerParams {             // NOLINT
     SamplerMagFilter filterMag      : 1;    //!< magnification filter (NEAREST)
     SamplerMinFilter filterMin      : 3;    //!< minification filter  (NEAREST)
     SamplerWrapMode wrapS           : 2;    //!< s-coordinate wrap mode (CLAMP_TO_EDGE)
@@ -979,27 +1357,37 @@ struct SamplerParams { // NOLINT
             assert_invariant(lhs.padding2 == 0);
             auto* pLhs = reinterpret_cast<uint32_t const*>(reinterpret_cast<char const*>(&lhs));
             auto* pRhs = reinterpret_cast<uint32_t const*>(reinterpret_cast<char const*>(&rhs));
-            return *pLhs == *pRhs;
+            return *pLhs < *pRhs;
         }
     };
 
+    bool isFiltered() const noexcept {
+        return filterMag != SamplerMagFilter::NEAREST || filterMin != SamplerMinFilter::NEAREST;
+    }
+
 private:
-    friend inline bool operator == (SamplerParams lhs, SamplerParams rhs) noexcept {
-        return SamplerParams::EqualTo{}(lhs, rhs);
+    friend bool operator == (SamplerParams lhs, SamplerParams rhs) noexcept {
+        return EqualTo{}(lhs, rhs);
     }
-    friend inline bool operator != (SamplerParams lhs, SamplerParams rhs) noexcept {
-        return  !SamplerParams::EqualTo{}(lhs, rhs);
+    friend bool operator != (SamplerParams lhs, SamplerParams rhs) noexcept {
+        return  !EqualTo{}(lhs, rhs);
     }
-    friend inline bool operator < (SamplerParams lhs, SamplerParams rhs) noexcept {
-        return SamplerParams::LessThan{}(lhs, rhs);
+    friend bool operator < (SamplerParams lhs, SamplerParams rhs) noexcept {
+        return LessThan{}(lhs, rhs);
     }
 };
+
 static_assert(sizeof(SamplerParams) == 4);
 
 // The limitation to 64-bits max comes from how we store a SamplerParams in our JNI code
 // see android/.../TextureSampler.cpp
 static_assert(sizeof(SamplerParams) <= sizeof(uint64_t),
         "SamplerParams must be no more than 64 bits");
+
+struct DescriptorSetLayout {
+    std::variant<utils::StaticString, utils::CString, std::monostate> label;
+    utils::FixedCapacityVector<DescriptorSetLayoutDescriptor> descriptors;
+};
 
 //! blending equation function
 enum class BlendEquation : uint8_t {
@@ -1294,7 +1682,7 @@ static_assert(sizeof(StencilState::StencilOperations) == 5u,
 static_assert(sizeof(StencilState) == 12u,
         "StencilState size not what was intended");
 
-using FrameScheduledCallback = utils::Invocable<void(backend::PresentCallable)>;
+using FrameScheduledCallback = utils::Invocable<void(PresentCallable)>;
 
 enum class Workaround : uint16_t {
     // The EASU pass must split because shader compiler flattens early-exit branch
@@ -1311,9 +1699,28 @@ enum class Workaround : uint16_t {
     DISABLE_BLIT_INTO_TEXTURE_ARRAY,
     // Multiple workarounds needed for PowerVR GPUs
     POWER_VR_SHADER_WORKAROUNDS,
+    // Some browsers, such as Firefox on Mac, struggle with slow shader compile/link times when
+    // creating programs for the default material, leading to startup stutters. This workaround
+    // prevents these stutters by not precaching depth variants of the default material for those
+    // particular browsers.
+    DISABLE_DEPTH_PRECACHE_FOR_DEFAULT_MATERIAL,
+    // Emulate an sRGB swapchain in shader code.
+    EMULATE_SRGB_SWAPCHAIN,
 };
 
-using StereoscopicType = backend::Platform::StereoscopicType;
+using StereoscopicType = Platform::StereoscopicType;
+
+using FrameTimestamps = Platform::FrameTimestamps;
+
+using CompositorTiming = Platform::CompositorTiming;
+
+using AsynchronousMode = Platform::AsynchronousMode;
+
+using AsyncCallId = uint32_t;
+
+static constexpr AsyncCallId InvalidAsyncCallId = std::numeric_limits<AsyncCallId>::max();
+
+using AsynchronousMode = Platform::AsynchronousMode;
 
 } // namespace filament::backend
 
@@ -1327,6 +1734,11 @@ template<> struct utils::EnableBitMaskOperators<filament::backend::TextureUsage>
         : public std::true_type {};
 template<> struct utils::EnableBitMaskOperators<filament::backend::StencilFace>
         : public std::true_type {};
+template<> struct utils::EnableBitMaskOperators<filament::backend::BufferUsage>
+        : public std::true_type {};
+template<> struct utils::EnableBitMaskOperators<filament::backend::MapBufferAccessFlags>
+        : public std::true_type {};
+
 template<> struct utils::EnableIntegerOperators<filament::backend::TextureCubemapFace>
         : public std::true_type {};
 template<> struct utils::EnableIntegerOperators<filament::backend::FeatureLevel>

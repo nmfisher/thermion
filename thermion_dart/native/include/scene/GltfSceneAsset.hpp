@@ -1,8 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
+#include "../c_api/APIBoundaryTypes.h"
+
+#include <filament/BufferObject.h>
 #include <filament/Engine.h>
 #include <filament/RenderableManager.h>
 #include <filament/VertexBuffer.h>
@@ -31,6 +35,7 @@ namespace thermion
             gltfio::AssetLoader *assetLoader,
             Engine *engine,
             utils::NameComponentManager* ncm,
+            bool rebuildVertices = false,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 
@@ -127,7 +132,6 @@ namespace thermion
         }
 
         Entity findEntityByName(const char* name) override { 
-            TRACE("Searching for entity with name %s", name);
             Entity entities[1];
             auto found = _asset->getEntitiesByName(name, entities, 1);
             return entities[0];
@@ -137,6 +141,54 @@ namespace thermion
             return _asset->getBoundingBox();
         }
 
+        /// Rebuild all mesh primitives with a superset vertex buffer layout
+        /// (POSITION + TANGENTS + UV0 + CUSTOM0 + optional BONE_INDICES/WEIGHTS).
+        /// Unwelds vertices so each triangle has unique vertices for barycentric
+        /// wireframe rendering. After this, materials can be freely swapped via
+        /// setMaterialInstanceAt. Requires source data to still be available.
+        void rebuildVertexBuffers();
+
+        /// Toggle between flat (per-face) and smooth (per-vertex) shading.
+        /// Only valid after rebuildVertexBuffers() has been called.
+        /// Swaps the TANGENTS buffer object on all preserved vertex buffers.
+        void setFlatShading(bool flatShading);
+
+        /// Release the underlying cgltf source data early to free memory.
+        /// Safe to call multiple times; subsequent calls are no-ops.
+        void releaseSourceData();
+
+        bool geometryPreserved() const { return _geometryPreserved; }
+
+        /// Returns the preserved vertex buffer at the given index, or nullptr.
+        VertexBuffer* getPreservedVertexBuffer(size_t index) const {
+            if (index < _preservedVertexBuffers.size()) {
+                return _preservedVertexBuffers[index];
+            }
+            return nullptr;
+        }
+
+        /// Returns the preserved index buffer at the given index, or nullptr.
+        IndexBuffer* getPreservedIndexBuffer(size_t index) const {
+            if (index < _preservedIndexBuffers.size()) {
+                return _preservedIndexBuffers[index];
+            }
+            return nullptr;
+        }
+
+        /// Returns the number of preserved vertex buffers.
+        size_t getPreservedVertexBufferCount() const {
+            return _preservedVertexBuffers.size();
+        }
+
+        /// Returns the starting primitive offset for the given entity, or -1 if
+        /// the entity has no preserved geometry (e.g., non-triangle primitives
+        /// or no mesh match during rebuild).
+        int getPrimitiveOffsetForEntity(utils::Entity entity) const;
+
+        size_t getBoneCount(size_t skinIndex) const override;
+        const utils::Entity *getBones(size_t skinIndex) const override;
+        const char *getBoneName(size_t skinIndex, size_t boneIndex) const override;
+
     private:
         gltfio::FilamentAsset *_asset;
         gltfio::AssetLoader *_assetLoader;
@@ -145,6 +197,23 @@ namespace thermion
         MaterialInstance **_materialInstances = nullptr;
         size_t _materialInstanceCount = 0;
         std::vector<std::unique_ptr<GltfSceneAssetInstance>> _instances;
+
+        bool _sourceDataReleased = false;
+        bool _geometryPreserved = false;
+        bool _flatShading = false;
+
+        // Buffers created by rebuildVertexBuffers, owned by this asset.
+        std::vector<VertexBuffer*> _preservedVertexBuffers;
+        std::vector<IndexBuffer*> _preservedIndexBuffers;
+        std::vector<size_t> _preservedIndexCounts;
+        std::vector<BufferObject*> _preservedBufferObjects;
+        std::vector<BufferObject*> _smoothTangentBOs;
+        std::vector<BufferObject*> _flatTangentBOs;
+
+        // Map from entity ID to starting offset in _preservedVertexBuffers.
+        // Built during rebuildVertexBuffers to enable O(1) lookup.
+        // Uses EntityId (int32_t) instead of utils::Entity for hashability.
+        std::unordered_map<EntityId, size_t> _entityToPrimitiveOffset;
     };
 
 } // namespace thermion

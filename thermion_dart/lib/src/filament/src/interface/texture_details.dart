@@ -1,7 +1,7 @@
 ///
 /// This represents the backing "surface" that we render into.
 /// "Texture" here is a misnomer as it is only a render target texture on certain platforms.
-/// 
+///
 class TextureDetails {
   final int textureId;
 

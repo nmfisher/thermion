@@ -4,13 +4,14 @@
 #include "ThermionWin32.h"
 #endif
 
+#include "APIExport.h"
+
 #ifdef __cplusplus
 namespace thermion {
 extern "C"
 {
 #endif
 
-#include "APIExport.h"
 #include "APIBoundaryTypes.h"
 
 enum TProjection {
@@ -21,6 +22,9 @@ typedef enum TProjection TProjection;
 
 // Camera methods
 EMSCRIPTEN_KEEPALIVE void Camera_setExposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity);
+EMSCRIPTEN_KEEPALIVE float Camera_getAperture(TCamera *camera);
+EMSCRIPTEN_KEEPALIVE float Camera_getShutterSpeed(TCamera *camera);
+EMSCRIPTEN_KEEPALIVE float Camera_getSensitivity(TCamera *camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getProjectionMatrix(TCamera *const camera);

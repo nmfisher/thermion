@@ -1,0 +1,67 @@
+material {
+    name : Wireframe,
+    parameters : [
+        {
+            type: float4,
+            name: edgeColor,
+            default: [1.0, 1.0, 1.0, 1.0]
+        },
+        {
+            type: float4,
+            name: faceColor,
+            default: [0.2, 0.2, 0.2, 0.3]
+        },
+        {
+            type: float,
+            name: edgeWidth,
+            default: 1.0
+        }
+    ],
+    requires : [
+        custom0
+    ],
+    variables : [
+        barycentrics
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    doubleSided : false,
+    shadingModel : unlit,
+    blending : opaque,
+    culling : back
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.barycentrics = getCustom0();
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 bary = variable_barycentrics.xyz;
+
+        // Screen-space edge width with anti-aliased transition.
+        // Use separate derivative components to avoid artifacts at
+        // grazing angles where fwidth can spike.
+        vec3 dx = dFdx(bary);
+        vec3 dy = dFdy(bary);
+        vec3 fw = sqrt(dx * dx + dy * dy);
+
+        float lineWidthPixels = materialParams.edgeWidth;
+
+        // Smoothstep over a 1-pixel transition band for anti-aliasing
+        vec3 edgeStart = fw * (lineWidthPixels - 0.5);
+        vec3 edgeEnd   = fw * (lineWidthPixels + 0.5);
+        vec3 edgeDist = smoothstep(edgeStart, edgeEnd, bary);
+        float interior = min(min(edgeDist.x, edgeDist.y), edgeDist.z);
+
+        vec3 edgeColor = materialParams.edgeColor.rgb;
+        vec3 faceColor = materialParams.faceColor.rgb;
+
+        vec3 color = mix(edgeColor, faceColor, interior);
+        material.baseColor = vec4(color, 1.0);
+    }
+}

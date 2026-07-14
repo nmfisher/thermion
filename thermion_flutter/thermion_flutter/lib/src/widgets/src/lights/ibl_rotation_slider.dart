@@ -20,7 +20,6 @@ class _IblRotationSliderWidgetState extends State<IblRotationSliderWidget> {
         onChanged: (value) {
           _iblRotation = value;
           setState(() {});
-          print(value);
           var rotation = v.Matrix3.identity();
           Matrix4.rotationY(value * 2 * pi).copyRotation(rotation);
           widget.controller.rotateIbl(rotation);

@@ -1,7 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
-
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
@@ -56,6 +52,21 @@ namespace thermion
             TRACE("Setting exposure %f %f %f", aperture, shutterSpeed, sensitivity);
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             camera->setExposure(aperture, shutterSpeed, sensitivity);
+        }
+
+        EMSCRIPTEN_KEEPALIVE float Camera_getAperture(TCamera *tCamera) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getAperture();
+        }
+
+        EMSCRIPTEN_KEEPALIVE float Camera_getShutterSpeed(TCamera *tCamera) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getShutterSpeed();
+        }
+
+        EMSCRIPTEN_KEEPALIVE float Camera_getSensitivity(TCamera *tCamera) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getSensitivity();
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double *tModelMatrix) {
@@ -140,11 +151,18 @@ namespace thermion
             filament::Camera::Projection filamentProjection;
             switch(projection) {
                 case TProjection::Orthographic:
-                    filamentProjection = filament::Camera::Projection::ORTHO; 
+                    filamentProjection = filament::Camera::Projection::ORTHO;
+                    break;
                 case TProjection::Perspective:
-                    filamentProjection = filament::Camera::Projection::PERSPECTIVE; 
+                    filamentProjection = filament::Camera::Projection::PERSPECTIVE;
+                    break;
             }
             camera->setProjection(filamentProjection, left, right, bottom, top, near, far);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_setProjectionFromFov(TCamera *tCamera, double fovInDegrees, double aspect, double near, double far, bool horizontal) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            camera->setProjection(fovInDegrees, aspect, near, far, horizontal ? filament::Camera::Fov::HORIZONTAL : filament::Camera::Fov::VERTICAL);
         }
 
 #ifdef __cplusplus

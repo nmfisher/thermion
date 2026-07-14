@@ -1,25 +1,24 @@
 import 'dart:async';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIMaterial extends Material<Pointer<TMaterial>> {
-  final FFIFilamentApp app;
   final Pointer<TMaterial> pointer;
 
-  FFIMaterial(this.pointer, this.app);
+  FFIMaterial(this.pointer);
 
   @override
   Future<MaterialInstance> createInstance() async {
     var ptr = await withPointerCallback<TMaterialInstance>((cb) {
       Material_createInstanceRenderThread(pointer, cb);
     });
-    return FFIMaterialInstance(ptr, this.app);
+    return FFIMaterialInstance(ptr);
   }
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialRenderThread(app.engine, pointer, requestId, cb);
+      Engine_destroyMaterialRenderThread(
+          FilamentApp.instance!.engine, pointer, requestId, cb);
     });
   }
 
@@ -30,6 +29,11 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
   }
 
   @override
+  Future<BlendingMode> getBlendingMode() async {
+    return BlendingMode.values[Material_getBlendingMode(pointer)];
+  }
+
+  @override
   Pointer<TMaterial> getNativeHandle() {
     return pointer;
   }
@@ -37,12 +41,15 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
 
 class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   final Pointer<TMaterialInstance> pointer;
-  final FFIFilamentApp app;
 
-  FFIMaterialInstance(this.pointer, this.app) {
+  FFIMaterialInstance(this.pointer) {
     if (pointer == nullptr) {
       throw Exception("MaterialInstance not found");
     }
+  }
+
+  Future setDoubleSided(bool doubleSided) async {
+    MaterialInstance_setDoubleSided(this.pointer, doubleSided);
   }
 
   @override
@@ -176,13 +183,19 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialInstanceRenderThread(
-          app.engine, this.pointer, requestId, cb);
+          FilamentApp.instance!.engine, this.pointer, requestId, cb);
     });
   }
 
   @override
   Future setTransparencyMode(TransparencyMode mode) async {
     MaterialInstance_setTransparencyMode(pointer, mode.index);
+  }
+
+  @override
+  Future<TransparencyMode> getTransparencyMode() async {
+    return TransparencyMode
+        .values[MaterialInstance_getTransparencyMode(pointer)];
   }
 
   @override
@@ -196,6 +209,22 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   Future setParameterBool(String name, bool value) async {
     MaterialInstance_setParameterBool(
         pointer, name.toNativeUtf8().cast<Char>(), value);
+  }
+
+  @override
+  Future setParameterMat3(String name, Matrix3 matrix) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+
+    MaterialInstance_setParameterMat3(
+        pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      matrix.storage.free();
+    }
   }
 
   @override

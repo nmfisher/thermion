@@ -1,7 +1,7 @@
 import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-abstract class TexturedQuad extends ThermionAsset {
+abstract class TexturedQuad<T> extends ThermionAsset<T> {
   int? get width;
   int? get height;
 

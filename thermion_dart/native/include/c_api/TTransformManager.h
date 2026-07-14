@@ -16,6 +16,14 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE EntityId TransformManager_getParent(TTransformManager *tTransformManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE EntityId TransformManager_getAncestor(TTransformManager *tTransformManager, EntityId childEntityId);
 	EMSCRIPTEN_KEEPALIVE void TransformManager_createComponent(TTransformManager *tTransformManager, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE void TransformManager_removeComponent(TTransformManager *tTransformManager, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE bool TransformManager_hasComponent(TTransformManager *tTransformManager, EntityId entityId);
+	EMSCRIPTEN_KEEPALIVE bool TransformManager_empty(TTransformManager *tTransformManager);
+	EMSCRIPTEN_KEEPALIVE int TransformManager_getComponentCount(TTransformManager *tTransformManager);
+	EMSCRIPTEN_KEEPALIVE int TransformManager_getChildCount(TTransformManager *tTransformManager, EntityId entityId);
+	EMSCRIPTEN_KEEPALIVE void TransformManager_getChildren(TTransformManager *tTransformManager, EntityId entityId, EntityId *children, int count);
+	EMSCRIPTEN_KEEPALIVE void TransformManager_openLocalTransformTransaction(TTransformManager *tTransformManager);
+	EMSCRIPTEN_KEEPALIVE void TransformManager_commitLocalTransformTransaction(TTransformManager *tTransformManager);
 
 	
 #ifdef __cplusplus

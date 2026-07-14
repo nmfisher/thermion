@@ -28,14 +28,16 @@ class TextureProjection {
       required this.depthWriteColorTexture,
       required this.sampler}) {}
 
-  static Future<TextureProjection> create(View sourceView, Uint8List depthWriteMaterial, Uint8List captureUvMaterial) async {
+  static Future<TextureProjection> create(View sourceView,
+      Uint8List depthWriteMaterial, Uint8List captureUvMaterial) async {
     final viewport = await sourceView.getViewport();
-    var depthWriteMat = await FilamentApp.instance!.createMaterial(depthWriteMaterial);
+    var depthWriteMat =
+        await FilamentApp.instance!.createMaterial(depthWriteMaterial);
 
     var depthWriteMi = await depthWriteMat.createInstance();
 
     final depthView = await FilamentApp.instance!.createView() as FFIView;
-    await depthView.setRenderable(true);
+    throw Exception("TODO");
     await depthView.setFrustumCullingEnabled(false);
     await depthView.setPostProcessing(false);
     await depthView.setViewport(viewport.width, viewport.height);
@@ -56,8 +58,8 @@ class TextureProjection {
     ) as FFIRenderTarget;
     await depthView.setRenderTarget(depthWriteRenderTarget);
 
-    final captureMat = await FilamentApp.instance!.createMaterial(captureUvMaterial)
-    as FFIMaterial;
+    final captureMat = await FilamentApp.instance!
+        .createMaterial(captureUvMaterial) as FFIMaterial;
     var captureMi = await captureMat.createInstance() as FFIMaterialInstance;
     await captureMi.setParameterBool("flipUVs", true);
 

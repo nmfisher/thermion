@@ -1,19 +1,12 @@
 import 'dart:async';
 import 'input_types.dart';
 
-///
-/// An interface for handling user device input events.
-///
+// An abstract interface for handling user device input events.
 abstract class InputHandler {
-  
-  ///
-  ///
-  ///
+  // Handle a single InputEvent.
   void handle(InputEvent event);
 
-  ///
-  ///
-  ///
+  // Destroy this instance and dispose of all resources and hooks.
   Future dispose();
 }
 

@@ -1,0 +1,21 @@
+material {
+    name : CustomAttributes,
+    shadingModel : lit,
+    culling : none,
+    vertexDomain: object,
+    requires: [ uv0, custom0 ]
+}
+
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.worldPosition.xyz = getCustom0().rgb;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor.rgb = vec3(0.8);
+    }
+}

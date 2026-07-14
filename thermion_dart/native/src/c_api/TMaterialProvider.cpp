@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
+ 
 
 #include <filament/MaterialInstance.h>
 #include <gltfio/MaterialProvider.h>
@@ -89,6 +87,20 @@ namespace thermion
             config.hasVolumeThicknessTexture = hasVolumeThicknessTexture;
             config.baseColorUV = baseColorUV;
             config.hasVertexColors = hasVertexColors;
+            config.enableDiagnostics = enableDiagnostics;
+            config.metallicRoughnessUV = metallicRoughnessUV;
+            config.specularGlossinessUV = specularGlossinessUV;
+            config.hasClearCoatTexture = hasClearCoatTexture;
+            config.clearCoatUV = clearCoatUV;
+            config.clearCoatRoughnessUV = clearCoatRoughnessUV;
+            config.clearCoatNormalUV = clearCoatNormalUV;
+            config.emissiveUV = emissiveUV;
+            config.aoUV = aoUV;
+            config.normalUV = normalUV;
+            config.transmissionUV = transmissionUV;
+            config.sheenColorUV = sheenColorUV;
+            config.sheenRoughnessUV = sheenRoughnessUV;
+            config.volumeThicknessUV = volumeThicknessUV;
 
             auto *materialProvider = reinterpret_cast<gltfio::MaterialProvider *>(tMaterialProvider);
             auto materialInstance = materialProvider->createMaterialInstance(&config, &uvMap);

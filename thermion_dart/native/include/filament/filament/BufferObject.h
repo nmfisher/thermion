@@ -25,6 +25,7 @@
 #include <backend/BufferDescriptor.h>
 
 #include <utils/compiler.h>
+#include <utils/StaticString.h>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -90,8 +91,20 @@ public:
          * @param name A string to identify this BufferObject
          * @param len Length of name, should be less than or equal to 128
          * @return This Builder, for chaining calls.
+         * @deprecated Use name(utils::StaticString const&) instead.
          */
+        UTILS_DEPRECATED
         Builder& name(const char* UTILS_NONNULL name, size_t len) noexcept;
+
+        /**
+         * Associate an optional name with this BufferObject for debugging purposes.
+         *
+         * name will show in error messages and should be kept as short as possible.
+         *
+         * @param name A string literal to identify this BufferObject
+         * @return This Builder, for chaining calls.
+         */
+        Builder& name(utils::StaticString const& name) noexcept;
 
         /**
          * Creates the BufferObject and returns a pointer to it. After creation, the buffer
@@ -117,7 +130,7 @@ public:
      *
      * @param engine Reference to the filament::Engine associated with this BufferObject.
      * @param buffer A BufferDescriptor representing the data used to initialize the BufferObject.
-     * @param byteOffset Offset in bytes into the BufferObject
+     * @param byteOffset Offset in bytes into the BufferObject. Must be multiple of 4.
      */
     void setBuffer(Engine& engine, BufferDescriptor&& buffer, uint32_t byteOffset = 0);
 

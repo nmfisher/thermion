@@ -1,6 +1,13 @@
 # Instructions for building Filament
 
-Below are instructions for building the Filament (currently pinned to v1.58.0) for each of the target platforms.
+```
+gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=linux -f clean_build=false -f upload_to_r2=true
+gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=android -f clean_build=false -f upload_to_r2=true 
+gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=windows -f clean_build=false -f upload_to_r2=true
+gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=macos -f clean_build=false -f upload_to_r2=true
+```
+
+Below are instructions for building the Filament (currently pinned to v1.69.1) for each of the target platforms.
 
 This is only for developers extending the Thermion package itself; if you are simply using Thermion as a dependency in your `pubspec.yaml`, you can ignore this.
 
@@ -51,9 +58,19 @@ cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iph
 ninja
 mkdir -p imageio && cd imageio
 cmake -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DPLATFORM_NAME="iphonesimulator" \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
-        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../../libs/image/include -I../../../../libs/utils/include -I../../../../libs/math/include -I../../../../third_party/tinyexr -I../../../../third_party/libpng -I../../../../third_party/basisu/encoder" \
+        -DZ_HAVE_UNISTD_H=1 
+        -DUSE_ZLIB=1
+        -DIMPORT_EXECUTABLES_DIR=out 
+        -DCMAKE_CXX_FLAGS="-I../../../../libs/image/include 
+        -I../../../../libs/utils/include 
+        -I../../../../libs/math/include 
+        -I../../../../third_party/tinyexr 
+        -I../../../../third_party/libpng 
+        -I../../../../third_party/basisu/encoder" \
         ../../../../libs/imageio
 ninja
 cd .. && mkdir -p tinyexr && cd tinyexr
@@ -70,9 +87,9 @@ cmake -G Ninja \
 ```
 ./build.sh -i -f -p android release
 ./build.sh -i -f -t -d -p android debug # builds with the framegraph viewer/material debug server enabled
-for file in libimageio.a libtinyexr.a; do for arch in arm64-v8a armeabi-v7a x86_64 x86; do cp /Volumes/T7/v1.51.2/android/release/$arch/$file ~/Documents/thermion/thermion_dart/.dart_tool/thermion_dart/lib/v1.58.0/android/debug/$arch/; done; done
-cd out/android-release/filament/lib/ && zip -r filament-v1.58.0-android-release.zip  arm* x86* && rclone copy filament-v1.58.0-android-release.zip thermion:thermion/
-cd out/android-debug/filament/lib/ && zip -r filament-v1.58.0-android-debug.zip  arm* x86* && rclone copy filament-v1.58.0-android-debug.zip thermion:thermion/ 
+for file in libimageio.a libtinyexr.a; do for arch in arm64-v8a armeabi-v7a x86_64 x86; do cp /Volumes/T7/v1.51.2/android/release/$arch/$file ~/Documents/thermion/thermion_dart/.dart_tool/thermion_dart/lib/v1.69.1/android/debug/$arch/; done; done
+cd out/android-release/filament/lib/ && zip -r filament-v1.69.1-android-release.zip  arm* x86* && rclone copy filament-v1.69.1-android-release.zip thermion:thermion/
+cd out/android-debug/filament/lib/ && zip -r filament-v1.69.1-android-debug.zip  arm* x86* && rclone copy filament-v1.69.1-android-debug.zip thermion:thermion/ 
 ```
 
 ## Windows
@@ -112,13 +129,13 @@ To work around, we need to adjust the Filament build configuration to build:
  
 ```
 ./build.sh -p desktop release
-mkdir -p out/cmake-webgl-release
-cd out/cmake-webgl-release
+mkdir -p out/cmake-webgl-release && cd out/cmake-webgl-release
 ln -s ../cmake-release/tools
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DWEBGL=1 \
         -DWEBGL_PTHREADS=0 \
+        -DCMAKE_CXX_STANDARD=20 \
         -DFILAMENT_SKIP_SAMPLES=1 \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
@@ -133,6 +150,7 @@ cd imageio
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DFILAMENT_SKIP_SAMPLES=1 \
+        -DCMAKE_CXX_STANDARD=20 \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
         -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
@@ -156,6 +174,7 @@ lib=libz
 cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+        -DCMAKE_CXX_STANDARD=20 \
         -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
         -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory" \
         ../../../../third_party/$lib;

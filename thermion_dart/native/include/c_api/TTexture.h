@@ -218,6 +218,7 @@ EMSCRIPTEN_KEEPALIVE TTexture *Texture_build(TEngine *engine,
     intptr_t import,
     TTextureSamplerType sampler, 
     TTextureFormat format);
+EMSCRIPTEN_KEEPALIVE void Texture_setExternalImage(TEngine *tEngine, TTexture *tTexture, void *externalImage);
 EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture);
 EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(
     TEngine *tEngine,

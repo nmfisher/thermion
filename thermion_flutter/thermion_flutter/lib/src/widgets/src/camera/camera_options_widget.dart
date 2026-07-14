@@ -6,8 +6,8 @@ class CameraOptionsWidget extends StatefulWidget {
   final Camera camera;
   final CameraOrientation cameraOrientation;
 
-  CameraOptionsWidget(
-      {super.key, required this.camera, required this.cameraOrientation}) {}
+  const CameraOptionsWidget(
+      {super.key, required this.camera, required this.cameraOrientation});
 
   @override
   State<StatefulWidget> createState() => _CameraOptionsWidgetState();
@@ -62,10 +62,10 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
     return Theme(
         data: ThemeData(platform: TargetPlatform.android),
         child: Container(
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.5)),
+            decoration: BoxDecoration(color: Colors.white.withAlpha(128)),
             child: SliderTheme(
                 data: const SliderThemeData(
-                    showValueIndicator: ShowValueIndicator.always,
+                    showValueIndicator: ShowValueIndicator.alwaysVisible,
                     valueIndicatorTextStyle: TextStyle(color: Colors.black)),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Row(children: [

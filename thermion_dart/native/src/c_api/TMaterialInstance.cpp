@@ -1,7 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
-
 #include <vector>
 
 #include <filament/MaterialInstance.h>
@@ -18,6 +14,12 @@
 #include "material/grid.h"
 #include "material/unlit_fixed_size.h"
 #include "material/outline.h"
+#include "material/silhouette.h"
+#include "material/edge_outline.h"
+#include "material/translation_axis.h"
+#include "material/gizmo_material.h"
+#include "material/wireframe.h"
+#include "material/bone_overlay.h"
 
 #include "c_api/TMaterialInstance.h"
 
@@ -70,15 +72,47 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
-                .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
+                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
 
-        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createOutlineMaterial(TEngine *tEngine) {
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createSilhouetteMaterial(TEngine *tEngine) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *material = filament::Material::Builder()
-                .package(OUTLINE_OUTLINE_DATA, OUTLINE_OUTLINE_SIZE)
+                .package(SILHOUETTE_SILHOUETTE_DATA, SILHOUETTE_SILHOUETTE_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createEdgeOutlineMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(EDGE_OUTLINE_EDGE_OUTLINE_DATA, EDGE_OUTLINE_EDGE_OUTLINE_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createWireframeMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(WIREFRAME_WIREFRAME_DATA, WIREFRAME_WIREFRAME_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createTranslationAxisMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(TRANSLATION_AXIS_TRANSLATION_AXIS_DATA, TRANSLATION_AXIS_TRANSLATION_AXIS_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createBoneOverlayMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(BONE_OVERLAY_BONE_OVERLAY_DATA, BONE_OVERLAY_BONE_OVERLAY_SIZE)
                 .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
@@ -91,6 +125,11 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE bool MaterialInstance_isStencilWriteEnabled(TMaterialInstance *tMaterialInstance)
         {
             return reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance)->isStencilWriteEnabled();
+        }
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDoubleSided(TMaterialInstance *materialInstance, bool enabled)
+        {
+            reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setDoubleSided(enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance *materialInstance, bool enabled)
@@ -160,6 +199,11 @@ namespace thermion
             materialInstance->setParameter(propertyName, texture, *sampler);
         }
 
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterMat3(TMaterialInstance *tMaterialInstance, const char *propertyName, double *matrix) {
+            auto *mi = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
+            mi->setParameter(propertyName, convert_double_to_mat3f(matrix));
+        }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterMat4(TMaterialInstance *tMaterialInstance, const char *propertyName, double *matrix) {
             auto *mi = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
@@ -263,6 +307,21 @@ namespace thermion
         {
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
             instance->setTransparencyMode((filament::TransparencyMode)transparencyMode);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TTransparencyMode MaterialInstance_getTransparencyMode(
+            TMaterialInstance *tMaterialInstance)
+        {
+            auto *instance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            auto transparencyMode = instance->getTransparencyMode();
+            return static_cast<TTransparencyMode>(transparencyMode);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TBlendingMode Material_getBlendingMode(TMaterial *tMaterial)
+        {
+            auto *material = reinterpret_cast<filament::Material *>(tMaterial);
+            auto blendingMode = material->getBlendingMode();
+            return static_cast<TBlendingMode>(blendingMode);
         }
 #ifdef __cplusplus
     }

@@ -1,0 +1,15 @@
+material {
+    name : Silhouette,
+    shadingModel : unlit,
+    blending : opaque,
+    depthWrite : true,
+    depthCulling : true,
+    culling : none
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+}

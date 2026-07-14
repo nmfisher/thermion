@@ -1,6 +1,6 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
-class FFITexture extends Texture {
+class FFITexture extends Texture<Pointer<TRenderTarget>> {
   final Pointer<TEngine> _engine;
   final Pointer<TTexture> pointer;
 
@@ -22,10 +22,15 @@ class FFITexture extends Texture {
   }
 
   @override
-  Future<void> dispose() async {
+  Future<void> destroy() async {
     await withVoidCallback((requestId, cb) {
       Engine_destroyTextureRenderThread(_engine, pointer, requestId, cb);
     });
+  }
+
+  @override
+  Future<void> dispose() async {
+    return destroy();
   }
 
   @override
@@ -75,7 +80,10 @@ class FFITexture extends Texture {
   @override
   Future<void> setImage(int level, Uint8List buffer, int width, int height,
       PixelDataFormat format, PixelDataType type,
-      {int depth = 1, int xOffset = 0, int yOffset = 0, int zOffset = 0 }) async {
+      {int depth = 1,
+      int xOffset = 0,
+      int yOffset = 0,
+      int zOffset = 0}) async {
     final success = await withBoolCallback((cb) {
       Texture_setImageRenderThread(
           _engine,
@@ -83,7 +91,9 @@ class FFITexture extends Texture {
           level,
           buffer.address,
           buffer.lengthInBytes,
-          xOffset, yOffset, zOffset,
+          xOffset,
+          yOffset,
+          zOffset,
           width,
           height,
           depth,
@@ -109,6 +119,11 @@ class FFITexture extends Texture {
       PixelDataType type) {
     // TODO: implement setSubImage
     throw UnimplementedError();
+  }
+
+  @override
+  getNativeHandle() {
+    return pointer;
   }
 }
 

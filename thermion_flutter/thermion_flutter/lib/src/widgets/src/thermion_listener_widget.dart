@@ -26,7 +26,8 @@ final physicalKeyMap = {
   PhysicalKeyboardKey.keyX: PhysicalKey.x,
   PhysicalKeyboardKey.keyY: PhysicalKey.y,
   PhysicalKeyboardKey.keyZ: PhysicalKey.z,
-  PhysicalKeyboardKey.shiftLeft: PhysicalKey.shift,
+  PhysicalKeyboardKey.shiftLeft: PhysicalKey.shiftLeft,
+  PhysicalKeyboardKey.shiftRight: PhysicalKey.shiftRight,
   PhysicalKeyboardKey.space: PhysicalKey.space,
   PhysicalKeyboardKey.backquote: PhysicalKey.backtick,
   PhysicalKeyboardKey.period: PhysicalKey.period,
@@ -67,8 +68,8 @@ final logicalKeyMap = {
   LogicalKeyboardKey.keyX: LogicalKey.x,
   LogicalKeyboardKey.keyY: LogicalKey.y,
   LogicalKeyboardKey.keyZ: LogicalKey.z,
-  LogicalKeyboardKey.shift: LogicalKey.shift,
-  LogicalKeyboardKey.shiftLeft: LogicalKey.shift,
+  LogicalKeyboardKey.shiftLeft: LogicalKey.shiftLeft,
+  LogicalKeyboardKey.shiftRight: LogicalKey.shiftRight,
   LogicalKeyboardKey.space: LogicalKey.space,
   LogicalKeyboardKey.backquote: LogicalKey.backtick,
   LogicalKeyboardKey.digit0: LogicalKey.key0,
@@ -148,6 +149,9 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
   bool get isDesktop =>
       kIsWeb || Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
+  // Track the previous button state to detect button press/release events
+  int _buttonsPressed = 0;
+
   @override
   void initState() {
     super.initState();
@@ -198,9 +202,41 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     return button;
   }
 
+  /// Detects which button was pressed by comparing previous and current button states
+  t.MouseButton? _detectButtonPressed(int previousButtons, int currentButtons) {
+    final pressed = currentButtons & ~previousButtons;
+
+    if (pressed & kPrimaryMouseButton != 0) {
+      return MouseButton.left;
+    } else if (pressed & kSecondaryMouseButton != 0) {
+      return MouseButton.right;
+    } else if (pressed & kMiddleMouseButton != 0) {
+      return MouseButton.middle;
+    }
+    return null;
+  }
+
+  /// Detects which button was released by comparing previous and current button states
+  t.MouseButton? _detectButtonReleased(
+      int previousButtons, int currentButtons) {
+    final released = previousButtons & ~currentButtons;
+
+    if (released & kPrimaryMouseButton != 0) {
+      return MouseButton.left;
+    } else if (released & kSecondaryMouseButton != 0) {
+      return MouseButton.right;
+    } else if (released & kMiddleMouseButton != 0) {
+      return MouseButton.middle;
+    }
+    return null;
+  }
+
   Widget _desktop(double pixelRatio) {
     return Focus(
         focusNode: widget.focusNode,
+        onKeyEvent: (focusNode, keyEvent) {
+          return KeyEventResult.handled;
+        },
         child: Listener(
           onPointerHover: (event) async {
             widget.inputHandler.handle(MouseEvent(
@@ -223,9 +259,12 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
           onPointerDown: (event) async {
             widget.focusNode?.requestFocus();
 
+            final button = _detectButtonPressed(_buttonsPressed, event.buttons);
+            _buttonsPressed = event.buttons;
+
             widget.inputHandler.handle(MouseEvent(
                 MouseEventType.buttonDown,
-                _mouseButtonFromEvent(event),
+                button,
                 event.localPosition.toVector2() * pixelRatio,
                 event.delta.toVector2() * pixelRatio));
           },
@@ -237,11 +276,16 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
                 event.delta.toVector2() * pixelRatio));
           },
           onPointerUp: (event) {
-            widget.inputHandler.handle(MouseEvent(
+            final button =
+                _detectButtonReleased(_buttonsPressed, event.buttons);
+            _buttonsPressed = event.buttons;
+
+            var mouseEvent = MouseEvent(
                 MouseEventType.buttonUp,
-                _mouseButtonFromEvent(event),
+                button,
                 event.localPosition.toVector2() * pixelRatio,
-                event.delta.toVector2() * pixelRatio));
+                event.delta.toVector2() * pixelRatio);
+            widget.inputHandler.handle(mouseEvent);
           },
           child: widget.child,
         ));
@@ -280,47 +324,143 @@ class _MobileListenerWidget extends StatefulWidget {
 }
 
 class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
+  // Tap/double-tap detection state. We synthesize taps from the eager
+  // scale recognizer's start/update/end callbacks because the eager
+  // recognizer claims the gesture arena on PointerDown — separate
+  // TapGestureRecognizer / DoubleTapGestureRecognizer entries can no
+  // longer win. See `_EagerScaleGestureRecognizer` below.
+  Offset? _scaleStartFocal;
+  DateTime? _scaleStartTime;
+  double _scaleMaxMovement = 0;
+  Offset? _lastTapPosition;
+  DateTime? _lastTapTime;
+
+  static const _kTapMaxMovement = 8.0;
+  static const _kTapMaxDuration = Duration(milliseconds: 250);
+  static const _kDoubleTapInterval = Duration(milliseconds: 300);
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTapDown: (details) {
-          widget.inputHandler.handle(TouchEvent(TouchEventType.tap,
-              details.localPosition.toVector2() * widget.pixelRatio, null));
-        },
-        onDoubleTap: () {
-          widget.inputHandler
-              .handle(TouchEvent(TouchEventType.doubleTap, null, null));
-        },
-        onScaleStart: (ScaleStartDetails event) async {
-          widget.inputHandler.handle(ScaleStartEvent(
-              numPointers: event.pointerCount,
-              localFocalPoint: (
-                event.focalPoint.dx * widget.pixelRatio,
-                event.focalPoint.dy * widget.pixelRatio
-              )));
-        },
-        onScaleUpdate: (ScaleUpdateDetails event) async {
-          widget.inputHandler.handle(ScaleUpdateEvent(
-            numPointers: event.pointerCount,
-            localFocalPoint: (
-              event.focalPoint.dx * widget.pixelRatio,
-              event.focalPoint.dy * widget.pixelRatio
-            ),
-            localFocalPointDelta: (
-              event.focalPointDelta.dx * widget.pixelRatio,
-              event.focalPointDelta.dy * widget.pixelRatio
-            ),
-            rotation: event.rotation,
-            horizontalScale: event.horizontalScale,
-            verticalScale: event.verticalScale,
-            scale: event.scale,
-          ));
-        },
-        onScaleEnd: (details) async {
-          widget.inputHandler
-              .handle(ScaleEndEvent(numPointers: details.pointerCount));
-        },
-        child: widget.child);
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: <Type, GestureRecognizerFactory>{
+        _EagerScaleGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<_EagerScaleGestureRecognizer>(
+          () => _EagerScaleGestureRecognizer(),
+          (_EagerScaleGestureRecognizer instance) {
+            instance
+              ..onStart = (ScaleStartDetails event) {
+                // Capture the *local* focal point (widget-relative) for
+                // tap synthesis. The synthesised tap dispatches via
+                // TouchEvent.localPosition, which is what
+                // `View.pick(x, y, ...)` consumes — pick wants viewport-
+                // relative pixels, not screen-global. Using
+                // `event.focalPoint` (global) here was wrong: picks
+                // landed outside the rendered viewport whenever the
+                // widget wasn't at (0,0) on the screen, which is
+                // basically every real layout.
+                _scaleStartFocal = event.localFocalPoint;
+                _scaleStartTime = DateTime.now();
+                _scaleMaxMovement = 0;
+                widget.inputHandler.handle(ScaleStartEvent(
+                    numPointers: event.pointerCount,
+                    localFocalPoint: (
+                      event.focalPoint.dx * widget.pixelRatio,
+                      event.focalPoint.dy * widget.pixelRatio
+                    )));
+              }
+              ..onUpdate = (ScaleUpdateDetails event) {
+                if (_scaleStartFocal != null) {
+                  // Compare local-to-local for the tap-vs-drag movement
+                  // threshold. Mixing global with local would inflate
+                  // the distance by the widget's screen position and
+                  // misclassify static taps as drags.
+                  final movement =
+                      (event.localFocalPoint - _scaleStartFocal!).distance;
+                  if (movement > _scaleMaxMovement) {
+                    _scaleMaxMovement = movement;
+                  }
+                }
+                widget.inputHandler.handle(ScaleUpdateEvent(
+                  numPointers: event.pointerCount,
+                  localFocalPoint: (
+                    event.focalPoint.dx * widget.pixelRatio,
+                    event.focalPoint.dy * widget.pixelRatio
+                  ),
+                  localFocalPointDelta: (
+                    event.focalPointDelta.dx * widget.pixelRatio,
+                    event.focalPointDelta.dy * widget.pixelRatio
+                  ),
+                  rotation: event.rotation,
+                  horizontalScale: event.horizontalScale,
+                  verticalScale: event.verticalScale,
+                  scale: event.scale,
+                ));
+              }
+              ..onEnd = (ScaleEndDetails event) {
+                final now = DateTime.now();
+                final wasTap = _scaleStartTime != null &&
+                    _scaleStartFocal != null &&
+                    now.difference(_scaleStartTime!) < _kTapMaxDuration &&
+                    _scaleMaxMovement < _kTapMaxMovement &&
+                    event.pointerCount == 0;
+                if (wasTap) {
+                  final tapPosition = _scaleStartFocal!;
+                  final isDoubleTap = _lastTapPosition != null &&
+                      _lastTapTime != null &&
+                      now.difference(_lastTapTime!) < _kDoubleTapInterval &&
+                      (tapPosition - _lastTapPosition!).distance <
+                          _kTapMaxMovement;
+                  if (isDoubleTap) {
+                    widget.inputHandler.handle(
+                        TouchEvent(TouchEventType.doubleTap, null, null));
+                    _lastTapPosition = null;
+                    _lastTapTime = null;
+                  } else {
+                    widget.inputHandler.handle(TouchEvent(TouchEventType.tap,
+                        tapPosition.toVector2() * widget.pixelRatio, null));
+                    _lastTapPosition = tapPosition;
+                    _lastTapTime = now;
+                  }
+                }
+                widget.inputHandler
+                    .handle(ScaleEndEvent(numPointers: event.pointerCount));
+                _scaleStartFocal = null;
+                _scaleStartTime = null;
+                _scaleMaxMovement = 0;
+              };
+          },
+        ),
+      },
+      child: widget.child,
+    );
+  }
+}
+
+/// Variant of [ScaleGestureRecognizer] that claims the gesture arena
+/// the moment a pointer is added, instead of waiting for displacement
+/// to cross [kPanSlop].
+///
+/// Why: the default recognizer waits to disambiguate a one-finger pan
+/// from a two-finger pinch. While it waits, an ancestor `Scrollable`'s
+/// `VerticalDragGestureRecognizer` reaches its acceptance threshold
+/// first and wins the arena — the touch is interpreted as a page
+/// scroll instead of a viewport gesture. With this eager subclass,
+/// ancestors lose the arena on the first PointerDown inside the
+/// Thermion view, so single-finger orbit and pinch-zoom both resolve
+/// to the viewport regardless of what scrollable wraps it.
+///
+/// Tradeoff: separate `TapGestureRecognizer` /
+/// `DoubleTapGestureRecognizer` entries can no longer participate
+/// (eager scale wins arena before they ever accept). The mobile
+/// listener compensates by synthesizing tap and double-tap events
+/// from the scale callbacks — a "tap" is a scale gesture whose total
+/// focal-point movement stays below 8px and whose total duration
+/// stays below 250 ms; "double-tap" is two such taps within 300 ms.
+class _EagerScaleGestureRecognizer extends ScaleGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
   }
 }

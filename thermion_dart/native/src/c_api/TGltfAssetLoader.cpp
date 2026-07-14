@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
+ 
 
 #include "c_api/TGltfAssetLoader.h"
 
@@ -62,7 +60,7 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     TGltfAssetLoader *tAssetLoader,
     const uint8_t *data,
     size_t length,
-    uint8_t numInstances)
+    uint32_t numInstances)
 {
     auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
     auto *assetLoader = reinterpret_cast<gltfio::AssetLoader *>(tAssetLoader);

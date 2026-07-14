@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
+ 
 
 #include <filament/View.h>
 #include <filament/Engine.h>
@@ -68,7 +66,8 @@ namespace thermion
                 tEngine,
                 tAssetLoader,
                 tNameComponentManager,
-                tFilamentAsset);
+                tFilamentAsset,
+                false);
 
             auto *gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(sceneAsset);
 

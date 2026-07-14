@@ -24,12 +24,12 @@ void main() async {
 
         // dithering is disabled by default
         expect(await view.isDitheringEnabled(), false);
-        
+
         await view.setDithering(true);
         expect(await view.isDitheringEnabled(), true);
 
         final cube = await viewer
-            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+            .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
         await testHelper.capture(viewer.view, "dithering_enabled");
 
@@ -42,8 +42,8 @@ void main() async {
     test('bloom', () async {
       await testHelper.withViewer((viewer) async {
         await FilamentApp.instance!.setClearOptions(1, 1, 1, 1, clear: false);
-        var asset = await viewer
-            .loadGltf("file://${testHelper.testDir}/assets/cube.glb");
+        var asset =
+            await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb");
         var light = await viewer.addDirectLight(
             DirectLight.point(intensity: 1000000, falloffRadius: 10));
         await viewer.setLightPosition(light, 1, 2, 2);

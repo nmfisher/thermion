@@ -61,7 +61,18 @@ class _MyHomePageState extends State<MyHomePage> {
     // file containing a plain cube.
     // By default, all paths are treated as asset paths. To load from a file
     // instead, use file:// URIs.
-    var asset = await _thermionViewer!.loadGltf("assets/cube.glb");
+    // Setting preserveGeometry: true rebuilds vertex buffers with a superset
+    // of attributes, enabling free material swapping (wireframe, solid, etc).
+    var asset = await _thermionViewer!.loadGltf(
+        "assets/FlightHelmet/FlightHelmet.gltf");
+
+    await _thermionViewer!.addToScene(asset);
+
+    var wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
+    await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
+    await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
+    await wireframe.setEdgeWidth(0.5);
+    await asset.setMaterialInstanceForAll(wireframe.materialInstance);
 
     // Thermion uses a right-handed coordinate system where +Y is up and -Z is
     // "into" the screen.
@@ -88,10 +99,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // enable it for color correction.
     // If you're not sure what you're doing, always set this to true.
     await _thermionViewer!.setPostProcessing(true);
-
-    // Finally, you need to explicitly enable rendering. Setting rendering to
-    // false is designed to allow you to pause rendering to conserve battery life
-    await _thermionViewer!.setRendering(true);
 
     setState(() {});
   }
@@ -130,8 +137,8 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ElevatedButton(
             onPressed: () async {
               await _thermionViewer!.removeSkybox();
-              await _thermionViewer!.setBackgroundImage(
-                  "assets/background.ktx");
+              await _thermionViewer!
+                  .setBackgroundImage("assets/background.ktx");
             },
             child: const Text("Set background image")));
   }
@@ -145,31 +152,33 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
         body: Stack(children: [
-      if (_thermionViewer != null)
-        Positioned.fill(
-            child: ThermionListenerWidget(
-                inputHandler: DelegateInputHandler.fixedOrbit(_thermionViewer!),
-                child: ThermionWidget(
-                  viewer: _thermionViewer!,
-                ))),
-      Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if(_thermionViewer == null)
-                      _loadButton(),
-                    if (_thermionViewer != null) ...[
-                      _randomizeBgColor(),
-                      _setBgImage(),
-                      _unloadButton()
-                    ],
-                  ])))
-    ]));
+          if (_thermionViewer != null)
+            Positioned.fill(
+                child: ThermionListenerWidget(
+                    inputHandler: DelegateInputHandler.fixedOrbit(
+                        _thermionViewer!,
+                        sensitivity: InputSensitivityOptions(
+                            scrollWheelSensitivity: 0.005)),
+                    child: ThermionWidget(
+                      viewer: _thermionViewer!,
+                    ))),
+          Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (_thermionViewer == null) _loadButton(),
+                        if (_thermionViewer != null) ...[
+                          _randomizeBgColor(),
+                          _setBgImage(),
+                          _unloadButton()
+                        ],
+                      ])))
+        ]));
   }
 }

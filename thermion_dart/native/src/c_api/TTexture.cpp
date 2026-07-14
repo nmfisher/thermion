@@ -1,6 +1,4 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
+
 
 #include <chrono>
 #include <vector>
@@ -153,7 +151,7 @@ namespace thermion
             result = reader->requestFormat(filament::Texture::InternalFormat::RGBA8);
             Log("Result : %d", result);
 
-            Log("Finished requesting KTX2 formats, loading KTX2 data of length %d bytes", size);
+            Log("Finished requesting KTX2 formats, loading KTX2 data of length %zu bytes", size);
                 
             auto *texture = reader->load(copy.data(), size, ktxreader::Ktx2Reader::TransferFunction::sRGB);
 
@@ -512,9 +510,14 @@ namespace thermion
                                .sampler(samplerType)
                                .format(format)
                                .usage(usage);
-            if (import)
+            if (import == -1)
             {
-                TRACE("Importing texture with handle : %d", import);
+                Log("Building external texture");
+                builder.external();
+            }
+            else if (import)
+            {
+                Log("Importing texture with handle : %d", import);
                 builder.import(import);
             }
             auto *texture = builder
@@ -529,6 +532,15 @@ namespace thermion
             }
 
             return reinterpret_cast<TTexture *>(texture);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Texture_setExternalImage(TEngine *tEngine, TTexture *tTexture, void *externalImage)
+        {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+            auto *extImg = static_cast<filament::backend::Platform::ExternalImage *>(externalImage);
+            auto handle = filament::backend::Platform::ExternalImageHandle(extImg);
+            texture->setExternalImage(*engine, std::move(handle));
         }
 
         EMSCRIPTEN_KEEPALIVE size_t Texture_getLevels(TTexture *tTexture)
@@ -598,18 +610,6 @@ namespace thermion
             auto bufferFormat = static_cast<PixelBufferDescriptor::PixelDataFormat>(tBufferFormat);
             auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
             TRACE("Setting texture image for level %d, offset %dx%dx%d, depth %d", level, x_offset, y_offset, z_offset, depth);
-
-            switch (bufferFormat)
-            {
-                case PixelBufferDescriptor::PixelDataFormat::RGB:
-                case PixelBufferDescriptor::PixelDataFormat::RGBA:
-                case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
-                case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
-                    break;
-                default:
-                    Log("Unsupported buffer format type : %d", bufferFormat);
-                    return false;
-            }
 
             // the texture upload is async, so we need to copy the buffer
             auto *buffer = new std::vector<uint8_t>(size);
