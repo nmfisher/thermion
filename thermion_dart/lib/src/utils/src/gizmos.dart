@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
 

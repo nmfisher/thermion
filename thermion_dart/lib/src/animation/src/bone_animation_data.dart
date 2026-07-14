@@ -19,9 +19,10 @@ typedef SkeletonAnimation = List<SkeletonTransform>;
 /// around its local X axis in its rest position").
 /// ParentWorldRotation is an oddity; this is a rotation
 /// around the origin of the bone's parent, but around world-space defined axes.
-/// (i.e. translate the point in parent space to the origin, rotate, then translate back).
-/// This accounts for BVH which describes each bone's rotation in world-space axes, but
-/// around its parents origin.
+/// (i.e. translate the point in parent space to the origin, rotate, then
+///  translate back).
+/// This accounts for BVH which describes each bone's rotation in world-space
+///  axes, but around its parents origin.
 ///
 enum Space { World, Model, Bone, ParentWorldRotation }
 
