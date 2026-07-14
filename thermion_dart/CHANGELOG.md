@@ -1,3 +1,11 @@
+## 0.4.0+5
+
+ - **FIX**(ktx2): route loadKtx2 through the render thread on web.
+ - **FIX**(capture): pick readPixels type per-view from render-target format.
+ - **FIX**(texture): add BLIT_SRC|BLIT_DST when decodeToTexture asks mipmaps.
+ - **FIX**(native): free stb buffer after LinearImage decode.
+ - **FEAT**(c_api): add Engine_destroyRenderer + RenderThread variant.
+
 ## 0.4.0+2
 
  - **DOCS**: update README with acknowledgements and CHANGELOG with minor fixes.

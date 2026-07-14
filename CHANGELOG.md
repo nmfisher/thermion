@@ -15,6 +15,36 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`thermion_dart` - `v0.4.0+5`](#thermion_dart---v0405)
+ - [`thermion_flutter` - `v0.4.0+5`](#thermion_flutter---v0405)
+
+---
+
+#### `thermion_dart` - `v0.4.0+5`
+
+ - **FIX**(ktx2): route loadKtx2 through the render thread on web.
+ - **FIX**(capture): pick readPixels type per-view from render-target format.
+ - **FIX**(texture): add BLIT_SRC|BLIT_DST when decodeToTexture asks mipmaps.
+ - **FIX**(native): free stb buffer after LinearImage decode.
+ - **FEAT**(c_api): add Engine_destroyRenderer + RenderThread variant.
+
+#### `thermion_flutter` - `v0.4.0+5`
+
+ - **FIX**(web): disambiguate binding imports in web plugin.
+
+
+## 2026-07-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`thermion_dart` - `v0.4.0+2`](#thermion_dart---v0402)
  - [`thermion_flutter` - `v0.4.0+2`](#thermion_flutter---v0402)
 

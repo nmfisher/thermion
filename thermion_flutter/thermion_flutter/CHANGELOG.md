@@ -1,3 +1,7 @@
+## 0.4.0+5
+
+ - **FIX**(web): disambiguate binding imports in web plugin.
+
 ## 0.4.0+2
 
  - Update a dependency to the latest release.
