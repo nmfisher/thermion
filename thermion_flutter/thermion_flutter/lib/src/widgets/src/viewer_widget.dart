@@ -223,7 +223,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     if (widget.background != null) {
       if (widget.skyboxPath != null) {
-        _logger.error("Specify skyboxPath or background, not both");
+        _logger.severe("Specify skyboxPath or background, not both");
       } else {
         await viewer!.setBackgroundColor(widget.background!.r,
             widget.background!.g, widget.background!.b, widget.background!.a);
