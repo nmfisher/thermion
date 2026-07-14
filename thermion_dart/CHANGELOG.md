@@ -1,3 +1,7 @@
+## 0.4.0+2
+
+ - **DOCS**: update README with acknowledgements and CHANGELOG with minor fixes.
+
 ## 0.4.0
 
 ### New features:
