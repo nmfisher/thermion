@@ -635,6 +635,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     return descriptor;
   }
 
+  @override
   Future<PlatformTextureDescriptor> resizeTexture(
     PlatformTextureDescriptor texture,
     View view,
