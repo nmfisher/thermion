@@ -1,0 +1,23 @@
+# The VM stays the default platform so the existing suite is unaffected.
+# Run a test in the browser explicitly, e.g.:
+#   dart test -p chrome test/engine_tests.dart
+#
+# Engine creation performs an async render-thread handshake that can be slow to
+# warm up, so allow extra time.
+timeout: 120s
+
+# The web Filament build is a multithreaded (emscripten pthreads) module and so
+# needs SharedArrayBuffer, which the browser gates behind cross-origin isolation
+# (COOP: same-origin + COEP: require-corp). `flutter run` would set these with
+# `--web-header=...`, but `dart test`'s server can't set response headers, so we
+# route Chrome through tool/coi_proxy.dart (start it first, on port 8899) which
+# injects the headers. `--proxy-bypass-list=<-loopback>` forces loopback through
+# the proxy. Headful so WebGL is GPU-backed (matching `-d chrome`).
+#
+#   dart run tool/coi_proxy.dart 8899 &
+#   dart test -p chrome test/engine_tests.dart
+override_platforms:
+  chrome:
+    settings:
+      headless: false
+      arguments: "--proxy-server=127.0.0.1:8899 --proxy-bypass-list=<-loopback>"
