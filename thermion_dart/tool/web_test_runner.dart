@@ -29,7 +29,8 @@ import 'dart:io';
 // Must match emscripten's OFFSCREENCANVASES_TO_PTHREAD target id.
 const _canvasId = 'thermion_canvas';
 
-String _wrapperHtml(String testFileName) => '''<!DOCTYPE html>
+String _wrapperHtml(String testFileName) =>
+    '''<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -65,8 +66,11 @@ String _wrapperHtml(String testFileName) => '''<!DOCTYPE html>
 
 Future<bool> _portOpen(int port) async {
   try {
-    final s = await Socket.connect(InternetAddress.loopbackIPv4, port,
-        timeout: const Duration(milliseconds: 500));
+    final s = await Socket.connect(
+      InternetAddress.loopbackIPv4,
+      port,
+      timeout: const Duration(milliseconds: 500),
+    );
     s.destroy();
     return true;
   } catch (_) {
@@ -113,8 +117,9 @@ Future<void> main(List<String> args) async {
   }
 
   if (!Directory('test').existsSync()) {
-    stderr
-        .writeln('Run from the thermion_dart package root (no ./test found).');
+    stderr.writeln(
+      'Run from the thermion_dart package root (no ./test found).',
+    );
     exit(1);
   }
 
@@ -146,29 +151,32 @@ Future<void> main(List<String> args) async {
     html.writeAsStringSync(_wrapperHtml(name));
     if (!existed) generated.add(html);
   }
-  stderr.writeln('Wrappers: ${targets.length} written '
-      '(${generated.length} new).');
+  stderr.writeln(
+    'Wrappers: ${targets.length} written '
+    '(${generated.length} new).',
+  );
 
   // 3. Ensure the COOP/COEP proxy is up.
   Process? proxy;
   if (await _portOpen(port)) {
     stderr.writeln('Proxy: reusing listener on $port.');
     if (assets != null) {
-      stderr.writeln('  note: --assets is ignored when reusing an existing '
-          'proxy; restart it with --assets=$assets to serve those assets.');
+      stderr.writeln(
+        '  note: --assets is ignored when reusing an existing '
+        'proxy; restart it with --assets=$assets to serve those assets.',
+      );
     }
   } else if (manageProxy) {
-    stderr.writeln('Proxy: starting coi_proxy on $port'
-        '${assets != null ? ' (assets <- $assets)' : ''} ...');
-    proxy = await Process.start(
-        'dart',
-        [
-          'run',
-          'tool/coi_proxy.dart',
-          '$port',
-          if (assets != null) '--assets=$assets'
-        ],
-        mode: ProcessStartMode.normal);
+    stderr.writeln(
+      'Proxy: starting coi_proxy on $port'
+      '${assets != null ? ' (assets <- $assets)' : ''} ...',
+    );
+    proxy = await Process.start('dart', [
+      'run',
+      'tool/coi_proxy.dart',
+      '$port',
+      if (assets != null) '--assets=$assets',
+    ], mode: ProcessStartMode.normal);
     unawaited(proxy.stdout.drain<void>());
     unawaited(proxy.stderr.drain<void>());
     if (!await _waitForPort(port, const Duration(seconds: 120))) {
@@ -178,8 +186,10 @@ Future<void> main(List<String> args) async {
     }
     stderr.writeln('Proxy: listening on $port.');
   } else {
-    stderr.writeln('Proxy: nothing on $port and --no-proxy set. '
-        'Start tool/coi_proxy.dart $port first.');
+    stderr.writeln(
+      'Proxy: nothing on $port and --no-proxy set. '
+      'Start tool/coi_proxy.dart $port first.',
+    );
     exit(1);
   }
 
@@ -187,22 +197,18 @@ Future<void> main(List<String> args) async {
   final jsonPath = 'test/.web_test_results.json';
   var exitCode = 1;
   try {
-    final proc = await Process.start(
-      'dart',
-      [
-        'test',
-        '-p',
-        'chrome',
-        '-j',
-        '$concurrency',
-        '--timeout',
-        timeout,
-        '--reporter=expanded',
-        '--file-reporter=json:$jsonPath',
-        ...targets,
-      ],
-      mode: ProcessStartMode.inheritStdio,
-    );
+    final proc = await Process.start('dart', [
+      'test',
+      '-p',
+      'chrome',
+      '-j',
+      '$concurrency',
+      '--timeout',
+      timeout,
+      '--reporter=expanded',
+      '--file-reporter=json:$jsonPath',
+      ...targets,
+    ], mode: ProcessStartMode.inheritStdio);
     exitCode = await proc.exitCode;
   } finally {
     proxy?.kill();
@@ -291,7 +297,8 @@ void _printSummary(String jsonPath, List<String> targets) {
     }
   }
   stderr.writeln('------------------------');
-  stderr
-      .writeln('  files: ${targets.length}  with failures: $filesWithFailures');
+  stderr.writeln(
+    '  files: ${targets.length}  with failures: $filesWithFailures',
+  );
   stderr.writeln('  tests: +$totP passed  ~$totS skipped  -$totF failed');
 }
