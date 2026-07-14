@@ -7,10 +7,10 @@ import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/web_platform_texture_descriptor.dart';
 import 'package:web/web.dart';
+// ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+// ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
-import 'package:thermion_dart/src/bindings/src/js_interop.dart'
-    show stackSave, stackRestore;
 
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static Pointer? _stackPtr;
@@ -152,7 +152,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // buffer that never gets displayed.
     swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1);
 
-    print("Created 1x1 headless swapchain");
+    _logger.info("Created 1x1 headless swapchain");
 
     _ensureFrameLoopRunning();
 
