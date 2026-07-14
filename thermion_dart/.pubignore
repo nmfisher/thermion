@@ -12,6 +12,7 @@ test/generated/libThermionTextureSwift.dylib
 # but consumers need these checked-in generated files.
 !lib/src/bindings/src/thermion_dart_ffi.g.dart
 !lib/src/bindings/src/thermion_dart_js_interop.g.dart
+!lib/src/swift/swift_bindings.g.dart
 
 # Swift/ObjC bindings are unused in thermion_dart (the real copy lives in
 # thermion_flutter, which declares objective_c). Excluding here avoids forcing
