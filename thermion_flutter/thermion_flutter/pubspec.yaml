@@ -16,15 +16,11 @@ dependencies:
   vector_math: ^2.1.2
   plugin_platform_interface: ^2.0.0
   ffi: ^2.1.2
-  thermion_dart: ^0.4.0+5
+  thermion_dart: ^0.4.1
   hooks: ^1.0.0
   logging: ^1.2.0
   web: ^1.0.0
   objective_c: ^8.1.0
-
-dependency_overrides:
-  thermion_dart:
-    path: ../../thermion_dart
 
 dev_dependencies:
   flutter_test:
