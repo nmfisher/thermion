@@ -57,9 +57,8 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   }
 
   @override
-  Future<TextureFormat> getFormat() {
-    // TODO: implement getFormat
-    throw UnimplementedError();
+  Future<TextureFormat> getFormat() async {
+    return TextureFormat.values[Texture_getFormat(pointer)];
   }
 
   @override

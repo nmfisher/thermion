@@ -672,6 +672,12 @@ namespace thermion
             return texture->getDepth();
         }
 
+        EMSCRIPTEN_KEEPALIVE TTextureFormat Texture_getFormat(TTexture *tTexture)
+        {
+            auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+            return static_cast<TTextureFormat>(texture->getFormat());
+        }
+
         EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine)
         {
             auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
