@@ -1,3 +1,5 @@
+// ignore_for_file: lines_longer_than_80_chars
+
 import 'dart:math';
 
 import 'package:thermion_dart/src/filament/src/interface/axis.dart';
@@ -116,7 +118,7 @@ class BVHParser {
         boneName = line.split(' ')[1];
         if (remap?.containsKey(boneName) == true) {
           print("Remapping $boneName to ${remap![boneName]!}");
-          boneName = remap![boneName]!;
+          boneName = remap[boneName]!;
         }
       } else if (line.startsWith("CHANNELS")) {
         var channelsString = line.split("CHANNELS")[1].trim().split(" ");
@@ -232,7 +234,7 @@ class BVHParser {
       filteredBones = bones.map((b) => b.name).toList();
     } else {
       filteredBones = bones
-          .where((b) => boneRegex!.hasMatch(b.name))
+          .where((b) => boneRegex.hasMatch(b.name))
           .map((b) => b.name)
           .toList();
     }
