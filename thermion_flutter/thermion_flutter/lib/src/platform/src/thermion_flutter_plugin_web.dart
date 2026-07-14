@@ -3,7 +3,10 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
-import 'package:thermion_flutter/thermion_flutter.dart';
+// hiding these isn't actually necessary, but the analyzer trips up on it
+// when publishing to pub.dev, so we just hide manually.
+import 'package:thermion_flutter/thermion_flutter.dart'
+    hide Pointer, NativeType, nullptr;
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/web_platform_texture_descriptor.dart';
 import 'package:web/web.dart';
