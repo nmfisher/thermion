@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 // hiding these isn't actually necessary, but the analyzer trips up on it
 // when publishing to pub.dev, so we just hide manually.
 import 'package:thermion_flutter/thermion_flutter.dart'
-    hide Pointer, NativeType, nullptr;
+    hide Pointer, NativeType, nullptr, RenderManager_setPaused, NativeLibrary;
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/web_platform_texture_descriptor.dart';
 import 'package:web/web.dart';

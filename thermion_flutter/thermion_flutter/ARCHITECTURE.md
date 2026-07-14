@@ -1,28 +1,57 @@
+This document is a work-in-progress.
+
 # Architecture
 
-This document explains Flutter-specific implementation details, mostly about how the rendering surface is constructed, how the Flutter plugin communicates with the Filament renderer and which rendering backends we use. If you are looking to extend the plugin or contribute code upstream, start here.
+This document goes through implementation details for constructing rendering surfaces, frame synchronization, and rendering backends. 
 
-## Rendering surface
+It's important to remember that most of the below is *specific to the Flutter plugin*.  If you want to use `thermion_dart` as a standalone Dart-only renderer outside a Flutter application, you are free to create your own rendering surface/frame render loop/etc. The details below will be useful as a reference but there's nothing forcing you to follow this exactly.  
 
-On all platforms except Android, we create Filament with a headless swapchain, then render into a (hardware accelerated) texture that Flutter imports into its own widget hierarchy via a Texture widget. This allows the Filament viewport to be transformed/composed completely within the Flutter hierarchy (i.e. you could rotate/scale/translate the ThermionWidget in Flutter if you wanted, or insert other widgets above/below).
+## Rendering surface 
 
-## Render lifecycle (native)
+On macOS, iOS, Windows, and Linux, Thermion creates a hardware texture. Flutter can composite these textures inside the widget hierarchy via a `Texture` widget. This means the Filament view can be manipulated entirely within the Flutter hierarchy; i.e. you could rotate/scale/translate the ThermionWidget in Flutter if you wanted, or insert other widgets above/below.
 
-This section describes the per-frame lifecycle on native platforms (macOS/iOS/Windows/Android/Linux). Web has its own model — see [Web](#web) below.
+The same hardware texture can be imported and used as the backing surface for a Filament `RenderTarget`. Multi-view rendering may be possible but is not thoroughly tested (one render target per view, each render target getting its own texture). When the application window is resized, the textures are destroyed and recreated.
 
-### Frame sources
+On Android, we create multiple `SurfaceTexture` (each having their own ANativeWindow), and use multiple Filament swapchains. I'm not sure if this is the most efficient approach, so this may change in future.
 
-Thermion does not drive rendering from Flutter's `SchedulerBinding` on most platforms. Instead, a platform-native `FrameScheduler` (`thermion_dart/native/src/c_api/FrameSchedulerApi.cpp`) provides the vsync signal:
+[See the web section below](#web) for the web implementation details.
 
-| Platform | Source |
-|---|---|
-| macOS | `CVDisplayLinkScheduler` (CVDisplayLink vsync) |
-| iOS | `CADisplayLinkScheduler` |
-| Windows | `DXGIFrameScheduler` (DXGI `WaitForVBlank`) |
-| Android | `AChoreographerFrameScheduler` |
-| Linux | Flutter's `SchedulerBinding.addPersistentFrameCallback` (see below) |
+## Threading / Task Queue
 
-Linux is the odd one out: Flutter's persistent frame callback drives a non-blocking `FrameScheduler_requestRender` on the native render thread (`_initializeNativeRenderLoop` in `thermion_flutter_plugin_native.dart`). This keeps Thermion in lockstep with Flutter's Skia compositor, which matters on Linux where there is no independent display-link API we can reliably use.
+Filament requires certain tasks to be performed on the same thread that created an `Engine`. Since Dart/Flutter applications cannot (currently) pin isolates to threads, we need to create our own thread and task queue (see `RenderThread.hpp`). On the Dart side, we never call Filament methods directly, we always call the binding method to enqueue the task on the render thread (see `ThermionDartRenderThreadApi.cpp`).
+
+Tasks drain FIFO, one per `iter()`, so there is no preemption: a slow FFI call queued just before a render will delay that render until it finishes.
+The deque is lock-protected (`_taskMutex`); `iter()` holds the lock only long enough to pop, releases it to run the task, then re-acquires. This means Dart can enqueue new work while a render is in flight — it just won't run until the current task yields.
+
+Every Dart → Filament call (e.g. moving a camera, adding an entity) goes through a `*_RenderThread` shim that queues a task onto the same `RenderThread::_tasks` deque used by `RenderManager_renderRenderThread`.  Most FFI operations complete in microseconds so this is rarely visible, but bulk operations (e.g. loading a large glTF) can cause a single dropped frame because `_rendering` is still `true` when the next vsync fires.
+
+## Frame synchronization
+
+At a high level, Flutter renders its own UI frames like so:
+
+PlatformDispatcher.scheduleFrame ---> VSYNC ---> handleBeginFrame ---> drawFrame
+
+Since Thermion/Filament renders off the main thread into a texture which is then composited by Flutter, we are racing Flutter's own render sequence. 
+
+
+        |
+        -----> FrameScheduler
+
+> A simpler method is to use the embedding API, which will be explained elsewhere.
+
+
+On macOS, iOS, Windows, Android, Thermion use the platform vsync signal to synchronize rendering: 
+
+- `CVDisplayLinkScheduler` (macOS)
+- `CADisplayLinkScheduler` (iOS)
+- `DXGIFrameScheduler` (DXGI `WaitForVBlank`)  (Windows)
+- `AChoreographerFrameScheduler` (Android)
+
+On Linux, vsync is not reliably available, so Thermion uses Flutter's own `SchedulerBinding`. 
+
+Instead, we use a platform-native `FrameScheduler` (`thermion_dart/native/src/c_api/FrameSchedulerApi.cpp`) to provide the vsync signal:
+
+On Linux, we need to use Flutter's persistent frame callback to drive a non-blocking `FrameScheduler_requestRender` on the native render thread (`_initializeNativeRenderLoop` in `thermion_flutter_plugin_native.dart`). This keeps Thermion in lockstep with Flutter's Skia compositor, which matters on Linux where there is no independent display-link API we can reliably use.
 
 The `FrameScheduler` dispatches its callback to Dart in one of two ways:
 
@@ -71,12 +100,6 @@ The Flutter side is a standard `Texture(textureId: descriptor.flutterTextureId, 
 - **OpenGL** (Android, Linux preferred): imported GL texture handle.
 
 Compositing itself is Flutter's responsibility — the Texture widget participates in the normal widget tree, so transforms/opacity/clipping all work. The trade-off is one extra texture sample per frame versus drawing directly into the Flutter surface (which Thermion does not do).
-
-### Interleaving with FFI calls
-
-Every Dart → Filament call (e.g. moving a camera, adding an entity) goes through a `*_RenderThread` shim that queues a task onto the same `RenderThread::_tasks` deque used by `RenderManager_renderRenderThread`. Tasks drain FIFO, one per `iter()`, so there is no preemption: a slow FFI call queued just before a render will delay that render until it finishes. Most FFI operations complete in microseconds so this is rarely visible, but bulk operations (e.g. loading a large glTF) can cause a single dropped frame because `_rendering` is still `true` when the next vsync fires.
-
-The deque is lock-protected (`_taskMutex`); `iter()` holds the lock only long enough to pop, releases it to run the task, then re-acquires. This means Dart can enqueue new work while a render is in flight — it just won't run until the current task yields.
 
 ### Pause/resume
 
@@ -205,7 +228,7 @@ Rendering is driven entirely from the worker's mainLoop. Each worker rAF, `Rende
 
 All three steps happen in a single `tick()` invocation, matching the pre-refactor `RenderTicker::render()` pattern exactly. One frame per worker rAF = ~60fps at display vsync.
 
-### Invariants the render loop depends on
+### Render loop invariants 
 
 Two things about this loop are load-bearing and easy to break accidentally. Both were discovered through failed attempts to restructure it:
 

@@ -1,3 +1,11 @@
+## 0.4.2-pre
+Fixes:
+ - route loadKtx2 through the render thread on web.
+ - pick readPixels type per-view from render-target format.
+ - add BLIT_SRC|BLIT_DST when decodeToTexture asks mipmaps.
+ - free stb buffer after LinearImage decode.
+ - add Engine_destroyRenderer + RenderThread variant.
+
 ## 0.4.1
 - re-publish without Melos
 
