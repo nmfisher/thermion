@@ -4,7 +4,7 @@ import 'package:hooks/hooks.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 
-import 'log.dart';
+import 'logging/log.dart';
 
 void main(List<String> args) async {
   await link(args, (LinkInput input, output) async {
