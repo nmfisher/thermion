@@ -78,6 +78,12 @@ namespace thermion
                     to_float, sRGBToLinear<filament::math::float3>));
             }
 
+            // stbi_load_from_memory returns a malloc'd buffer we own. The
+            // LinearImage above copied/converted from it; release the
+            // intermediate before returning so it doesn't leak per decode
+            // (significant on repeated PNG decodes — see web heap-diag).
+            stbi_image_free(imgData);
+
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
@@ -86,6 +92,7 @@ namespace thermion
             if (!linearImage->isValid())
             {
                 Log("Failed to decode image.");
+                delete linearImage;
                 return nullptr;
             }
 
