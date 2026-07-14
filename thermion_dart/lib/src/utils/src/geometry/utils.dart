@@ -7,7 +7,6 @@ import 'cube.dart';
 import 'cylinder.dart';
 import 'pyramid.dart';
 import 'quad.dart';
-import 'sphere.dart';
 
 class GeometryUtils {
   /// Expand triangle strip indices to triangle list indices.

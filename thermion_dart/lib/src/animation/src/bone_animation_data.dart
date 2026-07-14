@@ -29,7 +29,8 @@ enum Space { World, Model, Bone, ParentWorldRotation }
 ///
 /// Represents a skeletal animation, namely:
 /// - a list of bone ("joints") names that will be animated
-/// - frame data, where each frame contains a quaternion rotation and a vector translation
+/// - frame data, where each frame contains a quaternion rotation and a vector
+/// translation
 ///
 class BoneAnimationData {
   final List<String> bones;

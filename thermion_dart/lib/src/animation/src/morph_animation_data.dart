@@ -2,11 +2,12 @@ import 'dart:typed_data';
 import 'dart:math';
 
 ///
-/// A generic interface for storing/retrieving morph target animation (aka "blendshape") frame data.
+/// A generic interface for storing/retrieving morph target animation
+/// (aka "blendshape") frame data.
 /// [morphTargets] contains the names of each morph target/blendshape.
 /// Each value in [data] represents one frame.
-/// Each frame consists of N weights (usually between 0.0 and 1.0), representing the weight
-/// of the morph target/blendshape at the same index in [morphTargets].
+/// Each frame consists of N weights (usually between 0.0 and 1.0), representing
+/// the weight of the morph target/blendshape at the same index in [morphTargets].
 ///
 class MorphAnimationData {
   final List<String> morphTargets;
