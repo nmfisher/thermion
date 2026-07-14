@@ -4,13 +4,13 @@ import 'package:hooks/hooks.dart';
 import 'package:code_assets/code_assets.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 
-import 'logging/log.dart';
+import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
   await link(args, (LinkInput input, output) async {
     final packageRoot = input.packageRoot;
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
-    final logger = createLogger(pkgRootFilePath, "link.log");
+    final logger = createBuildLogger(pkgRootFilePath, "link.log");
 
     // The CLinker.library(... LinkerOptions.manual(...)) call below
     // delegates to native_toolchain_c.runCl on Windows, which builds a

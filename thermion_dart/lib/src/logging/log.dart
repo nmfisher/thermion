@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 
-Logger createLogger(String packageRoot, String logFilename) {
+Logger createBuildLogger(String packageRoot, String logFilename) {
   var logPath =
       path.join(packageRoot, ".dart_tool", "thermion_dart", "log", logFilename);
   var logFile = File(logPath);
