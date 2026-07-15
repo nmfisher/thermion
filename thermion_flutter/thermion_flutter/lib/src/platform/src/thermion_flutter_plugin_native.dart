@@ -135,35 +135,37 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _rendering = true;
     _diagStopwatch.reset();
     _diagStopwatch.start();
-    _renderFrame().then((_) {
-      _diagStopwatch.stop();
-      _rendering = false;
-      final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
-      _diagFrameCount++;
-      _diagSumFrameMs += frameMs;
-      if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
-      if (frameMs > 20.0) _diagJankCount++;
-      if (frameMs > 20.0) {
-        _logger.warning(
-          '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms',
-        );
-      }
-      if (_diagFrameCount % 120 == 0) {
-        final avgMs = _diagSumFrameMs / 120.0;
-        _logger.finest(
-          '120-frame avg=${avgMs.toStringAsFixed(1)}ms '
-          'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
-          'jank=$_diagJankCount drop=$_diagDropCount',
-        );
-        _diagJankCount = 0;
-        _diagDropCount = 0;
-        _diagMaxFrameMs = 0;
-        _diagSumFrameMs = 0;
-      }
-    }).catchError((error) {
-      _logger.warning('Frame render error: $error');
-      _rendering = false;
-    });
+    _renderFrame()
+        .then((_) {
+          _diagStopwatch.stop();
+          _rendering = false;
+          final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
+          _diagFrameCount++;
+          _diagSumFrameMs += frameMs;
+          if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
+          if (frameMs > 20.0) _diagJankCount++;
+          if (frameMs > 20.0) {
+            _logger.warning(
+              '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms',
+            );
+          }
+          if (_diagFrameCount % 120 == 0) {
+            final avgMs = _diagSumFrameMs / 120.0;
+            _logger.finest(
+              '120-frame avg=${avgMs.toStringAsFixed(1)}ms '
+              'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
+              'jank=$_diagJankCount drop=$_diagDropCount',
+            );
+            _diagJankCount = 0;
+            _diagDropCount = 0;
+            _diagMaxFrameMs = 0;
+            _diagSumFrameMs = 0;
+          }
+        })
+        .catchError((error) {
+          _logger.warning('Frame render error: $error');
+          _rendering = false;
+        });
   }
 
   /// Stop the frame scheduler and clean up the callback.
@@ -255,16 +257,19 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     final dylib = ffi.DynamicLibrary.process();
 
     // Look up cross-library symbols from thermion_flutter_plugin.so
-    final getHandleFn = dylib.lookupFunction<ffi.Pointer<ffi.Void> Function(),
-        ffi.Pointer<ffi.Void> Function()>('thermion_flutter_get_plugin_handle');
+    final getHandleFn = dylib
+        .lookupFunction<
+          ffi.Pointer<ffi.Void> Function(),
+          ffi.Pointer<ffi.Void> Function()
+        >('thermion_flutter_get_plugin_handle');
 
     final pluginHandle = getHandleFn();
 
     // Look up the texture marking function from the Flutter plugin
     final markTexturesFnPtr = dylib
         .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-      'thermion_flutter_mark_textures',
-    );
+          'thermion_flutter_mark_textures',
+        );
 
     final app = FilamentApp.instance as FFIFilamentApp;
 
@@ -437,7 +442,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     } else {
       // Use port-based mode in debug builds (hot restart safe)
       // Use direct callback in release builds (maximum performance)
-      _usePortMode = kDebugMode &&
+      _usePortMode =
+          kDebugMode &&
           (Platform.isMacOS ||
               Platform.isIOS ||
               Platform.isAndroid ||
@@ -481,7 +487,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // Determine if we need the Vulkan external image path or direct GL/Metal import.
     // Vulkan path: builder.external() + setExternalImage (Windows, or Linux with Vulkan)
     // Direct import path: builder.import(textureId) (macOS/iOS Metal, Linux with OpenGL)
-    final useExternalImage = Platform.isWindows ||
+    final useExternalImage =
+        Platform.isWindows ||
         ThermionFlutterPlugin.instance.options.nativeOptions.backend ==
             Backend.VULKAN;
 
