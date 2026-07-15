@@ -4,3 +4,8 @@ pubspec.lock
 test/output/*
 test/generated/libThermionTextureSwift.dylib
 **/*.g.dart
+
+# Emscripten Filament module copied into test/ for browser runs
+# (`dart test -p chrome`). Rebuild with `make wasm`.
+test/thermion_dart.js
+test/thermion_dart.wasm

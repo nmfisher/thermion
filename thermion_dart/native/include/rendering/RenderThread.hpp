@@ -52,21 +52,32 @@ public:
     void iter();
 
     /**
-     * On emscripten builds, this breaks the current loop and
-     * immediately exits, yielding to the main browser loop.
-     * On other builds, this does nothing.
-     */
-    void restart();
-
-    /**
-     * 
-     */
-    bool mStop = false;
-
-    /**
+     * Signals the worker to exit on its next iteration. Written by the
+     * destructor (true) and the constructor (false) on the main thread, read
+     * by the worker.
      *
+     * Static, not an instance member, because on web pthread_detach lets the
+     * destructor return and `*this` be freed before the worker observes the
+     * flag — a member would be UAF. Native could safely use a member (`t->join()`
+     * keeps `*this` alive across the worker's read) but the static works there
+     * too since RenderThread is a singleton, and one mechanism is simpler than
+     * two. RenderThread being a singleton is an existing invariant
+     * (`_renderThread` in ThermionDartRenderThreadApi.cpp); breaking it would
+     * require revisiting this design.
+     *
+     * On web, create() after destroy() must wait for mLiveWorkerCount to hit 0
+     * before constructing the next RenderThread, otherwise the constructor's
+     * reset to false races the previous worker's read of true.
      */
-    bool mRestart = false;
+    static std::atomic<bool> mStop;
+
+    /**
+     * Live worker count. Incremented on worker entry, decremented just before
+     * the worker exits. Polled from the main thread before constructing a
+     * replacement RenderThread on web, since pthread_detach lets the destructor
+     * return before the worker has actually exited.
+     */
+    static std::atomic<int32_t> mLiveWorkerCount;
 
     #ifdef __EMSCRIPTEN__
     emscripten::ProxyingQueue queue;

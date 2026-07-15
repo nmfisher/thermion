@@ -30,6 +30,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderManager_removeAnimationManagerRenderThread(TRenderManager *tRenderManager, TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void RenderManager_removeSwapChainRenderThread(TRenderManager *tRenderManager, TSwapChain *tSwapChain, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, void (*onComplete)(TAnimationManager *));
+        EMSCRIPTEN_KEEPALIVE void AnimationManager_destroyRenderThread(TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
             TBackend backend,
@@ -40,6 +41,7 @@ namespace thermion
             void (*onComplete)(TEngine *)
         );
         EMSCRIPTEN_KEEPALIVE void Engine_createRendererRenderThread(TEngine *tEngine, void (*onComplete)(TRenderer *));
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyRendererRenderThread(TEngine *tEngine, TRenderer *tRenderer, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainRenderThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *));
         EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainRenderThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *));
         EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine* tEngine, EntityId entityId, void (*onComplete)(TCamera *));
@@ -47,7 +49,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_createViewRenderThread(TEngine *tEngine, void (*onComplete)(TView *));
         EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderThread(TEngine *tEngine, uint32_t requestId, VoidCallback onComplete);
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyRendererRenderThread(TEngine *tEngine, TRenderer *tRenderer, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, uint32_t requestId,  VoidCallback onComplete);
@@ -339,6 +340,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, TSceneAsset *tSceneAsset, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager, void (*callback)(TGltfAssetLoader *));
+        EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroyRenderThread(TGltfAssetLoader *tAssetLoader, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *));
         EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));

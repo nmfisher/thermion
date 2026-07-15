@@ -22,6 +22,8 @@
 //                    that load materials/textures/glTF/IBL/skybox assets.
 //   --no-proxy       assume the proxy is already running; do not start one
 //   --clean          delete the wrappers this run generated when finished
+//   -N <regex>       forwarded to `dart test --name=<regex>` (also --name=<regex>)
+//   -n <substring>   forwarded to `dart test --plain-name=<sub>` (also --plain-name=<sub>)
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -66,11 +68,8 @@ String _wrapperHtml(String testFileName) =>
 
 Future<bool> _portOpen(int port) async {
   try {
-    final s = await Socket.connect(
-      InternetAddress.loopbackIPv4,
-      port,
-      timeout: const Duration(milliseconds: 500),
-    );
+    final s = await Socket.connect(InternetAddress.loopbackIPv4, port,
+        timeout: const Duration(milliseconds: 500));
     s.destroy();
     return true;
   } catch (_) {
@@ -95,7 +94,12 @@ Future<void> main(List<String> args) async {
   var clean = false;
   String? assets;
   final files = <String>[];
-  for (final a in args) {
+  // Test-name filters passed straight through to `dart test`. Supports the
+  // same forms as the underlying runner: --name=<regex> / -N <regex>
+  // (substring-as-regex) and --plain-name=<str> / -n <str> (substring match).
+  final passthrough = <String>[];
+  for (var i = 0; i < args.length; i++) {
+    final a = args[i];
     if (a.startsWith('--port=')) {
       port = int.parse(a.substring('--port='.length));
     } else if (a.startsWith('--timeout=')) {
@@ -108,6 +112,20 @@ Future<void> main(List<String> args) async {
       manageProxy = false;
     } else if (a == '--clean') {
       clean = true;
+    } else if (a.startsWith('--name=') || a.startsWith('--plain-name=')) {
+      passthrough.add(a);
+    } else if (a == '-N' || a == '--name') {
+      if (i + 1 >= args.length) {
+        stderr.writeln('$a requires a value');
+        exit(64);
+      }
+      passthrough.addAll(['--name', args[++i]]);
+    } else if (a == '-n' || a == '--plain-name') {
+      if (i + 1 >= args.length) {
+        stderr.writeln('$a requires a value');
+        exit(64);
+      }
+      passthrough.addAll(['--plain-name', args[++i]]);
     } else if (a.startsWith('--')) {
       stderr.writeln('unknown option: $a');
       exit(64);
@@ -117,9 +135,7 @@ Future<void> main(List<String> args) async {
   }
 
   if (!Directory('test').existsSync()) {
-    stderr.writeln(
-      'Run from the thermion_dart package root (no ./test found).',
-    );
+    stderr.writeln('Run from the thermion_dart package root (no ./test found).');
     exit(1);
   }
 
@@ -151,20 +167,16 @@ Future<void> main(List<String> args) async {
     html.writeAsStringSync(_wrapperHtml(name));
     if (!existed) generated.add(html);
   }
-  stderr.writeln(
-    'Wrappers: ${targets.length} written '
-    '(${generated.length} new).',
-  );
+  stderr.writeln('Wrappers: ${targets.length} written '
+      '(${generated.length} new).');
 
   // 3. Ensure the COOP/COEP proxy is up.
   Process? proxy;
   if (await _portOpen(port)) {
     stderr.writeln('Proxy: reusing listener on $port.');
     if (assets != null) {
-      stderr.writeln(
-        '  note: --assets is ignored when reusing an existing '
-        'proxy; restart it with --assets=$assets to serve those assets.',
-      );
+      stderr.writeln('  note: --assets is ignored when reusing an existing '
+          'proxy; restart it with --assets=$assets to serve those assets.');
     }
   } else if (manageProxy) {
     stderr.writeln(
@@ -186,10 +198,8 @@ Future<void> main(List<String> args) async {
     }
     stderr.writeln('Proxy: listening on $port.');
   } else {
-    stderr.writeln(
-      'Proxy: nothing on $port and --no-proxy set. '
-      'Start tool/coi_proxy.dart $port first.',
-    );
+    stderr.writeln('Proxy: nothing on $port and --no-proxy set. '
+        'Start tool/coi_proxy.dart $port first.');
     exit(1);
   }
 
@@ -207,6 +217,7 @@ Future<void> main(List<String> args) async {
       timeout,
       '--reporter=expanded',
       '--file-reporter=json:$jsonPath',
+      ...passthrough,
       ...targets,
     ], mode: ProcessStartMode.inheritStdio);
     exitCode = await proc.exitCode;
@@ -297,8 +308,6 @@ void _printSummary(String jsonPath, List<String> targets) {
     }
   }
   stderr.writeln('------------------------');
-  stderr.writeln(
-    '  files: ${targets.length}  with failures: $filesWithFailures',
-  );
+  stderr.writeln('  files: ${targets.length}  with failures: $filesWithFailures');
   stderr.writeln('  tests: +$totP passed  ~$totS skipped  -$totF failed');
 }

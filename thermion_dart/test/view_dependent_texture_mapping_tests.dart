@@ -10,20 +10,14 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
 Future<(LinearImage, Texture, TextureSampler)> createTextureFromImage(
-  TestHelper testHelper,
-) async {
+    TestHelper testHelper) async {
   final image = await FilamentApp.instance!.decodeImage(
-    File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync(),
-  );
-  final texture = await FilamentApp.instance!.createTexture(
-    await image.getWidth(),
-    await image.getHeight(),
-  );
+      File("${testHelper.assetsDir}/cube_texture_512x512.png")
+          .readAsBytesSync());
+  final texture = await FilamentApp.instance!
+      .createTexture(await image.getWidth(), await image.getHeight());
   await texture.setLinearImage(
-    image,
-    PixelDataFormat.RGBA,
-    PixelDataType.FLOAT,
-  );
+      image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
 
   return (image, texture, await FilamentApp.instance!.createTextureSampler());
 }
@@ -36,9 +30,8 @@ Future<(MaterialInstance, Texture)> _makeVDTMMaterial(
   int channels,
 ) async {
   final sampler = await FilamentApp.instance!.createTextureSampler(
-    compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
-    compareFunc: TextureCompareFunc.GREATER,
-  );
+      compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
+      compareFunc: TextureCompareFunc.GREATER);
 
   var texture = await FilamentApp.instance!.createTexture(
     width,
@@ -60,14 +53,16 @@ Future<(MaterialInstance, Texture)> _makeVDTMMaterial(
     "cameraForwardVectors",
     cameraForwardVectors,
   );
-  await materialInstance.setParameterTexture("perspectives", texture, sampler);
+  await materialInstance.setParameterTexture(
+    "perspectives",
+    texture,
+    sampler,
+  );
   return (materialInstance, texture);
 }
 
 Future<ThermionAsset> _makeCube(
-  TestHelper testHelper,
-  ThermionViewer viewer,
-) async {
+    TestHelper testHelper, ThermionViewer viewer) async {
   final cube = await testHelper.createCube(viewer);
   var ubershader = await cube.getMaterialInstanceAt();
   await ubershader.setDepthCullingEnabled(true);
@@ -80,13 +75,6 @@ Future<ThermionAsset> _makeCube(
 }
 
 void main() async {
-  // TODO(c9b41bdf): restore once the TextureProjection refactor is finished.
-  // This depends on TextureProjection (create() currently throws
-  // Exception("TODO")) and on Texture/TextureProjection APIs removed/changed
-  // in the web-support refactor (c9b41bdf): Texture.setImage3D,
-  // TextureProjection.getProjectedPixelBuffer/getColorBuffer, and the
-  // project()/create() signatures. Original test body preserved below.
-  /*
   final testHelper = TestHelper("vdtm");
   await testHelper.setup();
   test('basic color interpolation', () async {
@@ -117,12 +105,7 @@ void main() async {
         4,
       );
       final (vdtmMi, texture) = await _makeVDTMMaterial(
-        viewer,
-        cameraForwardVectors,
-        width,
-        height,
-        channels,
-      );
+          viewer, cameraForwardVectors, width, height, channels);
 
       await FilamentApp.instance!.flush();
       final cube = await _makeCube(testHelper, viewer);
@@ -182,24 +165,19 @@ void main() async {
       final cube = await _makeCube(testHelper, viewer);
       final ubershader = await cube.getMaterialInstanceAt();
 
-      final (image, originalTexture, sampler) = await createTextureFromImage(
-        testHelper,
-      );
+      final (image, originalTexture, sampler) =
+          await createTextureFromImage(testHelper);
       await ubershader.setParameterTexture(
-        "baseColorMap",
-        originalTexture,
-        sampler,
-      );
+          "baseColorMap", originalTexture, sampler);
 
       await testHelper.capture(viewer.view, "vdtm_static_texture_initial");
 
       final (vdtmMi, texture) = await _makeVDTMMaterial(
-        viewer,
-        cameraForwardVectors,
-        await image.getWidth(),
-        await image.getHeight(),
-        await image.getChannels(),
-      );
+          viewer,
+          cameraForwardVectors,
+          await image.getWidth(),
+          await image.getHeight(),
+          await image.getChannels());
 
       await cube.setMaterialInstanceAt(vdtmMi);
 
@@ -253,17 +231,11 @@ void main() async {
         4,
       );
 
-      final (image, originalTexture, sampler) = await createTextureFromImage(
-        testHelper,
-      );
+      final (image, originalTexture, sampler) =
+          await createTextureFromImage(testHelper);
 
       final (vdtmMi, vdtmTexture) = await _makeVDTMMaterial(
-        viewer,
-        cameraForwardVectors,
-        width,
-        height,
-        4,
-      );
+          viewer, cameraForwardVectors, width, height, 4);
 
       await FilamentApp.instance!.flush();
 
@@ -272,31 +244,16 @@ void main() async {
       final ubershader = await cube.getMaterialInstanceAt();
 
       await ubershader.setParameterTexture(
-        "baseColorMap",
-        originalTexture,
-        sampler,
-      );
+          "baseColorMap", originalTexture, sampler);
 
-      final textureProjection = await TextureProjection.create(
-        viewer.view,
-        testHelper.swapChain,
-      );
+      final textureProjection =
+          await TextureProjection.create(viewer.view, testHelper.swapChain);
 
-      await FilamentApp.instance!.setClearOptions(
-        0,
-        0,
-        0,
-        1,
-        clearStencil: 0,
-        discard: false,
-        clear: true,
-      );
+      await FilamentApp.instance!.setClearOptions(0, 0, 0, 1,
+          clearStencil: 0, discard: false, clear: true);
 
-      final projectedImage = await FilamentApp.instance!.createImage(
-        width,
-        height,
-        4,
-      );
+      final projectedImage =
+          await FilamentApp.instance!.createImage(width, height, 4);
       final projectedTexture = await FilamentApp.instance!.createTexture(
         width,
         height,
@@ -311,49 +268,38 @@ void main() async {
         await camera.lookAt(position);
 
         await textureProjection.project(cube);
-        final projectedPixelBuffer = textureProjection
-            .getProjectedPixelBuffer();
+        final projectedPixelBuffer =
+            textureProjection.getProjectedPixelBuffer();
         await cube.setMaterialInstanceAt(ubershader);
 
-        await savePixelBufferToBmp(
-          textureProjection.getColorBuffer(),
-          width,
-          height,
-          "${testHelper.outDir.path}/initial_$i.bmp",
-        );
+        await savePixelBufferToBmp(textureProjection.getColorBuffer(), width,
+            height, "${testHelper.outDirPath}/initial_$i.bmp");
         // await savePixelBufferToBmp(projectedPixelBuffer, width, height,
-        //     "${testHelper.outDir.path}/initial_projected_uv_mapped_$i.bmp");
+        //     "${testHelper.outDirPath}/initial_projected_uv_mapped_$i.bmp");
 
         await vdtmTexture.setImage3D(
-          0,
-          0,
-          0,
-          i,
-          width,
-          height,
-          4,
-          1,
-          projectedPixelBuffer.buffer.asUint8List(),
-          PixelDataFormat.RGBA,
-          PixelDataType.FLOAT,
-        );
+            0,
+            0,
+            0,
+            i,
+            width,
+            height,
+            4,
+            1,
+            projectedPixelBuffer.buffer.asUint8List(),
+            PixelDataFormat.RGBA,
+            PixelDataType.FLOAT);
 
         final data = await projectedImage.getData();
         data.setRange(
-          0,
-          data.length,
-          projectedPixelBuffer.buffer.asFloat32List(),
-        );
+            0, data.length, projectedPixelBuffer.buffer.asFloat32List());
         await projectedTexture.setLinearImage(
           projectedImage,
           PixelDataFormat.RGBA,
           PixelDataType.FLOAT,
         );
         await ubershader.setParameterTexture(
-          "baseColorMap",
-          projectedTexture,
-          sampler,
-        );
+            "baseColorMap", projectedTexture, sampler);
         await cube.setMaterialInstanceAt(ubershader);
         // await testHelper.capture(viewer.view, "initial_reprojected_$i");
 
@@ -362,10 +308,7 @@ void main() async {
         await testHelper.capture(viewer.view, "vdtm_$i");
         await cube.setMaterialInstanceAt(ubershader);
         await ubershader.setParameterTexture(
-          "baseColorMap",
-          originalTexture,
-          sampler,
-        );
+            "baseColorMap", originalTexture, sampler);
       }
 
       await cube.setMaterialInstanceAt(vdtmMi);
@@ -382,5 +325,4 @@ void main() async {
       }
     }, createRenderTarget: true);
   });
-  */
 }

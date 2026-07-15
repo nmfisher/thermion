@@ -55,6 +55,20 @@ EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, 
     return reinterpret_cast<TGltfAssetLoader *>(assetLoader);
 }
 
+EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroy(TGltfAssetLoader *tAssetLoader) {
+    auto *loader = reinterpret_cast<gltfio::AssetLoader *>(tAssetLoader);
+    // The MaterialProvider is the caller's responsibility per Filament's
+    // contract (see AssetLoader.h:68-70, example at 145-149). We typically
+    // create the ubershader provider internally in GltfAssetLoader_create
+    // (when tMaterialProvider was null) and don't expose a separate handle,
+    // so retrieve it here and tear it down in the documented order:
+    // destroyMaterials -> AssetLoader::destroy -> delete provider.
+    auto *provider = &loader->getMaterialProvider();
+    provider->destroyMaterials();
+    gltfio::AssetLoader::destroy(&loader);
+    delete provider;
+}
+
 EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     TEngine *tEngine,
     TGltfAssetLoader *tAssetLoader,

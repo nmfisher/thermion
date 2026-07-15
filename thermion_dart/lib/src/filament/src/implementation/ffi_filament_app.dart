@@ -46,7 +46,7 @@ class FFIFilamentConfig extends FilamentConfig {
 class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TEngine> engine;
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
-  final Pointer<TRenderer> renderer;
+  Pointer<TRenderer> renderer;
 
   final Pointer<Void> renderThreadHandle;
 
@@ -391,7 +391,32 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     FilamentApp.instance = null;
+    // Detach the RenderManager from the worker pthread BEFORE deleting it.
+    // The worker's mainLoop/iter() reads `mRenderManager` to drive ticks; once
+    // we delete the RenderManager that pointer dangles, and the next iter()
+    // crashes inside tick() — which is silent in release builds and leaves
+    // the worker pthread effectively dead but with its mimalloc arena still
+    // owned, so every subsequent FilamentApp.create() spawns a fresh worker
+    // on top of the leaked one.
+    RenderManager_detachFromRenderThread();
     renderManager.destroy();
+
+    // Filament's contract is: tear down everything created on top of the
+    // Engine before destroying the Engine itself. Order matters — the
+    // AssetLoader holds Engine-bound Materials (via its internally-created
+    // ubershader MaterialProvider), the AnimationManager wraps gltfio
+    // animators bound to the Engine, and NameComponentManager is standalone.
+    await withVoidCallback((requestId, cb) =>
+        AnimationManager_destroyRenderThread(
+            (animationManager as FFIAnimationManager).animationManager,
+            requestId,
+            cb));
+    await withVoidCallback((requestId, cb) => GltfAssetLoader_destroyRenderThread(
+        gltfAssetLoader, requestId, cb));
+    NameComponentManager_destroy(nameComponentManager);
+
+    await withVoidCallback((requestId, cb) =>
+        Engine_destroyRendererRenderThread(engine, renderer, requestId, cb));
     await withVoidCallback((requestId, cb) async {
       Engine_destroyRenderThread(engine, requestId, cb);
     });

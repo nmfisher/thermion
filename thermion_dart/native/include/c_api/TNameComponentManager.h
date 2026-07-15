@@ -8,6 +8,7 @@ extern "C"
 {
 #endif
 	EMSCRIPTEN_KEEPALIVE TNameComponentManager *NameComponentManager_create();
+	EMSCRIPTEN_KEEPALIVE void NameComponentManager_destroy(TNameComponentManager *tNameComponentManager);
 	EMSCRIPTEN_KEEPALIVE const char *NameComponentManager_getName(TNameComponentManager *tNameComponentManager, EntityId entity);
 	
 

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>engine_tests</title>
+
+    <!-- emscripten Filament module factory (built by `make wasm`, copied here). -->
+    <script src="thermion_dart.js"></script>
+
+    <!-- Standard package:test bootstrap. These must be STATIC scripts: dart.js
+         locates itself via document.currentScript to find the compiled test, so
+         it cannot be injected dynamically. Ordering with the WASM module is
+         handled on the Dart side: initTestBindings() awaits globalThis.__thermionReady. -->
+    <link rel="x-dart-test" href="engine_tests.dart" />
+    <script src="packages/test/dart.js"></script>
+
+    <style>
+      html, body { margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <!-- The pthreads build transfers this canvas as an OffscreenCanvas to the
+         render-thread worker; emscripten's OFFSCREENCANVASES_TO_PTHREAD targets
+         the id "thermion_canvas", so it must match exactly. -->
+    <canvas id="thermion_canvas" width="512" height="512"></canvas>
+
+    <script>
+      // Kick off module init now that the canvas exists, and publish a readiness
+      // promise the Dart side awaits before touching the bindings.
+      globalThis.__thermionReady = thermion_dart()
+        .then(function (module) {
+          globalThis.thermion_dart = module;
+          console.log(
+            "[coi-diag] module ready; crossOriginIsolated=" +
+              self.crossOriginIsolated);
+        })
+        .catch(function (err) {
+          console.error("[coi-diag] module init failed:", err);
+        });
+    </script>
+  </body>
+</html>

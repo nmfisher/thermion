@@ -4,6 +4,10 @@
 #include <thread>
 #include <stdlib.h>
 #include <vector>
+#ifdef __EMSCRIPTEN__
+#include <unistd.h>
+#include <mimalloc.h>
+#endif
 
 #include <filament/LightManager.h>
 
@@ -94,6 +98,18 @@ extern "C"
     _renderThread->setRenderManager(rm);
 #else
     (void)tRenderManager; // no-op on native
+#endif
+  }
+
+  // Inverse of RenderManager_attachToRenderThread. Call before deleting a
+  // RenderManager so the worker's iter() doesn't dereference a freed pointer
+  // on its next tick.
+  EMSCRIPTEN_KEEPALIVE void RenderManager_detachFromRenderThread()
+  {
+#ifdef __EMSCRIPTEN__
+    if (_renderThread) {
+      _renderThread->setRenderManager(nullptr);
+    }
 #endif
   }
 
@@ -448,7 +464,6 @@ extern "C"
             PROXY(onComplete(requestId));
           });
           _renderThread->addTask(callback);
-          _renderThread->restart();
         });
     auto fut = _renderThread->addTask(lambda);
   }
@@ -1332,6 +1347,17 @@ extern "C"
     auto fut = _renderThread->addTask(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_destroyRenderThread(TAnimationManager *tAnimationManager, uint32_t requestId, VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          AnimationManager_destroy(tAnimationManager);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateRenderThread(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -1808,6 +1834,20 @@ extern "C"
       {
         auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider, tNameComponentManager);
         PROXY(callback(loader));
+      });
+    auto fut = _renderThread->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroyRenderThread(
+    TGltfAssetLoader *tAssetLoader,
+    uint32_t requestId,
+    VoidCallback onComplete)
+  {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        GltfAssetLoader_destroy(tAssetLoader);
+        PROXY(onComplete(requestId));
       });
     auto fut = _renderThread->addTask(lambda);
   }

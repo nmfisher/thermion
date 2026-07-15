@@ -18,6 +18,10 @@ extern "C"
         return reinterpret_cast<TAnimationManager *>(animationManager);
     }
 
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_destroy(TAnimationManager *tAnimationManager) {
+        delete reinterpret_cast<AnimationManager *>(tAnimationManager);
+    }
+
     EMSCRIPTEN_KEEPALIVE void AnimationManager_update(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos) {
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
         animationManager->update(frameTimeInNanos);

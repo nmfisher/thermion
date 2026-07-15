@@ -70,10 +70,8 @@ Future<void> main(List<String> args) async {
   final assetsNote = _assetsRoot == null
       ? 'assets: disabled'
       : 'assets <- ${Directory(_assetsRoot!).absolute.path}';
-  stderr.writeln(
-    'coi-proxy listening on 127.0.0.1:$port'
-    ' (sink -> ${Directory(_outRoot).absolute.path}, $assetsNote)',
-  );
+  stderr.writeln('coi-proxy listening on 127.0.0.1:$port'
+      ' (sink -> ${Directory(_outRoot).absolute.path}, $assetsNote)');
   await for (final client in server) {
     unawaited(_handleClient(client));
   }
@@ -129,9 +127,8 @@ Future<void> _handleClient(Socket client) async {
     if (upstream == null) return;
     upstream.setOption(SocketOption.tcpNoDelay, true);
 
-    final isUpgrade = reqHeaders.any(
-      (h) => h.toLowerCase().startsWith('upgrade:'),
-    );
+    final isUpgrade =
+        reqHeaders.any((h) => h.toLowerCase().startsWith('upgrade:'));
 
     // Rewrite request target to origin-form and forward the headers.
     final path = uri.path.isEmpty ? '/' : uri.path;
@@ -175,15 +172,9 @@ Future<void> _handleClient(Socket client) async {
       }
       resp.write('$h\r\n');
     }
-    resp
-      ..write('$_coop\r\n')
-      ..write('$_coep\r\n')
-      ..write('$_corp\r\n')
-      ..write('\r\n');
+    resp..write('$_coop\r\n')..write('$_coep\r\n')..write('$_corp\r\n')..write('\r\n');
     client.add(utf8.encode(resp.toString()));
-    await upReader.forwardTo(
-      client,
-    ); // completes on upstream EOF (Connection: close)
+    await upReader.forwardTo(client); // completes on upstream EOF (Connection: close)
     // Flush gracefully before teardown: destroy() discards unsent buffered
     // bytes, which truncates large bodies (e.g. the 3.8MB wasm).
     try {
@@ -217,13 +208,8 @@ void _refuse(Socket client) {
 // query parameter; it is sanitised (leading slashes and `..` segments dropped)
 // so writes stay within _outRoot. CORS/isolation headers are added so the
 // cross-origin-isolated test page's fetch is allowed to complete.
-Future<void> _handleSink(
-  Socket client,
-  String method,
-  Uri uri,
-  List<String> reqHeaders,
-  _SocketReader reader,
-) async {
+Future<void> _handleSink(Socket client, String method, Uri uri,
+    List<String> reqHeaders, _SocketReader reader) async {
   if (method == 'OPTIONS') return _writeSinkResponse(client, 204, 'No Content');
   if (method != 'POST') {
     return _writeSinkResponse(client, 405, 'Method Not Allowed');

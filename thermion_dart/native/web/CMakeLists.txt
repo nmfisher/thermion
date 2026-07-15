@@ -38,18 +38,26 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_ASSERTIONS=1)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_DEBUG=1)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSAFE_HEAP=1)
-  
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSAFE_HEAP_LOG=1)
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_OVERFLOW_CHECK=2)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sWARN_UNALIGNED=1)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wover-aligned")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wcast-align -Wover-aligned")
-  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=10485760)
 endif()
 
 if(ENABLE_TRACING)
 add_compile_definitions(ENABLE_TRACING=1)
 message(STATUS "Enabling tracing")
 endif()
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=10485760)
+
+# pthread stack size defaults to 10 MB.
+# Override with -DTHERMION_STACK_SIZE=<bytes>.
+if(NOT DEFINED THERMION_STACK_SIZE)
+  set(THERMION_STACK_SIZE 10485760)
+endif()
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=${THERMION_STACK_SIZE})
+
+
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_PTHREAD=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} "-sOFFSCREENCANVASES_TO_PTHREAD=#thermion_canvas")
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_WORKER=1)
@@ -66,7 +74,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O1")
 endif()
 
-# Set to "ON" to enable verbose linking 
+# Set to "ON" to enable verbose linking
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 add_link_options(${EMCC_CFLAGS} -pthread)
