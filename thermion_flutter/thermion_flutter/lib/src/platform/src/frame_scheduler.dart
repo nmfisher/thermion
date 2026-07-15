@@ -56,6 +56,11 @@ class FrameScheduler {
   bool _paused = false;
   bool _rendering = false;
 
+  /// True once [startFlutterSynced] has registered a persistent frame
+  /// callback. In that mode the loop is driven by Flutter's frame clock
+  /// and must be re-armed with [SchedulerBinding.scheduleFrame] on resume.
+  bool _flutterSynced = false;
+
   ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
   ReceivePort? _framePort;
 
@@ -75,7 +80,12 @@ class FrameScheduler {
 
   /// Start the native scheduler. Picks port mode in debug builds on
   /// macOS/iOS/Android/Windows, direct callback otherwise.
+  ///
+  /// Idempotent: a no-op if already active. Guards against a rapid
+  /// pause→resume (or an in-flight [start]) double-registering the
+  /// callback/port and double-starting the native scheduler.
   Future<void> start() async {
+    if (_active) return;
     _active = true;
 
     final usePortMode =
@@ -104,7 +114,9 @@ class FrameScheduler {
     required PostRenderCallback postRenderCallback,
     required ffi.Pointer<ffi.Void> postRenderUserData,
   }) async {
+    if (_active) return;
     _active = true;
+    _flutterSynced = true;
 
     FrameScheduler_setRenderThread(renderThreadHandle);
     FrameScheduler_setRenderManager(renderManagerHandle);
@@ -126,6 +138,7 @@ class FrameScheduler {
   /// dangling pointer from the previous isolate.
   void stop() {
     _active = false;
+    _flutterSynced = false;
 
     FrameScheduler_stop();
 
@@ -137,7 +150,17 @@ class FrameScheduler {
   }
 
   void pause() => _paused = true;
-  void resume() => _paused = false;
+
+  /// Clear the pause flag. In Flutter-synced mode this must also re-arm the
+  /// frame callback: [pause] stops [_onFlutterFrame] from scheduling the next
+  /// frame, so without an explicit [SchedulerBinding.scheduleFrame] the loop
+  /// would stay frozen after a background→foreground transition.
+  void resume() {
+    _paused = false;
+    if (_active && _flutterSynced) {
+      SchedulerBinding.instance.scheduleFrame();
+    }
+  }
 
   Future<void> _initializePortMode() async {
     if (!_dartApiInitialized) {
@@ -183,7 +206,13 @@ class FrameScheduler {
   }
 
   void _onFrame(int frameTimeNanos) {
-    if (!_active || _paused || _rendering) return;
+    if (!_active || _paused) return;
+    if (_rendering) {
+      // A vsync arrived while the previous frame is still rendering —
+      // count it as a drop and skip. (Previously uncounted.)
+      _diagDropCount++;
+      return;
+    }
     final callback = _onFrameCallback;
     if (callback == null) {
       throw StateError('FrameScheduler.setOnFrame must be called before start');

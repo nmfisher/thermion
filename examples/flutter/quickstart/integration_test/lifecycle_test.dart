@@ -1,0 +1,130 @@
+// Integration test for the Flutter app-lifecycle handling added in
+// `feat/flutter-lifecycle` (WidgetsBindingObserver + FrameScheduler).
+//
+// Two layers are exercised:
+//
+// 1. A deterministic, OS-independent suite that drives FrameScheduler's
+//    *public* API (stop/start/pause/resume) directly. This validates the
+//    stop→start round-trip and the start() idempotency guard without any
+//    interference from the host OS.
+// 2. A lenient end-to-end check that synthesizes AppLifecycleState events
+//    through the binding. On desktop targets the real window also emits
+//    lifecycle events (e.g. `inactive` on focus loss), which race with the
+//    synthesized ones — so we only assert the scheduler *recovers* to
+//    active+unpaused, not the exact intermediate state.
+//
+// The strongest regression guarded against: the Flutter-synced (Linux) loop
+// freezing permanently after background→foreground because `resume()` failed
+// to re-arm the frame callback. That specific path only runs under
+// `startFlutterSynced` (Linux), so `-d linux` is where it's truly exercised.
+//
+// Run on a real target:
+//
+//   flutter test integration_test/lifecycle_test.dart -d macos
+//   flutter test integration_test/lifecycle_test.dart -d linux
+//   flutter test integration_test/lifecycle_test.dart -d <device-id>
+//
+// Requires the example assets (assets/cube.glb, default_env_*.ktx).
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:thermion_flutter/thermion_flutter.dart';
+// ignore: implementation_imports
+import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
+
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  Future<void> pumpViewer(WidgetTester tester) async {
+    final sun =
+        DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ViewerWidget(
+            assetPath: 'assets/cube.glb',
+            skyboxPath: 'assets/default_env_skybox.ktx',
+            iblPath: 'assets/default_env_ibl.ktx',
+            directLight: sun,
+            transformToUnitCube: true,
+            initialCameraPosition: Vector3(0, 0, 6),
+            manipulatorType: ManipulatorType.ORBIT,
+          ),
+        ),
+      ),
+    );
+    // Wait for the viewer + plugin to initialize (and the FrameScheduler to
+    // start).
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+  }
+
+  // ---- Layer 1: deterministic, direct FrameScheduler drive -----------------
+
+  testWidgets('FrameScheduler stop/start round-trip is clean and idempotent',
+      (tester) async {
+    await pumpViewer(tester);
+    expect(FrameScheduler.instance.isActive, isTrue,
+        reason: 'scheduler should be active after initialize');
+
+    // stop() must flip active off and tolerate being called while a frame is
+    // in flight.
+    FrameScheduler.instance.stop();
+    expect(FrameScheduler.instance.isActive, isFalse);
+
+    // start() must bring it back.
+    await FrameScheduler.instance.start();
+    expect(FrameScheduler.instance.isActive, isTrue);
+
+    // A second start() must be a no-op (the idempotency guard) — not throw,
+    // not double-register the native callback.
+    await FrameScheduler.instance.start();
+    expect(FrameScheduler.instance.isActive, isTrue);
+  }, skip: Platform.isWindows); // TODO: needs a Windows host to run
+
+  testWidgets('pause/resume toggles isPaused without tearing down the loop',
+      (tester) async {
+    await pumpViewer(tester);
+    expect(FrameScheduler.instance.isActive, isTrue);
+
+    FrameScheduler.instance.pause();
+    expect(FrameScheduler.instance.isPaused, isTrue);
+    expect(FrameScheduler.instance.isActive, isTrue,
+        reason: 'pause keeps the scheduler active');
+
+    FrameScheduler.instance.resume();
+    expect(FrameScheduler.instance.isPaused, isFalse);
+    expect(FrameScheduler.instance.isActive, isTrue);
+  }, skip: Platform.isWindows); // TODO: needs a Windows host to run
+
+  // ---- Layer 2: end-to-end via the binding (lenient) -----------------------
+
+  testWidgets('lifecycle paused/resumed leaves scheduler active and unpaused',
+      (tester) async {
+    await pumpViewer(tester);
+    expect(FrameScheduler.instance.isActive, isTrue);
+
+    void setLifecycle(AppLifecycleState state) =>
+        WidgetsBinding.instance.handleAppLifecycleStateChanged(state);
+
+    // Two full cycles. On desktop the real window also emits lifecycle
+    // events (inactive/resumed on focus changes) that race with these, so we
+    // only assert the post-resume invariant — not the intermediate state.
+    for (var i = 0; i < 2; i++) {
+      setLifecycle(AppLifecycleState.paused);
+      for (var j = 0; j < 5; j++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      setLifecycle(AppLifecycleState.resumed);
+      for (var j = 0; j < 10; j++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+    }
+
+    expect(FrameScheduler.instance.isActive, isTrue,
+        reason: 'scheduler must recover to active after resume');
+    expect(FrameScheduler.instance.isPaused, isFalse,
+        reason: 'pause flag must be cleared after resume');
+  }, skip: Platform.isWindows); // TODO: needs a Windows host to run
+}

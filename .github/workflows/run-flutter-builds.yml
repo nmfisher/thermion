@@ -82,6 +82,15 @@ jobs:
         if: matrix.name == 'macOS'
         run: cd viewer && flutter pub get && flutter build macos
 
+      # Runs the thermion_flutter lifecycle integration test (FrameScheduler
+      # stop/start/pause/resume + WidgetsBindingObserver recovery) against the
+      # real macOS target. Validates the Flutter-layer scheduler state machine;
+      # the Linux startFlutterSynced resume re-arm is NOT covered here (needs
+      # a Linux + display-server runner).
+      - name: Run lifecycle integration test (macOS)
+        if: matrix.name == 'macOS'
+        run: cd quickstart && flutter test integration_test/lifecycle_test.dart -d macos
+
       - name: Build quickstart (appbundle)
         if: matrix.name == 'macOS'
         run: cd quickstart && flutter build appbundle

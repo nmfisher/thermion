@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' hide View;
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
@@ -12,11 +13,14 @@ import 'platform_texture_descriptor.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 
 /// Handles platform-specific initialization to create a backing rendering
-/// surface in a Flutter application.
+/// surface in a Flutter application and lifecycle listeners to pause rendering
+/// when the app is inactive or in the background.
 ///
 /// Frame scheduling is delegated to [FrameScheduler]; this class owns the
-/// descriptor / render-target lifecycle.
-class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
+/// descriptor / render-target lifecycle and the [WidgetsBindingObserver]
+/// hookup.
+class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
+    with WidgetsBindingObserver {
   final channel = const MethodChannel("dev.thermion.flutter/event");
 
   static final _logger = Logger("ThermionFlutterPluginImpl");
@@ -103,6 +107,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // pointer to the old isolate. We call stop() here (which is idempotent)
     // to ensure this is disposed cleanly before instantiating a new FrameScheduler.instance.
     FrameScheduler.instance.stop();
+    WidgetsBinding.instance.removeObserver(this);
 
     late Backend backend;
     if (options.nativeOptions.backend != null) {
@@ -172,6 +177,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
         // Stop the frame scheduler BEFORE destroying the engine
         // to prevent crashes from dangling callback pointers
         FrameScheduler.instance.stop();
+        WidgetsBinding.instance.removeObserver(this);
 
         if (Platform.isWindows || Platform.isLinux) {
           await channel.invokeMethod("destroyContext");
@@ -198,20 +204,22 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     FrameScheduler.instance.setOnFrame(_renderFrame);
 
+    // Register for app lifecycle changes to stop/start the native scheduler
+    WidgetsBinding.instance.addObserver(this);
+
     if (Platform.isLinux) {
       // Native render loop: vsync → render → mark textures all in native.
       // Bypasses Dart event loop entirely for minimal frame latency.
       final dylib = ffi.DynamicLibrary.process();
-      final getHandleFn = dylib
-          .lookupFunction<
-            ffi.Pointer<ffi.Void> Function(),
-            ffi.Pointer<ffi.Void> Function()
-          >('thermion_flutter_get_plugin_handle');
+      final getHandleFn = dylib.lookupFunction<
+          ffi.Pointer<ffi.Void> Function(),
+          ffi.Pointer<ffi.Void>
+              Function()>('thermion_flutter_get_plugin_handle');
       final pluginHandle = getHandleFn();
       final markTexturesFnPtr = dylib
           .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-            'thermion_flutter_mark_textures',
-          );
+        'thermion_flutter_mark_textures',
+      );
 
       final app = FilamentApp.instance as FFIFilamentApp;
       await FrameScheduler.instance.startFlutterSynced(
@@ -233,6 +241,27 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   @override
   void resumeFrameScheduler() => FrameScheduler.instance.resume();
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      if (Platform.isLinux) {
+        // Linux uses a persistent Flutter frame callback; we can't easily
+        // re-register it, so just pause instead of tearing it down.
+        FrameScheduler.instance.pause();
+      } else {
+        FrameScheduler.instance.stop();
+      }
+      _logger.info('App backgrounded, native frame scheduler stopped');
+    } else if (state == AppLifecycleState.resumed) {
+      if (Platform.isLinux) {
+        FrameScheduler.instance.resume();
+      } else {
+        FrameScheduler.instance.start();
+      }
+      _logger.info('App foregrounded, native frame scheduler restarted');
+    }
+  }
+
   /// Creates Filament textures + render target and binds them to [view].
   /// Extracted so it can be called immediately or deferred.
   static Future<void> _createFilamentResources(
@@ -244,8 +273,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     // Determine if we need the Vulkan external image path or direct GL/Metal import.
     // Vulkan path: builder.external() + setExternalImage (Windows, or Linux with Vulkan)
     // Direct import path: builder.import(textureId) (macOS/iOS Metal, Linux with OpenGL)
-    final useExternalImage =
-        Platform.isWindows ||
+    final useExternalImage = Platform.isWindows ||
         ThermionFlutterPlugin.instance.options.nativeOptions.backend ==
             Backend.VULKAN;
 
