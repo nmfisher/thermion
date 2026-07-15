@@ -1,65 +1,21 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:io';
-import 'dart:isolate';
-import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
 import 'package:thermion_flutter/src/platform/src/method_channel_platform_texture_descriptor.dart';
 import '../../../thermion_flutter.dart';
 import 'platform_texture_descriptor.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
-// ignore: implementation_imports
-import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
-    show
-        FrameScheduler_start,
-        FrameScheduler_stop,
-        FrameCallbackFunction,
-        FrameScheduler_initDartApi,
-        FrameScheduler_startWithPort,
-        FrameScheduler_setRenderThread,
-        FrameScheduler_setRenderManager,
-        FrameScheduler_setPostRenderCallback,
-        FrameScheduler_requestRender;
 
 /// Handles platform-specific initialization to create a backing rendering
-/// surface in a Flutter application and lifecycle listeners to pause rendering
-/// when the app is inactive or in the background.
+/// surface in a Flutter application.
 ///
-/// ## Frame Scheduling Architecture
-///
-/// All platforms use a unified C API for frame scheduling via FFI:
-///
-/// ```
-/// Dart (this file)
-///     │
-///     ▼
-/// C API (FrameScheduler_start, FrameScheduler_stop, etc.)
-///     │
-///     ├── macOS/iOS ──► CVDisplayLinkScheduler (vsync via CVDisplayLink)
-///     ├── Windows ────► DXGIFrameScheduler (vsync via DXGI WaitForVBlank)
-///     ├── Android ────► AChoreographerFrameScheduler (vsync via AChoreographer)
-///     └── Linux ──────► TimerFrameScheduler (timer-based fallback)
-/// ```
-///
-/// ### Two Modes of Operation
-///
-/// **Release builds**: Direct callback mode for maximum performance.
-/// The native scheduler calls a Dart function pointer directly.
-///
-/// **Debug builds**: Port-based mode for hot restart safety.
-/// The native scheduler posts messages to a Dart port. When Flutter hot
-/// restarts, the old port becomes invalid and messages are silently dropped
-/// (via `Dart_PostCObject_DL`) instead of crashing on a dangling pointer.
-///
-/// ### Native Implementations
-///
-/// - `thermion_dart/native/include/rendering/FrameScheduler.hpp` - Class definitions
-/// - `thermion_dart/native/src/rendering/FrameScheduler.cpp` - Platform implementations
-/// - `thermion_dart/native/src/c_api/ThermionDartRenderThreadApi.cpp` - C API dispatch
+/// Frame scheduling is delegated to [FrameScheduler]; this class owns the
+/// descriptor / render-target lifecycle.
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   final channel = const MethodChannel("dev.thermion.flutter/event");
 
@@ -84,7 +40,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   // Track render targets created by Flutter for each view.
   // This allows us to destroy the correct RT on resize, even when the view
-  // has been redirected to an internal RT (e.g., in composite highlight mode).
+  // has been redirected to an internal RT (e.g. in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
 
   // Track the SwapChain currently bound to each view (Android only).
@@ -99,203 +55,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   // Old RT stays alive so native can Blit from it during the swap window.
   static final _deferredRenderTargets = <(RenderTarget, int)>[];
 
-  static bool _rendering = false;
-  static bool _resizing = false;
-  static ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
-  static bool _schedulerActive = false;
+  Future<void> _renderFrame() async {
+    if (FilamentApp.instance == null) return;
 
-  // Port-based mode for debug builds (hot restart safe)
-  static ReceivePort? _framePort;
-  static bool _usePortMode = false;
-  static bool _dartApiInitialized = false;
-
-  // Diagnostic timing state
-  static int _diagFrameCount = 0;
-  static int _diagDropCount = 0;
-  static int _diagJankCount = 0;
-  static double _diagMaxFrameMs = 0;
-  static double _diagSumFrameMs = 0;
-  static final _diagStopwatch = Stopwatch();
-  static int _diagTransitSum = 0;
-  static int _diagTransitCount = 0;
-  static int _diagTransitMax = 0;
-  static bool _frameSchedulerPaused = false;
-
-  /// Called by native FrameScheduler at vsync/timer intervals.
-  /// Not async — guards against re-entrant calls with [_rendering] flag.
-  ///
-  /// IMPORTANT: This can be called from native code even after hot restart
-  /// while the native scheduler is being stopped. We MUST guard against this.
-  static void _onFrame(int frameTimeNanos) {
-    // Critical safety check: Ignore callbacks if scheduler is being shut down
-    // or if we're in a hot restart scenario where FilamentApp is null
-    if (!_schedulerActive || FilamentApp.instance == null) return;
-
-    if (_rendering || _resizing || _frameSchedulerPaused) return;
-    _rendering = true;
-    _diagStopwatch.reset();
-    _diagStopwatch.start();
-    _renderFrame()
-        .then((_) {
-          _diagStopwatch.stop();
-          _rendering = false;
-          final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
-          _diagFrameCount++;
-          _diagSumFrameMs += frameMs;
-          if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
-          if (frameMs > 20.0) _diagJankCount++;
-          if (frameMs > 20.0) {
-            _logger.warning(
-              '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms',
-            );
-          }
-          if (_diagFrameCount % 120 == 0) {
-            final avgMs = _diagSumFrameMs / 120.0;
-            _logger.finest(
-              '120-frame avg=${avgMs.toStringAsFixed(1)}ms '
-              'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
-              'jank=$_diagJankCount drop=$_diagDropCount',
-            );
-            _diagJankCount = 0;
-            _diagDropCount = 0;
-            _diagMaxFrameMs = 0;
-            _diagSumFrameMs = 0;
-          }
-        })
-        .catchError((error) {
-          _logger.warning('Frame render error: $error');
-          _rendering = false;
-        });
-  }
-
-  /// Stop the frame scheduler and clean up the callback.
-  ///
-  /// IMPORTANT: This gets called at the START of initialize() in the new isolate
-  /// after hot restart. At that point _frameCallable is null (static reset), but
-  /// the NATIVE scheduler is still running with a dangling pointer. We MUST stop
-  /// the native scheduler even when _frameCallable is null.
-  static void stopFrameScheduler() {
-    // Mark scheduler as inactive FIRST to prevent race conditions
-    // Any in-flight callbacks will see this and return early
-    _schedulerActive = false;
-
-    // Always stop the native scheduler, even if _frameCallable is null
-    // (which happens after hot restart when statics are reset)
-    // All platforms use C API
-    FrameScheduler_stop();
-
-    // Clean up the Dart callback if it exists (release mode)
-    if (_frameCallable != null) {
-      _frameCallable!.close();
-      _frameCallable = null;
-    }
-
-    // Clean up the port if it exists (debug mode)
-    _framePort?.close();
-    _framePort = null;
-  }
-
-  /// Initialize port-based frame scheduling (debug mode only).
-  /// This mode is hot restart safe because Dart_PostCObject silently
-  /// drops messages to dead ports instead of crashing.
-  static Future<void> _initializePortMode() async {
-    // Initialize Dart API DL in native code (only once per process)
-    // All platforms use C API
-    if (!_dartApiInitialized) {
-      FrameScheduler_initDartApi(ffi.NativeApi.initializeApiDLData);
-      _dartApiInitialized = true;
-    }
-
-    // Create receive port and listen for frame timestamps
-    _framePort = ReceivePort();
-    _framePort!.listen((message) {
-      if (message is List) {
-        // [frameTimeNanos, postTimeUs] — measure port transit latency
-        final frameTimeNanos = message[0] as int;
-        final postTimeUs = message[1] as int;
-        final recvTimeUs = FrameScheduler_steadyClockUs();
-        final transitUs = recvTimeUs - postTimeUs;
-        _diagTransitSum += transitUs;
-        _diagTransitCount++;
-        if (transitUs > _diagTransitMax) _diagTransitMax = transitUs;
-        if (transitUs > 2000) {
-          // > 2ms transit
-          _logger.warning(
-            '[PORT] transit=${(transitUs / 1000.0).toStringAsFixed(1)}ms',
-          );
-        }
-        if (_diagTransitCount % 120 == 0) {
-          final avgMs = _diagTransitSum / (_diagTransitCount * 1000.0);
-          _logger.info(
-            '[PORT] 120-frame transit avg=${(avgMs).toStringAsFixed(2)}ms '
-            'max=${(_diagTransitMax / 1000.0).toStringAsFixed(1)}ms',
-          );
-          _diagTransitSum = 0;
-          _diagTransitCount = 0;
-          _diagTransitMax = 0;
-        }
-        _onFrame(frameTimeNanos);
-      } else {
-        // Legacy: single int
-        _onFrame(message as int);
-      }
-    });
-
-    // Start scheduler with port
-    // All platforms use C API (CVDisplayLink on macOS/iOS, DXGI on Windows, timer on others)
-    final nativePort = _framePort!.sendPort.nativePort;
-    FrameScheduler_startWithPort(nativePort, 60);
-
-    _logger.info('Frame scheduler started in port mode (hot restart safe)');
-  }
-
-  /// Initialize Flutter-synced render loop on Linux.
-  /// Flutter's frame scheduler controls timing; rendering happens on the
-  /// native render thread. Each Flutter frame triggers:
-  ///   FrameScheduler_requestRender → render thread → mark textures
-  static Future<void> _initializeNativeRenderLoop() async {
-    final dylib = ffi.DynamicLibrary.process();
-
-    // Look up cross-library symbols from thermion_flutter_plugin.so
-    final getHandleFn = dylib
-        .lookupFunction<
-          ffi.Pointer<ffi.Void> Function(),
-          ffi.Pointer<ffi.Void> Function()
-        >('thermion_flutter_get_plugin_handle');
-
-    final pluginHandle = getHandleFn();
-
-    // Look up the texture marking function from the Flutter plugin
-    final markTexturesFnPtr = dylib
-        .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-          'thermion_flutter_mark_textures',
-        );
-
-    final app = FilamentApp.instance as FFIFilamentApp;
-
-    // Configure native render: set render thread, render manager + post-render texture mark
-    FrameScheduler_setRenderThread(app.renderThreadHandle);
-    FrameScheduler_setRenderManager(app.renderManager.getNativeHandle());
-    FrameScheduler_setPostRenderCallback(markTexturesFnPtr, pluginHandle);
-
-    // Synchronize with Flutter's frame clock via persistent frame callback.
-    // Each Flutter frame triggers a non-blocking render request to the
-    // native render thread.
-    SchedulerBinding.instance.addPersistentFrameCallback(_onFlutterFrame);
-    SchedulerBinding.instance.scheduleFrame();
-
-    _logger.info('Flutter-synced render loop started');
-  }
-
-  /// Called on each Flutter frame. Triggers a native render and requests
-  /// the next frame to keep the loop running.
-  static void _onFlutterFrame(Duration timeStamp) {
-    if (!_schedulerActive || FilamentApp.instance == null) return;
-    FrameScheduler_requestRender(timeStamp.inMicroseconds * 1000);
-    SchedulerBinding.instance.scheduleFrame();
-  }
-
-  static Future<void> _renderFrame() async {
     await FilamentApp.instance?.render();
 
     for (final descriptor in _descriptors) {
@@ -336,9 +98,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @override
   Future<SwapChain?> initialize({bool destroySwapchain = true}) async {
-    // Stop any existing frame scheduler from a previous session (e.g., hot restart)
-    // This prevents crashes from dangling callback pointers
-    stopFrameScheduler();
+    // After a hot restart in debug mode, any previous Dart isolate no longer
+    // exists, but the native scheduler may have retained a dangling callback
+    // pointer to the old isolate. We call stop() here (which is idempotent)
+    // to ensure this is disposed cleanly before instantiating a new FrameScheduler.instance.
+    FrameScheduler.instance.stop();
 
     late Backend backend;
     if (options.nativeOptions.backend != null) {
@@ -407,7 +171,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       FilamentApp.instance!.onDestroy(() async {
         // Stop the frame scheduler BEFORE destroying the engine
         // to prevent crashes from dangling callback pointers
-        stopFrameScheduler();
+        FrameScheduler.instance.stop();
 
         if (Platform.isWindows || Platform.isLinux) {
           await channel.invokeMethod("destroyContext");
@@ -432,49 +196,42 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       );
     }
 
-    // Mark scheduler as active BEFORE starting it
-    _schedulerActive = true;
+    FrameScheduler.instance.setOnFrame(_renderFrame);
 
     if (Platform.isLinux) {
       // Native render loop: vsync → render → mark textures all in native.
       // Bypasses Dart event loop entirely for minimal frame latency.
-      await _initializeNativeRenderLoop();
-    } else {
-      // Use port-based mode in debug builds (hot restart safe)
-      // Use direct callback in release builds (maximum performance)
-      _usePortMode =
-          kDebugMode &&
-          (Platform.isMacOS ||
-              Platform.isIOS ||
-              Platform.isAndroid ||
-              Platform.isWindows);
+      final dylib = ffi.DynamicLibrary.process();
+      final getHandleFn = dylib
+          .lookupFunction<
+            ffi.Pointer<ffi.Void> Function(),
+            ffi.Pointer<ffi.Void> Function()
+          >('thermion_flutter_get_plugin_handle');
+      final pluginHandle = getHandleFn();
+      final markTexturesFnPtr = dylib
+          .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+            'thermion_flutter_mark_textures',
+          );
 
-      if (_usePortMode) {
-        // DEBUG MODE: Port-based (hot restart safe)
-        // Messages to dead ports are silently dropped - no crash
-        await _initializePortMode();
-      } else {
-        // RELEASE MODE: Direct callback (maximum performance)
-        // All platforms use C API
-        _frameCallable = ffi.NativeCallable<FrameCallbackFunction>.listener(
-          _onFrame,
-        );
-        FrameScheduler_start(_frameCallable!.nativeFunction, 60);
-      }
+      final app = FilamentApp.instance as FFIFilamentApp;
+      await FrameScheduler.instance.startFlutterSynced(
+        renderThreadHandle: app.renderThreadHandle,
+        renderManagerHandle: app.renderManager.getNativeHandle(),
+        postRenderCallback: markTexturesFnPtr,
+        postRenderUserData: pluginHandle,
+      );
+    } else {
+      await FrameScheduler.instance.start();
     }
 
     return swapChain;
   }
 
   @override
-  void pauseFrameScheduler() {
-    _frameSchedulerPaused = true;
-  }
+  void pauseFrameScheduler() => FrameScheduler.instance.pause();
 
   @override
-  void resumeFrameScheduler() {
-    _frameSchedulerPaused = false;
-  }
+  void resumeFrameScheduler() => FrameScheduler.instance.resume();
 
   /// Creates Filament textures + render target and binds them to [view].
   /// Extracted so it can be called immediately or deferred.
@@ -660,10 +417,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     int width,
     int height,
   ) async {
-    // Block new frames while we swap textures.
-    _resizing = true;
-    while (_rendering) {
-      await Future.delayed(const Duration(milliseconds: 1));
+    // Block new frames while we swap textures, then wait for any in-flight
+    // frame to finish before we touch render targets.
+    FrameScheduler.instance.pause();
+    while (FrameScheduler.instance.isRendering) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
     }
 
     // Flush Filament's render thread so all queued GPU commands complete.
@@ -685,7 +443,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
       return newTexture;
     } finally {
-      _resizing = false;
+      FrameScheduler.instance.resume();
     }
   }
 
