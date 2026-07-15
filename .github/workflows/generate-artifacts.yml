@@ -8,6 +8,18 @@ on:
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
+    inputs:
+      force_regenerate:
+        description: 'Force binding regeneration + re-analyze regardless of changed paths (used to recover a branch whose checked-in bindings are stale)'
+        type: boolean
+        default: false
+
+# This workflow is the ONLY thing that pushes auto-generated commits to the
+# branch. Formatting (previously format.yml) and analyze (previously lint.yml)
+# are folded in below so they run in the same job, after binding regeneration,
+# instead of racing it. See docs/CI_PIPELINE.md for the rationale.
+permissions:
+  contents: write
 
 concurrency:
   group: generate-artifacts-${{ github.head_ref || github.ref }}
@@ -48,6 +60,19 @@ jobs:
               - 'materials/**'
               - 'examples/assets/*.mat'
 
+      # Regenerate bindings when native/ffigen sources changed, OR when a human
+      # forces it via workflow_dispatch (e.g. to recover a stale-bindings state).
+      - name: Resolve regeneration flag
+        id: flags
+        run: |
+          if [ "${{ steps.changes.outputs.source-changed }}" = "true" ] || \
+             [ "${{ steps.changes.outputs.native-changed }}" = "true" ] || \
+             [ "${{ inputs.force_regenerate }}" = "true" ]; then
+            echo "regenerate=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "regenerate=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup CMake
         if: steps.changes.outputs.native-changed == 'true'
         uses: jwlawson/actions-setup-cmake@v2
@@ -61,8 +86,9 @@ jobs:
           version: 'latest'
           actions-cache-folder: 'emsdk-cache'
 
+      # Always set up Dart: format + analyze run on every push/PR, not only when
+      # bindings need regenerating, so pure-Dart changes are still gated.
       - name: Set up Dart
-        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'
         uses: dart-lang/setup-dart@v1
 
       - name: Read Filament version
@@ -89,24 +115,34 @@ jobs:
           make materials
 
       - name: Generate bindings
-        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'
+        if: steps.flags.outputs.regenerate == 'true'
         run: make dart-bindings
 
-      - name: Cache Filament web binaries
-        if: steps.changes.outputs.native-changed == 'true'
-        uses: actions/cache@v4
-        with:
-          path: thermion_dart/native/web/lib/release
-          key: filament-web-${{ hashFiles('Makefile') }}
-          restore-keys: |
-            filament-web-
+      # Previously format.yml. Folded in here so only this workflow pushes to
+      # the branch (no concurrent-push race with the bindings commit). Runs
+      # after `make dart-bindings` so generated bindings are also tidied.
+      - name: Format
+        run: |
+          dart format \
+            thermion_dart/lib \
+            thermion_dart/bin \
+            thermion_dart/hook \
+            thermion_dart/tool \
+            thermion_dart/test \
+            thermion_flutter/thermion_flutter/lib
 
-      - name: Compile web
-        if: steps.changes.outputs.native-changed == 'true'
-        run: make wasm
+      # Previously lint.yml. Run AFTER `make dart-bindings` so it analyzes the
+      # freshly-regenerated *.g.dart instead of the stale checked-in copy
+      # (which is what made lint.yml fail whenever a header change outpaced a
+      # regeneration). Always runs; --no-fatal-warnings gates on errors only.
+      - name: Analyze (thermion_dart)
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart analyze --no-fatal-warnings
 
       - name: Ensure generated binding files are tracked
-        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true'
+        if: steps.flags.outputs.regenerate == 'true'
         run: |
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
@@ -120,14 +156,18 @@ jobs:
           git update-index --no-assume-unchanged thermion_dart/native/include/material/*.apple.S || true
           git update-index --no-assume-unchanged thermion_dart/native/include/material/*.bin || true
 
+      # No longer gated on changed paths: formatting changes (above) must also
+      # trigger a commit even when no bindings/materials were regenerated.
       - name: Check for changes
         id: git-check
-        if: steps.changes.outputs.source-changed == 'true' || steps.changes.outputs.native-changed == 'true' || steps.changes.outputs.materials-changed == 'true'
         run: |
           git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
 
       - name: Commit and push if changed
         if: steps.git-check.outputs.changed == 'true'
+        env:
+          # Pass via env (not inline) to avoid script injection from PR head refs.
+          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -139,10 +179,28 @@ jobs:
           git add -f thermion_dart/native/include/material/*.apple.S || true
           git add -f thermion_dart/native/include/material/*.bin || true
           git add -f examples/assets/*.filamat || true
-          git commit -m "chore: update generated artifacts
+          # formatting fixes (same paths as the Format step)
+          git add thermion_dart/lib thermion_dart/bin thermion_dart/hook thermion_dart/tool thermion_dart/test thermion_flutter/thermion_flutter/lib
+          # Rebase before pushing in case a concurrent push landed (single
+          # pusher now, but humans can still push to develop between steps).
+          git pull --rebase origin "$PUSH_BRANCH" || true
+          git commit -m "chore: update generated artifacts + format (CI)
 
           🤖 Generated with GitHub Actions"
-          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          git push origin "HEAD:$PUSH_BRANCH"
+
+      - name: Cache Filament web binaries
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: thermion_dart/native/web/lib/release
+          key: filament-web-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            filament-web-
+
+      - name: Compile web
+        if: steps.changes.outputs.native-changed == 'true'
+        run: make wasm
 
       - name: Package and upload web artifacts to R2
         if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
@@ -163,12 +221,15 @@ jobs:
 
       - name: Commit web.version
         if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        env:
+          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f thermion_dart/native/web/web.version
+          git pull --rebase origin "$PUSH_BRANCH" || true
           git diff --cached --quiet || git commit -m "chore: update web.version"
-          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          git push origin "HEAD:$PUSH_BRANCH"
 
       - name: Upload artifacts
         if: steps.changes.outputs.native-changed == 'true'
@@ -179,10 +240,11 @@ jobs:
 
       - name: Resolve post-push SHA
         id: resolve-sha
+        env:
+          PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          git fetch origin "$BRANCH" --depth=1
-          SHA=$(git rev-parse "origin/$BRANCH")
+          git fetch origin "$PUSH_BRANCH" --depth=1
+          SHA=$(git rev-parse "origin/$PUSH_BRANCH")
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
   run-tests:
