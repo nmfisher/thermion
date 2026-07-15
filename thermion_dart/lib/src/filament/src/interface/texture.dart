@@ -169,6 +169,9 @@ enum TextureUsage {
   /// !< Texture can be used the destination of a blit()
   TEXTURE_USAGE_PROTECTED(256),
 
+  /// !< Texture can be used with generateMipmaps()
+  TEXTURE_USAGE_GEN_MIPMAPPABLE(512),
+
   /// !< Default texture usage
   TEXTURE_USAGE_DEFAULT(24);
 
@@ -176,19 +179,20 @@ enum TextureUsage {
   const TextureUsage(this.value);
 
   static TextureUsage fromValue(int value) => switch (value) {
-    0 => TEXTURE_USAGE_NONE,
-    1 => TEXTURE_USAGE_COLOR_ATTACHMENT,
-    2 => TEXTURE_USAGE_DEPTH_ATTACHMENT,
-    4 => TEXTURE_USAGE_STENCIL_ATTACHMENT,
-    8 => TEXTURE_USAGE_UPLOADABLE,
-    16 => TEXTURE_USAGE_SAMPLEABLE,
-    32 => TEXTURE_USAGE_SUBPASS_INPUT,
-    64 => TEXTURE_USAGE_BLIT_SRC,
-    128 => TEXTURE_USAGE_BLIT_DST,
-    256 => TEXTURE_USAGE_PROTECTED,
-    24 => TEXTURE_USAGE_DEFAULT,
-    _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
-  };
+        0 => TEXTURE_USAGE_NONE,
+        1 => TEXTURE_USAGE_COLOR_ATTACHMENT,
+        2 => TEXTURE_USAGE_DEPTH_ATTACHMENT,
+        4 => TEXTURE_USAGE_STENCIL_ATTACHMENT,
+        8 => TEXTURE_USAGE_UPLOADABLE,
+        16 => TEXTURE_USAGE_SAMPLEABLE,
+        32 => TEXTURE_USAGE_SUBPASS_INPUT,
+        64 => TEXTURE_USAGE_BLIT_SRC,
+        128 => TEXTURE_USAGE_BLIT_DST,
+        256 => TEXTURE_USAGE_PROTECTED,
+        512 => TEXTURE_USAGE_GEN_MIPMAPPABLE,
+        24 => TEXTURE_USAGE_DEFAULT,
+        _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
+      };
 }
 
 /// Defines texture wrapping modes for texture coordinates
@@ -502,14 +506,16 @@ abstract class LinearImage {
       requireAlpha: requireAlpha,
     );
 
-    // generateMipmaps() requires BLIT_SRC | BLIT_DST per Filament's
-    // Texture::generateMipmaps doc. Native backends often relax this, WebGL
-    // does not (throws PreconditionPanic). Include the flags whenever the
+    // generateMipmaps() requires GEN_MIPMAPPABLE per Filament's
+    // Texture::generateMipmaps doc; native backends often relax this, WebGL
+    // does not (throws PreconditionPanic). Include the flag whenever the
     // caller asks for >1 level so the mip path works on every backend.
-    final flags = <TextureUsage>{TextureUsage.TEXTURE_USAGE_SAMPLEABLE};
+    final flags = <TextureUsage>{
+      TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      TextureUsage.TEXTURE_USAGE_UPLOADABLE,
+    };
     if (levels > 1) {
-      flags.add(TextureUsage.TEXTURE_USAGE_BLIT_SRC);
-      flags.add(TextureUsage.TEXTURE_USAGE_BLIT_DST);
+      flags.add(TextureUsage.TEXTURE_USAGE_GEN_MIPMAPPABLE);
     }
 
     final texture = await FilamentApp.instance!.createTexture(

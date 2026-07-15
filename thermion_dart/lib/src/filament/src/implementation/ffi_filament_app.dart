@@ -518,7 +518,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     int height, {
     int depth = 1,
     int levels = 1,
-    Set<TextureUsage> flags = const {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
+    Set<TextureUsage> flags = const {
+      TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      TextureUsage.TEXTURE_USAGE_UPLOADABLE,
+    },
     TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
     TextureFormat textureFormat = TextureFormat.RGBA16F,
     int? importedTextureHandle,
