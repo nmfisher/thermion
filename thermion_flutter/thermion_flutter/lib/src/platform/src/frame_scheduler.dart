@@ -78,7 +78,8 @@ class FrameScheduler {
   Future<void> start() async {
     _active = true;
 
-    final usePortMode = kDebugMode &&
+    final usePortMode =
+        kDebugMode &&
         (Platform.isMacOS ||
             Platform.isIOS ||
             Platform.isAndroid ||
@@ -108,7 +109,9 @@ class FrameScheduler {
     FrameScheduler_setRenderThread(renderThreadHandle);
     FrameScheduler_setRenderManager(renderManagerHandle);
     FrameScheduler_setPostRenderCallback(
-        postRenderCallback, postRenderUserData);
+      postRenderCallback,
+      postRenderUserData,
+    );
 
     SchedulerBinding.instance.addPersistentFrameCallback(_onFlutterFrame);
     SchedulerBinding.instance.scheduleFrame();
@@ -154,13 +157,15 @@ class FrameScheduler {
         if (transitUs > _diagTransitMax) _diagTransitMax = transitUs;
         if (transitUs > 2000) {
           _logger.warning(
-              '[PORT] transit=${(transitUs / 1000.0).toStringAsFixed(1)}ms');
+            '[PORT] transit=${(transitUs / 1000.0).toStringAsFixed(1)}ms',
+          );
         }
         if (_diagTransitCount % 120 == 0) {
           final avgMs = _diagTransitSum / (_diagTransitCount * 1000.0);
           _logger.info(
-              '[PORT] 120-frame transit avg=${(avgMs).toStringAsFixed(2)}ms '
-              'max=${(_diagTransitMax / 1000.0).toStringAsFixed(1)}ms');
+            '[PORT] 120-frame transit avg=${(avgMs).toStringAsFixed(2)}ms '
+            'max=${(_diagTransitMax / 1000.0).toStringAsFixed(1)}ms',
+          );
           _diagTransitSum = 0;
           _diagTransitCount = 0;
           _diagTransitMax = 0;
@@ -187,32 +192,37 @@ class FrameScheduler {
     _diagStopwatch
       ..reset()
       ..start();
-    callback().then((_) {
-      _diagStopwatch.stop();
-      _rendering = false;
-      final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
-      _diagFrameCount++;
-      _diagSumFrameMs += frameMs;
-      if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
-      if (frameMs > 20.0) {
-        _diagJankCount++;
-        _logger.warning(
-            '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms');
-      }
-      if (_diagFrameCount % 120 == 0) {
-        final avgMs = _diagSumFrameMs / 120.0;
-        _logger.info('120-frame avg=${avgMs.toStringAsFixed(1)}ms '
-            'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
-            'jank=$_diagJankCount drop=$_diagDropCount');
-        _diagJankCount = 0;
-        _diagDropCount = 0;
-        _diagMaxFrameMs = 0;
-        _diagSumFrameMs = 0;
-      }
-    }).catchError((error) {
-      _logger.warning('Frame render error: $error');
-      _rendering = false;
-    });
+    callback()
+        .then((_) {
+          _diagStopwatch.stop();
+          _rendering = false;
+          final frameMs = _diagStopwatch.elapsedMicroseconds / 1000.0;
+          _diagFrameCount++;
+          _diagSumFrameMs += frameMs;
+          if (frameMs > _diagMaxFrameMs) _diagMaxFrameMs = frameMs;
+          if (frameMs > 20.0) {
+            _diagJankCount++;
+            _logger.warning(
+              '#$_diagFrameCount JANK renderFrame=${frameMs.toStringAsFixed(1)}ms',
+            );
+          }
+          if (_diagFrameCount % 120 == 0) {
+            final avgMs = _diagSumFrameMs / 120.0;
+            _logger.info(
+              '120-frame avg=${avgMs.toStringAsFixed(1)}ms '
+              'max=${_diagMaxFrameMs.toStringAsFixed(1)}ms '
+              'jank=$_diagJankCount drop=$_diagDropCount',
+            );
+            _diagJankCount = 0;
+            _diagDropCount = 0;
+            _diagMaxFrameMs = 0;
+            _diagSumFrameMs = 0;
+          }
+        })
+        .catchError((error) {
+          _logger.warning('Frame render error: $error');
+          _rendering = false;
+        });
   }
 
   void _onFlutterFrame(Duration timeStamp) {
