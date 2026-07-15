@@ -69,9 +69,8 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     final texture = await bundle.createTexture();
 
     if (bundle.isCubemap()) {
-      sampler ??=
-          await FilamentApp.instance!.createTextureSampler()
-              as FFITextureSampler;
+      sampler ??= await FilamentApp.instance!.createTextureSampler()
+          as FFITextureSampler;
       this.texture = texture;
       await mi.setParameterTexture(
         "cubeMap",
@@ -106,12 +105,10 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     if (channels != 3 && channels != 4) {
       throw UnimplementedError("Currently only 3 or 4 channels are supported");
     }
-    final textureFormat = channels == 4
-        ? TextureFormat.RGBA32F
-        : TextureFormat.RGB32F;
-    final pixelFormat = channels == 4
-        ? PixelDataFormat.RGBA
-        : PixelDataFormat.RGB;
+    final textureFormat =
+        channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F;
+    final pixelFormat =
+        channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB;
 
     final texture = await FilamentApp.instance!.createTexture(
       await image.getWidth(),

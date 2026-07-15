@@ -26,9 +26,8 @@ class PlaneGeometry {
         ? Float32List.fromList([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0])
         : null;
 
-    Float32List? _uvs = uvs
-        ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1])
-        : null;
+    Float32List? _uvs =
+        uvs ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1]) : null;
 
     final indices = Uint16List.fromList([0, 1, 2, 0, 2, 3]);
 

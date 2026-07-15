@@ -24,8 +24,8 @@ class InputConfiguration {
     List<MouseButtonBinding>? mouseButtonBindings,
     this.mouseSensitivity = 1.0,
     this.invertMouseY = false,
-  }) : keyBindings = keyBindings ?? [],
-       mouseButtonBindings = mouseButtonBindings ?? [];
+  })  : keyBindings = keyBindings ?? [],
+        mouseButtonBindings = mouseButtonBindings ?? [];
 
   /// Add a keybinding to the configuration
   void addBinding(LogicalKey key, IntentAction action, {double value = 1.0}) {

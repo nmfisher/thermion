@@ -25,9 +25,9 @@ class GridOverlay {
     required List<_GridLevel> levels,
     required VertexBuffer vertexBuffer,
     required IndexBuffer indexBuffer,
-  }) : _levels = levels,
-       _vertexBuffer = vertexBuffer,
-       _indexBuffer = indexBuffer;
+  })  : _levels = levels,
+        _vertexBuffer = vertexBuffer,
+        _indexBuffer = indexBuffer;
 
   static GridOverlay? _instance;
   static Material? _gridMaterial;

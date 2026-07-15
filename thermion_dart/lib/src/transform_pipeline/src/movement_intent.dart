@@ -45,9 +45,9 @@ class MovementIntent {
     this.hasMovementIntent = false,
     this.hasRotationIntent = false,
     Map<IntentAction, double>? customIntents,
-  }) : movementDirection = movementDirection ?? Vector3.zero(),
-       mouseDelta = mouseDelta ?? Vector2.zero(),
-       customIntents = customIntents ?? {};
+  })  : movementDirection = movementDirection ?? Vector3.zero(),
+        mouseDelta = mouseDelta ?? Vector2.zero(),
+        customIntents = customIntents ?? {};
 
   /// Check if a custom intent is active
   bool hasCustomIntent(IntentAction action) {
@@ -108,11 +108,9 @@ class MovementIntent {
   static MovementIntent fromNative(bindings.TMovementIntent native) {
     // Convert custom intents from parallel arrays to map
     final customIntents = <IntentAction, double>{};
-    for (
-      int i = 0;
-      i < native.customIntentCount && i < bindings.MAX_CUSTOM_INTENTS;
-      i++
-    ) {
+    for (int i = 0;
+        i < native.customIntentCount && i < bindings.MAX_CUSTOM_INTENTS;
+        i++) {
       final action = IntentAction.fromNative(native.customIntentActions[i]);
       customIntents[action] = native.customIntentValues[i];
     }

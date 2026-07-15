@@ -57,12 +57,12 @@ class SilhouetteView extends FFIView {
     required FFIRenderTarget renderTarget,
     required FFIScene scene,
     required Skybox skybox,
-  }) : _silhouetteMaterial = material,
-       _colorTexture = colorTexture,
-       _depthTexture = depthTexture,
-       _renderTarget = renderTarget,
-       _silhouetteScene = scene,
-       _skybox = skybox;
+  })  : _silhouetteMaterial = material,
+        _colorTexture = colorTexture,
+        _depthTexture = depthTexture,
+        _renderTarget = renderTarget,
+        _silhouetteScene = scene,
+        _skybox = skybox;
 
   /// Creates and initializes a new [SilhouetteView].
   static Future<SilhouetteView> create({
@@ -83,33 +83,27 @@ class SilhouetteView extends FFIView {
     final silhouetteMaterial = FFIMaterial(materialPtr);
 
     // Create textures and render target
-    final colorTexture =
-        await FilamentApp.instance!.createTexture(
-              width,
-              height,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-              },
-              textureFormat: TextureFormat.RGBA8,
-            )
-            as FFITexture;
-    final depthTexture =
-        await FilamentApp.instance!.createTexture(
-              width,
-              height,
-              flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
-              textureFormat: TextureFormat.DEPTH32F,
-            )
-            as FFITexture;
-    final renderTarget =
-        await FilamentApp.instance!.createRenderTarget(
-              width,
-              height,
-              color: colorTexture,
-              depth: depthTexture,
-            )
-            as FFIRenderTarget;
+    final colorTexture = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      },
+      textureFormat: TextureFormat.RGBA8,
+    ) as FFITexture;
+    final depthTexture = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+      textureFormat: TextureFormat.DEPTH32F,
+    ) as FFITexture;
+    final renderTarget = await FilamentApp.instance!.createRenderTarget(
+      width,
+      height,
+      color: colorTexture,
+      depth: depthTexture,
+    ) as FFIRenderTarget;
 
     // Create scene with black skybox to clear render target
     final silhouetteScene =
@@ -175,35 +169,29 @@ class SilhouetteView extends FFIView {
     final oldRenderTarget = _renderTarget;
 
     // Create new textures
-    _colorTexture =
-        await FilamentApp.instance!.createTexture(
-              width,
-              height,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-              },
-              textureFormat: TextureFormat.RGBA8,
-            )
-            as FFITexture;
+    _colorTexture = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+      },
+      textureFormat: TextureFormat.RGBA8,
+    ) as FFITexture;
 
-    _depthTexture =
-        await FilamentApp.instance!.createTexture(
-              width,
-              height,
-              flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
-              textureFormat: TextureFormat.DEPTH32F,
-            )
-            as FFITexture;
+    _depthTexture = await FilamentApp.instance!.createTexture(
+      width,
+      height,
+      flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+      textureFormat: TextureFormat.DEPTH32F,
+    ) as FFITexture;
 
-    _renderTarget =
-        await FilamentApp.instance!.createRenderTarget(
-              width,
-              height,
-              color: _colorTexture,
-              depth: _depthTexture,
-            )
-            as FFIRenderTarget;
+    _renderTarget = await FilamentApp.instance!.createRenderTarget(
+      width,
+      height,
+      color: _colorTexture,
+      depth: _depthTexture,
+    ) as FFIRenderTarget;
 
     // Set new render target on view
     await setRenderTarget(_renderTarget);

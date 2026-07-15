@@ -276,8 +276,8 @@ class TestHelper {
         backend: Platform.isLinux
             ? Backend.OPENGL
             : Platform.isWindows
-            ? Backend.VULKAN
-            : Backend.DEFAULT,
+                ? Backend.VULKAN
+                : Backend.DEFAULT,
       ),
     );
   }
@@ -293,13 +293,11 @@ class TestHelper {
   }) async {
     cameraPosition ??= Vector3(0, 5, 5);
 
-    final swapChain =
-        await FilamentApp.instance!.createHeadlessSwapChain(
-              viewportDimensions.width,
-              viewportDimensions.height,
-              hasStencilBuffer: createStencilBuffer,
-            )
-            as FFISwapChain;
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+      viewportDimensions.width,
+      viewportDimensions.height,
+      hasStencilBuffer: createStencilBuffer,
+    ) as FFISwapChain;
 
     RenderTarget? renderTarget;
     if (createRenderTarget) {
@@ -330,22 +328,20 @@ class TestHelper {
         },
         textureFormat: createStencilBuffer
             ? Platform.isWindows
-                  ? TextureFormat.DEPTH32F_STENCIL8
-                  : TextureFormat.DEPTH24_STENCIL8
+                ? TextureFormat.DEPTH32F_STENCIL8
+                : TextureFormat.DEPTH24_STENCIL8
             : TextureFormat.DEPTH32F,
         // importedTextureHandle: metalDepthTexture.metalTextureAddress
       );
 
       Logger.root.info("Created depth texture for test render target");
 
-      renderTarget =
-          await FilamentApp.instance!.createRenderTarget(
-                viewportDimensions.width,
-                viewportDimensions.height,
-                color: color,
-                depth: depth,
-              )
-              as FFIRenderTarget;
+      renderTarget = await FilamentApp.instance!.createRenderTarget(
+        viewportDimensions.width,
+        viewportDimensions.height,
+        color: color,
+        depth: depth,
+      ) as FFIRenderTarget;
     }
 
     var viewer = ThermionViewerFFI();
@@ -510,13 +506,13 @@ class ViewerBuilder {
     bool addSkybox = false,
     bool createRenderTarget = false,
     bool createStencilBuffer = false,
-  }) : _bg = bg,
-       _cameraPosition = cameraPosition,
-       _viewportDimensions = viewportDimensions,
-       _postProcessing = postProcessing,
-       _addSkybox = addSkybox,
-       _createRenderTarget = createRenderTarget,
-       _createStencilBuffer = createStencilBuffer;
+  })  : _bg = bg,
+        _cameraPosition = cameraPosition,
+        _viewportDimensions = viewportDimensions,
+        _postProcessing = postProcessing,
+        _addSkybox = addSkybox,
+        _createRenderTarget = createRenderTarget,
+        _createStencilBuffer = createStencilBuffer;
 
   ViewerBuilder setBackgroundColor(img.Color color) {
     _bg = color;
@@ -683,9 +679,11 @@ class ViewerBuilder {
   }
 
   Future<
-    ({ThermionViewer viewer, List<ThermionAsset> assets, SwapChain swapChain})
-  >
-  buildWithAssets() async {
+      ({
+        ThermionViewer viewer,
+        List<ThermionAsset> assets,
+        SwapChain swapChain
+      })> buildWithAssets() async {
     final viewerResult = await _testHelper.createViewer(
       bg: _bg,
       cameraPosition: _cameraPosition,
@@ -783,8 +781,8 @@ class ViewerBuilder {
               unlit: cubeConfig.unlit,
             )
           : (cubeConfig.unlit
-                ? await FilamentApp.instance!.createUnlitMaterialInstance()
-                : null);
+              ? await FilamentApp.instance!.createUnlitMaterialInstance()
+              : null);
 
       if (materialInstance != null) {
         if (cubeConfig.color != null) {
@@ -950,32 +948,28 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
       if (hasValidData) {
         validPixel[index] = true;
         // Simplified Poisson equation solver (Jacobi iteration)
-        result[index].r =
-            (result[index - 1].r +
+        result[index].r = (result[index - 1].r +
                 result[index + 1].r +
                 result[index - width].r +
                 result[index + width].r +
                 gradX.r -
                 gradY.r) /
             4;
-        result[index].g =
-            (result[index - 1].g +
+        result[index].g = (result[index - 1].g +
                 result[index + 1].g +
                 result[index - width].g +
                 result[index + width].g +
                 gradX.g -
                 gradY.g) /
             4;
-        result[index].b =
-            (result[index - 1].b +
+        result[index].b = (result[index - 1].b +
                 result[index + 1].b +
                 result[index - width].b +
                 result[index + width].b +
                 gradX.b -
                 gradY.b) /
             4;
-        result[index].a =
-            (result[index - 1].a +
+        result[index].a = (result[index - 1].a +
                 result[index + 1].a +
                 result[index - width].a +
                 result[index + width].a +
@@ -1012,15 +1006,12 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
           a += result[neighbor].a;
         }
         finalResult[i * 4] = (r / validNeighbors.length).clamp(0, 255).toInt();
-        finalResult[i * 4 + 1] = (g / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
-        finalResult[i * 4 + 2] = (b / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
-        finalResult[i * 4 + 3] = (a / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
+        finalResult[i * 4 + 1] =
+            (g / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 2] =
+            (b / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 3] =
+            (a / validNeighbors.length).clamp(0, 255).toInt();
       } else {
         // If no valid neighbors, set to transparent black
         finalResult[i * 4] = 0;
@@ -1074,8 +1065,7 @@ Uint8List maxIntensityProjection(
       // Calculate intensity (using luminance formula)
       double intensityCurrent =
           0.299 * result[i] + 0.587 * result[i + 1] + 0.114 * result[i + 2];
-      double intensityNew =
-          0.299 * textures[t][i] +
+      double intensityNew = 0.299 * textures[t][i] +
           0.587 * textures[t][i + 1] +
           0.114 * textures[t][i + 2];
 
@@ -1213,8 +1203,8 @@ Uint8List comparePixelBuffers(
       // Compare RGB values
       final bool isDifferent =
           (buffer1[index] - buffer2[index]).abs() > threshold ||
-          (buffer1[index + 1] - buffer2[index + 1]).abs() > threshold ||
-          (buffer1[index + 2] - buffer2[index + 2]).abs() > threshold;
+              (buffer1[index + 1] - buffer2[index + 1]).abs() > threshold ||
+              (buffer1[index + 2] - buffer2[index + 2]).abs() > threshold;
 
       if (isDifferent) {
         // result[index] = (buffer1[index] - buffer2[index]).abs(); // R

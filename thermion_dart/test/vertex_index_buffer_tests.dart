@@ -382,11 +382,10 @@ void main() async {
                 .build();
 
         // Create index buffer
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(3)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
         // Upload vertex data (positions only)
         final vertexData = Float32List.fromList([
@@ -467,11 +466,10 @@ void main() async {
                 .build();
 
         // Create index buffer
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(3)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
         // Upload interleaved vertex data
         final vertexData = Float32List.fromList([
@@ -553,11 +551,10 @@ void main() async {
                 .build();
 
         // Create index buffer for 2 triangles
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(6)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(6)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
         // Upload vertex positions
         final positions = Float32List.fromList([
@@ -652,11 +649,10 @@ void main() async {
                   ))
                 .build();
 
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(3)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
         // Upload positions
         await vertexBuffer.setBufferAt(
@@ -770,11 +766,10 @@ void main() async {
                   ))
                 .build();
 
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(3)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
         // Upload interleaved data
         final interleavedData = Float32List.fromList([
@@ -1049,11 +1044,10 @@ void main() async {
                 .build();
 
         // Create index buffer
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(3)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(3)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
         // Upload vertex data
         await vertexBuffer.setBufferAt(
@@ -1164,9 +1158,8 @@ void main() async {
         final orientation = await orientationBuilder.build();
 
         // Get quaternions as float4
-        final quats =
-            await orientation.getQuats(QuaternionFormat.FLOAT4, 4)
-                as Float32List;
+        final quats = await orientation.getQuats(QuaternionFormat.FLOAT4, 4)
+            as Float32List;
 
         // Verify we got 4 quaternions (one per vertex)
         expect(quats.length, equals(16)); // 4 vertices * 4 components
@@ -1200,11 +1193,10 @@ void main() async {
                 .build();
 
         // Create index buffer
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(6)
-                  ..bufferType(IndexType.UINT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(6)
+              ..bufferType(IndexType.UINT))
+            .build();
 
         // Upload position data
         await vertexBuffer.setBufferAt(0, positions);
@@ -1372,21 +1364,19 @@ void main() async {
           ..trianglesUint32(indices);
 
         final orientation = await orientationBuilder.build();
-        final quats =
-            await orientation.getQuats(QuaternionFormat.FLOAT4, 5)
-                as Float32List;
+        final quats = await orientation.getQuats(QuaternionFormat.FLOAT4, 5)
+            as Float32List;
 
         // Verify we got quaternions for all vertices
         expect(quats.length, equals(20)); // 5 vertices * 4 components
 
         // Quaternions should be valid (not all zeros)
         for (int i = 0; i < 5; i++) {
-          final sum =
-              (quats[i * 4] +
-                      quats[i * 4 + 1] +
-                      quats[i * 4 + 2] +
-                      quats[i * 4 + 3])
-                  .abs();
+          final sum = (quats[i * 4] +
+                  quats[i * 4 + 1] +
+                  quats[i * 4 + 2] +
+                  quats[i * 4 + 3])
+              .abs();
           expect(sum, greaterThan(0.0));
         }
 
@@ -1443,9 +1433,8 @@ void main() async {
           ..trianglesUint16(indices);
 
         final orientation = await orientationBuilder.build();
-        final quats =
-            await orientation.getQuats(QuaternionFormat.FLOAT4, 3)
-                as Float32List;
+        final quats = await orientation.getQuats(QuaternionFormat.FLOAT4, 3)
+            as Float32List;
 
         // Verify quaternions were generated
         expect(quats.length, equals(12));

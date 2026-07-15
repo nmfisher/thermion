@@ -12,8 +12,8 @@ void main() async {
   test('ubershader material with color only', () async {
     await testHelper.withViewer(
       (viewer) async {
-        var materialInstance = await FilamentApp.instance!
-            .createUbershaderMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUbershaderMaterialInstance();
         await viewer.loadIbl(
           "file://${testHelper.assetsDir}/default_env_ibl.ktx",
         );
@@ -63,9 +63,8 @@ void main() async {
       final texture = await FilamentApp.instance!.createTexture(
         await image.getWidth(),
         await image.getHeight(),
-        textureFormat: channels == 4
-            ? TextureFormat.RGBA32F
-            : TextureFormat.RGB32F,
+        textureFormat:
+            channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F,
       );
 
       await texture.setLinearImage(
@@ -190,9 +189,8 @@ void main() async {
       final texture = await FilamentApp.instance!.createTexture(
         await image.getWidth(),
         await image.getHeight(),
-        textureFormat: channels == 4
-            ? TextureFormat.RGBA32F
-            : TextureFormat.RGB32F,
+        textureFormat:
+            channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F,
       );
       await texture.setLinearImage(
         image,
@@ -240,8 +238,8 @@ void main() async {
 
   test('getTransparencyMode', () async {
     await testHelper.withViewer((viewer) async {
-      var materialInstance = await FilamentApp.instance!
-          .createUbershaderMaterialInstance();
+      var materialInstance =
+          await FilamentApp.instance!.createUbershaderMaterialInstance();
 
       // Default transparency mode should be DEFAULT
       var mode = await materialInstance.getTransparencyMode();
@@ -273,8 +271,8 @@ void main() async {
   test('UbershaderMaterial typed wrapper', () async {
     await testHelper.withViewer(
       (viewer) async {
-        final ubershader = await FilamentApp.instance!
-            .createUbershaderMaterial();
+        final ubershader =
+            await FilamentApp.instance!.createUbershaderMaterial();
 
         await viewer.loadIbl(
           "file://${testHelper.assetsDir}/default_env_ibl.ktx",

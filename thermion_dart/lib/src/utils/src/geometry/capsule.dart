@@ -128,8 +128,7 @@ class CapsuleGeometry {
     // Generate indices for bottom hemisphere
     for (int latNumber = 0; latNumber < bottomHemiLatBands; latNumber++) {
       for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
-        int first =
-            topHemiVertexCount +
+        int first = topHemiVertexCount +
             (latNumber * (longitudeBands + 1)) +
             longNumber;
         int second = first + longitudeBands + 1;

@@ -310,7 +310,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<Map<ThermionEntity, List<MaterialInstance>>>
-  getMaterialInstancesAsMap() async {
+      getMaterialInstancesAsMap() async {
     final result = <ThermionEntity, List<MaterialInstance>>{};
     var entities = [entity, ...await getChildEntities()];
 
@@ -523,8 +523,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       return [];
     }
     if (_gltfAnimationNames == null) {
-      var animationCount = FilamentApp.instance!.animationManager
-          .getGltfAnimationCount(this);
+      var animationCount =
+          FilamentApp.instance!.animationManager.getGltfAnimationCount(this);
 
       _gltfAnimationNames = [];
       for (int i = 0; i < animationCount; i++) {
@@ -861,9 +861,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       );
     }
 
-    await renderableManager.setBonesFromMat4(meshEntity, [
-      transform,
-    ], offset: boneIndex);
+    await renderableManager.setBonesFromMat4(
+        meshEntity,
+        [
+          transform,
+        ],
+        offset: boneIndex);
   }
 
   //

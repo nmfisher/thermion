@@ -43,8 +43,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
       try {
         final camera = await view.getCamera();
         final current = await camera.getModelMatrix();
-        final updated =
-            current *
+        final updated = current *
             Matrix4.compose(translation, Quaternion.identity(), Vector3.all(1));
         await camera.setModelMatrix(updated);
       } catch (_) {
@@ -73,11 +72,11 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
             sensitivity.scrollWheelSensitivity * delta,
           );
         case MouseEvent(
-          type: final type,
-          button: final button,
-          localPosition: final localPosition,
-          delta: final delta,
-        ):
+            type: final type,
+            button: final button,
+            localPosition: final localPosition,
+            delta: final delta,
+          ):
           switch (type) {
             case MouseEventType.hover:
               if (!moveOnHover) {
@@ -103,11 +102,11 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
           _scaleDelta = 1;
           break;
         case ScaleUpdateEvent(
-          numPointers: final numPointers,
-          localFocalPoint: final localFocalPoint,
-          localFocalPointDelta: final localFocalPointDelta,
-          scale: final scale,
-        ):
+            numPointers: final numPointers,
+            localFocalPoint: final localFocalPoint,
+            localFocalPointDelta: final localFocalPointDelta,
+            scale: final scale,
+          ):
           if (numPointers == 1) {
             translation += Vector3(
               localFocalPointDelta!.$1 * sensitivity.touchSensitivity,
@@ -128,10 +127,10 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
         case ScaleEndEvent(numPointers: final numPointers):
           break;
         case KeyEvent(
-          type: final type,
-          logicalKey: var logicalKey,
-          physicalKey: var physicalKey,
-        ):
+            type: final type,
+            logicalKey: var logicalKey,
+            physicalKey: var physicalKey,
+          ):
           switch (type) {
             case KeyEventType.down:
               _heldKeys.add(physicalKey);
@@ -146,8 +145,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
       return;
     }
 
-    var updated =
-        current *
+    var updated = current *
         Matrix4.compose(
           translation,
           Quaternion.axisAngle(Vector3(0, 1, 0), rotation.x) *

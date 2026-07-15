@@ -129,11 +129,9 @@ class MorphAnimationData {
   }) {
     Float32List filteredData = Float32List(data.length);
 
-    for (
-      int morphTargetIndex = 0;
-      morphTargetIndex < numMorphTargets;
-      morphTargetIndex++
-    ) {
+    for (int morphTargetIndex = 0;
+        morphTargetIndex < numMorphTargets;
+        morphTargetIndex++) {
       double estimate = initialEstimate ?? data[morphTargetIndex];
       double errorEstimate = 1.0;
 
@@ -146,8 +144,7 @@ class MorphAnimationData {
         double predictedErrorEstimate = errorEstimate + processNoise;
 
         // Update step
-        double kalmanGain =
-            predictedErrorEstimate /
+        double kalmanGain = predictedErrorEstimate /
             (predictedErrorEstimate + measurementNoise);
         estimate =
             predictedEstimate + kalmanGain * (measurement - predictedEstimate);
@@ -180,11 +177,9 @@ class MorphAnimationData {
 
     Float32List newData = Float32List(expectedLength * numMorphTargets);
 
-    for (
-      int morphTargetIndex = 0;
-      morphTargetIndex < numMorphTargets;
-      morphTargetIndex++
-    ) {
+    for (int morphTargetIndex = 0;
+        morphTargetIndex < numMorphTargets;
+        morphTargetIndex++) {
       List<double> yp = List.generate(
         numFrames,
         (i) => data[i * numMorphTargets + morphTargetIndex],

@@ -4,16 +4,14 @@ import 'package:test/test.dart';
 import 'helpers.dart';
 
 Future<
-  ({
-    ThermionAsset blueCube,
-    MaterialInstance blueMaterialInstance,
-    ThermionAsset greenCube,
-    MaterialInstance greenMaterialInstance,
-  })
->
-setup(ThermionViewer viewer) async {
-  var blueMaterialInstance = await FilamentApp.instance!
-      .createUnlitMaterialInstance();
+    ({
+      ThermionAsset blueCube,
+      MaterialInstance blueMaterialInstance,
+      ThermionAsset greenCube,
+      MaterialInstance greenMaterialInstance,
+    })> setup(ThermionViewer viewer) async {
+  var blueMaterialInstance =
+      await FilamentApp.instance!.createUnlitMaterialInstance();
   final blueCube = await viewer.createGeometry(
     GeometryUtils.cube(),
     materialInstances: [blueMaterialInstance],
@@ -29,8 +27,8 @@ setup(ThermionViewer viewer) async {
   // Position blue cube slightly behind/below/right
   await blueCube.setTransform(Matrix4.translation(Vector3(1.0, -1.0, -1.0)));
 
-  var greenMaterialInstance = await FilamentApp.instance!
-      .createUnlitMaterialInstance();
+  var greenMaterialInstance =
+      await FilamentApp.instance!.createUnlitMaterialInstance();
   final greenCube = await viewer.createGeometry(
     GeometryUtils.cube(),
     materialInstances: [greenMaterialInstance],
@@ -61,8 +59,8 @@ void main() async {
       await viewer.setPostProcessing(true);
       await viewer.setToneMapper(await ToneMapper.linear());
 
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
         GeometryUtils.cube(normals: false, uvs: false),
         materialInstances: [materialInstance],
@@ -83,8 +81,8 @@ void main() async {
 
   test('unlit + baseColorMap (PNG)', () async {
     await testHelper.withViewer((viewer) async {
-      var materialInstance = await await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance =
+          await await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
         GeometryUtils.cube(),
         materialInstances: [materialInstance],
@@ -135,8 +133,8 @@ void main() async {
 
   test('unlit + baseColorMap (JPEG)', () async {
     await testHelper.withViewer((viewer) async {
-      var materialInstance = await await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance =
+          await await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
         GeometryUtils.cube(),
         materialInstances: [materialInstance],
@@ -162,9 +160,8 @@ void main() async {
       final texture = await await FilamentApp.instance!.createTexture(
         width,
         height,
-        textureFormat: channels == 4
-            ? TextureFormat.RGBA32F
-            : TextureFormat.RGB32F,
+        textureFormat:
+            channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F,
       );
       await texture.setLinearImage(
         image,
@@ -195,8 +192,8 @@ void main() async {
         GeometryUtils.cube(),
         materialInstances: [],
       );
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
       await materialInstance.setParameterFloat4(
         "baseColorFactor",
         1.0,
@@ -245,8 +242,8 @@ void main() async {
 
   test('unlit + baseColorMap (fetch material after creation)', () async {
     await testHelper.withViewer((viewer) async {
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
         GeometryUtils.cube(),
         materialInstances: [materialInstance],
@@ -304,8 +301,8 @@ void main() async {
       await viewer.setPostProcessing(true);
       await viewer.setToneMapper(await ToneMapper.linear());
 
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
         GeometryUtils.cube(normals: false, uvs: false),
         materialInstances: [materialInstance],

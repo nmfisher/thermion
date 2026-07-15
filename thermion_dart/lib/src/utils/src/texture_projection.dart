@@ -47,30 +47,26 @@ class TextureProjection {
     await depthView.setPostProcessing(false);
     await depthView.setViewport(viewport.width, viewport.height);
 
-    final depthWriteColorTexture =
-        await FilamentApp.instance!.createTexture(
-              viewport.width,
-              viewport.height,
-              flags: {
-                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-              },
-              textureFormat: TextureFormat.R32F,
-            )
-            as FFITexture;
+    final depthWriteColorTexture = await FilamentApp.instance!.createTexture(
+      viewport.width,
+      viewport.height,
+      flags: {
+        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+      },
+      textureFormat: TextureFormat.R32F,
+    ) as FFITexture;
     final depthWriteRenderTarget =
         await FilamentApp.instance!.createRenderTarget(
-              viewport.width,
-              viewport.height,
-              color: depthWriteColorTexture,
-            )
-            as FFIRenderTarget;
+      viewport.width,
+      viewport.height,
+      color: depthWriteColorTexture,
+    ) as FFIRenderTarget;
     await depthView.setRenderTarget(depthWriteRenderTarget);
 
-    final captureMat =
-        await FilamentApp.instance!.createMaterial(captureUvMaterial)
-            as FFIMaterial;
+    final captureMat = await FilamentApp.instance!
+        .createMaterial(captureUvMaterial) as FFIMaterial;
     var captureMi = await captureMat.createInstance() as FFIMaterialInstance;
     await captureMi.setParameterBool("flipUVs", true);
 
@@ -88,10 +84,9 @@ class TextureProjection {
 
     final projectionRenderTarget =
         await FilamentApp.instance!.createRenderTarget(
-              viewport.width,
-              viewport.height,
-            )
-            as FFIRenderTarget;
+      viewport.width,
+      viewport.height,
+    ) as FFIRenderTarget;
     await projectionView.setFrustumCullingEnabled(false);
     await projectionView.setPostProcessing(false);
     await projectionView.setViewport(viewport.width, viewport.height);
@@ -141,9 +136,8 @@ class TextureProjection {
     // since we will be creating a single (unlit) scene, we need
     // to replace the target asset's material with an unlit material
     // (otherwise nothing will be visible in the initial output colour buffer).
-    final unlit =
-        await FilamentApp.instance!.createUnlitMaterialInstance()
-            as FFIMaterialInstance;
+    final unlit = await FilamentApp.instance!.createUnlitMaterialInstance()
+        as FFIMaterialInstance;
     await unlit.setParameterFloat4("baseColorFactor", 1.0, 1.0, 1.0, 1.0);
 
     final projectionScene =
@@ -153,11 +147,9 @@ class TextureProjection {
     for (final target in targets) {
       await projectionScene.addEntity(target);
       restoreMaterials[target] = [];
-      for (
-        int i = 0;
-        i < await FilamentApp.instance!.getPrimitiveCount(target);
-        i++
-      ) {
+      for (int i = 0;
+          i < await FilamentApp.instance!.getPrimitiveCount(target);
+          i++) {
         final mi = await FilamentApp.instance!.getMaterialInstanceAt(target, i);
         restoreMaterials[target]!.add(mi);
         await FilamentApp.instance!.setMaterialInstanceAt(target, i, unlit);
@@ -176,14 +168,14 @@ class TextureProjection {
       null,
       view: sourceView,
       captureRenderTarget: true,
-    )).first.$2;
+    ))
+        .first
+        .$2;
 
     for (final target in targets) {
-      for (
-        int i = 0;
-        i < await FilamentApp.instance!.getPrimitiveCount(target);
-        i++
-      ) {
+      for (int i = 0;
+          i < await FilamentApp.instance!.getPrimitiveCount(target);
+          i++) {
         await FilamentApp.instance!.setMaterialInstanceAt(
           target,
           i,
@@ -195,7 +187,9 @@ class TextureProjection {
     var depthViewCapture = (await FilamentApp.instance!.capture(
       null,
       view: depthView,
-    )).first.$2;
+    ))
+        .first
+        .$2;
 
     await projectionMaterialInstance.setParameterTexture(
       "color",
@@ -204,11 +198,9 @@ class TextureProjection {
     );
 
     for (final target in targets) {
-      for (
-        int i = 0;
-        i < await FilamentApp.instance!.getPrimitiveCount(target);
-        i++
-      ) {
+      for (int i = 0;
+          i < await FilamentApp.instance!.getPrimitiveCount(target);
+          i++) {
         await FilamentApp.instance!.setMaterialInstanceAt(
           target,
           i,
@@ -222,16 +214,16 @@ class TextureProjection {
     var projectionViewCapture = (await FilamentApp.instance!.capture(
       null,
       view: projectionView,
-    )).first.$2;
+    ))
+        .first
+        .$2;
     projectionViewCaptures.add(projectionViewCapture);
 
     for (final target in targets) {
       await projectionScene.removeEntity(target);
-      for (
-        int i = 0;
-        i < await FilamentApp.instance!.getPrimitiveCount(target);
-        i++
-      ) {
+      for (int i = 0;
+          i < await FilamentApp.instance!.getPrimitiveCount(target);
+          i++) {
         await FilamentApp.instance!.setMaterialInstanceAt(
           target,
           i,

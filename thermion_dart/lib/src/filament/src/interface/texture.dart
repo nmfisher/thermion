@@ -176,19 +176,19 @@ enum TextureUsage {
   const TextureUsage(this.value);
 
   static TextureUsage fromValue(int value) => switch (value) {
-    0 => TEXTURE_USAGE_NONE,
-    1 => TEXTURE_USAGE_COLOR_ATTACHMENT,
-    2 => TEXTURE_USAGE_DEPTH_ATTACHMENT,
-    4 => TEXTURE_USAGE_STENCIL_ATTACHMENT,
-    8 => TEXTURE_USAGE_UPLOADABLE,
-    16 => TEXTURE_USAGE_SAMPLEABLE,
-    32 => TEXTURE_USAGE_SUBPASS_INPUT,
-    64 => TEXTURE_USAGE_BLIT_SRC,
-    128 => TEXTURE_USAGE_BLIT_DST,
-    256 => TEXTURE_USAGE_PROTECTED,
-    24 => TEXTURE_USAGE_DEFAULT,
-    _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
-  };
+        0 => TEXTURE_USAGE_NONE,
+        1 => TEXTURE_USAGE_COLOR_ATTACHMENT,
+        2 => TEXTURE_USAGE_DEPTH_ATTACHMENT,
+        4 => TEXTURE_USAGE_STENCIL_ATTACHMENT,
+        8 => TEXTURE_USAGE_UPLOADABLE,
+        16 => TEXTURE_USAGE_SAMPLEABLE,
+        32 => TEXTURE_USAGE_SUBPASS_INPUT,
+        64 => TEXTURE_USAGE_BLIT_SRC,
+        128 => TEXTURE_USAGE_BLIT_DST,
+        256 => TEXTURE_USAGE_PROTECTED,
+        24 => TEXTURE_USAGE_DEFAULT,
+        _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
+      };
 }
 
 /// Defines texture wrapping modes for texture coordinates

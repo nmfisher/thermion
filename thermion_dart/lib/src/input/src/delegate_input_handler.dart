@@ -53,14 +53,15 @@ class DelegateInputHandler implements InputHandler {
     bool freeLook = false,
     bool moveOnHover = false,
     InputSensitivityOptions sensitivity = const InputSensitivityOptions(),
-  }) => DelegateInputHandler(
-    viewer: viewer,
-    delegate: FreeFlightInputHandlerDelegateV2(
-      viewer.view,
-      sensitivity: sensitivity,
-      moveOnHover: moveOnHover,
-    ),
-  );
+  }) =>
+      DelegateInputHandler(
+        viewer: viewer,
+        delegate: FreeFlightInputHandlerDelegateV2(
+          viewer.view,
+          sensitivity: sensitivity,
+          moveOnHover: moveOnHover,
+        ),
+      );
 
   @override
   Future dispose() async {

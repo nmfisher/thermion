@@ -62,8 +62,7 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
-    final isIOSSimulator =
-        targetOS == OS.iOS &&
+    final isIOSSimulator = targetOS == OS.iOS &&
         config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
     var libDir = (await getLibDir(
@@ -73,20 +72,20 @@ outputDirectory : ${outputDirectory.path}
       logger,
       buildMode,
       isIOSSimulator: isIOSSimulator,
-    )).path;
+    ))
+        .path;
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
         .whereType<File>()
         .map((f) => f.path)
         .where((f) {
-          // Only check path relative to package root for exclusions
-          final relativePath = path.relative(f, from: pkgRootFilePath);
-          return !(relativePath.contains("CMakeLists") ||
-              relativePath.contains("main.cpp") ||
-              relativePath.contains("build"));
-        })
-        .toList();
+      // Only check path relative to package root for exclusions
+      final relativePath = path.relative(f, from: pkgRootFilePath);
+      return !(relativePath.contains("CMakeLists") ||
+          relativePath.contains("main.cpp") ||
+          relativePath.contains("build"));
+    }).toList();
 
     if (targetOS != OS.windows) {
       sources = sources
@@ -319,9 +318,8 @@ outputDirectory : ${outputDirectory.path}
     final objcObjectFiles = <String>[];
     if (objcSources.isNotEmpty && targetOS == OS.iOS) {
       final cc = config.code.cCompiler?.compiler.toFilePath() ?? 'clang';
-      final archStr = targetArchitecture == Architecture.arm64
-          ? 'arm64'
-          : 'x86_64';
+      final archStr =
+          targetArchitecture == Architecture.arm64 ? 'arm64' : 'x86_64';
       // Detect simulator vs device from the iOS config
       final isSimulator = config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
       final sdkName = isSimulator ? 'iphonesimulator' : 'iphoneos';
@@ -329,10 +327,12 @@ outputDirectory : ${outputDirectory.path}
         '--sdk',
         sdkName,
         '--show-sdk-path',
-      ])).stdout.toString().trim();
-      final targetTriple = isSimulator
-          ? '$archStr-apple-ios-simulator'
-          : '$archStr-apple-ios';
+      ]))
+          .stdout
+          .toString()
+          .trim();
+      final targetTriple =
+          isSimulator ? '$archStr-apple-ios-simulator' : '$archStr-apple-ios';
 
       for (final objcSource in objcSources) {
         final objFile = path.join(
@@ -490,9 +490,8 @@ outputDirectory : ${outputDirectory.path}
     }
 
     output.metadata.addAll({
-      "includeDirs": includeDirs
-          .map((dir) => path.join(pkgRootFilePath, dir))
-          .toList(),
+      "includeDirs":
+          includeDirs.map((dir) => path.join(pkgRootFilePath, dir)).toList(),
     });
     output.metadata.addAll({"outputDir": outputDirectory.path});
 

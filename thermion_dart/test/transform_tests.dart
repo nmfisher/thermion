@@ -32,8 +32,8 @@ void main() async {
 
   test('set/unset parent geometry', () async {
     await testHelper.withViewer((viewer) async {
-      var blueMaterialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var blueMaterialInstance =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
       final blueCube = await viewer.createGeometry(
         GeometryUtils.cube(normals: false, uvs: false),
         materialInstances: [blueMaterialInstance],
@@ -49,8 +49,8 @@ void main() async {
       // Position blue cube slightly behind and to the right
       await blueCube.setTransform(Matrix4.translation(Vector3(1.0, 0.0, -1.0)));
 
-      var greenMaterialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var greenMaterialInstance =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
       final greenCube = await viewer.createGeometry(
         GeometryUtils.cube(normals: false, uvs: false),
         materialInstances: [greenMaterialInstance],
@@ -133,8 +133,8 @@ void main() async {
         final entity = await FilamentApp.instance!.createEntity();
         entities.add(entity);
 
-        var materialInstance = await FilamentApp.instance!
-            .createUnlitMaterialInstance();
+        var materialInstance =
+            await FilamentApp.instance!.createUnlitMaterialInstance();
         final cube = await viewer.createGeometry(
           GeometryUtils.cube(normals: false, uvs: false),
           materialInstances: [materialInstance],
@@ -163,8 +163,7 @@ void main() async {
       // Update transforms in bulk - this should be faster with transaction
       for (int i = 0; i < entities.length; i++) {
         final entity = entities[i];
-        final transform =
-            Matrix4.translation(
+        final transform = Matrix4.translation(
               Vector3(
                 (i - 2) * 2.0, // Spread cubes horizontally
                 0.0,

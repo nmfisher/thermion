@@ -438,36 +438,32 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _logger.finest("Creating ${width}x${height} render target");
     if (color == null) {
       _logger.finest("No color texture provided");
-      color =
-          await createTexture(
-                width,
-                height,
-                flags: {
-                  TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-                  TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                  TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                },
-                textureFormat: TextureFormat.RGBA8,
-              )
-              as FFITexture;
+      color = await createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        },
+        textureFormat: TextureFormat.RGBA8,
+      ) as FFITexture;
       _logger.finest(
         "Created ${width}x${height} color texture (TextureFormat.RGBA8)",
       );
     }
     if (depth == null) {
       _logger.finest("No depth texture provided");
-      depth =
-          await createTexture(
-                width,
-                height,
-                flags: {
-                  TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-                  TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-                  TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                },
-                textureFormat: TextureFormat.DEPTH32F,
-              )
-              as FFITexture;
+      depth = await createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        },
+        textureFormat: TextureFormat.DEPTH32F,
+      ) as FFITexture;
       _logger.finest(
         "Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)",
       );
@@ -1362,12 +1358,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final surfaceOrientation = await orientationBuilder.build();
 
       // Extract quaternions in FLOAT4 format
-      tangentQuaternions =
-          await surfaceOrientation.getQuats(
-                QuaternionFormat.FLOAT4,
-                geometry.vertices.length ~/ 3,
-              )
-              as Float32List;
+      tangentQuaternions = await surfaceOrientation.getQuats(
+        QuaternionFormat.FLOAT4,
+        geometry.vertices.length ~/ 3,
+      ) as Float32List;
 
       await surfaceOrientation.destroy();
     }
@@ -1477,11 +1471,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
     final indexTypedData = switch (geometry.indexType) {
       IndexType.UINT => makeUint32List(
-        geometry.indices.length,
-      )..setRange(0, geometry.indices.length, geometry.indices),
+          geometry.indices.length,
+        )..setRange(0, geometry.indices.length, geometry.indices),
       IndexType.USHORT => makeUint16List(
-        geometry.indices.length,
-      )..setRange(0, geometry.indices.length, geometry.indices),
+          geometry.indices.length,
+        )..setRange(0, geometry.indices.length, geometry.indices),
     };
     await indexBuffer.setBuffer(indexTypedData);
 

@@ -28,13 +28,13 @@ void main() async {
         .setCameraLookAt(Vector3(0, 0, 5))
         .addCube(createUbershader: true)
         .execute((result) async {
-          await result.viewer.loadIbl(
-            "file://${testHelper.assetsDir}/default_env_ibl.ktx",
-          );
-          await testHelper.capture(result.viewer.view, "ibl_ktx_loaded");
-          await result.viewer.removeIbl();
-          await testHelper.capture(result.viewer.view, "ibl_ktx_removed");
-        });
+      await result.viewer.loadIbl(
+        "file://${testHelper.assetsDir}/default_env_ibl.ktx",
+      );
+      await testHelper.capture(result.viewer.view, "ibl_ktx_loaded");
+      await result.viewer.removeIbl();
+      await testHelper.capture(result.viewer.view, "ibl_ktx_removed");
+    });
   });
 
   test('load/remove ibl with manually constructed texture', () async {
@@ -43,46 +43,46 @@ void main() async {
         .addCube(createUbershader: true)
         .addSkybox()
         .execute((result) async {
-          final texture = await FilamentApp.instance!.createTexture(
-            1,
-            1,
-            textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
-            flags: {
-              TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-              TextureUsage.TEXTURE_USAGE_UPLOADABLE,
-            },
-          );
-          var data = Float32List.fromList(
-            List<double>.filled(1 * 1 * 4, 1.0),
-          ).asUint8List();
-          await texture.setImage(
-            0,
-            data,
-            1,
-            1,
-            PixelDataFormat.RGBA,
-            PixelDataType.FLOAT,
-          );
+      final texture = await FilamentApp.instance!.createTexture(
+        1,
+        1,
+        textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_UPLOADABLE,
+        },
+      );
+      var data = Float32List.fromList(
+        List<double>.filled(1 * 1 * 4, 1.0),
+      ).asUint8List();
+      await texture.setImage(
+        0,
+        data,
+        1,
+        1,
+        PixelDataFormat.RGBA,
+        PixelDataType.FLOAT,
+      );
 
-          var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
-            texture,
-            reflectionsTexture: texture,
-            intensity: 30000.0,
-          );
-          final scene = await result.viewer.view.getScene();
-          await scene.setIndirectLight(indirectLight);
+      var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
+        texture,
+        reflectionsTexture: texture,
+        intensity: 30000.0,
+      );
+      final scene = await result.viewer.view.getScene();
+      await scene.setIndirectLight(indirectLight);
 
-          await testHelper.capture(
-            result.viewer.view,
-            "ibl_from_texture_loaded",
-          );
+      await testHelper.capture(
+        result.viewer.view,
+        "ibl_from_texture_loaded",
+      );
 
-          await result.viewer.removeIbl(destroy: true);
-          await testHelper.capture(
-            result.viewer.view,
-            "ibl_from_texture_removed",
-          );
-        });
+      await result.viewer.removeIbl(destroy: true);
+      await testHelper.capture(
+        result.viewer.view,
+        "ibl_from_texture_removed",
+      );
+    });
   });
 
   test('LightManager type queries and component management', () async {
@@ -153,29 +153,29 @@ void main() async {
           color: kGreen,
         )
         .execute((result) async {
-          final lightManager = FilamentApp.instance!.lightManager;
+      final lightManager = FilamentApp.instance!.lightManager;
 
-          final sunLight = lightManager.createLight(LightType.SUN);
-          lightManager.setPosition(sunLight, 1.0, 2.0, 3.0);
-          lightManager.setDirection(sunLight, 0.0, -1.0, 0.0);
-          lightManager.setIntensity(sunLight, 50000);
-          final scene = await result.viewer.view.getScene();
-          await scene.addEntity(sunLight);
-          await testHelper.capture(result.viewer.view, "light_created");
+      final sunLight = lightManager.createLight(LightType.SUN);
+      lightManager.setPosition(sunLight, 1.0, 2.0, 3.0);
+      lightManager.setDirection(sunLight, 0.0, -1.0, 0.0);
+      lightManager.setIntensity(sunLight, 50000);
+      final scene = await result.viewer.view.getScene();
+      await scene.addEntity(sunLight);
+      await testHelper.capture(result.viewer.view, "light_created");
 
-          final position = lightManager.getPosition(sunLight);
-          expect(position[0], closeTo(1.0, 0.001));
-          expect(position[1], closeTo(2.0, 0.001));
-          expect(position[2], closeTo(3.0, 0.001));
-          final direction = lightManager.getDirection(sunLight);
-          expect(direction[0], closeTo(0.0, 0.001));
-          expect(direction[1], closeTo(-1.0, 0.001));
-          expect(direction[2], closeTo(0.0, 0.001));
+      final position = lightManager.getPosition(sunLight);
+      expect(position[0], closeTo(1.0, 0.001));
+      expect(position[1], closeTo(2.0, 0.001));
+      expect(position[2], closeTo(3.0, 0.001));
+      final direction = lightManager.getDirection(sunLight);
+      expect(direction[0], closeTo(0.0, 0.001));
+      expect(direction[1], closeTo(-1.0, 0.001));
+      expect(direction[2], closeTo(0.0, 0.001));
 
-          await scene.removeEntity(sunLight);
+      await scene.removeEntity(sunLight);
 
-          lightManager.destroyLight(sunLight);
-        });
+      lightManager.destroyLight(sunLight);
+    });
   });
 
   test('LightManager intensity management', () async {

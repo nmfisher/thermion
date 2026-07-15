@@ -340,9 +340,9 @@ class FFIView extends View<Pointer<TView>> {
   static int kMaxPickRequests = 1024;
   final _pickRequests =
       List<({void Function(PickResult) handler, int x, int y})?>.generate(
-        kMaxPickRequests,
-        (idx) => null,
-      );
+    kMaxPickRequests,
+    (idx) => null,
+  );
 
   ///
   ///
