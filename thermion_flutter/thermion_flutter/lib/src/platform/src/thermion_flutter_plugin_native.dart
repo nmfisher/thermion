@@ -211,15 +211,16 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       // Native render loop: vsync → render → mark textures all in native.
       // Bypasses Dart event loop entirely for minimal frame latency.
       final dylib = ffi.DynamicLibrary.process();
-      final getHandleFn = dylib.lookupFunction<
-          ffi.Pointer<ffi.Void> Function(),
-          ffi.Pointer<ffi.Void>
-              Function()>('thermion_flutter_get_plugin_handle');
+      final getHandleFn = dylib
+          .lookupFunction<
+            ffi.Pointer<ffi.Void> Function(),
+            ffi.Pointer<ffi.Void> Function()
+          >('thermion_flutter_get_plugin_handle');
       final pluginHandle = getHandleFn();
       final markTexturesFnPtr = dylib
           .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'thermion_flutter_mark_textures',
-      );
+            'thermion_flutter_mark_textures',
+          );
 
       final app = FilamentApp.instance as FFIFilamentApp;
       await FrameScheduler.instance.startFlutterSynced(
@@ -273,7 +274,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     // Determine if we need the Vulkan external image path or direct GL/Metal import.
     // Vulkan path: builder.external() + setExternalImage (Windows, or Linux with Vulkan)
     // Direct import path: builder.import(textureId) (macOS/iOS Metal, Linux with OpenGL)
-    final useExternalImage = Platform.isWindows ||
+    final useExternalImage =
+        Platform.isWindows ||
         ThermionFlutterPlugin.instance.options.nativeOptions.backend ==
             Backend.VULKAN;
 
