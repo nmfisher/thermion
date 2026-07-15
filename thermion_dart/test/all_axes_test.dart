@@ -28,13 +28,13 @@ void main() async {
       );
       final xAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
-        originX: 0.0,
-        originY: 0.0,
-        originZ: 0.0,
-        axis: 0, // X
-        lineWidth: 1.0,
-        lineLength: 50.0,
-      );
+            originX: 0.0,
+            originY: 0.0,
+            originZ: 0.0,
+            axis: 0, // X
+            lineWidth: 1.0,
+            lineLength: 50.0,
+          );
       await xAxis.setMaterialInstanceAt(xAxisMaterial);
       await FilamentApp.instance!.setTransform(
         xAxis.entity,
@@ -47,13 +47,13 @@ void main() async {
       );
       final yAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
-        originX: 0.0,
-        originY: 0.0,
-        originZ: 0.0,
-        axis: 1, // Y
-        lineWidth: 1.0,
-        lineLength: 50.0,
-      );
+            originX: 0.0,
+            originY: 0.0,
+            originZ: 0.0,
+            axis: 1, // Y
+            lineWidth: 1.0,
+            lineLength: 50.0,
+          );
       await yAxis.setMaterialInstanceAt(yAxisMaterial);
       final rotation = Quaternion.axisAngle(
         Vector3(1, 0, 0),
@@ -70,13 +70,13 @@ void main() async {
       );
       final zAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
-        originX: 0.0,
-        originY: 0.0,
-        originZ: 0.0,
-        axis: 2, // Z
-        lineWidth: 1.0,
-        lineLength: 50.0,
-      );
+            originX: 0.0,
+            originY: 0.0,
+            originZ: 0.0,
+            axis: 2, // Z
+            lineWidth: 1.0,
+            lineLength: 50.0,
+          );
       await zAxis.setMaterialInstanceAt(zAxisMaterial);
       await FilamentApp.instance!.setTransform(
         zAxis.entity,

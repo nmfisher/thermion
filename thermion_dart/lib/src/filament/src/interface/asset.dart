@@ -89,7 +89,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // a list of material instances for each primitive for the respective
   // entity.
   Future<Map<ThermionEntity, List<MaterialInstance>>>
-      getMaterialInstancesAsMap() {
+  getMaterialInstancesAsMap() {
     throw UnimplementedError();
   }
 

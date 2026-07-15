@@ -101,7 +101,8 @@ void main() async {
       final camera = await viewer.getActiveCamera();
       final projMatrix = await camera.getProjectionMatrix();
       final viewMatrix = await camera.getViewMatrix();
-      final clipPos = projMatrix *
+      final clipPos =
+          projMatrix *
           viewMatrix *
           Vector4(initialBonePos.x, initialBonePos.y, initialBonePos.z, 1.0);
       final ndc = clipPos / clipPos.w;

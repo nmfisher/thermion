@@ -247,31 +247,37 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // 1. Main view post-processing outputs linear colors → GPU applies sRGB encoding
     // 2. EdgeDetectionView samples → GPU linearizes the values automatically
     // This prevents double gamma correction that causes brightness shift.
-    _mainViewColorTexture = await FilamentApp.instance!.createTexture(
-      width,
-      height,
-      flags: {
-        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-      },
-      textureFormat: TextureFormat.SRGB8_A8,
-    ) as FFITexture;
+    _mainViewColorTexture =
+        await FilamentApp.instance!.createTexture(
+              width,
+              height,
+              flags: {
+                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+              },
+              textureFormat: TextureFormat.SRGB8_A8,
+            )
+            as FFITexture;
 
     // Create depth texture
-    _mainViewDepthTexture = await FilamentApp.instance!.createTexture(
-      width,
-      height,
-      flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
-      textureFormat: TextureFormat.DEPTH32F,
-    ) as FFITexture;
+    _mainViewDepthTexture =
+        await FilamentApp.instance!.createTexture(
+              width,
+              height,
+              flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+              textureFormat: TextureFormat.DEPTH32F,
+            )
+            as FFITexture;
 
     // Create render target
-    _mainViewRenderTarget = await FilamentApp.instance!.createRenderTarget(
-      width,
-      height,
-      color: _mainViewColorTexture,
-      depth: _mainViewDepthTexture,
-    ) as FFIRenderTarget;
+    _mainViewRenderTarget =
+        await FilamentApp.instance!.createRenderTarget(
+              width,
+              height,
+              color: _mainViewColorTexture,
+              depth: _mainViewDepthTexture,
+            )
+            as FFIRenderTarget;
   }
 
   Future<void> _resizeMainViewRenderTarget(int width, int height) async {

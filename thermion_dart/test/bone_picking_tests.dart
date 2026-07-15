@@ -73,10 +73,9 @@ class BoneVisualizer {
     Vector4? jointColor,
     Vector4? boneColor,
     Vector4? highlightColor,
-  })  : jointColor = jointColor ?? Vector4(1.0, 1.0, 0.0, 1.0), // Yellow
-        boneColor = boneColor ?? Vector4(0.3, 0.8, 1.0, 1.0), // Light blue
-        highlightColor =
-            highlightColor ?? Vector4(1.0, 0.5, 0.0, 1.0); // Orange
+  }) : jointColor = jointColor ?? Vector4(1.0, 1.0, 0.0, 1.0), // Yellow
+       boneColor = boneColor ?? Vector4(0.3, 0.8, 1.0, 1.0), // Light blue
+       highlightColor = highlightColor ?? Vector4(1.0, 0.5, 0.0, 1.0); // Orange
 
   /// Whether the visualization is currently visible.
   bool get isVisible => _isVisible;
@@ -142,7 +141,8 @@ class BoneVisualizer {
 
     // Project world position to screen coordinates
     Vector2 projectToScreen(Vector3 worldPos) {
-      final clipSpace = projMatrix *
+      final clipSpace =
+          projMatrix *
           viewMatrix *
           Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
       final ndc = clipSpace / clipSpace.w;
@@ -327,8 +327,8 @@ class BoneVisualizer {
     );
 
     // Create bone overlay material for view-dependent flat shading
-    final boneMaterial =
-        await FilamentApp.instance!.createBoneOverlayMaterial();
+    final boneMaterial = await FilamentApp.instance!
+        .createBoneOverlayMaterial();
 
     // Third pass: create visualization for each bone
     for (int i = 0; i < boneCount; i++) {
@@ -628,7 +628,8 @@ void main() async {
         final projMatrix = await camera.getProjectionMatrix();
         final viewMatrix = await camera.getViewMatrix();
 
-        final clipPos = (projMatrix * viewMatrix) *
+        final clipPos =
+            (projMatrix * viewMatrix) *
             Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
         final ndcPos = clipPos.xyz / clipPos.w;
 

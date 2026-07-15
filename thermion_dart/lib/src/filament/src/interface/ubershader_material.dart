@@ -83,8 +83,7 @@ class UbershaderMaterialInstance {
   Future setClearCoatRoughnessTexture(
     Texture texture,
     TextureSampler sampler,
-  ) =>
-      _mi.setParameterTexture('clearCoatRoughnessMap', texture, sampler);
+  ) => _mi.setParameterTexture('clearCoatRoughnessMap', texture, sampler);
 
   Future setClearCoatNormalTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('clearCoatNormalMap', texture, sampler);
@@ -145,8 +144,7 @@ class UbershaderMaterialInstance {
     double y,
     double z,
     double w,
-  ) =>
-      _mi.setParameterFloat4(name, x, y, z, w);
+  ) => _mi.setParameterFloat4(name, x, y, z, w);
 
   Future setParameterInt(String name, int value) =>
       _mi.setParameterInt(name, value);
@@ -158,6 +156,5 @@ class UbershaderMaterialInstance {
     String name,
     Texture texture,
     TextureSampler sampler,
-  ) =>
-      _mi.setParameterTexture(name, texture, sampler);
+  ) => _mi.setParameterTexture(name, texture, sampler);
 }

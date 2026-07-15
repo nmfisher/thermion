@@ -157,8 +157,9 @@ class GeometryUtils {
         ? Float32List.fromList([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0])
         : null;
 
-    Float32List? _uvs =
-        uvs ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1]) : null;
+    Float32List? _uvs = uvs
+        ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1])
+        : null;
 
     final indices = Uint16List.fromList([0, 2, 1, 0, 3, 2]);
 
@@ -378,16 +379,15 @@ class GeometryUtils {
     double lensLength = 0.4,
     bool normals = true,
     bool uvs = true,
-  }) =>
-      CameraGeometry.camera(
-        bodyWidth: bodyWidth,
-        bodyHeight: bodyHeight,
-        bodyDepth: bodyDepth,
-        lensRadius: lensRadius,
-        lensLength: lensLength,
-        normals: normals,
-        uvs: uvs,
-      );
+  }) => CameraGeometry.camera(
+    bodyWidth: bodyWidth,
+    bodyHeight: bodyHeight,
+    bodyDepth: bodyDepth,
+    lensRadius: lensRadius,
+    lensLength: lensLength,
+    normals: normals,
+    uvs: uvs,
+  );
 
   static Geometry wireframeCamera({
     double sphereRadius = 0.2,
@@ -398,50 +398,46 @@ class GeometryUtils {
     bool normals = true,
     bool uvs = true,
     double wireThickness = 0.01,
-  }) =>
-      CameraGeometry.wireframeCamera(
-        sphereRadius: sphereRadius,
-        frustumDistance: frustumDistance,
-        frustumNear: frustumNear,
-        frustumFar: frustumFar,
-        fov: fov,
-        normals: normals,
-        uvs: uvs,
-        wireThickness: wireThickness,
-      );
+  }) => CameraGeometry.wireframeCamera(
+    sphereRadius: sphereRadius,
+    frustumDistance: frustumDistance,
+    frustumNear: frustumNear,
+    frustumFar: frustumFar,
+    fov: fov,
+    normals: normals,
+    uvs: uvs,
+    wireThickness: wireThickness,
+  );
 
   static Geometry cube({
     bool normals = true,
     bool uvs = true,
     bool flipUvs = true,
-  }) =>
-      CubeGeometry.cube(normals: normals, uvs: uvs, flipUvs: flipUvs);
+  }) => CubeGeometry.cube(normals: normals, uvs: uvs, flipUvs: flipUvs);
 
   static Geometry cylinder({
     double radius = 1.0,
     double length = 1.0,
     bool normals = true,
     bool uvs = true,
-  }) =>
-      CylinderGeometry.cylinder(
-        radius: radius,
-        length: length,
-        normals: normals,
-        uvs: uvs,
-      );
+  }) => CylinderGeometry.cylinder(
+    radius: radius,
+    length: length,
+    normals: normals,
+    uvs: uvs,
+  );
 
   static Geometry conic({
     double radius = 1.0,
     double length = 1.0,
     bool normals = true,
     bool uvs = true,
-  }) =>
-      CylinderGeometry.conic(
-        radius: radius,
-        length: length,
-        normals: normals,
-        uvs: uvs,
-      );
+  }) => CylinderGeometry.conic(
+    radius: radius,
+    length: length,
+    normals: normals,
+    uvs: uvs,
+  );
 
   static Geometry halfPyramid({
     double startX = 0.25,
@@ -451,16 +447,15 @@ class GeometryUtils {
     double depth = 1.0,
     bool normals = true,
     bool uvs = true,
-  }) =>
-      PyramidGeometry.halfPyramid(
-        startX: startX,
-        startY: startY,
-        width: width,
-        height: height,
-        depth: depth,
-        normals: normals,
-        uvs: uvs,
-      );
+  }) => PyramidGeometry.halfPyramid(
+    startX: startX,
+    startY: startY,
+    width: width,
+    height: height,
+    depth: depth,
+    normals: normals,
+    uvs: uvs,
+  );
 
   static Geometry fullscreenQuad() => QuadGeometry.fullscreenQuad();
 
