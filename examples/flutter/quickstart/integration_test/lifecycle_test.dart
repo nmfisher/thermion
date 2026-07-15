@@ -108,14 +108,31 @@ void main() {
     void setLifecycle(AppLifecycleState state) =>
         WidgetsBinding.instance.handleAppLifecycleStateChanged(state);
 
-    // Two full cycles. On desktop the real window also emits lifecycle
-    // events (inactive/resumed on focus changes) that race with these, so we
-    // only assert the post-resume invariant — not the intermediate state.
+    // Drive the FULL lifecycle sequence in both directions
+    // (resumed→inactive→hidden→paused→hidden→inactive→resumed), not a bare
+    // paused→resumed jump.
+    //
+    // Why: SchedulerBinding.handleAppLifecycleStateChanged flips
+    // `framesEnabled` to false on paused/hidden/detached. While that flag is
+    // false, scheduleFrame() is a no-op, so tester.pump() — which on the
+    // integration-test (live) binding waits for a real engine frame to fire
+    // handleDrawFrame — never completes. Pumping *during* the paused window
+    // therefore deadlocks. By walking through every state and ending at
+    // resumed (which restores framesEnabled and calls scheduleFrame), the
+    // frame loop is re-armed before we pump, so the post-resume pumps can
+    // drive frames and the test makes progress.
+    //
+    // (Flutter also ignores duplicate consecutive states, so the states must
+    // be distinct — hence the full round-trip rather than repeated
+    // paused→resumed.)
+    //
+    // All pumping happens AFTER resumed, while framesEnabled is true.
     for (var i = 0; i < 2; i++) {
+      setLifecycle(AppLifecycleState.inactive);
+      setLifecycle(AppLifecycleState.hidden);
       setLifecycle(AppLifecycleState.paused);
-      for (var j = 0; j < 5; j++) {
-        await tester.pump(const Duration(milliseconds: 16));
-      }
+      setLifecycle(AppLifecycleState.hidden);
+      setLifecycle(AppLifecycleState.inactive);
       setLifecycle(AppLifecycleState.resumed);
       for (var j = 0; j < 10; j++) {
         await tester.pump(const Duration(milliseconds: 16));
