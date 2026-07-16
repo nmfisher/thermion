@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' hide View;
 // hiding these isn't actually necessary, but the analyzer trips up on it
 // when publishing to pub.dev, so we just hide manually.
 import 'package:thermion_flutter/thermion_flutter.dart'
@@ -15,7 +16,8 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 // ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 
-class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
+class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
+    with WidgetsBindingObserver {
   static Pointer? _stackPtr;
   static final _descriptors = <PlatformTextureDescriptor>[];
   static final _destroyed = <PlatformTextureDescriptor>[];
@@ -23,6 +25,20 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static int? _frameRequestId;
   static int _pacedFps = 0;
   static double? _nextRenderDeadlineMs;
+  static bool _explicitlyPaused = false;
+  static bool _lifecycleSuspended = false;
+
+  static bool get _renderPaused => _explicitlyPaused || _lifecycleSuspended;
+
+  static void _applyRenderPause() {
+    final app = FilamentApp.instance as FFIFilamentApp?;
+    if (app != null) {
+      RenderManager_setPaused(
+        app.renderManager.getNativeHandle(),
+        _renderPaused,
+      );
+    }
+  }
 
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
@@ -48,8 +64,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     if (rendered) {
       app?.render();
 
-      for (final descriptor in _descriptors) {
-        descriptor.markTextureFrameAvailable();
+      // RenderManager still executes its backend task queue while paused, but
+      // it does not produce a new frame, so do not notify Flutter of one.
+      if (!_renderPaused) {
+        for (final descriptor in _descriptors) {
+          descriptor.markTextureFrameAvailable();
+        }
       }
     }
     for (final descriptor in _destroyed) {
@@ -104,6 +124,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     }
     _pacedFps = 0;
     _nextRenderDeadlineMs = null;
+    _explicitlyPaused = false;
+    _lifecycleSuspended = false;
 
     _stackPtr = null;
     swapChain = null;
@@ -115,10 +137,15 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @override
   Future<SwapChain> initialize({bool destroySwapchain = true}) async {
+    WidgetsBinding.instance.removeObserver(this);
+
     if (FilamentApp.instance != null && swapChain != null) {
       // Hot reload re-enters initialize without disposing the existing web
       // engine. Reuse the live app instead of spawning another em-pthread.
       _ensureFrameLoopRunning();
+      WidgetsBinding.instance.addObserver(this);
+      _syncLifecycleState();
+      _applyRenderPause();
       return swapChain!;
     }
 
@@ -190,6 +217,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     await FFIFilamentApp.create(config: config);
     // resetting the web state when the app is destroyed
     (FilamentApp.instance as FFIFilamentApp).onDestroy(() async {
+      WidgetsBinding.instance.removeObserver(this);
       _resetWebState();
     });
 
@@ -201,6 +229,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _logger.info("Created 1x1 headless swapchain");
 
     _ensureFrameLoopRunning();
+    WidgetsBinding.instance.addObserver(this);
+    _syncLifecycleState();
+    _applyRenderPause();
 
     return swapChain!;
   }
@@ -267,17 +298,45 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @override
   void pauseFrameScheduler() {
-    final app = FilamentApp.instance as FFIFilamentApp?;
-    if (app != null) {
-      RenderManager_setPaused(app.renderManager.getNativeHandle(), true);
-    }
+    _explicitlyPaused = true;
+    _applyRenderPause();
   }
 
   @override
   void resumeFrameScheduler() {
-    final app = FilamentApp.instance as FFIFilamentApp?;
-    if (app != null) {
-      RenderManager_setPaused(app.renderManager.getNativeHandle(), false);
+    _explicitlyPaused = false;
+    _applyRenderPause();
+  }
+
+  void _syncLifecycleState() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state != null) {
+      didChangeAppLifecycleState(state);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        if (!_lifecycleSuspended) {
+          _lifecycleSuspended = true;
+          _applyRenderPause();
+          _logger.info('App hidden, web rendering suspended');
+        }
+        break;
+      case AppLifecycleState.resumed:
+        if (_lifecycleSuspended) {
+          _lifecycleSuspended = false;
+          _applyRenderPause();
+          _logger.info('App foregrounded, web rendering resumed');
+        }
+        break;
+      case AppLifecycleState.inactive:
+        // An unfocused tab can still be visible, so keep rendering.
+        break;
     }
   }
 }

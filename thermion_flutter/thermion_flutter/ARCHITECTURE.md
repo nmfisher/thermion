@@ -119,6 +119,15 @@ Compositing itself is Flutter's responsibility — the Texture widget participat
 
 `pauseFrameScheduler()` / `resumeFrameScheduler()` gate the **render pipeline** — on native, Dart's `_onFrame` short-circuits (so no `RenderManager_render` task is queued); on web, `RenderManager::tick()` skips `updateAnimationsAndPlugins` + the swapchain loop. Neither path touches `RenderThread::_tasks`, so every `*_RenderThread` FFI call (`setTransform`, `addEntity`, material/camera updates, etc.) continues to queue and execute exactly as it does when running. `await`-ing an FFI call during pause will not hang; state accumulated during pause is visible on the first render after resume.
 
+App lifecycle suspension is separate from an explicit caller pause. `hidden`,
+`paused`, and `detached` suspend rendering; `inactive` does not, because the app
+can remain visible while unfocused. Native platforms stop their scheduler while
+hidden, except Linux, whose persistent Flutter-synchronized callback remains
+registered but paused. Web keeps its requestAnimationFrame loop available so
+backend tasks can drain, while pausing the render pipeline. A `resumed`
+transition restores rendering without overriding an explicit caller pause or a
+resize already in progress.
+
 On native this means:
 
 - the platform `FrameScheduler` keeps ticking — Dart just ignores the callbacks. Scheduler vsync subscription stays warm so resume is free. If you need the scheduler itself stopped (e.g. to avoid penalties from active display-link subscriptions when backgrounded), call `FrameScheduler_stop` explicitly.

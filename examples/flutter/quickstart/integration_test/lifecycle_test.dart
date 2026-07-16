@@ -58,6 +58,34 @@ void main() {
     // Wait for the viewer + plugin to initialize (and the FrameScheduler to
     // start).
     await tester.pumpAndSettle(const Duration(seconds: 5));
+
+    // Desktop test runners are not always able to foreground the app. The
+    // plugin correctly suspends when initialization observes that hidden
+    // state, so normalize the harness to resumed before tests that expect an
+    // active scheduler. Walk through the synthesized intermediate states to
+    // keep Flutter's lifecycle state machine consistent.
+    final binding = WidgetsBinding.instance;
+    switch (binding.lifecycleState) {
+      case AppLifecycleState.paused:
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        break;
+      case AppLifecycleState.hidden:
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        break;
+      case AppLifecycleState.resumed:
+      case null:
+        break;
+    }
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
   }
 
   // ---- Layer 1: deterministic, direct FrameScheduler drive -----------------
@@ -100,7 +128,7 @@ void main() {
 
   // ---- Layer 2: end-to-end via the binding (lenient) -----------------------
 
-  testWidgets('lifecycle paused/resumed leaves scheduler active and unpaused',
+  testWidgets('lifecycle hidden/paused resumes the scheduler cleanly',
       (tester) async {
     await pumpViewer(tester);
     expect(FrameScheduler.instance.isActive, isTrue);
@@ -130,6 +158,16 @@ void main() {
     for (var i = 0; i < 2; i++) {
       setLifecycle(AppLifecycleState.inactive);
       setLifecycle(AppLifecycleState.hidden);
+
+      // Desktop platforms stop at hidden and never enter paused. Linux keeps
+      // its persistent Flutter callback registered but prevents it re-arming.
+      if (Platform.isLinux) {
+        expect(FrameScheduler.instance.isActive, isTrue);
+        expect(FrameScheduler.instance.isPaused, isTrue);
+      } else {
+        expect(FrameScheduler.instance.isActive, isFalse);
+      }
+
       setLifecycle(AppLifecycleState.paused);
       setLifecycle(AppLifecycleState.hidden);
       setLifecycle(AppLifecycleState.inactive);
@@ -143,5 +181,21 @@ void main() {
         reason: 'scheduler must recover to active after resume');
     expect(FrameScheduler.instance.isPaused, isFalse,
         reason: 'pause flag must be cleared after resume');
+
+    // A lifecycle round-trip must not override an explicit caller pause.
+    ThermionFlutterPlugin.instance.pauseFrameScheduler();
+    setLifecycle(AppLifecycleState.inactive);
+    setLifecycle(AppLifecycleState.hidden);
+    setLifecycle(AppLifecycleState.inactive);
+    setLifecycle(AppLifecycleState.resumed);
+    for (var j = 0; j < 10; j++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(FrameScheduler.instance.isActive, isTrue);
+    expect(FrameScheduler.instance.isPaused, isTrue,
+        reason: 'foregrounding must preserve an explicit pause');
+
+    ThermionFlutterPlugin.instance.resumeFrameScheduler();
+    expect(FrameScheduler.instance.isPaused, isFalse);
   }, skip: Platform.isWindows); // TODO: needs a Windows host to run
 }

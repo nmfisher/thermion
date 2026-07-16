@@ -59,6 +59,55 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   // Old RT stays alive so native can Blit from it during the swap window.
   static final _deferredRenderTargets = <(RenderTarget, int)>[];
 
+  bool _explicitlyPaused = false;
+  bool _lifecycleSuspended = false;
+  bool _resizing = false;
+
+  bool get _pauseRequested =>
+      _explicitlyPaused || _lifecycleSuspended || _resizing;
+
+  bool _suspendForLifecycle() {
+    if (_lifecycleSuspended) return false;
+    _lifecycleSuspended = true;
+
+    if (Platform.isLinux) {
+      // Linux registers one persistent Flutter frame callback. Keep it
+      // registered, but stop it from re-arming while the app is hidden.
+      FrameScheduler.instance.pause();
+    } else {
+      FrameScheduler.instance.stop();
+    }
+    return true;
+  }
+
+  Future<void> _resumeFromLifecycle() async {
+    if (!_lifecycleSuspended) return;
+    _lifecycleSuspended = false;
+
+    if (FilamentApp.instance == null) return;
+
+    if (Platform.isLinux) {
+      if (!_pauseRequested) {
+        FrameScheduler.instance.resume();
+      }
+    } else {
+      await FrameScheduler.instance.start();
+      if (_pauseRequested) {
+        FrameScheduler.instance.pause();
+      } else {
+        FrameScheduler.instance.resume();
+      }
+    }
+    _logger.info('App foregrounded, frame scheduler resumed');
+  }
+
+  void _syncLifecycleState() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state != null) {
+      didChangeAppLifecycleState(state);
+    }
+  }
+
   Future<void> _renderFrame() async {
     if (FilamentApp.instance == null) return;
 
@@ -204,9 +253,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
     FrameScheduler.instance.setOnFrame(_renderFrame);
 
-    // Register for app lifecycle changes to stop/start the native scheduler
-    WidgetsBinding.instance.addObserver(this);
-
     if (Platform.isLinux) {
       // Native render loop: vsync → render → mark textures all in native.
       // Bypasses Dart event loop entirely for minimal frame latency.
@@ -233,33 +279,51 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       await FrameScheduler.instance.start();
     }
 
+    // Register only after the scheduler has started, then immediately apply
+    // the current state. This covers initialization while already hidden
+    // without allowing the subsequent start call to undo the suspension.
+    WidgetsBinding.instance.addObserver(this);
+    _syncLifecycleState();
+    if (_pauseRequested) {
+      FrameScheduler.instance.pause();
+    }
+
     return swapChain;
   }
 
   @override
-  void pauseFrameScheduler() => FrameScheduler.instance.pause();
+  void pauseFrameScheduler() {
+    _explicitlyPaused = true;
+    FrameScheduler.instance.pause();
+  }
 
   @override
-  void resumeFrameScheduler() => FrameScheduler.instance.resume();
+  void resumeFrameScheduler() {
+    _explicitlyPaused = false;
+    if (!_pauseRequested) {
+      FrameScheduler.instance.resume();
+    }
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      if (Platform.isLinux) {
-        // Linux uses a persistent Flutter frame callback; we can't easily
-        // re-register it, so just pause instead of tearing it down.
-        FrameScheduler.instance.pause();
-      } else {
-        FrameScheduler.instance.stop();
-      }
-      _logger.info('App backgrounded, native frame scheduler stopped');
-    } else if (state == AppLifecycleState.resumed) {
-      if (Platform.isLinux) {
-        FrameScheduler.instance.resume();
-      } else {
-        FrameScheduler.instance.start();
-      }
-      _logger.info('App foregrounded, native frame scheduler restarted');
+    switch (state) {
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        if (_suspendForLifecycle()) {
+          _logger.info('App hidden, frame scheduler suspended');
+        }
+        break;
+      case AppLifecycleState.resumed:
+        unawaited(_resumeFromLifecycle().catchError((Object error) {
+          _logger.severe('Failed to resume frame scheduler: $error');
+        }));
+        break;
+      case AppLifecycleState.inactive:
+        // The app can remain visible while inactive (split screen, system UI,
+        // or an unfocused desktop window), so rendering remains enabled.
+        break;
     }
   }
 
@@ -449,6 +513,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   ) async {
     // Block new frames while we swap textures, then wait for any in-flight
     // frame to finish before we touch render targets.
+    _resizing = true;
     FrameScheduler.instance.pause();
     while (FrameScheduler.instance.isRendering) {
       await Future<void>.delayed(const Duration(milliseconds: 1));
@@ -473,7 +538,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
       return newTexture;
     } finally {
-      FrameScheduler.instance.resume();
+      _resizing = false;
+      if (!_pauseRequested) {
+        FrameScheduler.instance.resume();
+      }
     }
   }
 
