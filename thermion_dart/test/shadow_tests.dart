@@ -62,42 +62,43 @@ void main() async {
             createUbershader: true,
           )
           .execute((result) async {
-        final plane = result.assets[1]; // The plane is the first asset
-        final camera = await result.viewer.getActiveCamera();
+            final plane = result.assets[1]; // The plane is the first asset
+            final camera = await result.viewer.getActiveCamera();
 
-        expect(await plane.isCastShadowsEnabled(), true);
-        expect(await plane.isReceiveShadowsEnabled(), true);
+            expect(await plane.isCastShadowsEnabled(), true);
+            expect(await plane.isReceiveShadowsEnabled(), true);
 
-        await result.viewer.setShadowsEnabled(true);
+            await result.viewer.setShadowsEnabled(true);
 
-        // Move camera in 8 positions around a circle
-        final int numPositions = 8;
+            // Move camera in 8 positions around a circle
+            final int numPositions = 8;
 
-        for (int i = 0; i < numPositions; i++) {
-          final double angle = (i * 2 * pi) / numPositions;
+            for (int i = 0; i < numPositions; i++) {
+              final double angle = (i * 2 * pi) / numPositions;
 
-          // Change sun direction based on camera position
-          // Sun will rotate around the scene, always pointing towards the center from a slightly elevated angle
-          final double sunAngle = angle + pi; // Sun opposite to camera position
-          final double sunX = sin(sunAngle) * 0.7;
-          final double sunY = -0.5; // Sun pointing downward
-          final double sunZ = cos(sunAngle) * 0.7;
-          final Vector3 sunDirection = Vector3(
-            sunX,
-            sunY,
-            sunZ,
-          ).normalized();
+              // Change sun direction based on camera position
+              // Sun will rotate around the scene, always pointing towards the center from a slightly elevated angle
+              final double sunAngle =
+                  angle + pi; // Sun opposite to camera position
+              final double sunX = sin(sunAngle) * 0.7;
+              final double sunY = -0.5; // Sun pointing downward
+              final double sunZ = cos(sunAngle) * 0.7;
+              final Vector3 sunDirection = Vector3(
+                sunX,
+                sunY,
+                sunZ,
+              ).normalized();
 
-          // Update sun direction
-          await result.viewer.setLightDirection(result.sun!, sunDirection);
+              // Update sun direction
+              await result.viewer.setLightDirection(result.sun!, sunDirection);
 
-          // Capture the view from this position
-          await testHelper.capture(
-            result.viewer.view,
-            "shadows_circular_sun_pos_$i",
-          );
-        }
-      });
+              // Capture the view from this position
+              await testHelper.capture(
+                result.viewer.view,
+                "shadows_circular_sun_pos_$i",
+              );
+            }
+          });
     },
   );
 

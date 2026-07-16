@@ -57,19 +57,19 @@ void main() async {
           createUbershader: true,
         )
         .execute((result) async {
-      for (int i = 0; i < toneMappers.length; i += 2) {
-        final toneMapperFactory =
-            toneMappers[i] as Future<ToneMapper> Function();
-        final name = toneMappers[i + 1] as String;
-        final toneMapper = await toneMapperFactory();
+          for (int i = 0; i < toneMappers.length; i += 2) {
+            final toneMapperFactory =
+                toneMappers[i] as Future<ToneMapper> Function();
+            final name = toneMappers[i + 1] as String;
+            final toneMapper = await toneMapperFactory();
 
-        // Set the tone mapper directly to the view
-        await result.viewer.view.setToneMapper(toneMapper);
+            // Set the tone mapper directly to the view
+            await result.viewer.view.setToneMapper(toneMapper);
 
-        // Capture the viewport after changing tone mapper
-        await testHelper.capture(result.viewer.view, "tone_mapper_$name");
-      }
-    });
+            // Capture the viewport after changing tone mapper
+            await testHelper.capture(result.viewer.view, "tone_mapper_$name");
+          }
+        });
   });
 
   test('ColorGrading builder', () async {
@@ -85,37 +85,37 @@ void main() async {
           createUbershader: true,
         )
         .execute((result) async {
-      // Create a complex color grading using the builder
-      final builder = await result.viewer.view.createColorGradingBuilder();
-      final colorGrading = await builder
-          .quality(QualityLevel.HIGH)
-          .exposure(0.7) // Slight exposure adjustment
-          .whiteBalance(0.1, -0.05) // Slight warm tint
-          .contrast(1.15) // Moderate contrast boost
-          .vibrance(1.1) // Slight vibrance boost
-          .saturation(0.95) // Slight desaturation
-          .luminanceScaling(true) // Better HDR handling
-          .gamutMapping(true) // Prevent hue shifts
-          .toneMapper(await ToneMapper.aces()) // Add a tone mapper
-          .shadowsMidtonesHighlights(
-            Vector4(0.8, 0.9, 1.0, 0.5), // Slightly cool shadows
-            Vector4(1.0, 1.0, 1.0, 1.0), // Neutral midtones
-            Vector4(1.1, 1.05, 1.0, 0.5), // Slightly warm highlights
-            Vector4(0.2, 0.5, 0.8, 1.0), // Transition ranges
-          )
-          .build();
+          // Create a complex color grading using the builder
+          final builder = await result.viewer.view.createColorGradingBuilder();
+          final colorGrading = await builder
+              .quality(QualityLevel.HIGH)
+              .exposure(0.7) // Slight exposure adjustment
+              .whiteBalance(0.1, -0.05) // Slight warm tint
+              .contrast(1.15) // Moderate contrast boost
+              .vibrance(1.1) // Slight vibrance boost
+              .saturation(0.95) // Slight desaturation
+              .luminanceScaling(true) // Better HDR handling
+              .gamutMapping(true) // Prevent hue shifts
+              .toneMapper(await ToneMapper.aces()) // Add a tone mapper
+              .shadowsMidtonesHighlights(
+                Vector4(0.8, 0.9, 1.0, 0.5), // Slightly cool shadows
+                Vector4(1.0, 1.0, 1.0, 1.0), // Neutral midtones
+                Vector4(1.1, 1.05, 1.0, 0.5), // Slightly warm highlights
+                Vector4(0.2, 0.5, 0.8, 1.0), // Transition ranges
+              )
+              .build();
 
-      expect(colorGrading, isNotNull);
+          expect(colorGrading, isNotNull);
 
-      // Apply the color grading to the view
-      await result.viewer.view.setColorGrading(colorGrading);
+          // Apply the color grading to the view
+          await result.viewer.view.setColorGrading(colorGrading);
 
-      // Capture the viewport after applying color grading
-      await testHelper.capture(
-        result.viewer.view,
-        "color_grading_builder_applied",
-      );
-    });
+          // Capture the viewport after applying color grading
+          await testHelper.capture(
+            result.viewer.view,
+            "color_grading_builder_applied",
+          );
+        });
   });
 
   test('ColorGrading LUT format and dimensions', () async {
@@ -132,35 +132,36 @@ void main() async {
           createUbershader: true,
         )
         .execute((result) async {
-      await testHelper.capture(
-        result.viewer.view,
-        "color_grading_lut_none",
-      );
-      final configs = [
-        (LutFormat.INTEGER, 16, 'integer_16'),
-        (LutFormat.INTEGER, 32, 'integer_32'),
-        (LutFormat.FLOAT, 32, 'float_32'),
-        (LutFormat.FLOAT, 64, 'float_64'),
-      ];
+          await testHelper.capture(
+            result.viewer.view,
+            "color_grading_lut_none",
+          );
+          final configs = [
+            (LutFormat.INTEGER, 16, 'integer_16'),
+            (LutFormat.INTEGER, 32, 'integer_32'),
+            (LutFormat.FLOAT, 32, 'float_32'),
+            (LutFormat.FLOAT, 64, 'float_64'),
+          ];
 
-      for (final (format, dim, name) in configs) {
-        final builder = await result.viewer.view.createColorGradingBuilder();
-        final colorGrading = await builder
-            .format(format)
-            .dimensions(dim)
-            .toneMapper(await ToneMapper.aces())
-            .saturation(1.3)
-            .contrast(1.2)
-            .build();
+          for (final (format, dim, name) in configs) {
+            final builder = await result.viewer.view
+                .createColorGradingBuilder();
+            final colorGrading = await builder
+                .format(format)
+                .dimensions(dim)
+                .toneMapper(await ToneMapper.aces())
+                .saturation(1.3)
+                .contrast(1.2)
+                .build();
 
-        expect(colorGrading, isNotNull);
-        await result.viewer.view.setColorGrading(colorGrading);
-        await testHelper.capture(
-          result.viewer.view,
-          "color_grading_lut_$name",
-        );
-      }
-    });
+            expect(colorGrading, isNotNull);
+            await result.viewer.view.setColorGrading(colorGrading);
+            await testHelper.capture(
+              result.viewer.view,
+              "color_grading_lut_$name",
+            );
+          }
+        });
   });
 
   test('ColorGrading channelMixer', () async {
@@ -177,38 +178,39 @@ void main() async {
           createUbershader: true,
         )
         .execute((result) async {
-      final configs = <(Vector3, Vector3, Vector3, String)>[
-        (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1), 'identity'),
-        (
-          Vector3(0.393, 0.769, 0.189),
-          Vector3(0.349, 0.686, 0.168),
-          Vector3(0.272, 0.534, 0.131),
-          'sepia',
-        ),
-        (Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(1, 0, 0), 'swap_rb'),
-        (
-          Vector3(0.299, 0.587, 0.114),
-          Vector3(0.299, 0.587, 0.114),
-          Vector3(0.299, 0.587, 0.114),
-          'luminance',
-        ),
-      ];
+          final configs = <(Vector3, Vector3, Vector3, String)>[
+            (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1), 'identity'),
+            (
+              Vector3(0.393, 0.769, 0.189),
+              Vector3(0.349, 0.686, 0.168),
+              Vector3(0.272, 0.534, 0.131),
+              'sepia',
+            ),
+            (Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(1, 0, 0), 'swap_rb'),
+            (
+              Vector3(0.299, 0.587, 0.114),
+              Vector3(0.299, 0.587, 0.114),
+              Vector3(0.299, 0.587, 0.114),
+              'luminance',
+            ),
+          ];
 
-      for (final (outRed, outGreen, outBlue, name) in configs) {
-        final builder = await result.viewer.view.createColorGradingBuilder();
-        final colorGrading = await builder
-            .toneMapper(await ToneMapper.linear())
-            .channelMixer(outRed, outGreen, outBlue)
-            .build();
+          for (final (outRed, outGreen, outBlue, name) in configs) {
+            final builder = await result.viewer.view
+                .createColorGradingBuilder();
+            final colorGrading = await builder
+                .toneMapper(await ToneMapper.linear())
+                .channelMixer(outRed, outGreen, outBlue)
+                .build();
 
-        expect(colorGrading, isNotNull);
-        await result.viewer.view.setColorGrading(colorGrading);
-        await testHelper.capture(
-          result.viewer.view,
-          "color_grading_channel_mixer_$name",
-        );
-      }
-    });
+            expect(colorGrading, isNotNull);
+            await result.viewer.view.setColorGrading(colorGrading);
+            await testHelper.capture(
+              result.viewer.view,
+              "color_grading_channel_mixer_$name",
+            );
+          }
+        });
   });
 
   test('getColorGrading - retrieve and verify color grading', () async {
@@ -224,42 +226,43 @@ void main() async {
           createUbershader: true,
         )
         .execute((result) async {
-      // Setting the color grading to null will clear the color grading
-      await result.viewer.view.setColorGrading(null);
-      // but internally, View resets this to a "default" color grading,
-      // so this will be non-null
-      var initialColorGrading = await result.viewer.view.getColorGrading();
-      expect(initialColorGrading, isNotNull);
+          // Setting the color grading to null will clear the color grading
+          await result.viewer.view.setColorGrading(null);
+          // but internally, View resets this to a "default" color grading,
+          // so this will be non-null
+          var initialColorGrading = await result.viewer.view.getColorGrading();
+          expect(initialColorGrading, isNotNull);
 
-      // Create and apply a color grading
-      final builder = await result.viewer.view.createColorGradingBuilder();
-      final colorGrading = await builder
-          .quality(QualityLevel.HIGH)
-          .exposure(0.5)
-          .contrast(1.2)
-          .saturation(1.1)
-          .toneMapper(await ToneMapper.aces())
-          .build();
+          // Create and apply a color grading
+          final builder = await result.viewer.view.createColorGradingBuilder();
+          final colorGrading = await builder
+              .quality(QualityLevel.HIGH)
+              .exposure(0.5)
+              .contrast(1.2)
+              .saturation(1.1)
+              .toneMapper(await ToneMapper.aces())
+              .build();
 
-      // Apply the color grading to the view
-      await result.viewer.view.setColorGrading(colorGrading);
+          // Apply the color grading to the view
+          await result.viewer.view.setColorGrading(colorGrading);
 
-      // Retrieve the color grading from the view
-      var retrievedColorGrading = await result.viewer.view.getColorGrading();
-      expect(retrievedColorGrading, isNotNull);
-      expect(retrievedColorGrading, isA<ColorGrading>());
+          // Retrieve the color grading from the view
+          var retrievedColorGrading = await result.viewer.view
+              .getColorGrading();
+          expect(retrievedColorGrading, isNotNull);
+          expect(retrievedColorGrading, isA<ColorGrading>());
 
-      // Capture the viewport with color grading applied
-      await testHelper.capture(
-        result.viewer.view,
-        "color_grading_get_test",
-      );
+          // Capture the viewport with color grading applied
+          await testHelper.capture(
+            result.viewer.view,
+            "color_grading_get_test",
+          );
 
-      // Clear the color grading by passing null
-      await result.viewer.view.setColorGrading(null);
+          // Clear the color grading by passing null
+          await result.viewer.view.setColorGrading(null);
 
-      // Capture the viewport with color grading cleared
-      await testHelper.capture(result.viewer.view, "color_grading_cleared");
-    });
+          // Capture the viewport with color grading cleared
+          await testHelper.capture(result.viewer.view, "color_grading_cleared");
+        });
   });
 }

@@ -5,14 +5,16 @@ import 'package:test/test.dart';
 import 'helpers.dart';
 
 Future<
-    ({
-      ThermionAsset blueCube,
-      MaterialInstance blueMaterialInstance,
-      ThermionAsset greenCube,
-      MaterialInstance greenMaterialInstance,
-    })> setup(ThermionViewer viewer) async {
-  var blueMaterialInstance =
-      await FilamentApp.instance!.createUnlitMaterialInstance();
+  ({
+    ThermionAsset blueCube,
+    MaterialInstance blueMaterialInstance,
+    ThermionAsset greenCube,
+    MaterialInstance greenMaterialInstance,
+  })
+>
+setup(ThermionViewer viewer) async {
+  var blueMaterialInstance = await FilamentApp.instance!
+      .createUnlitMaterialInstance();
   final blueCube = await viewer.createGeometry(
     GeometryUtils.cube(),
     materialInstances: [blueMaterialInstance],
@@ -28,8 +30,8 @@ Future<
   // Position blue cube slightly behind/below/right
   await blueCube.setTransform(Matrix4.translation(Vector3(1.0, -1.0, -1.0)));
 
-  var greenMaterialInstance =
-      await FilamentApp.instance!.createUnlitMaterialInstance();
+  var greenMaterialInstance = await FilamentApp.instance!
+      .createUnlitMaterialInstance();
   final greenCube = await viewer.createGeometry(
     GeometryUtils.cube(),
     materialInstances: [greenMaterialInstance],

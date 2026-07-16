@@ -32,10 +32,7 @@ void main() async {
   test('addBoneAnimation on a gltf asset plays a keyframed rotation', () async {
     await ViewerBuilder(
       testHelper,
-    )
-        .addSun()
-        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .execute((
+    ).addSun().setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero()).execute((
       result,
     ) async {
       final viewer = result.viewer;
@@ -85,10 +82,7 @@ void main() async {
   test('addBoneAnimation with loop wraps back to the start', () async {
     await ViewerBuilder(
       testHelper,
-    )
-        .addSun()
-        .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
-        .execute((
+    ).addSun().setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero()).execute((
       result,
     ) async {
       final viewer = result.viewer;

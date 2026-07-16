@@ -507,7 +507,8 @@ void main() {
           'sprintIntent': true,
           'hasMovementIntent': true,
           'hasRotationIntent': true,
-          'expectedMask': JUMP_INTENT_MASK |
+          'expectedMask':
+              JUMP_INTENT_MASK |
               SPRINT_INTENT_MASK |
               MOVEMENT_INTENT_MASK |
               ROTATION_INTENT_MASK,

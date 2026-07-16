@@ -17,20 +17,44 @@ Color kGreen = ColorFloat32(4)..setRgba(0.0, 1.0, 0.0, 1.0);
 Color kBlue = ColorFloat32(4)..setRgba(0.0, 0.0, 1.0, 1.0);
 
 Future<Uint8List> savePixelBufferToBmp(
-    Uint8List pixelBuffer, int width, int height, String outputPath,
-    {bool hasAlpha = true, bool isFloat = true, int numChannels = 0}) async {
-  var data = await pixelBufferToBmp(pixelBuffer, width, height,
-      hasAlpha: hasAlpha, isFloat: isFloat, numChannels: numChannels);
+  Uint8List pixelBuffer,
+  int width,
+  int height,
+  String outputPath, {
+  bool hasAlpha = true,
+  bool isFloat = true,
+  int numChannels = 0,
+}) async {
+  var data = await pixelBufferToBmp(
+    pixelBuffer,
+    width,
+    height,
+    hasAlpha: hasAlpha,
+    isFloat: isFloat,
+    numChannels: numChannels,
+  );
   await writeFileBytes(outputPath, data);
   Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
 }
 
 Future<Uint8List> savePixelBufferToPng(
-    Uint8List pixelBuffer, int width, int height, String outputPath,
-    {bool hasAlpha = true, bool isFloat = true, int numChannels = 0}) async {
-  var data = await pixelBufferToPng(pixelBuffer, width, height,
-      hasAlpha: hasAlpha, isFloat: isFloat, numChannels: numChannels);
+  Uint8List pixelBuffer,
+  int width,
+  int height,
+  String outputPath, {
+  bool hasAlpha = true,
+  bool isFloat = true,
+  int numChannels = 0,
+}) async {
+  var data = await pixelBufferToPng(
+    pixelBuffer,
+    width,
+    height,
+    hasAlpha: hasAlpha,
+    isFloat: isFloat,
+    numChannels: numChannels,
+  );
   await writeFileBytes(outputPath, data);
   Logger.root.info("Wrote bitmap to ${outputPath}");
   return data;
@@ -59,24 +83,33 @@ class TestHelper {
   ///
   Future<Texture> createTextureFromImage(TestHelper testHelper) async {
     final image = await FilamentApp.instance!.decodeImage(
-        await loadResourceBytes(
-            "${testHelper.assetsDir}/cube_texture_512x512.png"));
-    final texture = await FilamentApp.instance!
-        .createTexture(await image.getWidth(), await image.getHeight());
+      await loadResourceBytes(
+        "${testHelper.assetsDir}/cube_texture_512x512.png",
+      ),
+    );
+    final texture = await FilamentApp.instance!.createTexture(
+      await image.getWidth(),
+      await image.getHeight(),
+    );
     await texture.setLinearImage(
-        image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+      image,
+      PixelDataFormat.RGBA,
+      PixelDataType.FLOAT,
+    );
     return texture;
   }
 
   Future<MaterialInstance> loadViewSpaceMaterial() async {
     final material = await FilamentApp.instance!.createMaterial(
-        await loadResourceBytes("${assetsDir}/viewspace.filamat"));
+      await loadResourceBytes("${assetsDir}/viewspace.filamat"),
+    );
     return material.createInstance();
   }
 
   Future<MaterialInstance> loadCustomAttributeMaterial() async {
     final material = await FilamentApp.instance!.createMaterial(
-        await loadResourceBytes("${assetsDir}/customattributes.filamat"));
+      await loadResourceBytes("${assetsDir}/customattributes.filamat"),
+    );
     return material.createInstance();
   }
 
@@ -104,20 +137,26 @@ class TestHelper {
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
     final cubeGeometry = GeometryUtils.cube(flipUvs: true);
-    var asset = await viewer
-        .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
+    var asset = await viewer.createGeometry(
+      cubeGeometry,
+      materialInstances: [materialInstance],
+    );
     return asset;
   }
 
   Future withCube(
-      ThermionViewer viewer, Future Function(ThermionAsset cube) fn) async {
+    ThermionViewer viewer,
+    Future Function(ThermionAsset cube) fn,
+  ) async {
     var materialInstance = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
     final cubeGeometry = GeometryUtils.cube(flipUvs: true);
-    var asset = await viewer
-        .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
+    var asset = await viewer.createGeometry(
+      cubeGeometry,
+      materialInstances: [materialInstance],
+    );
 
     await fn(asset);
     await viewer.destroyAsset(asset);
@@ -126,20 +165,25 @@ class TestHelper {
   ///
   ///
   ///
-  Future<Map<View, Uint8List>> capture(View? view, String? outputFilename,
-      {Future Function(View view)? beforeRender,
-      SwapChain? swapChain,
-      PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
-      PixelDataType pixelDataType = PixelDataType.FLOAT,
-      bool captureRenderTarget = false,
-      bool render = true}) async {
-    var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
-        view: view,
-        beforeRender: beforeRender,
-        pixelDataFormat: pixelDataFormat,
-        pixelDataType: pixelDataType,
-        captureRenderTarget: captureRenderTarget,
-        render: render);
+  Future<Map<View, Uint8List>> capture(
+    View? view,
+    String? outputFilename, {
+    Future Function(View view)? beforeRender,
+    SwapChain? swapChain,
+    PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
+    PixelDataType pixelDataType = PixelDataType.FLOAT,
+    bool captureRenderTarget = false,
+    bool render = true,
+  }) async {
+    var pixelBuffers = await FilamentApp.instance!.capture(
+      swapChain,
+      view: view,
+      beforeRender: beforeRender,
+      pixelDataFormat: pixelDataFormat,
+      pixelDataType: pixelDataType,
+      captureRenderTarget: captureRenderTarget,
+      render: render,
+    );
     var retval = <View, Uint8List>{};
     int i = 0;
     for (final (view, pixelBuffer) in pixelBuffers) {
@@ -150,10 +194,15 @@ class TestHelper {
         final numChannels = pixelDataFormat == PixelDataFormat.R
             ? 1
             : (pixelDataFormat == PixelDataFormat.RGBA ? 4 : 3);
-        await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
-            isFloat: pixelDataType == PixelDataType.FLOAT,
-            hasAlpha: pixelDataFormat == PixelDataFormat.RGBA,
-            numChannels: numChannels);
+        await savePixelBufferToPng(
+          pixelBuffer,
+          vp.width,
+          vp.height,
+          outPath,
+          isFloat: pixelDataType == PixelDataType.FLOAT,
+          hasAlpha: pixelDataFormat == PixelDataFormat.RGBA,
+          numChannels: numChannels,
+        );
       }
       i++;
       retval[view] = pixelBuffer;
@@ -179,25 +228,31 @@ class TestHelper {
     await initTestBindings();
 
     await FFIFilamentApp.create(
-        config: FFIFilamentConfig(
-            loadResource: loadResourceBytes, backend: defaultTestBackend));
+      config: FFIFilamentConfig(
+        loadResource: loadResourceBytes,
+        backend: defaultTestBackend,
+      ),
+    );
   }
 
-  Future<(ThermionViewer viewer, SwapChain swapChain)> createViewer(
-      {img.Color? bg,
-      Vector3? cameraPosition,
-      ({int width, int height}) viewportDimensions = (width: 512, height: 512),
-      bool postProcessing = false,
-      bool addSkybox = false,
-      bool createRenderTarget = false,
-      bool createStencilBuffer = false}) async {
+  Future<(ThermionViewer viewer, SwapChain swapChain)> createViewer({
+    img.Color? bg,
+    Vector3? cameraPosition,
+    ({int width, int height}) viewportDimensions = (width: 512, height: 512),
+    bool postProcessing = false,
+    bool addSkybox = false,
+    bool createRenderTarget = false,
+    bool createStencilBuffer = false,
+  }) async {
     cameraPosition ??= Vector3(0, 5, 5);
 
-    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-      viewportDimensions.width,
-      viewportDimensions.height,
-      hasStencilBuffer: createStencilBuffer,
-    ) as FFISwapChain;
+    final swapChain =
+        await FilamentApp.instance!.createHeadlessSwapChain(
+              viewportDimensions.width,
+              viewportDimensions.height,
+              hasStencilBuffer: createStencilBuffer,
+            )
+            as FFISwapChain;
 
     RenderTarget? renderTarget;
     Texture? rtColorTexture;
@@ -210,7 +265,7 @@ class TestHelper {
         flags: {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
         },
         textureFormat: TextureFormat.RGBA32F,
       );
@@ -230,19 +285,21 @@ class TestHelper {
         },
         textureFormat: createStencilBuffer
             ? platformIsWindows
-                ? TextureFormat.DEPTH32F_STENCIL8
-                : TextureFormat.DEPTH24_STENCIL8
+                  ? TextureFormat.DEPTH32F_STENCIL8
+                  : TextureFormat.DEPTH24_STENCIL8
             : TextureFormat.DEPTH32F,
       );
 
       Logger.root.info("Created depth texture for test render target");
 
-      renderTarget = await FilamentApp.instance!.createRenderTarget(
-        viewportDimensions.width,
-        viewportDimensions.height,
-        color: rtColorTexture,
-        depth: rtDepthTexture,
-      ) as FFIRenderTarget;
+      renderTarget =
+          await FilamentApp.instance!.createRenderTarget(
+                viewportDimensions.width,
+                viewportDimensions.height,
+                color: rtColorTexture,
+                depth: rtDepthTexture,
+              )
+              as FFIRenderTarget;
     }
 
     var viewer = ThermionViewerFFI();
@@ -265,8 +322,10 @@ class TestHelper {
     if (renderTarget != null) {
       await viewer.view.setRenderTarget(renderTarget);
     }
-    await viewer.view
-        .setViewport(viewportDimensions.width, viewportDimensions.height);
+    await viewer.view.setViewport(
+      viewportDimensions.width,
+      viewportDimensions.height,
+    );
 
     if (createStencilBuffer) {
       await viewer.view.setStencilBufferEnabled(true);
@@ -278,16 +337,21 @@ class TestHelper {
 
     if (bg != null) {
       await viewer.setBackgroundColor(
-          bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
+        bg.r.toDouble(),
+        bg.g.toDouble(),
+        bg.b.toDouble(),
+        bg.a.toDouble(),
+      );
     }
 
     final camera = await viewer.getActiveCamera();
 
     await camera.setLensProjection(
-        near: kNear,
-        far: kFar,
-        aspect: viewportDimensions.width / viewportDimensions.height,
-        focalLength: kFocalLength);
+      near: kNear,
+      far: kFar,
+      aspect: viewportDimensions.width / viewportDimensions.height,
+      focalLength: kFocalLength,
+    );
 
     await camera.lookAt(cameraPosition);
 
@@ -308,13 +372,14 @@ class TestHelper {
     bool createStencilBuffer = false,
   }) async {
     final viewer = await createViewer(
-        bg: bg,
-        cameraPosition: cameraPosition,
-        viewportDimensions: viewportDimensions,
-        postProcessing: postProcessing,
-        addSkybox: addSkybox,
-        createRenderTarget: createRenderTarget,
-        createStencilBuffer: createStencilBuffer);
+      bg: bg,
+      cameraPosition: cameraPosition,
+      viewportDimensions: viewportDimensions,
+      postProcessing: postProcessing,
+      addSkybox: addSkybox,
+      createRenderTarget: createRenderTarget,
+      createStencilBuffer: createStencilBuffer,
+    );
 
     await fn.call(viewer.$1);
     await viewer.$1.dispose();
@@ -412,13 +477,13 @@ class ViewerBuilder {
     bool addSkybox = false,
     bool createRenderTarget = false,
     bool createStencilBuffer = false,
-  })  : _bg = bg,
-        _cameraPosition = cameraPosition,
-        _viewportDimensions = viewportDimensions,
-        _postProcessing = postProcessing,
-        _addSkybox = addSkybox,
-        _createRenderTarget = createRenderTarget,
-        _createStencilBuffer = createStencilBuffer;
+  }) : _bg = bg,
+       _cameraPosition = cameraPosition,
+       _viewportDimensions = viewportDimensions,
+       _postProcessing = postProcessing,
+       _addSkybox = addSkybox,
+       _createRenderTarget = createRenderTarget,
+       _createStencilBuffer = createStencilBuffer;
 
   ViewerBuilder setBackgroundColor(img.Color color) {
     _bg = color;
@@ -494,16 +559,18 @@ class ViewerBuilder {
     double sunHaloSize = 10.0,
     double sunHaloFalloff = 80.0,
   }) {
-    _directLights.add(DirectLight.sun(
-      color: color,
-      colorTemperature: colorTemperature,
-      intensity: intensity,
-      castShadows: castShadows,
-      direction: direction ?? Vector3(0.5, -0.5, -0.5).normalized(),
-      sunAngularRadius: sunAngularRadius,
-      sunHaloSize: sunHaloSize,
-      sunHaloFalloff: sunHaloFalloff,
-    ));
+    _directLights.add(
+      DirectLight.sun(
+        color: color,
+        colorTemperature: colorTemperature,
+        intensity: intensity,
+        castShadows: castShadows,
+        direction: direction ?? Vector3(0.5, -0.5, -0.5).normalized(),
+        sunAngularRadius: sunAngularRadius,
+        sunHaloSize: sunHaloSize,
+        sunHaloFalloff: sunHaloFalloff,
+      ),
+    );
     return this;
   }
 
@@ -522,16 +589,18 @@ class ViewerBuilder {
     bool createUbershader = false,
     bool unlit = false,
   }) {
-    _cubes.add(_CubeConfig(
-      position: position,
-      scale: scale,
-      rotation: rotation,
-      castShadows: castShadows,
-      receiveShadows: receiveShadows,
-      color: color,
-      createUbershader: createUbershader,
-      unlit: unlit,
-    ));
+    _cubes.add(
+      _CubeConfig(
+        position: position,
+        scale: scale,
+        rotation: rotation,
+        castShadows: castShadows,
+        receiveShadows: receiveShadows,
+        color: color,
+        createUbershader: createUbershader,
+        unlit: unlit,
+      ),
+    );
     return this;
   }
 
@@ -545,16 +614,18 @@ class ViewerBuilder {
     bool createUbershader = false,
     bool unlit = false,
   }) {
-    _planes.add(_PlaneConfig(
-      position: position,
-      scale: scale,
-      rotation: rotation,
-      castShadows: castShadows,
-      receiveShadows: receiveShadows,
-      color: color,
-      createUbershader: createUbershader,
-      unlit: unlit,
-    ));
+    _planes.add(
+      _PlaneConfig(
+        position: position,
+        scale: scale,
+        rotation: rotation,
+        castShadows: castShadows,
+        receiveShadows: receiveShadows,
+        color: color,
+        createUbershader: createUbershader,
+        unlit: unlit,
+      ),
+    );
     return this;
   }
 
@@ -565,8 +636,10 @@ class ViewerBuilder {
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
       final cubeGeometry = GeometryUtils.cube(flipUvs: true);
-      var asset = await viewer
-          .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
+      var asset = await viewer.createGeometry(
+        cubeGeometry,
+        materialInstances: [materialInstance],
+      );
 
       try {
         await fn(asset);
@@ -577,11 +650,9 @@ class ViewerBuilder {
   }
 
   Future<
-      ({
-        ThermionViewer viewer,
-        List<ThermionAsset> assets,
-        SwapChain swapChain
-      })> buildWithAssets() async {
+    ({ThermionViewer viewer, List<ThermionAsset> assets, SwapChain swapChain})
+  >
+  buildWithAssets() async {
     final viewerResult = await _testHelper.createViewer(
       bg: _bg,
       cameraPosition: _cameraPosition,
@@ -618,28 +689,40 @@ class ViewerBuilder {
     // Create and add configured planes
     for (final planeConfig in _planes) {
       final materialInstance = planeConfig.createUbershader
-          ? await FilamentApp.instance!
-              .createUbershaderMaterialInstance(unlit: planeConfig.unlit)
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance(
+              unlit: planeConfig.unlit,
+            )
           : await FilamentApp.instance!.createUnlitMaterialInstance();
 
       await materialInstance.setCullingMode(CullingMode.NONE);
 
       if (planeConfig.color != null) {
         await materialInstance.setParameterFloat4(
-            "baseColorFactor",
-            planeConfig.color!.r.toDouble(),
-            planeConfig.color!.g.toDouble(),
-            planeConfig.color!.b.toDouble(),
-            planeConfig.color!.a.toDouble());
+          "baseColorFactor",
+          planeConfig.color!.r.toDouble(),
+          planeConfig.color!.g.toDouble(),
+          planeConfig.color!.b.toDouble(),
+          planeConfig.color!.a.toDouble(),
+        );
       } else {
         await materialInstance.setParameterFloat4(
-            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+          "baseColorFactor",
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+        );
       }
 
       final plane = await viewer.createGeometry(
-          GeometryUtils.plane(
-              normals: true, uvs: true, width: 10.0, height: 10.0),
-          materialInstances: [materialInstance]);
+        GeometryUtils.plane(
+          normals: true,
+          uvs: true,
+          width: 10.0,
+          height: 10.0,
+        ),
+        materialInstances: [materialInstance],
+      );
 
       await plane.setCastShadows(planeConfig.castShadows);
       await plane.setReceiveShadows(planeConfig.receiveShadows);
@@ -663,30 +746,37 @@ class ViewerBuilder {
     // Create and add configured cubes
     for (final cubeConfig in _cubes) {
       final materialInstance = cubeConfig.createUbershader
-          ? await FilamentApp.instance!
-              .createUbershaderMaterialInstance(unlit: cubeConfig.unlit)
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance(
+              unlit: cubeConfig.unlit,
+            )
           : (cubeConfig.unlit
-              ? await FilamentApp.instance!.createUnlitMaterialInstance()
-              : null);
+                ? await FilamentApp.instance!.createUnlitMaterialInstance()
+                : null);
 
       if (materialInstance != null) {
         if (cubeConfig.color != null) {
           await materialInstance.setParameterFloat4(
-              "baseColorFactor",
-              cubeConfig.color!.r.toDouble(),
-              cubeConfig.color!.g.toDouble(),
-              cubeConfig.color!.b.toDouble(),
-              cubeConfig.color!.a.toDouble());
+            "baseColorFactor",
+            cubeConfig.color!.r.toDouble(),
+            cubeConfig.color!.g.toDouble(),
+            cubeConfig.color!.b.toDouble(),
+            cubeConfig.color!.a.toDouble(),
+          );
         } else {
           await materialInstance.setParameterFloat4(
-              "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+            "baseColorFactor",
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+          );
         }
       }
 
       final cube = await viewer.createGeometry(
-          GeometryUtils.cube(flipUvs: true),
-          materialInstances:
-              materialInstance != null ? [materialInstance] : null);
+        GeometryUtils.cube(flipUvs: true),
+        materialInstances: materialInstance != null ? [materialInstance] : null,
+      );
 
       await cube.setCastShadows(cubeConfig.castShadows);
       await cube.setReceiveShadows(cubeConfig.receiveShadows);
@@ -730,9 +820,11 @@ class ViewerBuilder {
 
     // Find the first sun light entity (if any)
     ThermionEntity? sunEntity;
-    int sunLightIndex = _directLights.indexWhere((light) =>
-        light.type == LightType.SUN ||
-        (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0));
+    int sunLightIndex = _directLights.indexWhere(
+      (light) =>
+          light.type == LightType.SUN ||
+          (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0),
+    );
 
     // If we found a sun light and have corresponding entities, get the matching
     // entity
@@ -789,16 +881,18 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
         int iDown = ((y + 1) * width + x) * 4;
 
         Vector4 gx = Vector4(
-            (textures[t][iRight] - textures[t][iLeft]) / 2,
-            (textures[t][iRight + 1] - textures[t][iLeft + 1]) / 2,
-            (textures[t][iRight + 2] - textures[t][iLeft + 2]) / 2,
-            (textures[t][iRight + 3] - textures[t][iLeft + 3]) / 2);
+          (textures[t][iRight] - textures[t][iLeft]) / 2,
+          (textures[t][iRight + 1] - textures[t][iLeft + 1]) / 2,
+          (textures[t][iRight + 2] - textures[t][iLeft + 2]) / 2,
+          (textures[t][iRight + 3] - textures[t][iLeft + 3]) / 2,
+        );
 
         Vector4 gy = Vector4(
-            (textures[t][iDown] - textures[t][iUp]) / 2,
-            (textures[t][iDown + 1] - textures[t][iUp + 1]) / 2,
-            (textures[t][iDown + 2] - textures[t][iUp + 2]) / 2,
-            (textures[t][iDown + 3] - textures[t][iUp + 3]) / 2);
+          (textures[t][iDown] - textures[t][iUp]) / 2,
+          (textures[t][iDown + 1] - textures[t][iUp + 1]) / 2,
+          (textures[t][iDown + 2] - textures[t][iUp + 2]) / 2,
+          (textures[t][iDown + 3] - textures[t][iUp + 3]) / 2,
+        );
 
         // Select the gradient with larger magnitude
         double magX = gx.r * gx.r + gx.g * gx.g + gx.b * gx.b + gx.a * gx.a;
@@ -823,28 +917,32 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
       if (hasValidData) {
         validPixel[index] = true;
         // Simplified Poisson equation solver (Jacobi iteration)
-        result[index].r = (result[index - 1].r +
+        result[index].r =
+            (result[index - 1].r +
                 result[index + 1].r +
                 result[index - width].r +
                 result[index + width].r +
                 gradX.r -
                 gradY.r) /
             4;
-        result[index].g = (result[index - 1].g +
+        result[index].g =
+            (result[index - 1].g +
                 result[index + 1].g +
                 result[index - width].g +
                 result[index + width].g +
                 gradX.g -
                 gradY.g) /
             4;
-        result[index].b = (result[index - 1].b +
+        result[index].b =
+            (result[index - 1].b +
                 result[index + 1].b +
                 result[index - width].b +
                 result[index + width].b +
                 gradX.b -
                 gradY.b) /
             4;
-        result[index].a = (result[index - 1].a +
+        result[index].a =
+            (result[index - 1].a +
                 result[index + 1].a +
                 result[index - width].a +
                 result[index + width].a +
@@ -881,12 +979,15 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
           a += result[neighbor].a;
         }
         finalResult[i * 4] = (r / validNeighbors.length).clamp(0, 255).toInt();
-        finalResult[i * 4 + 1] =
-            (g / validNeighbors.length).clamp(0, 255).toInt();
-        finalResult[i * 4 + 2] =
-            (b / validNeighbors.length).clamp(0, 255).toInt();
-        finalResult[i * 4 + 3] =
-            (a / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 1] = (g / validNeighbors.length)
+            .clamp(0, 255)
+            .toInt();
+        finalResult[i * 4 + 2] = (b / validNeighbors.length)
+            .clamp(0, 255)
+            .toInt();
+        finalResult[i * 4 + 3] = (a / validNeighbors.length)
+            .clamp(0, 255)
+            .toInt();
       } else {
         // If no valid neighbors, set to transparent black
         finalResult[i * 4] = 0;
@@ -924,7 +1025,10 @@ Uint8List medianImages(List<Uint8List> images) {
 }
 
 Uint8List maxIntensityProjection(
-    List<Uint8List> textures, int width, int height) {
+  List<Uint8List> textures,
+  int width,
+  int height,
+) {
   final int numTextures = textures.length;
   final int size = width * height;
 
@@ -937,7 +1041,8 @@ Uint8List maxIntensityProjection(
       // Calculate intensity (using luminance formula)
       double intensityCurrent =
           0.299 * result[i] + 0.587 * result[i + 1] + 0.114 * result[i + 2];
-      double intensityNew = 0.299 * textures[t][i] +
+      double intensityNew =
+          0.299 * textures[t][i] +
           0.587 * textures[t][i + 1] +
           0.114 * textures[t][i + 2];
 
@@ -956,7 +1061,10 @@ Uint8List maxIntensityProjection(
 
 // Helper function to blend MIP result with Poisson blending
 Uint8List blendMIPWithPoisson(
-    Uint8List mipResult, Uint8List poissonResult, double alpha) {
+  Uint8List mipResult,
+  Uint8List poissonResult,
+  double alpha,
+) {
   final int size = mipResult.length;
   Uint8List blendedResult = Uint8List(size);
 
@@ -1009,8 +1117,10 @@ Uint8List medianBlending(List<Uint8List> textures, int width, int height) {
   }
 
   // Convert to RGBA format (matching the format used in the comparison function)
-  final img.Image rgbaImage =
-      decodedImage.convert(format: img.Format.uint8, numChannels: 3);
+  final img.Image rgbaImage = decodedImage.convert(
+    format: img.Format.uint8,
+    numChannels: 3,
+  );
 
   rgbaImage.remapChannels(ChannelOrder.bgr);
 
@@ -1029,17 +1139,23 @@ Uint8List medianBlending(List<Uint8List> textures, int width, int height) {
 }
 
 Uint8List comparePixelBuffers(
-    Uint8List buffer1, Uint8List buffer2, int width, int height,
-    {int threshold = 0}) {
+  Uint8List buffer1,
+  Uint8List buffer2,
+  int width,
+  int height, {
+  int threshold = 0,
+}) {
   // Validate inputs
   if (buffer1.length != buffer2.length) {
     throw ArgumentError(
-        'Buffer sizes do not match: ${buffer1.length} vs ${buffer2.length}');
+      'Buffer sizes do not match: ${buffer1.length} vs ${buffer2.length}',
+    );
   }
 
   if (buffer1.length < width * height * 3) {
     throw ArgumentError(
-        'Buffer size is too small for the specified dimensions');
+      'Buffer size is too small for the specified dimensions',
+    );
   }
 
   // Create result buffer
@@ -1052,14 +1168,15 @@ Uint8List comparePixelBuffers(
 
       if (buffer1[index + 2] != 0) {
         Logger.root.info(
-            "buffer 1 red ${buffer1[index + 2]} buffer 2 ${buffer2[index + 2]}");
+          "buffer 1 red ${buffer1[index + 2]} buffer 2 ${buffer2[index + 2]}",
+        );
       }
 
       // Compare RGB values
       final bool isDifferent =
           (buffer1[index] - buffer2[index]).abs() > threshold ||
-              (buffer1[index + 1] - buffer2[index + 1]).abs() > threshold ||
-              (buffer1[index + 2] - buffer2[index + 2]).abs() > threshold;
+          (buffer1[index + 1] - buffer2[index + 1]).abs() > threshold ||
+          (buffer1[index + 2] - buffer2[index + 2]).abs() > threshold;
 
       if (isDifferent) {
         // result[index] = (buffer1[index] - buffer2[index]).abs(); // R

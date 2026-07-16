@@ -51,8 +51,10 @@ Future<Uint8List> loadResourceBytes(String uri) async {
   }
   final response = await http.get(target);
   if (response.statusCode != 200) {
-    throw Exception('Failed to load resource "$uri" '
-        '(HTTP ${response.statusCode} via ${target.host}${target.path})');
+    throw Exception(
+      'Failed to load resource "$uri" '
+      '(HTTP ${response.statusCode} via ${target.host}${target.path})',
+    );
   }
   return response.bodyBytes;
 }
@@ -62,8 +64,9 @@ Future<Uint8List> loadResourceBytes(String uri) async {
 /// (optionally file://-prefixed) contains "examples/assets/<rel>"; <rel> is
 /// what the proxy resolves against its --assets dir. Falls back to the basename.
 String _assetRelPath(String uri) {
-  final path =
-      uri.startsWith('file://') ? uri.substring('file://'.length) : uri;
+  final path = uri.startsWith('file://')
+      ? uri.substring('file://'.length)
+      : uri;
   const marker = 'examples/assets/';
   final i = path.indexOf(marker);
   if (i >= 0) return path.substring(i + marker.length);
@@ -71,8 +74,9 @@ String _assetRelPath(String uri) {
 }
 
 Uint8List readFileBytesSync(String path) => throw UnsupportedError(
-    "Synchronous file reads are not supported on web: $path. "
-    "Use loadResourceBytes (async, HTTP-backed) instead.");
+  "Synchronous file reads are not supported on web: $path. "
+  "Use loadResourceBytes (async, HTTP-backed) instead.",
+);
 
 /// Sentinel host the COI proxy intercepts as its capture sink. POSTs here are
 /// written to disk by `tool/coi_proxy.dart` rather than forwarded upstream.
@@ -93,8 +97,10 @@ Future<void> writeFileBytes(String path, Uint8List bytes) async {
       print('[capture-sink] unexpected status ${res.statusCode} for $path');
     }
   } catch (e) {
-    print('[capture-sink] failed to persist "$path": $e — is '
-        'tool/coi_proxy.dart running?');
+    print(
+      '[capture-sink] failed to persist "$path": $e — is '
+      'tool/coi_proxy.dart running?',
+    );
   }
 }
 

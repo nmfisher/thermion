@@ -157,13 +157,12 @@ Future<Uint8List> pixelBufferToPng(
         image.setPixel(
           x,
           y,
-          img.ColorUint8(4)
-            ..setRgba(
-              (r * 255).toInt(),
-              (g * 255).toInt(),
-              (b * 255).toInt(),
-              (a * 255).toInt(),
-            ),
+          img.ColorUint8(4)..setRgba(
+            (r * 255).toInt(),
+            (g * 255).toInt(),
+            (b * 255).toInt(),
+            (a * 255).toInt(),
+          ),
         );
       }
     }

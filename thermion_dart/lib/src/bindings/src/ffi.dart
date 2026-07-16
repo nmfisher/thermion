@@ -122,8 +122,7 @@ final _voidCallbackRegistry = VoidCallbackRegistry();
 
 Future<void> withVoidCallback(
   Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func,
-) =>
-    _voidCallbackRegistry.invoke(func);
+) => _voidCallbackRegistry.invoke(func);
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func,

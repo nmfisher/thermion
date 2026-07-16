@@ -12,8 +12,8 @@ Future<void> initTestBindings() async {}
 Backend get defaultTestBackend => Platform.isLinux
     ? Backend.OPENGL
     : Platform.isWindows
-        ? Backend.VULKAN
-        : Backend.DEFAULT;
+    ? Backend.VULKAN
+    : Backend.DEFAULT;
 
 bool get platformIsWindows => Platform.isWindows;
 bool get platformIsLinux => Platform.isLinux;
@@ -55,7 +55,9 @@ Uri findPackageRoot(String packageName) {
       return cwd;
     }
   }
-  throw StateError("Could not find package root for package '$packageName'. "
-      "Tried Platform.script '${Platform.script.toFilePath()}' and "
-      "Directory.current '${Directory.current.uri.toFilePath()}'.");
+  throw StateError(
+    "Could not find package root for package '$packageName'. "
+    "Tried Platform.script '${Platform.script.toFilePath()}' and "
+    "Directory.current '${Directory.current.uri.toFilePath()}'.",
+  );
 }

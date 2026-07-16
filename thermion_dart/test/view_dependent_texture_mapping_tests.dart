@@ -10,14 +10,20 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
 Future<(LinearImage, Texture, TextureSampler)> createTextureFromImage(
-    TestHelper testHelper) async {
+  TestHelper testHelper,
+) async {
   final image = await FilamentApp.instance!.decodeImage(
-      File("${testHelper.assetsDir}/cube_texture_512x512.png")
-          .readAsBytesSync());
-  final texture = await FilamentApp.instance!
-      .createTexture(await image.getWidth(), await image.getHeight());
+    File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync(),
+  );
+  final texture = await FilamentApp.instance!.createTexture(
+    await image.getWidth(),
+    await image.getHeight(),
+  );
   await texture.setLinearImage(
-      image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+    image,
+    PixelDataFormat.RGBA,
+    PixelDataType.FLOAT,
+  );
 
   return (image, texture, await FilamentApp.instance!.createTextureSampler());
 }
@@ -30,8 +36,9 @@ Future<(MaterialInstance, Texture)> _makeVDTMMaterial(
   int channels,
 ) async {
   final sampler = await FilamentApp.instance!.createTextureSampler(
-      compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
-      compareFunc: TextureCompareFunc.GREATER);
+    compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
+    compareFunc: TextureCompareFunc.GREATER,
+  );
 
   var texture = await FilamentApp.instance!.createTexture(
     width,
@@ -53,16 +60,14 @@ Future<(MaterialInstance, Texture)> _makeVDTMMaterial(
     "cameraForwardVectors",
     cameraForwardVectors,
   );
-  await materialInstance.setParameterTexture(
-    "perspectives",
-    texture,
-    sampler,
-  );
+  await materialInstance.setParameterTexture("perspectives", texture, sampler);
   return (materialInstance, texture);
 }
 
 Future<ThermionAsset> _makeCube(
-    TestHelper testHelper, ThermionViewer viewer) async {
+  TestHelper testHelper,
+  ThermionViewer viewer,
+) async {
   final cube = await testHelper.createCube(viewer);
   var ubershader = await cube.getMaterialInstanceAt();
   await ubershader.setDepthCullingEnabled(true);

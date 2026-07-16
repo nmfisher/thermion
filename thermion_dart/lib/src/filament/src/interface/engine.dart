@@ -18,13 +18,13 @@ enum Backend {
   const Backend(this.value);
 
   static Backend fromValue(int value) => switch (value) {
-        0 => DEFAULT,
-        1 => OPENGL,
-        2 => VULKAN,
-        3 => METAL,
-        4 => NOOP,
-        _ => throw ArgumentError("Unknown value for TBackend: $value"),
-      };
+    0 => DEFAULT,
+    1 => OPENGL,
+    2 => VULKAN,
+    3 => METAL,
+    4 => NOOP,
+    _ => throw ArgumentError("Unknown value for TBackend: $value"),
+  };
 }
 
 enum FeatureLevel {

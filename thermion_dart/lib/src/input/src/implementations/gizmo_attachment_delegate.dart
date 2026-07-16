@@ -185,10 +185,10 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
     for (final event in events) {
       switch (event) {
         case MouseEvent(
-            type: MouseEventType.buttonDown,
-            button: MouseButton.left || null,
-            localPosition: final pos,
-          ):
+          type: MouseEventType.buttonDown,
+          button: MouseButton.left || null,
+          localPosition: final pos,
+        ):
           final x = pos.x.toInt();
           final y = pos.y.toInt();
 
@@ -204,9 +204,9 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
           break;
 
         case MouseEvent(
-            type: MouseEventType.buttonUp,
-            button: MouseButton.left || null,
-          ):
+          type: MouseEventType.buttonUp,
+          button: MouseButton.left || null,
+        ):
           if (_isDraggingGizmo) {
             await _gizmo!.endDrag();
             _isDraggingGizmo = false;
