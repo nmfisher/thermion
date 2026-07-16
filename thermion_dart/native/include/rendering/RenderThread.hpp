@@ -4,9 +4,11 @@
 #include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <thread>
+#include <utility>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/threading.h>
@@ -44,6 +46,16 @@ public:
      */
     template <class Rt>
     auto addTask(std::packaged_task<Rt()>& pt) -> std::future<Rt>;
+
+    /**
+     * @brief Adds a fire-and-forget task without allocating a packaged-task
+     * shared state or future.
+     *
+     * Use this for callbacks whose completion is communicated by another
+     * mechanism (for example, the Dart request-id callback).
+     */
+    template <class Fn>
+    void addDetachedTask(Fn&& fn);
 
 
     /**
@@ -109,19 +121,31 @@ private:
 // Template implementation
 template <class Rt>
 auto RenderThread::addTask(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
-    
-    std::unique_lock<std::mutex> lock(_taskMutex);
-    
     auto ret = pt.get_future();
-    _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
-                         std::move(pt))]
-                    { (*pt)(); });
+    {
+        std::lock_guard<std::mutex> lock(_taskMutex);
+        _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
+                             std::move(pt))]
+                        { (*pt)(); });
+    }
     #ifndef __EMSCRIPTEN__
     _cv.notify_one();
     #endif
-    
-    
     return ret;
+}
+
+template <class Fn>
+void RenderThread::addDetachedTask(Fn&& fn) {
+    // Construct outside the critical section since std::function may need to
+    // allocate for a large capture.
+    std::function<void()> task(std::forward<Fn>(fn));
+    {
+        std::lock_guard<std::mutex> lock(_taskMutex);
+        _tasks.push_back(std::move(task));
+    }
+    #ifndef __EMSCRIPTEN__
+    _cv.notify_one();
+    #endif
 }
 
 } // namespace thermion

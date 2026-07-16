@@ -137,23 +137,20 @@ extern "C"
     VoidCallback onComplete)
   {
     auto queuedAt = std::chrono::steady_clock::now();
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto startedAt = std::chrono::steady_clock::now();
-          float queueMs = std::chrono::duration_cast<std::chrono::nanoseconds>(startedAt - queuedAt).count() / 1e6f;
-          RenderManager_render(tRenderManager, frameTimeInNanos);
-          static int cbCount = 0;
-          cbCount++;
-          if (queueMs > 5.0f) {
-            TRACE("[QUEUE] render waited %.1fms in queue\n", queueMs);
-          }
-          if (cbCount <= 3 || cbCount % 300 == 0) {
-            TRACE("[RenderCB] #%d completing requestId=%u queueWait=%.1fms\n", cbCount, requestId, queueMs);
-          }
-          PROXY(onComplete(requestId));
-        });
-    auto fut = _renderThread->addTask(lambda);
+    _renderThread->addDetachedTask([=]() mutable {
+      auto startedAt = std::chrono::steady_clock::now();
+      float queueMs = std::chrono::duration_cast<std::chrono::nanoseconds>(startedAt - queuedAt).count() / 1e6f;
+      RenderManager_render(tRenderManager, frameTimeInNanos);
+      static int cbCount = 0;
+      cbCount++;
+      if (queueMs > 5.0f) {
+        TRACE("[QUEUE] render waited %.1fms in queue\n", queueMs);
+      }
+      if (cbCount <= 3 || cbCount % 300 == 0) {
+        TRACE("[RenderCB] #%d completing requestId=%u queueWait=%.1fms\n", cbCount, requestId, queueMs);
+      }
+      PROXY(onComplete(requestId));
+    });
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderManager_addAnimationManagerRenderThread(

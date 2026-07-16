@@ -146,7 +146,7 @@ extern "C"
       return false; // skip if still rendering
     }
 
-    std::packaged_task<void()> task([frameTimeNanos]() {
+    _renderThread->addDetachedTask([frameTimeNanos]() {
       RenderManager_render(_nativeRenderManager, frameTimeNanos);
 
       if (_postRenderCallback) {
@@ -155,7 +155,6 @@ extern "C"
 
       _nativeRenderInProgress.store(false);
     });
-    _renderThread->addTask(task);
     return true;
   }
 
