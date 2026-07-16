@@ -79,11 +79,7 @@ RenderThread::RenderThread()
     emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas");
     pthread_create(&t, &attr, startHelper, this);
     #else
-    t = new std::thread([this]() {
-        while (!mStop) {
-            iter();
-        }
-    });
+    t = new std::thread([this]() { runNativeLoop(); });
     #endif
 }
 
@@ -91,19 +87,32 @@ RenderThread::RenderThread()
 
 RenderThread::~RenderThread()
 {
-    TRACE("Destroying RenderThread (%lu tasks remaining)", _tasks.size());
-    mStop = true;
-    _cv.notify_one();
-    TRACE("Joining RenderThread thread..");
-
-    while (!_tasks.empty())
+    size_t pendingTaskCount;
     {
-        auto task = std::move(_tasks.front());
-        _tasks.pop_front();
+        std::lock_guard<std::mutex> lock(_taskMutex);
+        pendingTaskCount = _tasks.size();
+    }
+    TRACE("Destroying RenderThread (%zu tasks remaining)", pendingTaskCount);
+    mStop.store(true, std::memory_order_release);
+
+    #ifdef __EMSCRIPTEN__
+    // The web worker cannot be synchronously joined from the browser main
+    // thread. Preserve the existing synchronous drain behavior, but claim
+    // each task under the queue mutex so the worker and destructor cannot
+    // concurrently mutate the deque.
+    while (true) {
+        std::function<void()> task;
+        {
+            std::lock_guard<std::mutex> lock(_taskMutex);
+            if (_tasks.empty()) {
+                break;
+            }
+            task = std::move(_tasks.front());
+            _tasks.pop_front();
+        }
         task();
     }
 
-    #ifdef __EMSCRIPTEN__
     // pthread_join from the browser main thread is fundamentally restricted in
     // Emscripten: it would have to call Atomics.wait, which the Web platform
     // disallows on the main thread (would freeze the event loop). With
@@ -119,6 +128,10 @@ RenderThread::~RenderThread()
     // should poll mLiveWorkerCount from Dart.
     pthread_detach(t);
     #else
+    // The worker owns and drains the queue. This preserves render-thread
+    // affinity and avoids racing the destructor against a concurrent pop.
+    _cv.notify_all();
+    TRACE("Joining RenderThread thread..");
     t->join();
     delete t;
     #endif
@@ -126,15 +139,13 @@ RenderThread::~RenderThread()
     TRACE("RenderThread destructor complete");
 }
 
-void RenderThread::iter()
-{
+#ifdef __EMSCRIPTEN__
+void RenderThread::iter() {
     // FPS measurement
     auto now = std::chrono::high_resolution_clock::now();
-    float deltaTime = std::chrono::duration<float>(now - _lastFrameTime).count();
 
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
-#ifdef __EMSCRIPTEN__
     // On Emscripten, drain all queued tasks then yield to browser.
     while (!_tasks.empty())
     {
@@ -154,18 +165,33 @@ void RenderThread::iter()
                                     now.time_since_epoch()).count();
         mRenderManager->tick(frameTimeInNanos);
     }
+}
 #else
-    // On native, process one task then wait for more
-    if (!_tasks.empty())
-    {
+void RenderThread::runNativeLoop() {
+    std::unique_lock<std::mutex> taskLock(_taskMutex);
+
+    while (true) {
+        _cv.wait(taskLock, [this] {
+            return !_tasks.empty() ||
+                   mStop.load(std::memory_order_acquire);
+        });
+
+        if (_tasks.empty()) {
+            // A stop request only terminates the worker after it has executed
+            // every task that was already queued.
+            if (mStop.load(std::memory_order_acquire)) {
+                break;
+            }
+            continue;
+        }
+
         auto task = std::move(_tasks.front());
         _tasks.pop_front();
         taskLock.unlock();
         task();
         taskLock.lock();
     }
-    _cv.wait(taskLock, [this] { return !_tasks.empty() || mStop; });
-#endif
 }
+#endif
 
 } // namespace thermion

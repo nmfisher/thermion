@@ -58,15 +58,17 @@ public:
     void addDetachedTask(Fn&& fn);
 
 
+    #ifdef __EMSCRIPTEN__
     /**
-     * @brief Main iteration of the render loop.
+     * @brief Main iteration of the browser-driven render loop.
      */
     void iter();
+    #endif
 
     /**
-     * Signals the worker to exit on its next iteration. Written by the
-     * destructor (true) and the constructor (false) on the main thread, read
-     * by the worker.
+     * Signals worker shutdown. Native workers exit after draining queued
+     * tasks; web workers exit on their next browser-loop iteration. Written
+     * by the destructor (true) and constructor (false), read by the worker.
      *
      * Static, not an instance member, because on web pthread_detach lets the
      * destructor return and `*this` be freed before the worker observes the
@@ -102,6 +104,10 @@ public:
     #endif
 
 private:
+    #ifndef __EMSCRIPTEN__
+    void runNativeLoop();
+    #endif
+
     std::mutex _taskMutex;
     std::condition_variable _cv;
     std::deque<std::function<void()>> _tasks;
