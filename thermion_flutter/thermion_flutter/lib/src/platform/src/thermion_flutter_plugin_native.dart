@@ -4,9 +4,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide View;
 import 'package:logging/logging.dart';
-import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
-import 'package:thermion_flutter/src/platform/src/method_channel_platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor_factory.dart';
 import '../../../thermion_flutter.dart';
 import 'platform_texture_descriptor.dart';
 // ignore: implementation_imports
@@ -46,14 +45,6 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   // This allows us to destroy the correct RT on resize, even when the view
   // has been redirected to an internal RT (e.g. in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
-
-  // Track the SwapChain currently bound to each view (Android only).
-  // The Android branch of createTextureAndBindToView destroys this view's
-  // *previous* swap chain after creating the new one. Keying by view
-  // (rather than iterating FilamentApp's global swap-chain list) is what
-  // makes multi-viewer apps work — without this, mounting viewer #N
-  // would destroy viewer #(N-1)'s swap chain and freeze it.
-  static final _viewSwapChains = <View, SwapChain>{};
 
   // Deferred Filament render target cleanup for Windows resize.
   // Old RT stays alive so native can Blit from it during the swap window.
@@ -409,7 +400,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   /// then creates Filament resources. Runs after createTextureAndBindToView
   /// returns so the Texture widget can be built first.
   static void _scheduleDeferredBinding(
-    MethodChannelPlatformTextureDescriptor descriptor,
+    PlatformTextureDescriptor descriptor,
     View view,
     int width,
     int height,
@@ -439,52 +430,20 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       );
     }
 
-    late PlatformTextureDescriptor descriptor;
-
-    if (Platform.isMacOS || Platform.isIOS) {
-      descriptor = DarwinPlatformTextureDescriptorImpl.allocate(width, height);
-    } else {
-      descriptor = await MethodChannelPlatformTextureDescriptor.allocate(
-        channel,
-        width,
-        height,
-      );
-    }
+    final descriptor = await createPlatformTextureDescriptor(
+      channel,
+      width,
+      height,
+    );
 
     // Add to descriptors early so markTextureFrameAvailable is called
     // (triggers populate() which creates the deferred GL texture)
     _descriptors.add(descriptor);
 
-    // On Android, we recreate the swapchain whenever the size changes
-    // TODO - why not allocate a larger swapchain initially and just change
-    // the viewport?
-    // In fact we can probably do this for all platforms
-    if (Platform.isAndroid) {
-      // The OLD swap chain to destroy is the one *previously bound to
-      // this view* — not whatever happens to be at the front of
-      // FilamentApp's global list. Earlier code iterated
-      // `getSwapChains()` and destroyed `swapChains.first`, which in a
-      // multi-viewer app destroyed *another* viewer's swap chain, freezing
-      // its viewport. Tracking per-view in `_viewSwapChains` scopes the
-      // destroy to this view only.
-      final oldSwapChain = _viewSwapChains[view];
-
-      final swapChain = await FilamentApp.instance!.createSwapChain(
-        Pointer<Void>.fromAddress(descriptor.windowHandle!),
-      );
-
-      await FilamentApp.instance!.renderManager.attach(view, swapChain);
-      _viewSwapChains[view] = swapChain;
-
-      // Destroy the old swap chain after the new one is attached so the
-      // view never has a window of being unattached.
-      if (oldSwapChain != null) {
-        await FilamentApp.instance!.destroySwapChain(oldSwapChain);
-      }
-
-      // On other platforms, if a hardware texture ID is returned, this means
-      // the texture is immediately available for rendering.
-    } else if (descriptor.hardwareId != 0) {
+    final bound = await _bindDescriptorToView(descriptor, view);
+    if (!bound && descriptor.hardwareId != 0) {
+      // If a hardware texture ID is returned, the texture is immediately
+      // available for rendering.
       await _createFilamentResources(descriptor, view, width, height);
 
       // On Linux, when running via EGL/OpenGL backend (Wayland),
@@ -493,12 +452,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       // We need to defer binding the surface.
       //
     } else if (Platform.isLinux) {
-      _scheduleDeferredBinding(
-        descriptor as MethodChannelPlatformTextureDescriptor,
-        view,
-        width,
-        height,
-      );
+      if (!descriptor.deferred) {
+        throw StateError(
+          'Deferred texture creation requires a deferred descriptor',
+        );
+      }
+      _scheduleDeferredBinding(descriptor, view, width, height);
     }
 
     await view.setViewport(width, height);
@@ -529,7 +488,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         return await _resizeTextureWindows(texture, view, width, height);
       }
 
-      // Non-Windows: full destroy + recreate (existing path)
+      // Non-Windows: full destroy + recreate (existing path).
+      // TODO: alternatively, allocate a larger swapchain up front and just
+      // change the viewport on resize, avoiding the destroy/recreate.
       var newTexture = await createTextureAndBindToView(view, width, height);
       if (newTexture == null) {
         throw Exception('Failed to create texture during resize');
@@ -628,14 +589,33 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     return texture;
   }
 
+  /// Binds [descriptor] to [view], then releases any *other* descriptor still
+  /// bound to the same view, so a view never holds two active bindings.
+  ///
+  /// Scoping the release to descriptors on *this* view (matched via
+  /// [PlatformTextureDescriptor.boundView]) — rather than touching every swap
+  /// chain in FilamentApp's global list — is what makes multi-viewer apps
+  /// work: without the per-view scoping, mounting viewer #N would release
+  /// viewer #(N-1)'s swap chain and freeze it.
+  Future<bool> _bindDescriptorToView(
+    PlatformTextureDescriptor descriptor,
+    View view,
+  ) async {
+    if (!await descriptor.bindToView(view)) return false;
+    for (final other in _descriptors) {
+      if (other != descriptor && other.boundView == view) {
+        await other.releaseBinding();
+      }
+    }
+    return true;
+  }
+
   @override
   Future<void> releaseTextureBindingForView(View view) async {
-    // Only Android keeps per-view swap-chain bookkeeping in this plugin
-    // (see `_viewSwapChains` and the size-change branch of
-    // `createTextureAndBindToView`). Other platforms are no-ops.
-    final swapChain = _viewSwapChains.remove(view);
-    if (swapChain != null) {
-      await FilamentApp.instance!.destroySwapChain(swapChain);
+    for (final descriptor in _descriptors) {
+      if (descriptor.boundView == view) {
+        await descriptor.releaseBinding();
+      }
     }
   }
 }
