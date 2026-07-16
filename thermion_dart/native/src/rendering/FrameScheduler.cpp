@@ -1,6 +1,7 @@
 #include "rendering/FrameScheduler.hpp"
 #include "Log.hpp"
 #include "dart/dart_api_dl.h"
+#include <algorithm>
 #include <iostream>
 
 #if __APPLE__ && TARGET_OS_IOS
@@ -23,7 +24,48 @@ namespace thermion {
 // FrameScheduler (base helpers)
 // ---------------------------------------------------------------------------
 
+void FrameScheduler::setTargetFps(int fps) {
+    _fpsLimit.store(fps > 0 ? fps : 0, std::memory_order_relaxed);
+}
+
 void FrameScheduler::dispatchFrame(uint64_t nanos) {
+    // Framerate limiting: use an absolute deadline rather than measuring from
+    // the last dispatched vsync. This preserves the requested average on
+    // refresh rates that are not integer multiples of the target (for example,
+    // 60 fps on a 90 Hz display alternates one- and two-vsync intervals instead
+    // of collapsing to 45 fps).
+    int fps = _fpsLimit.load(std::memory_order_relaxed);
+    if (fps > 0) {
+        const uint64_t interval = std::max<uint64_t>(
+            1, 1000000000ULL / static_cast<uint64_t>(fps));
+        const uint64_t tolerance = 1000000ULL; // 1 ms
+
+        if (_appliedFpsLimit != fps || _nextDispatchNs == 0) {
+            _appliedFpsLimit = fps;
+            _nextDispatchNs = nanos;
+        }
+
+        if (_nextDispatchNs > nanos &&
+            _nextDispatchNs - nanos > tolerance) {
+            return; // next target deadline has not arrived — skip
+        }
+
+        // Advance by whole target intervals, dropping any deadlines missed
+        // while the scheduler/render thread was stalled. Never burst frames to
+        // catch up.
+        if (_nextDispatchNs <= nanos) {
+            const uint64_t missedIntervals =
+                (nanos - _nextDispatchNs) / interval + 1;
+            _nextDispatchNs += missedIntervals * interval;
+        } else {
+            // Accepted up to [tolerance] before the deadline.
+            _nextDispatchNs += interval;
+        }
+    } else {
+        _appliedFpsLimit = 0;
+        _nextDispatchNs = 0;
+    }
+
     if (_usePortMode) {
         if (_dartPort != 0) {
             Dart_CObject msg;
@@ -40,6 +82,8 @@ void FrameScheduler::resetState() {
     _callback = nullptr;
     _dartPort = 0;
     _usePortMode = false;
+    _appliedFpsLimit = 0;
+    _nextDispatchNs = 0;
 }
 
 FrameScheduler* FrameScheduler::create(int targetFps) {
@@ -63,13 +107,15 @@ FrameScheduler* FrameScheduler::create(int targetFps) {
 
 void TimerFrameScheduler::start(Callback callback) {
     if (_running) return;
+    _callback = callback;
+    _usePortMode = false;
     _running = true;
     auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
-    _thread = new std::thread([this, callback, interval]() {
+    _thread = new std::thread([this, interval]() {
         uint64_t frameCount = 0;
-        auto lastActual = std::chrono::high_resolution_clock::now();
+        auto lastActual = std::chrono::steady_clock::now();
         while (_running) {
-            auto start = std::chrono::high_resolution_clock::now();
+            auto start = std::chrono::steady_clock::now();
             uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 start.time_since_epoch()).count();
 
@@ -77,9 +123,9 @@ void TimerFrameScheduler::start(Callback callback) {
                 start - lastActual).count();
             lastActual = start;
 
-            callback(nanos);
+            dispatchFrame(nanos);
 
-            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            auto elapsed = std::chrono::steady_clock::now() - start;
             auto callbackUs = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
 
             if (elapsed < interval) {
@@ -106,11 +152,11 @@ void TimerFrameScheduler::startWithPort(int64_t port) {
     auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
     _thread = new std::thread([this, interval]() {
         while (_running) {
-            auto start = std::chrono::high_resolution_clock::now();
+            auto start = std::chrono::steady_clock::now();
             uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 start.time_since_epoch()).count();
             dispatchFrame(nanos);
-            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            auto elapsed = std::chrono::steady_clock::now() - start;
             if (elapsed < interval) {
                 std::this_thread::sleep_for(interval - elapsed);
             }
@@ -125,6 +171,7 @@ void TimerFrameScheduler::stop() {
         delete _thread;
         _thread = nullptr;
     }
+    resetState();
 }
 
 // ---------------------------------------------------------------------------
@@ -175,6 +222,7 @@ void CVDisplayLinkScheduler::start(Callback callback) {
     stop();
     _callback = callback;
     _usePortMode = false;
+    mach_timebase_info(&_timebase);
 
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
     CVDisplayLinkSetOutputCallback(_displayLink, displayLinkCallback, this);
@@ -186,6 +234,7 @@ void CVDisplayLinkScheduler::startWithPort(int64_t port) {
     _dartPort = port;
     _usePortMode = true;
     _callback = nullptr;
+    mach_timebase_info(&_timebase);
 
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
     CVDisplayLinkSetOutputCallback(_displayLink, displayLinkCallback, this);
@@ -193,12 +242,12 @@ void CVDisplayLinkScheduler::startWithPort(int64_t port) {
 }
 
 void CVDisplayLinkScheduler::stop() {
-    resetState();
     if (_displayLink) {
         CVDisplayLinkStop(_displayLink);
         CVDisplayLinkRelease(_displayLink);
         _displayLink = nullptr;
     }
+    resetState();
 }
 
 CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLink,
@@ -206,7 +255,11 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
     CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* context) {
 
     auto* self = static_cast<CVDisplayLinkScheduler*>(context);
-    uint64_t nanos = inOutputTime->hostTime;
+    // hostTime is Mach absolute time; convert to nanoseconds so dispatchFrame's
+    // interval math is unit-correct on every Mac (Apple Silicon is 1:1, but
+    // don't assume it).
+    uint64_t hostTime = inOutputTime->hostTime;
+    uint64_t nanos = hostTime * self->_timebase.numer / self->_timebase.denom;
     self->dispatchFrame(nanos);
     return kCVReturnSuccess;
 }
@@ -250,7 +303,7 @@ void DXGIFrameScheduler::start(Callback callback) {
                 std::this_thread::sleep_for(interval);
             }
             if (_running) {
-                auto now = std::chrono::high_resolution_clock::now();
+                auto now = std::chrono::steady_clock::now();
                 uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     now.time_since_epoch()).count();
                 dispatchFrame(nanos);
@@ -295,7 +348,7 @@ void DXGIFrameScheduler::startWithPort(int64_t port) {
                 std::this_thread::sleep_for(interval);
             }
             if (_running) {
-                auto now = std::chrono::high_resolution_clock::now();
+                auto now = std::chrono::steady_clock::now();
                 uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     now.time_since_epoch()).count();
                 dispatchFrame(nanos);

@@ -299,6 +299,20 @@ abstract class FilamentApp<T> {
   // The returned [Future] will complete when the pipeline step is complete.
   Future render();
 
+  /// Caps the continuous-render framerate to [fps].
+  ///
+  /// If never called, the viewer renders on every vsync — at the display's
+  /// native refresh rate (60 fps on a 60 Hz panel, 120 on a 120 Hz panel,
+  /// and so on). The cap cannot raise the rate above the display refresh; it
+  /// only lowers it by skipping vsyncs or render requests. When the display
+  /// refresh is not an integer multiple of [fps], presentation intervals vary
+  /// as needed to preserve the requested average rate.
+  ///
+  /// Framerate is a property of the *shared* render loop, not of any one
+  /// viewer: all viewers on the same engine are pace-locked to the same rate
+  /// (last writer wins). Values <= 0 remove the cap.
+  void setTargetFramerate(int fps);
+
   //
   Future registerRequestFrameHook(Future Function() hook);
 

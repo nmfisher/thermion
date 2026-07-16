@@ -887,6 +887,23 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await renderManager.render();
   }
 
+  int _targetFramerate = 0;
+
+  /// The process-wide render-loop cap requested through [setTargetFramerate].
+  /// A value of zero means unlimited. Used by the web rAF scheduler; native
+  /// platforms keep the authoritative value in FrameSchedulerApi.cpp.
+  int get targetFramerate => _targetFramerate;
+
+  //
+  @override
+  void setTargetFramerate(int fps) {
+    _targetFramerate = fps > 0 ? fps : 0;
+    // Native platforms pace both display-link dispatch and Linux's
+    // Flutter-synced request-render path. Web reads [targetFramerate] from its
+    // requestAnimationFrame loop.
+    bindings.FrameScheduler_setTargetFps(_targetFramerate);
+  }
+
   //
   @override
   Future setParent(

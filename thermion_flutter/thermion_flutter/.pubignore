@@ -46,3 +46,7 @@ RM_BONES.md
 
 # IDE metadata
 *.iml
+
+# Developer-local path overrides — committed for the team but must NOT ship
+# (published packages can't reference local paths).
+pubspec_overrides.yaml

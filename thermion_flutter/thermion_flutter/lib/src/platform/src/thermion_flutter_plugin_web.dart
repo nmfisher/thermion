@@ -21,6 +21,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static final _destroyed = <PlatformTextureDescriptor>[];
   static final _logger = Logger('ThermionFlutterPluginImpl');
   static int? _frameRequestId;
+  static int _pacedFps = 0;
+  static double? _nextRenderDeadlineMs;
 
   static Future<Uint8List> loadAsset(String path) async {
     if (path.startsWith("file://")) {
@@ -40,10 +42,15 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     _stackPtr = stackSave();
 
-    FilamentApp.instance?.render();
+    final app = FilamentApp.instance;
+    final targetFps = app is FFIFilamentApp ? app.targetFramerate : 0;
+    final rendered = _shouldRender(timestamp.toDartDouble, targetFps);
+    if (rendered) {
+      app?.render();
 
-    for (final descriptor in _descriptors) {
-      descriptor.markTextureFrameAvailable();
+      for (final descriptor in _descriptors) {
+        descriptor.markTextureFrameAvailable();
+      }
     }
     for (final descriptor in _destroyed) {
       _descriptors.remove(descriptor);
@@ -56,6 +63,36 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _frameRequestId = window.requestAnimationFrame(_tick.toJS);
   }
 
+  static bool _shouldRender(double timestampMs, int targetFps) {
+    final normalizedFps = targetFps > 0 ? targetFps : 0;
+    if (normalizedFps == 0) {
+      _pacedFps = 0;
+      _nextRenderDeadlineMs = null;
+      return true;
+    }
+
+    if (_pacedFps != normalizedFps || _nextRenderDeadlineMs == null) {
+      _pacedFps = normalizedFps;
+      _nextRenderDeadlineMs = timestampMs;
+    }
+
+    const toleranceMs = 1.0;
+    final deadline = _nextRenderDeadlineMs!;
+    if (deadline - timestampMs > toleranceMs) {
+      return false;
+    }
+
+    final intervalMs = 1000.0 / normalizedFps;
+    if (deadline <= timestampMs) {
+      final missedIntervals =
+          ((timestampMs - deadline) / intervalMs).floor() + 1;
+      _nextRenderDeadlineMs = deadline + missedIntervals * intervalMs;
+    } else {
+      _nextRenderDeadlineMs = deadline + intervalMs;
+    }
+    return true;
+  }
+
   static void _ensureFrameLoopRunning() {
     _frameRequestId ??= window.requestAnimationFrame(_tick.toJS);
   }
@@ -65,6 +102,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       window.cancelAnimationFrame(_frameRequestId!);
       _frameRequestId = null;
     }
+    _pacedFps = 0;
+    _nextRenderDeadlineMs = null;
 
     _stackPtr = null;
     swapChain = null;

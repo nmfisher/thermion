@@ -1,0 +1,9 @@
+# Local-development overrides (see https://dart.dev/tools/pub/dependencies).
+# This file is read by `pub` alongside pubspec.yaml and lets us point
+# thermion_flutter at the source-of-truth local thermion_dart so standalone
+# analysis/resolution matches the examples (which pin thermion_dart to the
+# same path) and picks up local API additions before they are published.
+# It does not affect the published package — only pubspec.yaml is published.
+dependency_overrides:
+  thermion_dart:
+    path: ../../thermion_dart

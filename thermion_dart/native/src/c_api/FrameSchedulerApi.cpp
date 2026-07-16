@@ -1,4 +1,5 @@
 #include <atomic>
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -26,6 +27,20 @@ extern "C"
   static RenderThread* _renderThread = nullptr;  // non-owning; owned by ThermionDartRenderThreadApi
   static std::atomic<bool> _nativeRenderInProgress{false};
 
+  // Process-wide desired cap. It survives scheduler stop/start so lifecycle
+  // transitions do not silently discard the user's setting. 0 = unlimited.
+  static std::atomic<int> _targetFpsLimit{0};
+
+  // Pacing state for the Linux Flutter-synced request-render path, which
+  // bypasses FrameScheduler::dispatchFrame. These fields are only touched on
+  // Flutter's UI thread.
+  static int _requestAppliedFpsLimit = 0;
+  static uint64_t _nextRequestRenderNs = 0;
+
+  static void applyTargetFps(FrameScheduler* scheduler) {
+    scheduler->setTargetFps(_targetFpsLimit.load(std::memory_order_relaxed));
+  }
+
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps) {
 #ifndef __EMSCRIPTEN__
     if (_frameScheduler) {
@@ -34,6 +49,7 @@ extern "C"
       _frameScheduler = nullptr;
     }
     _frameScheduler = thermion::FrameScheduler::create(targetFps);
+    applyTargetFps(_frameScheduler);
     _frameScheduler->start(callback);
 #endif
   }
@@ -88,7 +104,18 @@ extern "C"
       _frameScheduler = nullptr;
     }
     _frameScheduler = thermion::FrameScheduler::create(targetFps);
+    applyTargetFps(_frameScheduler);
     _frameScheduler->startWithPort(port);
+#endif
+  }
+
+  EMSCRIPTEN_KEEPALIVE void FrameScheduler_setTargetFps(int fps) {
+    int normalizedFps = fps > 0 ? fps : 0;
+    _targetFpsLimit.store(normalizedFps, std::memory_order_relaxed);
+#ifndef __EMSCRIPTEN__
+    if (_frameScheduler) {
+      _frameScheduler->setTargetFps(normalizedFps);
+    }
 #endif
   }
 
@@ -113,9 +140,11 @@ extern "C"
   }
 
   // Frame callback for native render loop — runs on scheduler thread
-  static void _nativeFrameCallback(uint64_t frameTimeNanos) {
-    if (!_nativeRenderManager || !_renderThread) return;
-    if (_nativeRenderInProgress.exchange(true)) return; // skip if still rendering
+  static bool _nativeFrameCallback(uint64_t frameTimeNanos) {
+    if (!_nativeRenderManager || !_renderThread) return false;
+    if (_nativeRenderInProgress.exchange(true)) {
+      return false; // skip if still rendering
+    }
 
     std::packaged_task<void()> task([frameTimeNanos]() {
       RenderManager_render(_nativeRenderManager, frameTimeNanos);
@@ -127,12 +156,54 @@ extern "C"
       _nativeRenderInProgress.store(false);
     });
     _renderThread->addTask(task);
+    return true;
+  }
+
+  // Adapter for FrameScheduler::Callback, whose return type is void.
+  static void _nativeScheduledFrameCallback(uint64_t frameTimeNanos) {
+    _nativeFrameCallback(frameTimeNanos);
   }
 
   // Request a single render frame (called from Dart's frame callback).
   // Non-blocking: queues the render to the render thread and returns.
-  EMSCRIPTEN_KEEPALIVE void FrameScheduler_requestRender(uint64_t frameTimeNanos) {
-    _nativeFrameCallback(frameTimeNanos);
+  // Throttled here (not in _nativeFrameCallback) so the Linux Flutter-synced
+  // path — which bypasses the FrameScheduler/dispatchFrame throttle — still
+  // honors the target fps. display-link/timer/DXGI paths pace themselves in
+  // dispatchFrame and don't go through requestRender.
+  EMSCRIPTEN_KEEPALIVE bool FrameScheduler_requestRender(uint64_t frameTimeNanos) {
+    int fps = _targetFpsLimit.load(std::memory_order_relaxed);
+    if (fps > 0) {
+      const uint64_t interval = std::max<uint64_t>(
+          1, 1000000000ULL / static_cast<uint64_t>(fps));
+      const uint64_t tolerance = 1000000ULL; // 1 ms
+
+      if (_requestAppliedFpsLimit != fps || _nextRequestRenderNs == 0) {
+        _requestAppliedFpsLimit = fps;
+        _nextRequestRenderNs = frameTimeNanos;
+      }
+
+      if (_nextRequestRenderNs > frameTimeNanos &&
+          _nextRequestRenderNs - frameTimeNanos > tolerance) {
+        return false;
+      }
+
+      if (!_nativeFrameCallback(frameTimeNanos)) {
+        return false;
+      }
+
+      if (_nextRequestRenderNs <= frameTimeNanos) {
+        const uint64_t missedIntervals =
+            (frameTimeNanos - _nextRequestRenderNs) / interval + 1;
+        _nextRequestRenderNs += missedIntervals * interval;
+      } else {
+        _nextRequestRenderNs += interval;
+      }
+      return true;
+    } else {
+      _requestAppliedFpsLimit = 0;
+      _nextRequestRenderNs = 0;
+    }
+    return _nativeFrameCallback(frameTimeNanos);
   }
 
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_startNativeRenderLoop(int targetFps) {
@@ -144,7 +215,8 @@ extern "C"
     }
     _frameScheduler = new thermion::TimerFrameScheduler(
         targetFps > 0 ? targetFps : 60);
-    _frameScheduler->start(_nativeFrameCallback);
+    applyTargetFps(_frameScheduler);
+    _frameScheduler->start(_nativeScheduledFrameCallback);
 #endif
   }
 

@@ -39,6 +39,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   ThermionViewer? _viewer;
   ManipulatorType _manipulatorType = ManipulatorType.ORBIT;
+  int _framerate = 60;
 
   late DirectLight _sun;
 
@@ -124,6 +125,31 @@ class _MyHomePageState extends State<MyHomePage> {
                                 _manipulatorType == ManipulatorType.ORBIT
                                     ? "Switch to Free Flight"
                                     : "Switch to Orbit")),
+                        const SizedBox(width: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white70,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButton<int>(
+                            value: _framerate,
+                            underline: const SizedBox(),
+                            items: const [
+                              DropdownMenuItem(
+                                  value: 15, child: Text('15 FPS')),
+                              DropdownMenuItem(
+                                  value: 30, child: Text('30 FPS')),
+                              DropdownMenuItem(
+                                  value: 60, child: Text('60 FPS')),
+                            ],
+                            onChanged: (v) {
+                              if (v == null) return;
+                              setState(() => _framerate = v);
+                              FilamentApp.instance!.setTargetFramerate(v);
+                            },
+                          ),
+                        ),
                       ],
                     ],
                   )))

@@ -3,11 +3,13 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
+#include <cstdint>
 
 #if __APPLE__
 #include <TargetConditionals.h>
 #if TARGET_OS_OSX
 #include <CoreVideo/CoreVideo.h>
+#include <mach/mach_time.h>
 #endif
 #endif
 
@@ -27,11 +29,24 @@ public:
 
     static FrameScheduler* create(int targetFps);
 
+    /// Cap the dispatch rate to [fps] by skipping frames at the source (in
+    /// dispatchFrame). fps <= 0 means unlimited (dispatch every vsync).
+    /// Honored by every scheduler that routes through dispatchFrame
+    /// (CVDisplayLink / CADisplayLink / AChoreographer / timer / DXGI).
+    void setTargetFps(int fps);
+
 protected:
     Callback _callback = nullptr;
     int64_t _dartPort = 0;
     bool _usePortMode = false;
     void* _renderThread = nullptr;
+
+    // Framerate-limiting state. _fpsLimit is set from another thread (Dart),
+    // so it is atomic; the timing fields are only touched from the scheduler's
+    // own callback thread (or after that thread has stopped).
+    std::atomic<int> _fpsLimit{0};
+    int _appliedFpsLimit = 0;
+    uint64_t _nextDispatchNs = 0;
 
     void dispatchFrame(uint64_t nanos);
     void resetState();
@@ -68,6 +83,7 @@ private:
 /// macOS CVDisplayLink-based scheduler for proper vsync timing.
 class CVDisplayLinkScheduler : public FrameScheduler {
     CVDisplayLinkRef _displayLink = nullptr;
+    mach_timebase_info_data_t _timebase{};
 public:
     ~CVDisplayLinkScheduler() override { stop(); }
     void start(Callback callback) override;

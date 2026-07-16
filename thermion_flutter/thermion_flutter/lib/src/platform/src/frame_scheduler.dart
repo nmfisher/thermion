@@ -78,6 +78,17 @@ class FrameScheduler {
   bool get isPaused => _paused;
   bool get isRendering => _rendering;
 
+  // Monotonic count of frames admitted past both the framerate throttle and
+  // in-flight guard. A scheduled frame is not necessarily rendered — the
+  // render itself can still fail — so this counts accepted work rather than
+  // completions. Never resets, unlike the rolling _diag* counters used for
+  // the periodic log line.
+  int _scheduledFrameCount = 0;
+
+  /// Total number of frames scheduled (dispatched) since the scheduler was
+  /// created. Monotonic; sample deltas to measure scheduled frames-per-second.
+  int get scheduledFrameCount => _scheduledFrameCount;
+
   /// Start the native scheduler. Picks port mode in debug builds on
   /// macOS/iOS/Android/Windows, direct callback otherwise.
   ///
@@ -207,6 +218,9 @@ class FrameScheduler {
 
   void _onFrame(int frameTimeNanos) {
     if (!_active || _paused) return;
+    // Framerate throttling for this path happens at the native source
+    // (dispatchFrame skips dropped vsyncs before this is even called), so no
+    // Dart-side gate here — only the in-flight guard below.
     if (_rendering) {
       // A vsync arrived while the previous frame is still rendering —
       // count it as a drop and skip. (Previously uncounted.)
@@ -218,6 +232,7 @@ class FrameScheduler {
       throw StateError('FrameScheduler.setOnFrame must be called before start');
     }
     _rendering = true;
+    _scheduledFrameCount++;
     _diagStopwatch
       ..reset()
       ..start();
@@ -256,7 +271,14 @@ class FrameScheduler {
 
   void _onFlutterFrame(Duration timeStamp) {
     if (!_active || _paused) return;
-    FrameScheduler_requestRender(timeStamp.inMicroseconds * 1000);
+    // Pacing for this path is native. Count only requests that pass both the
+    // native throttle and render-thread in-flight guard.
+    final scheduled = FrameScheduler_requestRender(
+      timeStamp.inMicroseconds * 1000,
+    );
+    if (scheduled) {
+      _scheduledFrameCount++;
+    }
     SchedulerBinding.instance.scheduleFrame();
   }
 }

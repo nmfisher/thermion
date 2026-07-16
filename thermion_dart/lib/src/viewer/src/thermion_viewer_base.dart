@@ -28,9 +28,12 @@ abstract class ThermionViewer {
   // Renders a single frame (bypassing animations and plugins).
   Future renderSingleFrame();
 
-  // When [rendering] is true, sets the framerate for continuous rendering when
-  // [setRendering] is enabled.
-  Future setFrameRate(int framerate);
+  /// Sets the shared render-loop framerate cap.
+  ///
+  /// Framerate is engine-wide rather than viewer-specific. New code should
+  /// call [FilamentApp.setTargetFramerate] directly.
+  @Deprecated('Use FilamentApp.instance!.setTargetFramerate(framerate)')
+  Future<void> setFrameRate(int framerate);
 
   // Destroys/disposes the viewer (including the entire scene). You cannot use the viewer after calling this method.
   Future dispose();

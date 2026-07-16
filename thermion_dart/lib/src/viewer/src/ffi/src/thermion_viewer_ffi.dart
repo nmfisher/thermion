@@ -145,17 +145,10 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  double _msPerFrame = 1000.0 / 60.0;
-
-  //
-  double get msPerFrame {
-    return _msPerFrame;
-  }
-
-  //
+  @Deprecated('Use FilamentApp.instance!.setTargetFramerate(framerate)')
   @override
-  Future setFrameRate(int framerate) async {
-    _msPerFrame = 1000.0 / framerate;
+  Future<void> setFrameRate(int framerate) async {
+    FilamentApp.instance?.setTargetFramerate(framerate);
   }
 
   final _onDispose = <Future Function()>[];

@@ -58,6 +58,18 @@ The `FrameScheduler` dispatches its callback to Dart in one of two ways:
 - **Release**: a raw C function pointer (`ffi.NativeCallable`) — minimum latency.
 - **Debug** (hot-restart safe): `Dart_PostCObject_DL` onto a `ReceivePort`. `Dart_PostCObject` silently drops messages to dead ports, so stale native schedulers created in a previous isolate can't crash the new one.
 
+### Framerate limiting
+
+By default the viewer renders on **every vsync** — i.e. at the display's native refresh rate (60 fps on a 60 Hz panel, 120 on a 120 Hz panel, etc.). Nothing pins it to 60.
+
+`FilamentApp.instance.setTargetFramerate(fps)` caps the rate *below* the display refresh by skipping vsyncs at the source, so dropped native frames never wake Dart. It's an engine-level API — the same native scheduler paces the headless CLI path — and it cannot raise the rate above the refresh. An absolute target deadline preserves the requested average on displays whose refresh is not an integer multiple of the target. For example, 60 fps on a 90 Hz display alternates one- and two-vsync presentation intervals rather than falling to 45 fps. That cadence necessarily has some judder; exact, evenly spaced 60 fps is physically impossible on a fixed 90 Hz presentation clock.
+
+The cap is applied in two native places, both fed by `FrameScheduler_setTargetFps`: in `FrameScheduler::dispatchFrame` (the CVDisplayLink / CADisplayLink / AChoreographer / DXGI / timer schedulers), and in `FrameScheduler_requestRender` (the Linux Flutter-synced path, which bypasses `dispatchFrame`). The desired cap is process-wide and survives scheduler destruction/recreation during app lifecycle transitions. Web applies the same deadline algorithm directly in its `requestAnimationFrame` loop.
+
+Framerate is a property of the **shared render loop**, not of any one viewer. All viewers on the same engine are pace-locked to the same rate (one scheduler drives a single `renderManager.render()` that renders every attached view each tick), so there is no per-view pacing — the last `setTargetFramerate` call wins for all viewers.
+
+Values less than or equal to zero remove the cap. The in-flight guards still drop work when rendering takes longer than the available frame budget, so the configured value is an upper bound rather than a guarantee that the renderer can sustain that rate.
+
 ### Per-frame sequence
 
 On each vsync tick, the following runs:
