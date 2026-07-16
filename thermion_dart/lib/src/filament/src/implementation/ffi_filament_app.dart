@@ -463,36 +463,32 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     _logger.finest("Creating ${width}x${height} render target");
     if (color == null) {
       _logger.finest("No color texture provided");
-      color =
-          await createTexture(
-                width,
-                height,
-                flags: {
-                  TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-                  TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-                  TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                },
-                textureFormat: TextureFormat.RGBA8,
-              )
-              as FFITexture;
+      color = await createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        },
+        textureFormat: TextureFormat.RGBA8,
+      ) as FFITexture;
       _logger.finest(
         "Created ${width}x${height} color texture (TextureFormat.RGBA8)",
       );
     }
     if (depth == null) {
       _logger.finest("No depth texture provided");
-      depth =
-          await createTexture(
-                width,
-                height,
-                flags: {
-                  TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-                  TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-                  TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-                },
-                textureFormat: TextureFormat.DEPTH32F,
-              )
-              as FFITexture;
+      depth = await createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+        },
+        textureFormat: TextureFormat.DEPTH32F,
+      ) as FFITexture;
       _logger.finest(
         "Created ${width}x${height} depth texture (TextureFormat.DEPTH32F)",
       );
@@ -989,13 +985,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     for (int i = 0; i < MAX_BEGIN_FRAME_RETRIES; i++) {
       beginFrame = await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(
-        renderer,
-        swapChain!.getNativeHandle(),
-        0.toBigInt,
-        cb,
-      );
-    });
+        Renderer_beginFrameRenderThread(
+          renderer,
+          swapChain!.getNativeHandle(),
+          0.toBigInt,
+          cb,
+        );
+      });
       if (beginFrame) {
         break;
       }
@@ -1007,7 +1003,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       throw Exception("Failed to begin frame");
     }
-
 
     final pixelBuffers = <(View, Uint8List)>[];
 
@@ -1029,7 +1024,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
     }
 
-      _logger.finest("Starting capture for ${views.length} views");
+    _logger.finest("Starting capture for ${views.length} views");
 
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
@@ -1042,8 +1037,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // so we compute it per-view and inflate back to FLOAT in the return.
     final inflateFromUByte = <bool>[];
 
-      for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
-        final view = views[viewIndex];
+    for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
+      final view = views[viewIndex];
       final renderTarget = await view.getRenderTarget();
       bool hasRenderTarget = renderTarget != null;
       _logger.finest("""Capturing view ${viewIndex} (renderTarget: """
@@ -1068,52 +1063,52 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           readAsUByteForFloat ? PixelDataType.UBYTE : pixelDataType;
       inflateFromUByte.add(readAsUByteForFloat);
 
-        beforeRender?.call(view);
+      beforeRender?.call(view);
 
-        final viewport = await view.getViewport();
+      final viewport = await view.getViewport();
 
-        int numChannels = switch (pixelDataFormat) {
-          PixelDataFormat.RGBA => 4,
-          PixelDataFormat.RGB => 3,
-          PixelDataFormat.R => 1,
-          _ => throw UnsupportedError(pixelDataFormat.toString()),
-        };
+      int numChannels = switch (pixelDataFormat) {
+        PixelDataFormat.RGBA => 4,
+        PixelDataFormat.RGB => 3,
+        PixelDataFormat.R => 1,
+        _ => throw UnsupportedError(pixelDataFormat.toString()),
+      };
 
       int channelSizeInBytes = switch (readType) {
-          PixelDataType.FLOAT => sizeOf<Float>(),
-          PixelDataType.UBYTE || PixelDataType.BYTE => 1,
+        PixelDataType.FLOAT => sizeOf<Float>(),
+        PixelDataType.UBYTE || PixelDataType.BYTE => 1,
         _ => throw UnsupportedError(readType.toString())
-        };
+      };
 
-        if (viewport.width <= 0 || viewport.height <= 0) {
+      if (viewport.width <= 0 || viewport.height <= 0) {
         throw Exception("Invalid viewport dimensions: "
             "${viewport.width}x${viewport.height}");
-        }
+      }
 
-        final numBytes =
-            viewport.width * viewport.height * numChannels * channelSizeInBytes;
-        final pixelBuffer = makeUint8List(numBytes);
+      final numBytes =
+          viewport.width * viewport.height * numChannels * channelSizeInBytes;
+      final pixelBuffer = makeUint8List(numBytes);
 
-        if (render) {
-          await withVoidCallback((requestId, cb) {
-            Renderer_renderRenderThread(
-              renderer,
-              view.getNativeHandle(),
-              requestId,
-              cb,
-            );
-          });
-        }
-
-        if (captureRenderTarget && renderTarget == null) {
-          _logger.warning(
-            """captureRenderTarget is true but the specified view has no"""
-            """ render target. Falling back to swapchain capture""",
-          );
-        }
-
+      if (render) {
         await withVoidCallback((requestId, cb) {
-          Renderer_readPixelsRenderThread(
+          Renderer_renderRenderThread(
+            renderer,
+            view.getNativeHandle(),
+            requestId,
+            cb,
+          );
+        });
+      }
+
+      if (captureRenderTarget && renderTarget == null) {
+        _logger.warning(
+          """captureRenderTarget is true but the specified view has no"""
+          """ render target. Falling back to swapchain capture""",
+        );
+      }
+
+      await withVoidCallback((requestId, cb) {
+        Renderer_readPixelsRenderThread(
             renderer,
             viewport.width,
             viewport.height,
@@ -1126,9 +1121,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             pixelBuffer.length,
             requestId,
             cb);
-        });
-        pixelBuffers.add((view, pixelBuffer));
-      }
+      });
+      pixelBuffers.add((view, pixelBuffer));
+    }
 
     await withVoidCallback((requestId, cb) {
       Renderer_endFrameRenderThread(renderer, requestId, cb);
@@ -1137,11 +1132,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await flush();
 
     // on web/WebGL backend, the callback in readPixels isn't actually
-    // fired until a subsequent render call (and possibly the presentation to 
+    // fired until a subsequent render call (and possibly the presentation to
     // the canvas when the render thread yields).
     // We need to wait at least one frame before the pixel buffer is populated;
     // by this point, we've called setRendering(true), but this is actually
-    // synchronous, so we'll add a ~2 frame delay to wait for this to be 
+    // synchronous, so we'll add a ~2 frame delay to wait for this to be
     // available.
     if (FILAMENT_SINGLE_THREADED) {
       await withBoolCallback(
@@ -1189,7 +1184,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         }
         raw.free();
         result.add((view, out));
-    }
+      }
 
       if (FILAMENT_WASM) {
         stackRestore(stackPtr);
@@ -1478,12 +1473,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final surfaceOrientation = await orientationBuilder.build();
 
       // Extract quaternions in FLOAT4 format
-      tangentQuaternions =
-          await surfaceOrientation.getQuats(
-                QuaternionFormat.FLOAT4,
-                geometry.vertices.length ~/ 3,
-              )
-              as Float32List;
+      tangentQuaternions = await surfaceOrientation.getQuats(
+        QuaternionFormat.FLOAT4,
+        geometry.vertices.length ~/ 3,
+      ) as Float32List;
 
       await surfaceOrientation.destroy();
     }
@@ -1593,11 +1586,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final indexBuffer = await indexBufferBuilder.build() as FFIIndexBuffer;
     final indexTypedData = switch (geometry.indexType) {
       IndexType.UINT => makeUint32List(
-        geometry.indices.length,
-      )..setRange(0, geometry.indices.length, geometry.indices),
+          geometry.indices.length,
+        )..setRange(0, geometry.indices.length, geometry.indices),
       IndexType.USHORT => makeUint16List(
-        geometry.indices.length,
-      )..setRange(0, geometry.indices.length, geometry.indices),
+          geometry.indices.length,
+        )..setRange(0, geometry.indices.length, geometry.indices),
     };
     await indexBuffer.setBuffer(indexTypedData);
 

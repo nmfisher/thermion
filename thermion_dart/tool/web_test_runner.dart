@@ -31,8 +31,7 @@ import 'dart:io';
 // Must match emscripten's OFFSCREENCANVASES_TO_PTHREAD target id.
 const _canvasId = 'thermion_canvas';
 
-String _wrapperHtml(String testFileName) =>
-    '''<!DOCTYPE html>
+String _wrapperHtml(String testFileName) => '''<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -135,7 +134,8 @@ Future<void> main(List<String> args) async {
   }
 
   if (!Directory('test').existsSync()) {
-    stderr.writeln('Run from the thermion_dart package root (no ./test found).');
+    stderr
+        .writeln('Run from the thermion_dart package root (no ./test found).');
     exit(1);
   }
 
@@ -183,12 +183,15 @@ Future<void> main(List<String> args) async {
       'Proxy: starting coi_proxy on $port'
       '${assets != null ? ' (assets <- $assets)' : ''} ...',
     );
-    proxy = await Process.start('dart', [
-      'run',
-      'tool/coi_proxy.dart',
-      '$port',
-      if (assets != null) '--assets=$assets',
-    ], mode: ProcessStartMode.normal);
+    proxy = await Process.start(
+        'dart',
+        [
+          'run',
+          'tool/coi_proxy.dart',
+          '$port',
+          if (assets != null) '--assets=$assets',
+        ],
+        mode: ProcessStartMode.normal);
     unawaited(proxy.stdout.drain<void>());
     unawaited(proxy.stderr.drain<void>());
     if (!await _waitForPort(port, const Duration(seconds: 120))) {
@@ -207,19 +210,22 @@ Future<void> main(List<String> args) async {
   final jsonPath = 'test/.web_test_results.json';
   var exitCode = 1;
   try {
-    final proc = await Process.start('dart', [
-      'test',
-      '-p',
-      'chrome',
-      '-j',
-      '$concurrency',
-      '--timeout',
-      timeout,
-      '--reporter=expanded',
-      '--file-reporter=json:$jsonPath',
-      ...passthrough,
-      ...targets,
-    ], mode: ProcessStartMode.inheritStdio);
+    final proc = await Process.start(
+        'dart',
+        [
+          'test',
+          '-p',
+          'chrome',
+          '-j',
+          '$concurrency',
+          '--timeout',
+          timeout,
+          '--reporter=expanded',
+          '--file-reporter=json:$jsonPath',
+          ...passthrough,
+          ...targets,
+        ],
+        mode: ProcessStartMode.inheritStdio);
     exitCode = await proc.exitCode;
   } finally {
     proxy?.kill();
@@ -308,6 +314,7 @@ void _printSummary(String jsonPath, List<String> targets) {
     }
   }
   stderr.writeln('------------------------');
-  stderr.writeln('  files: ${targets.length}  with failures: $filesWithFailures');
+  stderr
+      .writeln('  files: ${targets.length}  with failures: $filesWithFailures');
   stderr.writeln('  tests: +$totP passed  ~$totS skipped  -$totF failed');
 }

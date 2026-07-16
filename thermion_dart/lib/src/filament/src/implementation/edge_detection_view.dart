@@ -75,20 +75,20 @@ class EdgeDetectionView extends FFIView {
     required FFITextureSampler mainSceneSampler,
     required ColorGrading linearColorGrading,
     required ToneMapper linearToneMapper,
-  }) : _silhouetteTexture = silhouetteTexture,
-       _mainSceneTexture = mainSceneTexture,
-       _mainSceneSampler = mainSceneSampler,
-       _edgeMaterial = material,
-       _edgeScene = scene,
-       _skybox = skybox,
-       _camera = camera,
-       _edgeMaterialInstance = materialInstance,
-       _quadVB = quadVB,
-       _quadIB = quadIB,
-       _fullscreenQuadEntity = fullscreenQuadEntity,
-       _edgeSampler = edgeSampler,
-       _linearColorGrading = linearColorGrading,
-       _linearToneMapper = linearToneMapper;
+  })  : _silhouetteTexture = silhouetteTexture,
+        _mainSceneTexture = mainSceneTexture,
+        _mainSceneSampler = mainSceneSampler,
+        _edgeMaterial = material,
+        _edgeScene = scene,
+        _skybox = skybox,
+        _camera = camera,
+        _edgeMaterialInstance = materialInstance,
+        _quadVB = quadVB,
+        _quadIB = quadIB,
+        _fullscreenQuadEntity = fullscreenQuadEntity,
+        _edgeSampler = edgeSampler,
+        _linearColorGrading = linearColorGrading,
+        _linearToneMapper = linearToneMapper;
 
   /// Creates and initializes a new [EdgeDetectionView].
   static Future<EdgeDetectionView> create({
@@ -148,8 +148,8 @@ class EdgeDetectionView extends FFIView {
     ]);
 
     // Create vertex buffer
-    final vbBuilder = FilamentApp.instance!.renderableManager
-        .createVertexBufferBuilder();
+    final vbBuilder =
+        FilamentApp.instance!.renderableManager.createVertexBufferBuilder();
     vbBuilder.vertexCount(3);
     vbBuilder.bufferCount(1);
     vbBuilder.attribute(
@@ -164,8 +164,8 @@ class EdgeDetectionView extends FFIView {
 
     // Create index buffer
     final indices = Uint16List.fromList([0, 1, 2]);
-    final ibBuilder = FilamentApp.instance!.renderableManager
-        .createIndexBufferBuilder();
+    final ibBuilder =
+        FilamentApp.instance!.renderableManager.createIndexBufferBuilder();
     ibBuilder.indexCount(3);
     ibBuilder.bufferType(IndexType.USHORT);
     final quadIB = await ibBuilder.build() as FFIIndexBuffer;
@@ -176,39 +176,33 @@ class EdgeDetectionView extends FFIView {
         await edgeMaterial.createInstance() as FFIMaterialInstance;
 
     // Create texture sampler for edge detection
-    final edgeSampler =
-        await FilamentApp.instance!.createTextureSampler(
-              minFilter: TextureMinFilter.NEAREST,
-              magFilter: TextureMagFilter.NEAREST,
-              wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-              wrapT: TextureWrapMode.CLAMP_TO_EDGE,
-            )
-            as FFITextureSampler;
+    final edgeSampler = await FilamentApp.instance!.createTextureSampler(
+      minFilter: TextureMinFilter.NEAREST,
+      magFilter: TextureMagFilter.NEAREST,
+      wrapS: TextureWrapMode.CLAMP_TO_EDGE,
+      wrapT: TextureWrapMode.CLAMP_TO_EDGE,
+    ) as FFITextureSampler;
 
     // Create default 1x1 main scene texture (will be replaced when
     // setMainSceneTexture is called). This ensures the shader has a valid
     // texture to sample before initialization completes
-    final defaultMainSceneTexture =
-        await FilamentApp.instance!.createTexture(
-              1,
-              1,
-              flags: {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
-              textureFormat: TextureFormat.RGBA8,
-            )
-            as FFITexture;
+    final defaultMainSceneTexture = await FilamentApp.instance!.createTexture(
+      1,
+      1,
+      flags: {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
+      textureFormat: TextureFormat.RGBA8,
+    ) as FFITexture;
 
     // Use NEAREST filtering for pixel-perfect compositing - the main scene
     // texture is at the same resolution as the output, so LINEAR filtering
     // would blur anti-aliased features (like grid lines) making them appear
     // thicker.
-    final mainSceneSampler =
-        await FilamentApp.instance!.createTextureSampler(
-              minFilter: TextureMinFilter.NEAREST,
-              magFilter: TextureMagFilter.NEAREST,
-              wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-              wrapT: TextureWrapMode.CLAMP_TO_EDGE,
-            )
-            as FFITextureSampler;
+    final mainSceneSampler = await FilamentApp.instance!.createTextureSampler(
+      minFilter: TextureMinFilter.NEAREST,
+      magFilter: TextureMagFilter.NEAREST,
+      wrapS: TextureWrapMode.CLAMP_TO_EDGE,
+      wrapT: TextureWrapMode.CLAMP_TO_EDGE,
+    ) as FFITextureSampler;
 
     // Create fullscreen quad entity
     final fullscreenQuadEntity = await FilamentApp.instance!.createEntity();

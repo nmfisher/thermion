@@ -58,8 +58,9 @@ class TestHelper {
   ///
   ///
   Future<Texture> createTextureFromImage(TestHelper testHelper) async {
-    final image = await FilamentApp.instance!.decodeImage(await loadResourceBytes(
-        "${testHelper.assetsDir}/cube_texture_512x512.png"));
+    final image = await FilamentApp.instance!.decodeImage(
+        await loadResourceBytes(
+            "${testHelper.assetsDir}/cube_texture_512x512.png"));
     final texture = await FilamentApp.instance!
         .createTexture(await image.getWidth(), await image.getHeight());
     await texture.setLinearImage(
@@ -97,7 +98,6 @@ class TestHelper {
     return instance;
   }
 
-  
   Future<ThermionAsset> createCube(ThermionViewer viewer) async {
     var materialInstance = await FilamentApp.instance!
         .createUbershaderMaterialInstance(unlit: true);
@@ -128,17 +128,17 @@ class TestHelper {
   ///
   Future<Map<View, Uint8List>> capture(View? view, String? outputFilename,
       {Future Function(View view)? beforeRender,
-    SwapChain? swapChain,
-    PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
-    PixelDataType pixelDataType = PixelDataType.FLOAT,
-    bool captureRenderTarget = false,
+      SwapChain? swapChain,
+      PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
+      PixelDataType pixelDataType = PixelDataType.FLOAT,
+      bool captureRenderTarget = false,
       bool render = true}) async {
     var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
-      view: view,
-      beforeRender: beforeRender,
-      pixelDataFormat: pixelDataFormat,
-      pixelDataType: pixelDataType,
-      captureRenderTarget: captureRenderTarget,
+        view: view,
+        beforeRender: beforeRender,
+        pixelDataFormat: pixelDataFormat,
+        pixelDataType: pixelDataType,
+        captureRenderTarget: captureRenderTarget,
         render: render);
     var retval = <View, Uint8List>{};
     int i = 0;
@@ -151,8 +151,8 @@ class TestHelper {
             ? 1
             : (pixelDataFormat == PixelDataFormat.RGBA ? 4 : 3);
         await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath,
-          isFloat: pixelDataType == PixelDataType.FLOAT,
-          hasAlpha: pixelDataFormat == PixelDataFormat.RGBA,
+            isFloat: pixelDataType == PixelDataType.FLOAT,
+            hasAlpha: pixelDataFormat == PixelDataFormat.RGBA,
             numChannels: numChannels);
       }
       i++;
@@ -179,27 +179,25 @@ class TestHelper {
     await initTestBindings();
 
     await FFIFilamentApp.create(
-      config: FFIFilamentConfig(
+        config: FFIFilamentConfig(
             loadResource: loadResourceBytes, backend: defaultTestBackend));
   }
 
   Future<(ThermionViewer viewer, SwapChain swapChain)> createViewer(
       {img.Color? bg,
-    Vector3? cameraPosition,
-    ({int width, int height}) viewportDimensions = (width: 512, height: 512),
-    bool postProcessing = false,
-    bool addSkybox = false,
-    bool createRenderTarget = false,
+      Vector3? cameraPosition,
+      ({int width, int height}) viewportDimensions = (width: 512, height: 512),
+      bool postProcessing = false,
+      bool addSkybox = false,
+      bool createRenderTarget = false,
       bool createStencilBuffer = false}) async {
     cameraPosition ??= Vector3(0, 5, 5);
 
-    final swapChain =
-        await FilamentApp.instance!.createHeadlessSwapChain(
-              viewportDimensions.width,
-              viewportDimensions.height,
-              hasStencilBuffer: createStencilBuffer,
-            )
-            as FFISwapChain;
+    final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+      viewportDimensions.width,
+      viewportDimensions.height,
+      hasStencilBuffer: createStencilBuffer,
+    ) as FFISwapChain;
 
     RenderTarget? renderTarget;
     Texture? rtColorTexture;
@@ -222,7 +220,8 @@ class TestHelper {
       var width = await rtColorTexture.getWidth();
       var height = await rtColorTexture.getHeight();
       rtDepthTexture = await FilamentApp.instance!.createTexture(
-        viewportDimensions.width, viewportDimensions.height,
+        viewportDimensions.width,
+        viewportDimensions.height,
         flags: {
           TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
@@ -231,21 +230,19 @@ class TestHelper {
         },
         textureFormat: createStencilBuffer
             ? platformIsWindows
-                  ? TextureFormat.DEPTH32F_STENCIL8
-                  : TextureFormat.DEPTH24_STENCIL8
+                ? TextureFormat.DEPTH32F_STENCIL8
+                : TextureFormat.DEPTH24_STENCIL8
             : TextureFormat.DEPTH32F,
       );
 
       Logger.root.info("Created depth texture for test render target");
 
-      renderTarget =
-          await FilamentApp.instance!.createRenderTarget(
-                viewportDimensions.width,
-                viewportDimensions.height,
-                color: rtColorTexture,
-                depth: rtDepthTexture,
-              )
-              as FFIRenderTarget;
+      renderTarget = await FilamentApp.instance!.createRenderTarget(
+        viewportDimensions.width,
+        viewportDimensions.height,
+        color: rtColorTexture,
+        depth: rtDepthTexture,
+      ) as FFIRenderTarget;
     }
 
     var viewer = ThermionViewerFFI();
@@ -287,9 +284,9 @@ class TestHelper {
     final camera = await viewer.getActiveCamera();
 
     await camera.setLensProjection(
-      near: kNear,
-      far: kFar,
-      aspect: viewportDimensions.width / viewportDimensions.height,
+        near: kNear,
+        far: kFar,
+        aspect: viewportDimensions.width / viewportDimensions.height,
         focalLength: kFocalLength);
 
     await camera.lookAt(cameraPosition);
@@ -311,12 +308,12 @@ class TestHelper {
     bool createStencilBuffer = false,
   }) async {
     final viewer = await createViewer(
-      bg: bg,
-      cameraPosition: cameraPosition,
-      viewportDimensions: viewportDimensions,
-      postProcessing: postProcessing,
-      addSkybox: addSkybox,
-      createRenderTarget: createRenderTarget,
+        bg: bg,
+        cameraPosition: cameraPosition,
+        viewportDimensions: viewportDimensions,
+        postProcessing: postProcessing,
+        addSkybox: addSkybox,
+        createRenderTarget: createRenderTarget,
         createStencilBuffer: createStencilBuffer);
 
     await fn.call(viewer.$1);
@@ -415,13 +412,13 @@ class ViewerBuilder {
     bool addSkybox = false,
     bool createRenderTarget = false,
     bool createStencilBuffer = false,
-  }) : _bg = bg,
-       _cameraPosition = cameraPosition,
-       _viewportDimensions = viewportDimensions,
-       _postProcessing = postProcessing,
-       _addSkybox = addSkybox,
-       _createRenderTarget = createRenderTarget,
-       _createStencilBuffer = createStencilBuffer;
+  })  : _bg = bg,
+        _cameraPosition = cameraPosition,
+        _viewportDimensions = viewportDimensions,
+        _postProcessing = postProcessing,
+        _addSkybox = addSkybox,
+        _createRenderTarget = createRenderTarget,
+        _createStencilBuffer = createStencilBuffer;
 
   ViewerBuilder setBackgroundColor(img.Color color) {
     _bg = color;
@@ -498,14 +495,14 @@ class ViewerBuilder {
     double sunHaloFalloff = 80.0,
   }) {
     _directLights.add(DirectLight.sun(
-        color: color,
-        colorTemperature: colorTemperature,
-        intensity: intensity,
-        castShadows: castShadows,
-        direction: direction ?? Vector3(0.5, -0.5, -0.5).normalized(),
-        sunAngularRadius: sunAngularRadius,
-        sunHaloSize: sunHaloSize,
-        sunHaloFalloff: sunHaloFalloff,
+      color: color,
+      colorTemperature: colorTemperature,
+      intensity: intensity,
+      castShadows: castShadows,
+      direction: direction ?? Vector3(0.5, -0.5, -0.5).normalized(),
+      sunAngularRadius: sunAngularRadius,
+      sunHaloSize: sunHaloSize,
+      sunHaloFalloff: sunHaloFalloff,
     ));
     return this;
   }
@@ -526,14 +523,14 @@ class ViewerBuilder {
     bool unlit = false,
   }) {
     _cubes.add(_CubeConfig(
-        position: position,
-        scale: scale,
-        rotation: rotation,
-        castShadows: castShadows,
-        receiveShadows: receiveShadows,
-        color: color,
-        createUbershader: createUbershader,
-        unlit: unlit,
+      position: position,
+      scale: scale,
+      rotation: rotation,
+      castShadows: castShadows,
+      receiveShadows: receiveShadows,
+      color: color,
+      createUbershader: createUbershader,
+      unlit: unlit,
     ));
     return this;
   }
@@ -549,14 +546,14 @@ class ViewerBuilder {
     bool unlit = false,
   }) {
     _planes.add(_PlaneConfig(
-        position: position,
-        scale: scale,
-        rotation: rotation,
-        castShadows: castShadows,
-        receiveShadows: receiveShadows,
-        color: color,
-        createUbershader: createUbershader,
-        unlit: unlit,
+      position: position,
+      scale: scale,
+      rotation: rotation,
+      castShadows: castShadows,
+      receiveShadows: receiveShadows,
+      color: color,
+      createUbershader: createUbershader,
+      unlit: unlit,
     ));
     return this;
   }
@@ -580,9 +577,11 @@ class ViewerBuilder {
   }
 
   Future<
-    ({ThermionViewer viewer, List<ThermionAsset> assets, SwapChain swapChain})
-  >
-  buildWithAssets() async {
+      ({
+        ThermionViewer viewer,
+        List<ThermionAsset> assets,
+        SwapChain swapChain
+      })> buildWithAssets() async {
     final viewerResult = await _testHelper.createViewer(
       bg: _bg,
       cameraPosition: _cameraPosition,
@@ -627,10 +626,10 @@ class ViewerBuilder {
 
       if (planeConfig.color != null) {
         await materialInstance.setParameterFloat4(
-          "baseColorFactor",
-          planeConfig.color!.r.toDouble(),
-          planeConfig.color!.g.toDouble(),
-          planeConfig.color!.b.toDouble(),
+            "baseColorFactor",
+            planeConfig.color!.r.toDouble(),
+            planeConfig.color!.g.toDouble(),
+            planeConfig.color!.b.toDouble(),
             planeConfig.color!.a.toDouble());
       } else {
         await materialInstance.setParameterFloat4(
@@ -638,7 +637,7 @@ class ViewerBuilder {
       }
 
       final plane = await viewer.createGeometry(
-        GeometryUtils.plane(
+          GeometryUtils.plane(
               normals: true, uvs: true, width: 10.0, height: 10.0),
           materialInstances: [materialInstance]);
 
@@ -667,16 +666,16 @@ class ViewerBuilder {
           ? await FilamentApp.instance!
               .createUbershaderMaterialInstance(unlit: cubeConfig.unlit)
           : (cubeConfig.unlit
-                ? await FilamentApp.instance!.createUnlitMaterialInstance()
-                : null);
+              ? await FilamentApp.instance!.createUnlitMaterialInstance()
+              : null);
 
       if (materialInstance != null) {
         if (cubeConfig.color != null) {
           await materialInstance.setParameterFloat4(
-            "baseColorFactor",
-            cubeConfig.color!.r.toDouble(),
-            cubeConfig.color!.g.toDouble(),
-            cubeConfig.color!.b.toDouble(),
+              "baseColorFactor",
+              cubeConfig.color!.r.toDouble(),
+              cubeConfig.color!.g.toDouble(),
+              cubeConfig.color!.b.toDouble(),
               cubeConfig.color!.a.toDouble());
         } else {
           await materialInstance.setParameterFloat4(
@@ -685,7 +684,7 @@ class ViewerBuilder {
       }
 
       final cube = await viewer.createGeometry(
-        GeometryUtils.cube(flipUvs: true),
+          GeometryUtils.cube(flipUvs: true),
           materialInstances:
               materialInstance != null ? [materialInstance] : null);
 
@@ -732,7 +731,7 @@ class ViewerBuilder {
     // Find the first sun light entity (if any)
     ThermionEntity? sunEntity;
     int sunLightIndex = _directLights.indexWhere((light) =>
-          light.type == LightType.SUN ||
+        light.type == LightType.SUN ||
         (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0));
 
     // If we found a sun light and have corresponding entities, get the matching
@@ -790,15 +789,15 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
         int iDown = ((y + 1) * width + x) * 4;
 
         Vector4 gx = Vector4(
-          (textures[t][iRight] - textures[t][iLeft]) / 2,
-          (textures[t][iRight + 1] - textures[t][iLeft + 1]) / 2,
-          (textures[t][iRight + 2] - textures[t][iLeft + 2]) / 2,
+            (textures[t][iRight] - textures[t][iLeft]) / 2,
+            (textures[t][iRight + 1] - textures[t][iLeft + 1]) / 2,
+            (textures[t][iRight + 2] - textures[t][iLeft + 2]) / 2,
             (textures[t][iRight + 3] - textures[t][iLeft + 3]) / 2);
 
         Vector4 gy = Vector4(
-          (textures[t][iDown] - textures[t][iUp]) / 2,
-          (textures[t][iDown + 1] - textures[t][iUp + 1]) / 2,
-          (textures[t][iDown + 2] - textures[t][iUp + 2]) / 2,
+            (textures[t][iDown] - textures[t][iUp]) / 2,
+            (textures[t][iDown + 1] - textures[t][iUp + 1]) / 2,
+            (textures[t][iDown + 2] - textures[t][iUp + 2]) / 2,
             (textures[t][iDown + 3] - textures[t][iUp + 3]) / 2);
 
         // Select the gradient with larger magnitude
@@ -824,32 +823,28 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
       if (hasValidData) {
         validPixel[index] = true;
         // Simplified Poisson equation solver (Jacobi iteration)
-        result[index].r =
-            (result[index - 1].r +
+        result[index].r = (result[index - 1].r +
                 result[index + 1].r +
                 result[index - width].r +
                 result[index + width].r +
                 gradX.r -
                 gradY.r) /
             4;
-        result[index].g =
-            (result[index - 1].g +
+        result[index].g = (result[index - 1].g +
                 result[index + 1].g +
                 result[index - width].g +
                 result[index + width].g +
                 gradX.g -
                 gradY.g) /
             4;
-        result[index].b =
-            (result[index - 1].b +
+        result[index].b = (result[index - 1].b +
                 result[index + 1].b +
                 result[index - width].b +
                 result[index + width].b +
                 gradX.b -
                 gradY.b) /
             4;
-        result[index].a =
-            (result[index - 1].a +
+        result[index].a = (result[index - 1].a +
                 result[index + 1].a +
                 result[index - width].a +
                 result[index + width].a +
@@ -886,15 +881,12 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
           a += result[neighbor].a;
         }
         finalResult[i * 4] = (r / validNeighbors.length).clamp(0, 255).toInt();
-        finalResult[i * 4 + 1] = (g / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
-        finalResult[i * 4 + 2] = (b / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
-        finalResult[i * 4 + 3] = (a / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
+        finalResult[i * 4 + 1] =
+            (g / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 2] =
+            (b / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 3] =
+            (a / validNeighbors.length).clamp(0, 255).toInt();
       } else {
         // If no valid neighbors, set to transparent black
         finalResult[i * 4] = 0;
@@ -945,8 +937,7 @@ Uint8List maxIntensityProjection(
       // Calculate intensity (using luminance formula)
       double intensityCurrent =
           0.299 * result[i] + 0.587 * result[i + 1] + 0.114 * result[i + 2];
-      double intensityNew =
-          0.299 * textures[t][i] +
+      double intensityNew = 0.299 * textures[t][i] +
           0.587 * textures[t][i + 1] +
           0.114 * textures[t][i + 2];
 
@@ -1067,8 +1058,8 @@ Uint8List comparePixelBuffers(
       // Compare RGB values
       final bool isDifferent =
           (buffer1[index] - buffer2[index]).abs() > threshold ||
-          (buffer1[index + 1] - buffer2[index + 1]).abs() > threshold ||
-          (buffer1[index + 2] - buffer2[index + 2]).abs() > threshold;
+              (buffer1[index + 1] - buffer2[index + 1]).abs() > threshold ||
+              (buffer1[index + 2] - buffer2[index + 2]).abs() > threshold;
 
       if (isDifferent) {
         // result[index] = (buffer1[index] - buffer2[index]).abs(); // R

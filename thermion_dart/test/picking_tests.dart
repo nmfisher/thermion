@@ -16,28 +16,28 @@ void main() async {
         // Camera looking at XZ plane from an angle
         .setCameraLookAt(Vector3(10, 10, 10), focus: Vector3(0, 0, 0))
         .execute((result) async {
-          final viewer = result.viewer;
-          final cube = await viewer.createGeometry(GeometryUtils.cube());
-          final view = await viewer.view;
-          final viewport = await view.getViewport();
+      final viewer = result.viewer;
+      final cube = await viewer.createGeometry(GeometryUtils.cube());
+      final view = await viewer.view;
+      final viewport = await view.getViewport();
 
-          final completer = Completer<PickResult>();
+      final completer = Completer<PickResult>();
 
-          await view.pick(viewport.width ~/ 2, viewport.height ~/ 2, (result) {
-            completer.complete(result);
-          });
+      await view.pick(viewport.width ~/ 2, viewport.height ~/ 2, (result) {
+        completer.complete(result);
+      });
 
-          for (int i = 0; i < 10; i++) {
-            await testHelper.capture(viewer.view, "opaque_pick");
-            if (completer.isCompleted) {
-              break;
-            }
-          }
+      for (int i = 0; i < 10; i++) {
+        await testHelper.capture(viewer.view, "opaque_pick");
+        if (completer.isCompleted) {
+          break;
+        }
+      }
 
-          expect(completer.isCompleted, true);
-          var pickResult = await completer.future;
-          expect(pickResult.entity, cube.entity);
-        });
+      expect(completer.isCompleted, true);
+      var pickResult = await completer.future;
+      expect(pickResult.entity, cube.entity);
+    });
   });
 
   // test('pick transparent cube with transparent picking disabled ', () async {

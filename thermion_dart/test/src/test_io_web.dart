@@ -62,7 +62,8 @@ Future<Uint8List> loadResourceBytes(String uri) async {
 /// (optionally file://-prefixed) contains "examples/assets/<rel>"; <rel> is
 /// what the proxy resolves against its --assets dir. Falls back to the basename.
 String _assetRelPath(String uri) {
-  final path = uri.startsWith('file://') ? uri.substring('file://'.length) : uri;
+  final path =
+      uri.startsWith('file://') ? uri.substring('file://'.length) : uri;
   const marker = 'examples/assets/';
   final i = path.indexOf(marker);
   if (i >= 0) return path.substring(i + marker.length);

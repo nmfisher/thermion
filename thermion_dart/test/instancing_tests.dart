@@ -76,7 +76,8 @@ void main() async {
     },
   );
 
-  test("When loadGltf is called with releaseSourceData=true, only the "
+  test(
+      "When loadGltf is called with releaseSourceData=true, only the "
       "pre-allocated instances can be created", () async {
     await testHelper.withViewer((viewer) async {
       var asset = await viewer.loadGltf(

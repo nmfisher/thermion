@@ -316,9 +316,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         }
         break;
       case AppLifecycleState.resumed:
-        unawaited(_resumeFromLifecycle().catchError((Object error) {
-          _logger.severe('Failed to resume frame scheduler: $error');
-        }));
+        unawaited(
+          _resumeFromLifecycle().catchError((Object error) {
+            _logger.severe('Failed to resume frame scheduler: $error');
+          }),
+        );
         break;
       case AppLifecycleState.inactive:
         // The app can remain visible while inactive (split screen, system UI,

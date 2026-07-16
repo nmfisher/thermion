@@ -11,9 +11,8 @@ class FFIGltfMeshData extends GltfMeshData {
   /// Returns vertex positions (xyz) and optional indices.
   /// If [meshName] is specified, only extracts data for that specific mesh.
   static Future<GltfMeshData> parse(Uint8List data, {String? meshName}) async {
-    final meshNamePtr = meshName != null
-        ? meshName.toNativeUtf8().cast<Char>()
-        : nullptr;
+    final meshNamePtr =
+        meshName != null ? meshName.toNativeUtf8().cast<Char>() : nullptr;
 
     final meshData = Struct.create<TGltfMeshData>();
 

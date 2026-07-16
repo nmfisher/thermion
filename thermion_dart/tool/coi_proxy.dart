@@ -172,9 +172,14 @@ Future<void> _handleClient(Socket client) async {
       }
       resp.write('$h\r\n');
     }
-    resp..write('$_coop\r\n')..write('$_coep\r\n')..write('$_corp\r\n')..write('\r\n');
+    resp
+      ..write('$_coop\r\n')
+      ..write('$_coep\r\n')
+      ..write('$_corp\r\n')
+      ..write('\r\n');
     client.add(utf8.encode(resp.toString()));
-    await upReader.forwardTo(client); // completes on upstream EOF (Connection: close)
+    await upReader
+        .forwardTo(client); // completes on upstream EOF (Connection: close)
     // Flush gracefully before teardown: destroy() discards unsent buffered
     // bytes, which truncates large bodies (e.g. the 3.8MB wasm).
     try {

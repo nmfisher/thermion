@@ -57,7 +57,7 @@ class TransformationGizmo {
   Vector2? _dragStartScreen;
   Matrix4? _targetStartTransform;
   Matrix4?
-  _lastComputedWorldTransform; // Last computed world transform for callback
+      _lastComputedWorldTransform; // Last computed world transform for callback
 
   // Hover state
   GizmoAxis _hoveredAxis = GizmoAxis.none;
@@ -505,11 +505,11 @@ class TransformationGizmo {
     // original position for the duration of the drag operation
     if (isActive && position == null) return;
 
-    final targetPos =
-        position ??
+    final targetPos = position ??
         (await FilamentApp.instance!.transformManager.getWorldTransform(
           _attachedTarget!,
-        )).getTranslation();
+        ))
+            .getTranslation();
 
     if (_isDisposed) return;
 
@@ -553,8 +553,7 @@ class TransformationGizmo {
 
     // Project a point from world space to screen space
     Vector2 projectToScreen(Vector3 worldPos) {
-      final clipSpace =
-          projectionMatrix *
+      final clipSpace = projectionMatrix *
           viewMatrix *
           Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
       final ndc = clipSpace / clipSpace.w;
@@ -604,25 +603,19 @@ class TransformationGizmo {
           Vector3 ringPoint1, ringPoint2;
           final ringRadius = 1.0 * gizmoScale;
           if (axis == GizmoAxis.x) {
-            ringPoint1 =
-                gizmoWorldPos +
+            ringPoint1 = gizmoWorldPos +
                 Vector3(0, math.cos(angle1), math.sin(angle1)) * ringRadius;
-            ringPoint2 =
-                gizmoWorldPos +
+            ringPoint2 = gizmoWorldPos +
                 Vector3(0, math.cos(angle2), math.sin(angle2)) * ringRadius;
           } else if (axis == GizmoAxis.y) {
-            ringPoint1 =
-                gizmoWorldPos +
+            ringPoint1 = gizmoWorldPos +
                 Vector3(math.cos(angle1), 0, math.sin(angle1)) * ringRadius;
-            ringPoint2 =
-                gizmoWorldPos +
+            ringPoint2 = gizmoWorldPos +
                 Vector3(math.cos(angle2), 0, math.sin(angle2)) * ringRadius;
           } else {
-            ringPoint1 =
-                gizmoWorldPos +
+            ringPoint1 = gizmoWorldPos +
                 Vector3(math.cos(angle1), math.sin(angle1), 0) * ringRadius;
-            ringPoint2 =
-                gizmoWorldPos +
+            ringPoint2 = gizmoWorldPos +
                 Vector3(math.cos(angle2), math.sin(angle2), 0) * ringRadius;
           }
 
@@ -742,8 +735,7 @@ class TransformationGizmo {
 
     // Get gizmo position in screen space
     final gizmoWorldPos = _targetStartTransform!.getTranslation();
-    final gizmoClipSpace =
-        projectionMatrix *
+    final gizmoClipSpace = projectionMatrix *
         viewMatrix *
         Vector4(gizmoWorldPos.x, gizmoWorldPos.y, gizmoWorldPos.z, 1.0);
 
@@ -819,8 +811,7 @@ class TransformationGizmo {
     if (_isDisposed || _targetStartTransform == null) return;
 
     final gizmoWorldPos = _targetStartTransform!.getTranslation();
-    final gizmoClipSpace =
-        projectionMatrix *
+    final gizmoClipSpace = projectionMatrix *
         viewMatrix *
         Vector4(gizmoWorldPos.x, gizmoWorldPos.y, gizmoWorldPos.z, 1.0);
 
@@ -1000,8 +991,7 @@ class TransformationGizmo {
     // Project a point from local ring space to screen space
     Vector2 projectToScreen(Vector3 localPos) {
       final worldPos = gizmoWorldPos + localPos * gizmoScale;
-      final clipSpace =
-          projectionMatrix *
+      final clipSpace = projectionMatrix *
           viewMatrix *
           Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
       final ndc = clipSpace / clipSpace.w;

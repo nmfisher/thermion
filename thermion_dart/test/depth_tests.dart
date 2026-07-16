@@ -69,12 +69,10 @@ void main() async {
 
   test('write depth value to R32F texture', () async {
     final viewportDimensions = (width: 512, height: 512);
-    var swapChain =
-        await FilamentApp.instance!.createHeadlessSwapChain(
-              viewportDimensions.width,
-              viewportDimensions.height,
-            )
-            as FFISwapChain;
+    var swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+      viewportDimensions.width,
+      viewportDimensions.height,
+    ) as FFISwapChain;
 
     var color = await FilamentApp.instance!.createTexture(
       viewportDimensions.width,
@@ -87,13 +85,11 @@ void main() async {
       textureFormat: TextureFormat.R32F,
     );
 
-    var renderTarget =
-        await FilamentApp.instance!.createRenderTarget(
-              viewportDimensions.width,
-              viewportDimensions.height,
-              color: color,
-            )
-            as FFIRenderTarget;
+    var renderTarget = await FilamentApp.instance!.createRenderTarget(
+      viewportDimensions.width,
+      viewportDimensions.height,
+      color: color,
+    ) as FFIRenderTarget;
 
     var view = await FilamentApp.instance!.createView() as FFIView;
     await view.setPostProcessing(false);
@@ -165,9 +161,8 @@ void main() async {
         final camera = await viewer.getActiveCamera();
         await camera.lookAt(Vector3(3, 3, 6));
 
-        final swapChain =
-            await FilamentApp.instance!.createHeadlessSwapChain(512, 512)
-                as FFISwapChain;
+        final swapChain = await FilamentApp.instance!
+            .createHeadlessSwapChain(512, 512) as FFISwapChain;
         final view = await createView(swapChain);
         await testHelper.withCube(viewer, (cube) async {
           var mat = await FilamentApp.instance!.createMaterial(

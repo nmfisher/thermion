@@ -63,8 +63,8 @@ void main() async {
         expect(originalMaterial, isNotNull);
 
         // Create a new material instance with a different color
-        final newMaterial = await FilamentApp.instance!
-            .createUbershaderMaterialInstance();
+        final newMaterial =
+            await FilamentApp.instance!.createUbershaderMaterialInstance();
         await newMaterial.setParameterFloat4(
           'baseColorFactor',
           0.0,
@@ -427,9 +427,12 @@ void main() async {
 
           // offset parameter should be accepted (writing past end of buffer is
           // a no-op when boneCount is 1 and only one bone is allocated).
-          await renderableManager.setBonesFromMat4(meshEntity, [
-            Matrix4.identity(),
-          ], offset: 0);
+          await renderableManager.setBonesFromMat4(
+              meshEntity,
+              [
+                Matrix4.identity(),
+              ],
+              offset: 0);
 
           // Empty list is a safe no-op (short-circuits before FFI call).
           await renderableManager.setBonesFromMat4(meshEntity, <Matrix4>[]);
@@ -473,11 +476,10 @@ void main() async {
                   ))
                 .build();
 
-        final indexBuffer =
-            await (renderableManager.createIndexBufferBuilder()
-                  ..indexCount(6)
-                  ..bufferType(IndexType.USHORT))
-                .build();
+        final indexBuffer = await (renderableManager.createIndexBufferBuilder()
+              ..indexCount(6)
+              ..bufferType(IndexType.USHORT))
+            .build();
 
         final positions = Float32List.fromList([
           -0.5, -0.5, 0.0, // vertex 0 (bottom-left)

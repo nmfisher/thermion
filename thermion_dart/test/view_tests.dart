@@ -93,12 +93,10 @@ void main() async {
     var green = await FilamentApp.instance!.createUnlitMaterialInstance();
     await green.setParameterFloat4("baseColorFactor", 0, 1, 0, 1);
 
-    var cube =
-        await FilamentApp.instance!.createGeometry(
-              GeometryUtils.cube(flipUvs: true),
-              materialInstances: [red],
-            )
-            as FFIAsset;
+    var cube = await FilamentApp.instance!.createGeometry(
+      GeometryUtils.cube(flipUvs: true),
+      materialInstances: [red],
+    ) as FFIAsset;
 
     await scene.add(cube);
 
@@ -107,9 +105,9 @@ void main() async {
     try {
       await testHelper.capture(null, "multiview_change_material_instance",
           swapChain: swapChain, beforeRender: (view) async {
-          if (view == views.last) {
-            await cube.setMaterialInstanceAt(green);
-          }
+        if (view == views.last) {
+          await cube.setMaterialInstanceAt(green);
+        }
       });
     } finally {
       // Cleanup in the same order as ThermionViewerFFI.dispose()
@@ -151,40 +149,38 @@ void main() async {
       await FilamentApp.instance!.renderManager.attach(view, swapChain);
 
       views.add(view);
-      await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
-              viewportDimensions.width,
-              viewportDimensions.height,
-            )
-            as FFIRenderTarget,
+      await view.setRenderTarget(
+        await FilamentApp.instance!.createRenderTarget(
+          viewportDimensions.width,
+          viewportDimensions.height,
+        ) as FFIRenderTarget,
       );
     }
 
     await camera.lookAt(Vector3(0, 0, 10));
 
-    var materialInstance = await FilamentApp.instance!
-        .createUnlitMaterialInstance();
+    var materialInstance =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
-    var cube =
-        await FilamentApp.instance!.createGeometry(
-              GeometryUtils.cube(flipUvs: true),
-              materialInstances: [materialInstance],
-            )
-            as FFIAsset;
+    var cube = await FilamentApp.instance!.createGeometry(
+      GeometryUtils.cube(flipUvs: true),
+      materialInstances: [materialInstance],
+    ) as FFIAsset;
 
     await scene.add(cube);
     final results = await FilamentApp.instance!.capture(swapChain);
 
     await savePixelBufferToBmp(
-      results.first.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        results.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "multi_view_same_camera_0.bmp"),
         isFloat: true);
     await savePixelBufferToBmp(
-      results.last.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        results.last.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "multi_view_same_camera_1.bmp"),
         isFloat: true);
 
@@ -220,16 +216,14 @@ void main() async {
     await views.first.setCamera(camera1);
     await views.last.setCamera(camera2);
 
-    var materialInstance = await FilamentApp.instance!
-        .createUnlitMaterialInstance();
+    var materialInstance =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
-    var cube =
-        await FilamentApp.instance!.createGeometry(
-              GeometryUtils.cube(flipUvs: true),
-              materialInstances: [materialInstance],
-            )
-            as FFIAsset;
+    var cube = await FilamentApp.instance!.createGeometry(
+      GeometryUtils.cube(flipUvs: true),
+      materialInstances: [materialInstance],
+    ) as FFIAsset;
 
     await scene.add(cube);
 
@@ -259,10 +253,9 @@ void main() async {
       await view.setPostProcessing(false);
       await view.setRenderTarget(
         await FilamentApp.instance!.createRenderTarget(
-              viewportDimensions.width,
-              viewportDimensions.height,
-            )
-            as FFIRenderTarget,
+          viewportDimensions.width,
+          viewportDimensions.height,
+        ) as FFIRenderTarget,
       );
       await FilamentApp.instance!.renderManager.attach(view, swapChain);
 
@@ -272,16 +265,14 @@ void main() async {
 
     await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
 
-    var materialInstance1 = await FilamentApp.instance!
-        .createUnlitMaterialInstance();
+    var materialInstance1 =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
     await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
-    var cube =
-        await FilamentApp.instance!.createGeometry(
-              GeometryUtils.cube(flipUvs: true),
-              materialInstances: [materialInstance1],
-            )
-            as FFIAsset;
+    var cube = await FilamentApp.instance!.createGeometry(
+      GeometryUtils.cube(flipUvs: true),
+      materialInstances: [materialInstance1],
+    ) as FFIAsset;
 
     await scene.add(cube);
 
@@ -289,17 +280,17 @@ void main() async {
         await FilamentApp.instance!.capture(swapChain, view: views.first);
 
     await savePixelBufferToBmp(
-      result.first.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "render_target_output.bmp"),
         isFloat: true);
 
-    var materialInstance2 = await FilamentApp.instance!
-        .createUbershaderMaterialInstance(
-          hasBaseColorTexture: true,
-          unlit: false,
-        );
+    var materialInstance2 =
+        await FilamentApp.instance!.createUbershaderMaterialInstance(
+      hasBaseColorTexture: true,
+      unlit: false,
+    );
 
     var light = await FilamentApp.instance!.createDirectLight(DirectLight(
         type: LightType.SUN,
@@ -308,8 +299,8 @@ void main() async {
         position: Vector3.zero()));
     await scene.addEntity(light);
 
-    final texture = await (await views.first.getRenderTarget())!
-        .getColorTexture();
+    final texture =
+        await (await views.first.getRenderTarget())!.getColorTexture();
 
     await materialInstance2.setParameterTexture("baseColorMap", texture,
         await FilamentApp.instance!.createTextureSampler());
@@ -320,9 +311,9 @@ void main() async {
     result = await FilamentApp.instance!.capture(swapChain, view: views.last);
 
     await savePixelBufferToBmp(
-      result.first.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "render_target_as_texture.bmp"),
         isFloat: true);
 
@@ -341,12 +332,10 @@ void main() async {
     await FilamentApp.instance!.setClearOptions(0, 0, 0, 0,
         clear: false, clearStencil: 0, discard: false);
 
-    final renderTarget =
-        await FilamentApp.instance!.createRenderTarget(
-              viewportDimensions.width,
-              viewportDimensions.height,
-            )
-            as FFIRenderTarget;
+    final renderTarget = await FilamentApp.instance!.createRenderTarget(
+      viewportDimensions.width,
+      viewportDimensions.height,
+    ) as FFIRenderTarget;
 
     for (int i = 0; i < 2; i++) {
       final camera = await FilamentApp.instance!.createCamera() as FFICamera;
@@ -370,11 +359,9 @@ void main() async {
       await camera.lookAt(Vector3(0, 4, 12),
           focus: Vector3(i == 0 ? -2 : 2, 0, 0));
 
-      var cube =
-          await FilamentApp.instance!.createGeometry(
-                GeometryUtils.cube(flipUvs: true),
-              )
-              as FFIAsset;
+      var cube = await FilamentApp.instance!.createGeometry(
+        GeometryUtils.cube(flipUvs: true),
+      ) as FFIAsset;
 
       await scene.add(cube);
     }
@@ -382,15 +369,15 @@ void main() async {
         .capture(swapChain, captureRenderTarget: true);
 
     await savePixelBufferToBmp(
-      result.first.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "two_views_same_render_target1.bmp"),
         isFloat: true);
     await savePixelBufferToBmp(
-      result.last.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        result.last.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "two_views_same_render_target2.bmp"),
         isFloat: true);
     await FilamentApp.instance!.destroySwapChain(swapChain);
@@ -417,10 +404,9 @@ void main() async {
       await view.setPostProcessing(false);
       await view.setRenderTarget(
         await FilamentApp.instance!.createRenderTarget(
-              viewportDimensions.width,
-              viewportDimensions.height,
-            )
-            as FFIRenderTarget,
+          viewportDimensions.width,
+          viewportDimensions.height,
+        ) as FFIRenderTarget,
       );
       await FilamentApp.instance!.renderManager.attach(view, swapChain);
 
@@ -430,16 +416,14 @@ void main() async {
 
     await camera.lookAt(Vector3(0, 4, 12), focus: Vector3(0, -4, 0));
 
-    var materialInstance1 = await FilamentApp.instance!
-        .createUnlitMaterialInstance();
+    var materialInstance1 =
+        await FilamentApp.instance!.createUnlitMaterialInstance();
     await materialInstance1.setParameterFloat4("baseColorFactor", 1, 0, 0, 0);
 
-    var cube =
-        await FilamentApp.instance!.createGeometry(
-              GeometryUtils.cube(flipUvs: true),
-              materialInstances: [materialInstance1],
-            )
-            as FFIAsset;
+    var cube = await FilamentApp.instance!.createGeometry(
+      GeometryUtils.cube(flipUvs: true),
+      materialInstances: [materialInstance1],
+    ) as FFIAsset;
 
     await scene.add(cube);
 
@@ -447,17 +431,17 @@ void main() async {
         await FilamentApp.instance!.capture(swapChain, view: views.first);
 
     await savePixelBufferToBmp(
-      result.first.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "render_target_output.bmp"),
         isFloat: true);
 
-    var materialInstance2 = await FilamentApp.instance!
-        .createUbershaderMaterialInstance(
-          hasBaseColorTexture: true,
-          unlit: false,
-        );
+    var materialInstance2 =
+        await FilamentApp.instance!.createUbershaderMaterialInstance(
+      hasBaseColorTexture: true,
+      unlit: false,
+    );
 
     var light = await FilamentApp.instance!.createDirectLight(DirectLight(
         type: LightType.SUN,
@@ -466,8 +450,8 @@ void main() async {
         position: Vector3.zero()));
     await scene.addEntity(light);
 
-    final texture = await (await views.first.getRenderTarget())!
-        .getColorTexture();
+    final texture =
+        await (await views.first.getRenderTarget())!.getColorTexture();
 
     await materialInstance2.setParameterTexture("baseColorMap", texture,
         await FilamentApp.instance!.createTextureSampler());
@@ -478,9 +462,9 @@ void main() async {
     result = await FilamentApp.instance!.capture(swapChain, view: views.last);
 
     await savePixelBufferToBmp(
-      result.first.$2,
-      viewportDimensions.width,
-      viewportDimensions.height,
+        result.first.$2,
+        viewportDimensions.width,
+        viewportDimensions.height,
         p.join(testHelper.outDirPath, "render_target_as_texture.bmp"),
         isFloat: true);
 
@@ -494,38 +478,38 @@ void main() async {
         .addCube(position: Vector3(0, 0, -20))
         .setCameraLookAt(Vector3(1, 5, 10))
         .execute((result) async {
-          // Test default fog options (should be disabled)
-          final defaultOptions = result.viewer.view.getFogOptions();
-          expect(defaultOptions.enabled, isFalse);
-          expect(defaultOptions.distance, closeTo(0.0, 0.001));
-          expect(defaultOptions.density, closeTo(0.1, 0.001));
+      // Test default fog options (should be disabled)
+      final defaultOptions = result.viewer.view.getFogOptions();
+      expect(defaultOptions.enabled, isFalse);
+      expect(defaultOptions.distance, closeTo(0.0, 0.001));
+      expect(defaultOptions.density, closeTo(0.1, 0.001));
 
-          await testHelper.capture(result.viewer.view, "fog_options_disabled");
+      await testHelper.capture(result.viewer.view, "fog_options_disabled");
 
-          // Set custom fog options
-          final customOptions = FogOptions(
-            enabled: true,
-            distance: 0,
-            density: 0.5,
-            cutOffDistance: 100.0,
-            maximumOpacity: 0.9,
-            linearColor: Vector3(0.8, 0.9, 1.0),
-          );
-          await result.viewer.view.setFogOptions(customOptions);
+      // Set custom fog options
+      final customOptions = FogOptions(
+        enabled: true,
+        distance: 0,
+        density: 0.5,
+        cutOffDistance: 100.0,
+        maximumOpacity: 0.9,
+        linearColor: Vector3(0.8, 0.9, 1.0),
+      );
+      await result.viewer.view.setFogOptions(customOptions);
 
-          // Verify the options were set correctly
-          final retrievedOptions = result.viewer.view.getFogOptions();
-          expect(retrievedOptions.enabled, isTrue);
-          expect(retrievedOptions.distance, closeTo(0.0, 0.001));
-          expect(retrievedOptions.density, closeTo(0.5, 0.001));
-          expect(retrievedOptions.cutOffDistance, closeTo(100.0, 0.001));
-          expect(retrievedOptions.maximumOpacity, closeTo(0.9, 0.001));
-          expect(retrievedOptions.linearColor.r, closeTo(0.8, 0.001));
-          expect(retrievedOptions.linearColor.g, closeTo(0.9, 0.001));
-          expect(retrievedOptions.linearColor.b, closeTo(1.0, 0.001));
+      // Verify the options were set correctly
+      final retrievedOptions = result.viewer.view.getFogOptions();
+      expect(retrievedOptions.enabled, isTrue);
+      expect(retrievedOptions.distance, closeTo(0.0, 0.001));
+      expect(retrievedOptions.density, closeTo(0.5, 0.001));
+      expect(retrievedOptions.cutOffDistance, closeTo(100.0, 0.001));
+      expect(retrievedOptions.maximumOpacity, closeTo(0.9, 0.001));
+      expect(retrievedOptions.linearColor.r, closeTo(0.8, 0.001));
+      expect(retrievedOptions.linearColor.g, closeTo(0.9, 0.001));
+      expect(retrievedOptions.linearColor.b, closeTo(1.0, 0.001));
 
-          await testHelper.capture(result.viewer.view, "fog_options_enabled");
-        });
+      await testHelper.capture(result.viewer.view, "fog_options_enabled");
+    });
   });
 
   test('show/hide stencil highlight', () async {
@@ -533,130 +517,130 @@ void main() async {
         .setRenderTargetEnabled(true)
         .setStencilBufferEnabled(true)
         .execute((result) async {
-          await result.viewer.view.setHighlightOverlayEnabled(true);
+      await result.viewer.view.setHighlightOverlayEnabled(true);
 
-          final manager = result.viewer.view.getHighlightOverlay();
-          assert(manager != null);
+      final manager = result.viewer.view.getHighlightOverlay();
+      assert(manager != null);
 
       var cube = await FilamentApp.instance!
           .createGeometry(GeometryUtils.cube(flipUvs: true));
-          await result.viewer.addToScene(cube);
+      await result.viewer.addToScene(cube);
 
-          await result.viewer.view.setStencilHighlight(
-            cube,
-            r: 1.0,
-            g: 0.5,
-            b: 0.0,
-            outlineWidth: 5.0,
-          );
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 1.0,
+        g: 0.5,
+        b: 0.0,
+        outlineWidth: 5.0,
+      );
       await FilamentApp.instance!
           .setClearOptions(1, 1, 1, 0, clear: true, discard: false);
-          await FilamentApp.instance!.render();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_5px_orange",
           render: true, captureRenderTarget: true);
 
-          // Test with thin outline (1 pixel) and blue color
-          await result.viewer.view.removeStencilHighlight(cube);
-          await result.viewer.view.setStencilHighlight(
-            cube,
-            r: 0.0,
-            g: 0.5,
-            b: 1.0,
-            outlineWidth: 1.0,
-          );
+      // Test with thin outline (1 pixel) and blue color
+      await result.viewer.view.removeStencilHighlight(cube);
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 0.0,
+        g: 0.5,
+        b: 1.0,
+        outlineWidth: 1.0,
+      );
 
-          await FilamentApp.instance!.render();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_1px_blue",
           captureRenderTarget: true, render: false);
 
-          // Test that highlight follows object translation
-          await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
+      // Test that highlight follows object translation
+      await cube.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
 
-          await FilamentApp.instance!.render();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_translate",
           captureRenderTarget: true, render: false);
 
-          // Test that highlight follows object rotation
-          await cube.setTransform(
+      // Test that highlight follows object rotation
+      await cube.setTransform(
           Matrix4.translation(Vector3(-2, 1, 0)) * Matrix4.rotationZ(0.5));
 
-          await FilamentApp.instance!.render();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_rotate",
           captureRenderTarget: true, render: false);
 
-          // Test that highlight works after camera change
-          final camera = await result.viewer.view.getCamera();
-          await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
+      // Test that highlight works after camera change
+      final camera = await result.viewer.view.getCamera();
+      await camera.lookAt(Vector3(5, 3, 10), focus: Vector3(0, 0, 0));
 
-          await FilamentApp.instance!.render();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_camera_move",
           captureRenderTarget: true, render: false);
 
-          await result.viewer.view.removeStencilHighlight(cube);
+      await result.viewer.view.removeStencilHighlight(cube);
 
-          Logger.root.log(Level.ALL, "removed stencil highlight");
+      Logger.root.log(Level.ALL, "removed stencil highlight");
 
-          // Disable the highlight overlay system
-          await result.viewer.view.setHighlightOverlayEnabled(false);
+      // Disable the highlight overlay system
+      await result.viewer.view.setHighlightOverlayEnabled(false);
 
-          Logger.root.log(Level.ALL, "disabled highlight overlay");
+      Logger.root.log(Level.ALL, "disabled highlight overlay");
 
-          await FilamentApp.instance!.render();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "stencil_highlight_after_overlay_disabled",
           captureRenderTarget: true, render: false);
-        });
+    });
   });
 
   test(
-    'consecutive setStencilHighlight with different colors updates correctly',
-    () async {
-      await ViewerBuilder(testHelper)
-          .setRenderTargetEnabled(true)
-          .setStencilBufferEnabled(true)
-          .execute((result) async {
-            await result.viewer.view.setHighlightOverlayEnabled(true);
+      'consecutive setStencilHighlight with different colors updates correctly',
+      () async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .setStencilBufferEnabled(true)
+        .execute((result) async {
+      await result.viewer.view.setHighlightOverlayEnabled(true);
 
       var cube = await FilamentApp.instance!
           .createGeometry(GeometryUtils.cube(flipUvs: true));
-            await result.viewer.addToScene(cube);
+      await result.viewer.addToScene(cube);
 
-            // Set initial highlight to orange
-            await result.viewer.view.setStencilHighlight(
-              cube,
-              r: 1.0,
-              g: 0.5,
-              b: 0.0,
-              outlineWidth: 5.0,
-            );
-            await FilamentApp.instance!.render();
+      // Set initial highlight to orange
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 1.0,
+        g: 0.5,
+        b: 0.0,
+        outlineWidth: 5.0,
+      );
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "consecutive_highlight_first_color_orange",
           render: true, captureRenderTarget: true);
 
-            // Change to blue - this should now work correctly
-            await result.viewer.view.setStencilHighlight(
-              cube,
-              r: 0.0,
-              g: 0.5,
-              b: 1.0,
-              outlineWidth: 5.0,
-            );
+      // Change to blue - this should now work correctly
+      await result.viewer.view.setStencilHighlight(
+        cube,
+        r: 0.0,
+        g: 0.5,
+        b: 1.0,
+        outlineWidth: 5.0,
+      );
 
-            await FilamentApp.instance!.render();
+      await FilamentApp.instance!.render();
 
       await testHelper.capture(null, "consecutive_highlight_second_color_blue",
           captureRenderTarget: true, render: false);
-            // Should now be blue, not orange!
+      // Should now be blue, not orange!
 
-            await result.viewer.view.removeStencilHighlight(cube);
-            await result.viewer.view.setHighlightOverlayEnabled(false);
-          });
+      await result.viewer.view.removeStencilHighlight(cube);
+      await result.viewer.view.setHighlightOverlayEnabled(false);
+    });
   });
 
   test('stencil highlight visible on plane from both sides', () async {
@@ -670,7 +654,7 @@ void main() async {
           .createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 1);
       var plane = await FilamentApp.instance!.createGeometry(
-        GeometryUtils.plane(width: 2, height: 2),
+          GeometryUtils.plane(width: 2, height: 2),
           materialInstances: [materialInstance]);
       await result.viewer.addToScene(plane);
 
@@ -713,7 +697,7 @@ void main() async {
 
       // Load FlightHelmet, a multi-mesh glTF asset
       final asset = await result.viewer.loadGltf(
-        p.join(testHelper.assetsDir, "FlightHelmet", "FlightHelmet.gltf"),
+          p.join(testHelper.assetsDir, "FlightHelmet", "FlightHelmet.gltf"),
           rebuildVertices: true);
       expect(asset, isNotNull);
 
@@ -787,8 +771,8 @@ void main() async {
             reason: "Test relies on secondChild not being at offset 0");
 
         // Get the primitive count for secondChild
-        final secondChildPrimCount = await FilamentApp.instance!
-            .getPrimitiveCount(secondChild);
+        final secondChildPrimCount =
+            await FilamentApp.instance!.getPrimitiveCount(secondChild);
 
         // Verify that we can access the buffers at the correct offset
         for (int i = 0; i < secondChildPrimCount; i++) {
@@ -858,16 +842,16 @@ void main() async {
         .setRenderTargetEnabled(true)
         .setShadowType(ShadowType.VSM)
         .addSun(
-          intensity: 50000,
-          castShadows: true,
+            intensity: 50000,
+            castShadows: true,
             direction: Vector3(1, -0.5, 0).normalized())
         .addCube(castShadows: true, color: kRed)
         .addPlane(
-          position: Vector3(0, -1.5, 0),
-          rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
-          scale: Vector3(10, 10, 1),
-          receiveShadows: true,
-          castShadows: false,
+            position: Vector3(0, -1.5, 0),
+            rotation: Quaternion.axisAngle(Vector3(1, 0, 0), -3.14159 / 2),
+            scale: Vector3(10, 10, 1),
+            receiveShadows: true,
+            castShadows: false,
             color: kGreen);
 
     await builder.execute((result) async {
@@ -1153,10 +1137,10 @@ void main() async {
       // Enable basic ambient occlusion
       await result.viewer.view
           .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-          enabled: true,
-          radius: 0.5,
-          intensity: 1.0,
-          quality: QualityLevel.MEDIUM,
+        enabled: true,
+        radius: 0.5,
+        intensity: 1.0,
+        quality: QualityLevel.MEDIUM,
       ));
       await testHelper.capture(
           result.viewer.view, "ambient_occlusion_enabled_basic");
@@ -1164,11 +1148,11 @@ void main() async {
       // Enable higher quality ambient occlusion
       await result.viewer.view
           .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-          enabled: true,
-          radius: 0.8,
-          intensity: 1.5,
-          quality: QualityLevel.HIGH,
-          bentNormals: true,
+        enabled: true,
+        radius: 0.8,
+        intensity: 1.5,
+        quality: QualityLevel.HIGH,
+        bentNormals: true,
       ));
       await testHelper.capture(
           result.viewer.view, "ambient_occlusion_enabled_high_quality");
@@ -1176,12 +1160,12 @@ void main() async {
       // Test with bent normals enabled
       await result.viewer.view
           .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-          enabled: true,
-          radius: 0.6,
-          intensity: 1.2,
-          quality: QualityLevel.HIGH,
-          bentNormals: true,
-          bilateralThreshold: 0.02,
+        enabled: true,
+        radius: 0.6,
+        intensity: 1.2,
+        quality: QualityLevel.HIGH,
+        bentNormals: true,
+        bilateralThreshold: 0.02,
       ));
       await testHelper.capture(
           result.viewer.view, "ambient_occlusion_bent_normals");
@@ -1189,20 +1173,20 @@ void main() async {
       // Test with different radius values
       await result.viewer.view
           .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-          enabled: true,
-          radius: 0.2,
-          intensity: 1.0,
-          quality: QualityLevel.MEDIUM,
+        enabled: true,
+        radius: 0.2,
+        intensity: 1.0,
+        quality: QualityLevel.MEDIUM,
       ));
       await testHelper.capture(
           result.viewer.view, "ambient_occlusion_small_radius");
 
       await result.viewer.view
           .setAmbientOcclusionOptions(AmbientOcclusionOptions(
-          enabled: true,
-          radius: 1.0,
-          intensity: 1.0,
-          quality: QualityLevel.MEDIUM,
+        enabled: true,
+        radius: 1.0,
+        intensity: 1.0,
+        quality: QualityLevel.MEDIUM,
       ));
       await testHelper.capture(
           result.viewer.view, "ambient_occlusion_large_radius");
@@ -1220,18 +1204,18 @@ void main() async {
       // Enable ambient occlusion with SSCT
       await result.viewer.view
           .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.5,
+        intensity: 1.0,
+        quality: QualityLevel.HIGH,
+        ssct: SsctOptions(
           enabled: true,
-          radius: 0.5,
-          intensity: 1.0,
-          quality: QualityLevel.HIGH,
-          ssct: SsctOptions(
-            enabled: true,
-            lightDirection: [0.5, -1, 0.2],
-            intensity: 0.8,
-            shadowDistance: 0.5,
-            contactDistanceMax: 1.0,
-            sampleCount: 4,
-          ),
+          lightDirection: [0.5, -1, 0.2],
+          intensity: 0.8,
+          shadowDistance: 0.5,
+          contactDistanceMax: 1.0,
+          sampleCount: 4,
+        ),
       ));
       await testHelper.capture(
           result.viewer.view, "ambient_occlusion_ssct_enabled");
@@ -1239,19 +1223,19 @@ void main() async {
       // Test with different SSCT parameters
       await result.viewer.view
           .setAmbientOcclusionOptions(AmbientOcclusionOptions(
+        enabled: true,
+        radius: 0.5,
+        intensity: 1.0,
+        quality: QualityLevel.HIGH,
+        ssct: SsctOptions(
           enabled: true,
-          radius: 0.5,
-          intensity: 1.0,
-          quality: QualityLevel.HIGH,
-          ssct: SsctOptions(
-            enabled: true,
-            lightDirection: [0.3, -0.9, 0.1],
-            intensity: 1.2,
-            shadowDistance: 0.8,
-            contactDistanceMax: 1.5,
-            sampleCount: 8,
-            rayCount: 2,
-          ),
+          lightDirection: [0.3, -0.9, 0.1],
+          intensity: 1.2,
+          shadowDistance: 0.8,
+          contactDistanceMax: 1.5,
+          sampleCount: 8,
+          rayCount: 2,
+        ),
       ));
       await testHelper.capture(
           result.viewer.view, "ambient_occlusion_ssct_custom");
@@ -1355,60 +1339,60 @@ void main() async {
         // Camera looking at XZ plane from an angle
         .setCameraLookAt(Vector3(30, 30, 30), focus: Vector3(0, 0, 0))
         .execute((result) async {
-          // Create a large plane to apply the translation axis material to
-          final plane = await FilamentApp.instance!.createGeometry(
+      // Create a large plane to apply the translation axis material to
+      final plane = await FilamentApp.instance!.createGeometry(
         GeometryUtils.plane(
           width: 200,
           height: 200,
         ),
-          );
+      );
 
-          // Test X axis (red) - line along x at z=0
-          final xAxisMaterial =
-              await TranslationAxisMaterial.createMaterialInstance(
-                originX: 0,
-                originY: 0,
-                originZ: 0,
-                axis: 0, // X axis
-                lineWidth: 30.0, // world units - thick for visibility
-                lineLength: 80.0,
-              );
-          await plane.setMaterialInstanceAt(xAxisMaterial);
-          await result.viewer.addToScene(plane);
+      // Test X axis (red) - line along x at z=0
+      final xAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
+        originX: 0,
+        originY: 0,
+        originZ: 0,
+        axis: 0, // X axis
+        lineWidth: 30.0, // world units - thick for visibility
+        lineLength: 80.0,
+      );
+      await plane.setMaterialInstanceAt(xAxisMaterial);
+      await result.viewer.addToScene(plane);
 
-          await testHelper.capture(result.viewer.view, "translation_axis_x");
+      await testHelper.capture(result.viewer.view, "translation_axis_x");
 
-          // Test Z axis (blue) - line along z at x=0
-          final zAxisMaterial =
-              await TranslationAxisMaterial.createMaterialInstance(
-                originX: 0,
-                originY: 0,
-                originZ: 0,
-                axis: 2, // Z axis
-                lineWidth: 5.0, // world units
-                lineLength: 80.0,
-              );
-          await plane.setMaterialInstanceAt(zAxisMaterial);
+      // Test Z axis (blue) - line along z at x=0
+      final zAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
+        originX: 0,
+        originY: 0,
+        originZ: 0,
+        axis: 2, // Z axis
+        lineWidth: 5.0, // world units
+        lineLength: 80.0,
+      );
+      await plane.setMaterialInstanceAt(zAxisMaterial);
 
-          await testHelper.capture(result.viewer.view, "translation_axis_z");
+      await testHelper.capture(result.viewer.view, "translation_axis_z");
 
-          // Test with offset origin (line at x=20)
-          final offsetAxisMaterial =
-              await TranslationAxisMaterial.createMaterialInstance(
-                originX: 20,
-                originY: 0,
-                originZ: 0,
-                axis: 2, // Z axis (will appear offset from center)
-                lineWidth: 5.0, // world units
-                lineLength: 80.0,
-              );
-          await plane.setMaterialInstanceAt(offsetAxisMaterial);
+      // Test with offset origin (line at x=20)
+      final offsetAxisMaterial =
+          await TranslationAxisMaterial.createMaterialInstance(
+        originX: 20,
+        originY: 0,
+        originZ: 0,
+        axis: 2, // Z axis (will appear offset from center)
+        lineWidth: 5.0, // world units
+        lineLength: 80.0,
+      );
+      await plane.setMaterialInstanceAt(offsetAxisMaterial);
 
-          await testHelper.capture(
+      await testHelper.capture(
           result.viewer.view, "translation_axis_offset_origin");
 
-          await result.viewer.removeFromScene(plane);
-        });
+      await result.viewer.removeFromScene(plane);
+    });
   });
 }
 // manually construct two views with stencil buffer
@@ -1510,8 +1494,8 @@ void main() async {
 
 //     test('one swapchain, render view to render target', () async {
 //       await ViewerBuilder(testHelper)
-        // .setRenderTargetEnabled(true)
-        // .execute((result) async {
+// .setRenderTargetEnabled(true)
+// .execute((result) async {
 //         final texture = await testHelper.createTexture(500, 500);
 //         final renderTarget = await result.viewer.createRenderTarget(
 //             500, 500, texture.metalTextureAddress);
@@ -1533,8 +1517,8 @@ void main() async {
 
 //     test('create secondary view, default swapchain', () async {
 //       await ViewerBuilder(testHelper)
-        // .setRenderTargetEnabled(true)
-        // .execute((result) async {
+// .setRenderTargetEnabled(true)
+// .execute((result) async {
 //         final cube = await viewer
 //             .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
@@ -1571,8 +1555,8 @@ void main() async {
 
 //     test('create secondary view, different swapchain', () async {
 //       await ViewerBuilder(testHelper)
-        // .setRenderTargetEnabled(true)
-        // .execute((result) async {
+// .setRenderTargetEnabled(true)
+// .execute((result) async {
 //         final cube = await result.viewer.createGeometry(GeometryUtils.cube());
 
 //         var mainCamera = await result.viewer.getMainCamera();

@@ -32,7 +32,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   ThermionViewerFFI({bool createOverlay = false})
-    : _createOverlay = createOverlay {
+      : _createOverlay = createOverlay {
     if (FilamentApp.instance == null) {
       throw Exception("FilamentApp has not been created");
     }
@@ -263,25 +263,22 @@ class ThermionViewerFFI extends ThermionViewer {
 
     _skyboxTextureUploadComplete =
         withVoidCallback((requestId, onTextureUploadComplete) async {
-          var bundle = await FFIKtx1Bundle.create(data);
+      var bundle = await FFIKtx1Bundle.create(data);
 
-          _skyboxTexture =
-              await bundle.createTexture(
-                    onTextureUploadComplete: onTextureUploadComplete,
-                    textureUploadCompleteRequestId: requestId,
-                  )
-                  as FFITexture;
+      _skyboxTexture = await bundle.createTexture(
+        onTextureUploadComplete: onTextureUploadComplete,
+        textureUploadCompleteRequestId: requestId,
+      ) as FFITexture;
 
-          _skybox =
-              await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
-                  as FFISkybox;
+      _skybox = await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
+          as FFISkybox;
 
-          await scene.setSkybox(_skybox!);
+      await scene.setSkybox(_skybox!);
 
-          completer.complete();
-        }).then((_) async {
-          _skyboxTextureUploadComplete = null;
-        });
+      completer.complete();
+    }).then((_) async {
+      _skyboxTextureUploadComplete = null;
+    });
     await completer.future;
   }
 
@@ -299,45 +296,43 @@ class ThermionViewerFFI extends ThermionViewer {
     final completer = Completer();
     _iblTextureUploadComplete =
         withVoidCallback((requestId, onTextureUploadComplete) async {
-              late Pointer stackPtr;
-              if (FILAMENT_WASM) {
-                //stackPtr = stackSave();
-              }
+      late Pointer stackPtr;
+      if (FILAMENT_WASM) {
+        //stackPtr = stackSave();
+      }
 
-              var data = await FilamentApp.instance!.loadResource(lightingPath);
+      var data = await FilamentApp.instance!.loadResource(lightingPath);
 
-              final bundle = await FFIKtx1Bundle.create(data);
+      final bundle = await FFIKtx1Bundle.create(data);
 
-              final texture = await bundle.createTexture(
-                onTextureUploadComplete: onTextureUploadComplete,
-                textureUploadCompleteRequestId: requestId,
-              );
-              final harmonics = bundle.getSphericalHarmonics();
+      final texture = await bundle.createTexture(
+        onTextureUploadComplete: onTextureUploadComplete,
+        textureUploadCompleteRequestId: requestId,
+      );
+      final harmonics = bundle.getSphericalHarmonics();
 
-              final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
-                harmonics,
-                reflectionsTexture: texture,
-                intensity: intensity,
-              );
+      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
+        harmonics,
+        reflectionsTexture: texture,
+        intensity: intensity,
+      );
 
-              await scene.setIndirectLight(ibl);
+      await scene.setIndirectLight(ibl);
 
-              if (FILAMENT_WASM) {
-                //stackRestore(stackPtr);
-                data.free();
-              }
-              data.free();
+      if (FILAMENT_WASM) {
+        //stackRestore(stackPtr);
+        data.free();
+      }
+      data.free();
 
-              completer.complete();
-              _logger.info("IBL texture upload complete");
-            })
-            .then((_) {
-              _logger.info("IBL texture upload complete");
-              _iblTextureUploadComplete = null;
-            })
-            .onError((err, st) {
-              _logger.severe(err.toString());
-            });
+      completer.complete();
+      _logger.info("IBL texture upload complete");
+    }).then((_) {
+      _logger.info("IBL texture upload complete");
+      _iblTextureUploadComplete = null;
+    }).onError((err, st) {
+      _logger.severe(err.toString());
+    });
     await completer.future;
   }
 
@@ -715,13 +710,13 @@ class ThermionViewerFFI extends ThermionViewer {
       // transform
       _translationAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
-            originX: 0.0,
-            originY: 0.0,
-            originZ: 0.0,
-            axis: axisInt,
-            lineWidth: lineWidth,
-            lineLength: lineLength,
-          );
+        originX: 0.0,
+        originY: 0.0,
+        originZ: 0.0,
+        axis: axisInt,
+        lineWidth: lineWidth,
+        lineLength: lineLength,
+      );
 
       // Create plane geometry (without material first, then apply)
       _translationAxisAsset = await createGeometry(
