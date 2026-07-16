@@ -8,11 +8,6 @@ on:
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
-    inputs:
-      force_regenerate:
-        description: 'Force binding regeneration + re-analyze regardless of changed paths (used to recover a branch whose checked-in bindings are stale)'
-        type: boolean
-        default: false
 
 # This workflow is the ONLY thing that pushes auto-generated commits to the
 # branch. Formatting (previously format.yml) and analyze (previously lint.yml)
@@ -50,28 +45,11 @@ jobs:
         with:
           base: ${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') && github.event.before || '' }}
           filters: |
-            source-changed:
-              - 'thermion_dart/ffigen/**'
-              - 'thermion_dart/lib/src/bindings/**'
-              - 'thermion_dart/native/**'
             native-changed:
               - 'thermion_dart/native/**'
             materials-changed:
               - 'materials/**'
               - 'examples/assets/*.mat'
-
-      # Regenerate bindings when native/ffigen sources changed, OR when a human
-      # forces it via workflow_dispatch (e.g. to recover a stale-bindings state).
-      - name: Resolve regeneration flag
-        id: flags
-        run: |
-          if [ "${{ steps.changes.outputs.source-changed }}" = "true" ] || \
-             [ "${{ steps.changes.outputs.native-changed }}" = "true" ] || \
-             [ "${{ inputs.force_regenerate }}" = "true" ]; then
-            echo "regenerate=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "regenerate=false" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Setup CMake
         if: steps.changes.outputs.native-changed == 'true'
@@ -86,8 +64,8 @@ jobs:
           version: 'latest'
           actions-cache-folder: 'emsdk-cache'
 
-      # Always set up Dart: format + analyze run on every push/PR, not only when
-      # bindings need regenerating, so pure-Dart changes are still gated.
+      # Dart is required for binding generation, formatting, and analysis on
+      # every push/PR.
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
 
@@ -115,7 +93,6 @@ jobs:
           make materials
 
       - name: Generate bindings
-        if: steps.flags.outputs.regenerate == 'true'
         run: make dart-bindings
 
       # Previously format.yml. Folded in here so only this workflow pushes to
@@ -142,7 +119,6 @@ jobs:
           dart analyze --no-fatal-warnings
 
       - name: Ensure generated binding files are tracked
-        if: steps.flags.outputs.regenerate == 'true'
         run: |
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_ffi.g.dart
           git update-index --no-assume-unchanged thermion_dart/lib/src/bindings/src/thermion_dart_js_interop.g.dart
@@ -157,7 +133,8 @@ jobs:
           git update-index --no-assume-unchanged thermion_dart/native/include/material/*.bin || true
 
       # No longer gated on changed paths: formatting changes (above) must also
-      # trigger a commit even when no bindings/materials were regenerated.
+      # trigger a commit when bindings are unchanged and materials were not
+      # regenerated.
       - name: Check for changes
         id: git-check
         run: |
