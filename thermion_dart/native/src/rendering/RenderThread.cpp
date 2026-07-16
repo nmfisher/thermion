@@ -164,8 +164,7 @@ void RenderThread::iter()
         task();
         taskLock.lock();
     }
-    _cv.wait_for(taskLock, std::chrono::microseconds(2000), [this]
-                { return !_tasks.empty() || mStop; });
+    _cv.wait(taskLock, [this] { return !_tasks.empty() || mStop; });
 #endif
 }
 
