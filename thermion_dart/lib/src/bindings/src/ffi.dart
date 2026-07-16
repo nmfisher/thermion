@@ -4,6 +4,7 @@ export 'dart:typed_data';
 import 'dart:async';
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'void_callback_registry.dart';
 export 'package:ffi/ffi.dart';
 export 'dart:ffi' hide Size;
 
@@ -117,46 +118,12 @@ extension PCBF on DartPickCallbackFunction {
   }
 }
 
-int _requestId = 0;
-final _requests = <int, Completer>{};
-
-void _voidCallbackHandler(int requestId) {
-  _requests[requestId]!.complete();
-}
-
-late NativeCallable<Void Function(Int32)> _voidCallbackNativeCallable =
-    NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
+final _voidCallbackRegistry = VoidCallbackRegistry();
 
 Future<void> withVoidCallback(
   Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func,
-) async {
-  var requestId = _requestId;
-  _requestId++;
-  final completer = Completer();
-  _requests[requestId] = completer;
-
-  // Use the module-scoped `_voidCallbackNativeCallable` initialised at
-  // file load. Do NOT reassign it per call: every reassignment orphans
-  // the previous NativeCallable, which native code may still hold a
-  // pointer to. When Dart GC sweeps the orphan, its trampoline
-  // metadata is freed; the next invocation from the native side
-  // calls a removed trampoline, hits the
-  // `DLRT_GetFfiCallbackMetadata` release-assert, and the VM aborts.
-  // On Windows multi-viewer (8 viewers × ~60 fps × multiple FFI
-  // awaits per frame), churn is high enough that GC reliably sweeps
-  // a stale entry within ~20 seconds and the embedder dies — observed
-  // as "Not Responding" on the main window. The single global
-  // listener's handler (`_voidCallbackHandler`) is stateless; it
-  // dispatches by `requestId` through `_requests`, so one trampoline
-  // is sufficient and correct.
-  //
-  // Upstream introduced the reassignment in 760ae8ed8 as a drive-by
-  // change inside an unrelated commit ("add makeInt32List method").
-  // To file upstream once verified.
-  func.call(requestId, _voidCallbackNativeCallable.nativeFunction.cast());
-
-  await completer.future;
-}
+) =>
+    _voidCallbackRegistry.invoke(func);
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func,
