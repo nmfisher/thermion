@@ -5,8 +5,8 @@ homepage: https://thermion.dev
 repository: https://github.com/nmfisher/thermion
 
 environment:
-  sdk: ">=3.6.0-0 <4.0.0"
-  flutter: ">=3.23.0-0.1.pre"
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.0"
 
 dependencies:
   flutter:
