@@ -29,6 +29,7 @@ void main() async {
         PixelDataFormat.RGBA,
         PixelDataType.FLOAT,
       );
+      await image.destroy();
       await texture.dispose();
     });
   });
@@ -56,6 +57,7 @@ void main() async {
         PixelDataFormat.RGBA,
         PixelDataType.FLOAT,
       );
+      await image.destroy();
       await texture.dispose();
     });
   });
@@ -138,12 +140,13 @@ void main() async {
 
       await texture.setImage(
         0,
-        data.buffer.asUint8List(data.offsetInBytes),
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
         512,
         512,
         PixelDataFormat.RGBA,
         PixelDataType.FLOAT,
       );
+      await image.destroy();
       await texture.dispose();
     });
   });

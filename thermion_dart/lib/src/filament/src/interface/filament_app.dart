@@ -119,18 +119,18 @@ abstract class FilamentApp<T> {
     TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL,
   });
 
-  //
-  // Decodes the specified image data.
-  //
+  /// Decodes [data] into a caller-owned [LinearImage].
+  ///
+  /// The caller must eventually call [LinearImage.destroy].
   Future<LinearImage> decodeImage(
     Uint8List data, {
     String name = "image",
     bool requireAlpha = false,
   });
 
-  //
-  // Creates an (empty) imge with the given dimensions.
-  //
+  /// Creates a caller-owned empty [LinearImage] with the given dimensions.
+  ///
+  /// The caller must eventually call [LinearImage.destroy].
   Future<LinearImage> createImage(int width, int height, int channels);
 
   //

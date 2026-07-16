@@ -323,8 +323,11 @@ abstract class Texture<T> extends NativeHandle {
   /// Returns the internal format of this texture
   Future<TextureFormat> getFormat();
 
-  /// Sets the given [image] as the source data for this texture.
+  /// Sets [image] as the source data for this texture.
   ///
+  /// This method does not take ownership of [image]. The caller may destroy
+  /// the image after the returned [Future] completes; the upload retains its
+  /// own reference to the pixel storage until Filament has consumed it.
   Future setLinearImage(
     covariant LinearImage image,
     PixelDataFormat format,
@@ -482,17 +485,30 @@ enum PixelDataType {
 @deprecated
 typedef ThermionTexture = Texture;
 
+/// A caller-owned image backed by native pixel storage.
+///
+/// Code that obtains a [LinearImage] is responsible for releasing it exactly
+/// once with [destroy], unless the creating API explicitly documents otherwise.
+/// The image and any borrowed data returned by [getData] must not be used after
+/// destruction.
 abstract class LinearImage {
+  /// Releases this image's native pixel storage.
+  ///
+  /// This image must not be used after the returned [Future] completes.
   Future destroy();
+
+  /// Returns a borrowed view of this image's pixel storage.
+  ///
+  /// The returned data remains valid only until [destroy] is called.
   Future<Float32List> getData();
   Future<int> getWidth();
   Future<int> getHeight();
   Future<int> getChannels();
 
-  /// Decodes the image contained in [data] and returns a texture of
-  /// the corresponding size with the image set as mip-level 0.
+  /// Decodes [data] and returns a texture with the image set as mip level 0.
   ///
-  ///
+  /// This helper owns and destroys its intermediate [LinearImage]. The caller
+  /// owns the returned texture and must eventually call [Texture.destroy].
   static Future<Texture> decodeToTexture(
     Uint8List data, {
     TextureFormat textureFormat = TextureFormat.RGB32F,
@@ -506,28 +522,42 @@ abstract class LinearImage {
       requireAlpha: requireAlpha,
     );
 
-    // generateMipmaps() requires GEN_MIPMAPPABLE per Filament's
-    // Texture::generateMipmaps doc; native backends often relax this, WebGL
-    // does not (throws PreconditionPanic). Include the flag whenever the
-    // caller asks for >1 level so the mip path works on every backend.
-    final flags = <TextureUsage>{
-      TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-      TextureUsage.TEXTURE_USAGE_UPLOADABLE,
-    };
-    if (levels > 1) {
-      flags.add(TextureUsage.TEXTURE_USAGE_GEN_MIPMAPPABLE);
+    try {
+      // generateMipmaps() requires GEN_MIPMAPPABLE per Filament's
+      // Texture::generateMipmaps doc; native backends often relax this, WebGL
+      // does not (throws PreconditionPanic). Include the flag whenever the
+      // caller asks for >1 level so the mip path works on every backend.
+      final flags = <TextureUsage>{
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        TextureUsage.TEXTURE_USAGE_UPLOADABLE,
+      };
+      if (levels > 1) {
+        flags.add(TextureUsage.TEXTURE_USAGE_GEN_MIPMAPPABLE);
+      }
+
+      final texture = await FilamentApp.instance!.createTexture(
+        await decodedImage.getWidth(),
+        await decodedImage.getHeight(),
+        flags: flags,
+        textureFormat: textureFormat,
+        levels: levels,
+      );
+
+      try {
+        await texture.setLinearImage(
+          decodedImage,
+          pixelDataFormat,
+          pixelDataType,
+        );
+        return texture;
+      } catch (_) {
+        await texture.dispose();
+        rethrow;
+      }
+    } finally {
+      // Texture_loadImage retains a shallow LinearImage copy until Filament's
+      // PixelBufferDescriptor callback reports that the upload was consumed.
+      await decodedImage.destroy();
     }
-
-    final texture = await FilamentApp.instance!.createTexture(
-      await decodedImage.getWidth(),
-      await decodedImage.getHeight(),
-      flags: flags,
-      textureFormat: textureFormat,
-      levels: levels,
-    );
-
-    await texture.setLinearImage(decodedImage, pixelDataFormat, pixelDataType);
-
-    return texture;
   }
 }

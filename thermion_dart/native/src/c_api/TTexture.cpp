@@ -586,11 +586,25 @@ namespace thermion
 
             TRACE("Loading image from dimensions %d x %d, channels %d, size %d, buffer format %d and pixel data type %d", w, h, channels, size, bufferFormat, pixelDataType);
 
+            // PixelBufferDescriptor retains the pixel pointer until the
+            // backend has consumed the upload. Keep a shallow LinearImage
+            // copy alive for that period; LinearImage copies share ownership
+            // of their underlying pixel allocation.
+            auto *retainedImage = new ::image::LinearImage(*image);
             filament::Texture::PixelBufferDescriptor buffer(
-                image->getPixelRef(),
+                retainedImage->getPixelRef(),
                 size,
                 bufferFormat,
-                pixelDataType);
+                pixelDataType,
+                1, // alignment
+                0, // left
+                0, // top
+                0, // stride
+                [](void *, size_t, void *user)
+                {
+                    delete static_cast<::image::LinearImage *>(user);
+                },
+                retainedImage);
 
             texture->setImage(*engine, level, std::move(buffer));
             return true;
