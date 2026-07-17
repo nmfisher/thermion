@@ -22,6 +22,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     with WidgetsBindingObserver {
   final channel = const MethodChannel("dev.thermion.flutter/event");
 
+  ThermionFlutterPluginImpl() {
+    channel.setMethodCallHandler(_handlePlatformMethodCall);
+  }
+
   static final _logger = Logger("ThermionFlutterPluginImpl");
 
   static ThermionFlutterPluginImpl get instance =>
@@ -46,6 +50,8 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   // has been redirected to an internal RT (e.g. in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
 
+  Future<void> _textureOperationChain = Future<void>.value();
+
   // Deferred Filament render target cleanup for Windows resize.
   // Old RT stays alive so native can Blit from it during the swap window.
   static final _deferredRenderTargets = <(RenderTarget, int)>[];
@@ -55,7 +61,91 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   bool _resizing = false;
 
   bool get _pauseRequested =>
-      _explicitlyPaused || _lifecycleSuspended || _resizing;
+      _explicitlyPaused ||
+      _lifecycleSuspended ||
+      _resizing ||
+      _descriptors.any((descriptor) => !descriptor.isSurfaceAvailable);
+
+  PlatformTextureDescriptor? _descriptorForTextureId(int textureId) {
+    for (final descriptor in _descriptors) {
+      if (descriptor.flutterTextureId == textureId) return descriptor;
+    }
+    return null;
+  }
+
+  Future<Object?> _handlePlatformMethodCall(MethodCall call) async {
+    switch (call.method) {
+      case 'onSurfaceCleanup':
+        final descriptor = _descriptorForTextureId(call.arguments as int);
+        if (descriptor == null) return null;
+        descriptor.markSurfaceUnavailable();
+        FrameScheduler.instance.pause();
+        await _serializeTextureOperation(() async {
+          if (_descriptors.contains(descriptor)) {
+            await descriptor.cleanupSurface();
+          }
+        });
+        return null;
+      case 'onSurfaceAvailable':
+        final arguments = call.arguments as List<Object?>;
+        final textureId = arguments[0] as int;
+        final descriptor = _descriptorForTextureId(textureId);
+        if (descriptor == null) return null;
+        final wasAvailable = descriptor.isSurfaceAvailable;
+        descriptor.markSurfaceUnavailable();
+        if (wasAvailable) {
+          FrameScheduler.instance.pause();
+        }
+        try {
+          await _serializeTextureOperation(() async {
+            if (!_descriptors.contains(descriptor)) return;
+            await descriptor.restoreSurface(arguments[1] as int);
+            _resumeTextureRenderingIfReady();
+          });
+        } catch (error, stackTrace) {
+          _logger.severe(
+            'Failed to restore texture surface $textureId',
+            error,
+            stackTrace,
+          );
+          rethrow;
+        }
+        return null;
+      case 'onSurfaceError':
+        final arguments = call.arguments as List<Object?>;
+        final textureId = arguments[0] as int;
+        final descriptor = _descriptorForTextureId(textureId);
+        if (descriptor == null) return null;
+        descriptor.markSurfaceError();
+        FrameScheduler.instance.pause();
+        _logger.severe(
+          'Surface recovery failed for texture $textureId: ${arguments[1]}',
+        );
+        return null;
+      default:
+        throw MissingPluginException(
+          'Unknown platform callback ${call.method}',
+        );
+    }
+  }
+
+  Future<R> _serializeTextureOperation<R>(Future<R> Function() operation) {
+    final completer = Completer<R>();
+    _textureOperationChain = _textureOperationChain.then((_) async {
+      try {
+        completer.complete(await operation());
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
+  }
+
+  void _resumeTextureRenderingIfReady() {
+    if (!_pauseRequested) {
+      FrameScheduler.instance.resume();
+    }
+  }
 
   bool _suspendForLifecycle() {
     if (_lifecycleSuspended) return false;
@@ -423,6 +513,16 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     View view,
     int width,
     int height,
+  ) {
+    return _serializeTextureOperation(
+      () => _createTextureAndBindToView(view, width, height),
+    );
+  }
+
+  Future<PlatformTextureDescriptor?> _createTextureAndBindToView(
+    View view,
+    int width,
+    int height,
   ) async {
     if (width == 0 || height == 0) {
       throw Exception(
@@ -471,6 +571,17 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     View view,
     int width,
     int height,
+  ) {
+    return _serializeTextureOperation(
+      () => _resizeTexture(texture, view, width, height),
+    );
+  }
+
+  Future<PlatformTextureDescriptor> _resizeTexture(
+    PlatformTextureDescriptor texture,
+    View view,
+    int width,
+    int height,
   ) async {
     // Block new frames while we swap textures, then wait for any in-flight
     // frame to finish before we touch render targets.
@@ -491,7 +602,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       // Non-Windows: full destroy + recreate (existing path).
       // TODO: alternatively, allocate a larger swapchain up front and just
       // change the viewport on resize, avoiding the destroy/recreate.
-      var newTexture = await createTextureAndBindToView(view, width, height);
+      var newTexture = await _createTextureAndBindToView(view, width, height);
       if (newTexture == null) {
         throw Exception('Failed to create texture during resize');
       }
@@ -611,11 +722,18 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   }
 
   @override
-  Future<void> releaseTextureBindingForView(View view) async {
-    for (final descriptor in _descriptors) {
-      if (descriptor.boundView == view) {
-        await descriptor.releaseBinding();
-      }
+  Future<void> releaseTextureBindingForView(View view) {
+    return _serializeTextureOperation(() => _releaseBindingForView(view));
+  }
+
+  Future<void> _releaseBindingForView(View view) async {
+    final released = _descriptors
+        .where((descriptor) => descriptor.boundView == view)
+        .toList();
+    for (final descriptor in released) {
+      await descriptor.releaseBinding();
+      _descriptors.remove(descriptor);
     }
+    _resumeTextureRenderingIfReady();
   }
 }
