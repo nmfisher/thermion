@@ -9,6 +9,8 @@ abstract class PlatformTextureDescriptor {
 
   View? get boundView => null;
 
+  bool get isSurfaceAvailable => true;
+
   PlatformTextureDescriptor({
     required this.flutterTextureId,
     required this.hardwareId,
@@ -34,6 +36,14 @@ abstract class PlatformTextureDescriptor {
 
   Future<void> releaseBinding() async {}
 
+  void markSurfaceUnavailable() {}
+
+  Future<void> cleanupSurface() async {}
+
+  Future<void> restoreSurface(int nativeWindowHandle) async {}
+
+  void markSurfaceError() {}
+
   /// Whether [destroy] has run.
   bool get destroyed => false;
 
@@ -46,4 +56,36 @@ abstract class PlatformTextureDescriptor {
   Future<int> awaitTextureReady() async => hardwareId;
 
   Future Function(Duration timestamp)? onBeginFrame;
+}
+
+mixin ReplaceablePlatformTextureDescriptorMixin on PlatformTextureDescriptor {
+  bool _isSurfaceAvailable = true;
+
+  @override
+  bool get isSurfaceAvailable => _isSurfaceAvailable;
+
+  @override
+  void markSurfaceUnavailable() {
+    _isSurfaceAvailable = false;
+  }
+
+  void updateSurfaceHandle(int nativeWindowHandle) {
+    if (nativeWindowHandle == 0) {
+      throw ArgumentError.value(
+        nativeWindowHandle,
+        'nativeWindowHandle',
+        'must not be zero',
+      );
+    }
+    _isSurfaceAvailable = false;
+  }
+
+  void markSurfaceRestored() {
+    _isSurfaceAvailable = true;
+  }
+
+  @override
+  void markSurfaceError() {
+    _isSurfaceAvailable = false;
+  }
 }
