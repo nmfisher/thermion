@@ -78,15 +78,15 @@ class WindowsVulkanContext::Impl {
             _sharedContext.debugMarkersSupported = false;
             _sharedContext.multiviewSupported = false;
 
-            std::cout << "[INFO] Vulkan logical device created with queue family index "
-                      << queueFamilyIndex << std::endl;
+            Log("[INFO] Vulkan logical device created with queue family index %d",
+                (int)queueFamilyIndex);
 
             CommandResources cmdResources = createCommandResources(device, physicalDevice);
 
             commandPool = cmdResources.commandPool;
             queue = cmdResources.queue;
-            std::cout << "[INFO] Vulkan command resources using queue family index "
-                      << cmdResources.queueFamilyIndex << std::endl;
+            Log("[INFO] Vulkan command resources using queue family index %d",
+                (int)cmdResources.queueFamilyIndex);
 
             VkPhysicalDeviceExternalImageFormatInfo externFormatInfo = {
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,

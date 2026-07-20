@@ -1,5 +1,7 @@
 #include "vulkan/VulkanUtils.h"
 
+#include "Log.hpp"
+
 #include <fstream>
 
 #include <iostream>
@@ -278,13 +280,13 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     //    data race (VK_ERROR_DEVICE_LOST on newer NVIDIA drivers). Fall back
     //    to queue 0 only on hardware exposing a single graphics queue.
     uint32_t familyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
+    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
     std::vector<VkQueueFamilyProperties> families(familyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, families.data());
+    bluevk::vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, families.data());
     const uint32_t queueIndex =
         families[resources.queueFamilyIndex].queueCount >= 2 ? 1u : 0u;
-    std::cout << "[INFO] Blit/command queue: family " << resources.queueFamilyIndex
-              << ", queue index " << queueIndex << std::endl;
+    Log("[INFO] Blit/command queue: family %d, queue index %d",
+        (int)resources.queueFamilyIndex, (int)queueIndex);
 
     vkGetDeviceQueue(device,
         resources.queueFamilyIndex,
