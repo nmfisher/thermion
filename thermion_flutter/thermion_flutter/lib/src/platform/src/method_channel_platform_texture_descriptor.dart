@@ -31,23 +31,16 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
     int width,
     int height,
   ) async {
-    final result = await channel.invokeMethod("createTexture", [
+    final allocation = await allocateMethodChannelTexture(
+      channel,
       width,
       height,
-      0,
-      0,
-    ]);
-    if (result == null || (result[0] == -1)) {
-      throw Exception("Failed to create texture");
-    }
-    final flutterTextureId = result[0] as int;
-    final hardwareTextureId = result[1] as int;
-    final windowHandle = result[2] as int?; // usually 0 for nullptr
+    );
     return MethodChannelPlatformTextureDescriptor(
       channel,
-      flutterTextureId: flutterTextureId,
-      hardwareId: hardwareTextureId,
-      windowHandle: windowHandle,
+      flutterTextureId: allocation.flutterTextureId,
+      hardwareId: allocation.hardwareTextureId,
+      windowHandle: allocation.windowHandle,
       width: width,
       height: height,
     );
@@ -55,6 +48,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
 
   /// Waits for populate() to create the GL texture (deferred path).
   /// Returns the hardware texture ID once ready.
+  @override
   Future<int> awaitTextureReady() async {
     final result = await channel.invokeMethod(
       "awaitTextureReady",
@@ -63,5 +57,39 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
     return result as int;
   }
 
+  @override
+  bool get deferred => true;
+
+  @override
   bool destroyed = false;
+}
+
+typedef MethodChannelTextureAllocation = ({
+  int flutterTextureId,
+  int hardwareTextureId,
+  int? windowHandle,
+});
+
+Future<MethodChannelTextureAllocation> allocateMethodChannelTexture(
+  MethodChannel channel,
+  int width,
+  int height,
+) async {
+  final result = await channel.invokeMethod("createTexture", [
+    width,
+    height,
+    0,
+    0,
+  ]);
+  if (result == null || (result[0] == -1)) {
+    throw Exception("Failed to create texture");
+  }
+  final flutterTextureId = result[0] as int;
+  final hardwareTextureId = result[1] as int;
+  final windowHandle = result[2] as int?; // usually 0 for nullptr
+  return (
+    flutterTextureId: flutterTextureId,
+    hardwareTextureId: hardwareTextureId,
+    windowHandle: windowHandle,
+  );
 }

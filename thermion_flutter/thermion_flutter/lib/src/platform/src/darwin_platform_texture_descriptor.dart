@@ -6,6 +6,9 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
 
   bool _destroyed = false;
 
+  @override
+  bool get destroyed => _destroyed;
+
   DarwinPlatformTextureDescriptorImpl(
     this.texture, {
     required super.flutterTextureId,
