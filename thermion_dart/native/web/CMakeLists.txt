@@ -17,7 +17,7 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sINITIAL_MEMORY=512mb)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,lengthBytesUTF8,HEAPU8,HEAPU32,HEAPF32)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,lengthBytesUTF8,HEAPU8,HEAPU32,HEAPF32)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_malloc,stackAlloc,_free,stackSave,stackRestore)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFULL_ES3)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
@@ -32,7 +32,6 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAX_WEBGL_VERSION=2)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFILESYSTEM=0)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASSERTIONS=2)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_ASSERTIONS=1)
@@ -154,6 +153,11 @@ add_library(geometry STATIC IMPORTED)
 set_property(TARGET geometry PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libgeometry.a")
 set_property(TARGET geometry PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libgeometry.a")
 set_property(TARGET geometry PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libgeometry.a")
+
+add_library(mikktspace STATIC IMPORTED)
+set_property(TARGET mikktspace PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libmikktspace.a")
+set_property(TARGET mikktspace PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmikktspace.a")
+set_property(TARGET mikktspace PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmikktspace.a")
 
 add_library(filament STATIC IMPORTED)
 set_property(TARGET filament PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libfilament.a")
@@ -291,6 +295,7 @@ target_link_libraries(${MODULE_NAME}
  filament
  backend
  geometry
+ mikktspace
  dracodec
  ibl-lite
  ktxreader
@@ -322,5 +327,4 @@ if(DEFINED EXTERNAL_ALL_LIBRARIES)
   endforeach()
   message(STATUS "Added --whole-archive flags for external libraries to prevent dead code elimination")
 endif()
-
 
