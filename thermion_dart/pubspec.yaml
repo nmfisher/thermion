@@ -13,7 +13,7 @@ dependencies:
   ffi: ^2.1.2
   code_assets: ^1.0.0
   hooks: ^1.0.0
-  native_toolchain_c: ^0.17.1
+  native_toolchain_c: ^0.17.6
   archive: ^4.0.0
   web: ^1.0.0
   logging: ^1.2.0

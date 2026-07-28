@@ -249,7 +249,9 @@ namespace thermion
                 case STENCIL_FACE_FRONT: return filament::MaterialInstance::StencilFace::FRONT;
                 case STENCIL_FACE_BACK: return filament::MaterialInstance::StencilFace::BACK;
                 case STENCIL_FACE_FRONT_AND_BACK: return filament::MaterialInstance::StencilFace::FRONT_AND_BACK;
-                default: throw std::invalid_argument("Invalid TStencilFace value");
+                default:
+                    ERROR("Invalid TStencilFace value: %d", static_cast<int>(tface));
+                    return filament::MaterialInstance::StencilFace::FRONT_AND_BACK;
             }
         }
 
