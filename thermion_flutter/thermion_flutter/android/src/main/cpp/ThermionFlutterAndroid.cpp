@@ -27,14 +27,14 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
      
      dlerror();
      
-     JNI_OnLoad_Func vmEnvOnLoad = (JNI_OnLoad_Func)dlsym(filamentLib, 
-                                   "_ZN8filament17VirtualMachineEnv10JNI_OnLoadEP7_JavaVM");
+     JNI_OnLoad_Func vmEnvOnLoad = (JNI_OnLoad_Func)dlsym(
+         filamentLib, "Thermion_filament_JNI_OnLoad");
      
      // Check for errors
      const char* dlsym_error = dlerror();
      if (dlsym_error) {
          __android_log_print(ANDROID_LOG_ERROR, "thermion_android", 
-                            "Failed to find VirtualMachineEnv::JNI_OnLoad: %s", dlsym_error);
+                            "Failed to find Thermion_filament_JNI_OnLoad: %s", dlsym_error);
          dlclose(filamentLib);
          return false;
      }

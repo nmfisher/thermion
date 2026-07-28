@@ -293,8 +293,21 @@ outputDirectory : ${outputDirectory.path}
 
       libs.addAll(["bluegl", "bluevk"]);
     } else if (targetOS == OS.android) {
+      final versionScript = File(
+        path.join(pkgRootFilePath, "native", "android", "thermion_dart.map"),
+      );
+      output.dependencies.add(versionScript.uri);
+
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
-      flags.add("-Wl,-z,max-page-size=16384");
+      flags.addAll([
+        "-Wl,-z,max-page-size=16384",
+        "-fvisibility=hidden",
+        // All static archives are implementation details of
+        // libthermion_dart.so. The version script retains only C entrypoints
+        // explicitly marked with default visibility.
+        "-Wl,--exclude-libs,ALL",
+        "-Wl,--version-script=${versionScript.path}",
+      ]);
     } else if (targetOS == OS.linux) {
       libs.addAll(["bluevk", "bluegl", "drm", "EGL", "GL", "gbm"]);
       flags.add("-I/usr/include/libdrm");
@@ -400,6 +413,10 @@ outputDirectory : ${outputDirectory.path}
     final cbuilder = CBuilder.library(
       name: packageName,
       language: Language.cpp,
+      // All of Thermion's C++ code, including the prebuilt Filament archives,
+      // is linked into this one shared library on Android. Keep libc++ in that
+      // library rather than shipping a separate libc++_shared.so code asset.
+      cppLinkStdLib: targetOS == OS.android ? 'c++_static' : null,
       assetName: 'thermion_dart.dart',
       sources: targetOS == OS.windows ? [] : sources,
       includes: platform == "windows" ? [] : includeDirs,
@@ -420,7 +437,7 @@ outputDirectory : ${outputDirectory.path}
             "-Wl,--no-whole-archive",
             '-lGL',
             '-lEGL',
-          ] else ...[
+          ] else if (targetOS != OS.android) ...[
             "-lc++",
             "",
           ],
@@ -428,7 +445,7 @@ outputDirectory : ${outputDirectory.path}
         ],
         if (targetOS == OS.linux)
           '-Wl,--no-as-needed'
-        else if (targetOS != OS.windows)
+        else if (targetOS != OS.windows && targetOS != OS.android)
           '-lc++',
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
@@ -450,44 +467,6 @@ outputDirectory : ${outputDirectory.path}
     );
 
     await cbuilder.run(input: input, output: output, logger: logger);
-    if (targetOS == OS.android) {
-      final archExtension = switch (targetArchitecture) {
-        Architecture.arm => "arm-linux-androideabi",
-        Architecture.arm64 => "aarch64-linux-android",
-        Architecture.x64 => "x86_64-linux-android",
-        Architecture.ia32 => "i686-linux-android",
-        _ => throw FormatException('Invalid'),
-      };
-
-      var compilerPath = config.code.cCompiler!.compiler.path;
-
-      if (Platform.isWindows && compilerPath.startsWith("/")) {
-        compilerPath = compilerPath.substring(1);
-      }
-
-      var ndkRoot = File(
-        compilerPath,
-      ).parent.parent.uri.toFilePath(windows: Platform.isWindows);
-
-      var stlPath = File(
-        [
-          ndkRoot,
-          "sysroot",
-          "usr",
-          "lib",
-          archExtension,
-          "libc++_shared.so",
-        ].join(Platform.pathSeparator),
-      );
-      final libcpp = CodeAsset(
-        package: "thermion_dart",
-        name: "libc++_shared.so",
-        linkMode: DynamicLoadingBundled(),
-        file: stlPath.uri,
-      );
-
-      output.assets.addEncodedAsset(libcpp.encode());
-    }
 
     output.metadata.addAll({
       "includeDirs": includeDirs
