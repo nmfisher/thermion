@@ -23,15 +23,15 @@ jobs:
         include:
           - name: macOS
             os: macos-latest
-            flutter-channel: beta
+            flutter-channel: stable
             flutter-arch: ARM64
           - name: Windows
             os: windows-latest
-            flutter-channel: beta
+            flutter-channel: stable
             flutter-arch: X64
           - name: Linux
             os: ubuntu-22.04
-            flutter-channel: beta
+            flutter-channel: stable
             flutter-arch: X64
     runs-on: ${{ matrix.os }}
     defaults:
@@ -45,6 +45,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.44.8'
           channel: ${{ matrix.flutter-channel }}
           architecture: ${{ matrix.flutter-arch }}
 
