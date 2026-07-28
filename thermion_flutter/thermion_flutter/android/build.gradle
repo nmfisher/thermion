@@ -43,6 +43,11 @@ android {
 
     defaultConfig {
         minSdkVersion 22
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=none"
+            }
+        }
     }
     
     externalNativeBuild {
