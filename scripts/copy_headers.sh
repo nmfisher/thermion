@@ -69,6 +69,15 @@ cp -R $HEADER_SOURCE/* "$OUTPUT_INCLUDE_DIR/" || {
   exit 1
 }
 
+# Overlay source-tree filament/ public headers over the install-tree copy.
+# The install step strips `const` from Builder::build() methods (ABI mismatch
+# vs the prebuilt libs) and omits newly-added public headers (e.g. FramePacer.h
+# in v1.74). Source-tree public headers are authoritative.
+if [ -d "$FILAMENT_BASE_DIR/filament/include/filament" ]; then
+  cp "$FILAMENT_BASE_DIR/filament/include/filament/"*.h \
+     "$OUTPUT_INCLUDE_DIR/filament/" 2>/dev/null || true
+fi
+
 # Copy imageio headers (not included in main include dir)
 cp -R libs/imageio/include/* "$OUTPUT_INCLUDE_DIR/" || {
   echo "Error: Failed to copy imageio headers"
