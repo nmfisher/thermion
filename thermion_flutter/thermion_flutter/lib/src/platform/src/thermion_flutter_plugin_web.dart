@@ -4,6 +4,7 @@ import 'dart:js_interop_unsafe';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide View;
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor_registry.dart';
 // hiding these isn't actually necessary, but the analyzer trips up on it
 // when publishing to pub.dev, so we just hide manually.
 import 'package:thermion_flutter/thermion_flutter.dart'
@@ -15,12 +16,14 @@ import 'package:web/web.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
+// ignore: implementation_imports
+import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart'
+    as js;
 
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     with WidgetsBindingObserver {
-  static Pointer? _stackPtr;
-  static final _descriptors = <PlatformTextureDescriptor>[];
-  static final _destroyed = <PlatformTextureDescriptor>[];
+  static js.Pointer<js.Void>? _stackPtr;
+
   static final _logger = Logger('ThermionFlutterPluginImpl');
   static int? _frameRequestId;
   static int _pacedFps = 0;
@@ -29,6 +32,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   static bool _lifecycleSuspended = false;
 
   static bool get _renderPaused => _explicitlyPaused || _lifecycleSuspended;
+
+  static final _textureDescriptorRegistry = PlatformTextureDescriptorRegistry(
+    allocator: (width, height) =>
+        WebPlatformTextureDescriptor(width: width, height: height),
+  );
 
   static void _applyRenderPause() {
     final app = FilamentApp.instance as FFIFilamentApp?;
@@ -53,10 +61,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
   static void _tick(JSNumber timestamp) {
     if (_stackPtr != null) {
-      stackRestore(_stackPtr!);
+      js.NativeLibrary.instance.stackRestore(_stackPtr!);
     }
 
-    _stackPtr = stackSave();
+    _stackPtr = js.NativeLibrary.instance.stackSave();
 
     final app = FilamentApp.instance;
     final targetFps = app is FFIFilamentApp ? app.targetFramerate : 0;
@@ -67,19 +75,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       // RenderManager still executes its backend task queue while paused, but
       // it does not produce a new frame, so do not notify Flutter of one.
       if (!_renderPaused) {
-        for (final descriptor in _descriptors) {
-          descriptor.markTextureFrameAvailable();
-        }
+        _textureDescriptorRegistry.markFrameAvailable();
       }
     }
-    for (final descriptor in _destroyed) {
-      _descriptors.remove(descriptor);
-      _logger.info(
-        "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId})",
-      );
-    }
-    _destroyed.clear();
-
     _frameRequestId = window.requestAnimationFrame(_tick.toJS);
   }
 
@@ -129,8 +127,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
     _stackPtr = null;
     swapChain = null;
-    _descriptors.clear();
-    _destroyed.clear();
+    _textureDescriptorRegistry.clear();
   }
 
   static SwapChain? swapChain;
@@ -242,21 +239,33 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     View view,
     int width,
     int height,
-  ) async {
-    await texture.destroy();
-    _descriptors.remove(texture);
-    final newTexture = await createTextureAndBindToView(view, width, height);
-    return newTexture!;
+  ) {
+    return _textureDescriptorRegistry.serialized(() async {
+      await _textureDescriptorRegistry.destroy(texture);
+      final newTexture = await _createTextureAndBindToView(view, width, height);
+      return newTexture;
+    });
   }
 
   @override
-  Future<void> releaseTextureBindingForView(View view) async {
-    // No per-view swap-chain bookkeeping on the web plugin. Surfaces
-    // are managed via the canvas + WebGL context lifecycle.
+  Future<void> releaseTextureBindingForView(View view) {
+    return _textureDescriptorRegistry.serialized(() async {
+      await _textureDescriptorRegistry.releaseBindingsForView(view);
+    });
   }
 
   @override
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
+    View view,
+    int width,
+    int height,
+  ) {
+    return _textureDescriptorRegistry.serialized(
+      () => _createTextureAndBindToView(view, width, height),
+    );
+  }
+
+  Future<PlatformTextureDescriptor> _createTextureAndBindToView(
     View view,
     int width,
     int height,
@@ -269,31 +278,37 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
     // On web, we don't use hardware textures but we return a descriptor
     // with dimensions so the callback can update viewport/camera
-    var descriptor = WebPlatformTextureDescriptor(width: width, height: height);
-    final dpr = window.devicePixelRatio;
-    _logger.info(
-      "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr",
-    );
+    final descriptor = await _textureDescriptorRegistry.create(width, height);
+    try {
+      await _textureDescriptorRegistry.bindToView(descriptor, view);
+      final dpr = window.devicePixelRatio;
+      _logger.info(
+        "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr",
+      );
 
-    var overlay = view.getHighlightOverlay();
-    await overlay?.setSwapChain(swapChain!);
+      var overlay = view.getHighlightOverlay();
+      await overlay?.setSwapChain(swapChain!);
 
-    Thermion_setCanvasElementSize(
-      "#thermion_canvas".toNativeUtf8(),
-      descriptor.width,
-      descriptor.height,
-    );
+      Thermion_setCanvasElementSize(
+        js.StringUtils("#thermion_canvas").toNativeUtf8(),
+        descriptor.width,
+        descriptor.height,
+      );
 
-    // [width] and [height] have already been scaled by [devicePixelRatio]
-    // so we need to undo this when setting the CSS dimensions
+      // [width] and [height] have already been scaled by [devicePixelRatio]
+      // so we need to undo this when setting the CSS dimensions
 
-    final canvas =
-        document.getElementById("thermion_canvas") as HTMLCanvasElement;
+      final canvas =
+          document.getElementById("thermion_canvas") as HTMLCanvasElement;
 
-    canvas.style.width = "${width / dpr}px";
-    canvas.style.height = "${height / dpr}px";
+      canvas.style.width = "${width / dpr}px";
+      canvas.style.height = "${height / dpr}px";
 
-    return descriptor;
+      return descriptor;
+    } catch (error, stackTrace) {
+      await _textureDescriptorRegistry.destroy(descriptor);
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   @override

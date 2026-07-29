@@ -84,7 +84,9 @@ class AndroidPlatformTextureDescriptor
 
   @override
   Future<void> destroy() async {
+    if (destroyed) return;
     markSurfaceError();
+    await releaseBinding();
     await super.destroy();
   }
 }

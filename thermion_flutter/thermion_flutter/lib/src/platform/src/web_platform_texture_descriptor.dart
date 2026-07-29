@@ -7,9 +7,16 @@ class WebPlatformTextureDescriptor extends PlatformTextureDescriptor {
   WebPlatformTextureDescriptor({required super.width, required super.height})
     : super(flutterTextureId: -1, hardwareId: -1, windowHandle: null);
 
+  bool _destroyed = false;
+
   @override
-  Future destroy() async {
-    // No-op on web - no hardware resources to clean up
+  bool get destroyed => _destroyed;
+
+  @override
+  Future<void> destroy() async {
+    if (_destroyed) return;
+    _destroyed = true;
+    await releaseBinding();
   }
 
   @override

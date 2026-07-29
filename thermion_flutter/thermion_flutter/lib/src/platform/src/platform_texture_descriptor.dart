@@ -2,13 +2,24 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 abstract class PlatformTextureDescriptor {
   final int flutterTextureId;
+
   int hardwareId;
+
   final int? windowHandle;
+
   int width;
+
   int height;
 
-  View? get boundView => null;
+  View? _boundView;
 
+  /// The (possibly null) view this descriptor is bound to
+  /// (see [bindToView]).
+  View? get boundView => _boundView;
+
+  /// On some platforms, the backing surface may become unavailable (e.g.
+  /// when a mobile app is backgrounded). When [isSurfaceAvailable] is false,
+  /// this indicates the Thermion framework should re-allocate a surface.
   bool get isSurfaceAvailable => true;
 
   PlatformTextureDescriptor({
@@ -19,7 +30,7 @@ abstract class PlatformTextureDescriptor {
     this.windowHandle,
   });
 
-  /// Descriptors are identified by their Flutter texture id — the stable
+  /// Descriptors are identified by their Flutter texture id. This is stable
   /// reference that maps to the backing native surface/producer.
   @override
   bool operator ==(Object other) =>
@@ -29,12 +40,28 @@ abstract class PlatformTextureDescriptor {
   @override
   int get hashCode => flutterTextureId.hashCode;
 
+  /// Instruct the Flutter framework that the content of the texture has been
+  /// updated.
   void markTextureFrameAvailable();
-  Future destroy();
 
-  Future<bool> bindToView(View view) async => false;
+  /// Schedules this texture for destruction.
+  /// Idempotent; it is safe to call this method multiple times on the same
+  /// [PlatformTextureDescriptor].
+  Future<void> destroy();
 
-  Future<void> releaseBinding() async {}
+  /// Records [view] as this descriptor's [boundView].
+  ///
+  /// Returns true when the descriptor supplies the Filament rendering surface
+  /// itself. When false, the plugin must create a render target backed by
+  /// [hardwareId].
+  Future<bool> bindToView(View view) async {
+    _boundView = view;
+    return false;
+  }
+
+  Future<void> releaseBinding() async {
+    _boundView = null;
+  }
 
   void markSurfaceUnavailable() {}
 
