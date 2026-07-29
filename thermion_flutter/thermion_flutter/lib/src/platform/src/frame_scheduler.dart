@@ -90,7 +90,7 @@ class FrameScheduler {
   int get scheduledFrameCount => _scheduledFrameCount;
 
   /// Start the native scheduler. Picks port mode in debug builds on
-  /// macOS/iOS/Android/Windows, direct callback otherwise.
+  /// macOS/iOS/Android/Windows and a direct native callback otherwise.
   ///
   /// Idempotent: a no-op if already active. Guards against a rapid
   /// pause→resume (or an in-flight [start]) double-registering the
@@ -151,6 +151,8 @@ class FrameScheduler {
     _active = false;
     _flutterSynced = false;
 
+    // Always stop native state even when Dart has just hot-restarted and no
+    // longer remembers that the previous isolate started a scheduler.
     FrameScheduler_stop();
 
     _frameCallable?.close();
@@ -158,6 +160,14 @@ class FrameScheduler {
 
     _framePort?.close();
     _framePort = null;
+  }
+
+  /// Stops all scheduler state and forgets pointers owned by the old engine.
+  void reset() {
+    stop();
+    _paused = false;
+    _rendering = false;
+    _onFrameCallback = null;
   }
 
   void pause() => _paused = true;

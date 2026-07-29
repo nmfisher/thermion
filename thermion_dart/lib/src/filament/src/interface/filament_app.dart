@@ -395,6 +395,10 @@ abstract class FilamentApp<T> {
   //
   Future flush();
 
+  /// Registers work that must finish before engine-owned render resources are
+  /// torn down.
+  void onBeforeDestroy(Future Function() callback);
+
   //
   void onDestroy(Future Function() callback);
 

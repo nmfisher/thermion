@@ -5,6 +5,68 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
+/// Tracks view-to-swapchain associations separately from whether a view should
+/// currently be submitted for rendering.
+///
+/// A view can be paused before its platform surface exists. Keeping that state
+/// independent of the attachment lets a later Android surface callback attach
+/// the correct swapchain without accidentally enabling the view.
+class RenderAttachmentState {
+  final _attachments = <Pointer<TSwapChain>, List<(int, View)>>{};
+  final _renderable = <View, bool>{};
+
+  void attach(View view, Pointer<TSwapChain> swapChain, {int renderOrder = 0}) {
+    final views = _attachments.putIfAbsent(swapChain, () => []);
+    views.removeWhere((entry) => entry.$2 == view);
+    views.add((renderOrder, view));
+    views.sort((a, b) => a.$1.compareTo(b.$1));
+  }
+
+  void setRenderable(View view, bool renderable) {
+    _renderable[view] = renderable;
+  }
+
+  void detach(View view, {Pointer<TSwapChain>? swapChain}) {
+    if (swapChain == null) {
+      for (final views in _attachments.values) {
+        views.removeWhere((entry) => entry.$2 == view);
+      }
+      _renderable.remove(view);
+      return;
+    }
+    _attachments[swapChain]?.removeWhere((entry) => entry.$2 == view);
+  }
+
+  void detachAll(Pointer<TSwapChain> swapChain) {
+    _attachments.remove(swapChain);
+  }
+
+  Map<Pointer<TSwapChain>, List<(int, View)>> activeSnapshot() {
+    return {
+      for (final entry in _attachments.entries)
+        entry.key: entry.value
+            .where((attachment) => _renderable[attachment.$2] ?? true)
+            .toList(),
+    };
+  }
+
+  Iterable<View> getAttachedViews(Pointer<TSwapChain> swapChain) =>
+      _attachments[swapChain]?.map((entry) => entry.$2) ?? [];
+
+  Iterable<Pointer<TSwapChain>> getAttachedSwapChains(View view) sync* {
+    for (final entry in _attachments.entries) {
+      if (entry.value.any((attachment) => attachment.$2 == view)) {
+        yield entry.key;
+      }
+    }
+  }
+
+  void clear() {
+    _attachments.clear();
+    _renderable.clear();
+  }
+}
+
 class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   final Pointer<TRenderManager> pointer;
 
@@ -16,9 +78,9 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   FFIRenderManager(this.pointer);
 
-  static final _attachments = <Pointer<TSwapChain>, List<(int, View)>>{};
+  static final _attachmentState = RenderAttachmentState();
 
-  /// Serialises every operation that mutates `_attachments` and runs
+  /// Serialises every operation that mutates attachment state and runs
   /// `_syncViews` (attach / detach / detachAll). Concurrent calls from
   /// sibling viewers in multi-viewer apps were running in parallel,
   /// each taking its own `_syncViews` snapshot at a different moment.
@@ -53,14 +115,19 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   @override
   Future attach(View view, SwapChain swapChain, {int renderOrder = 0}) {
     return _serialize(() async {
-      final handle = swapChain.getNativeHandle();
-      if (!_attachments.containsKey(handle)) {
-        _attachments[handle] = [];
-      }
+      _attachmentState.attach(
+        view,
+        swapChain.getNativeHandle(),
+        renderOrder: renderOrder,
+      );
+      await _syncViews();
+    });
+  }
 
-      _attachments[handle]!.removeWhere((v) => v.$2 == view);
-      _attachments[handle]!.add((renderOrder, view));
-      _attachments[handle]!.sort((a, b) => a.$1.compareTo(b.$1));
+  @override
+  Future setRenderable(View view, bool renderable) {
+    return _serialize(() async {
+      _attachmentState.setRenderable(view, renderable);
       await _syncViews();
     });
   }
@@ -68,19 +135,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   @override
   Future detach(View view, {SwapChain? swapChain}) {
     return _serialize(() async {
-      if (swapChain == null) {
-        for (final swapChainHandle in _attachments.keys) {
-          _attachments[swapChainHandle]!.removeWhere((v) => v.$2 == view);
-        }
-      } else {
-        if (!_attachments.containsKey(swapChain.getNativeHandle())) {
-          _attachments[swapChain.getNativeHandle()] = [];
-        }
-
-        _attachments[swapChain.getNativeHandle()]!.removeWhere(
-          (v) => v.$2 == view,
-        );
-      }
+      _attachmentState.detach(view, swapChain: swapChain?.getNativeHandle());
       await _syncViews();
     });
   }
@@ -102,10 +157,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     // Snapshotting also tolerates removal: if an entry was deleted
     // by the time we get back to it, the views list will be null
     // and we skip it.
-    final snapshot = <Pointer<TSwapChain>, List<(int, View)>>{};
-    for (final entry in _attachments.entries) {
-      snapshot[entry.key] = List.of(entry.value);
-    }
+    final snapshot = _attachmentState.activeSnapshot();
 
     for (final swapChainHandle in snapshot.keys) {
       final views = snapshot[swapChainHandle];
@@ -143,11 +195,12 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
           cb,
         ),
       );
-      _attachments.remove(swapChain.getNativeHandle());
+      _attachmentState.detachAll(swapChain.getNativeHandle());
     });
   }
 
   void destroy() {
+    _attachmentState.clear();
     RenderManager_destroy(pointer);
   }
 
@@ -175,17 +228,13 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   @override
   Iterable<View> getAttachedViews(SwapChain swapChain) {
-    return _attachments[swapChain.getNativeHandle()]?.map((v) => v.$2) ?? [];
+    return _attachmentState.getAttachedViews(swapChain.getNativeHandle());
   }
 
   @override
   Iterable<SwapChain> getAttachedSwapChains(View view) sync* {
-    for (final entry in _attachments.entries) {
-      for (final views in entry.value) {
-        if (views.$2 == view) {
-          yield FFISwapChain(entry.key);
-        }
-      }
+    for (final handle in _attachmentState.getAttachedSwapChains(view)) {
+      yield FFISwapChain(handle);
     }
   }
 }

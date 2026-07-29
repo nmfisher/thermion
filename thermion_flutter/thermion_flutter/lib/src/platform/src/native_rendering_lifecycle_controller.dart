@@ -36,7 +36,7 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
   /// Stops callbacks left by a previous initialization and removes this
   /// observer before the engine is initialized again.
   void prepareForInitialization() {
-    FrameScheduler.instance.stop();
+    FrameScheduler.instance.reset();
     WidgetsBinding.instance.removeObserver(this);
   }
 
@@ -44,6 +44,10 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
   Future<void> start() async {
     FrameScheduler.instance.setOnFrame(_renderFrame);
 
+    // Android must keep render admission on the Dart callback/port path.
+    // SurfaceProducer consumes ImageReader frames from Android's main looper;
+    // a producer loop decoupled from Flutter can fill that pipeline and block
+    // acquireLatestImage() on the main thread for seconds.
     if (Platform.isLinux) {
       await _startFlutterSynced();
     } else {
@@ -98,7 +102,11 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
       while (FrameScheduler.instance.isRendering) {
         await Future<void>.delayed(const Duration(milliseconds: 1));
       }
-      await FilamentApp.instance?.flush();
+      final app = FilamentApp.instance;
+      if (app is FFIFilamentApp) {
+        await app.drainRequestFrameHooks();
+      }
+      await app?.flush();
       return await operation();
     } finally {
       _pauseReasons.remove(_RenderingPauseReason.textureMutation);
