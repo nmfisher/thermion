@@ -174,6 +174,17 @@ copy_from_local() {
   echo "--- Copying Filament API headers (from $HEADER_SOURCE) ---"
   cp -R "$HEADER_SOURCE/"* "$OUTPUT_INCLUDE_DIR/"
 
+  echo "--- Overriding installed headers with source-tree versions (install strips const qualifiers) ---"
+  # The installed headers strip 'const' from Builder::build() methods, but the
+  # prebuilt library was compiled from source (which includes const). Override
+  # affected headers from the source tree to match the compiled library ABI.
+  for hdr in VertexBuffer.h RenderableManager.h FramePacer.h; do
+    if [ -f "filament/include/filament/$hdr" ]; then
+      cp "filament/include/filament/$hdr" "$OUTPUT_INCLUDE_DIR/filament/$hdr"
+      echo "  Overrode filament/$hdr from source tree"
+    fi
+  done
+
   echo "--- Copying imageio headers ---"
   if [ -d "libs/imageio/include" ]; then
     cp -R libs/imageio/include/* "$OUTPUT_INCLUDE_DIR/"
@@ -181,11 +192,18 @@ copy_from_local() {
     echo "  Warning: libs/imageio/include not found — skipping"
   fi
 
-  echo "--- Copying bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/) ---"
+  echo "--- Copying bluevk headers (includes bluevk, vulkan, vk_video) ---"
   if [ -d "libs/bluevk/include" ]; then
     cp -R libs/bluevk/include/* "$OUTPUT_INCLUDE_DIR/"
   else
     echo "  Warning: libs/bluevk/include not found — skipping"
+  fi
+
+  echo "--- Copying source-tree utils compiler.h (install tree strips UTILS_SHARED_LINKING) ---"
+  if [ -f "libs/utils/include/utils/compiler.h" ]; then
+    cp libs/utils/include/utils/compiler.h "$OUTPUT_INCLUDE_DIR/utils/compiler.h"
+  else
+    echo "  Warning: libs/utils/include/utils/compiler.h not found — skipping"
   fi
 
   echo "--- Copying uberarchive.h (release and debug) ---"
