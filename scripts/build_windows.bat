@@ -1,9 +1,9 @@
 @echo off
 REM Windows build script for Filament
 REM Usage: build_windows.bat <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]
-REM Example: build_windows.bat C:\path\to\filament v1.69.0 C:\path\to\output
-REM          build_windows.bat C:\path\to\filament v1.69.0 C:\path\to\output --clean
-REM          build_windows.bat C:\path\to\filament v1.69.0 C:\path\to\output --release
+REM Example: build_windows.bat C:\path\to\filament v1.74.0 C:\path\to\output
+REM          build_windows.bat C:\path\to\filament v1.74.0 C:\path\to\output --clean
+REM          build_windows.bat C:\path\to\filament v1.74.0 C:\path\to\output --release
 
 setlocal enabledelayedexpansion
 
@@ -13,9 +13,9 @@ set "SCRIPT_DIR=%~dp0"
 REM Validate arguments
 if "%~3"=="" (
   echo Usage: %0 ^<FILAMENT_BASE_DIR^> ^<FILAMENT_VERSION^> ^<OUTPUT_BASE_DIR^> [options]
-  echo Example: %0 C:\path\to\filament v1.69.0 C:\path\to\output
-  echo          %0 C:\path\to\filament v1.69.0 C:\path\to\output --clean
-  echo          %0 C:\path\to\filament v1.69.0 C:\path\to\output --release
+  echo Example: %0 C:\path\to\filament v1.74.0 C:\path\to\output
+  echo          %0 C:\path\to\filament v1.74.0 C:\path\to\output --clean
+  echo          %0 C:\path\to\filament v1.74.0 C:\path\to\output --release
   echo.
   echo Options:
   echo   --clean         Remove existing target directories before building
@@ -99,6 +99,10 @@ call git checkout %FILAMENT_VERSION% || (
   exit /b 1
 )
 
+REM Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+REM Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
+python "%SCRIPT_DIR%patch_libassimp_tnt.py" "%FILAMENT_BASE_DIR%"
+
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM...
 set "GLTFIO_HEADER=%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h"
@@ -136,6 +140,28 @@ if "!BUILD_RELEASE!"=="true" (
     echo Warning: imageio release build failed
   )
 
+  REM Build libassimp for release
+  echo Building libassimp for release...
+  cd "%FILAMENT_BASE_DIR%\out"
+  if not exist "cmake-release-assimp" mkdir cmake-release-assimp
+  cd cmake-release-assimp
+  cmake -G "Visual Studio 17 2022" -T v142 ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_CXX_STANDARD=17 ^
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
+    -DASSIMP_BUILD_TESTS=OFF ^
+    -DASSIMP_BUILD_SAMPLES=OFF ^
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF ^
+    "%FILAMENT_BASE_DIR%\third_party\libassimp\tnt" || (
+    echo Error: libassimp release cmake configuration failed
+    exit /b 1
+  )
+  cmake --build . --config Release || (
+    echo Error: libassimp release build failed
+    exit /b 1
+  )
+  cd "%FILAMENT_BASE_DIR%\out"
+
   REM Install release to get headers in a known location
   echo Installing release...
   cmake --install . --config Release --prefix "%FILAMENT_BASE_DIR%\out\install-release" || (
@@ -160,6 +186,28 @@ if "!BUILD_DEBUG!"=="true" (
   cmake --build . --target imageio --config Debug || (
     echo Warning: imageio debug build failed
   )
+
+  REM Build libassimp for debug
+  echo Building libassimp for debug...
+  cd "%FILAMENT_BASE_DIR%\out"
+  if not exist "cmake-debug-assimp" mkdir cmake-debug-assimp
+  cd cmake-debug-assimp
+  cmake -G "Visual Studio 17 2022" -T v142 ^
+    -DCMAKE_BUILD_TYPE=Debug ^
+    -DCMAKE_CXX_STANDARD=17 ^
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
+    -DASSIMP_BUILD_TESTS=OFF ^
+    -DASSIMP_BUILD_SAMPLES=OFF ^
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF ^
+    "%FILAMENT_BASE_DIR%\third_party\libassimp\tnt" || (
+    echo Error: libassimp debug cmake configuration failed
+    exit /b 1
+  )
+  cmake --build . --config Debug || (
+    echo Error: libassimp debug build failed
+    exit /b 1
+  )
+  cd "%FILAMENT_BASE_DIR%\out"
 
   REM Install debug to get headers in a known location
   echo Installing debug...
@@ -328,15 +376,15 @@ call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! ||
   exit /b 1
 )
 
-REM Download vulkan-1.lib from v1.69.1 (reusable across versions)
-set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.69.1-windows-release-vulkan.zip"
+REM Download vulkan-1.lib from v1.74.0 (reusable across versions)
+set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.74.0-windows-release-vulkan.zip"
 set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
 set "VULKAN_LIB_EXTRACT=%OUTPUT_BASE_DIR%\vulkan-1-temp"
 
 if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
-  echo Downloading filament v1.69.1 to extract vulkan-1.lib...
+  echo Downloading filament v1.74.0 to extract vulkan-1.lib...
   powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
-    echo Error: Failed to download filament v1.69.1 zip
+    echo Error: Failed to download filament v1.74.0 zip
     exit /b 1
   )
 
@@ -344,7 +392,7 @@ if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
   if exist "%VULKAN_LIB_EXTRACT%" rmdir /s /q "%VULKAN_LIB_EXTRACT%"
   mkdir "%VULKAN_LIB_EXTRACT%"
   powershell -Command "Expand-Archive -Path '%VULKAN_LIB_ZIP%' -DestinationPath '%VULKAN_LIB_EXTRACT%' -Force" || (
-    echo Error: Failed to extract filament v1.69.1 zip
+    echo Error: Failed to extract filament v1.74.0 zip
     exit /b 1
   )
 
@@ -352,7 +400,7 @@ if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
   if exist "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" (
     copy /Y "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
   ) else (
-    echo Error: vulkan-1.lib not found in v1.69.1 zip
+    echo Error: vulkan-1.lib not found in v1.74.0 zip
     echo Contents of extracted zip:
     dir /b "%VULKAN_LIB_EXTRACT%"
     exit /b 1

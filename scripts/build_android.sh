@@ -6,9 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.69.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
