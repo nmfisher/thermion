@@ -18,8 +18,8 @@ _SwiftThermionFlutterPluginObjCAPI_protocolTrampoline_1mbt9g9(
   ffi.Pointer<ffi.Void> arg0,
 );
 
-late final _class_MetalTextureWrapper = objc.getClass(
-  "thermion_flutter.MetalTextureWrapper",
+late final _class_FlutterMetalTextureWrapper = objc.getClass(
+  "thermion_flutter.FlutterMetalTextureWrapper",
 );
 late final _sel_isKindOfClass_ = objc.registerName("isKindOfClass:");
 final _objc_msgSend_19nvye5 = objc.msgSendPointer
@@ -39,6 +39,11 @@ final _objc_msgSend_19nvye5 = objc.msgSendPointer
         ffi.Pointer<objc.ObjCObject>,
       )
     >();
+typedef instancetype = ffi.Pointer<objc.ObjCObject>;
+typedef Dartinstancetype = objc.ObjCObjectBase;
+late final _class_MetalTextureWrapper = objc.getClass(
+  "thermion_flutter.MetalTextureWrapper",
+);
 late final _sel_pixelBuffer = objc.registerName("pixelBuffer");
 final _objc_msgSend_13yqbb6 = objc.msgSendPointer
     .cast<
@@ -190,7 +195,7 @@ final _objc_msgSend_91o635 = objc.msgSendPointer
         ffi.Pointer<objc.ObjCSelector>,
       )
     >();
-late final _sel_destroyTexture = objc.registerName("destroyTexture");
+late final _sel_flushCache = objc.registerName("flushCache");
 final _objc_msgSend_1pl9qdv = objc.msgSendPointer
     .cast<
       ffi.NativeFunction<
@@ -206,8 +211,6 @@ final _objc_msgSend_1pl9qdv = objc.msgSendPointer
         ffi.Pointer<objc.ObjCSelector>,
       )
     >();
-typedef instancetype = ffi.Pointer<objc.ObjCObject>;
-typedef Dartinstancetype = objc.ObjCObjectBase;
 late final _sel_init = objc.registerName("init");
 late final _sel_new = objc.registerName("new");
 late final _sel_allocWithZone_ = objc.registerName("allocWithZone:");
@@ -467,9 +470,9 @@ class MetalTextureWrapper extends objc.NSObject {
     return _objc_msgSend_91o635(this.ref.pointer, _sel_supportsRenderTarget);
   }
 
-  /// destroyTexture
-  void destroyTexture() {
-    _objc_msgSend_1pl9qdv(this.ref.pointer, _sel_destroyTexture);
+  /// flushCache
+  void flushCache() {
+    _objc_msgSend_1pl9qdv(this.ref.pointer, _sel_flushCache);
   }
 
   /// init
@@ -558,50 +561,165 @@ class MetalTextureWrapper extends objc.NSObject {
   factory MetalTextureWrapper() => new$();
 }
 
+late final _sel_initWithTexture_ = objc.registerName("initWithTexture:");
+final _objc_msgSend_1sotr3r = objc.msgSendPointer
+    .cast<
+      ffi.NativeFunction<
+        ffi.Pointer<objc.ObjCObject> Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+          ffi.Pointer<objc.ObjCObject>,
+        )
+      >
+    >()
+    .asFunction<
+      ffi.Pointer<objc.ObjCObject> Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+        ffi.Pointer<objc.ObjCObject>,
+      )
+    >();
+
+/// FlutterMetalTextureWrapper
+class FlutterMetalTextureWrapper extends objc.NSObject {
+  FlutterMetalTextureWrapper._(
+    ffi.Pointer<objc.ObjCObject> pointer, {
+    bool retain = false,
+    bool release = false,
+  }) : super.castFromPointer(pointer, retain: retain, release: release);
+
+  /// Constructs a [FlutterMetalTextureWrapper] that points to the same underlying object as [other].
+  FlutterMetalTextureWrapper.castFrom(objc.ObjCObjectBase other)
+    : this._(other.ref.pointer, retain: true, release: true);
+
+  /// Constructs a [FlutterMetalTextureWrapper] that wraps the given raw object pointer.
+  FlutterMetalTextureWrapper.castFromPointer(
+    ffi.Pointer<objc.ObjCObject> other, {
+    bool retain = false,
+    bool release = false,
+  }) : this._(other, retain: retain, release: release);
+
+  /// Returns whether [obj] is an instance of [FlutterMetalTextureWrapper].
+  static bool isInstance(objc.ObjCObjectBase obj) {
+    return _objc_msgSend_19nvye5(
+      obj.ref.pointer,
+      _sel_isKindOfClass_,
+      _class_FlutterMetalTextureWrapper,
+    );
+  }
+
+  /// initWithTexture:
+  FlutterMetalTextureWrapper initWithTexture_(MetalTextureWrapper texture) {
+    final _ret = _objc_msgSend_1sotr3r(
+      this.ref.retainAndReturnPointer(),
+      _sel_initWithTexture_,
+      texture.ref.pointer,
+    );
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// init
+  FlutterMetalTextureWrapper init() {
+    objc.checkOsVersionInternal(
+      'FlutterMetalTextureWrapper.init',
+      iOS: (false, (2, 0, 0)),
+      macOS: (false, (10, 0, 0)),
+    );
+    final _ret = _objc_msgSend_151sglz(
+      this.ref.retainAndReturnPointer(),
+      _sel_init,
+    );
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// new
+  static FlutterMetalTextureWrapper new$() {
+    final _ret = _objc_msgSend_151sglz(
+      _class_FlutterMetalTextureWrapper,
+      _sel_new,
+    );
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// allocWithZone:
+  static FlutterMetalTextureWrapper allocWithZone_(
+    ffi.Pointer<objc.NSZone> zone,
+  ) {
+    final _ret = _objc_msgSend_1cwp428(
+      _class_FlutterMetalTextureWrapper,
+      _sel_allocWithZone_,
+      zone,
+    );
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// alloc
+  static FlutterMetalTextureWrapper alloc() {
+    final _ret = _objc_msgSend_151sglz(
+      _class_FlutterMetalTextureWrapper,
+      _sel_alloc,
+    );
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// self
+  FlutterMetalTextureWrapper self$1() {
+    final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_self);
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
+  }
+
+  /// retain
+  FlutterMetalTextureWrapper retain() {
+    final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_retain);
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
+  }
+
+  /// autorelease
+  FlutterMetalTextureWrapper autorelease() {
+    final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_autorelease);
+    return FlutterMetalTextureWrapper.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
+  }
+
+  /// Returns a new instance of FlutterMetalTextureWrapper constructed with the default `new` method.
+  factory FlutterMetalTextureWrapper() => new$();
+}
+
 late final _class_SwiftThermionFlutterPluginObjCAPI = objc.getClass(
   "thermion_flutter.SwiftThermionFlutterPluginObjCAPI",
 );
-late final _sel_registerTextureWithTexture_ = objc.registerName(
-  "registerTextureWithTexture:",
-);
-final _objc_msgSend_1oj5o8z = objc.msgSendPointer
-    .cast<
-      ffi.NativeFunction<
-        ffi.Int64 Function(
-          ffi.Pointer<objc.ObjCObject>,
-          ffi.Pointer<objc.ObjCSelector>,
-          ffi.Pointer<objc.ObjCObject>,
-        )
-      >
-    >()
-    .asFunction<
-      int Function(
-        ffi.Pointer<objc.ObjCObject>,
-        ffi.Pointer<objc.ObjCSelector>,
-        ffi.Pointer<objc.ObjCObject>,
-      )
-    >();
-late final _sel_unregisterFlutterTextureWithFlutterTextureId_ = objc
-    .registerName("unregisterFlutterTextureWithFlutterTextureId:");
-final _objc_msgSend_17gvxvj = objc.msgSendPointer
-    .cast<
-      ffi.NativeFunction<
-        ffi.Void Function(
-          ffi.Pointer<objc.ObjCObject>,
-          ffi.Pointer<objc.ObjCSelector>,
-          ffi.Int64,
-        )
-      >
-    >()
-    .asFunction<
-      void Function(
-        ffi.Pointer<objc.ObjCObject>,
-        ffi.Pointer<objc.ObjCSelector>,
-        int,
-      )
-    >();
-late final _sel_markTextureFrameAvailableWithFlutterTextureId_ = objc
-    .registerName("markTextureFrameAvailableWithFlutterTextureId:");
+late final _sel_textureRegistry = objc.registerName("textureRegistry");
 late final _sel_startFrameSchedulerWithCallbackAddress_targetFps_ = objc
     .registerName("startFrameSchedulerWithCallbackAddress:targetFps:");
 final _objc_msgSend_12xnd2d = objc.msgSendPointer
@@ -625,6 +743,23 @@ final _objc_msgSend_12xnd2d = objc.msgSendPointer
     >();
 late final _sel_stopFrameScheduler = objc.registerName("stopFrameScheduler");
 late final _sel_initializeDartApi_ = objc.registerName("initializeDartApi:");
+final _objc_msgSend_17gvxvj = objc.msgSendPointer
+    .cast<
+      ffi.NativeFunction<
+        ffi.Void Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+          ffi.Int64,
+        )
+      >
+    >()
+    .asFunction<
+      void Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+        int,
+      )
+    >();
 late final _sel_startFrameSchedulerWithPort_targetFps_ = objc.registerName(
   "startFrameSchedulerWithPort:targetFps:",
 );
@@ -657,35 +792,13 @@ class SwiftThermionFlutterPluginObjCAPI extends objc.NSObject {
     );
   }
 
-  /// registerTextureWithTexture:
-  static int registerTextureWithTexture_(MetalTextureWrapper texture) {
-    return _objc_msgSend_1oj5o8z(
+  /// textureRegistry
+  static objc.NSObject textureRegistry() {
+    final _ret = _objc_msgSend_151sglz(
       _class_SwiftThermionFlutterPluginObjCAPI,
-      _sel_registerTextureWithTexture_,
-      texture.ref.pointer,
+      _sel_textureRegistry,
     );
-  }
-
-  /// unregisterFlutterTextureWithFlutterTextureId:
-  static void unregisterFlutterTextureWithFlutterTextureId_(
-    int flutterTextureId,
-  ) {
-    _objc_msgSend_17gvxvj(
-      _class_SwiftThermionFlutterPluginObjCAPI,
-      _sel_unregisterFlutterTextureWithFlutterTextureId_,
-      flutterTextureId,
-    );
-  }
-
-  /// markTextureFrameAvailableWithFlutterTextureId:
-  static void markTextureFrameAvailableWithFlutterTextureId_(
-    int flutterTextureId,
-  ) {
-    _objc_msgSend_17gvxvj(
-      _class_SwiftThermionFlutterPluginObjCAPI,
-      _sel_markTextureFrameAvailableWithFlutterTextureId_,
-      flutterTextureId,
-    );
+    return objc.NSObject.castFromPointer(_ret, retain: true, release: true);
   }
 
   /// startFrameSchedulerWithCallbackAddress:targetFps:
@@ -820,4 +933,173 @@ class SwiftThermionFlutterPluginObjCAPI extends objc.NSObject {
 
   /// Returns a new instance of SwiftThermionFlutterPluginObjCAPI constructed with the default `new` method.
   factory SwiftThermionFlutterPluginObjCAPI() => new$();
+}
+
+late final _class_ThermionTextureRegistry = objc.getClass(
+  "thermion_flutter.ThermionTextureRegistry",
+);
+late final _sel_registerTexture_ = objc.registerName("registerTexture:");
+final _objc_msgSend_1oj5o8z = objc.msgSendPointer
+    .cast<
+      ffi.NativeFunction<
+        ffi.Int64 Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+          ffi.Pointer<objc.ObjCObject>,
+        )
+      >
+    >()
+    .asFunction<
+      int Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+        ffi.Pointer<objc.ObjCObject>,
+      )
+    >();
+late final _sel_textureFrameAvailable_ = objc.registerName(
+  "textureFrameAvailable:",
+);
+late final _sel_unregisterTexture_ = objc.registerName("unregisterTexture:");
+
+/// ThermionTextureRegistry
+class ThermionTextureRegistry extends objc.NSObject {
+  ThermionTextureRegistry._(
+    ffi.Pointer<objc.ObjCObject> pointer, {
+    bool retain = false,
+    bool release = false,
+  }) : super.castFromPointer(pointer, retain: retain, release: release);
+
+  /// Constructs a [ThermionTextureRegistry] that points to the same underlying object as [other].
+  ThermionTextureRegistry.castFrom(objc.ObjCObjectBase other)
+    : this._(other.ref.pointer, retain: true, release: true);
+
+  /// Constructs a [ThermionTextureRegistry] that wraps the given raw object pointer.
+  ThermionTextureRegistry.castFromPointer(
+    ffi.Pointer<objc.ObjCObject> other, {
+    bool retain = false,
+    bool release = false,
+  }) : this._(other, retain: retain, release: release);
+
+  /// Returns whether [obj] is an instance of [ThermionTextureRegistry].
+  static bool isInstance(objc.ObjCObjectBase obj) {
+    return _objc_msgSend_19nvye5(
+      obj.ref.pointer,
+      _sel_isKindOfClass_,
+      _class_ThermionTextureRegistry,
+    );
+  }
+
+  /// registerTexture:
+  int registerTexture_(objc.NSObject texture) {
+    return _objc_msgSend_1oj5o8z(
+      this.ref.pointer,
+      _sel_registerTexture_,
+      texture.ref.pointer,
+    );
+  }
+
+  /// textureFrameAvailable:
+  void textureFrameAvailable_(int textureId) {
+    _objc_msgSend_17gvxvj(
+      this.ref.pointer,
+      _sel_textureFrameAvailable_,
+      textureId,
+    );
+  }
+
+  /// unregisterTexture:
+  void unregisterTexture_(int textureId) {
+    _objc_msgSend_17gvxvj(this.ref.pointer, _sel_unregisterTexture_, textureId);
+  }
+
+  /// init
+  ThermionTextureRegistry init() {
+    objc.checkOsVersionInternal(
+      'ThermionTextureRegistry.init',
+      iOS: (false, (2, 0, 0)),
+      macOS: (false, (10, 0, 0)),
+    );
+    final _ret = _objc_msgSend_151sglz(
+      this.ref.retainAndReturnPointer(),
+      _sel_init,
+    );
+    return ThermionTextureRegistry.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// new
+  static ThermionTextureRegistry new$() {
+    final _ret = _objc_msgSend_151sglz(
+      _class_ThermionTextureRegistry,
+      _sel_new,
+    );
+    return ThermionTextureRegistry.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// allocWithZone:
+  static ThermionTextureRegistry allocWithZone_(ffi.Pointer<objc.NSZone> zone) {
+    final _ret = _objc_msgSend_1cwp428(
+      _class_ThermionTextureRegistry,
+      _sel_allocWithZone_,
+      zone,
+    );
+    return ThermionTextureRegistry.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// alloc
+  static ThermionTextureRegistry alloc() {
+    final _ret = _objc_msgSend_151sglz(
+      _class_ThermionTextureRegistry,
+      _sel_alloc,
+    );
+    return ThermionTextureRegistry.castFromPointer(
+      _ret,
+      retain: false,
+      release: true,
+    );
+  }
+
+  /// self
+  ThermionTextureRegistry self$1() {
+    final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_self);
+    return ThermionTextureRegistry.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
+  }
+
+  /// retain
+  ThermionTextureRegistry retain() {
+    final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_retain);
+    return ThermionTextureRegistry.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
+  }
+
+  /// autorelease
+  ThermionTextureRegistry autorelease() {
+    final _ret = _objc_msgSend_151sglz(this.ref.pointer, _sel_autorelease);
+    return ThermionTextureRegistry.castFromPointer(
+      _ret,
+      retain: true,
+      release: true,
+    );
+  }
+
+  /// Returns a new instance of ThermionTextureRegistry constructed with the default `new` method.
+  factory ThermionTextureRegistry() => new$();
 }

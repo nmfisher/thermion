@@ -1,7 +1,22 @@
 import 'package:thermion_flutter/src/swift/swift_bindings.g.dart';
+
 import 'platform_texture_descriptor.dart';
 
+/// [DarwinPlatformTextureDescriptorImpl] now handles the Metal platform texture
+/// allocation/lifecycle that was previously handled by
+/// [SwiftThermionFlutterPlugin]. The latter now exists only
+/// to capture/pass FlutterTextureRegistry to this class.
+///
+/// This class will now:
+///   - allocate the [MetalTextureWrapper] (CVPixelBuffer + CVMetalTexture +
+///     MTLTexture),
+///   - wraps in a native [FlutterMetalTextureWrapper] (the FlutterTexture
+///     adapter whose `copyPixelBuffer` Flutter calls on the raster thread),
+///   - registers that adapter with the registry, and
+///   - drives `textureFrameAvailable` each frame and `unregisterTexture` on
+///     destroy, keeping the adapter alive while registered.
 class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
+  final FlutterMetalTextureWrapper adapter;
   final MetalTextureWrapper texture;
 
   bool _destroyed = false;
@@ -10,35 +25,60 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
   bool get destroyed => _destroyed;
 
   DarwinPlatformTextureDescriptorImpl(
-    this.texture, {
+    this.texture,
+    this.adapter, {
     required super.flutterTextureId,
     required super.hardwareId,
     required super.width,
     required super.height,
   });
 
-  @override
-  Future destroy() async {
-    if (_destroyed) {
-      throw Exception();
-    }
-    // set flag early to ensure markTextureFrameAvailable is not called
-    // with a destroyed texture handle
-    _destroyed = true;
-    SwiftThermionFlutterPluginObjCAPI.unregisterFlutterTextureWithFlutterTextureId_(
-      flutterTextureId,
-    );
-    texture.release();
-  }
+  /// The FlutterTextureRegistry exposed by the plugin
+  static ThermionTextureRegistry? _registry;
+  static ThermionTextureRegistry get _textureRegistry =>
+      _registry ??= ThermionTextureRegistry.castFrom(
+        SwiftThermionFlutterPluginObjCAPI.textureRegistry(),
+      );
 
   @override
-  void markTextureFrameAvailable() async {
+  Future<void> destroy() async {
     if (_destroyed) {
       return;
     }
-    SwiftThermionFlutterPluginObjCAPI.markTextureFrameAvailableWithFlutterTextureId_(
-      flutterTextureId,
-    );
+    // Set flag early to ensure markTextureFrameAvailable is not called with a
+    // destroyed texture handle.
+    _destroyed = true;
+    _textureRegistry.unregisterTexture_(flutterTextureId);
+
+    // Drop our Dart-owned NSObject retains explicitly and deterministically
+    // — do NOT rely on Dart GC finalizers to release them. `ref.release()`
+    // calls objc_release immediately AND detaches the GC finalizer (with a
+    // built-in double-release guard), so the retain the interop layer took on
+    // our behalf is balanced the moment destroy() runs, not whenever GC
+    // happens to sweep the wrappers.
+    //
+    // This only removes the Dart-owned retain from the critical path. It does
+    // not, by itself, deallocate either object if another owner still holds a
+    // strong ref: the adapter is also retained by Flutter's registry until its
+    // async unregister completes (onTextureUnregistered), and
+    // MetalTextureWrapper is also retained by the adapter's Swift `texture`
+    // property. Sequencing those is a separate step; this just makes the
+    // Dart-owned half explicit instead of GC-deferred.
+    texture.flushCache();
+    adapter.ref.release();
+    texture.ref.release();
+    await releaseBinding();
+  }
+
+  @override
+  void markTextureFrameAvailable() {
+    if (_destroyed) {
+      throw Exception(
+        "markTextureFrameAvailable cannot be called on a "
+        "destroyed texture descriptor.",
+      );
+    }
+    _textureRegistry.textureFrameAvailable_(flutterTextureId);
   }
 
   static DarwinPlatformTextureDescriptorImpl allocate(int width, int height) {
@@ -49,16 +89,19 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
           false,
           false,
         );
-    metalTexture.retain();
-    final flutterTextureId =
-        SwiftThermionFlutterPluginObjCAPI.registerTextureWithTexture_(
-          metalTexture,
-        );
-    if (flutterTextureId == -1) {
-      throw Exception("Failed to register Flutter texture");
+
+    final adapter = FlutterMetalTextureWrapper.alloc().initWithTexture_(
+      metalTexture,
+    );
+    final flutterTextureId = _textureRegistry.registerTexture_(adapter);
+    // FlutterTextureRegistry.registerTexture returns 0 on failure.
+    if (flutterTextureId == 0) {
+      throw Exception('Failed to register Flutter texture');
     }
+
     return DarwinPlatformTextureDescriptorImpl(
       metalTexture,
+      adapter,
       flutterTextureId: flutterTextureId,
       hardwareId: metalTexture.metalTextureAddress,
       width: width,

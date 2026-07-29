@@ -1,23 +1,19 @@
 
 import Foundation
+#if os(iOS)
+import Flutter
+#else
+import FlutterMacOS
+#endif
 
 @objc public class SwiftThermionFlutterPluginObjCAPI : NSObject {
 
-    @objc public static func registerTexture(texture: MetalTextureWrapper) -> Int64 {
-        if texture.metalTextureAddress == -1 {
-            return -1
-        }
-        let flutterTextureId = SwiftThermionFlutterPlugin.instance!.registerTexture(texture:texture);
-        return flutterTextureId
-    }
-
-    @objc public static func unregisterFlutterTexture(flutterTextureId: Int64) {
-        SwiftThermionFlutterPlugin.instance!.unregisterTexture(flutterTextureId:flutterTextureId);
-
-    }
-
-    @objc public static func markTextureFrameAvailable(flutterTextureId: Int64) {
-        SwiftThermionFlutterPlugin.instance!.markTextureFrameAvailable(flutterTextureId:flutterTextureId);
+    // Vends the FlutterTextureRegistry captured in SwiftThermionFlutterPlugin.register(with:).
+    // The Dart side holds this reference and calls registerTexture:/
+    // textureFrameAvailable:/unregisterTexture: on it directly, owning the full
+    // texture lifecycle.
+    @objc public static func textureRegistry() -> FlutterTextureRegistry {
+        return SwiftThermionFlutterPlugin.instance!.registry
     }
 
     // MARK: - Frame Scheduler (Direct Callback Mode - Release)
@@ -40,4 +36,3 @@ import Foundation
         ThermionFrameScheduler.startWithPort(port, targetFps: targetFps)
     }
 }
-
