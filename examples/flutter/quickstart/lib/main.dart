@@ -40,6 +40,8 @@ class _MyHomePageState extends State<MyHomePage> {
   ThermionViewer? _viewer;
   ManipulatorType _manipulatorType = ManipulatorType.ORBIT;
   int _framerate = 60;
+  Timer? _assetAnimationTimer;
+  Timer? _skyboxRemovalTimer;
 
   late DirectLight _sun;
 
@@ -54,6 +56,19 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   bool _showViewer = false;
+
+  void _cancelViewerCallbacks() {
+    _assetAnimationTimer?.cancel();
+    _assetAnimationTimer = null;
+    _skyboxRemovalTimer?.cancel();
+    _skyboxRemovalTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _cancelViewerCallbacks();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,21 +87,45 @@ class _MyHomePageState extends State<MyHomePage> {
               background: Colors.blue,
               manipulatorType: _manipulatorType,
               onAssetLoaded: (viewer, asset) async {
-                var last = DateTime.now();
-                Timer.periodic(Duration(milliseconds: 16), (timer) async {
-                  var now = DateTime.now();
-                  await asset.setTransform(Matrix4.rotationY(
-                      (now.millisecondsSinceEpoch.toDouble() -
-                              last.millisecondsSinceEpoch) /
-                          1000));
-                });
+                _assetAnimationTimer?.cancel();
+                final startedAt = DateTime.now();
+                _assetAnimationTimer = Timer.periodic(
+                  const Duration(milliseconds: 16),
+                  (timer) async {
+                    if (!mounted ||
+                        !_showViewer ||
+                        !identical(_viewer, viewer)) {
+                      timer.cancel();
+                      return;
+                    }
+                    final now = DateTime.now();
+                    final elapsed = (now.millisecondsSinceEpoch -
+                            startedAt.millisecondsSinceEpoch) /
+                        1000;
+                    await asset.setTransform(Matrix4.rotationY(elapsed));
+                  },
+                );
               },
               onViewerAvailable: (viewer) async {
+                if (!mounted || !_showViewer) {
+                  return;
+                }
                 setState(() {
                   _viewer = viewer;
                 });
-                await Future.delayed(const Duration(seconds: 5));
-                await viewer.removeSkybox();
+
+                _skyboxRemovalTimer?.cancel();
+                _skyboxRemovalTimer = Timer(const Duration(seconds: 5), () {
+                  if (!mounted || !_showViewer || !identical(_viewer, viewer)) {
+                    return;
+                  }
+                  viewer
+                      .removeSkybox()
+                      .catchError((Object error, StackTrace stack) {
+                    debugPrint(
+                        'Failed to remove quickstart skybox: $error\n$stack');
+                  });
+                });
               },
               initial: Container(
                 color: Colors.red,
@@ -104,6 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             setState(() {
                               _showViewer = !_showViewer;
                               if (!_showViewer) {
+                                _cancelViewerCallbacks();
                                 _viewer = null;
                               }
                             });

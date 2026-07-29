@@ -25,6 +25,7 @@
 //   flutter test integration_test/lifecycle_test.dart -d <device-id>
 //
 // Requires the example assets (assets/cube.glb, default_env_*.ktx).
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -213,5 +214,49 @@ void main() {
 
     ThermionFlutterPlugin.instance.resumeFrameScheduler();
     expect(FrameScheduler.instance.isPaused, isFalse);
+  }, skip: Platform.isWindows); // TODO: needs a Windows host to run
+
+  testWidgets('repeated full viewer creation and removal tears down resources',
+      (tester) async {
+    for (var iteration = 0; iteration < 3; iteration++) {
+      final available = Completer<void>();
+      final disposalStarted = Completer<void>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ViewerWidget(
+              assetPath: 'assets/cube.glb',
+              skyboxPath: 'assets/default_env_skybox.ktx',
+              iblPath: 'assets/default_env_ibl.ktx',
+              directLight: DirectLight.sun(
+                direction: Vector3(0.7, -1, -0.8).normalized(),
+              ),
+              onViewerAvailable: (viewer) async {
+                viewer.onDispose(() async {
+                  if (!disposalStarted.isCompleted) {
+                    disposalStarted.complete();
+                  }
+                });
+                if (!available.isCompleted) {
+                  available.complete();
+                }
+              },
+            ),
+          ),
+        ),
+      );
+
+      await available.future.timeout(const Duration(seconds: 30));
+      await tester.pump();
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await disposalStarted.future.timeout(const Duration(seconds: 30));
+
+      // Viewer disposal continues with scene/view/camera destruction after
+      // onDispose callbacks. Give that render-thread work time to drain before
+      // creating the next viewer.
+      await tester.pump(const Duration(milliseconds: 500));
+    }
   }, skip: Platform.isWindows); // TODO: needs a Windows host to run
 }
