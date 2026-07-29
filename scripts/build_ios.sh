@@ -321,9 +321,8 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy bluevk headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/bluevk"
-  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk/"* "$TARGET_RELEASE_DIR/include/bluevk/" || {
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy bluevk headers to target"
     exit 1
   }
@@ -368,9 +367,8 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy bluevk headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/bluevk"
-  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk/"* "$TARGET_RELEASE_DIR/include/bluevk/" || {
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy bluevk headers to target"
     exit 1
   }
@@ -439,10 +437,9 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy bluevk headers
-if [ -d "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk" ]; then
-  mkdir -p "$THERMION_INCLUDE/bluevk"
-  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk/"* "$THERMION_INCLUDE/bluevk/" || {
+# Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+if [ -d "$FILAMENT_BASE_DIR/libs/bluevk/include" ]; then
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$THERMION_INCLUDE/" || {
     echo "Error: Failed to copy bluevk headers"
     exit 1
   }
