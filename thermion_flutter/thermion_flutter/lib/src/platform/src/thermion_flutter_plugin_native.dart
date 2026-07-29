@@ -149,7 +149,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   @override
-  Future<void> releaseTextureBindingForView(View view) {
-    return _textureSurfaces.releaseView(view);
+  Future<void> destroyTextureForView(View view) {
+    return _textureSurfaces.destroyForView(view);
   }
 }

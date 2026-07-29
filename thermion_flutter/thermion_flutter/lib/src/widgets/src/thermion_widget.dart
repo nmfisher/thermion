@@ -86,13 +86,12 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     _debounceTimer?.cancel();
     final view = widget.view;
     _enqueueTextureOperation(() async {
-      // Release a per-view surface binding before destroying its platform
-      // texture. Serializing this after allocation/resize also guarantees the
-      // final descriptor is destroyed exactly once.
-      await ThermionFlutterPlugin.instance.releaseTextureBindingForView(view);
-      final texture = _texture;
+      // The plugin owns the complete dependency-ordered teardown: detach any
+      // descriptor-managed surface, destroy Filament render targets, then
+      // release the platform texture. Serializing this after allocation/resize
+      // also guarantees the final descriptor is destroyed exactly once.
+      await ThermionFlutterPlugin.instance.destroyTextureForView(view);
       _texture = null;
-      await texture?.destroy();
     }, 'disposing a Thermion widget texture');
     super.dispose();
   }

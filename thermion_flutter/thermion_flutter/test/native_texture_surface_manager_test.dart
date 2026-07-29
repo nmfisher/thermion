@@ -36,4 +36,39 @@ void main() {
       );
     });
   });
+
+  group('destroyRenderTargetResourcesInOrder', () {
+    test('destroys the target before its attachment textures', () async {
+      final events = <String>[];
+
+      await destroyRenderTargetResourcesInOrder(
+        destroyRenderTarget: () async => events.add('render-target'),
+        destroyColorTexture: () async => events.add('color'),
+        destroyDepthTexture: () async => events.add('depth'),
+      );
+
+      expect(events, ['render-target', 'color', 'depth']);
+    });
+
+    test(
+      'keeps attachment textures alive when target destruction fails',
+      () async {
+        final events = <String>[];
+
+        await expectLater(
+          destroyRenderTargetResourcesInOrder(
+            destroyRenderTarget: () async {
+              events.add('render-target');
+              throw StateError('expected');
+            },
+            destroyColorTexture: () async => events.add('color'),
+            destroyDepthTexture: () async => events.add('depth'),
+          ),
+          throwsStateError,
+        );
+
+        expect(events, ['render-target']);
+      },
+    );
+  });
 }

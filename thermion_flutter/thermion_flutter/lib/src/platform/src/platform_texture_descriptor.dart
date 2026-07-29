@@ -45,6 +45,11 @@ abstract class PlatformTextureDescriptor {
   void markTextureFrameAvailable();
 
   /// Schedules this texture for destruction.
+  ///
+  /// Package code should normally call
+  /// `ThermionFlutterPlugin.destroyTextureForView` so any Filament
+  /// resource that imports this descriptor's platform memory is destroyed
+  /// first. This low-level method exists for descriptor owners and rollback.
   /// Idempotent; it is safe to call this method multiple times on the same
   /// [PlatformTextureDescriptor].
   Future<void> destroy();
