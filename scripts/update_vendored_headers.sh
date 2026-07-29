@@ -174,20 +174,6 @@ copy_from_local() {
   echo "--- Copying Filament API headers (from $HEADER_SOURCE) ---"
   cp -R "$HEADER_SOURCE/"* "$OUTPUT_INCLUDE_DIR/"
 
-  echo "--- Overlaying source-tree filament/ public headers ---"
-  # The Filament install step is unreliable in two ways: (a) it strips `const`
-  # from Builder::build() methods, causing ABI/linker mismatches against the
-  # prebuilt libs (which were compiled from the source tree WITH const), and
-  # (b) it omits newly-added public headers not yet in the install manifest
-  # (e.g. FramePacer.h, FrameHistoryStream.h, FramePipelineEstimator.h in
-  # v1.74). The source-tree public headers in filament/include/filament/ are
-  # authoritative, so overlay them onto the install-tree copy.
-  if [ -d "filament/include/filament" ]; then
-    cp filament/include/filament/*.h "$OUTPUT_INCLUDE_DIR/filament/" 2>/dev/null || true
-  else
-    echo "  Warning: filament/include/filament not found - skipping source overlay"
-  fi
-
   echo "--- Copying imageio headers ---"
   if [ -d "libs/imageio/include" ]; then
     cp -R libs/imageio/include/* "$OUTPUT_INCLUDE_DIR/"
@@ -200,13 +186,6 @@ copy_from_local() {
     cp -R libs/bluevk/include/* "$OUTPUT_INCLUDE_DIR/"
   else
     echo "  Warning: libs/bluevk/include not found — skipping"
-  fi
-
-  echo "--- Copying source-tree utils compiler.h (install tree strips UTILS_SHARED_LINKING) ---"
-  if [ -f "libs/utils/include/utils/compiler.h" ]; then
-    cp libs/utils/include/utils/compiler.h "$OUTPUT_INCLUDE_DIR/utils/compiler.h"
-  else
-    echo "  Warning: libs/utils/include/utils/compiler.h not found — skipping"
   fi
 
   echo "--- Copying uberarchive.h (release and debug) ---"
@@ -236,6 +215,52 @@ copy_from_local() {
           "$OUTPUT_INCLUDE_DIR/third_party/libassimp/include/"
   else
     echo "  Warning: third_party/libassimp/include/assimp not found — skipping"
+  fi
+
+  echo "--- Refreshing every public header subdir from release tag $FILAMENT_VERSION ---"
+  # The prebuilt libs are built from the exact release tag in filament.version.
+  # The local checkout may sit at a different commit (e.g. an rc ahead of the
+  # release) whose headers do NOT match the lib ABI -- e.g. after v1.74.0,
+  # RenderableManager::Builder::build became const and backend::Platform gained
+  # FrameRateCompatibility, but the v1.74.0 lib/prebuilt headers differ. The
+  # install tree compounds this (strips const, omits utils/tribool.h). So refresh
+  # EVERY public header subdir straight from the release TAG via `git archive`
+  # (non-invasive: never touches the working tree). We drive off the subdirs the
+  # install tree already established, so we only refresh the curated public set
+  # (no internal/private pollution) and don't enumerate source paths by hand.
+  # Runs LAST so the version-matched headers win.
+  if [ -n "$FILAMENT_VERSION" ] && \
+     git cat-file -e "${FILAMENT_VERSION}^{commit}" 2>/dev/null; then
+    local TMP_TAG refreshed=""
+    TMP_TAG="$(mktemp -d)"
+    if git archive "$FILAMENT_VERSION" filament libs tools third_party 2>/dev/null \
+         | tar -x -C "$TMP_TAG" 2>/dev/null; then
+      for sub in "$OUTPUT_INCLUDE_DIR"/*/; do
+        name="$(basename "$sub")"
+        src_dir=""
+        # Prefer the canonical public location: the directory that contains
+        # 'include' is itself named <name> (e.g. filament/include/filament,
+        # libs/utils/include/utils). This rejects private bridges that shadow
+        # the public tree, e.g. libs/filabridge/include/filament.
+        while IFS= read -r d; do
+          parent="$(basename "$(dirname "$(dirname "$d")")")"
+          if [ "$parent" = "$name" ]; then src_dir="$d"; break; fi
+        done < <(find "$TMP_TAG" -type d -path "*/include/$name")
+        # Fall back to any match (e.g. third_party headers without the pattern).
+        [ -z "$src_dir" ] && src_dir="$(find "$TMP_TAG" -type d -path "*/include/$name" | head -n1)"
+        if [ -n "$src_dir" ]; then
+          cp -R "$src_dir/." "$OUTPUT_INCLUDE_DIR/$name/" 2>/dev/null || true
+          refreshed="$refreshed $name"
+        fi
+      done
+      echo "  refreshed from $FILAMENT_VERSION tag:$refreshed"
+    else
+      echo "  Warning: git archive $FILAMENT_VERSION failed - headers may not match the prebuilt lib"
+    fi
+    rm -rf "$TMP_TAG"
+  else
+    echo "  Warning: tag $FILAMENT_VERSION not found in this checkout - skipping version-matched refresh"
+    echo "    (install/working-tree headers will be used; ensure the checkout matches filament.version)"
   fi
 }
 
