@@ -174,6 +174,20 @@ copy_from_local() {
   echo "--- Copying Filament API headers (from $HEADER_SOURCE) ---"
   cp -R "$HEADER_SOURCE/"* "$OUTPUT_INCLUDE_DIR/"
 
+  echo "--- Overlaying source-tree filament/ public headers ---"
+  # The Filament install step is unreliable in two ways: (a) it strips `const`
+  # from Builder::build() methods, causing ABI/linker mismatches against the
+  # prebuilt libs (which were compiled from the source tree WITH const), and
+  # (b) it omits newly-added public headers not yet in the install manifest
+  # (e.g. FramePacer.h, FrameHistoryStream.h, FramePipelineEstimator.h in
+  # v1.74). The source-tree public headers in filament/include/filament/ are
+  # authoritative, so overlay them onto the install-tree copy.
+  if [ -d "filament/include/filament" ]; then
+    cp filament/include/filament/*.h "$OUTPUT_INCLUDE_DIR/filament/" 2>/dev/null || true
+  else
+    echo "  Warning: filament/include/filament not found - skipping source overlay"
+  fi
+
   echo "--- Copying imageio headers ---"
   if [ -d "libs/imageio/include" ]; then
     cp -R libs/imageio/include/* "$OUTPUT_INCLUDE_DIR/"
