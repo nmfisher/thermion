@@ -360,6 +360,14 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
+  # Copy libassimp headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_RELEASE_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
+    exit 1
+  }
+
   # Copy release-specific uberarchive.h
   mkdir -p "$TARGET_RELEASE_DIR/include/release/gltfio/materials"
   cp "$FILAMENT_BASE_DIR/out/release/filament/include/gltfio/materials/uberarchive.h" \
@@ -389,6 +397,14 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_DEBUG_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
