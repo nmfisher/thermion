@@ -19,6 +19,32 @@ bool shouldDeferNativeTextureBinding({
   return !managesFilamentSurface && hardwareId == 0 && supportsDeferredBinding;
 }
 
+/// Destroys a render target before the textures it references.
+///
+/// Exposed for regression tests because reversing this order can free imported
+/// platform memory while Filament still retains it through the render target.
+@visibleForTesting
+Future<void> destroyRenderTargetResourcesInOrder({
+  required Future<void> Function()? destroyRenderTarget,
+  required Future<void> Function()? destroyColorTexture,
+  required Future<void> Function()? destroyDepthTexture,
+}) async {
+  await destroyRenderTarget?.call();
+  await destroyColorTexture?.call();
+  await destroyDepthTexture?.call();
+}
+
+class _FilamentResourceRollbackFailure implements Exception {
+  const _FilamentResourceRollbackFailure(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() =>
+      'Could not safely roll back partially-created Filament resources: '
+      '$cause';
+}
+
 /// Owns native platform texture descriptors and their Filament resources.
 ///
 /// Allocation, view binding, resize, deferred cleanup, and destruction stay in
@@ -99,25 +125,43 @@ class NativeTextureSurfaceManager {
     int width,
     int height,
   ) {
-    return registry.serialized(() => _createAndBind(view, width, height));
+    return registry.serialized(
+      () => _lifecycle.duringTextureMutation(
+        () => _createAndBind(view, width, height),
+      ),
+    );
   }
 
   Future<PlatformTextureDescriptor> _createAndBind(
     View view,
     int width,
-    int height,
-  ) async {
+    int height, {
+    PlatformTextureDescriptor? destroyAfterDeferredBinding,
+  }) async {
     if (width == 0 || height == 0) {
       throw ArgumentError(
         'Invalid dimensions for texture descriptor: ${width}x$height',
       );
     }
 
+    final previousBindings = registry.descriptors
+        .where((descriptor) => descriptor.boundView == view)
+        .toList();
     final descriptor = await registry.create(width, height);
     try {
+      // Complete the only fallible view mutation shared by descriptor-managed
+      // surfaces before replacing their existing binding.
+      await view.setViewport(width, height);
+
+      final mayRequireDeferredBinding =
+          descriptor.hardwareId == 0 && descriptor.deferred;
       final managesFilamentSurface = await registry.bindToView(
         descriptor,
         view,
+        // Keep the previous descriptor associated with this view until the
+        // deferred replacement has a Filament target. Teardown can then find
+        // and destroy both descriptors if the widget unmounts while waiting.
+        releaseExistingBindings: !mayRequireDeferredBinding,
       );
 
       // Prefer a hardware handle returned by native allocation. In particular,
@@ -132,7 +176,15 @@ class NativeTextureSurfaceManager {
       )) {
         // Some Linux EGL/OpenGL paths can only publish the hardware texture
         // from Flutter's populate callback, after the Texture widget exists.
-        unawaited(_completeDeferredBinding(descriptor, view, width, height));
+        unawaited(
+          _completeDeferredBinding(
+            descriptor,
+            view,
+            width,
+            height,
+            destroyAfterBinding: destroyAfterDeferredBinding,
+          ),
+        );
       } else if (!managesFilamentSurface) {
         throw StateError(
           'Platform texture did not provide a hardware handle and does not '
@@ -140,10 +192,18 @@ class NativeTextureSurfaceManager {
         );
       }
 
-      await view.setViewport(width, height);
       return descriptor;
     } catch (error, stackTrace) {
-      await _destroyAfterBindingFailure(descriptor);
+      if (error is _FilamentResourceRollbackFailure) {
+        // The descriptor's platform memory must outlive the Filament objects
+        // that could not be destroyed. Detach it from the view but deliberately
+        // keep both the descriptor and its native allocation alive.
+        await descriptor.releaseBinding();
+        _logger.severe(error);
+      } else {
+        await _destroyAfterBindingFailure(descriptor);
+      }
+      await _restoreBindingsAfterFailure(previousBindings, view);
       Error.throwWithStackTrace(error, stackTrace);
     }
   }
@@ -152,25 +212,42 @@ class NativeTextureSurfaceManager {
     PlatformTextureDescriptor descriptor,
     View view,
     int width,
-    int height,
-  ) async {
+    int height, {
+    PlatformTextureDescriptor? destroyAfterBinding,
+  }) async {
     try {
       final hardwareId = await descriptor.awaitTextureReady();
       await registry.serialized(() async {
         if (!registry.contains(descriptor) || descriptor.destroyed) return;
-        descriptor.hardwareId = hardwareId;
-        _logger.info(
-          'Deferred texture ready: flutter=${descriptor.flutterTextureId} '
-          'hardware=$hardwareId',
-        );
-        await _createFilamentResources(descriptor, view, width, height);
+        await _lifecycle.duringTextureMutation(() async {
+          if (!registry.contains(descriptor) || descriptor.destroyed) return;
+          descriptor.hardwareId = hardwareId;
+          _logger.info(
+            'Deferred texture ready: flutter=${descriptor.flutterTextureId} '
+            'hardware=$hardwareId',
+          );
+          await _createFilamentResources(descriptor, view, width, height);
+          if (destroyAfterBinding != null &&
+              registry.contains(destroyAfterBinding)) {
+            await registry.destroy(destroyAfterBinding);
+          }
+        });
       });
     } catch (error, stackTrace) {
       _logger.warning('Deferred texture binding failed', error, stackTrace);
+      if (error is _FilamentResourceRollbackFailure) {
+        // Keep the platform allocation alive for any Filament object whose
+        // rollback failed. It remains registry-owned until engine shutdown.
+        await registry.serialized(descriptor.releaseBinding);
+        _logger.severe(error);
+        return;
+      }
       try {
         await registry.serialized(() async {
           if (registry.contains(descriptor)) {
-            await registry.destroy(descriptor);
+            await _lifecycle.duringTextureMutation(
+              () => registry.destroy(descriptor),
+            );
           }
         });
       } catch (cleanupError, cleanupStackTrace) {
@@ -197,6 +274,24 @@ class NativeTextureSurfaceManager {
     }
   }
 
+  Future<void> _restoreBindingsAfterFailure(
+    List<PlatformTextureDescriptor> descriptors,
+    View view,
+  ) async {
+    for (final descriptor in descriptors) {
+      if (!registry.contains(descriptor) || descriptor.destroyed) continue;
+      try {
+        await registry.bindToView(descriptor, view);
+      } catch (error, stackTrace) {
+        _logger.warning(
+          'Failed to restore the previous texture binding',
+          error,
+          stackTrace,
+        );
+      }
+    }
+  }
+
   Future<void> _createFilamentResources(
     PlatformTextureDescriptor descriptor,
     View view,
@@ -211,53 +306,72 @@ class NativeTextureSurfaceManager {
       throw StateError('Cannot bind a texture after Filament shutdown');
     }
 
-    final color = await app.createTexture(
-      width,
-      height,
-      importedTextureHandle: useExternalImage ? -1 : descriptor.hardwareId,
-      flags: {
-        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-      },
-      textureFormat: options.renderTargetColorTextureFormat,
-      textureSamplerType: TextureSamplerType.SAMPLER_2D,
-    );
-
-    if (useExternalImage) {
-      await app.setExternalImage(color, descriptor.hardwareId);
-    }
-
-    final depth = await app.createTexture(
-      width,
-      height,
-      flags: {
-        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-        TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-        TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-      },
-      textureFormat: options.renderTargetDepthTextureFormat,
-      textureSamplerType: TextureSamplerType.SAMPLER_2D,
-    );
-
     final existingRenderTarget = _viewRenderTargets[view];
-    final renderTarget = await app.createRenderTarget(
-      width,
-      height,
-      color: color,
-      depth: depth,
-    );
+    Texture? color;
+    Texture? depth;
+    RenderTarget? renderTarget;
+    try {
+      color = await app.createTexture(
+        width,
+        height,
+        importedTextureHandle: useExternalImage ? -1 : descriptor.hardwareId,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        },
+        textureFormat: options.renderTargetColorTextureFormat,
+        textureSamplerType: TextureSamplerType.SAMPLER_2D,
+      );
 
-    await view.setRenderTarget(renderTarget);
-    _viewRenderTargets[view] = renderTarget;
+      if (useExternalImage) {
+        await app.setExternalImage(color, descriptor.hardwareId);
+      }
 
-    if (existingRenderTarget != null) {
-      await _destroyRenderTarget(existingRenderTarget);
+      depth = await app.createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+        },
+        textureFormat: options.renderTargetDepthTextureFormat,
+        textureSamplerType: TextureSamplerType.SAMPLER_2D,
+      );
+
+      renderTarget = await app.createRenderTarget(
+        width,
+        height,
+        color: color,
+        depth: depth,
+      );
+
+      // Do every operation that can reject the replacement before publishing
+      // it in _viewRenderTargets or destroying the previous target.
+      final swapChains = await app.getSwapChains();
+      await app.renderManager.attach(view, swapChains.first);
+      await view.setRenderTarget(renderTarget);
+    } catch (error, stackTrace) {
+      final rolledBack = await _destroyCreatedRenderTarget(
+        renderTarget: renderTarget,
+        color: color,
+        depth: depth,
+      );
+      if (!rolledBack) {
+        throw _FilamentResourceRollbackFailure(error);
+      }
+      Error.throwWithStackTrace(error, stackTrace);
     }
 
-    final swapChains = await app.getSwapChains();
-    await app.renderManager.attach(view, swapChains.first);
+    _viewRenderTargets[view] = renderTarget;
+    if (existingRenderTarget != null) {
+      await _destroyRenderTargetBestEffort(
+        existingRenderTarget,
+        'replacing a texture render target',
+      );
+    }
   }
 
   Future<PlatformTextureDescriptor> resize(
@@ -283,8 +397,19 @@ class NativeTextureSurfaceManager {
       return _resizeWindows(texture, view, width, height);
     }
 
-    final newTexture = await _createAndBind(view, width, height);
-    await registry.destroy(texture);
+    final newTexture = await _createAndBind(
+      view,
+      width,
+      height,
+      destroyAfterDeferredBinding: texture,
+    );
+    if (!shouldDeferNativeTextureBinding(
+      managesFilamentSurface: false,
+      hardwareId: newTexture.hardwareId,
+      supportsDeferredBinding: newTexture.deferred,
+    )) {
+      await registry.destroy(texture);
+    }
     return newTexture;
   }
 
@@ -299,57 +424,77 @@ class NativeTextureSurfaceManager {
       width,
       height,
     );
-    final app = FilamentApp.instance;
-    if (app == null) {
-      throw StateError('Cannot resize a texture after Filament shutdown');
-    }
-    final options = _options();
-
-    final color = await app.createTexture(
-      width,
-      height,
-      importedTextureHandle: -1,
-      flags: {
-        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-      },
-      textureFormat: options.renderTargetColorTextureFormat,
-      textureSamplerType: TextureSamplerType.SAMPLER_2D,
-    );
-    await app.setExternalImage(color, externalImage);
-
-    final depth = await app.createTexture(
-      width,
-      height,
-      flags: {
-        TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-        TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-        TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
-      },
-      textureFormat: options.renderTargetDepthTextureFormat,
-      textureSamplerType: TextureSamplerType.SAMPLER_2D,
-    );
-
     final existingRenderTarget = _viewRenderTargets[view];
-    final renderTarget = await app.createRenderTarget(
-      width,
-      height,
-      color: color,
-      depth: depth,
-    );
+    Texture? color;
+    Texture? depth;
+    RenderTarget? renderTarget;
+    try {
+      final app = FilamentApp.instance;
+      if (app == null) {
+        throw StateError('Cannot resize a texture after Filament shutdown');
+      }
+      final options = _options();
 
-    await view.setRenderTarget(renderTarget);
+      color = await app.createTexture(
+        width,
+        height,
+        importedTextureHandle: -1,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        },
+        textureFormat: options.renderTargetColorTextureFormat,
+        textureSamplerType: TextureSamplerType.SAMPLER_2D,
+      );
+      await app.setExternalImage(color, externalImage);
+
+      depth = await app.createTexture(
+        width,
+        height,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+        },
+        textureFormat: options.renderTargetDepthTextureFormat,
+        textureSamplerType: TextureSamplerType.SAMPLER_2D,
+      );
+
+      renderTarget = await app.createRenderTarget(
+        width,
+        height,
+        color: color,
+        depth: depth,
+      );
+
+      final swapChains = await app.getSwapChains();
+      await app.renderManager.attach(view, swapChains.first);
+      await view.setViewport(width, height);
+      await view.setRenderTarget(renderTarget);
+    } catch (error, stackTrace) {
+      await _destroyCreatedRenderTarget(
+        renderTarget: renderTarget,
+        color: color,
+        depth: depth,
+      );
+      try {
+        await registry.cancelWindowsTextureResize(texture);
+      } catch (cleanupError, cleanupStackTrace) {
+        _logger.severe(
+          'Failed to cancel native Windows texture resize',
+          cleanupError,
+          cleanupStackTrace,
+        );
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+
     _viewRenderTargets[view] = renderTarget;
-
     if (existingRenderTarget != null) {
       _deferredRenderTargets.add((existingRenderTarget, 5));
     }
-
-    final swapChains = await app.getSwapChains();
-    await app.renderManager.attach(view, swapChains.first);
-    await view.setViewport(width, height);
 
     texture.hardwareId = externalImage;
     texture.width = width;
@@ -357,22 +502,25 @@ class NativeTextureSurfaceManager {
     return texture;
   }
 
-  Future<void> releaseView(View view) {
+  Future<void> destroyForView(View view) {
     return registry.serialized(
       () => _lifecycle.duringTextureMutation(() async {
-        await registry.releaseBindingsForView(view);
-        await _destroyRenderTargetForView(view);
+        await registry.destroyBindingsForView(
+          view,
+          beforeDescriptorDestroy: () => _destroyRenderTargetForView(view),
+        );
       }),
     );
   }
 
   Future<void> _destroyRenderTargetForView(View view) async {
-    final renderTarget = _viewRenderTargets.remove(view);
+    final renderTarget = _viewRenderTargets[view];
     if (renderTarget == null) return;
 
     final app = FilamentApp.instance;
     if (app == null) {
       // The engine owns resources that survived until shutdown.
+      _viewRenderTargets.remove(view);
       return;
     }
 
@@ -383,13 +531,58 @@ class NativeTextureSurfaceManager {
       await overlay.overlayView.setRenderTarget(null);
     }
     await _destroyRenderTarget(renderTarget);
+    if (identical(_viewRenderTargets[view], renderTarget)) {
+      _viewRenderTargets.remove(view);
+    }
   }
 
   Future<void> _destroyRenderTarget(RenderTarget renderTarget) async {
     final color = await renderTarget.getColorTexture();
     final depth = await renderTarget.getDepthTexture();
-    await renderTarget.destroy();
-    await color.destroy();
-    await depth.destroy();
+    await destroyRenderTargetResourcesInOrder(
+      destroyRenderTarget: renderTarget.destroy,
+      destroyColorTexture: color.destroy,
+      destroyDepthTexture: depth.destroy,
+    );
+  }
+
+  Future<bool> _destroyCreatedRenderTarget({
+    required RenderTarget? renderTarget,
+    required Texture? color,
+    required Texture? depth,
+  }) async {
+    try {
+      await destroyRenderTargetResourcesInOrder(
+        destroyRenderTarget: renderTarget?.destroy,
+        destroyColorTexture: color?.destroy,
+        destroyDepthTexture: depth?.destroy,
+      );
+      return true;
+    } catch (error, stackTrace) {
+      _logger.warning(
+        'Failed to roll back partially-created Filament resources',
+        error,
+        stackTrace,
+      );
+      return false;
+    }
+  }
+
+  Future<void> _destroyRenderTargetBestEffort(
+    RenderTarget renderTarget,
+    String operation,
+  ) async {
+    try {
+      await _destroyRenderTarget(renderTarget);
+    } catch (error, stackTrace) {
+      // The replacement is already committed. Do not tear it back down because
+      // cleanup of the superseded target failed; retain the old resources and
+      // keep the new surface usable.
+      _logger.warning(
+        'Failed while $operation; retaining superseded resources',
+        error,
+        stackTrace,
+      );
+    }
   }
 }

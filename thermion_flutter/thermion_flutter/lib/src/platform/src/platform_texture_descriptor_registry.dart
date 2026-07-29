@@ -46,16 +46,19 @@ class PlatformTextureDescriptorRegistry {
   /// target backed by [PlatformTextureDescriptor.hardwareId].
   Future<bool> bindToView(
     PlatformTextureDescriptor descriptor,
-    View view,
-  ) async {
+    View view, {
+    bool releaseExistingBindings = true,
+  }) async {
     if (!contains(descriptor)) {
       throw StateError('Cannot bind an unregistered texture descriptor');
     }
 
     final managesFilamentSurface = await descriptor.bindToView(view);
-    for (final other in List<PlatformTextureDescriptor>.of(_descriptors)) {
-      if (!identical(other, descriptor) && other.boundView == view) {
-        await other.releaseBinding();
+    if (releaseExistingBindings) {
+      for (final other in List<PlatformTextureDescriptor>.of(_descriptors)) {
+        if (!identical(other, descriptor) && other.boundView == view) {
+          await other.releaseBinding();
+        }
       }
     }
     return managesFilamentSurface;
@@ -84,6 +87,62 @@ class PlatformTextureDescriptorRegistry {
       _remove(descriptor);
     }
     return released;
+  }
+
+  /// Releases every descriptor bound to [view], runs
+  /// [beforeDescriptorDestroy], then destroys the released descriptors.
+  ///
+  /// The callback is where a native owner tears down Filament render targets.
+  /// Keeping descriptor destruction here makes the required dependency order
+  /// explicit:
+  ///
+  /// 1. detach descriptor-managed surfaces such as Android swapchains;
+  /// 2. destroy Filament objects that reference platform memory;
+  /// 3. release the underlying platform textures.
+  Future<void> destroyBindingsForView(
+    View view, {
+    FutureOr<void> Function()? beforeDescriptorDestroy,
+  }) async {
+    final released = _descriptors
+        .where((descriptor) => descriptor.boundView == view)
+        .toList();
+    for (final descriptor in released) {
+      await descriptor.releaseBinding();
+    }
+
+    try {
+      await beforeDescriptorDestroy?.call();
+    } catch (error, stackTrace) {
+      // Keep the descriptors owned and recover their view association so a
+      // caller can retry teardown. Android also recreates its swapchain here;
+      // the platform surface is deliberately still alive.
+      for (final descriptor in released) {
+        if (!descriptor.destroyed) {
+          try {
+            await descriptor.bindToView(view);
+          } catch (_) {
+            // Preserve the teardown error. The descriptor remains tracked even
+            // if restoring a platform binding is itself unsuccessful.
+          }
+        }
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    for (final descriptor in released) {
+      try {
+        await descriptor.destroy();
+        _remove(descriptor);
+      } catch (error, stackTrace) {
+        firstError ??= error;
+        firstStackTrace ??= stackTrace;
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
   }
 
   void markFrameAvailable() {

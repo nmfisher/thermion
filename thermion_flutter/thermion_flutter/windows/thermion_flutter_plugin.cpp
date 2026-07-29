@@ -418,6 +418,25 @@ namespace thermion::tflutter::windows
     {
       ResizeTexture(methodCall, std::move(result));
     }
+    else if (methodCall.method_name() == "cancelResizeTexture")
+    {
+      const auto *flutterTextureId =
+          std::get_if<int64_t>(methodCall.arguments());
+      if (!flutterTextureId) {
+        result->Error("BAD_ARGUMENT", "Missing Flutter texture ID");
+        return;
+      }
+
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      auto pendingIt = _pendingSwaps.find(*flutterTextureId);
+      if (pendingIt != _pendingSwaps.end()) {
+        if (_context) {
+          _context->DestroyRenderingSurface(pendingIt->second.newD3DHandle);
+        }
+        _pendingSwaps.erase(pendingIt);
+      }
+      result->Success(flutter::EncodableValue((int64_t) nullptr));
+    }
     else if (methodCall.method_name() == "markTextureFrameAvailable")
     {
       std::lock_guard<std::mutex> contextLock(_contextMutex);

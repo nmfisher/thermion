@@ -118,6 +118,117 @@ void main() {
       expect(registry.descriptors.single, same(first));
     });
 
+    test('can retain an old binding during deferred replacement', () async {
+      var nextTextureId = 1;
+      final registry = PlatformTextureDescriptorRegistry(
+        allocator: (width, height) => _TestDescriptor(
+          width: width,
+          height: height,
+          flutterTextureId: nextTextureId++,
+        ),
+      );
+      final view = _TestView();
+      final first = await registry.create(1, 1) as _TestDescriptor;
+      final second = await registry.create(1, 1) as _TestDescriptor;
+      await registry.bindToView(first, view);
+
+      await registry.bindToView(second, view, releaseExistingBindings: false);
+
+      expect(first.boundView, same(view));
+      expect(second.boundView, same(view));
+
+      await registry.destroyBindingsForView(view);
+      expect(first.destroyCount, 1);
+      expect(second.destroyCount, 1);
+    });
+
+    test('destroys platform descriptors after view-owned resources', () async {
+      final events = <String>[];
+      final descriptor = _TestDescriptor(
+        width: 1,
+        height: 1,
+        lifecycleEvents: events,
+      );
+      final registry = PlatformTextureDescriptorRegistry(
+        allocator: (_, __) => descriptor,
+      );
+      final view = _TestView();
+      await registry.create(1, 1);
+      await registry.bindToView(descriptor, view);
+
+      await registry.destroyBindingsForView(
+        view,
+        beforeDescriptorDestroy: () async {
+          events.add('destroy-view-resources');
+        },
+      );
+
+      expect(events, [
+        'release-binding',
+        'destroy-view-resources',
+        'destroy-platform-texture',
+      ]);
+      expect(registry.contains(descriptor), isFalse);
+    });
+
+    test(
+      'keeps the platform texture alive when view-resource cleanup fails',
+      () async {
+        final descriptor = _TestDescriptor(width: 1, height: 1);
+        final registry = PlatformTextureDescriptorRegistry(
+          allocator: (_, __) => descriptor,
+        );
+        final view = _TestView();
+        await registry.create(1, 1);
+        await registry.bindToView(descriptor, view);
+
+        await expectLater(
+          registry.destroyBindingsForView(
+            view,
+            beforeDescriptorDestroy: () => throw StateError('expected'),
+          ),
+          throwsStateError,
+        );
+
+        expect(descriptor.releaseBindingCount, 1);
+        expect(descriptor.destroyCount, 0);
+        expect(descriptor.boundView, same(view));
+        expect(registry.contains(descriptor), isTrue);
+      },
+    );
+
+    test(
+      'attempts every platform texture destroy after target cleanup',
+      () async {
+        var nextTextureId = 1;
+        final registry = PlatformTextureDescriptorRegistry(
+          allocator: (width, height) {
+            return _TestDescriptor(
+              width: width,
+              height: height,
+              flutterTextureId: nextTextureId++,
+            );
+          },
+        );
+        final view = _TestView();
+        final first = await registry.create(1, 1) as _TestDescriptor;
+        final second = await registry.create(1, 1) as _TestDescriptor;
+        await registry.bindToView(first, view);
+        await registry.bindToView(second, view, releaseExistingBindings: false);
+        first.throwOnDestroy = true;
+
+        await expectLater(
+          registry.destroyBindingsForView(view),
+          throwsStateError,
+        );
+
+        expect(first.destroyCount, 1);
+        expect(second.destroyCount, 1);
+        expect(registry.contains(first), isTrue);
+        expect(registry.contains(second), isFalse);
+      },
+    );
+
     test('serializes operations and continues after failures', () async {
       final registry = PlatformTextureDescriptorRegistry(
         allocator: (width, height) =>
@@ -157,13 +268,16 @@ class _TestDescriptor extends PlatformTextureDescriptor {
     required super.width,
     required super.height,
     int flutterTextureId = 1,
+    this.lifecycleEvents,
   }) : super(flutterTextureId: flutterTextureId, hardwareId: 2);
 
+  final List<String>? lifecycleEvents;
   int markFrameAvailableCount = 0;
   int releaseBindingCount = 0;
   int destroyCount = 0;
   bool _destroyed = false;
   bool _surfaceAvailable = true;
+  bool throwOnDestroy = false;
 
   @override
   bool get destroyed => _destroyed;
@@ -184,14 +298,19 @@ class _TestDescriptor extends PlatformTextureDescriptor {
   @override
   Future<void> releaseBinding() async {
     releaseBindingCount++;
+    lifecycleEvents?.add('release-binding');
     await super.releaseBinding();
   }
 
   @override
   Future<void> destroy() async {
     if (_destroyed) return;
-    _destroyed = true;
     destroyCount++;
+    lifecycleEvents?.add('destroy-platform-texture');
+    if (throwOnDestroy) {
+      throw StateError('expected');
+    }
+    _destroyed = true;
   }
 }
 

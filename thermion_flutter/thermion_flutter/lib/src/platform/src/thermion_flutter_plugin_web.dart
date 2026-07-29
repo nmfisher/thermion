@@ -248,9 +248,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   }
 
   @override
-  Future<void> releaseTextureBindingForView(View view) {
+  Future<void> destroyTextureForView(View view) {
     return _textureDescriptorRegistry.serialized(() async {
-      await _textureDescriptorRegistry.releaseBindingsForView(view);
+      await _textureDescriptorRegistry.destroyBindingsForView(view);
     });
   }
 
