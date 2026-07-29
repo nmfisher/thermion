@@ -55,6 +55,32 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
   private lateinit var activity:Activity
 
+  private fun notifyDartBeforeReleasingSurface(
+      method: String,
+      arguments: Any,
+      surface: Surface?
+  ) {
+      channel.invokeMethod(method, arguments, object : MethodChannel.Result {
+          override fun success(result: Any?) {
+              surface?.release()
+          }
+
+          override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
+              Log.e(
+                  TAG,
+                  "$method failed before releasing the Android surface: " +
+                      "$errorCode ${errorMessage ?: ""}"
+              )
+              surface?.release()
+          }
+
+          override fun notImplemented() {
+              Log.e(TAG, "$method was not handled before releasing the Android surface")
+              surface?.release()
+          }
+      })
+  }
+
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
@@ -120,9 +146,13 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                 producer.setCallback(object : TextureRegistry.SurfaceProducer.Callback {
                     override fun onSurfaceCleanup() {
                         val entry = textures[flutterTextureId] ?: return
-                        entry.surface?.release()
+                        val surfaceToRelease = entry.surface
                         entry.surface = null
-                        channel.invokeMethod("onSurfaceCleanup", flutterTextureId)
+                        notifyDartBeforeReleasingSurface(
+                            "onSurfaceCleanup",
+                            flutterTextureId,
+                            surfaceToRelease
+                        )
                     }
 
                     override fun onSurfaceAvailable() {
@@ -151,11 +181,12 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                             return
                         }
 
-                        entry.surface?.release()
+                        val surfaceToRelease = entry.surface
                         entry.surface = newSurface
-                        channel.invokeMethod(
+                        notifyDartBeforeReleasingSurface(
                             "onSurfaceAvailable",
-                            listOf(flutterTextureId, newNativeWindowPtr)
+                            listOf(flutterTextureId, newNativeWindowPtr),
+                            surfaceToRelease
                         )
                     }
                 })

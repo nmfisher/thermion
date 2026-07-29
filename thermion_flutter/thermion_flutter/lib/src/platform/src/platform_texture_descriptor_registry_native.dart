@@ -10,6 +10,9 @@ import 'method_channel_platform_texture_descriptor.dart';
 import 'platform_texture_descriptor.dart';
 import 'platform_texture_descriptor_registry.dart';
 
+typedef TextureMutationRunner =
+    Future<T> Function<T>(Future<T> Function() operation);
+
 class FilamentRenderingContext {
   const FilamentRenderingContext({
     required this.driverPlatform,
@@ -32,8 +35,10 @@ class NativePlatformTextureDescriptorRegistry
   NativePlatformTextureDescriptorRegistry({
     required void Function() pauseRendering,
     required void Function() resumeRenderingIfReady,
+    required TextureMutationRunner runTextureMutation,
   }) : _pauseRendering = pauseRendering,
        _resumeRenderingIfReady = resumeRenderingIfReady,
+       _runTextureMutation = runTextureMutation,
        super(allocator: _allocate) {
     if (Platform.isAndroid) {
       channel.setMethodCallHandler(_handlePlatformMethodCall);
@@ -44,6 +49,7 @@ class NativePlatformTextureDescriptorRegistry
 
   final void Function() _pauseRendering;
   final void Function() _resumeRenderingIfReady;
+  final TextureMutationRunner _runTextureMutation;
   final Logger _logger = Logger('NativePlatformTextureDescriptorRegistry');
 
   static Future<PlatformTextureDescriptor> _allocate(int width, int height) {
@@ -143,27 +149,29 @@ class NativePlatformTextureDescriptorRegistry
         if (descriptor == null) return null;
         descriptor.markSurfaceUnavailable();
         _pauseRendering();
-        await serialized(() async {
-          if (contains(descriptor)) {
-            await descriptor.cleanupSurface();
-          }
-        });
+        try {
+          await serialized(() async {
+            if (contains(descriptor)) {
+              await _runTextureMutation(descriptor.cleanupSurface);
+            }
+          });
+        } finally {
+          _resumeRenderingIfReady();
+        }
         return null;
       case 'onSurfaceAvailable':
         final arguments = call.arguments as List<Object?>;
         final textureId = arguments[0] as int;
         final descriptor = _descriptorForTextureId(textureId);
         if (descriptor == null) return null;
-        final wasAvailable = descriptor.isSurfaceAvailable;
         descriptor.markSurfaceUnavailable();
-        if (wasAvailable) {
-          _pauseRendering();
-        }
+        _pauseRendering();
         try {
           await serialized(() async {
             if (!contains(descriptor)) return;
-            await descriptor.restoreSurface(arguments[1] as int);
-            _resumeRenderingIfReady();
+            await _runTextureMutation(
+              () => descriptor.restoreSurface(arguments[1] as int),
+            );
           });
         } catch (error, stackTrace) {
           _logger.severe(
@@ -172,6 +180,8 @@ class NativePlatformTextureDescriptorRegistry
             stackTrace,
           );
           rethrow;
+        } finally {
+          _resumeRenderingIfReady();
         }
         return null;
       case 'onSurfaceError':

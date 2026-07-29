@@ -196,6 +196,7 @@ class WindowsVulkanContext::Impl {
 
         void DestroyRenderingSurface(HANDLE handle) {
             std::cerr << "Destroying rendering surface " << handle << std::endl;
+            _pendingFirstBlit.erase(handle);
 
             // Find index of the D3D texture with this handle and remove from all three vectors
             for (size_t i = 0; i < _d3dTextures.size(); i++) {
