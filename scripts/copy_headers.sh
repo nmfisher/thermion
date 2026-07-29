@@ -102,6 +102,12 @@ cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$OUTPUT_INCLUDE_DIR/" || {
   exit 1
 }
 
+# Copy source-tree utils/compiler.h (install tree strips UTILS_SHARED_LINKING)
+if [ -f "$FILAMENT_BASE_DIR/libs/utils/include/utils/compiler.h" ]; then
+  cp "$FILAMENT_BASE_DIR/libs/utils/include/utils/compiler.h" \
+     "$OUTPUT_INCLUDE_DIR/utils/compiler.h"
+fi
+
 # Copy stb_image.h (third-party header used by TTexture.cpp)
 mkdir -p "$OUTPUT_INCLUDE_DIR/third_party/stb"
 cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$OUTPUT_INCLUDE_DIR/third_party/stb/" || {
