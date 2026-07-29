@@ -31,6 +31,7 @@
 #include <condition_variable>
 #include <queue>
 #include <atomic>
+#include <set>
 
 #include "flutter_d3d_texture.h"
 
@@ -107,8 +108,12 @@ namespace thermion::tflutter::windows
   static constexpr size_t kMaxBlitQueueDepth = 16;
 
   static std::mutex _blitMutex;
+  // WindowsVulkanContext owns one command buffer/queue and parallel vectors of
+  // surface resources. Serialize worker blits with create/resize/destroy.
+  static std::mutex _contextMutex;
   static std::condition_variable _blitCv;
   static std::queue<BlitJob> _blitQueue;
+  static std::set<int64_t> _retiringTextureIds;
   static std::thread _blitWorker;
   static std::atomic<bool> _blitWorkerStarted{false};
   static std::atomic<bool> _blitWorkerShouldStop{false};
@@ -127,11 +132,24 @@ namespace thermion::tflutter::windows
         job = _blitQueue.front();
         _blitQueue.pop();
       }
-      if (job.context) {
-        job.context->Blit(job.handle);
+      // A texture can begin retiring after its job is popped. Recheck while
+      // holding the same context lock used by surface destruction: either this
+      // blit completes before destruction, or it is skipped after retirement.
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      bool retiring = false;
+      {
+        std::lock_guard<std::mutex> blitLock(_blitMutex);
+        retiring =
+            _retiringTextureIds.find(job.flutterTextureId) !=
+            _retiringTextureIds.end();
       }
-      if (job.registrar) {
-        job.registrar->MarkTextureFrameAvailable(job.flutterTextureId);
+      if (!retiring) {
+        if (job.context) {
+          job.context->Blit(job.handle);
+        }
+        if (job.registrar) {
+          job.registrar->MarkTextureFrameAvailable(job.flutterTextureId);
+        }
       }
     }
   }
@@ -147,6 +165,10 @@ namespace thermion::tflutter::windows
     EnsureBlitWorkerStarted();
     {
       std::lock_guard<std::mutex> lock(_blitMutex);
+      if (_retiringTextureIds.find(job.flutterTextureId) !=
+          _retiringTextureIds.end()) {
+        return;
+      }
       // Bounded queue — drop oldest under sustained GPU pressure
       // rather than growing without limit. Visual effect under
       // overload: one stale frame, no hang, no crash.
@@ -156,6 +178,21 @@ namespace thermion::tflutter::windows
       _blitQueue.push(std::move(job));
     }
     _blitCv.notify_one();
+  }
+
+  static void RetireBlitJobs(int64_t flutterTextureId) {
+    std::lock_guard<std::mutex> lock(_blitMutex);
+    _retiringTextureIds.insert(flutterTextureId);
+
+    std::queue<BlitJob> retained;
+    while (!_blitQueue.empty()) {
+      auto job = std::move(_blitQueue.front());
+      _blitQueue.pop();
+      if (job.flutterTextureId != flutterTextureId) {
+        retained.push(std::move(job));
+      }
+    }
+    _blitQueue.swap(retained);
   }
 
   ThermionFlutterPlugin::~ThermionFlutterPlugin() {
@@ -179,6 +216,7 @@ namespace thermion::tflutter::windows
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
+    std::lock_guard<std::mutex> contextLock(_contextMutex);
     if (!_context)
     {
       _context = new thermion::vulkan::windows::WindowsVulkanContext();
@@ -226,6 +264,7 @@ namespace thermion::tflutter::windows
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
+    std::lock_guard<std::mutex> contextLock(_contextMutex);
     if (!_context)
     {
       result->Error("NO_CONTEXT", "No rendering context");
@@ -250,6 +289,16 @@ namespace thermion::tflutter::windows
     }
 
     HANDLE oldD3DHandle = (*it)->GetD3DTextureHandle();
+
+    // A second resize can arrive before the two-frame descriptor swap. The
+    // abandoned replacement is no longer a Flutter surface, but its Filament
+    // target is retained by Dart's deferred cleanup. Transfer image ownership
+    // to Filament and retire the native interop resources before replacing it.
+    auto pendingIt = _pendingSwaps.find(flutterTextureId);
+    if (pendingIt != _pendingSwaps.end()) {
+      _context->DestroyRenderingSurface(pendingIt->second.newD3DHandle);
+      _pendingSwaps.erase(pendingIt);
+    }
 
     // Create new D3D + Vulkan textures
     auto newD3DHandle = _context->CreateRenderingSurface(width, height, 0, 0);
@@ -276,6 +325,7 @@ namespace thermion::tflutter::windows
   {
     std::cerr << "ThermionFlutterPlugin::OnTextureUnregistered" << std::endl;
 
+    std::lock_guard<std::mutex> contextLock(_contextMutex);
     if (!_context) {
       std::cerr << "No rendering context is active, cannot destroy Flutter texture ID" << flutterTextureId << std::endl;
       return false;    
@@ -293,7 +343,21 @@ namespace thermion::tflutter::windows
     HANDLE d3dTextureHandle = flutterTexture->GetD3DTextureHandle();
     _flutterTextures.erase(it);
     std::cerr << "Erased flutter texture" << std::endl;
-    _context->DestroyRenderingSurface(d3dTextureHandle);
+
+    // If unregister races the two-frame resize handshake, Flutter still owns
+    // the old descriptor while Filament is rendering into the new surface.
+    // Retire both native surfaces and remove the stale handshake.
+    std::vector<HANDLE> handles{d3dTextureHandle};
+    auto pendingIt = _pendingSwaps.find(flutterTextureId);
+    if (pendingIt != _pendingSwaps.end()) {
+      handles.push_back(pendingIt->second.oldD3DHandle);
+      handles.push_back(pendingIt->second.newD3DHandle);
+      _pendingSwaps.erase(pendingIt);
+    }
+    std::set<HANDLE> uniqueHandles(handles.begin(), handles.end());
+    for (auto handle : uniqueHandles) {
+      _context->DestroyRenderingSurface(handle);
+    }
 
     return true;
     
@@ -308,6 +372,10 @@ namespace thermion::tflutter::windows
     auto shared_result = std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>(result.release());
 
     std::cerr << "Unregistering Flutter texture ID " << flutterTextureId << std::endl;
+
+    // Prevent queued or subsequently delivered frame notifications from
+    // touching the surface after TextureRegistrar begins unregistration.
+    RetireBlitJobs(flutterTextureId);
 
     _textureRegistrar->UnregisterTexture(
       flutterTextureId,
@@ -352,6 +420,7 @@ namespace thermion::tflutter::windows
     }
     else if (methodCall.method_name() == "markTextureFrameAvailable")
     {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
       if (_context)
       {
         const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
@@ -422,6 +491,7 @@ namespace thermion::tflutter::windows
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
     else if (methodCall.method_name() == "destroyContext") {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
       _context = std::nullptr_t();
       std::cerr << "Destroyed context" << std::endl;
       result->Success(flutter::EncodableValue((int64_t)nullptr));
