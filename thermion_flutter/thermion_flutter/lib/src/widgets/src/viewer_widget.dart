@@ -100,6 +100,8 @@ class _ViewerWidgetState extends State<ViewerWidget> {
           webOptions: currentOptions.webOptions,
           nativeOptions: NativeOptions(
             backend: currentOptions.nativeOptions.backend,
+            androidTextureSource:
+                currentOptions.nativeOptions.androidTextureSource,
             renderTargetColorTextureFormat:
                 currentOptions.nativeOptions.renderTargetColorTextureFormat,
             renderTargetDepthTextureFormat:

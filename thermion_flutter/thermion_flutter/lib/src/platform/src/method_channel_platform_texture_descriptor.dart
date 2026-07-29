@@ -85,13 +85,15 @@ typedef MethodChannelTextureAllocation = ({
 Future<MethodChannelTextureAllocation> allocateMethodChannelTexture(
   MethodChannel channel,
   int width,
-  int height,
-) async {
+  int height, {
+  List<Object?> additionalArguments = const [],
+}) async {
   final result = await channel.invokeMethod("createTexture", [
     width,
     height,
     0,
     0,
+    ...additionalArguments,
   ]);
   if (result == null || (result[0] == -1)) {
     throw Exception("Failed to create texture");

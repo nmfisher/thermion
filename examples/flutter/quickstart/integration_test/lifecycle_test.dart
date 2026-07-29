@@ -38,8 +38,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   Future<void> pumpViewer(WidgetTester tester) async {
-    final sun =
-        DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
+    final sun = DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -130,6 +129,23 @@ void main() {
 
   testWidgets('lifecycle hidden/paused resumes the scheduler cleanly',
       (tester) async {
+    // Exercise SurfaceProducer's callback-capable path on Android as well as
+    // the default SurfaceTexture path covered by the tests above.
+    if (Platform.isAndroid) {
+      ThermionFlutterPlugin.instance.setOptions(
+        const ThermionFlutterOptions(
+          nativeOptions: NativeOptions(
+            androidTextureSource: AndroidTextureSource.surfaceProducer,
+          ),
+        ),
+      );
+      addTearDown(() {
+        ThermionFlutterPlugin.instance.setOptions(
+          const ThermionFlutterOptions(),
+        );
+      });
+    }
+
     await pumpViewer(tester);
     expect(FrameScheduler.instance.isActive, isTrue);
 

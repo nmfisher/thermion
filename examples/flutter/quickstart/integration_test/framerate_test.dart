@@ -68,6 +68,22 @@ void main() {
     expect(viewer, isNotNull, reason: 'viewer should be available after init');
     expect(FrameScheduler.instance.isActive, isTrue);
 
+    // onViewerAvailable can run before the debounced ThermionWidget texture
+    // allocation has attached its Android swapchain. This test concerns frame
+    // pacing rather than pre-attachment rendering state, so wait for the
+    // surface instead of depending on that separate behavior.
+    final attachmentDeadline = DateTime.now().add(const Duration(seconds: 5));
+    var swapChains = await FilamentApp.instance!.getSwapChains();
+    while (swapChains.isEmpty && DateTime.now().isBefore(attachmentDeadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      swapChains = await FilamentApp.instance!.getSwapChains();
+    }
+    expect(
+      swapChains,
+      isNotEmpty,
+      reason: 'Android rendering surface should be attached before sampling',
+    );
+
     // Ensure continuous rendering is on (a static scene may otherwise render
     // only on demand).
     await viewer!.setRendering(true);
@@ -79,6 +95,9 @@ void main() {
     // Let the loop settle, then measure the 60 FPS rate.
     await Future<void>.delayed(const Duration(seconds: 1));
     final defaultFps = await measureScheduledFps(const Duration(seconds: 2));
+    debugPrint(
+      'Thermion scheduled FPS: default=${defaultFps.toStringAsFixed(1)}',
+    );
 
     // Sanity: the loop is rendering continuously (not stalled). The absolute
     // rate is bounded by render() cost (debug builds) and the display refresh,
@@ -92,6 +111,7 @@ void main() {
     // Give the new interval a moment to take effect.
     await Future<void>.delayed(const Duration(milliseconds: 500));
     final lowFps = await measureScheduledFps(const Duration(seconds: 2));
+    debugPrint('Thermion scheduled FPS: limited=${lowFps.toStringAsFixed(1)}');
 
     expect(lowFps, lessThan(defaultFps / 2),
         reason: '5 FPS cap should schedule far fewer frames than the default '
@@ -107,6 +127,10 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 500));
       final afterRestartFps =
           await measureScheduledFps(const Duration(seconds: 2));
+      debugPrint(
+        'Thermion scheduled FPS: after restart='
+        '${afterRestartFps.toStringAsFixed(1)}',
+      );
       expect(afterRestartFps, closeTo(5, 3),
           reason: '5 FPS cap should survive scheduler restart; '
               'got $afterRestartFps');
@@ -116,6 +140,9 @@ void main() {
     FilamentApp.instance!.setTargetFramerate(60);
     await Future<void>.delayed(const Duration(milliseconds: 500));
     final restoredFps = await measureScheduledFps(const Duration(seconds: 2));
+    debugPrint(
+      'Thermion scheduled FPS: restored=${restoredFps.toStringAsFixed(1)}',
+    );
     expect(restoredFps, greaterThan(lowFps * 2),
         reason: 'restoring 60 FPS should raise the rate well above the 5 FPS '
             'cap (low=$lowFps, restored=$restoredFps)');
