@@ -206,7 +206,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
-  cp out/cmake-ios-release-arm64/third_party/libassimp/tnt/libassimp.a "$TARGET_RELEASE_DIR/" || {
+  cp out/cmake-ios-release-arm64/third_party/libassimp/libassimp.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
@@ -289,7 +289,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
-  cp out/cmake-ios-debug-arm64/third_party/libassimp/tnt/libassimp.a "$TARGET_DEBUG_DIR/" || {
+  cp out/cmake-ios-debug-arm64/third_party/libassimp/libassimp.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
