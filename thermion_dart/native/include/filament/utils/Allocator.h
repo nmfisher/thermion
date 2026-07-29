@@ -25,11 +25,11 @@
 #include <cstddef>
 #include <mutex>
 #include <type_traits>
+#include <vector>
 
 #include <assert.h>
-#include <stdlib.h>
 #include <stdint.h>
-#include <vector>
+#include <stdlib.h>
 
 namespace utils {
 
@@ -722,13 +722,21 @@ public:
     template <typename T,
             typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
     T* alloc(size_t count, size_t alignment, size_t extra) noexcept {
-        return (T*)alloc(count * sizeof(T), alignment, extra);
+        size_t size;
+        if (UTILS_UNLIKELY(UTILS_MUL_OVERFLOW(count, sizeof(T), &size))) {
+            return nullptr;
+        }
+        return (T*)alloc(size, alignment, extra);
     }
 
     template <typename T,
             typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
     T* alloc(size_t count, size_t alignment = alignof(T)) noexcept {
-        return (T*)alloc(count * sizeof(T), alignment);
+        size_t size;
+        if (UTILS_UNLIKELY(UTILS_MUL_OVERFLOW(count, sizeof(T), &size))) {
+            return nullptr;
+        }
+        return (T*)alloc(size, alignment);
     }
 
     // some allocators require more parameters

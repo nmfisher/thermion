@@ -26,17 +26,17 @@
 
 #include <utils/BitmaskEnum.h>
 #include <utils/CString.h>
+#include <utils/debug.h>
 #include <utils/FixedCapacityVector.h>
 #include <utils/Invocable.h>
 #include <utils/StaticString.h>
-#include <utils/debug.h>
 
 #include <math/vec4.h>
 
 #include <array>
+#include <string_view>
 #include <type_traits>
 #include <variant>
-#include <string_view>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -48,7 +48,7 @@ class ostream;
 /**
  * Types and enums used by filament's driver.
  *
- * Effectively these types are public but should not be used directly. Instead use public classes
+ * Effectively these types are public but should not be used directly. Instead, use public classes
  * internal redeclaration of these types.
  * For e.g. Use Texture::Sampler instead of filament::SamplerType.
  */
@@ -826,6 +826,38 @@ enum class ElementType : uint8_t {
     HALF4,
 };
 
+constexpr std::string_view to_string(ElementType type) noexcept {
+    switch (type) {
+        case ElementType::BYTE:    return "BYTE";
+        case ElementType::BYTE2:   return "BYTE2";
+        case ElementType::BYTE3:   return "BYTE3";
+        case ElementType::BYTE4:   return "BYTE4";
+        case ElementType::UBYTE:   return "UBYTE";
+        case ElementType::UBYTE2:  return "UBYTE2";
+        case ElementType::UBYTE3:  return "UBYTE3";
+        case ElementType::UBYTE4:  return "UBYTE4";
+        case ElementType::SHORT:   return "SHORT";
+        case ElementType::SHORT2:  return "SHORT2";
+        case ElementType::SHORT3:  return "SHORT3";
+        case ElementType::SHORT4:  return "SHORT4";
+        case ElementType::USHORT:  return "USHORT";
+        case ElementType::USHORT2: return "USHORT2";
+        case ElementType::USHORT3: return "USHORT3";
+        case ElementType::USHORT4: return "USHORT4";
+        case ElementType::INT:     return "INT";
+        case ElementType::UINT:    return "UINT";
+        case ElementType::FLOAT:   return "FLOAT";
+        case ElementType::FLOAT2:  return "FLOAT2";
+        case ElementType::FLOAT3:  return "FLOAT3";
+        case ElementType::FLOAT4:  return "FLOAT4";
+        case ElementType::HALF:    return "HALF";
+        case ElementType::HALF2:   return "HALF2";
+        case ElementType::HALF3:   return "HALF3";
+        case ElementType::HALF4:   return "HALF4";
+    }
+    return "UNKNOWN";
+}
+
 //! Buffer object binding type
 enum class BufferObjectBinding : uint8_t {
     VERTEX,
@@ -1141,6 +1173,19 @@ constexpr bool isDepthFormat(TextureFormat format) noexcept {
         case TextureFormat::DEPTH16:
         case TextureFormat::DEPTH32F_STENCIL8:
         case TextureFormat::DEPTH24_STENCIL8:
+            return true;
+        default:
+            return false;
+    }
+}
+
+//! returns whether this format a 32-bit float format
+constexpr bool isFp32ColorFormat(TextureFormat format) noexcept {
+    switch (format) {
+        case TextureFormat::R32F:
+        case TextureFormat::RG32F:
+        case TextureFormat::RGB32F:
+        case TextureFormat::RGBA32F:
             return true;
         default:
             return false;
@@ -1570,6 +1615,14 @@ struct RenderPassFlags {
     TargetBufferFlags discardEnd;
 };
 
+// A clear-color value for a color attachment, stored as four doubles. The actual type family
+// (float / signed-int / unsigned-int) is inferred from the attachment's TextureFormat at clear
+// time, and the doubles are converted as-is into the matching GL/Vulkan/Metal/WebGPU call.
+// The caller must put a value into this double4 that is meaningful for the attachment family --
+// e.g., for a UINT attachment, put a value in [0, UINT32_MAX]. int32/uint32 round-trip through a
+// double exactly because double has a 53-bit mantissa.
+using ClearColorValue = math::double4;
+
 /**
  * Parameters of a render pass.
  */
@@ -1579,8 +1632,11 @@ struct RenderPassParams {
     Viewport viewport{};        //!< viewport for this pass
     DepthRange depthRange{};    //!< depth range for this pass
 
-    //! Color to use to clear the COLOR buffer. RenderPassFlags::clear must be set.
-    math::float4 clearColor = {};
+    //! Value used to clear the COLOR attachments. RenderPassFlags::clear must be set.
+    //! For integer-format attachments, put a value in the matching range (e.g., values in
+    //! [0, UINT32_MAX] for a UINT attachment); the backend converts the doubles as-is into the
+    //! matching native clear entry-point based on the attachment's TextureFormat.
+    ClearColorValue clearColor{};
 
     //! Depth value to clear the depth buffer with
     double clearDepth = 0.0;

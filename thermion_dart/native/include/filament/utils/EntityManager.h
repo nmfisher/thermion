@@ -19,6 +19,8 @@
 
 #include <utils/Entity.h>
 #include <utils/compiler.h>
+#include <utils/Slice.h>
+#include <utils/PagedArenaBitset.h>
 
 #include <assert.h>
 #include <stddef.h>
@@ -32,6 +34,8 @@
 #include <utils/ostream.h>
 #include <vector>
 #endif
+
+#include <functional>
 
 namespace utils {
 
@@ -47,6 +51,30 @@ public:
     protected:
         virtual ~Listener() noexcept;
     };
+
+    using ChangeCallback = std::function<void(Slice<const Entity>)>;
+
+    /**
+     * Registers a callback to be triggered when entities are destroyed.
+     * The callback receives a batch of destroyed entities.
+     * Thread safe.
+     * @param token A unique identifier for the listener (e.g., 'this' pointer).
+     * @param callback The callback to invoke.
+     */
+    void registerChangeCallback(void const* token, ChangeCallback callback) noexcept;
+
+    /**
+     * Unregisters a callback.
+     * Thread safe.
+     * @param token The token used during registration.
+     */
+    void unregisterChangeCallback(void const* token) noexcept;
+
+    /**
+     * Flushes any pending notifications to listeners.
+     * Thread safe.
+     */
+    void flushNotifications() noexcept;
 
     // maximum number of entities that can exist at the same time
     static size_t getMaxEntityCount() noexcept {
@@ -78,10 +106,7 @@ public:
 
     // Return whether the given Entity has been destroyed (false) or not (true).
     // Thread safe.
-    bool isAlive(Entity e) const noexcept {
-        assert(getIndex(e) < RAW_INDEX_COUNT);
-        return (!e.isNull()) && (getGeneration(e) == mGens[getIndex(e)]);
-    }
+    bool isAlive(Entity e) const noexcept;
 
     // Registers a listener to be called when an entity is destroyed. Thread safe.
     // If the listener is already registered, this method has no effect.
@@ -90,13 +115,11 @@ public:
     // unregisters a listener.
     void unregisterListener(Listener* l) noexcept;
 
+    // Returns the bitset of alive entities.
+    PagedArenaBitset getAliveEntities() const noexcept;
+
 
     /* no user serviceable parts below */
-
-    // current generation of the given index. Use for debugging and testing.
-    uint8_t getGenerationForIndex(size_t index) const noexcept {
-        return mGens[index];
-    }
 
     // singleton, can't be copied
     EntityManager(const EntityManager& rhs) = delete;
@@ -107,6 +130,11 @@ public:
     void dumpActiveEntities(utils::io::ostream& out) const;
 #endif
 
+    // use carefully, several entities can have the same index.
+    static Entity::Type getIndex(Entity const e) noexcept  {
+        return e.getId() & INDEX_MASK;
+    }
+
 private:
     friend class EntityManagerImpl;
     EntityManager();
@@ -114,22 +142,21 @@ private:
 
     // GENERATION_SHIFT determines how many simultaneous Entities are available, the
     // minimum memory requirement is 2^GENERATION_SHIFT bytes.
-    static constexpr const int GENERATION_SHIFT = 17;
-    static constexpr const size_t RAW_INDEX_COUNT = (1 << GENERATION_SHIFT);
-    static constexpr const Entity::Type INDEX_MASK = (1 << GENERATION_SHIFT) - 1u;
+    // **IMPORTANT**
+    // These constants must stay consistent with PagedArenaBitset.h
+    static constexpr size_t GENERATION_SHIFT    = Entity::GENERATION_SHIFT;
+    static constexpr size_t GENERATION_BITS     = Entity::GENERATION_BITS;
+    static constexpr size_t RAW_INDEX_COUNT     = Entity::RAW_INDEX_COUNT;
+    static constexpr Entity::Type INDEX_MASK    = Entity::INDEX_MASK;
+    static constexpr Entity::Type MAX_IDENTITY  = Entity::MAX_IDENTITY;
 
-    static inline Entity::Type getGeneration(Entity e) noexcept {
+    static Entity::Type getGeneration(Entity const e) noexcept {
         return e.getId() >> GENERATION_SHIFT;
     }
-    static inline Entity::Type getIndex(Entity e) noexcept  {
-        return e.getId() & INDEX_MASK;
-    }
-    static inline Entity::Type makeIdentity(Entity::Type g, Entity::Type i) noexcept {
+
+    static Entity::Type makeIdentity(Entity::Type const g, Entity::Type const i) noexcept {
         return (g << GENERATION_SHIFT) | (i & INDEX_MASK);
     }
-
-    // stores the generation of each index.
-    uint8_t * const mGens;
 };
 
 } // namespace utils

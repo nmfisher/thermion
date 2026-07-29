@@ -31,6 +31,11 @@
 #include <backend/platforms/OpenGLPlatform.h>
 #include <backend/DriverEnums.h>
 
+#include <unordered_map>
+#include <thread>
+#include <shared_mutex>
+#include <memory>
+
 namespace filament::backend {
 
 /**
@@ -38,7 +43,7 @@ namespace filament::backend {
  * context that can be used in conjunction with Mesa for software rasterization.
  * See https://docs.mesa3d.org/osmesa.html for more information.
  */
-class PlatformOSMesa : public OpenGLPlatform {
+class UTILS_SHARED_LINKING PlatformOSMesa : public OpenGLPlatform {
 protected:
     // --------------------------------------------------------------------------------------------
     // Platform Interface
@@ -58,10 +63,21 @@ protected:
     bool makeCurrent(ContextType type, SwapChain* drawSwapChain,
             SwapChain* readSwapChain) override;
     void commit(SwapChain* swapChain) noexcept override;
+    bool isExtraContextSupported() const noexcept override;
+    void createContext(bool shared) override;
+    void releaseContext() noexcept override;
 
 private:
     OSMesaContext mContext;
     void* mOsMesaApi = nullptr;
+
+    struct ContextInfo {
+        OSMesaContext context;
+        std::unique_ptr<uint8_t[]> buffer;
+    };
+    using ContextMap = std::unordered_map<std::thread::id, ContextInfo>;
+    ContextMap mAdditionalContexts;
+    mutable std::shared_mutex mAdditionalContextsLock;
 };
 
 } // namespace filament::backend

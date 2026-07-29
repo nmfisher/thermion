@@ -22,12 +22,13 @@
 #include <backend/Platform.h>
 
 #include <utils/compiler.h>
-#include <utils/Invocable.h>
 #include <utils/CString.h>
+#include <utils/Invocable.h>
+
+#include <math/mat3.h>
 
 #include <stddef.h>
 #include <stdint.h>
-#include <math/mat3.h>
 
 namespace filament::backend {
 
@@ -40,7 +41,7 @@ class Driver;
  *          upon return.
  *
  */
-class OpenGLPlatform : public Platform {
+class UTILS_SHARED_LINKING OpenGLPlatform : public Platform {
 protected:
 
     /*
@@ -51,6 +52,9 @@ protected:
             void* UTILS_NULLABLE sharedContext, const DriverConfig& driverConfig);
 
     ~OpenGLPlatform() noexcept override;
+
+    utils::CString getDeviceInfo(DeviceInfoType infoType,
+            Driver* UTILS_NULLABLE driver) const override;
 
 public:
     struct ExternalTexture {
@@ -69,6 +73,12 @@ public:
      * @return The GL_RENDERER string
      */
     static utils::CString getRendererString(Driver const* UTILS_NONNULL driver);
+
+    /**
+     * Return the OpenGL version string of the specified Driver instance.
+     * @return The GL_VERSION string
+     */
+    static utils::CString getVersionString(Driver const* UTILS_NONNULL driver);
 
     /**
      * Called by the driver to destroy the OpenGL context. This should clean up any windows
