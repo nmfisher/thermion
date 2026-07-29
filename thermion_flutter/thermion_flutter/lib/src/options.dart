@@ -1,5 +1,21 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
+/// The Android texture-registry surface used to present Filament frames.
+enum AndroidTextureSource {
+  /// Uses Flutter's `SurfaceTexture` external-texture path.
+  ///
+  /// This avoids the main-thread `ImageReader` work performed by
+  /// [surfaceProducer] and is the preferred path for opaque views.
+  surfaceTexture,
+
+  /// Uses Flutter's `SurfaceProducer` path.
+  ///
+  /// This preserves premultiplied alpha when compositing a transparent
+  /// Filament view with Impeller, but its ImageReader-backed implementation
+  /// can be substantially more expensive on some Android devices.
+  surfaceProducer,
+}
+
 class ThermionFlutterOptions {
   final String? uberarchivePath;
 
@@ -16,6 +32,12 @@ class ThermionFlutterOptions {
 class NativeOptions {
   final Backend? backend;
 
+  /// The texture-registry surface used on Android.
+  ///
+  /// Prefer [AndroidTextureSource.surfaceTexture] unless the Filament output
+  /// must be composited transparently over Flutter content.
+  final AndroidTextureSource androidTextureSource;
+
   /// The format to use for the default render target color attachment.
   /// Currently only applicable on iOS/macOS.
   final TextureFormat renderTargetColorTextureFormat;
@@ -30,6 +52,7 @@ class NativeOptions {
 
   const NativeOptions({
     this.backend,
+    this.androidTextureSource = AndroidTextureSource.surfaceTexture,
     this.renderTargetColorTextureFormat = TextureFormat.RGBA8,
     this.renderTargetDepthTextureFormat = TextureFormat.DEPTH24_STENCIL8,
     this.createOverlay = false,

@@ -1,10 +1,15 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:thermion_flutter/src/platform/src/android_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/options.dart';
 
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('PlatformTextureDescriptor equality', () {
     test(
       'descriptors with the same flutterTextureId match (== and hashCode)',
@@ -44,6 +49,70 @@ void main() {
       expect(_TestNativeHandle(42) == _TestNativeHandle(43), isFalse);
     });
   });
+  test('Android frame publication does not send a platform message', () async {
+    const channel = MethodChannel('thermion.test.texture');
+    var methodCallCount = 0;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          methodCallCount++;
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final descriptor = AndroidPlatformTextureDescriptor(
+      channel,
+      flutterTextureId: 1,
+      hardwareId: 2,
+      windowHandle: 3,
+      width: 4,
+      height: 5,
+    );
+
+    descriptor.markTextureFrameAvailable();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(methodCallCount, 0);
+  });
+
+  for (final (textureSource, expectedSurfaceProducer) in [
+    (AndroidTextureSource.surfaceTexture, false),
+    (AndroidTextureSource.surfaceProducer, true),
+  ]) {
+    test('Android allocation requests ${textureSource.name}', () async {
+      const channel = MethodChannel('thermion.test.texture.allocation');
+      MethodCall? receivedCall;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            receivedCall = call;
+            return <int>[11, 11, 22];
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      final descriptor = await AndroidPlatformTextureDescriptor.allocate(
+        channel,
+        640,
+        480,
+        textureSource,
+      );
+
+      expect(receivedCall?.method, 'createTexture');
+      expect(receivedCall?.arguments, <Object?>[
+        640,
+        480,
+        0,
+        0,
+        expectedSurfaceProducer,
+      ]);
+      expect(descriptor.flutterTextureId, 11);
+      expect(descriptor.windowHandle, 22);
+    });
+  }
 }
 
 class _TestDescriptor extends PlatformTextureDescriptor {

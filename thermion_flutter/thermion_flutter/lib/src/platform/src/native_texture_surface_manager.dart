@@ -60,6 +60,7 @@ class NativeTextureSurfaceManager {
          pauseRendering: lifecycle.pauseRendering,
          resumeRenderingIfReady: lifecycle.resumeRenderingIfReady,
          runTextureMutation: lifecycle.duringTextureMutation,
+         androidTextureSource: () => options().androidTextureSource,
        );
 
   static final _logger = Logger('NativeTextureSurfaceManager');

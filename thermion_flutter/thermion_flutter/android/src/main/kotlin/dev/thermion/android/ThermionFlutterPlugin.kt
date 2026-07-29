@@ -42,13 +42,19 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
   private var lifecycle: Lifecycle? = null
 
-  // The legacy SurfaceTexture external-texture path composites transparent
-  // Filament output with incorrect premultiplied alpha under Impeller. The
-  // SurfaceProducer path composites premultiplied alpha correctly.
   private data class TextureEntry(
-      val surfaceProducer: TextureRegistry.SurfaceProducer,
+      val surfaceProducer: TextureRegistry.SurfaceProducer?,
+      val surfaceTextureEntry: TextureRegistry.SurfaceTextureEntry?,
       var surface: Surface?
-  )
+  ) {
+      fun release() {
+          surfaceProducer?.setCallback(null)
+          surface?.release()
+          surface = null
+          surfaceProducer?.release()
+          surfaceTextureEntry?.release()
+      }
+  }
 
   var _surface: Surface? = null
   private val textures: MutableMap<Long, TextureEntry> = mutableMapOf()
@@ -103,25 +109,48 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                 val args = call.arguments as List<*>
                 val width = args[0] as Int
                 val height = args[1] as Int
+                val useSurfaceProducer = args.getOrNull(4) as? Boolean ?: false
                 if (width < 1 || height < 1) {
                     result.error("DIMENSION_MISMATCH", "Both dimensions must be greater than zero (you provided $width x $height)", null)
                     return
                 }
-                Log.d("thermion_flutter", "Creating SurfaceProducer ${width}x${height}")
+                val producer: TextureRegistry.SurfaceProducer?
+                val surfaceTextureEntry: TextureRegistry.SurfaceTextureEntry?
+                val surface: Surface
+                val flutterTextureId: Long
 
-                // Allow Flutter to release the ImageReader-backed surface
-                // while the app is backgrounded. The callback below notifies
-                // Dart to destroy and recreate the Filament swapchain around
-                // the replacement surface.
-                val producer = flutterPluginBinding.textureRegistry.createSurfaceProducer(
-                    TextureRegistry.SurfaceLifecycle.resetInBackground
-                )
-                producer.setSize(width, height)
-                val surface = producer.getSurface()
+                if (useSurfaceProducer) {
+                    Log.d("thermion_flutter", "Creating SurfaceProducer ${width}x${height}")
+
+                    // SurfaceProducer fixes premultiplied-alpha compositing
+                    // under Impeller, but Flutter's implementation is backed
+                    // by an ImageReader on API 29+.
+                    producer = flutterPluginBinding.textureRegistry.createSurfaceProducer(
+                        TextureRegistry.SurfaceLifecycle.resetInBackground
+                    )
+                    producer.setSize(width, height)
+                    surfaceTextureEntry = null
+                    surface = producer.getSurface()
+                    flutterTextureId = producer.id()
+                } else {
+                    Log.d("thermion_flutter", "Creating SurfaceTexture ${width}x${height}")
+
+                    // SurfaceTexture avoids ImageReader acquisition on the
+                    // Android main thread and is substantially faster on some
+                    // devices. It is the default for opaque Thermion views.
+                    producer = null
+                    surfaceTextureEntry =
+                        flutterPluginBinding.textureRegistry.createSurfaceTexture()
+                    val surfaceTexture = surfaceTextureEntry.surfaceTexture()
+                    surfaceTexture.setDefaultBufferSize(width, height)
+                    surface = Surface(surfaceTexture)
+                    flutterTextureId = surfaceTextureEntry.id()
+                }
 
                 if (!surface.isValid) {
                     surface.release()
-                    producer.release()
+                    producer?.release()
+                    surfaceTextureEntry?.release()
                     result.error("SURFACE_INVALID", "Failed to create valid surface", null)
                     return
                 }
@@ -131,7 +160,8 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                 val nativeWindowPtr = NativeWindowHelper.getNativeWindowFromSurface(surface)
                 if (nativeWindowPtr == 0L) {
                     surface.release()
-                    producer.release()
+                    producer?.release()
+                    surfaceTextureEntry?.release()
                     result.error(
                         "NATIVE_WINDOW_UNAVAILABLE",
                         "Failed to acquire a native window from the surface",
@@ -140,66 +170,74 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                     return
                 }
 
-                val flutterTextureId = producer.id()
-                val textureEntry = TextureEntry(producer, surface)
+                val textureEntry = TextureEntry(
+                    producer,
+                    surfaceTextureEntry,
+                    surface
+                )
                 textures[flutterTextureId] = textureEntry
-                producer.setCallback(object : TextureRegistry.SurfaceProducer.Callback {
-                    override fun onSurfaceCleanup() {
-                        val entry = textures[flutterTextureId] ?: return
-                        val surfaceToRelease = entry.surface
-                        entry.surface = null
-                        notifyDartBeforeReleasingSurface(
-                            "onSurfaceCleanup",
-                            flutterTextureId,
-                            surfaceToRelease
-                        )
-                    }
-
-                    override fun onSurfaceAvailable() {
-                        val entry = textures[flutterTextureId] ?: return
-                        val newSurface = producer.getSurface()
-                        if (!newSurface.isValid) {
-                            newSurface.release()
-                            channel.invokeMethod(
-                                "onSurfaceError",
-                                listOf(flutterTextureId, "Replacement surface is invalid")
+                producer?.setCallback(
+                    object : TextureRegistry.SurfaceProducer.Callback {
+                        override fun onSurfaceCleanup() {
+                            val entry = textures[flutterTextureId] ?: return
+                            val surfaceToRelease = entry.surface
+                            entry.surface = null
+                            notifyDartBeforeReleasingSurface(
+                                "onSurfaceCleanup",
+                                flutterTextureId,
+                                surfaceToRelease
                             )
-                            return
                         }
 
-                        val newNativeWindowPtr =
-                            NativeWindowHelper.getNativeWindowFromSurface(newSurface)
-                        if (newNativeWindowPtr == 0L) {
-                            newSurface.release()
-                            channel.invokeMethod(
-                                "onSurfaceError",
+                        override fun onSurfaceAvailable() {
+                            val entry = textures[flutterTextureId] ?: return
+                            val newSurface = producer.getSurface()
+                            if (!newSurface.isValid) {
+                                newSurface.release()
+                                channel.invokeMethod(
+                                    "onSurfaceError",
+                                    listOf(
+                                        flutterTextureId,
+                                        "Replacement surface is invalid"
+                                    )
+                                )
+                                return
+                            }
+
+                            val newNativeWindowPtr =
+                                NativeWindowHelper.getNativeWindowFromSurface(newSurface)
+                            if (newNativeWindowPtr == 0L) {
+                                newSurface.release()
+                                channel.invokeMethod(
+                                    "onSurfaceError",
+                                    listOf(
+                                        flutterTextureId,
+                                        "Failed to acquire replacement native window"
+                                    )
+                                )
+                                return
+                            }
+
+                            val surfaceToRelease = entry.surface
+                            entry.surface = newSurface
+                            notifyDartBeforeReleasingSurface(
+                                "onSurfaceAvailable",
                                 listOf(
                                     flutterTextureId,
-                                    "Failed to acquire replacement native window"
-                                )
+                                    newNativeWindowPtr
+                                ),
+                                surfaceToRelease
                             )
-                            return
                         }
-
-                        val surfaceToRelease = entry.surface
-                        entry.surface = newSurface
-                        notifyDartBeforeReleasingSurface(
-                            "onSurfaceAvailable",
-                            listOf(flutterTextureId, newNativeWindowPtr),
-                            surfaceToRelease
-                        )
                     }
-                })
+                )
                 result.success(listOf(flutterTextureId, flutterTextureId, nativeWindowPtr))
             }
             "destroyTexture" -> {
                 val textureId = (call.arguments as Int).toLong()
                 val textureEntry = textures.remove(textureId)
                 if (textureEntry != null) {
-                    textureEntry.surfaceProducer.setCallback(null)
-                    textureEntry.surface?.release()
-                    textureEntry.surface = null
-                    textureEntry.surfaceProducer.release()
+                    textureEntry.release()
                     result.success(true)
                 } else {
                     result.error("TEXTURE_NOT_FOUND", "Texture with id $textureId not found", null)
@@ -230,10 +268,7 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       channel.setMethodCallHandler(null)
         // Release all textures
         for ((_, textureEntry) in textures) {
-            textureEntry.surfaceProducer.setCallback(null)
-            textureEntry.surface?.release()
-            textureEntry.surface = null
-            textureEntry.surfaceProducer.release()
+            textureEntry.release()
         }
         textures.clear()
   }

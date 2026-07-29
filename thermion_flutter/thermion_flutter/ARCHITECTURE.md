@@ -58,6 +58,13 @@ The `FrameScheduler` dispatches its callback to Dart in one of two ways:
 - **Release**: a raw C function pointer (`ffi.NativeCallable`) — minimum latency.
 - **Debug** (hot-restart safe): `Dart_PostCObject_DL` onto a `ReceivePort`. `Dart_PostCObject` silently drops messages to dead ports, so stale native schedulers created in a previous isolate can't crash the new one.
 
+Android intentionally keeps render admission on these Dart callback paths.
+Flutter's `ImageReaderSurfaceProducer` receives images through a listener on
+Android's main looper. A fully native producer loop can continue submitting
+buffers while that consumer is delayed, filling the ImageReader pipeline and
+blocking `acquireLatestImage()` on the main thread. The Dart in-flight guard
+provides the required backpressure.
+
 ### Framerate limiting
 
 By default the viewer renders on **every vsync** — i.e. at the display's native refresh rate (60 fps on a 60 Hz panel, 120 on a 120 Hz panel, etc.). Nothing pins it to 60.

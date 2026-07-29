@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_flutter/src/options.dart';
 
 import 'android_platform_texture_descriptor.dart';
 import 'darwin_platform_texture_descriptor.dart';
@@ -36,10 +37,14 @@ class NativePlatformTextureDescriptorRegistry
     required void Function() pauseRendering,
     required void Function() resumeRenderingIfReady,
     required TextureMutationRunner runTextureMutation,
+    required AndroidTextureSource Function() androidTextureSource,
   }) : _pauseRendering = pauseRendering,
        _resumeRenderingIfReady = resumeRenderingIfReady,
        _runTextureMutation = runTextureMutation,
-       super(allocator: _allocate) {
+       super(
+         allocator: (width, height) =>
+             _allocate(width, height, androidTextureSource()),
+       ) {
     if (Platform.isAndroid) {
       channel.setMethodCallHandler(_handlePlatformMethodCall);
     }
@@ -52,14 +57,23 @@ class NativePlatformTextureDescriptorRegistry
   final TextureMutationRunner _runTextureMutation;
   final Logger _logger = Logger('NativePlatformTextureDescriptorRegistry');
 
-  static Future<PlatformTextureDescriptor> _allocate(int width, int height) {
+  static Future<PlatformTextureDescriptor> _allocate(
+    int width,
+    int height,
+    AndroidTextureSource androidTextureSource,
+  ) {
     if (Platform.isMacOS || Platform.isIOS) {
       return Future.value(
         DarwinPlatformTextureDescriptorImpl.allocate(width, height),
       );
     }
     if (Platform.isAndroid) {
-      return AndroidPlatformTextureDescriptor.allocate(channel, width, height);
+      return AndroidPlatformTextureDescriptor.allocate(
+        channel,
+        width,
+        height,
+        androidTextureSource,
+      );
     }
     if (Platform.isWindows) {
       return MethodChannelPlatformTextureDescriptor.allocate(

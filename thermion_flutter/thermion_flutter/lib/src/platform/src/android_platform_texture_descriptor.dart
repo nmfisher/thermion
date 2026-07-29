@@ -1,11 +1,12 @@
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_flutter/src/options.dart';
 
 import 'method_channel_platform_texture_descriptor.dart';
 import 'platform_texture_descriptor.dart';
 
-/// Describes an Android SurfaceProducer texture and its native window.
+/// Describes an Android texture-registry surface and its native window.
 class AndroidPlatformTextureDescriptor
     extends MethodChannelPlatformTextureDescriptor
     with ReplaceablePlatformTextureDescriptorMixin {
@@ -28,15 +29,26 @@ class AndroidPlatformTextureDescriptor
   @override
   bool get deferred => false;
 
+  /// Android's texture-registry surfaces publish queued buffers without an
+  /// explicit method-channel notification. The old call only acknowledged the
+  /// texture ID, adding one platform message per frame without changing
+  /// presentation state.
+  @override
+  void markTextureFrameAvailable() {}
+
   static Future<AndroidPlatformTextureDescriptor> allocate(
     MethodChannel channel,
     int width,
     int height,
+    AndroidTextureSource textureSource,
   ) async {
     final allocation = await allocateMethodChannelTexture(
       channel,
       width,
       height,
+      additionalArguments: [
+        textureSource == AndroidTextureSource.surfaceProducer,
+      ],
     );
     final windowHandle = allocation.windowHandle;
     if (windowHandle == null || windowHandle == 0) {
