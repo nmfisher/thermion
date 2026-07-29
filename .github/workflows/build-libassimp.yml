@@ -1,0 +1,139 @@
+name: Build libassimp (standalone)
+
+# Temporary workflow to iterate on the libassimp build (per-platform) WITHOUT
+# waiting for the full ~40min Filament build. It builds ONLY libassimp from the
+# third_party/libassimp/tnt overlay against the Filament tag in filament.version,
+# mirroring the exact libassimp cmake invocation used by build_windows.bat /
+# build_linux.sh / build_macos.sh (including the zlib include-path fix).
+#
+# Safe to delete once the libassimp build is green in the real "Build Filament"
+# workflow on every platform.
+
+on:
+  workflow_dispatch:
+    inputs:
+      filament_version:
+        description: 'Filament tag (overrides filament.version)'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      repo: ${{ steps.read.outputs.repo }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read Filament version
+        id: read
+        run: |
+          read -r REPO VERSION < filament.version
+          [ -n "${{ inputs.filament_version }}" ] && VERSION="${{ inputs.filament_version }}"
+          echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building libassimp against Filament repo=$REPO ref=$VERSION"
+
+  build:
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            runner: windows-2022
+          - platform: linux
+            runner: ubuntu-24.04
+          - platform: macos
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        shell: bash
+        run: git clone --depth 1 --branch "$FILAMENT_VERSION" "$FILAMENT_REPO" filament
+
+      - name: Patch libassimp tnt overlay (if the patch script exists on this branch)
+        shell: bash
+        run: |
+          if [ -f scripts/patch_libassimp_tnt.py ]; then
+            python3 scripts/patch_libassimp_tnt.py "$GITHUB_WORKSPACE/filament"
+          else
+            echo "patch_libassimp_tnt.py not present on this branch — building the unpatched tnt overlay (still exercises the zlib include path)."
+          fi
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.30.0'
+
+      - name: Setup Ninja (non-Windows)
+        if: matrix.platform != 'windows'
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Install deps (Linux)
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      # ---- Windows: MSVC, mirrors build_windows.bat libassimp cmake exactly ----
+      - name: Build libassimp (Windows)
+        if: matrix.platform == 'windows'
+        shell: cmd
+        run: |
+          mkdir filament\out\assimp
+          cd filament\out\assimp
+          cmake -G "Visual Studio 17 2022" -T v142 ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_CXX_STANDARD=17 ^
+            -DCMAKE_C_FLAGS=/I..\..\third_party\libz ^
+            -DCMAKE_CXX_FLAGS=/I..\..\third_party\libz ^
+            -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
+            -DASSIMP_BUILD_TESTS=OFF ^
+            -DASSIMP_BUILD_SAMPLES=OFF ^
+            -DASSIMP_WARNINGS_AS_ERRORS=OFF ^
+            ..\..\third_party\libassimp\tnt
+          cmake --build . --config Release
+
+      # ---- Linux / macOS: Ninja, mirrors build_linux.sh libassimp cmake ----
+      - name: Build libassimp (Linux/macOS)
+        if: matrix.platform != 'windows'
+        shell: bash
+        run: |
+          mkdir -p filament/out/assimp
+          cd filament/out/assimp
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
+            -DCMAKE_C_FLAGS="-I$GITHUB_WORKSPACE/filament/third_party/libz" \
+            -DCMAKE_CXX_FLAGS="-I$GITHUB_WORKSPACE/filament/third_party/libz" \
+            -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+            -DASSIMP_BUILD_TESTS=OFF \
+            -DASSIMP_BUILD_SAMPLES=OFF \
+            -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+            "$GITHUB_WORKSPACE/filament/third_party/libassimp/tnt"
+          cmake --build .
+
+      - name: Locate built libassimp
+        shell: bash
+        run: |
+          echo "=== libassimp artifacts ==="
+          find filament/out -iname 'assimp*' -type f 2>/dev/null || true
+          find filament/out -iname 'libassimp*' -type f 2>/dev/null || true
+
+      - name: Upload libassimp
+        uses: actions/upload-artifact@v4
+        with:
+          name: libassimp-${{ matrix.platform }}
+          path: |
+            filament/out/assimp/assimp.dir/**
+            filament/out/assimp/**/assimp.lib
+            filament/out/assimp/libassimp.a
+          if-no-files-found: warn
+          retention-days: 3
