@@ -188,6 +188,13 @@ copy_from_local() {
     echo "  Warning: libs/bluevk/include not found — skipping"
   fi
 
+  echo "--- Copying source-tree utils compiler.h (install tree strips UTILS_SHARED_LINKING) ---"
+  if [ -f "libs/utils/include/utils/compiler.h" ]; then
+    cp libs/utils/include/utils/compiler.h "$OUTPUT_INCLUDE_DIR/utils/compiler.h"
+  else
+    echo "  Warning: libs/utils/include/utils/compiler.h not found — skipping"
+  fi
+
   echo "--- Copying uberarchive.h (release and debug) ---"
   if [ -d "out/release/filament/include/gltfio/materials" ]; then
     mkdir -p "$OUTPUT_INCLUDE_DIR/release/gltfio/materials"
