@@ -226,6 +226,8 @@ build_third_party_libs() {
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_C_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
+    -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
     -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
     -DASSIMP_BUILD_TESTS=OFF \
     -DASSIMP_BUILD_SAMPLES=OFF \
