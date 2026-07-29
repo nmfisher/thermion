@@ -301,7 +301,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
-  cp out/cmake-release/third_party/libassimp/tnt/libassimp.a "$TARGET_RELEASE_DIR/" || {
+  cp out/cmake-release/third_party/libassimp/libassimp.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
@@ -328,7 +328,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
-  cp out/cmake-debug/third_party/libassimp/tnt/libassimp.a "$TARGET_DEBUG_DIR/" || {
+  cp out/cmake-debug/third_party/libassimp/libassimp.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
