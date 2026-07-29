@@ -430,7 +430,7 @@ String _getFilamentVersion() {
     return parts.length >= 2 ? parts[1] : parts[0];
   }
   // Fallback to hardcoded version if file doesn't exist
-  return "v1.69.1";
+  return "v1.74.0";
 }
 
 String _FILAMENT_VERSION = _getFilamentVersion();

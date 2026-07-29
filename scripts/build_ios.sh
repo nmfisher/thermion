@@ -6,9 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.69.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
@@ -100,6 +100,10 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
+python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
@@ -174,6 +178,22 @@ if [ "$BUILD_RELEASE" = true ]; then
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
+  # Build libassimp for release
+  echo "Building libassimp (release)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DIOS=1 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
+
   # Copy release third-party libraries
   echo "Copying release third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
@@ -184,6 +204,10 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
   cp out/cmake-ios-release-arm64/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
+    exit 1
+  }
+  cp out/cmake-ios-release-arm64/third_party/libassimp/tnt/libassimp.a "$TARGET_RELEASE_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
 fi
@@ -237,6 +261,22 @@ if [ "$BUILD_DEBUG" = true ]; then
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
+  # Build libassimp for debug
+  echo "Building libassimp (debug)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DIOS=1 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
+
   # Copy debug third-party libraries
   echo "Copying debug third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
@@ -247,6 +287,10 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
   cp out/cmake-ios-debug-arm64/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
+    exit 1
+  }
+  cp out/cmake-ios-debug-arm64/third_party/libassimp/tnt/libassimp.a "$TARGET_DEBUG_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
 fi

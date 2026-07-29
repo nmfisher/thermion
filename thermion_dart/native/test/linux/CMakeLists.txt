@@ -21,7 +21,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 # Set Filament version and library path
-set(FILAMENT_VERSION "v1.69.1")
+set(FILAMENT_VERSION "v1.74.0")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/linux/debug")

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(thermion_dart VERSION 1.0.0 LANGUAGES CXX C)
 
 # Configuration variables
-set(FILAMENT_VERSION "v1.69.1")
+set(FILAMENT_VERSION "v1.74.0")
 set(PACKAGE_NAME "thermion_dart")
 set(PLATFORM "macos")
 
