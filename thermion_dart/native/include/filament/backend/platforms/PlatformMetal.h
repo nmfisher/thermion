@@ -38,6 +38,7 @@ public:
 
     Driver* createDriver(void* sharedContext, const Platform::DriverConfig& driverConfig) override;
     int getOSVersion() const noexcept override { return 0; }
+    utils::CString getDeviceInfo(DeviceInfoType, Driver*) const override { return {}; }
 
     /**
      * Optionally initializes the Metal platform by acquiring resources necessary for rendering.
@@ -66,7 +67,7 @@ public:
      *
      * createDevice is called by the Metal backend from the backend thread.
      */
-    virtual void createDevice(MetalDevice& outDevice) noexcept;
+    void createDevice(MetalDevice& outDevice) noexcept;
 
     /**
      * Create a command submission queue on the Metal device object.
@@ -75,7 +76,7 @@ public:
      *
      * @param device The device which was returned from createDevice()
      */
-    virtual void createCommandQueue(
+    void createCommandQueue(
             MetalDevice& device, MetalCommandQueue& outCommandQueue) noexcept;
 
     /**

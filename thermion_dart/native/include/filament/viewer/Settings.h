@@ -32,10 +32,10 @@
 #include <math/vec3.h>
 #include <math/vec4.h>
 
+#include <string>
+
 #include <stddef.h>
 #include <stdint.h>
-
-#include <string>
 
 namespace filament {
 
@@ -146,6 +146,14 @@ struct AgxToneMapperSettings {
     bool operator==(const AgxToneMapperSettings& rhs) const;
 };
 
+enum class CustomLut : uint8_t {
+    NONE = 0,
+    NEGATIVE = 1,
+    GRAYSCALE = 2,
+    SEPIA = 3,
+    TEAL_AND_ORANGE = 4,
+};
+
 struct ColorGradingSettings {
     // fields are ordered to avoid padding
     bool enabled = true;
@@ -154,7 +162,7 @@ struct ColorGradingSettings {
     bool gamutMapping = false;
     filament::ColorGrading::QualityLevel quality = filament::ColorGrading::QualityLevel::MEDIUM;
     ToneMapping toneMapping = ToneMapping::ACES_LEGACY;
-    bool padding0{};
+    CustomLut customLut = CustomLut::NONE;
     AgxToneMapperSettings agxToneMapper;
     color::ColorSpace colorspace = Rec709-sRGB-D65;
     GenericToneMapperSettings genericToneMapper;
@@ -246,7 +254,7 @@ struct LightDefinition {
     float spotOuter = 0.0f;
     float sunHaloSize = 10.0f;
     float sunHaloFalloff = 80.0f;
-    float sunAngularRadius = 1.9f;
+    float sunAngularRadiusDeg = 0.545f;
     bool castShadows = false;
     LightManager::ShadowOptions shadowOptions;
 };
@@ -262,6 +270,7 @@ struct LightSettings {
           .direction  = {0.6, -1.0, -0.8},
           .color = filament::Color::toLinear<filament::ACCURATE>({ 0.98, 0.92, 0.89}),
           .intensity = 100000.0f,
+          .castShadows = true,
     };
     std::vector<LightDefinition> lights;
 };
@@ -304,6 +313,7 @@ struct ViewerOptions {
     sRGBColor backgroundColor = { 0.0f };
     bool autoScaleEnabled = true;
     bool autoInstancingEnabled = false;
+    float cameraFrameRate = 0.0f;
 };
 
 struct DebugOptions {

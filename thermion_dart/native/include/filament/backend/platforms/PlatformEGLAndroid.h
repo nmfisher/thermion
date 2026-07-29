@@ -105,10 +105,18 @@ protected:
     bool queryFrameTimestamps(SwapChain const* swapchain, uint64_t frameId,
             FrameTimestamps* outFrameTimestamps) const noexcept override;
 
+    utils::tribool isFrameRateChangeSupported(void* nativeWindow) const noexcept override;
+
+    int setFrameRate(SwapChain const* swapchain, float frameRate,
+            FrameRateCompatibility compatibility,
+            ChangeFrameRateStrategy strategy) noexcept override;
+
     // --------------------------------------------------------------------------------------------
     // OpenGLPlatform Interface
 
     struct SyncEGLAndroid : public Sync {
+        explicit SyncEGLAndroid(EGLSyncKHR sync) noexcept
+            : sync(sync) {}
         EGLSyncKHR sync;
     };
 
@@ -166,10 +174,10 @@ protected:
     bool makeCurrent(ContextType type,
             SwapChain* drawSwapChain,
             SwapChain* readSwapChain) override;
+    void commit(SwapChain* swapChain) noexcept override;
 
 private:
     struct SwapChainEGLAndroid;
-    struct AndroidDetails;
 
     // prevent derived classes' implementations to call through
     [[nodiscard]] SwapChain* createSwapChain(void* nativeWindow, uint64_t flags) override;
@@ -185,8 +193,7 @@ private:
     };
 
     int mOSVersion;
-    ExternalStreamManagerAndroid& mExternalStreamManager;
-    AndroidDetails& mAndroidDetails;
+    ExternalStreamManagerAndroid* mExternalStreamManager = nullptr;
     utils::PerformanceHintManager mPerformanceHintManager;
     utils::PerformanceHintManager::Session mPerformanceHintSession;
     using clock = std::chrono::high_resolution_clock;

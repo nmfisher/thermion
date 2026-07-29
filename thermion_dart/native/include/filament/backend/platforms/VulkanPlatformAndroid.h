@@ -49,8 +49,11 @@ public:
 
     ExternalImageMetadata extractExternalImageMetadata(
             ExternalImageHandleRef image) const override;
+    bool copyExternalImageToMemoryYUV(ExternalImageHandleRef image, void* dstData,
+                                   uint32_t width, uint32_t height) const override;
 
-    ImageData createVkImageFromExternal(ExternalImageHandleRef image) const override;
+    ImageData createVkImageFromExternal(ExternalImageHandleRef image,
+            uint32_t logicalWidth, uint32_t logicalHeight) const override;
 
     /**
      * Converts a sync to an external file descriptor, if possible. Accepts an
@@ -81,6 +84,11 @@ public:
     bool queryFrameTimestamps(SwapChain const* swapchain, uint64_t frameId,
             FrameTimestamps* outFrameTimestamps) const noexcept override;
 
+    utils::tribool isFrameRateChangeSupported(void* nativeWindow) const noexcept override;
+    int setFrameRate(SwapChain const* swapchain, float frameRate,
+            FrameRateCompatibility compatibility,
+            ChangeFrameRateStrategy strategy) noexcept override;
+
 protected:
     ExtensionSet getSwapchainInstanceExtensions() const override;
 
@@ -91,8 +99,6 @@ protected:
     VkExternalFenceHandleTypeFlagBits getFenceExportFlags() const noexcept override;
 
 private:
-    struct AndroidDetails;
-
     struct ExternalImageVulkanAndroid : public ExternalImage {
         AHardwareBuffer* aHardwareBuffer = nullptr;
         bool sRGB = false;
@@ -101,7 +107,6 @@ private:
         ~ExternalImageVulkanAndroid() override;
     };
 
-    AndroidDetails& mAndroidDetails;
     int mOSVersion{};
 };
 

@@ -16,13 +16,15 @@
 #ifndef TNT_UTILS_INTERNPOOL_H
 #define TNT_UTILS_INTERNPOOL_H
 
-#include <utils/Slice.h>
+#include <utils/debug.h>
 #include <utils/FixedCapacityVector.h>
 #include <utils/Hash.h>
 #include <utils/Panic.h>
-#include <utils/debug.h>
+#include <utils/Slice.h>
 
 #include <tsl/robin_map.h>
+
+#include <limits>
 
 namespace utils {
 
@@ -59,6 +61,7 @@ public:
         }
         auto it = mMap.find(slice, hash);
         if (it != mMap.end()) {
+            assert_invariant(it.value().referenceCount < std::numeric_limits<decltype(Entry::referenceCount)>::max());
             it.value().referenceCount++;
             return it.key();
         }
@@ -78,6 +81,7 @@ public:
         Slice<const T> slice = value.as_slice();
         auto it = mMap.find(slice, hash);
         if (it != mMap.end()) {
+            assert_invariant(it.value().referenceCount < std::numeric_limits<decltype(Entry::referenceCount)>::max());
             it.value().referenceCount++;
             return it.key();
         }
