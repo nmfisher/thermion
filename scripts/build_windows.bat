@@ -315,6 +315,13 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
+  REM Copy libassimp headers
+  mkdir "%TARGET_RELEASE_DIR%\include\third_party\libassimp\include" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\third_party\libassimp\include\assimp" "%TARGET_RELEASE_DIR%\include\third_party\libassimp\include\assimp\" || (
+    echo Error: Failed to copy assimp headers to target
+    exit /b 1
+  )
+
   REM Copy uberarchive.h for release
   mkdir "%TARGET_RELEASE_DIR%\include\release\gltfio\materials" 2>nul
   copy /Y "%FILAMENT_BASE_DIR%\out\install-release\include\gltfio\materials\uberarchive.h" "%TARGET_RELEASE_DIR%\include\release\gltfio\materials\" 2>nul
@@ -358,6 +365,13 @@ if "!BUILD_DEBUG!"=="true" (
   mkdir "%TARGET_DEBUG_DIR%\include\third_party\stb" 2>nul
   copy /Y "%FILAMENT_BASE_DIR%\third_party\stb\stb_image.h" "%TARGET_DEBUG_DIR%\include\third_party\stb\" || (
     echo Error: Failed to copy stb_image.h to target
+    exit /b 1
+  )
+
+  REM Copy libassimp headers
+  mkdir "%TARGET_DEBUG_DIR%\include\third_party\libassimp\include" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\third_party\libassimp\include\assimp" "%TARGET_DEBUG_DIR%\include\third_party\libassimp\include\assimp\" || (
+    echo Error: Failed to copy assimp headers to target
     exit /b 1
   )
 
