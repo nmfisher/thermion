@@ -309,8 +309,9 @@ abstract class View<T> extends NativeHandle<T> {
   /// Gets the scene currently associated with this View.
   Future<Scene> getScene();
 
-  /// Sets the scene currently associated with this View.
-  Future setScene(Scene scene);
+  /// Sets the scene currently associated with this View, or detaches the
+  /// current scene when [scene] is null.
+  Future setScene(Scene? scene);
 
   // Sets the (debug) name for this View.
   Future setName(String name);

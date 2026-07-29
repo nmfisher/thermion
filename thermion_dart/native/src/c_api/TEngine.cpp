@@ -289,6 +289,14 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *texture = reinterpret_cast<Texture *>(tTexture);
+            // Parent resources can release a texture as part of their queued
+            // destruction. Treat a later explicit release as idempotent;
+            // Engine::destroy on an invalid texture can raise inside the
+            // render-thread packaged_task and strand the Dart completion.
+            if (!engine->isValid(texture))
+            {
+                return;
+            }
             engine->destroy(texture);
         }
 

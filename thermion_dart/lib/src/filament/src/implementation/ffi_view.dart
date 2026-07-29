@@ -294,11 +294,11 @@ class FFIView extends View<Pointer<TView>> {
     );
   }
 
-  Future setScene(Scene scene) async {
+  Future setScene(Scene? scene) async {
     await withVoidCallback(
       (requestId, cb) => View_setSceneRenderThread(
         view,
-        scene.getNativeHandle(),
+        scene?.getNativeHandle() ?? nullptr,
         requestId,
         cb,
       ),
