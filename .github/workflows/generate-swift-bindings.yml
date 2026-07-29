@@ -7,12 +7,10 @@ on:
       - 'v*'
     paths:
       - 'thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
-      - 'thermion_flutter/thermion_flutter/darwin/include/generated/MetalTextureWrapperObjCAPI.h'
   pull_request:
     branches: [ "develop" ]
     paths:
       - 'thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
-      - 'thermion_flutter/thermion_flutter/darwin/include/generated/MetalTextureWrapperObjCAPI.h'
   workflow_dispatch:
 
 concurrency:
