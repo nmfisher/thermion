@@ -148,6 +148,8 @@ if "!BUILD_RELEASE!"=="true" (
   cmake -G "Visual Studio 17 2022" -T v142 ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_CXX_STANDARD=17 ^
+    -DCMAKE_C_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
+    -DCMAKE_CXX_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
     -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
     -DASSIMP_BUILD_TESTS=OFF ^
     -DASSIMP_BUILD_SAMPLES=OFF ^
@@ -195,6 +197,8 @@ if "!BUILD_DEBUG!"=="true" (
   cmake -G "Visual Studio 17 2022" -T v142 ^
     -DCMAKE_BUILD_TYPE=Debug ^
     -DCMAKE_CXX_STANDARD=17 ^
+    -DCMAKE_C_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
+    -DCMAKE_CXX_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
     -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
     -DASSIMP_BUILD_TESTS=OFF ^
     -DASSIMP_BUILD_SAMPLES=OFF ^
