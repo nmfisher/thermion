@@ -6755,7 +6755,7 @@ external void RenderManager_setPaused(
 @ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
 external void FrameScheduler_start(FrameCallback callback, int targetFps);
 
-@ffi.Native<ffi.Void Function()>(isLeaf: true)
+@ffi.Native<ffi.Void Function()>()
 external void FrameScheduler_stop();
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)

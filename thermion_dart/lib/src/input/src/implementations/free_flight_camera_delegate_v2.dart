@@ -162,7 +162,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
 
   @override
   Future dispose() async {
-    FilamentApp.instance!.unregisterRequestFrameHook(_onFrame);
+    await FilamentApp.instance!.unregisterRequestFrameHook(_onFrame);
     _heldKeys.clear();
   }
 }

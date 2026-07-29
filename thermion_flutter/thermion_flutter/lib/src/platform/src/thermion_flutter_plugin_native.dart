@@ -57,9 +57,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     if (FilamentApp.instance == null) {
       await FFIFilamentApp.create(config: config);
-      FilamentApp.instance!.onDestroy(() async {
-        // Stop callbacks before the engine releases their native targets.
+      FilamentApp.instance!.onBeforeDestroy(() async {
+        // Stop and drain the native scheduler while its RenderManager and
+        // RenderThread pointers are still valid.
         _lifecycle.stop();
+      });
+      FilamentApp.instance!.onDestroy(() async {
         _textureSurfaces.onEngineDestroyed();
         await _textureSurfaces.destroyFilamentRenderingContext();
       });

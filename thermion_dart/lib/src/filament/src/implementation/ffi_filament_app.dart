@@ -86,6 +86,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     this.transformManager = FFITransformManager(transformManagerPtr, this);
     this.animationManager = FFIAnimationManager(animationManagerPointer, this);
     this.renderManager = FFIRenderManager(renderManager);
+
+    // A new engine starts uncapped. Scheduler stop/start within this engine
+    // preserves later user changes, but a cap from an older hot-restarted
+    // engine must not leak into this one.
+    bindings.FrameScheduler_setTargetFps(0);
   }
 
   //
@@ -385,6 +390,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   @override
   Future destroy() async {
+    for (final callback in _onBeforeDestroy) {
+      await callback.call();
+    }
+    _onBeforeDestroy.clear();
+    await drainRequestFrameHooks();
+
     for (final swapChain in _swapChains.toList()) {
       await renderManager.detachAll(swapChain);
       await destroySwapChain(swapChain);
@@ -876,6 +887,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   bool _processingRenderHooks = false;
+
+  /// Waits for any request-frame hook that is already running.
+  Future<void> drainRequestFrameHooks() async {
+    while (_processingRenderHooks) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+  }
 
   //
   @override
@@ -1752,9 +1770,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
+  final _onBeforeDestroy = <Future Function()>[];
   final _onDestroy = <Future Function()>[];
 
   //
+  @override
+  void onBeforeDestroy(Future Function() callback) {
+    _onBeforeDestroy.add(callback);
+  }
+
+  //
+  @override
   void onDestroy(Future Function() callback) {
     _onDestroy.add(callback);
   }

@@ -26,6 +26,8 @@ extern "C"
   static TRenderManager* _nativeRenderManager = nullptr;
   static RenderThread* _renderThread = nullptr;  // non-owning; owned by ThermionDartRenderThreadApi
   static std::atomic<bool> _nativeRenderInProgress{false};
+  static PostRenderCallback _postRenderCallback = nullptr;
+  static void* _postRenderUserData = nullptr;
 
   // Process-wide desired cap. It survives scheduler stop/start so lifecycle
   // transitions do not silently discard the user's setting. 0 = unlimited.
@@ -61,11 +63,16 @@ extern "C"
       delete _frameScheduler;
       _frameScheduler = nullptr;
     }
-    _nativeRenderManager = nullptr;
-    // Wait for any in-progress native render to finish
-    while (_nativeRenderInProgress.load()) {
+
+    // No scheduler callback can be admitted after stop() returns. Wait for
+    // the final accepted render before invalidating any pointer it captured.
+    while (_nativeRenderInProgress.load(std::memory_order_acquire)) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    _nativeRenderManager = nullptr;
+    _renderThread = nullptr;
+    _postRenderCallback = nullptr;
+    _postRenderUserData = nullptr;
 #endif
   }
 
@@ -131,9 +138,6 @@ extern "C"
     _nativeRenderManager = rm;
   }
 
-  static PostRenderCallback _postRenderCallback = nullptr;
-  static void* _postRenderUserData = nullptr;
-
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_setPostRenderCallback(PostRenderCallback callback, void* userData) {
     _postRenderCallback = callback;
     _postRenderUserData = userData;
@@ -141,19 +145,28 @@ extern "C"
 
   // Frame callback for native render loop — runs on scheduler thread
   static bool _nativeFrameCallback(uint64_t frameTimeNanos) {
-    if (!_nativeRenderManager || !_renderThread) return false;
-    if (_nativeRenderInProgress.exchange(true)) {
+    auto* renderManager = _nativeRenderManager;
+    auto* renderThread = _renderThread;
+    auto postRenderCallback = _postRenderCallback;
+    auto* postRenderUserData = _postRenderUserData;
+    if (!renderManager || !renderThread) return false;
+    if (_nativeRenderInProgress.exchange(true, std::memory_order_acq_rel)) {
       return false; // skip if still rendering
     }
 
-    _renderThread->addDetachedTask([frameTimeNanos]() {
-      RenderManager_render(_nativeRenderManager, frameTimeNanos);
+    renderThread->addDetachedTask([
+      renderManager,
+      frameTimeNanos,
+      postRenderCallback,
+      postRenderUserData
+    ]() {
+      RenderManager_render(renderManager, frameTimeNanos);
 
-      if (_postRenderCallback) {
-        _postRenderCallback(_postRenderUserData);
+      if (postRenderCallback) {
+        postRenderCallback(postRenderUserData);
       }
 
-      _nativeRenderInProgress.store(false);
+      _nativeRenderInProgress.store(false, std::memory_order_release);
     });
     return true;
   }
@@ -212,6 +225,7 @@ extern "C"
       delete _frameScheduler;
       _frameScheduler = nullptr;
     }
+
     _frameScheduler = new thermion::TimerFrameScheduler(
         targetFps > 0 ? targetFps : 60);
     applyTargetFps(_frameScheduler);
