@@ -69,14 +69,20 @@ cp -R $HEADER_SOURCE/* "$OUTPUT_INCLUDE_DIR/" || {
   exit 1
 }
 
-# Overlay source-tree filament/ public headers over the install-tree copy.
-# The install step strips `const` from Builder::build() methods (ABI mismatch
-# vs the prebuilt libs) and omits newly-added public headers (e.g. FramePacer.h
-# in v1.74). Source-tree public headers are authoritative.
-if [ -d "$FILAMENT_BASE_DIR/filament/include/filament" ]; then
-  cp "$FILAMENT_BASE_DIR/filament/include/filament/"*.h \
-     "$OUTPUT_INCLUDE_DIR/filament/" 2>/dev/null || true
-fi
+# Overlay source-tree public headers (filament/, utils/, math/) over the
+# install-tree copy. This script runs after build_macos.sh (etc.) have already
+# checked out the target release tag, so the working tree is version-matched to
+# the prebuilt libs. The install step strips `const` from Builder::build()
+# methods (ABI mismatch vs the libs) and omits utils headers the public API
+# needs (utils/tribool.h); the source-tree headers are authoritative.
+SRC_FIL="$FILAMENT_BASE_DIR/filament/include/filament"
+[ -d "$SRC_FIL" ] && cp "$SRC_FIL"/*.h "$OUTPUT_INCLUDE_DIR/filament/" 2>/dev/null || true
+SRC_UTILS="$FILAMENT_BASE_DIR/libs/utils/include/utils"
+mkdir -p "$OUTPUT_INCLUDE_DIR/utils"
+[ -d "$SRC_UTILS" ] && cp -R "$SRC_UTILS/." "$OUTPUT_INCLUDE_DIR/utils/" 2>/dev/null || true
+SRC_MATH="$FILAMENT_BASE_DIR/libs/math/include/math"
+mkdir -p "$OUTPUT_INCLUDE_DIR/math"
+[ -d "$SRC_MATH" ] && cp -R "$SRC_MATH/." "$OUTPUT_INCLUDE_DIR/math/" 2>/dev/null || true
 
 # Copy imageio headers (not included in main include dir)
 cp -R libs/imageio/include/* "$OUTPUT_INCLUDE_DIR/" || {
