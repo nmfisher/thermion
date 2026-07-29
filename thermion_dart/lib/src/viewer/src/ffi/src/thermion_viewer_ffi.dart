@@ -145,13 +145,45 @@ class ThermionViewerFFI extends ThermionViewer {
 
   final _onDispose = <Future Function()>[];
   bool _disposed = false;
+  Future<void>? _disposeFuture;
+  Future<void> _sceneResourceOperations = Future<void>.value();
+
+  Future<T> _serializeSceneResourceOperation<T>(
+    Future<T> Function() operation,
+  ) {
+    final previous = _sceneResourceOperations;
+    final current = () async {
+      await previous;
+      return operation();
+    }();
+    _sceneResourceOperations = current.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return current;
+  }
+
+  void _throwIfDisposed() {
+    if (_disposed) {
+      throw ViewerDisposedException();
+    }
+  }
 
   //
   @override
-  Future dispose() async {
+  Future<void> dispose() {
+    return _disposeFuture ??= _dispose();
+  }
+
+  Future<void> _dispose() async {
     _disposed = true;
     await setRendering(false);
 
+    // Finish any load/remove operation that was accepted before dispose, then
+    // detach and destroy every scene-level resource while the scene is valid.
+    await _sceneResourceOperations;
+    await _removeSkybox();
+    await _removeIbl(destroy: true);
     await clearBackgroundImage(destroy: true);
 
     await destroyAssets();
@@ -160,7 +192,15 @@ class ThermionViewerFFI extends ThermionViewer {
     for (final callback in _onDispose) {
       await callback.call();
     }
-    View_setScene(view.getNativeHandle(), nullptr);
+
+    await view.setHighlightOverlayEnabled(false);
+    await view.setCamera(null);
+    for (final camera in _cameras.toList()) {
+      await camera.destroy();
+    }
+    _cameras.clear();
+
+    await view.setScene(null);
 
     await FilamentApp.instance!.destroyScene(scene);
     await FilamentApp.instance!.destroyView(view);
@@ -214,7 +254,13 @@ class ThermionViewerFFI extends ThermionViewer {
     bool isKtx = path.endsWith(".ktx");
     if (isKtx) {
       final bundle = await FFIKtx1Bundle.create(imageData);
-      await _backgroundImage!.setImageFromKtxBundle(bundle);
+      try {
+        await _backgroundImage!.setImageFromKtxBundle(bundle);
+        // Ktx1Reader borrows the bundle's blobs until the upload completes.
+        await FilamentApp.instance!.flush();
+      } finally {
+        await bundle.destroy();
+      }
     } else {
       await _backgroundImage!.setImage(imageData);
     }
@@ -223,11 +269,149 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future setBackgroundColor(double r, double g, double b, double a) async {
-    await removeSkybox();
-    _skybox = await FilamentApp.instance!.buildSkybox() as FFISkybox;
-    await scene.setSkybox(_skybox!);
-    await _skybox!.setColor(r, g, b, a);
+  Future setBackgroundColor(double r, double g, double b, double a) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(() async {
+      await _removeSkybox();
+      _skybox = await FilamentApp.instance!.buildSkybox() as FFISkybox;
+      await scene.setSkybox(_skybox!);
+      await _skybox!.setColor(r, g, b, a);
+    });
+  }
+
+  Future<void> _loadSkybox(String skyboxPath) async {
+    await _removeSkybox();
+
+    var data = await FilamentApp.instance!.loadResource(skyboxPath);
+
+    final completer = Completer<void>();
+    FFIKtx1Bundle? bundle;
+
+    final uploadFuture = withVoidCallback((
+      requestId,
+      onTextureUploadComplete,
+    ) async {
+      bundle = await FFIKtx1Bundle.create(data) as FFIKtx1Bundle;
+
+      _skyboxTexture =
+          await bundle!.createTexture(
+                onTextureUploadComplete: onTextureUploadComplete,
+                textureUploadCompleteRequestId: requestId,
+              )
+              as FFITexture;
+
+      _skybox =
+          await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
+              as FFISkybox;
+
+      await scene.setSkybox(_skybox!);
+
+      completer.complete();
+    });
+
+    late final Future<void> trackedUploadFuture;
+    trackedUploadFuture = uploadFuture.whenComplete(() async {
+      await bundle?.destroy();
+      if (identical(_skyboxTextureUploadComplete, trackedUploadFuture)) {
+        _skyboxTextureUploadComplete = null;
+      }
+    });
+    _skyboxTextureUploadComplete = trackedUploadFuture;
+    await completer.future;
+  }
+
+  //
+  @override
+  Future loadSkybox(String skyboxPath) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(() => _loadSkybox(skyboxPath));
+  }
+
+  Future<void> _loadIbl(
+    String lightingPath, {
+    double intensity = 30000,
+    bool destroyExisting = true,
+  }) async {
+    await _removeIbl(destroy: destroyExisting);
+
+    final completer = Completer<void>();
+    FFIKtx1Bundle? bundle;
+    final uploadFuture = withVoidCallback((
+      requestId,
+      onTextureUploadComplete,
+    ) async {
+      var data = await FilamentApp.instance!.loadResource(lightingPath);
+
+      bundle = await FFIKtx1Bundle.create(data) as FFIKtx1Bundle;
+
+      final texture = await bundle!.createTexture(
+        onTextureUploadComplete: onTextureUploadComplete,
+        textureUploadCompleteRequestId: requestId,
+      );
+      final harmonics = bundle!.getSphericalHarmonics();
+
+      final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
+        harmonics,
+        reflectionsTexture: texture,
+        intensity: intensity,
+      );
+
+      await scene.setIndirectLight(ibl);
+
+      if (FILAMENT_WASM) {
+        data.free();
+      }
+
+      completer.complete();
+      _logger.info("IBL texture ready");
+    });
+
+    late final Future<void> trackedUploadFuture;
+    trackedUploadFuture = uploadFuture.whenComplete(() async {
+      await bundle?.destroy();
+      if (identical(_iblTextureUploadComplete, trackedUploadFuture)) {
+        _iblTextureUploadComplete = null;
+      }
+      _logger.info("IBL texture upload complete");
+    });
+    _iblTextureUploadComplete = trackedUploadFuture;
+    await completer.future;
+  }
+
+  Future<void> _loadIblFromTexture(
+    Texture texture, {
+    Texture? reflectionsTexture,
+    double intensity = 30000,
+    bool destroyExisting = true,
+  }) async {
+    await _removeIbl(destroy: destroyExisting);
+
+    final ibl = await FFIIndirectLight.fromIrradianceTexture(
+      texture,
+      reflectionsTexture: reflectionsTexture,
+      intensity: intensity,
+    );
+
+    await scene.setIndirectLight(ibl);
+  }
+
+  Future<void> _removeSkybox() async {
+    final upload = _skyboxTextureUploadComplete;
+    if (upload != null) {
+      await FilamentApp.instance!.flush();
+      await upload;
+    }
+
+    await scene.setSkybox(null);
+    await _skybox?.destroy();
+    if (_skybox != null && _skyboxTexture != null) {
+      // Engine::destroy queues the skybox destruction. Ensure the skybox has
+      // released its environment texture before destroying that texture.
+      await FilamentApp.instance!.flush();
+    }
+    await _skyboxTexture?.destroy();
+    _skybox = null;
+    _skyboxTexture = null;
   }
 
   //
@@ -244,39 +428,6 @@ class ThermionViewerFFI extends ThermionViewer {
   FFITexture? _skyboxTexture;
   FFISkybox? _skybox;
 
-  //
-  @override
-  Future loadSkybox(String skyboxPath) async {
-    await removeSkybox();
-
-    var data = await FilamentApp.instance!.loadResource(skyboxPath);
-
-    final completer = Completer();
-
-    _skyboxTextureUploadComplete =
-        withVoidCallback((requestId, onTextureUploadComplete) async {
-          var bundle = await FFIKtx1Bundle.create(data);
-
-          _skyboxTexture =
-              await bundle.createTexture(
-                    onTextureUploadComplete: onTextureUploadComplete,
-                    textureUploadCompleteRequestId: requestId,
-                  )
-                  as FFITexture;
-
-          _skybox =
-              await FilamentApp.instance!.buildSkybox(texture: _skyboxTexture)
-                  as FFISkybox;
-
-          await scene.setSkybox(_skybox!);
-
-          completer.complete();
-        }).then((_) async {
-          _skyboxTextureUploadComplete = null;
-        });
-    await completer.future;
-  }
-
   Future? _iblTextureUploadComplete;
 
   //
@@ -285,70 +436,33 @@ class ThermionViewerFFI extends ThermionViewer {
     String lightingPath, {
     double intensity = 30000,
     bool destroyExisting = true,
-  }) async {
-    await removeIbl(destroy: destroyExisting);
-
-    final completer = Completer();
-    _iblTextureUploadComplete =
-        withVoidCallback((requestId, onTextureUploadComplete) async {
-              late Pointer stackPtr;
-              if (FILAMENT_WASM) {
-                //stackPtr = stackSave();
-              }
-
-              var data = await FilamentApp.instance!.loadResource(lightingPath);
-
-              final bundle = await FFIKtx1Bundle.create(data);
-
-              final texture = await bundle.createTexture(
-                onTextureUploadComplete: onTextureUploadComplete,
-                textureUploadCompleteRequestId: requestId,
-              );
-              final harmonics = bundle.getSphericalHarmonics();
-
-              final ibl = await FFIIndirectLight.fromIrradianceHarmonics(
-                harmonics,
-                reflectionsTexture: texture,
-                intensity: intensity,
-              );
-
-              await scene.setIndirectLight(ibl);
-
-              if (FILAMENT_WASM) {
-                //stackRestore(stackPtr);
-                data.free();
-              }
-              data.free();
-
-              completer.complete();
-              _logger.info("IBL texture upload complete");
-            })
-            .then((_) {
-              _logger.info("IBL texture upload complete");
-              _iblTextureUploadComplete = null;
-            })
-            .onError((err, st) {
-              _logger.severe(err.toString());
-            });
-    await completer.future;
+  }) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(
+      () => _loadIbl(
+        lightingPath,
+        intensity: intensity,
+        destroyExisting: destroyExisting,
+      ),
+    );
   }
 
   //
   Future loadIblFromTexture(
     Texture texture, {
-    Texture? reflectionsTexture = null,
+    Texture? reflectionsTexture,
     double intensity = 30000,
     bool destroyExisting = true,
-  }) async {
-    await removeIbl(destroy: destroyExisting);
-
-    final ibl = await FFIIndirectLight.fromIrradianceTexture(
-      texture,
-      reflectionsTexture: reflectionsTexture,
-      intensity: intensity,
+  }) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(
+      () => _loadIblFromTexture(
+        texture,
+        reflectionsTexture: reflectionsTexture,
+        intensity: intensity,
+        destroyExisting: destroyExisting,
+      ),
     );
-
-    await scene.setIndirectLight(ibl);
   }
 
   //
@@ -362,35 +476,30 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future removeSkybox() async {
-    if (_disposed) {
-      throw ViewerDisposedException();
-    }
-
-    if (_skyboxTextureUploadComplete != null) {
-      await FilamentApp.instance!.flush();
-      await _skyboxTextureUploadComplete;
-      _skyboxTextureUploadComplete = null;
-    }
-
-    await _skybox?.destroy();
-    _skybox = null;
-    _skyboxTexture = null;
+  Future removeSkybox() {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(_removeSkybox);
   }
 
-  //
-  @override
-  Future removeIbl({bool destroy = true}) async {
+  Future<void> _removeIbl({bool destroy = true}) async {
+    final upload = _iblTextureUploadComplete;
+    if (upload != null) {
+      await FilamentApp.instance!.flush();
+      await upload;
+    }
+
     var ibl = await scene.getIndirectLight();
     await scene.setIndirectLight(null);
     if (ibl != null && destroy) {
       await ibl.destroy();
     }
-    if (_iblTextureUploadComplete != null) {
-      await FilamentApp.instance!.flush();
-      await _iblTextureUploadComplete!;
-      _iblTextureUploadComplete = null;
-    }
+  }
+
+  //
+  @override
+  Future removeIbl({bool destroy = true}) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(() => _removeIbl(destroy: destroy));
   }
 
   final _lights = <ThermionEntity>{};

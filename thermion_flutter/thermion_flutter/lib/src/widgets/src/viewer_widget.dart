@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
@@ -81,13 +83,22 @@ class ViewerWidget extends StatefulWidget {
 
 class _ViewerWidgetState extends State<ViewerWidget> {
   ThermionViewer? viewer;
+  Future<void>? _initialization;
+  Future<void>? _tearDownFuture;
+  Future<void>? _inputHandlerUpdate;
+  bool _disposing = false;
 
   late final _logger = Logger(runtimeType.toString());
 
   @override
   void initState() {
     super.initState();
-    _createViewer();
+    _initialization = _createViewer();
+    unawaited(
+      _initialization!.catchError((Object error, StackTrace stack) {
+        _reportAsyncError('initialization', error, stack);
+      }),
+    );
   }
 
   Future<void> _createViewer() async {
@@ -114,8 +125,11 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
     final viewer = await ThermionFlutterPlugin.createViewer();
     this.viewer = viewer;
+    if (_disposing) {
+      return;
+    }
     await _configure();
-    if (mounted) {
+    if (mounted && !_disposing) {
       setState(() {});
     }
   }
@@ -124,8 +138,22 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   void didUpdateWidget(ViewerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.manipulatorType != widget.manipulatorType) {
-      _setViewportWidget();
-      setState(() {});
+      _inputHandlerUpdate = _setViewportWidget();
+      unawaited(
+        _inputHandlerUpdate!
+            .then((_) {
+              if (mounted && !_disposing) {
+                setState(() {});
+              }
+            })
+            .catchError((Object error, StackTrace stack) {
+              _reportAsyncError('updating the input handler', error, stack);
+            }),
+      );
+    }
+
+    if (viewer == null || _disposing) {
+      return;
     }
 
     if (oldWidget.postProcessing != widget.postProcessing) {
@@ -177,7 +205,16 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   final _focusNode = FocusNode();
   InputHandler? _inputHandler;
 
-  void _setViewportWidget() {
+  Future<void> _setViewportWidget() async {
+    final previousInputHandler = _inputHandler;
+    _inputHandler = null;
+    await previousInputHandler?.dispose();
+
+    if (_disposing || viewer == null || thermionWidget == null) {
+      viewport = thermionWidget;
+      return;
+    }
+
     switch (widget.manipulatorType) {
       case ManipulatorType.NONE:
         _inputHandler = null;
@@ -202,38 +239,49 @@ class _ViewerWidgetState extends State<ViewerWidget> {
         inputHandler: _inputHandler!,
         child: thermionWidget,
       );
-      _focusNode.requestFocus();
+      if (mounted && !_disposing) {
+        _focusNode.requestFocus();
+      }
     }
   }
 
   ThermionAsset? asset;
-  late final ThermionWidget? thermionWidget;
+  ThermionWidget? thermionWidget;
   Widget? viewport;
 
   Future _configure() async {
+    if (_disposing) return;
+
     if (widget.assetPath != null) {
       asset = await viewer!.loadGltf(widget.assetPath!);
+      if (_disposing) return;
       await asset!.setCastShadows(true);
+      if (_disposing) return;
       await viewer!.view.setShadowsEnabled(true);
     }
 
+    if (_disposing) return;
     if (widget.skyboxPath != null) {
       await viewer!.loadSkybox(widget.skyboxPath!);
     }
 
+    if (_disposing) return;
     if (widget.iblPath != null) {
       await viewer!.loadIbl(widget.iblPath!);
     }
 
+    if (_disposing) return;
     if (widget.postProcessing) {
       await viewer!.setPostProcessing(true);
       await viewer!.setAntiAliasing(false, true, false);
     }
 
+    if (_disposing) return;
     final camera = await viewer!.getActiveCamera();
 
     await camera.lookAt(widget.initialCameraPosition);
 
+    if (_disposing) return;
     if (widget.background != null) {
       if (widget.skyboxPath != null) {
         _logger.severe("Specify skyboxPath or background, not both");
@@ -247,37 +295,119 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       }
     }
 
+    if (_disposing) return;
     if (widget.directLight != null) {
       await viewer!.addDirectLight(widget.directLight!);
     }
 
+    if (_disposing) return;
     thermionWidget = ThermionWidget(
       key: const Key("viewer_thermion_widget"),
       viewer: viewer!,
     );
 
-    _setViewportWidget();
+    await _setViewportWidget();
+    if (_disposing) return;
 
-    widget.onViewerAvailable?.call(viewer!);
-    if (asset != null) {
-      widget.onAssetLoaded?.call(viewer!, asset!);
+    final onViewerAvailable = widget.onViewerAvailable;
+    if (onViewerAvailable != null) {
+      _invokeCallback(
+        () => onViewerAvailable(viewer!),
+        'onViewerAvailable callback',
+      );
     }
-    setState(() {});
+    if (asset != null) {
+      final onAssetLoaded = widget.onAssetLoaded;
+      if (onAssetLoaded != null) {
+        _invokeCallback(
+          () => onAssetLoaded(viewer!, asset!),
+          'onAssetLoaded callback',
+        );
+      }
+    }
+  }
+
+  void _invokeCallback(Future Function() callback, String context) {
+    unawaited(
+      Future.sync(callback).catchError((Object error, StackTrace stack) {
+        _reportAsyncError(context, error, stack);
+      }),
+    );
+  }
+
+  void _reportAsyncError(String context, Object error, StackTrace stack) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'thermion_flutter',
+        context: ErrorDescription('while $context in ViewerWidget'),
+      ),
+    );
+  }
+
+  Future<void> _performTearDown() async {
+    Object? firstError;
+    StackTrace? firstStack;
+
+    Future<void> runCleanup(Future<void> Function() cleanup) async {
+      try {
+        await cleanup();
+      } catch (error, stack) {
+        firstError ??= error;
+        firstStack ??= stack;
+      }
+    }
+
+    await runCleanup(() async {
+      await _initialization;
+    });
+    await runCleanup(() async {
+      await _inputHandlerUpdate;
+    });
+
+    final inputHandler = _inputHandler;
+    _inputHandler = null;
+    await runCleanup(() async {
+      await inputHandler?.dispose();
+    });
+
+    final currentViewer = viewer;
+    viewer = null;
+    if (currentViewer != null) {
+      await runCleanup(() async {
+        try {
+          // The texture owns render targets and swapchains that refer to the
+          // view. Release those before the viewer destroys its view.
+          await ThermionFlutterPlugin.instance.destroyTextureForView(
+            currentViewer.view,
+          );
+        } finally {
+          await currentViewer.dispose();
+        }
+      });
+    }
+
+    if (widget.destroyEngineOnUnload && FilamentApp.instance != null) {
+      await runCleanup(() => FilamentApp.instance!.destroy());
+    }
+
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError!, firstStack!);
+    }
   }
 
   @override
   void dispose() {
+    _disposing = true;
+    _focusNode.dispose();
+    _tearDownFuture ??= _performTearDown();
+    unawaited(
+      _tearDownFuture!.catchError((Object error, StackTrace stack) {
+        _reportAsyncError('teardown', error, stack);
+      }),
+    );
     super.dispose();
-    if (viewer != null) {
-      _tearDown();
-    }
-  }
-
-  Future _tearDown() async {
-    await viewer!.dispose();
-    if (widget.destroyEngineOnUnload) {
-      await FilamentApp.instance!.destroy();
-    }
   }
 
   @override
