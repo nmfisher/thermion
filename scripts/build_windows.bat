@@ -315,13 +315,6 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
-  REM Copy bluevk headers
-  mkdir "%TARGET_RELEASE_DIR%\include\bluevk" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" "%TARGET_RELEASE_DIR%\include\bluevk\" || (
-    echo Error: Failed to copy bluevk headers to target
-    exit /b 1
-  )
-
   REM Copy libassimp headers
   mkdir "%TARGET_RELEASE_DIR%\include\third_party\libassimp\include" 2>nul
   xcopy /E /I /Y "%FILAMENT_BASE_DIR%\third_party\libassimp\include\assimp" "%TARGET_RELEASE_DIR%\include\third_party\libassimp\include\assimp\" || (
@@ -372,13 +365,6 @@ if "!BUILD_DEBUG!"=="true" (
   mkdir "%TARGET_DEBUG_DIR%\include\third_party\stb" 2>nul
   copy /Y "%FILAMENT_BASE_DIR%\third_party\stb\stb_image.h" "%TARGET_DEBUG_DIR%\include\third_party\stb\" || (
     echo Error: Failed to copy stb_image.h to target
-    exit /b 1
-  )
-
-  REM Copy bluevk headers
-  mkdir "%TARGET_RELEASE_DIR%\include\bluevk" 2>nul
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" "%TARGET_RELEASE_DIR%\include\bluevk\" || (
-    echo Error: Failed to copy bluevk headers to target
     exit /b 1
   )
 

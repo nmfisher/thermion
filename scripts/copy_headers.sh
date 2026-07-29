@@ -95,14 +95,12 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy bluevk headers (for Vulkan backend support)
-if [ -d "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk" ]; then
-  mkdir -p "$OUTPUT_INCLUDE_DIR/bluevk"
-  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk/"* "$OUTPUT_INCLUDE_DIR/bluevk/" || {
-    echo "Error: Failed to copy bluevk headers"
-    exit 1
-  }
-fi
+# Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+mkdir -p "$OUTPUT_INCLUDE_DIR"
+cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$OUTPUT_INCLUDE_DIR/" || {
+  echo "Error: Failed to copy bluevk headers"
+  exit 1
+}
 
 # Copy stb_image.h (third-party header used by TTexture.cpp)
 mkdir -p "$OUTPUT_INCLUDE_DIR/third_party/stb"

@@ -181,12 +181,11 @@ copy_from_local() {
     echo "  Warning: libs/imageio/include not found — skipping"
   fi
 
-  echo "--- Copying bluevk headers ---"
-  if [ -d "libs/bluevk/include/bluevk" ]; then
-    mkdir -p "$OUTPUT_INCLUDE_DIR/bluevk"
-    cp -R libs/bluevk/include/bluevk/* "$OUTPUT_INCLUDE_DIR/bluevk/"
+  echo "--- Copying bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/) ---"
+  if [ -d "libs/bluevk/include" ]; then
+    cp -R libs/bluevk/include/* "$OUTPUT_INCLUDE_DIR/"
   else
-    echo "  Warning: libs/bluevk/include/bluevk not found — skipping"
+    echo "  Warning: libs/bluevk/include not found — skipping"
   fi
 
   echo "--- Copying uberarchive.h (release and debug) ---"
