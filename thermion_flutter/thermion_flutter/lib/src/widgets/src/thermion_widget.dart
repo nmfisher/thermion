@@ -86,16 +86,9 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
     _debounceTimer?.cancel();
     final view = widget.view;
     _enqueueTextureOperation(() async {
-      // Tear down per-view plugin bindings (Android: SwapChain bound to
-      // this view) BEFORE releasing the underlying texture. Releasing the
-      // SurfaceProducer texture entry invalidates the swap chain's native
-      // window, so if the swap chain is still attached to the RenderManager,
-      // Filament's next render can call eglSwapBuffers on an invalid surface
-      // and log EGL_BAD_SURFACE until widget teardown finishes propagating.
-      //
-      // Queueing this teardown after any in-flight allocation or resize also
-      // ensures that it releases the final binding and destroys the final
-      // descriptor exactly once.
+      // Release a per-view surface binding before destroying its platform
+      // texture. Serializing this after allocation/resize also guarantees the
+      // final descriptor is destroyed exactly once.
       await ThermionFlutterPlugin.instance.releaseTextureBindingForView(view);
       final texture = _texture;
       _texture = null;

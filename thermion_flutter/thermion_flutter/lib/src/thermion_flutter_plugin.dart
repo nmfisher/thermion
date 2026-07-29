@@ -31,16 +31,15 @@ abstract class ThermionFlutterPlugin {
 
   void resumeFrameScheduler();
 
-  // Initialize the plugin and create the default swapchain.
+  /// Initialize the plugin and create the default swapchain.
   Future<SwapChain?> initialize({bool destroySwapchain = true});
 
-  // Creates a rendering surface and binds to the given [View].
-  // This is an internal method, don't call this yourself unless you are a
-  // thermion package developer.
-
-  // The specific surface type created will depend on the platform.
-  // [width] and [height] are expected to be in physical pixels; make sure
-  // these have been scaled by devicePixelRatio if appropriate.
+  /// Creates a rendering surface and binds to the given [View].
+  /// This is an internal method, don't call this yourself unless you are a
+  /// thermion package developer.
+  /// The specific surface type created will depend on the platform.
+  /// [width] and [height] are expected to be in physical pixels; make sure
+  /// these have been scaled by devicePixelRatio if appropriate.
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
     View view,
     int width,

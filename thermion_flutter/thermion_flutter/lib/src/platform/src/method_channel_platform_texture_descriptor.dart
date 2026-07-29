@@ -12,25 +12,33 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
     required super.windowHandle,
     required super.width,
     required super.height,
-  });
+    bool deferred = false,
+  }) : _deferred = deferred;
 
   @override
-  Future destroy() async {
-    destroyed = true;
+  Future<void> destroy() async {
+    if (_destroyed) return;
+    _destroyed = true;
     await channel.invokeMethod("destroyTexture", flutterTextureId);
   }
 
   @override
   void markTextureFrameAvailable() async {
-    if (destroyed) return;
+    if (destroyed) {
+      throw Exception(
+        "markTextureFrameAvailable cannot be called on a "
+        "destroyed texture descriptor.",
+      );
+    }
     await channel.invokeMethod("markTextureFrameAvailable", flutterTextureId);
   }
 
   static Future<MethodChannelPlatformTextureDescriptor> allocate(
     MethodChannel channel,
     int width,
-    int height,
-  ) async {
+    int height, {
+    bool deferred = false,
+  }) async {
     final allocation = await allocateMethodChannelTexture(
       channel,
       width,
@@ -43,6 +51,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
       windowHandle: allocation.windowHandle,
       width: width,
       height: height,
+      deferred: deferred,
     );
   }
 
@@ -58,10 +67,13 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
   }
 
   @override
-  bool get deferred => true;
+  bool get deferred => _deferred;
 
   @override
-  bool destroyed = false;
+  bool get destroyed => _destroyed;
+
+  final bool _deferred;
+  bool _destroyed = false;
 }
 
 typedef MethodChannelTextureAllocation = ({

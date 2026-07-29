@@ -5,9 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide View;
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
-import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor_factory.dart';
 import '../../../thermion_flutter.dart';
 import 'platform_texture_descriptor.dart';
+import 'platform_texture_descriptor_registry_native.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 
@@ -20,10 +20,11 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 /// hookup.
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     with WidgetsBindingObserver {
-  final channel = const MethodChannel("dev.thermion.flutter/event");
-
   ThermionFlutterPluginImpl() {
-    channel.setMethodCallHandler(_handlePlatformMethodCall);
+    _textureDescriptorRegistry = NativePlatformTextureDescriptorRegistry(
+      pauseRendering: FrameScheduler.instance.pause,
+      resumeRenderingIfReady: _resumeTextureRenderingIfReady,
+    );
   }
 
   static final _logger = Logger("ThermionFlutterPluginImpl");
@@ -42,15 +43,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     return asset.buffer.asUint8List(asset.offsetInBytes);
   }
 
-  static final _descriptors = <PlatformTextureDescriptor>[];
-  static final _destroyed = <PlatformTextureDescriptor>[];
+  late final NativePlatformTextureDescriptorRegistry _textureDescriptorRegistry;
 
   // Track render targets created by Flutter for each view.
   // This allows us to destroy the correct RT on resize, even when the view
   // has been redirected to an internal RT (e.g. in composite highlight mode).
   static final _viewRenderTargets = <View, RenderTarget>{};
-
-  Future<void> _textureOperationChain = Future<void>.value();
 
   // Deferred Filament render target cleanup for Windows resize.
   // Old RT stays alive so native can Blit from it during the swap window.
@@ -64,82 +62,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       _explicitlyPaused ||
       _lifecycleSuspended ||
       _resizing ||
-      _descriptors.any((descriptor) => !descriptor.isSurfaceAvailable);
-
-  PlatformTextureDescriptor? _descriptorForTextureId(int textureId) {
-    for (final descriptor in _descriptors) {
-      if (descriptor.flutterTextureId == textureId) return descriptor;
-    }
-    return null;
-  }
-
-  Future<Object?> _handlePlatformMethodCall(MethodCall call) async {
-    switch (call.method) {
-      case 'onSurfaceCleanup':
-        final descriptor = _descriptorForTextureId(call.arguments as int);
-        if (descriptor == null) return null;
-        descriptor.markSurfaceUnavailable();
-        FrameScheduler.instance.pause();
-        await _serializeTextureOperation(() async {
-          if (_descriptors.contains(descriptor)) {
-            await descriptor.cleanupSurface();
-          }
-        });
-        return null;
-      case 'onSurfaceAvailable':
-        final arguments = call.arguments as List<Object?>;
-        final textureId = arguments[0] as int;
-        final descriptor = _descriptorForTextureId(textureId);
-        if (descriptor == null) return null;
-        final wasAvailable = descriptor.isSurfaceAvailable;
-        descriptor.markSurfaceUnavailable();
-        if (wasAvailable) {
-          FrameScheduler.instance.pause();
-        }
-        try {
-          await _serializeTextureOperation(() async {
-            if (!_descriptors.contains(descriptor)) return;
-            await descriptor.restoreSurface(arguments[1] as int);
-            _resumeTextureRenderingIfReady();
-          });
-        } catch (error, stackTrace) {
-          _logger.severe(
-            'Failed to restore texture surface $textureId',
-            error,
-            stackTrace,
-          );
-          rethrow;
-        }
-        return null;
-      case 'onSurfaceError':
-        final arguments = call.arguments as List<Object?>;
-        final textureId = arguments[0] as int;
-        final descriptor = _descriptorForTextureId(textureId);
-        if (descriptor == null) return null;
-        descriptor.markSurfaceError();
-        FrameScheduler.instance.pause();
-        _logger.severe(
-          'Surface recovery failed for texture $textureId: ${arguments[1]}',
-        );
-        return null;
-      default:
-        throw MissingPluginException(
-          'Unknown platform callback ${call.method}',
-        );
-    }
-  }
-
-  Future<R> _serializeTextureOperation<R>(Future<R> Function() operation) {
-    final completer = Completer<R>();
-    _textureOperationChain = _textureOperationChain.then((_) async {
-      try {
-        completer.complete(await operation());
-      } catch (error, stackTrace) {
-        completer.completeError(error, stackTrace);
-      }
-    });
-    return completer.future;
-  }
+      _textureDescriptorRegistry.hasUnavailableSurfaces;
 
   void _resumeTextureRenderingIfReady() {
     if (!_pauseRequested) {
@@ -194,16 +117,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
     await FilamentApp.instance?.render();
 
-    for (final descriptor in _descriptors) {
-      descriptor.markTextureFrameAvailable();
-    }
-    for (final descriptor in _destroyed) {
-      _descriptors.remove(descriptor);
-      _logger.info(
-        "Removed descriptor (hardware ID ${descriptor.hardwareId}, flutter ID ${descriptor.flutterTextureId}",
-      );
-    }
-    _destroyed.clear();
+    _textureDescriptorRegistry.markFrameAvailable();
 
     // Process deferred render target cleanup (Windows resize path).
     // Old RTs stay alive for a few frames so native can Blit from them.
@@ -270,34 +184,14 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       }
     }
 
-    int? driverPlatform;
-    Pointer<Void> platformPtr = nullptr;
-    int? sharedContext;
-    Pointer<Void> sharedContextPtr = nullptr;
-    if (!Platform.isMacOS && !Platform.isIOS) {
-      driverPlatform = await channel.invokeMethod(
-        "getDriverPlatform",
-        backend.index,
-      );
-      platformPtr = driverPlatform == null
-          ? nullptr
-          : VoidPointerClass.fromAddress(driverPlatform);
-
-      sharedContext = await channel.invokeMethod(
-        "getSharedContext",
-        backend.index,
-      );
-
-      sharedContextPtr = sharedContext == null
-          ? nullptr
-          : VoidPointerClass.fromAddress(sharedContext);
-    }
+    final renderingContext = await _textureDescriptorRegistry
+        .getFilamentRenderingContext(backend);
 
     final config = FFIFilamentConfig(
       backend: backend,
       loadResource: loadAsset,
-      platform: platformPtr,
-      sharedContext: sharedContextPtr,
+      platform: renderingContext.platform,
+      sharedContext: renderingContext.sharedContextPointer,
       uberArchivePath: options.uberarchivePath,
     );
 
@@ -309,9 +203,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         FrameScheduler.instance.stop();
         WidgetsBinding.instance.removeObserver(this);
 
-        if (Platform.isWindows || Platform.isLinux) {
-          await channel.invokeMethod("destroyContext");
-        }
+        await _textureDescriptorRegistry.destroyFilamentRenderingContext();
       });
     }
 
@@ -486,25 +378,42 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     await FilamentApp.instance!.renderManager.attach(view, swapChains.first);
   }
 
-  /// Fire-and-forget: waits for populate() to create the GL texture,
-  /// then creates Filament resources. Runs after createTextureAndBindToView
-  /// returns so the Texture widget can be built first.
-  static void _scheduleDeferredBinding(
+  /// Waits for Flutter's populate callback to create the GL texture and then
+  /// creates the Filament resources. This future is deliberately not awaited
+  /// by createTextureAndBindToView: Flutter must first build its Texture widget
+  /// before populate can run.
+  static Future<void> _completeDeferredBinding(
     PlatformTextureDescriptor descriptor,
     View view,
     int width,
     int height,
   ) async {
+    final registry = instance._textureDescriptorRegistry;
     try {
       final hardwareId = await descriptor.awaitTextureReady();
-      if (descriptor.destroyed) return;
-      descriptor.hardwareId = hardwareId;
-      _logger.info(
-        'Deferred texture ready: flutter=${descriptor.flutterTextureId} hardware=$hardwareId',
-      );
-      await _createFilamentResources(descriptor, view, width, height);
-    } catch (e) {
-      _logger.warning('Deferred texture binding failed: $e');
+      await registry.serialized(() async {
+        if (!registry.contains(descriptor) || descriptor.destroyed) return;
+        descriptor.hardwareId = hardwareId;
+        _logger.info(
+          'Deferred texture ready: flutter=${descriptor.flutterTextureId} hardware=$hardwareId',
+        );
+        await _createFilamentResources(descriptor, view, width, height);
+      });
+    } catch (error, stackTrace) {
+      _logger.warning('Deferred texture binding failed', error, stackTrace);
+      try {
+        await registry.serialized(() async {
+          if (registry.contains(descriptor)) {
+            await registry.destroy(descriptor);
+          }
+        });
+      } catch (cleanupError, cleanupStackTrace) {
+        _logger.warning(
+          'Failed to clean up deferred texture descriptor',
+          cleanupError,
+          cleanupStackTrace,
+        );
+      }
     }
   }
 
@@ -514,7 +423,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     int width,
     int height,
   ) {
-    return _serializeTextureOperation(
+    return _textureDescriptorRegistry.serialized(
       () => _createTextureAndBindToView(view, width, height),
     );
   }
@@ -530,39 +439,35 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       );
     }
 
-    final descriptor = await createPlatformTextureDescriptor(
-      channel,
-      width,
-      height,
-    );
-
-    // Add to descriptors early so markTextureFrameAvailable is called
-    // (triggers populate() which creates the deferred GL texture)
-    _descriptors.add(descriptor);
-
-    final bound = await _bindDescriptorToView(descriptor, view);
-    if (!bound && descriptor.hardwareId != 0) {
-      // If a hardware texture ID is returned, the texture is immediately
-      // available for rendering.
-      await _createFilamentResources(descriptor, view, width, height);
+    final descriptor = await _textureDescriptorRegistry.create(width, height);
+    try {
+      final managesFilamentSurface = await _textureDescriptorRegistry
+          .bindToView(descriptor, view);
 
       // On Linux, when running via EGL/OpenGL backend (Wayland),
       // we can only access the EGL context in the native populate() callback;
-      // in other words, the platform thread cannot return a hardware texture ID.
-      // We need to defer binding the surface.
-      //
-    } else if (Platform.isLinux) {
-      if (!descriptor.deferred) {
-        throw StateError(
-          'Deferred texture creation requires a deferred descriptor',
+      // in other words, the platform thread cannot return a hardware texture
+      // ID. Binding must finish after Flutter invokes populate().
+      if (descriptor.deferred) {
+        unawaited(_completeDeferredBinding(descriptor, view, width, height));
+      } else if (!managesFilamentSurface && descriptor.hardwareId != 0) {
+        await _createFilamentResources(descriptor, view, width, height);
+      }
+
+      await view.setViewport(width, height);
+      return descriptor;
+    } catch (error, stackTrace) {
+      try {
+        await _textureDescriptorRegistry.destroy(descriptor);
+      } catch (cleanupError, cleanupStackTrace) {
+        _logger.warning(
+          'Failed to clean up texture descriptor after binding failure',
+          cleanupError,
+          cleanupStackTrace,
         );
       }
-      _scheduleDeferredBinding(descriptor, view, width, height);
+      Error.throwWithStackTrace(error, stackTrace);
     }
-
-    await view.setViewport(width, height);
-
-    return descriptor;
   }
 
   @override
@@ -572,7 +477,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     int width,
     int height,
   ) {
-    return _serializeTextureOperation(
+    return _textureDescriptorRegistry.serialized(
       () => _resizeTexture(texture, view, width, height),
     );
   }
@@ -607,8 +512,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         throw Exception('Failed to create texture during resize');
       }
 
-      _descriptors.remove(texture);
-      await texture.destroy();
+      await _textureDescriptorRegistry.destroy(texture);
 
       return newTexture;
     } finally {
@@ -632,13 +536,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     int height,
   ) async {
     // Ask native to create new GPU resources (no new Flutter texture)
-    final result = await channel.invokeMethod("resizeTexture", [
-      texture.flutterTextureId,
+    final externalImage = await _textureDescriptorRegistry.resizeWindowsTexture(
+      texture,
       width,
       height,
-    ]);
-
-    final externalImage = result[0] as int;
+    );
 
     // Re-create Filament render target with the new external image
     final color = await FilamentApp.instance!.createTexture(
@@ -700,40 +602,53 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     return texture;
   }
 
-  /// Binds [descriptor] to [view], then releases any *other* descriptor still
-  /// bound to the same view, so a view never holds two active bindings.
-  ///
-  /// Scoping the release to descriptors on *this* view (matched via
-  /// [PlatformTextureDescriptor.boundView]) — rather than touching every swap
-  /// chain in FilamentApp's global list — is what makes multi-viewer apps
-  /// work: without the per-view scoping, mounting viewer #N would release
-  /// viewer #(N-1)'s swap chain and freeze it.
-  Future<bool> _bindDescriptorToView(
-    PlatformTextureDescriptor descriptor,
-    View view,
-  ) async {
-    if (!await descriptor.bindToView(view)) return false;
-    for (final other in _descriptors) {
-      if (other != descriptor && other.boundView == view) {
-        await other.releaseBinding();
-      }
+  Future<void> _destroyRenderTargetForView(View view) async {
+    final renderTarget = _viewRenderTargets.remove(view);
+    if (renderTarget == null) return;
+
+    final app = FilamentApp.instance;
+    if (app == null) {
+      // The engine owns any resources that survived until shutdown. Drop the
+      // Dart reference without attempting to enqueue work on a dead engine.
+      return;
     }
-    return true;
+
+    final overlay = view.getHighlightOverlay();
+    if (overlay == null) {
+      await view.setRenderTarget(null);
+    } else {
+      // Composite highlight mode redirects the Flutter render target to the
+      // overlay view rather than the caller's view.
+      await overlay.overlayView.setRenderTarget(null);
+    }
+
+    final color = await renderTarget.getColorTexture();
+    final depth = await renderTarget.getDepthTexture();
+    await color.destroy();
+    await depth.destroy();
+    await renderTarget.destroy();
   }
 
   @override
   Future<void> releaseTextureBindingForView(View view) {
-    return _serializeTextureOperation(() => _releaseBindingForView(view));
-  }
+    return _textureDescriptorRegistry.serialized(() async {
+      // The render target imports descriptor-owned platform memory on Darwin.
+      // Drain rendering and destroy that target before the widget destroys the
+      // descriptor and releases its Metal / CoreVideo objects.
+      _resizing = true;
+      FrameScheduler.instance.pause();
+      while (FrameScheduler.instance.isRendering) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+      await FilamentApp.instance?.flush();
 
-  Future<void> _releaseBindingForView(View view) async {
-    final released = _descriptors
-        .where((descriptor) => descriptor.boundView == view)
-        .toList();
-    for (final descriptor in released) {
-      await descriptor.releaseBinding();
-      _descriptors.remove(descriptor);
-    }
-    _resumeTextureRenderingIfReady();
+      try {
+        await _textureDescriptorRegistry.releaseBindingsForView(view);
+        await _destroyRenderTargetForView(view);
+      } finally {
+        _resizing = false;
+        _resumeTextureRenderingIfReady();
+      }
+    });
   }
 }
