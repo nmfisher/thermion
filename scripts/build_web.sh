@@ -251,8 +251,8 @@ if [ "$BUILD_RELEASE" = true ]; then
     -DUSE_ZLIB=1 \
     -DIMPORT_EXECUTABLES_DIR=out \
     -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/webgl-release/filament" \
-    -DWEBGL=1 \
-    -DWEBGL_PTHREADS=0 \
+    -DWASM=1 \
+    -DWASM_PTHREADS=0 \
     ../../ || {
     echo "Error: Filament release cmake configuration failed"
     exit 1
@@ -422,8 +422,8 @@ if [ "$BUILD_DEBUG" = true ]; then
     -DUSE_ZLIB=1 \
     -DIMPORT_EXECUTABLES_DIR=out \
     -DCMAKE_INSTALL_PREFIX="$FILAMENT_BASE_DIR/out/webgl-debug/filament" \
-    -DWEBGL=1 \
-    -DWEBGL_PTHREADS=0 \
+    -DWASM=1 \
+    -DWASM_PTHREADS=0 \
     ../../ || {
     echo "Error: Filament debug cmake configuration failed"
     exit 1
