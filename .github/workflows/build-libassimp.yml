@@ -62,9 +62,14 @@ jobs:
         shell: bash
         run: git clone --depth 1 --branch "$FILAMENT_VERSION" "$FILAMENT_REPO" filament
 
-      - name: Patch libassimp tnt overlay
+      - name: Patch libassimp tnt overlay (if the patch script exists on this branch)
         shell: bash
-        run: python3 scripts/patch_libassimp_tnt.py "$GITHUB_WORKSPACE/filament"
+        run: |
+          if [ -f scripts/patch_libassimp_tnt.py ]; then
+            python3 scripts/patch_libassimp_tnt.py "$GITHUB_WORKSPACE/filament"
+          else
+            echo "patch_libassimp_tnt.py not present on this branch — building the unpatched tnt overlay (still exercises the zlib include path)."
+          fi
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v2
