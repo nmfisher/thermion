@@ -5,7 +5,7 @@ built libassimp supports what Thermion needs, on top of the OBJ + FBX import
 that the `tnt` overlay ships with:
 
   * STL + PLY import  (enables the multi-format loader's STL/PLY paths)
-  * glTF2 + FBX export (enables Assimp::Exporter for those formats)
+  * FBX export        (enables Assimp::Exporter for FBX)
 
 Why a patch is required
 -----------------------
@@ -19,7 +19,7 @@ The `tnt` overlay hardcodes the feature set:
     today only because nothing references Assimp::Exporter, so Exporter.o is
     never pulled from the archive.)
 
-So to make export usable we (a) compile the exporter sources for glTF2 + FBX,
+So to make export usable we (a) compile the exporter sources for FBX,
 and (b) disable every *other* exporter via per-format `ASSIMP_BUILD_NO_*_EXPORTER`
 defines, so Exporter.cpp's table only references symbols we actually compile.
 
@@ -43,9 +43,15 @@ IMPORTER_ENABLE = [
     "-DASSIMP_BUILD_NO_EXPORTER",  # no-op in assimp source, but drop it for clarity
 ]
 
-# Per-format exporter disables to ADD. We enable export only for glTF and FBX
-# (whose sources we compile below); every other exporter is disabled so
-# Exporter.cpp's registration table references only resolvable symbols.
+# Per-format exporter disables to ADD. We enable export only for FBX (whose
+# sources we compile below); every other exporter is disabled so Exporter.cpp's
+# registration table references only resolvable symbols.
+#
+# glTF export is intentionally NOT enabled: the glTF exporter shares its asset
+# model (glTF::Asset, AssetWriter, Accessor, ...) with the glTF importer, and
+# that shared code is compiled out by ASSIMP_BUILD_NO_GLTF*_IMPORTER. Enabling
+# glTF export would therefore require also enabling the full glTF importer
+# (pointless here, since Filament loads glTF natively via gltfio).
 EXPORTER_DISABLE_BLOCK = """add_definitions(
     -DASSIMP_BUILD_NO_COLLADA_EXPORTER
     -DASSIMP_BUILD_NO_X_EXPORTER
@@ -59,17 +65,16 @@ EXPORTER_DISABLE_BLOCK = """add_definitions(
     -DASSIMP_BUILD_NO_X3D_EXPORTER
     -DASSIMP_BUILD_NO_3MF_EXPORTER
     -DASSIMP_BUILD_NO_ASSJSON_EXPORTER
+    -DASSIMP_BUILD_NO_GLTF_EXPORTER
 )
 """
 
 # Sources to ADD to set(SRCS ...).
-#   STL/PLY importers; glTF (v1+v2, guard is shared) + FBX exporters.
+#   STL/PLY importers; FBX exporter (self-contained, uses existing FBX infra).
 NEW_SOURCES = [
     "    ${SRC_DIR}/code/STL/STLLoader.cpp",
     "    ${SRC_DIR}/code/Ply/PlyLoader.cpp",
     "    ${SRC_DIR}/code/Ply/PlyParser.cpp",
-    "    ${SRC_DIR}/code/glTF/glTFExporter.cpp",
-    "    ${SRC_DIR}/code/glTF2/glTF2Exporter.cpp",
     "    ${SRC_DIR}/code/FBX/FBXExporter.cpp",
     "    ${SRC_DIR}/code/FBX/FBXExportNode.cpp",
     "    ${SRC_DIR}/code/FBX/FBXExportProperty.cpp",
@@ -136,7 +141,7 @@ def main() -> int:
     with open(tnt, "w", encoding="utf-8") as f:
         f.write(text)
 
-    print("patch_libassimp_tnt: enabled STL/PLY import + glTF2/FBX export.")
+    print("patch_libassimp_tnt: enabled STL/PLY import + FBX export.")
     return 0
 
 
