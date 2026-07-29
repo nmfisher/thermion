@@ -427,6 +427,13 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
+  # Copy bluevk headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/bluevk"
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk/"* "$TARGET_RELEASE_DIR/include/bluevk/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
   # Copy libassimp headers
   mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
   cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
@@ -464,6 +471,13 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/bluevk"
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk/"* "$TARGET_RELEASE_DIR/include/bluevk/" || {
+    echo "Error: Failed to copy bluevk headers to target"
     exit 1
   }
 
@@ -527,6 +541,15 @@ if [ "$BUILD_DEBUG" = true ]; then
   cp out/debug/filament/include/gltfio/materials/uberarchive.h \
     "$THERMION_INCLUDE/debug/gltfio/materials/" || {
     echo "Error: Failed to copy debug uberarchive.h"
+    exit 1
+  }
+fi
+
+# Copy bluevk headers
+if [ -d "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk" ]; then
+  mkdir -p "$THERMION_INCLUDE/bluevk"
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/bluevk/"* "$THERMION_INCLUDE/bluevk/" || {
+    echo "Error: Failed to copy bluevk headers"
     exit 1
   }
 fi

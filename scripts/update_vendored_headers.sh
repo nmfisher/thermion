@@ -181,6 +181,14 @@ copy_from_local() {
     echo "  Warning: libs/imageio/include not found — skipping"
   fi
 
+  echo "--- Copying bluevk headers ---"
+  if [ -d "libs/bluevk/include/bluevk" ]; then
+    mkdir -p "$OUTPUT_INCLUDE_DIR/bluevk"
+    cp -R libs/bluevk/include/bluevk/* "$OUTPUT_INCLUDE_DIR/bluevk/"
+  else
+    echo "  Warning: libs/bluevk/include/bluevk not found — skipping"
+  fi
+
   echo "--- Copying uberarchive.h (release and debug) ---"
   if [ -d "out/release/filament/include/gltfio/materials" ]; then
     mkdir -p "$OUTPUT_INCLUDE_DIR/release/gltfio/materials"
