@@ -30,7 +30,8 @@ class WindowsVulkanPlatform : public filament::backend::VulkanPlatform {
              uint64_t flags) const noexcept override;
 
        ExternalImageMetadata extractExternalImageMetadata(ExternalImageHandleRef image) const override;
-       ImageData createVkImageFromExternal(ExternalImageHandleRef image) const override;
+       ImageData createVkImageFromExternal(ExternalImageHandleRef image,
+              uint32_t logicalWidth, uint32_t logicalHeight) const override;
 
        SwapChainPtr current = std::nullptr_t();
        std::mutex mutex;

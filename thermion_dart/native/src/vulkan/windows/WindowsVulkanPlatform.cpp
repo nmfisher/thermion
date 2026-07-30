@@ -102,7 +102,8 @@ filament::backend::VulkanPlatform::ExternalImageMetadata WindowsVulkanPlatform::
   return metadata;
 }
 
-filament::backend::VulkanPlatform::ImageData WindowsVulkanPlatform::createVkImageFromExternal(ExternalImageHandleRef image) const {
+filament::backend::VulkanPlatform::ImageData WindowsVulkanPlatform::createVkImageFromExternal(
+        ExternalImageHandleRef image, uint32_t logicalWidth, uint32_t logicalHeight) const {
   auto* ext = static_cast<ExternalVulkanImage const*>(image.get());
   ImageData data{};
   data.internal.image = ext->image;
