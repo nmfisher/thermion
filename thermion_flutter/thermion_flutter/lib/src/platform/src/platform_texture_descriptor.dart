@@ -87,6 +87,16 @@ abstract class PlatformTextureDescriptor {
   /// immediately with the current [hardwareId].
   Future<int> awaitTextureReady() async => hardwareId;
 
+  /// Returns the platform handle to pass to Filament's texture import API.
+  ///
+  /// Most backends use a borrowed numeric handle. Metal overrides this to
+  /// transfer a fresh Objective-C retain to Filament for every import.
+  int acquireHardwareIdForImport() => hardwareId;
+
+  /// Balances [acquireHardwareIdForImport] if Filament rejects the handle
+  /// before taking ownership.
+  void releaseHardwareIdAfterFailedImport(int acquiredHardwareId) {}
+
   Future Function(Duration timestamp)? onBeginFrame;
 }
 

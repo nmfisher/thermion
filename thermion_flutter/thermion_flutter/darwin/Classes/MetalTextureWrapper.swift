@@ -48,6 +48,55 @@ import GLKit
 // consumed in the Dart-only package. We sometimes use this class running tests in [thermion_dart].
 
 @objc public class MetalTextureWrapper: NSObject {
+  private static let lifetimeLock = NSLock()
+  private static var liveInstances: Int64 = 0
+  private static var createdInstances: Int64 = 0
+
+  // One long-lived CVMetalTextureCache per process, keyed off the system default
+  // device. CVMetalTextureCache is designed to be a long-lived, per-device
+  // object; creating one per MetalTextureWrapper (and dropping it on destroy)
+  // leaks ~one IOSurface per CVMetalTextureCacheCreateTextureFromImage, because
+  // releasing the cache object does not synchronously free the IOSurfaces it has
+  // cached. Reusing a single cache and flushing it on teardown (with
+  // MaximumTextureAge: 0) returns those surfaces. Verified in the standalone
+  // reproducer; see docs/DARWIN_IOSURFACE_LEAK_ROOT_CAUSE.md.
+  // Thread safety: the lock below only guards the static `sharedCache` pointer
+  // swap (create-once + flush). CVMetalTextureCacheCreateTextureFromImage is
+  // NOT documented as safe for concurrent use on a single cache, so all
+  // MetalTextureWrapper allocation and flushCache() calls must be serialized on
+  // one thread. Thermion already satisfies this: textures are allocated and
+  // torn down on the serialized texture-mutation path. If that ever changes,
+  // serialize access to this cache externally.
+  private static let sharedCacheLock = NSLock()
+  private static var sharedCache: CVMetalTextureCache?
+  private static var sharedCacheDevice: MTLDevice?
+
+  private static func sharedMetalCache(for device: MTLDevice) -> CVMetalTextureCache? {
+    sharedCacheLock.lock(); defer { sharedCacheLock.unlock() }
+    if let existing = sharedCache, sharedCacheDevice === device {
+      return existing
+    }
+    var c: CVMetalTextureCache?
+    let attrs: [CFString: Any] = [
+      kCVMetalTextureCacheMaximumTextureAgeKey: 0 as NSNumber
+    ]
+    let r = CVMetalTextureCacheCreate(
+      kCFAllocatorDefault, attrs as CFDictionary, device, nil, &c)
+    if r == kCVReturnSuccess {
+      sharedCache = c
+      sharedCacheDevice = device
+    }
+    return c
+  }
+
+  /// Flushes the shared cache so aged buffer->texture mappings (and their
+  /// IOSurfaces) are evicted. Safe to call while other live wrappers exist:
+  /// the flush only reaps the cache's internal bookkeeping, not the
+  /// CVMetalTexture objects those wrappers still hold.
+  private static func flushSharedMetalCache() {
+    sharedCacheLock.lock(); defer { sharedCacheLock.unlock() }
+    if let c = sharedCache { CVMetalTextureCacheFlush(c, 0) }
+  }
 
   @objc public let pixelBuffer: CVPixelBuffer?
   @objc public let cvMetalTextureCache: CVMetalTextureCache?
@@ -72,6 +121,28 @@ import GLKit
     self.metalTextureAddress = metalTextureAddress
     self.width = width
     self.height = height
+    MetalTextureWrapper.lifetimeLock.lock()
+    MetalTextureWrapper.liveInstances += 1
+    MetalTextureWrapper.createdInstances += 1
+    MetalTextureWrapper.lifetimeLock.unlock()
+  }
+
+  deinit {
+    MetalTextureWrapper.lifetimeLock.lock()
+    MetalTextureWrapper.liveInstances -= 1
+    MetalTextureWrapper.lifetimeLock.unlock()
+  }
+
+  fileprivate static func liveInstanceCount() -> Int64 {
+    lifetimeLock.lock()
+    defer { lifetimeLock.unlock() }
+    return liveInstances
+  }
+
+  fileprivate static func createdInstanceCount() -> Int64 {
+    lifetimeLock.lock()
+    defer { lifetimeLock.unlock() }
+    return createdInstances
   }
 
   @objc public static func allocate(width: Int64, height: Int64, isDepth: Bool, isStencil: Bool)
@@ -141,19 +212,9 @@ import GLKit
       )
     }
 
-    var cvMetalTextureCache: CVMetalTextureCache?
-    // Create texture cache attributes to enable render target usage
-    let cacheAttrs: [CFString: Any] = [
-      kCVMetalTextureCacheMaximumTextureAgeKey: 0 as NSNumber  // Keep textures as long as possible
-    ]
-
-    let cacheCreationResult = CVMetalTextureCacheCreate(
-      kCFAllocatorDefault,
-      cacheAttrs as CFDictionary,
-      metalDevice,
-      nil,
-      &cvMetalTextureCache)
-    if cacheCreationResult != kCVReturnSuccess {
+    // Use the process-wide shared cache instead of creating (and leaking) one
+    // per wrapper. See the sharedMetalCache doc comment above.
+    guard let cvMetalTextureCache = MetalTextureWrapper.sharedMetalCache(for: metalDevice) else {
       print("Error creating Metal texture cache")
       return MetalTextureWrapper(
         pixelBuffer: pixelBuffer,
@@ -173,7 +234,7 @@ import GLKit
 
     let cvret = CVMetalTextureCacheCreateTextureFromImage(
       kCFAllocatorDefault,
-      cvMetalTextureCache!,
+      cvMetalTextureCache,
       pixelBuffer!,
       textureAttrs as CFDictionary,
       MTLPixelFormat.bgra8Unorm,
@@ -194,14 +255,10 @@ import GLKit
       )
     }
     var metalTexture = CVMetalTextureGetTexture(cvMetalTexture!)
-    // passRetained (+1): this +1 is the ownership stake Filament takes on
-    // the imported texture address. Filament's MetalRenderTarget balances
-    // it with an objc_release in its destructor. passUnretained would leave
-    // only the wrapper's ARC ref keeping the texture alive, so once the
-    // wrapper is deallocated (after the descriptor is released) Filament's
-    // dtor releases a freed texture → EXC_BAD_ACCESS (the UAF this fixes).
-    // The matching release on the RT-swap path below balances THIS retain.
-    let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
+    // Publish a borrowed address for identity and Flutter interop. Call
+    // retainMetalTextureForImport() for every Filament import; Filament takes
+    // ownership of that +1 and releases it when its Texture is destroyed.
+    let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
     var metalTextureAddress = Int(bitPattern: metalTexturePtr)
 
     // Debug: Log texture usage capabilities
@@ -232,18 +289,9 @@ import GLKit
             descriptor: rtDescriptor, iosurface: iosurfaceRef, plane: 0)
           {
             print("Successfully created render target texture from IOSurface")
-            // The address published above is about to be overwritten.
-            // Balance the passRetained(+1) taken on the ORIGINAL
-            // CV-cache texture, or it leaks unreleasably — nothing
-            // else holds that opaque pointer once it's replaced.
-            if metalTextureAddress != -1,
-              let orphaned = UnsafeRawPointer(bitPattern: metalTextureAddress)
-            {
-              Unmanaged<AnyObject>.fromOpaque(orphaned).release()
-            }
             // Replace the original texture with the render target version
             metalTexture = rtTexture
-            let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
+            let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
             metalTextureAddress = Int(bitPattern: metalTexturePtr)
 
             print("Render target texture usage: \(metalTexture!.usage)")
@@ -274,10 +322,86 @@ import GLKit
     return texture.usage.contains(.renderTarget)
   }
 
-  @objc public func flushCache() {
-    if let cache = self.cvMetalTextureCache {
-      CVMetalTextureCacheFlush(cache, 0)
-    }
+  /// Creates the +1 ownership transfer required by
+  /// `filament::Texture::Builder.import`.
+  @objc public func retainMetalTextureForImport() -> Int {
+    guard let texture = metalTexture else { return -1 }
+    return Int(
+      bitPattern: Unmanaged.passRetained(texture).toOpaque()
+    )
   }
 
+  /// Returns an import retain when Filament failed before accepting ownership.
+  @objc public func releaseMetalTextureAfterFailedImport(_ address: Int) {
+    guard let pointer = UnsafeRawPointer(bitPattern: address) else { return }
+    Unmanaged<AnyObject>.fromOpaque(pointer).release()
+  }
+
+  @objc public func flushCache() {
+    // Flush the process-wide shared cache so aged buffer->texture mappings
+    // (and their IOSurfaces) are reaped. self.cvMetalTextureCache is the shared
+    // cache for color textures; flush it directly either way.
+    MetalTextureWrapper.flushSharedMetalCache()
+  }
+
+}
+
+/// Test-only process diagnostic used by darwin_texture_leak_test.dart.
+@_cdecl("thermion_flutter_live_metal_texture_wrapper_count")
+public func thermionFlutterLiveMetalTextureWrapperCount() -> Int64 {
+  return MetalTextureWrapper.liveInstanceCount()
+}
+
+/// Test-only process diagnostic used by darwin_texture_leak_test.dart.
+@_cdecl("thermion_flutter_created_metal_texture_wrapper_count")
+public func thermionFlutterCreatedMetalTextureWrapperCount() -> Int64 {
+  return MetalTextureWrapper.createdInstanceCount()
+}
+
+/// Writes an opaque grayscale frame into a wrapper's CVPixelBuffer so the
+/// Flutter-only integration probe can visibly verify that the compositor is
+/// sampling each frame it marks available.
+@_cdecl("thermion_flutter_fill_metal_texture_pixel_buffer")
+public func thermionFlutterFillMetalTexturePixelBuffer(
+  _ wrapperAddress: Int64,
+  _ luminance: UInt8
+) -> Bool {
+  guard
+    let pointer = UnsafeRawPointer(bitPattern: Int(wrapperAddress))
+  else {
+    return false
+  }
+  let wrapper = Unmanaged<MetalTextureWrapper>
+    .fromOpaque(pointer)
+    .takeUnretainedValue()
+  guard let pixelBuffer = wrapper.pixelBuffer else {
+    return false
+  }
+
+  guard CVPixelBufferLockBaseAddress(pixelBuffer, []) == kCVReturnSuccess else {
+    return false
+  }
+  defer {
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+  }
+  guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+    return false
+  }
+
+  let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+  let width = CVPixelBufferGetWidth(pixelBuffer)
+  let height = CVPixelBufferGetHeight(pixelBuffer)
+  for y in 0..<height {
+    let row = baseAddress
+      .advanced(by: y * bytesPerRow)
+      .assumingMemoryBound(to: UInt8.self)
+    for x in 0..<width {
+      let offset = x * 4
+      row[offset] = luminance
+      row[offset + 1] = luminance
+      row[offset + 2] = luminance
+      row[offset + 3] = 255
+    }
+  }
+  return true
 }

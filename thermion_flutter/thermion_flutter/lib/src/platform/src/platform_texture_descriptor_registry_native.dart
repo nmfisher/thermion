@@ -38,12 +38,33 @@ class NativePlatformTextureDescriptorRegistry
     required void Function() resumeRenderingIfReady,
     required TextureMutationRunner runTextureMutation,
     required AndroidTextureSource Function() androidTextureSource,
+  }) : this._(
+         pauseRendering: pauseRendering,
+         resumeRenderingIfReady: resumeRenderingIfReady,
+         runTextureMutation: runTextureMutation,
+         androidTextureSource: androidTextureSource,
+         darwinTexturePool: Platform.isMacOS
+             ? DarwinPlatformTexturePool()
+             : null,
+       );
+
+  NativePlatformTextureDescriptorRegistry._({
+    required void Function() pauseRendering,
+    required void Function() resumeRenderingIfReady,
+    required TextureMutationRunner runTextureMutation,
+    required AndroidTextureSource Function() androidTextureSource,
+    required DarwinPlatformTexturePool? darwinTexturePool,
   }) : _pauseRendering = pauseRendering,
        _resumeRenderingIfReady = resumeRenderingIfReady,
        _runTextureMutation = runTextureMutation,
+       _darwinTexturePool = darwinTexturePool,
        super(
-         allocator: (width, height) =>
-             _allocate(width, height, androidTextureSource()),
+         allocator: (width, height) => _allocate(
+           width,
+           height,
+           androidTextureSource(),
+           darwinTexturePool,
+         ),
        ) {
     if (Platform.isAndroid) {
       channel.setMethodCallHandler(_handlePlatformMethodCall);
@@ -55,16 +76,22 @@ class NativePlatformTextureDescriptorRegistry
   final void Function() _pauseRendering;
   final void Function() _resumeRenderingIfReady;
   final TextureMutationRunner _runTextureMutation;
+  final DarwinPlatformTexturePool? _darwinTexturePool;
   final Logger _logger = Logger('NativePlatformTextureDescriptorRegistry');
 
   static Future<PlatformTextureDescriptor> _allocate(
     int width,
     int height,
     AndroidTextureSource androidTextureSource,
+    DarwinPlatformTexturePool? darwinTexturePool,
   ) {
     if (Platform.isMacOS || Platform.isIOS) {
       return Future.value(
-        DarwinPlatformTextureDescriptorImpl.allocate(width, height),
+        DarwinPlatformTextureDescriptorImpl.allocate(
+          width,
+          height,
+          texturePool: darwinTexturePool,
+        ),
       );
     }
     if (Platform.isAndroid) {
@@ -129,6 +156,10 @@ class NativePlatformTextureDescriptorRegistry
     if (Platform.isWindows || Platform.isLinux) {
       await channel.invokeMethod<void>('destroyContext');
     }
+  }
+
+  void clearDarwinTexturePool() {
+    _darwinTexturePool?.clear();
   }
 
   Future<int> resizeWindowsTexture(

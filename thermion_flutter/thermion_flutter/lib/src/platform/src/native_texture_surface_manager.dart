@@ -92,6 +92,7 @@ class NativeTextureSurfaceManager {
   /// Releases references whose native resources are owned by a dying engine.
   void onEngineDestroyed() {
     registry.clear();
+    registry.clearDarwinTexturePool();
     _viewRenderTargets.clear();
     _deferredRenderTargets.clear();
   }
@@ -308,14 +309,21 @@ class NativeTextureSurfaceManager {
     }
 
     final existingRenderTarget = _viewRenderTargets[view];
+    int? unconsumedImportHandle;
     Texture? color;
     Texture? depth;
     RenderTarget? renderTarget;
     try {
+      final importedTextureHandle = useExternalImage
+          ? -1
+          : descriptor.acquireHardwareIdForImport();
+      if (!useExternalImage) {
+        unconsumedImportHandle = importedTextureHandle;
+      }
       color = await app.createTexture(
         width,
         height,
-        importedTextureHandle: useExternalImage ? -1 : descriptor.hardwareId,
+        importedTextureHandle: importedTextureHandle,
         flags: {
           TextureUsage.TEXTURE_USAGE_BLIT_SRC,
           TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
@@ -324,6 +332,8 @@ class NativeTextureSurfaceManager {
         textureFormat: options.renderTargetColorTextureFormat,
         textureSamplerType: TextureSamplerType.SAMPLER_2D,
       );
+      // A successfully constructed Filament texture owns the Metal retain.
+      unconsumedImportHandle = null;
 
       if (useExternalImage) {
         await app.setExternalImage(color, descriptor.hardwareId);
@@ -355,6 +365,10 @@ class NativeTextureSurfaceManager {
       await app.renderManager.attach(view, swapChains.first);
       await view.setRenderTarget(renderTarget);
     } catch (error, stackTrace) {
+      final failedImportHandle = unconsumedImportHandle;
+      if (failedImportHandle != null) {
+        descriptor.releaseHardwareIdAfterFailedImport(failedImportHandle);
+      }
       final rolledBack = await _destroyCreatedRenderTarget(
         renderTarget: renderTarget,
         color: color,

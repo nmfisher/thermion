@@ -15,6 +15,78 @@ bool didDarwinTextureRegistrationFail({
   return !isIOS && textureId == 0;
 }
 
+class DarwinTextureRegistration {
+  DarwinTextureRegistration({
+    required this.texture,
+    required this.adapter,
+    required this.flutterTextureId,
+  });
+
+  final MetalTextureWrapper texture;
+  final FlutterMetalTextureWrapper adapter;
+  final int flutterTextureId;
+  bool _disposed = false;
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    DarwinPlatformTextureDescriptorImpl._textureRegistry.unregisterTexture_(
+      flutterTextureId,
+    );
+    adapter.ref.release();
+    texture.flushCache();
+    texture.ref.release();
+  }
+}
+
+/// Keeps one released macOS texture registration available for the next
+/// descriptor with matching dimensions.
+///
+/// Flutter's macOS external-texture path can retain substantial Metal driver
+/// allocations for every distinct registered IOSurface it sees. Reusing the
+/// registered producer prevents repeated widget mount/unmount cycles from
+/// continually introducing new external textures. Filament resources are
+/// still recreated and destroyed normally.
+class DarwinPlatformTexturePool {
+  DarwinPlatformTexturePool({this.capacity = 1});
+
+  final int capacity;
+  final List<DarwinTextureRegistration> _registrations = [];
+  bool _disposed = false;
+
+  DarwinTextureRegistration? take(int width, int height) {
+    if (_disposed) return null;
+    final index = _registrations.indexWhere(
+      (registration) =>
+          registration.texture.width == width &&
+          registration.texture.height == height,
+    );
+    if (index == -1) return null;
+    return _registrations.removeAt(index);
+  }
+
+  void recycle(DarwinTextureRegistration registration) {
+    registration.texture.flushCache();
+    if (_disposed || capacity <= 0) {
+      registration.dispose();
+      return;
+    }
+
+    _registrations.add(registration);
+    while (_registrations.length > capacity) {
+      _registrations.removeAt(0).dispose();
+    }
+  }
+
+  void clear() {
+    _disposed = true;
+    for (final registration in _registrations) {
+      registration.dispose();
+    }
+    _registrations.clear();
+  }
+}
+
 /// [DarwinPlatformTextureDescriptorImpl] now handles the Metal platform texture
 /// allocation/lifecycle that was previously handled by
 /// [SwiftThermionFlutterPlugin]. The latter now exists only
@@ -26,11 +98,16 @@ bool didDarwinTextureRegistrationFail({
 ///   - wraps in a native [FlutterMetalTextureWrapper] (the FlutterTexture
 ///     adapter whose `copyPixelBuffer` Flutter calls on the raster thread),
 ///   - registers that adapter with the registry, and
-///   - drives `textureFrameAvailable` each frame and `unregisterTexture` on
-///     destroy, keeping the adapter alive while registered.
+///   - drives `textureFrameAvailable` each frame.
+///
+/// On macOS, destruction can return the complete registration to a one-entry
+/// pool. Eviction or engine teardown performs the eventual unregister.
 class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
-  final FlutterMetalTextureWrapper adapter;
-  final MetalTextureWrapper texture;
+  final DarwinTextureRegistration _registration;
+  final DarwinPlatformTexturePool? _texturePool;
+
+  FlutterMetalTextureWrapper get adapter => _registration.adapter;
+  MetalTextureWrapper get texture => _registration.texture;
 
   bool _destroyed = false;
 
@@ -38,13 +115,13 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
   bool get destroyed => _destroyed;
 
   DarwinPlatformTextureDescriptorImpl(
-    this.texture,
-    this.adapter, {
+    this._registration, {
+    DarwinPlatformTexturePool? texturePool,
     required super.flutterTextureId,
     required super.hardwareId,
     required super.width,
     required super.height,
-  });
+  }) : _texturePool = texturePool;
 
   /// The FlutterTextureRegistry exposed by the plugin
   static ThermionTextureRegistry? _registry;
@@ -61,25 +138,12 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
     // Set flag early to ensure markTextureFrameAvailable is not called with a
     // destroyed texture handle.
     _destroyed = true;
-    _textureRegistry.unregisterTexture_(flutterTextureId);
-
-    // Drop our Dart-owned NSObject retains explicitly and deterministically
-    // — do NOT rely on Dart GC finalizers to release them. `ref.release()`
-    // calls objc_release immediately AND detaches the GC finalizer (with a
-    // built-in double-release guard), so the retain the interop layer took on
-    // our behalf is balanced the moment destroy() runs, not whenever GC
-    // happens to sweep the wrappers.
-    //
-    // This only removes the Dart-owned retain from the critical path. It does
-    // not, by itself, deallocate either object if another owner still holds a
-    // strong ref: the adapter is also retained by Flutter's registry until its
-    // async unregister completes (onTextureUnregistered), and
-    // MetalTextureWrapper is also retained by the adapter's Swift `texture`
-    // property. Sequencing those is a separate step; this just makes the
-    // Dart-owned half explicit instead of GC-deferred.
-    texture.flushCache();
-    adapter.ref.release();
-    texture.ref.release();
+    final pool = _texturePool;
+    if (pool == null) {
+      _registration.dispose();
+    } else {
+      pool.recycle(_registration);
+    }
     await releaseBinding();
   }
 
@@ -94,7 +158,37 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
     _textureRegistry.textureFrameAvailable_(flutterTextureId);
   }
 
-  static DarwinPlatformTextureDescriptorImpl allocate(int width, int height) {
+  @override
+  int acquireHardwareIdForImport() {
+    final handle = texture.retainMetalTextureForImport();
+    if (handle <= 0) {
+      throw StateError('Metal texture is unavailable for Filament import');
+    }
+    return handle;
+  }
+
+  @override
+  void releaseHardwareIdAfterFailedImport(int acquiredHardwareId) {
+    texture.releaseMetalTextureAfterFailedImport_(acquiredHardwareId);
+  }
+
+  static DarwinPlatformTextureDescriptorImpl allocate(
+    int width,
+    int height, {
+    DarwinPlatformTexturePool? texturePool,
+  }) {
+    final pooledRegistration = texturePool?.take(width, height);
+    if (pooledRegistration != null) {
+      return DarwinPlatformTextureDescriptorImpl(
+        pooledRegistration,
+        texturePool: texturePool,
+        flutterTextureId: pooledRegistration.flutterTextureId,
+        hardwareId: pooledRegistration.texture.metalTextureAddress,
+        width: width,
+        height: height,
+      );
+    }
+
     final metalTexture =
         MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
           width,
@@ -102,6 +196,10 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
           false,
           false,
         );
+    if (metalTexture.metalTextureAddress <= 0) {
+      metalTexture.ref.release();
+      throw StateError('Failed to allocate a Metal platform texture');
+    }
 
     final adapter = FlutterMetalTextureWrapper.alloc().initWithTexture_(
       metalTexture,
@@ -111,12 +209,19 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
       isIOS: Platform.isIOS,
       textureId: flutterTextureId,
     )) {
+      adapter.ref.release();
+      metalTexture.ref.release();
       throw Exception('Failed to register Flutter texture');
     }
+    final registration = DarwinTextureRegistration(
+      texture: metalTexture,
+      adapter: adapter,
+      flutterTextureId: flutterTextureId,
+    );
 
     return DarwinPlatformTextureDescriptorImpl(
-      metalTexture,
-      adapter,
+      registration,
+      texturePool: texturePool,
       flutterTextureId: flutterTextureId,
       hardwareId: metalTexture.metalTextureAddress,
       width: width,
