@@ -1,6 +1,19 @@
+import 'dart:io';
+
 import 'package:thermion_flutter/src/swift/swift_bindings.g.dart';
 
 import 'platform_texture_descriptor.dart';
+
+/// Whether Flutter's Darwin texture registry reported a failed registration.
+///
+/// macOS returns zero when registration fails. iOS also uses zero, but as the
+/// first valid texture ID because its registry returns `nextTextureId++`.
+bool didDarwinTextureRegistrationFail({
+  required bool isIOS,
+  required int textureId,
+}) {
+  return !isIOS && textureId == 0;
+}
 
 /// [DarwinPlatformTextureDescriptorImpl] now handles the Metal platform texture
 /// allocation/lifecycle that was previously handled by
@@ -94,8 +107,10 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
       metalTexture,
     );
     final flutterTextureId = _textureRegistry.registerTexture_(adapter);
-    // FlutterTextureRegistry.registerTexture returns 0 on failure.
-    if (flutterTextureId == 0) {
+    if (didDarwinTextureRegistrationFail(
+      isIOS: Platform.isIOS,
+      textureId: flutterTextureId,
+    )) {
       throw Exception('Failed to register Flutter texture');
     }
 
