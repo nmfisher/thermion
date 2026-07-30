@@ -248,6 +248,83 @@ void main() {
   );
 
   testWidgets(
+    'isolates Filament render-target rebuild (color import + depth + RT)',
+    (tester) async {
+      // Mirrors native_texture_surface_manager._createFilamentResources /
+      // _destroyRenderTargetForView, but with NO Flutter widget and NO
+      // rendering: build an imported color Texture + a depth Texture + a
+      // RenderTarget, then destroy RT -> color -> depth, every cycle. If this
+      // churns where filament-only (texture import only) did not, the RT+depth
+      // rebuild is a real Filament/Metal churn source.
+      const width = 768;
+      const height = 576;
+      final viewer = await ThermionFlutterPlugin.createViewer();
+      final app = FilamentApp.instance!;
+
+      Future<void> cycle() async {
+        final metalTexture =
+            MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
+          width,
+          height,
+          false,
+          false,
+        );
+        final color = await app.createTexture(
+          width,
+          height,
+          importedTextureHandle: metalTexture.retainMetalTextureForImport(),
+          flags: {
+            TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+            TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          },
+          textureFormat: TextureFormat.RGBA8,
+          textureSamplerType: TextureSamplerType.SAMPLER_2D,
+        );
+        final depth = await app.createTexture(
+          width,
+          height,
+          flags: {
+            TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+            TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+          },
+          textureFormat: TextureFormat.DEPTH24_STENCIL8,
+          textureSamplerType: TextureSamplerType.SAMPLER_2D,
+        );
+        final rt = await app.createRenderTarget(
+          width,
+          height,
+          color: color,
+          depth: depth,
+        );
+        await rt.destroy();
+        await color.destroy();
+        await depth.destroy();
+        await app.flush();
+        metalTexture.flushCache();
+        metalTexture.ref.release();
+        await _probeDrain(tester);
+      }
+
+      final drift = await _measureProbe(
+        tester,
+        label: 'filament-rt',
+        cycle: cycle,
+        isDarwin: isDarwin,
+      );
+      debugPrint(
+        '[leak-test] filament-rt total drift='
+        '${(drift / 1024 / 1024).toStringAsFixed(2)} MB',
+      );
+      await viewer.dispose();
+    },
+    skip: !isDarwin || !runIsolationProbes,
+
+  );
+
+  testWidgets(
     'repeated ThermionWidget mount/unmount does not leak IOSurfaces',
     (tester) async {
       // Surface size chosen so a single leaked BGRA IOSurface is large
