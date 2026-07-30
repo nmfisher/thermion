@@ -118,7 +118,7 @@ cd /d "%FILAMENT_BASE_DIR%\out" || exit /b 1
 
 REM Run CMake configuration
 echo Configuring Filament for Windows...
-cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
+cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
   echo Error: CMake configuration failed
   exit /b 1
 )
