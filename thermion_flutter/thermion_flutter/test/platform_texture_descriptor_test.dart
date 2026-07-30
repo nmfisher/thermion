@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:thermion_flutter/src/platform/src/android_platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/options.dart';
 
@@ -9,6 +10,33 @@ import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('Darwin texture registration', () {
+    test('accepts zero as the first valid iOS texture ID', () {
+      expect(
+        didDarwinTextureRegistrationFail(isIOS: true, textureId: 0),
+        isFalse,
+      );
+    });
+
+    test('treats zero as a macOS registration failure', () {
+      expect(
+        didDarwinTextureRegistrationFail(isIOS: false, textureId: 0),
+        isTrue,
+      );
+    });
+
+    test('accepts non-zero texture IDs on both platforms', () {
+      expect(
+        didDarwinTextureRegistrationFail(isIOS: true, textureId: 1),
+        isFalse,
+      );
+      expect(
+        didDarwinTextureRegistrationFail(isIOS: false, textureId: 1),
+        isFalse,
+      );
+    });
+  });
 
   group('PlatformTextureDescriptor equality', () {
     test(

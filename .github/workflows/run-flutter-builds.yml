@@ -49,6 +49,13 @@ jobs:
           channel: ${{ matrix.flutter-channel }}
           architecture: ${{ matrix.flutter-arch }}
 
+      - name: Run thermion_flutter unit tests (macOS)
+        if: matrix.name == 'macOS'
+        working-directory: thermion_flutter/thermion_flutter
+        run: |
+          flutter pub get
+          flutter test
+
       # macOS: build native macOS + Android + web
       - name: Set up JDK 17
         if: matrix.name == 'macOS'
