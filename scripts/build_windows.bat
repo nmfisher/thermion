@@ -395,14 +395,14 @@ call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! ||
 )
 
 REM Obtain vulkan-1.lib (Vulkan loader import lib; version-independent, not
-REM Filament-specific). The Filament build above already linked against the
-REM runner's Vulkan SDK (-DFILAMENT_SUPPORTS_VULKAN=ON), so prefer copying
-REM vulkan-1.lib from that SDK. Fall back to a cached R2 vulkan zip only if the
-REM SDK is absent -- the version-specific zip does not exist for a first-time
-REM version build, so the download alone cannot bootstrap a new Filament version.
-set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.74.0-windows-release-vulkan.zip"
+REM Filament-specific). Filament's build above uses vendored Vulkan headers and
+REM loads the loader dynamically, so it neither produces vulkan-1.lib nor needs
+REM a Vulkan SDK -- but the thermion Windows link does. The github runner has no
+REM Vulkan SDK either, so source vulkan-1.lib from R2. Try the runner SDK first
+REM (in case a future image exposes it), then fall back to extracting the single
+REM vulkan-1.lib entry from the existing v1.69.1 Windows release zip on R2.
+set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.69.1-windows-release.zip"
 set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
-set "VULKAN_LIB_EXTRACT=%OUTPUT_BASE_DIR%\vulkan-1-temp"
 
 if exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
   echo Using cached vulkan-1.lib from: %OUTPUT_BASE_DIR%\vulkan-1.lib
@@ -423,29 +423,20 @@ for %%F in ("C:\VulkanSDK\*\Lib\vulkan-1.lib") do (
   goto :vulkan_done
 )
 
-REM 3) Fall back to a cached R2 vulkan zip.
-echo Vulkan SDK not found on runner; downloading vulkan-1.lib from R2...
+REM 3) Extract vulkan-1.lib from the existing v1.69.1 Windows release zip on R2.
+REM    vulkan-1.lib is version-independent (Vulkan loader import lib); the
+REM    version-specific vulkan-only zip was never uploaded, but the full v1.69.1
+REM    artifact is a stable source. Extract only the single entry (no full unzip).
+echo Vulkan SDK not found on runner; extracting vulkan-1.lib from v1.69.1 R2 zip...
 powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
-  echo Error: Failed to download filament v1.74.0 vulkan zip
+  echo Error: Failed to download vulkan source zip
   exit /b 1
 )
-echo Extracting vulkan-1.lib from zip...
-if exist "%VULKAN_LIB_EXTRACT%" rmdir /s /q "%VULKAN_LIB_EXTRACT%"
-mkdir "%VULKAN_LIB_EXTRACT%"
-powershell -Command "Expand-Archive -Path '%VULKAN_LIB_ZIP%' -DestinationPath '%VULKAN_LIB_EXTRACT%' -Force" || (
-  echo Error: Failed to extract filament v1.74.0 zip
-  exit /b 1
-)
-if exist "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" (
-  copy /Y "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
-) else (
-  echo Error: vulkan-1.lib not found in v1.74.0 zip
-  echo Contents of extracted zip:
-  dir /b "%VULKAN_LIB_EXTRACT%"
+powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[System.IO.Compression.ZipFile]::OpenRead('%VULKAN_LIB_ZIP%'); $e=$z.GetEntry('vulkan-1.lib'); if($e){[System.IO.Compression.ZipFileExtensions]::ExtractToFile($e,'%OUTPUT_BASE_DIR%\vulkan-1.lib',$true)}else{Write-Host 'Error: vulkan-1.lib not found in source zip'; exit 1}; $z.Dispose()" || (
+  echo Error: Failed to extract vulkan-1.lib from source zip
   exit /b 1
 )
 del /q "%VULKAN_LIB_ZIP%" 2>nul
-rmdir /s /q "%VULKAN_LIB_EXTRACT%" 2>nul
 echo vulkan-1.lib cached at: %OUTPUT_BASE_DIR%\vulkan-1.lib
 
 :vulkan_done
