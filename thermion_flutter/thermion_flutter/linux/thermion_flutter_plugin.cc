@@ -568,7 +568,9 @@ static FlMethodResponse *handle_destroy_texture(ThermionFlutterPlugin *self, FlM
         auto extIt = self->external_images->find(surfaceId);
         if (extIt != self->external_images->end())
         {
-          delete extIt->second;
+          // Filament holds a reference to this ExternalImage and releases it when the
+          // texture is destroyed; ExternalImage's destructor is protected to forbid manual deletion.
+          // Only drop the raw pointer.
           self->external_images->erase(extIt);
         }
         if (self->vulkan_context)
