@@ -394,42 +394,64 @@ call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! ||
   exit /b 1
 )
 
-REM Download vulkan-1.lib from v1.74.0 (reusable across versions)
+REM Obtain vulkan-1.lib (Vulkan loader import lib; version-independent, not
+REM Filament-specific). The Filament build above already linked against the
+REM runner's Vulkan SDK (-DFILAMENT_SUPPORTS_VULKAN=ON), so prefer copying
+REM vulkan-1.lib from that SDK. Fall back to a cached R2 vulkan zip only if the
+REM SDK is absent -- the version-specific zip does not exist for a first-time
+REM version build, so the download alone cannot bootstrap a new Filament version.
 set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.74.0-windows-release-vulkan.zip"
 set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
 set "VULKAN_LIB_EXTRACT=%OUTPUT_BASE_DIR%\vulkan-1-temp"
 
-if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
-  echo Downloading filament v1.74.0 to extract vulkan-1.lib...
-  powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
-    echo Error: Failed to download filament v1.74.0 zip
-    exit /b 1
-  )
-
-  echo Extracting vulkan-1.lib from zip...
-  if exist "%VULKAN_LIB_EXTRACT%" rmdir /s /q "%VULKAN_LIB_EXTRACT%"
-  mkdir "%VULKAN_LIB_EXTRACT%"
-  powershell -Command "Expand-Archive -Path '%VULKAN_LIB_ZIP%' -DestinationPath '%VULKAN_LIB_EXTRACT%' -Force" || (
-    echo Error: Failed to extract filament v1.74.0 zip
-    exit /b 1
-  )
-
-  REM Copy vulkan-1.lib to output base for reuse
-  if exist "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" (
-    copy /Y "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
-  ) else (
-    echo Error: vulkan-1.lib not found in v1.74.0 zip
-    echo Contents of extracted zip:
-    dir /b "%VULKAN_LIB_EXTRACT%"
-    exit /b 1
-  )
-
-  REM Cleanup temp files
-  del /q "%VULKAN_LIB_ZIP%" 2>nul
-  rmdir /s /q "%VULKAN_LIB_EXTRACT%" 2>nul
-  echo vulkan-1.lib cached at: %OUTPUT_BASE_DIR%\vulkan-1.lib
-) else (
+if exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
   echo Using cached vulkan-1.lib from: %OUTPUT_BASE_DIR%\vulkan-1.lib
+  goto :vulkan_done
+)
+
+REM 1) Runner Vulkan SDK (VULKAN_SDK env var, set by the LunarG installer).
+if exist "%VULKAN_SDK%\Lib\vulkan-1.lib" (
+  copy /Y "%VULKAN_SDK%\Lib\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
+  echo Copied vulkan-1.lib from Vulkan SDK: %VULKAN_SDK%\Lib\vulkan-1.lib
+  goto :vulkan_done
+)
+
+REM 2) Runner Vulkan SDK (glob, in case the env var is unset).
+for %%F in ("C:\VulkanSDK\*\Lib\vulkan-1.lib") do (
+  copy /Y "%%F" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
+  echo Copied vulkan-1.lib from: %%F
+  goto :vulkan_done
+)
+
+REM 3) Fall back to a cached R2 vulkan zip.
+echo Vulkan SDK not found on runner; downloading vulkan-1.lib from R2...
+powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
+  echo Error: Failed to download filament v1.74.0 vulkan zip
+  exit /b 1
+)
+echo Extracting vulkan-1.lib from zip...
+if exist "%VULKAN_LIB_EXTRACT%" rmdir /s /q "%VULKAN_LIB_EXTRACT%"
+mkdir "%VULKAN_LIB_EXTRACT%"
+powershell -Command "Expand-Archive -Path '%VULKAN_LIB_ZIP%' -DestinationPath '%VULKAN_LIB_EXTRACT%' -Force" || (
+  echo Error: Failed to extract filament v1.74.0 zip
+  exit /b 1
+)
+if exist "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" (
+  copy /Y "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
+) else (
+  echo Error: vulkan-1.lib not found in v1.74.0 zip
+  echo Contents of extracted zip:
+  dir /b "%VULKAN_LIB_EXTRACT%"
+  exit /b 1
+)
+del /q "%VULKAN_LIB_ZIP%" 2>nul
+rmdir /s /q "%VULKAN_LIB_EXTRACT%" 2>nul
+echo vulkan-1.lib cached at: %OUTPUT_BASE_DIR%\vulkan-1.lib
+
+:vulkan_done
+if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
+  echo Error: could not obtain vulkan-1.lib from the Vulkan SDK or R2
+  exit /b 1
 )
 
 REM Copy vulkan-1.lib to target directories
