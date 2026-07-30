@@ -23,6 +23,8 @@ import GLKit
     }
 
     @objc public func supportsRenderTarget() -> Bool { return false }
+    @objc public func retainMetalTextureForImport() -> Int { return -1 }
+    @objc public func releaseMetalTextureAfterFailedImport(_ address: Int) {}
     @objc public func flushCache() {}
 }
 

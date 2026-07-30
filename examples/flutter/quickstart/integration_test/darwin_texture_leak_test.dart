@@ -17,20 +17,20 @@
 // heap, and texture caches all settle asynchronously — but a leak of one
 // surface per session is far above that floor.
 //
-// Status (see the fix branch for issue #178): bug 1 — balancing the
-// unbalanced passRetained(+1) in MetalTextureWrapper + the render-target
-// orphan — is landed and proven safe. It does NOT by itself stop this leak:
-// the destroyed descriptor is still ARC-pinned in `_descriptors`, so its
-// MetalTextureWrapper (and the imported MTLTexture's IOSurface) outlives the
-// session. Fully freeing the surface (bug 2) requires releasing the wrapper
-// only after Filament drops the import (view/RT destruction); doing it
-// earlier over-releases the CVMetalTexture-backed MTLTexture and traps (see
-// the reverted bug 2 commit). Until bug 2 lands safely, this test is
-// expected to FAIL — it is the regression target for the complete fix.
+// The primary assertion uses native live-instance counters for the platform
+// texture and Flutter adapter. `phys_footprint` is retained as a secondary
+// signal, but it can temporarily stay high after every wrapper is gone because
+// Metal and Flutter cache released allocations.
 //
 // Run on a real target:
 //
 //   flutter test integration_test/darwin_texture_leak_test.dart -d macos
+//
+// The slower Flutter-only, pooled-surface, and Filament-only diagnostic probes
+// are opt-in:
+//
+//   flutter test integration_test/darwin_texture_leak_test.dart -d macos \
+//     --dart-define=THERMION_DARWIN_TEXTURE_PROBES=true
 //   flutter test integration_test/darwin_texture_leak_test.dart -d <ios-device>
 //
 // Skipped on non-darwin platforms: the leak is specific to the Metal
@@ -38,14 +38,214 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart' hide View;
+import 'package:flutter/widgets.dart' as flutter show Texture;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
+import 'package:thermion_flutter/src/swift/swift_bindings.g.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   final bool isDarwin = Platform.isMacOS || Platform.isIOS;
+  const runIsolationProbes = bool.fromEnvironment(
+    'THERMION_DARWIN_TEXTURE_PROBES',
+  );
+
+  testWidgets(
+    'isolates Flutter texture registration lifetime',
+    (tester) async {
+      const width = 768;
+      const height = 576;
+
+      Future<void> cycle() async {
+        final metalTexture =
+            MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
+          width,
+          height,
+          false,
+          false,
+        );
+        final adapter = FlutterMetalTextureWrapper.alloc().initWithTexture_(
+          metalTexture,
+        );
+        final textureId =
+            _DarwinFlutterTextureRegistry.instance.registerTexture_(adapter);
+        expect(textureId, isNot(0));
+
+        await tester.pumpWidget(
+          Center(
+            child: SizedBox(
+              width: width.toDouble(),
+              height: height.toDouble(),
+              child: flutter.Texture(textureId: textureId),
+            ),
+          ),
+        );
+        for (var frame = 0; frame < 4; frame++) {
+          expect(
+            _DarwinTextureLifetime.fillPixelBuffer(
+              metalTexture.ref.pointer.address,
+              frame.isEven ? 255 : 0,
+            ),
+            isTrue,
+          );
+          _DarwinFlutterTextureRegistry.instance.textureFrameAvailable_(
+            textureId,
+          );
+          await tester.pump(const Duration(milliseconds: 16));
+          await Future<void>.delayed(const Duration(milliseconds: 120));
+        }
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        _DarwinFlutterTextureRegistry.instance.unregisterTexture_(textureId);
+        metalTexture.flushCache();
+        adapter.ref.release();
+        metalTexture.ref.release();
+        await _probeDrain(tester);
+      }
+
+      final drift = await _measureProbe(
+        tester,
+        label: 'flutter-only',
+        cycle: cycle,
+        isDarwin: isDarwin,
+      );
+      debugPrint(
+        '[leak-test] flutter-only total drift='
+        '${(drift / 1024 / 1024).toStringAsFixed(2)} MB',
+      );
+    },
+    skip: !isDarwin || !runIsolationProbes,
+  );
+
+  testWidgets(
+    'reusing a Flutter texture surface keeps IOSurface memory bounded',
+    (tester) async {
+      const width = 768;
+      const height = 576;
+      final metalTexture =
+          MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
+        width,
+        height,
+        false,
+        false,
+      );
+
+      Future<void> cycle() async {
+        final adapter = FlutterMetalTextureWrapper.alloc().initWithTexture_(
+          metalTexture,
+        );
+        final textureId =
+            _DarwinFlutterTextureRegistry.instance.registerTexture_(adapter);
+        expect(textureId, isNot(0));
+
+        await tester.pumpWidget(
+          Center(
+            child: SizedBox(
+              width: width.toDouble(),
+              height: height.toDouble(),
+              child: flutter.Texture(textureId: textureId),
+            ),
+          ),
+        );
+        for (var frame = 0; frame < 4; frame++) {
+          expect(
+            _DarwinTextureLifetime.fillPixelBuffer(
+              metalTexture.ref.pointer.address,
+              frame.isEven ? 255 : 0,
+            ),
+            isTrue,
+          );
+          _DarwinFlutterTextureRegistry.instance.textureFrameAvailable_(
+            textureId,
+          );
+          await tester.pump(const Duration(milliseconds: 16));
+          await Future<void>.delayed(const Duration(milliseconds: 120));
+        }
+        await tester.pumpWidget(const SizedBox.shrink());
+        _DarwinFlutterTextureRegistry.instance.unregisterTexture_(textureId);
+        adapter.ref.release();
+        await _probeDrain(tester);
+        await _waitForNoLiveDarwinTextures(
+          tester,
+          isDarwin,
+          timeout: const Duration(seconds: 10),
+          expectedLiveWrappers: 1,
+        );
+      }
+
+      final drift = await _measureProbe(
+        tester,
+        label: 'flutter-pooled',
+        cycle: cycle,
+        isDarwin: isDarwin,
+        expectedLiveWrappers: 1,
+        warmupCycles: 1,
+        measuredCycles: 4,
+      );
+      debugPrint(
+        '[leak-test] flutter-pooled total drift='
+        '${(drift / 1024 / 1024).toStringAsFixed(2)} MB',
+      );
+
+      metalTexture.flushCache();
+      metalTexture.ref.release();
+      await _waitForNoLiveDarwinTextures(tester, isDarwin);
+      _expectNoLiveDarwinTextures(isDarwin, 'flutter-pooled cleanup');
+    },
+    skip: !isDarwin || !runIsolationProbes,
+  );
+
+  testWidgets(
+    'isolates Filament texture import lifetime',
+    (tester) async {
+      const width = 768;
+      const height = 576;
+      final viewer = await ThermionFlutterPlugin.createViewer();
+      final app = FilamentApp.instance!;
+
+      Future<void> cycle() async {
+        final metalTexture =
+            MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
+          width,
+          height,
+          false,
+          false,
+        );
+        final imported = await app.createTexture(
+          width,
+          height,
+          importedTextureHandle: metalTexture.retainMetalTextureForImport(),
+          flags: {
+            TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+            TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          },
+          textureFormat: TextureFormat.RGBA8,
+          textureSamplerType: TextureSamplerType.SAMPLER_2D,
+        );
+        await imported.destroy();
+        await app.flush();
+        metalTexture.flushCache();
+        metalTexture.ref.release();
+        await _probeDrain(tester);
+      }
+
+      final drift = await _measureProbe(
+        tester,
+        label: 'filament-only',
+        cycle: cycle,
+        isDarwin: isDarwin,
+      );
+      debugPrint(
+        '[leak-test] filament-only total drift='
+        '${(drift / 1024 / 1024).toStringAsFixed(2)} MB',
+      );
+      await viewer.dispose();
+    },
+    skip: !isDarwin || !runIsolationProbes,
+  );
 
   testWidgets(
     'repeated ThermionWidget mount/unmount does not leak IOSurfaces',
@@ -60,18 +260,44 @@ void main() {
 
       // One long-lived viewer reused across every session — the common
       // pattern (navigate into/out of a 3D screen without rebuilding the
-      // viewer). It is also the pattern the fix targets: each remount
-      // replaces the view's render target, which is when Filament releases
-      // the previous session's imported MTLTexture and the plugin can
-      // release the parked descriptor.
+      // viewer). It is also the pattern the fix targets: the render target is
+      // destroyed on unmount while one registered macOS producer is retained
+      // for an exact-size remount.
       final viewer = await ThermionFlutterPlugin.createViewer();
+      final expectedCachedWrappers = Platform.isMacOS ? 1 : 0;
+      final expectedCachedAdapters = Platform.isMacOS ? 1 : 0;
 
-      // Warm up: the first session pays one-time costs (Filament engine,
-      // shader compile, texture caches) that should NOT be charged against
-      // steady-state. We measure drift from the second session onward.
-      await _pumpOneSessionAndUnmount(tester, viewer, surfaceWidth, surfaceHeight);
+      // Warm up through the Metal/Filament cache ramp. A single session is
+      // insufficient on macOS: the first few render-target reconstructions
+      // grow driver caches even when the registered IOSurface is unchanged.
+      const warmupSessions = 4;
+      for (var i = 0; i < warmupSessions; i++) {
+        await _pumpOneSessionAndUnmount(
+          tester,
+          viewer,
+          surfaceWidth,
+          surfaceHeight,
+        );
+      }
       await _drain(tester);
-      final baseline = isDarwin ? _DarwinMemory.physFootprintBytes() : 0;
+      _expectNoLiveDarwinTextures(
+        isDarwin,
+        'warm-up',
+        expectedLiveWrappers: expectedCachedWrappers,
+        expectedLiveAdapters: expectedCachedAdapters,
+      );
+      final baselineSamples = <int>[];
+      for (var i = 0; i < 3; i++) {
+        baselineSamples.add(
+          isDarwin ? _DarwinMemory.physFootprintBytes() : 0,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+      final baseline = _median(baselineSamples);
+      final createdWrappersAtBaseline =
+          isDarwin ? _DarwinTextureLifetime.createdMetalTextureWrappers() : 0;
+      final createdAdaptersAtBaseline =
+          isDarwin ? _DarwinTextureLifetime.createdFlutterTextureAdapters() : 0;
       debugPrint(
         '[leak-test] baseline phys_footprint='
         '${(baseline / 1024 / 1024).toStringAsFixed(2)} MB',
@@ -83,6 +309,7 @@ void main() {
       // per-session leak is visible even if the absolute floor drifts.
       const sessions = 5;
       var prev = baseline;
+      final measuredSamples = <int>[];
       for (var i = 0; i < sessions; i++) {
         await _pumpOneSessionAndUnmount(
           tester,
@@ -91,15 +318,22 @@ void main() {
           surfaceHeight,
         );
         await _drain(tester);
+        _expectNoLiveDarwinTextures(
+          isDarwin,
+          'session ${i + 1}',
+          expectedLiveWrappers: expectedCachedWrappers,
+          expectedLiveAdapters: expectedCachedAdapters,
+        );
         final now = isDarwin ? _DarwinMemory.physFootprintBytes() : 0;
         debugPrint(
           '[leak-test] session ${i + 1}/$sessions phys_footprint='
           '${(now / 1024 / 1024).toStringAsFixed(2)} MB '
           '(delta=${((now - prev) / 1024 / 1024).toStringAsFixed(2)} MB)',
         );
+        measuredSamples.add(now);
         prev = now;
       }
-      final after = prev;
+      final after = _median(measuredSamples);
 
       // Tear down the reused viewer now that all sessions are measured.
       await viewer.dispose();
@@ -111,11 +345,23 @@ void main() {
       }
 
       final drift = after - baseline;
-      // Tolerance: half of one leaked surface's worth of total drift across
-      // ALL sessions. A correct fix leaves behind only asynchronous cache
-      // settling (well under one surface); a leak pins one surface per
-      // session, so `sessions` surfaces vs. half-a-surface is a wide gap.
-      const toleranceBytes = surfaceBytes ~/ 2;
+      expect(
+        _DarwinTextureLifetime.createdMetalTextureWrappers(),
+        createdWrappersAtBaseline,
+        reason: 'mount/unmount allocated a new MetalTextureWrapper instead of '
+            'reusing the registered macOS texture producer',
+      );
+      expect(
+        _DarwinTextureLifetime.createdFlutterTextureAdapters(),
+        createdAdaptersAtBaseline,
+        reason: 'mount/unmount registered a new FlutterMetalTextureWrapper '
+            'instead of reusing the cached adapter',
+      );
+      // Tolerance: one surface's worth of drift in the median settled sample.
+      // A median rejects isolated driver-cache jumps while a steady
+      // one-surface-per-session leak still exceeds this threshold by roughly
+      // three surfaces across five measured sessions.
+      const toleranceBytes = surfaceBytes;
       expect(
         drift,
         lessThan(toleranceBytes),
@@ -123,24 +369,113 @@ void main() {
             'phys_footprint grew by ${(drift / 1024 / 1024).toStringAsFixed(2)} '
             'MB across $sessions mount/unmount sessions (tolerance '
             '${(toleranceBytes / 1024 / 1024).toStringAsFixed(2)} MB); expected '
-            'the darwin texture wrapper to release its +1 retain on destroy. '
+            'the macOS surface pool to reuse the warm-up IOSurface. '
             '(baseline=${(baseline / 1024 / 1024).toStringAsFixed(2)} MB, '
-            'after=${(after / 1024 / 1024).toStringAsFixed(2)} MB)',
+            'median=${(after / 1024 / 1024).toStringAsFixed(2)} MB, '
+            'final=${(prev / 1024 / 1024).toStringAsFixed(2)} MB)',
       );
     },
-    // darwin-only leak: the unbalanced passRetained lives in
-    // darwin/Classes/MetalTextureWrapper.swift.
+    // Flutter's external Metal texture path is Darwin-only.
     skip: !isDarwin,
   );
+}
+
+Future<int> _measureProbe(
+  WidgetTester tester, {
+  required String label,
+  required Future<void> Function() cycle,
+  required bool isDarwin,
+  int expectedLiveWrappers = 0,
+  int warmupCycles = 4,
+  int measuredCycles = 16,
+}) async {
+  for (var i = 0; i < warmupCycles; i++) {
+    await cycle();
+  }
+  await _waitForNoLiveDarwinTextures(
+    tester,
+    isDarwin,
+    timeout: const Duration(seconds: 20),
+    expectedLiveWrappers: expectedLiveWrappers,
+  );
+  _expectNoLiveDarwinTextures(
+    isDarwin,
+    '$label warm-up',
+    expectedLiveWrappers: expectedLiveWrappers,
+  );
+  await Future<void>.delayed(const Duration(milliseconds: 2500));
+
+  final baseline = _DarwinMemory.physFootprintBytes();
+  var current = baseline;
+  debugPrint(
+    '[leak-test] $label baseline='
+    '${(baseline / 1024 / 1024).toStringAsFixed(2)} MB',
+  );
+  for (var i = 0; i < measuredCycles; i++) {
+    await cycle();
+    _logLiveDarwinTextures(isDarwin, '$label cycle ${i + 1}');
+    final next = _DarwinMemory.physFootprintBytes();
+    debugPrint(
+      '[leak-test] $label cycle ${i + 1}/$measuredCycles='
+      '${(next / 1024 / 1024).toStringAsFixed(2)} MB '
+      '(delta=${((next - current) / 1024 / 1024).toStringAsFixed(2)} MB)',
+    );
+    current = next;
+  }
+  await _waitForNoLiveDarwinTextures(
+    tester,
+    isDarwin,
+    timeout: const Duration(seconds: 30),
+    expectedLiveWrappers: expectedLiveWrappers,
+  );
+  _expectNoLiveDarwinTextures(
+    isDarwin,
+    '$label final teardown',
+    expectedLiveWrappers: expectedLiveWrappers,
+  );
+  await Future<void>.delayed(const Duration(milliseconds: 2500));
+  final settled = _DarwinMemory.physFootprintBytes();
+  debugPrint(
+    '[leak-test] $label settled='
+    '${(settled / 1024 / 1024).toStringAsFixed(2)} MB '
+    '(post-teardown delta='
+    '${((settled - current) / 1024 / 1024).toStringAsFixed(2)} MB)',
+  );
+  return settled - baseline;
+}
+
+Future<void> _probeDrain(WidgetTester tester) async {
+  for (var i = 0; i < 2; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+}
+
+Future<void> _waitForNoLiveDarwinTextures(
+  WidgetTester tester,
+  bool isDarwin, {
+  Duration timeout = const Duration(seconds: 10),
+  int expectedLiveWrappers = 0,
+  int expectedLiveAdapters = 0,
+}) async {
+  if (!isDarwin) return;
+  final deadline = DateTime.now().add(timeout);
+  while ((_DarwinTextureLifetime.liveMetalTextureWrappers() !=
+              expectedLiveWrappers ||
+          _DarwinTextureLifetime.liveFlutterTextureAdapters() !=
+              expectedLiveAdapters) &&
+      DateTime.now().isBefore(deadline)) {
+    await tester.pump(const Duration(milliseconds: 16));
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  }
 }
 
 /// Mounts a ThermionWidget backed by [viewer], pumps a few frames so the
 /// surface is actually allocated and rendered into, then unmounts it. The
 /// viewer (and its view) are reused across sessions — this is the common
 /// pattern (one long-lived viewer, navigate into/out of the 3D screen), and
-/// it is the pattern the fix targets: each remount replaces the view's render
-/// target, which is the point Filament releases the previous session's
-/// imported MTLTexture and the plugin can release the parked descriptor.
+/// it is the pattern the fix targets: each remount reuses one registered macOS
+/// texture producer while recreating only the Filament target.
 Future<void> _pumpOneSessionAndUnmount(
   WidgetTester tester,
   ThermionViewer viewer,
@@ -172,17 +507,81 @@ Future<void> _pumpOneSessionAndUnmount(
 /// Give the engine, the Dart GC, and Metal's deferred-release queue time to
 /// settle before sampling phys_footprint.
 Future<void> _drain(WidgetTester tester) async {
-  // Pump a few frames so the Dart GC and Metal's autorelease pool can run,
-  // then wait in REAL time: the native passRetained(+1) is parked at dispose
-  // and only drained at the next allocate, age-gated to >= 2 s of wall clock
-  // (CFAbsoluteTimeGetCurrent, which pumps do not advance). Waiting past 2 s
-  // here ensures the next session's allocate drains the previous park, and
-  // its RT replacement releases the parked descriptor — so the previous
-  // session's surface has actually freed before we sample.
+  // Pump a few frames so queued teardown and Metal's autorelease pool run.
   for (var i = 0; i < 10; i++) {
     await tester.pump(const Duration(milliseconds: 16));
   }
   await Future<void>.delayed(const Duration(milliseconds: 2500));
+}
+
+void _logLiveDarwinTextures(bool isDarwin, String stage) {
+  if (!isDarwin) return;
+  debugPrint(
+    '[leak-test] $stage live wrappers='
+    '${_DarwinTextureLifetime.liveMetalTextureWrappers()} adapters='
+    '${_DarwinTextureLifetime.liveFlutterTextureAdapters()}',
+  );
+}
+
+void _expectNoLiveDarwinTextures(
+  bool isDarwin,
+  String stage, {
+  int expectedLiveWrappers = 0,
+  int expectedLiveAdapters = 0,
+}) {
+  if (!isDarwin) return;
+  final wrappers = _DarwinTextureLifetime.liveMetalTextureWrappers();
+  final adapters = _DarwinTextureLifetime.liveFlutterTextureAdapters();
+  _logLiveDarwinTextures(isDarwin, stage);
+  expect(
+    wrappers,
+    expectedLiveWrappers,
+    reason: '$stage had an unexpected number of MetalTextureWrappers after '
+        'widget teardown',
+  );
+  expect(
+    adapters,
+    expectedLiveAdapters,
+    reason: '$stage had an unexpected number of registered '
+        'FlutterMetalTextureWrappers',
+  );
+}
+
+class _DarwinTextureLifetime {
+  static final DynamicLibrary _lib = DynamicLibrary.process();
+
+  static final int Function() liveMetalTextureWrappers =
+      _lib.lookupFunction<Int64 Function(), int Function()>(
+          'thermion_flutter_live_metal_texture_wrapper_count');
+
+  static final int Function() liveFlutterTextureAdapters =
+      _lib.lookupFunction<Int64 Function(), int Function()>(
+          'thermion_flutter_live_metal_texture_adapter_count');
+
+  static final int Function() createdMetalTextureWrappers =
+      _lib.lookupFunction<Int64 Function(), int Function()>(
+          'thermion_flutter_created_metal_texture_wrapper_count');
+
+  static final int Function() createdFlutterTextureAdapters =
+      _lib.lookupFunction<Int64 Function(), int Function()>(
+          'thermion_flutter_created_metal_texture_adapter_count');
+
+  static final bool Function(int, int) fillPixelBuffer =
+      _lib.lookupFunction<Bool Function(Int64, Uint8), bool Function(int, int)>(
+    'thermion_flutter_fill_metal_texture_pixel_buffer',
+  );
+}
+
+int _median(List<int> values) {
+  final sorted = values.toList()..sort();
+  return sorted[sorted.length ~/ 2];
+}
+
+class _DarwinFlutterTextureRegistry {
+  static final ThermionTextureRegistry instance =
+      ThermionTextureRegistry.castFrom(
+    SwiftThermionFlutterPluginObjCAPI.textureRegistry(),
+  );
 }
 
 /// Thin FFI wrapper around the mach `task_info` call.
@@ -215,9 +614,8 @@ class _DarwinMemory {
           )>('task_info');
 
   // mach_port_t mach_task_self(void);  (mach_port_t == uint32)
-  static final int Function() _machTaskSelf = _lib.lookupFunction<
-      Uint32 Function(),
-      int Function()>('mach_task_self');
+  static final int Function() _machTaskSelf =
+      _lib.lookupFunction<Uint32 Function(), int Function()>('mach_task_self');
 
   // TASK_VM_INFO flavor. phys_footprint lives in this struct.
   static const _taskVmInfoFlavor = 22;

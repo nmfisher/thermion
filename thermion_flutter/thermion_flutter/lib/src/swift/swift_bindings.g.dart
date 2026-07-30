@@ -195,6 +195,29 @@ final _objc_msgSend_91o635 = objc.msgSendPointer
         ffi.Pointer<objc.ObjCSelector>,
       )
     >();
+late final _sel_retainMetalTextureForImport = objc.registerName(
+  "retainMetalTextureForImport",
+);
+late final _sel_releaseMetalTextureAfterFailedImport_ = objc.registerName(
+  "releaseMetalTextureAfterFailedImport:",
+);
+final _objc_msgSend_4sp4xj = objc.msgSendPointer
+    .cast<
+      ffi.NativeFunction<
+        ffi.Void Function(
+          ffi.Pointer<objc.ObjCObject>,
+          ffi.Pointer<objc.ObjCSelector>,
+          ffi.Long,
+        )
+      >
+    >()
+    .asFunction<
+      void Function(
+        ffi.Pointer<objc.ObjCObject>,
+        ffi.Pointer<objc.ObjCSelector>,
+        int,
+      )
+    >();
 late final _sel_flushCache = objc.registerName("flushCache");
 final _objc_msgSend_1pl9qdv = objc.msgSendPointer
     .cast<
@@ -468,6 +491,23 @@ class MetalTextureWrapper extends objc.NSObject {
   /// supportsRenderTarget
   bool supportsRenderTarget() {
     return _objc_msgSend_91o635(this.ref.pointer, _sel_supportsRenderTarget);
+  }
+
+  /// retainMetalTextureForImport
+  int retainMetalTextureForImport() {
+    return _objc_msgSend_1hz7y9r(
+      this.ref.pointer,
+      _sel_retainMetalTextureForImport,
+    );
+  }
+
+  /// releaseMetalTextureAfterFailedImport:
+  void releaseMetalTextureAfterFailedImport_(int address) {
+    _objc_msgSend_4sp4xj(
+      this.ref.pointer,
+      _sel_releaseMetalTextureAfterFailedImport_,
+      address,
+    );
   }
 
   /// flushCache

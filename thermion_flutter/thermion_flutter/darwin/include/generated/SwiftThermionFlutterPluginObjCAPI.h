@@ -390,6 +390,8 @@ SWIFT_CLASS("_TtC16thermion_flutter19MetalTextureWrapper")
 @property (nonatomic, readonly) int64_t height;
 + (MetalTextureWrapper * _Nonnull)allocateWithWidth:(int64_t)width height:(int64_t)height isDepth:(BOOL)isDepth isStencil:(BOOL)isStencil SWIFT_WARN_UNUSED_RESULT;
 - (BOOL)supportsRenderTarget SWIFT_WARN_UNUSED_RESULT;
+- (NSInteger)retainMetalTextureForImport SWIFT_WARN_UNUSED_RESULT;
+- (void)releaseMetalTextureAfterFailedImport:(NSInteger)address;
 - (void)flushCache;
 - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
 @end
