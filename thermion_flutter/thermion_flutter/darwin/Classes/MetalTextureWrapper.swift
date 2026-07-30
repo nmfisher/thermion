@@ -49,6 +49,53 @@ import GLKit
 
 @objc public class MetalTextureWrapper: NSObject {
 
+  // One long-lived CVMetalTextureCache per process, keyed off the system default
+  // device. CVMetalTextureCache is designed to be a long-lived, per-device
+  // object; creating one per MetalTextureWrapper (and dropping it on destroy)
+  // leaks ~one IOSurface per CVMetalTextureCacheCreateTextureFromImage, because
+  // releasing the cache object does not synchronously free the IOSurfaces it has
+  // cached. Reusing a single cache and flushing it on teardown (with
+  // MaximumTextureAge: 0) returns those surfaces. Verified in the standalone
+  // reproducer; see docs/DARWIN_IOSURFACE_LEAK_ROOT_CAUSE.md.
+  //
+  // Thread safety: the lock below only guards the static `sharedCache` pointer
+  // swap (create-once + flush). CVMetalTextureCacheCreateTextureFromImage is
+  // NOT documented as safe for concurrent use on a single cache, so all
+  // MetalTextureWrapper allocation and flushCache() calls must be serialized on
+  // one thread. Thermion already satisfies this: textures are allocated and
+  // torn down on the serialized texture-mutation path. If that ever changes,
+  // serialize access to this cache externally.
+  private static let sharedCacheLock = NSLock()
+  private static var sharedCache: CVMetalTextureCache?
+  private static var sharedCacheDevice: MTLDevice?
+
+  private static func sharedMetalCache(for device: MTLDevice) -> CVMetalTextureCache? {
+    sharedCacheLock.lock(); defer { sharedCacheLock.unlock() }
+    if let existing = sharedCache, sharedCacheDevice === device {
+      return existing
+    }
+    var c: CVMetalTextureCache?
+    let attrs: [CFString: Any] = [
+      kCVMetalTextureCacheMaximumTextureAgeKey: 0 as NSNumber
+    ]
+    let r = CVMetalTextureCacheCreate(
+      kCFAllocatorDefault, attrs as CFDictionary, device, nil, &c)
+    if r == kCVReturnSuccess {
+      sharedCache = c
+      sharedCacheDevice = device
+    }
+    return c
+  }
+
+  /// Flushes the shared cache so aged buffer->texture mappings (and their
+  /// IOSurfaces) are evicted. Safe to call while other live wrappers exist:
+  /// the flush only reaps the cache's internal bookkeeping, not the
+  /// CVMetalTexture objects those wrappers still hold.
+  private static func flushSharedMetalCache() {
+    sharedCacheLock.lock(); defer { sharedCacheLock.unlock() }
+    if let c = sharedCache { CVMetalTextureCacheFlush(c, 0) }
+  }
+
   @objc public let pixelBuffer: CVPixelBuffer?
   @objc public let cvMetalTextureCache: CVMetalTextureCache?
   @objc public let metalDevice: MTLDevice?
@@ -141,19 +188,9 @@ import GLKit
       )
     }
 
-    var cvMetalTextureCache: CVMetalTextureCache?
-    // Create texture cache attributes to enable render target usage
-    let cacheAttrs: [CFString: Any] = [
-      kCVMetalTextureCacheMaximumTextureAgeKey: 0 as NSNumber  // Keep textures as long as possible
-    ]
-
-    let cacheCreationResult = CVMetalTextureCacheCreate(
-      kCFAllocatorDefault,
-      cacheAttrs as CFDictionary,
-      metalDevice,
-      nil,
-      &cvMetalTextureCache)
-    if cacheCreationResult != kCVReturnSuccess {
+    // Use the process-wide shared cache instead of creating (and leaking) one
+    // per wrapper. See the sharedMetalCache doc comment above.
+    guard let cvMetalTextureCache = MetalTextureWrapper.sharedMetalCache(for: metalDevice) else {
       print("Error creating Metal texture cache")
       return MetalTextureWrapper(
         pixelBuffer: pixelBuffer,
@@ -173,7 +210,7 @@ import GLKit
 
     let cvret = CVMetalTextureCacheCreateTextureFromImage(
       kCFAllocatorDefault,
-      cvMetalTextureCache!,
+      cvMetalTextureCache,
       pixelBuffer!,
       textureAttrs as CFDictionary,
       MTLPixelFormat.bgra8Unorm,
@@ -275,9 +312,9 @@ import GLKit
   }
 
   @objc public func flushCache() {
-    if let cache = self.cvMetalTextureCache {
-      CVMetalTextureCacheFlush(cache, 0)
-    }
+    // Flush the process-wide shared cache so aged buffer->texture mappings
+    // (and their IOSurfaces) are reaped.
+    MetalTextureWrapper.flushSharedMetalCache()
   }
 
 }
