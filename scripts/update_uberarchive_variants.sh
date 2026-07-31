@@ -41,6 +41,17 @@ INCLUDE_ROOT="$REPO_ROOT/thermion_dart/native/include/filament"
 PLATFORMS=(linux windows macos android)
 MODES=(release debug)
 
+# A generic uberarchive.h at native/include/filament/gltfio/materials/uberarchive.h
+# (i.e. NOT under release/ or debug/) would resolve BEFORE the mode-specific copy
+# because build.dart lists `native/include/filament` ahead of `.../filament/<mode>` in
+# the include path. That shadows the mode-specific dispatch wrapper and silently
+# re-introduces the size mismatch. Remove any such generic copy.
+GENERIC_UBER="$INCLUDE_ROOT/gltfio/materials/uberarchive.h"
+if [ -f "$GENERIC_UBER" ]; then
+  echo "Removing shadowing generic uberarchive.h at $GENERIC_UBER"
+  rm -f "$GENERIC_UBER"
+fi
+
 # Variant header template: only the size/offset constants. The dispatch wrapper
 # (uberarchive.h) declares the extern UBERARCHIVE_PACKAGE[] and builds DATA from these.
 write_variant() {
