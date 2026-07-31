@@ -132,8 +132,20 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
   static SwapChain? swapChain;
 
+  /// Serialises concurrent [initialize] calls — same race as the native
+  /// plugin: batch-mounting viewers run `createViewer` concurrently, each
+  /// `FFIFilamentApp.create` destroys whatever engine is current, so racing
+  /// initializers tear the engine down from under each other's swapchains.
+  /// Callers share one in-flight initialization.
+  static Future<SwapChain>? _initialization;
+
   @override
-  Future<SwapChain> initialize({bool destroySwapchain = true}) async {
+  Future<SwapChain> initialize({bool destroySwapchain = true}) {
+    return _initialization ??=
+        _initialize().whenComplete(() => _initialization = null);
+  }
+
+  Future<SwapChain> _initialize() async {
     WidgetsBinding.instance.removeObserver(this);
 
     if (FilamentApp.instance != null && swapChain != null) {

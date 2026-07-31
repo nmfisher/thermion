@@ -37,8 +37,30 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     return asset.buffer.asUint8List(asset.offsetInBytes);
   }
 
+  /// Serialises concurrent [initialize] calls.
+  ///
+  /// Batch-mounting viewers (several `ViewerWidget`s inflating in the same
+  /// frame) call `createViewer` → `initialize` concurrently. Each call used
+  /// to run engine creation itself: the `FilamentApp.instance == null` check
+  /// below sits after an await, so every racing call saw null, and each
+  /// `FFIFilamentApp.create` destroyed the engine the previous call had just
+  /// built (create() tears down whatever engine is current before creating a
+  /// new one). Viewers and the frame scheduler then held swapchains and
+  /// render managers belonging to engines that were torn down underneath
+  /// them, and Filament aborted on the next frame with `endFrame:490 —
+  /// SwapChain must remain valid` inside `RenderManager::render`.
+  ///
+  /// All callers now share one in-flight initialization (and therefore one
+  /// engine); the rest of the mount proceeds concurrently as before.
+  static Future<SwapChain?>? _initialization;
+
   @override
-  Future<SwapChain?> initialize({bool destroySwapchain = true}) async {
+  Future<SwapChain?> initialize({bool destroySwapchain = true}) {
+    return _initialization ??=
+        _initialize().whenComplete(() => _initialization = null);
+  }
+
+  Future<SwapChain?> _initialize() async {
     // A hot restart can leave the native scheduler holding a callback into the
     // previous isolate. stop() is idempotent and clears that callback first.
     _lifecycle.prepareForInitialization();
