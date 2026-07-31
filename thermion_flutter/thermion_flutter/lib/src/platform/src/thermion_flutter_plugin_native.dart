@@ -56,8 +56,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @override
   Future<SwapChain?> initialize({bool destroySwapchain = true}) {
-    return _initialization ??=
-        _initialize().whenComplete(() => _initialization = null);
+    return _initialization ??= _initialize().whenComplete(
+      () => _initialization = null,
+    );
   }
 
   Future<SwapChain?> _initialize() async {
