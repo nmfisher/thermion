@@ -58,8 +58,7 @@ import GLKit
   // leaks ~one IOSurface per CVMetalTextureCacheCreateTextureFromImage, because
   // releasing the cache object does not synchronously free the IOSurfaces it has
   // cached. Reusing a single cache and flushing it on teardown (with
-  // MaximumTextureAge: 0) returns those surfaces. Verified in the standalone
-  // reproducer; see docs/DARWIN_IOSURFACE_LEAK_ROOT_CAUSE.md.
+  // MaximumTextureAge: 0) returns those surfaces. 
   // Thread safety: the lock below only guards the static `sharedCache` pointer
   // swap (create-once + flush). CVMetalTextureCacheCreateTextureFromImage is
   // NOT documented as safe for concurrent use on a single cache, so all
