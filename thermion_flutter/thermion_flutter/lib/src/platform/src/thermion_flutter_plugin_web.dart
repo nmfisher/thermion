@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 import 'dart:ui_web' as ui_web;
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
@@ -92,6 +93,40 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       throw StateError(
         'Maximum of $maxViewers concurrent viewers reached on web.',
       );
+    }
+
+    // Load the WASM module bindings. If the app didn't include
+    // thermion_dart.js in index.html, append it manually and wait for the
+    // module to construct before initializing the interop.
+    try {
+      NativeLibrary.initBindings("thermion_dart");
+    } catch (err) {
+      _logger.info(
+        "Failed to find thermion_dart in window context, appending manually",
+      );
+      var scriptElement = document.createElement("script") as HTMLScriptElement;
+      scriptElement.src = options.webOptions.jsPath;
+      document.head!.appendChild(scriptElement);
+      final completer = Completer<JSObject?>();
+      scriptElement.addEventListener(
+        "load",
+        () {
+          final constructor =
+              globalContext.getProperty("thermion_dart".toJS) as JSFunction?;
+          if (constructor == null) {
+            _logger.severe("Failed to find JS library constructor");
+            completer.complete(null);
+          } else {
+            final lib = constructor.callAsFunction() as JSPromise;
+            lib.toDart.then((resolved) {
+              completer.complete(resolved as JSObject);
+            });
+          }
+        }.toJS,
+      );
+      final lib = await completer.future;
+      globalContext.setProperty("thermion_dart".toJS, lib);
+      NativeLibrary.initBindings("thermion_dart");
     }
 
     // Each viewer gets its own canvas, transferred to its own worker by

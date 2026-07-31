@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart' hide View;
-import 'package:thermion_dart/thermion_dart.dart' show View;
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 import '../../../platform/src/platform_texture_descriptor.dart';
