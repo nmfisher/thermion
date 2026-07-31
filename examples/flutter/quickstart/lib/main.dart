@@ -47,6 +47,7 @@ const _surfaceTop = Color(0xFF1E1E2A);
 const _border = Color(0xFF262633);
 const _accent = Color(0xFF6EA8FF);
 const _accent2 = Color(0xFF9D7BFF);
+const _danger = Color(0xFFFF7B7B);
 const _text = Color(0xFFECECF2);
 const _textDim = Color(0xFF80808E);
 const _textFaint = Color(0xFF50505C);
@@ -93,6 +94,9 @@ class _MyHomePageState extends State<MyHomePage> {
   List<_ViewerTile> _tiles = [];
   int _framerate = 60;
 
+  /// Batch size for the footer's add/remove control.
+  int _batch = 1;
+
   late DirectLight _sun;
 
   @override
@@ -105,9 +109,21 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _addViewer() {
+  /// Applies the batch: mounts `_batch` viewers at once when the grid is
+  /// empty, otherwise removes the most recently added `_batch`.
+  ///
+  /// Adding the whole batch in a single `setState` mounts every tile in the
+  /// same frame, so all `createViewer` chains run concurrently — the exact
+  /// multi-viewer stress path the FFIRenderManager op-chain serialises.
+  void _applyBatch() {
+    final batch = _batch;
     setState(() {
-      _tiles = [..._tiles, _newTile()];
+      if (_tiles.isEmpty) {
+        _tiles = [..._tiles, for (var i = 0; i < batch; i++) _newTile()];
+      } else {
+        final keep = math.max(0, _tiles.length - batch);
+        _tiles = _tiles.take(keep).toList();
+      }
     });
   }
 
@@ -155,7 +171,9 @@ class _MyHomePageState extends State<MyHomePage> {
             _Footer(
               framerate: _framerate,
               viewerCount: _tiles.length,
-              onAdd: _addViewer,
+              batch: _batch,
+              onBatchChanged: (v) => setState(() => _batch = v),
+              onApplyBatch: _applyBatch,
               onFramerateChanged: (v) {
                 setState(() => _framerate = v);
                 FilamentApp.instance!.setTargetFramerate(v);
@@ -301,7 +319,7 @@ class _EmptyStateState extends State<_EmptyState>
                     letterSpacing: 0.2,
                   )),
               const SizedBox(height: 6),
-              const Text('Tap “Add viewer” to spin one up.',
+              const Text('Set a batch with the stepper, then hit “Add”.',
                   style: TextStyle(color: _textDim, fontSize: 12.5)),
             ],
           );
@@ -350,58 +368,199 @@ class _Footer extends StatelessWidget {
   const _Footer({
     required this.framerate,
     required this.viewerCount,
-    required this.onAdd,
+    required this.batch,
+    required this.onBatchChanged,
+    required this.onApplyBatch,
     required this.onFramerateChanged,
   });
 
   final int framerate;
   final int viewerCount;
-  final VoidCallback onAdd;
+  final int batch;
+  final ValueChanged<int> onBatchChanged;
+  final VoidCallback onApplyBatch;
   final ValueChanged<int> onFramerateChanged;
 
   @override
   Widget build(BuildContext context) {
+    // Empty grid → the button adds `batch` viewers; otherwise it removes
+    // that many (clamped to what's actually mounted).
+    final adding = viewerCount == 0;
+    final removeCount = math.min(batch, viewerCount);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
       child: Row(
         children: [
           _Button(
             primary: true,
-            semanticLabel: 'Add viewer',
-            onPressed: onAdd,
+            danger: !adding,
+            verticalPadding: 7,
+            semanticLabel: adding
+                ? 'Add $batch viewers'
+                : 'Remove $removeCount viewers',
+            onPressed: onApplyBatch,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Plus glyph in a frosted chip.
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A0A0F).withValues(alpha: 0.16),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Center(
-                      child: Text('+',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14)),
-                    ),
-                  ),
+                // Reads as a sentence: "Add − 1 + viewers". The stepper
+                // tunes the batch; taps on the rest apply it.
+                Text(adding ? 'Add' : 'Remove'),
+                const SizedBox(width: 10),
+                _EmbeddedStepper(
+                  value: batch,
+                  min: 1,
+                  max: 64,
+                  onChanged: onBatchChanged,
                 ),
                 const SizedBox(width: 10),
-                Text('Add viewer ($viewerCount)'),
+                const Text('viewers'),
               ],
             ),
           ),
           const Spacer(),
-          Text('TARGET FPS', style: _microLabel.copyWith(color: _textFaint)),
-          const SizedBox(width: 10),
+          // Drop the label on narrow windows rather than overflow the row.
+          if (MediaQuery.sizeOf(context).width >= 540) ...[
+            Text('TARGET FPS', style: _microLabel.copyWith(color: _textFaint)),
+            const SizedBox(width: 10),
+          ],
           _Segmented<int>(
             values: const [(15, '15'), (30, '30'), (60, '60')],
             selected: framerate,
             onChanged: onFramerateChanged,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// − / value / + stepper embedded inside the batch button, so the batch size
+/// and the add/remove action live in one control. The cells sit on a dark
+/// surface chip so they read as a separate sub-control against the button's
+/// gradient.
+class _EmbeddedStepper extends StatelessWidget {
+  const _EmbeddedStepper({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StepButton(
+            key: const ValueKey('batch-decrease'),
+            glyph: '−',
+            enabled: value > min,
+            semanticLabel: 'Decrease batch size',
+            onPressed: () => onChanged(value - 1),
+          ),
+          SizedBox(
+            width: 26,
+            height: 26,
+            child: Center(
+              child: Text(
+                '$value',
+                style: const TextStyle(
+                  color: _text,
+                  fontFamily: _mono,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          _StepButton(
+            key: const ValueKey('batch-increase'),
+            glyph: '+',
+            enabled: value < max,
+            semanticLabel: 'Increase batch size',
+            onPressed: () => onChanged(value + 1),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One − / + cell of the embedded batch stepper. Disabled at the
+/// [min]/[max] ends.
+class _StepButton extends StatefulWidget {
+  const _StepButton({
+    super.key,
+    required this.glyph,
+    required this.enabled,
+    required this.semanticLabel,
+    required this.onPressed,
+  });
+
+  final String glyph;
+  final bool enabled;
+  final String semanticLabel;
+  final VoidCallback onPressed;
+
+  @override
+  State<_StepButton> createState() => _StepButtonState();
+}
+
+class _StepButtonState extends State<_StepButton> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.enabled;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: widget.semanticLabel,
+      child: MouseRegion(
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          // Nested inside the batch button's own GestureDetector: the tap
+          // recognizer on this (inner) cell wins the arena, so taps here
+          // adjust the batch instead of triggering the apply action.
+          behavior: HitTestBehavior.opaque,
+          onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
+          onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
+          onTapCancel: () => setState(() => _pressed = false),
+          onTap: enabled ? widget.onPressed : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 90),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(7),
+              color: enabled && _hovered ? _surfaceTop : null,
+            ),
+            child: Center(
+              child: Text(
+                widget.glyph,
+                style: TextStyle(
+                  color: enabled ? (_pressed ? _accent : _text) : _textFaint,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -601,13 +760,21 @@ class _Button extends StatefulWidget {
     required this.onPressed,
     required this.child,
     this.primary = false,
+    this.danger = false,
     this.semanticLabel,
+    this.verticalPadding,
   });
 
   final VoidCallback onPressed;
   final Widget child;
   final bool primary;
+
+  /// Swaps the primary gradient to the danger tint (used for remove mode).
+  final bool danger;
   final String? semanticLabel;
+
+  /// Overrides the default vertical padding (12 for primary buttons).
+  final double? verticalPadding;
 
   @override
   State<_Button> createState() => _ButtonState();
@@ -640,7 +807,8 @@ class _ButtonState extends State<_Button> {
               duration: const Duration(milliseconds: 90),
               padding: EdgeInsets.symmetric(
                 horizontal: 18,
-                vertical: widget.primary ? 12 : 10,
+                vertical:
+                    widget.verticalPadding ?? (widget.primary ? 12 : 10),
               ),
               decoration: BoxDecoration(
                 gradient: widget.primary
@@ -648,12 +816,26 @@ class _ButtonState extends State<_Button> {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: pressed
-                            ? [const Color(0xFF5786D8), const Color(0xFF7E64D8)]
+                            ? (widget.danger
+                                ? const [
+                                    Color(0xFFB84558),
+                                    Color(0xFFC74F63),
+                                  ]
+                                : const [
+                                    Color(0xFF5786D8),
+                                    Color(0xFF7E64D8),
+                                  ])
                             : [
                                 Color.lerp(
-                                    _accent, const Color(0xFFFFFFFF), hovered ? 0.08 : 0)!,
+                                    widget.danger
+                                        ? const Color(0xFFD9536A)
+                                        : _accent,
+                                    const Color(0xFFFFFFFF),
+                                    hovered ? 0.08 : 0)!,
                                 Color.lerp(
-                                    _accent2, const Color(0xFFFFFFFF), hovered ? 0.08 : 0)!,
+                                    widget.danger ? _danger : _accent2,
+                                    const Color(0xFFFFFFFF),
+                                    hovered ? 0.08 : 0)!,
                               ],
                       )
                     : null,
@@ -670,8 +852,9 @@ class _ButtonState extends State<_Button> {
                 boxShadow: widget.primary
                     ? [
                         BoxShadow(
-                          color: _accent.withValues(
-                              alpha: pressed ? 0.18 : (hovered ? 0.5 : 0.34)),
+                          color: (widget.danger ? _danger : _accent)
+                              .withValues(
+                                  alpha: pressed ? 0.18 : (hovered ? 0.5 : 0.34)),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),

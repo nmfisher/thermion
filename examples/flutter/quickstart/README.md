@@ -3,8 +3,12 @@
 A Flutter project demonstrating how to use the Thermion rendering toolkit to load a 3D model, skybox and set the camera position.
 
 This example mounts **multiple** `ViewerWidget`s at once, arranged in a grid.
-Tap **Add viewer** to append another cell (each cell owns an independent
-`ThermionViewer`); use the **×** on a cell to remove it.
+The footer's primary button embeds a batch stepper (`−` / `+`) that sets how
+many viewers to mount at a time; tapping the button body mounts that many
+cells in a single frame (each cell owns an independent `ThermionViewer`).
+Clicking it again removes that many, so the control doubles as a toggle for
+the concurrent mount/dispose stress path. Use the **×** on a cell to remove
+it individually.
 
 > Note: the grid is rebuilt from a fresh list on every add/remove (see
 > `_MyHomePageState`). Mutating the list in place will leave new cells latent
