@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  logging: ^1.2.0
   cupertino_icons: ^1.0.8
   vector_math: ^2.1.4
   win32: 5.5.1
@@ -28,6 +29,10 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  # Enables driving this app from an AI code harness via the Dart/Flutter MCP
+  # (see README → "Driving via MCP"). Dev-only: not part of the app runtime.
+  flutter_driver:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
