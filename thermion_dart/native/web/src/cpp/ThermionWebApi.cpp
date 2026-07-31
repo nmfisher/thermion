@@ -50,25 +50,25 @@ extern "C"
     return _context;
   }
 
-  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE EMSCRIPTEN_KEEPALIVE Thermion_createGLContext() {
-    
-    std::cout << "Creating WebGL context." << std::endl;
+  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE EMSCRIPTEN_KEEPALIVE Thermion_createGLContext(const char *canvasSelector) {
+
+    std::cout << "Creating WebGL context for " << canvasSelector << std::endl;
 
     EmscriptenWebGLContextAttributes attr;
-    
+
     emscripten_webgl_init_context_attributes(&attr);
-    attr.alpha = EM_TRUE; 
-    attr.depth = EM_TRUE;  
-    attr.stencil = EM_TRUE; 
-    attr.antialias = EM_FALSE; 
-    attr.explicitSwapControl = EM_TRUE; 
-    attr.preserveDrawingBuffer = EM_FALSE; 
-    attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_DISALLOW; 
+    attr.alpha = EM_TRUE;
+    attr.depth = EM_TRUE;
+    attr.stencil = EM_TRUE;
+    attr.antialias = EM_FALSE;
+    attr.explicitSwapControl = EM_TRUE;
+    attr.preserveDrawingBuffer = EM_FALSE;
+    attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_DISALLOW;
     attr.enableExtensionsByDefault = EM_TRUE;
     attr.renderViaOffscreenBackBuffer = EM_FALSE;
     attr.majorVersion = 2;
-    
-    _context = emscripten_webgl_create_context("#thermion_canvas", &attr);
+
+    _context = emscripten_webgl_create_context(canvasSelector, &attr);
 
     if(!_context) {
       std::cout << "Failed to create WebGL context" << std::endl;  

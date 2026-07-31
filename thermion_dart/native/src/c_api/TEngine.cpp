@@ -44,6 +44,12 @@ namespace thermion
     extern "C"
     {
         using namespace filament;
+
+        // Defined in ThermionDartRenderThreadApi.cpp. Direct-API getters use
+        // these to record which render thread owns an engine-scoped object
+        // (and which canvas the active thread's engine renders to).
+        void RenderThread_registerOwnerFromOwner(void *owner, void *knownOwner);
+        const char *RenderThread_getActiveCanvasSelector();
 #endif
 
         EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT = filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT;
@@ -59,7 +65,10 @@ namespace thermion
             bool disableHandleUseAfterFreeCheck)
         {
             #ifdef __EMSCRIPTEN__
-            auto handle = Thermion_createGLContext();
+            // Engine_create runs inside the engine's RenderThread task, so the
+            // active thread IS this engine's thread — create the WebGL context
+            // on the canvas that was transferred to it.
+            auto handle = Thermion_createGLContext(RenderThread_getActiveCanvasSelector());
             tSharedContext = (void*)handle;
             tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
             #endif
@@ -190,6 +199,9 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto &transformManager = engine->getTransformManager();
+            // Direct-API getters run on the main thread; record which render
+            // thread owns this manager so RenderThread dispatch can route to it.
+            RenderThread_registerOwnerFromOwner(&transformManager, tEngine);
             return reinterpret_cast<TTransformManager *>(&transformManager);
         }
 
@@ -197,6 +209,7 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto &renderableManager = engine->getRenderableManager();
+            RenderThread_registerOwnerFromOwner(&renderableManager, tEngine);
             return reinterpret_cast<TRenderableManager *>(&renderableManager);
         }
 
@@ -210,6 +223,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *tEngine) {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto &entityManager = engine->getEntityManager();
+            RenderThread_registerOwnerFromOwner(&entityManager, tEngine);
             return reinterpret_cast<TEntityManager *>(&entityManager);
         }
 
@@ -338,6 +352,7 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *scene = engine->createScene();
+            RenderThread_registerOwnerFromOwner(scene, tEngine);
             return reinterpret_cast<TScene *>(scene);
         }
 

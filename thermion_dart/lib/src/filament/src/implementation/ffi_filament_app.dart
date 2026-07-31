@@ -112,15 +112,26 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFIDebugRegistry(debugRegistryPtr);
   }
 
-  static Future create({FFIFilamentConfig? config}) async {
+  static Future create({FFIFilamentConfig? config, String? canvasSelector}) async {
     config ??= FFIFilamentConfig();
 
     if (FilamentApp.instance != null) {
       await FilamentApp.instance!.destroy();
     }
 
-    RenderThread_destroy();
-    final renderThreadHandle = RenderThread_create();
+    // Web multi-viewer: each engine gets its own RenderThread, which
+    // transfers its own canvas element to the worker. The selector is the
+    // CSS id of that viewer's canvas; native passes null and gets the
+    // default thread.
+    RenderThread_destroy(nullptr);
+    late final Pointer<Void> renderThreadHandle;
+    if (canvasSelector != null) {
+      final selectorPtr = canvasSelector.toNativeUtf8().cast<Char>();
+      renderThreadHandle = RenderThread_createForCanvas(selectorPtr);
+      free(selectorPtr);
+    } else {
+      renderThreadHandle = RenderThread_create();
+    }
 
     if (renderThreadHandle == nullptr) {
       throw Exception("Failed to create render thread");
@@ -409,7 +420,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     // the worker pthread effectively dead but with its mimalloc arena still
     // owned, so every subsequent FilamentApp.create() spawns a fresh worker
     // on top of the leaked one.
-    RenderManager_detachFromRenderThread();
+    RenderManager_detachFromRenderThread(renderManager.getNativeHandle());
     renderManager.destroy();
 
     // Filament's contract is: tear down everything created on top of the
@@ -438,7 +449,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Engine_destroyRenderThread(engine, requestId, cb);
     });
 
-    RenderThread_destroy();
+    RenderThread_destroy(renderThreadHandle);
     for (final callback in _onDestroy) {
       await callback.call();
     }

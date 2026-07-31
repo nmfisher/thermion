@@ -20,7 +20,10 @@ namespace thermion
         typedef void (*FilamentRenderCallback)(void *const owner);
 
         EMSCRIPTEN_KEEPALIVE void* RenderThread_create();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_destroy();
+        // Creates a RenderThread that transfers the given canvas element
+        // (CSS selector) to its worker — one thread per viewer on web.
+        EMSCRIPTEN_KEEPALIVE void* RenderThread_createForCanvas(const char *canvasSelector);
+        EMSCRIPTEN_KEEPALIVE void RenderThread_destroy(void *renderThread);
         
         EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
         EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews, uint32_t requestId, VoidCallback onComplete);
