@@ -281,7 +281,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<View> createView({bool createScene = false}) async {
-    final view = await FFIView.create();
+    final view = await FFIView.create(this);
     await view.setName("unnamed_view");
     await view.setFrustumCullingEnabled(true);
     await view.setBloom(false, 0.0);
@@ -301,7 +301,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<Scene> createScene() async {
-    return FFIScene(Engine_createScene(engine));
+    return FFIScene(Engine_createScene(engine), this);
   }
 
   //
@@ -311,6 +311,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await withPointerCallback<TCamera>(
         (cb) => Engine_createCameraRenderThread(engine, targetEntity!, cb),
       ),
+      this,
     );
   }
 
@@ -545,7 +546,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create RenderTarget");
     }
 
-    return FFIRenderTarget(renderTarget);
+    return FFIRenderTarget(renderTarget, this);
   }
 
   //
@@ -581,7 +582,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (texturePtr == nullptr) {
       throw Exception("Failed to create texture");
     }
-    return FFITexture(engine, texturePtr);
+    return FFITexture(engine, texturePtr, this);
   }
 
   Future<void> setExternalImage(Texture texture, int externalImagePtr) async {
@@ -674,6 +675,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await withPointerCallback<TMaterial>((cb) {
         Material_createGizmoMaterialRenderThread(engine, cb);
       }),
+      this,
     );
     return _gizmoMaterial!;
   }
@@ -688,6 +690,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await withPointerCallback<TMaterial>((cb) {
         Material_createBoneOverlayMaterialRenderThread(engine, cb);
       }),
+      this,
     );
     return _boneOverlayMaterial!;
   }
@@ -705,7 +708,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       //stackRestore(stackPtr);
       data.free();
     }
-    return FFIMaterial(ptr);
+    return FFIMaterial(ptr, this);
   }
 
   //
@@ -801,7 +804,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create material instance");
     }
 
-    var instance = FFIMaterialInstance(materialInstance);
+    var instance = FFIMaterialInstance(materialInstance, this);
     return instance;
   }
 
@@ -819,6 +822,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await withPointerCallback<TMaterial>((cb) {
         Material_createWireframeMaterialRenderThread(engine, cb);
       }),
+      this,
     );
     final mi = await material.createInstance();
     return WireframeMaterialInstance(mi);
@@ -1431,7 +1435,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         ),
       );
 
-      final ffiAsset = FFIAsset(asset);
+      final ffiAsset = FFIAsset(asset, app: this);
       if (releaseSourceData) {
         await ffiAsset.releaseSourceData();
       }
@@ -1468,7 +1472,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<GizmoAsset> createGizmo(View view, GizmoType gizmoType) async {
-    return FFIGizmo.create(view, gizmoType);
+    return FFIGizmo.create(this, view, gizmoType);
   }
 
   //
@@ -1725,7 +1729,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr);
+    return FFIAsset(assetPtr, app: this);
   }
 
   //
@@ -1858,7 +1862,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         cb,
       );
     });
-    return FFISkybox(ptr);
+    return FFISkybox(ptr, this);
   }
 
   // Creates a [Skybox] with a solid color. This will not be attached to any
@@ -1875,7 +1879,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final ptr = await withPointerCallback<TSkybox>((cb) {
       Engine_buildColoredSkyboxRenderThread(engine, r, g, b, a, cb);
     });
-    return FFISkybox(ptr);
+    return FFISkybox(ptr, this);
   }
 
   //
@@ -1900,7 +1904,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (texturePtr == nullptr) {
       throw Exception("Failed to load KTX2 texture");
     }
-    return FFITexture(engine, texturePtr);
+    return FFITexture(engine, texturePtr, this);
   }
 
   @override
@@ -1909,7 +1913,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       var ptr = await withPointerCallback<TMaterial>(
         (cb) => Material_createImageMaterialRenderThread(engine, cb),
       );
-      _imageMaterial = FFIMaterial(ptr);
+      _imageMaterial = FFIMaterial(ptr, this);
     }
     var mi = await _imageMaterial!.createInstance() as FFIMaterialInstance;
 
@@ -1921,7 +1925,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await mi.setParameterMat4("transform", transform);
 
     await quad.setMaterialInstanceAt(mi);
-    return FFITexturedQuad(asset: quad, mi: mi);
+    return FFITexturedQuad(asset: quad, mi: mi, app: this);
   }
 
   //

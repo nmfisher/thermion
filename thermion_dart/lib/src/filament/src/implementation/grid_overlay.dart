@@ -2,6 +2,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart'
 import 'package:thermion_dart/src/filament/src/interface/defaults.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 /// Represents a single LOD level of the grid overlay.
 class _GridLevel {
@@ -21,13 +22,17 @@ class GridOverlay {
   final VertexBuffer _vertexBuffer;
   final IndexBuffer _indexBuffer;
 
+  final FFIFilamentApp _app;
+
   GridOverlay._({
     required List<_GridLevel> levels,
     required VertexBuffer vertexBuffer,
     required IndexBuffer indexBuffer,
+    required FFIFilamentApp app,
   }) : _levels = levels,
        _vertexBuffer = vertexBuffer,
-       _indexBuffer = indexBuffer;
+       _indexBuffer = indexBuffer,
+       _app = app;
 
   static GridOverlay? _instance;
   static Material? _gridMaterial;
@@ -113,7 +118,7 @@ class GridOverlay {
   /// Destroys all resources held by this grid overlay.
   Future destroy() async {
     for (final level in _levels) {
-      await FilamentApp.instance!.destroyEntity(level.entity);
+      await _app.destroyEntity(level.entity);
       await level.materialInstance.destroy();
     }
     await _vertexBuffer.destroy();
@@ -132,7 +137,7 @@ class GridOverlay {
   /// - [spacing]: Interval between grid lines for each LOD level
   /// - [fadeInStart]/[fadeInEnd]: Camera distances where each level fades in
   /// - [fadeOutStart]/[fadeOutEnd]: Camera distances where each level fades out
-  static Future<GridOverlay> create({
+  static Future<GridOverlay> create(FFIFilamentApp app, {
     List<LinearColor> axisColors = kDefaultAxisColors,
     LinearColor gridColor = kDefaultGridColor,
     List<double> spacing = const [1.0, 10.0, 100.0, 1000.0, 10000.0],
@@ -151,11 +156,10 @@ class GridOverlay {
       return _instance!;
     }
 
-    final app = FilamentApp.instance!;
     final rm = app.renderableManager;
 
     // Create or reuse the grid material
-    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(app.engine));
+    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(app.engine), app);
 
     // Generate shared geometry
     final (positions, indices) = _generateGridGeometry();
@@ -268,6 +272,7 @@ class GridOverlay {
       levels: levels,
       vertexBuffer: vertexBuffer,
       indexBuffer: indexBuffer,
+      app: app,
     );
 
     return _instance!;

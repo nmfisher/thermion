@@ -9,6 +9,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 /// Manages the edge detection pass for outline rendering.
 ///
@@ -59,8 +60,11 @@ class EdgeDetectionView extends FFIView {
   final ColorGrading _linearColorGrading;
   final ToneMapper _linearToneMapper;
 
+  final FFIFilamentApp _app;
+
   EdgeDetectionView._(
-    super.view, {
+    Pointer<TView> view, {
+    required FFIFilamentApp app,
     required FFIMaterial material,
     required Scene scene,
     required Skybox skybox,
@@ -75,7 +79,8 @@ class EdgeDetectionView extends FFIView {
     required FFITextureSampler mainSceneSampler,
     required ColorGrading linearColorGrading,
     required ToneMapper linearToneMapper,
-  }) : _silhouetteTexture = silhouetteTexture,
+  }) : _app = app,
+       _silhouetteTexture = silhouetteTexture,
        _mainSceneTexture = mainSceneTexture,
        _mainSceneSampler = mainSceneSampler,
        _edgeMaterial = material,
@@ -88,31 +93,32 @@ class EdgeDetectionView extends FFIView {
        _fullscreenQuadEntity = fullscreenQuadEntity,
        _edgeSampler = edgeSampler,
        _linearColorGrading = linearColorGrading,
-       _linearToneMapper = linearToneMapper;
+       _linearToneMapper = linearToneMapper,
+       super(view, app);
 
   /// Creates and initializes a new [EdgeDetectionView].
-  static Future<EdgeDetectionView> create({
+  static Future<EdgeDetectionView> create(FFIFilamentApp app, {
     required Texture silhouetteTexture,
     required int width,
     required int height,
   }) async {
     // Create view
     final viewPtr = await withPointerCallback<TView>(
-      (cb) => Engine_createViewRenderThread(FilamentApp.instance!.engine, cb),
+      (cb) => Engine_createViewRenderThread(app.engine, cb),
     );
 
     // Create edge material
     final materialPtr = await withPointerCallback<TMaterial>(
       (cb) => Material_createEdgeOutlineMaterialRenderThread(
-        FilamentApp.instance!.engine,
+        app.engine,
         cb,
       ),
     );
-    final edgeMaterial = FFIMaterial(materialPtr);
+    final edgeMaterial = FFIMaterial(materialPtr, app);
 
     // Create scene with transparent skybox
-    final edgeScene = await FilamentApp.instance!.createScene();
-    final skybox = await FilamentApp.instance!.createColoredSkybox(
+    final edgeScene = await app.createScene();
+    final skybox = await app.createColoredSkybox(
       r: 0.0,
       g: 0.0,
       b: 0.0,
@@ -121,7 +127,7 @@ class EdgeDetectionView extends FFIView {
     await edgeScene.setSkybox(skybox);
 
     // Create camera entity with orthographic projection
-    final camera = await FilamentApp.instance!.createCamera();
+    final camera = await app.createCamera();
     await camera.setProjection(
       Projection.Orthographic,
       -1.0,
@@ -148,7 +154,7 @@ class EdgeDetectionView extends FFIView {
     ]);
 
     // Create vertex buffer
-    final vbBuilder = FilamentApp.instance!.renderableManager
+    final vbBuilder = app.renderableManager
         .createVertexBufferBuilder();
     vbBuilder.vertexCount(3);
     vbBuilder.bufferCount(1);
@@ -164,7 +170,7 @@ class EdgeDetectionView extends FFIView {
 
     // Create index buffer
     final indices = Uint16List.fromList([0, 1, 2]);
-    final ibBuilder = FilamentApp.instance!.renderableManager
+    final ibBuilder = app.renderableManager
         .createIndexBufferBuilder();
     ibBuilder.indexCount(3);
     ibBuilder.bufferType(IndexType.USHORT);
@@ -177,7 +183,7 @@ class EdgeDetectionView extends FFIView {
 
     // Create texture sampler for edge detection
     final edgeSampler =
-        await FilamentApp.instance!.createTextureSampler(
+        await app.createTextureSampler(
               minFilter: TextureMinFilter.NEAREST,
               magFilter: TextureMagFilter.NEAREST,
               wrapS: TextureWrapMode.CLAMP_TO_EDGE,
@@ -189,7 +195,7 @@ class EdgeDetectionView extends FFIView {
     // setMainSceneTexture is called). This ensures the shader has a valid
     // texture to sample before initialization completes
     final defaultMainSceneTexture =
-        await FilamentApp.instance!.createTexture(
+        await app.createTexture(
               1,
               1,
               flags: {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
@@ -202,7 +208,7 @@ class EdgeDetectionView extends FFIView {
     // would blur anti-aliased features (like grid lines) making them appear
     // thicker.
     final mainSceneSampler =
-        await FilamentApp.instance!.createTextureSampler(
+        await app.createTextureSampler(
               minFilter: TextureMinFilter.NEAREST,
               magFilter: TextureMagFilter.NEAREST,
               wrapS: TextureWrapMode.CLAMP_TO_EDGE,
@@ -211,9 +217,9 @@ class EdgeDetectionView extends FFIView {
             as FFITextureSampler;
 
     // Create fullscreen quad entity
-    final fullscreenQuadEntity = await FilamentApp.instance!.createEntity();
+    final fullscreenQuadEntity = await app.createEntity();
 
-    final builder = FilamentApp.instance!.renderableManager.createBuilder(1);
+    final builder = app.renderableManager.createBuilder(1);
     builder.boundingBox(Aabb3.minMax(Vector3(-2, -2, 0), Vector3(4, 4, 1)));
     builder.geometry(0, PrimitiveType.TRIANGLES, quadVB, quadIB, 0, 3);
     builder.material(0, edgeMaterialInstance);
@@ -229,11 +235,12 @@ class EdgeDetectionView extends FFIView {
     // In composite mode, the main scene texture is already tone-mapped, so we
     // use a pass-through (linear) tone mapper to preserve colors while still
     // benefiting from other post-processing effects (anti-aliasing, dithering).
-    final linearToneMapper = await ToneMapper.linear();
+    final linearToneMapper = await ToneMapper.linear(app);
     final colorGradingBuilder = FFIColorGradingBuilder(
       await withPointerCallback<TColorGradingBuilder>(
         (cb) => ColorGradingBuilder_createRenderThread(cb),
       ),
+      app,
     );
     colorGradingBuilder.toneMapper(linearToneMapper);
     final linearColorGrading = await colorGradingBuilder.build();
@@ -241,6 +248,7 @@ class EdgeDetectionView extends FFIView {
     // Create the EdgeDetectionView with all resources
     final edgeDetectionView = EdgeDetectionView._(
       viewPtr,
+      app: app,
       material: edgeMaterial,
       scene: edgeScene,
       skybox: skybox,
@@ -388,7 +396,7 @@ class EdgeDetectionView extends FFIView {
 
     // Destroy fullscreen quad
     await _edgeScene.removeEntity(_fullscreenQuadEntity);
-    await FilamentApp.instance!.destroyEntity(_fullscreenQuadEntity);
+    await _app.destroyEntity(_fullscreenQuadEntity);
 
     await _edgeMaterialInstance.destroy();
     await _quadVB.destroy();

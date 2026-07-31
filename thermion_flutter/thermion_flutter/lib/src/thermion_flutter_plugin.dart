@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
+// ignore: implementation_imports
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_flutter/src/options.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'platform/platform.dart';
@@ -78,6 +80,7 @@ abstract class ThermionFlutterPlugin {
     _logger.finest("Plugin initialized");
     final viewer = ThermionViewerFFI(
       createOverlay: instance.options.nativeOptions.createOverlay,
+      app: result.app as FFIFilamentApp,
     );
     await viewer.initialized;
     _logger.finest("Viewer initialized");

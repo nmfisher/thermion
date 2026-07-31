@@ -2,6 +2,7 @@
 import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -15,27 +16,27 @@ void main() async {
   test('all available ToneMappers', () async {
     // Test all available ToneMapper factory methods using ViewerBuilder
     final toneMappers = [
-      () => ToneMapper.linear(),
+      () => ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp),
       'linear',
-      () => ToneMapper.aces(),
+      () => ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
       'aces',
-      () => ToneMapper.acesLegacy(),
+      () => ToneMapper.acesLegacy(FilamentApp.instance! as FFIFilamentApp),
       'aces_legacy',
-      () => ToneMapper.filmic(),
+      () => ToneMapper.filmic(FilamentApp.instance! as FFIFilamentApp),
       'filmic',
-      () => ToneMapper.pbrNeutral(),
+      () => ToneMapper.pbrNeutral(FilamentApp.instance! as FFIFilamentApp),
       'pbr_neutral',
-      () => ToneMapper.agx(),
+      () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp),
       'agx_none',
-      () => ToneMapper.agx(look: AgxLook.punchy),
+      () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp, look: AgxLook.punchy),
       'agx_punchy',
-      () => ToneMapper.agx(look: AgxLook.golden),
+      () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp, look: AgxLook.golden),
       'agx_golden',
-      () => ToneMapper.generic(),
+      () => ToneMapper.generic(FilamentApp.instance! as FFIFilamentApp),
       'generic_default',
-      () => ToneMapper.generic(contrast: 2.0),
+      () => ToneMapper.generic(FilamentApp.instance! as FFIFilamentApp, contrast: 2.0),
       'generic_contrast_2_0',
-      () => ToneMapper.displayRange(),
+      () => ToneMapper.displayRange(FilamentApp.instance! as FFIFilamentApp),
       'display_range',
     ];
 
@@ -96,7 +97,7 @@ void main() async {
               .saturation(0.95) // Slight desaturation
               .luminanceScaling(true) // Better HDR handling
               .gamutMapping(true) // Prevent hue shifts
-              .toneMapper(await ToneMapper.aces()) // Add a tone mapper
+              .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp)) // Add a tone mapper
               .shadowsMidtonesHighlights(
                 Vector4(0.8, 0.9, 1.0, 0.5), // Slightly cool shadows
                 Vector4(1.0, 1.0, 1.0, 1.0), // Neutral midtones
@@ -149,7 +150,7 @@ void main() async {
             final colorGrading = await builder
                 .format(format)
                 .dimensions(dim)
-                .toneMapper(await ToneMapper.aces())
+                .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp))
                 .saturation(1.3)
                 .contrast(1.2)
                 .build();
@@ -199,7 +200,7 @@ void main() async {
             final builder = await result.viewer.view
                 .createColorGradingBuilder();
             final colorGrading = await builder
-                .toneMapper(await ToneMapper.linear())
+                .toneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp))
                 .channelMixer(outRed, outGreen, outBlue)
                 .build();
 
@@ -240,7 +241,7 @@ void main() async {
               .exposure(0.5)
               .contrast(1.2)
               .saturation(1.1)
-              .toneMapper(await ToneMapper.aces())
+              .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp))
               .build();
 
           // Apply the color grading to the view

@@ -1,10 +1,13 @@
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 class FFITexture extends Texture<Pointer<TRenderTarget>> {
   final Pointer<TEngine> _engine;
   final Pointer<TTexture> pointer;
 
-  FFITexture(this._engine, this.pointer);
+  final FFIFilamentApp _app;
+
+  FFITexture(this._engine, this.pointer, this._app);
 
   Future<void> setLinearImage(
     covariant FFILinearImage image,
@@ -163,12 +166,12 @@ class FFILinearImage extends LinearImage {
     return FFILinearImage(imagePtr);
   }
 
-  static Future<FFILinearImage> decode(
+  static Future<FFILinearImage> decode(FFIFilamentApp app,
     Uint8List data, {
     String name = "image",
     bool requireAlpha = false,
   }) async {
-    final image = await FilamentApp.instance!.decodeImage(
+    final image = await app.decodeImage(
       data,
       name: name,
       requireAlpha: requireAlpha,

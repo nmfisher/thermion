@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
 
@@ -59,7 +60,7 @@ void main() async {
   test('unlit + baseColorFactor', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(await ToneMapper.linear());
+      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
 
       var materialInstance = await FilamentApp.instance!
           .createUnlitMaterialInstance();
@@ -302,7 +303,7 @@ void main() async {
   test('unlit material with color + alpha', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(await ToneMapper.linear());
+      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
 
       var materialInstance = await FilamentApp.instance!
           .createUnlitMaterialInstance();
@@ -334,7 +335,7 @@ void main() async {
     await viewer.setCameraPosition(0, 0, 6);
     await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
     await viewer.setPostProcessing(true);
-    await viewer.setToneMapper(await ToneMapper.linear());
+    await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
 
     var materialInstance = await viewer.createUnlitFixedSizeMaterialInstance();
     var cube = await viewer.createGeometry(

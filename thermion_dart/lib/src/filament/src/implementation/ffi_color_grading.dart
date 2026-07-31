@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 /// FFI implementation of ColorGrading
 class FFIColorGrading extends ColorGrading {
   final Pointer<TColorGrading> pointer;
 
-  FFIColorGrading(this.pointer);
+  final FFIFilamentApp _app;
+
+  FFIColorGrading(this.pointer, this._app);
 
   @override
   Pointer<TColorGrading> getNativeHandle() => pointer;
@@ -14,7 +17,7 @@ class FFIColorGrading extends ColorGrading {
   Future dispose() async {
     await withVoidCallback(
       (requestId, cb) => Engine_destroyColorGradingRenderThread(
-        FilamentApp.instance!.engine,
+        _app.engine,
         pointer,
         requestId,
         cb,
@@ -28,7 +31,9 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   final Pointer<TColorGradingBuilder> _builder;
   bool _built = false;
 
-  FFIColorGradingBuilder(this._builder);
+  final FFIFilamentApp _app;
+
+  FFIColorGradingBuilder(this._builder, this._app);
 
   void _checkNotBuilt() {
     if (_built) {
@@ -225,7 +230,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     final ptr = await withPointerCallback<TColorGrading>(
       (cb) => ColorGradingBuilder_buildRenderThread(
         _builder,
-        FilamentApp.instance!.engine,
+        _app.engine,
         cb,
       ),
     );
@@ -236,6 +241,6 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     if (ptr == nullptr) {
       throw Exception('Failed to build ColorGrading');
     }
-    return FFIColorGrading(ptr);
+    return FFIColorGrading(ptr, _app);
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 import 'ffi_material.dart';
 import 'ffi_view.dart';
 
@@ -14,7 +15,14 @@ class FFIGizmo extends GizmoAsset {
 
   final Pointer<TGizmo> handle;
 
-  FFIGizmo({required this.handle, required this.view, required this.entities}) {
+  final FFIFilamentApp _app;
+
+  FFIGizmo({
+    required this.handle,
+    required this.view,
+    required this.entities,
+    required FFIFilamentApp app,
+  }) : _app = app {
     _callbackHolder = _onPickResult.asCallback();
   }
 
@@ -24,17 +32,17 @@ class FFIGizmo extends GizmoAsset {
 
   static FFIMaterial? _gizmoMaterial;
 
-  static Future<GizmoAsset> create(View view, GizmoType gizmoType) async {
+  static Future<GizmoAsset> create(FFIFilamentApp app, View view, GizmoType gizmoType) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       //stackPtr = stackSave();
     }
-    final engine = FilamentApp.instance!.engine;
+    final engine = app.engine;
     if (_gizmoMaterial == null) {
       final materialPtr = await withPointerCallback<TMaterial>((cb) {
         Material_createGizmoMaterialRenderThread(engine, cb);
       });
-      _gizmoMaterial ??= FFIMaterial(materialPtr);
+      _gizmoMaterial ??= FFIMaterial(materialPtr, app);
     }
 
     var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
@@ -44,7 +52,7 @@ class FFIGizmo extends GizmoAsset {
     final gizmo = await withPointerCallback<TGizmo>((cb) {
       Gizmo_createRenderThread(
         engine,
-        FilamentApp.instance!.gltfAssetLoader,
+        app.gltfAssetLoader,
         gltfResourceLoader,
         nullptr,
         view.getNativeHandle(),
@@ -68,6 +76,7 @@ class FFIGizmo extends GizmoAsset {
     final gizmoAsset = FFIGizmo(
       handle: gizmo,
       view: view,
+      app: app,
       entities: gizmoEntities.toSet()
         ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())),
     );

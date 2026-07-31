@@ -1,4 +1,5 @@
 import 'package:thermion_dart/thermion_dart.dart';
+import '../implementation/ffi_filament_app.dart';
 
 import '../implementation/translation_axis_material.dart';
 
@@ -41,7 +42,7 @@ class TranslationAxisMaterial {
     double lineWidth = 5.0,
     double lineLength = 100.0,
   }) {
-    return FFITranslationAxisMaterial.createTranslationAxisMaterialInstance(
+    return FFITranslationAxisMaterial.createTranslationAxisMaterialInstance(app: FilamentApp.instance as FFIFilamentApp, 
       originX: originX,
       originY: originY,
       originZ: originZ,
