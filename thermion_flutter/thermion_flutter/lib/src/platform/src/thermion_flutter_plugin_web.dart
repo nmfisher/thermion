@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
+import 'dart:ui_web' as ui_web;
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide View;
@@ -20,6 +20,23 @@ import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart'
     as js;
 
+/// One engine per viewer on web: each viewer owns a canvas element, a
+/// RenderThread (worker), a WebGL context and a headless swapchain. All
+/// per-viewer state lives in this bundle; the plugin-wide statics are shared
+/// across engines (rAF loop, FPS pacing, pause state).
+class _WebViewerApp {
+  _WebViewerApp({
+    required this.canvasId,
+    required this.app,
+    required this.swapChain,
+  });
+
+  /// DOM element id of this viewer's canvas (no '#' prefix).
+  final String canvasId;
+  final FFIFilamentApp app;
+  final SwapChain swapChain;
+}
+
 class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     with WidgetsBindingObserver {
   static js.Pointer<js.Void>? _stackPtr;
@@ -30,6 +47,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   static double? _nextRenderDeadlineMs;
   static bool _explicitlyPaused = false;
   static bool _lifecycleSuspended = false;
+  static int _canvasSeq = 0;
 
   static bool get _renderPaused => _explicitlyPaused || _lifecycleSuspended;
 
@@ -38,11 +56,111 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
         WebPlatformTextureDescriptor(width: width, height: height),
   );
 
+  // Identity-keyed: the same View/SwapChain wrapper instances flow through
+  // createViewer → createTextureAndBindToView → teardown, and each engine has
+  // exactly one view, so there is no cross-engine handle collision.
+  static final Map<View, _WebViewerApp> _appsByView = {};
+  static final Map<SwapChain, _WebViewerApp> _appsBySwapChain = {};
+
+  /// Serialises engine creation. Each createViewer builds its own engine
+  /// (per-viewer), but `FFIFilamentApp.create` destroys whatever engine is
+  /// current — racing calls would tear each other down (the-wne3). The chain
+  /// runs one initialization at a time; the rest of the mount proceeds
+  /// concurrently.
+  static Future<void> _initChain = Future.value();
+
+  @override
+  Future<InitializeResult> initialize({bool destroySwapchain = true}) {
+    final completer = Completer<InitializeResult>();
+    final prev = _initChain;
+    _initChain = completer.future.then((_) {}, onError: (_) {});
+    return prev.then((_) async {
+      try {
+        final result = await _initialize();
+        completer.complete(result);
+        return result;
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+        rethrow;
+      }
+    });
+  }
+
+  Future<InitializeResult> _initialize() async {
+    final maxViewers = options.webOptions.maxViewers;
+    if (maxViewers > 0 && _appsBySwapChain.length >= maxViewers) {
+      throw StateError(
+        'Maximum of $maxViewers concurrent viewers reached on web.',
+      );
+    }
+
+    // Each viewer gets its own canvas, transferred to its own worker by
+    // RenderThread_createForCanvas (called inside FFIFilamentApp.create via
+    // the canvasSelector).
+    final canvasId = 'thermion_canvas_${_canvasSeq++}';
+    final canvas = document.createElement('canvas') as HTMLCanvasElement;
+    canvas.id = canvasId;
+    document.body!.appendChild(canvas);
+
+    if (!options.webOptions.importCanvasAsWidget) {
+      // Legacy single-canvas layout: the canvas floats behind the app.
+      (canvas as HTMLElement).style.position = 'fixed';
+      (canvas as HTMLElement).style.zIndex = '-1';
+    } else {
+      // Host the canvas inside the viewer's widget via a platform view.
+      ui_web.platformViewRegistry.registerViewFactory(
+        'imported-canvas-$canvasId',
+        (int viewId, {Object? params}) => canvas as Object,
+      );
+    }
+
+    final config = FFIFilamentConfig(
+      backend: Backend.OPENGL,
+      loadResource: loadAsset,
+      platform: nullptr,
+      sharedContext: null,
+      uberArchivePath: options.uberarchivePath,
+    );
+    await FFIFilamentApp.create(config: config, canvasSelector: '#$canvasId');
+    final app = FilamentApp.instance as FFIFilamentApp;
+
+    // Use a headless swapchain as the scheduling token; the view renders
+    // into this engine's canvas framebuffer 0.
+    final swapChain = await app.createHeadlessSwapChain(1, 1);
+    _logger.info('Created swapchain for canvas #$canvasId');
+
+    final bundle = _WebViewerApp(
+      canvasId: canvasId,
+      app: app,
+      swapChain: swapChain,
+    );
+    _appsBySwapChain[swapChain] = bundle;
+
+    // Per-viewer teardown: when this engine is destroyed (viewer disposed),
+    // remove its canvas and bundle entries; only when the last engine goes
+    // away do we stop the shared rAF loop and unregister the observer.
+    app.onDestroy(() async {
+      _appsByView.removeWhere((_, b) => b.app == app);
+      _appsBySwapChain.removeWhere((_, b) => b.app == app);
+      canvas.remove();
+      if (_appsBySwapChain.isEmpty) {
+        WidgetsBinding.instance.removeObserver(this);
+        _resetWebState();
+      }
+    });
+
+    _ensureFrameLoopRunning();
+    WidgetsBinding.instance.addObserver(this);
+    _syncLifecycleState();
+    _applyRenderPause();
+
+    return InitializeResult(app: app, swapChain: swapChain);
+  }
+
   static void _applyRenderPause() {
-    final app = FilamentApp.instance as FFIFilamentApp?;
-    if (app != null) {
+    for (final bundle in _appsBySwapChain.values) {
       RenderManager_setPaused(
-        app.renderManager.getNativeHandle(),
+        bundle.app.renderManager.getNativeHandle(),
         _renderPaused,
       );
     }
@@ -66,11 +184,14 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
     _stackPtr = js.NativeLibrary.instance.stackSave();
 
-    final app = FilamentApp.instance;
-    final targetFps = app is FFIFilamentApp ? app.targetFramerate : 0;
+    final apps = _appsBySwapChain.values.map((b) => b.app).toList();
+    final targetFps = apps.isEmpty ? 0 : apps.first.targetFramerate;
     final rendered = _shouldRender(timestamp.toDartDouble, targetFps);
     if (rendered) {
-      app?.render();
+      // One rAF loop drives every engine.
+      for (final app in apps) {
+        app.render();
+      }
 
       // RenderManager still executes its backend task queue while paused, but
       // it does not produce a new frame, so do not notify Flutter of one.
@@ -124,126 +245,39 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     _nextRenderDeadlineMs = null;
     _explicitlyPaused = false;
     _lifecycleSuspended = false;
-
     _stackPtr = null;
-    swapChain = null;
-    _textureDescriptorRegistry.clear();
   }
-
-  static SwapChain? swapChain;
-
-  /// Serialises concurrent [initialize] calls — same race as the native
-  /// plugin: batch-mounting viewers run `createViewer` concurrently, each
-  /// `FFIFilamentApp.create` destroys whatever engine is current, so racing
-  /// initializers tear the engine down from under each other's swapchains.
-  /// Callers share one in-flight initialization.
-  static Future<SwapChain>? _initialization;
 
   @override
-  Future<SwapChain> initialize({bool destroySwapchain = true}) {
-    return _initialization ??= _initialize().whenComplete(
-      () => _initialization = null,
-    );
+  void onViewerCreated(View view, SwapChain? swapChain) {
+    if (swapChain == null) {
+      return;
+    }
+    final bundle = _appsBySwapChain[swapChain];
+    if (bundle != null) {
+      _appsByView[view] = bundle;
+    }
   }
 
-  Future<SwapChain> _initialize() async {
-    WidgetsBinding.instance.removeObserver(this);
-
-    if (FilamentApp.instance != null && swapChain != null) {
-      // Hot reload re-enters initialize without disposing the existing web
-      // engine. Reuse the live app instead of spawning another em-pthread.
-      _ensureFrameLoopRunning();
-      WidgetsBinding.instance.addObserver(this);
-      _syncLifecycleState();
-      _applyRenderPause();
-      return swapChain!;
+  @override
+  Future<void> onViewerDisposed(View view) async {
+    final bundle = _appsByView.remove(view);
+    if (bundle == null) {
+      return;
     }
+    _appsBySwapChain.remove(bundle.swapChain);
+    // The canvas element is removed by the app's onDestroy hook.
+    await bundle.app.destroy();
+  }
 
-    HTMLCanvasElement? canvas;
-    // first, try and initialize bindings to see if the user has included thermion_dart.js manually in index.html
-    try {
-      NativeLibrary.initBindings("thermion_dart");
-    } catch (err) {
-      _logger.info(
-        "Failed to find thermion_dart in window context, appending manually",
-      );
-      // if not, manually add the script to the DOM
-      var scriptElement = document.createElement("script") as HTMLScriptElement;
-      scriptElement.src = options.webOptions.jsPath;
-      document.head!.appendChild(scriptElement);
-      final completer = Completer<JSObject?>();
-      scriptElement.addEventListener(
-        "load",
-        () {
-          final constructor =
-              globalContext.getProperty("thermion_dart".toJS) as JSFunction?;
-          if (constructor == null) {
-            _logger.severe("Failed to find JS library constructor");
-            completer.complete(null);
-          } else {
-            final lib = constructor.callAsFunction() as JSPromise;
-            lib.toDart.then((resolved) {
-              completer.complete(resolved as JSObject);
-            });
-          }
-        }.toJS,
-      );
-      final lib = await completer.future;
-      globalContext.setProperty("thermion_dart".toJS, lib);
-      NativeLibrary.initBindings("thermion_dart");
+  @override
+  String? canvasIdForView(View view) => _appsByView[view]?.canvasId;
+
+  @override
+  void setTargetFramerate(int fps) {
+    for (final bundle in _appsBySwapChain.values) {
+      bundle.app.setTargetFramerate(fps);
     }
-
-    canvas = document.getElementById("thermion_canvas") as HTMLCanvasElement?;
-
-    if (options.webOptions.createCanvas) {
-      // Remove and re-create the canvas if createCanvas is true and the canvas
-      // already exists. This fixes the hot-reload problem (where the canvas
-      // has already been created by the previous iteration and transferred to
-      // the pthread. This is still an issue if createCanvas is false.
-      // if(canvas.context)
-      canvas?.remove();
-      canvas = document.createElement("canvas") as HTMLCanvasElement?;
-    }
-
-    if (canvas == null) {
-      throw Exception("Could not locate or create canvas");
-    }
-    canvas.id = "thermion_canvas";
-    // canvas.style.display = "none";
-    document.body!.appendChild(canvas);
-
-    if (options.webOptions.createCanvas) {
-      (canvas as HTMLElement).style.position = "fixed";
-      (canvas as HTMLElement).style.zIndex = "-1";
-    }
-
-    final config = FFIFilamentConfig(
-      backend: Backend.OPENGL,
-      loadResource: loadAsset,
-      platform: nullptr,
-      sharedContext: null,
-      uberArchivePath: options.uberarchivePath,
-    );
-    await FFIFilamentApp.create(config: config);
-    // resetting the web state when the app is destroyed
-    (FilamentApp.instance as FFIFilamentApp).onDestroy(() async {
-      WidgetsBinding.instance.removeObserver(this);
-      _resetWebState();
-    });
-
-    // Use createSwapChain with nullptr to render to the canvas's default
-    // framebuffer (framebuffer 0). createHeadlessSwapChain creates an offscreen
-    // buffer that never gets displayed.
-    swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1);
-
-    _logger.info("Created 1x1 headless swapchain");
-
-    _ensureFrameLoopRunning();
-    WidgetsBinding.instance.addObserver(this);
-    _syncLifecycleState();
-    _applyRenderPause();
-
-    return swapChain!;
   }
 
   @override
@@ -291,29 +325,35 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
     // On web, we don't use hardware textures but we return a descriptor
     // with dimensions so the callback can update viewport/camera
+    final bundle = _appsByView[view];
+    if (bundle == null) {
+      throw StateError(
+        'No web app registered for view (onViewerCreated not called?)',
+      );
+    }
+
     final descriptor = await _textureDescriptorRegistry.create(width, height);
     try {
       await _textureDescriptorRegistry.bindToView(descriptor, view);
       final dpr = window.devicePixelRatio;
       _logger.info(
-        "Creating descriptor for HTML canvas ${descriptor.width}x${descriptor.height} at dpr $dpr",
+        "Creating descriptor for canvas #${bundle.canvasId} "
+        "${descriptor.width}x${descriptor.height} at dpr $dpr",
       );
 
       var overlay = view.getHighlightOverlay();
-      await overlay?.setSwapChain(swapChain!);
+      await overlay?.setSwapChain(bundle.swapChain);
 
       Thermion_setCanvasElementSize(
-        js.StringUtils("#thermion_canvas").toNativeUtf8(),
+        js.StringUtils('#${bundle.canvasId}').toNativeUtf8(),
         descriptor.width,
         descriptor.height,
       );
 
       // [width] and [height] have already been scaled by [devicePixelRatio]
       // so we need to undo this when setting the CSS dimensions
-
       final canvas =
-          document.getElementById("thermion_canvas") as HTMLCanvasElement;
-
+          document.getElementById(bundle.canvasId) as HTMLCanvasElement;
       canvas.style.width = "${width / dpr}px";
       canvas.style.height = "${height / dpr}px";
 

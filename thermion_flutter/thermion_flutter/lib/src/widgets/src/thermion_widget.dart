@@ -51,7 +51,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
 class ThermionWidgetInternal extends StatefulWidget {
   final View view;
   final void Function(PlatformTextureDescriptor? descriptor)? onTextureUpdated;
-  final Widget Function(PlatformTextureDescriptor?) surfaceWidgetBuilder;
+  final Widget Function(PlatformTextureDescriptor?, View) surfaceWidgetBuilder;
 
   const ThermionWidgetInternal({
     super.key,
@@ -115,14 +115,14 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
             // Initial case - no texture yet
             _scheduleTextureAllocation(width, height);
           }
-          return widget.surfaceWidgetBuilder(_texture);
+          return widget.surfaceWidgetBuilder(_texture, widget.view);
         }
 
         // Size changed - schedule a debounced allocation
         _scheduleTextureAllocation(width, height);
 
         // Keep showing the old texture during debounce
-        return widget.surfaceWidgetBuilder(_texture);
+        return widget.surfaceWidgetBuilder(_texture, widget.view);
       },
     );
   }

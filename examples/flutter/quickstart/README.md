@@ -8,7 +8,8 @@ many viewers to mount at a time; tapping the button body mounts that many
 cells in a single frame (each cell owns an independent `ThermionViewer`).
 Clicking it again removes that many, so the control doubles as a toggle for
 the concurrent mount/dispose stress path. Use the **×** on a cell to remove
-it individually.
+it individually. On web, each viewer runs its own engine and canvas, and the
+batch is capped by `WebOptions.maxViewers`.
 
 > Note: the grid is rebuilt from a fresh list on every add/remove (see
 > `_MyHomePageState`). Mutating the list in place will leave new cells latent

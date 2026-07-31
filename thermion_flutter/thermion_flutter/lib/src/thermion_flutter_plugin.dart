@@ -9,6 +9,22 @@ import 'package:logging/logging.dart';
 
 export 'platform/platform.dart' hide ThermionFlutterPluginImpl;
 
+/// Result of [ThermionFlutterPlugin.initialize].
+///
+/// Callers must use [app] (never `FilamentApp.instance`): on web each
+/// `createViewer` builds its own engine, and the static may have moved on
+/// to a newer engine by the time the caller resumes.
+class InitializeResult {
+  const InitializeResult({required this.app, this.swapChain});
+
+  /// The engine app created (or reused) by this initialization.
+  final FilamentApp app;
+
+  /// The default swapchain to attach new views to, or null on platforms
+  /// that provide their own surfaces.
+  final SwapChain? swapChain;
+}
+
 /// An implementation of [ThermionFlutterPlatform] that uses
 /// a Flutter platform channel to create a native rendering context, resource
 /// loader and rendering surfaces.
@@ -34,7 +50,27 @@ abstract class ThermionFlutterPlugin {
   void resumeFrameScheduler();
 
   /// Initialize the plugin and create the default swapchain.
-  Future<SwapChain?> initialize({bool destroySwapchain = true});
+  Future<InitializeResult> initialize({bool destroySwapchain = true});
+
+  /// Hook invoked by [createViewer] once [view] exists and is attached to
+  /// [swapChain]. Web uses it to route the view to the engine/canvas that
+  /// this initialization created. Defaults to a no-op.
+  void onViewerCreated(View view, SwapChain? swapChain) {}
+
+  /// Hook invoked after a viewer's resources (its View etc.) have been
+  /// disposed. Web destroys the viewer's engine here (one engine per viewer).
+  /// Defaults to a no-op.
+  Future<void> onViewerDisposed(View view) async {}
+
+  /// Web-only: the DOM canvas id hosting [view]'s engine, or null when the
+  /// canvas is not hosted as a widget. Used by the web surface builder.
+  String? canvasIdForView(View view) => null;
+
+  /// Applies the target frame rate to every engine (web runs one engine per
+  /// viewer).
+  void setTargetFramerate(int fps) {
+    FilamentApp.instance?.setTargetFramerate(fps);
+  }
 
   /// Creates a rendering surface and binds to the given [View].
   /// This is an internal method, don't call this yourself unless you are a
@@ -74,23 +110,26 @@ abstract class ThermionFlutterPlugin {
     bool destroySwapchain = true,
   }) async {
     _logger.finest("Creating viewer");
-    final swapChain = await instance.initialize(
+    final result = await instance.initialize(
       destroySwapchain: destroySwapchain,
     );
     _logger.finest("Plugin initialized");
     final viewer = ThermionViewerFFI(
       createOverlay: instance.options.nativeOptions.createOverlay,
-      // The foundation still has the native single-app initialize contract.
-      // The web feature layer replaces this with its per-initialization app.
-      app: FilamentApp.instance as FFIFilamentApp,
+      app: result.app as FFIFilamentApp,
     );
     await viewer.initialized;
     _logger.finest("Viewer initialized");
+    final swapChain = result.swapChain;
     if (swapChain != null) {
       _logger.finest("Registering swapchain");
-      await FilamentApp.instance!.renderManager.attach(viewer.view, swapChain);
+      // Use the app from THIS initialization — on web each createViewer
+      // builds its own engine, so FilamentApp.instance may already point at
+      // a newer one by the time we resume.
+      await result.app.renderManager.attach(viewer.view, swapChain);
       _logger.finest("Swapchain registered");
     }
+    instance.onViewerCreated(viewer.view, swapChain);
 
     return viewer;
   }
