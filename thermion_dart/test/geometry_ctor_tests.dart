@@ -13,19 +13,26 @@ void main() {
   final indices = [0, 1, 2];
 
   group('Geometry constructor dummy attributes', () {
-    test('createDummyUvs=true supplies zero UVs for UV-less geometry',
-        () async {
-      final geometry = Geometry(vertices, indices);
-      expect(geometry.hasUVs, true,
-          reason: 'dummy UVs should be created and assigned');
-      expect(geometry.uvs.length, 3 * 2, reason: 'one UV pair per vertex');
-      expect(geometry.uvs.every((v) => v == 0.0), true,
-          reason: 'dummy UVs are zero-filled');
-    });
+    test(
+      'createDummyUvs=true supplies zero UVs for UV-less geometry',
+      () async {
+        final geometry = Geometry(vertices, indices);
+        expect(
+          geometry.hasUVs,
+          true,
+          reason: 'dummy UVs should be created and assigned',
+        );
+        expect(geometry.uvs.length, 3 * 2, reason: 'one UV pair per vertex');
+        expect(
+          geometry.uvs.every((v) => v == 0.0),
+          true,
+          reason: 'dummy UVs are zero-filled',
+        );
+      },
+    );
 
     test('createDummyUvs=false leaves UVs empty', () async {
-      final geometry =
-          Geometry(vertices, indices, createDummyUvs: false);
+      final geometry = Geometry(vertices, indices, createDummyUvs: false);
       expect(geometry.hasUVs, false);
       expect(geometry.uvs.length, 0);
     });
@@ -37,19 +44,23 @@ void main() {
       expect(geometry.uvs, uvs);
     });
 
-    test('createDummyColors=true supplies opaque white RGBA colors',
-        () async {
+    test('createDummyColors=true supplies opaque white RGBA colors', () async {
       final geometry = Geometry(vertices, indices);
-      expect(geometry.hasColors, true,
-          reason: 'dummy colors should be created and assigned');
+      expect(
+        geometry.hasColors,
+        true,
+        reason: 'dummy colors should be created and assigned',
+      );
       expect(geometry.colors.length, 3 * 4, reason: 'RGBA per vertex');
-      expect(geometry.colors.every((c) => c == 1.0), true,
-          reason: 'dummy colors are opaque white');
+      expect(
+        geometry.colors.every((c) => c == 1.0),
+        true,
+        reason: 'dummy colors are opaque white',
+      );
     });
 
     test('createDummyColors=false leaves colors empty', () async {
-      final geometry =
-          Geometry(vertices, indices, createDummyColors: false);
+      final geometry = Geometry(vertices, indices, createDummyColors: false);
       expect(geometry.hasColors, false);
       expect(geometry.colors.length, 0);
     });
@@ -61,8 +72,11 @@ void main() {
       expect(withUvs.uvs1, uvs);
 
       final withoutUvs = Geometry(vertices, indices);
-      expect(withoutUvs.hasUVs1, true,
-          reason: 'ubershader requires two UV sets');
+      expect(
+        withoutUvs.hasUVs1,
+        true,
+        reason: 'ubershader requires two UV sets',
+      );
       expect(withoutUvs.uvs1.length, 3 * 2);
       expect(withoutUvs.uvs1.every((v) => v == 0.0), true);
     });
