@@ -139,3 +139,5 @@ Thank you to the following people:
 - [@mwahnish](https://github.com/mwahnish) for bug fixes and web improvements
 - [@aenriqu](https://github.com/aenriqu) for bone animation fixes 
 - [@mushogenshin](https://github.com/mushogenshin) for Android & Windows swapchain & backend fixes
+- [@arthur-lfn](https://github.com/arthur-lfn) for Linux/Vulkan fixes
+- [@wperchinumio](https://github.com/wperchinumio) for detailed bug reports on memory leaks and missing features
