@@ -130,6 +130,23 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
+  // Releases the CPU-side glTF source copy held by this asset (the original
+  // .glb buffer), which is retained after load so that [createInstance] can
+  // be called later.
+  //
+  // Call this AFTER every instance you need has been created. Afterwards,
+  // [createInstance] will throw and no further instances can be created.
+  // Existing instances are unaffected, since they share GPU resources with
+  // the asset and only depend on the source copy at creation time.
+  //
+  // Must be called on the owning asset (throws if called on an instance).
+  // Also throws if this is not a glTF asset, or if the source data has
+  // already been released (for example, the asset was loaded with
+  // releaseSourceData: true).
+  Future releaseSourceData() async {
+    throw UnimplementedError();
+  }
+
   // Enable/disable casting shadows.
   Future setCastShadows(bool castShadows) async {
     throw UnimplementedError();

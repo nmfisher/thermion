@@ -911,13 +911,11 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<ThermionAsset> createGeometry(
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
-    bool releaseSourceData = false,
     bool addToScene = true,
   }) async {
     final asset = await FilamentApp.instance!.createGeometry(
       geometry,
       materialInstances: materialInstances,
-      releaseSourceData: releaseSourceData,
     );
     _assets.add(asset);
     if (addToScene) {
@@ -1082,7 +1080,6 @@ class ThermionViewerFFI extends ThermionViewer {
     final bbAsset = await FilamentApp.instance!.createGeometry(
       geometry,
       materialInstances: [material],
-      releaseSourceData: false,
     );
 
     await bbAsset.setCastShadows(false);

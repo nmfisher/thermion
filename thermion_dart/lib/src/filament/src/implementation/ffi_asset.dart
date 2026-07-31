@@ -21,13 +21,17 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   late final ThermionEntity entity;
 
-  final bool releaseSourceData;
+  // Mutable only on the owning asset. Instance wrappers read the owner's value
+  // through [_sourceDataReleased] rather than carrying their own copy, so the
+  // state can never diverge.
+  bool _released = false;
 
-  FFIAsset(
-    this.asset, {
-    this.instanceOwner = null,
-    this.releaseSourceData = false,
-  }) {
+  // The owning asset's released state; on an instance this reads through to
+  // the instance owner.
+  bool get _sourceDataReleased =>
+      isInstance ? instanceOwner!._sourceDataReleased : _released;
+
+  FFIAsset(this.asset, {this.instanceOwner = null}) {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -119,11 +123,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (instance == nullptr) {
       throw Exception("No instance available at index $index");
     }
-    return FFIAsset(
-      instance,
-      instanceOwner: this,
-      releaseSourceData: releaseSourceData,
-    );
+    return FFIAsset(instance, instanceOwner: this);
   }
 
   //
@@ -136,10 +136,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         materialInstances: materialInstances,
       );
     }
-    if (releaseSourceData) {
+    if (_sourceDataReleased) {
       throw Exception(
-        """releaseSourceData must have been specified as false"""
-        """ when this asset was created""",
+        """Cannot create instance: the asset's glTF source data has been """
+        """released (via releaseSourceData: true at load time or a prior """
+        """call to releaseSourceData())""",
       );
     }
     var ptrList = IntPtrList(materialInstances?.length ?? 0);
@@ -176,11 +177,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(
-      created,
-      instanceOwner: this,
-      releaseSourceData: releaseSourceData,
-    );
+    return FFIAsset(created, instanceOwner: this);
   }
 
   //
@@ -199,14 +196,33 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       if (instance == nullptr) {
         throw Exception("Failed to get asset instance at index $i");
       }
-      return FFIAsset(
-        instance,
-        instanceOwner: this,
-        releaseSourceData: releaseSourceData,
-      );
+      return FFIAsset(instance, instanceOwner: this);
     });
 
     return result;
+  }
+
+  //
+  @override
+  Future releaseSourceData() async {
+    if (isInstance) {
+      throw StateError(
+        "releaseSourceData must be called on the owning asset, not an instance",
+      );
+    }
+    if (type != SceneAssetType.gltf) {
+      throw StateError("releaseSourceData is only supported on glTF assets");
+    }
+    if (_sourceDataReleased) {
+      throw StateError(
+        "The asset's glTF source data has already been released",
+      );
+    }
+    await withVoidCallback(
+      (requestId, cb) =>
+          SceneAsset_releaseSourceDataRenderThread(asset, requestId, cb),
+    );
+    _released = true;
   }
 
   //

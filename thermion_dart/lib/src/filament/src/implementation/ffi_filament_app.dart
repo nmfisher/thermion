@@ -1412,14 +1412,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         ),
       );
 
+      final ffiAsset = FFIAsset(asset);
       if (releaseSourceData) {
-        await withVoidCallback(
-          (requestId, cb) =>
-              SceneAsset_releaseSourceDataRenderThread(asset, requestId, cb),
-        );
+        await ffiAsset.releaseSourceData();
       }
-
-      return FFIAsset(asset, releaseSourceData: releaseSourceData);
+      return ffiAsset;
     } finally {
       if (FILAMENT_WASM) {
         //stackRestore(stackPtr);
@@ -1460,7 +1457,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<ThermionAsset> createGeometry(
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
-    bool releaseSourceData = false,
     bool addToScene = true,
   }) async {
     late Pointer stackPtr;
@@ -1710,7 +1706,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr, releaseSourceData: releaseSourceData);
+    return FFIAsset(assetPtr);
   }
 
   //
