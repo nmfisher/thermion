@@ -20,7 +20,13 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,lengthBytesUTF8,HEAPU8,HEAPU32,HEAPF32)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_malloc,stackAlloc,_free,stackSave,stackRestore)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFULL_ES3)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
+# Pre-spawn one worker per engine/viewer (matches WebOptions.maxViewers
+# default). With a pool smaller than the viewer count, the Nth pthread_create
+# takes emscripten's lazy-spawn path (spawn + wasm load mid-flight), which is
+# fragile and can hang; the pool workers are loaded and awaited at module
+# startup instead. Each worker receives its own canvas at thread start
+# (emscripten_pthread_attr_settransferredcanvases).
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=8)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_BLOCKING_ON_MAIN_THREAD=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMALLOC=mimalloc)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREENCANVAS_SUPPORT=1)

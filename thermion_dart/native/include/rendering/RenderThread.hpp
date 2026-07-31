@@ -51,6 +51,13 @@ public:
     const char *canvasSelector() const { return _canvasSelector.c_str(); }
 
     /**
+     * @brief True when the worker pthread failed to start (web). The C API
+     *        returns a null handle in that case so Dart can fail loudly
+     *        instead of hanging on tasks that will never run.
+     */
+    bool creationFailed() const { return _creationFailed; }
+
+    /**
      * @brief Adds a task to the render thread's task queue.
      * 
      * @param pt The packaged task to be executed
@@ -133,6 +140,7 @@ private:
     // RenderThread_createForCanvas returns, and Engine_create reads the
     // selector later (during the same serialized engine creation).
     std::string _canvasSelector = "#thermion_canvas";
+    bool _creationFailed = false;
 
     
 #ifdef __EMSCRIPTEN__

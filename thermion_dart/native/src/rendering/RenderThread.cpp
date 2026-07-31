@@ -85,7 +85,17 @@ RenderThread::RenderThread(const char *canvasSelector)
     pthread_attr_init(&attr);
     emscripten_pthread_attr_settransferredcanvases(&attr, canvasSelector);
     auto *workerArg = new WorkerArg{this, _stop};
-    pthread_create(&t, &attr, startHelper, workerArg);
+    int rc = pthread_create(&t, &attr, startHelper, workerArg);
+    if (rc != 0) {
+      // The worker never started, so tasks queued for this thread will never
+      // run — every caller would hang forever. Surface it: the C API returns
+      // a null handle and Dart throws "Failed to create render thread".
+      Log("SEVERE - pthread_create failed with code %d; worker did not start "
+          "(canvas selector %s, pool exhausted?)",
+          rc, canvasSelector);
+      _creationFailed = true;
+      delete workerArg;
+    }
     #else
     t = new std::thread([this]() { runNativeLoop(); });
     #endif
