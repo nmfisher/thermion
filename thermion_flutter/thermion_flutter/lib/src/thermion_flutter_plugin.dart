@@ -50,7 +50,15 @@ abstract class ThermionFlutterPlugin {
   void resumeFrameScheduler();
 
   /// Initialize the plugin and create the default swapchain.
-  Future<InitializeResult> initialize({bool destroySwapchain = true});
+  ///
+  /// [canvasId] is web-only: the DOM id of the canvas this viewer's engine
+  /// should render into. An existing element with that id is adopted
+  /// (transfer happens immediately, so it must exist before the call);
+  /// otherwise one is created. Null generates a default id.
+  Future<InitializeResult> initialize({
+    bool destroySwapchain = true,
+    String? canvasId,
+  });
 
   /// Hook invoked by [createViewer] once [view] exists and is attached to
   /// [swapChain]. Web uses it to route the view to the engine/canvas that
@@ -108,10 +116,12 @@ abstract class ThermionFlutterPlugin {
 
   static Future<ThermionViewer> createViewer({
     bool destroySwapchain = true,
+    String? canvasId,
   }) async {
     _logger.finest("Creating viewer");
     final result = await instance.initialize(
       destroySwapchain: destroySwapchain,
+      canvasId: canvasId,
     );
     _logger.finest("Plugin initialized");
     final viewer = ThermionViewerFFI(

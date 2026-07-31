@@ -33,14 +33,14 @@ extern "C"
     
   }
 
-  EMSCRIPTEN_KEEPALIVE void Thermion_destroyCanvas() {
+  EMSCRIPTEN_KEEPALIVE void Thermion_destroyCanvas(const char *canvasSelector) {
     val document = val::global("document");
-    val canvas = document.call<val>("querySelector", val("#thermion_canvas"));
+    val canvas = document.call<val>("querySelector", val(std::string(canvasSelector)));
     if (!canvas.isNull() && !canvas.isUndefined()) {
       canvas.call<void>("remove");
-      std::cout << "Removed #thermion_canvas element" << std::endl;
+      std::cout << "Removed " << canvasSelector << " element" << std::endl;
     } else {
-      std::cout << "#thermion_canvas element not found" << std::endl;
+      std::cout << canvasSelector << " element not found" << std::endl;
     }
   }
 

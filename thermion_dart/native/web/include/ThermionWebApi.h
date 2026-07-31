@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 void Thermion_setCanvasElementSize(const char *name, int width, int height);
-void Thermion_destroyCanvas();
+void Thermion_destroyCanvas(const char *canvasSelector);
 // Creates a WebGL2 context on the given canvas element (e.g.
 // "#thermion_canvas_0"). Called from Engine_create on the engine's render
 // thread; the canvas must have been transferred to that thread.

@@ -55,7 +55,11 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   static Future<InitializeResult>? _initialization;
 
   @override
-  Future<InitializeResult> initialize({bool destroySwapchain = true}) {
+  Future<InitializeResult> initialize({
+    bool destroySwapchain = true,
+    String? canvasId,
+  }) {
+    // canvasId is web-only; native renders into its own surfaces.
     return _initialization ??= _initialize().whenComplete(
       () => _initialization = null,
     );

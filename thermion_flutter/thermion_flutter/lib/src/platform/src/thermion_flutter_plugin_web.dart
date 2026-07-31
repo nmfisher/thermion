@@ -71,13 +71,16 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
   static Future<void> _initChain = Future.value();
 
   @override
-  Future<InitializeResult> initialize({bool destroySwapchain = true}) {
+  Future<InitializeResult> initialize({
+    bool destroySwapchain = true,
+    String? canvasId,
+  }) {
     final completer = Completer<InitializeResult>();
     final prev = _initChain;
     _initChain = completer.future.then((_) {}, onError: (_) {});
     return prev.then((_) async {
       try {
-        final result = await _initialize();
+        final result = await _initialize(canvasId);
         completer.complete(result);
         return result;
       } catch (error, stackTrace) {
@@ -87,7 +90,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     });
   }
 
-  Future<InitializeResult> _initialize() async {
+  Future<InitializeResult> _initialize(String? canvasId) async {
     final maxViewers = options.webOptions.maxViewers;
     if (maxViewers > 0 && _appsBySwapChain.length >= maxViewers) {
       throw StateError(
@@ -131,11 +134,31 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
 
     // Each viewer gets its own canvas, transferred to its own worker by
     // RenderThread_createForCanvas (called inside FFIFilamentApp.create via
-    // the canvasSelector).
-    final canvasId = 'thermion_canvas_${_canvasSeq++}';
-    final canvas = document.createElement('canvas') as HTMLCanvasElement;
-    canvas.id = canvasId;
-    document.body!.appendChild(canvas);
+    // the canvasSelector). A caller-provided id adopts an existing element
+    // (or creates one with that id); otherwise a default id is generated.
+    final String resolvedCanvasId;
+    final HTMLCanvasElement canvas;
+    if (canvasId != null) {
+      if (_appsBySwapChain.values.any((b) => b.canvasId == canvasId)) {
+        throw StateError(
+          'Canvas "$canvasId" is already in use by another viewer.',
+        );
+      }
+      resolvedCanvasId = canvasId;
+      final existing = document.getElementById(canvasId);
+      if (existing is HTMLCanvasElement) {
+        canvas = existing;
+      } else {
+        canvas = document.createElement('canvas') as HTMLCanvasElement;
+        canvas.id = canvasId;
+        document.body!.appendChild(canvas);
+      }
+    } else {
+      resolvedCanvasId = 'thermion_canvas_${_canvasSeq++}';
+      canvas = document.createElement('canvas') as HTMLCanvasElement;
+      canvas.id = resolvedCanvasId;
+      document.body!.appendChild(canvas);
+    }
 
     if (!options.webOptions.importCanvasAsWidget) {
       // Legacy single-canvas layout: the canvas floats behind the app.
@@ -144,7 +167,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
     } else {
       // Host the canvas inside the viewer's widget via a platform view.
       ui_web.platformViewRegistry.registerViewFactory(
-        'imported-canvas-$canvasId',
+        'imported-canvas-$resolvedCanvasId',
         (int viewId, {Object? params}) => canvas as Object,
       );
     }
@@ -156,16 +179,16 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       sharedContext: null,
       uberArchivePath: options.uberarchivePath,
     );
-    await FFIFilamentApp.create(config: config, canvasSelector: '#$canvasId');
+    await FFIFilamentApp.create(config: config, canvasSelector: '#$resolvedCanvasId');
     final app = FilamentApp.instance as FFIFilamentApp;
 
     // Use a headless swapchain as the scheduling token; the view renders
     // into this engine's canvas framebuffer 0.
     final swapChain = await app.createHeadlessSwapChain(1, 1);
-    _logger.info('Created swapchain for canvas #$canvasId');
+    _logger.info('Created swapchain for canvas #$resolvedCanvasId');
 
     final bundle = _WebViewerApp(
-      canvasId: canvasId,
+      canvasId: resolvedCanvasId,
       app: app,
       swapChain: swapChain,
     );
