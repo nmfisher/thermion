@@ -119,6 +119,72 @@ Future<int> withSizeCallback(void Function(Pointer<NativeFunction<Void Function(
   }
 }
 
+/// Uploads [buffer] into [tTexture] on the render thread.
+///
+/// This wrapper exists because a `Uint8List` reaches native memory in a
+/// fundamentally different way on each platform, and only the web path needs a
+/// release step:
+///
+///  * native (`ffi.dart`): `Uint8List.address` is dart:ffi's zero-copy address
+///    of the Dart-heap backing store. It is only legal as a direct argument to
+///    a leaf `@Native` call, so the call site cannot be factored any further.
+///  * web (here): `Uint8List.address` (`ffigen_js` `Uint8ListExtension`) copies
+///    the bytes into the WASM heap. For buffers >= 32 KiB — i.e. every real
+///    texture — `_getPointer` takes the `malloc` branch. Nothing else ever
+///    releases that allocation, and the WASM heap is built with
+///    `-sALLOW_MEMORY_GROWTH=0 -sINITIAL_MEMORY=512mb`, so a media-rate upload
+///    loop exhausts the whole heap in seconds.
+///
+/// Releasing after the callback resolves is safe: `Texture_setImage`
+/// (`native/src/c_api/TTexture.cpp`) copies `data` into its own
+/// `std::vector<uint8_t>` *synchronously* — "the texture upload is async, so we
+/// need to copy the buffer" — and only then does the render-thread task invoke
+/// `onComplete`. By the time this future completes, native no longer refers to
+/// the staged copy.
+Future<bool> Texture_setImageFromBuffer(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<TTexture> tTexture,
+  int level,
+  Uint8List buffer,
+  int xOffset,
+  int yOffset,
+  int zOffset,
+  int width,
+  int height,
+  int depth,
+  int bufferFormat,
+  int pixelDataType,
+) async {
+  final ptr = buffer.address;
+  final size = buffer.lengthInBytes;
+  try {
+    return await withBoolCallback((cb) {
+      Texture_setImageJobThread(
+        jobThread,
+        tEngine,
+        tTexture,
+        level,
+        ptr,
+        size,
+        xOffset,
+        yOffset,
+        zOffset,
+        width,
+        height,
+        depth,
+        bufferFormat,
+        pixelDataType,
+        cb,
+      );
+    });
+  } finally {
+    // No-op for the < 32 KiB stack-allocated branch (the pointer is not in
+    // `_heapAllocations`); frees the malloc'd copy otherwise.
+    ptr.free();
+  }
+}
+
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables

@@ -150,6 +150,49 @@ Future<int> withSizeCallback(void Function(Pointer<NativeFunction<Void Function(
   }
 }
 
+/// Uploads [buffer] into [tTexture] on the render thread.
+///
+/// See the web implementation in `js_interop.dart` for why this is
+/// platform-specific. On native `Uint8List.address` is dart:ffi's zero-copy
+/// address, which the CFE only permits as a direct argument to a leaf
+/// `@Native` invocation, so the expression must stay inline here; there is
+/// nothing to release afterwards.
+Future<bool> Texture_setImageFromBuffer(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Pointer<TTexture> tTexture,
+  int level,
+  Uint8List buffer,
+  int xOffset,
+  int yOffset,
+  int zOffset,
+  int width,
+  int height,
+  int depth,
+  int bufferFormat,
+  int pixelDataType,
+) {
+  return withBoolCallback((cb) {
+    Texture_setImageJobThread(
+        jobThread,
+      tEngine,
+      tTexture,
+      level,
+      buffer.address,
+      buffer.lengthInBytes,
+      xOffset,
+      yOffset,
+      zOffset,
+      width,
+      height,
+      depth,
+      bufferFormat,
+      pixelDataType,
+      cb,
+    );
+  });
+}
+
 Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
