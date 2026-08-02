@@ -384,15 +384,10 @@ if "!BUILD_DEBUG!"=="true" (
   copy /Y "%FILAMENT_BASE_DIR%\out\install-debug\include\gltfio\materials\uberarchive.h" "%TARGET_DEBUG_DIR%\include\debug\gltfio\materials\" 2>nul
 )
 
-REM Copy header files to thermion_dart
-set "COPY_HEADERS_OPTS="
-if "!BUILD_RELEASE!"=="true" if "!BUILD_DEBUG!"=="false" set "COPY_HEADERS_OPTS=--release"
-if "!BUILD_DEBUG!"=="true" if "!BUILD_RELEASE!"=="false" set "COPY_HEADERS_OPTS=--debug"
-
-call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! || (
-  echo Error: Failed to copy headers
-  exit /b 1
-)
+REM Filament headers are bundled into the artifact zip's include/ above (per
+REM target dir). They are no longer copied into a committed tree under
+REM thermion_dart/native/include/filament -- consumers source them from the
+REM version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
 REM Obtain vulkan-1.lib (Vulkan loader import lib; version-independent, not
 REM Filament-specific). Filament's build above uses vendored Vulkan headers and

@@ -429,18 +429,10 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy header files to thermion_dart
-COPY_HEADERS_OPTS=""
-if [ "$BUILD_RELEASE" = true ] && [ "$BUILD_DEBUG" = false ]; then
-  COPY_HEADERS_OPTS="--release"
-elif [ "$BUILD_DEBUG" = true ] && [ "$BUILD_RELEASE" = false ]; then
-  COPY_HEADERS_OPTS="--debug"
-fi
-
-"$SCRIPT_DIR/copy_headers.sh" "$FILAMENT_BASE_DIR" $COPY_HEADERS_OPTS || {
-  echo "Error: Failed to copy headers"
-  exit 1
-}
+# Filament headers are bundled into the artifact zip's include/ above (per
+# target dir). They are no longer copied into a committed tree under
+# thermion_dart/native/include/filament — consumers source them from the
+# version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
