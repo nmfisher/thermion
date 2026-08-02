@@ -19,7 +19,7 @@
 #include <mutex>
 #include <thread>
 
-#include "filament/backend/platforms/VulkanPlatform.h"
+#include "backend/platforms/VulkanPlatform.h"
 #include "filament/Engine.h"
 #include "filament/Renderer.h"
 #include "filament/View.h"

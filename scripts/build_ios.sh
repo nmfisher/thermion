@@ -390,69 +390,10 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy header files to thermion_dart
-# All shared headers go to native/include/filament/
-# Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
-
-if [ "$BUILD_RELEASE" = true ]; then
-  HEADER_SOURCE="out/ios-release/filament/include"
-elif [ "$BUILD_DEBUG" = true ]; then
-  HEADER_SOURCE="out/ios-debug/filament/include"
-fi
-
-echo "Copying Filament header files to thermion_dart..."
-rm -rf "$THERMION_INCLUDE"
-mkdir -p "$THERMION_INCLUDE"
-cd "$FILAMENT_BASE_DIR"
-cp -R $HEADER_SOURCE/* "$THERMION_INCLUDE/" || {
-  echo "Error: Failed to copy Filament headers"
-  exit 1
-}
-
-# Copy imageio headers (not included in main include dir)
-mkdir -p "$THERMION_INCLUDE/imageio"
-cp -R libs/imageio/include/* "$THERMION_INCLUDE/imageio/" || {
-  echo "Error: Failed to copy imageio headers"
-  exit 1
-}
-
-# Copy release-specific uberarchive.h
-if [ "$BUILD_RELEASE" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/release/gltfio/materials"
-  cp out/ios-release/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/release/gltfio/materials/" || {
-    echo "Error: Failed to copy release uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy debug-specific uberarchive.h
-if [ "$BUILD_DEBUG" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/debug/gltfio/materials"
-  cp out/ios-debug/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/debug/gltfio/materials/" || {
-    echo "Error: Failed to copy debug uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
-if [ -d "$FILAMENT_BASE_DIR/libs/bluevk/include" ]; then
-  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$THERMION_INCLUDE/" || {
-    echo "Error: Failed to copy bluevk headers"
-    exit 1
-  }
-fi
-
-# Copy stb_image.h (third-party header used by TTexture.cpp)
-mkdir -p "$THERMION_INCLUDE/third_party/stb"
-cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$THERMION_INCLUDE/third_party/stb/" || {
-  echo "Error: Failed to copy stb_image.h"
-  exit 1
-}
-
-echo "Headers copied to: $THERMION_INCLUDE"
+# Filament headers are bundled into the artifact zip's include/ above (per
+# target dir). They are no longer copied into a committed tree under
+# thermion_dart/native/include/filament — consumers source them from the
+# version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then

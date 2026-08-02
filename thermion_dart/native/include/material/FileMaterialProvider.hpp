@@ -1,7 +1,7 @@
 #ifndef FILE_MATERIAL_PROVIDER
 #define FILE_MATERIAL_PROVIDER
 
-#include <filament/gltfio/MaterialProvider.h>
+#include <gltfio/MaterialProvider.h>
 #include <filament/Texture.h>
 #include <filament/TextureSampler.h>
 #include <math/mat4.h>

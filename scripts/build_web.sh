@@ -611,68 +611,52 @@ if [ "$BUILD_DEBUG" = true ]; then
   find out/cmake-webgl-debug -name "*.bc" -type f -exec cp {} "$TARGET_DEBUG_DIR/" \; 2>/dev/null
 fi
 
-# Copy header files to thermion_dart
-# All shared headers go to native/include/filament/
-# Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
+# Bundle the Filament header tree into each target zip directory so the web
+# R2 artifact is self-contained (libraries + matching headers), exactly like
+# the other platforms. The flat `include/` layout mirrors Filament's install
+# tree; gltfio/materials/uberarchive.h is the web-specific variant. This lets
+# `make wasm` source headers from the downloaded web zip instead of a
+# hand-committed tree that can drift on version bumps.
+copy_web_headers() {
+  local target_dir="$1"    # $TARGET_RELEASE_DIR or $TARGET_DEBUG_DIR
+  local header_src="$2"    # out/webgl-<mode>/filament/include
+  local inc="$target_dir/include"
 
-if [ "$BUILD_RELEASE" = true ]; then
-  HEADER_SOURCE="out/webgl-release/filament/include"
-elif [ "$BUILD_DEBUG" = true ]; then
-  HEADER_SOURCE="out/webgl-debug/filament/include"
-fi
-
-echo "Copying Filament header files to thermion_dart..."
-rm -rf "$THERMION_INCLUDE"
-mkdir -p "$THERMION_INCLUDE"
-cd "$FILAMENT_BASE_DIR"
-cp -R $HEADER_SOURCE/* "$THERMION_INCLUDE/" || {
-  echo "Error: Failed to copy Filament headers"
-  exit 1
-}
-
-# Copy imageio headers (not included in main include dir)
-mkdir -p "$THERMION_INCLUDE/imageio"
-cp -R libs/imageio/include/* "$THERMION_INCLUDE/imageio/" || {
-  echo "Error: Failed to copy imageio headers"
-  exit 1
-}
-
-# Copy release-specific uberarchive.h
-if [ "$BUILD_RELEASE" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/release/gltfio/materials"
-  cp out/webgl-release/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/release/gltfio/materials/" || {
-    echo "Error: Failed to copy release uberarchive.h"
+  echo "Bundling Filament headers into $inc ..."
+  mkdir -p "$inc"
+  cp -R "$FILAMENT_BASE_DIR/$header_src/"* "$inc/" || {
+    echo "Error: Failed to copy Filament headers"
     exit 1
   }
-fi
 
-# Copy debug-specific uberarchive.h
+  # imageio headers (not part of the main install include dir)
+  mkdir -p "$inc/imageio"
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include/"* "$inc/imageio/" || {
+    echo "Error: Failed to copy imageio headers"
+    exit 1
+  }
+
+  # stb_image.h (third-party header used by TTexture.cpp)
+  mkdir -p "$inc/third_party/stb"
+  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$inc/third_party/stb/" || {
+    echo "Error: Failed to copy stb_image.h"
+    exit 1
+  }
+
+  # Assimp headers (for model import support)
+  mkdir -p "$inc/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" "$inc/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy Assimp headers"
+    exit 1
+  }
+}
+
+if [ "$BUILD_RELEASE" = true ]; then
+  copy_web_headers "$TARGET_RELEASE_DIR" "out/webgl-release/filament/include"
+fi
 if [ "$BUILD_DEBUG" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/debug/gltfio/materials"
-  cp out/webgl-debug/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/debug/gltfio/materials/" || {
-    echo "Error: Failed to copy debug uberarchive.h"
-    exit 1
-  }
+  copy_web_headers "$TARGET_DEBUG_DIR" "out/webgl-debug/filament/include"
 fi
-
-# Copy stb_image.h (third-party header used by TTexture.cpp)
-mkdir -p "$THERMION_INCLUDE/third_party/stb"
-cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$THERMION_INCLUDE/third_party/stb/" || {
-  echo "Error: Failed to copy stb_image.h"
-  exit 1
-}
-
-# Copy Assimp headers (for model import support)
-mkdir -p "$THERMION_INCLUDE/third_party/libassimp/include"
-cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" "$THERMION_INCLUDE/third_party/libassimp/include/" || {
-  echo "Error: Failed to copy Assimp headers"
-  exit 1
-}
-
-echo "Headers copied to: $THERMION_INCLUDE"
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then

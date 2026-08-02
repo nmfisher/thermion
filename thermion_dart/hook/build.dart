@@ -77,14 +77,22 @@ outputDirectory : ${outputDirectory.path}
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
-    var libDir = (await getLibDir(
+    final libResult = await getLibDir(
       packageRoot,
       targetOS,
       targetArchitecture,
       logger,
       buildMode,
       isIOSSimulator: isIOSSimulator,
-    )).path;
+    );
+    var libDir = libResult.libDir.path;
+    // Version-matched Filament headers extracted from the same R2 artifact as
+    // the libraries (see getLibDir). Expressed relative to the package root to
+    // match the convention of the other includeDirs entries.
+    final artifactIncludeRel = path.relative(
+      libResult.includeDir.path,
+      from: pkgRootFilePath,
+    );
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -195,14 +203,19 @@ outputDirectory : ${outputDirectory.path}
 
     final flags = <String>[]; //"-fsanitize=address"];
 
-    // Collect include directories including plugin includes
-    // Use debug or release Filament headers based on build mode
-    // Headers are under filament/debug or filament/release so includes like <filament/SomeHeader.h> work
-    final filamentIncludeDir = [
-      'native/include/filament',
-      buildMode == BuildMode.debug ? 'native/include/filament/debug' : 'native/include/filament/release',
-    ];
-    final includeDirs = <String>['native/include', ...filamentIncludeDir];
+    // Include directories:
+    //  - `native/include`     : Thermion's OWN headers (c_api/, components/,
+    //                           ...) still committed in-tree.
+    //  - `artifactIncludeRel` : the Filament C++ headers, sourced from the
+    //                           version-matched R2 artifact extracted by
+    //                           getLibDir() (under .dart_tool/.../include).
+    //                           This replaces a hand-committed Filament header
+    //                           tree that drifted out of sync with the linked
+    //                           libraries on version bumps. `<filament/...>`,
+    //                           `<utils/...>`, `<backend/...>` and
+    //                           `<gltfio/materials/uberarchive.h>` all resolve
+    //                           from this flat root.
+    final includeDirs = <String>['native/include', artifactIncludeRel];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {
@@ -441,7 +454,12 @@ String _getLibraryUrl(String platform, String mode) {
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
-Future<Directory> getLibDir(
+// The downloaded zip also contains a complete, version-matched Filament header tree
+// under `include/`, which is extracted alongside the libraries. We return that include
+// directory so consumers compile against headers that always match the linked
+// libraries (rather than a hand-committed tree that drifts on version bumps).
+//
+Future<({Directory libDir, Directory includeDir})> getLibDir(
   Uri packageRoot,
   OS targetOS,
   Architecture targetArchitecture,
@@ -557,7 +575,13 @@ Future<Directory> getLibDir(
     }
     successToken.writeAsStringSync("SUCCESS");
   }
-  return libDir;
+  // The entire zip (libraries AND the `include/` header tree) is extracted to
+  // `unzipDir`; for Android the per-arch libs live in a subdir but headers are
+  // shared at the extraction root.
+  return (
+    libDir: libDir,
+    includeDir: Directory(path.join(unzipDir, 'include')),
+  );
 }
 
 const _webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';

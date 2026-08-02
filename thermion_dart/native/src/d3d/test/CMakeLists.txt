@@ -30,14 +30,16 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+# Filament headers from the version-matched R2 artifact extracted under .dart_tool/.
+set(_D3D_FILAMENT_DIR "../../../../thermion_dart/.dart_tool/thermion_dart/lib/v1.74.0/windows/debug")
 include_directories(${PROJECT_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/../../../include"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../../include/windows/vulkan"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../../../include/filament/"
+  "${_D3D_FILAMENT_DIR}/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/"
 )
 target_link_directories(${PROJECT_NAME} PRIVATE
-    "../../../../thermion_dart/.dart_tool/thermion_dart/lib/v1.74.0/windows/debug"
+    "${_D3D_FILAMENT_DIR}"
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
