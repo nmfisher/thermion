@@ -418,7 +418,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -464,7 +464,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
