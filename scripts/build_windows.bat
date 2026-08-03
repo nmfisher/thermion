@@ -288,8 +288,8 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_RELEASE_DIR%\include\imageio\" || (
+  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_RELEASE_DIR%\include\" || (
     echo Error: Failed to copy imageio headers to target
     exit /b 1
   )
@@ -341,8 +341,8 @@ if "!BUILD_DEBUG!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_DEBUG_DIR%\include\imageio\" || (
+  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_DEBUG_DIR%\include\" || (
     echo Error: Failed to copy imageio headers to target
     exit /b 1
   )
