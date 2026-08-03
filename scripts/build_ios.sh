@@ -135,30 +135,28 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy release libraries
-  # Filament v1.74.0 delegates universal-lib creation to
-  # build/ios/create-universal-libs.sh, which leaves lib/universal/ empty in
-  # this environment (the per-arch dirs are populated but no fat libs are
-  # written). Build the fat (device + simulator) libs ourselves via lipo from
-  # the per-architecture directories.
+  # Filament v1.74.0 builds iOS XCFramework bundles (lib<name>.xcframework/)
+  # and removes the intermediate flat per-arch .a directories. Thermion links
+  # flat -l<name> .a archives, so extract the per-slice .a from each xcframework
+  # and lipo the slices into a single universal (device + simulator) .a in the
+  # target directory.
   _LIB_DIR="out/ios-release/filament/lib"
-  mkdir -p "$_LIB_DIR/universal"
-  for _devlib in "$_LIB_DIR/arm64-iphoneos/"*.a; do
-    [ -e "$_devlib" ] || continue
-    _name=$(basename "$_devlib")
-    _archs=("$_LIB_DIR/arm64-iphoneos/$_name")
-    for _sim in arm64-iphonesimulator x86_64-iphonesimulator; do
-      [ -f "$_LIB_DIR/$_sim/$_name" ] && _archs+=("$_LIB_DIR/$_sim/$_name")
-    done
-    lipo -create "${_archs[@]}" -output "$_LIB_DIR/universal/$_name" 2>/dev/null \
-      || cp "$_devlib" "$_LIB_DIR/universal/$_name"
+  for _xcf in "$_LIB_DIR"/*.xcframework; do
+    [ -d "$_xcf" ] || continue
+    _name=$(basename "$_xcf" .xcframework)
+    _slices=()
+    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
+    [ "${#_slices[@]}" -gt 0 ] || continue
+    if [ "${#_slices[@]}" -eq 1 ]; then
+      cp "${_slices[0]}" "$TARGET_RELEASE_DIR/$_name.a"
+    else
+      lipo -create "${_slices[@]}" -output "$TARGET_RELEASE_DIR/$_name.a" || {
+        echo "Error: failed to lipo universal library $_name"
+        exit 1
+      }
+    fi
   done
-
-  echo "Copying release libraries..."
-  cp out/ios-release/filament/lib/universal/*.a "$TARGET_RELEASE_DIR/" || {
-    echo "Error: Failed to copy release libraries"
-    exit 1
-  }
+  echo "Extracted universal libraries from XCFrameworks into $TARGET_RELEASE_DIR"
 
   # Build libz for release
   echo "Building libz (release)..."
@@ -236,26 +234,24 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy debug libraries
-  # Build fat (device + simulator) universal libs via lipo (see release block).
+  # Extract universal libs from XCFrameworks (see release block above).
   _LIB_DIR="out/ios-debug/filament/lib"
-  mkdir -p "$_LIB_DIR/universal"
-  for _devlib in "$_LIB_DIR/arm64-iphoneos/"*.a; do
-    [ -e "$_devlib" ] || continue
-    _name=$(basename "$_devlib")
-    _archs=("$_LIB_DIR/arm64-iphoneos/$_name")
-    for _sim in arm64-iphonesimulator x86_64-iphonesimulator; do
-      [ -f "$_LIB_DIR/$_sim/$_name" ] && _archs+=("$_LIB_DIR/$_sim/$_name")
-    done
-    lipo -create "${_archs[@]}" -output "$_LIB_DIR/universal/$_name" 2>/dev/null \
-      || cp "$_devlib" "$_LIB_DIR/universal/$_name"
+  for _xcf in "$_LIB_DIR"/*.xcframework; do
+    [ -d "$_xcf" ] || continue
+    _name=$(basename "$_xcf" .xcframework)
+    _slices=()
+    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
+    [ "${#_slices[@]}" -gt 0 ] || continue
+    if [ "${#_slices[@]}" -eq 1 ]; then
+      cp "${_slices[0]}" "$TARGET_DEBUG_DIR/$_name.a"
+    else
+      lipo -create "${_slices[@]}" -output "$TARGET_DEBUG_DIR/$_name.a" || {
+        echo "Error: failed to lipo universal library $_name"
+        exit 1
+      }
+    fi
   done
-
-  echo "Copying debug libraries..."
-  cp out/ios-debug/filament/lib/universal/*.a "$TARGET_DEBUG_DIR/" || {
-    echo "Error: Failed to copy debug libraries"
-    exit 1
-  }
+  echo "Extracted universal libraries from XCFrameworks into $TARGET_DEBUG_DIR"
 
   # Build libz for debug
   echo "Building libz (debug)..."
