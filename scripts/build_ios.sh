@@ -136,6 +136,24 @@ if [ "$BUILD_RELEASE" = true ]; then
   }
 
   # Copy release libraries
+  # Filament v1.74.0 delegates universal-lib creation to
+  # build/ios/create-universal-libs.sh, which leaves lib/universal/ empty in
+  # this environment (the per-arch dirs are populated but no fat libs are
+  # written). Build the fat (device + simulator) libs ourselves via lipo from
+  # the per-architecture directories.
+  _LIB_DIR="out/ios-release/filament/lib"
+  mkdir -p "$_LIB_DIR/universal"
+  for _devlib in "$_LIB_DIR/arm64-iphoneos/"*.a; do
+    [ -e "$_devlib" ] || continue
+    _name=$(basename "$_devlib")
+    _archs=("$_LIB_DIR/arm64-iphoneos/$_name")
+    for _sim in arm64-iphonesimulator x86_64-iphonesimulator; do
+      [ -f "$_LIB_DIR/$_sim/$_name" ] && _archs+=("$_LIB_DIR/$_sim/$_name")
+    done
+    lipo -create "${_archs[@]}" -output "$_LIB_DIR/universal/$_name" 2>/dev/null \
+      || cp "$_devlib" "$_LIB_DIR/universal/$_name"
+  done
+
   echo "Copying release libraries..."
   cp out/ios-release/filament/lib/universal/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy release libraries"
@@ -219,6 +237,20 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 
   # Copy debug libraries
+  # Build fat (device + simulator) universal libs via lipo (see release block).
+  _LIB_DIR="out/ios-debug/filament/lib"
+  mkdir -p "$_LIB_DIR/universal"
+  for _devlib in "$_LIB_DIR/arm64-iphoneos/"*.a; do
+    [ -e "$_devlib" ] || continue
+    _name=$(basename "$_devlib")
+    _archs=("$_LIB_DIR/arm64-iphoneos/$_name")
+    for _sim in arm64-iphonesimulator x86_64-iphonesimulator; do
+      [ -f "$_LIB_DIR/$_sim/$_name" ] && _archs+=("$_LIB_DIR/$_sim/$_name")
+    done
+    lipo -create "${_archs[@]}" -output "$_LIB_DIR/universal/$_name" 2>/dev/null \
+      || cp "$_devlib" "$_LIB_DIR/universal/$_name"
+  done
+
   echo "Copying debug libraries..."
   cp out/ios-debug/filament/lib/universal/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy debug libraries"
