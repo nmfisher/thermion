@@ -386,7 +386,6 @@ abstract class FilamentApp<T> {
   Future<ThermionAsset> createGeometry(
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
-    bool releaseSourceData = false,
   });
 
   //

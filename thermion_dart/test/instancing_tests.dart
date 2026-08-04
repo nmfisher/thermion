@@ -90,6 +90,63 @@ void main() async {
     });
   });
 
+  test("releaseSourceData() frees the glTF source copy while keeping "
+      "existing instances usable", () async {
+    await testHelper.withViewer((viewer) async {
+      var asset = await viewer.loadGltf(
+        "file://${testHelper.assetsDir}/cube.glb",
+        addToScene: false,
+        initialInstances: 1,
+      );
+      var defaultInstance = await asset.getInstance(0);
+      var instance = await asset.createInstance();
+      await viewer.addToScene(defaultInstance);
+      await viewer.addToScene(instance);
+      await testHelper.capture(viewer.view, "gltf_before_source_release");
+
+      // releasing via an instance wrapper is a misuse: it must throw, and
+      // only the owning asset may release the source data
+      await expectLater(
+        instance.releaseSourceData(),
+        throwsA(isA<StateError>()),
+      );
+
+      await asset.releaseSourceData();
+      await testHelper.capture(viewer.view, "gltf_after_source_release");
+
+      // existing instances are unaffected
+      expect(await asset.getInstanceCount(), 2);
+      expect(instance.isInstance, true);
+
+      // no further instances can be created, on the asset or its instances
+      await expectLater(asset.createInstance(), throwsA(isA<Exception>()));
+      await expectLater(instance.createInstance(), throwsA(isA<Exception>()));
+    }, addSkybox: true);
+  });
+
+  test(
+    "releaseSourceData() throws for non-glTF assets and double release",
+    () async {
+      await testHelper.withViewer((viewer) async {
+        var asset = await viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          addToScene: false,
+        );
+        await asset.releaseSourceData();
+        await expectLater(
+          asset.releaseSourceData(),
+          throwsA(isA<StateError>()),
+        );
+
+        var geometry = await viewer.createGeometry(GeometryUtils.cube());
+        await expectLater(
+          geometry.releaseSourceData(),
+          throwsA(isA<StateError>()),
+        );
+      });
+    },
+  );
+
   test('create pre-allocated gltf instance', () async {
     await testHelper.withViewer((viewer) async {
       // Loading a glTF asset always creates a single instance behind the scenes,

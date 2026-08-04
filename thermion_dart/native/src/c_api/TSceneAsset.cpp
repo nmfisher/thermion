@@ -274,6 +274,10 @@ extern "C"
             Log("releaseSourceData only supported on glTF assets");
             return;
         }
+        if (asset->isInstance()) {
+            Log("releaseSourceData must be called on the owning asset, not an instance");
+            return;
+        }
         auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
         gltfAsset->releaseSourceData();
     }
@@ -310,4 +314,3 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-

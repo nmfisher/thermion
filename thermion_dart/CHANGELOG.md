@@ -1,10 +1,20 @@
-## 0.4.2-pre
+> Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
+
+## 0.5.0-pre
 Fixes:
  - route loadKtx2 through the render thread on web.
  - pick readPixels type per-view from render-target format.
  - add BLIT_SRC|BLIT_DST when decodeToTexture asks mipmaps.
  - free stb buffer after LinearImage decode.
  - add Engine_destroyRenderer + RenderThread variant.
+ - add releaseSourceData() to ThermionAsset so the CPU-side glTF source copy
+   can be freed after all instances have been created.
+ - update the thermion_flutter dependency on thermion_dart to 0.5.0-pre.
+
+### Breaking changes:
+ - remove the releaseSourceData parameter from createGeometry — source-data
+   release only applies to glTF assets, so call releaseSourceData() on the
+   returned asset instead.
 
 ## 0.4.1
 - re-publish without Melos

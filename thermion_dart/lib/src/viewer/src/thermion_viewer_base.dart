@@ -142,6 +142,11 @@ abstract class ThermionViewer {
   // If [releaseSourceData] is true, [initialInstances] will be created but no
   // further instances will be able to be created.
   //
+  // If [releaseSourceData] is false and you only need a fixed set of
+  // instances, call [ThermionAsset.releaseSourceData] once those instances
+  // have been created to free the CPU-side glTF source copy (the original
+  // .glb buffer). Afterwards, [createInstance] will no longer be available.
+  //
   // Creating instances by specifying [initialInstances] at asset load time is
   // generally more efficient than dynamically instantating at a later time.
   //
@@ -250,7 +255,6 @@ abstract class ThermionViewer {
   Future<ThermionAsset> createGeometry(
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
-    bool releaseSourceData = false,
   });
 
   // Returns a gizmo for translating/rotating objects.
