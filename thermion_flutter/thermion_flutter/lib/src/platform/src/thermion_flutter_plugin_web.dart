@@ -179,7 +179,15 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       sharedContext: null,
       uberArchivePath: options.uberarchivePath,
     );
-    await FFIFilamentApp.create(config: config, canvasSelector: '#$resolvedCanvasId');
+    // destroyExisting: false — this is a NEW engine for a NEW viewer;
+    // FFIFilamentApp.create would otherwise destroy the previous viewer's
+    // engine (and its worker) underneath its render loop, deadlocking when
+    // the destructor drains pending render tasks on the main thread.
+    await FFIFilamentApp.create(
+      config: config,
+      canvasSelector: '#$resolvedCanvasId',
+      destroyExisting: false,
+    );
     final app = FilamentApp.instance as FFIFilamentApp;
 
     // Use a headless swapchain as the scheduling token; the view renders
