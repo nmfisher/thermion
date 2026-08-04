@@ -112,10 +112,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return FFIDebugRegistry(debugRegistryPtr);
   }
 
-  static Future create({FFIFilamentConfig? config, String? canvasSelector}) async {
+  static Future create({
+    FFIFilamentConfig? config,
+    String? canvasSelector,
+    bool destroyExisting = true,
+  }) async {
     config ??= FFIFilamentConfig();
 
-    if (FilamentApp.instance != null) {
+    // Multi-engine web (engine per viewer) creates additional engines while
+    // an existing one is still rendering. destroyExisting: false leaves the
+    // current app untouched — the caller owns it (the web plugin's per-viewer
+    // bundle) and must NOT have it torn down underneath its render loop.
+    if (destroyExisting && FilamentApp.instance != null) {
       await FilamentApp.instance!.destroy();
     }
 
