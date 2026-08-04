@@ -1,6 +1,12 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
 ## 0.5.0-pre
+New features:
+ - add web multi-viewer support with one engine, render thread, WebGL context,
+   and canvas per viewer.
+ - add `WebOptions.maxViewers`, per-viewer canvas IDs and lifecycle hooks, and
+   host web canvases inside each viewer widget by default.
+
 Fixes:
  - route loadKtx2 through the render thread on web.
  - pick readPixels type per-view from render-target format.
@@ -10,11 +16,18 @@ Fixes:
  - add releaseSourceData() to ThermionAsset so the CPU-side glTF source copy
    can be freed after all instances have been created.
  - update the thermion_flutter dependency on thermion_dart to 0.5.0-pre.
+ - scope render attachment state per engine so one web viewer never submits
+   another engine's views or swapchains.
 
 ### Breaking changes:
  - remove the releaseSourceData parameter from createGeometry — source-data
    release only applies to glTF assets, so call releaseSourceData() on the
    returned asset instead.
+ - engine-scoped FFI objects now retain their owning `FFIFilamentApp`;
+   `ThermionViewerFFI` and tone-mapper factories require it explicitly.
+ - `ThermionFlutterPlugin.initialize()` now returns `InitializeResult`, and
+   `ThermionWidgetInternal.surfaceWidgetBuilder` receives the owning `View`.
+ - `WebOptions.importCanvasAsWidget` now defaults to `true`.
 
 ## 0.4.1
 - re-publish without Melos
