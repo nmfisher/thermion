@@ -80,7 +80,9 @@ abstract class ThermionFlutterPlugin {
     _logger.finest("Plugin initialized");
     final viewer = ThermionViewerFFI(
       createOverlay: instance.options.nativeOptions.createOverlay,
-      app: result.app as FFIFilamentApp,
+      // The foundation still has the native single-app initialize contract.
+      // The web feature layer replaces this with its per-initialization app.
+      app: FilamentApp.instance as FFIFilamentApp,
     );
     await viewer.initialized;
     _logger.finest("Viewer initialized");
