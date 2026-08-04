@@ -175,6 +175,7 @@ class _MyHomePageState extends State<MyHomePage> {
               framerate: _framerate,
               viewerCount: _tiles.length,
               batch: _batch,
+              maxBatch: _maxBatch,
               onBatchChanged: (v) => setState(() => _batch = v),
               onApplyBatch: _applyBatch,
               onFramerateChanged: (v) {
@@ -373,6 +374,7 @@ class _Footer extends StatelessWidget {
     required this.framerate,
     required this.viewerCount,
     required this.batch,
+    required this.maxBatch,
     required this.onBatchChanged,
     required this.onApplyBatch,
     required this.onFramerateChanged,
@@ -381,6 +383,7 @@ class _Footer extends StatelessWidget {
   final int framerate;
   final int viewerCount;
   final int batch;
+  final int maxBatch;
   final ValueChanged<int> onBatchChanged;
   final VoidCallback onApplyBatch;
   final ValueChanged<int> onFramerateChanged;
@@ -413,7 +416,7 @@ class _Footer extends StatelessWidget {
                 _EmbeddedStepper(
                   value: batch,
                   min: 1,
-                  max: 64,
+                  max: maxBatch,
                   onChanged: onBatchChanged,
                 ),
                 const SizedBox(width: 10),
