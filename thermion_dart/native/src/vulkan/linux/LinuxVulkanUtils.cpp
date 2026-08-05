@@ -212,10 +212,26 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     // 1. Find a suitable queue family
     resources.queueFamilyIndex = findGraphicsQueueFamily(physicalDevice);
 
-    // 2. Get the queue handle (index 1 = blit queue, index 0 is reserved for Filament)
+    // 2. Get the queue handle. Use the SECOND queue in the family when the
+    //    hardware has one (the device requests two — see createLogicalDevice):
+    //    queue 0 belongs to Filament; submitting to it concurrently from the
+    //    blit thread is a data race. Fall back to queue 0 only on single-queue
+    //    hardware, where the LinuxVulkanContext shim serializes queue calls.
+    uint32_t familyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> families(familyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, families.data());
+    const uint32_t queueIndex =
+        families[resources.queueFamilyIndex].queueCount >= 2 ? 1u : 0u;
+    resources.queueSharedWithFilament = (queueIndex == 0);
+    std::cerr << "[ThermionVk] Blit/command queue: family "
+              << resources.queueFamilyIndex << ", queue index " << queueIndex
+              << (resources.queueSharedWithFilament ? " (shared with Filament)" : "")
+              << std::endl;
+
     vkGetDeviceQueue(device,
         resources.queueFamilyIndex,
-        1,
+        queueIndex,
         &resources.queue);
 
     // 3. Create command pool
@@ -342,14 +358,20 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
                   << ": flags=0x" << std::hex << qfProps[i].queueFlags << std::dec
                   << " count=" << qfProps[i].queueCount << std::endl;
     }
+    // Request a second queue in the family when the hardware exposes one.
+    // Queue 0 is handed to Filament; the blit submits from a separate thread.
+    // VkQueue access is externally synchronized, so sharing one queue across
+    // those threads is a data race. With two queues the blit gets its own
+    // (see createCommandResources); with one queue they share queue 0 and the
+    // blit's queue calls are serialized via the LinuxVulkanContext shim.
+    const uint32_t queueCount = qfProps[*queueFamilyIndex].queueCount >= 2 ? 2u : 1u;
     std::cerr << "[ThermionVk] Using graphics queue family " << *queueFamilyIndex
-              << " (supports " << qfProps[*queueFamilyIndex].queueCount << " queues, requesting 2)" << std::endl;
+              << " (supports " << qfProps[*queueFamilyIndex].queueCount
+              << " queues, requesting " << queueCount << ")" << std::endl;
 
-    if (qfProps[*queueFamilyIndex].queueCount < 2) {
-        std::cerr << "[ThermionVk] WARNING: Queue family only supports "
-                  << qfProps[*queueFamilyIndex].queueCount
-                  << " queues, but we need 2 (Filament + blit). "
-                  << "Filament and blit will share a queue." << std::endl;
+    if (queueCount < 2) {
+        std::cerr << "[ThermionVk] Single graphics queue: Filament and blit share queue 0; "
+                  << "queue calls will be serialized (see LinuxVulkanContext shim)." << std::endl;
     }
 
     // Check which device extensions are available
@@ -436,7 +458,7 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = *queueFamilyIndex;
-    queueCreateInfo.queueCount = 2;
+    queueCreateInfo.queueCount = queueCount;
     queueCreateInfo.pQueuePriorities = queuePriorities;
 
     VkDeviceCreateInfo deviceCreateInfo = {};
