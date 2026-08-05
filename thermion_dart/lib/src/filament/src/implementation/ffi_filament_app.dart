@@ -85,7 +85,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
     this.transformManager = FFITransformManager(transformManagerPtr, this);
     this.animationManager = FFIAnimationManager(animationManagerPointer, this);
-    this.renderManager = FFIRenderManager(renderManager);
+    this.renderManager = FFIRenderManager(renderManager, this);
 
     // A new engine starts uncapped. Scheduler stop/start within this engine
     // preserves later user changes, but a cap from an older hot-restarted
@@ -238,7 +238,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         cb,
       ),
     );
-    final sc = FFISwapChain(swapChain);
+    final sc = FFISwapChain(swapChain, this);
     _swapChains.add(sc);
     return sc;
   }
@@ -262,7 +262,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       ),
     );
     _logger.info("Created swapchain from window");
-    final sc = FFISwapChain(swapChain);
+    final sc = FFISwapChain(swapChain, this);
     _swapChains.add(sc);
     return sc;
   }
