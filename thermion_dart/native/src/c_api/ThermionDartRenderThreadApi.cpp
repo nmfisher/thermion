@@ -121,6 +121,30 @@ extern "C"
     g_threadByOwner[owner] = rt;
   }
 
+  // Remove every owner registration that maps to `rt`. Call AFTER the thread's
+  // worker has been joined (otherwise an in-flight creation task on that worker
+  // could re-add an entry pointing at the about-to-be-freed RenderThread, and a
+  // recycled handle address would later resolve to freed memory via RT()).
+  static void unregisterOwnersOf(void *rt)
+  {
+    if (rt == nullptr)
+    {
+      return;
+    }
+    std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
+    for (auto it = g_threadByOwner.begin(); it != g_threadByOwner.end();)
+    {
+      if (it->second == rt)
+      {
+        it = g_threadByOwner.erase(it);
+      }
+      else
+      {
+        ++it;
+      }
+    }
+  }
+
   // Record that `owner` (created on the main thread via a direct-API getter,
   // e.g. Engine_getTransformManager) belongs to the thread of `knownOwner`
   // (an engine-scoped handle already in the registry).
@@ -151,11 +175,20 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void* RenderThread_create()
   {
     TRACE("RenderThread_create");
-    if (_renderThread)
+    RenderThread *stale = _renderThread ? _renderThread.get() : nullptr;
+    if (stale != nullptr)
     {
       Log("WARNING - you are attempting to create a RenderThread when the previous one has not been disposed.");
     }
     _renderThread = std::make_unique<RenderThread>();
+    // The assignment above destroyed the previous RenderThread (and joined its
+    // worker). Sweep stale owner registrations AFTER the join — the dying
+    // worker's last creation task can't then re-add an entry pointing at freed
+    // memory, and a recycled handle address can't resolve to it via RT().
+    if (stale != nullptr)
+    {
+      unregisterOwnersOf(stale);
+    }
     g_activeThread = _renderThread.get();
     TRACE("RenderThread created");
     return _renderThread.get();
@@ -184,23 +217,10 @@ extern "C"
     {
       g_activeThread = nullptr;
     }
-    // Drop owner registrations that still point at the destroyed thread. The
-    // handles themselves are tearing down, and leaving stale entries means a
-    // recycled handle address could later resolve to freed memory via RT().
-    {
-      std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
-      for (auto it = g_threadByOwner.begin(); it != g_threadByOwner.end();)
-      {
-        if (it->second == renderThread)
-        {
-          it = g_threadByOwner.erase(it);
-        }
-        else
-        {
-          ++it;
-        }
-      }
-    }
+    // _renderThread = nullptr / _renderThreads.erase above already destroyed
+    // the RenderThread (and joined its worker), so it's safe to drop any owner
+    // registrations that still point at it.
+    unregisterOwnersOf(renderThread);
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)())
