@@ -105,6 +105,7 @@ void main() async {
       // renderable (RGB32F is not, even with EXT_color_buffer_float).
       final texture = await LinearImage.decodeToTexture(
         imageData,
+        app: result.viewer.app,
         levels: 4,
         requireAlpha: true,
         textureFormat: TextureFormat.RGBA32F,

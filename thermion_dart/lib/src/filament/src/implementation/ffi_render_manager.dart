@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 /// Tracks view-to-swapchain associations separately from whether a view should
 /// currently be submitted for rendering.
@@ -70,13 +71,19 @@ class RenderAttachmentState {
 class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   final Pointer<TRenderManager> pointer;
 
+  /// The owning app. The RenderManager wraps engine-bound resources (a
+  /// Renderer created from the Engine) and is only valid while that engine is
+  /// alive. It also reconstructs `FFISwapChain` wrappers for attached
+  /// swapchains, which need the same app.
+  final FFIFilamentApp app;
+
   Pointer<TRenderManager> getNativeHandle() {
     return pointer;
   }
 
   late final _logger = Logger(this.runtimeType.toString());
 
-  FFIRenderManager(this.pointer);
+  FFIRenderManager(this.pointer, this.app);
 
   /// Per-engine view/swapchain attachment state.
   ///
@@ -249,7 +256,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   @override
   Iterable<SwapChain> getAttachedSwapChains(View view) sync* {
     for (final handle in _attachmentState.getAttachedSwapChains(view)) {
-      yield FFISwapChain(handle);
+      yield FFISwapChain(handle, app);
     }
   }
 }

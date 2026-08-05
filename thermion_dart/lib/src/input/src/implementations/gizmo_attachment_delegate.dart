@@ -142,8 +142,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
     final bones = <BoneInfo>[];
     for (int i = 0; i < boneEntities.length; i++) {
       final boneEntity = boneEntities[i];
-      final boneName =
-          FilamentApp.instance!.getNameForEntity(boneEntity) ?? 'Bone $i';
+      final boneName = viewer.app.getNameForEntity(boneEntity) ?? 'Bone $i';
       bones.add(
         BoneInfo(
           name: boneName,
@@ -305,8 +304,9 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
       final boneEntity = boneEntities[i];
       if (boneEntity == 0) continue;
 
-      final boneTransform = await FilamentApp.instance!.transformManager
-          .getWorldTransform(boneEntity);
+      final boneTransform = await viewer.app.transformManager.getWorldTransform(
+        boneEntity,
+      );
       final bonePos = boneTransform.getTranslation();
 
       final distance = bonePos.distanceTo(_lastPickWorldPosition!);

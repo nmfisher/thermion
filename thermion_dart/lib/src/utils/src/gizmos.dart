@@ -89,7 +89,7 @@ class TransformationGizmo {
     if (_isDisposed) return;
 
     // 2. Create Root entity (no geometry needed - just a transform parent)
-    _rootEntity = await FilamentApp.instance!.createEntity();
+    _rootEntity = await viewer.app.createEntity();
     if (_isDisposed) return;
 
     if (type == TransformationGizmoType.translation) {
@@ -173,7 +173,7 @@ class TransformationGizmo {
     MaterialInstance mat,
     Vector3 axis,
   ) async {
-    final ringAsset = await FilamentApp.instance!.createGeometry(
+    final ringAsset = await viewer.app.createGeometry(
       ring,
       materialInstances: [mat],
     );
@@ -189,10 +189,7 @@ class TransformationGizmo {
 
     // Parent to root entity so it moves with the gizmo
     if (_rootEntity != null) {
-      FilamentApp.instance!.transformManager.setParent(
-        ringAsset.entity,
-        _rootEntity!,
-      );
+      viewer.app.transformManager.setParent(ringAsset.entity, _rootEntity!);
     }
 
     // Calculate rotation to align ring with the axis
@@ -210,8 +207,8 @@ class TransformationGizmo {
       rotation,
       Vector3.all(1.0),
     );
-    await FilamentApp.instance!.setTransform(ringAsset.entity, ringMatrix);
-    await FilamentApp.instance!.setPriority(ringAsset.entity, 7);
+    await viewer.app.setTransform(ringAsset.entity, ringMatrix);
+    await viewer.app.setPriority(ringAsset.entity, 7);
     return ringAsset.entity;
   }
 
@@ -223,7 +220,7 @@ class TransformationGizmo {
     Vector3 direction,
   ) async {
     // Create Shaft
-    final shaftAsset = await FilamentApp.instance!.createGeometry(
+    final shaftAsset = await viewer.app.createGeometry(
       shaft,
       materialInstances: [mat],
     );
@@ -239,7 +236,7 @@ class TransformationGizmo {
     _assets.add(shaftAsset);
 
     // Create Head
-    final headAsset = await FilamentApp.instance!.createGeometry(
+    final headAsset = await viewer.app.createGeometry(
       head,
       materialInstances: [mat],
     );
@@ -254,14 +251,8 @@ class TransformationGizmo {
 
     // Parent to root entity so they move with the gizmo
     if (_rootEntity != null) {
-      FilamentApp.instance!.transformManager.setParent(
-        shaftAsset.entity,
-        _rootEntity!,
-      );
-      FilamentApp.instance!.transformManager.setParent(
-        headAsset.entity,
-        _rootEntity!,
-      );
+      viewer.app.transformManager.setParent(shaftAsset.entity, _rootEntity!);
+      viewer.app.transformManager.setParent(headAsset.entity, _rootEntity!);
     }
 
     // Calculations
@@ -273,8 +264,8 @@ class TransformationGizmo {
     final headMatrix = Matrix4.compose(headPos, rotation, Vector3.all(1.0));
 
     // Set local transforms
-    await FilamentApp.instance!.setTransform(shaftAsset.entity, shaftMatrix);
-    await FilamentApp.instance!.setTransform(headAsset.entity, headMatrix);
+    await viewer.app.setTransform(shaftAsset.entity, shaftMatrix);
+    await viewer.app.setTransform(headAsset.entity, headMatrix);
 
     return (shaftAsset.entity, headAsset.entity);
   }
@@ -458,7 +449,7 @@ class TransformationGizmo {
     double alpha = 0.5,
   }) async {
     if (_isDisposed) throw Exception("Gizmo disposed");
-    final material = await FilamentApp.instance!.createGizmoMaterial();
+    final material = await viewer.app.createGizmoMaterial();
     final mat = await material.createInstance();
     await mat.setParameterFloat4("baseColorFactor", r, g, b, alpha);
     return mat;
@@ -507,7 +498,7 @@ class TransformationGizmo {
 
     final targetPos =
         position ??
-        (await FilamentApp.instance!.transformManager.getWorldTransform(
+        (await viewer.app.transformManager.getWorldTransform(
           _attachedTarget!,
         )).getTranslation();
 
@@ -530,7 +521,7 @@ class TransformationGizmo {
       Quaternion.identity(),
       Vector3.all(scale),
     );
-    await FilamentApp.instance!.setTransform(_rootEntity!, rootTransform);
+    await viewer.app.setTransform(_rootEntity!, rootTransform);
   }
 
   Future<GizmoAxis> pickAxis(int x, int y) async {
@@ -546,8 +537,9 @@ class TransformationGizmo {
     final viewMatrix = await camera.getViewMatrix();
 
     // Get gizmo world position
-    final gizmoTransform = await FilamentApp.instance!.transformManager
-        .getWorldTransform(_rootEntity!);
+    final gizmoTransform = await viewer.app.transformManager.getWorldTransform(
+      _rootEntity!,
+    );
     final gizmoWorldPos = gizmoTransform.getTranslation();
     final gizmoScale = gizmoTransform.getColumn(0).xyz.length;
 
@@ -667,8 +659,9 @@ class TransformationGizmo {
 
     // Store initial state
     _dragStartScreen = Vector2(screenX.toDouble(), screenY.toDouble());
-    _targetStartTransform = await FilamentApp.instance!.transformManager
-        .getWorldTransform(_attachedTarget!);
+    _targetStartTransform = await viewer.app.transformManager.getWorldTransform(
+      _attachedTarget!,
+    );
     _lastComputedWorldTransform = null;
 
     if (_isDisposed) return false;
@@ -790,10 +783,7 @@ class TransformationGizmo {
         _attachedTarget!,
         newWorldTransform,
       );
-      await FilamentApp.instance!.setTransform(
-        _attachedTarget!,
-        localTransform,
-      );
+      await viewer.app.setTransform(_attachedTarget!, localTransform);
 
       // Update gizmo position directly only if still alive
       if (!_isDisposed) {
@@ -899,10 +889,7 @@ class TransformationGizmo {
         _attachedTarget!,
         newWorldTransform,
       );
-      await FilamentApp.instance!.setTransform(
-        _attachedTarget!,
-        localTransform,
-      );
+      await viewer.app.setTransform(_attachedTarget!, localTransform);
     }
   }
 
@@ -912,7 +899,7 @@ class TransformationGizmo {
     ThermionEntity entity,
     Matrix4 worldTransform,
   ) {
-    final tm = FilamentApp.instance!.transformManager;
+    final tm = viewer.app.transformManager;
     final parent = tm.getParent(entity);
 
     if (parent == null) {
@@ -990,8 +977,9 @@ class TransformationGizmo {
     final viewMatrix = await camera.getViewMatrix();
 
     // Get gizmo world position and scale
-    final gizmoTransform = await FilamentApp.instance!.transformManager
-        .getWorldTransform(_rootEntity!);
+    final gizmoTransform = await viewer.app.transformManager.getWorldTransform(
+      _rootEntity!,
+    );
     final gizmoWorldPos = gizmoTransform.getTranslation();
     final gizmoScale = gizmoTransform.getColumn(0).xyz.length;
 
@@ -1079,7 +1067,7 @@ class TransformationGizmo {
     final markerGeom = _createSphereGeometry(_markerRadius, 12, 8);
 
     // Start marker (white)
-    _startMarkerAsset = await FilamentApp.instance!.createGeometry(
+    _startMarkerAsset = await viewer.app.createGeometry(
       markerGeom,
       materialInstances: [_whiteMat!],
     );
@@ -1092,7 +1080,7 @@ class TransformationGizmo {
     _assets.add(_startMarkerAsset!);
 
     // Current marker (yellow)
-    _currentMarkerAsset = await FilamentApp.instance!.createGeometry(
+    _currentMarkerAsset = await viewer.app.createGeometry(
       markerGeom,
       materialInstances: [_yellowMat!],
     );
@@ -1106,14 +1094,8 @@ class TransformationGizmo {
 
     // Parent to root entity
     if (_rootEntity != null) {
-      FilamentApp.instance!.transformManager.setParent(
-        _startMarker!,
-        _rootEntity!,
-      );
-      FilamentApp.instance!.transformManager.setParent(
-        _currentMarker!,
-        _rootEntity!,
-      );
+      viewer.app.transformManager.setParent(_startMarker!, _rootEntity!);
+      viewer.app.transformManager.setParent(_currentMarker!, _rootEntity!);
     }
 
     // Initially hide markers
@@ -1131,10 +1113,10 @@ class TransformationGizmo {
     );
 
     if (_startMarker != null) {
-      await FilamentApp.instance!.setTransform(_startMarker!, hideTransform);
+      await viewer.app.setTransform(_startMarker!, hideTransform);
     }
     if (_currentMarker != null) {
-      await FilamentApp.instance!.setTransform(_currentMarker!, hideTransform);
+      await viewer.app.setTransform(_currentMarker!, hideTransform);
     }
   }
 
@@ -1149,8 +1131,8 @@ class TransformationGizmo {
       Quaternion.identity(),
       Vector3.all(1.0),
     );
-    await FilamentApp.instance!.setTransform(marker, markerTransform);
-    await FilamentApp.instance!.setPriority(marker, 7);
+    await viewer.app.setTransform(marker, markerTransform);
+    await viewer.app.setPriority(marker, 7);
   }
 
   Future<void> _updateHighlights() async {
@@ -1204,7 +1186,7 @@ class TransformationGizmo {
     for (final asset in _assets) {
       await viewer.removeFromScene(asset);
       // If your API supports destroying entities explicitly, do it here.
-      // e.g. await FilamentApp.instance!.removeEntity(asset.entity);
+      // e.g. await viewer.app.removeEntity(asset.entity);
     }
     _assets.clear();
 
@@ -1213,7 +1195,7 @@ class TransformationGizmo {
       // Assuming removeEntity exists in your version of FilamentApp
       // If not, just null it out, as child removal usually handles it.
       try {
-        // await FilamentApp.instance!.removeEntity(_rootEntity!);
+        // await viewer.app.removeEntity(_rootEntity!);
       } catch (e) {
         // ignore
       }

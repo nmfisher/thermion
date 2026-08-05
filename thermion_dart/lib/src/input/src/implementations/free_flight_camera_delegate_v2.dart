@@ -5,6 +5,7 @@ import '../../input.dart';
 
 class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
   final View view;
+  final FilamentApp app;
   final InputSensitivityOptions sensitivity;
   final bool moveOnHover;
 
@@ -12,12 +13,13 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
   late final Future<void> Function() _onFrame;
 
   FreeFlightInputHandlerDelegateV2(
-    this.view, {
+    this.view,
+    this.app, {
     this.sensitivity = const InputSensitivityOptions(),
     this.moveOnHover = false,
   }) {
     _onFrame = _handleFrame;
-    FilamentApp.instance!.registerRequestFrameHook(_onFrame);
+    app.registerRequestFrameHook(_onFrame);
   }
 
   Future<void> _handleFrame() async {
@@ -162,7 +164,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
 
   @override
   Future dispose() async {
-    await FilamentApp.instance!.unregisterRequestFrameHook(_onFrame);
+    await app.unregisterRequestFrameHook(_onFrame);
     _heldKeys.clear();
   }
 }

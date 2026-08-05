@@ -103,7 +103,7 @@ class FFIIndirectLight extends IndirectLight {
     if (_irradianceTexture != null || _reflectionsTexture != null) {
       // The indirect light references these textures. Engine destruction is
       // queued, so drain it before releasing the referenced textures.
-      await FilamentApp.instance!.flush();
+      await _app.flush();
     }
 
     if (_irradianceTexture != null) {

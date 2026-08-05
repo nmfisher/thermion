@@ -35,6 +35,9 @@ class ThermionViewerFFI extends ThermionViewer {
 
   final FFIFilamentApp _app;
 
+  @override
+  FilamentApp get app => _app;
+
   //
   ThermionViewerFFI({bool createOverlay = false, required FFIFilamentApp app})
     : _createOverlay = createOverlay,
@@ -813,6 +816,7 @@ class ThermionViewerFFI extends ThermionViewer {
       // transform
       _translationAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
+            app: _app,
             originX: 0.0,
             originY: 0.0,
             originZ: 0.0,
