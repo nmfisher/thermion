@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <memory>
+#include <mutex>
 #include <iostream>
 #include <unordered_map>
 
@@ -15,6 +16,97 @@
 namespace thermion::vulkan::linux_platform {
 
 using namespace bluevk;
+
+namespace {
+
+// Single-queue-hardware fallback. When the graphics family exposes only one
+// queue, the blit worker and Filament's render thread both submit to queue 0.
+// Vulkan requires external synchronization of every queue-level call, so we
+// interpose the process-wide bluevk function-pointer globals with wrappers
+// that serialize on this mutex. Filament's Vulkan backend (backend) and this
+// blit worker are statically linked into the same thermion_dart.so and
+// therefore dereference the SAME bluevk globals (declared extern in
+// BlueVK.h), so interposing them here funnels both threads' submissions
+// through one lock. On multi-queue HW this shim is never installed.
+std::mutex sQueueMutex;
+
+PFN_vkQueueSubmit     sRealQueueSubmit     = nullptr;
+PFN_vkQueueSubmit2    sRealQueueSubmit2    = nullptr;
+PFN_vkQueueWaitIdle   sRealQueueWaitIdle   = nullptr;
+PFN_vkQueuePresentKHR sRealQueuePresentKHR = nullptr;
+PFN_vkQueueBindSparse sRealQueueBindSparse = nullptr;
+
+VKAPI_ATTR VkResult VKAPI_CALL SerializedQueueSubmit(VkQueue queue, uint32_t submitCount,
+                                                     const VkSubmitInfo* pSubmits, VkFence fence) {
+    std::lock_guard<std::mutex> lock(sQueueMutex);
+    return sRealQueueSubmit(queue, submitCount, pSubmits, fence);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL SerializedQueueSubmit2(VkQueue queue, uint32_t submitCount,
+                                                      const VkSubmitInfo2* pSubmits, VkFence fence) {
+    std::lock_guard<std::mutex> lock(sQueueMutex);
+    return sRealQueueSubmit2(queue, submitCount, pSubmits, fence);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL SerializedQueueWaitIdle(VkQueue queue) {
+    std::lock_guard<std::mutex> lock(sQueueMutex);
+    return sRealQueueWaitIdle(queue);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL SerializedQueuePresentKHR(VkQueue queue,
+                                                         const VkPresentInfoKHR* pPresentInfo) {
+    std::lock_guard<std::mutex> lock(sQueueMutex);
+    return sRealQueuePresentKHR(queue, pPresentInfo);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL SerializedQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
+                                                         const VkBindSparseInfo* pBindInfo, VkFence fence) {
+    std::lock_guard<std::mutex> lock(sQueueMutex);
+    return sRealQueueBindSparse(queue, bindInfoCount, pBindInfo, fence);
+}
+
+// Idempotent: safe to call every frame. For each global, capture the current
+// (real) pointer and reassign the global to our wrapper — but only when it is
+// not already pointing at the wrapper, which prevents infinite recursion on
+// re-install (Filament re-binds these globals on Engine (re)creation, dropping
+// our shim, so BlitToExport re-calls this).
+void InstallQueueSerializationShim() {
+    static bool sLogged = false;
+    bool swapped = false;
+
+    if (bluevk::vkQueueSubmit && bluevk::vkQueueSubmit != &SerializedQueueSubmit) {
+        sRealQueueSubmit = bluevk::vkQueueSubmit;
+        bluevk::vkQueueSubmit = &SerializedQueueSubmit;
+        swapped = true;
+    }
+    if (bluevk::vkQueueSubmit2 && bluevk::vkQueueSubmit2 != &SerializedQueueSubmit2) {
+        sRealQueueSubmit2 = bluevk::vkQueueSubmit2;
+        bluevk::vkQueueSubmit2 = &SerializedQueueSubmit2;
+        swapped = true;
+    }
+    if (bluevk::vkQueueWaitIdle && bluevk::vkQueueWaitIdle != &SerializedQueueWaitIdle) {
+        sRealQueueWaitIdle = bluevk::vkQueueWaitIdle;
+        bluevk::vkQueueWaitIdle = &SerializedQueueWaitIdle;
+        swapped = true;
+    }
+    if (bluevk::vkQueuePresentKHR && bluevk::vkQueuePresentKHR != &SerializedQueuePresentKHR) {
+        sRealQueuePresentKHR = bluevk::vkQueuePresentKHR;
+        bluevk::vkQueuePresentKHR = &SerializedQueuePresentKHR;
+        swapped = true;
+    }
+    if (bluevk::vkQueueBindSparse && bluevk::vkQueueBindSparse != &SerializedQueueBindSparse) {
+        sRealQueueBindSparse = bluevk::vkQueueBindSparse;
+        bluevk::vkQueueBindSparse = &SerializedQueueBindSparse;
+        swapped = true;
+    }
+
+    if (swapped && !sLogged) {
+        sLogged = true;
+        std::cerr << "[ThermionVk] Queue-submission serialization shim installed" << std::endl;
+    }
+}
+
+} // namespace
 
 class LinuxVulkanContext::Impl {
     public:
@@ -170,7 +262,14 @@ class LinuxVulkanContext::Impl {
                 };
                 vkAllocateCommandBuffers(device, &cmdAllocInfo, &_blitCmdBuffer);
 
-                std::cerr << "[ThermionVk:Context] Blit resources initialized (queue index 1)" << std::endl;
+                std::cerr << "[ThermionVk:Context] Blit resources initialized" << std::endl;
+            }
+
+            // Single-queue HW: the blit shares Filament's queue 0, so serialize
+            // queue calls. Re-installed per frame (idempotent) to survive
+            // Filament re-binding the bluevk globals on Engine (re)creation.
+            if (_blitResources.queueSharedWithFilament) {
+                InstallQueueSerializationShim();
             }
 
             // Wait for Filament's GPU work to finish
