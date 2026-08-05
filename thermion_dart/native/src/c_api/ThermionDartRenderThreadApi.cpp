@@ -1,6 +1,7 @@
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <stdlib.h>
 #include <vector>
@@ -76,6 +77,16 @@ extern "C"
   std::unordered_map<void *, std::unique_ptr<RenderThread>> _renderThreads;
   RenderThread *g_activeThread = nullptr;
 
+  // g_threadByOwner is written from RenderThread worker tasks (object
+  // creation registers the new handle on the thread that produced it — see
+  // the ~60 `setOwner(...)` sites below) and read from the Dart thread on
+  // every dispatch via RT(). std::unordered_map is not concurrency-safe: an
+  // unsynchronized find() racing an insert that triggers a rehash on the
+  // worker returns garbage, which surfaced as intermittent SEGVs inside
+  // addTask() (the dispatch dereferenced a wild pointer). Every access goes
+  // through g_ownerMutex.
+  std::shared_mutex g_ownerMutex;
+
   // Resolve the thread for a dispatch. `owner` is the engine/manager/view/
   // ... handle the operation targets; nullptr means "creation-time task" —
   // the most recently created thread, which is the one the Dart side just
@@ -84,6 +95,7 @@ extern "C"
   {
     if (owner != nullptr)
     {
+      std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
       auto it = g_threadByOwner.find(owner);
       if (it != g_threadByOwner.end())
       {
@@ -97,6 +109,18 @@ extern "C"
     return _renderThread.get();
   }
 
+  // Record that `owner` belongs to `rt`. Called from worker-thread creation
+  // tasks and from the Dart thread; always under the exclusive lock.
+  static void setOwner(void *owner, RenderThread *rt)
+  {
+    if (owner == nullptr || rt == nullptr)
+    {
+      return;
+    }
+    std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
+    g_threadByOwner[owner] = rt;
+  }
+
   // Record that `owner` (created on the main thread via a direct-API getter,
   // e.g. Engine_getTransformManager) belongs to the thread of `knownOwner`
   // (an engine-scoped handle already in the registry).
@@ -106,7 +130,22 @@ extern "C"
     {
       return;
     }
-    g_threadByOwner[owner] = RT(knownOwner);
+    RenderThread *rt;
+    {
+      std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
+      auto it = g_threadByOwner.find(knownOwner);
+      rt = (it != g_threadByOwner.end()) ? it->second : nullptr;
+    }
+    // Preserve RT()'s fallback semantics for an unregistered knownOwner.
+    if (rt == nullptr)
+    {
+      rt = g_activeThread != nullptr ? g_activeThread : _renderThread.get();
+    }
+    if (rt == nullptr)
+    {
+      return;
+    }
+    setOwner(owner, rt);
   }
 
   EMSCRIPTEN_KEEPALIVE void* RenderThread_create()
@@ -145,6 +184,23 @@ extern "C"
     {
       g_activeThread = nullptr;
     }
+    // Drop owner registrations that still point at the destroyed thread. The
+    // handles themselves are tearing down, and leaving stale entries means a
+    // recycled handle address could later resolve to freed memory via RT().
+    {
+      std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
+      for (auto it = g_threadByOwner.begin(); it != g_threadByOwner.end();)
+      {
+        if (it->second == renderThread)
+        {
+          it = g_threadByOwner.erase(it);
+        }
+        else
+        {
+          ++it;
+        }
+      }
+    }
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)())
@@ -161,13 +217,18 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void RenderManager_attachToRenderThread(TRenderManager *tRenderManager)
   {
 #ifdef __EMSCRIPTEN__
-    if (!_renderThread && g_threadByOwner.empty()) {
+    bool ownersEmpty;
+    {
+      std::shared_lock<std::shared_mutex> lock(g_ownerMutex);
+      ownersEmpty = g_threadByOwner.empty();
+    }
+    if (!_renderThread && ownersEmpty) {
       Log("WARNING - RenderManager_attachToRenderThread called with no RenderThread active.");
       return;
     }
     auto *rm = reinterpret_cast<RenderManager *>(tRenderManager);
     auto *rt = RT(tRenderManager);
-    g_threadByOwner[tRenderManager] = rt;
+    setOwner(tRenderManager, rt);
     rt->setRenderManager(rm);
 #else
     (void)tRenderManager; // no-op on native
@@ -184,7 +245,10 @@ extern "C"
     if (rt) {
       rt->setRenderManager(nullptr);
     }
-    g_threadByOwner.erase(tRenderManager);
+    {
+      std::lock_guard<std::shared_mutex> lock(g_ownerMutex);
+      g_threadByOwner.erase(tRenderManager);
+    }
 #else
     (void)tRenderManager; // no-op on native
 #endif
@@ -295,7 +359,7 @@ extern "C"
         {
           auto *engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
 
-          g_threadByOwner[engine] = rt;          PROXY(onComplete(engine));
+          setOwner(engine, rt);          PROXY(onComplete(engine));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -309,7 +373,7 @@ extern "C"
         {
           auto *renderer = Engine_createRenderer(tEngine);
 
-          g_threadByOwner[renderer] = rt;          PROXY(onComplete(renderer));
+          setOwner(renderer, rt);          PROXY(onComplete(renderer));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -394,7 +458,7 @@ extern "C"
         {
           auto camera = Engine_createCamera(tEngine, entityId);
 
-          g_threadByOwner[camera] = rt;          PROXY(onComplete(camera));
+          setOwner(camera, rt);          PROXY(onComplete(camera));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -419,7 +483,7 @@ extern "C"
         {
           auto *view = Engine_createView(tEngine);
 
-          g_threadByOwner[view] = rt;          PROXY(onComplete(view));
+          setOwner(view, rt);          PROXY(onComplete(view));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -480,7 +544,7 @@ extern "C"
         {
           auto material = Engine_buildMaterial(tEngine, materialData, length);
 
-          g_threadByOwner[material] = rt;          PROXY(onComplete(material));
+          setOwner(material, rt);          PROXY(onComplete(material));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -517,7 +581,7 @@ extern "C"
         {
           auto *fence = Engine_createFence(tEngine);
 
-          g_threadByOwner[fence] = rt;          PROXY(onComplete(fence));
+          setOwner(fence, rt);          PROXY(onComplete(fence));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -736,7 +800,7 @@ extern "C"
         {
           auto *instance = Material_createImageMaterial(tEngine);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -749,7 +813,7 @@ extern "C"
         {
           auto *instance = Material_createGizmoMaterial(tEngine);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -762,7 +826,7 @@ extern "C"
         {
           auto *instance = Material_createSilhouetteMaterial(tEngine);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -775,7 +839,7 @@ extern "C"
         {
           auto *instance = Material_createEdgeOutlineMaterial(tEngine);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -788,7 +852,7 @@ extern "C"
         {
           auto *instance = Material_createWireframeMaterial(tEngine);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -801,7 +865,7 @@ extern "C"
         {
           auto *instance = Material_createTranslationAxisMaterial(tEngine);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -814,7 +878,7 @@ extern "C"
         {
           auto *instance = Material_createBoneOverlayMaterial(tEngine);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -827,7 +891,7 @@ extern "C"
         {
           auto *instance = Material_createInstance(tMaterial);
 
-          g_threadByOwner[instance] = rt;          PROXY(onComplete(instance));
+          setOwner(instance, rt);          PROXY(onComplete(instance));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -877,7 +941,7 @@ extern "C"
         {
           auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices);
 
-          g_threadByOwner[sceneAsset] = rt;          PROXY(onComplete(sceneAsset));
+          setOwner(sceneAsset, rt);          PROXY(onComplete(sceneAsset));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -898,7 +962,7 @@ extern "C"
         {
           auto sceneAsset = SceneAsset_createFromBuffers(tEngine, tVertexBuffer, tIndexBuffer, materialInstances, materialInstanceCount, tPrimitiveType, boundingBox);
 
-          g_threadByOwner[sceneAsset] = rt;          PROXY(callback(sceneAsset));
+          setOwner(sceneAsset, rt);          PROXY(callback(sceneAsset));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -914,7 +978,7 @@ extern "C"
         {
           auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
 
-          g_threadByOwner[instanceAsset] = rt;          PROXY(callback(instanceAsset));
+          setOwner(instanceAsset, rt);          PROXY(callback(instanceAsset));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1044,7 +1108,7 @@ extern "C"
         {
           auto cg = ColorGrading_create(tEngine, toneMapper);
 
-          g_threadByOwner[cg] = rt;          PROXY(callback(cg));
+          setOwner(cg, rt);          PROXY(callback(cg));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1057,7 +1121,7 @@ extern "C"
         {
           auto *builder = ColorGradingBuilder_create();
 
-          g_threadByOwner[builder] = rt;          PROXY(onComplete(builder));
+          setOwner(builder, rt);          PROXY(onComplete(builder));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1094,7 +1158,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createLinear(tEngine);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1107,7 +1171,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createACES(tEngine);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1120,7 +1184,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createACESLegacy(tEngine);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1133,7 +1197,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createFilmic(tEngine);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1146,7 +1210,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createPBRNeutral(tEngine);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1159,7 +1223,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createAGX(tEngine);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1172,7 +1236,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createAGXWithLook(tEngine, look);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1185,7 +1249,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createGeneric(tEngine, contrast, midGrayIn, midGrayOut, hdrMax);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1198,7 +1262,7 @@ extern "C"
         {
           auto *toneMapper = ToneMapper_createDisplayRange(tEngine);
 
-          g_threadByOwner[toneMapper] = rt;          PROXY(onComplete(toneMapper));
+          setOwner(toneMapper, rt);          PROXY(onComplete(toneMapper));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1542,7 +1606,7 @@ extern "C"
         {
           auto *animationManager = AnimationManager_create(tEngine);
 
-          g_threadByOwner[animationManager] = rt;          PROXY(onComplete(animationManager));
+          setOwner(animationManager, rt);          PROXY(onComplete(animationManager));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1610,7 +1674,7 @@ extern "C"
         {
           auto image = Image_createEmpty(width, height, channel);
 
-          g_threadByOwner[image] = rt;          PROXY(onComplete(image));
+          setOwner(image, rt);          PROXY(onComplete(image));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1623,7 +1687,7 @@ extern "C"
         {
           auto image = Image_decode(data, length, name, alpha);
 
-          g_threadByOwner[image] = rt;          PROXY(onComplete(image));
+          setOwner(image, rt);          PROXY(onComplete(image));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1705,7 +1769,7 @@ extern "C"
         {
           auto *texture = Texture_build(tEngine, width, height, depth, levels, tUsage, import, sampler, format);
 
-          g_threadByOwner[texture] = rt;          PROXY(onComplete(texture));
+          setOwner(texture, rt);          PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1763,7 +1827,7 @@ extern "C"
         [tEngine, bytes = std::move(bytes), onComplete, rt]() mutable
         {
           auto *texture = Ktx2Reader_createTexture(tEngine, bytes.data(), bytes.size());
-          g_threadByOwner[texture] = rt;
+          setOwner(texture, rt);
           PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
@@ -1788,7 +1852,7 @@ extern "C"
           #else
             auto *texture = Ktx1Reader_createTexture(tEngine, tBundle, requestId, onTextureUploadComplete);
           #endif
-          g_threadByOwner[texture] = rt;
+          setOwner(texture, rt);
           PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
@@ -1876,7 +1940,7 @@ extern "C"
         {
           auto texture = RenderTarget_create(tEngine, tColor, tDepth);
 
-          g_threadByOwner[texture] = rt;          PROXY(onComplete(texture));
+          setOwner(texture, rt);          PROXY(onComplete(texture));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1904,7 +1968,7 @@ extern "C"
         {
           auto sampler = TextureSampler_create();
 
-          g_threadByOwner[sampler] = rt;          PROXY(onComplete(sampler));
+          setOwner(sampler, rt);          PROXY(onComplete(sampler));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1923,7 +1987,7 @@ extern "C"
         {
           auto sampler = TextureSampler_createWithFiltering(minFilter, magFilter, wrapS, wrapT, wrapR);
 
-          g_threadByOwner[sampler] = rt;          PROXY(onComplete(sampler));
+          setOwner(sampler, rt);          PROXY(onComplete(sampler));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -1939,7 +2003,7 @@ extern "C"
         {
           auto sampler = TextureSampler_createWithComparison(compareMode, compareFunc);
 
-          g_threadByOwner[sampler] = rt;          PROXY(onComplete(sampler));
+          setOwner(sampler, rt);          PROXY(onComplete(sampler));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -2076,7 +2140,7 @@ extern "C"
       {
         auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider, tNameComponentManager);
 
-          g_threadByOwner[loader] = rt;        PROXY(callback(loader));
+          setOwner(loader, rt);        PROXY(callback(loader));
       });
     auto fut = rt->addTask(lambda);
   }
@@ -2103,7 +2167,7 @@ extern "C"
       {
         auto loader = GltfResourceLoader_create(tEngine);
 
-          g_threadByOwner[loader] = rt;        PROXY(callback(loader));
+          setOwner(loader, rt);        PROXY(callback(loader));
       });
     auto fut = rt->addTask(lambda);
   }
@@ -2205,7 +2269,7 @@ extern "C"
         {
           auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
 
-          g_threadByOwner[loader] = rt;          PROXY(callback(loader));
+          setOwner(loader, rt);          PROXY(callback(loader));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -2322,7 +2386,7 @@ extern "C"
         {
           auto *gizmo = Gizmo_create(tEngine, tAssetLoader, tGltfResourceLoader, tNameComponentManager, tView, tMaterial, tGizmoType);
 
-          g_threadByOwner[gizmo] = rt;          PROXY(callback(gizmo));
+          setOwner(gizmo, rt);          PROXY(callback(gizmo));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -2338,7 +2402,7 @@ extern "C"
         {
           auto *vertexBuffer = VertexBufferBuilder_build(tBuilder, tEngine);
 
-          g_threadByOwner[vertexBuffer] = rt;          PROXY(onComplete(vertexBuffer));
+          setOwner(vertexBuffer, rt);          PROXY(onComplete(vertexBuffer));
         });
     auto fut = rt->addTask(lambda);
   }
@@ -2408,7 +2472,7 @@ extern "C"
         {
           auto *indexBuffer = IndexBufferBuilder_build(tBuilder, tEngine);
 
-          g_threadByOwner[indexBuffer] = rt;          PROXY(onComplete(indexBuffer));
+          setOwner(indexBuffer, rt);          PROXY(onComplete(indexBuffer));
         });
     auto fut = rt->addTask(lambda);
   }
