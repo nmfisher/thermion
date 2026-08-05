@@ -285,6 +285,9 @@ CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physic
     bluevk::vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, families.data());
     const uint32_t queueIndex =
         families[resources.queueFamilyIndex].queueCount >= 2 ? 1u : 0u;
+    // Signal single-queue HW: the blit reuses Filament's queue 0 and so
+    // needs queue-level call serialization (see WindowsVulkanContext shim).
+    resources.queueSharedWithFilament = (queueIndex == 0);
     Log("[INFO] Blit/command queue: family %d, queue index %d",
         (int)resources.queueFamilyIndex, (int)queueIndex);
 
