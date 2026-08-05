@@ -149,6 +149,14 @@ namespace thermion
         static const uint8_t kKtx2Identifier[12] = {
             0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 
+        // DFD colour models we understand (basisu: KTX2_KDF_DF_MODEL_*).
+        constexpr uint32_t kKtx2ColorModelEtc1s = 163;
+        constexpr uint32_t kKtx2ColorModelUastc = 166;
+
+        // Offset, within the DFD, of sample word 0 (whose top nibble of the high
+        // byte is the channel id). = 4 (dfdTotalSize) + 24 (basic block words 0-5).
+        constexpr size_t kKtx2DfdSample0Offset = 28;
+
         struct Ktx2Metadata
         {
             bool valid = false;
@@ -157,7 +165,48 @@ namespace thermion
             uint32_t colorModel = 0;
             uint32_t transferFunction = 0; // TKtx2TransferFunction
             uint32_t alphaMode = 0;        // TKtx2AlphaMode
+            // Channels the source payload actually carries, or 0 when unknown.
+            // Drives which linear ladder is offered, so that a transcode can
+            // never silently discard channels the source had.
+            uint32_t channelCount = 0;
         };
+
+        // How many channels the payload carries, from the DFD's channel id.
+        //
+        // basisu derives its own `m_has_alpha` from exactly these fields
+        // (basisu_transcoder.cpp:16866-16892), so this mirrors the transcoder's
+        // own view of the source rather than guessing from the file name or the
+        // pass it arrived on.
+        static uint32_t ktx2ChannelCount(uint32_t colorModel, uint32_t channelId,
+                                         uint32_t dfdByteLength)
+        {
+            if (colorModel == kKtx2ColorModelUastc)
+            {
+                switch (channelId)
+                {
+                case 0: return 3; // KTX2_DF_CHANNEL_UASTC_RGB / _DATA
+                case 3: return 4; // KTX2_DF_CHANNEL_UASTC_RGBA
+                case 4: return 1; // KTX2_DF_CHANNEL_UASTC_RRR
+                case 5: return 2; // KTX2_DF_CHANNEL_UASTC_RRRG
+                case 6: return 2; // KTX2_DF_CHANNEL_UASTC_RG
+                default: return 0;
+                }
+            }
+            if (colorModel == kKtx2ColorModelEtc1s)
+            {
+                // basisu treats a 60-byte DFD as carrying a second (alpha) sample.
+                const bool hasAlpha = (dfdByteLength == 60);
+                switch (channelId)
+                {
+                case 0: return hasAlpha ? 4 : 3; // KTX2_DF_CHANNEL_ETC1S_RGB
+                case 3:                          // _RRR
+                case 4:                          // _GGG
+                case 15: return 1;               // _AAA
+                default: return 0;
+                }
+            }
+            return 0;
+        }
 
         static inline uint32_t readLe32(const uint8_t *p)
         {
@@ -212,6 +261,14 @@ namespace thermion
             const uint32_t flags = (colorWord >> 24) & 0xFF;
             // KHR_DF_FLAG_ALPHA_PREMULTIPLIED == 1
             md.alphaMode = (flags & 1u) ? KTX2_ALPHA_PREMULTIPLIED : KTX2_ALPHA_STRAIGHT;
+
+            if (dfdLength >= kKtx2DfdSample0Offset + 4)
+            {
+                const uint32_t sample0 = readLe32(data + dfdOffset + kKtx2DfdSample0Offset);
+                const uint32_t channelId = (sample0 >> 24) & 0xF;
+                md.channelCount = ktx2ChannelCount(md.colorModel, channelId, dfdLength);
+            }
+
             md.valid = true;
             return md;
         }
@@ -348,9 +405,8 @@ namespace thermion
         // requesting them can only ever return FORMAT_UNSUPPORTED. DXT1_SRGB is mapped
         // but drops alpha, so it is only valid for a normatively-opaque asset.
         //
-        // The LINEAR group is thermion's pre-existing list, order preserved, so that
-        // linear-tagged blobs (e.g. the producer's normal maps) resolve exactly as they
-        // did before this change.
+        // The LINEAR group is split by the source's channel count (see below), because
+        // a single flat list let a 3-channel source resolve to a 1-channel format.
         static const IF kSrgbLadder[] = {
             IF::SRGB8_ALPHA8_ASTC_4x4,
             IF::SRGB_ALPHA_BPTC_UNORM,
@@ -359,19 +415,41 @@ namespace thermion
             IF::SRGB8_A8,
         };
 
-        static const IF kLinearLadder[] = {
-            IF::RGBA_ASTC_4x4,
-            IF::EAC_R11,
-            IF::EAC_R11_SIGNED,
-            IF::EAC_RG11,
-            IF::EAC_RG11_SIGNED,
-            IF::ETC2_RGB8,
-            IF::ETC2_SRGB8,
-            IF::ETC2_RGB8_A1,
-            IF::ETC2_SRGB8_A1,
-            IF::ETC2_EAC_RGBA8,
-            IF::RGBA8,
+        // LINEAR, three-or-more-channel sources.
+        //
+        // thermion's previous single linear list was ordered
+        // RGBA_ASTC_4x4, EAC_R11, EAC_R11_SIGNED, EAC_RG11, ... — so on any backend
+        // that advertised EAC but not ASTC (desktop GL advertises EAC because GL 4.3+
+        // mandates ETC2/EAC, commonly via *software* decompression), a 3-channel
+        // linear normal map resolved to EAC_R11: a ONE-channel format. G and B were
+        // silently discarded. That is data loss, so single- and dual-channel formats
+        // are no longer reachable from a 3+-channel source at all.
+        static const IF kLinearRgbLadder[] = {
+            IF::RGBA_ASTC_4x4,   // 4ch, mobile/high quality
+            IF::RGBA_BPTC_UNORM, // BC7, the high-quality desktop target
+            IF::DXT5_RGBA,       // BC3, desktop compatibility
+            IF::ETC2_EAC_RGBA8,  // GLES3 mobile fallback
+            IF::RGBA8,           // universal correctness fallback
         };
+
+        // LINEAR, two-channel sources (UASTC RRRG / RG).
+        static const IF kLinearRgLadder[] = {
+            IF::RED_GREEN_RGTC2, // BC5, the high-quality desktop 2-channel target
+            IF::EAC_RG11,        // GLES3 mobile fallback
+            IF::RGBA8,           // universal correctness fallback
+        };
+
+        // LINEAR, single-channel sources (UASTC RRR, ETC1S RRR/GGG/AAA).
+        static const IF kLinearRLadder[] = {
+            IF::RED_RGTC1, // BC4, the high-quality desktop 1-channel target
+            IF::EAC_R11,   // GLES3 mobile fallback
+            IF::RGBA8,     // universal correctness fallback
+        };
+
+        // Dropped from the linear path entirely: EAC_R11_SIGNED, EAC_RG11_SIGNED,
+        // ETC2_RGB8, ETC2_SRGB8, ETC2_RGB8_A1, ETC2_SRGB8_A1. None of them are mapped
+        // by Ktx2Reader::getFinalFormatInfo at v1.69.1, so requesting them could only
+        // ever return FORMAT_UNSUPPORTED — they were pure log noise, never selectable.
 
         static void requestLadder(ktxreader::Ktx2Reader *reader, const IF *ladder, size_t count)
         {
@@ -380,6 +458,30 @@ namespace thermion
                 auto result = reader->requestFormat(ladder[i]);
                 Log("KTX2 requestFormat %-24s Result : %d", internalFormatName(ladder[i]),
                     (int)result);
+            }
+        }
+
+        // Picks the linear ladder matching the source's channel count.
+        //
+        // An unknown channel count (0) deliberately takes the RGB ladder: offering a
+        // narrower format than the source carries loses data irreversibly, whereas
+        // offering a wider one merely wastes a little memory.
+        static void requestLinearLadder(ktxreader::Ktx2Reader *reader, uint32_t channelCount)
+        {
+            switch (channelCount)
+            {
+            case 1:
+                requestLadder(reader, kLinearRLadder,
+                              sizeof(kLinearRLadder) / sizeof(kLinearRLadder[0]));
+                return;
+            case 2:
+                requestLadder(reader, kLinearRgLadder,
+                              sizeof(kLinearRgLadder) / sizeof(kLinearRgLadder[0]));
+                return;
+            default:
+                requestLadder(reader, kLinearRgbLadder,
+                              sizeof(kLinearRgbLadder) / sizeof(kLinearRgbLadder[0]));
+                return;
             }
         }
 
@@ -392,6 +494,7 @@ namespace thermion
             int32_t alphaMode = KTX2_ALPHA_UNKNOWN;
             int32_t uploadedMipCount = 0;
             int32_t sourceMipCount = 0;
+            int32_t sourceChannelCount = 0;
         };
 
         EMSCRIPTEN_KEEPALIVE TKtx2LoadResult *Ktx2Reader_createTexture(
@@ -406,6 +509,7 @@ namespace thermion
             out->sourceTransfer = (int32_t)md.transferFunction;
             out->alphaMode = (int32_t)md.alphaMode;
             out->sourceMipCount = (int32_t)md.levelCount;
+            out->sourceChannelCount = (int32_t)md.channelCount;
 
             if (!md.valid)
             {
@@ -458,11 +562,10 @@ namespace thermion
             }
             else if (requestedTransfer == KTX2_TRANSFER_LINEAR)
             {
-                requestLadder(reader, kLinearLadder,
-                              sizeof(kLinearLadder) / sizeof(kLinearLadder[0]));
-                Log("Finished requesting KTX2 formats (LINEAR), loading KTX2 data of length %zu "
-                    "bytes",
-                    size);
+                requestLinearLadder(reader, md.channelCount);
+                Log("Finished requesting KTX2 formats (LINEAR, %u-channel source), loading KTX2 "
+                    "data of length %zu bytes",
+                    md.channelCount, size);
                 texture = reader->load(copy.data(), copy.size(),
                                        ktxreader::Ktx2Reader::TransferFunction::LINEAR);
                 if (!texture)
@@ -474,8 +577,7 @@ namespace thermion
             {
                 // Unreadable DFD: fall back to the legacy behaviour of probing both legs.
                 requestLadder(reader, kSrgbLadder, sizeof(kSrgbLadder) / sizeof(kSrgbLadder[0]));
-                requestLadder(reader, kLinearLadder,
-                              sizeof(kLinearLadder) / sizeof(kLinearLadder[0]));
+                requestLinearLadder(reader, md.channelCount);
                 Log("Finished requesting KTX2 formats (UNKNOWN transfer), loading KTX2 data of "
                     "length %zu bytes",
                     size);
@@ -511,10 +613,11 @@ namespace thermion
                 out->resolvedFormat = (int32_t)resolved;
                 out->hardwareSrgbDecode = isSrgbInternalFormat(resolved) ? 1 : 0;
                 out->uploadedMipCount = (int32_t)texture->getLevels();
-                Log("KTX2 RESOLVED : format=%s (%d) source=%s hwSrgbDecode=%d alpha=%s mips=%d/%d "
-                    "%ux%u",
+                Log("KTX2 RESOLVED : format=%s (%d) source=%s srcChannels=%d hwSrgbDecode=%d "
+                    "alpha=%s mips=%d/%d %ux%u",
                     internalFormatName(resolved), (int)resolved,
-                    transferName((uint32_t)out->sourceTransfer), out->hardwareSrgbDecode,
+                    transferName((uint32_t)out->sourceTransfer), out->sourceChannelCount,
+                    out->hardwareSrgbDecode,
                     out->alphaMode == KTX2_ALPHA_PREMULTIPLIED ? "premultiplied" : "straight",
                     out->uploadedMipCount, out->sourceMipCount, texture->getWidth(),
                     texture->getHeight());
@@ -568,6 +671,12 @@ namespace thermion
         {
             auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
             return result ? result->sourceMipCount : 0;
+        }
+
+        EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getSourceChannelCount(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? result->sourceChannelCount : 0;
         }
 
         EMSCRIPTEN_KEEPALIVE void Ktx2LoadResult_destroy(TKtx2LoadResult *tResult)

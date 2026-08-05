@@ -56,10 +56,29 @@ void _report(String label, Ktx2LoadResult result) {
     'resolvedFormat=${result.resolvedFormat?.name} '
     'hardwareSrgbDecode=${result.hardwareSrgbDecode} '
     'alphaMode=${result.alphaMode.name} '
+    'sourceChannelCount=${result.sourceChannelCount} '
     'uploadedMipCount=${result.uploadedMipCount} '
     'sourceMipCount=${result.sourceMipCount}',
   );
 }
+
+/// Internal formats that carry fewer than three channels.
+///
+/// A source with three or more channels must never resolve to one of these:
+/// the transcode would silently discard the channels that do not fit. thermion's
+/// original flat linear ladder put [TextureFormat.EAC_R11] second, so a
+/// 3-channel linear normal map resolved to a ONE-channel format on any backend
+/// advertising EAC but not ASTC — which desktop GL does.
+const _channelLosingFormats = <TextureFormat>{
+  TextureFormat.EAC_R11,
+  TextureFormat.EAC_R11_SIGNED,
+  TextureFormat.EAC_RG11,
+  TextureFormat.EAC_RG11_SIGNED,
+  TextureFormat.RED_RGTC1,
+  TextureFormat.SIGNED_RED_RGTC1,
+  TextureFormat.RED_GREEN_RGTC2,
+  TextureFormat.SIGNED_RED_GREEN_RGTC2,
+};
 
 void main() async {
   final backend = _backendFromEnv();
@@ -131,7 +150,7 @@ void main() async {
     expect(result.uploadedMipCount, greaterThan(1));
   });
 
-  test('normal.ktx2 (linear UASTC) still loads', () async {
+  test('normal.ktx2 (linear UASTC) loads without losing channels', () async {
     final result = await load(
       'normal.ktx2',
       expectTransfer: Ktx2TransferFunction.linear,
@@ -140,6 +159,20 @@ void main() async {
     expect(result.sourceTransfer, Ktx2TransferFunction.linear);
     expect(result.hardwareSrgbDecode, isFalse);
     expect(result.resolvedFormat, isNotNull);
+
+    // The blob's DFD declares UASTC channel id 0 (RGB).
+    expect(result.sourceChannelCount, 3);
+
+    // The defect this guards: before the linear ladder was gated on channel
+    // count, this resolved to EAC_R11 on desktop GL and threw away G and B.
+    expect(
+      _channelLosingFormats.contains(result.resolvedFormat),
+      isFalse,
+      reason:
+          'a ${result.sourceChannelCount}-channel source resolved to '
+          '${result.resolvedFormat?.name}, which cannot represent all of its '
+          'channels',
+    );
   });
 
   test('depth.ktx2 (uncompressed r16) still fails, as designed', () async {

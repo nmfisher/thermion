@@ -352,6 +352,10 @@ EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getAlphaMode(TKtx2LoadResult *tResul
 EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getUploadedMipCount(TKtx2LoadResult *tResult);
 // Mip levels present in the source blob.
 EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getSourceMipCount(TKtx2LoadResult *tResult);
+// Channels the source payload carries (1, 2, 3 or 4), per its DFD channel id, or
+// 0 when unknown. This gates which linear formats are offered, so that a
+// transcode can never silently discard channels the source had.
+EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getSourceChannelCount(TKtx2LoadResult *tResult);
 EMSCRIPTEN_KEEPALIVE void Ktx2LoadResult_destroy(TKtx2LoadResult *tResult);
 
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
