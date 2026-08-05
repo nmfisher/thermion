@@ -511,13 +511,15 @@ abstract class LinearImage {
   /// owns the returned texture and must eventually call [Texture.destroy].
   static Future<Texture> decodeToTexture(
     Uint8List data, {
+    FilamentApp? app,
     TextureFormat textureFormat = TextureFormat.RGB32F,
     PixelDataFormat pixelDataFormat = PixelDataFormat.RGB,
     PixelDataType pixelDataType = PixelDataType.FLOAT,
     int levels = 1,
     bool requireAlpha = false,
   }) async {
-    final decodedImage = await FilamentApp.instance!.decodeImage(
+    final effective = app ?? FilamentApp.instance!;
+    final decodedImage = await effective.decodeImage(
       data,
       requireAlpha: requireAlpha,
     );
@@ -535,7 +537,7 @@ abstract class LinearImage {
         flags.add(TextureUsage.TEXTURE_USAGE_GEN_MIPMAPPABLE);
       }
 
-      final texture = await FilamentApp.instance!.createTexture(
+      final texture = await effective.createTexture(
         await decodedImage.getWidth(),
         await decodedImage.getHeight(),
         flags: flags,
