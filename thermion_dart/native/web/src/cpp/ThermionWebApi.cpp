@@ -50,9 +50,9 @@ extern "C"
     return _context;
   }
 
-  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE EMSCRIPTEN_KEEPALIVE Thermion_createGLContext() {
+  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE EMSCRIPTEN_KEEPALIVE Thermion_createGLContext(const char *canvasSelector) {
 
-    std::cout << "Creating WebGL context." << std::endl;
+    std::cout << "Creating WebGL context for " << canvasSelector << std::endl;
 
     EmscriptenWebGLContextAttributes attr;
 
@@ -68,7 +68,7 @@ extern "C"
     attr.renderViaOffscreenBackBuffer = EM_FALSE;
     attr.majorVersion = 2;
 
-    _context = emscripten_webgl_create_context("#thermion_canvas", &attr);
+    _context = emscripten_webgl_create_context(canvasSelector, &attr);
 
     if(!_context) {
       std::cout << "Failed to create WebGL context" << std::endl;  

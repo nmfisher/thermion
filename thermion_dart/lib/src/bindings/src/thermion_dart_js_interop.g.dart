@@ -26,7 +26,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int height,
   );
   external void _Thermion_destroyCanvas();
-  external int _Thermion_createGLContext();
+  external int _Thermion_createGLContext(Pointer<Char> canvasSelector);
   external int _Thermion_getGLContext();
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
@@ -1237,6 +1237,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
   );
   external Pointer<Void> _RenderThread_create();
+  external Pointer<Void> _RenderThread_createForCanvas(
+    Pointer<Char> canvasSelector,
+  );
   external void _RenderThread_destroy(Pointer<Void> renderThread);
   external void _RenderThread_addTask(
     Pointer<NativeFunction<void Function()>> task,
@@ -3134,8 +3137,10 @@ void Thermion_destroyCanvas() {
   return result;
 }
 
-int Thermion_createGLContext() {
-  final result = GeneratedBindings.instance._Thermion_createGLContext();
+int Thermion_createGLContext(Pointer<Char> canvasSelector) {
+  final result = GeneratedBindings.instance._Thermion_createGLContext(
+    canvasSelector,
+  );
   return result;
 }
 
@@ -6453,6 +6458,13 @@ void TransformManager_commitLocalTransformTransaction(
 
 Pointer<Void> RenderThread_create() {
   final result = GeneratedBindings.instance._RenderThread_create();
+  return Pointer<Void>(result);
+}
+
+Pointer<Void> RenderThread_createForCanvas(Pointer<Char> canvasSelector) {
+  final result = GeneratedBindings.instance._RenderThread_createForCanvas(
+    canvasSelector,
+  );
   return Pointer<Void>(result);
 }
 

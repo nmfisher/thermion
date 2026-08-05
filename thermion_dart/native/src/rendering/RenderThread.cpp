@@ -73,7 +73,8 @@ static void *startHelper(void * parm) {
 
 #endif
 
-RenderThread::RenderThread()
+RenderThread::RenderThread(const char *canvasSelector)
+    : _canvasSelector(canvasSelector != nullptr ? canvasSelector : "#thermion_canvas")
 {
     srand(time(NULL));
     _lastFrameTime = std::chrono::high_resolution_clock::now();
@@ -82,7 +83,7 @@ RenderThread::RenderThread()
     outer = pthread_self();
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas");
+    emscripten_pthread_attr_settransferredcanvases(&attr, canvasSelector);
     auto *workerArg = new WorkerArg{this, _stop};
     pthread_create(&t, &attr, startHelper, workerArg);
     #else
