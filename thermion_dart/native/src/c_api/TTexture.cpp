@@ -129,50 +129,450 @@ namespace thermion
             }
         }
 
-        EMSCRIPTEN_KEEPALIVE TTexture *Ktx2Reader_createTexture(TEngine *tEngine, uint8_t* data, size_t size) {
-            std::vector<uint8_t> copy(data, data + size);
+        // -------------------------------------------------------------------
+        // KTX2
+        // -------------------------------------------------------------------
+
+        using IF = filament::Texture::InternalFormat;
+
+        // KTX2 container constants (KTX2 spec §3, "File Structure").
+        constexpr size_t kKtx2HeaderSize = 80;
+        constexpr size_t kKtx2LevelCountOffset = 40;
+        constexpr size_t kKtx2SupercompressionOffset = 44;
+        constexpr size_t kKtx2DfdByteOffsetOffset = 48;
+        constexpr size_t kKtx2DfdByteLengthOffset = 52;
+        // Offset, within the DFD, of the word holding
+        // colorModel | colorPrimaries | transferFunction | flags.
+        // = 4 (dfdTotalSize) + 8 (basic block words 0 and 1).
+        constexpr size_t kKtx2DfdColorWordOffset = 12;
+
+        static const uint8_t kKtx2Identifier[12] = {
+            0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+
+        struct Ktx2Metadata
+        {
+            bool valid = false;
+            uint32_t levelCount = 0;
+            uint32_t supercompressionScheme = 0;
+            uint32_t colorModel = 0;
+            uint32_t transferFunction = 0; // TKtx2TransferFunction
+            uint32_t alphaMode = 0;        // TKtx2AlphaMode
+        };
+
+        static inline uint32_t readLe32(const uint8_t *p)
+        {
+            return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
+                   ((uint32_t)p[3] << 24);
+        }
+
+        static inline void writeLe32(uint8_t *p, uint32_t v)
+        {
+            p[0] = (uint8_t)(v & 0xFF);
+            p[1] = (uint8_t)((v >> 8) & 0xFF);
+            p[2] = (uint8_t)((v >> 16) & 0xFF);
+            p[3] = (uint8_t)((v >> 24) & 0xFF);
+        }
+
+        // Reads the KTX2 header + Data Format Descriptor.
+        //
+        // The DFD is the *normative* source of the transfer function: Filament's
+        // Ktx2Reader checks the caller's requested transfer function against it and
+        // fails the load outright on mismatch (Ktx2Reader.h:85-91). Any manifest- or
+        // Dart-side declaration is therefore only ever a cross-check, never an input.
+        static Ktx2Metadata parseKtx2Metadata(const uint8_t *data, size_t size)
+        {
+            Ktx2Metadata md;
+            if (!data || size < kKtx2HeaderSize)
+            {
+                return md;
+            }
+            if (memcmp(data, kKtx2Identifier, sizeof(kKtx2Identifier)) != 0)
+            {
+                return md;
+            }
+
+            md.levelCount = readLe32(data + kKtx2LevelCountOffset);
+            md.supercompressionScheme = readLe32(data + kKtx2SupercompressionOffset);
+
+            const uint32_t dfdOffset = readLe32(data + kKtx2DfdByteOffsetOffset);
+            const uint32_t dfdLength = readLe32(data + kKtx2DfdByteLengthOffset);
+
+            if (dfdOffset < kKtx2HeaderSize || dfdLength < kKtx2DfdColorWordOffset + 4)
+            {
+                return md;
+            }
+            if ((size_t)dfdOffset + (size_t)dfdLength > size)
+            {
+                return md;
+            }
+
+            const uint32_t colorWord = readLe32(data + dfdOffset + kKtx2DfdColorWordOffset);
+            md.colorModel = colorWord & 0xFF;
+            md.transferFunction = (colorWord >> 16) & 0xFF;
+            const uint32_t flags = (colorWord >> 24) & 0xFF;
+            // KHR_DF_FLAG_ALPHA_PREMULTIPLIED == 1
+            md.alphaMode = (flags & 1u) ? KTX2_ALPHA_PREMULTIPLIED : KTX2_ALPHA_STRAIGHT;
+            md.valid = true;
+            return md;
+        }
+
+        // Clamps the blob's declared mip level count in place.
+        //
+        // Ktx2Reader::load builds the texture with `.levels(transcoder->get_levels())`
+        // and then transcodes + uploads *every* level, with no knob to stop early. The
+        // only lever available from outside Filament is the blob's own header.
+        //
+        // basisu's ktx2_transcoder::init reads exactly `levelCount` entries from the
+        // level index array at offset 80, and locates the DFD/KVD/level payloads solely
+        // through the header's absolute byte offsets — it never derives an offset from
+        // the level count, and never requires the level index to abut the DFD. Dropping
+        // levelCount therefore leaves the now-unreferenced index entries and level
+        // payloads as inert padding inside the buffer while remaining a well-formed
+        // input. Level 0 is the base (largest) level, so no data movement is needed.
+        //
+        // Returns the original level count, and writes the clamped count via `outNew`.
+        static uint32_t clampKtx2LevelCount(std::vector<uint8_t> &blob, int32_t maxMipLevels,
+                                     uint32_t *outNew)
+        {
+            const uint32_t original =
+                blob.size() >= kKtx2HeaderSize ? readLe32(blob.data() + kKtx2LevelCountOffset) : 0;
+            *outNew = original;
+
+            if (maxMipLevels <= 0 || original == 0 || original <= (uint32_t)maxMipLevels)
+            {
+                return original;
+            }
+            if (blob.size() < kKtx2HeaderSize ||
+                memcmp(blob.data(), kKtx2Identifier, sizeof(kKtx2Identifier)) != 0)
+            {
+                return original;
+            }
+
+            const uint32_t clamped = (uint32_t)maxMipLevels;
+            writeLe32(blob.data() + kKtx2LevelCountOffset, clamped);
+            *outNew = clamped;
+            return original;
+        }
+
+        static bool isSrgbInternalFormat(IF fmt)
+        {
+            switch (fmt)
+            {
+            case IF::SRGB8:
+            case IF::SRGB8_A8:
+            case IF::ETC2_SRGB8:
+            case IF::ETC2_SRGB8_A1:
+            case IF::ETC2_EAC_SRGBA8:
+            case IF::DXT1_SRGB:
+            case IF::DXT1_SRGBA:
+            case IF::DXT3_SRGBA:
+            case IF::DXT5_SRGBA:
+            case IF::SRGB8_ALPHA8_ASTC_4x4:
+            case IF::SRGB8_ALPHA8_ASTC_5x4:
+            case IF::SRGB8_ALPHA8_ASTC_5x5:
+            case IF::SRGB8_ALPHA8_ASTC_6x5:
+            case IF::SRGB8_ALPHA8_ASTC_6x6:
+            case IF::SRGB8_ALPHA8_ASTC_8x5:
+            case IF::SRGB8_ALPHA8_ASTC_8x6:
+            case IF::SRGB8_ALPHA8_ASTC_8x8:
+            case IF::SRGB8_ALPHA8_ASTC_10x5:
+            case IF::SRGB8_ALPHA8_ASTC_10x6:
+            case IF::SRGB8_ALPHA8_ASTC_10x8:
+            case IF::SRGB8_ALPHA8_ASTC_10x10:
+            case IF::SRGB8_ALPHA8_ASTC_12x10:
+            case IF::SRGB8_ALPHA8_ASTC_12x12:
+            case IF::SRGB_ALPHA_BPTC_UNORM:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        static const char *internalFormatName(IF fmt)
+        {
+            switch (fmt)
+            {
+            case IF::SRGB8_ALPHA8_ASTC_4x4: return "SRGB8_ALPHA8_ASTC_4x4";
+            case IF::RGBA_ASTC_4x4: return "RGBA_ASTC_4x4";
+            case IF::SRGB_ALPHA_BPTC_UNORM: return "SRGB_ALPHA_BPTC_UNORM (BC7 sRGB)";
+            case IF::RGBA_BPTC_UNORM: return "RGBA_BPTC_UNORM (BC7)";
+            case IF::DXT5_SRGBA: return "DXT5_SRGBA (BC3 sRGB)";
+            case IF::DXT5_RGBA: return "DXT5_RGBA (BC3)";
+            case IF::DXT1_SRGB: return "DXT1_SRGB (BC1 sRGB)";
+            case IF::DXT1_RGB: return "DXT1_RGB (BC1)";
+            case IF::ETC2_EAC_SRGBA8: return "ETC2_EAC_SRGBA8";
+            case IF::ETC2_EAC_RGBA8: return "ETC2_EAC_RGBA8";
+            case IF::EAC_R11: return "EAC_R11";
+            case IF::EAC_R11_SIGNED: return "EAC_R11_SIGNED";
+            case IF::EAC_RG11: return "EAC_RG11";
+            case IF::EAC_RG11_SIGNED: return "EAC_RG11_SIGNED";
+            case IF::ETC2_RGB8: return "ETC2_RGB8";
+            case IF::ETC2_SRGB8: return "ETC2_SRGB8";
+            case IF::ETC2_RGB8_A1: return "ETC2_RGB8_A1";
+            case IF::ETC2_SRGB8_A1: return "ETC2_SRGB8_A1";
+            case IF::RED_RGTC1: return "RED_RGTC1";
+            case IF::RED_GREEN_RGTC2: return "RED_GREEN_RGTC2";
+            case IF::SRGB8_A8: return "SRGB8_A8";
+            case IF::RGBA8: return "RGBA8";
+            case IF::RGB565: return "RGB565";
+            case IF::RGBA4: return "RGBA4";
+            default: return "<other>";
+            }
+        }
+
+        static const char *transferName(uint32_t transfer)
+        {
+            switch (transfer)
+            {
+            case KTX2_TRANSFER_LINEAR: return "LINEAR";
+            case KTX2_TRANSFER_SRGB: return "sRGB";
+            default: return "UNKNOWN";
+            }
+        }
+
+        // The requested-format ladder, highest priority first.
+        //
+        // Ktx2Reader::createTexture filters this list by transfer function, so the sRGB
+        // and LINEAR groups never compete; only the order *within* a group matters.
+        //
+        // sRGB group (new — thermion previously had no sRGB ASTC and no BC/DXT family at
+        // all, which is why an sRGB-tagged UASTC albedo resolved to nothing on desktop):
+        //   SRGB8_ALPHA8_ASTC_4x4  lossless UASTC -> ASTC transcode
+        //   SRGB_ALPHA_BPTC_UNORM  BC7 sRGB, the high-quality desktop target
+        //   DXT5_SRGBA             BC3 sRGB, desktop compatibility
+        //   ETC2_EAC_SRGBA8        GLES3 mobile fallback
+        //   SRGB8_A8               universal correctness fallback (uncompressed)
+        //
+        // DXT1_SRGBA and DXT3_SRGBA are deliberately absent: they exist as Filament
+        // enums at v1.69.1 but are NOT mapped in Ktx2Reader::getFinalFormatInfo, so
+        // requesting them can only ever return FORMAT_UNSUPPORTED. DXT1_SRGB is mapped
+        // but drops alpha, so it is only valid for a normatively-opaque asset.
+        //
+        // The LINEAR group is thermion's pre-existing list, order preserved, so that
+        // linear-tagged blobs (e.g. the producer's normal maps) resolve exactly as they
+        // did before this change.
+        static const IF kSrgbLadder[] = {
+            IF::SRGB8_ALPHA8_ASTC_4x4,
+            IF::SRGB_ALPHA_BPTC_UNORM,
+            IF::DXT5_SRGBA,
+            IF::ETC2_EAC_SRGBA8,
+            IF::SRGB8_A8,
+        };
+
+        static const IF kLinearLadder[] = {
+            IF::RGBA_ASTC_4x4,
+            IF::EAC_R11,
+            IF::EAC_R11_SIGNED,
+            IF::EAC_RG11,
+            IF::EAC_RG11_SIGNED,
+            IF::ETC2_RGB8,
+            IF::ETC2_SRGB8,
+            IF::ETC2_RGB8_A1,
+            IF::ETC2_SRGB8_A1,
+            IF::ETC2_EAC_RGBA8,
+            IF::RGBA8,
+        };
+
+        static void requestLadder(ktxreader::Ktx2Reader *reader, const IF *ladder, size_t count)
+        {
+            for (size_t i = 0; i < count; i++)
+            {
+                auto result = reader->requestFormat(ladder[i]);
+                Log("KTX2 requestFormat %-24s Result : %d", internalFormatName(ladder[i]),
+                    (int)result);
+            }
+        }
+
+        struct Ktx2LoadResultImpl
+        {
+            filament::Texture *texture = nullptr;
+            int32_t sourceTransfer = KTX2_TRANSFER_UNKNOWN;
+            int32_t resolvedFormat = -1;
+            int32_t hardwareSrgbDecode = 0;
+            int32_t alphaMode = KTX2_ALPHA_UNKNOWN;
+            int32_t uploadedMipCount = 0;
+            int32_t sourceMipCount = 0;
+        };
+
+        EMSCRIPTEN_KEEPALIVE TKtx2LoadResult *Ktx2Reader_createTexture(
+            TEngine *tEngine, uint8_t *data, size_t size, int32_t transferFunction,
+            int32_t maxMipLevels)
+        {
+            auto *out = new Ktx2LoadResultImpl();
+
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto reader = new ktxreader::Ktx2Reader(*engine);
-            auto result = reader->requestFormat(filament::Texture::InternalFormat::RGBA_ASTC_4x4);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_R11);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_R11_SIGNED);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_RG11);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::EAC_RG11_SIGNED);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_RGB8);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_SRGB8);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_RGB8_A1);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_SRGB8_A1);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_EAC_RGBA8);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::ETC2_EAC_SRGBA8);
-            Log("Result : %d", result);
-            result = reader->requestFormat(filament::Texture::InternalFormat::RGBA8);
-            Log("Result : %d", result);
 
-            Log("Finished requesting KTX2 formats, loading KTX2 data of length %zu bytes", size);
-                
-            auto *texture = reader->load(copy.data(), size, ktxreader::Ktx2Reader::TransferFunction::sRGB);
+            const Ktx2Metadata md = parseKtx2Metadata(data, size);
+            out->sourceTransfer = (int32_t)md.transferFunction;
+            out->alphaMode = (int32_t)md.alphaMode;
+            out->sourceMipCount = (int32_t)md.levelCount;
 
-            if(!texture) {
-                Log("Failed to load with sRGB transfer function");
-                texture = reader->load(copy.data(), size, ktxreader::Ktx2Reader::TransferFunction::LINEAR);
-                if(!texture) {
+            if (!md.valid)
+            {
+                Log("KTX2 WARNING: could not parse the KTX2 header/DFD (%zu bytes); falling back "
+                    "to the legacy sRGB-then-LINEAR probe.",
+                    size);
+            }
+
+            // The caller may pin the transfer function, but the DFD wins when it is
+            // readable — Filament treats the blob's own tag as binding.
+            uint32_t requestedTransfer = md.valid ? md.transferFunction : KTX2_TRANSFER_UNKNOWN;
+            if (transferFunction == KTX2_TRANSFER_LINEAR || transferFunction == KTX2_TRANSFER_SRGB)
+            {
+                if (md.valid && (uint32_t)transferFunction != md.transferFunction)
+                {
+                    Log("KTX2 WARNING: caller requested transfer %s but the blob's DFD declares "
+                        "%s; the DFD wins.",
+                        transferName((uint32_t)transferFunction), transferName(md.transferFunction));
+                }
+                else if (!md.valid)
+                {
+                    requestedTransfer = (uint32_t)transferFunction;
+                }
+            }
+
+            std::vector<uint8_t> copy(data, data + size);
+            uint32_t clampedLevels = md.levelCount;
+            const uint32_t originalLevels = clampKtx2LevelCount(copy, maxMipLevels, &clampedLevels);
+            if (clampedLevels != originalLevels)
+            {
+                Log("KTX2 mip clamp : source declares %u level(s), consuming %u", originalLevels,
+                    clampedLevels);
+            }
+
+            auto *reader = new ktxreader::Ktx2Reader(*engine);
+
+            filament::Texture *texture = nullptr;
+
+            if (requestedTransfer == KTX2_TRANSFER_SRGB)
+            {
+                requestLadder(reader, kSrgbLadder, sizeof(kSrgbLadder) / sizeof(kSrgbLadder[0]));
+                Log("Finished requesting KTX2 formats (sRGB), loading KTX2 data of length %zu bytes",
+                    size);
+                texture = reader->load(copy.data(), copy.size(),
+                                       ktxreader::Ktx2Reader::TransferFunction::sRGB);
+                if (!texture)
+                {
+                    Log("Failed to load with sRGB transfer function");
+                }
+            }
+            else if (requestedTransfer == KTX2_TRANSFER_LINEAR)
+            {
+                requestLadder(reader, kLinearLadder,
+                              sizeof(kLinearLadder) / sizeof(kLinearLadder[0]));
+                Log("Finished requesting KTX2 formats (LINEAR), loading KTX2 data of length %zu "
+                    "bytes",
+                    size);
+                texture = reader->load(copy.data(), copy.size(),
+                                       ktxreader::Ktx2Reader::TransferFunction::LINEAR);
+                if (!texture)
+                {
                     Log("Failed to load with LINEAR transfer function");
+                }
+            }
+            else
+            {
+                // Unreadable DFD: fall back to the legacy behaviour of probing both legs.
+                requestLadder(reader, kSrgbLadder, sizeof(kSrgbLadder) / sizeof(kSrgbLadder[0]));
+                requestLadder(reader, kLinearLadder,
+                              sizeof(kLinearLadder) / sizeof(kLinearLadder[0]));
+                Log("Finished requesting KTX2 formats (UNKNOWN transfer), loading KTX2 data of "
+                    "length %zu bytes",
+                    size);
+                texture = reader->load(copy.data(), copy.size(),
+                                       ktxreader::Ktx2Reader::TransferFunction::sRGB);
+                if (!texture)
+                {
+                    Log("Failed to load with sRGB transfer function");
+                    texture = reader->load(copy.data(), copy.size(),
+                                           ktxreader::Ktx2Reader::TransferFunction::LINEAR);
+                    if (!texture)
+                    {
+                        Log("Failed to load with LINEAR transfer function");
+                    }
+                    else
+                    {
+                        out->sourceTransfer = KTX2_TRANSFER_LINEAR;
+                    }
+                }
+                else
+                {
+                    out->sourceTransfer = KTX2_TRANSFER_SRGB;
                 }
             }
 
             delete reader;
-            return reinterpret_cast<TTexture *>(texture);
 
+            out->texture = texture;
+
+            if (texture)
+            {
+                const IF resolved = texture->getFormat();
+                out->resolvedFormat = (int32_t)resolved;
+                out->hardwareSrgbDecode = isSrgbInternalFormat(resolved) ? 1 : 0;
+                out->uploadedMipCount = (int32_t)texture->getLevels();
+                Log("KTX2 RESOLVED : format=%s (%d) source=%s hwSrgbDecode=%d alpha=%s mips=%d/%d "
+                    "%ux%u",
+                    internalFormatName(resolved), (int)resolved,
+                    transferName((uint32_t)out->sourceTransfer), out->hardwareSrgbDecode,
+                    out->alphaMode == KTX2_ALPHA_PREMULTIPLIED ? "premultiplied" : "straight",
+                    out->uploadedMipCount, out->sourceMipCount, texture->getWidth(),
+                    texture->getHeight());
+            }
+            else
+            {
+                Log("KTX2 FAILED : no requested format could be resolved (source=%s, mips=%d)",
+                    transferName((uint32_t)out->sourceTransfer), out->sourceMipCount);
+            }
+
+            return reinterpret_cast<TKtx2LoadResult *>(out);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TTexture *Ktx2LoadResult_getTexture(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? reinterpret_cast<TTexture *>(result->texture) : nullptr;
+        }
+
+        EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getSourceTransfer(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? result->sourceTransfer : KTX2_TRANSFER_UNKNOWN;
+        }
+
+        EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getResolvedFormat(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? result->resolvedFormat : -1;
+        }
+
+        EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getHardwareSrgbDecode(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? result->hardwareSrgbDecode : 0;
+        }
+
+        EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getAlphaMode(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? result->alphaMode : KTX2_ALPHA_UNKNOWN;
+        }
+
+        EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getUploadedMipCount(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? result->uploadedMipCount : 0;
+        }
+
+        EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getSourceMipCount(TKtx2LoadResult *tResult)
+        {
+            auto *result = reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
+            return result ? result->sourceMipCount : 0;
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Ktx2LoadResult_destroy(TKtx2LoadResult *tResult)
+        {
+            delete reinterpret_cast<Ktx2LoadResultImpl *>(tResult);
         }
 
         EMSCRIPTEN_KEEPALIVE TTexture *Ktx1Reader_createTexture(

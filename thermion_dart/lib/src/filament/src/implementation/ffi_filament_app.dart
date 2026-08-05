@@ -1718,18 +1718,89 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   //
-  Future<Texture> loadKtx2(Uint8List data) async {
+  Future<Texture> loadKtx2(Uint8List data, {int maxMipLevels = 1}) async {
+    final result = await loadKtx2WithResult(data, maxMipLevels: maxMipLevels);
+    final texture = result.texture;
+    if (texture == null) {
+      throw Exception(
+        "Failed to load KTX2 texture (source transfer function: "
+        "${result.sourceTransfer.name}, ${result.sourceMipCount} mip level(s))",
+      );
+    }
+    return texture;
+  }
+
+  //
+  @override
+  Future<Ktx2LoadResult> loadKtx2WithResult(
+    Uint8List data, {
+    int maxMipLevels = 1,
+    Ktx2TransferFunction? expectTransfer,
+  }) async {
     _logger.info("Loading KTX2 from ${data.length} bytes");
     // Ktx2Reader internally calls Texture::Builder().build, which on web must
     // happen on the engine's render thread; routing through the *JobThread
     // variant avoids the abort.
-    final texturePtr = await withPointerCallback<TTexture>(
-      (cb) => Ktx2Reader_createTextureJobThread(jobThreadHandle, engine, data.address, data.length, cb),
+    //
+    // The transfer function is left as KTX2_TRANSFER_UNKNOWN (0) so that native
+    // reads it from the blob's DFD. `expectTransfer` is verified below rather
+    // than passed down, so that a wrong declaration can never change what is
+    // requested.
+    final resultPtr = await withPointerCallback<TKtx2LoadResult>(
+      (cb) => Ktx2Reader_createTextureJobThread(
+        jobThreadHandle,
+        engine,
+        data.address,
+        data.length,
+        Ktx2TransferFunction.unknown.value,
+        maxMipLevels,
+        cb,
+      ),
     );
-    if (texturePtr == nullptr) {
-      throw Exception("Failed to load KTX2 texture");
+
+    if (resultPtr == nullptr) {
+      throw Exception("Failed to invoke the KTX2 loader");
     }
-    return FFITexture(engine, texturePtr, this);
+
+    try {
+      final texturePtr = Ktx2LoadResult_getTexture(resultPtr);
+      final resolvedFormat = Ktx2LoadResult_getResolvedFormat(resultPtr);
+      final result = Ktx2LoadResult(
+        texture: texturePtr == nullptr
+            ? null
+            : FFITexture(engine, texturePtr, this),
+        sourceTransfer: Ktx2TransferFunction.fromValue(
+          Ktx2LoadResult_getSourceTransfer(resultPtr),
+        ),
+        resolvedFormat:
+            resolvedFormat < 0 || resolvedFormat >= TextureFormat.values.length
+            ? null
+            : TextureFormat.values[resolvedFormat],
+        hardwareSrgbDecode:
+            Ktx2LoadResult_getHardwareSrgbDecode(resultPtr) != 0,
+        alphaMode: Ktx2AlphaMode.fromValue(
+          Ktx2LoadResult_getAlphaMode(resultPtr),
+        ),
+        uploadedMipCount: Ktx2LoadResult_getUploadedMipCount(resultPtr),
+        sourceMipCount: Ktx2LoadResult_getSourceMipCount(resultPtr),
+      );
+
+      if (expectTransfer != null && expectTransfer != result.sourceTransfer) {
+        final message =
+            "KTX2 transfer function mismatch: caller declared "
+            "${expectTransfer.name} but the blob's DFD says "
+            "${result.sourceTransfer.name}. The DFD is authoritative; the "
+            "declaration is wrong.";
+        _logger.severe(message);
+        assert(false, message);
+      }
+
+      _logger.info("Loaded KTX2: $result");
+      return result;
+    } finally {
+      // The result handle owns nothing but itself; the Texture outlives it.
+      Ktx2LoadResult_destroy(resultPtr);
+    }
   }
 
   @override

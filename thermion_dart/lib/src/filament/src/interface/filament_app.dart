@@ -465,7 +465,30 @@ abstract class FilamentApp<T> {
   // compression, the Filament implementation uses BasisU to decode KTX2 data
   // (which will fail if you pass an uncompressed KTX2 file).
   //
-  Future<Texture> loadKtx2(Uint8List data);
+  // Throws if the blob could not be resolved to any supported internal format.
+  // Use [loadKtx2WithResult] when you need to know *which* format was chosen.
+  //
+  // See [loadKtx2WithResult] for [maxMipLevels].
+  Future<Texture> loadKtx2(Uint8List data, {int maxMipLevels = 1});
+
+  /// As [loadKtx2], but returns the full resolution outcome instead of just the
+  /// texture, and does not throw when the load fails (check
+  /// [Ktx2LoadResult.isLoaded]).
+  ///
+  /// [maxMipLevels] caps how many mip levels are allocated and uploaded.
+  /// `Ktx2Reader` otherwise allocates and uploads every level the blob carries,
+  /// which is pure waste for a sampler that never minifies. Pass `0` for
+  /// "every level present in the blob".
+  ///
+  /// [expectTransfer], when supplied, is cross-checked against the transfer
+  /// function read from the blob's DFD. It is an assertion only — the DFD is
+  /// always the source of truth — and a mismatch is logged (and asserted in
+  /// debug builds) rather than changing what is requested.
+  Future<Ktx2LoadResult> loadKtx2WithResult(
+    Uint8List data, {
+    int maxMipLevels = 1,
+    Ktx2TransferFunction? expectTransfer,
+  });
 
   // Create a screenspace quad. This can be used as an image or a solid block.
   Future<TexturedQuad> createTexturedQuad();

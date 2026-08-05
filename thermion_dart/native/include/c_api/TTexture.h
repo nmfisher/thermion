@@ -280,7 +280,79 @@ EMSCRIPTEN_KEEPALIVE TTexture* Ktx1Reader_createTexture(
     VoidCallback onTextureUploadComplete
 );
 
-EMSCRIPTEN_KEEPALIVE TTexture *Ktx2Reader_createTexture(TEngine *tEngine, uint8_t *data, size_t size);
+// ---------------------------------------------------------------------------
+// KTX2
+// ---------------------------------------------------------------------------
+
+// Transfer function as declared by the KTX2 blob's Data Format Descriptor.
+// Values match KHR_DF_TRANSFER_* / basisu's KTX2_KHR_DF_TRANSFER_*.
+enum TKtx2TransferFunction
+{
+    KTX2_TRANSFER_UNKNOWN = 0,
+    KTX2_TRANSFER_LINEAR = 1,
+    KTX2_TRANSFER_SRGB = 2
+};
+
+typedef enum TKtx2TransferFunction TKtx2TransferFunction;
+
+// Alpha mode as declared by the KTX2 DFD `flags` byte
+// (KHR_DF_FLAG_ALPHA_PREMULTIPLIED == bit 0).
+enum TKtx2AlphaMode
+{
+    KTX2_ALPHA_UNKNOWN = 0,
+    KTX2_ALPHA_STRAIGHT = 1,
+    KTX2_ALPHA_PREMULTIPLIED = 2
+};
+
+typedef enum TKtx2AlphaMode TKtx2AlphaMode;
+
+// Opaque handle describing the outcome of a KTX2 load.
+//
+// `Ktx2Reader::requestFormat` returning SUCCESS only proves that BasisU knows
+// how to produce that format; it says nothing about what the driver actually
+// accepted. Callers therefore need the *resolved* format back, otherwise a
+// silent fallback (e.g. landing on uncompressed SRGB8_A8 when BC7 was intended)
+// is indistinguishable from success. This handle carries that resolution.
+//
+// Always non-null on return, even when the load failed; inspect
+// `Ktx2LoadResult_getTexture` (null == failure). Must be freed with
+// `Ktx2LoadResult_destroy`.
+typedef struct TKtx2LoadResult TKtx2LoadResult;
+
+// Loads a KTX2 blob.
+//
+// `transferFunction` selects the transfer function requested from
+// `Ktx2Reader::load`. Pass KTX2_TRANSFER_UNKNOWN to derive it from the blob's
+// own DFD (the normal case; the DFD is normative and a mismatch is a hard load
+// failure inside Filament).
+//
+// `maxMipLevels` clamps how many mip levels are allocated and uploaded. Pass 0
+// for "every level present in the blob" (Filament's own behaviour). Pass 1 to
+// consume the base level only — Ktx2Reader otherwise allocates AND uploads the
+// blob's entire mip chain, which is dead payload for a non-minifying sampler.
+EMSCRIPTEN_KEEPALIVE TKtx2LoadResult *Ktx2Reader_createTexture(
+    TEngine *tEngine,
+    uint8_t *data,
+    size_t size,
+    int32_t transferFunction,
+    int32_t maxMipLevels);
+
+// Null if the load failed.
+EMSCRIPTEN_KEEPALIVE TTexture *Ktx2LoadResult_getTexture(TKtx2LoadResult *tResult);
+// TKtx2TransferFunction, read from the blob's DFD.
+EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getSourceTransfer(TKtx2LoadResult *tResult);
+// TTextureFormat actually resolved by Filament, or -1 if the load failed.
+EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getResolvedFormat(TKtx2LoadResult *tResult);
+// 1 when the resolved format is an sRGB internal format (the sampler hardware
+// applies the EOTF), 0 otherwise.
+EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getHardwareSrgbDecode(TKtx2LoadResult *tResult);
+// TKtx2AlphaMode, read from the blob's DFD.
+EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getAlphaMode(TKtx2LoadResult *tResult);
+// Mip levels actually allocated and uploaded, or 0 if the load failed.
+EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getUploadedMipCount(TKtx2LoadResult *tResult);
+// Mip levels present in the source blob.
+EMSCRIPTEN_KEEPALIVE int32_t Ktx2LoadResult_getSourceMipCount(TKtx2LoadResult *tResult);
+EMSCRIPTEN_KEEPALIVE void Ktx2LoadResult_destroy(TKtx2LoadResult *tResult);
 
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name, bool alpha);

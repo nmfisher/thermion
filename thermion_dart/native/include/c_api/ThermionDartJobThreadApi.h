@@ -96,7 +96,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Texture_setExternalImageJobThread(TJobThread *jobThread, TEngine *tEngine, TTexture *tTexture, void *externalImage, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Texture_generateMipMapsJobThread(TJobThread *jobThread, TTexture *tTexture, TEngine *tEngine, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Ktx1Reader_createTextureJobThread(TJobThread *jobThread, TEngine *tEngine, TKtx1Bundle *tBundle, uint32_t requestId, VoidCallback onTextureUploadComplete, void (*onComplete)(TTexture *));
-        EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureJobThread(TJobThread *jobThread, TEngine *tEngine, uint8_t *data, size_t size, void (*onComplete)(TTexture *));
+        EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureJobThread(TJobThread *jobThread, TEngine *tEngine, uint8_t *data, size_t size, int32_t transferFunction, int32_t maxMipLevels, void (*onComplete)(TKtx2LoadResult *));
 
         EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureJobThread(TJobThread *jobThread, TEngine *engine, TTexture* tTexture, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_createFenceJobThread(TJobThread *jobThread, TEngine *tEngine, void (*onComplete)(TFence*));

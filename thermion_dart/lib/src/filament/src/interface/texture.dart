@@ -545,3 +545,105 @@ abstract class LinearImage {
     }
   }
 }
+
+/// The transfer function a KTX2 blob declares in its Data Format Descriptor.
+///
+/// This is *normative*. Filament's `Ktx2Reader` checks the transfer function the
+/// caller requests against the blob's DFD and fails the load outright when they
+/// disagree, so the DFD — not a manifest, not a filename convention — decides
+/// whether a blob is sRGB or linear.
+enum Ktx2TransferFunction {
+  /// The DFD could not be read.
+  unknown(0),
+
+  /// `KHR_DF_TRANSFER_LINEAR`.
+  linear(1),
+
+  /// `KHR_DF_TRANSFER_SRGB`.
+  srgb(2);
+
+  final int value;
+  const Ktx2TransferFunction(this.value);
+
+  static Ktx2TransferFunction fromValue(int value) => switch (value) {
+    1 => Ktx2TransferFunction.linear,
+    2 => Ktx2TransferFunction.srgb,
+    _ => Ktx2TransferFunction.unknown,
+  };
+}
+
+/// How a KTX2 blob's DFD `flags` byte describes its alpha channel.
+enum Ktx2AlphaMode {
+  unknown(0),
+  straight(1),
+  premultiplied(2);
+
+  final int value;
+  const Ktx2AlphaMode(this.value);
+
+  static Ktx2AlphaMode fromValue(int value) => switch (value) {
+    1 => Ktx2AlphaMode.straight,
+    2 => Ktx2AlphaMode.premultiplied,
+    _ => Ktx2AlphaMode.unknown,
+  };
+}
+
+/// The outcome of a KTX2 load, including what the loader *actually* resolved to.
+///
+/// `Ktx2Reader::requestFormat` returning SUCCESS proves only that BasisU knows
+/// how to produce a format — not that the driver accepted it. Without the
+/// resolved format coming back, a silent fallback (landing on uncompressed
+/// [TextureFormat.SRGB8_A8] when BC7 was intended, say) is indistinguishable
+/// from the intended result. Callers that care about VRAM or colour correctness
+/// should assert on [resolvedFormat] and [hardwareSrgbDecode] rather than on the
+/// mere existence of [texture].
+class Ktx2LoadResult {
+  /// Null when the blob could not be loaded in any requested format.
+  final Texture? texture;
+
+  /// The transfer function read from the blob's own DFD.
+  final Ktx2TransferFunction sourceTransfer;
+
+  /// The internal format Filament actually built the texture with, or null when
+  /// the load failed.
+  final TextureFormat? resolvedFormat;
+
+  /// True when [resolvedFormat] is an sRGB internal format, i.e. the sampler
+  /// hardware applies the sRGB EOTF and shaders receive linear values.
+  ///
+  /// If this is false for an [sourceTransfer] of [Ktx2TransferFunction.srgb],
+  /// the shader is receiving display-encoded values and must linearise them
+  /// itself — otherwise the texture reads too bright.
+  final bool hardwareSrgbDecode;
+
+  /// The alpha mode declared by the blob's DFD.
+  final Ktx2AlphaMode alphaMode;
+
+  /// Mip levels actually allocated and uploaded to the GPU.
+  final int uploadedMipCount;
+
+  /// Mip levels present in the source blob. Greater than [uploadedMipCount]
+  /// when the load clamped the chain.
+  final int sourceMipCount;
+
+  const Ktx2LoadResult({
+    required this.texture,
+    required this.sourceTransfer,
+    required this.resolvedFormat,
+    required this.hardwareSrgbDecode,
+    required this.alphaMode,
+    required this.uploadedMipCount,
+    required this.sourceMipCount,
+  });
+
+  bool get isLoaded => texture != null;
+
+  @override
+  String toString() =>
+      'Ktx2LoadResult(loaded: ${texture != null}, '
+      'sourceTransfer: ${sourceTransfer.name}, '
+      'resolvedFormat: ${resolvedFormat?.name}, '
+      'hardwareSrgbDecode: $hardwareSrgbDecode, '
+      'alphaMode: ${alphaMode.name}, '
+      'mips: $uploadedMipCount/$sourceMipCount)';
+}

@@ -1790,14 +1790,16 @@ extern "C"
   // lambda doesn't dangle when data was stack-allocated by the caller (the
   // ffigen_js Uint8List.address path uses stackAlloc for buffers < 32KB).
   EMSCRIPTEN_KEEPALIVE void Ktx2Reader_createTextureJobThread(TJobThread *jobThread,
-    TEngine *tEngine, uint8_t* data, size_t size, void (*onComplete)(TTexture *)) {
+    TEngine *tEngine, uint8_t* data, size_t size, int32_t transferFunction, int32_t maxMipLevels,
+    void (*onComplete)(TKtx2LoadResult *)) {
     auto *rt = reinterpret_cast<JobThread*>(jobThread);
     std::vector<uint8_t> bytes(data, data + size);
     std::packaged_task<void()> lambda(
-        [tEngine, bytes = std::move(bytes), onComplete, rt]() mutable
+        [tEngine, bytes = std::move(bytes), transferFunction, maxMipLevels, onComplete, rt]() mutable
         {
-          auto *texture = Ktx2Reader_createTexture(tEngine, bytes.data(), bytes.size());
-          PROXY(onComplete(texture));
+          auto *result = Ktx2Reader_createTexture(
+              tEngine, bytes.data(), bytes.size(), transferFunction, maxMipLevels);
+          PROXY(onComplete(result));
         });
     auto fut = rt->addTask(lambda);
   }
