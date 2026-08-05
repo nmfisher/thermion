@@ -52,16 +52,20 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   ///
   /// All callers now share one in-flight initialization (and therefore one
   /// engine); the rest of the mount proceeds concurrently as before.
-  static Future<SwapChain?>? _initialization;
+  static Future<InitializeResult>? _initialization;
 
   @override
-  Future<SwapChain?> initialize({bool destroySwapchain = true}) {
+  Future<InitializeResult> initialize({
+    bool destroySwapchain = true,
+    String? canvasId,
+  }) {
+    // canvasId is web-only; native renders into its own surfaces.
     return _initialization ??= _initialize().whenComplete(
       () => _initialization = null,
     );
   }
 
-  Future<SwapChain?> _initialize() async {
+  Future<InitializeResult> _initialize() async {
     // A hot restart can leave the native scheduler holding a callback into the
     // previous isolate. stop() is idempotent and clears that callback first.
     _lifecycle.prepareForInitialization();
@@ -93,7 +97,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
     final swapChain = await _createDefaultSwapChain();
     await _lifecycle.start();
-    return swapChain;
+    return InitializeResult(app: FilamentApp.instance!, swapChain: swapChain);
   }
 
   Backend _resolveBackend() {

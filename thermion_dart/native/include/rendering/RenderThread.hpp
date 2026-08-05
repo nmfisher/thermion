@@ -7,6 +7,7 @@
 #include <functional>
 #include <future>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <utility>
 
@@ -30,13 +31,31 @@ class RenderThread {
 public:
     /**
      * @brief Constructs a new RenderThread and starts the render thread.
+     *
+     * @param canvasSelector Web-only: the CSS selector of the canvas element
+     *        transferred to this thread's worker (default "#thermion_canvas").
+     *        Each engine-per-viewer thread owns its own canvas.
      */
-    explicit RenderThread();
+    explicit RenderThread(const char *canvasSelector = "#thermion_canvas");
 
     /**
      * @brief Destroys the RenderThread and stops the render thread.
      */
     ~RenderThread();
+
+    /**
+     * @brief The CSS selector of the canvas transferred to this thread's
+     *        worker (web only). Used by Engine_create to create the WebGL
+     *        context on the right canvas.
+     */
+    const char *canvasSelector() const { return _canvasSelector.c_str(); }
+
+    /**
+     * @brief True when the worker pthread failed to start (web). The C API
+     *        returns a null handle in that case so Dart can fail loudly
+     *        instead of hanging on tasks that will never run.
+     */
+    bool creationFailed() const { return _creationFailed; }
 
     /**
      * @brief Adds a task to the render thread's task queue.
@@ -117,8 +136,13 @@ private:
     int _frameCount = 0;
     float _accumulatedTime = 0.0f;
     float _fps = 0.0f;
+    // Owned copy: the Dart side frees its UTF8 buffer right after
+    // RenderThread_createForCanvas returns, and Engine_create reads the
+    // selector later (during the same serialized engine creation).
+    std::string _canvasSelector = "#thermion_canvas";
+    bool _creationFailed = false;
 
-
+    
 #ifdef __EMSCRIPTEN__
     pthread_t t;
 #else

@@ -62,11 +62,17 @@ class NativeOptions {
 class WebOptions {
   final bool createCanvas;
   final bool importCanvasAsWidget;
+
+  /// Hard cap on concurrent viewers. Web runs one engine + WebGL context per
+  /// viewer; browsers allow ~16 contexts per tab, so this guards runaway
+  /// mounting. 0 disables the cap.
+  final int maxViewers;
   final String jsPath;
 
   const WebOptions({
-    this.importCanvasAsWidget = false,
+    this.importCanvasAsWidget = true,
     this.createCanvas = true,
+    this.maxViewers = 8,
     this.jsPath = "./thermion_dart.js",
   });
 }

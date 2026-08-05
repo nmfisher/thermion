@@ -40,7 +40,7 @@ void main() {
                   child: ThermionWidgetInternal(
                     key: const ValueKey('resizable-thermion-surface'),
                     view: viewer.view,
-                    surfaceWidgetBuilder: (descriptor) {
+                    surfaceWidgetBuilder: (descriptor, view) {
                       if (descriptor == null) {
                         return const SizedBox.expand();
                       }

@@ -99,14 +99,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   late DirectLight _sun;
 
+  /// Web runs one engine per viewer (browser WebGL context limit), so the
+  /// batch is capped by the plugin's web option; native is unlimited-ish.
+  late final int _maxBatch;
+
   @override
   void initState() {
     super.initState();
     _sun = DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
-    if (kIsWeb) {
-      ThermionFlutterPlugin.instance.setOptions(const ThermionFlutterOptions(
-          webOptions: WebOptions(importCanvasAsWidget: false)));
-    }
+    _maxBatch = kIsWeb
+        ? ThermionFlutterPlugin.instance.options.webOptions.maxViewers
+        : 64;
   }
 
   /// Applies the batch: mounts `_batch` viewers at once when the grid is
@@ -172,11 +175,13 @@ class _MyHomePageState extends State<MyHomePage> {
               framerate: _framerate,
               viewerCount: _tiles.length,
               batch: _batch,
+              maxBatch: _maxBatch,
               onBatchChanged: (v) => setState(() => _batch = v),
               onApplyBatch: _applyBatch,
               onFramerateChanged: (v) {
                 setState(() => _framerate = v);
-                FilamentApp.instance!.setTargetFramerate(v);
+                // Applies to every engine (web runs one engine per viewer).
+                ThermionFlutterPlugin.instance.setTargetFramerate(v);
               },
             ),
           ],
@@ -369,6 +374,7 @@ class _Footer extends StatelessWidget {
     required this.framerate,
     required this.viewerCount,
     required this.batch,
+    required this.maxBatch,
     required this.onBatchChanged,
     required this.onApplyBatch,
     required this.onFramerateChanged,
@@ -377,6 +383,7 @@ class _Footer extends StatelessWidget {
   final int framerate;
   final int viewerCount;
   final int batch;
+  final int maxBatch;
   final ValueChanged<int> onBatchChanged;
   final VoidCallback onApplyBatch;
   final ValueChanged<int> onFramerateChanged;
@@ -409,7 +416,7 @@ class _Footer extends StatelessWidget {
                 _EmbeddedStepper(
                   value: batch,
                   min: 1,
-                  max: 64,
+                  max: maxBatch,
                   onChanged: onBatchChanged,
                 ),
                 const SizedBox(width: 10),

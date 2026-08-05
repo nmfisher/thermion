@@ -386,6 +386,12 @@ class _ViewerWidgetState extends State<ViewerWidget> {
           await currentViewer.dispose();
         }
       });
+      // Platform hook (web: destroy this viewer's engine + canvas).
+      await runCleanup(() async {
+        await ThermionFlutterPlugin.instance.onViewerDisposed(
+          currentViewer.view,
+        );
+      });
     }
 
     if (widget.destroyEngineOnUnload && FilamentApp.instance != null) {
