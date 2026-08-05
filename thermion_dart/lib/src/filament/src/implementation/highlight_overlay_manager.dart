@@ -260,7 +260,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // 2. EdgeDetectionView samples → GPU linearizes the values automatically
     // This prevents double gamma correction that causes brightness shift.
     _mainViewColorTexture =
-        await FilamentApp.instance!.createTexture(
+        await _app.createTexture(
               width,
               height,
               flags: {
@@ -273,7 +273,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     // Create depth texture
     _mainViewDepthTexture =
-        await FilamentApp.instance!.createTexture(
+        await _app.createTexture(
               width,
               height,
               flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
@@ -283,7 +283,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     // Create render target
     _mainViewRenderTarget =
-        await FilamentApp.instance!.createRenderTarget(
+        await _app.createRenderTarget(
               width,
               height,
               color: _mainViewColorTexture,
@@ -311,7 +311,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     // Flush render thread to ensure new textures are bound before destroying old ones
     // This prevents "Invalid texture still bound to MaterialInstance" errors
-    await FilamentApp.instance!.flush();
+    await _app.flush();
 
     // NOW safe to destroy old resources
     await oldRenderTarget?.destroy();

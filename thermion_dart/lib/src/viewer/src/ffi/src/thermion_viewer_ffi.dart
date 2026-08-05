@@ -813,6 +813,7 @@ class ThermionViewerFFI extends ThermionViewer {
       // transform
       _translationAxisMaterial =
           await TranslationAxisMaterial.createMaterialInstance(
+            app: _app,
             originX: 0.0,
             originY: 0.0,
             originZ: 0.0,
