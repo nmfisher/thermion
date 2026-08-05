@@ -1,11 +1,14 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 class FFISkybox extends Skybox {
   final Pointer<TSkybox> pointer;
 
-  FFISkybox(this.pointer);
+  final FFIFilamentApp _app;
+
+  FFISkybox(this.pointer, this._app);
 
   @override
   Future setColor(double r, double g, double b, double a) async {
@@ -15,12 +18,8 @@ class FFISkybox extends Skybox {
   @override
   Future destroy() async {
     await withVoidCallback(
-      (requestId, cb) => Engine_destroySkyboxRenderThread(
-        (FilamentApp.instance as FFIFilamentApp).engine,
-        pointer,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroySkyboxRenderThread(_app.engine, pointer, requestId, cb),
     );
   }
 }

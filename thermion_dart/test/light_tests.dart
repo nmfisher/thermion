@@ -1,6 +1,7 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -65,6 +66,7 @@ void main() async {
           );
 
           var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
+            FilamentApp.instance! as FFIFilamentApp,
             texture,
             reflectionsTexture: texture,
             intensity: 30000.0,

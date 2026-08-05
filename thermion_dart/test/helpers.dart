@@ -302,7 +302,7 @@ class TestHelper {
               as FFIRenderTarget;
     }
 
-    var viewer = ThermionViewerFFI();
+    var viewer = ThermionViewerFFI(app: FilamentApp.instance as FFIFilamentApp);
     await viewer.initialized;
     await FilamentApp.instance!.renderManager.attach(viewer.view, swapChain);
 
@@ -357,7 +357,9 @@ class TestHelper {
 
     await viewer.setPostProcessing(postProcessing);
 
-    await viewer.setToneMapper(await ToneMapper.aces());
+    await viewer.setToneMapper(
+      await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
+    );
     return (viewer, swapChain);
   }
 

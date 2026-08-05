@@ -1237,7 +1237,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
   );
   external Pointer<Void> _RenderThread_create();
-  external void _RenderThread_destroy();
+  external void _RenderThread_destroy(Pointer<Void> renderThread);
   external void _RenderThread_addTask(
     Pointer<NativeFunction<void Function()>> task,
   );
@@ -2998,7 +2998,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _RenderManager_attachToRenderThread(
     Pointer<TRenderManager> tRenderer,
   );
-  external void _RenderManager_detachFromRenderThread();
+  external void _RenderManager_detachFromRenderThread(
+    Pointer<TRenderManager> tRenderManager,
+  );
   external void _RenderManager_setPaused(
     Pointer<TRenderManager> tRenderer,
     bool paused,
@@ -6454,8 +6456,8 @@ Pointer<Void> RenderThread_create() {
   return Pointer<Void>(result);
 }
 
-void RenderThread_destroy() {
-  final result = GeneratedBindings.instance._RenderThread_destroy();
+void RenderThread_destroy(Pointer<Void> renderThread) {
+  final result = GeneratedBindings.instance._RenderThread_destroy(renderThread);
   return result;
 }
 
@@ -10984,9 +10986,11 @@ void RenderManager_attachToRenderThread(Pointer<TRenderManager> tRenderer) {
   return result;
 }
 
-void RenderManager_detachFromRenderThread() {
+void RenderManager_detachFromRenderThread(
+  Pointer<TRenderManager> tRenderManager,
+) {
   final result = GeneratedBindings.instance
-      ._RenderManager_detachFromRenderThread();
+      ._RenderManager_detachFromRenderThread(tRenderManager.cast());
   return result;
 }
 

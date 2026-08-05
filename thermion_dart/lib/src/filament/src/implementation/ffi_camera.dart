@@ -1,4 +1,5 @@
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 import '../../../utils/src/matrix.dart';
 
@@ -12,7 +13,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
 
   late ThermionEntity _entity;
 
-  FFICamera(this.camera) {
+  final FFIFilamentApp _app;
+
+  FFICamera(this.camera, this._app) {
     _entity = Camera_getEntity(camera);
   }
 
@@ -162,7 +165,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   @override
   Future setTransform(Matrix4 transform) async {
     var entity = Camera_getEntity(camera);
-    FilamentApp.instance!.transformManager.setTransform(entity, transform);
+    _app.transformManager.setTransform(entity, transform);
   }
 
   @override
@@ -402,12 +405,8 @@ class FFICamera extends Camera<Pointer<TCamera>> {
 
   Future destroy() async {
     await withVoidCallback(
-      (requestId, cb) => Engine_destroyCameraRenderThread(
-        FilamentApp.instance!.engine,
-        camera,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroyCameraRenderThread(_app.engine, camera, requestId, cb),
     );
   }
 

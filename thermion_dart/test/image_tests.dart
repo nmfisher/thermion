@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_ktx1_bundle.dart';
 import 'package:thermion_dart/src/utils/src/geometry/utils.dart';
 import 'package:thermion_dart/src/viewer/viewer.dart';
@@ -14,7 +15,10 @@ void main() async {
       final ktx1Data = File(
         "${testHelper.assetsDir}/default_env_skybox.ktx",
       ).readAsBytesSync();
-      final bundle = await FFIKtx1Bundle.create(ktx1Data);
+      final bundle = await FFIKtx1Bundle.create(
+        FilamentApp.instance! as FFIFilamentApp,
+        ktx1Data,
+      );
     });
   });
 

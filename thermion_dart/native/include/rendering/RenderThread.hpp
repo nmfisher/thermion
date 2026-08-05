@@ -66,24 +66,26 @@ public:
     #endif
 
     /**
-     * Signals worker shutdown. Native workers exit after draining queued
-     * tasks; web workers exit on their next browser-loop iteration. Written
-     * by the destructor (true) and constructor (false), read by the worker.
+     * Per-instance worker shutdown signal, heap-allocated and shared with the
+     * worker via a std::shared_ptr copy. Native workers exit after draining
+     * queued tasks; web workers exit on their next browser-loop iteration.
      *
-     * Static, not an instance member, because on web pthread_detach lets the
-     * destructor return and `*this` be freed before the worker observes the
-     * flag — a member would be UAF. Native could safely use a member (`t->join()`
-     * keeps `*this` alive across the worker's read) but the static works there
-     * too since RenderThread is a singleton, and one mechanism is simpler than
-     * two. RenderThread being a singleton is an existing invariant
-     * (`_renderThread` in ThermionDartRenderThreadApi.cpp); breaking it would
-     * require revisiting this design.
+     * The flag must outlive `this`: on web pthread_detach lets the destructor
+     * return and `*this` be freed before the worker observes the signal, so a
+     * plain member would be UAF. The worker only dereferences the RenderThread
+     * after observing the flag is false, which keeps the window closed (the
+     * destructor sets the flag before draining and detaching, so the worker
+     * never touches `this` after shutdown begins).
      *
-     * On web, create() after destroy() must wait for mLiveWorkerCount to hit 0
-     * before constructing the next RenderThread, otherwise the constructor's
-     * reset to false races the previous worker's read of true.
+     * Per-instance, not static: with one engine per thread, destroying one
+     * engine's RenderThread must not signal another engine's worker (a shared
+     * static flag would stop every worker in the module).
      */
-    static std::atomic<bool> mStop;
+    struct StopFlag {
+        std::atomic<bool> value{false};
+    };
+    std::shared_ptr<StopFlag> stopFlag() const { return _stop; }
+    std::shared_ptr<StopFlag> _stop = std::make_shared<StopFlag>();
 
     /**
      * Live worker count. Incremented on worker entry, decremented just before
@@ -116,7 +118,7 @@ private:
     float _accumulatedTime = 0.0f;
     float _fps = 0.0f;
 
-    
+
 #ifdef __EMSCRIPTEN__
     pthread_t t;
 #else

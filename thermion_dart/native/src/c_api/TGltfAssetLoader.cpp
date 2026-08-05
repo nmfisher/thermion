@@ -32,7 +32,11 @@ namespace thermion
     extern "C"
     {
         using namespace filament;
-        
+
+        // Defined in ThermionDartRenderThreadApi.cpp; records which render
+        // thread owns an engine-scoped object.
+        void RenderThread_registerOwnerFromOwner(void *owner, void *knownOwner);
+
 #endif
 
 
@@ -127,6 +131,9 @@ EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRen
 EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader) {
     auto *assetLoader = reinterpret_cast<gltfio::AssetLoader *>(tAssetLoader);
     auto &materialProvider = assetLoader->getMaterialProvider();
+    // The provider is engine-scoped; record its render thread so
+    // MaterialProvider_createMaterialInstanceRenderThread can dispatch.
+    RenderThread_registerOwnerFromOwner(&materialProvider, tAssetLoader);
     return reinterpret_cast<TMaterialProvider *>(&materialProvider);
 }
 

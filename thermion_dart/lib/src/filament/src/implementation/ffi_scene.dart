@@ -3,11 +3,14 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 class FFIScene extends Scene<Pointer<TScene>> {
   final Pointer<TScene> scene;
 
-  FFIScene(this.scene);
+  final FFIFilamentApp _app;
+
+  FFIScene(this.scene, this._app);
 
   Pointer<TScene> getNativeHandle() {
     return scene;
@@ -108,12 +111,8 @@ class FFIScene extends Scene<Pointer<TScene>> {
   ///
   Future destroy() async {
     await withVoidCallback(
-      (requestId, cb) => Engine_destroySceneRenderThread(
-        FilamentApp.instance!.engine,
-        scene,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroySceneRenderThread(_app.engine, scene, requestId, cb),
     );
   }
 }

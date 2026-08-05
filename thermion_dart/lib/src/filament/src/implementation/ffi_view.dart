@@ -10,6 +10,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 import 'ffi_camera.dart';
 
@@ -17,6 +18,7 @@ class FFIView extends View<Pointer<TView>> {
   late final _logger = Logger(this.runtimeType.toString());
 
   final Pointer<TView> view;
+  final FFIFilamentApp _app;
 
   Pointer<TView> getNativeHandle() => view;
 
@@ -24,10 +26,10 @@ class FFIView extends View<Pointer<TView>> {
 
   late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
 
-  FFIView(this.view) {
+  FFIView(this.view, this._app) {
     final renderTargetPtr = View_getRenderTarget(view);
     if (renderTargetPtr != nullptr) {
-      renderTarget = FFIRenderTarget(renderTargetPtr);
+      renderTarget = FFIRenderTarget(renderTargetPtr, _app);
     }
 
     _onPickResultHolder = _onPickResult.asCallback();
@@ -43,7 +45,7 @@ class FFIView extends View<Pointer<TView>> {
     if (_colorGrading != null && _colorGrading != nullptr) {
       await withVoidCallback(
         (requestId, cb) => Engine_destroyColorGradingRenderThread(
-          FilamentApp.instance!.engine,
+          _app.engine,
           _colorGrading!,
           requestId,
           cb,
@@ -51,12 +53,8 @@ class FFIView extends View<Pointer<TView>> {
       );
     }
     await withVoidCallback(
-      (requestId, cb) => Engine_destroyViewRenderThread(
-        FilamentApp.instance!.engine,
-        view,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroyViewRenderThread(_app.engine, view, requestId, cb),
     );
   }
 
@@ -142,7 +140,7 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future<Camera> getCamera() async {
     final cameraPtr = View_getCamera(view);
-    return FFICamera(cameraPtr);
+    return FFICamera(cameraPtr, _app);
   }
 
   @override
@@ -192,7 +190,7 @@ class FFIView extends View<Pointer<TView>> {
   Future setToneMapper(ToneMapper mapper) async {
     final colorGrading = await withPointerCallback<TColorGrading>(
       (cb) => ColorGrading_createRenderThread(
-        FilamentApp.instance!.engine,
+        _app.engine,
         mapper.getNativeHandle(),
         cb,
       ),
@@ -209,7 +207,7 @@ class FFIView extends View<Pointer<TView>> {
     if (_colorGrading != null) {
       await withVoidCallback(
         (requestId, cb) => Engine_destroyColorGradingRenderThread(
-          FilamentApp.instance!.engine,
+          _app.engine,
           _colorGrading!,
           requestId,
           cb,
@@ -227,7 +225,7 @@ class FFIView extends View<Pointer<TView>> {
     if (builderPtr == nullptr) {
       throw Exception('Failed to create ColorGradingBuilder');
     }
-    return FFIColorGradingBuilder(builderPtr);
+    return FFIColorGradingBuilder(builderPtr, _app);
   }
 
   @override
@@ -257,7 +255,7 @@ class FFIView extends View<Pointer<TView>> {
     if (colorGradingPtr == nullptr) {
       return null;
     }
-    return FFIColorGrading(colorGradingPtr);
+    return FFIColorGrading(colorGradingPtr, _app);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
@@ -330,7 +328,7 @@ class FFIView extends View<Pointer<TView>> {
   @override
   Future<Scene> getScene() async {
     if (_scene == null) {
-      _scene = FFIScene(View_getScene(view));
+      _scene = FFIScene(View_getScene(view), _app);
     }
     return _scene!;
   }
@@ -436,7 +434,7 @@ class FFIView extends View<Pointer<TView>> {
 
     Texture? skyColor;
     if (tOptions.skyColor != nullptr) {
-      skyColor = FFITexture(FilamentApp.instance!.engine, tOptions.skyColor);
+      skyColor = FFITexture(_app.engine, tOptions.skyColor, _app);
     }
 
     return FogOptions(
@@ -639,7 +637,7 @@ class FFIView extends View<Pointer<TView>> {
 
   //
   Future _enableHighlightOverlay() async {
-    final rm = FilamentApp.instance!.renderManager;
+    final rm = _app.renderManager;
     final swapChains = rm.getAttachedSwapChains(this).toList();
     if (swapChains.isEmpty) {
       throw Exception("View must be attached to a swapchain first");
@@ -652,6 +650,7 @@ class FFIView extends View<Pointer<TView>> {
 
       // Create manager if not exists
       _highlightOverlayManager = await HighlightOverlayManager.create(
+        _app,
         width,
         height,
       );
@@ -690,7 +689,7 @@ class FFIView extends View<Pointer<TView>> {
       return;
     }
 
-    final rm = FilamentApp.instance!.renderManager;
+    final rm = _app.renderManager;
 
     await rm.detach(_highlightOverlayManager!.silhouetteView);
     await rm.detach(_highlightOverlayManager!.overlayView);
@@ -764,7 +763,7 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     // Get the primitive count for this entity
-    final primCount = await FilamentApp.instance!.getPrimitiveCount(entity);
+    final primCount = await _app.getPrimitiveCount(entity);
 
     // Iterate all primitives for this entity and create silhouettes
     for (int i = 0; i < primCount; i++) {
@@ -793,10 +792,7 @@ class FFIView extends View<Pointer<TView>> {
       }
 
       final indexCount = IndexBuffer_getIndexCount(indexBuffer);
-      final ffiIndexBuffer = FFIIndexBuffer(
-        indexBuffer,
-        FilamentApp.instance!.engine,
-      );
+      final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, _app.engine);
 
       // Create silhouette for this primitive
       await _highlightOverlayManager!.addHighlight(
@@ -867,10 +863,10 @@ class FFIView extends View<Pointer<TView>> {
     return View_isTransparentPickingEnabled(getNativeHandle());
   }
 
-  static Future<View> create() async {
+  static Future<View> create(FFIFilamentApp app) async {
     final ptr = await withPointerCallback<TView>(
-      (cb) => Engine_createViewRenderThread(FilamentApp.instance!.engine, cb),
+      (cb) => Engine_createViewRenderThread(app.engine, cb),
     );
-    return FFIView(ptr);
+    return FFIView(ptr, app);
   }
 }

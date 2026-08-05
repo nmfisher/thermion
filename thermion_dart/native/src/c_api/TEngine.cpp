@@ -44,6 +44,10 @@ namespace thermion
     extern "C"
     {
         using namespace filament;
+
+        // Defined in ThermionDartRenderThreadApi.cpp. Direct-API getters use
+        // this to record which render thread owns an engine-scoped object.
+        void RenderThread_registerOwnerFromOwner(void *owner, void *knownOwner);
 #endif
 
         EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT = filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT;
@@ -190,6 +194,9 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto &transformManager = engine->getTransformManager();
+            // Direct-API getters run on the main thread; record which render
+            // thread owns this manager so RenderThread dispatch can route to it.
+            RenderThread_registerOwnerFromOwner(&transformManager, tEngine);
             return reinterpret_cast<TTransformManager *>(&transformManager);
         }
 
@@ -197,6 +204,7 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto &renderableManager = engine->getRenderableManager();
+            RenderThread_registerOwnerFromOwner(&renderableManager, tEngine);
             return reinterpret_cast<TRenderableManager *>(&renderableManager);
         }
 
@@ -210,6 +218,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *tEngine) {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto &entityManager = engine->getEntityManager();
+            RenderThread_registerOwnerFromOwner(&entityManager, tEngine);
             return reinterpret_cast<TEntityManager *>(&entityManager);
         }
 
@@ -338,6 +347,7 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *scene = engine->createScene();
+            RenderThread_registerOwnerFromOwner(scene, tEngine);
             return reinterpret_cast<TScene *>(scene);
         }
 

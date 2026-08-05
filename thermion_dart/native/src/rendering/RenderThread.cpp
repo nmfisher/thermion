@@ -10,7 +10,6 @@
 
 namespace thermion {
 
-std::atomic<bool> RenderThread::mStop{false};
 std::atomic<int32_t> RenderThread::mLiveWorkerCount{0};
 
 #ifdef __EMSCRIPTEN__
@@ -28,11 +27,22 @@ std::chrono::high_resolution_clock::time_point loopStart;
 std::chrono::high_resolution_clock::time_point loopExitTime;
 bool loopExitTimeValid = false;
 
+// Heap arg for the worker: owns a shared_ptr copy of the stop flag so the
+// flag outlives the RenderThread (web detach lets the destructor return
+// before the worker's next iteration). The worker frees this struct itself
+// on exit — the destructor never touches it.
+struct WorkerArg {
+    RenderThread *rt;
+    std::shared_ptr<RenderThread::StopFlag> stop;
+};
+
 static void mainLoop(void* arg) {
-    // Check the stop flag BEFORE touching `arg` — the destructor may have
-    // returned (via pthread_detach) and `*this` may already be freed. mStop
-    // is a static, so the read is safe regardless.
-    if (RenderThread::mStop.load()) {
+    // Check the stop flag BEFORE touching `rt` — the destructor may have
+    // returned (via pthread_detach) and `*this` may already be freed. The
+    // flag is heap-shared, so the read is safe; the worker never dereferences
+    // the RenderThread after observing stop.
+    auto *workerArg = static_cast<WorkerArg *>(arg);
+    if (workerArg->stop->value.load()) {
         emscripten_cancel_main_loop();
         loopExitTime = std::chrono::high_resolution_clock::now();
         loopExitTimeValid = true;
@@ -44,10 +54,11 @@ static void mainLoop(void* arg) {
         // to unwind startHelper, so the pthread function never returned. The
         // JS-side worker would otherwise stay alive in the event loop after
         // emscripten_cancel_main_loop; explicit pthread_exit terminates it.
+        delete workerArg;
         pthread_exit(nullptr);
     }
 
-    auto *rt = static_cast<RenderThread *>(arg);
+    auto *rt = workerArg->rt;
     rt->iter();
     loopExitTime = std::chrono::high_resolution_clock::now();
     loopExitTimeValid = true;
@@ -66,18 +77,14 @@ RenderThread::RenderThread()
 {
     srand(time(NULL));
     _lastFrameTime = std::chrono::high_resolution_clock::now();
-    // Reset the static stop flag so the new worker doesn't immediately exit
-    // if the previous cycle left it true. On web the caller must have waited
-    // for mLiveWorkerCount to hit 0 before getting here, otherwise the previous
-    // worker can observe this reset and miss its stop signal.
-    mStop.store(false);
     #ifdef __EMSCRIPTEN__
     Log("Starting RenderThread")
     outer = pthread_self();
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas");
-    pthread_create(&t, &attr, startHelper, this);
+    auto *workerArg = new WorkerArg{this, _stop};
+    pthread_create(&t, &attr, startHelper, workerArg);
     #else
     t = new std::thread([this]() { runNativeLoop(); });
     #endif
@@ -93,7 +100,7 @@ RenderThread::~RenderThread()
         pendingTaskCount = _tasks.size();
     }
     TRACE("Destroying RenderThread (%zu tasks remaining)", pendingTaskCount);
-    mStop.store(true, std::memory_order_release);
+    _stop->value.store(true, std::memory_order_release);
 
     #ifdef __EMSCRIPTEN__
     // The web worker cannot be synchronously joined from the browser main
@@ -173,13 +180,13 @@ void RenderThread::runNativeLoop() {
     while (true) {
         _cv.wait(taskLock, [this] {
             return !_tasks.empty() ||
-                   mStop.load(std::memory_order_acquire);
+                   _stop->value.load(std::memory_order_acquire);
         });
 
         if (_tasks.empty()) {
             // A stop request only terminates the worker after it has executed
             // every task that was already queued.
-            if (mStop.load(std::memory_order_acquire)) {
+            if (_stop->value.load(std::memory_order_acquire)) {
                 break;
             }
             continue;

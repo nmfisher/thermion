@@ -78,7 +78,17 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   FFIRenderManager(this.pointer);
 
-  static final _attachmentState = RenderAttachmentState();
+  /// Per-engine view/swapchain attachment state.
+  ///
+  /// This must NOT be static: on web each viewer owns its own engine and its
+  /// own `FFIRenderManager`, and `_syncViews` pushes every entry in this map
+  /// into `pointer`'s native RenderManager. A shared map makes app1's attach
+  /// push app0's swapchain/view into app1's render manager; app1's worker then
+  /// calls `beginFrame` on a swapchain owned by a different engine/WebGL
+  /// context and wedges on its next rAF tick, so every subsequent op on app1
+  /// hangs (the second-viewer quickstart hang). Per-engine state also means
+  /// `destroy()` on one app no longer clears another app's attachments.
+  final _attachmentState = RenderAttachmentState();
 
   /// Serialises every operation that mutates attachment state and runs
   /// `_syncViews` (attach / detach / detachAll). Concurrent calls from
@@ -94,6 +104,11 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   /// view of the world for the duration of its setRenderable round-
   /// trips. View destruction (which awaits `detach(view)` first via
   /// `destroyView`) cannot interleave inside another viewer's sync.
+  ///
+  /// Deliberately static (module-wide, not per-engine): cross-engine attach /
+  /// detach ordering was the source of the original multi-viewer SIGSEGV, and
+  /// with per-engine attachment state the chain only orders quick per-engine
+  /// round-trips — each op still dispatches to its own worker via `pointer`.
   static Future<void> _opChain = Future.value();
 
   Future<T> _serialize<T>(Future<T> Function() op) {

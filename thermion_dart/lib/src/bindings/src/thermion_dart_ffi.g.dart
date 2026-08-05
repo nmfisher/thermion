@@ -2667,8 +2667,8 @@ external void TransformManager_commitLocalTransformTransaction(
 @ffi.Native<ffi.Pointer<ffi.Void> Function()>(isLeaf: true)
 external ffi.Pointer<ffi.Void> RenderThread_create();
 
-@ffi.Native<ffi.Void Function()>(isLeaf: true)
-external void RenderThread_destroy();
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external void RenderThread_destroy(ffi.Pointer<ffi.Void> renderThread);
 
 @ffi.Native<
   ffi.Void Function(ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)
@@ -6741,8 +6741,10 @@ external void RenderManager_attachToRenderThread(
   ffi.Pointer<TRenderManager> tRenderer,
 );
 
-@ffi.Native<ffi.Void Function()>(isLeaf: true)
-external void RenderManager_detachFromRenderThread();
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
+external void RenderManager_detachFromRenderThread(
+  ffi.Pointer<TRenderManager> tRenderManager,
+);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>, ffi.Bool)>(
   isLeaf: true,
