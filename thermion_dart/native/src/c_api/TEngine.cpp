@@ -46,10 +46,8 @@ namespace thermion
         using namespace filament;
 
         // Defined in ThermionDartRenderThreadApi.cpp. Direct-API getters use
-        // these to record which render thread owns an engine-scoped object
-        // (and which canvas the active thread's engine renders to).
+        // this to record which render thread owns an engine-scoped object.
         void RenderThread_registerOwnerFromOwner(void *owner, void *knownOwner);
-        const char *RenderThread_getActiveCanvasSelector();
 #endif
 
         EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT = filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT;
@@ -65,10 +63,7 @@ namespace thermion
             bool disableHandleUseAfterFreeCheck)
         {
             #ifdef __EMSCRIPTEN__
-            // Engine_create runs inside the engine's RenderThread task, so the
-            // active thread IS this engine's thread — create the WebGL context
-            // on the canvas that was transferred to it.
-            auto handle = Thermion_createGLContext(RenderThread_getActiveCanvasSelector());
+            auto handle = Thermion_createGLContext();
             tSharedContext = (void*)handle;
             tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
             #endif

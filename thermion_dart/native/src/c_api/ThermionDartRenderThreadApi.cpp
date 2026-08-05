@@ -109,15 +109,6 @@ extern "C"
     g_threadByOwner[owner] = RT(knownOwner);
   }
 
-  // Web-only: the CSS selector of the canvas owned by the most recently
-  // created RenderThread, used by Engine_create to create the WebGL context
-  // on the right canvas.
-  EMSCRIPTEN_KEEPALIVE const char *RenderThread_getActiveCanvasSelector()
-  {
-    RenderThread *rt = g_activeThread != nullptr ? g_activeThread : _renderThread.get();
-    return rt != nullptr ? rt->canvasSelector() : "#thermion_canvas";
-  }
-
   EMSCRIPTEN_KEEPALIVE void* RenderThread_create()
   {
     TRACE("RenderThread_create");
@@ -129,17 +120,6 @@ extern "C"
     g_activeThread = _renderThread.get();
     TRACE("RenderThread created");
     return _renderThread.get();
-  }
-
-  EMSCRIPTEN_KEEPALIVE void* RenderThread_createForCanvas(const char *canvasSelector)
-  {
-    TRACE("RenderThread_createForCanvas %s", canvasSelector);
-    auto thread = std::make_unique<RenderThread>(canvasSelector);
-    auto *raw = thread.get();
-    g_activeThread = raw;
-    _renderThreads[raw] = std::move(thread);
-    TRACE("RenderThread created for canvas %s", canvasSelector);
-    return raw;
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderThread_destroy(void *renderThread)

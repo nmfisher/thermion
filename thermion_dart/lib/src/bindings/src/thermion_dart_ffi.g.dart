@@ -2667,11 +2667,6 @@ external void TransformManager_commitLocalTransformTransaction(
 @ffi.Native<ffi.Pointer<ffi.Void> Function()>(isLeaf: true)
 external ffi.Pointer<ffi.Void> RenderThread_create();
 
-@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Char>)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> RenderThread_createForCanvas(
-  ffi.Pointer<ffi.Char> canvasSelector,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external void RenderThread_destroy(ffi.Pointer<ffi.Void> renderThread);
 

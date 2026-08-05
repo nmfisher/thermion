@@ -114,7 +114,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   static Future create({
     FFIFilamentConfig? config,
-    String? canvasSelector,
     bool destroyExisting = true,
   }) async {
     config ??= FFIFilamentConfig();
@@ -127,19 +126,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await FilamentApp.instance!.destroy();
     }
 
-    // Web multi-viewer: each engine gets its own RenderThread, which
-    // transfers its own canvas element to the worker. The selector is the
-    // CSS id of that viewer's canvas; native passes null and gets the
-    // default thread.
     RenderThread_destroy(nullptr);
-    late final Pointer<Void> renderThreadHandle;
-    if (canvasSelector != null) {
-      final selectorPtr = canvasSelector.toNativeUtf8().cast<Char>();
-      renderThreadHandle = RenderThread_createForCanvas(selectorPtr);
-      free(selectorPtr);
-    } else {
-      renderThreadHandle = RenderThread_create();
-    }
+    final renderThreadHandle = RenderThread_create();
 
     if (renderThreadHandle == nullptr) {
       throw Exception("Failed to create render thread");
