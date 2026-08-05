@@ -19,6 +19,12 @@ abstract class ThermionViewer {
   // the Filament [Scene].
   View get view;
 
+  // The [FilamentApp] (engine, render thread, managers) that owns this viewer.
+  // Helpers (gizmos, overlays, input delegates) should use this instead of the
+  // [FilamentApp.instance] global so they bind to the correct engine when more
+  // than one viewer/app coexists.
+  FilamentApp get app;
+
   // If [true], this viewer will render itself on every frame.
   Future setRendering(bool render);
 

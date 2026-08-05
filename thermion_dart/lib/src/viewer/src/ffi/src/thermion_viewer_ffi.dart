@@ -35,6 +35,9 @@ class ThermionViewerFFI extends ThermionViewer {
 
   final FFIFilamentApp _app;
 
+  @override
+  FilamentApp get app => _app;
+
   //
   ThermionViewerFFI({bool createOverlay = false, required FFIFilamentApp app})
     : _createOverlay = createOverlay,

@@ -57,6 +57,7 @@ class DelegateInputHandler implements InputHandler {
     viewer: viewer,
     delegate: FreeFlightInputHandlerDelegateV2(
       viewer.view,
+      viewer.app,
       sensitivity: sensitivity,
       moveOnHover: moveOnHover,
     ),
