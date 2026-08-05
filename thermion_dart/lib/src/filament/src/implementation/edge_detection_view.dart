@@ -97,7 +97,8 @@ class EdgeDetectionView extends FFIView {
        super(view, app);
 
   /// Creates and initializes a new [EdgeDetectionView].
-  static Future<EdgeDetectionView> create(FFIFilamentApp app, {
+  static Future<EdgeDetectionView> create(
+    FFIFilamentApp app, {
     required Texture silhouetteTexture,
     required int width,
     required int height,
@@ -109,10 +110,7 @@ class EdgeDetectionView extends FFIView {
 
     // Create edge material
     final materialPtr = await withPointerCallback<TMaterial>(
-      (cb) => Material_createEdgeOutlineMaterialRenderThread(
-        app.engine,
-        cb,
-      ),
+      (cb) => Material_createEdgeOutlineMaterialRenderThread(app.engine, cb),
     );
     final edgeMaterial = FFIMaterial(materialPtr, app);
 
@@ -154,8 +152,7 @@ class EdgeDetectionView extends FFIView {
     ]);
 
     // Create vertex buffer
-    final vbBuilder = app.renderableManager
-        .createVertexBufferBuilder();
+    final vbBuilder = app.renderableManager.createVertexBufferBuilder();
     vbBuilder.vertexCount(3);
     vbBuilder.bufferCount(1);
     vbBuilder.attribute(
@@ -170,8 +167,7 @@ class EdgeDetectionView extends FFIView {
 
     // Create index buffer
     final indices = Uint16List.fromList([0, 1, 2]);
-    final ibBuilder = app.renderableManager
-        .createIndexBufferBuilder();
+    final ibBuilder = app.renderableManager.createIndexBufferBuilder();
     ibBuilder.indexCount(3);
     ibBuilder.bufferType(IndexType.USHORT);
     final quadIB = await ibBuilder.build() as FFIIndexBuffer;

@@ -20,12 +20,7 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
 
   Future destroy() async {
     await withVoidCallback((requestId, cb) {
-      Engine_destroyMaterialRenderThread(
-        _app.engine,
-        pointer,
-        requestId,
-        cb,
-      );
+      Engine_destroyMaterialRenderThread(_app.engine, pointer, requestId, cb);
     });
   }
 

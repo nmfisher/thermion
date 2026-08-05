@@ -60,7 +60,9 @@ void main() async {
   test('unlit + baseColorFactor', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
+      await viewer.setToneMapper(
+        await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp),
+      );
 
       var materialInstance = await FilamentApp.instance!
           .createUnlitMaterialInstance();
@@ -303,7 +305,9 @@ void main() async {
   test('unlit material with color + alpha', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
+      await viewer.setToneMapper(
+        await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp),
+      );
 
       var materialInstance = await FilamentApp.instance!
           .createUnlitMaterialInstance();

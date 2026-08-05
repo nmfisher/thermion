@@ -67,7 +67,13 @@ class FFIIndirectLight extends IndirectLight {
     if (indirectLight == nullptr) {
       throw Exception("Failed to create indirect light");
     }
-    return FFIIndirectLight._(engine, indirectLight, null, reflectionsTexture, app);
+    return FFIIndirectLight._(
+      engine,
+      indirectLight,
+      null,
+      reflectionsTexture,
+      app,
+    );
   }
 
   Future rotate(Matrix3 rotation) async {

@@ -32,7 +32,11 @@ class FFIGizmo extends GizmoAsset {
 
   static FFIMaterial? _gizmoMaterial;
 
-  static Future<GizmoAsset> create(FFIFilamentApp app, View view, GizmoType gizmoType) async {
+  static Future<GizmoAsset> create(
+    FFIFilamentApp app,
+    View view,
+    GizmoType gizmoType,
+  ) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       //stackPtr = stackSave();

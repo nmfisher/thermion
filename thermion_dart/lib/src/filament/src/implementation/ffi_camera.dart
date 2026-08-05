@@ -405,12 +405,8 @@ class FFICamera extends Camera<Pointer<TCamera>> {
 
   Future destroy() async {
     await withVoidCallback(
-      (requestId, cb) => Engine_destroyCameraRenderThread(
-        _app.engine,
-        camera,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroyCameraRenderThread(_app.engine, camera, requestId, cb),
     );
   }
 

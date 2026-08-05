@@ -28,13 +28,22 @@ void main() async {
       'pbr_neutral',
       () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp),
       'agx_none',
-      () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp, look: AgxLook.punchy),
+      () => ToneMapper.agx(
+        FilamentApp.instance! as FFIFilamentApp,
+        look: AgxLook.punchy,
+      ),
       'agx_punchy',
-      () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp, look: AgxLook.golden),
+      () => ToneMapper.agx(
+        FilamentApp.instance! as FFIFilamentApp,
+        look: AgxLook.golden,
+      ),
       'agx_golden',
       () => ToneMapper.generic(FilamentApp.instance! as FFIFilamentApp),
       'generic_default',
-      () => ToneMapper.generic(FilamentApp.instance! as FFIFilamentApp, contrast: 2.0),
+      () => ToneMapper.generic(
+        FilamentApp.instance! as FFIFilamentApp,
+        contrast: 2.0,
+      ),
       'generic_contrast_2_0',
       () => ToneMapper.displayRange(FilamentApp.instance! as FFIFilamentApp),
       'display_range',
@@ -97,7 +106,9 @@ void main() async {
               .saturation(0.95) // Slight desaturation
               .luminanceScaling(true) // Better HDR handling
               .gamutMapping(true) // Prevent hue shifts
-              .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp)) // Add a tone mapper
+              .toneMapper(
+                await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
+              ) // Add a tone mapper
               .shadowsMidtonesHighlights(
                 Vector4(0.8, 0.9, 1.0, 0.5), // Slightly cool shadows
                 Vector4(1.0, 1.0, 1.0, 1.0), // Neutral midtones
@@ -150,7 +161,11 @@ void main() async {
             final colorGrading = await builder
                 .format(format)
                 .dimensions(dim)
-                .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp))
+                .toneMapper(
+                  await ToneMapper.aces(
+                    FilamentApp.instance! as FFIFilamentApp,
+                  ),
+                )
                 .saturation(1.3)
                 .contrast(1.2)
                 .build();
@@ -200,7 +215,11 @@ void main() async {
             final builder = await result.viewer.view
                 .createColorGradingBuilder();
             final colorGrading = await builder
-                .toneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp))
+                .toneMapper(
+                  await ToneMapper.linear(
+                    FilamentApp.instance! as FFIFilamentApp,
+                  ),
+                )
                 .channelMixer(outRed, outGreen, outBlue)
                 .build();
 
@@ -241,7 +260,9 @@ void main() async {
               .exposure(0.5)
               .contrast(1.2)
               .saturation(1.1)
-              .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp))
+              .toneMapper(
+                await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
+              )
               .build();
 
           // Apply the color grading to the view

@@ -111,12 +111,8 @@ class FFIScene extends Scene<Pointer<TScene>> {
   ///
   Future destroy() async {
     await withVoidCallback(
-      (requestId, cb) => Engine_destroySceneRenderThread(
-        _app.engine,
-        scene,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroySceneRenderThread(_app.engine, scene, requestId, cb),
     );
   }
 }

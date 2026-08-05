@@ -137,7 +137,8 @@ class GridOverlay {
   /// - [spacing]: Interval between grid lines for each LOD level
   /// - [fadeInStart]/[fadeInEnd]: Camera distances where each level fades in
   /// - [fadeOutStart]/[fadeOutEnd]: Camera distances where each level fades out
-  static Future<GridOverlay> create(FFIFilamentApp app, {
+  static Future<GridOverlay> create(
+    FFIFilamentApp app, {
     List<LinearColor> axisColors = kDefaultAxisColors,
     LinearColor gridColor = kDefaultGridColor,
     List<double> spacing = const [1.0, 10.0, 100.0, 1000.0, 10000.0],

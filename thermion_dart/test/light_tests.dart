@@ -65,7 +65,8 @@ void main() async {
             PixelDataType.FLOAT,
           );
 
-          var indirectLight = await FFIIndirectLight.fromIrradianceTexture(FilamentApp.instance! as FFIFilamentApp, 
+          var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
+            FilamentApp.instance! as FFIFilamentApp,
             texture,
             reflectionsTexture: texture,
             intensity: 30000.0,

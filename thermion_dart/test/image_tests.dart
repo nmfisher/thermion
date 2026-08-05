@@ -15,7 +15,10 @@ void main() async {
       final ktx1Data = File(
         "${testHelper.assetsDir}/default_env_skybox.ktx",
       ).readAsBytesSync();
-      final bundle = await FFIKtx1Bundle.create(FilamentApp.instance! as FFIFilamentApp, ktx1Data);
+      final bundle = await FFIKtx1Bundle.create(
+        FilamentApp.instance! as FFIFilamentApp,
+        ktx1Data,
+      );
     });
   });
 

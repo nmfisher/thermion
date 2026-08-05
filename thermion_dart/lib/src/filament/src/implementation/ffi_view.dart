@@ -53,12 +53,8 @@ class FFIView extends View<Pointer<TView>> {
       );
     }
     await withVoidCallback(
-      (requestId, cb) => Engine_destroyViewRenderThread(
-        _app.engine,
-        view,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroyViewRenderThread(_app.engine, view, requestId, cb),
     );
   }
 
@@ -796,10 +792,7 @@ class FFIView extends View<Pointer<TView>> {
       }
 
       final indexCount = IndexBuffer_getIndexCount(indexBuffer);
-      final ffiIndexBuffer = FFIIndexBuffer(
-        indexBuffer,
-        _app.engine,
-      );
+      final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, _app.engine);
 
       // Create silhouette for this primitive
       await _highlightOverlayManager!.addHighlight(

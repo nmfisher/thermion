@@ -71,7 +71,8 @@ class SilhouetteView extends FFIView {
        super(view, app);
 
   /// Creates and initializes a new [SilhouetteView].
-  static Future<SilhouetteView> create(FFIFilamentApp app, {
+  static Future<SilhouetteView> create(
+    FFIFilamentApp app, {
     required int width,
     required int height,
   }) async {
@@ -81,10 +82,7 @@ class SilhouetteView extends FFIView {
 
     // Create silhouette material
     final materialPtr = await withPointerCallback<TMaterial>(
-      (cb) => Material_createSilhouetteMaterialRenderThread(
-        app.engine,
-        cb,
-      ),
+      (cb) => Material_createSilhouetteMaterialRenderThread(app.engine, cb),
     );
     final silhouetteMaterial = FFIMaterial(materialPtr, app);
 
@@ -118,8 +116,7 @@ class SilhouetteView extends FFIView {
             as FFIRenderTarget;
 
     // Create scene with black skybox to clear render target
-    final silhouetteScene =
-        await app.createScene() as FFIScene;
+    final silhouetteScene = await app.createScene() as FFIScene;
     final skybox = await app.createColoredSkybox(
       r: 0.0,
       g: 0.0,
@@ -284,8 +281,9 @@ class SilhouetteView extends FFIView {
     final silhouetteEntity = await _app.createEntity();
 
     // Get original bounding box
-    final boundingBox = _app.renderableManager
-        .getAxisAlignedBoundingBox(target);
+    final boundingBox = _app.renderableManager.getAxisAlignedBoundingBox(
+      target,
+    );
 
     // Build silhouette renderable
     final builder = _app.renderableManager.createBuilder(1);

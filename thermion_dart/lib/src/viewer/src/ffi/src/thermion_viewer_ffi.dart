@@ -130,11 +130,8 @@ class ThermionViewerFFI extends ThermionViewer {
         ),
       );
       await withVoidCallback(
-        (requestId, cb) => Renderer_endFrameRenderThread(
-          _app.renderer,
-          requestId,
-          cb,
-        ),
+        (requestId, cb) =>
+            Renderer_endFrameRenderThread(_app.renderer, requestId, cb),
       );
       await _app.flush();
     }
@@ -303,9 +300,7 @@ class ThermionViewerFFI extends ThermionViewer {
               )
               as FFITexture;
 
-      _skybox =
-          await _app.buildSkybox(texture: _skyboxTexture)
-              as FFISkybox;
+      _skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
 
       await scene.setSkybox(_skybox!);
 
@@ -710,9 +705,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  @Deprecated(
-    "Call _app.renderableManager.getBoundingBox instead",
-  )
+  @Deprecated("Call _app.renderableManager.getBoundingBox instead")
   Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
     return _app.renderableManager.getBoundingBox(entityId);
   }
@@ -736,7 +729,8 @@ class ThermionViewerFFI extends ThermionViewer {
     List<double> fadeOutStart = const [10.0, 500.0, 5000.0],
     List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0],
   }) async {
-    _grid ??= await GridOverlay.create(_app,
+    _grid ??= await GridOverlay.create(
+      _app,
       axisColors: axisColors,
       gridColor: gridColor,
       spacing: spacing,
@@ -800,9 +794,7 @@ class ThermionViewerFFI extends ThermionViewer {
       if (origin != null) {
         worldPosition = origin;
       } else {
-        final worldTransform = await _app.getWorldTransform(
-          entity!,
-        );
+        final worldTransform = await _app.getWorldTransform(entity!);
         worldPosition = worldTransform.getTranslation();
         await _app.setPriority(entity, 0);
       }
@@ -850,10 +842,7 @@ class ThermionViewerFFI extends ThermionViewer {
       } else {
         transform = v64.Matrix4.translation(worldPosition);
       }
-      await _app.setTransform(
-        _translationAxisAsset!.entity,
-        transform,
-      );
+      await _app.setTransform(_translationAxisAsset!.entity, transform);
     } else {
       await _removeTranslationAxis();
     }
@@ -936,10 +925,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<GizmoAsset> getGizmo(GizmoType gizmoType) async {
     if (_gizmos[gizmoType] == null) {
-      _gizmos[gizmoType] = await _app.createGizmo(
-        view,
-        gizmoType,
-      );
+      _gizmos[gizmoType] = await _app.createGizmo(view, gizmoType);
     }
     return _gizmos[gizmoType]!;
   }

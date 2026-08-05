@@ -357,7 +357,9 @@ class TestHelper {
 
     await viewer.setPostProcessing(postProcessing);
 
-    await viewer.setToneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp));
+    await viewer.setToneMapper(
+      await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
+    );
     return (viewer, swapChain);
   }
 

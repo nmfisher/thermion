@@ -74,9 +74,7 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     final texture = await bundle.createTexture();
 
     if (bundle.isCubemap()) {
-      sampler ??=
-          await _app.createTextureSampler()
-              as FFITextureSampler;
+      sampler ??= await _app.createTextureSampler() as FFITextureSampler;
       this.texture = texture;
       await mi.setParameterTexture(
         "cubeMap",
@@ -103,10 +101,7 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     // RGBA32F texture. So on Windows force an alpha channel at decode time:
     // this yields 4-channel RGBA source data that uploads cleanly into RGBA32F.
     // Other platforms keep the tighter 3-channel RGB32F path.
-    final image = await _app.decodeImage(
-      imageData,
-      requireAlpha: IS_WINDOWS,
-    );
+    final image = await _app.decodeImage(imageData, requireAlpha: IS_WINDOWS);
     final channels = await image.getChannels();
     if (channels != 3 && channels != 4) {
       throw UnimplementedError("Currently only 3 or 4 channels are supported");
@@ -136,8 +131,7 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   ///
   Future setImageFromTexture(Texture texture) async {
     this.texture = texture;
-    sampler ??=
-        await _app.createTextureSampler() as FFITextureSampler;
+    sampler ??= await _app.createTextureSampler() as FFITextureSampler;
     await mi.setParameterInt("isCubeMap", 0);
     await mi.setParameterTexture(
       "image",

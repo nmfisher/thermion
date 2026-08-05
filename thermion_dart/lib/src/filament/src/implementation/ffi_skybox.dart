@@ -18,12 +18,8 @@ class FFISkybox extends Skybox {
   @override
   Future destroy() async {
     await withVoidCallback(
-      (requestId, cb) => Engine_destroySkyboxRenderThread(
-        _app.engine,
-        pointer,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          Engine_destroySkyboxRenderThread(_app.engine, pointer, requestId, cb),
     );
   }
 }

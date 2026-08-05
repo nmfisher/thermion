@@ -29,7 +29,11 @@ abstract class HighlightOverlayManager {
   });
   Future<void> removeHighlight(ThermionEntity target);
 
-  static Future<HighlightOverlayManager> create(FFIFilamentApp app, int width, int height) {
+  static Future<HighlightOverlayManager> create(
+    FFIFilamentApp app,
+    int width,
+    int height,
+  ) {
     return FFIHighlightOverlayManager.create(app, width: width, height: height);
   }
 }
@@ -189,7 +193,8 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   }) : _app = app;
 
   /// Creates and initializes a new [HighlightOverlayManager].
-  static Future<HighlightOverlayManager> create(FFIFilamentApp app, {
+  static Future<HighlightOverlayManager> create(
+    FFIFilamentApp app, {
     required int width,
     required int height,
   }) async {
@@ -198,14 +203,16 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     final actualHeight = height > 0 ? height : 1;
 
     // Create silhouette view (first pass)
-    final silhouetteView = await SilhouetteView.create(app,
+    final silhouetteView = await SilhouetteView.create(
+      app,
       width: actualWidth,
       height: actualHeight,
     );
     await silhouetteView.setBlendMode(BlendMode.transparent);
 
     // Create edge detection view (second pass)
-    final edgeDetectionView = await EdgeDetectionView.create(app,
+    final edgeDetectionView = await EdgeDetectionView.create(
+      app,
       width: actualWidth,
       height: actualHeight,
       silhouetteTexture: silhouetteView.colorTexture,

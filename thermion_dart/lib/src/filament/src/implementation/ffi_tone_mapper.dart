@@ -66,7 +66,10 @@ class FFIToneMapper extends ToneMapper {
   ///   - AgxLook.none: Base contrast with no look applied
   ///   - AgxLook.punchy: More chroma laden look for sRGB displays
   ///   - AgxLook.golden: Golden tinted look for BT.1886 displays
-  static Future<ToneMapper> agx(FFIFilamentApp app, {AgxLook look = AgxLook.none}) async {
+  static Future<ToneMapper> agx(
+    FFIFilamentApp app, {
+    AgxLook look = AgxLook.none,
+  }) async {
     final filamentApp = app;
     final pointer = await withPointerCallback<TToneMapper>(
       (cb) => ToneMapper_createAGXWithLookRenderThread(
@@ -88,7 +91,8 @@ class FFIToneMapper extends ToneMapper {
   /// [midGrayIn] - Input middle gray value (0.0..1.0, default: 0.18)
   /// [midGrayOut] - Output middle gray value (0.0..1.0, default: 0.215)
   /// [hdrMax] - Maximum input value mapped to output white (>= 1.0, default: 10.0)
-  static Future<ToneMapper> generic(FFIFilamentApp app, {
+  static Future<ToneMapper> generic(
+    FFIFilamentApp app, {
     double contrast = 1.55,
     double midGrayIn = 0.18,
     double midGrayOut = 0.215,

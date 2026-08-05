@@ -228,11 +228,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
     _checkNotBuilt();
     _built = true;
     final ptr = await withPointerCallback<TColorGrading>(
-      (cb) => ColorGradingBuilder_buildRenderThread(
-        _builder,
-        _app.engine,
-        cb,
-      ),
+      (cb) => ColorGradingBuilder_buildRenderThread(_builder, _app.engine, cb),
     );
     await withVoidCallback(
       (requestId, cb) =>

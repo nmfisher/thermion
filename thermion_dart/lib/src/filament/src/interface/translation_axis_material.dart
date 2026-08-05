@@ -42,7 +42,8 @@ class TranslationAxisMaterial {
     double lineWidth = 5.0,
     double lineLength = 100.0,
   }) {
-    return FFITranslationAxisMaterial.createTranslationAxisMaterialInstance(app: FilamentApp.instance as FFIFilamentApp, 
+    return FFITranslationAxisMaterial.createTranslationAxisMaterialInstance(
+      app: FilamentApp.instance as FFIFilamentApp,
       originX: originX,
       originY: originY,
       originZ: originZ,

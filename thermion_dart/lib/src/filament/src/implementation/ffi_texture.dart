@@ -166,7 +166,8 @@ class FFILinearImage extends LinearImage {
     return FFILinearImage(imagePtr);
   }
 
-  static Future<FFILinearImage> decode(FFIFilamentApp app,
+  static Future<FFILinearImage> decode(
+    FFIFilamentApp app,
     Uint8List data, {
     String name = "image",
     bool requireAlpha = false,
