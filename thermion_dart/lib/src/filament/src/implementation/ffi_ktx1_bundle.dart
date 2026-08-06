@@ -2,7 +2,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'ffi_filament_app.dart';
 
 class FFIKtx1Bundle extends Ktx1Bundle {
   final Pointer<TKtx1Bundle> pointer;
@@ -29,8 +28,15 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   Float32List getSphericalHarmonics() {
-    var harmonics = Float32List(27);
-    Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
+    final harmonics = makeFloat32List(27);
+    if (FILAMENT_WASM) {
+      Ktx1Bundle_getSphericalHarmonics(
+        pointer,
+        writableBufferAddress(harmonics).cast(),
+      );
+    } else {
+      Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
+    }
     return harmonics;
   }
 
