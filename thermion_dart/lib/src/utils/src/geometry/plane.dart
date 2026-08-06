@@ -30,7 +30,8 @@ class PlaneGeometry {
         ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1])
         : null;
 
-    final indices = Uint16List.fromList([0, 1, 2, 0, 2, 3]);
+    // CCW from above (+y), matching the (0,1,0) normals.
+    final indices = Uint16List.fromList([0, 2, 1, 0, 3, 2]);
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }

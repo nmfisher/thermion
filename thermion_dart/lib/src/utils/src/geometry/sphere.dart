@@ -3,9 +3,22 @@ import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class SphereGeometry {
-  static Geometry sphere({bool normals = true, bool uvs = true}) {
-    int latitudeBands = 20;
-    int longitudeBands = 20;
+  static Geometry sphere({
+    bool normals = true,
+    bool uvs = true,
+    int latitudeBands = 20,
+    int longitudeBands = 20,
+  }) {
+    if (latitudeBands < 2) {
+      throw ArgumentError.value(latitudeBands, 'latitudeBands', 'must be >= 2');
+    }
+    if (longitudeBands < 3) {
+      throw ArgumentError.value(
+        longitudeBands,
+        'longitudeBands',
+        'must be >= 3',
+      );
+    }
 
     List<double> verticesList = [];
     List<double> normalsList = [];
@@ -41,14 +54,16 @@ class SphereGeometry {
         int first = (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices.addAll([
-          first,
-          second,
-          first + 1,
-          second,
-          second + 1,
-          first + 1,
-        ]);
+        // Each longitude has its own copy of the pole so that the UV seam can
+        // remain split. Do not emit the collapsed half of the quad at either
+        // pole: zero-area triangles make tangent-frame generation unstable,
+        // which is especially visible on low-roughness PBR materials.
+        if (latNumber != 0) {
+          indices.addAll([first, first + 1, second]);
+        }
+        if (latNumber != latitudeBands - 1) {
+          indices.addAll([second, first + 1, second + 1]);
+        }
       }
     }
 

@@ -47,10 +47,10 @@ class PyramidGeometry {
             -1,
             0,
             0.7071,
-            0.7071,
+            -0.7071,
             0,
             0.7071,
-            0.7071,
+            -0.7071,
           ])
         : null;
 
@@ -60,29 +60,29 @@ class PyramidGeometry {
 
     Uint16List indices = Uint16List.fromList([
       0,
+      2,
       1,
-      2,
       0,
-      2,
       3,
+      2,
       0,
+      5,
       1,
-      5,
-      0,
-      5,
-      4,
       0,
       4,
-      3,
-      1,
-      2,
       5,
-      2,
+      0,
       3,
       4,
+      1,
+      5,
+      2,
       2,
       4,
+      3,
+      2,
       5,
+      4,
     ]);
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
