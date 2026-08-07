@@ -1370,6 +1370,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _AnimationManager_setGltfAnimationTimeRenderThread(
+    Pointer<TAnimationManager> tAnimationManager,
+    Pointer<TSceneAsset> tSceneAsset,
+    int animationIndex,
+    double timeInSeconds,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _AnimationManager_updateBoneMatricesRenderThread(
     Pointer<TAnimationManager> tAnimationManager,
     Pointer<TSceneAsset> sceneAsset,
@@ -6133,6 +6141,25 @@ void AnimationManager_updateRenderThread(
   final result = GeneratedBindings.instance._AnimationManager_updateRenderThread(
     tAnimationManager.cast(),
     frameTimeInNanos.toJSBigInt,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void AnimationManager_setGltfAnimationTimeRenderThread(
+  Pointer<TAnimationManager> tAnimationManager,
+  Pointer<TSceneAsset> tSceneAsset,
+  int animationIndex,
+  double timeInSeconds,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._AnimationManager_setGltfAnimationTimeRenderThread(
+    tAnimationManager.cast(),
+    tSceneAsset.cast(),
+    animationIndex,
+    timeInSeconds,
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );

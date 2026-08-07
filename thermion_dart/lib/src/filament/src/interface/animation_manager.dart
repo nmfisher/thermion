@@ -77,7 +77,7 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [animationIndex] The animation index
   // [timeInSeconds] The time position in the animation in seconds
   // Returns true if successful, false otherwise
-  bool setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds);
+  Future<void> setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds);
 
   // Gets the duration of a glTF animation in seconds.
   //
