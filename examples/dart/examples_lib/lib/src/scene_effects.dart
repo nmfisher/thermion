@@ -17,12 +17,6 @@ Future<void> setupEffects(
   await viewer.setBloom(true, 0.15);
 
   final camera = await viewer.getActiveCamera();
-  await camera.setLensProjection(
-    near: 0.1,
-    far: 100.0,
-    aspect: 1.0,
-    focalLength: 28.0,
-  );
   await camera.lookAt(Vector3(5, 4, 5), focus: Vector3(0, 0.5, 0));
 
   await viewer.loadSkybox("$assetsDir/default_env_skybox.ktx");

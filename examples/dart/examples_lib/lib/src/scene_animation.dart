@@ -6,6 +6,9 @@ Future<void> setupAnimation(
   ThermionViewer viewer, {
   required String assetsDir,
 }) async {
+  final camera = await viewer.getActiveCamera();
+  await camera.lookAt(Vector3(0, 0.35, 2.1), focus: Vector3.zero());
+
   await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0, -1, -0.5)));
   await viewer.loadIbl("$assetsDir/default_env_ibl.ktx");
   await viewer.loadSkybox("$assetsDir/default_env_skybox.ktx");
@@ -19,13 +22,4 @@ Future<void> setupAnimation(
   await drone.transformToUnitCube();
   await drone.addAnimationComponent();
   await drone.playGltfAnimation(0, loop: true);
-
-  final camera = await viewer.getActiveCamera();
-  await camera.setLensProjection(
-    near: 0.1,
-    far: 100.0,
-    aspect: 1.0,
-    focalLength: 28.0,
-  );
-  await camera.lookAt(Vector3(0, 0.35, 2.1), focus: Vector3.zero());
 }

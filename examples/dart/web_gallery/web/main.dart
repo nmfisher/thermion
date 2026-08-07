@@ -103,14 +103,18 @@ Future<void> _boot() async {
   await app.renderManager.attach(viewer.view, swapChain);
   await viewer.view.setViewport(w0, h0);
 
-  await setup(viewer, assetsDir: assetsDir);
-
-  // The example setups hardcode a square (1.0) projection aspect, which
-  // stretches the scene on a non-square canvas. Re-apply each example's chosen
-  // lens (near/far/focal) with the real viewport aspect so geometry isn't
-  // distorted.
+  // All gallery scenes use the same lens. Configure it with the real canvas
+  // aspect before setup adds any lights or renderables, so partially loaded
+  // scenes can never render through a temporary square projection.
   final camera = await viewer.getActiveCamera();
-  await _syncAspect(camera, w0, h0);
+  await camera.setLensProjection(
+    near: 0.1,
+    far: 100.0,
+    aspect: w0 / h0,
+    focalLength: 28.0,
+  );
+
+  await setup(viewer, assetsDir: assetsDir);
 
   // Orbit camera: drag to orbit a target (the origin, where transformToUnitCube
   // places every scene), scroll to dolly. The camera is updated on every

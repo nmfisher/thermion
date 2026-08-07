@@ -11,12 +11,6 @@ Future<void> setupGeometry(
   required String assetsDir,
 }) async {
   final camera = await viewer.getActiveCamera();
-  await camera.setLensProjection(
-    near: 0.1,
-    far: 100.0,
-    aspect: 1.0,
-    focalLength: 28.0,
-  );
   await camera.lookAt(Vector3(0, 4.5, 12), focus: Vector3(0, 0.5, 0));
 
   await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0, -1, -0.4)));
