@@ -9,7 +9,6 @@
     before the Dart (WASM) entry runs; Dart then reads it via
     NativeLibrary.initBindings("thermion_dart").
   -->
-  <script src="thermion_dart.js"></script>
   <style>
     html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 100%; height: 100%; }
     canvas { width: 100vw; height: 100vh; display: block; }
@@ -47,6 +46,15 @@
   <div id="info">loading…</div>
   <div id="error"></div>
 
+  <script>
+    // Give the canvas its real backing size before downloading either WASM
+    // module. Dart repeats this immediately before engine creation in case the
+    // window changed size while the modules were loading.
+    const canvas = document.getElementById('thermion_canvas');
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+  </script>
+  <script src="thermion_dart.js"></script>
   <script type="module">
     // Bootstrap the cross-origin-isolated Emscripten module.
     try {
