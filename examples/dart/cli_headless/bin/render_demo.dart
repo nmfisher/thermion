@@ -1,15 +1,20 @@
-// Headless renderer: produces a looping demo video of the BusterDrone under the
-// Filament "lightroom_14b" HDRI, with the camera smoothly orbiting + dollying.
+// Headless renderer: produces a looping demo video of the BusterDrone under a
+// Filament HDRI skybox, with the camera smoothly orbiting + dollying while the
+// glTF animation plays.
 //
-// Renders a sequence of PNG frames into output/frames/, then (separately) encode
-// them with ffmpeg:
+// Resolution + aspect are selectable via `--preset` (desktop 16:9 or iphone
+// portrait); each preset renders into its own output/frames_<preset>/ folder.
+// Encode each separately with ffmpeg (<preset> = desktop | iphone):
 //
-//   ffmpeg -framerate 120 -i output/frames/frame_%04d.png \
+//   ffmpeg -framerate 120 -i output/frames_<preset>/frame_%04d.png \
 //     -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p" -crf 18 \
-//     output/drone_demo.mp4
+//     output/drone_demo_<preset>.mp4
 //
-//   ffmpeg -i output/drone_demo.mp4 -vf "fps=30,scale=800:-1,split[s0][s1];\
-//     [s0]palettegen[p];[s1][p]paletteuse" output/drone_demo.gif
+//   ffmpeg -i output/drone_demo_<preset>.mp4 \
+//     -vf "fps=30,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" \
+//     output/drone_demo_<preset>.gif
+//   # (add scale=W:-1 or scale=-1:H inside the -vf to resize; for the tall
+//   #  portrait preset, cap height e.g. scale=-1:800 to keep the gif sane)
 //
 // All motion is periodic over one full clip (t in [0,1)), so the loop is seamless
 // — handy for a gif.
@@ -24,12 +29,37 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 // ---------------------------------------------------------------------------
 // Tunable parameters
 // ---------------------------------------------------------------------------
-const int width = 1280;
-const int height = 720;
 const int fps = 120;
 // Long enough to capture the drone's full glTF animation (CINEMA_4D_Basis,
-// ~25s) end-to-end at authored (1x) speed. -> 3000 frames.
+// ~25s) end-to-end at authored (1x) speed. -> 3000 frames at 120fps.
 const int durationSeconds = 25;
+
+// Output resolution + framing presets. Switch with `--preset=<name>`; each
+// preset renders into its own output/frames_<name>/ folder so they coexist.
+//   desktop: 16:9 1280x720 (landscape — README/web).
+//   iphone:  19.5:9 1170x2532 (portrait — iPhone 15 Pro point resolution).
+// All framing is per-preset: a tall portrait frame is much narrower
+// horizontally, so the drone (wider than it is tall) needs a larger orbit
+// radius plus a gentler dolly to stay framed without clipping at the sides.
+class _Preset {
+  const _Preset(this.name, this.width, this.height, this.vfovDegrees,
+      this.radiusCenter, this.radiusAmplitude, this.heightCenter, this.heightAmplitude);
+  final String name;
+  final int width;
+  final int height;
+  final double vfovDegrees;
+  final double radiusCenter;
+  final double radiusAmplitude;
+  final double heightCenter;
+  final double heightAmplitude;
+  double get aspect => width / height;
+}
+
+const Map<String, _Preset> presets = {
+  'desktop': _Preset('desktop', 1280, 720, 45.0, 4.0, 1.3, 0.8, 0.5),
+  'iphone': _Preset('iphone', 1170, 2532, 45.0, 10.5, 0.4, 1.0, 0.3),
+};
+const String defaultPreset = 'desktop';
 
 const String droneAsset = 'examples/assets/BusterDrone/scene.gltf';
 
@@ -61,14 +91,10 @@ final Aabb3 droneBox = Aabb3.minMax(
   Vector3(77.94, -14.87, 90.0),
 );
 
-// Camera framing (the drone is normalized to a unit cube at the origin first,
-// so these are small fixed values). Motion is periodic over one clip ->
-// seamless loop.
-const double vfovDegrees = 45.0; // vertical field of view
-const double radiusCenter = 4.0; // mean orbit radius
-const double radiusAmplitude = 1.3; // dolly in/out distance
-const double heightCenter = 0.8; // mean camera height (slight down-angle)
-const double heightAmplitude = 0.5; // gentle vertical bob
+// Camera motion. All orbit/dolly parameters are per-preset (see _Preset) so
+// framing adapts to the aspect ratio; the integer cycle counts below are shared
+// so the motion is periodic over one clip -> seamless loop. The drone is
+// normalized to a unit cube at the origin first, so these are small fixed values.
 const int dollyCycles = 2; // dolly periods per clip (integer => seamless)
 const int heightCycles = 1; // height periods per clip
 const int orbitTurns = 1; // full revolutions per clip
@@ -113,7 +139,20 @@ Future<void> main(List<String> argv) async {
   final assetUri = (String rel) =>
       'file://${p.join(repoRoot, rel)}';
 
-  final framesDir = io.Directory(p.join(scriptDir, '..', 'output', 'frames'));
+  // Resolution + framing preset. `--preset=<name>` selects one.
+  final presetName = argv.any((a) => a.startsWith('--preset'))
+      ? argv.firstWhere((a) => a.startsWith('--preset')).split('=')[1]
+      : defaultPreset;
+  final preset = presets[presetName] ??
+      (throw ArgumentError(
+          'Unknown preset "$presetName". Available: ${presets.keys}'));
+  final width = preset.width;
+  final height = preset.height;
+  print('Preset: $presetName (${width}x$height, '
+      'aspect ${preset.aspect.toStringAsFixed(3)})');
+
+  final framesDir =
+      io.Directory(p.join(scriptDir, '..', 'output', 'frames_${preset.name}'));
   if (framesDir.existsSync()) {
     framesDir.deleteSync(recursive: true);
   }
@@ -144,13 +183,19 @@ Future<void> main(List<String> argv) async {
   await viewer.setToneMapper(await ToneMapper.aces(app));
 
   // Environment: HDRI skybox + image-based lighting. `--env=<name>` selects one.
+  // `--no-skybox` skips the visible skybox (background goes black) but keeps the
+  // IBL for lighting — handy for measuring the subject's silhouette/framing
+  // without a busy background.
+  final noSkybox = argv.contains('--no-skybox');
   final envName = argv.any((a) => a.startsWith('--env'))
       ? argv.firstWhere((a) => a.startsWith('--env')).split('=')[1]
       : defaultEnv;
   final env = envs[envName] ??
       (throw ArgumentError('Unknown env "$envName". Available: ${envs.keys}'));
-  print('Environment: $envName');
-  await viewer.loadSkybox(assetUri(env.skybox));
+  print('Environment: $envName${noSkybox ? " (no skybox)" : ""}');
+  if (!noSkybox) {
+    await viewer.loadSkybox(assetUri(env.skybox));
+  }
   await viewer.loadIbl(assetUri(env.ibl), intensity: iblIntensity);
 
   // Subject: the BusterDrone.
@@ -175,7 +220,7 @@ Future<void> main(List<String> argv) async {
   // preserved. Opening up clips the cyclorama AND washes the light drone body
   // into the background (verified via histogram sweeps).
   await camera.setProjectionFromVerticalFieldOfView(
-      vfovDegrees, 0.1, 1000.0, width / height);
+      preset.vfovDegrees, 0.1, 1000.0, width / height);
 
   // Supplemental point lights (key/fill/rim) for moving highlights on the drone.
   for (final l in pointLights) {
@@ -222,10 +267,10 @@ Future<void> main(List<String> argv) async {
     final t = i / frameCount; // [0, 1)
 
     final angle = 2.0 * math.pi * orbitTurns * t;
-    final radius =
-        radiusCenter + radiusAmplitude * math.cos(2.0 * math.pi * dollyCycles * t);
-    final y =
-        heightCenter + heightAmplitude * math.sin(2.0 * math.pi * heightCycles * t);
+    final radius = preset.radiusCenter +
+        preset.radiusAmplitude * math.cos(2.0 * math.pi * dollyCycles * t);
+    final y = preset.heightCenter +
+        preset.heightAmplitude * math.sin(2.0 * math.pi * heightCycles * t);
 
     final pos = Vector3(radius * math.cos(angle), y, radius * math.sin(angle));
     await camera.lookAt(pos, focus: focus, up: up);
