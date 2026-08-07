@@ -1,4 +1,3 @@
-import 'package:thermion_dart/thermion_dart.dart';
 import '../../bindings/bindings.dart' as bindings;
 
 /// Intent action enumeration.

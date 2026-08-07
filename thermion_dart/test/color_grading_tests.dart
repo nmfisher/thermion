@@ -28,22 +28,13 @@ void main() async {
       'pbr_neutral',
       () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp),
       'agx_none',
-      () => ToneMapper.agx(
-        FilamentApp.instance! as FFIFilamentApp,
-        look: AgxLook.punchy,
-      ),
+      () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp, look: AgxLook.punchy),
       'agx_punchy',
-      () => ToneMapper.agx(
-        FilamentApp.instance! as FFIFilamentApp,
-        look: AgxLook.golden,
-      ),
+      () => ToneMapper.agx(FilamentApp.instance! as FFIFilamentApp, look: AgxLook.golden),
       'agx_golden',
       () => ToneMapper.generic(FilamentApp.instance! as FFIFilamentApp),
       'generic_default',
-      () => ToneMapper.generic(
-        FilamentApp.instance! as FFIFilamentApp,
-        contrast: 2.0,
-      ),
+      () => ToneMapper.generic(FilamentApp.instance! as FFIFilamentApp, contrast: 2.0),
       'generic_contrast_2_0',
       () => ToneMapper.displayRange(FilamentApp.instance! as FFIFilamentApp),
       'display_range',
@@ -68,8 +59,7 @@ void main() async {
         )
         .execute((result) async {
           for (int i = 0; i < toneMappers.length; i += 2) {
-            final toneMapperFactory =
-                toneMappers[i] as Future<ToneMapper> Function();
+            final toneMapperFactory = toneMappers[i] as Future<ToneMapper> Function();
             final name = toneMappers[i + 1] as String;
             final toneMapper = await toneMapperFactory();
 
@@ -106,9 +96,7 @@ void main() async {
               .saturation(0.95) // Slight desaturation
               .luminanceScaling(true) // Better HDR handling
               .gamutMapping(true) // Prevent hue shifts
-              .toneMapper(
-                await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
-              ) // Add a tone mapper
+              .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp)) // Add a tone mapper
               .shadowsMidtonesHighlights(
                 Vector4(0.8, 0.9, 1.0, 0.5), // Slightly cool shadows
                 Vector4(1.0, 1.0, 1.0, 1.0), // Neutral midtones
@@ -123,10 +111,7 @@ void main() async {
           await result.viewer.view.setColorGrading(colorGrading);
 
           // Capture the viewport after applying color grading
-          await testHelper.capture(
-            result.viewer.view,
-            "color_grading_builder_applied",
-          );
+          await testHelper.capture(result.viewer.view, "color_grading_builder_applied");
         });
   });
 
@@ -144,10 +129,7 @@ void main() async {
           createUbershader: true,
         )
         .execute((result) async {
-          await testHelper.capture(
-            result.viewer.view,
-            "color_grading_lut_none",
-          );
+          await testHelper.capture(result.viewer.view, "color_grading_lut_none");
           final configs = [
             (LutFormat.INTEGER, 16, 'integer_16'),
             (LutFormat.INTEGER, 32, 'integer_32'),
@@ -156,26 +138,18 @@ void main() async {
           ];
 
           for (final (format, dim, name) in configs) {
-            final builder = await result.viewer.view
-                .createColorGradingBuilder();
+            final builder = await result.viewer.view.createColorGradingBuilder();
             final colorGrading = await builder
                 .format(format)
                 .dimensions(dim)
-                .toneMapper(
-                  await ToneMapper.aces(
-                    FilamentApp.instance! as FFIFilamentApp,
-                  ),
-                )
+                .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp))
                 .saturation(1.3)
                 .contrast(1.2)
                 .build();
 
             expect(colorGrading, isNotNull);
             await result.viewer.view.setColorGrading(colorGrading);
-            await testHelper.capture(
-              result.viewer.view,
-              "color_grading_lut_$name",
-            );
+            await testHelper.capture(result.viewer.view, "color_grading_lut_$name");
           }
         });
   });
@@ -196,39 +170,21 @@ void main() async {
         .execute((result) async {
           final configs = <(Vector3, Vector3, Vector3, String)>[
             (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1), 'identity'),
-            (
-              Vector3(0.393, 0.769, 0.189),
-              Vector3(0.349, 0.686, 0.168),
-              Vector3(0.272, 0.534, 0.131),
-              'sepia',
-            ),
+            (Vector3(0.393, 0.769, 0.189), Vector3(0.349, 0.686, 0.168), Vector3(0.272, 0.534, 0.131), 'sepia'),
             (Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(1, 0, 0), 'swap_rb'),
-            (
-              Vector3(0.299, 0.587, 0.114),
-              Vector3(0.299, 0.587, 0.114),
-              Vector3(0.299, 0.587, 0.114),
-              'luminance',
-            ),
+            (Vector3(0.299, 0.587, 0.114), Vector3(0.299, 0.587, 0.114), Vector3(0.299, 0.587, 0.114), 'luminance'),
           ];
 
           for (final (outRed, outGreen, outBlue, name) in configs) {
-            final builder = await result.viewer.view
-                .createColorGradingBuilder();
+            final builder = await result.viewer.view.createColorGradingBuilder();
             final colorGrading = await builder
-                .toneMapper(
-                  await ToneMapper.linear(
-                    FilamentApp.instance! as FFIFilamentApp,
-                  ),
-                )
+                .toneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp))
                 .channelMixer(outRed, outGreen, outBlue)
                 .build();
 
             expect(colorGrading, isNotNull);
             await result.viewer.view.setColorGrading(colorGrading);
-            await testHelper.capture(
-              result.viewer.view,
-              "color_grading_channel_mixer_$name",
-            );
+            await testHelper.capture(result.viewer.view, "color_grading_channel_mixer_$name");
           }
         });
   });
@@ -260,25 +216,19 @@ void main() async {
               .exposure(0.5)
               .contrast(1.2)
               .saturation(1.1)
-              .toneMapper(
-                await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
-              )
+              .toneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp))
               .build();
 
           // Apply the color grading to the view
           await result.viewer.view.setColorGrading(colorGrading);
 
           // Retrieve the color grading from the view
-          var retrievedColorGrading = await result.viewer.view
-              .getColorGrading();
+          var retrievedColorGrading = await result.viewer.view.getColorGrading();
           expect(retrievedColorGrading, isNotNull);
           expect(retrievedColorGrading, isA<ColorGrading>());
 
           // Capture the viewport with color grading applied
-          await testHelper.capture(
-            result.viewer.view,
-            "color_grading_get_test",
-          );
+          await testHelper.capture(result.viewer.view, "color_grading_get_test");
 
           // Clear the color grading by passing null
           await result.viewer.view.setColorGrading(null);

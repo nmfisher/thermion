@@ -47,11 +47,7 @@ abstract class SurfaceOrientation {
   /// [stride] Byte stride between quaternions (default 0 = tightly packed)
   ///
   /// Returns a TypedData containing the quaternion data in the requested format.
-  Future<TypedData> getQuats(
-    QuaternionFormat format,
-    int quatCount, {
-    int stride = 0,
-  });
+  Future<TypedData> getQuats(QuaternionFormat format, int quatCount, {int stride = 0});
 
   /// Destroys this surface orientation and releases associated resources.
   Future<void> destroy();

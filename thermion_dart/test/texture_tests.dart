@@ -7,16 +7,9 @@ void main() async {
   await testHelper.setup();
 
   test('decode PNG and set 2D texture', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
-      var imageData = await loadResourceBytes(
-        "${testHelper.assetsDir}/cube_texture_512x512.png",
-      );
-      final image = await FilamentApp.instance!.decodeImage(
-        imageData,
-        requireAlpha: true,
-      );
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
+      var imageData = await loadResourceBytes("${testHelper.assetsDir}/cube_texture_512x512.png");
+      final image = await FilamentApp.instance!.decodeImage(imageData, requireAlpha: true);
       expect(await image.getChannels(), 4);
       expect(await image.getWidth(), 512);
       expect(await image.getHeight(), 512);
@@ -26,27 +19,16 @@ void main() async {
         await image.getHeight(),
         textureFormat: TextureFormat.RGBA32F,
       );
-      await texture.setLinearImage(
-        image,
-        PixelDataFormat.RGBA,
-        PixelDataType.FLOAT,
-      );
+      await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
       await image.destroy();
       await texture.dispose();
     });
   });
 
   test('decode JPEG and set 2D texture', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
-      var imageData = await loadResourceBytes(
-        "${testHelper.assetsDir}/cube_texture_512x512.jpeg",
-      );
-      final image = await FilamentApp.instance!.decodeImage(
-        imageData,
-        requireAlpha: true,
-      );
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
+      var imageData = await loadResourceBytes("${testHelper.assetsDir}/cube_texture_512x512.jpeg");
+      final image = await FilamentApp.instance!.decodeImage(imageData, requireAlpha: true);
       expect(await image.getChannels(), 4);
       expect(await image.getWidth(), 512);
       expect(await image.getHeight(), 512);
@@ -56,20 +38,14 @@ void main() async {
         await image.getHeight(),
         textureFormat: TextureFormat.RGBA32F,
       );
-      await texture.setLinearImage(
-        image,
-        PixelDataFormat.RGBA,
-        PixelDataType.FLOAT,
-      );
+      await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
       await image.destroy();
       await texture.dispose();
     });
   });
 
   test('set cubemap texture from pixel buffer', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
       final texture = await FilamentApp.instance!.createTexture(
         1,
         1,
@@ -94,12 +70,8 @@ void main() async {
   });
 
   test('generate mipmaps', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
-      var imageData = await loadResourceBytes(
-        "${testHelper.assetsDir}/cube_texture_512x512.png",
-      );
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
+      var imageData = await loadResourceBytes("${testHelper.assetsDir}/cube_texture_512x512.png");
       // RGBA32F + matching pixel format: generateMipmaps requires a
       // color-renderable format, and on WebGL only RGBA float textures are
       // renderable (RGB32F is not, even with EXT_color_buffer_float).
@@ -119,16 +91,9 @@ void main() async {
   });
 
   test('create 2D texture and set image from raw buffer', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
-      var imageData = await loadResourceBytes(
-        "${testHelper.assetsDir}/cube_texture_512x512.png",
-      );
-      final image = await FilamentApp.instance!.decodeImage(
-        imageData,
-        requireAlpha: true,
-      );
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
+      var imageData = await loadResourceBytes("${testHelper.assetsDir}/cube_texture_512x512.png");
+      final image = await FilamentApp.instance!.decodeImage(imageData, requireAlpha: true);
       expect(await image.getChannels(), 4);
       expect(await image.getWidth(), 512);
       expect(await image.getHeight(), 512);
@@ -154,9 +119,7 @@ void main() async {
   });
 
   test('create 3D texture and set image from buffers', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
       final width = 128;
       final height = 128;
       final channels = 4;
@@ -171,15 +134,7 @@ void main() async {
 
       for (int i = 0; i < depth; i++) {
         final buffer = Uint8List(width * height * channels * sizeOf<Float>());
-        await texture.setImage(
-          0,
-          buffer,
-          width,
-          height,
-          PixelDataFormat.RGBA,
-          PixelDataType.FLOAT,
-          zOffset: i,
-        );
+        await texture.setImage(0, buffer, width, height, PixelDataFormat.RGBA, PixelDataType.FLOAT, zOffset: i);
       }
       await texture.dispose();
     });
@@ -254,12 +209,8 @@ void main() async {
   // });
 
   test('load KTX2 texture ', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
-      final data = await loadResourceBytes(
-        "${testHelper.assetsDir}/2d_uastc.ktx2",
-      );
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
+      final data = await loadResourceBytes("${testHelper.assetsDir}/2d_uastc.ktx2");
       final texture = await FilamentApp.instance!.loadKtx2(data);
       expect(await texture.getHeight(), 40);
       expect(await texture.getWidth(), 40);
@@ -305,20 +256,10 @@ void main() async {
 
           // Apply texture to the plane's material
           final materialInstance = await plane.getMaterialInstanceAt();
-          await materialInstance.setParameterFloat4(
-            "baseColorFactor",
-            1,
-            1,
-            1,
-            0,
-          );
+          await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
           await materialInstance.setParameterInt("baseColorIndex", 0);
           final sampler = await FilamentApp.instance!.createTextureSampler();
-          await materialInstance.setParameterTexture(
-            "baseColorMap",
-            texture,
-            sampler,
-          );
+          await materialInstance.setParameterTexture("baseColorMap", texture, sampler);
           await testHelper.capture(result.viewer.view, "paint_test_initial");
 
           // Create a red "paint" buffer
@@ -372,47 +313,37 @@ void main() async {
       });
     }
 
-    test(
-      'RenderTarget.getColorTexture exposes the FLOAT color format',
-      () async {
-        await ViewerBuilder(testHelper).execute((result) async {
-          final color = await FilamentApp.instance!.createTexture(
-            16,
-            16,
-            flags: const {
-              TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-              TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-              TextureUsage.TEXTURE_USAGE_BLIT_SRC,
-            },
-            textureFormat: TextureFormat.RGBA32F,
-          );
-          final depth = await FilamentApp.instance!.createTexture(
-            16,
-            16,
-            flags: const {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
-            textureFormat: TextureFormat.DEPTH32F,
-          );
-          final rt = await FilamentApp.instance!.createRenderTarget(
-            16,
-            16,
-            color: color,
-            depth: depth,
-          );
-          final readBack = await rt.getColorTexture();
-          expect(await readBack.getFormat(), TextureFormat.RGBA32F);
-          await rt.destroy();
-          await color.dispose();
-          await depth.dispose();
-        });
-      },
-    );
+    test('RenderTarget.getColorTexture exposes the FLOAT color format', () async {
+      await ViewerBuilder(testHelper).execute((result) async {
+        final color = await FilamentApp.instance!.createTexture(
+          16,
+          16,
+          flags: const {
+            TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+            TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          },
+          textureFormat: TextureFormat.RGBA32F,
+        );
+        final depth = await FilamentApp.instance!.createTexture(
+          16,
+          16,
+          flags: const {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+          textureFormat: TextureFormat.DEPTH32F,
+        );
+        final rt = await FilamentApp.instance!.createRenderTarget(16, 16, color: color, depth: depth);
+        final readBack = await rt.getColorTexture();
+        expect(await readBack.getFormat(), TextureFormat.RGBA32F);
+        await rt.destroy();
+        await color.dispose();
+        await depth.dispose();
+      });
+    });
   });
 
   group("sampler", () {
     test('create sampler', () async {
-      await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-        result,
-      ) async {
+      await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
         final sampler = FilamentApp.instance!.createTextureSampler();
       });
     });

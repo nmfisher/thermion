@@ -1,11 +1,7 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
 class CubeGeometry {
-  static Geometry cube({
-    bool normals = true,
-    bool uvs = true,
-    bool flipUvs = true,
-  }) {
+  static Geometry cube({bool normals = true, bool uvs = true, bool flipUvs = true}) {
     final vertices = Float32List.fromList([
       // Front face
       -1, -1, 1,
@@ -159,11 +155,7 @@ class CubeGeometry {
       1 / 3, 1 / 4,
     ];
 
-    final _uvs = uvs
-        ? Float32List.fromList(
-            flipUvs ? _flipUvCoordinates(originalUvs) : originalUvs,
-          )
-        : null;
+    final _uvs = uvs ? Float32List.fromList(flipUvs ? _flipUvCoordinates(originalUvs) : originalUvs) : null;
 
     final indices = [
       0,
@@ -204,12 +196,7 @@ class CubeGeometry {
       23,
     ];
 
-    return Geometry(
-      vertices,
-      Uint16List.fromList(indices),
-      normals: _normals,
-      uvs: _uvs,
-    );
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 
   static List<double> _flipUvCoordinates(List<double> uvs) {

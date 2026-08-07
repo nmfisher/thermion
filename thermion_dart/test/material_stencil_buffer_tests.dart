@@ -11,36 +11,16 @@ Future<
   })
 >
 setup(ThermionViewer viewer) async {
-  var blueMaterialInstance = await FilamentApp.instance!
-      .createUnlitMaterialInstance();
-  final blueCube = await viewer.createGeometry(
-    GeometryUtils.cube(),
-    materialInstances: [blueMaterialInstance],
-  );
-  await blueMaterialInstance.setParameterFloat4(
-    "baseColorFactor",
-    0.0,
-    0.0,
-    1.0,
-    1.0,
-  );
+  var blueMaterialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
+  final blueCube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [blueMaterialInstance]);
+  await blueMaterialInstance.setParameterFloat4("baseColorFactor", 0.0, 0.0, 1.0, 1.0);
 
   // Position blue cube slightly behind/below/right
   await blueCube.setTransform(Matrix4.translation(Vector3(1.0, -1.0, -1.0)));
 
-  var greenMaterialInstance = await FilamentApp.instance!
-      .createUnlitMaterialInstance();
-  final greenCube = await viewer.createGeometry(
-    GeometryUtils.cube(),
-    materialInstances: [greenMaterialInstance],
-  );
-  await greenMaterialInstance.setParameterFloat4(
-    "baseColorFactor",
-    0.0,
-    1.0,
-    0.0,
-    1.0,
-  );
+  var greenMaterialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
+  final greenCube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [greenMaterialInstance]);
+  await greenMaterialInstance.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
 
   return (
     blueCube: blueCube,
@@ -58,23 +38,13 @@ void main() async {
   test('enable stencil write', () async {
     await testHelper.withViewer(
       (viewer) async {
-        final (
-          :blueCube,
-          :blueMaterialInstance,
-          :greenCube,
-          :greenMaterialInstance,
-        ) = await setup(
-          viewer,
-        );
+        final (:blueCube, :blueMaterialInstance, :greenCube, :greenMaterialInstance) = await setup(viewer);
 
         // force depth to always pass so we're just comparing stencil test
         await greenMaterialInstance.setDepthFunc(SamplerCompareFunction.A);
         await blueMaterialInstance.setDepthFunc(SamplerCompareFunction.A);
 
-        await testHelper.capture(
-          viewer.view,
-          "material_instance_depth_pass_stencil_disabled",
-        );
+        await testHelper.capture(viewer.view, "material_instance_depth_pass_stencil_disabled");
 
         assert(await greenMaterialInstance.isStencilWriteEnabled() == false);
         assert(await blueMaterialInstance.isStencilWriteEnabled() == false);
@@ -89,10 +59,7 @@ void main() async {
         assert(await viewer.view.isStencilBufferEnabled(), true);
 
         // just a sanity check, output should be the same as above
-        await testHelper.capture(
-          viewer.view,
-          "material_instance_depth_pass_stencil_enabled",
-        );
+        await testHelper.capture(viewer.view, "material_instance_depth_pass_stencil_enabled");
       },
       postProcessing: true,
       bg: null,
@@ -103,14 +70,7 @@ void main() async {
   test('set stencil compare function to never/always/lt/gt)', () async {
     await testHelper.withViewer(
       (viewer) async {
-        final (
-          :blueCube,
-          :blueMaterialInstance,
-          :greenCube,
-          :greenMaterialInstance,
-        ) = await setup(
-          viewer,
-        );
+        final (:blueCube, :blueMaterialInstance, :greenCube, :greenMaterialInstance) = await setup(viewer);
 
         await viewer.view.setStencilBufferEnabled(true);
 
@@ -125,10 +85,7 @@ void main() async {
 
         // set stencil compare function to NEVER
         for (final mi in [greenMaterialInstance, blueMaterialInstance]) {
-          await mi.setStencilCompareFunction(
-            SamplerCompareFunction.N,
-            StencilFace.FRONT_AND_BACK,
-          );
+          await mi.setStencilCompareFunction(SamplerCompareFunction.N, StencilFace.FRONT_AND_BACK);
         }
 
         // should be totally empty
@@ -136,32 +93,21 @@ void main() async {
 
         // set stencil compare function to ALWAYS
         for (final mi in [greenMaterialInstance, blueMaterialInstance]) {
-          await mi.setStencilCompareFunction(
-            SamplerCompareFunction.A,
-            StencilFace.FRONT_AND_BACK,
-          );
+          await mi.setStencilCompareFunction(SamplerCompareFunction.A, StencilFace.FRONT_AND_BACK);
         }
 
         // should show green cube in front of blue cube
         await testHelper.capture(viewer.view, "stencil_always");
 
         // set the blue cube to always pass the stencil test
-        await blueMaterialInstance.setStencilCompareFunction(
-          SamplerCompareFunction.A,
-          StencilFace.FRONT_AND_BACK,
-        );
+        await blueMaterialInstance.setStencilCompareFunction(SamplerCompareFunction.A, StencilFace.FRONT_AND_BACK);
         // when blue cube passes depth + stencil, replace the default stencil value (0) with 1
-        await blueMaterialInstance.setStencilOpDepthStencilPass(
-          StencilOperation.REPLACE,
-        );
+        await blueMaterialInstance.setStencilOpDepthStencilPass(StencilOperation.REPLACE);
         await blueMaterialInstance.setStencilReferenceValue(1);
 
         // set the green cube to only pass the stencil test where stencil value is
         // not equal to 0
-        await greenMaterialInstance.setStencilCompareFunction(
-          SamplerCompareFunction.NE,
-          StencilFace.FRONT_AND_BACK,
-        );
+        await greenMaterialInstance.setStencilCompareFunction(SamplerCompareFunction.NE, StencilFace.FRONT_AND_BACK);
         await greenMaterialInstance.setStencilReferenceValue(0);
 
         // green cube will only be rendered where it overlaps with blue cube
@@ -169,10 +115,7 @@ void main() async {
 
         // set the green cube to only pass the stencil test where stencil value is
         // equal to 0
-        await greenMaterialInstance.setStencilCompareFunction(
-          SamplerCompareFunction.E,
-          StencilFace.FRONT_AND_BACK,
-        );
+        await greenMaterialInstance.setStencilCompareFunction(SamplerCompareFunction.E, StencilFace.FRONT_AND_BACK);
 
         // green cube renders where it does not overlap with blue cube (same as if
         // we had disabled depth writes and rendered the green cube, then the blue

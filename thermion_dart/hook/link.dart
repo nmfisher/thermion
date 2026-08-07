@@ -48,10 +48,7 @@ void main(List<String> args) async {
       return;
     }
 
-    final clinker = CLinker.library(
-      name: "thermion_dart",
-      linkerOptions: LinkerOptions.manual(stripDebug: false),
-    );
+    final clinker = CLinker.library(name: "thermion_dart", linkerOptions: LinkerOptions.manual(stripDebug: false));
     clinker.run(input: input, output: output, logger: logger);
 
     logger.info("Link step completed!");

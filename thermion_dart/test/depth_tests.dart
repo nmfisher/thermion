@@ -10,10 +10,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
-Future createView(
-  SwapChain swapChain, {
-  TextureFormat textureFormat = TextureFormat.RGBA32F,
-}) async {
+Future createView(SwapChain swapChain, {TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
   final view = await FilamentApp.instance!.createView() as FFIView;
   await view.setFrustumCullingEnabled(false);
   await view.setPostProcessing(false);
@@ -30,22 +27,14 @@ Future createView(
     },
     textureFormat: textureFormat,
   );
-  await view.setRenderTarget(
-    await FilamentApp.instance!.createRenderTarget(512, 512, color: color)
-        as FFIRenderTarget,
-  );
+  await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(512, 512, color: color) as FFIRenderTarget);
 
   await FilamentApp.instance!.renderManager.attach(view, swapChain);
 
   return view;
 }
 
-void checkMinMaxPixelValues(
-  Float32List pixelBuffer,
-  int width,
-  int height, {
-  int channels = 1,
-}) {
+void checkMinMaxPixelValues(Float32List pixelBuffer, int width, int height, {int channels = 1}) {
   var minVal = 99999.0;
   var maxVal = 0.0;
   for (var y = 0; y < height; y++) {
@@ -70,10 +59,7 @@ void main() async {
   test('write depth value to R32F texture', () async {
     final viewportDimensions = (width: 512, height: 512);
     var swapChain =
-        await FilamentApp.instance!.createHeadlessSwapChain(
-              viewportDimensions.width,
-              viewportDimensions.height,
-            )
+        await FilamentApp.instance!.createHeadlessSwapChain(viewportDimensions.width, viewportDimensions.height)
             as FFISwapChain;
 
     var color = await FilamentApp.instance!.createTexture(
@@ -116,25 +102,19 @@ void main() async {
     await camera.lookAt(Vector3(-5, dist, dist));
 
     var mat = await FilamentApp.instance!.createMaterial(
-      File(
-        "/Users/nickfisher/Documents/thermion/materials/linear_depth.filamat",
-      ).readAsBytesSync(),
+      File("/Users/nickfisher/Documents/thermion/materials/linear_depth.filamat").readAsBytesSync(),
     );
     var mi = await mat.createInstance();
     await mi.setDepthCullingEnabled(true);
     await mi.setDepthWriteEnabled(true);
     await mi.setCullingMode(CullingMode.BACK);
 
-    var umi = await FilamentApp.instance!.createUbershaderMaterialInstance(
-      unlit: true,
-    );
+    var umi = await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: true);
     var cube = await FilamentApp.instance!.createGeometry(GeometryUtils.cube());
     await scene.add(cube as FFIAsset);
     await umi.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
-    await cube.setTransform(
-      Matrix4.compose(Vector3.zero(), Quaternion.identity(), Vector3.all(1)),
-    );
+    await cube.setTransform(Matrix4.compose(Vector3.zero(), Quaternion.identity(), Vector3.all(1)));
     await cube.setMaterialInstanceAt(mi);
     await FilamentApp.instance!.renderManager.attach(view, swapChain);
     var pixelBuffers = await testHelper.capture(
@@ -153,27 +133,15 @@ void main() async {
   group('depth sampling', () {
     test("depth sampling", () async {
       await testHelper.withViewer((viewer) async {
-        await FilamentApp.instance!.setClearOptions(
-          0,
-          0,
-          0,
-          1,
-          clearStencil: 0,
-          discard: false,
-          clear: true,
-        );
+        await FilamentApp.instance!.setClearOptions(0, 0, 0, 1, clearStencil: 0, discard: false, clear: true);
         final camera = await viewer.getActiveCamera();
         await camera.lookAt(Vector3(3, 3, 6));
 
-        final swapChain =
-            await FilamentApp.instance!.createHeadlessSwapChain(512, 512)
-                as FFISwapChain;
+        final swapChain = await FilamentApp.instance!.createHeadlessSwapChain(512, 512) as FFISwapChain;
         final view = await createView(swapChain);
         await testHelper.withCube(viewer, (cube) async {
           var mat = await FilamentApp.instance!.createMaterial(
-            File(
-              "/Users/nickfisher/Documents/thermion/materials/depth_sampler.filamat",
-            ).readAsBytesSync(),
+            File("/Users/nickfisher/Documents/thermion/materials/depth_sampler.filamat").readAsBytesSync(),
           );
           final mi = await mat.createInstance();
 
@@ -186,9 +154,7 @@ void main() async {
           await mi.setParameterTexture(
             "depth",
             depth,
-            await FilamentApp.instance!.createTextureSampler(
-              compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
-            ),
+            await FilamentApp.instance!.createTextureSampler(compareMode: TextureCompareMode.COMPARE_TO_TEXTURE),
           );
           await cube.setMaterialInstanceAt(mi);
 

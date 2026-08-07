@@ -27,8 +27,7 @@ Future<Uint8List> loadResourceBytes(String uri) async {
 
 Uint8List readFileBytesSync(String path) => File(path).readAsBytesSync();
 
-Future<void> writeFileBytes(String path, Uint8List bytes) async =>
-    File(path).writeAsBytesSync(bytes);
+Future<void> writeFileBytes(String path, Uint8List bytes) async => File(path).writeAsBytesSync(bytes);
 
 void createDirSync(String path) => Directory(path).createSync(recursive: true);
 

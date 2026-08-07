@@ -15,12 +15,7 @@ class AttachmentTarget {
   /// The skin index (defaults to 0)
   final int skinIndex;
 
-  const AttachmentTarget({
-    required this.entity,
-    this.asset,
-    this.boneIndex,
-    this.skinIndex = 0,
-  });
+  const AttachmentTarget({required this.entity, this.asset, this.boneIndex, this.skinIndex = 0});
 
   /// Whether this target is a bone (vs a regular entity)
   bool get isBone => boneIndex != null;
@@ -31,11 +26,7 @@ class AttachmentTarget {
   }
 
   /// Create a target for a bone
-  factory AttachmentTarget.bone(
-    ThermionAsset asset,
-    int boneIndex, {
-    int skinIndex = 0,
-  }) {
+  factory AttachmentTarget.bone(ThermionAsset asset, int boneIndex, {int skinIndex = 0}) {
     return AttachmentTarget(
       asset: asset,
       boneIndex: boneIndex,
@@ -79,14 +70,8 @@ class BoneInfo {
   /// The skin index this bone belongs to
   final int skinIndex;
 
-  const BoneInfo({
-    required this.name,
-    required this.index,
-    required this.entity,
-    this.skinIndex = 0,
-  });
+  const BoneInfo({required this.name, required this.index, required this.entity, this.skinIndex = 0});
 
   @override
-  String toString() =>
-      'BoneInfo(name: $name, index: $index, skinIndex: $skinIndex)';
+  String toString() => 'BoneInfo(name: $name, index: $index, skinIndex: $skinIndex)';
 }

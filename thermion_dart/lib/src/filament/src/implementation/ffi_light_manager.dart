@@ -16,11 +16,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   @override
   ThermionEntity createLight(LightType type) {
     final tLightType = _convertLightType(type);
-    final entityId = LightManager_createLight(
-      app.engine,
-      lightManager,
-      tLightType,
-    );
+    final entityId = LightManager_createLight(app.engine, lightManager, tLightType);
 
     if (entityId == -1) {
       throw Exception("Failed to create light of type $type");
@@ -126,11 +122,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   }
 
   @override
-  void setIntensityWatts(
-    ThermionEntity light,
-    double watts,
-    double efficiency,
-  ) {
+  void setIntensityWatts(ThermionEntity light, double watts, double efficiency) {
     LightManager_setIntensityWatts(lightManager, light, watts, efficiency);
   }
 
@@ -205,8 +197,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
       }
       // Copy the required split positions, ensuring we don't exceed array bounds
       for (int i = 0; i < requiredSplits; i++) {
-        tShadowOptions.cascadeSplitPositions[i] =
-            options.cascadeSplitPositions[i];
+        tShadowOptions.cascadeSplitPositions[i] = options.cascadeSplitPositions[i];
       }
     }
     tShadowOptions.constantBias = options.constantBias;
@@ -218,8 +209,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     tShadowOptions.lispsm = options.lispsm;
     tShadowOptions.polygonOffsetConstant = options.polygonOffsetConstant;
     tShadowOptions.polygonOffsetSlope = options.polygonOffsetSlope;
-    tShadowOptions.screenSpaceContactShadows =
-        options.screenSpaceContactShadows;
+    tShadowOptions.screenSpaceContactShadows = options.screenSpaceContactShadows;
     tShadowOptions.stepCount = options.stepCount;
     tShadowOptions.maxShadowDistance = options.maxShadowDistance;
     tShadowOptions.vsmElvsm = options.vsmElvsm;
@@ -315,12 +305,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
   }
 
   @override
-  List<double> computePracticalSplits(
-    int cascades,
-    double near,
-    double far,
-    double lambda,
-  ) {
+  List<double> computePracticalSplits(int cascades, double near, double far, double lambda) {
     if (cascades < 2 || cascades > 4) {
       throw ArgumentError("Cascades must be between 2 and 4");
     }
@@ -335,13 +320,7 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     final pointer = makeFloat32List(requiredSplits);
 
     // Call the native method
-    LightManager_computePracticalSplits(
-      pointer.address,
-      cascades,
-      near,
-      far,
-      lambda,
-    );
+    LightManager_computePracticalSplits(pointer.address, cascades, near, far, lambda);
     return pointer;
   }
 

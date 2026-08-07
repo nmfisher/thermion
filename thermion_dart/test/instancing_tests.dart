@@ -42,39 +42,27 @@ void main() async {
   test("loadGltf throws an Exception when initialInstances is 0", () async {
     await testHelper.withViewer((viewer) async {
       await expectLater(
-        viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          initialInstances: 0,
-        ),
+        viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", initialInstances: 0),
         throwsA(isA<Exception>()),
       );
     });
   });
 
-  test(
-    "loadGltf creates the number of instances passed via initialInstances",
-    () async {
-      await testHelper.withViewer((viewer) async {
-        var asset = await viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          initialInstances: 1,
-        );
+  test("loadGltf creates the number of instances passed via initialInstances", () async {
+    await testHelper.withViewer((viewer) async {
+      var asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", initialInstances: 1);
 
-        expect(await asset.getInstanceCount(), 1);
-        expect(asset.isInstance, false);
+      expect(await asset.getInstanceCount(), 1);
+      expect(asset.isInstance, false);
 
-        final instances = await asset.getInstances();
-        expect(instances[0] == asset, false);
-        expect(instances[0].isInstance, true);
+      final instances = await asset.getInstances();
+      expect(instances[0] == asset, false);
+      expect(instances[0].isInstance, true);
 
-        asset = await viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          initialInstances: 2,
-        );
-        expect(await asset.getInstanceCount(), 2);
-      });
-    },
-  );
+      asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", initialInstances: 2);
+      expect(await asset.getInstanceCount(), 2);
+    });
+  });
 
   test("When loadGltf is called with releaseSourceData=true, only the "
       "pre-allocated instances can be created", () async {
@@ -106,10 +94,7 @@ void main() async {
 
       // releasing via an instance wrapper is a misuse: it must throw, and
       // only the owning asset may release the source data
-      await expectLater(
-        instance.releaseSourceData(),
-        throwsA(isA<StateError>()),
-      );
+      await expectLater(instance.releaseSourceData(), throwsA(isA<StateError>()));
 
       await asset.releaseSourceData();
       await testHelper.capture(viewer.view, "gltf_after_source_release");
@@ -124,28 +109,16 @@ void main() async {
     }, addSkybox: true);
   });
 
-  test(
-    "releaseSourceData() throws for non-glTF assets and double release",
-    () async {
-      await testHelper.withViewer((viewer) async {
-        var asset = await viewer.loadGltf(
-          "file://${testHelper.assetsDir}/cube.glb",
-          addToScene: false,
-        );
-        await asset.releaseSourceData();
-        await expectLater(
-          asset.releaseSourceData(),
-          throwsA(isA<StateError>()),
-        );
+  test("releaseSourceData() throws for non-glTF assets and double release", () async {
+    await testHelper.withViewer((viewer) async {
+      var asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: false);
+      await asset.releaseSourceData();
+      await expectLater(asset.releaseSourceData(), throwsA(isA<StateError>()));
 
-        var geometry = await viewer.createGeometry(GeometryUtils.cube());
-        await expectLater(
-          geometry.releaseSourceData(),
-          throwsA(isA<StateError>()),
-        );
-      });
-    },
-  );
+      var geometry = await viewer.createGeometry(GeometryUtils.cube());
+      await expectLater(geometry.releaseSourceData(), throwsA(isA<StateError>()));
+    });
+  });
 
   test('create pre-allocated gltf instance', () async {
     await testHelper.withViewer((viewer) async {

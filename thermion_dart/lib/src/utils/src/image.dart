@@ -39,10 +39,7 @@ Future<Uint8List> pixelBufferToBmp(
   Float32List? floatData;
 
   if (isFloat) {
-    floatData = pixelBuffer.buffer.asFloat32List(
-      pixelBuffer.offsetInBytes,
-      width * height * channels,
-    );
+    floatData = pixelBuffer.buffer.asFloat32List(pixelBuffer.offsetInBytes, width * height * channels);
   }
 
   // Pixel data (BMP stores in BGR format)
@@ -53,22 +50,14 @@ Future<Uint8List> pixelBufferToBmp(
 
       if (channels == 1) {
         // Single channel (R) - replicate to grayscale BGR
-        final v = isFloat
-            ? (floatData![srcIndex] * 255).toInt()
-            : pixelBuffer[srcIndex];
+        final v = isFloat ? (floatData![srcIndex] * 255).toInt() : pixelBuffer[srcIndex];
         data[dstIndex] = v; // Blue
         data[dstIndex + 1] = v; // Green
         data[dstIndex + 2] = v; // Red
       } else {
-        data[dstIndex] = isFloat
-            ? (floatData![srcIndex + 2] * 255).toInt()
-            : pixelBuffer[srcIndex + 2]; // Blue
-        data[dstIndex + 1] = isFloat
-            ? (floatData![srcIndex + 1] * 255).toInt()
-            : pixelBuffer[srcIndex + 1]; // Green
-        data[dstIndex + 2] = isFloat
-            ? (floatData![srcIndex] * 255).toInt()
-            : pixelBuffer[srcIndex]; // Red
+        data[dstIndex] = isFloat ? (floatData![srcIndex + 2] * 255).toInt() : pixelBuffer[srcIndex + 2]; // Blue
+        data[dstIndex + 1] = isFloat ? (floatData![srcIndex + 1] * 255).toInt() : pixelBuffer[srcIndex + 1]; // Green
+        data[dstIndex + 2] = isFloat ? (floatData![srcIndex] * 255).toInt() : pixelBuffer[srcIndex]; // Red
       }
     }
     // Add padding to the end of each row
@@ -96,10 +85,7 @@ Future<Uint8List> pixelBufferToPng(
 
   Float32List? floatData;
   if (isFloat) {
-    floatData = pixelBuffer.buffer.asFloat32List(
-      pixelBuffer.offsetInBytes,
-      width * height * channels,
-    );
+    floatData = pixelBuffer.buffer.asFloat32List(pixelBuffer.offsetInBytes, width * height * channels);
   }
 
   for (int y = 0; y < height; y++) {
@@ -147,22 +133,12 @@ Future<Uint8List> pixelBufferToPng(
 
       if (linearToSrgb) {
         // Convert from linear to sRGB
-        image.setPixel(
-          x,
-          y,
-          img.ColorUint8(4)
-            ..setRgba(_linearToSRGB(r), _linearToSRGB(g), _linearToSRGB(b), a),
-        );
+        image.setPixel(x, y, img.ColorUint8(4)..setRgba(_linearToSRGB(r), _linearToSRGB(g), _linearToSRGB(b), a));
       } else {
         image.setPixel(
           x,
           y,
-          img.ColorUint8(4)..setRgba(
-            (r * 255).toInt(),
-            (g * 255).toInt(),
-            (b * 255).toInt(),
-            (a * 255).toInt(),
-          ),
+          img.ColorUint8(4)..setRgba((r * 255).toInt(), (g * 255).toInt(), (b * 255).toInt(), (a * 255).toInt()),
         );
       }
     }
@@ -189,8 +165,6 @@ int _linearToSRGB(double linearValue) {
   if (linearValue <= 0.0031308) {
     return (linearValue * 12.92 * 255.0).round().clamp(0, 255);
   } else {
-    return ((1.055 * pow(linearValue, 1.0 / 2.4) - 0.055) * 255.0)
-        .round()
-        .clamp(0, 255);
+    return ((1.055 * pow(linearValue, 1.0 / 2.4) - 0.055) * 255.0).round().clamp(0, 255);
   }
 }

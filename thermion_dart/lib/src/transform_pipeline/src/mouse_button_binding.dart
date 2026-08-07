@@ -12,15 +12,10 @@ class MouseButtonBinding {
   /// The value/strength of this intent (default 1.0)
   final double value;
 
-  const MouseButtonBinding({
-    required this.button,
-    required this.action,
-    this.value = 1.0,
-  });
+  const MouseButtonBinding({required this.button, required this.action, this.value = 1.0});
 
   @override
-  String toString() =>
-      'MouseButtonBinding(button: $button, action: $action, value: $value)';
+  String toString() => 'MouseButtonBinding(button: $button, action: $action, value: $value)';
 
   @override
   bool operator ==(Object other) =>

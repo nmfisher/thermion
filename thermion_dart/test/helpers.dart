@@ -83,19 +83,10 @@ class TestHelper {
   ///
   Future<Texture> createTextureFromImage(TestHelper testHelper) async {
     final image = await FilamentApp.instance!.decodeImage(
-      await loadResourceBytes(
-        "${testHelper.assetsDir}/cube_texture_512x512.png",
-      ),
+      await loadResourceBytes("${testHelper.assetsDir}/cube_texture_512x512.png"),
     );
-    final texture = await FilamentApp.instance!.createTexture(
-      await image.getWidth(),
-      await image.getHeight(),
-    );
-    await texture.setLinearImage(
-      image,
-      PixelDataFormat.RGBA,
-      PixelDataType.FLOAT,
-    );
+    final texture = await FilamentApp.instance!.createTexture(await image.getWidth(), await image.getHeight());
+    await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
     return texture;
   }
 
@@ -132,31 +123,20 @@ class TestHelper {
   }
 
   Future<ThermionAsset> createCube(ThermionViewer viewer) async {
-    var materialInstance = await FilamentApp.instance!
-        .createUbershaderMaterialInstance(unlit: true);
+    var materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: true);
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
     final cubeGeometry = GeometryUtils.cube(flipUvs: true);
-    var asset = await viewer.createGeometry(
-      cubeGeometry,
-      materialInstances: [materialInstance],
-    );
+    var asset = await viewer.createGeometry(cubeGeometry, materialInstances: [materialInstance]);
     return asset;
   }
 
-  Future withCube(
-    ThermionViewer viewer,
-    Future Function(ThermionAsset cube) fn,
-  ) async {
-    var materialInstance = await FilamentApp.instance!
-        .createUbershaderMaterialInstance(unlit: true);
+  Future withCube(ThermionViewer viewer, Future Function(ThermionAsset cube) fn) async {
+    var materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: true);
     await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
     final cubeGeometry = GeometryUtils.cube(flipUvs: true);
-    var asset = await viewer.createGeometry(
-      cubeGeometry,
-      materialInstances: [materialInstance],
-    );
+    var asset = await viewer.createGeometry(cubeGeometry, materialInstances: [materialInstance]);
 
     await fn(asset);
     await viewer.destroyAsset(asset);
@@ -228,10 +208,7 @@ class TestHelper {
     await initTestBindings();
 
     await FFIFilamentApp.create(
-      config: FFIFilamentConfig(
-        loadResource: loadResourceBytes,
-        backend: defaultTestBackend,
-      ),
+      config: FFIFilamentConfig(loadResource: loadResourceBytes, backend: defaultTestBackend),
     );
   }
 
@@ -280,8 +257,7 @@ class TestHelper {
         flags: {
           TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
           TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          if (createStencilBuffer)
-            TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
+          if (createStencilBuffer) TextureUsage.TEXTURE_USAGE_STENCIL_ATTACHMENT,
         },
         textureFormat: createStencilBuffer
             ? platformIsWindows
@@ -322,10 +298,7 @@ class TestHelper {
     if (renderTarget != null) {
       await viewer.view.setRenderTarget(renderTarget);
     }
-    await viewer.view.setViewport(
-      viewportDimensions.width,
-      viewportDimensions.height,
-    );
+    await viewer.view.setViewport(viewportDimensions.width, viewportDimensions.height);
 
     if (createStencilBuffer) {
       await viewer.view.setStencilBufferEnabled(true);
@@ -336,12 +309,7 @@ class TestHelper {
     }
 
     if (bg != null) {
-      await viewer.setBackgroundColor(
-        bg.r.toDouble(),
-        bg.g.toDouble(),
-        bg.b.toDouble(),
-        bg.a.toDouble(),
-      );
+      await viewer.setBackgroundColor(bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
     }
 
     final camera = await viewer.getActiveCamera();
@@ -357,9 +325,7 @@ class TestHelper {
 
     await viewer.setPostProcessing(postProcessing);
 
-    await viewer.setToneMapper(
-      await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp),
-    );
+    await viewer.setToneMapper(await ToneMapper.aces(FilamentApp.instance! as FFIFilamentApp));
     return (viewer, swapChain);
   }
 
@@ -439,11 +405,7 @@ class ViewerBuildResult {
   final List<ThermionAsset> assets;
   final ThermionEntity? sun;
 
-  const ViewerBuildResult({
-    required this.viewer,
-    required this.assets,
-    this.sun,
-  });
+  const ViewerBuildResult({required this.viewer, required this.assets, this.sun});
 }
 
 class ViewerBuilder {
@@ -497,11 +459,7 @@ class ViewerBuilder {
     return this;
   }
 
-  ViewerBuilder setCameraLookAt(
-    Vector3 position, {
-    Vector3? focus,
-    Vector3? up,
-  }) {
+  ViewerBuilder setCameraLookAt(Vector3 position, {Vector3? focus, Vector3? up}) {
     _cameraLookAtPosition = position;
     _cameraLookAtFocus = focus;
     _cameraLookAtUp = up;
@@ -633,15 +591,11 @@ class ViewerBuilder {
 
   Future withCube(Future Function(ThermionAsset cube) fn) async {
     return await _testHelper.withViewer((viewer) async {
-      var materialInstance = await FilamentApp.instance!
-          .createUbershaderMaterialInstance(unlit: true);
+      var materialInstance = await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: true);
       await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
 
       final cubeGeometry = GeometryUtils.cube(flipUvs: true);
-      var asset = await viewer.createGeometry(
-        cubeGeometry,
-        materialInstances: [materialInstance],
-      );
+      var asset = await viewer.createGeometry(cubeGeometry, materialInstances: [materialInstance]);
 
       try {
         await fn(asset);
@@ -651,10 +605,7 @@ class ViewerBuilder {
     });
   }
 
-  Future<
-    ({ThermionViewer viewer, List<ThermionAsset> assets, SwapChain swapChain})
-  >
-  buildWithAssets() async {
+  Future<({ThermionViewer viewer, List<ThermionAsset> assets, SwapChain swapChain})> buildWithAssets() async {
     final viewerResult = await _testHelper.createViewer(
       bg: _bg,
       cameraPosition: _cameraPosition,
@@ -691,9 +642,7 @@ class ViewerBuilder {
     // Create and add configured planes
     for (final planeConfig in _planes) {
       final materialInstance = planeConfig.createUbershader
-          ? await FilamentApp.instance!.createUbershaderMaterialInstance(
-              unlit: planeConfig.unlit,
-            )
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: planeConfig.unlit)
           : await FilamentApp.instance!.createUnlitMaterialInstance();
 
       await materialInstance.setCullingMode(CullingMode.NONE);
@@ -707,22 +656,11 @@ class ViewerBuilder {
           planeConfig.color!.a.toDouble(),
         );
       } else {
-        await materialInstance.setParameterFloat4(
-          "baseColorFactor",
-          0.0,
-          1.0,
-          0.0,
-          1.0,
-        );
+        await materialInstance.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
       }
 
       final plane = await viewer.createGeometry(
-        GeometryUtils.plane(
-          normals: true,
-          uvs: true,
-          width: 10.0,
-          height: 10.0,
-        ),
+        GeometryUtils.plane(normals: true, uvs: true, width: 10.0, height: 10.0),
         materialInstances: [materialInstance],
       );
 
@@ -730,9 +668,7 @@ class ViewerBuilder {
       await plane.setReceiveShadows(planeConfig.receiveShadows);
 
       // Apply transform if specified
-      if (planeConfig.position != null ||
-          planeConfig.scale != null ||
-          planeConfig.rotation != null) {
+      if (planeConfig.position != null || planeConfig.scale != null || planeConfig.rotation != null) {
         final transform = Matrix4.compose(
           planeConfig.position ?? Vector3.zero(),
           planeConfig.rotation ?? Quaternion.identity(),
@@ -748,12 +684,8 @@ class ViewerBuilder {
     // Create and add configured cubes
     for (final cubeConfig in _cubes) {
       final materialInstance = cubeConfig.createUbershader
-          ? await FilamentApp.instance!.createUbershaderMaterialInstance(
-              unlit: cubeConfig.unlit,
-            )
-          : (cubeConfig.unlit
-                ? await FilamentApp.instance!.createUnlitMaterialInstance()
-                : null);
+          ? await FilamentApp.instance!.createUbershaderMaterialInstance(unlit: cubeConfig.unlit)
+          : (cubeConfig.unlit ? await FilamentApp.instance!.createUnlitMaterialInstance() : null);
 
       if (materialInstance != null) {
         if (cubeConfig.color != null) {
@@ -765,13 +697,7 @@ class ViewerBuilder {
             cubeConfig.color!.a.toDouble(),
           );
         } else {
-          await materialInstance.setParameterFloat4(
-            "baseColorFactor",
-            1.0,
-            0.0,
-            0.0,
-            1.0,
-          );
+          await materialInstance.setParameterFloat4("baseColorFactor", 1.0, 0.0, 0.0, 1.0);
         }
       }
 
@@ -784,9 +710,7 @@ class ViewerBuilder {
       await cube.setReceiveShadows(cubeConfig.receiveShadows);
 
       // Apply transform if specified
-      if (cubeConfig.position != null ||
-          cubeConfig.scale != null ||
-          cubeConfig.rotation != null) {
+      if (cubeConfig.position != null || cubeConfig.scale != null || cubeConfig.rotation != null) {
         final transform = Matrix4.compose(
           cubeConfig.position ?? Vector3.zero(),
           cubeConfig.rotation ?? Quaternion.identity(),
@@ -802,11 +726,7 @@ class ViewerBuilder {
     // Apply camera lookAt if specified
     if (_cameraLookAtPosition != null) {
       final camera = await viewer.getActiveCamera();
-      await camera.lookAt(
-        _cameraLookAtPosition!,
-        focus: _cameraLookAtFocus,
-        up: _cameraLookAtUp,
-      );
+      await camera.lookAt(_cameraLookAtPosition!, focus: _cameraLookAtFocus, up: _cameraLookAtUp);
     }
 
     return (viewer: viewer, assets: createdAssets, swapChain: viewerResult.$2);
@@ -823,24 +743,16 @@ class ViewerBuilder {
     // Find the first sun light entity (if any)
     ThermionEntity? sunEntity;
     int sunLightIndex = _directLights.indexWhere(
-      (light) =>
-          light.type == LightType.SUN ||
-          (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0),
+      (light) => light.type == LightType.SUN || (light.type == LightType.DIRECTIONAL && light.sunAngularRadius > 0),
     );
 
     // If we found a sun light and have corresponding entities, get the matching
     // entity
-    if (sunLightIndex != -1 &&
-        _lightEntities != null &&
-        sunLightIndex < _lightEntities!.length) {
+    if (sunLightIndex != -1 && _lightEntities != null && sunLightIndex < _lightEntities!.length) {
       sunEntity = _lightEntities![sunLightIndex];
     }
 
-    final viewerBuildResult = ViewerBuildResult(
-      viewer: buildResult.viewer,
-      assets: buildResult.assets,
-      sun: sunEntity,
-    );
+    final viewerBuildResult = ViewerBuildResult(viewer: buildResult.viewer, assets: buildResult.assets, sun: sunEntity);
 
     try {
       await fn.call(viewerBuildResult);
@@ -869,10 +781,7 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
 
       for (int t = 0; t < numTextures; t++) {
         int i = index * 4;
-        if (textures[t][i] == 0 &&
-            textures[t][i + 1] == 0 &&
-            textures[t][i + 2] == 0 &&
-            textures[t][i + 3] == 0) {
+        if (textures[t][i] == 0 && textures[t][i + 1] == 0 && textures[t][i + 2] == 0 && textures[t][i + 3] == 0) {
           continue; // Skip this texture if the pixel is empty
         }
 
@@ -900,18 +809,10 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
         double magX = gx.r * gx.r + gx.g * gx.g + gx.b * gx.b + gx.a * gx.a;
         double magY = gy.r * gy.r + gy.g * gy.g + gy.b * gy.b + gy.a * gy.a;
 
-        if (magX >
-            gradX.r * gradX.r +
-                gradX.g * gradX.g +
-                gradX.b * gradX.b +
-                gradX.a * gradX.a) {
+        if (magX > gradX.r * gradX.r + gradX.g * gradX.g + gradX.b * gradX.b + gradX.a * gradX.a) {
           gradX = gx;
         }
-        if (magY >
-            gradY.r * gradY.r +
-                gradY.g * gradY.g +
-                gradY.b * gradY.b +
-                gradY.a * gradY.a) {
+        if (magY > gradY.r * gradY.r + gradY.g * gradY.g + gradY.b * gradY.b + gradY.a * gradY.a) {
           gradY = gy;
         }
       }
@@ -967,8 +868,7 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
       // For invalid pixels, try to interpolate from neighbors
       List<int> validNeighbors = [];
       if (i > width && validPixel[i - width]) validNeighbors.add(i - width);
-      if (i < size - width && validPixel[i + width])
-        validNeighbors.add(i + width);
+      if (i < size - width && validPixel[i + width]) validNeighbors.add(i + width);
       if (i % width > 0 && validPixel[i - 1]) validNeighbors.add(i - 1);
       if (i % width < width - 1 && validPixel[i + 1]) validNeighbors.add(i + 1);
 
@@ -981,15 +881,9 @@ Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
           a += result[neighbor].a;
         }
         finalResult[i * 4] = (r / validNeighbors.length).clamp(0, 255).toInt();
-        finalResult[i * 4 + 1] = (g / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
-        finalResult[i * 4 + 2] = (b / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
-        finalResult[i * 4 + 3] = (a / validNeighbors.length)
-            .clamp(0, 255)
-            .toInt();
+        finalResult[i * 4 + 1] = (g / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 2] = (b / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 3] = (a / validNeighbors.length).clamp(0, 255).toInt();
       } else {
         // If no valid neighbors, set to transparent black
         finalResult[i * 4] = 0;
@@ -1026,11 +920,7 @@ Uint8List medianImages(List<Uint8List> images) {
   return result;
 }
 
-Uint8List maxIntensityProjection(
-  List<Uint8List> textures,
-  int width,
-  int height,
-) {
+Uint8List maxIntensityProjection(List<Uint8List> textures, int width, int height) {
   final int numTextures = textures.length;
   final int size = width * height;
 
@@ -1041,12 +931,8 @@ Uint8List maxIntensityProjection(
   for (int t = 1; t < numTextures; t++) {
     for (int i = 0; i < size * 4; i += 4) {
       // Calculate intensity (using luminance formula)
-      double intensityCurrent =
-          0.299 * result[i] + 0.587 * result[i + 1] + 0.114 * result[i + 2];
-      double intensityNew =
-          0.299 * textures[t][i] +
-          0.587 * textures[t][i + 1] +
-          0.114 * textures[t][i + 2];
+      double intensityCurrent = 0.299 * result[i] + 0.587 * result[i + 1] + 0.114 * result[i + 2];
+      double intensityNew = 0.299 * textures[t][i] + 0.587 * textures[t][i + 1] + 0.114 * textures[t][i + 2];
 
       // If the new texture has higher intensity, use its values
       if (intensityNew > intensityCurrent) {
@@ -1062,18 +948,12 @@ Uint8List maxIntensityProjection(
 }
 
 // Helper function to blend MIP result with Poisson blending
-Uint8List blendMIPWithPoisson(
-  Uint8List mipResult,
-  Uint8List poissonResult,
-  double alpha,
-) {
+Uint8List blendMIPWithPoisson(Uint8List mipResult, Uint8List poissonResult, double alpha) {
   final int size = mipResult.length;
   Uint8List blendedResult = Uint8List(size);
 
   for (int i = 0; i < size; i++) {
-    blendedResult[i] = (mipResult[i] * (1 - alpha) + poissonResult[i] * alpha)
-        .round()
-        .clamp(0, 255);
+    blendedResult[i] = (mipResult[i] * (1 - alpha) + poissonResult[i] * alpha).round().clamp(0, 255);
   }
 
   return blendedResult;
@@ -1119,10 +999,7 @@ Uint8List medianBlending(List<Uint8List> textures, int width, int height) {
   }
 
   // Convert to RGBA format (matching the format used in the comparison function)
-  final img.Image rgbaImage = decodedImage.convert(
-    format: img.Format.uint8,
-    numChannels: 3,
-  );
+  final img.Image rgbaImage = decodedImage.convert(format: img.Format.uint8, numChannels: 3);
 
   rgbaImage.remapChannels(ChannelOrder.bgr);
 
@@ -1140,24 +1017,14 @@ Uint8List medianBlending(List<Uint8List> textures, int width, int height) {
   return (pixelBuffer, width, height);
 }
 
-Uint8List comparePixelBuffers(
-  Uint8List buffer1,
-  Uint8List buffer2,
-  int width,
-  int height, {
-  int threshold = 0,
-}) {
+Uint8List comparePixelBuffers(Uint8List buffer1, Uint8List buffer2, int width, int height, {int threshold = 0}) {
   // Validate inputs
   if (buffer1.length != buffer2.length) {
-    throw ArgumentError(
-      'Buffer sizes do not match: ${buffer1.length} vs ${buffer2.length}',
-    );
+    throw ArgumentError('Buffer sizes do not match: ${buffer1.length} vs ${buffer2.length}');
   }
 
   if (buffer1.length < width * height * 3) {
-    throw ArgumentError(
-      'Buffer size is too small for the specified dimensions',
-    );
+    throw ArgumentError('Buffer size is too small for the specified dimensions');
   }
 
   // Create result buffer
@@ -1169,9 +1036,7 @@ Uint8List comparePixelBuffers(
       final int index = (y * width + x) * 3;
 
       if (buffer1[index + 2] != 0) {
-        Logger.root.info(
-          "buffer 1 red ${buffer1[index + 2]} buffer 2 ${buffer2[index + 2]}",
-        );
+        Logger.root.info("buffer 1 red ${buffer1[index + 2]} buffer 2 ${buffer2[index + 2]}");
       }
 
       // Compare RGB values

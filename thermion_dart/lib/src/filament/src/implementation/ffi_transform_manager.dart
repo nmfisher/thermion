@@ -9,16 +9,14 @@ import 'package:thermion_dart/thermion_dart.dart';
 ///
 /// This class wraps the native Filament TransformManager and provides
 /// a type-safe Dart API for managing transform components.
-class FFITransformManager
-    extends TransformManager<bindings.Pointer<bindings.TTransformManager>> {
+class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTransformManager>> {
   final bindings.Pointer<bindings.TTransformManager> transformManager;
   final FFIFilamentApp app;
 
   FFITransformManager(this.transformManager, this.app);
 
   @override
-  bindings.Pointer<bindings.TTransformManager> getNativeHandle() =>
-      transformManager;
+  bindings.Pointer<bindings.TTransformManager> getNativeHandle() => transformManager;
 
   // ============================================================================
   // Component queries
@@ -46,24 +44,14 @@ class FFITransformManager
   @override
   Future createComponent(ThermionEntity entity) async {
     await withVoidCallback(
-      (requestId, cb) => bindings.TransformManager_createComponentRenderThread(
-        transformManager,
-        entity,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) => bindings.TransformManager_createComponentRenderThread(transformManager, entity, requestId, cb),
     );
   }
 
   @override
   Future removeComponent(ThermionEntity entity) async {
     await withVoidCallback(
-      (requestId, cb) => bindings.TransformManager_removeComponentRenderThread(
-        transformManager,
-        entity,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) => bindings.TransformManager_removeComponentRenderThread(transformManager, entity, requestId, cb),
     );
   }
 
@@ -78,9 +66,7 @@ class FFITransformManager
       stackPtr = stackSave();
     }
 
-    final transform = double4x4ToMatrix4(
-      bindings.TransformManager_getLocalTransform(transformManager, entity),
-    );
+    final transform = double4x4ToMatrix4(bindings.TransformManager_getLocalTransform(transformManager, entity));
 
     if (FILAMENT_WASM) {
       stackRestore(stackPtr);
@@ -95,9 +81,7 @@ class FFITransformManager
       stackPtr = stackSave();
     }
 
-    var transform = double4x4ToMatrix4(
-      TransformManager_getWorldTransform(transformManager, entity),
-    );
+    var transform = double4x4ToMatrix4(TransformManager_getWorldTransform(transformManager, entity));
     if (FILAMENT_WASM) {
       stackRestore(stackPtr);
     }
@@ -112,11 +96,7 @@ class FFITransformManager
       stackPtr = stackSave();
     }
 
-    bindings.TransformManager_setTransform(
-      transformManager,
-      entity,
-      matrix4ToDouble4x4(transform),
-    );
+    bindings.TransformManager_setTransform(transformManager, entity, matrix4ToDouble4x4(transform));
     if (FILAMENT_WASM) {
       stackRestore(stackPtr);
     }
@@ -160,11 +140,7 @@ class FFITransformManager
     cAabb.halfExtentY = halfExtents.y;
     cAabb.halfExtentZ = halfExtents.z;
 
-    return bindings.TransformManager_transformToUnitCube(
-      transformManager,
-      entity,
-      cAabb,
-    );
+    return bindings.TransformManager_transformToUnitCube(transformManager, entity, cAabb);
   }
 
   // ============================================================================
@@ -172,11 +148,7 @@ class FFITransformManager
   // ============================================================================
 
   @override
-  Future setParent(
-    ThermionEntity child,
-    ThermionEntity? parent, {
-    bool preserveScaling = false,
-  }) async {
+  Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling = false}) async {
     final parentId = parent ?? 0; // 0 = null parent in Filament
     await withVoidCallback(
       (requestId, cb) => bindings.TransformManager_setParentRenderThread(
@@ -192,20 +164,14 @@ class FFITransformManager
 
   @override
   ThermionEntity? getParent(ThermionEntity child) {
-    final parentId = bindings.TransformManager_getParent(
-      transformManager,
-      child,
-    );
+    final parentId = bindings.TransformManager_getParent(transformManager, child);
     // Return null if parent is 0 (no parent)
     return parentId == 0 ? null : parentId;
   }
 
   @override
   ThermionEntity? getAncestor(ThermionEntity entity) {
-    final ancestorId = bindings.TransformManager_getAncestor(
-      transformManager,
-      entity,
-    );
+    final ancestorId = bindings.TransformManager_getAncestor(transformManager, entity);
     // Return null if ancestor is 0 (no ancestor)
     return ancestorId == 0 ? null : ancestorId;
   }
@@ -242,12 +208,7 @@ class FFITransformManager
 
     final children = makeInt32List(count);
     if (count > 0) {
-      bindings.TransformManager_getChildren(
-        transformManager,
-        parent,
-        children.address,
-        count,
-      );
+      bindings.TransformManager_getChildren(transformManager, parent, children.address, count);
     }
 
     return Int32List.fromList(children).cast<ThermionEntity>();

@@ -1,5 +1,4 @@
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
-import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_tone_mapper.dart';
 
@@ -56,10 +55,7 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
   ///   - AgxLook.none: Base contrast with no look applied
   ///   - AgxLook.punchy: More chroma laden look for sRGB displays
   ///   - AgxLook.golden: Golden tinted look for BT.1886 displays
-  static Future<ToneMapper> agx(
-    FFIFilamentApp app, {
-    AgxLook look = AgxLook.none,
-  }) async {
+  static Future<ToneMapper> agx(FFIFilamentApp app, {AgxLook look = AgxLook.none}) async {
     return FFIToneMapper.agx(app, look: look);
   }
 
@@ -80,13 +76,7 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
     double midGrayOut = 0.215,
     double hdrMax = 10.0,
   }) async {
-    return FFIToneMapper.generic(
-      app,
-      contrast: contrast,
-      midGrayIn: midGrayIn,
-      midGrayOut: midGrayOut,
-      hdrMax: hdrMax,
-    );
+    return FFIToneMapper.generic(app, contrast: contrast, midGrayIn: midGrayIn, midGrayOut: midGrayOut, hdrMax: hdrMax);
   }
 
   /// Create a DisplayRangeToneMapper - converts HDR RGB to 16 debug colors

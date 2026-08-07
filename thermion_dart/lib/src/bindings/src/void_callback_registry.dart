@@ -11,8 +11,9 @@ class VoidCallbackRegistry {
   int _nextRequestId = 0;
   final _requests = <int, Completer<void>>{};
 
-  late final NativeCallable<Void Function(Int32)> _nativeCallable =
-      NativeCallable<Void Function(Int32)>.listener(_complete);
+  late final NativeCallable<Void Function(Int32)> _nativeCallable = NativeCallable<Void Function(Int32)>.listener(
+    _complete,
+  );
 
   int get pendingRequestCount => _requests.length;
 
@@ -24,9 +25,7 @@ class VoidCallbackRegistry {
     completer?.complete();
   }
 
-  Future<void> invoke(
-    Function(int, Pointer<NativeFunction<Void Function(Int32)>>) dispatch,
-  ) async {
+  Future<void> invoke(Function(int, Pointer<NativeFunction<Void Function(Int32)>>) dispatch) async {
     final requestId = _nextRequestId;
     _nextRequestId++;
     final completer = Completer<void>();

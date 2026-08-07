@@ -14,8 +14,7 @@ class _TestView implements View<Pointer<TView>> {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Pointer<TSwapChain> _swapChain(int address) =>
-    Pointer<TSwapChain>.fromAddress(address);
+Pointer<TSwapChain> _swapChain(int address) => Pointer<TSwapChain>.fromAddress(address);
 
 void main() {
   group('RenderAttachmentState', () {

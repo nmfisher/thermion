@@ -68,11 +68,7 @@ String _wrapperHtml(String testFileName) =>
 
 Future<bool> _portOpen(int port) async {
   try {
-    final s = await Socket.connect(
-      InternetAddress.loopbackIPv4,
-      port,
-      timeout: const Duration(milliseconds: 500),
-    );
+    final s = await Socket.connect(InternetAddress.loopbackIPv4, port, timeout: const Duration(milliseconds: 500));
     s.destroy();
     return true;
   } catch (_) {
@@ -138,9 +134,7 @@ Future<void> main(List<String> args) async {
   }
 
   if (!Directory('test').existsSync()) {
-    stderr.writeln(
-      'Run from the thermion_dart package root (no ./test found).',
-    );
+    stderr.writeln('Run from the thermion_dart package root (no ./test found).');
     exit(1);
   }
 
@@ -150,8 +144,7 @@ Future<void> main(List<String> args) async {
     targets.addAll(files);
   } else {
     for (final e in Directory('test').listSync()) {
-      if (e is File &&
-          (e.path.endsWith('_test.dart') || e.path.endsWith('_tests.dart'))) {
+      if (e is File && (e.path.endsWith('_test.dart') || e.path.endsWith('_tests.dart'))) {
         targets.add(e.path);
       }
     }
@@ -319,8 +312,6 @@ void _printSummary(String jsonPath, List<String> targets) {
     }
   }
   stderr.writeln('------------------------');
-  stderr.writeln(
-    '  files: ${targets.length}  with failures: $filesWithFailures',
-  );
+  stderr.writeln('  files: ${targets.length}  with failures: $filesWithFailures');
   stderr.writeln('  tests: +$totP passed  ~$totS skipped  -$totF failed');
 }

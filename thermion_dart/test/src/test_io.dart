@@ -5,6 +5,4 @@
 /// `lib/.../resource_loader.dart`: a conditional export that resolves to the
 /// native implementation on the VM and the web implementation under dart2js /
 /// dart2wasm.
-export 'test_io_native.dart'
-    if (dart.library.io) 'test_io_native.dart'
-    if (dart.library.js_interop) 'test_io_web.dart';
+export 'test_io_native.dart' if (dart.library.io) 'test_io_native.dart' if (dart.library.js_interop) 'test_io_web.dart';

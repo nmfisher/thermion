@@ -113,8 +113,7 @@ class ShadowOptions {
     return ShadowOptions(
       mapSize: mapSize ?? this.mapSize,
       shadowCascades: shadowCascades ?? this.shadowCascades,
-      cascadeSplitPositions:
-          cascadeSplitPositions ?? this.cascadeSplitPositions,
+      cascadeSplitPositions: cascadeSplitPositions ?? this.cascadeSplitPositions,
       constantBias: constantBias ?? this.constantBias,
       normalBias: normalBias ?? this.normalBias,
       shadowFar: shadowFar ?? this.shadowFar,
@@ -122,11 +121,9 @@ class ShadowOptions {
       shadowFarHint: shadowFarHint ?? this.shadowFarHint,
       stable: stable ?? this.stable,
       lispsm: lispsm ?? this.lispsm,
-      polygonOffsetConstant:
-          polygonOffsetConstant ?? this.polygonOffsetConstant,
+      polygonOffsetConstant: polygonOffsetConstant ?? this.polygonOffsetConstant,
       polygonOffsetSlope: polygonOffsetSlope ?? this.polygonOffsetSlope,
-      screenSpaceContactShadows:
-          screenSpaceContactShadows ?? this.screenSpaceContactShadows,
+      screenSpaceContactShadows: screenSpaceContactShadows ?? this.screenSpaceContactShadows,
       stepCount: stepCount ?? this.stepCount,
       maxShadowDistance: maxShadowDistance ?? this.maxShadowDistance,
       vsmElvsm: vsmElvsm ?? this.vsmElvsm,
@@ -186,8 +183,5 @@ class SoftShadowOptions {
   /// Acceptable values are equal to or greater than 1.
   final double penumbraRatioScale;
 
-  const SoftShadowOptions({
-    this.penumbraScale = 1.0,
-    this.penumbraRatioScale = 1.0,
-  });
+  const SoftShadowOptions({this.penumbraScale = 1.0, this.penumbraRatioScale = 1.0});
 }

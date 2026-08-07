@@ -23,33 +23,22 @@ void main() async {
     }
   });
 
-  test(
-    'viewer disposal releases loaded scene resources and is idempotent',
-    () async {
-      await ViewerBuilder(testHelper)
-          .setRenderTargetEnabled(true)
-          .addDirectLight(
-            DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized()),
-          )
-          .execute((result) async {
-            await result.viewer.loadGltf(
-              'file://${testHelper.assetsDir}/cube.glb',
-            );
-            await result.viewer.loadSkybox(
-              'file://${testHelper.assetsDir}/default_env_skybox.ktx',
-            );
-            await result.viewer.loadIbl(
-              'file://${testHelper.assetsDir}/default_env_ibl.ktx',
-            );
-            await result.viewer.createCamera();
+  test('viewer disposal releases loaded scene resources and is idempotent', () async {
+    await ViewerBuilder(testHelper)
+        .setRenderTargetEnabled(true)
+        .addDirectLight(DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized()))
+        .execute((result) async {
+          await result.viewer.loadGltf('file://${testHelper.assetsDir}/cube.glb');
+          await result.viewer.loadSkybox('file://${testHelper.assetsDir}/default_env_skybox.ktx');
+          await result.viewer.loadIbl('file://${testHelper.assetsDir}/default_env_ibl.ktx');
+          await result.viewer.createCamera();
 
-            expect(result.viewer.getCameraCount(), 2);
+          expect(result.viewer.getCameraCount(), 2);
 
-            await result.viewer.dispose();
-            await result.viewer.dispose();
+          await result.viewer.dispose();
+          await result.viewer.dispose();
 
-            expect(result.viewer.getCameraCount(), 0);
-          });
-    },
-  );
+          expect(result.viewer.getCameraCount(), 0);
+        });
+  });
 }

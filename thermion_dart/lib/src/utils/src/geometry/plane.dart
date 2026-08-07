@@ -1,12 +1,7 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
 class PlaneGeometry {
-  static Geometry plane({
-    double width = 1.0,
-    double height = 1.0,
-    bool normals = true,
-    bool uvs = true,
-  }) {
+  static Geometry plane({double width = 1.0, double height = 1.0, bool normals = true, bool uvs = true}) {
     Float32List vertices = Float32List.fromList([
       -width / 2,
       0,
@@ -22,13 +17,9 @@ class PlaneGeometry {
       height / 2,
     ]);
 
-    Float32List? _normals = normals
-        ? Float32List.fromList([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0])
-        : null;
+    Float32List? _normals = normals ? Float32List.fromList([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]) : null;
 
-    Float32List? _uvs = uvs
-        ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1])
-        : null;
+    Float32List? _uvs = uvs ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1]) : null;
 
     // CCW from above (+y), matching the (0,1,0) normals.
     final indices = Uint16List.fromList([0, 2, 1, 0, 3, 2]);
@@ -77,7 +68,6 @@ class PlaneGeometry {
       1, 1, 1, // 2
       -1, 1, 1, // 3
     ]);
-    final normals = Float32List.fromList([0, 0, 1, 0, 0, 1]);
     final indices = Uint16List.fromList([0, 1, 2, 0, 2, 3]);
     final uvs = Float32List.fromList([0, 1, 1, 1, 1, 0, 0, 0]);
     return Geometry(

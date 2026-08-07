@@ -53,8 +53,7 @@ class GridOverlay {
     const stepSize = 0.25;
     const gridSize = 8; // Number of cells in each direction
     const vertexCount = gridSize * gridSize * 4; // 4 vertices per quad
-    const indexCount =
-        gridSize * gridSize * 6; // 6 indices per quad (2 triangles)
+    const indexCount = gridSize * gridSize * 6; // 6 indices per quad (2 triangles)
 
     final positions = Float32List(vertexCount * 3);
     final indices = Uint32List(indexCount);
@@ -145,13 +144,7 @@ class GridOverlay {
     List<double> fadeInStart = const [0.001, 5.0, 50.0, 500.0, 5000.0],
     List<double> fadeInEnd = const [0.001, 50.0, 500.0, 5000.0, 50000.0],
     List<double> fadeOutStart = const [10.0, 500.0, 5000.0, 50000.0, 500000.0],
-    List<double> fadeOutEnd = const [
-      200.0,
-      2000.0,
-      20000.0,
-      200000.0,
-      2000000.0,
-    ],
+    List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0, 200000.0, 2000000.0],
   }) async {
     if (_instance != null) {
       return _instance!;
@@ -197,30 +190,10 @@ class GridOverlay {
       final materialInstance = await _gridMaterial!.createInstance();
 
       // Configure material parameters
-      await materialInstance.setParameterFloat3(
-        'gridColor',
-        gridColor.r,
-        gridColor.g,
-        gridColor.b,
-      );
-      await materialInstance.setParameterFloat3(
-        'axisColorX',
-        axisColors[0].r,
-        axisColors[0].g,
-        axisColors[0].b,
-      );
-      await materialInstance.setParameterFloat3(
-        'axisColorY',
-        axisColors[1].r,
-        axisColors[1].g,
-        axisColors[1].b,
-      );
-      await materialInstance.setParameterFloat3(
-        'axisColorZ',
-        axisColors[2].r,
-        axisColors[2].g,
-        axisColors[2].b,
-      );
+      await materialInstance.setParameterFloat3('gridColor', gridColor.r, gridColor.g, gridColor.b);
+      await materialInstance.setParameterFloat3('axisColorX', axisColors[0].r, axisColors[0].g, axisColors[0].b);
+      await materialInstance.setParameterFloat3('axisColorY', axisColors[1].r, axisColors[1].g, axisColors[1].b);
+      await materialInstance.setParameterFloat3('axisColorZ', axisColors[2].r, axisColors[2].g, axisColors[2].b);
       await materialInstance.setParameterFloat('distance', spacing[i] * 100.0);
       await materialInstance.setParameterFloat('interval', spacing[i]);
       await materialInstance.setParameterFloat('fadeInStart', fadeInStart[i]);
@@ -235,24 +208,13 @@ class GridOverlay {
       }
 
       // Set transparency and culling modes
-      await materialInstance.setTransparencyMode(
-        TransparencyMode.TWO_PASSES_TWO_SIDES,
-      );
+      await materialInstance.setTransparencyMode(TransparencyMode.TWO_PASSES_TWO_SIDES);
       await materialInstance.setCullingMode(CullingMode.NONE);
 
       // Build the renderable
       final builder = rm.createBuilder(1);
-      builder.boundingBox(
-        Aabb3.minMax(Vector3(-1.0, -1.0, -1.0), Vector3(1.0, 1.0, 1.0)),
-      );
-      builder.geometry(
-        0,
-        PrimitiveType.TRIANGLES,
-        vertexBuffer,
-        indexBuffer,
-        0,
-        indices.length,
-      );
+      builder.boundingBox(Aabb3.minMax(Vector3(-1.0, -1.0, -1.0), Vector3(1.0, 1.0, 1.0)));
+      builder.geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, indices.length);
       builder.material(0, materialInstance);
       builder.priority(6);
       // Layer mask: 0xFF select, 1 << 7 (Overlay layer) value
@@ -263,18 +225,11 @@ class GridOverlay {
       builder.castShadows(false);
       await builder.build(entity);
 
-      levels.add(
-        _GridLevel(entity: entity, materialInstance: materialInstance),
-      );
+      levels.add(_GridLevel(entity: entity, materialInstance: materialInstance));
     }
 
     _currentAxisColors = axisColors;
-    _instance = GridOverlay._(
-      levels: levels,
-      vertexBuffer: vertexBuffer,
-      indexBuffer: indexBuffer,
-      app: app,
-    );
+    _instance = GridOverlay._(levels: levels, vertexBuffer: vertexBuffer, indexBuffer: indexBuffer, app: app);
 
     return _instance!;
   }
@@ -284,42 +239,21 @@ class GridOverlay {
   /// [axisColors] should be a list of exactly 3 LinearColor objects: [X-axis, Y-axis, Z-axis]
   Future<void> setAxisColor(List<LinearColor> axisColors) async {
     if (axisColors.length != 3) {
-      throw ArgumentError(
-        'axisColors must contain exactly 3 colors for X, Y, and Z axes',
-      );
+      throw ArgumentError('axisColors must contain exactly 3 colors for X, Y, and Z axes');
     }
 
     _currentAxisColors = axisColors;
 
     // Update all levels' material instances
     for (final level in _levels) {
-      await level.materialInstance.setParameterFloat3(
-        'axisColorX',
-        axisColors[0].r,
-        axisColors[0].g,
-        axisColors[0].b,
-      );
-      await level.materialInstance.setParameterFloat3(
-        'axisColorY',
-        axisColors[1].r,
-        axisColors[1].g,
-        axisColors[1].b,
-      );
-      await level.materialInstance.setParameterFloat3(
-        'axisColorZ',
-        axisColors[2].r,
-        axisColors[2].g,
-        axisColors[2].b,
-      );
+      await level.materialInstance.setParameterFloat3('axisColorX', axisColors[0].r, axisColors[0].g, axisColors[0].b);
+      await level.materialInstance.setParameterFloat3('axisColorY', axisColors[1].r, axisColors[1].g, axisColors[1].b);
+      await level.materialInstance.setParameterFloat3('axisColorZ', axisColors[2].r, axisColors[2].g, axisColors[2].b);
     }
   }
 
   /// Creating instances is not supported for grid overlays.
-  Future<GridOverlay> createInstance({
-    List<MaterialInstance>? materialInstances,
-  }) async {
-    throw Exception(
-      'Only a single instance of the grid overlay can be created',
-    );
+  Future<GridOverlay> createInstance({List<MaterialInstance>? materialInstances}) async {
+    throw Exception('Only a single instance of the grid overlay can be created');
   }
 }
