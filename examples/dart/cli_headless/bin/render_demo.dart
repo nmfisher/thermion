@@ -255,14 +255,9 @@ Future<void> main(List<String> argv) async {
   print('Rendering $frameCount frames at ${width}x$height (${fps}fps, '
       '${durationSeconds}s)...');
 
-  // Prime the animation start time. GltfAnimationComponentManager::update()
-  // stamps startTime and SKIPS applying the animation on its very first call,
-  // so without this the first captured frame would be the drone's rest/export
-  // pose instead of animation-frame-0. Consuming the stamping call here means
-  // the loop's first update() applies at elapsed 0 (the true first frame).
-  // Frames 1..N are unaffected, so only frame 0 differs from an unprimed render.
-  await app.animationManager.update(animDtNanos);
-
+  // The engine now applies animation-frame-0 on the first update() call (it
+  // no longer stamps-and-skips), so no priming is needed: frame 0 of the loop
+  // is the true first animation frame.
   for (var i = 0; i < frameCount; i++) {
     final t = i / frameCount; // [0, 1)
 
