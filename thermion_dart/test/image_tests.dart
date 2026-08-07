@@ -10,13 +10,8 @@ void main() async {
   await testHelper.setup();
   test('decode KTX and read spherical harmonics', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      final ktx1Data = await loadResourceBytes(
-        "${testHelper.assetsDir}/default_env_ibl.ktx",
-      );
-      final bundle = await FFIKtx1Bundle.create(
-        FilamentApp.instance! as FFIFilamentApp,
-        ktx1Data,
-      );
+      final ktx1Data = await loadResourceBytes("${testHelper.assetsDir}/default_env_ibl.ktx");
+      final bundle = await FFIKtx1Bundle.create(FilamentApp.instance! as FFIFilamentApp, ktx1Data);
       final harmonics = bundle.getSphericalHarmonics();
       expect(harmonics, hasLength(27));
       expect(harmonics.every((value) => value.isFinite), isTrue);
@@ -36,18 +31,14 @@ void main() async {
 
   test('set background image from PNG', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      await result.viewer.setBackgroundImage(
-        "file://${testHelper.assetsDir}/cube_texture_512x512.png",
-      );
+      await result.viewer.setBackgroundImage("file://${testHelper.assetsDir}/cube_texture_512x512.png");
       await testHelper.capture(result.viewer.view, "background_png_image");
     });
   });
 
   test('move textured quad from near plane to far plane', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      await result.viewer.setBackgroundImage(
-        "file://${testHelper.assetsDir}/background.ktx",
-      );
+      await result.viewer.setBackgroundImage("file://${testHelper.assetsDir}/background.ktx");
       final quad = await result.viewer.getBackgroundImage();
       // add a cube so we can check our depth parameters
       final asset = await result.viewer.createGeometry(GeometryUtils.cube());

@@ -6,15 +6,9 @@ void main() {
     test('emits only outward-facing, non-degenerate triangles', () {
       const latitudeBands = 8;
       const longitudeBands = 12;
-      final geometry = GeometryUtils.sphere(
-        latitudeBands: latitudeBands,
-        longitudeBands: longitudeBands,
-      );
+      final geometry = GeometryUtils.sphere(latitudeBands: latitudeBands, longitudeBands: longitudeBands);
 
-      expect(
-        geometry.indices.length ~/ 3,
-        2 * longitudeBands * (latitudeBands - 1),
-      );
+      expect(geometry.indices.length ~/ 3, 2 * longitudeBands * (latitudeBands - 1));
 
       for (var i = 0; i < geometry.indices.length; i += 3) {
         final i0 = geometry.indices[i] * 3;
@@ -34,31 +28,15 @@ void main() {
         final areaSquared = nx * nx + ny * ny + nz * nz;
         expect(areaSquared, greaterThan(1e-12), reason: 'triangle ${i ~/ 3}');
 
-        final cx =
-            geometry.vertices[i0] +
-            geometry.vertices[i1] +
-            geometry.vertices[i2];
-        final cy =
-            geometry.vertices[i0 + 1] +
-            geometry.vertices[i1 + 1] +
-            geometry.vertices[i2 + 1];
-        final cz =
-            geometry.vertices[i0 + 2] +
-            geometry.vertices[i1 + 2] +
-            geometry.vertices[i2 + 2];
-        expect(
-          nx * cx + ny * cy + nz * cz,
-          greaterThan(0),
-          reason: 'triangle ${i ~/ 3}',
-        );
+        final cx = geometry.vertices[i0] + geometry.vertices[i1] + geometry.vertices[i2];
+        final cy = geometry.vertices[i0 + 1] + geometry.vertices[i1 + 1] + geometry.vertices[i2 + 1];
+        final cz = geometry.vertices[i0 + 2] + geometry.vertices[i1 + 2] + geometry.vertices[i2 + 2];
+        expect(nx * cx + ny * cy + nz * cz, greaterThan(0), reason: 'triangle ${i ~/ 3}');
       }
     });
 
     test('uses unit outward vertex normals', () {
-      final geometry = GeometryUtils.sphere(
-        latitudeBands: 8,
-        longitudeBands: 12,
-      );
+      final geometry = GeometryUtils.sphere(latitudeBands: 8, longitudeBands: 12);
 
       expect(geometry.normals.length, geometry.vertices.length);
       for (var i = 0; i < geometry.vertices.length; i += 3) {
@@ -78,10 +56,7 @@ void main() {
 
     test('validates tessellation', () {
       expect(() => GeometryUtils.sphere(latitudeBands: 1), throwsArgumentError);
-      expect(
-        () => GeometryUtils.sphere(longitudeBands: 2),
-        throwsArgumentError,
-      );
+      expect(() => GeometryUtils.sphere(longitudeBands: 2), throwsArgumentError);
     });
   });
 }
