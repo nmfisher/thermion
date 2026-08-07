@@ -35,6 +35,9 @@
  - update the thermion_flutter dependency on thermion_dart to 0.5.0-pre.
  - scope render attachment state per engine so one web viewer never submits
    another engine's views or swapchains.
+ - dispatch `setGltfAnimationTime` on the render thread; it previously applied
+   morph-target weights on the caller's thread and panicked (debug assertion)
+   for any glTF animation driving morph weights.
 
 ## 0.4.1
 - re-publish without Melos
