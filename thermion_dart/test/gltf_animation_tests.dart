@@ -159,4 +159,32 @@ void main() async {
       await testHelper.capture(viewer.view, "gltf_crossfade_animation2");
     });
   });
+
+  // Regression for the setGltfAnimationTime render-thread bug. setGltfAnimationTime
+  // previously applied morph-target weights synchronously on the caller's thread,
+  // tripping Filament's backend "isThisThread(mThreadId)" assertion (a DEBUG-only
+  // check) for any glTF animation that drives morph weights — every call panicked.
+  // cube_with_morph_targets.glb has morph targets but its animations only drive
+  // translation/rotation/scale, so it never exercised the morph path; this asset's
+  // sole animation targets the mesh 'weights' path, so scrubbing it does. In a debug
+  // build this test panicked before the render-thread dispatch fix and passes after.
+  test('setGltfAnimationTime on a morph-weight animation', () async {
+    await ViewerBuilder(testHelper, bg: kRed).setCameraLookAt(Vector3(0, 0, 4), focus: Vector3.zero()).execute((
+      result,
+    ) async {
+      final viewer = result.viewer;
+      final asset = await viewer.loadGltf("${testHelper.assetsDir}/morph_weight_anim.glb", addToScene: true);
+
+      final duration = await asset.getGltfAnimationDuration(0);
+      expect(duration, greaterThan(0));
+
+      // Each call applies the animation's morph weights; pre-fix this panicked
+      // in debug on the very first call.
+      await asset.setGltfAnimationTime(0, duration / 2);
+      await testHelper.capture(viewer.view, "set_gltf_animation_time_mid");
+
+      await asset.setGltfAnimationTime(0, duration);
+      await testHelper.capture(viewer.view, "set_gltf_animation_time_end");
+    });
+  });
 }

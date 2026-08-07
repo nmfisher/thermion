@@ -223,6 +223,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateRenderThread(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);
 
+        EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeRenderThread(
+            TAnimationManager *tAnimationManager,
+            TSceneAsset *tSceneAsset,
+            int animationIndex,
+            float timeInSeconds,
+            uint32_t requestId,
+            VoidCallback onComplete);
+
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
             TAnimationManager *tAnimationManager,
             TSceneAsset *sceneAsset,
