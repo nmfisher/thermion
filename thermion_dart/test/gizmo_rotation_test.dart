@@ -7,11 +7,7 @@ import 'helpers.dart';
 /// Get the parent bone index for a bone.
 ///
 /// Returns -1 if the bone has no parent (root bone) or parent is not in the bone list.
-Future<int> getBoneParentIndex(
-  ThermionAsset asset,
-  int skinIndex,
-  int boneIndex,
-) async {
+Future<int> getBoneParentIndex(ThermionAsset asset, int skinIndex, int boneIndex) async {
   final bones = await asset.getBones(skinIndex: skinIndex);
   if (boneIndex < 0 || boneIndex >= bones.length) return -1;
   final boneEntity = bones[boneIndex];
@@ -27,19 +23,12 @@ void main() async {
   test('child bone rotation with updateBoneMatrices callback', () async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
-      final assetData = File(
-        '${testHelper.assetsDir}/cube_with_morph_targets.glb',
-      ).readAsBytesSync();
+      final assetData = File('${testHelper.assetsDir}/cube_with_morph_targets.glb').readAsBytesSync();
       final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
-      await viewer.addDirectLight(
-        DirectLight.sun(
-          direction: Vector3(0.7, -1, -0.8).normalized(),
-          intensity: 100000.0,
-        ),
-      );
+      await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0));
 
       // Get bone entities
       final am = FilamentApp.instance!.animationManager;
@@ -51,9 +40,7 @@ void main() async {
       final boneIndex = boneEntities.length > 1 ? 1 : 0;
       final boneEntity = boneEntities[boneIndex];
       final parentBoneIndex = await getBoneParentIndex(asset, 0, boneIndex);
-      print(
-        'Using bone $boneIndex (entity $boneEntity), parent: $parentBoneIndex',
-      );
+      print('Using bone $boneIndex (entity $boneEntity), parent: $parentBoneIndex');
 
       // Track transforms received by callback
       final receivedTransforms = <Matrix4>[];
@@ -75,12 +62,7 @@ void main() async {
 
       // Attach to bone
       await gizmoDelegate.attachTo(
-        AttachmentTarget(
-          entity: boneEntity,
-          asset: asset,
-          boneIndex: boneIndex,
-          skinIndex: 0,
-        ),
+        AttachmentTarget(entity: boneEntity, asset: asset, boneIndex: boneIndex, skinIndex: 0),
       );
 
       final gizmo = gizmoDelegate.gizmo!;
@@ -101,10 +83,7 @@ void main() async {
       final camera = await viewer.getActiveCamera();
       final projMatrix = await camera.getProjectionMatrix();
       final viewMatrix = await camera.getViewMatrix();
-      final clipPos =
-          projMatrix *
-          viewMatrix *
-          Vector4(initialBonePos.x, initialBonePos.y, initialBonePos.z, 1.0);
+      final clipPos = projMatrix * viewMatrix * Vector4(initialBonePos.x, initialBonePos.y, initialBonePos.z, 1.0);
       final ndc = clipPos / clipPos.w;
       final screenX = ((ndc.x + 1) / 2 * viewport.width).toInt();
       final screenY = ((1 - ndc.y) / 2 * viewport.height).toInt();
@@ -166,10 +145,7 @@ void main() async {
         bonePositions.add(bonePos.clone());
 
         if (i % 5 == 0) {
-          await testHelper.capture(
-            viewer.view,
-            "child_2_rot_${i.toString().padLeft(2, '0')}",
-          );
+          await testHelper.capture(viewer.view, "child_2_rot_${i.toString().padLeft(2, '0')}");
           print('Frame $i: bone pos = $bonePos');
         }
       }
@@ -195,19 +171,12 @@ void main() async {
   test('gizmo should not move during rotation', () async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
-      final assetData = File(
-        '${testHelper.assetsDir}/cube_with_morph_targets.glb',
-      ).readAsBytesSync();
+      final assetData = File('${testHelper.assetsDir}/cube_with_morph_targets.glb').readAsBytesSync();
       final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
-      await viewer.addDirectLight(
-        DirectLight.sun(
-          direction: Vector3(0.7, -1, -0.8).normalized(),
-          intensity: 100000.0,
-        ),
-      );
+      await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0));
 
       // Get bone entities
       final boneEntities = await asset.getBones(skinIndex: 0);
@@ -310,10 +279,7 @@ void main() async {
 
         // Capture every 9th frame
         if (i % 9 == 0) {
-          await testHelper.capture(
-            viewer.view,
-            "2_rotation_${i.toString().padLeft(2, '0')}",
-          );
+          await testHelper.capture(viewer.view, "2_rotation_${i.toString().padLeft(2, '0')}");
           print('Frame $i: bone pos = $bonePos');
         }
       }
@@ -336,11 +302,7 @@ void main() async {
       print('Maximum position drift: ${maxDrift.toStringAsFixed(6)}');
 
       // The bone position should not change during pure rotation
-      expect(
-        maxDrift,
-        lessThan(0.01),
-        reason: 'Bone position should not drift during rotation',
-      );
+      expect(maxDrift, lessThan(0.01), reason: 'Bone position should not drift during rotation');
 
       // Cleanup
       await gizmo.dispose();
@@ -350,19 +312,12 @@ void main() async {
   test('manual rotation test - direct API calls', () async {
     await testHelper.withViewer((viewer) async {
       // Load armature asset
-      final assetData = File(
-        '${testHelper.assetsDir}/cube_with_morph_targets.glb',
-      ).readAsBytesSync();
+      final assetData = File('${testHelper.assetsDir}/cube_with_morph_targets.glb').readAsBytesSync();
       final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
-      await viewer.addDirectLight(
-        DirectLight.sun(
-          direction: Vector3(0.7, -1, -0.8).normalized(),
-          intensity: 100000.0,
-        ),
-      );
+      await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0));
 
       final tm = FilamentApp.instance!.transformManager;
       final boneEntities = await asset.getBones(skinIndex: 0);
@@ -385,28 +340,18 @@ void main() async {
 
         // Extract scale from initial transform
         final scaleX = math.sqrt(
-          initialWorld[0] * initialWorld[0] +
-              initialWorld[1] * initialWorld[1] +
-              initialWorld[2] * initialWorld[2],
+          initialWorld[0] * initialWorld[0] + initialWorld[1] * initialWorld[1] + initialWorld[2] * initialWorld[2],
         );
         final scaleY = math.sqrt(
-          initialWorld[4] * initialWorld[4] +
-              initialWorld[5] * initialWorld[5] +
-              initialWorld[6] * initialWorld[6],
+          initialWorld[4] * initialWorld[4] + initialWorld[5] * initialWorld[5] + initialWorld[6] * initialWorld[6],
         );
         final scaleZ = math.sqrt(
-          initialWorld[8] * initialWorld[8] +
-              initialWorld[9] * initialWorld[9] +
-              initialWorld[10] * initialWorld[10],
+          initialWorld[8] * initialWorld[8] + initialWorld[9] * initialWorld[9] + initialWorld[10] * initialWorld[10],
         );
         final scale = Vector3(scaleX, scaleY, scaleZ);
 
         // Compose new world transform (same position, new rotation)
-        final newWorldTransform = Matrix4.compose(
-          initialPos,
-          newRotation,
-          scale,
-        );
+        final newWorldTransform = Matrix4.compose(initialPos, newRotation, scale);
 
         // Convert to local (this is what the gizmo does)
         final parent = tm.getParent(boneEntity);

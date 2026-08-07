@@ -11,9 +11,7 @@ void main() async {
   test('setBoneTransform', () async {
     await testHelper.withViewer(
       (viewer) async {
-        final cube = await viewer.loadGltf(
-          "${testHelper.assetsDir}/cube_with_morph_targets.glb",
-        );
+        final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
         await viewer.addToScene(cube);
 
@@ -30,36 +28,21 @@ void main() async {
   });
 
   test('addBoneAnimation on a gltf asset plays a keyframed rotation', () async {
-    await ViewerBuilder(
-      testHelper,
-    ).addSun().setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero()).execute((
+    await ViewerBuilder(testHelper).addSun().setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero()).execute((
       result,
     ) async {
       final viewer = result.viewer;
-      final cube = await viewer.loadGltf(
-        "${testHelper.assetsDir}/cube_with_morph_targets.glb",
-        addToScene: true,
-      );
+      final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
 
       // 60-frame animation rotating MyBone from 0 to pi/2 about Y in bone space.
       const numFrames = 60;
       final frameData = <SkeletonTransform>[];
       for (int i = 0; i < numFrames; i++) {
         final angle = (pi / 2) * (i / (numFrames - 1));
-        frameData.add([
-          (
-            rotation: Quaternion.axisAngle(Vector3(0, 1, 0), angle),
-            translation: Vector3.zero(),
-          ),
-        ]);
+        frameData.add([(rotation: Quaternion.axisAngle(Vector3(0, 1, 0), angle), translation: Vector3.zero())]);
       }
 
-      final animation = BoneAnimationData(
-        ["MyBone"],
-        frameData,
-        frameLengthInMs: 1000.0 / 60.0,
-        space: Space.Bone,
-      );
+      final animation = BoneAnimationData(["MyBone"], frameData, frameLengthInMs: 1000.0 / 60.0, space: Space.Bone);
 
       await cube.addBoneAnimation(animation);
 
@@ -80,16 +63,11 @@ void main() async {
   });
 
   test('addBoneAnimation with loop wraps back to the start', () async {
-    await ViewerBuilder(
-      testHelper,
-    ).addSun().setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero()).execute((
+    await ViewerBuilder(testHelper).addSun().setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero()).execute((
       result,
     ) async {
       final viewer = result.viewer;
-      final cube = await viewer.loadGltf(
-        "${testHelper.assetsDir}/cube_with_morph_targets.glb",
-        addToScene: true,
-      );
+      final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
 
       final boneNames = await cube.getBoneNames();
       expect(boneNames.first, "MyBone");
@@ -100,20 +78,10 @@ void main() async {
       final frameData = <SkeletonTransform>[];
       for (int i = 0; i < numFrames; i++) {
         final angle = (pi / 2) * (i / (numFrames - 1));
-        frameData.add([
-          (
-            rotation: Quaternion.axisAngle(Vector3(0, 1, 0), angle),
-            translation: Vector3.zero(),
-          ),
-        ]);
+        frameData.add([(rotation: Quaternion.axisAngle(Vector3(0, 1, 0), angle), translation: Vector3.zero())]);
       }
 
-      final animation = BoneAnimationData(
-        ["MyBone"],
-        frameData,
-        frameLengthInMs: 1000.0 / 60.0,
-        space: Space.Bone,
-      );
+      final animation = BoneAnimationData(["MyBone"], frameData, frameLengthInMs: 1000.0 / 60.0, space: Space.Bone);
 
       await cube.addBoneAnimation(animation, loop: true);
 
@@ -141,16 +109,11 @@ void main() async {
   test('resetToRestPose restores original pose visually', () async {
     await testHelper.withViewer(
       (viewer) async {
-        final cube = await viewer.loadGltf(
-          "${testHelper.assetsDir}/cube_with_morph_targets.glb",
-        );
+        final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
         await viewer.addToScene(cube);
 
         await viewer.addDirectLight(
-          DirectLight.sun(
-            direction: Vector3(0.7, -1, -0.8).normalized(),
-            intensity: 100000.0,
-          ),
+          DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0),
         );
 
         final am = FilamentApp.instance!.animationManager;
@@ -160,10 +123,7 @@ void main() async {
         expect(bones.length, 1);
 
         // Capture initial rest pose.
-        final initialCapture = await testHelper.capture(
-          viewer.view,
-          "resetToRestPose_0_initial",
-        );
+        final initialCapture = await testHelper.capture(viewer.view, "resetToRestPose_0_initial");
         final initialPixels = initialCapture.values.first;
 
         // Rotate the single bone 45 degrees around Y via TransformManager,
@@ -179,19 +139,13 @@ void main() async {
         tm.setTransform(boneEntity, rotatedLocal);
         await am.updateBoneMatrices(cube);
 
-        final rotatedCapture = await testHelper.capture(
-          viewer.view,
-          "resetToRestPose_1_rotated",
-        );
+        final rotatedCapture = await testHelper.capture(viewer.view, "resetToRestPose_1_rotated");
         final rotatedPixels = rotatedCapture.values.first;
 
         // Restore rest pose.
         await am.resetToRestPose(cube);
 
-        final resetCapture = await testHelper.capture(
-          viewer.view,
-          "resetToRestPose_2_reset",
-        );
+        final resetCapture = await testHelper.capture(viewer.view, "resetToRestPose_2_reset");
         final resetPixels = resetCapture.values.first;
 
         int initialVsRotatedDiff = 0;
@@ -210,11 +164,7 @@ void main() async {
           greaterThan(1000),
           reason: 'Rotated pose should look different from initial rest pose',
         );
-        expect(
-          initialVsResetDiff,
-          lessThan(100),
-          reason: 'Reset pose should visually match initial rest pose',
-        );
+        expect(initialVsResetDiff, lessThan(100), reason: 'Reset pose should visually match initial rest pose');
       },
       bg: kRed,
       cameraPosition: Vector3(0, 5, 15),

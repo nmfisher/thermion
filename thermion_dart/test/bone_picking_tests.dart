@@ -91,10 +91,7 @@ class BoneVisualizer {
   /// Get the parent bone index for a bone.
   ///
   /// Returns -1 if the bone has no parent (root bone) or parent is not in the bone list.
-  Future<int> _getBoneParentIndex(
-    int boneIndex,
-    List<ThermionEntity> bones,
-  ) async {
+  Future<int> _getBoneParentIndex(int boneIndex, List<ThermionEntity> bones) async {
     if (boneIndex < 0 || boneIndex >= bones.length) return -1;
     final boneEntity = bones[boneIndex];
     final parentEntity = await FilamentApp.instance!.getParent(boneEntity);
@@ -123,11 +120,7 @@ class BoneVisualizer {
   /// [pickThreshold] is the max distance in pixels to consider a bone picked.
   ///
   /// Returns the bone index of the closest bone within threshold, or null.
-  Future<int?> pickBoneAtScreen(
-    int screenX,
-    int screenY, {
-    double pickThreshold = 20.0,
-  }) async {
+  Future<int?> pickBoneAtScreen(int screenX, int screenY, {double pickThreshold = 20.0}) async {
     if (!_isVisible || _bones.isEmpty) return null;
 
     final view = viewer.view;
@@ -141,10 +134,7 @@ class BoneVisualizer {
 
     // Project world position to screen coordinates
     Vector2 projectToScreen(Vector3 worldPos) {
-      final clipSpace =
-          projMatrix *
-          viewMatrix *
-          Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
+      final clipSpace = projMatrix * viewMatrix * Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
       final ndc = clipSpace / clipSpace.w;
       return Vector2(
         ((ndc.x + 1.0) / 2.0) * viewport.width.toDouble(),
@@ -177,18 +167,11 @@ class BoneVisualizer {
       // Also check distance to envelope cylinder if bone has length
       if (bone.boneLength > 0) {
         // Calculate tail position same way as _calculateTailPosition
-        final tailWorldPos = _calculateTailPosition(
-          headTransform,
-          bone.boneLength,
-        );
+        final tailWorldPos = _calculateTailPosition(headTransform, bone.boneLength);
         final tailScreenPos = projectToScreen(tailWorldPos);
 
         // Distance to cylinder line segment
-        final cylinderDist = pointToSegmentDistance(
-          mousePos,
-          headScreenPos,
-          tailScreenPos,
-        );
+        final cylinderDist = pointToSegmentDistance(mousePos, headScreenPos, tailScreenPos);
         if (cylinderDist < dist) {
           dist = cylinderDist;
         }
@@ -214,8 +197,7 @@ class BoneVisualizer {
     if (boneIndex == _highlightedBoneIndex) return;
 
     // Unhighlight previous bone
-    if (_highlightedBoneIndex != null &&
-        _highlightedBoneIndex! < _bones.length) {
+    if (_highlightedBoneIndex != null && _highlightedBoneIndex! < _bones.length) {
       final prevBone = _bones[_highlightedBoneIndex!];
       await prevBone.jointMaterial.setParameterFloat4(
         "baseColorFactor",
@@ -327,8 +309,7 @@ class BoneVisualizer {
     );
 
     // Create bone overlay material for view-dependent flat shading
-    final boneMaterial = await FilamentApp.instance!
-        .createBoneOverlayMaterial();
+    final boneMaterial = await FilamentApp.instance!.createBoneOverlayMaterial();
 
     // Third pass: create visualization for each bone
     for (int i = 0; i < boneCount; i++) {
@@ -344,26 +325,11 @@ class BoneVisualizer {
 
       // Create joint sphere
       final jointMatInst = await boneMaterial.createInstance();
-      await jointMatInst.setParameterFloat4(
-        "baseColorFactor",
-        jointColor.r,
-        jointColor.g,
-        jointColor.b,
-        jointColor.a,
-      );
+      await jointMatInst.setParameterFloat4("baseColorFactor", jointColor.r, jointColor.g, jointColor.b, jointColor.a);
 
-      final jointAsset = await viewer.createGeometry(
-        sphereGeom,
-        materialInstances: [jointMatInst],
-      );
+      final jointAsset = await viewer.createGeometry(sphereGeom, materialInstances: [jointMatInst]);
 
-      await jointAsset.setTransform(
-        Matrix4.compose(
-          headPos,
-          Quaternion.identity(),
-          Vector3.all(sphereRadius),
-        ),
-      );
+      await jointAsset.setTransform(Matrix4.compose(headPos, Quaternion.identity(), Vector3.all(sphereRadius)));
       await viewer.addToScene(jointAsset);
       await FilamentApp.instance!.setPriority(jointAsset.entity, 7);
 
@@ -374,27 +340,13 @@ class BoneVisualizer {
       if (boneLength > 0.001) {
         // Skip zero-length bones
         envelopeMatInst = await boneMaterial.createInstance();
-        await envelopeMatInst.setParameterFloat4(
-          "baseColorFactor",
-          boneColor.r,
-          boneColor.g,
-          boneColor.b,
-          boneColor.a,
-        );
+        await envelopeMatInst.setParameterFloat4("baseColorFactor", boneColor.r, boneColor.g, boneColor.b, boneColor.a);
 
-        envelopeAsset = await viewer.createGeometry(
-          cylinderGeom,
-          materialInstances: [envelopeMatInst],
-        );
+        envelopeAsset = await viewer.createGeometry(cylinderGeom, materialInstances: [envelopeMatInst]);
 
         // Calculate tail position using bone rotation
         final tailPos = _calculateTailPosition(transform, boneLength);
-        await _setEnvelopeTransform(
-          envelopeAsset,
-          headPos,
-          tailPos,
-          boneLength,
-        );
+        await _setEnvelopeTransform(envelopeAsset, headPos, tailPos, boneLength);
 
         await viewer.addToScene(envelopeAsset);
         await FilamentApp.instance!.setPriority(envelopeAsset.entity, 7);
@@ -442,12 +394,7 @@ class BoneVisualizer {
   ///
   /// The cylinder's bottom end should be at the head position and top at tail.
   /// The unit cylinder has length=1 (from -0.5 to +0.5 on Y) with radius=1.
-  Future<void> _setEnvelopeTransform(
-    ThermionAsset envelope,
-    Vector3 head,
-    Vector3 tail,
-    double length,
-  ) async {
+  Future<void> _setEnvelopeTransform(ThermionAsset envelope, Vector3 head, Vector3 tail, double length) async {
     final direction = (tail - head).normalized();
 
     // Rotate cylinder (which points along Y) to align with bone direction
@@ -461,33 +408,18 @@ class BoneVisualizer {
 
     // Scale: X and Z are envelope radius, Y is bone length
     // (since unit cylinder length is 1, scaling by length gives total length)
-    await envelope.setTransform(
-      Matrix4.compose(
-        midpoint,
-        rotation,
-        Vector3(envelopeRadius, length, envelopeRadius),
-      ),
-    );
+    await envelope.setTransform(Matrix4.compose(midpoint, rotation, Vector3(envelopeRadius, length, envelopeRadius)));
   }
 
   /// Same as [_setEnvelopeTransform] but uses render-thread-safe async method.
-  Future<void> _setEnvelopeTransformAsync(
-    ThermionAsset envelope,
-    Vector3 head,
-    Vector3 tail,
-    double length,
-  ) async {
+  Future<void> _setEnvelopeTransformAsync(ThermionAsset envelope, Vector3 head, Vector3 tail, double length) async {
     final direction = (tail - head).normalized();
     final rotation = Quaternion.fromTwoVectors(Vector3(0, 1, 0), direction);
     final midpoint = head + direction * (length / 2);
 
     await FilamentApp.instance!.transformManager.setTransformAsync(
       envelope.entity,
-      Matrix4.compose(
-        midpoint,
-        rotation,
-        Vector3(envelopeRadius, length, envelopeRadius),
-      ),
+      Matrix4.compose(midpoint, rotation, Vector3(envelopeRadius, length, envelopeRadius)),
     );
   }
 
@@ -508,22 +440,13 @@ class BoneVisualizer {
       // Update joint sphere position using async (thread-safe) method
       await tm.setTransformAsync(
         bone.jointAsset.entity,
-        Matrix4.compose(
-          headPos,
-          Quaternion.identity(),
-          Vector3.all(sphereRadius),
-        ),
+        Matrix4.compose(headPos, Quaternion.identity(), Vector3.all(sphereRadius)),
       );
 
       // Update envelope if exists
       if (bone.envelopeAsset != null && bone.boneLength > 0.001) {
         final tailPos = _calculateTailPosition(transform, bone.boneLength);
-        await _setEnvelopeTransformAsync(
-          bone.envelopeAsset!,
-          headPos,
-          tailPos,
-          bone.boneLength,
-        );
+        await _setEnvelopeTransformAsync(bone.envelopeAsset!, headPos, tailPos, bone.boneLength);
       }
     }
   }
@@ -576,27 +499,15 @@ void main() async {
   test('pick bone with screen-space picking', () async {
     await testHelper.withViewer((viewer) async {
       // 1. Load armature asset
-      final assetData = File(
-        '${testHelper.testDir}/assets/cube_with_morph_targets.glb',
-      ).readAsBytesSync();
+      final assetData = File('${testHelper.testDir}/assets/cube_with_morph_targets.glb').readAsBytesSync();
       final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting so we can see the cube
-      await viewer.addDirectLight(
-        DirectLight.sun(
-          direction: Vector3(0.7, -1, -0.8).normalized(),
-          intensity: 100000.0,
-        ),
-      );
+      await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0));
 
       // 2. Create bone visualizer
-      final boneVisualizer = BoneVisualizer(
-        viewer: viewer,
-        asset: asset,
-        skinIndex: 0,
-        sphereRadius: 0.1,
-      );
+      final boneVisualizer = BoneVisualizer(viewer: viewer, asset: asset, skinIndex: 0, sphereRadius: 0.1);
       await boneVisualizer.show();
 
       // Capture initial frame to see scene
@@ -628,23 +539,16 @@ void main() async {
         final projMatrix = await camera.getProjectionMatrix();
         final viewMatrix = await camera.getViewMatrix();
 
-        final clipPos =
-            (projMatrix * viewMatrix) *
-            Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
+        final clipPos = (projMatrix * viewMatrix) * Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
         final ndcPos = clipPos.xyz / clipPos.w;
 
         final screenX = ((ndcPos.x + 1) / 2 * viewport.width).toInt();
         final screenY = ((1 - ndcPos.y) / 2 * viewport.height).toInt();
 
-        print(
-          'Bone $boneIndex: worldPos=$worldPos -> screen=($screenX, $screenY)',
-        );
+        print('Bone $boneIndex: worldPos=$worldPos -> screen=($screenX, $screenY)');
 
         // 5. Use screen-space picking (bypasses depth buffer!)
-        final pickedBoneIndex = await boneVisualizer.pickBoneAtScreen(
-          screenX,
-          screenY,
-        );
+        final pickedBoneIndex = await boneVisualizer.pickBoneAtScreen(screenX, screenY);
 
         print('  -> screen-space pick: boneIndex=$pickedBoneIndex');
 
@@ -652,12 +556,7 @@ void main() async {
         await testHelper.capture(viewer.view, "bone_pick_$boneIndex");
 
         // 6. Verify screen-space picking works for ALL bones
-        expect(
-          pickedBoneIndex,
-          boneIndex,
-          reason:
-              'Screen-space picking at bone $boneIndex should return that bone',
-        );
+        expect(pickedBoneIndex, boneIndex, reason: 'Screen-space picking at bone $boneIndex should return that bone');
 
         // Highlight and capture
         await boneVisualizer.highlightBone(pickedBoneIndex);
@@ -671,19 +570,12 @@ void main() async {
   test('pick bone with empty space behind', () async {
     await testHelper.withViewer((viewer) async {
       // Load asset
-      final assetData = File(
-        '${testHelper.testDir}/assets/cube_with_morph_targets.glb',
-      ).readAsBytesSync();
+      final assetData = File('${testHelper.testDir}/assets/cube_with_morph_targets.glb').readAsBytesSync();
       final asset = await viewer.loadGltfFromBuffer(assetData);
       await viewer.addToScene(asset);
 
       // Add lighting
-      await viewer.addDirectLight(
-        DirectLight.sun(
-          direction: Vector3(0.7, -1, -0.8).normalized(),
-          intensity: 100000.0,
-        ),
-      );
+      await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized(), intensity: 100000.0));
 
       // Create bone visualizer
       final boneVisualizer = BoneVisualizer(
@@ -724,9 +616,7 @@ void main() async {
 
       expect(completer.isCompleted, true);
       final result = await completer.future;
-      final pickedBoneIndex = boneVisualizer.getBoneIndexForEntity(
-        result.entity,
-      );
+      final pickedBoneIndex = boneVisualizer.getBoneIndexForEntity(result.entity);
 
       print(
         'Picked entity=${result.entity}, depth=${result.depth}, '
@@ -734,11 +624,7 @@ void main() async {
       );
 
       // Should pick bone 1, not return null (which would indicate empty space)
-      expect(
-        pickedBoneIndex,
-        isNotNull,
-        reason: 'Should pick bone sphere, not empty space',
-      );
+      expect(pickedBoneIndex, isNotNull, reason: 'Should pick bone sphere, not empty space');
 
       // Highlight the picked bone and capture
       if (pickedBoneIndex != null) {

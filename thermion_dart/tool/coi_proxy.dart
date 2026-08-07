@@ -67,9 +67,7 @@ Future<void> main(List<String> args) async {
   if (positional.length > 1) _outRoot = positional[1];
 
   final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
-  final assetsNote = _assetsRoot == null
-      ? 'assets: disabled'
-      : 'assets <- ${Directory(_assetsRoot!).absolute.path}';
+  final assetsNote = _assetsRoot == null ? 'assets: disabled' : 'assets <- ${Directory(_assetsRoot!).absolute.path}';
   stderr.writeln(
     'coi-proxy listening on 127.0.0.1:$port'
     ' (sink -> ${Directory(_outRoot).absolute.path}, $assetsNote)',
@@ -79,8 +77,7 @@ Future<void> main(List<String> args) async {
   }
 }
 
-bool _isLoopback(String host) =>
-    host == 'localhost' || host == '127.0.0.1' || host == '[::1]';
+bool _isLoopback(String host) => host == 'localhost' || host == '127.0.0.1' || host == '[::1]';
 
 Future<void> _handleClient(Socket client) async {
   client.setOption(SocketOption.tcpNoDelay, true);
@@ -129,9 +126,7 @@ Future<void> _handleClient(Socket client) async {
     if (upstream == null) return;
     upstream.setOption(SocketOption.tcpNoDelay, true);
 
-    final isUpgrade = reqHeaders.any(
-      (h) => h.toLowerCase().startsWith('upgrade:'),
-    );
+    final isUpgrade = reqHeaders.any((h) => h.toLowerCase().startsWith('upgrade:'));
 
     // Rewrite request target to origin-form and forward the headers.
     final path = uri.path.isEmpty ? '/' : uri.path;
@@ -142,9 +137,7 @@ Future<void> _handleClient(Socket client) async {
       if (lower.startsWith('proxy-')) continue;
       // Force single response per connection so a plain (non-upgrade) response
       // ends with a clean EOF that we can detect; leave upgrades untouched.
-      if (!isUpgrade &&
-          (lower.startsWith('connection:') ||
-              lower.startsWith('keep-alive:'))) {
+      if (!isUpgrade && (lower.startsWith('connection:') || lower.startsWith('keep-alive:'))) {
         continue;
       }
       out.write('$h\r\n');
@@ -181,9 +174,7 @@ Future<void> _handleClient(Socket client) async {
       ..write('$_corp\r\n')
       ..write('\r\n');
     client.add(utf8.encode(resp.toString()));
-    await upReader.forwardTo(
-      client,
-    ); // completes on upstream EOF (Connection: close)
+    await upReader.forwardTo(client); // completes on upstream EOF (Connection: close)
     // Flush gracefully before teardown: destroy() discards unsent buffered
     // bytes, which truncates large bodies (e.g. the 3.8MB wasm).
     try {
@@ -217,13 +208,7 @@ void _refuse(Socket client) {
 // query parameter; it is sanitised (leading slashes and `..` segments dropped)
 // so writes stay within _outRoot. CORS/isolation headers are added so the
 // cross-origin-isolated test page's fetch is allowed to complete.
-Future<void> _handleSink(
-  Socket client,
-  String method,
-  Uri uri,
-  List<String> reqHeaders,
-  _SocketReader reader,
-) async {
+Future<void> _handleSink(Socket client, String method, Uri uri, List<String> reqHeaders, _SocketReader reader) async {
   if (method == 'OPTIONS') return _writeSinkResponse(client, 204, 'No Content');
   if (method != 'POST') {
     return _writeSinkResponse(client, 405, 'Method Not Allowed');
