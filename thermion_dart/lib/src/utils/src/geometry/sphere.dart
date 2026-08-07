@@ -3,21 +3,12 @@ import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class SphereGeometry {
-  static Geometry sphere({
-    bool normals = true,
-    bool uvs = true,
-    int latitudeBands = 20,
-    int longitudeBands = 20,
-  }) {
+  static Geometry sphere({bool normals = true, bool uvs = true, int latitudeBands = 20, int longitudeBands = 20}) {
     if (latitudeBands < 2) {
       throw ArgumentError.value(latitudeBands, 'latitudeBands', 'must be >= 2');
     }
     if (longitudeBands < 3) {
-      throw ArgumentError.value(
-        longitudeBands,
-        'longitudeBands',
-        'must be >= 3',
-      );
+      throw ArgumentError.value(longitudeBands, 'longitudeBands', 'must be >= 3');
     }
 
     List<double> verticesList = [];
@@ -42,10 +33,7 @@ class SphereGeometry {
         verticesList.addAll([x, y, z]);
         normalsList.addAll([x, y, z]);
 
-        uvsList.addAll([
-          longNumber / longitudeBands,
-          latNumber / latitudeBands,
-        ]);
+        uvsList.addAll([longNumber / longitudeBands, latNumber / latitudeBands]);
       }
     }
 
@@ -71,11 +59,6 @@ class SphereGeometry {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(
-      vertices,
-      Uint16List.fromList(indices),
-      normals: _normals,
-      uvs: _uvs,
-    );
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 }

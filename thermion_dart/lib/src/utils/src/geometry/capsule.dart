@@ -8,12 +8,7 @@ class CapsuleGeometry {
   /// [radius] controls the radius of the cylinder and hemispherical caps.
   /// [height] is the total height from bottom to top (including caps).
   /// If height <= 2*radius, the capsule becomes a sphere.
-  static Geometry capsule({
-    double radius = 1.0,
-    double height = 2.0,
-    bool normals = true,
-    bool uvs = true,
-  }) {
+  static Geometry capsule({double radius = 1.0, double height = 2.0, bool normals = true, bool uvs = true}) {
     int latitudeBands = 10;
     int longitudeBands = 16;
 
@@ -50,10 +45,7 @@ class CapsuleGeometry {
 
         verticesList.addAll([x, y, z]);
         normalsList.addAll([nx, ny, nz]);
-        uvsList.addAll([
-          longNumber / longitudeBands,
-          latNumber / latitudeBands / 2,
-        ]);
+        uvsList.addAll([longNumber / longitudeBands, latNumber / latitudeBands / 2]);
       }
     }
 
@@ -83,10 +75,7 @@ class CapsuleGeometry {
 
         verticesList.addAll([x, y, z]);
         normalsList.addAll([nx, ny, nz]);
-        uvsList.addAll([
-          longNumber / longitudeBands,
-          0.5 + (latNumber / bottomHemiLatBands / 2),
-        ]);
+        uvsList.addAll([longNumber / longitudeBands, 0.5 + (latNumber / bottomHemiLatBands / 2)]);
       }
     }
 
@@ -96,14 +85,7 @@ class CapsuleGeometry {
         int first = (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices.addAll([
-          first,
-          first + 1,
-          second,
-          second,
-          first + 1,
-          second + 1,
-        ]);
+        indices.addAll([first, first + 1, second, second, first + 1, second + 1]);
       }
     }
 
@@ -111,8 +93,7 @@ class CapsuleGeometry {
     // The equator of top hemisphere connects to the equator of bottom hemisphere
     if (cylinderHeight > 0) {
       int topEquatorStart = topHemiLatBands * (longitudeBands + 1);
-      int bottomEquatorStart =
-          topHemiVertexCount; // First row of bottom hemisphere
+      int bottomEquatorStart = topHemiVertexCount; // First row of bottom hemisphere
 
       for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
         int topCurrent = topEquatorStart + longNumber;
@@ -128,20 +109,10 @@ class CapsuleGeometry {
     // Generate indices for bottom hemisphere
     for (int latNumber = 0; latNumber < bottomHemiLatBands; latNumber++) {
       for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
-        int first =
-            topHemiVertexCount +
-            (latNumber * (longitudeBands + 1)) +
-            longNumber;
+        int first = topHemiVertexCount + (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices.addAll([
-          first,
-          first + 1,
-          second,
-          second,
-          first + 1,
-          second + 1,
-        ]);
+        indices.addAll([first, first + 1, second, second, first + 1, second + 1]);
       }
     }
 
@@ -149,11 +120,6 @@ class CapsuleGeometry {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(
-      vertices,
-      Uint16List.fromList(indices),
-      normals: _normals,
-      uvs: _uvs,
-    );
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 }
