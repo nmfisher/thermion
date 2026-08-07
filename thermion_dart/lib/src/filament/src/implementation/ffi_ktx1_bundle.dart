@@ -28,7 +28,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   Float32List getSphericalHarmonics() {
-    var harmonics = Float32List(27);
+    final harmonics = makeFloat32List(27);
     Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
     return harmonics;
   }

@@ -85,7 +85,7 @@ class CapsuleGeometry {
         int first = (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices.addAll([first, second, first + 1, second, second + 1, first + 1]);
+        indices.addAll([first, first + 1, second, second, first + 1, second + 1]);
       }
     }
 
@@ -101,8 +101,8 @@ class CapsuleGeometry {
         int bottomCurrent = bottomEquatorStart + longNumber;
         int bottomNext = bottomEquatorStart + longNumber + 1;
 
-        indices.addAll([topCurrent, bottomCurrent, topNext]);
-        indices.addAll([bottomCurrent, bottomNext, topNext]);
+        indices.addAll([topCurrent, topNext, bottomCurrent]);
+        indices.addAll([bottomCurrent, topNext, bottomNext]);
       }
     }
 
@@ -112,7 +112,7 @@ class CapsuleGeometry {
         int first = topHemiVertexCount + (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices.addAll([first, second, first + 1, second, second + 1, first + 1]);
+        indices.addAll([first, first + 1, second, second, first + 1, second + 1]);
       }
     }
 

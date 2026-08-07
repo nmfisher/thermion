@@ -30,10 +30,11 @@ class CylinderGeometry {
       int bottomFirst = topFirst + 1;
       int bottomSecond = topSecond + 1;
 
-      indices.addAll([segments * 2, topSecond, topFirst]);
-      indices.addAll([segments * 2 + 1, bottomFirst, bottomSecond]);
-      indices.addAll([topFirst, bottomFirst, topSecond]);
-      indices.addAll([bottomFirst, bottomSecond, topSecond]);
+      // Cap centers are appended after the rim loop, at (segments + 1) * 2.
+      indices.addAll([(segments + 1) * 2, topSecond, topFirst]);
+      indices.addAll([(segments + 1) * 2 + 1, bottomFirst, bottomSecond]);
+      indices.addAll([topFirst, topSecond, bottomFirst]);
+      indices.addAll([bottomFirst, topSecond, bottomSecond]);
     }
 
     verticesList.addAll([0, length / 2, 0]);
@@ -112,7 +113,7 @@ class CylinderGeometry {
     for (int i = 0; i < segments; i++) {
       int current = i + 1;
       int next = ((i + 1) % segments) + 1;
-      indices.addAll([0, current, next]);
+      indices.addAll([0, next, current]);
     }
 
     int baseStartIndex = verticesList.length ~/ 3;
@@ -146,7 +147,7 @@ class CylinderGeometry {
     for (int i = 0; i < segments; i++) {
       int current = baseStartIndex + 1 + i;
       int next = baseStartIndex + 1 + ((i + 1) % segments);
-      indices.addAll([baseStartIndex, next, current]);
+      indices.addAll([baseStartIndex, current, next]);
     }
 
     Float32List vertices = Float32List.fromList(verticesList);

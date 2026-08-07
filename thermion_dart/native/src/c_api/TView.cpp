@@ -138,13 +138,11 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void View_setBloom(TView *tView, bool enabled, float strength)
         {
             auto view = reinterpret_cast<View *>(tView);
-#ifndef __EMSCRIPTEN__
             decltype(view->getBloomOptions()) opts;
             opts.enabled = enabled;
             opts.strength = strength;
             TRACE("Setting bloom options {.enabled = %d, strength = %f}", enabled, strength);
             view->setBloomOptions(opts);
-#endif
         }
 
         EMSCRIPTEN_KEEPALIVE void View_setColorGrading(TView *tView, TColorGrading *tColorGrading)

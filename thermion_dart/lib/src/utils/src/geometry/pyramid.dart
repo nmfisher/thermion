@@ -32,12 +32,12 @@ class PyramidGeometry {
     ]);
 
     Float32List? _normals = normals
-        ? Float32List.fromList([0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0.7071, 0.7071, 0, 0.7071, 0.7071])
+        ? Float32List.fromList([0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0.7071, -0.7071, 0, 0.7071, -0.7071])
         : null;
 
     Float32List? _uvs = uvs ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1, 0, 0.5, 1, 0.5]) : null;
 
-    Uint16List indices = Uint16List.fromList([0, 1, 2, 0, 2, 3, 0, 1, 5, 0, 5, 4, 0, 4, 3, 1, 2, 5, 2, 3, 4, 2, 4, 5]);
+    Uint16List indices = Uint16List.fromList([0, 2, 1, 0, 3, 2, 0, 5, 1, 0, 4, 5, 0, 3, 4, 1, 5, 2, 2, 4, 3, 2, 5, 4]);
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
