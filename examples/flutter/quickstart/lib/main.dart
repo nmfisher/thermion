@@ -103,17 +103,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   late DirectLight _sun;
 
-  /// Web runs one engine per viewer (browser WebGL context limit), so the
-  /// batch is capped by the plugin's web option; native is unlimited-ish.
-  late final int _maxBatch;
-
   @override
   void initState() {
     super.initState();
     _sun = DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
-    _maxBatch = kIsWeb
-        ? ThermionFlutterPlugin.instance.options.webOptions.maxViewers
-        : 64;
   }
 
   /// Applies the batch: mounts `_batch` viewers at once when the grid is
