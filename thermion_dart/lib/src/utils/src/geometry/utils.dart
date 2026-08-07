@@ -461,6 +461,15 @@ class GeometryUtils {
 
   static Geometry quad() => QuadGeometry.quad();
 
-  static Geometry sphere({bool normals = true, bool uvs = true}) =>
-      SphereGeometry.sphere(normals: normals, uvs: uvs);
+  static Geometry sphere({
+    bool normals = true,
+    bool uvs = true,
+    int latitudeBands = 20,
+    int longitudeBands = 20,
+  }) => SphereGeometry.sphere(
+    normals: normals,
+    uvs: uvs,
+    latitudeBands: latitudeBands,
+    longitudeBands: longitudeBands,
+  );
 }

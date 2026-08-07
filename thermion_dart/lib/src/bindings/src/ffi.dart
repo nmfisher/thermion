@@ -36,6 +36,12 @@ Float32List makeFloat32List(int length) {
   return Float32List(length);
 }
 
+Pointer<Uint8> writableBufferAddress(TypedData data) {
+  throw UnsupportedError(
+    'writableBufferAddress is only needed for WASM-backed typed data',
+  );
+}
+
 IntPtrList makeIntPtrList(int length) {
   return IntPtrList(length);
 }

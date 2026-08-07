@@ -27,6 +27,16 @@ typedef Float = Float32;
 typedef Double = Float64;
 typedef Bool = bool;
 
+/// Returns the address of typed data created by one of the `make*List`
+/// helpers for a native function that writes into it.
+///
+/// Those lists already alias the Emscripten heap. Calling their public
+/// `.address` extension can allocate a second buffer, causing native writes to
+/// land in a temporary copy instead of [data].
+Pointer<Uint8> writableBufferAddress(TypedData data) {
+  return Pointer<Uint8>(data.offsetInBytes);
+}
+
 class FinalizableUint8List {
   final Pointer name;
   final Uint8List data;
