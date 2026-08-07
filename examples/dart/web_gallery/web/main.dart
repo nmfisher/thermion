@@ -9,6 +9,7 @@ import 'package:thermion_dart/thermion_dart.dart' hide NativeLibrary, Image_deco
 import 'package:thermion_examples_lib/examples_lib.dart';
 import 'package:web/web.dart';
 
+import 'effects_controls.dart';
 import 'web_input_handler.dart';
 
 /// Assets are served at a relative `assets/` path on web (the default web
@@ -115,6 +116,9 @@ Future<void> _boot() async {
   );
 
   await setup(viewer, assetsDir: assetsDir);
+  if (exampleName == 'effects') {
+    await installEffectsControls(viewer);
+  }
 
   // Orbit camera: drag to orbit a target (the origin, where transformToUnitCube
   // places every scene), scroll to dolly. The camera is updated on every
