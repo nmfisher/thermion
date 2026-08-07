@@ -2,24 +2,26 @@ import 'dart:math' as math;
 
 import 'package:thermion_dart/thermion_dart.dart';
 
-/// Materials showcase: a row of PBR spheres with varying metallic/roughness/
-/// base-colour (matte, metal, satin, mirror), a wireframe cube, and a
-/// flat-shaded cube, illuminated by three coloured point lights orbiting the
-/// scene. The PBR parameters are driven onto the spheres via the ubershader;
-/// the sphere geometry's winding is corrected in SphereGeometry so back-face
-/// culling keeps the outward faces and diffuse light works.
-Future<void> setupMaterials(
+/// Materials and lighting showcase: a row of PBR spheres with varying
+/// metallic/roughness/base-colour (matte, metal, satin, mirror), a wireframe
+/// cube, and a flat-shaded cube, illuminated by three coloured point lights
+/// orbiting the scene. The PBR parameters are driven onto the spheres via the
+/// ubershader; the sphere geometry's winding is corrected in SphereGeometry so
+/// back-face culling keeps the outward faces and diffuse light works.
+Future<void> setupMaterialsAndLighting(
   ThermionViewer viewer, {
   required String assetsDir,
 }) async {
   final camera = await viewer.getActiveCamera();
-  await camera.lookAt(Vector3(0, 2.5, 11), focus: Vector3(0, 0.5, 0));
+  await camera.lookAt(Vector3(0, 4.0, 11), focus: Vector3(0, 0, 0));
 
   await viewer.setBackgroundColor(0.18, 0.18, 0.18, 1.0);
   await viewer.loadIbl(
     "$assetsDir/materials_studio_ibl.ktx",
     intensity: 10000,
   );
+  await viewer.setShadowsEnabled(true);
+  await viewer.setShadowType(ShadowType.PCF);
 
   const lightColors = [
     LinearColor(1.0, 0.12, 0.05),
@@ -35,13 +37,15 @@ Future<void> setupMaterials(
       await viewer.addDirectLight(
         DirectLight.point(
           color: lightColors[i],
-          intensity: 150000,
+          intensity: 1500000,
           falloffRadius: 12.0,
           position: Vector3(
             math.cos(angle) * lightRadius,
             lightHeight,
             math.sin(angle) * lightRadius,
           ),
+          // The directional light below is the scene's shadow caster; these
+          // moving lights are kept focused on the coloured illumination.
           castShadows: false,
         ),
       ),
@@ -62,11 +66,12 @@ Future<void> setupMaterials(
     }
   });
 
+  // A single shadow caster keeps PCF shadows stable as the point lights move.
   await viewer.addDirectLight(
     DirectLight.sun(
-      direction: Vector3(0, -1, -0.4),
-      intensity: 15000,
-      castShadows: false,
+      direction: Vector3(-1, -2, -1),
+      intensity: 50000,
+      castShadows: true,
     ),
   );
 
@@ -84,6 +89,7 @@ Future<void> setupMaterials(
     );
     await sph
         .setTransform(Matrix4.translation(Vector3(-3.6 + i * 2.4, 0.5, 0)));
+    await sph.setCastShadows(true);
     final mat = await viewer.app.createUbershaderMaterial();
     await mat.setMetallicFactor(metal);
     await mat.setRoughnessFactor(rough);
@@ -99,6 +105,7 @@ Future<void> setupMaterials(
     Matrix4.translation(Vector3(-6.2, 0.5, 0)) *
         Matrix4.diagonal3(Vector3.all(0.8)),
   );
+  await wireframe.setCastShadows(true);
   final wireMat = await viewer.app.createWireframeMaterialInstance();
   await wireMat.setEdgeColor(0.4, 0.8, 1.0, 1.0);
   await wireMat.setFaceColor(0.05, 0.05, 0.08, 1.0);
@@ -114,4 +121,17 @@ Future<void> setupMaterials(
         Matrix4.diagonal3(Vector3.all(0.8)),
   );
   await flat.setFlatShading(true);
+  await flat.setCastShadows(true);
+
+  final ground = await viewer.createGeometry(
+    GeometryUtils.plane(width: 18, height: 14),
+  );
+  await ground.setTransform(Matrix4.translation(Vector3(0, -0.5, 0)));
+  await ground.setCastShadows(false);
+  await ground.setReceiveShadows(true);
+  final groundMaterial = await viewer.app.createUbershaderMaterial();
+  await groundMaterial.setMetallicFactor(0.0);
+  await groundMaterial.setRoughnessFactor(1.0);
+  await groundMaterial.setBaseColorFactor(0.8, 0.8, 0.8, 1.0);
+  await ground.setMaterialInstanceForAll(groundMaterial.materialInstance);
 }

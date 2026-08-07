@@ -8,6 +8,7 @@ import 'headless_capture.dart';
 import 'highlight_effects.dart';
 import 'input_handlers.dart';
 import 'instancing.dart';
+import 'materials_and_lighting.dart';
 import 'materials_pbr.dart';
 import 'morph_targets.dart';
 import 'picking.dart';
@@ -17,7 +18,6 @@ import 'scene_animation.dart';
 import 'scene_basics.dart';
 import 'scene_effects.dart';
 import 'scene_geometry.dart';
-import 'scene_materials.dart';
 import 'texture_from_scratch.dart';
 import 'transforms_and_hierarchy.dart';
 import 'wireframe_and_flat_shading.dart';
@@ -67,7 +67,7 @@ final Map<String, ExampleSetup> registry = {
 final Map<String, ExampleSetup> galleryScenes = {
   'basics': setupBasics,
   'geometry': setupGeometry,
-  'materials': setupMaterials,
+  'materials_and_lighting': setupMaterialsAndLighting,
   'animation': setupAnimation,
   'effects': setupEffects,
 };
