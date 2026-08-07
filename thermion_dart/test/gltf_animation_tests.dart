@@ -209,12 +209,12 @@ Uint8List _buildMorphWeightAnimGlb() {
   // 2 keyframes x 2 targets: t=0 -> weights [0,0], t=1 -> weights [1,0].
   final animOut = Float32List.fromList([0, 0, 1, 0]);
 
-  final bin = Uint8List(base.lengthInBytes + target0.lengthInBytes +
-      target1.lengthInBytes + animIn.lengthInBytes + animOut.lengthInBytes);
+  final bin = Uint8List(
+    base.lengthInBytes + target0.lengthInBytes + target1.lengthInBytes + animIn.lengthInBytes + animOut.lengthInBytes,
+  );
   var off = 0;
   for (final list in [base, target0, target1, animIn, animOut]) {
-    bin.setRange(off, off + list.lengthInBytes,
-        list.buffer.asUint8List(list.offsetInBytes, list.lengthInBytes));
+    bin.setRange(off, off + list.lengthInBytes, list.buffer.asUint8List(list.offsetInBytes, list.lengthInBytes));
     off += list.lengthInBytes;
   }
 
@@ -223,10 +223,12 @@ Uint8List _buildMorphWeightAnimGlb() {
     'asset': {'version': '2.0'},
     'scene': 0,
     'scenes': [
-      {'nodes': [0]}
+      {
+        'nodes': [0],
+      },
     ],
     'nodes': [
-      {'mesh': 0}
+      {'mesh': 0},
     ],
     'meshes': [
       {
@@ -235,12 +237,12 @@ Uint8List _buildMorphWeightAnimGlb() {
             'attributes': {'POSITION': 0},
             'targets': [
               {'POSITION': 1},
-              {'POSITION': 2}
+              {'POSITION': 2},
             ],
             'material': 0,
-          }
-        ]
-      }
+          },
+        ],
+      },
     ],
     'materials': [
       {
@@ -248,22 +250,25 @@ Uint8List _buildMorphWeightAnimGlb() {
           'baseColorFactor': [1, 1, 1, 1],
           'metallicFactor': 0.0,
           'roughnessFactor': 1.0,
-        }
-      }
+        },
+      },
     ],
     'animations': [
       {
         'name': 'MorphWeightAnim',
         'samplers': [
-          {'input': 3, 'output': 4, 'interpolation': 'LINEAR'}
+          {'input': 3, 'output': 4, 'interpolation': 'LINEAR'},
         ],
         'channels': [
-          {'sampler': 0, 'target': {'node': 0, 'path': 'weights'}}
+          {
+            'sampler': 0,
+            'target': {'node': 0, 'path': 'weights'},
+          },
         ],
-      }
+      },
     ],
     'buffers': [
-      {'byteLength': bin.length}
+      {'byteLength': bin.length},
     ],
     'bufferViews': [
       {'buffer': 0, 'byteOffset': 0, 'byteLength': 36, 'target': 34341}, // ARRAY_BUFFER
