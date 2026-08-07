@@ -179,17 +179,11 @@ Future<void> _boot() async {
   }.toJS);
 
   // On web FILAMENT_SINGLE_THREADED is true: render() is fire-and-forget and
-  // the C++ worker drives the actual rAF loop. This pump advances the animation
-  // and requests a render each displayed frame. Camera updates happen on
-  // pointer events (above), not here, so the camera is a continuous function of
-  // input by the time each frame is rendered.
-  final stopwatch = Stopwatch()..start();
-  var lastElapsed = stopwatch.elapsedMicroseconds;
+  // the C++ worker drives the actual rAF loop. Its RenderManager tick advances
+  // animations using the worker's absolute monotonic frame time, so this pump
+  // only requests a render. Updating the animation manager here with a Dart
+  // frame delta would mix clock domains and repeatedly reset the pose.
   void pump(num _) {
-    final now = stopwatch.elapsedMicroseconds;
-    final deltaNanos = (now - lastElapsed) * 1000;
-    lastElapsed = now;
-    app.animationManager.update(deltaNanos);
     app.render();
     window.requestAnimationFrame(pump.toJS);
   }
