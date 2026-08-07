@@ -17,7 +17,6 @@ import 'scene_animation.dart';
 import 'scene_basics.dart';
 import 'scene_effects.dart';
 import 'scene_geometry.dart';
-import 'scene_lighting.dart';
 import 'scene_materials.dart';
 import 'texture_from_scratch.dart';
 import 'transforms_and_hierarchy.dart';
@@ -69,8 +68,6 @@ final Map<String, ExampleSetup> galleryScenes = {
   'basics': setupBasics,
   'geometry': setupGeometry,
   'materials': setupMaterials,
-  'lighting': setupLighting,
   'animation': setupAnimation,
   'effects': setupEffects,
 };
-

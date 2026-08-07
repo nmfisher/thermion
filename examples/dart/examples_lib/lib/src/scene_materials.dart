@@ -1,29 +1,71 @@
+import 'dart:math' as math;
+
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// Materials showcase: a row of PBR spheres with varying metallic/roughness/
 /// base-colour (matte, metal, satin, mirror), a wireframe cube, and a
-/// flat-shaded cube. The PBR parameters are driven onto the spheres via the
-/// ubershader; the sphere geometry's winding is corrected in SphereGeometry so
-/// back-face culling keeps the outward faces and diffuse light works.
+/// flat-shaded cube, illuminated by three coloured point lights orbiting the
+/// scene. The PBR parameters are driven onto the spheres via the ubershader;
+/// the sphere geometry's winding is corrected in SphereGeometry so back-face
+/// culling keeps the outward faces and diffuse light works.
 Future<void> setupMaterials(
   ThermionViewer viewer, {
   required String assetsDir,
 }) async {
   final camera = await viewer.getActiveCamera();
-  await camera.setLensProjection(
-    near: 0.1,
-    far: 100.0,
-    aspect: 1.0,
-    focalLength: 28.0,
-  );
   await camera.lookAt(Vector3(0, 2.5, 11), focus: Vector3(0, 0.5, 0));
 
   await viewer.setBackgroundColor(0.18, 0.18, 0.18, 1.0);
-  await viewer.loadIbl("$assetsDir/materials_studio_ibl.ktx");
+  await viewer.loadIbl(
+    "$assetsDir/materials_studio_ibl.ktx",
+    intensity: 10000,
+  );
+
+  const lightColors = [
+    LinearColor(1.0, 0.12, 0.05),
+    LinearColor(0.05, 0.35, 1.0),
+    LinearColor(0.12, 1.0, 0.25),
+  ];
+  const lightRadius = 6.0;
+  const lightHeight = 3.0;
+  final lights = <ThermionEntity>[];
+  for (var i = 0; i < lightColors.length; i++) {
+    final angle = i * 2 * math.pi / lightColors.length;
+    lights.add(
+      await viewer.addDirectLight(
+        DirectLight.point(
+          color: lightColors[i],
+          intensity: 150000,
+          falloffRadius: 12.0,
+          position: Vector3(
+            math.cos(angle) * lightRadius,
+            lightHeight,
+            math.sin(angle) * lightRadius,
+          ),
+          castShadows: false,
+        ),
+      ),
+    );
+  }
+
+  final lightClock = Stopwatch()..start();
+  await viewer.app.registerRequestFrameHook(() async {
+    final rotation = lightClock.elapsedMicroseconds / 1000000 * 0.45;
+    for (var i = 0; i < lights.length; i++) {
+      final angle = rotation + i * 2 * math.pi / lights.length;
+      await viewer.setLightPosition(
+        lights[i],
+        math.cos(angle) * lightRadius,
+        lightHeight,
+        math.sin(angle) * lightRadius,
+      );
+    }
+  });
+
   await viewer.addDirectLight(
     DirectLight.sun(
-      direction: Vector3(0, -0.6, -1),
-      intensity: 50000,
+      direction: Vector3(0, -1, -0.4),
+      intensity: 15000,
       castShadows: false,
     ),
   );
