@@ -1,4 +1,9 @@
-## Web
+---
+title: Web
+description: Build Thermion for WebAssembly and explore live examples.
+---
+
+import ThermionExample from '../../components/ThermionExample.astro';
 
 Web support is still experimental and currently requires you to manually compile Thermion to WASM first.
 
@@ -53,14 +58,17 @@ The examples below run live in the browser, compiled from Dart to WebAssembly.
 Each is an interactive composite scene — drag to orbit, scroll to zoom. (The
 demos open in a new tab if the embed does not load.)
 
-<iframe src="https://thermion-examples.pages.dev/?example=basics" style="width:100%;aspect-ratio:1;border:1px solid #333;border-radius:8px" allow="cross-origin-isolated" loading="lazy" title="Basics" />
+Only one demo runs at a time. Starting another demo releases the previous
+WebAssembly renderer before creating the next one.
 
-<iframe src="https://thermion-examples.pages.dev/?example=geometry" style="width:100%;aspect-ratio:1;border:1px solid #333;border-radius:8px" allow="cross-origin-isolated" loading="lazy" title="Geometry" />
+<ThermionExample example="basics" title="Basics" description="Load a model and orbit the camera." />
 
-<iframe src="https://thermion-examples.pages.dev/?example=materials_and_lighting" style="width:100%;aspect-ratio:1;border:1px solid #333;border-radius:8px" allow="cross-origin-isolated" loading="lazy" title="Materials and lighting" />
+<ThermionExample example="geometry" title="Geometry" description="Render procedural geometry." />
 
-<iframe src="https://thermion-examples.pages.dev/?example=animation" style="width:100%;aspect-ratio:1;border:1px solid #333;border-radius:8px" allow="cross-origin-isolated" loading="lazy" title="Animation" />
+<ThermionExample example="materials_and_lighting" title="Materials and lighting" description="Compare materials under animated point lights and shadows." />
 
-<iframe src="https://thermion-examples.pages.dev/?example=effects" style="width:100%;aspect-ratio:1;border:1px solid #333;border-radius:8px" allow="cross-origin-isolated" loading="lazy" title="Effects" />
+<ThermionExample example="animation" title="Animation" description="Play a glTF animation." />
+
+<ThermionExample example="effects" title="Post-processing effects" description="Adjust bloom, FXAA, and color grading live." />
 
 Browse the gallery and switch scenes from the dropdown: [thermion-examples.pages.dev](https://thermion-examples.pages.dev).

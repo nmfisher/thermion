@@ -59,6 +59,7 @@ Future<void> _boot() async {
 
   // ?example=NAME selects the scene; default to basics.
   final exampleName = Uri.base.queryParameters['example'] ?? 'basics';
+  final embedded = Uri.base.queryParameters['embed'] == '1';
   final setup = galleryScenes[exampleName];
   final info = document.getElementById("info")!;
 
@@ -66,7 +67,9 @@ Future<void> _boot() async {
   // in sync with the available examples. Changing it reloads with the new
   // ?example= value (a full reload is the only reliable way to switch scenes,
   // since the viewer exposes no scene-clear primitive).
-  _buildSelector(exampleName);
+  if (!embedded) {
+    _buildSelector(exampleName);
+  }
 
   if (setup == null) {
     info.textContent =

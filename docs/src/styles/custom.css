@@ -1,0 +1,67 @@
+:root {
+  --sl-color-accent-low: #172554;
+  --sl-color-accent: #60a5fa;
+  --sl-color-accent-high: #dbeafe;
+}
+
+.thermion-example {
+  position: relative;
+  margin: 1.25rem 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.75rem;
+  background: radial-gradient(circle at 50% 42%, #263449, #090b10 68%);
+}
+
+.thermion-example__placeholder {
+  display: grid;
+  height: 100%;
+  padding: 1.5rem;
+  place-items: center;
+  text-align: center;
+}
+
+.thermion-example__placeholder h3 {
+  margin: 0 0 0.35rem;
+  color: white;
+}
+
+.thermion-example__placeholder p {
+  max-width: 32rem;
+  margin: 0 auto 1rem;
+  color: #cbd5e1;
+}
+
+.thermion-example button,
+.thermion-example a {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 0.4rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.thermion-example button {
+  border: 1px solid #93c5fd;
+  background: #2563eb;
+  color: white;
+}
+
+.thermion-example a {
+  color: #bfdbfe;
+}
+
+.thermion-example iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: black;
+}
+
+.thermion-example.is-active .thermion-example__placeholder {
+  visibility: hidden;
+}

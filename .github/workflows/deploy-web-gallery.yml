@@ -8,8 +8,8 @@ on:
 # Builds the Thermion examples web gallery (one WASM build, ?example= router)
 # and deploys it to Cloudflare Pages. Cloudflare Pages is required because the
 # multithreaded WASM needs COOP/COEP headers (web/_headers) for SharedArrayBuffer,
-# which GitHub Pages and docs.page cannot set. The deployed URL is embedded as
-# live iframes in docs/web.mdx.
+# which GitHub Pages and docs.page cannot set. The deployed URL is loaded on
+# demand by the documentation site's ThermionExample component.
 #
 # One-time manual setup (documented in the PR):
 #   1. Create a Cloudflare Pages project named `thermion-examples`.

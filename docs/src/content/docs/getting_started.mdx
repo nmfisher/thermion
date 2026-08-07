@@ -1,4 +1,7 @@
-## Getting Started
+---
+title: Getting Started
+description: Install Thermion and configure a Flutter project.
+---
 
 Thermion currently requires the Flutter `beta` channel with the `native-assets` experiment enabled.
 
@@ -14,7 +17,8 @@ $ flutter pub add thermion_flutter
 
 2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
 
-<Accordion title="Click to open iOS/MacOS instructions">
+<details>
+<summary>iOS and macOS instructions</summary>
 
 Make sure the `platform` entry refers to `13.0` in your Podfile.
 
@@ -35,6 +39,6 @@ open macos/Runner.xcworkspace
 
 and change the minimum deployment target to 13.0:
 
-![XCode screenshot](images/macos_min_deployment.png)
+![Xcode deployment target settings](/images/macos_min_deployment.png)
 
-</Accordion>
+</details>
