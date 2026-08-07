@@ -6,6 +6,13 @@ New features:
    and canvas per viewer.
  - add `WebOptions.maxViewers`, per-viewer canvas IDs and lifecycle hooks, and
    host web canvases inside each viewer widget by default.
+## 0.4.2-pre
+
+### Breaking changes:
+- `ToneMapper.linear/aces/acesLegacy/filmic/pbrNeutral/agx/generic` now take
+  the owning `FFIFilamentApp` as their first argument (engine-scoped objects no
+  longer read `FilamentApp.instance`).
+- `ThermionViewerFFI` now requires an explicit `app` argument.
 
 Fixes:
  - route loadKtx2 through the render thread on web.
@@ -28,6 +35,8 @@ Fixes:
  - `ThermionFlutterPlugin.initialize()` now returns `InitializeResult`, and
    `ThermionWidgetInternal.surfaceWidgetBuilder` receives the owning `View`.
  - `WebOptions.importCanvasAsWidget` now defaults to `true`.
+ - fix web multi-viewer hang: scope RenderManager attachment state per engine
+   so a viewer only syncs its own swapchains/views.
 
 ## 0.4.1
 - re-publish without Melos
