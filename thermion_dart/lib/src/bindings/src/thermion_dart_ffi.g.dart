@@ -2781,6 +2781,16 @@ external void AnimationManager_updateRenderThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Pointer<TSceneAsset>, ffi.Int, ffi.Float, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void AnimationManager_setGltfAnimationTimeRenderThread(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int animationIndex,
+  double timeInSeconds,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<
   ffi.Void Function(
     ffi.Pointer<TAnimationManager>,
