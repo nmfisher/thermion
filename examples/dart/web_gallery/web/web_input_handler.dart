@@ -76,7 +76,7 @@ class WebInputHandler {
   }
 
   void _onTouchStart(web.TouchEvent e) {
-    final ts = e.touches.toList();
+    final ts = web.JSImmutableListWrapper<web.TouchList, web.Touch>(e.touches);
     if (ts.length == 1) {
       _lastTouchX = ts[0].clientX;
       _lastTouchY = ts[0].clientY;
@@ -87,7 +87,7 @@ class WebInputHandler {
   }
 
   void _onTouchMove(web.TouchEvent e) {
-    final ts = e.touches.toList();
+    final ts = web.JSImmutableListWrapper<web.TouchList, web.Touch>(e.touches);
     if (ts.length == 1) {
       final t = ts[0];
       onDrag(t.clientX - _lastTouchX, t.clientY - _lastTouchY);

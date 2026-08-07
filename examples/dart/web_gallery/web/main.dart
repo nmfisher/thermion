@@ -140,7 +140,7 @@ Future<void> _boot() async {
     camera.setModelMatrix(makeViewMatrix(eye, target, up)..invert());
   }
 
-  final webInput = WebInputHandler(
+  WebInputHandler(
     canvas: canvas,
     onDrag: (dx, dy) {
       azimuth -= dx * orbitSensitivity;
