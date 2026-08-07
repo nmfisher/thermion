@@ -15,8 +15,6 @@
     ],
     ["Misc.", [
       ["Debugging", "/debugging"],
-      ["Playground", "https://dartpad.thermion.dev"],
-      ["Showcase", "/showcase"],
       ["Windows", "/windows"],
       ["Android", "/android"],
       ["iOS", "/ios"],
