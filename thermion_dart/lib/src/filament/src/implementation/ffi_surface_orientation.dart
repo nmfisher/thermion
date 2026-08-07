@@ -34,10 +34,7 @@ class FFISurfaceOrientation extends SurfaceOrientation {
       QuaternionFormat.HALF4 => bindings.makeUint16List(bufferSize ~/ 2),
     };
 
-    // Get pointer to output data
     final outputBytes = output.asUint8List();
-
-    // Call appropriate C function based on format
     switch (format) {
       case QuaternionFormat.FLOAT4:
         bindings.SurfaceOrientation_getQuats_float4(_ptr, outputBytes.address.cast(), quatCount, stride);
