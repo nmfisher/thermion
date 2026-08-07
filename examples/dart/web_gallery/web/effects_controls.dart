@@ -121,7 +121,7 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
     bloom.checked = true;
     bloomStrength
       ..disabled = false
-      ..value = '0.15';
+      ..value = '0.30';
     colorGrading.checked = true;
     exposure.value = '0';
     temperature.value = '0';
@@ -135,7 +135,7 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
       updateValueLabel(input);
     }
     await viewer.setAntiAliasing(false, true, false);
-    await viewer.setBloom(true, 0.15);
+    await viewer.setBloom(true, 0.30);
     gradingQueue = gradingQueue.then((_) => rebuildColorGrading());
     await gradingQueue;
   }
