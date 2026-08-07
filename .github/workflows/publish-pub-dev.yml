@@ -88,9 +88,11 @@ jobs:
           v="${{ steps.versions.outputs.dart_version }}"
           exists() {
             # Returns 0 if version $2 is listed in pub.dev's API for package $1.
+            # Pass the version via argv (not string interpolation) so the Python
+            # script sees it and we avoid a NameError / shellcheck SC2034.
             local pkg="$1" want="$2"
             curl -fsSL "https://pub.dev/api/packages/$pkg" \
-              | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if want in [v['version'] for v in d.get('versions',[])] else 1)" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); want=sys.argv[1]; sys.exit(0 if want in [v['version'] for v in d.get('versions',[])] else 1)" "$want" \
               || return 1
           }
           td=0; tf=0
@@ -128,9 +130,18 @@ jobs:
         # for resolution; only pubspec.yaml is published.
         run: flutter pub publish --dry-run
 
+  tests:
+    # Full dart + flutter-build matrix. Only for a real tag push (not the
+    # dry-run manual dispatch) so releases can't ship without all checks green.
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    name: Test suite
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      ref: ${{ github.ref }}
+
   publish:
     name: Publish to pub.dev
-    needs: validate
+    needs: [validate, tests]
     # Only a real tag push publishes. workflow_dispatch never reaches here.
     if: ${{ startsWith(github.ref, 'refs/tags/v') && needs.validate.outputs.already-published != 'true' }}
     runs-on: ubuntu-24.04
