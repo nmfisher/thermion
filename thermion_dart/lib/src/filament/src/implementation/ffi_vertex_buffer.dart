@@ -17,11 +17,7 @@ class FFIVertexBuffer extends VertexBuffer {
   }
 
   @override
-  Future setBufferAt(
-    int bufferIndex,
-    TypedData data, {
-    int byteOffset = 0,
-  }) async {
+  Future setBufferAt(int bufferIndex, TypedData data, {int byteOffset = 0}) async {
     final byteData = data.asUint8List();
     await withVoidCallback((requestId, cb) {
       bindings.VertexBuffer_setBufferAtRenderThread(
@@ -103,11 +99,7 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
   void normalized(VertexAttribute attribute, {bool normalize = true}) {
     _checkNotBuilt();
     final attributeValue = _vertexAttributeToInt(attribute);
-    bindings.VertexBufferBuilder_normalized(
-      _builderPtr!,
-      attributeValue,
-      normalize,
-    );
+    bindings.VertexBufferBuilder_normalized(_builderPtr!, attributeValue, normalize);
   }
 
   @override
@@ -115,11 +107,7 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
     _checkNotBuilt();
 
     final vertexBufferPtr = await withPointerCallback<bindings.TVertexBuffer>(
-      (cb) => bindings.VertexBufferBuilder_buildRenderThread(
-        _builderPtr!,
-        _engine,
-        cb,
-      ),
+      (cb) => bindings.VertexBufferBuilder_buildRenderThread(_builderPtr!, _engine, cb),
     );
 
     bindings.VertexBufferBuilder_destroy(_builderPtr!);

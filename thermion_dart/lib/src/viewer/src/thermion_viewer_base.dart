@@ -80,11 +80,7 @@ abstract class ThermionViewer {
   // Creates an indirect light by loading the reflections/irradiance from the
   // KTX file. Only one indirect light can be active at any given time; if an
   // indirect light has already been loaded, it will be replaced.
-  Future loadIbl(
-    String lightingPath, {
-    double intensity = 30000,
-    bool destroyExisting = true,
-  });
+  Future loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting = true});
 
   //
   Future loadIblFromTexture(
@@ -221,12 +217,7 @@ abstract class ThermionViewer {
   //
   // Set the world space position for [lightEntity] to the given coordinates.
   //
-  Future setLightPosition(
-    ThermionEntity lightEntity,
-    double x,
-    double y,
-    double z,
-  );
+  Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z);
 
   //
   // Sets the world space direction for [lightEntity] to the given vector.
@@ -258,10 +249,7 @@ abstract class ThermionViewer {
   Future setPriority(ThermionEntity entityId, int priority);
 
   //
-  Future<ThermionAsset> createGeometry(
-    Geometry geometry, {
-    List<MaterialInstance>? materialInstances,
-  });
+  Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances});
 
   // Returns a gizmo for translating/rotating objects.
   // Only one gizmo can be visible at any given time for this viewer.

@@ -11,9 +11,5 @@ abstract class GltfMeshData {
   /// Primitive type (e.g., TRIANGLES, POINTS, etc.)
   final PrimitiveType primitiveType;
 
-  GltfMeshData({
-    required this.vertices,
-    this.indices,
-    required this.primitiveType,
-  });
+  GltfMeshData({required this.vertices, this.indices, required this.primitiveType});
 }

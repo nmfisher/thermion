@@ -45,9 +45,7 @@ class RenderAttachmentState {
   Map<Pointer<TSwapChain>, List<(int, View)>> activeSnapshot() {
     return {
       for (final entry in _attachments.entries)
-        entry.key: entry.value
-            .where((attachment) => _renderable[attachment.$2] ?? true)
-            .toList(),
+        entry.key: entry.value.where((attachment) => _renderable[attachment.$2] ?? true).toList(),
     };
   }
 
@@ -137,11 +135,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   @override
   Future attach(View view, SwapChain swapChain, {int renderOrder = 0}) {
     return _serialize(() async {
-      _attachmentState.attach(
-        view,
-        swapChain.getNativeHandle(),
-        renderOrder: renderOrder,
-      );
+      _attachmentState.attach(view, swapChain.getNativeHandle(), renderOrder: renderOrder);
       await _syncViews();
     });
   }
@@ -201,21 +195,15 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
       );
 
       free(pointers);
-      _logger.fine(
-        """Synced ${views.length} views for swapchain $swapChainHandle""",
-      );
+      _logger.fine("""Synced ${views.length} views for swapchain $swapChainHandle""");
     }
   }
 
   Future detachAll(SwapChain swapChain) {
     return _serialize(() async {
       await withVoidCallback(
-        (requestId, cb) => RenderManager_removeSwapChainRenderThread(
-          pointer,
-          swapChain.getNativeHandle(),
-          requestId,
-          cb,
-        ),
+        (requestId, cb) =>
+            RenderManager_removeSwapChainRenderThread(pointer, swapChain.getNativeHandle(), requestId, cb),
       );
       _attachmentState.detachAll(swapChain.getNativeHandle());
     });
@@ -238,12 +226,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
       final frameTimeInNanos = DateTime.now().microsecondsSinceEpoch * 1000;
 
       await withVoidCallback((requestId, cb) {
-        RenderManager_renderRenderThread(
-          pointer,
-          frameTimeInNanos.toBigInt,
-          requestId,
-          cb,
-        );
+        RenderManager_renderRenderThread(pointer, frameTimeInNanos.toBigInt, requestId, cb);
       });
     }
   }

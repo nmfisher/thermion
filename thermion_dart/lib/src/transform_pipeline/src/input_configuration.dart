@@ -33,14 +33,8 @@ class InputConfiguration {
   }
 
   /// Add a mouse button binding to the configuration
-  void addMouseButtonBinding(
-    MouseButton button,
-    IntentAction action, {
-    double value = 1.0,
-  }) {
-    mouseButtonBindings.add(
-      MouseButtonBinding(button: button, action: action, value: value),
-    );
+  void addMouseButtonBinding(MouseButton button, IntentAction action, {double value = 1.0}) {
+    mouseButtonBindings.add(MouseButtonBinding(button: button, action: action, value: value));
   }
 
   /// Remove all bindings for a specific key

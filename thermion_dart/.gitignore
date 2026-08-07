@@ -5,6 +5,13 @@ test/output/*
 test/generated/libThermionTextureSwift.dylib
 **/*.g.dart
 
+# Generated FFI/JS/Swift bindings are checked in so the published package
+# ships with working bindings (consumers don't need ffigen). Un-ignore those
+# specific files so git and `dart pub publish` agree they are tracked.
+!lib/src/bindings/src/thermion_dart_ffi.g.dart
+!lib/src/bindings/src/thermion_dart_js_interop.g.dart
+!lib/src/swift/swift_bindings.g.dart
+
 # Emscripten Filament module copied into test/ for browser runs
 # (`dart test -p chrome`). Rebuild with `make wasm`.
 test/thermion_dart.js

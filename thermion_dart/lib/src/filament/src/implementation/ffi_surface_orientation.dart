@@ -1,12 +1,10 @@
 import 'dart:typed_data';
-import 'package:logging/logging.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import '../interface/surface_orientation.dart';
 
 /// FFI implementation of SurfaceOrientation for native platforms.
 class FFISurfaceOrientation extends SurfaceOrientation {
   final bindings.Pointer<bindings.TSurfaceOrientation> _ptr;
-  late final _logger = Logger('FFISurfaceOrientation');
 
   FFISurfaceOrientation(this._ptr);
 
@@ -19,11 +17,7 @@ class FFISurfaceOrientation extends SurfaceOrientation {
   }
 
   @override
-  Future<TypedData> getQuats(
-    QuaternionFormat format,
-    int quatCount, {
-    int stride = 0,
-  }) async {
+  Future<TypedData> getQuats(QuaternionFormat format, int quatCount, {int stride = 0}) async {
     // Calculate buffer size based on format
     final elementSize = switch (format) {
       QuaternionFormat.FLOAT4 => 16, // 4 floats * 4 bytes
@@ -46,28 +40,13 @@ class FFISurfaceOrientation extends SurfaceOrientation {
     // Call appropriate C function based on format
     switch (format) {
       case QuaternionFormat.FLOAT4:
-        bindings.SurfaceOrientation_getQuats_float4(
-          _ptr,
-          outputBytes.address.cast(),
-          quatCount,
-          stride,
-        );
+        bindings.SurfaceOrientation_getQuats_float4(_ptr, outputBytes.address.cast(), quatCount, stride);
         break;
       case QuaternionFormat.SHORT4:
-        bindings.SurfaceOrientation_getQuats_short4(
-          _ptr,
-          outputBytes.address.cast(),
-          quatCount,
-          stride,
-        );
+        bindings.SurfaceOrientation_getQuats_short4(_ptr, outputBytes.address.cast(), quatCount, stride);
         break;
       case QuaternionFormat.HALF4:
-        bindings.SurfaceOrientation_getQuats_half4(
-          _ptr,
-          outputBytes.address.cast(),
-          quatCount,
-          stride,
-        );
+        bindings.SurfaceOrientation_getQuats_half4(_ptr, outputBytes.address.cast(), quatCount, stride);
         break;
     }
 
@@ -108,44 +87,28 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   void normals(Float32List normals, {int stride = 0}) {
     _checkNotBuilt();
     final byteData = normals.asUint8List();
-    bindings.SurfaceOrientationBuilder_normals(
-      _builderPtr!,
-      byteData.address.cast<bindings.Float>(),
-      stride,
-    );
+    bindings.SurfaceOrientationBuilder_normals(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
   }
 
   @override
   void tangents(Float32List tangents, {int stride = 0}) {
     _checkNotBuilt();
     final byteData = tangents.asUint8List();
-    bindings.SurfaceOrientationBuilder_tangents(
-      _builderPtr!,
-      byteData.address.cast<bindings.Float>(),
-      stride,
-    );
+    bindings.SurfaceOrientationBuilder_tangents(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
   }
 
   @override
   void uvs(Float32List uvs, {int stride = 0}) {
     _checkNotBuilt();
     final byteData = uvs.asUint8List();
-    bindings.SurfaceOrientationBuilder_uvs(
-      _builderPtr!,
-      byteData.address.cast<bindings.Float>(),
-      stride,
-    );
+    bindings.SurfaceOrientationBuilder_uvs(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
   }
 
   @override
   void positions(Float32List positions, {int stride = 0}) {
     _checkNotBuilt();
     final byteData = positions.asUint8List();
-    bindings.SurfaceOrientationBuilder_positions(
-      _builderPtr!,
-      byteData.address.cast<bindings.Float>(),
-      stride,
-    );
+    bindings.SurfaceOrientationBuilder_positions(_builderPtr!, byteData.address.cast<bindings.Float>(), stride);
   }
 
   @override
@@ -158,29 +121,21 @@ class FFISurfaceOrientationBuilder implements SurfaceOrientationBuilder {
   void trianglesUint32(Uint32List triangles) {
     _checkNotBuilt();
     final byteData = triangles.asUint8List();
-    bindings.SurfaceOrientationBuilder_triangles_uint(
-      _builderPtr!,
-      byteData.address.cast<bindings.Uint32>(),
-    );
+    bindings.SurfaceOrientationBuilder_triangles_uint(_builderPtr!, byteData.address.cast<bindings.Uint32>());
   }
 
   @override
   void trianglesUint16(Uint16List triangles) {
     _checkNotBuilt();
     final byteData = triangles.asUint8List();
-    bindings.SurfaceOrientationBuilder_triangles_ushort(
-      _builderPtr!,
-      byteData.address.cast<bindings.Uint16>(),
-    );
+    bindings.SurfaceOrientationBuilder_triangles_ushort(_builderPtr!, byteData.address.cast<bindings.Uint16>());
   }
 
   @override
   Future<SurfaceOrientation> build() async {
     _checkNotBuilt();
 
-    final orientationPtr = bindings.SurfaceOrientationBuilder_build(
-      _builderPtr!,
-    );
+    final orientationPtr = bindings.SurfaceOrientationBuilder_build(_builderPtr!);
 
     bindings.SurfaceOrientationBuilder_destroy(_builderPtr!);
     _builderPtr = null;

@@ -55,21 +55,14 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   //
-  Future<MaterialInstance> getMaterialInstanceAt({
-    ThermionEntity? entity,
-    int index = 0,
-  }) async {
+  Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0}) async {
     throw UnimplementedError();
   }
 
   // Sets the material instance for the primitive at [primitiveIndex] in
   // [entity]. If [entity] is null, the top-most parent for this asset will be
   // used.
-  Future setMaterialInstanceAt(
-    covariant MaterialInstance instance, {
-    int? entity = null,
-    int primitiveIndex = 0,
-  }) {
+  Future setMaterialInstanceAt(covariant MaterialInstance instance, {int? entity = null, int primitiveIndex = 0}) {
     throw UnimplementedError();
   }
 
@@ -88,8 +81,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // Returns a map of all renderable entities attached to this asset, and
   // a list of material instances for each primitive for the respective
   // entity.
-  Future<Map<ThermionEntity, List<MaterialInstance>>>
-  getMaterialInstancesAsMap() {
+  Future<Map<ThermionEntity, List<MaterialInstance>>> getMaterialInstancesAsMap() {
     throw UnimplementedError();
   }
 
@@ -98,9 +90,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   //
   // Mainly intended for use with [getMaterialInstancesAsMap] so you can
   // easily save/restore an asset's material instances.
-  Future setMaterialInstancesFromMap(
-    Map<ThermionEntity, List<MaterialInstance>> materialInstances,
-  ) async {
+  Future setMaterialInstancesFromMap(Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
     throw UnimplementedError();
   }
 
@@ -116,9 +106,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
 
   // Create a new instance of [entity]. Note that instances are not
   // automatically added to the scene; you must call [Scene.add].
-  Future<ThermionAsset> createInstance({
-    List<MaterialInstance>? materialInstances = null,
-  });
+  Future<ThermionAsset> createInstance({List<MaterialInstance>? materialInstances = null});
 
   // Returns the number of instances associated with this asset.
   Future<int> getInstanceCount() async {
@@ -185,10 +173,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // and the world grid to layer 2 (disabled by default). We suggest you avoid
   // using these layers.
   //
-  Future setVisibilityLayer(
-    ThermionEntity entity,
-    VisibilityLayers layer,
-  ) async {
+  Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer) async {
     throw UnimplementedError();
   }
 
@@ -287,10 +272,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // found. It is permissible for [animation] to omit any targets that do exist
   // under [meshName]; these simply won't be animated.
   //
-  Future setMorphAnimationData(
-    MorphAnimationData animation, {
-    List<String>? targetMeshNames,
-  }) {
+  Future setMorphAnimationData(MorphAnimationData animation, {List<String>? targetMeshNames}) {
     throw UnimplementedError();
   }
 
@@ -353,10 +335,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   // be the ThermionEntity returned by [loadGlb/loadGltf], not any other method
   // ([getChildEntity] etc). This is because all joint information is internally
   // stored with the parent entity.
-  Future<Matrix4> getInverseBindMatrix(
-    int boneIndex, {
-    int skinIndex = 0,
-  }) async {
+  Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0}) async {
     throw UnimplementedError();
   }
 
@@ -375,12 +354,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   //
   // Don't call this manually unless you know what you're doing.
   //
-  Future setBoneTransform(
-    int boneIndex,
-    Matrix4 transform, {
-    ThermionEntity? entity,
-    int skinIndex = 0,
-  }) async {
+  Future setBoneTransform(int boneIndex, Matrix4 transform, {ThermionEntity? entity, int skinIndex = 0}) async {
     throw UnimplementedError();
   }
 

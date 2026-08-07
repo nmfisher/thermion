@@ -14,14 +14,11 @@ class WireframeMaterialInstance {
   /// The underlying [MaterialInstance] for advanced usage.
   MaterialInstance get materialInstance => _mi;
 
-  Future setEdgeColor(double r, double g, double b, double a) =>
-      _mi.setParameterFloat4('edgeColor', r, g, b, a);
+  Future setEdgeColor(double r, double g, double b, double a) => _mi.setParameterFloat4('edgeColor', r, g, b, a);
 
-  Future setFaceColor(double r, double g, double b, double a) =>
-      _mi.setParameterFloat4('faceColor', r, g, b, a);
+  Future setFaceColor(double r, double g, double b, double a) => _mi.setParameterFloat4('faceColor', r, g, b, a);
 
-  Future setEdgeWidth(double pixels) =>
-      _mi.setParameterFloat('edgeWidth', pixels);
+  Future setEdgeWidth(double pixels) => _mi.setParameterFloat('edgeWidth', pixels);
 
   Future setDoubleSided(bool value) => _mi.setDoubleSided(value);
 }

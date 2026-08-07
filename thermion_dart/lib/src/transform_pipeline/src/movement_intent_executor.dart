@@ -1,4 +1,3 @@
-import 'package:logging/logging.dart';
 import '../../bindings/bindings.dart';
 import 'movement_intent.dart';
 
@@ -8,8 +7,6 @@ import 'movement_intent.dart';
 /// providing a type-safe API for setting movement targets and managing
 /// the executor lifecycle.
 abstract class MovementIntentExecutor {
-  late final _logger = Logger(this.runtimeType.toString());
-
   final Pointer<TMovementIntentExecutor> _pointer;
 
   bool _disposed = false;
@@ -48,11 +45,7 @@ abstract class MovementIntentExecutor {
       final nativeIntent = intent.toNative();
       final deltaTimeNanos = (deltaTime * 1000000000).round();
 
-      MovementIntentExecutor_process(
-        _pointer,
-        nativeIntent.address,
-        deltaTimeNanos,
-      );
+      MovementIntentExecutor_process(_pointer, nativeIntent.address, deltaTimeNanos);
     } catch (e) {
       throw Exception('Failed to process movement intent: $e');
     }

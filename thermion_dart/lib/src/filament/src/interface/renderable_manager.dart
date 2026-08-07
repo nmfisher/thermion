@@ -41,21 +41,14 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [entity] The entity containing the renderable
   /// [primitiveIndex] The index of the primitive (0-based)
   /// [materialInstance] The material instance to bind
-  Future<bool> setMaterialInstanceAt(
-    ThermionEntity entity,
-    int primitiveIndex,
-    MaterialInstance materialInstance,
-  );
+  Future<bool> setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
 
   /// Gets the material instance bound to the specified primitive.
   ///
   /// [entity] The entity containing the renderable
   /// [primitiveIndex] The index of the primitive (0-based)
   /// Returns the material instance, or null if none is bound
-  Future<MaterialInstance?> getMaterialInstanceAt(
-    ThermionEntity entity,
-    int primitiveIndex,
-  );
+  Future<MaterialInstance?> getMaterialInstanceAt(ThermionEntity entity, int primitiveIndex);
 
   /// Clears the material instance for the specified primitive.
   ///
@@ -229,11 +222,7 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [entity] The entity containing the renderable
   /// [primitiveIndex] The primitive index
   /// [enabled] True for global blend ordering, false for local (default)
-  Future setGlobalBlendOrderEnabledAt(
-    ThermionEntity entity,
-    int primitiveIndex,
-    bool enabled,
-  );
+  Future setGlobalBlendOrderEnabledAt(ThermionEntity entity, int primitiveIndex, bool enabled);
 
   /// Updates vertex morphing weights.
   ///
@@ -244,12 +233,7 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [weights] Array of morph target weights
   /// [count] Number of weights to set
   /// [offset] Index of the first weight to set (default 0)
-  Future setMorphWeights(
-    ThermionEntity entity,
-    List<double> weights,
-    int count, {
-    int offset = 0,
-  });
+  Future setMorphWeights(ThermionEntity entity, List<double> weights, int count, {int offset = 0});
 
   /// Returns the number of morph targets.
   int getMorphTargetCount(ThermionEntity entity);
@@ -268,11 +252,7 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [entity] The entity containing the skinned renderable
   /// [transforms] A list of 4x4 bone transforms (column-major)
   /// [offset] Index of the first bone to update (default 0)
-  Future setBonesFromMat4(
-    ThermionEntity entity,
-    List<Matrix4> transforms, {
-    int offset = 0,
-  });
+  Future setBonesFromMat4(ThermionEntity entity, List<Matrix4> transforms, {int offset = 0});
 
   /// Sets bone transforms for a skinned renderable using BoneData.
   ///
@@ -282,11 +262,7 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [entity] The entity containing the renderable
   /// [bones] List of bone transforms
   /// [offset] Index of the first bone to set (default 0)
-  Future setBonesFromBone(
-    ThermionEntity entity,
-    List<BoneData> bones, {
-    int offset = 0,
-  });
+  Future setBonesFromBone(ThermionEntity entity, List<BoneData> bones, {int offset = 0});
 
   /// Creates a builder for constructing renderables.
   ///
@@ -440,11 +416,7 @@ abstract class RenderableBuilder {
   // [primitiveIndex] The primitive index [indicesAndWeights] Bone index and
   // weight pairs for all vertices [bonesPerVertex] Number of bones influencing
   // each vertex
-  void boneIndicesAndWeights(
-    int primitiveIndex,
-    List<Float32List> indicesAndWeights,
-    int bonesPerVertex,
-  );
+  void boneIndicesAndWeights(int primitiveIndex, List<Float32List> indicesAndWeights, int bonesPerVertex);
 
   /// Builds the renderable and attaches it to the entity.
   ///

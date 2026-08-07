@@ -80,12 +80,7 @@ class KeyEvent extends InputEvent {
   final PhysicalKey physicalKey;
   final bool synthesized;
 
-  KeyEvent(
-    this.type,
-    this.logicalKey,
-    this.physicalKey, {
-    this.synthesized = false,
-  });
+  KeyEvent(this.type, this.logicalKey, this.physicalKey, {this.synthesized = false});
 }
 
 enum KeyEventType { down, up }

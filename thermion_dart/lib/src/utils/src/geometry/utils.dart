@@ -48,10 +48,7 @@ class GeometryUtils {
   /// - Vertex at i2 gets barycentric (0, 0, 1, 0)
   ///
   /// Returns a new Geometry with duplicated vertices and sequential indices.
-  static Geometry duplicateVerticesWithBarycentrics(
-    Float32List vertices,
-    List<int> indices,
-  ) {
+  static Geometry duplicateVerticesWithBarycentrics(Float32List vertices, List<int> indices) {
     if (indices.isEmpty) {
       throw ArgumentError('Indices list cannot be empty');
     }
@@ -62,9 +59,7 @@ class GeometryUtils {
     final triangleCount = indices.length ~/ 3;
     final newVertexCount = triangleCount * 3;
     final newVertices = Float32List(newVertexCount * 3);
-    final newBarycentrics = Float32List(
-      newVertexCount * 4,
-    ); // CUSTOM0 is FLOAT4
+    final newBarycentrics = Float32List(newVertexCount * 4); // CUSTOM0 is FLOAT4
     final newIndices = Int32List(newVertexCount);
 
     // Barycentric coordinates for each triangle vertex (4 components for
@@ -107,12 +102,7 @@ class GeometryUtils {
     );
   }
 
-  static void _copyVertex(
-    Float32List src,
-    int srcIndex,
-    Float32List dst,
-    int dstIndex,
-  ) {
+  static void _copyVertex(Float32List src, int srcIndex, Float32List dst, int dstIndex) {
     final srcOffset = srcIndex * 3;
     final dstOffset = dstIndex * 3;
     dst[dstOffset + 0] = src[srcOffset + 0];
@@ -120,11 +110,7 @@ class GeometryUtils {
     dst[dstOffset + 2] = src[srcOffset + 2];
   }
 
-  static void _copyBarycentric(
-    List<double> src,
-    Float32List dst,
-    int dstIndex,
-  ) {
+  static void _copyBarycentric(List<double> src, Float32List dst, int dstIndex) {
     final dstOffset = dstIndex * 4; // FLOAT4
     dst[dstOffset + 0] = src[0];
     dst[dstOffset + 1] = src[1];
@@ -132,12 +118,7 @@ class GeometryUtils {
     dst[dstOffset + 3] = src[3];
   }
 
-  static Geometry plane({
-    double width = 1.0,
-    double height = 1.0,
-    bool normals = true,
-    bool uvs = true,
-  }) {
+  static Geometry plane({double width = 1.0, double height = 1.0, bool normals = true, bool uvs = true}) {
     Float32List vertices = Float32List.fromList([
       -width / 2,
       0,
@@ -153,13 +134,9 @@ class GeometryUtils {
       height / 2,
     ]);
 
-    Float32List? _normals = normals
-        ? Float32List.fromList([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0])
-        : null;
+    Float32List? _normals = normals ? Float32List.fromList([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]) : null;
 
-    Float32List? _uvs = uvs
-        ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1])
-        : null;
+    Float32List? _uvs = uvs ? Float32List.fromList([0, 0, 1, 0, 1, 1, 0, 1]) : null;
 
     final indices = Uint16List.fromList([0, 2, 1, 0, 3, 2]);
 
@@ -200,11 +177,7 @@ class GeometryUtils {
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
-  static Geometry fromAabb3(
-    Aabb3 aabb, {
-    bool normals = true,
-    bool uvs = true,
-  }) {
+  static Geometry fromAabb3(Aabb3 aabb, {bool normals = true, bool uvs = true}) {
     // Get the center and half extents from the AABB
     final center = aabb.center;
     final halfExtents = Vector3.zero();
@@ -409,35 +382,14 @@ class GeometryUtils {
     wireThickness: wireThickness,
   );
 
-  static Geometry cube({
-    bool normals = true,
-    bool uvs = true,
-    bool flipUvs = true,
-  }) => CubeGeometry.cube(normals: normals, uvs: uvs, flipUvs: flipUvs);
+  static Geometry cube({bool normals = true, bool uvs = true, bool flipUvs = true}) =>
+      CubeGeometry.cube(normals: normals, uvs: uvs, flipUvs: flipUvs);
 
-  static Geometry cylinder({
-    double radius = 1.0,
-    double length = 1.0,
-    bool normals = true,
-    bool uvs = true,
-  }) => CylinderGeometry.cylinder(
-    radius: radius,
-    length: length,
-    normals: normals,
-    uvs: uvs,
-  );
+  static Geometry cylinder({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) =>
+      CylinderGeometry.cylinder(radius: radius, length: length, normals: normals, uvs: uvs);
 
-  static Geometry conic({
-    double radius = 1.0,
-    double length = 1.0,
-    bool normals = true,
-    bool uvs = true,
-  }) => CylinderGeometry.conic(
-    radius: radius,
-    length: length,
-    normals: normals,
-    uvs: uvs,
-  );
+  static Geometry conic({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) =>
+      CylinderGeometry.conic(radius: radius, length: length, normals: normals, uvs: uvs);
 
   static Geometry halfPyramid({
     double startX = 0.25,
@@ -461,6 +413,5 @@ class GeometryUtils {
 
   static Geometry quad() => QuadGeometry.quad();
 
-  static Geometry sphere({bool normals = true, bool uvs = true}) =>
-      SphereGeometry.sphere(normals: normals, uvs: uvs);
+  static Geometry sphere({bool normals = true, bool uvs = true}) => SphereGeometry.sphere(normals: normals, uvs: uvs);
 }

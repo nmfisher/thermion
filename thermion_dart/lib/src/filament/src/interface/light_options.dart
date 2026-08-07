@@ -25,11 +25,7 @@ class LinearColor {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is LinearColor &&
-          runtimeType == other.runtimeType &&
-          r == other.r &&
-          g == other.g &&
-          b == other.b;
+      other is LinearColor && runtimeType == other.runtimeType && r == other.r && g == other.g && b == other.b;
 
   @override
   int get hashCode => r.hashCode ^ g.hashCode ^ b.hashCode;

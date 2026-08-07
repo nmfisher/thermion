@@ -104,9 +104,7 @@ class EdgeDetectionView extends FFIView {
     required int height,
   }) async {
     // Create view
-    final viewPtr = await withPointerCallback<TView>(
-      (cb) => Engine_createViewRenderThread(app.engine, cb),
-    );
+    final viewPtr = await withPointerCallback<TView>((cb) => Engine_createViewRenderThread(app.engine, cb));
 
     // Create edge material
     final materialPtr = await withPointerCallback<TMaterial>(
@@ -116,12 +114,7 @@ class EdgeDetectionView extends FFIView {
 
     // Create scene with transparent skybox
     final edgeScene = await app.createScene();
-    final skybox = await app.createColoredSkybox(
-      r: 0.0,
-      g: 0.0,
-      b: 0.0,
-      a: 0.0,
-    );
+    final skybox = await app.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 0.0);
     await edgeScene.setSkybox(skybox);
 
     // Create camera entity with orthographic projection
@@ -139,29 +132,13 @@ class EdgeDetectionView extends FFIView {
     // Create fullscreen quad
     // Create fullscreen triangle (more efficient than quad)
     // z=0.5 to place in middle of ortho frustum (near=0, far=1)
-    final positions = Float32List.fromList([
-      -1.0,
-      -1.0,
-      0.5,
-      3.0,
-      -1.0,
-      0.5,
-      -1.0,
-      3.0,
-      0.5,
-    ]);
+    final positions = Float32List.fromList([-1.0, -1.0, 0.5, 3.0, -1.0, 0.5, -1.0, 3.0, 0.5]);
 
     // Create vertex buffer
     final vbBuilder = app.renderableManager.createVertexBufferBuilder();
     vbBuilder.vertexCount(3);
     vbBuilder.bufferCount(1);
-    vbBuilder.attribute(
-      VertexAttribute.POSITION,
-      0,
-      VertexAttributeType.FLOAT3,
-      byteOffset: 0,
-      byteStride: 12,
-    );
+    vbBuilder.attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3, byteOffset: 0, byteStride: 12);
     final quadVB = await vbBuilder.build() as FFIVertexBuffer;
     await quadVB.setBufferAt(0, positions);
 
@@ -174,8 +151,7 @@ class EdgeDetectionView extends FFIView {
     await quadIB.setBuffer(indices);
 
     // Create edge material instance
-    final edgeMaterialInstance =
-        await edgeMaterial.createInstance() as FFIMaterialInstance;
+    final edgeMaterialInstance = await edgeMaterial.createInstance() as FFIMaterialInstance;
 
     // Create texture sampler for edge detection
     final edgeSampler =
@@ -233,9 +209,7 @@ class EdgeDetectionView extends FFIView {
     // benefiting from other post-processing effects (anti-aliasing, dithering).
     final linearToneMapper = await ToneMapper.linear(app);
     final colorGradingBuilder = FFIColorGradingBuilder(
-      await withPointerCallback<TColorGradingBuilder>(
-        (cb) => ColorGradingBuilder_createRenderThread(cb),
-      ),
+      await withPointerCallback<TColorGradingBuilder>((cb) => ColorGradingBuilder_createRenderThread(cb)),
       app,
     );
     colorGradingBuilder.toneMapper(linearToneMapper);
@@ -292,9 +266,7 @@ class EdgeDetectionView extends FFIView {
     int primitiveIndex = 0,
     ThermionAsset? geometrySource,
   }) async {
-    throw Exception(
-      "disableHighlightOverlay cannot be called on a highlight view",
-    );
+    throw Exception("disableHighlightOverlay cannot be called on a highlight view");
   }
 
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) {
@@ -321,9 +293,7 @@ class EdgeDetectionView extends FFIView {
 
   @override
   Future removeStencilHighlight(ThermionAsset asset) async {
-    throw Exception(
-      "disableHighlightOverlay cannot be called on a highlight view",
-    );
+    throw Exception("disableHighlightOverlay cannot be called on a highlight view");
   }
 
   @override
@@ -332,12 +302,7 @@ class EdgeDetectionView extends FFIView {
   }
 
   /// Set outline appearance.
-  Future<void> setOutlineParams({
-    double? width,
-    double? r,
-    double? g,
-    double? b,
-  }) async {
+  Future<void> setOutlineParams({double? width, double? r, double? g, double? b}) async {
     if (width != null) _outlineWidth = width;
     if (r != null) _outlineR = r;
     if (g != null) _outlineG = g;
@@ -428,44 +393,21 @@ class EdgeDetectionView extends FFIView {
     final vp = await getViewport();
 
     // Set silhouette texture
-    await _edgeMaterialInstance.setParameterTexture(
-      'silhouette',
-      _silhouetteTexture as FFITexture,
-      _edgeSampler,
-    );
+    await _edgeMaterialInstance.setParameterTexture('silhouette', _silhouetteTexture as FFITexture, _edgeSampler);
 
     // Set main scene texture (only needed in composite mode)
     if (!_overlayOnly) {
-      await _edgeMaterialInstance.setParameterTexture(
-        'mainScene',
-        _mainSceneTexture as FFITexture,
-        _mainSceneSampler,
-      );
+      await _edgeMaterialInstance.setParameterTexture('mainScene', _mainSceneTexture as FFITexture, _mainSceneSampler);
     }
 
     // Set texel size (1/width, 1/height)
-    await _edgeMaterialInstance.setParameterFloat2(
-      'texelSize',
-      1.0 / vp.width,
-      1.0 / vp.height,
-    );
+    await _edgeMaterialInstance.setParameterFloat2('texelSize', 1.0 / vp.width, 1.0 / vp.height);
 
     // Set outline color and width
-    await _edgeMaterialInstance.setParameterFloat3(
-      'outlineColor',
-      _outlineR,
-      _outlineG,
-      _outlineB,
-    );
-    await _edgeMaterialInstance.setParameterFloat(
-      'outlineWidth',
-      _outlineWidth,
-    );
+    await _edgeMaterialInstance.setParameterFloat3('outlineColor', _outlineR, _outlineG, _outlineB);
+    await _edgeMaterialInstance.setParameterFloat('outlineWidth', _outlineWidth);
 
     // Set overlay-only mode
-    await _edgeMaterialInstance.setParameterInt(
-      'overlayOnly',
-      _overlayOnly ? 1 : 0,
-    );
+    await _edgeMaterialInstance.setParameterInt('overlayOnly', _overlayOnly ? 1 : 0);
   }
 }
