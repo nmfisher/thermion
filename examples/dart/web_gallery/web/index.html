@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thermion Examples</title>
+  <!--
+    The Emscripten module MUST load first and be awaited onto window.thermion_dart
+    before the Dart (WASM) entry runs; Dart then reads it via
+    NativeLibrary.initBindings("thermion_dart").
+  -->
+  <script src="thermion_dart.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 100%; height: 100%; }
+    canvas { width: 100vw; height: 100vh; display: block; }
+    #selector {
+      position: absolute; top: 8px; left: 8px; z-index: 10;
+      display: flex; align-items: center; gap: 6px;
+      color: #ccc; font: 12px ui-monospace, monospace;
+      text-shadow: 0 1px 2px #000;
+    }
+    #selector label { pointer-events: none; }
+    #example-select {
+      font: 12px ui-monospace, monospace; padding: 3px 6px;
+      background: rgba(0,0,0,0.55); color: #eee; border: 1px solid #555;
+      border-radius: 4px; max-width: 220px;
+    }
+    #example-select:focus { outline: none; border-color: #8af; }
+    #info {
+      position: absolute; bottom: 8px; left: 8px;
+      color: #ccc; font: 12px ui-monospace, monospace; pointer-events: none;
+      text-shadow: 0 1px 2px #000;
+    }
+    #error {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: #f88; font: 14px ui-monospace, monospace; max-width: 80%;
+      text-align: center; display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="thermion_canvas"></canvas>
+  <div id="selector">
+    <label for="example-select">example:</label>
+    <select id="example-select"></select>
+  </div>
+  <div id="info">loading…</div>
+  <div id="error"></div>
+
+  <script type="module">
+    // Bootstrap the cross-origin-isolated Emscripten module.
+    try {
+      window.thermion_dart = await thermion_dart();
+    } catch (err) {
+      const el = document.getElementById('error');
+      el.textContent = 'Failed to load thermion_dart.js: ' + err +
+        '\n\nThis page requires cross-origin isolation (COOP/COEP). Serve it with the coi proxy.';
+      el.style.display = 'block';
+      throw err;
+    }
+
+    // Boot the Dart WASM entry (compiled from web/main.dart).
+    try {
+      const dartModulePromise = WebAssembly.compileStreaming(fetch('./main.wasm'));
+      const dart2wasm_runtime = await import('./main.mjs');
+      const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, {});
+      await dart2wasm_runtime.invoke(moduleInstance);
+    } catch (jsErr) {
+      const el = document.getElementById('error');
+      if (el) {
+        el.textContent = 'Failed to boot gallery: ' + jsErr;
+        el.style.display = 'block';
+      }
+      throw jsErr;
+    }
+  </script>
+</body>
+</html>

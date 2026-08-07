@@ -1,0 +1,13 @@
+# Build artifacts — produced by `dart compile wasm` + downloaded by the
+# thermion_dart build hook at pub/build time. Do not commit.
+web/main.wasm
+web/main.mjs
+web/main.mjs.deps
+web/main.mjs.map
+web/main.wasm.map
+web/thermion_dart.js
+web/thermion_dart.wasm
+# Assets are copied/symlinked from examples/assets at serve/deploy time.
+/web/assets
+.dart_tool/
+build/
