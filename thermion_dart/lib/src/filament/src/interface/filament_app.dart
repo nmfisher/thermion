@@ -45,11 +45,7 @@ abstract class FilamentApp<T> {
   Future<Uint8List> loadResource(String uri);
 
   //
-  Future<SwapChain> createHeadlessSwapChain(
-    int width,
-    int height, {
-    bool hasStencilBuffer = false,
-  });
+  Future<SwapChain> createHeadlessSwapChain(int width, int height, {bool hasStencilBuffer = false});
 
   //
   Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
@@ -86,12 +82,7 @@ abstract class FilamentApp<T> {
   Future destroyAsset(covariant ThermionAsset asset);
 
   //
-  Future<RenderTarget> createRenderTarget(
-    int width,
-    int height, {
-    covariant Texture? color,
-    covariant Texture? depth,
-  });
+  Future<RenderTarget> createRenderTarget(int width, int height, {covariant Texture? color, covariant Texture? depth});
 
   //
   Future<Texture> createTexture(
@@ -122,11 +113,7 @@ abstract class FilamentApp<T> {
   /// Decodes [data] into a caller-owned [LinearImage].
   ///
   /// The caller must eventually call [LinearImage.destroy].
-  Future<LinearImage> decodeImage(
-    Uint8List data, {
-    String name = "image",
-    bool requireAlpha = false,
-  });
+  Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false});
 
   /// Creates a caller-owned empty [LinearImage] with the given dimensions.
   ///
@@ -277,17 +264,10 @@ abstract class FilamentApp<T> {
   Future<WireframeMaterialInstance> createWireframeMaterialInstance();
 
   //
-  Future<MaterialInstance> getMaterialInstanceAt(
-    ThermionEntity entity,
-    int primitiveIndex,
-  );
+  Future<MaterialInstance> getMaterialInstanceAt(ThermionEntity entity, int primitiveIndex);
 
   //
-  Future setMaterialInstanceAt(
-    ThermionEntity entity,
-    int primitiveIndex,
-    MaterialInstance materialInstance,
-  );
+  Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
 
   // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
@@ -333,11 +313,7 @@ abstract class FilamentApp<T> {
 
   // Sets the parent transform of [child] to [parent].
   //
-  Future setParent(
-    ThermionEntity child,
-    ThermionEntity? parent, {
-    bool preserveScaling,
-  });
+  Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling});
 
   //
   // Returns pixel buffer(s) for [view] (or, if null, all views associated
@@ -383,10 +359,7 @@ abstract class FilamentApp<T> {
   Future<GizmoAsset> createGizmo(View view, GizmoType type);
 
   //
-  Future<ThermionAsset> createGeometry(
-    Geometry geometry, {
-    List<MaterialInstance>? materialInstances,
-  });
+  Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances});
 
   //
   Future<ThermionEntity> createDirectLight(DirectLight directLight);
@@ -439,12 +412,7 @@ abstract class FilamentApp<T> {
   //
   // This is useful for clearing render targets with a specific color
   // (including fully transparent for overlay passes).
-  Future<Skybox> createColoredSkybox({
-    required double r,
-    required double g,
-    required double b,
-    required double a,
-  });
+  Future<Skybox> createColoredSkybox({required double r, required double g, required double b, required double a});
 
   //
   Future<bool> isRenderable(ThermionEntity entity);

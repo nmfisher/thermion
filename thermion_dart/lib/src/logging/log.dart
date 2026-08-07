@@ -4,13 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 
 Logger createBuildLogger(String packageRoot, String logFilename) {
-  var logPath = path.join(
-    packageRoot,
-    ".dart_tool",
-    "thermion_dart",
-    "log",
-    logFilename,
-  );
+  var logPath = path.join(packageRoot, ".dart_tool", "thermion_dart", "log", logFilename);
   var logFile = File(logPath);
   if (!logFile.parent.existsSync()) {
     logFile.parent.createSync(recursive: true);
@@ -19,11 +13,7 @@ Logger createBuildLogger(String packageRoot, String logFilename) {
   final logger = Logger("")
     ..level = Level.ALL
     ..onRecord.listen((record) {
-      logFile.writeAsStringSync(
-        record.message + "\n",
-        mode: FileMode.append,
-        flush: true,
-      );
+      logFile.writeAsStringSync(record.message + "\n", mode: FileMode.append, flush: true);
       // Tee SEVERE records to stderr so subprocess errors (cl.exe,
       // clang, ld) actually surface to whoever's watching the
       // build. `native_toolchain_c.runProcess` routes captured

@@ -7,9 +7,7 @@ void main() async {
   await testHelper.setup();
 
   test('load glTF with rebuildVertices and apply wireframe material', () async {
-    await ViewerBuilder(
-      testHelper,
-    ).addSun().setCameraPosition(Vector3(0, 1, 1.5)).execute((result) async {
+    await ViewerBuilder(testHelper).addSun().setCameraPosition(Vector3(0, 1, 1.5)).execute((result) async {
       final original = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
         rebuildVertices: false,
@@ -27,32 +25,23 @@ void main() async {
       await testHelper.capture(result.viewer.view, "rebuildVertices_true");
 
       // Use typed wireframe wrapper
-      final wireframe = await FilamentApp.instance!
-          .createWireframeMaterialInstance();
+      final wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
       await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
       await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
       await wireframe.setEdgeWidth(0.5);
       await wireframe.setDoubleSided(true);
 
       await rebuilt.setMaterialInstanceForAll(wireframe.materialInstance);
-      await testHelper.capture(
-        result.viewer.view,
-        "rebuildVertices_true_wireframe",
-      );
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true_wireframe");
 
-      final ubershader = await FilamentApp.instance!.createUbershaderMaterial(
-        doubleSided: true,
-      );
+      final ubershader = await FilamentApp.instance!.createUbershaderMaterial(doubleSided: true);
 
       await ubershader.setBaseColorFactor(0.8, 0.8, 0.8, 1.0);
       await ubershader.setMetallicFactor(0.0);
       await ubershader.setRoughnessFactor(1.0);
 
       await rebuilt.setMaterialInstanceForAll(ubershader.materialInstance);
-      await testHelper.capture(
-        result.viewer.view,
-        "rebuildVertices_true_ubershader",
-      );
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true_ubershader");
 
       await result.viewer.removeFromScene(rebuilt);
 
@@ -66,14 +55,11 @@ void main() async {
 
       await testHelper.capture(result.viewer.view, "flat_shading_default");
 
-      final flatUbershader = await FilamentApp.instance!
-          .createUbershaderMaterial(doubleSided: true);
+      final flatUbershader = await FilamentApp.instance!.createUbershaderMaterial(doubleSided: true);
       await flatUbershader.setBaseColorFactor(0.8, 0.8, 0.8, 1.0);
       await flatUbershader.setMetallicFactor(0.0);
       await flatUbershader.setRoughnessFactor(1.0);
-      await flatAsset.setMaterialInstanceForAll(
-        flatUbershader.materialInstance,
-      );
+      await flatAsset.setMaterialInstanceForAll(flatUbershader.materialInstance);
       await testHelper.capture(result.viewer.view, "flat_shading_ubershader");
     });
   });
@@ -90,24 +76,17 @@ void main() async {
       final instance2 = await asset.createInstance();
       await instance2.setTransform(Matrix4.translation(Vector3(2, 0, 0)));
       await result.viewer.addToScene(instance2);
-      await testHelper.capture(
-        result.viewer.view,
-        "instanced_preserved_before",
-      );
+      await testHelper.capture(result.viewer.view, "instanced_preserved_before");
 
       // Use typed wireframe wrapper
-      final wireframe = await FilamentApp.instance!
-          .createWireframeMaterialInstance();
+      final wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
       await wireframe.setEdgeColor(1.0, 0.0, 1.0, 1.0);
       await wireframe.setFaceColor(0.0, 0.0, 0.0, 1.0);
       await wireframe.setEdgeWidth(1.0);
       await wireframe.setDoubleSided(true);
 
       await instance2.setMaterialInstanceForAll(wireframe.materialInstance);
-      await testHelper.capture(
-        result.viewer.view,
-        "instanced_preserved_wireframe",
-      );
+      await testHelper.capture(result.viewer.view, "instanced_preserved_wireframe");
     });
   });
 }

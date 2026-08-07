@@ -14,21 +14,6 @@ class TransformationGizmo {
   // Assets for cleanup
   final List<ThermionAsset> _assets = [];
 
-  // Axis Shafts (kept for picking)
-  ThermionEntity? _xAxisShaft;
-  ThermionEntity? _yAxisShaft;
-  ThermionEntity? _zAxisShaft;
-
-  // Axis Heads (Cones, kept for picking)
-  ThermionEntity? _xAxisHead;
-  ThermionEntity? _yAxisHead;
-  ThermionEntity? _zAxisHead;
-
-  // Rotation Rings (kept for picking)
-  ThermionEntity? _xAxisRing;
-  ThermionEntity? _yAxisRing;
-  ThermionEntity? _zAxisRing;
-
   // Rotation drag markers
   ThermionEntity? _startMarker;
   ThermionEntity? _currentMarker;
@@ -56,8 +41,7 @@ class TransformationGizmo {
   GizmoAxis _activeAxis = GizmoAxis.none;
   Vector2? _dragStartScreen;
   Matrix4? _targetStartTransform;
-  Matrix4?
-  _lastComputedWorldTransform; // Last computed world transform for callback
+  Matrix4? _lastComputedWorldTransform; // Last computed world transform for callback
 
   // Hover state
   GizmoAxis _hoveredAxis = GizmoAxis.none;
@@ -70,9 +54,7 @@ class TransformationGizmo {
 
   TransformationGizmo(this.viewer);
 
-  Future<void> create({
-    TransformationGizmoType type = TransformationGizmoType.translation,
-  }) async {
+  Future<void> create({TransformationGizmoType type = TransformationGizmoType.translation}) async {
     if (_isDisposed) return;
     _type = type;
 
@@ -106,37 +88,16 @@ class TransformationGizmo {
     final headGeom = _createConeGeometry(_handleSize, _handleSize * 2.0, 12);
 
     // Y Axis (Green, Up)
-    final yGroup = await _createAxis(
-      shaftGeom,
-      headGeom,
-      _greenMat!,
-      Vector3(0, 1, 0),
-    );
+    await _createAxis(shaftGeom, headGeom, _greenMat!, Vector3(0, 1, 0));
     if (_isDisposed) return;
-    _yAxisShaft = yGroup.$1;
-    _yAxisHead = yGroup.$2;
 
     // X Axis (Red, Right)
-    final xGroup = await _createAxis(
-      shaftGeom,
-      headGeom,
-      _redMat!,
-      Vector3(1, 0, 0),
-    );
+    await _createAxis(shaftGeom, headGeom, _redMat!, Vector3(1, 0, 0));
     if (_isDisposed) return;
-    _xAxisShaft = xGroup.$1;
-    _xAxisHead = xGroup.$2;
 
     // Z Axis (Blue, Forward)
-    final zGroup = await _createAxis(
-      shaftGeom,
-      headGeom,
-      _blueMat!,
-      Vector3(0, 0, 1),
-    );
+    await _createAxis(shaftGeom, headGeom, _blueMat!, Vector3(0, 0, 1));
     if (_isDisposed) return;
-    _zAxisShaft = zGroup.$1;
-    _zAxisHead = zGroup.$2;
   }
 
   Future<void> _buildRotationRings() async {
@@ -145,38 +106,26 @@ class TransformationGizmo {
     final ringSegments = 64;
     final tubeSegments = 12;
 
-    final ringGeom = _createTorusGeometry(
-      _ringRadius,
-      tubeRadius,
-      ringSegments,
-      tubeSegments,
-    );
+    final ringGeom = _createTorusGeometry(_ringRadius, tubeRadius, ringSegments, tubeSegments);
 
     // Y Axis Ring (Green, in XY plane - represents rotation around Y)
-    _yAxisRing = await _createRing(ringGeom, _greenMat!, Vector3(0, 1, 0));
+    await _createRing(ringGeom, _greenMat!, Vector3(0, 1, 0));
     if (_isDisposed) return;
 
     // X Axis Ring (Red, in YZ plane - represents rotation around X)
-    _xAxisRing = await _createRing(ringGeom, _redMat!, Vector3(1, 0, 0));
+    await _createRing(ringGeom, _redMat!, Vector3(1, 0, 0));
     if (_isDisposed) return;
 
     // Z Axis Ring (Blue, in XY plane - represents rotation around Z)
-    _zAxisRing = await _createRing(ringGeom, _blueMat!, Vector3(0, 0, 1));
+    await _createRing(ringGeom, _blueMat!, Vector3(0, 0, 1));
     if (_isDisposed) return;
 
     // Create markers for showing drag start/current positions
     await _createMarkers();
   }
 
-  Future<ThermionEntity> _createRing(
-    Geometry ring,
-    MaterialInstance mat,
-    Vector3 axis,
-  ) async {
-    final ringAsset = await viewer.app.createGeometry(
-      ring,
-      materialInstances: [mat],
-    );
+  Future<ThermionEntity> _createRing(Geometry ring, MaterialInstance mat, Vector3 axis) async {
+    final ringAsset = await viewer.app.createGeometry(ring, materialInstances: [mat]);
 
     // Safety check before using the asset
     if (_isDisposed) {
@@ -202,11 +151,7 @@ class TransformationGizmo {
       rotation = Quaternion.identity();
     }
 
-    final ringMatrix = Matrix4.compose(
-      Vector3.zero(),
-      rotation,
-      Vector3.all(1.0),
-    );
+    final ringMatrix = Matrix4.compose(Vector3.zero(), rotation, Vector3.all(1.0));
     await viewer.app.setTransform(ringAsset.entity, ringMatrix);
     await viewer.app.setPriority(ringAsset.entity, 7);
     return ringAsset.entity;
@@ -220,10 +165,7 @@ class TransformationGizmo {
     Vector3 direction,
   ) async {
     // Create Shaft
-    final shaftAsset = await viewer.app.createGeometry(
-      shaft,
-      materialInstances: [mat],
-    );
+    final shaftAsset = await viewer.app.createGeometry(shaft, materialInstances: [mat]);
 
     if (_isDisposed) {
       // cleanup immediately if disposed during creation
@@ -236,10 +178,7 @@ class TransformationGizmo {
     _assets.add(shaftAsset);
 
     // Create Head
-    final headAsset = await viewer.app.createGeometry(
-      head,
-      materialInstances: [mat],
-    );
+    final headAsset = await viewer.app.createGeometry(head, materialInstances: [mat]);
 
     if (_isDisposed) {
       await viewer.removeFromScene(headAsset);
@@ -280,20 +219,12 @@ class TransformationGizmo {
     // Top Ring
     for (int i = 0; i < segments; i++) {
       final theta = (i / segments) * 2 * math.pi;
-      vertices.addAll([
-        radius * math.cos(theta),
-        halfLen,
-        radius * math.sin(theta),
-      ]);
+      vertices.addAll([radius * math.cos(theta), halfLen, radius * math.sin(theta)]);
     }
     // Bottom Ring
     for (int i = 0; i < segments; i++) {
       final theta = (i / segments) * 2 * math.pi;
-      vertices.addAll([
-        radius * math.cos(theta),
-        -halfLen,
-        radius * math.sin(theta),
-      ]);
+      vertices.addAll([radius * math.cos(theta), -halfLen, radius * math.sin(theta)]);
     }
 
     // Indices (Side walls)
@@ -352,12 +283,7 @@ class TransformationGizmo {
     );
   }
 
-  Geometry _createTorusGeometry(
-    double ringRadius,
-    double tubeRadius,
-    int ringSegments,
-    int tubeSegments,
-  ) {
+  Geometry _createTorusGeometry(double ringRadius, double tubeRadius, int ringSegments, int tubeSegments) {
     final vertices = <double>[];
     final indices = <int>[];
 
@@ -442,12 +368,7 @@ class TransformationGizmo {
     );
   }
 
-  Future<MaterialInstance> _createGizmoMaterial(
-    double r,
-    double g,
-    double b, {
-    double alpha = 0.5,
-  }) async {
+  Future<MaterialInstance> _createGizmoMaterial(double r, double g, double b, {double alpha = 0.5}) async {
     if (_isDisposed) throw Exception("Gizmo disposed");
     final material = await viewer.app.createGizmoMaterial();
     final mat = await material.createInstance();
@@ -497,10 +418,7 @@ class TransformationGizmo {
     if (isActive && position == null) return;
 
     final targetPos =
-        position ??
-        (await viewer.app.transformManager.getWorldTransform(
-          _attachedTarget!,
-        )).getTranslation();
+        position ?? (await viewer.app.transformManager.getWorldTransform(_attachedTarget!)).getTranslation();
 
     if (_isDisposed) return;
 
@@ -516,11 +434,7 @@ class TransformationGizmo {
     const screenSizeFactor = 0.15;
     final scale = dist * screenSizeFactor / _axisLength;
 
-    final rootTransform = Matrix4.compose(
-      targetPos,
-      Quaternion.identity(),
-      Vector3.all(scale),
-    );
+    final rootTransform = Matrix4.compose(targetPos, Quaternion.identity(), Vector3.all(scale));
     await viewer.app.setTransform(_rootEntity!, rootTransform);
   }
 
@@ -537,18 +451,13 @@ class TransformationGizmo {
     final viewMatrix = await camera.getViewMatrix();
 
     // Get gizmo world position
-    final gizmoTransform = await viewer.app.transformManager.getWorldTransform(
-      _rootEntity!,
-    );
+    final gizmoTransform = await viewer.app.transformManager.getWorldTransform(_rootEntity!);
     final gizmoWorldPos = gizmoTransform.getTranslation();
     final gizmoScale = gizmoTransform.getColumn(0).xyz.length;
 
     // Project a point from world space to screen space
     Vector2 projectToScreen(Vector3 worldPos) {
-      final clipSpace =
-          projectionMatrix *
-          viewMatrix *
-          Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
+      final clipSpace = projectionMatrix * viewMatrix * Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
       final ndc = clipSpace / clipSpace.w;
       return Vector2(
         ((ndc.x + 1.0) / 2.0) * viewport.width.toDouble(),
@@ -596,35 +505,19 @@ class TransformationGizmo {
           Vector3 ringPoint1, ringPoint2;
           final ringRadius = 1.0 * gizmoScale;
           if (axis == GizmoAxis.x) {
-            ringPoint1 =
-                gizmoWorldPos +
-                Vector3(0, math.cos(angle1), math.sin(angle1)) * ringRadius;
-            ringPoint2 =
-                gizmoWorldPos +
-                Vector3(0, math.cos(angle2), math.sin(angle2)) * ringRadius;
+            ringPoint1 = gizmoWorldPos + Vector3(0, math.cos(angle1), math.sin(angle1)) * ringRadius;
+            ringPoint2 = gizmoWorldPos + Vector3(0, math.cos(angle2), math.sin(angle2)) * ringRadius;
           } else if (axis == GizmoAxis.y) {
-            ringPoint1 =
-                gizmoWorldPos +
-                Vector3(math.cos(angle1), 0, math.sin(angle1)) * ringRadius;
-            ringPoint2 =
-                gizmoWorldPos +
-                Vector3(math.cos(angle2), 0, math.sin(angle2)) * ringRadius;
+            ringPoint1 = gizmoWorldPos + Vector3(math.cos(angle1), 0, math.sin(angle1)) * ringRadius;
+            ringPoint2 = gizmoWorldPos + Vector3(math.cos(angle2), 0, math.sin(angle2)) * ringRadius;
           } else {
-            ringPoint1 =
-                gizmoWorldPos +
-                Vector3(math.cos(angle1), math.sin(angle1), 0) * ringRadius;
-            ringPoint2 =
-                gizmoWorldPos +
-                Vector3(math.cos(angle2), math.sin(angle2), 0) * ringRadius;
+            ringPoint1 = gizmoWorldPos + Vector3(math.cos(angle1), math.sin(angle1), 0) * ringRadius;
+            ringPoint2 = gizmoWorldPos + Vector3(math.cos(angle2), math.sin(angle2), 0) * ringRadius;
           }
 
           final screenPoint1 = projectToScreen(ringPoint1);
           final screenPoint2 = projectToScreen(ringPoint2);
-          final segDist = pointToSegmentDistance(
-            mousePos,
-            screenPoint1,
-            screenPoint2,
-          );
+          final segDist = pointToSegmentDistance(mousePos, screenPoint1, screenPoint2);
           if (segDist < dist) dist = segDist;
         }
       } else {
@@ -659,20 +552,14 @@ class TransformationGizmo {
 
     // Store initial state
     _dragStartScreen = Vector2(screenX.toDouble(), screenY.toDouble());
-    _targetStartTransform = await viewer.app.transformManager.getWorldTransform(
-      _attachedTarget!,
-    );
+    _targetStartTransform = await viewer.app.transformManager.getWorldTransform(_attachedTarget!);
     _lastComputedWorldTransform = null;
 
     if (_isDisposed) return false;
 
     // For rotation gizmos, position markers at click location on ring
     if (_type == TransformationGizmoType.rotation) {
-      final startPos = await _getMarkerPositionOnRing(
-        screenX,
-        screenY,
-        _activeAxis,
-      );
+      final startPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
       if (_isDisposed) return false;
 
       if (startPos != null) {
@@ -704,8 +591,7 @@ class TransformationGizmo {
   }
 
   Future<void> updateDrag(int screenX, int screenY) async {
-    if (_isDisposed || _activeAxis == GizmoAxis.none || _attachedTarget == null)
-      return;
+    if (_isDisposed || _activeAxis == GizmoAxis.none || _attachedTarget == null) return;
 
     if (_type == TransformationGizmoType.rotation) {
       await _updateRotationDrag(screenX, screenY);
@@ -736,15 +622,12 @@ class TransformationGizmo {
     // Get gizmo position in screen space
     final gizmoWorldPos = _targetStartTransform!.getTranslation();
     final gizmoClipSpace =
-        projectionMatrix *
-        viewMatrix *
-        Vector4(gizmoWorldPos.x, gizmoWorldPos.y, gizmoWorldPos.z, 1.0);
+        projectionMatrix * viewMatrix * Vector4(gizmoWorldPos.x, gizmoWorldPos.y, gizmoWorldPos.z, 1.0);
 
     var gizmoNdc = gizmoClipSpace / gizmoClipSpace.w;
     var gizmoScreenSpace = Vector2(
       ((gizmoNdc.x / 2) + 0.5) * viewport.width.toDouble(),
-      viewport.height.toDouble() -
-          (((gizmoNdc.y / 2) + 0.5) * viewport.height.toDouble()),
+      viewport.height.toDouble() - (((gizmoNdc.y / 2) + 0.5) * viewport.height.toDouble()),
     );
 
     // Apply screen delta
@@ -779,10 +662,7 @@ class TransformationGizmo {
     if (_attachedTarget != null && !_isDisposed) {
       // Convert world transform to local transform for proper hierarchy
       // handling
-      final localTransform = _worldToLocalTransform(
-        _attachedTarget!,
-        newWorldTransform,
-      );
+      final localTransform = _worldToLocalTransform(_attachedTarget!, newWorldTransform);
       await viewer.app.setTransform(_attachedTarget!, localTransform);
 
       // Update gizmo position directly only if still alive
@@ -810,33 +690,20 @@ class TransformationGizmo {
 
     final gizmoWorldPos = _targetStartTransform!.getTranslation();
     final gizmoClipSpace =
-        projectionMatrix *
-        viewMatrix *
-        Vector4(gizmoWorldPos.x, gizmoWorldPos.y, gizmoWorldPos.z, 1.0);
+        projectionMatrix * viewMatrix * Vector4(gizmoWorldPos.x, gizmoWorldPos.y, gizmoWorldPos.z, 1.0);
 
     var gizmoNdc = gizmoClipSpace / gizmoClipSpace.w;
     final gizmoScreenSpace = Vector2(
       ((gizmoNdc.x / 2) + 0.5) * viewport.width.toDouble(),
-      viewport.height.toDouble() -
-          (((gizmoNdc.y / 2) + 0.5) * viewport.height.toDouble()),
+      viewport.height.toDouble() - (((gizmoNdc.y / 2) + 0.5) * viewport.height.toDouble()),
     );
 
-    final startAngle = math.atan2(
-      _dragStartScreen!.y - gizmoScreenSpace.y,
-      _dragStartScreen!.x - gizmoScreenSpace.x,
-    );
-    final currentAngle = math.atan2(
-      currentScreen.y - gizmoScreenSpace.y,
-      currentScreen.x - gizmoScreenSpace.x,
-    );
+    final startAngle = math.atan2(_dragStartScreen!.y - gizmoScreenSpace.y, _dragStartScreen!.x - gizmoScreenSpace.x);
+    final currentAngle = math.atan2(currentScreen.y - gizmoScreenSpace.y, currentScreen.x - gizmoScreenSpace.x);
 
     // Update current marker position on the ring
     if (_currentMarker != null) {
-      final currentPos = await _getMarkerPositionOnRing(
-        screenX,
-        screenY,
-        _activeAxis,
-      );
+      final currentPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
       if (currentPos != null && !_isDisposed) {
         await _updateMarkerPosition(_currentMarker!, currentPos);
       }
@@ -852,9 +719,7 @@ class TransformationGizmo {
     }
 
     final axisRotation = Quaternion.axisAngle(axisVector, angleDelta);
-    final startRotation = Quaternion.fromRotation(
-      _targetStartTransform!.getRotation(),
-    );
+    final startRotation = Quaternion.fromRotation(_targetStartTransform!.getRotation());
     final newRotation = axisRotation * startRotation;
 
     final scaleX = math.sqrt(
@@ -874,31 +739,21 @@ class TransformationGizmo {
     );
 
     final startScale = Vector3(scaleX, scaleY, scaleZ);
-    final newWorldTransform = Matrix4.compose(
-      gizmoWorldPos,
-      newRotation,
-      startScale,
-    );
+    final newWorldTransform = Matrix4.compose(gizmoWorldPos, newRotation, startScale);
 
     // Store the computed world transform for the callback to use
     _lastComputedWorldTransform = newWorldTransform;
 
     if (_attachedTarget != null && !_isDisposed) {
       // Convert world transform to local transform for proper hierarchy handling
-      final localTransform = _worldToLocalTransform(
-        _attachedTarget!,
-        newWorldTransform,
-      );
+      final localTransform = _worldToLocalTransform(_attachedTarget!, newWorldTransform);
       await viewer.app.setTransform(_attachedTarget!, localTransform);
     }
   }
 
   /// Converts a world transform to a local transform for the given entity.
   /// Takes into account the entity's parent hierarchy.
-  Matrix4 _worldToLocalTransform(
-    ThermionEntity entity,
-    Matrix4 worldTransform,
-  ) {
+  Matrix4 _worldToLocalTransform(ThermionEntity entity, Matrix4 worldTransform) {
     final tm = viewer.app.transformManager;
     final parent = tm.getParent(entity);
 
@@ -961,11 +816,7 @@ class TransformationGizmo {
 
   /// Get marker position on ring by projecting ring points to screen space
   /// and finding the closest point to the mouse cursor.
-  Future<Vector3?> _getMarkerPositionOnRing(
-    int screenX,
-    int screenY,
-    GizmoAxis axis,
-  ) async {
+  Future<Vector3?> _getMarkerPositionOnRing(int screenX, int screenY, GizmoAxis axis) async {
     if (_isDisposed || _rootEntity == null) return null;
 
     final camera = await viewer.getActiveCamera();
@@ -977,9 +828,7 @@ class TransformationGizmo {
     final viewMatrix = await camera.getViewMatrix();
 
     // Get gizmo world position and scale
-    final gizmoTransform = await viewer.app.transformManager.getWorldTransform(
-      _rootEntity!,
-    );
+    final gizmoTransform = await viewer.app.transformManager.getWorldTransform(_rootEntity!);
     final gizmoWorldPos = gizmoTransform.getTranslation();
     final gizmoScale = gizmoTransform.getColumn(0).xyz.length;
 
@@ -988,10 +837,7 @@ class TransformationGizmo {
     // Project a point from local ring space to screen space
     Vector2 projectToScreen(Vector3 localPos) {
       final worldPos = gizmoWorldPos + localPos * gizmoScale;
-      final clipSpace =
-          projectionMatrix *
-          viewMatrix *
-          Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
+      final clipSpace = projectionMatrix * viewMatrix * Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
       final ndc = clipSpace / clipSpace.w;
       return Vector2(
         ((ndc.x + 1.0) / 2.0) * viewport.width.toDouble(),
@@ -1039,10 +885,8 @@ class TransformationGizmo {
       final angle2 = ((i + 1) % sampleCount / sampleCount) * 2 * math.pi;
 
       // Get two consecutive points on the ring in local space
-      final localPos1 =
-          (basis1 * math.cos(angle1) + basis2 * math.sin(angle1)) * _ringRadius;
-      final localPos2 =
-          (basis1 * math.cos(angle2) + basis2 * math.sin(angle2)) * _ringRadius;
+      final localPos1 = (basis1 * math.cos(angle1) + basis2 * math.sin(angle1)) * _ringRadius;
+      final localPos2 = (basis1 * math.cos(angle2) + basis2 * math.sin(angle2)) * _ringRadius;
 
       // Project to screen space
       final screenPos1 = projectToScreen(localPos1);
@@ -1067,10 +911,7 @@ class TransformationGizmo {
     final markerGeom = _createSphereGeometry(_markerRadius, 12, 8);
 
     // Start marker (white)
-    _startMarkerAsset = await viewer.app.createGeometry(
-      markerGeom,
-      materialInstances: [_whiteMat!],
-    );
+    _startMarkerAsset = await viewer.app.createGeometry(markerGeom, materialInstances: [_whiteMat!]);
     if (_isDisposed) {
       await viewer.removeFromScene(_startMarkerAsset!);
       return;
@@ -1080,10 +921,7 @@ class TransformationGizmo {
     _assets.add(_startMarkerAsset!);
 
     // Current marker (yellow)
-    _currentMarkerAsset = await viewer.app.createGeometry(
-      markerGeom,
-      materialInstances: [_yellowMat!],
-    );
+    _currentMarkerAsset = await viewer.app.createGeometry(markerGeom, materialInstances: [_yellowMat!]);
     if (_isDisposed) {
       await viewer.removeFromScene(_currentMarkerAsset!);
       return;
@@ -1106,11 +944,7 @@ class TransformationGizmo {
     if (_isDisposed) return;
 
     // Hide by scaling to zero
-    final hideTransform = Matrix4.compose(
-      Vector3.zero(),
-      Quaternion.identity(),
-      Vector3.zero(),
-    );
+    final hideTransform = Matrix4.compose(Vector3.zero(), Quaternion.identity(), Vector3.zero());
 
     if (_startMarker != null) {
       await viewer.app.setTransform(_startMarker!, hideTransform);
@@ -1120,17 +954,10 @@ class TransformationGizmo {
     }
   }
 
-  Future<void> _updateMarkerPosition(
-    ThermionEntity marker,
-    Vector3 localPosition,
-  ) async {
+  Future<void> _updateMarkerPosition(ThermionEntity marker, Vector3 localPosition) async {
     if (_isDisposed) return;
 
-    final markerTransform = Matrix4.compose(
-      localPosition,
-      Quaternion.identity(),
-      Vector3.all(1.0),
-    );
+    final markerTransform = Matrix4.compose(localPosition, Quaternion.identity(), Vector3.all(1.0));
     await viewer.app.setTransform(marker, markerTransform);
     await viewer.app.setPriority(marker, 7);
   }
@@ -1146,31 +973,13 @@ class TransformationGizmo {
 
       switch (axis) {
         case GizmoAxis.x:
-          await _redMat?.setParameterFloat4(
-            "baseColorFactor",
-            1.0,
-            0.0,
-            0.0,
-            alpha,
-          );
+          await _redMat?.setParameterFloat4("baseColorFactor", 1.0, 0.0, 0.0, alpha);
           break;
         case GizmoAxis.y:
-          await _greenMat?.setParameterFloat4(
-            "baseColorFactor",
-            0.0,
-            1.0,
-            0.0,
-            alpha,
-          );
+          await _greenMat?.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, alpha);
           break;
         case GizmoAxis.z:
-          await _blueMat?.setParameterFloat4(
-            "baseColorFactor",
-            0.0,
-            0.0,
-            1.0,
-            alpha,
-          );
+          await _blueMat?.setParameterFloat4("baseColorFactor", 0.0, 0.0, 1.0, alpha);
           break;
         default:
           break;
@@ -1201,16 +1010,6 @@ class TransformationGizmo {
       }
       _rootEntity = null;
     }
-
-    _xAxisShaft = null;
-    _yAxisShaft = null;
-    _zAxisShaft = null;
-    _xAxisHead = null;
-    _yAxisHead = null;
-    _zAxisHead = null;
-    _xAxisRing = null;
-    _yAxisRing = null;
-    _zAxisRing = null;
 
     _startMarker = null;
     _currentMarker = null;

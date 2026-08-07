@@ -125,9 +125,7 @@ class BVHParser {
       } else if (line.startsWith("CHANNELS")) {
         var channelsString = line.split("CHANNELS")[1].trim().split(" ");
         var channels = channelsString.skip(1).map((channelName) {
-          var channelType = channelName.contains("rotation")
-              ? ChannelType.Rotation
-              : ChannelType.Translation;
+          var channelType = channelName.contains("rotation") ? ChannelType.Rotation : ChannelType.Translation;
 
           var axis = Axis.values.firstWhere((a) {
             return a.name == channelName[0];
@@ -140,8 +138,7 @@ class BVHParser {
         totalChannels += channels.length;
       } else if (line.startsWith('Frame Time:')) {
         var frameTime = line.split(' ').last.trim();
-        frameLengthInMs ??=
-            double.parse(frameTime) * 1000; // Convert to milliseconds
+        frameLengthInMs ??= double.parse(frameTime) * 1000; // Convert to milliseconds
         break;
       }
     }
@@ -168,11 +165,7 @@ class BVHParser {
           "Length mismatch, got ${frameValues.length} frame values when ${totalChannels} channels specified",
         );
       }
-      late Vector3 rootTranslation = Vector3(
-        frameValues[0],
-        frameValues[1],
-        frameValues[2],
-      );
+      late Vector3 rootTranslation = Vector3(frameValues[0], frameValues[1], frameValues[2]);
 
       rootTranslation = basis.transform(rootTranslation);
 
@@ -236,10 +229,7 @@ class BVHParser {
     if (boneRegex == null) {
       filteredBones = bones.map((b) => b.name).toList();
     } else {
-      filteredBones = bones
-          .where((b) => boneRegex.hasMatch(b.name))
-          .map((b) => b.name)
-          .toList();
+      filteredBones = bones.where((b) => boneRegex.hasMatch(b.name)).map((b) => b.name).toList();
     }
     return BoneAnimationData(
       filteredBones,

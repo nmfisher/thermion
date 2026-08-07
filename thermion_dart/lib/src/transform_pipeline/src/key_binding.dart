@@ -1,5 +1,4 @@
 import 'package:thermion_dart/thermion_dart.dart';
-import '../../bindings/bindings.dart' as bindings;
 import 'intent_action.dart';
 
 /// Represents a keybinding that maps a logical key to an intent action.

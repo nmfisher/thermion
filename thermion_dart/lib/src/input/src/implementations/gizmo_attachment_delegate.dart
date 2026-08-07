@@ -133,24 +133,14 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
   /// Get all bones for an asset (for explicit selection UI).
   ///
   /// Returns a list of [BoneInfo] containing bone names, indices, and entities.
-  Future<List<BoneInfo>> getBones(
-    ThermionAsset asset, {
-    int skinIndex = 0,
-  }) async {
+  Future<List<BoneInfo>> getBones(ThermionAsset asset, {int skinIndex = 0}) async {
     final boneEntities = await asset.getBones(skinIndex: skinIndex);
 
     final bones = <BoneInfo>[];
     for (int i = 0; i < boneEntities.length; i++) {
       final boneEntity = boneEntities[i];
       final boneName = viewer.app.getNameForEntity(boneEntity) ?? 'Bone $i';
-      bones.add(
-        BoneInfo(
-          name: boneName,
-          index: i,
-          entity: boneEntity,
-          skinIndex: skinIndex,
-        ),
-      );
+      bones.add(BoneInfo(name: boneName, index: i, entity: boneEntity, skinIndex: skinIndex));
     }
     return bones;
   }
@@ -183,11 +173,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
 
     for (final event in events) {
       switch (event) {
-        case MouseEvent(
-          type: MouseEventType.buttonDown,
-          button: MouseButton.left || null,
-          localPosition: final pos,
-        ):
+        case MouseEvent(type: MouseEventType.buttonDown, button: MouseButton.left || null, localPosition: final pos):
           final x = pos.x.toInt();
           final y = pos.y.toInt();
 
@@ -202,10 +188,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
           }
           break;
 
-        case MouseEvent(
-          type: MouseEventType.buttonUp,
-          button: MouseButton.left || null,
-        ):
+        case MouseEvent(type: MouseEventType.buttonUp, button: MouseButton.left || null):
           if (_isDraggingGizmo) {
             await _gizmo!.endDrag();
             _isDraggingGizmo = false;
@@ -271,11 +254,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
     });
   }
 
-  Future<void> _attachToNearestBone(
-    ThermionAsset asset,
-    PickResult pickResult,
-    int skinIndex,
-  ) async {
+  Future<void> _attachToNearestBone(ThermionAsset asset, PickResult pickResult, int skinIndex) async {
     // Get world position of the pick point
     final camera = await view.getCamera();
     final viewport = await view.getViewport();
@@ -304,9 +283,7 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
       final boneEntity = boneEntities[i];
       if (boneEntity == 0) continue;
 
-      final boneTransform = await viewer.app.transformManager.getWorldTransform(
-        boneEntity,
-      );
+      final boneTransform = await viewer.app.transformManager.getWorldTransform(boneEntity);
       final bonePos = boneTransform.getTranslation();
 
       final distance = bonePos.distanceTo(_lastPickWorldPosition!);
@@ -317,16 +294,9 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
     }
 
     if (nearestBoneIndex != null) {
-      final boneEntity = (await asset.getBones(
-        skinIndex: skinIndex,
-      ))[nearestBoneIndex];
+      final boneEntity = (await asset.getBones(skinIndex: skinIndex))[nearestBoneIndex];
       await attachTo(
-        AttachmentTarget(
-          entity: boneEntity!,
-          asset: asset,
-          boneIndex: nearestBoneIndex,
-          skinIndex: skinIndex,
-        ),
+        AttachmentTarget(entity: boneEntity, asset: asset, boneIndex: nearestBoneIndex, skinIndex: skinIndex),
       );
     } else {
       // No bone within threshold, attach to entity

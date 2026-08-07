@@ -18,17 +18,13 @@ void main() async {
       morphTargets = await cube.getMorphTargetNames(entity: childEntity);
       expect(morphTargets.length, 0);
 
-      cube = await viewer.loadGltf(
-        "${testHelper.assetsDir}/cube_with_morph_targets.glb",
-      );
+      cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
       morphTargets = await cube.getMorphTargetNames();
       expect(morphTargets.length, 0);
 
       childEntities = await cube.getChildEntities();
 
-      morphTargets = await cube.getMorphTargetNames(
-        entity: childEntities.first,
-      );
+      morphTargets = await cube.getMorphTargetNames(entity: childEntities.first);
       expect(morphTargets.length, 1);
       expect(morphTargets.first, "Key 1");
     });
@@ -37,18 +33,13 @@ void main() async {
   test('set morph target weights', () async {
     await testHelper.withViewer(
       (viewer) async {
-        final cube = await viewer.loadGltf(
-          "${testHelper.assetsDir}/cube_with_morph_targets.glb",
-        );
+        final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
 
         await viewer.addToScene(cube);
 
         await testHelper.capture(viewer.view, "cube_no_morph");
 
-        await cube.setMorphTargetWeights(
-          (await cube.getChildEntities()).first,
-          [1.0],
-        );
+        await cube.setMorphTargetWeights((await cube.getChildEntities()).first, [1.0]);
         await testHelper.capture(viewer.view, "cube_with_morph");
       },
       bg: kRed,
@@ -59,18 +50,13 @@ void main() async {
   test('set morph target animation', () async {
     await testHelper.withViewer(
       (viewer) async {
-        final cube = await viewer.loadGltf(
-          "${testHelper.assetsDir}/cube_with_morph_targets.glb",
-          addToScene: true,
-        );
+        final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
 
         await testHelper.capture(viewer.view, "cube_morph_animation_0");
 
-        var morphData = MorphAnimationData(
-          Float32List.fromList(List<double>.generate(60, (i) => i / 60)),
-          ["Key 1"],
-          frameLengthInMs: 1000.0 / 60.0,
-        );
+        var morphData = MorphAnimationData(Float32List.fromList(List<double>.generate(60, (i) => i / 60)), [
+          "Key 1",
+        ], frameLengthInMs: 1000.0 / 60.0);
 
         await cube.setMorphAnimationData(morphData, targetMeshNames: ["Cube"]);
         await FilamentApp.instance!.animationManager.update(1);

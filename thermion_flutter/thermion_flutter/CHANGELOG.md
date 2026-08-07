@@ -1,1 +1,1 @@
-../../thermion_dart/CHANGELOG.md
+../../CHANGELOG.md

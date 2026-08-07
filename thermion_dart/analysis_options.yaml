@@ -1,12 +1,7 @@
 linter:
   rules:
-    # Warn about lines longer than 80 characters
-    - lines_longer_than_80_chars
 
 analyzer:
-  errors:
-    # Treat long lines as warnings instead of errors
-    lines_longer_than_80_chars: warning
   exclude:
     # Unused in thermion_dart — real Swift bindings live in thermion_flutter.
     # Excluded from publish via .pubignore; also exclude from analysis so
@@ -18,4 +13,4 @@ analyzer:
     - lib/src/bindings/src/thermion_dart_js_interop.g.dart
 
 formatter:
-  page_width: 80
+  page_width: 120

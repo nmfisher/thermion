@@ -5,9 +5,7 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   final Pointer<TEngine> _engine;
   final Pointer<TTexture> pointer;
 
-  final FFIFilamentApp _app;
-
-  FFITexture(this._engine, this.pointer, this._app);
+  FFITexture(this._engine, this.pointer, FFIFilamentApp _);
 
   Future<void> setLinearImage(
     covariant FFILinearImage image,
@@ -18,15 +16,7 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
     final tPixelDataFormat = format.value;
     final tPixelDataType = type.value;
     final result = await withBoolCallback((cb) {
-      Texture_loadImageRenderThread(
-        _engine,
-        pointer,
-        image.pointer,
-        tPixelDataFormat,
-        tPixelDataType,
-        level,
-        cb,
-      );
+      Texture_loadImageRenderThread(_engine, pointer, image.pointer, tPixelDataFormat, tPixelDataType, level, cb);
     });
 
     if (!result) {
@@ -48,10 +38,7 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
 
   @override
   Future<void> generateMipmaps() async {
-    await withVoidCallback(
-      (requestId, cb) =>
-          Texture_generateMipMapsRenderThread(pointer, _engine, requestId, cb),
-    );
+    await withVoidCallback((requestId, cb) => Texture_generateMipMapsRenderThread(pointer, _engine, requestId, cb));
   }
 
   @override
@@ -154,11 +141,7 @@ class FFILinearImage extends LinearImage {
 
   FFILinearImage(this.pointer);
 
-  static Future<FFILinearImage> createEmpty(
-    int width,
-    int height,
-    int channels,
-  ) async {
+  static Future<FFILinearImage> createEmpty(int width, int height, int channels) async {
     final imagePtr = await withPointerCallback<TLinearImage>((cb) {
       Image_createEmptyRenderThread(width, height, channels, cb);
     });
@@ -172,11 +155,7 @@ class FFILinearImage extends LinearImage {
     String name = "image",
     bool requireAlpha = false,
   }) async {
-    final image = await app.decodeImage(
-      data,
-      name: name,
-      requireAlpha: requireAlpha,
-    );
+    final image = await app.decodeImage(data, name: name, requireAlpha: requireAlpha);
     return image as FFILinearImage;
   }
 
@@ -313,12 +292,7 @@ class FFITextureSampler extends TextureSampler {
 
   Future<void> setAnisotropy(double anisotropy) async {
     await withVoidCallback((requestId, cb) {
-      TextureSampler_setAnisotropyRenderThread(
-        pointer,
-        anisotropy,
-        requestId,
-        cb,
-      );
+      TextureSampler_setAnisotropyRenderThread(pointer, anisotropy, requestId, cb);
     });
   }
 

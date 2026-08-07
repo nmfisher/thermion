@@ -97,19 +97,16 @@ class _MyHomePageState extends State<MyHomePage> {
   /// Batch size for the footer's add/remove control.
   int _batch = 1;
 
-  late DirectLight _sun;
+  /// Web builds render every view into a single shared DOM canvas, so only
+  /// one viewer can be displayed at a time — cap the batch accordingly.
+  final int _maxBatch = kIsWeb ? 1 : 64;
 
-  /// Web runs one engine per viewer (browser WebGL context limit), so the
-  /// batch is capped by the plugin's web option; native is unlimited-ish.
-  late final int _maxBatch;
+  late DirectLight _sun;
 
   @override
   void initState() {
     super.initState();
     _sun = DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
-    _maxBatch = kIsWeb
-        ? ThermionFlutterPlugin.instance.options.webOptions.maxViewers
-        : 64;
   }
 
   /// Applies the batch: mounts `_batch` viewers at once when the grid is
@@ -157,11 +154,11 @@ class _MyHomePageState extends State<MyHomePage> {
       child: SafeArea(
         child: Column(
           children: [
-            _Header(count: _tiles.length),
+            _Header(count: _tiles.length, multiViewer: !kIsWeb),
             const _Divider(),
             Expanded(
               child: _tiles.isEmpty
-                  ? const _EmptyState()
+                  ? const _EmptyState(singleViewerOnly: kIsWeb)
                   : GridView.count(
                       crossAxisCount: 2,
                       childAspectRatio: 1,
@@ -195,8 +192,9 @@ class _MyHomePageState extends State<MyHomePage> {
 // Chrome
 // ─────────────────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
-  const _Header({required this.count});
+  const _Header({required this.count, required this.multiViewer});
   final int count;
+  final bool multiViewer;
 
   @override
   Widget build(BuildContext context) {
@@ -217,7 +215,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const _Badge(label: 'MULTI-VIEWER'),
+          _Badge(label: multiViewer ? 'MULTI-VIEWER' : 'SINGLE VIEWER'),
           const Spacer(),
           Text(
             '$count ${count == 1 ? 'VIEWER' : 'VIEWERS'}',
@@ -268,7 +266,8 @@ class _Divider extends StatelessWidget {
 }
 
 class _EmptyState extends StatefulWidget {
-  const _EmptyState();
+  const _EmptyState({required this.singleViewerOnly});
+  final bool singleViewerOnly;
 
   @override
   State<_EmptyState> createState() => _EmptyStateState();
@@ -324,8 +323,12 @@ class _EmptyStateState extends State<_EmptyState>
                     letterSpacing: 0.2,
                   )),
               const SizedBox(height: 6),
-              const Text('Set a batch with the stepper, then hit “Add”.',
-                  style: TextStyle(color: _textDim, fontSize: 12.5)),
+              Text(
+                widget.singleViewerOnly
+                    ? 'Web builds support a single viewer at a time.'
+                    : 'Set a batch with the stepper, then hit “Add”.',
+                style: const TextStyle(color: _textDim, fontSize: 12.5),
+              ),
             ],
           );
         },

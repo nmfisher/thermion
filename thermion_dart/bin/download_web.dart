@@ -9,16 +9,12 @@ const _r2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
 Future<String> _getWebVersion() async {
   // Resolve package:thermion_dart/ to its lib/ directory so we can locate
   // native/web/web.version regardless of how this script was invoked.
-  final resolved = await Isolate.resolvePackageUri(
-    Uri.parse('package:thermion_dart/'),
-  );
+  final resolved = await Isolate.resolvePackageUri(Uri.parse('package:thermion_dart/'));
   if (resolved == null) {
     stderr.writeln('Could not resolve package:thermion_dart');
     exit(1);
   }
-  final packageRoot = path.dirname(
-    path.normalize(resolved.toFilePath().replaceAll(RegExp(r'[\\/]$'), '')),
-  );
+  final packageRoot = path.dirname(path.normalize(resolved.toFilePath().replaceAll(RegExp(r'[\\/]$'), '')));
   final versionPath = path.join(packageRoot, 'native', 'web', 'web.version');
   final versionFile = File(versionPath);
   if (!versionFile.existsSync()) {
@@ -60,9 +56,7 @@ Future<Directory> _downloadToCache(String version, Directory cacheDir) async {
   await response.pipe(zipFile.openWrite());
 
   final bytes = await zipFile.readAsBytes();
-  stdout.writeln(
-    'Downloaded ${bytes.length} bytes (md5: ${md5.convert(bytes)})',
-  );
+  stdout.writeln('Downloaded ${bytes.length} bytes (md5: ${md5.convert(bytes)})');
 
   final archive = ZipDecoder().decodeBytes(bytes);
   for (final file in archive) {
@@ -119,9 +113,7 @@ void main(List<String> args) async {
   outputDir = path.normalize(outputDir);
 
   // Cache under .dart_tool/thermion_dart/web/{version}/
-  final cacheDir = Directory(
-    path.join('.dart_tool', 'thermion_dart', 'web', version),
-  );
+  final cacheDir = Directory(path.join('.dart_tool', 'thermion_dart', 'web', version));
 
   await _downloadToCache(version, cacheDir);
   _copyToOutput(cacheDir, outputDir);

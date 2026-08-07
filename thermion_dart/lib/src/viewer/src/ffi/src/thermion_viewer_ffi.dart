@@ -64,12 +64,7 @@ class ThermionViewerFFI extends ThermionViewer {
       if (focalLength.abs() < 0.1) {
         focalLength = kFocalLength;
       }
-      await camera.setLensProjection(
-        near: near,
-        far: far,
-        aspect: aspect,
-        focalLength: focalLength,
-      );
+      await camera.setLensProjection(near: near, far: far, aspect: aspect, focalLength: focalLength);
     }
   }
 
@@ -116,26 +111,13 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     for (final swapChain in swapChains) {
       await withBoolCallback(
-        (cb) => Renderer_beginFrameRenderThread(
-          _app.renderer,
-          swapChain.getNativeHandle(),
-          0.toBigInt,
-          cb,
-        ),
+        (cb) => Renderer_beginFrameRenderThread(_app.renderer, swapChain.getNativeHandle(), 0.toBigInt, cb),
       );
 
       await withVoidCallback(
-        (requestId, cb) => Renderer_renderRenderThread(
-          _app.renderer,
-          view.getNativeHandle(),
-          requestId,
-          cb,
-        ),
+        (requestId, cb) => Renderer_renderRenderThread(_app.renderer, view.getNativeHandle(), requestId, cb),
       );
-      await withVoidCallback(
-        (requestId, cb) =>
-            Renderer_endFrameRenderThread(_app.renderer, requestId, cb),
-      );
+      await withVoidCallback((requestId, cb) => Renderer_endFrameRenderThread(_app.renderer, requestId, cb));
       await _app.flush();
     }
   }
@@ -151,18 +133,13 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<void>? _disposeFuture;
   Future<void> _sceneResourceOperations = Future<void>.value();
 
-  Future<T> _serializeSceneResourceOperation<T>(
-    Future<T> Function() operation,
-  ) {
+  Future<T> _serializeSceneResourceOperation<T>(Future<T> Function() operation) {
     final previous = _sceneResourceOperations;
     final current = () async {
       await previous;
       return operation();
     }();
-    _sceneResourceOperations = current.then<void>(
-      (_) {},
-      onError: (Object _, StackTrace __) {},
-    );
+    _sceneResourceOperations = current.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return current;
   }
 
@@ -290,10 +267,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final completer = Completer<void>();
     FFIKtx1Bundle? bundle;
 
-    final uploadFuture = withVoidCallback((
-      requestId,
-      onTextureUploadComplete,
-    ) async {
+    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
       bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
 
       _skyboxTexture =
@@ -328,19 +302,12 @@ class ThermionViewerFFI extends ThermionViewer {
     return _serializeSceneResourceOperation(() => _loadSkybox(skyboxPath));
   }
 
-  Future<void> _loadIbl(
-    String lightingPath, {
-    double intensity = 30000,
-    bool destroyExisting = true,
-  }) async {
+  Future<void> _loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting = true}) async {
     await _removeIbl(destroy: destroyExisting);
 
     final completer = Completer<void>();
     FFIKtx1Bundle? bundle;
-    final uploadFuture = withVoidCallback((
-      requestId,
-      onTextureUploadComplete,
-    ) async {
+    final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
       var data = await _app.loadResource(lightingPath);
 
       bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
@@ -419,11 +386,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future setBackgroundImagePosition(
-    double x,
-    double y, {
-    bool clamp = false,
-  }) async {
+  Future setBackgroundImagePosition(double x, double y, {bool clamp = false}) async {
     throw UnimplementedError();
   }
 
@@ -435,18 +398,10 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future loadIbl(
-    String lightingPath, {
-    double intensity = 30000,
-    bool destroyExisting = true,
-  }) {
+  Future loadIbl(String lightingPath, {double intensity = 30000, bool destroyExisting = true}) {
     _throwIfDisposed();
     return _serializeSceneResourceOperation(
-      () => _loadIbl(
-        lightingPath,
-        intensity: intensity,
-        destroyExisting: destroyExisting,
-      ),
+      () => _loadIbl(lightingPath, intensity: intensity, destroyExisting: destroyExisting),
     );
   }
 
@@ -676,28 +631,15 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future setLightPosition(
-    ThermionEntity lightEntity,
-    double x,
-    double y,
-    double z,
-  ) async {
+  Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z) async {
     _app.lightManager.setPosition(lightEntity, x, y, z);
   }
 
   //
   @override
-  Future setLightDirection(
-    ThermionEntity lightEntity,
-    Vector3 direction,
-  ) async {
+  Future setLightDirection(ThermionEntity lightEntity, Vector3 direction) async {
     direction.normalize();
-    _app.lightManager.setDirection(
-      lightEntity,
-      direction.x,
-      direction.y,
-      direction.z,
-    );
+    _app.lightManager.setDirection(lightEntity, direction.x, direction.y, direction.z);
   }
 
   //
@@ -787,9 +729,7 @@ class ThermionViewerFFI extends ThermionViewer {
         throw ArgumentError('axis is required when visible is true');
       }
       if (entity == null && origin == null) {
-        throw ArgumentError(
-          'either entity or origin must be provided when visible is true',
-        );
+        throw ArgumentError('either entity or origin must be provided when visible is true');
       }
 
       // Get world position from entity if provided
@@ -814,35 +754,26 @@ class ThermionViewerFFI extends ThermionViewer {
 
       // Material origin should be (0,0,0) in object space since we position via
       // transform
-      _translationAxisMaterial =
-          await TranslationAxisMaterial.createMaterialInstance(
-            app: _app,
-            originX: 0.0,
-            originY: 0.0,
-            originZ: 0.0,
-            axis: axisInt,
-            lineWidth: lineWidth,
-            lineLength: lineLength,
-          );
+      _translationAxisMaterial = await TranslationAxisMaterial.createMaterialInstance(
+        app: _app,
+        originX: 0.0,
+        originY: 0.0,
+        originZ: 0.0,
+        axis: axisInt,
+        lineWidth: lineWidth,
+        lineLength: lineLength,
+      );
 
       // Create plane geometry (without material first, then apply)
-      _translationAxisAsset = await createGeometry(
-        GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2),
-      );
-      await _translationAxisAsset!.setMaterialInstanceAt(
-        _translationAxisMaterial!,
-      );
+      _translationAxisAsset = await createGeometry(GeometryUtils.plane(width: lineLength * 2, height: lineLength * 2));
+      await _translationAxisAsset!.setMaterialInstanceAt(_translationAxisMaterial!);
 
       // Position at world position, with rotation for Y axis
       v64.Matrix4 transform;
       if (axis == Axis.Y) {
         // Rotate plane 90° around X axis to make it vertical (XY plane)
         final rotation = v64.Quaternion.axisAngle(v64.Vector3(1, 0, 0), pi / 2);
-        transform = v64.Matrix4.compose(
-          worldPosition,
-          rotation,
-          v64.Vector3.all(1.0),
-        );
+        transform = v64.Matrix4.compose(worldPosition, rotation, v64.Vector3.all(1.0));
       } else {
         transform = v64.Matrix4.translation(worldPosition);
       }
@@ -911,10 +842,7 @@ class ThermionViewerFFI extends ThermionViewer {
     List<MaterialInstance>? materialInstances,
     bool addToScene = true,
   }) async {
-    final asset = await _app.createGeometry(
-      geometry,
-      materialInstances: materialInstances,
-    );
+    final asset = await _app.createGeometry(geometry, materialInstances: materialInstances);
     _assets.add(asset);
     if (addToScene) {
       await scene.add(asset);
@@ -1009,9 +937,7 @@ class ThermionViewerFFI extends ThermionViewer {
     ]);
 
     // Create unlit material instance for the wireframe
-    final materialInstancePtr = await withPointerCallback<TMaterialInstance>((
-      cb,
-    ) {
+    final materialInstancePtr = await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceRenderThread(
         _app.ubershaderMaterialProvider,
         false,
@@ -1057,35 +983,17 @@ class ThermionViewerFFI extends ThermionViewer {
     });
 
     final material = FFIMaterialInstance(materialInstancePtr, _app);
-    await material.setParameterFloat4(
-      "baseColorFactor",
-      1.0,
-      1.0,
-      0.0,
-      1.0,
-    ); // Yellow wireframe
+    await material.setParameterFloat4("baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
 
     // Create geometry for the bounding box
-    final geometry = Geometry(
-      vertices,
-      indices,
-      primitiveType: PrimitiveType.LINES,
-    );
+    final geometry = Geometry(vertices, indices, primitiveType: PrimitiveType.LINES);
 
-    final bbAsset = await _app.createGeometry(
-      geometry,
-      materialInstances: [material],
-    );
+    final bbAsset = await _app.createGeometry(geometry, materialInstances: [material]);
 
     await bbAsset.setCastShadows(false);
     await bbAsset.setReceiveShadows(false);
 
-    TransformManager_setParent(
-      Engine_getTransformManager(_app.engine),
-      bbAsset.entity,
-      asset.entity,
-      false,
-    );
+    TransformManager_setParent(Engine_getTransformManager(_app.engine), bbAsset.entity, asset.entity, false);
     geometry.dispose();
 
     completer.complete(bbAsset);

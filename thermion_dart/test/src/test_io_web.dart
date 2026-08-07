@@ -4,8 +4,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:thermion_dart/thermion_dart.dart' show Backend;
-import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart'
-    show NativeLibrary;
+import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart' show NativeLibrary;
 
 export 'dart:typed_data';
 
@@ -64,9 +63,7 @@ Future<Uint8List> loadResourceBytes(String uri) async {
 /// (optionally file://-prefixed) contains "examples/assets/<rel>"; <rel> is
 /// what the proxy resolves against its --assets dir. Falls back to the basename.
 String _assetRelPath(String uri) {
-  final path = uri.startsWith('file://')
-      ? uri.substring('file://'.length)
-      : uri;
+  final path = uri.startsWith('file://') ? uri.substring('file://'.length) : uri;
   const marker = 'examples/assets/';
   final i = path.indexOf(marker);
   if (i >= 0) return path.substring(i + marker.length);
@@ -89,10 +86,7 @@ const _captureSinkHost = 'thermion.output';
 /// proxy isn't running) rather than failing the test.
 Future<void> writeFileBytes(String path, Uint8List bytes) async {
   try {
-    final res = await http.post(
-      Uri.http(_captureSinkHost, '/', {'path': path}),
-      body: bytes,
-    );
+    final res = await http.post(Uri.http(_captureSinkHost, '/', {'path': path}), body: bytes);
     if (res.statusCode != 200) {
       print('[capture-sink] unexpected status ${res.statusCode} for $path');
     }

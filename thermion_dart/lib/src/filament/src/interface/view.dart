@@ -1,5 +1,4 @@
 import 'package:thermion_dart/src/filament/src/implementation/highlight_overlay_manager.dart';
-import 'package:thermion_dart/src/filament/src/interface/layers.dart';
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -229,11 +228,7 @@ abstract class ColorGradingBuilder {
   ///   Vector3(0.272, 0.534, 0.131),  // outBlue
   /// )
   /// ```
-  ColorGradingBuilder channelMixer(
-    Vector3 outRed,
-    Vector3 outGreen,
-    Vector3 outBlue,
-  );
+  ColorGradingBuilder channelMixer(Vector3 outRed, Vector3 outGreen, Vector3 outBlue);
 
   /// Adjusts colors in shadows, mid-tones, and highlights separately.
   ///
@@ -242,12 +237,7 @@ abstract class ColorGradingBuilder {
   ///
   /// Default: all (1,1,1,0), ranges (0, 0.333, 0.550, 1)
   /// Applied in linear space.
-  ColorGradingBuilder shadowsMidtonesHighlights(
-    Vector4 shadows,
-    Vector4 midtones,
-    Vector4 highlights,
-    Vector4 ranges,
-  );
+  ColorGradingBuilder shadowsMidtonesHighlights(Vector4 shadows, Vector4 midtones, Vector4 highlights, Vector4 ranges);
 
   /// Applies ASC CDL slope/offset/power adjustment.
   ///
@@ -257,11 +247,7 @@ abstract class ColorGradingBuilder {
   /// - [power]: Exponent (must be > 0, default 1.0)
   ///
   /// Applied in log space.
-  ColorGradingBuilder slopeOffsetPower(
-    Vector3 slope,
-    Vector3 offset,
-    Vector3 power,
-  );
+  ColorGradingBuilder slopeOffsetPower(Vector3 slope, Vector3 offset, Vector3 power);
 
   /// Applies per-channel curves.
   ///
@@ -270,11 +256,7 @@ abstract class ColorGradingBuilder {
   /// - [highlightScale]: Scale for highlights (any value, default 1.0)
   ///
   /// Applied in linear space.
-  ColorGradingBuilder curves(
-    Vector3 shadowGamma,
-    Vector3 midPoint,
-    Vector3 highlightScale,
-  );
+  ColorGradingBuilder curves(Vector3 shadowGamma, Vector3 midPoint, Vector3 highlightScale);
 
   // ============================================================================
   // Flags

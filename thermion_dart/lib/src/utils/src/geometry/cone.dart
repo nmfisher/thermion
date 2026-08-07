@@ -2,12 +2,7 @@ import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class ConeGeometry {
-  static Geometry conic({
-    double radius = 1.0,
-    double length = 1.0,
-    bool normals = true,
-    bool uvs = true,
-  }) {
+  static Geometry conic({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) {
     int segments = 32;
     List<double> verticesList = [];
     List<double> normalsList = [];
@@ -124,11 +119,6 @@ class ConeGeometry {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(
-      vertices,
-      Uint16List.fromList(indices),
-      normals: _normals,
-      uvs: _uvs,
-    );
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 }

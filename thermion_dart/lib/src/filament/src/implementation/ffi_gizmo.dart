@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 import 'ffi_material.dart';
-import 'ffi_view.dart';
 
 class FFIGizmo extends GizmoAsset {
   final Set<ThermionEntity> entities;
@@ -15,14 +14,7 @@ class FFIGizmo extends GizmoAsset {
 
   final Pointer<TGizmo> handle;
 
-  final FFIFilamentApp _app;
-
-  FFIGizmo({
-    required this.handle,
-    required this.view,
-    required this.entities,
-    required FFIFilamentApp app,
-  }) : _app = app {
+  FFIGizmo({required this.handle, required this.view, required this.entities, required FFIFilamentApp app}) {
     _callbackHolder = _onPickResult.asCallback();
   }
 
@@ -32,15 +24,7 @@ class FFIGizmo extends GizmoAsset {
 
   static FFIMaterial? _gizmoMaterial;
 
-  static Future<GizmoAsset> create(
-    FFIFilamentApp app,
-    View view,
-    GizmoType gizmoType,
-  ) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
-    }
+  static Future<GizmoAsset> create(FFIFilamentApp app, View view, GizmoType gizmoType) async {
     final engine = app.engine;
     if (_gizmoMaterial == null) {
       final materialPtr = await withPointerCallback<TMaterial>((cb) {
@@ -68,21 +52,15 @@ class FFIGizmo extends GizmoAsset {
     if (gizmo == nullptr) {
       throw Exception("Failed to create gizmo");
     }
-    final gizmoEntityCount = SceneAsset_getChildEntityCount(
-      gizmo.cast<TSceneAsset>(),
-    );
+    final gizmoEntityCount = SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
     final gizmoEntities = Int32List(gizmoEntityCount);
-    SceneAsset_getChildEntities(
-      gizmo.cast<TSceneAsset>(),
-      gizmoEntities.address,
-    );
+    SceneAsset_getChildEntities(gizmo.cast<TSceneAsset>(), gizmoEntities.address);
 
     final gizmoAsset = FFIGizmo(
       handle: gizmo,
       view: view,
       app: app,
-      entities: gizmoEntities.toSet()
-        ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())),
+      entities: gizmoEntities.toSet()..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())),
     );
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
@@ -112,11 +90,7 @@ class FFIGizmo extends GizmoAsset {
   bool isGizmoEntity(ThermionEntity entity) => entities.contains(entity);
 
   @override
-  Future pick(
-    int x,
-    int y, {
-    Future Function(GizmoPickResultType result, Vector3 coords)? handler,
-  }) async {
+  Future pick(int x, int y, {Future Function(GizmoPickResultType result, Vector3 coords)? handler}) async {
     _callback = handler;
     final viewport = await view.getViewport();
     y = viewport.height - y;

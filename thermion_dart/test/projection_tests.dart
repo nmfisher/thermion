@@ -11,22 +11,12 @@ Future<Texture> createTextureFromImage(TestHelper testHelper) async {
   final image = await FilamentApp.instance!.decodeImage(
     File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync(),
   );
-  final texture = await FilamentApp.instance!.createTexture(
-    await image.getWidth(),
-    await image.getHeight(),
-  );
-  await texture.setLinearImage(
-    image,
-    PixelDataFormat.RGBA,
-    PixelDataType.FLOAT,
-  );
+  final texture = await FilamentApp.instance!.createTexture(await image.getWidth(), await image.getHeight());
+  await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
   return texture;
 }
 
-Future<ThermionAsset> _makeCube(
-  TestHelper testHelper,
-  ThermionViewer viewer,
-) async {
+Future<ThermionAsset> _makeCube(TestHelper testHelper, ThermionViewer viewer) async {
   final cube = await testHelper.createCube(viewer);
   var ubershader = await cube.getMaterialInstanceAt();
   await ubershader.setDepthCullingEnabled(true);

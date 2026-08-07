@@ -13,36 +13,16 @@ Future<
   })
 >
 setup(ThermionViewer viewer) async {
-  var blueMaterialInstance = await FilamentApp.instance!
-      .createUnlitMaterialInstance();
-  final blueCube = await viewer.createGeometry(
-    GeometryUtils.cube(),
-    materialInstances: [blueMaterialInstance],
-  );
-  await blueMaterialInstance.setParameterFloat4(
-    "baseColorFactor",
-    0.0,
-    0.0,
-    1.0,
-    1.0,
-  );
+  var blueMaterialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
+  final blueCube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [blueMaterialInstance]);
+  await blueMaterialInstance.setParameterFloat4("baseColorFactor", 0.0, 0.0, 1.0, 1.0);
 
   // Position blue cube slightly behind/below/right
   await blueCube.setTransform(Matrix4.translation(Vector3(1.0, -1.0, -1.0)));
 
-  var greenMaterialInstance = await FilamentApp.instance!
-      .createUnlitMaterialInstance();
-  final greenCube = await viewer.createGeometry(
-    GeometryUtils.cube(),
-    materialInstances: [greenMaterialInstance],
-  );
-  await greenMaterialInstance.setParameterFloat4(
-    "baseColorFactor",
-    0.0,
-    1.0,
-    0.0,
-    1.0,
-  );
+  var greenMaterialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
+  final greenCube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [greenMaterialInstance]);
+  await greenMaterialInstance.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
 
   return (
     blueCube: blueCube,
@@ -60,24 +40,15 @@ void main() async {
   test('unlit + baseColorFactor', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(
-        await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp),
-      );
+      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
 
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
         GeometryUtils.cube(normals: false, uvs: false),
         materialInstances: [materialInstance],
       );
 
-      await materialInstance.setParameterFloat4(
-        "baseColorFactor",
-        0.0,
-        1.0,
-        0.0,
-        1.0,
-      );
+      await materialInstance.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", -1);
       await testHelper.capture(viewer.view, "unlit_material_base_color");
       await materialInstance.destroy();
@@ -86,26 +57,14 @@ void main() async {
 
   test('unlit + baseColorMap (PNG)', () async {
     await testHelper.withViewer((viewer) async {
-      var materialInstance = await await FilamentApp.instance!
-          .createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(
-        GeometryUtils.cube(),
-        materialInstances: [materialInstance],
-      );
+      var materialInstance = await await FilamentApp.instance!.createUnlitMaterialInstance();
+      var cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [materialInstance]);
 
-      await materialInstance.setParameterFloat4(
-        "baseColorFactor",
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-      );
+      await materialInstance.setParameterFloat4("baseColorFactor", 1.0, 1.0, 1.0, 1.0);
       // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File(
-        "${testHelper.assetsDir}/cube_texture_512x512.png",
-      ).readAsBytesSync();
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync();
       final image = await await FilamentApp.instance!.decodeImage(data);
 
       final texture = await await FilamentApp.instance!.createTexture(
@@ -113,18 +72,10 @@ void main() async {
         await image.getHeight(),
         textureFormat: TextureFormat.RGBA32F,
       );
-      await texture.setLinearImage(
-        image,
-        PixelDataFormat.RGBA,
-        PixelDataType.FLOAT,
-      );
+      await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
       final sampler = await await FilamentApp.instance!.createTextureSampler();
 
-      await materialInstance.setParameterTexture(
-        "baseColorMap",
-        texture,
-        sampler,
-      );
+      await materialInstance.setParameterTexture("baseColorMap", texture, sampler);
 
       await testHelper.capture(viewer.view, "unlit_baseColorMap_png");
 
@@ -138,26 +89,14 @@ void main() async {
 
   test('unlit + baseColorMap (JPEG)', () async {
     await testHelper.withViewer((viewer) async {
-      var materialInstance = await await FilamentApp.instance!
-          .createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(
-        GeometryUtils.cube(),
-        materialInstances: [materialInstance],
-      );
+      var materialInstance = await await FilamentApp.instance!.createUnlitMaterialInstance();
+      var cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [materialInstance]);
 
-      await materialInstance.setParameterFloat4(
-        "baseColorFactor",
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-      );
+      await materialInstance.setParameterFloat4("baseColorFactor", 1.0, 1.0, 1.0, 1.0);
       // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File(
-        "${testHelper.assetsDir}/cube_texture_512x512.jpeg",
-      ).readAsBytesSync();
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.jpeg").readAsBytesSync();
       final image = await await FilamentApp.instance!.decodeImage(data);
       final width = await image.getWidth();
       final height = await image.getHeight();
@@ -165,9 +104,7 @@ void main() async {
       final texture = await await FilamentApp.instance!.createTexture(
         width,
         height,
-        textureFormat: channels == 4
-            ? TextureFormat.RGBA32F
-            : TextureFormat.RGB32F,
+        textureFormat: channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F,
       );
       await texture.setLinearImage(
         image,
@@ -176,11 +113,7 @@ void main() async {
       );
       final sampler = await await FilamentApp.instance!.createTextureSampler();
 
-      await materialInstance.setParameterTexture(
-        "baseColorMap",
-        texture,
-        sampler,
-      );
+      await materialInstance.setParameterTexture("baseColorMap", texture, sampler);
 
       await testHelper.capture(viewer.view, "unlit_baseColorMap_jpeg");
 
@@ -194,25 +127,13 @@ void main() async {
 
   test('unlit + baseColorMap (apply material after creation)', () async {
     await testHelper.withViewer((viewer) async {
-      var cube = await viewer.createGeometry(
-        GeometryUtils.cube(),
-        materialInstances: [],
-      );
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
-      await materialInstance.setParameterFloat4(
-        "baseColorFactor",
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-      );
+      var cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: []);
+      var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
+      await materialInstance.setParameterFloat4("baseColorFactor", 1.0, 1.0, 1.0, 1.0);
       // await materialInstance.setParameterFloat2("uvScale", 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File(
-        "${testHelper.assetsDir}/cube_texture_512x512.png",
-      ).readAsBytesSync();
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync();
       final image = await FilamentApp.instance!.decodeImage(data);
 
       final texture = await FilamentApp.instance!.createTexture(
@@ -220,23 +141,12 @@ void main() async {
         await image.getHeight(),
         textureFormat: TextureFormat.RGBA32F,
       );
-      await texture.setLinearImage(
-        image,
-        PixelDataFormat.RGBA,
-        PixelDataType.FLOAT,
-      );
+      await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
       final sampler = await FilamentApp.instance!.createTextureSampler();
 
-      await materialInstance.setParameterTexture(
-        "baseColorMap",
-        texture,
-        sampler,
-      );
+      await materialInstance.setParameterTexture("baseColorMap", texture, sampler);
       await cube.setMaterialInstanceAt(materialInstance);
-      await testHelper.capture(
-        viewer.view,
-        "unlit_baseColorMap_material_created_after",
-      );
+      await testHelper.capture(viewer.view, "unlit_baseColorMap_material_created_after");
 
       await image.destroy();
       await texture.dispose();
@@ -248,27 +158,15 @@ void main() async {
 
   test('unlit + baseColorMap (fetch material after creation)', () async {
     await testHelper.withViewer((viewer) async {
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(
-        GeometryUtils.cube(),
-        materialInstances: [materialInstance],
-      );
+      var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
+      var cube = await viewer.createGeometry(GeometryUtils.cube(), materialInstances: [materialInstance]);
 
       materialInstance = await cube.getMaterialInstanceAt(index: 0);
 
-      await materialInstance.setParameterFloat4(
-        "baseColorFactor",
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-      );
+      await materialInstance.setParameterFloat4("baseColorFactor", 1.0, 1.0, 1.0, 1.0);
       await materialInstance.setParameterInt("baseColorIndex", 0);
 
-      var data = File(
-        "${testHelper.assetsDir}/cube_texture_512x512.png",
-      ).readAsBytesSync();
+      var data = File("${testHelper.assetsDir}/cube_texture_512x512.png").readAsBytesSync();
       final image = await FilamentApp.instance!.decodeImage(data);
 
       final texture = await FilamentApp.instance!.createTexture(
@@ -276,23 +174,12 @@ void main() async {
         await image.getHeight(),
         textureFormat: TextureFormat.RGBA32F,
       );
-      await texture.setLinearImage(
-        image,
-        PixelDataFormat.RGBA,
-        PixelDataType.FLOAT,
-      );
+      await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
       final sampler = await FilamentApp.instance!.createTextureSampler();
 
-      await materialInstance.setParameterTexture(
-        "baseColorMap",
-        texture,
-        sampler,
-      );
+      await materialInstance.setParameterTexture("baseColorMap", texture, sampler);
       await cube.setMaterialInstanceAt(materialInstance);
-      await testHelper.capture(
-        viewer.view,
-        "unlit_baseColorMap_fetch_material",
-      );
+      await testHelper.capture(viewer.view, "unlit_baseColorMap_fetch_material");
 
       await image.destroy();
       await texture.dispose();
@@ -305,24 +192,15 @@ void main() async {
   test('unlit material with color + alpha', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(
-        await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp),
-      );
+      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
 
-      var materialInstance = await FilamentApp.instance!
-          .createUnlitMaterialInstance();
+      var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
         GeometryUtils.cube(normals: false, uvs: false),
         materialInstances: [materialInstance],
       );
 
-      await materialInstance.setParameterFloat4(
-        "baseColorFactor",
-        0.0,
-        1.0,
-        0.0,
-        0.1,
-      );
+      await materialInstance.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 0.1);
       await materialInstance.setParameterInt("baseColorIndex", -1);
       await testHelper.capture(viewer.view, "unlit_material_base_color_alpha");
       await materialInstance.destroy();
@@ -367,35 +245,19 @@ void main() async {
 
   test('disable depth write', () async {
     await testHelper.withViewer((viewer) async {
-      final (
-        :blueCube,
-        :blueMaterialInstance,
-        :greenCube,
-        :greenMaterialInstance,
-      ) = await setup(
-        viewer,
-      );
+      final (:blueCube, :blueMaterialInstance, :greenCube, :greenMaterialInstance) = await setup(viewer);
 
       // With depth write enabled on both materials, green cube renders behind the blue cube
-      await testHelper.capture(
-        viewer.view,
-        "material_instance_depth_write_enabled",
-      );
+      await testHelper.capture(viewer.view, "material_instance_depth_write_enabled");
 
       // Disable depth write on green cube
       // Blue cube will always appear in front
       await greenMaterialInstance.setDepthWriteEnabled(false);
-      await testHelper.capture(
-        viewer.view,
-        "material_instance_depth_write_disabled",
-      );
+      await testHelper.capture(viewer.view, "material_instance_depth_write_disabled");
 
       // Set priority for greenCube to render last, making it appear in front
       await viewer.setPriority(greenCube.entity, 7);
-      await testHelper.capture(
-        viewer.view,
-        "material_instance_depth_write_disabled_with_priority",
-      );
+      await testHelper.capture(viewer.view, "material_instance_depth_write_disabled_with_priority");
     });
   });
 }

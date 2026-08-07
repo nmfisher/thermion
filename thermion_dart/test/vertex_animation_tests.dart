@@ -7,9 +7,7 @@ void main() async {
   await testHelper.setup();
 
   test('vertex animation - interpolate cube vertices over 10 frames', () async {
-    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((
-      result,
-    ) async {
+    await ViewerBuilder(testHelper).setBackgroundColor(kRed).execute((result) async {
       final asset = await result.viewer.createGeometry(GeometryUtils.cube());
       await result.viewer.addToScene(asset);
 
@@ -50,11 +48,7 @@ void main() async {
       endVertices[59] = 2;
 
       final vb = asset.getVertexBuffer();
-      expect(
-        vb,
-        isNotNull,
-        reason: 'Geometry asset should expose a VertexBuffer',
-      );
+      expect(vb, isNotNull, reason: 'Geometry asset should expose a VertexBuffer');
 
       // Animate over 10 frames by linearly interpolating between start and end
       const totalFrames = 10;
@@ -62,17 +56,13 @@ void main() async {
         final t = frame / totalFrames;
         final interpolated = Float32List(startVertices.length);
         for (var i = 0; i < interpolated.length; i++) {
-          interpolated[i] =
-              startVertices[i] + (endVertices[i] - startVertices[i]) * t;
+          interpolated[i] = startVertices[i] + (endVertices[i] - startVertices[i]) * t;
         }
 
         await vb!.setBufferAt(0, interpolated);
 
         final frameStr = frame.toString().padLeft(2, '0');
-        await testHelper.capture(
-          result.viewer.view,
-          "vertex_anim_frame_$frameStr",
-        );
+        await testHelper.capture(result.viewer.view, "vertex_anim_frame_$frameStr");
       }
 
       // Clean up

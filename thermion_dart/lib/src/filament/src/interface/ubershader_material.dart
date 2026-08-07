@@ -24,25 +24,20 @@ class UbershaderMaterialInstance {
   Future setBaseColorTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('baseColorMap', texture, sampler);
 
-  Future setBaseColorUV(int index) =>
-      _mi.setParameterInt('baseColorIndex', index);
+  Future setBaseColorUV(int index) => _mi.setParameterInt('baseColorIndex', index);
 
-  Future setBaseColorUvMatrix(Matrix3 matrix) =>
-      _mi.setParameterMat3('baseColorUvMatrix', matrix);
+  Future setBaseColorUvMatrix(Matrix3 matrix) => _mi.setParameterMat3('baseColorUvMatrix', matrix);
 
   // -- Metallic-Roughness --
 
-  Future setMetallicFactor(double value) =>
-      _mi.setParameterFloat('metallicFactor', value);
+  Future setMetallicFactor(double value) => _mi.setParameterFloat('metallicFactor', value);
 
-  Future setRoughnessFactor(double value) =>
-      _mi.setParameterFloat('roughnessFactor', value);
+  Future setRoughnessFactor(double value) => _mi.setParameterFloat('roughnessFactor', value);
 
   Future setMetallicRoughnessTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('metallicRoughnessMap', texture, sampler);
 
-  Future setMetallicRoughnessUV(int index) =>
-      _mi.setParameterInt('metallicRoughnessIndex', index);
+  Future setMetallicRoughnessUV(int index) => _mi.setParameterInt('metallicRoughnessIndex', index);
 
   // -- Normal --
 
@@ -66,43 +61,35 @@ class UbershaderMaterialInstance {
   Future setEmissiveTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('emissiveMap', texture, sampler);
 
-  Future setEmissiveUV(int index) =>
-      _mi.setParameterInt('emissiveIndex', index);
+  Future setEmissiveUV(int index) => _mi.setParameterInt('emissiveIndex', index);
 
   // -- Clear Coat --
 
-  Future setClearCoatFactor(double value) =>
-      _mi.setParameterFloat('clearcoatFactor', value);
+  Future setClearCoatFactor(double value) => _mi.setParameterFloat('clearcoatFactor', value);
 
-  Future setClearCoatRoughnessFactor(double value) =>
-      _mi.setParameterFloat('clearcoatRoughnessFactor', value);
+  Future setClearCoatRoughnessFactor(double value) => _mi.setParameterFloat('clearcoatRoughnessFactor', value);
 
   Future setClearCoatTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('clearCoatMap', texture, sampler);
 
-  Future setClearCoatRoughnessTexture(
-    Texture texture,
-    TextureSampler sampler,
-  ) => _mi.setParameterTexture('clearCoatRoughnessMap', texture, sampler);
+  Future setClearCoatRoughnessTexture(Texture texture, TextureSampler sampler) =>
+      _mi.setParameterTexture('clearCoatRoughnessMap', texture, sampler);
 
   Future setClearCoatNormalTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('clearCoatNormalMap', texture, sampler);
 
   // -- Transmission --
 
-  Future setTransmissionFactor(double value) =>
-      _mi.setParameterFloat('transmissionFactor', value);
+  Future setTransmissionFactor(double value) => _mi.setParameterFloat('transmissionFactor', value);
 
   Future setTransmissionTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('transmissionMap', texture, sampler);
 
   // -- Sheen --
 
-  Future setSheenColorFactor(double r, double g, double b) =>
-      _mi.setParameterFloat3('sheenColorFactor', r, g, b);
+  Future setSheenColorFactor(double r, double g, double b) => _mi.setParameterFloat3('sheenColorFactor', r, g, b);
 
-  Future setSheenRoughnessFactor(double value) =>
-      _mi.setParameterFloat('sheenRoughnessFactor', value);
+  Future setSheenRoughnessFactor(double value) => _mi.setParameterFloat('sheenRoughnessFactor', value);
 
   Future setSheenColorTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('sheenColorMap', texture, sampler);
@@ -112,14 +99,12 @@ class UbershaderMaterialInstance {
 
   // -- Volume --
 
-  Future setVolumeThicknessFactor(double value) =>
-      _mi.setParameterFloat('volumeThicknessFactor', value);
+  Future setVolumeThicknessFactor(double value) => _mi.setParameterFloat('volumeThicknessFactor', value);
 
   Future setVolumeAttenuationColor(double r, double g, double b) =>
       _mi.setParameterFloat3('volumeAttenuationColor', r, g, b);
 
-  Future setVolumeAttenuationDistance(double value) =>
-      _mi.setParameterFloat('volumeAttenuationDistance', value);
+  Future setVolumeAttenuationDistance(double value) => _mi.setParameterFloat('volumeAttenuationDistance', value);
 
   Future setVolumeThicknessTexture(Texture texture, TextureSampler sampler) =>
       _mi.setParameterTexture('volumeThicknessMap', texture, sampler);
@@ -135,26 +120,15 @@ class UbershaderMaterialInstance {
   Future setFlipUVs(bool value) => _mi.setParameterBool('flipUVs', value);
 
   /// Pass-through for any parameter not covered by the typed API.
-  Future setParameterFloat(String name, double x) =>
-      _mi.setParameterFloat(name, x);
+  Future setParameterFloat(String name, double x) => _mi.setParameterFloat(name, x);
 
-  Future setParameterFloat4(
-    String name,
-    double x,
-    double y,
-    double z,
-    double w,
-  ) => _mi.setParameterFloat4(name, x, y, z, w);
+  Future setParameterFloat4(String name, double x, double y, double z, double w) =>
+      _mi.setParameterFloat4(name, x, y, z, w);
 
-  Future setParameterInt(String name, int value) =>
-      _mi.setParameterInt(name, value);
+  Future setParameterInt(String name, int value) => _mi.setParameterInt(name, value);
 
-  Future setParameterBool(String name, bool value) =>
-      _mi.setParameterBool(name, value);
+  Future setParameterBool(String name, bool value) => _mi.setParameterBool(name, value);
 
-  Future setParameterTexture(
-    String name,
-    Texture texture,
-    TextureSampler sampler,
-  ) => _mi.setParameterTexture(name, texture, sampler);
+  Future setParameterTexture(String name, Texture texture, TextureSampler sampler) =>
+      _mi.setParameterTexture(name, texture, sampler);
 }

@@ -77,11 +77,7 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [animationIndex] The animation index
   // [timeInSeconds] The time position in the animation in seconds
   // Returns true if successful, false otherwise
-  bool setGltfAnimationTime(
-    ThermionAsset asset,
-    int animationIndex,
-    double timeInSeconds,
-  );
+  bool setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds);
 
   // Gets the duration of a glTF animation in seconds.
   //
@@ -108,10 +104,7 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [entityId] The entity to set weights for
   // [weights] List of morph target weights (0.0 to 1.0)
   // Returns true if successful, false otherwise
-  Future<bool> setMorphTargetWeights(
-    ThermionEntity entityId,
-    List<double> weights,
-  );
+  Future<bool> setMorphTargetWeights(ThermionEntity entityId, List<double> weights);
 
   // Sets up a morph animation with keyframe data.
   //
@@ -150,11 +143,7 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [entityId] The entity to query
   // [index] The morph target index
   // Returns the morph target name, or null if not found
-  String? getMorphTargetName(
-    ThermionAsset asset,
-    ThermionEntity entityId,
-    int index,
-  );
+  String? getMorphTargetName(ThermionAsset asset, ThermionEntity entityId, int index);
 
   // Adds bone animation data with keyframes.
   //
@@ -186,21 +175,14 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // [asset] The asset containing the bones
   // [skinIndex] The skin index
   // Returns a list of 4x4 transformation matrices (16 floats per bone)
-  Future<List<double>> getRestLocalTransforms(
-    ThermionAsset asset,
-    int skinIndex,
-  );
+  Future<List<double>> getRestLocalTransforms(ThermionAsset asset, int skinIndex);
 
   // Gets the inverse bind matrix for a specific bone.
   //
   // [asset] The asset containing the bones [skinIndex] The skin index
   // [boneIndex] The bone index Returns the 4x4 inverse bind matrix (16
   // floats), or empty list if not found
-  Future<List<double>> getInverseBindMatrix(
-    ThermionAsset asset,
-    int skinIndex,
-    int boneIndex,
-  );
+  Future<List<double>> getInverseBindMatrix(ThermionAsset asset, int skinIndex, int boneIndex);
 
   // Calls [updateBoneMatrices] on the Animator instance for the
   // FilamentInstance (which uses the local bone transform and the inverse bind

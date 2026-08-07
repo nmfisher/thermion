@@ -21,10 +21,7 @@ class BoneData {
 
   /// Creates a bone with an identity transform (no rotation, no translation).
   factory BoneData.identity() {
-    return BoneData(
-      rotation: Quaternion.identity(),
-      translation: Vector3.zero(),
-    );
+    return BoneData(rotation: Quaternion.identity(), translation: Vector3.zero());
   }
 
   /// Converts a list of BoneData to a Float32List for FFI.

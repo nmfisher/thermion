@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -328,12 +326,7 @@ abstract class Texture<T> extends NativeHandle {
   /// This method does not take ownership of [image]. The caller may destroy
   /// the image after the returned [Future] completes; the upload retains its
   /// own reference to the pixel storage until Filament has consumed it.
-  Future setLinearImage(
-    covariant LinearImage image,
-    PixelDataFormat format,
-    PixelDataType type, {
-    int level = 0,
-  });
+  Future setLinearImage(covariant LinearImage image, PixelDataFormat format, PixelDataType type, {int level = 0});
 
   /// Sets the image data for a 2D texture or a texture level
   Future<void> setImage(
@@ -423,8 +416,7 @@ enum PixelDataFormat {
   factory PixelDataFormat.fromValue(int value) {
     return PixelDataFormat.values.firstWhere(
       (format) => format.value == value,
-      orElse: () =>
-          throw ArgumentError('Invalid PixelDataFormat value: $value'),
+      orElse: () => throw ArgumentError('Invalid PixelDataFormat value: $value'),
     );
   }
 }
@@ -519,20 +511,14 @@ abstract class LinearImage {
     bool requireAlpha = false,
   }) async {
     final effective = app ?? FilamentApp.instance!;
-    final decodedImage = await effective.decodeImage(
-      data,
-      requireAlpha: requireAlpha,
-    );
+    final decodedImage = await effective.decodeImage(data, requireAlpha: requireAlpha);
 
     try {
       // generateMipmaps() requires GEN_MIPMAPPABLE per Filament's
       // Texture::generateMipmaps doc; native backends often relax this, WebGL
       // does not (throws PreconditionPanic). Include the flag whenever the
       // caller asks for >1 level so the mip path works on every backend.
-      final flags = <TextureUsage>{
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-        TextureUsage.TEXTURE_USAGE_UPLOADABLE,
-      };
+      final flags = <TextureUsage>{TextureUsage.TEXTURE_USAGE_SAMPLEABLE, TextureUsage.TEXTURE_USAGE_UPLOADABLE};
       if (levels > 1) {
         flags.add(TextureUsage.TEXTURE_USAGE_GEN_MIPMAPPABLE);
       }
@@ -546,11 +532,7 @@ abstract class LinearImage {
       );
 
       try {
-        await texture.setLinearImage(
-          decodedImage,
-          pixelDataFormat,
-          pixelDataType,
-        );
+        await texture.setLinearImage(decodedImage, pixelDataFormat, pixelDataType);
         return texture;
       } catch (_) {
         await texture.dispose();
