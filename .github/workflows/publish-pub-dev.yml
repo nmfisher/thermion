@@ -1,0 +1,201 @@
+name: Publish to pub.dev
+
+# Releases thermion_dart and thermion_flutter to pub.dev using GitHub OIDC
+# automated publishing (no long-lived secrets). pub.dev trusts an OIDC token
+# only when a pushed git tag matches the `v{{version}}` pattern configured on
+# each package's pub.dev admin page, and the tag version equals the version in
+# pubspec.yaml.
+#
+# See docs/RELEASING.md for the full runbook (one-time setup + per-release flow).
+#
+# The two packages are released in lockstep (shared version). thermion_flutter
+# depends on thermion_dart, so thermion_dart is published first.
+
+on:
+  push:
+    tags:
+      # v0.5.0, v0.7.0-pre, v0.5.0-pre.99 
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    # Manual dispatch runs the `validate` (dry-run) job only — no publish.
+    inputs:
+      note:
+        description: 'Note (dry-run validation only; publishing requires a tag push)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write # required to mint the OIDC token for pub.dev
+  contents: read
+
+concurrency:
+  # Never cancel a publish already in flight.
+  group: publish-pub-dev-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate (dry-run)
+    runs-on: ubuntu-24.04
+    # Runs on tag push (pre-publish gate) AND on manual dispatch (pre-flight).
+    if: ${{ github.event_name != 'pull_request' }}
+    outputs:
+      version: ${{ steps.versions.outputs.dart_version }}
+      already-published: ${{ steps.check_pub.outputs.already_published }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          architecture: X64
+
+      - name: Check versions (lockstep + tag match)
+        id: versions
+        working-directory: thermion_dart
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Read the version line from each pubspec without yq.
+          dart_v="$(grep -m1 '^version:' pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          flt_v="$(grep -m1 '^version:' ../thermion_flutter/thermion_flutter/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          echo "thermion_dart version:     $dart_v"
+          echo "thermion_flutter version:  $flt_v"
+          if [ "$dart_v" != "$flt_v" ]; then
+            echo "::error::Lockstep broken: thermion_dart ($dart_v) != thermion_flutter ($flt_v). Bump both pubspecs to the same version."
+            exit 1
+          fi
+          # On a tag push, the tag (minus leading 'v') must equal the pubspec version.
+          # pub.dev OIDC enforces this anyway — fail here with a clearer message.
+          ref="${GITHUB_REF:-}"
+          if [[ "$ref" == refs/tags/v* ]]; then
+            tag_v="${ref#refs/tags/v}"
+            echo "tag version:               $tag_v"
+            if [ "$tag_v" != "$dart_v" ]; then
+              echo "::error::Tag v$tag_v does not match pubspec version $dart_v."
+              exit 1
+            fi
+          fi
+          echo "dart_version=$dart_v" >> "$GITHUB_OUTPUT"
+
+      - name: Check pub.dev for existing versions
+        id: check_pub
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="${{ steps.versions.outputs.dart_version }}"
+          exists() {
+            # Returns 0 if version $2 is listed in pub.dev's API for package $1.
+            local pkg="$1" want="$2"
+            curl -fsSL "https://pub.dev/api/packages/$pkg" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if want in [v['version'] for v in d.get('versions',[])] else 1)" \
+              || return 1
+          }
+          td=0; tf=0
+          if exists thermion_dart "$v"; then
+            echo "::notice::thermion_dart $v is already on pub.dev"
+            td=1
+          fi
+          if exists thermion_flutter "$v"; then
+            echo "::notice::thermion_flutter $v is already on pub.dev"
+            tf=1
+          fi
+          echo "td_exists=$td" >> "$GITHUB_OUTPUT"
+          echo "tf_exists=$tf" >> "$GITHUB_OUTPUT"
+          if [ "$td" = "1" ] && [ "$tf" = "1" ]; then
+            echo "::notice::Both packages already published at $v — nothing to do."
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if already published
+        if: steps.check_pub.outputs.already_published == 'true'
+        shell: bash
+        run: echo "Both packages already on pub.dev at ${{ steps.versions.outputs.dart_version }}. Skipping dry-run."
+
+      - name: Dry-run publish (thermion_dart)
+        if: steps.check_pub.outputs.already_published != 'true'
+        working-directory: thermion_dart
+        run: dart pub publish --dry-run
+
+      - name: Dry-run publish (thermion_flutter)
+        if: steps.check_pub.outputs.already_published != 'true'
+        working-directory: thermion_flutter/thermion_flutter
+        # pubspec_overrides.yaml resolves thermion_dart via a local path — fine
+        # for resolution; only pubspec.yaml is published.
+        run: flutter pub publish --dry-run
+
+  publish:
+    name: Publish to pub.dev
+    needs: validate
+    # Only a real tag push publishes. workflow_dispatch never reaches here.
+    if: ${{ startsWith(github.ref, 'refs/tags/v') && needs.validate.outputs.already-published != 'true' }}
+    runs-on: ubuntu-24.04
+    environment: pub.dev # maintainer approval gate
+    steps:
+      - uses: actions/checkout@v4
+
+      # set up the Dart SDK and provision the OIDC publishing credential.
+      - name: Set up Dart SDK (provision OIDC)
+        uses: dart-lang/setup-dart@v1
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          architecture: X64
+
+      - name: Re-check versions & pub.dev state
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart_v="$(grep -m1 '^version:' thermion_dart/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          tag_v="${GITHUB_REF#refs/tags/v}"
+          if [ "$tag_v" != "$dart_v" ]; then
+            echo "::error::Tag v$tag_v != pubspec version $dart_v"; exit 1
+          fi
+          echo "Publishing version $dart_v"
+
+      - name: Publish thermion_dart
+        working-directory: thermion_dart
+        shell: bash
+        # pipefail (on by default for bash steps) propagates a publish failure through tee.
+        run: dart pub publish --force 2>&1 | tee "$GITHUB_WORKSPACE/thermion_dart_publish.log"
+
+      - name: Wait for thermion_dart to be resolvable on pub.dev
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="$(grep -m1 '^version:' thermion_dart/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          echo "Polling pub.dev for thermion_dart@$v ..."
+          for i in $(seq 1 30); do
+            if curl -fsSL "https://pub.dev/api/packages/thermion_dart" \
+               | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if '$v' in [x['version'] for x in d.get('versions',[])] else 1)"; then
+              echo "thermion_dart@$v is live on pub.dev"
+              exit 0
+            fi
+            echo "  not visible yet (attempt $i/30); waiting 10s"
+            sleep 10
+          done
+          echo "::error::thermion_dart@$v did not appear on pub.dev within 5 minutes."
+          exit 1
+
+      - name: Publish thermion_flutter
+        working-directory: thermion_flutter/thermion_flutter
+        shell: bash
+        run: flutter pub publish --force 2>&1 | tee "$GITHUB_WORKSPACE/thermion_flutter_publish.log"
+
+      - name: Upload publish logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-logs-${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/thermion_dart_publish.log
+            ${{ github.workspace }}/thermion_flutter_publish.log
+          if-no-files-found: ignore
+          retention-days: 14
