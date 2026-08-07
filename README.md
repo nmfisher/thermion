@@ -1,4 +1,4 @@
-![Thermion Logo](docs/logo.png)
+![Thermion Logo](https://raw.githubusercontent.com/nmfisher/thermion/97bb6071/docs/logo.png)
 
 <p align="center">
   <a href="https://thermion.dev/quickstart">Quickstart (Flutter)</a> •
