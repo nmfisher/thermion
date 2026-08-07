@@ -38,66 +38,32 @@ class FFISurfaceOrientation extends SurfaceOrientation {
       QuaternionFormat.HALF4 => bindings.makeUint16List(bufferSize ~/ 2),
     };
 
-    if (bindings.FILAMENT_WASM) {
-      // These lists already alias the Emscripten heap. Calling `.address` on a
-      // derived Uint8List allocates a second temporary buffer; Filament would
-      // then write into that copy while this method returned the unchanged
-      // original list.
-      final outputAddress = bindings.writableBufferAddress(output);
-      switch (format) {
-        case QuaternionFormat.FLOAT4:
-          bindings.SurfaceOrientation_getQuats_float4(
-            _ptr,
-            outputAddress.cast(),
-            quatCount,
-            stride,
-          );
-          break;
-        case QuaternionFormat.SHORT4:
-          bindings.SurfaceOrientation_getQuats_short4(
-            _ptr,
-            outputAddress.cast(),
-            quatCount,
-            stride,
-          );
-          break;
-        case QuaternionFormat.HALF4:
-          bindings.SurfaceOrientation_getQuats_half4(
-            _ptr,
-            outputAddress.cast(),
-            quatCount,
-            stride,
-          );
-          break;
-      }
-    } else {
-      final outputBytes = output.asUint8List();
-      switch (format) {
-        case QuaternionFormat.FLOAT4:
-          bindings.SurfaceOrientation_getQuats_float4(
-            _ptr,
-            outputBytes.address.cast(),
-            quatCount,
-            stride,
-          );
-          break;
-        case QuaternionFormat.SHORT4:
-          bindings.SurfaceOrientation_getQuats_short4(
-            _ptr,
-            outputBytes.address.cast(),
-            quatCount,
-            stride,
-          );
-          break;
-        case QuaternionFormat.HALF4:
-          bindings.SurfaceOrientation_getQuats_half4(
-            _ptr,
-            outputBytes.address.cast(),
-            quatCount,
-            stride,
-          );
-          break;
-      }
+    final outputBytes = output.asUint8List();
+    switch (format) {
+      case QuaternionFormat.FLOAT4:
+        bindings.SurfaceOrientation_getQuats_float4(
+          _ptr,
+          outputBytes.address.cast(),
+          quatCount,
+          stride,
+        );
+        break;
+      case QuaternionFormat.SHORT4:
+        bindings.SurfaceOrientation_getQuats_short4(
+          _ptr,
+          outputBytes.address.cast(),
+          quatCount,
+          stride,
+        );
+        break;
+      case QuaternionFormat.HALF4:
+        bindings.SurfaceOrientation_getQuats_half4(
+          _ptr,
+          outputBytes.address.cast(),
+          quatCount,
+          stride,
+        );
+        break;
     }
 
     return output;

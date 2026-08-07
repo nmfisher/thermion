@@ -29,14 +29,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   Float32List getSphericalHarmonics() {
     final harmonics = makeFloat32List(27);
-    if (FILAMENT_WASM) {
-      Ktx1Bundle_getSphericalHarmonics(
-        pointer,
-        writableBufferAddress(harmonics).cast(),
-      );
-    } else {
-      Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
-    }
+    Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
     return harmonics;
   }
 
