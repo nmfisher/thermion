@@ -3,8 +3,6 @@
 <p align="center">
   <a href="https://thermion.dev/quickstart">Quickstart (Flutter)</a> •
   <a href="https://thermion.dev/">Documentation</a> •
-  <a href="https://thermion.dev/showcase">Showcase</a> •
-  <a href="https://dartpad.thermion.dev/">Playground</a> •
   <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
 </p>
 
