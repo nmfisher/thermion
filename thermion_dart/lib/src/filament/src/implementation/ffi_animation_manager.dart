@@ -99,15 +99,22 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   }
 
   @override
-  bool setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds) {
+  Future<void> setGltfAnimationTime(ThermionAsset asset, int animationIndex, double timeInSeconds) async {
     if (asset.type != SceneAssetType.gltf) {
       throw Exception("Only supported for glTF assets");
     }
-    return AnimationManager_setGltfAnimationTime(
-      animationManager,
-      asset.getNativeHandle(),
-      animationIndex,
-      timeInSeconds,
+    // Dispatch on the render thread: setGltfAnimationTime applies morph-target
+    // channels via the backend CommandStream, which asserts it runs on the
+    // render thread. The non-RT variant panicked for morph animations.
+    await withVoidCallback(
+      (requestId, cb) => AnimationManager_setGltfAnimationTimeRenderThread(
+        animationManager,
+        asset.getNativeHandle(),
+        animationIndex,
+        timeInSeconds,
+        requestId,
+        cb,
+      ),
     );
   }
 

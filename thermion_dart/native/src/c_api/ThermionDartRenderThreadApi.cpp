@@ -1687,6 +1687,28 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // setGltfAnimationTime applies morph-target channels via the backend
+  // CommandStream, which asserts it runs on the render thread. Unlike every
+  // sibling animation mutator, the plain AnimationManager_setGltfAnimationTime
+  // dispatched synchronously on the caller's thread and panicked for morph
+  // animations — this wrapper runs it on the render thread like the others.
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_setGltfAnimationTimeRenderThread(
+      TAnimationManager *tAnimationManager,
+      TSceneAsset *tSceneAsset,
+      int animationIndex,
+      float timeInSeconds,
+      uint32_t requestId,
+      VoidCallback onComplete) {
+    auto *rt = RT(tAnimationManager);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          AnimationManager_setGltfAnimationTime(tAnimationManager, tSceneAsset, animationIndex, timeInSeconds);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
       TAnimationManager *tAnimationManager,
       TSceneAsset *sceneAsset,
