@@ -1,7 +1,7 @@
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
-  Permissions-Policy: cross-origin-isolated=(self "https://thermion-examples.pages.dev")
+  Permissions-Policy: cross-origin-isolated=(self)
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
 
