@@ -30,7 +30,14 @@ concurrency:
 jobs:
   deploy:
     name: Build & deploy site
-    runs-on: ubuntu-24.04
+    # ubuntu-22.04 (not -24.04): the "Download thermion web artifacts" step runs
+    # `dart run bin/download_web.dart`, which resolves thermion_dart's native
+    # assets and fires hook/build.dart for the HOST target — compiling the C++
+    # glue. On ubuntu-24.04 clang can't find the C++ stdlib headers
+    # (fatal error: 'cstdint' file not found); 22.04's toolchain resolves them.
+    # Same image run-web-builds.yml uses for the identical command. Keep this as
+    # the single download pathway — do not duplicate it with curl/unzip.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
