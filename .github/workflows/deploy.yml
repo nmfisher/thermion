@@ -57,8 +57,22 @@ jobs:
           (cd examples/dart/examples_lib && dart pub get)
           (cd examples/dart/web_gallery && dart pub get)
       - name: Download thermion web artifacts (thermion_dart.js/wasm)
+        # Fetch the prebuilt artifacts pinned by native/web/web.version straight from
+        # R2. We deliberately do NOT use `dart run bin/download_web.dart` here: running
+        # any script inside the thermion_dart package resolves its native assets, which
+        # fires hook/build.dart and compiles the host C++ glue — failing on runners
+        # without a C++ stdlib, and wasteful for a pure download anyway. This mirrors
+        # the script's logic (see thermion_dart/bin/download_web.dart).
         working-directory: thermion_dart
-        run: dart run bin/download_web.dart -o ../examples/dart/web_gallery/web
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < native/web/web.version)"
+          echo "Web artifact version: $version"
+          url="https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/thermion_dart-${version}-web.zip"
+          curl -fsSL "$url" -o /tmp/thermion-web.zip
+          mkdir -p ../examples/dart/web_gallery/web
+          unzip -o /tmp/thermion-web.zip -d ../examples/dart/web_gallery/web
+          ls -la ../examples/dart/web_gallery/web/thermion_dart.js ../examples/dart/web_gallery/web/thermion_dart.wasm
       - name: Copy shared assets
         run: cp -r examples/assets examples/dart/web_gallery/web/assets
       - name: Compile gallery to WASM
