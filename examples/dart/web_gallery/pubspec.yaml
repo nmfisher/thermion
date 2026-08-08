@@ -13,3 +13,15 @@ dependencies:
     path: ../examples_lib
   logging: ^1.3.0
   web: ^1.0.0
+
+# This package only ever builds for the web (compiled to WASM), so it never
+# needs a host native build. Setting skip_native_build lets us run Thermion's
+# pure-Dart tooling here — notably `dart run thermion_dart:download_web`, which
+# only fetches prebuilt web artifacts over HTTP — without the build hook firing
+# a host C++ compile (and without needing a C++ toolchain on the runner). The
+# web build itself is unaffected: the hook's buildCodeAssets branch still
+# downloads artifacts before this skip takes effect.
+hooks:
+  user_defines:
+    thermion_dart:
+      skip_native_build: true

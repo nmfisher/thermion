@@ -21,6 +21,22 @@ void main(List<String> args) async {
       return;
     }
 
+    // Escape hatch for running pure-Dart tooling in this package — e.g.
+    // `bin/download_web.dart`, which only fetches prebuilt artifacts over HTTP
+    // and uses no native code — without paying for a host C++ build (and without
+    // needing a C++ toolchain on the runner at all). `dart run` always resolves
+    // this package's native assets and would otherwise fire the CBuilder below.
+    // Set `skip_native_build: true` under `hooks.user_defines.thermion_dart` in
+    // the *consuming* package's pubspec.yaml: CLI defines aren't supported, and
+    // env vars aren't forwarded into the hook subprocess (it gets a curated
+    // PATH/HOME-only environment). Placed after the web branch above so a web
+    // build still downloads its artifacts. Produces no code assets, so only safe
+    // for invocations that need no native library.
+    if (input.userDefines["skip_native_build"] == true) {
+      logger.info("skip_native_build userDefine is set; skipping host native build");
+      return;
+    }
+
     logger.info(input.assets.encodedAssets.keys.toList());
 
     final config = input.config;
