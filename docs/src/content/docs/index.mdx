@@ -1,76 +1,63 @@
 ---
 title: Thermion
-description: Cross-platform 3D rendering for Dart and Flutter.
+description: Native-grade cross-platform 3D rendering for Dart and Flutter.
 template: splash
-hero:
-  title: Thermion
-  tagline: Cross-platform 3D rendering for Dart and Flutter
-  image:
-    file: ../../assets/logo.png
-  actions:
-    - text: Get started
-      link: /getting_started/
-      icon: right-arrow
-      variant: primary
-    - text: View on GitHub
-      link: https://github.com/nmfisher/thermion
-      icon: external
+pagefind: false
 ---
 
-Thermion is a framework for creating cross-platform 3D applications with Dart and/or Flutter.
+import ThermionShowcase from '../../components/ThermionShowcase.astro';
 
-## Overview
+<section class="thermion-hero">
+  <p class="thermion-kicker">Dart × Flutter × Filament</p>
+  <h1>Native-grade 3D.<br /><em>One Dart API.</em></h1>
+  <div class="thermion-hero__lede">Build real-time 3D experiences for mobile, desktop, and web without replacing your Flutter application—or compromising the renderer underneath it.</div>
+  <div class="thermion-hero__actions">
+    <a class="thermion-button thermion-button--primary" href="/getting_started/">Start building <span>→</span></a>
+    <a class="thermion-button" href="https://github.com/nmfisher/thermion">View the source <span>↗</span></a>
+  </div>
+  <div class="thermion-hero__meta" aria-label="Supported capabilities">
+    <span>glTF 2.0</span>
+    <span>PBR materials</span>
+    <span>Skeletal animation</span>
+    <span>Native + WebAssembly</span>
+  </div>
+</section>
 
-Below is a general overview of how the Thermion packages are structured to ensure a clean separation between the general Dart components, and the Flutter specific components.
+<ThermionShowcase />
 
-If you want a more detailed explanation of how to start rendering 3D content inside a Flutter app, [click here to view the quickstart page](/quickstart).
+<section class="thermion-intro">
+  <div>
+    <p class="thermion-kicker">The shape of Thermion</p>
+    <h2>A renderer you can use at the level you need.</h2>
+  </div>
+  <div class="thermion-intro__copy">Start with a Flutter widget and sensible defaults. Drop down to the viewer API when you need direct control over scenes, cameras, materials, lights, animation, and post-processing.</div>
+</section>
 
-### Package structure 
+<section class="thermion-layers">
+  <article>
+    <span class="thermion-layers__index">01 / Flutter</span>
+    <h3>Place 3D in the widget tree.</h3>
+    <div class="thermion-layer__copy"><code>thermion_flutter</code> owns the platform texture and lifecycle. <code>ViewerWidget</code> gives you the shortest route from a glTF file to an interactive viewport.</div>
+    <a href="/quickstart/">Read the Flutter quick start →</a>
+  </article>
+  <article>
+    <span class="thermion-layers__index">02 / Viewer</span>
+    <h3>Control the complete scene.</h3>
+    <div class="thermion-layer__copy"><code>ThermionViewer</code> exposes assets, entities, transforms, cameras, lighting, animation, collision tests, and rendering effects through a Dart API.</div>
+    <a href="/viewer/">Explore the viewer API →</a>
+  </article>
+  <article>
+    <span class="thermion-layers__index">03 / Renderer</span>
+    <h3>Keep Filament underneath.</h3>
+    <div class="thermion-layer__copy">Thermion uses Google's physically based Filament renderer across native targets and WebAssembly, while keeping platform plumbing out of scene code.</div>
+    <a href="/filament/">Understand the renderer →</a>
+  </article>
+</section>
 
-Thermion is divided into two packages:
-- `thermion_flutter`, a Flutter package for creating/embedding a rendering surface inside a Flutter app. 
-- `thermion_dart`, which contains all the code needed to create a viewer.
-
-With this structure, the Flutter-specific components are not coupled to the Dart components, meaning Thermion can be used for rendering in both Flutter and non-Flutter applications.
-
-For example, Thermion ships with examples for rendering with Dart only (no Flutter) with a CLI/headless application on MacOS, and with a Javascript/WASM/HTML application in browsers.
-
-`thermion_flutter` exports `thermion_dart`, so if you are working with a Flutter application, you will only need to import `thermion_fluttter`.
-
-### ThermionViewer (`thermion_dart`)
-
-The ThermionViewer class provides an API for creating and interacting with 3D scenes powered by the Filament rendering engine. 
-
-It allows loading 3D models in glTF format, adding lights and a skybox, manipulating the camera, animating objects, and more.
-
-Key functionalities include:
-- Scene Management: Load and manipulate entities, lights, skyboxes, and background elements within a 3D scene.
-- Rendering Control: Manage rendering loop, frame rate, and post-processing effects like tone mapping and bloom.
-- Camera Control: Position and orient the camera, adjust focal length, and control exposure settings.
-- Animation: Play, pause, and manipulate skeletal and morph target animations.
-- Entity Manipulation: Transform entities (position, rotation, scale), set material properties, and manage parent-child relationships.
-- Collision Detection (experimental): Add collision components to entities and test for collisions within the scene.
-- Input Handling: Interact with the scene using touch gestures for panning, rotating, and zooming.
-- Developers use the ThermionViewer class to build and control the behavior of their 3D applications.
-
-### ThermionFlutterPlugin
-
-The ThermionFlutterPlugin class handles the platform-specific initialization required to embed a Filament rendering surface within a Flutter Widget.
-
-This includes creating a texture and managing the application lifecycle to pause rendering when the app is inactive.
-
-You will generally only need to interact with `ThermionFlutterPlugin` directly to create or dispose of a ThermionViewer. 
-
-### ThermionWidget (`thermion_flutter`)
-
-`ThermionWidget` is a Flutter widget that displays the 3D content rendered by a ThermionViewer. 
-
-It handles creating and managing the underlying platform-specific texture that Filament renders to, and provides a way to embed this texture within the Flutter widget tree.
-
-Key features of ThermionWidget include:
-- Texture Management: It creates, resizes, and destroys the ThermionFlutterTexture used to display the rendered content from the ThermionViewer.
-- Platform Adaption: It handles platform-specific differences, such as texture coordinate systems, to ensure consistent rendering across different platforms.
-- Initialization Handling: Displays a placeholder (configurable via the initial property) while the Filament texture is being initialized, providing a smoother user experience.
-- Seamless Integration: Integrates seamlessly within the Flutter widget tree, allowing developers to combine 2D and 3D content easily.
-- Resize Handling: It listens for resize events and automatically resizes the underlying texture to match, ensuring the 3D content scales correctly.
-
+<section class="thermion-platforms">
+  <div>
+    <p class="thermion-kicker">Same scene, different surface</p>
+    <h2>Mobile. Desktop. Browser.</h2>
+  </div>
+  <div class="thermion-platforms__copy">Thermion separates rendering from Flutter integration, so the same scene code can drive a Flutter texture, a headless Dart process, or a browser canvas.</div>
+</section>

@@ -1,60 +1,307 @@
 :root {
-  --sl-color-accent-low: #172554;
-  --sl-color-accent: #60a5fa;
+  --sl-font: 'Avenir Next', Avenir, 'Helvetica Neue', sans-serif;
+  --sl-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --sl-color-accent-low: #13263d;
+  --sl-color-accent: #328cff;
   --sl-color-accent-high: #dbeafe;
+  --thermion-ink: #10151c;
+  --thermion-muted: #596474;
+  --thermion-line: #dbe0e7;
+  --thermion-paper: #f7f8fa;
+  --thermion-blue: #1978f2;
 }
 
-.thermion-example {
+:root[data-theme='dark'] {
+  --thermion-ink: #f3f6fa;
+  --thermion-muted: #9ba8b8;
+  --thermion-line: #29313c;
+  --thermion-paper: #10151b;
+}
+
+body {
+  letter-spacing: -0.01em;
+}
+
+header.header {
+  border-bottom-color: color-mix(in srgb, var(--sl-color-gray-5) 60%, transparent);
+  background: color-mix(in srgb, var(--sl-color-bg) 88%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.site-title {
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+main:has(.thermion-hero) > .content-panel:first-child {
+  display: none;
+}
+
+.thermion-kicker {
+  margin: 0;
+  color: var(--thermion-blue);
+  font: 650 0.73rem/1.2 var(--sl-font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.thermion-hero {
   position: relative;
-  margin: 1.25rem 0;
-  overflow: hidden;
-  aspect-ratio: 16 / 9;
-  border: 1px solid var(--sl-color-gray-5);
-  border-radius: 0.75rem;
-  background: radial-gradient(circle at 50% 42%, #263449, #090b10 68%);
+  overflow: clip;
+  padding: clamp(5rem, 10vw, 9rem) 0 clamp(3.5rem, 7vw, 6rem);
 }
 
-.thermion-example__placeholder {
-  display: grid;
-  height: 100%;
-  padding: 1.5rem;
-  place-items: center;
-  text-align: center;
-}
-
-.thermion-example__placeholder h3 {
-  margin: 0 0 0.35rem;
-  color: white;
-}
-
-.thermion-example__placeholder p {
-  max-width: 32rem;
-  margin: 0 auto 1rem;
-  color: #cbd5e1;
-}
-
-.thermion-example button,
-.thermion-example a {
-  display: inline-block;
-  margin: 0.25rem;
-  padding: 0.55rem 0.85rem;
-  border-radius: 0.4rem;
-  font: inherit;
-  cursor: pointer;
-}
-
-.thermion-example button {
-  border: 1px solid #93c5fd;
-  background: #2563eb;
-  color: white;
-}
-
-.thermion-example a {
-  color: #bfdbfe;
-}
-
-.thermion-example iframe {
+.thermion-hero::before {
   position: absolute;
+  z-index: -1;
+  top: -8rem;
+  right: -18rem;
+  width: 42rem;
+  height: 42rem;
+  border: 1px solid color-mix(in srgb, var(--thermion-blue) 18%, transparent);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--thermion-blue) 13%, transparent), transparent 62%);
+  content: '';
+}
+
+.thermion-hero h1 {
+  max-width: 12ch;
+  margin: 1.15rem 0 1.7rem;
+  color: var(--thermion-ink);
+  font-size: clamp(3.8rem, 9vw, 7.6rem);
+  font-weight: 630;
+  letter-spacing: -0.075em;
+  line-height: 0.9;
+}
+
+.thermion-hero h1 em {
+  color: var(--thermion-blue);
+  font-style: normal;
+  font-weight: 480;
+}
+
+.thermion-hero__lede {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--thermion-muted);
+  font-size: clamp(1.12rem, 2vw, 1.38rem);
+  line-height: 1.55;
+}
+
+.thermion-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2.25rem;
+}
+
+.thermion-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 10.5rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--thermion-line);
+  color: var(--thermion-ink);
+  font-size: 0.87rem;
+  font-weight: 620;
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.thermion-button:hover {
+  border-color: var(--thermion-blue);
+}
+
+.thermion-button--primary {
+  border-color: var(--thermion-blue);
+  background: var(--thermion-blue);
+  color: white;
+}
+
+.thermion-button--primary:hover {
+  background: #0869dc;
+  color: white;
+}
+
+.thermion-button span {
+  margin-left: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.thermion-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-top: clamp(4rem, 8vw, 7rem);
+  border-top: 1px solid var(--thermion-line);
+  border-bottom: 1px solid var(--thermion-line);
+}
+
+.thermion-hero__meta span {
+  flex: 1 1 10rem;
+  padding: 0.85rem 1.25rem 0.85rem 0;
+  color: var(--thermion-muted);
+  font: 550 0.72rem/1.2 var(--sl-font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.thermion-showcase {
+  overflow: hidden;
+  margin: 0 calc(clamp(0rem, 3vw, 3rem) * -1) clamp(6rem, 11vw, 10rem);
+  border: 1px solid #242d38;
+  background: #080b0f;
+  color: #f4f7fb;
+  box-shadow: 0 2rem 6rem rgb(7 15 25 / 18%);
+  scroll-margin-top: 5rem;
+}
+
+.thermion-showcase__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 0.6fr);
+  gap: 3rem;
+  align-items: end;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.thermion-showcase__header .thermion-kicker {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  color: #7bb4ff;
+}
+
+.thermion-showcase__header .thermion-kicker span {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: #4cff95;
+  box-shadow: 0 0 0.8rem #4cff95;
+}
+
+.thermion-showcase__header h2 {
+  max-width: 13ch;
+  margin: 0.8rem 0 0;
+  color: white;
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  font-weight: 570;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.thermion-showcase__header > p {
+  margin: 0;
+  color: #8f9cab;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.thermion-showcase__stage {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  min-height: 31rem;
+  border-top: 1px solid #242d38;
+  border-bottom: 1px solid #242d38;
+  background:
+    linear-gradient(rgb(255 255 255 / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 3%) 1px, transparent 1px),
+    radial-gradient(circle at 50% 44%, #1d2b3b 0, #0b1119 38%, #06080b 72%);
+  background-size: 4rem 4rem, 4rem 4rem, auto;
+  place-items: center;
+}
+
+.thermion-showcase__ambient span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(1px);
+  opacity: 0.75;
+}
+
+.thermion-showcase__ambient span:nth-child(1) {
+  top: 22%;
+  left: 18%;
+  width: 11rem;
+  height: 11rem;
+  background: radial-gradient(circle at 35% 30%, #85beff, #1d5ea9 42%, #101927 72%);
+  box-shadow: -1rem 1.5rem 4rem rgb(18 104 224 / 22%);
+}
+
+.thermion-showcase__ambient span:nth-child(2) {
+  top: 30%;
+  right: 21%;
+  width: 8rem;
+  height: 8rem;
+  background: radial-gradient(circle at 32% 27%, #fff1c7, #a37231 35%, #211b15 70%);
+  box-shadow: 1rem 1rem 4rem rgb(218 158 61 / 18%);
+}
+
+.thermion-showcase__ambient span:nth-child(3) {
+  bottom: -5rem;
+  left: 44%;
+  width: 14rem;
+  height: 14rem;
+  background: radial-gradient(circle at 38% 30%, #b8c9e0, #4d5f77 38%, #141a22 70%);
+}
+
+.thermion-showcase__prompt {
+  position: relative;
+  z-index: 2;
+  max-width: 31rem;
+  padding: 2rem;
+  text-align: center;
+  text-shadow: 0 2px 20px #05070a;
+}
+
+.thermion-showcase__prompt > p:first-child {
+  margin: 0 0 0.6rem;
+  color: #7890aa;
+  font: 600 0.68rem/1 var(--sl-font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.thermion-showcase__prompt h3 {
+  margin: 0;
+  color: white;
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  font-weight: 570;
+  letter-spacing: -0.045em;
+}
+
+.thermion-showcase__prompt > p:not(:first-child) {
+  margin: 0.7rem auto 1.5rem;
+  color: #aeb9c6;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.thermion-showcase__play {
+  padding: 0.7rem 0.95rem;
+  border: 1px solid rgb(255 255 255 / 42%);
+  background: rgb(6 10 15 / 62%);
+  color: white;
+  font: 620 0.78rem/1 var(--sl-font);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.thermion-showcase__play:hover {
+  border-color: white;
+  background: white;
+  color: #0a0d12;
+}
+
+.thermion-showcase__play span {
+  margin-right: 0.45rem;
+  font-size: 0.68rem;
+}
+
+.thermion-showcase iframe {
+  position: absolute;
+  z-index: 5;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -62,6 +309,305 @@
   background: black;
 }
 
-.thermion-example.is-active .thermion-example__placeholder {
+.thermion-showcase__close {
+  position: absolute;
+  z-index: 6;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: none;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 25%);
+  background: rgb(0 0 0 / 58%);
+  color: #d9e0e8;
+  font: 540 0.68rem/1 var(--sl-font-mono);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.thermion-showcase__close span {
+  margin-left: 0.35rem;
+  font-size: 1rem;
+}
+
+.thermion-showcase__stage.is-active .thermion-showcase__close {
+  display: block;
+}
+
+.thermion-showcase__stage.is-active .thermion-showcase__prompt,
+.thermion-showcase__stage.is-active .thermion-showcase__ambient {
   visibility: hidden;
+}
+
+.thermion-showcase__scenes {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.thermion-showcase__scenes button {
+  position: relative;
+  padding: 1rem 1.15rem 1.1rem;
+  border: 0;
+  border-right: 1px solid #242d38;
+  background: transparent;
+  color: #7f8b98;
+  font: 560 0.79rem/1.2 var(--sl-font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.thermion-showcase__scenes button:last-child {
+  border-right: 0;
+}
+
+.thermion-showcase__scenes button::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--thermion-blue);
+  content: '';
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.thermion-showcase__scenes button span {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #4f5b68;
+  font: 500 0.6rem/1 var(--sl-font-mono);
+  letter-spacing: 0.06em;
+}
+
+.thermion-showcase__scenes button:hover,
+.thermion-showcase__scenes button[aria-pressed='true'] {
+  background: #0d1218;
+  color: white;
+}
+
+.thermion-showcase__scenes button[aria-pressed='true']::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.thermion-showcase__footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.8rem 1.15rem;
+  color: #667381;
+  font: 500 0.65rem/1.2 var(--sl-font-mono);
+}
+
+.thermion-showcase__footer a {
+  color: #91bfff;
+  text-decoration: none;
+}
+
+.thermion-intro {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.8fr) minmax(20rem, 1.2fr);
+  gap: clamp(3rem, 8vw, 8rem);
+  align-items: start;
+  margin: 0 0 clamp(4rem, 9vw, 8rem);
+}
+
+.thermion-intro h2 {
+  margin: 0.75rem 0 0;
+  color: var(--thermion-ink);
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  font-weight: 570;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.thermion-intro__copy {
+  margin: 1.8rem 0 0;
+  color: var(--thermion-muted);
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  line-height: 1.65;
+}
+
+.thermion-layers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: clamp(5rem, 10vw, 9rem);
+  border-top: 1px solid var(--thermion-line);
+  border-bottom: 1px solid var(--thermion-line);
+}
+
+.thermion-layers article {
+  padding: 2rem clamp(1.25rem, 3vw, 2.5rem) 2.5rem 0;
+}
+
+.thermion-layers article + article {
+  padding-left: clamp(1.25rem, 3vw, 2.5rem);
+  border-left: 1px solid var(--thermion-line);
+}
+
+.thermion-layers__index {
+  color: var(--thermion-blue);
+  font: 600 0.66rem/1 var(--sl-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.thermion-layers h3 {
+  margin: 1.4rem 0 0.8rem;
+  color: var(--thermion-ink);
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  font-weight: 590;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.thermion-layer__copy {
+  min-height: 9rem;
+  margin: 0;
+  color: var(--thermion-muted);
+  font-size: 0.91rem;
+  line-height: 1.65;
+}
+
+.thermion-layers code {
+  padding: 0;
+  background: none;
+  color: var(--thermion-ink);
+  font-size: 0.84em;
+}
+
+.thermion-layers a {
+  display: inline-block;
+  margin-top: 1.3rem;
+  color: var(--thermion-blue);
+  font-size: 0.8rem;
+  font-weight: 620;
+  text-decoration: none;
+}
+
+.thermion-platforms {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: clamp(3rem, 8vw, 8rem);
+  align-items: end;
+  margin: 0 calc(clamp(0rem, 3vw, 3rem) * -1);
+  padding: clamp(3rem, 7vw, 6rem);
+  background: var(--thermion-blue);
+  color: white;
+}
+
+.thermion-platforms .thermion-kicker {
+  color: #c5ddff;
+}
+
+.thermion-platforms h2 {
+  margin: 0.8rem 0 0;
+  color: white;
+  font-size: clamp(2.8rem, 6vw, 5.4rem);
+  font-weight: 570;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+}
+
+.thermion-platforms__copy {
+  margin: 0;
+  color: #e5f0ff;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 50rem) {
+  .thermion-hero {
+    padding-top: 4.5rem;
+  }
+
+  .thermion-showcase {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .thermion-showcase__header,
+  .thermion-intro,
+  .thermion-platforms {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .thermion-showcase__stage {
+    min-height: 24rem;
+  }
+
+  .thermion-showcase__scenes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .thermion-showcase__scenes button {
+    border-bottom: 1px solid #242d38;
+  }
+
+  .thermion-layers {
+    grid-template-columns: 1fr;
+  }
+
+  .thermion-layers article,
+  .thermion-layers article + article {
+    padding: 1.75rem 0 2rem;
+    border-left: 0;
+  }
+
+  .thermion-layers article + article {
+    border-top: 1px solid var(--thermion-line);
+  }
+
+  .thermion-layer__copy {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 30rem) {
+  .thermion-hero h1 {
+    font-size: 3.3rem;
+  }
+
+  .thermion-hero__actions,
+  .thermion-button {
+    width: 100%;
+  }
+
+  .thermion-showcase__header {
+    padding: 1.4rem;
+  }
+
+  .thermion-showcase__stage {
+    min-height: 22rem;
+  }
+
+  .thermion-showcase__ambient span:nth-child(1) {
+    left: 5%;
+    width: 8rem;
+    height: 8rem;
+  }
+
+  .thermion-showcase__ambient span:nth-child(2) {
+    right: 7%;
+  }
+
+  .thermion-showcase__scenes {
+    grid-template-columns: 1fr;
+  }
+
+  .thermion-showcase__scenes button {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .thermion-showcase__scenes button span {
+    margin: 0;
+  }
+
+  .thermion-showcase__footer {
+    gap: 0.75rem;
+    align-items: flex-end;
+  }
 }
