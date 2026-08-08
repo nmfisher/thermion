@@ -1,0 +1,8 @@
+# Cross-origin isolation for the multithreaded (pthreads + OffscreenCanvas)
+# Thermion WASM build, which needs SharedArrayBuffer. Cloudflare Pages serves
+# this file's rules as response headers. GitHub Pages / docs.page cannot set
+# these, which is why the gallery is hosted here rather than with the docs.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: cross-origin
