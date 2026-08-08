@@ -32,6 +32,7 @@
 #include <queue>
 #include <atomic>
 #include <set>
+#include <utility>
 
 #include "flutter_d3d_texture.h"
 
@@ -59,11 +60,29 @@ namespace thermion::tflutter::windows
   // Sharing one context also matches the surrounding state: `_flutterTextures`
   // is already a file-static shared across instances.
   //
-  // KNOWN REMAINING INCONSISTENCY: `_flutterTextures` is shared but
-  // `_textureRegistrar` is per-instance, so with two engines one instance can
-  // find a texture registered by the other and mark it on the wrong registrar.
-  // Fixing that properly means keying textures by owning plugin instance.
+  // LIFETIME: the context is PROCESS-IMMORTAL. `destroyContext` arrives from
+  // `FilamentApp.onDestroy`, i.e. once per ENGINE, and a single engine's
+  // shutdown cannot prove that no other engine still has live render or blit
+  // threads using it. Nulling it let a later engine construct a second context
+  // and rebind BlueVK underneath the first; deleting it would be a plain
+  // use-after-free. Keeping it alive leaks exactly one context per process.
+  // FUTURE: refcounted leases so the last engine out can genuinely release it.
+  //
+  // All access is under `_contextMutex` via `EnsureContextLocked()`.
   thermion::vulkan::windows::WindowsVulkanContext *ThermionFlutterPlugin::_context = nullptr;
+
+  thermion::vulkan::windows::WindowsVulkanContext *
+  ThermionFlutterPlugin::EnsureContextLocked() {
+    if (!_context) {
+      _context = new thermion::vulkan::windows::WindowsVulkanContext();
+    }
+    return _context;
+  }
+
+  // Defined below alongside the blit-worker state they manage; declared here
+  // because the constructor and destructor appear above that block.
+  static void AcquireBlitWorker();
+  static void ReleaseBlitWorker();
 
   void ThermionFlutterPlugin::RegisterWithRegistrar(
       flutter::PluginRegistrarWindows *registrar)
@@ -86,6 +105,8 @@ namespace thermion::tflutter::windows
       : _textureRegistrar(textureRegistrar), _pluginRegistrar(pluginRegistrar),
         _channel(std::move(channel))
   {
+
+    AcquireBlitWorker();
 
     // attach the method call handler for incoming messages
     _channel->SetMethodCallHandler([=](const auto &call, auto result)
@@ -119,11 +140,20 @@ namespace thermion::tflutter::windows
   // dropped — Flutter shows a previously-blitted texture for one
   // frame, which is preferable to unbounded queue growth under
   // sustained GPU pressure.
+  // Texture identity is (owning registrar, Flutter texture ID). Texture and
+  // retirement state are process-global while registrars are per-engine, and
+  // IDs are pointer-derived and therefore recyclable, so an ID alone is not a
+  // stable identity: a stale retire(old) landing after a create(new) that
+  // reused the ID would mute the new texture.
+  using TextureKey = std::pair<flutter::TextureRegistrar*, int64_t>;
+
   struct BlitJob {
     thermion::vulkan::windows::WindowsVulkanContext* context;
     flutter::TextureRegistrar* registrar;
     HANDLE handle;
     int64_t flutterTextureId;
+
+    TextureKey key() const { return TextureKey{registrar, flutterTextureId}; }
   };
 
   static constexpr size_t kMaxBlitQueueDepth = 16;
@@ -134,17 +164,28 @@ namespace thermion::tflutter::windows
   static std::mutex _contextMutex;
   static std::condition_variable _blitCv;
   static std::queue<BlitJob> _blitQueue;
-  static std::set<int64_t> _retiringTextureIds;
+  static std::set<TextureKey> _retiringTextures;
+
+  // Worker lifetime is PROCESS-owned and refcounted by plugin instance, not
+  // owned by whichever instance happens to be destroyed first. Previously
+  // every destructor stopped and joined the shared worker and never reset the
+  // flags, so tearing down one engine permanently disabled blitting for every
+  // survivor: jobs still enqueued, nothing consumed them.
+  //
+  // _workerMutex serialises start/stop (it is taken ONLY in the constructor
+  // and destructor). It is never acquired while _contextMutex is held, and
+  // the worker never acquires it, so joining under it cannot deadlock.
+  static std::mutex _workerMutex;
   // Heap-held, never a namespace-scope std::thread: this DLL's onexit table
   // destroys file statics at DLL_PROCESS_DETACH. When the process exits via
-  // exit()/ExitProcess while the plugin is still alive (dart:io exit(), any
-  // path that skips window teardown), ExitProcess has already killed the
-  // worker but the std::thread still holds its id, so ~thread() saw
-  // joinable() and called std::terminate -> abort -> 0xC0000409. The pointer
-  // is deliberately leaked at process exit.
+  // exit()/ExitProcess while the plugin is still alive, ExitProcess has already
+  // killed the worker but a namespace-scope std::thread would still hold its id,
+  // and ~thread() would see joinable() and call std::terminate -> abort ->
+  // 0xC0000409 (upstream thermion #419). The pointer is deliberately leaked at
+  // process exit; it is only deleted by StopBlitWorkerLocked after a join.
   static std::thread* _blitWorker = nullptr;
-  static std::atomic<bool> _blitWorkerStarted{false};
   static std::atomic<bool> _blitWorkerShouldStop{false};
+  static int _pluginInstanceCount = 0;
 
   static void BlitWorkerLoop() {
     while (true) {
@@ -167,9 +208,7 @@ namespace thermion::tflutter::windows
       bool retiring = false;
       {
         std::lock_guard<std::mutex> blitLock(_blitMutex);
-        retiring =
-            _retiringTextureIds.find(job.flutterTextureId) !=
-            _retiringTextureIds.end();
+        retiring = _retiringTextures.find(job.key()) != _retiringTextures.end();
       }
       if (!retiring) {
         if (job.context) {
@@ -182,19 +221,49 @@ namespace thermion::tflutter::windows
     }
   }
 
-  static void EnsureBlitWorkerStarted() {
-    bool expected = false;
-    if (_blitWorkerStarted.compare_exchange_strong(expected, true)) {
-      _blitWorker = new std::thread(BlitWorkerLoop);
+  // Called once, by the FIRST plugin instance. Starting here rather than
+  // lazily from EnqueueBlit keeps _workerMutex off the hot path, which is what
+  // makes the lock graph acyclic: EnqueueBlit runs under _contextMutex, so a
+  // lazy start would create _contextMutex -> _workerMutex while a concurrent
+  // stop holds _workerMutex and joins a worker waiting on _contextMutex.
+  static void StartBlitWorkerLocked() {
+    if (_blitWorker) return;
+    _blitWorkerShouldStop.store(false);
+    _blitWorker = new std::thread(BlitWorkerLoop);
+  }
+
+  // Called once, by the LAST plugin instance to be destroyed. Every piece of
+  // worker state is reset so a plugin registered later can start it again.
+  static void StopBlitWorkerLocked() {
+    if (!_blitWorker) return;
+    _blitWorkerShouldStop.store(true);
+    _blitCv.notify_all();
+    if (_blitWorker->joinable()) {
+      _blitWorker->join();
+    }
+    delete _blitWorker;
+    _blitWorker = nullptr;
+    _blitWorkerShouldStop.store(false);
+  }
+
+  static void AcquireBlitWorker() {
+    std::lock_guard<std::mutex> workerLock(_workerMutex);
+    if (_pluginInstanceCount++ == 0) {
+      StartBlitWorkerLocked();
+    }
+  }
+
+  static void ReleaseBlitWorker() {
+    std::lock_guard<std::mutex> workerLock(_workerMutex);
+    if (_pluginInstanceCount > 0 && --_pluginInstanceCount == 0) {
+      StopBlitWorkerLocked();
     }
   }
 
   static void EnqueueBlit(BlitJob&& job) {
-    EnsureBlitWorkerStarted();
     {
       std::lock_guard<std::mutex> lock(_blitMutex);
-      if (_retiringTextureIds.find(job.flutterTextureId) !=
-          _retiringTextureIds.end()) {
+      if (_retiringTextures.find(job.key()) != _retiringTextures.end()) {
         return;
       }
       // Bounded queue — drop oldest under sustained GPU pressure
@@ -208,15 +277,28 @@ namespace thermion::tflutter::windows
     _blitCv.notify_one();
   }
 
-  static void RetireBlitJobs(int64_t flutterTextureId) {
-    std::lock_guard<std::mutex> lock(_blitMutex);
-    _retiringTextureIds.insert(flutterTextureId);
+  // Retires `key` AND acts as an in-flight barrier.
+  //
+  // Taking _contextMutex first is what makes this a barrier rather than a mere
+  // flag. The worker holds _contextMutex across its whole admitted
+  // blit-and-mark sequence, so once this function holds that lock, any blit
+  // that already passed the retirement check has finished marking. With only
+  // _blitMutex a worker could pass the check, this function could return, the
+  // caller could begin unregistration, and the admitted worker would still
+  // call MarkTextureFrameAvailable on a texture the engine was destroying.
+  //
+  // Lock order _contextMutex -> _blitMutex matches every other nested site.
+  // CALLERS MUST NOT ALREADY HOLD _contextMutex.
+  static void RetireBlitJobs(const TextureKey& key) {
+    std::lock_guard<std::mutex> contextLock(_contextMutex);
+    std::lock_guard<std::mutex> blitLock(_blitMutex);
+    _retiringTextures.insert(key);
 
     std::queue<BlitJob> retained;
     while (!_blitQueue.empty()) {
       auto job = std::move(_blitQueue.front());
       _blitQueue.pop();
-      if (job.flutterTextureId != flutterTextureId) {
+      if (job.key() != key) {
         retained.push(std::move(job));
       }
     }
@@ -224,31 +306,88 @@ namespace thermion::tflutter::windows
   }
 
   ThermionFlutterPlugin::~ThermionFlutterPlugin() {
+    // Refuse new registrations first: an allocation already in flight when the
+    // widget disposed can still complete here, and must not attach a texture to
+    // a registrar that is going away.
+    _shuttingDown.store(true);
     StopFrameScheduler();
 
-    // Stop the Blit worker thread cleanly. We signal the stop flag,
-    // wake the worker (it may be sleeping on the condition variable
-    // with an empty queue), and join. The worker drains queued
-    // jobs first, then returns. Safe against hot restart / app
-    // teardown.
-    if (_blitWorkerStarted.load()) {
-      _blitWorkerShouldStop.store(true);
-      _blitCv.notify_all();
-      if (_blitWorker && _blitWorker->joinable()) {
-        _blitWorker->join();
+    // Per-engine shutdown barrier.
+    //
+    // The Dart-side `retireTexture` call is an asynchronous optimisation, not a
+    // lifetime guarantee: `invokeMethod` is a platform message, engine teardown
+    // can destroy the messenger before the handler runs, and an allocation
+    // still in flight at dispose has no descriptor to retire yet. So retire and
+    // barrier every texture owned by THIS registrar here, where the ordering is
+    // enforced natively and cannot be outrun.
+    std::vector<int64_t> ownedIds;
+    {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      for (auto &texture : _flutterTextures) {
+        if (texture->GetOwner() == _textureRegistrar) {
+          ownedIds.push_back(texture->GetFlutterTextureId());
+        }
       }
     }
+    // RetireBlitJobs takes _contextMutex itself, so it must be called WITHOUT
+    // holding it.
+    for (auto id : ownedIds) {
+      RetireBlitJobs(TextureKey{_textureRegistrar, id});
+    }
+
+    // Drop this registrar's records and release their GPU surfaces. Leaving
+    // them in the process-global vector would let a surviving engine match a
+    // dead registrar's entry, and would leak one surface per texture per engine.
+    {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      for (auto it = _flutterTextures.begin(); it != _flutterTextures.end();) {
+        if ((*it)->GetOwner() != _textureRegistrar) {
+          ++it;
+          continue;
+        }
+        if (_context) {
+          _context->DestroyRenderingSurface((*it)->GetD3DTextureHandle());
+        }
+        it = _flutterTextures.erase(it);
+      }
+      for (auto &entry : _pendingSwaps) {
+        if (_context) {
+          _context->DestroyRenderingSurface(entry.second.newD3DHandle);
+        }
+      }
+      _pendingSwaps.clear();
+    }
+
+    // Retirement entries are keyed by registrar, so this registrar's are now
+    // permanently unmatchable. Drop them rather than growing the set forever.
+    {
+      std::lock_guard<std::mutex> blitLock(_blitMutex);
+      for (auto it = _retiringTextures.begin(); it != _retiringTextures.end();) {
+        it = (it->first == _textureRegistrar) ? _retiringTextures.erase(it)
+                                              : std::next(it);
+      }
+    }
+
+    // The worker is process-owned. Only the LAST plugin instance stops it;
+    // previously every destructor stopped and joined the shared worker and
+    // never reset its flags, permanently disabling blitting for survivors.
+    // Called without _contextMutex held — the join would otherwise deadlock
+    // against a worker waiting for that lock.
+    ReleaseBlitWorker();
   }
 
   void ThermionFlutterPlugin::CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
-    std::lock_guard<std::mutex> contextLock(_contextMutex);
-    if (!_context)
-    {
-      _context = new thermion::vulkan::windows::WindowsVulkanContext();
+    if (_shuttingDown.load()) {
+      result->Error("SHUTTING_DOWN",
+                    "This plugin instance is being destroyed");
+      return;
     }
+
+    std::lock_guard<std::mutex> contextLock(_contextMutex);
+    EnsureContextLocked();
 
     const auto *args =
         std::get_if<flutter::EncodableList>(methodCall.arguments());
@@ -276,15 +415,20 @@ namespace thermion::tflutter::windows
 
     auto flutterTextureId = _textureRegistrar->RegisterTexture(flutterTexture->GetFlutterTexture());
     flutterTexture->SetFlutterTextureId(flutterTextureId);
+    flutterTexture->SetOwner(_textureRegistrar);
     _flutterTextures.push_back(std::move(flutterTexture));
 
-    // Texture IDs can be recycled by the embedder, and `_retiringTextureIds`
-    // is only ever inserted into. Clear any stale retirement for this ID so a
-    // recycled ID is not permanently muted (which would present as a texture
-    // that registers successfully but never receives a frame).
+    // Texture IDs are pointer-derived and can be recycled, and retirement is
+    // insert-only. Clear any stale retirement for this (registrar, ID) so a
+    // recycled ID is not permanently muted — which would present as a texture
+    // that registers successfully but never receives a frame.
+    //
+    // Same-registrar ordering is what makes this sufficient: MethodChannel
+    // delivery is FIFO per engine, so a retire sent before this create is
+    // handled before it, and a retire sent after refers to this texture.
     {
       std::lock_guard<std::mutex> blitLock(_blitMutex);
-      _retiringTextureIds.erase(flutterTextureId);
+      _retiringTextures.erase(TextureKey{_textureRegistrar, flutterTextureId});
     }
 
     std::cout << "Registered Flutter texture ID " << flutterTextureId
@@ -319,7 +463,8 @@ namespace thermion::tflutter::windows
 
     // Find the existing FlutterD3DTexture
     auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
-                           { return ft->GetFlutterTextureId() == flutterTextureId; });
+                           { return ft->GetFlutterTextureId() == flutterTextureId &&
+                                    ft->GetOwner() == _textureRegistrar; });
     if (it == _flutterTextures.end()) {
       result->Error("NOT_FOUND", "Flutter texture not found");
       return;
@@ -369,7 +514,8 @@ namespace thermion::tflutter::windows
     }
 
     auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
-                           { return ft->GetFlutterTextureId() == flutterTextureId; });
+                           { return ft->GetFlutterTextureId() == flutterTextureId &&
+                                    ft->GetOwner() == _textureRegistrar; });
     
     if (it == _flutterTextures.end()) {
       std::cerr << "Failed to find Flutter texture associated with Flutter texture ID " << flutterTextureId << std::endl;
@@ -412,7 +558,7 @@ namespace thermion::tflutter::windows
 
     // Prevent queued or subsequently delivered frame notifications from
     // touching the surface after TextureRegistrar begins unregistration.
-    RetireBlitJobs(flutterTextureId);
+    RetireBlitJobs(TextureKey{_textureRegistrar, flutterTextureId});
 
     _textureRegistrar->UnregisterTexture(
       flutterTextureId,
@@ -436,11 +582,26 @@ namespace thermion::tflutter::windows
     // std::cout << methodCall.method_name().c_str() << std::endl;
     if (methodCall.method_name() == "getSharedContext")
     {
-      if (!_context)
-      {
-        _context = new thermion::vulkan::windows::WindowsVulkanContext();
-      }
-      result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      result->Success(flutter::EncodableValue(
+          (int64_t)EnsureContextLocked()->GetSharedContext()));
+    }
+    else if (methodCall.method_name() == "getRenderingContext")
+    {
+      // Single locked operation returning BOTH values.
+      //
+      // Dart used to fetch the driver platform and the shared context in two
+      // separate channel calls. Even with each call individually locked, the
+      // pair was not consistent: another engine could act between them. One
+      // op under one lock removes the interleaving window entirely.
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      auto *context = EnsureContextLocked();
+      std::vector<flutter::EncodableValue> resultList;
+      resultList.push_back(
+          flutter::EncodableValue((int64_t)context->GetPlatform()));
+      resultList.push_back(
+          flutter::EncodableValue((int64_t)context->GetSharedContext()));
+      result->Success(resultList);
     }
     else if (methodCall.method_name() == "createTexture")
     {
@@ -498,8 +659,9 @@ namespace thermion::tflutter::windows
         // BlitWorkerLoop.
         {
           std::lock_guard<std::mutex> blitLock(_blitMutex);
-          if (_retiringTextureIds.find(*flutterTextureId) !=
-              _retiringTextureIds.end()) {
+          if (_retiringTextures.find(
+                  TextureKey{_textureRegistrar, *flutterTextureId}) !=
+              _retiringTextures.end()) {
             result->Success(flutter::EncodableValue((int64_t) nullptr));
             return;
           }
@@ -507,7 +669,8 @@ namespace thermion::tflutter::windows
 
         // Find the FlutterD3DTexture for this flutterTextureId
         auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
-                               { return ft->GetFlutterTextureId() == *flutterTextureId; });
+                               { return ft->GetFlutterTextureId() == *flutterTextureId &&
+                                        ft->GetOwner() == _textureRegistrar; });
 
         if (it == _flutterTextures.end()) {
           std::cerr << "Failed to find Flutter texture for ID " << *flutterTextureId << std::endl;
@@ -577,24 +740,32 @@ namespace thermion::tflutter::windows
         result->Error("BAD_ARGUMENT", "Missing Flutter texture ID");
         return;
       }
-      RetireBlitJobs(*flutterTextureId);
+      RetireBlitJobs(TextureKey{_textureRegistrar, *flutterTextureId});
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
     else if (methodCall.method_name() == "destroyContext") {
-      std::lock_guard<std::mutex> contextLock(_contextMutex);
-      _context = std::nullptr_t();
-      std::cerr << "Destroyed context" << std::endl;
+      // Deliberate no-op: the rendering context is process-immortal.
+      //
+      // This arrives from `FilamentApp.onDestroy`, i.e. once per ENGINE, but
+      // the context, its VkInstance/VkDevice and the process-global BlueVK
+      // dispatch table are shared by every engine. One engine's shutdown
+      // cannot prove no other engine still has live render or blit threads
+      // using them. Nulling the pointer let a later engine construct a second
+      // context and rebind BlueVK underneath the first engine's running
+      // threads; deleting it would be a straight use-after-free.
+      //
+      // Cost: one context retained for the process lifetime. FUTURE: refcounted
+      // leases so the last engine out can genuinely release it.
       result->Success(flutter::EncodableValue((int64_t)nullptr));
     }
     else if (methodCall.method_name() == "getDriverPlatform")
     {
-      if (!_context) {
-        std::cerr << "No context, creating new one" << std::endl;
-        _context = new thermion::vulkan::windows::WindowsVulkanContext();
-       } else { 
-        std::cerr << "Context already exists, returning existing" << std::endl;
-       }
-      result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
+      // Retained for compatibility; `getRenderingContext` is the coherent
+      // form. Locked because an unsynchronised check-then-construct let two
+      // engine platform threads each build a context.
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      result->Success(
+          flutter::EncodableValue((int64_t)EnsureContextLocked()->GetPlatform()));
     }
     else if (methodCall.method_name() == "startFrameScheduler")
     {

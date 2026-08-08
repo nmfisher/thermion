@@ -60,6 +60,14 @@ namespace thermion::tflutter::windows
     _flutterTextureId = textureId;
   }
 
+  ::flutter::TextureRegistrar* FlutterD3DTexture::GetOwner() {
+    return _owner;
+  }
+
+  void FlutterD3DTexture::SetOwner(::flutter::TextureRegistrar* owner) {
+    _owner = owner;
+  }
+
   int64_t FlutterD3DTexture::GetFlutterTextureId()
   {
     return _flutterTextureId;

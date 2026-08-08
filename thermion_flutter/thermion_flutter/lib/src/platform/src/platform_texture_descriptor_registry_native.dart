@@ -113,14 +113,21 @@ class NativePlatformTextureDescriptorRegistry
       );
     }
 
-    final driverPlatform = await channel.invokeMethod<int>(
-      'getDriverPlatform',
+    // ONE channel call, so the driver platform and the shared context are read
+    // under a single native lock. Fetching them separately left a window in
+    // which another engine could act between the two reads, and each
+    // unsynchronised check-then-construct could itself build a second context.
+    final values = await channel.invokeMethod<List<Object?>>(
+      'getRenderingContext',
       backend.index,
     );
-    final sharedContext = await channel.invokeMethod<int>(
-      'getSharedContext',
-      backend.index,
-    );
+    if (values == null || values.length < 2) {
+      throw StateError(
+        'getRenderingContext returned ${values?.length ?? 0} values, expected 2',
+      );
+    }
+    final driverPlatform = values[0] as int?;
+    final sharedContext = values[1] as int?;
     return FilamentRenderingContext(
       driverPlatform: driverPlatform,
       platform: driverPlatform == null

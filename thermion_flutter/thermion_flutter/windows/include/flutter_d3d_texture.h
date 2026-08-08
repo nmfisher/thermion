@@ -17,6 +17,13 @@ namespace thermion::tflutter::windows {
             int64_t GetFlutterTextureId();
             void SetFlutterTextureId(int64_t textureId);
 
+            // The registrar that registered this texture. Texture records are
+            // process-global while registrars are per-engine, and Flutter texture
+            // IDs are pointer-derived and therefore recyclable — so an ID alone
+            // does not identify a texture. Lookups must match owner AND ID.
+            ::flutter::TextureRegistrar* GetOwner();
+            void SetOwner(::flutter::TextureRegistrar* owner);
+
             // Atomically swap the underlying D3D shared handle.
             // Flutter's GpuSurfaceTexture callback returns the descriptor
             // pointer each frame; after this call it will see the new handle.
@@ -27,6 +34,7 @@ namespace thermion::tflutter::windows {
             std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
             std::unique_ptr<::flutter::TextureVariant> _texture;
             int64_t _flutterTextureId = -1;
+            ::flutter::TextureRegistrar* _owner = nullptr;
             HANDLE _d3dTexture2DHandle;
             std::mutex _descriptorMutex;
     };
