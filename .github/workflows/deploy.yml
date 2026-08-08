@@ -9,16 +9,14 @@ name: Deploy site
 # SharedArrayBuffer (multithreaded WASM) works without any path-scoped headers.
 #
 # Fires on:
-#   - push to develop
-#   - a release tag push v* (same event publish-pub-dev.yml uses, so the site
-#     redeploy on a Thermion release, not only on commits)
-#   - manual dispatch
+#   - a release tag push v* (same event publish-pub-dev.yml uses) — the site
+#     deploys on a Thermion release, NOT on every develop commit
+#   - manual dispatch (re-deploy without cutting a release)
 #
 # Requires repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
 
 on:
   push:
-    branches: [develop]
     tags: ['v[0-9]+.[0-9]+.[0-9]+*']
   workflow_dispatch:
 
