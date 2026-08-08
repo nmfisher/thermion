@@ -1,0 +1,124 @@
+---
+const examples = [
+  {
+    id: 'materials_and_lighting',
+    label: 'Materials',
+    title: 'Materials and lighting',
+    description: 'Animated point lights, physical materials, a shadowed ground plane, and image-based reflections.',
+  },
+  {
+    id: 'animation',
+    label: 'Animation',
+    title: 'Skeletal animation',
+    description: 'A glTF asset loaded, framed, and animated in the browser.',
+  },
+  {
+    id: 'effects',
+    label: 'Effects',
+    title: 'Post-processing',
+    description: 'Tune bloom, FXAA, exposure, temperature, tint, contrast, saturation, and vibrance live.',
+  },
+  {
+    id: 'geometry',
+    label: 'Geometry',
+    title: 'Procedural geometry',
+    description: 'Native geometry buffers, materials, lighting, and camera control without a model file.',
+  },
+  {
+    id: 'basics',
+    label: 'Basics',
+    title: 'The essentials',
+    description: 'Load a model, position the camera, and orbit the scene.',
+  },
+] as const;
+
+const initial = examples[0];
+const galleryBase = 'https://thermion-examples.pages.dev/';
+---
+
+<div class="thermion-showcase" data-thermion-showcase>
+  <nav class="thermion-showcase__tabs" aria-label="Interactive examples">
+    {examples.map((example, index) => (
+      <button
+        type="button"
+        data-scene
+        data-id={example.id}
+        data-title={example.title}
+        data-description={example.description}
+        aria-pressed={index === 0 ? 'true' : 'false'}
+      >
+        {example.label}
+      </button>
+    ))}
+  </nav>
+
+  <div
+    class="thermion-showcase__stage"
+    data-stage
+    data-src={`${galleryBase}?example=${initial.id}&embed=1`}
+  >
+    <div class="thermion-showcase__prompt">
+      <p data-scene-title>{initial.title}</p>
+      <p data-scene-description>{initial.description}</p>
+      <button type="button" data-play>Start renderer</button>
+    </div>
+    <button type="button" class="thermion-showcase__close" data-close aria-label="Stop renderer">
+      Stop
+    </button>
+  </div>
+
+  <div class="thermion-showcase__footer">
+    <span>Drag to orbit · Scroll to zoom</span>
+    <a data-open-example href={`${galleryBase}?example=${initial.id}`} target="_blank" rel="noreferrer">
+      Open in gallery ↗
+    </a>
+  </div>
+</div>
+
+<script>
+  const galleryBase = 'https://thermion-examples.pages.dev/';
+
+  document.querySelectorAll<HTMLElement>('[data-thermion-showcase]').forEach((showcase) => {
+    if (showcase.dataset.initialized === 'true') return;
+    showcase.dataset.initialized = 'true';
+
+    const stage = showcase.querySelector<HTMLElement>('[data-stage]')!;
+    const play = showcase.querySelector<HTMLButtonElement>('[data-play]')!;
+    const close = showcase.querySelector<HTMLButtonElement>('[data-close]')!;
+    const title = showcase.querySelector<HTMLElement>('[data-scene-title]')!;
+    const description = showcase.querySelector<HTMLElement>('[data-scene-description]')!;
+    const external = showcase.querySelector<HTMLAnchorElement>('[data-open-example]')!;
+
+    const mount = () => {
+      stage.querySelector('iframe')?.remove();
+      const iframe = document.createElement('iframe');
+      iframe.src = stage.dataset.src!;
+      iframe.title = `${title.textContent ?? 'Thermion'} interactive demo`;
+      iframe.allow = 'cross-origin-isolated';
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      stage.append(iframe);
+      stage.classList.add('is-active');
+    };
+
+    play.addEventListener('click', mount);
+    close.addEventListener('click', () => {
+      stage.querySelector('iframe')?.remove();
+      stage.classList.remove('is-active');
+    });
+
+    showcase.querySelectorAll<HTMLButtonElement>('[data-scene]').forEach((button) => {
+      button.addEventListener('click', () => {
+        showcase.querySelectorAll('[data-scene]').forEach((candidate) => {
+          candidate.setAttribute('aria-pressed', String(candidate === button));
+        });
+
+        title.textContent = button.dataset.title!;
+        description.textContent = button.dataset.description!;
+        stage.dataset.src = `${galleryBase}?example=${button.dataset.id}&embed=1`;
+        external.href = `${galleryBase}?example=${button.dataset.id}`;
+
+        if (stage.classList.contains('is-active')) mount();
+      });
+    });
+  });
+</script>

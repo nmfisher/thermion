@@ -1,4 +1,7 @@
-# Quick Start
+---
+title: Quick Start
+description: Render a 3D model with ViewerWidget.
+---
 
 If all you need is a quick and easy route to rendering a single 3D model in your Flutter application, start with `ViewerWidget`.
 
@@ -12,7 +15,7 @@ This is a simplified, Flutter-only wrapper around the underlying 3D rendering AP
 
 ## Setup
 
-Follow the steps listed in [Getting Started](./getting_started) to configure your Flutter installation and project.
+Follow the steps listed in [Getting Started](/getting_started/) to configure your Flutter installation and project.
 
 If you're running Windows, delete the `examples/flutter/quickstart/assets` symlink and copy the `assets` folder from `examples/assets` to `examples/flutter/quickstart/assets`.
 
@@ -21,7 +24,7 @@ If you're running Windows, delete the `examples/flutter/quickstart/assets` symli
 ```dart
 import 'package:flutter/material.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
-import 'path_to_your_viewer_widget.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 class MyApp extends StatelessWidget {
   @override
@@ -45,17 +48,18 @@ class MyApp extends StatelessWidget {
 |----------|------|---------|-------------|
 | `initial` | `Widget` | Red decorated box | Widget to display while the viewer is loading |
 | `initialCameraPosition` | `Vector3` | `Vector3(0, 0, 5)` | The starting position for the camera (looking towards origin) |
-| `showFpsCounter` | `bool` | `false` | Whether to show an FPS counter overlay |
 | `assetPath` | `String?` | `null` | Path to the glTF asset to load |
 | `skyboxPath` | `String?` | `null` | Path to a KTX skybox image |
 | `iblPath` | `String?` | `null` | Path to a KTX image for image-based lighting |
-| `directLightType` | `LightType?` | `null` | Type of direct light to add to the scene |
+| `directLight` | `DirectLight?` | `null` | A direct light (sun, point, or spot) to add to the scene |
 | `transformToUnitCube` | `bool` | `true` | If true, rescales the model to fit within a 1x1x1 cube |
 | `postProcessing` | `bool` | `true` | Enables ACES tone mapping and basic anti-aliasing |
 | `background` | `Color?` | `null` | Background color (not visible when skybox is provided) |
 | `destroyEngineOnUnload` | `bool` | `false` | If true, disposes the engine when widget is disposed |
 | `manipulatorType` | `ManipulatorType` | `ORBIT` | Type of camera control to use |
-| `onViewerAvailable` | `Future Function(ThermionViewer)?` | `null` | Callback when viewer is ready |
+| `onViewerAvailable` | `Future Function(ThermionViewer)?` | `null` | Callback invoked once the viewer is ready |
+| `onAssetLoaded` | `Future Function(ThermionViewer, ThermionAsset)?` | `null` | Callback invoked when the asset has finished loading |
+| `enableHighlights` | `bool` | `false` | Enable the highlight overlay system for rendering entity outlines |
 
 ## Camera Manipulators
 
@@ -92,7 +96,7 @@ ViewerWidget(
 ```dart
 ViewerWidget(
   assetPath: 'assets/model.glb',
-  directLightType: LightType.SUN,
+  directLight: DirectLight.sun(),
 )
 ```
 
@@ -162,7 +166,7 @@ class _MyWidgetState extends State<MyWidget> {
 ## Limitations
 
 - Only the `manipulatorType` property can be changed at runtime. For any other property changes, create a new widget.
-- The widget requires that you have the correct environment setup for Thermion (Flutter master channel with native assets enabled).
+- The widget requires that you have the correct environment setup for Thermion (Flutter stable channel with native assets enabled).
 
 ## Example
 
@@ -184,7 +188,6 @@ class ModelViewer extends StatelessWidget {
         iblPath: 'assets/studio_ibl.ktx',
         initialCameraPosition: Vector3(0, 1.5, 3),
         manipulatorType: ManipulatorType.ORBIT,
-        showFpsCounter: true,
         background: Colors.grey,
         postProcessing: true,
         transformToUnitCube: true,
