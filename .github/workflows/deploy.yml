@@ -30,14 +30,11 @@ concurrency:
 jobs:
   deploy:
     name: Build & deploy site
-    # ubuntu-22.04 (not -24.04): the "Download thermion web artifacts" step runs
-    # `dart run bin/download_web.dart`, which resolves thermion_dart's native
-    # assets and fires hook/build.dart for the HOST target — compiling the C++
-    # glue. On ubuntu-24.04 clang can't find the C++ stdlib headers
-    # (fatal error: 'cstdint' file not found); 22.04's toolchain resolves them.
-    # Same image run-web-builds.yml uses for the identical command. Keep this as
-    # the single download pathway — do not duplicate it with curl/unzip.
-    runs-on: ubuntu-22.04
+    # Any standard runner works: the web-artifact download step runs
+    # `dart run thermion_dart:download_web` with `skip_native_build` set (see
+    # examples/dart/web_gallery/pubspec.yaml + thermion_dart/hook/build.dart), so
+    # it does no host C++ compile and needs no C++ toolchain.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -64,8 +61,15 @@ jobs:
           (cd examples/dart/examples_lib && dart pub get)
           (cd examples/dart/web_gallery && dart pub get)
       - name: Download thermion web artifacts (thermion_dart.js/wasm)
-        working-directory: thermion_dart
-        run: dart run bin/download_web.dart -o ../examples/dart/web_gallery/web
+        # Run from the gallery so thermion_dart's build hook picks up the
+        # `skip_native_build` userDefine (declared under hooks.user_defines in
+        # examples/dart/web_gallery/pubspec.yaml). That makes the hook no-op its
+        # host C++ build: download_web.dart only fetches prebuilt artifacts over
+        # HTTP, so no native compile — and no C++ toolchain on the runner — is
+        # needed. (The later `dart compile wasm` step is unaffected: the hook's
+        # buildCodeAssets branch runs before the skip and still downloads for web.)
+        working-directory: examples/dart/web_gallery
+        run: dart run thermion_dart:download_web -o web
       - name: Copy shared assets
         run: cp -r examples/assets examples/dart/web_gallery/web/assets
       - name: Compile gallery to WASM
