@@ -33,7 +33,7 @@ const examples = [
 ] as const;
 
 const initial = examples[0];
-const galleryBase = 'https://thermion-examples.pages.dev/';
+const galleryBase = '/gallery/';
 ---
 
 <div class="thermion-showcase" data-thermion-showcase>
@@ -76,7 +76,7 @@ const galleryBase = 'https://thermion-examples.pages.dev/';
 </div>
 
 <script>
-  const galleryBase = 'https://thermion-examples.pages.dev/';
+  const galleryBase = '/gallery/';
 
   document.querySelectorAll<HTMLElement>('[data-thermion-showcase]').forEach((showcase) => {
     if (showcase.dataset.initialized === 'true') return;
