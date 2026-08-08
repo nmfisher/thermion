@@ -2,35 +2,30 @@
 const examples = [
   {
     id: 'materials_and_lighting',
-    number: '01',
     label: 'Materials',
     title: 'Materials and lighting',
     description: 'Animated point lights, physical materials, a shadowed ground plane, and image-based reflections.',
   },
   {
     id: 'animation',
-    number: '02',
     label: 'Animation',
     title: 'Skeletal animation',
     description: 'A glTF asset loaded, framed, and animated in the browser.',
   },
   {
     id: 'effects',
-    number: '03',
     label: 'Effects',
     title: 'Post-processing',
     description: 'Tune bloom, FXAA, exposure, temperature, tint, contrast, saturation, and vibrance live.',
   },
   {
     id: 'geometry',
-    number: '04',
     label: 'Geometry',
     title: 'Procedural geometry',
     description: 'Native geometry buffers, materials, lighting, and camera control without a model file.',
   },
   {
     id: 'basics',
-    number: '05',
     label: 'Basics',
     title: 'The essentials',
     description: 'Load a model, position the camera, and orbit the scene.',
@@ -41,37 +36,8 @@ const initial = examples[0];
 const galleryBase = 'https://thermion-examples.pages.dev/';
 ---
 
-<section id="interactive-examples" class="thermion-showcase" data-thermion-showcase>
-  <header class="thermion-showcase__header">
-    <div>
-      <p class="thermion-kicker"><span></span> Live WebAssembly</p>
-      <h2>Rendered here. Not a recording.</h2>
-    </div>
-    <p>Pick a scene, then start the renderer. Only one Filament instance runs at a time.</p>
-  </header>
-
-  <div
-    class="thermion-showcase__stage"
-    data-stage
-    data-src={`${galleryBase}?example=${initial.id}&embed=1`}
-  >
-    <div class="thermion-showcase__ambient" aria-hidden="true">
-      <span></span><span></span><span></span>
-    </div>
-    <div class="thermion-showcase__prompt">
-      <p data-scene-label>Selected scene</p>
-      <h3 data-scene-title>{initial.title}</h3>
-      <p data-scene-description>{initial.description}</p>
-      <button type="button" class="thermion-showcase__play" data-play>
-        <span aria-hidden="true">▶</span> Start renderer
-      </button>
-    </div>
-    <button type="button" class="thermion-showcase__close" data-close aria-label="Stop renderer">
-      Stop renderer <span aria-hidden="true">×</span>
-    </button>
-  </div>
-
-  <nav class="thermion-showcase__scenes" aria-label="Interactive examples">
+<div class="thermion-showcase" data-thermion-showcase>
+  <nav class="thermion-showcase__tabs" aria-label="Interactive examples">
     {examples.map((example, index) => (
       <button
         type="button"
@@ -81,19 +47,33 @@ const galleryBase = 'https://thermion-examples.pages.dev/';
         data-description={example.description}
         aria-pressed={index === 0 ? 'true' : 'false'}
       >
-        <span>{example.number}</span>
         {example.label}
       </button>
     ))}
   </nav>
 
-  <footer class="thermion-showcase__footer">
+  <div
+    class="thermion-showcase__stage"
+    data-stage
+    data-src={`${galleryBase}?example=${initial.id}&embed=1`}
+  >
+    <div class="thermion-showcase__prompt">
+      <p data-scene-title>{initial.title}</p>
+      <p data-scene-description>{initial.description}</p>
+      <button type="button" data-play>Start renderer</button>
+    </div>
+    <button type="button" class="thermion-showcase__close" data-close aria-label="Stop renderer">
+      Stop
+    </button>
+  </div>
+
+  <div class="thermion-showcase__footer">
     <span>Drag to orbit · Scroll to zoom</span>
     <a data-open-example href={`${galleryBase}?example=${initial.id}`} target="_blank" rel="noreferrer">
-      Open full gallery ↗
+      Open in gallery ↗
     </a>
-  </footer>
-</section>
+  </div>
+</div>
 
 <script>
   const galleryBase = 'https://thermion-examples.pages.dev/';

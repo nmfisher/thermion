@@ -40,9 +40,7 @@ export default defineConfig({
           items: [
             { label: 'Filament', slug: 'filament' },
             { label: 'Debugging', slug: 'debugging' },
-            { label: 'Showcase', slug: 'showcase' },
             { label: 'Contributing', slug: 'contributing' },
-            { label: 'Playground', link: 'https://dartpad.thermion.dev' },
             { label: 'Discord', link: 'https://discord.gg/h2VdDK3EAQ' },
           ],
         },

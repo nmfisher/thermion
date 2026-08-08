@@ -1,63 +1,34 @@
 ---
 title: Thermion
-description: Native-grade cross-platform 3D rendering for Dart and Flutter.
-template: splash
+description: Cross-platform 3D rendering for Dart and Flutter.
 pagefind: false
 ---
 
 import ThermionShowcase from '../../components/ThermionShowcase.astro';
 
-<section class="thermion-hero">
-  <p class="thermion-kicker">Dart × Flutter × Filament</p>
-  <h1>Native-grade 3D.<br /><em>One Dart API.</em></h1>
-  <div class="thermion-hero__lede">Build real-time 3D experiences for mobile, desktop, and web without replacing your Flutter application—or compromising the renderer underneath it.</div>
-  <div class="thermion-hero__actions">
-    <a class="thermion-button thermion-button--primary" href="/getting_started/">Start building <span>→</span></a>
-    <a class="thermion-button" href="https://github.com/nmfisher/thermion">View the source <span>↗</span></a>
-  </div>
-  <div class="thermion-hero__meta" aria-label="Supported capabilities">
-    <span>glTF 2.0</span>
-    <span>PBR materials</span>
-    <span>Skeletal animation</span>
-    <span>Native + WebAssembly</span>
-  </div>
-</section>
+Thermion brings Google's physically based [Filament](/filament/) renderer to Dart and
+Flutter. Load glTF models with PBR materials and skeletal animation, then render them
+across iOS, Android, desktop, and the browser through a single Dart API.
+
+[Get started](/getting_started/) · [Quick start](/quickstart/) · [Viewer API](/viewer/)
+
+## Live examples
+
+These scenes are compiled from Dart to WebAssembly and rendered live with Filament.
+Pick one, start the renderer, then drag to orbit and scroll to zoom. Only one instance
+runs at a time.
 
 <ThermionShowcase />
 
-<section class="thermion-intro">
-  <div>
-    <p class="thermion-kicker">The shape of Thermion</p>
-    <h2>A renderer you can use at the level you need.</h2>
-  </div>
-  <div class="thermion-intro__copy">Start with a Flutter widget and sensible defaults. Drop down to the viewer API when you need direct control over scenes, cameras, materials, lights, animation, and post-processing.</div>
-</section>
+## Use it at the level you need
 
-<section class="thermion-layers">
-  <article>
-    <span class="thermion-layers__index">01 / Flutter</span>
-    <h3>Place 3D in the widget tree.</h3>
-    <div class="thermion-layer__copy"><code>thermion_flutter</code> owns the platform texture and lifecycle. <code>ViewerWidget</code> gives you the shortest route from a glTF file to an interactive viewport.</div>
-    <a href="/quickstart/">Read the Flutter quick start →</a>
-  </article>
-  <article>
-    <span class="thermion-layers__index">02 / Viewer</span>
-    <h3>Control the complete scene.</h3>
-    <div class="thermion-layer__copy"><code>ThermionViewer</code> exposes assets, entities, transforms, cameras, lighting, animation, collision tests, and rendering effects through a Dart API.</div>
-    <a href="/viewer/">Explore the viewer API →</a>
-  </article>
-  <article>
-    <span class="thermion-layers__index">03 / Renderer</span>
-    <h3>Keep Filament underneath.</h3>
-    <div class="thermion-layer__copy">Thermion uses Google's physically based Filament renderer across native targets and WebAssembly, while keeping platform plumbing out of scene code.</div>
-    <a href="/filament/">Understand the renderer →</a>
-  </article>
-</section>
+- **[ViewerWidget](/quickstart/)** — the shortest path from a glTF file to an interactive
+  viewport in your Flutter app, with sensible defaults for lighting, camera, and
+  post-processing.
+- **[ThermionViewer](/viewer/)** — direct control over entities, transforms, cameras,
+  lighting, materials, animation, and effects through a Dart API.
+- **[Filament](/filament/)** — the renderer underneath, on native and WebAssembly, with
+  the platform plumbing kept out of your scene code.
 
-<section class="thermion-platforms">
-  <div>
-    <p class="thermion-kicker">Same scene, different surface</p>
-    <h2>Mobile. Desktop. Browser.</h2>
-  </div>
-  <div class="thermion-platforms__copy">Thermion separates rendering from Flutter integration, so the same scene code can drive a Flutter texture, a headless Dart process, or a browser canvas.</div>
-</section>
+Thermion separates rendering from Flutter integration, so the same scene code can drive a
+Flutter texture, a headless Dart process, or a browser canvas.

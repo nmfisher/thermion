@@ -3,185 +3,120 @@ title: ThermionViewer (Flutter)
 description: Build and control a Thermion scene in Flutter.
 ---
 
-If you just want to display a 3D object in the viewport with some basic camera controls, use the [ViewerWidget described in the Quickstart section](/quickstart/).
+If you just want to display a 3D object with basic camera controls, use the
+[ViewerWidget described in the Quickstart](/quickstart/).
 
-If you need want more fine-grained control 
+When you need finer-grained control — loading assets, positioning the camera, adding
+lights, driving animation — work with the `ThermionViewer` API directly.
 
-> You can find the entire project below in the [examples/flutter/viewer](https://github.com/nmfisher/thermion/tree/master/examples/flutter/viewer) folder of the repository.
+> The full project for this walkthrough lives in
+> [`examples/flutter/viewer`](https://github.com/nmfisher/thermion/tree/develop/examples/flutter/viewer).
 
+## 1. Declare your assets
 
-
-
-
-2. Add a folder containing your assets (glTF model + skybox ktx) to your `pubspec.yaml` asset list
+Add a folder containing your assets (a glTF model plus a skybox/IBL ktx) to your
+`pubspec.yaml`:
 
 ```yaml
-...
-flutter
+flutter:
   assets:
     - assets/
 ```
 
-3. Create an instance of `ThermionFlutterPlugin` in your app.
+## 2. Create a viewer
+
+`ThermionFlutterPlugin.createViewer()` returns a `ThermionViewer`. Create one in
+`initState` and store it in state:
 
 ```dart
+import 'package:flutter/material.dart';
+import 'package:thermion_flutter/thermion_flutter.dart';
 
 class _MyAppState extends State<MyApp> {
-  late Future<ThermionViewer> _thermionViewer;
-  void initState() {    
+  ThermionViewer? _viewer;
+
+  @override
+  void initState() {
+    super.initState();
     ThermionFlutterPlugin.createViewer().then((viewer) {
-        _thermionViewer = viewer;
+      setState(() => _viewer = viewer);
     });
   }
 }
-
 ```
 
+## 3. Render it with `ThermionWidget`
 
-4. Add a `ThermionWidget` to your widget hierarchy 
+`ThermionWidget` takes the `viewer` you just created and renders it into the Flutter
+tree:
 
 ```dart
-
-class _MyAppState extends State<MyApp> {
-    
-    ThermionViewer? _thermionViewer;
-    void initState() {    
-        _thermionFlutterPlugin.createViewer().then((viewer) {
-            setState(() {
-                _thermionViewer = viewer;
-            });
-        });
-    }    
-
-    Widget build(BuildContext context) {
-        return Stack(children:[
-            if(_thermionViewer != null)
-            Positioned.fill(
-                child:ThermionWidget(
-                    plugin:_thermionViewer!
-                ) 
-            )
-        ]);  
-    }
+@override
+Widget build(BuildContext context) {
+  return Stack(
+    children: [
+      if (_viewer != null)
+        Positioned.fill(child: ThermionWidget(viewer: _viewer!)),
+    ],
+  );
 }
-
 ```
 
-4. Add a button to load the model when pressed
+## 4. Load the scene
+
+Load image-based lighting, a skybox, and your glTF model:
 
 ```dart
-
-...
-
-class _MyAppState extends State<MyApp> {
-    
-...
-    
-    bool _loaded = false;
-
-    Widget build(BuildContext context) {
-        return Stack(children:[
-            if(_thermionViewer != null)
-            Positioned.fill(
-                child:ThermionWidget(
-                    plugin:_thermionViewer!
-                ) 
-            ),
-            if (!_loaded)
-                Center(
-                    child: ElevatedButton(
-                        child: const Text("Load"),
-                        onPressed: () async {
-                            // TODO 
-                            _loaded = true;
-                            setState(() {});
-                        }))
-        ]);  
-}}
+final viewer = _viewer!;
+await viewer.loadIbl('assets/default_env_ibl.ktx');
+await viewer.loadSkybox('assets/default_env_skybox.ktx');
+final asset = await viewer.loadGltf('assets/cube.glb');
 ```
 
-5. When the button is pressed, load a skybox, lighting and the glb asset
+A **skybox** is the background image rendered behind everything else in the scene.
+**Image-based lighting (IBL)** uses an image to determine the direction and intensity
+of ambient light. Anything added to the scene — models, lights, cameras — is an
+**entity**, and entities are placed at position `(0, 0, 0)`.
 
-You will need to import the `dart:math` and `package:vector_math` libraries.
+The default camera sits at the origin looking down `-Z`, so a model placed at the
+origin starts *inside* the camera. Move the camera back to see it.
+
+## 5. Position the camera
+
+There is no `setCameraPosition` on the viewer. Get the active camera and aim it with
+`lookAt`:
 
 ```dart
 import 'package:vector_math/vector_math_64.dart' as v;
-import 'dart:math';
 
-...
+final camera = await viewer.getActiveCamera();
+await camera.lookAt(v.Vector3(0, 1, 10));
+```
 
-class _MyAppState extends State<MyApp> {
+`lookAt` takes the camera's position and, optionally, a focus point and up vector —
+it defaults to looking at the origin with `+Y` up.
 
-    ...
+## 6. Add a light
 
-    Widget build(BuildContext context) {
-        return Stack(children:[
-            ...
-            if(!_loaded)
-                Center(
-                    child: ElevatedButton(
-                        child: const Text("Load"),
-                        onPressed: () async {
-                            var viewer = await _thermionViewer;
-                            await viewer.loadIbl("assets/default_env_ibl.ktx");
-                            await viewer.loadSkybox("assets/default_env_skybox.ktx");
-                            await viewer.loadGlb("assets/cube.glb");
+Add a sun (directional) light so the model is shaded. Lights are added with
+`addDirectLight` and a `DirectLight`:
 
-                            await viewer.setCameraPosition(0, 1, 10);
-                            await viewer.setCameraRotation(v.Quaternion.axisAngle(
-                                    v.Vector3(1, 0, 0), -30 / 180 * pi) *
-                                v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
-                            await viewer.addLight(
-                                LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
-                            _loaded = true;
-                            setState(() {});
-                        }
-                    )
-                )
-        ]);
-    }
-}
-```           
-
-Here, we've added a skybox (the background (cube) image rendered behind all other elements in the scene), image-based lighting (where an image is used to determine the direction and intensity of a light source) and a directional light (Sun).
-
-Anything added to the scene is referred to as an "entity" (including lights and cameras).
-
-Entities are always added to the scene at position (0,0,0).
-
-The default scene camera is located at (0,0,0) (and is looking at -Z, or "into" the screen), so by adding a cube at (0,0,0), the camera will now be inside the cube. 
-
-We need to move the camera outside the cube so it's visible. 
-
-6. Change the camera orientation
 ```dart
-   var viewer = await _thermionViewer;
-    await viewer.loadSkybox("assets/default_env_skybox.ktx");
-    await viewer.loadGlb("assets/cube.glb");
-
-    await viewer.setCameraPosition(0, 1, 10);
-    await viewer.setCameraRotation(v.Quaternion.axisAngle(
-                        v.Vector3(1, 0, 0), -30 / 180 * pi) *
-                    v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
+await viewer.addDirectLight(
+  DirectLight.sun(direction: v.Vector3(0, -1, -1)),
+);
 ```
 
-The cube still won't be visible until we add a light to the scene and tell Thermion to start rendering.
+## 7. Run it
 
-7. Add a light and turn rendering on
-```dart 
-    ...
-    await viewer.addLight(
-                    LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
-    ...
-````
-
-8. Run the project
-```
-$ flutter run -d macos
+```bash
+flutter run -d macos
 ```
 
-> You may experience a noticeable delay the very first time you run the project. Don't panic, it's not frozen! This is due to the build system downloading the prebuilt Filament binaries from Cloudflare, which can take some time (particularly on Windows). These binaries will be cached after first download, so subsequent runs will be much faster (though every time you run flutter clean, the binaries will be re-downloaded).
+:::note
+The first build downloads the prebuilt Filament binaries from Cloudflare, which can
+take a while (especially on Windows). They're cached afterwards; running
+`flutter clean` will trigger another download.
+:::
 
-![Screenshot of Thermion Quickstart project](/images/thermion_sample_project.png)
-
-Your first Thermion project is complete!
+![Screenshot of a Thermion viewer project](/images/thermion_sample_project.png)

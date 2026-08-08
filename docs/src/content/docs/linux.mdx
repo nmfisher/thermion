@@ -3,10 +3,32 @@ title: Linux
 description: Thermion support and limitations on Linux.
 ---
 
-Currently, only the Dart package (`thermion_dart`) will work on Linux (primarily for the automated build/testing pipeline). 
+Thermion runs on Linux desktop (experimental). The `thermion_flutter` package ships a
+Linux plugin that bridges Filament to a Flutter window using Vulkan (Wayland), with an
+OpenGL/EGL path as a fallback.
 
-Filament has been built for Ubuntu 22.04; other distributions may work, but YMMV.
+It has been built and tested on Ubuntu 22.04; other distributions may work, but your
+mileage may vary.
 
-The Flutter package (`thermion_flutter`) won't work; it's missing the platform glue code necessary to set up the render target.  Support will eventually be added, but there is currently no estimated timeline.
+## System dependencies
 
-Contributions are welcome and it's actually not a lot of work. Join the Discord if you want to help out.
+Install the libraries the Linux build links against:
+
+```bash
+sudo apt install libgtk-3-dev liblzma-dev libdrm-dev
+```
+
+## Running
+
+```bash
+flutter run -d linux
+```
+
+The `quickstart`, `picking`, `viewer`, and `animations` examples under
+`examples/flutter/` all build and run on Linux.
+
+:::note
+Linux support is still experimental. If you hit rendering or windowing issues, please
+report them — and contributions are welcome. [Join us on Discord](https://discord.gg/h2VdDK3EAQ)
+if you'd like to help.
+:::

@@ -3,8 +3,6 @@
 <p align="center">
   <a href="https://thermion.dev/quickstart">Quickstart (Flutter)</a> •
   <a href="https://thermion.dev/">Documentation</a> •
-  <a href="https://thermion.dev/showcase">Showcase</a> •
-  <a href="https://dartpad.thermion.dev/">Playground</a> •
   <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
 </p>
 
@@ -24,14 +22,14 @@ https://github.com/user-attachments/assets/b0c07b5a-6156-4e42-a09b-5f9bd85fbf32
 - camera/entity manipulation with mouse (desktop) and gestures (mobile)
 - skinning + morph animations
 
-Uses the Filament PBR engine (currently v1.56.4).
+Uses the Filament PBR engine (currently v1.69.1).
 
 ### Quickstart (Flutter)
 
 From the command line:
 
 ```bash
-flutter channel master
+flutter channel stable
 flutter upgrade
 flutter config --enable-native-assets  
 ```

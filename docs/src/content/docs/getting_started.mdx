@@ -3,19 +3,19 @@ title: Getting Started
 description: Install Thermion and configure a Flutter project.
 ---
 
-Thermion currently requires the Flutter `beta` channel with the `native-assets` experiment enabled.
+Thermion requires the Flutter `stable` channel with native assets enabled.
 
-1. Switch to Flutter master channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
+1. Switch to the Flutter stable channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
 
 ```bash
-$ flutter channel beta
+$ flutter channel stable
 $ flutter upgrade
 $ flutter config --enable-native-assets  
 $ cd your_flutter_project
 $ flutter pub add thermion_flutter
 ```
 
-2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
+2. If running on iOS or macOS, change the minimum deployment target to 13.0
 
 <details>
 <summary>iOS and macOS instructions</summary>
