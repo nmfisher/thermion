@@ -44,6 +44,27 @@ namespace thermion::tflutter::windows
   // Static member initialization for Dart API DL
   bool ThermionFlutterPlugin::_dartApiInitialized = false;
 
+  // The rendering context is PROCESS-WIDE, matching the file-static
+  // _flutterTextures / _blitQueue / _blitWorker / _contextMutex below.
+  //
+  // Windows registers one ThermionFlutterPlugin per FlutterEngine, and
+  // desktop_multi_window spawns an engine per sub-window. With a per-instance
+  // context the second engine saw `_context == nullptr` and constructed a
+  // SECOND WindowsVulkanContext — a second VkInstance whose
+  // `bluevk::bindInstance()` rebound the PROCESS-GLOBAL Vulkan dispatch table
+  // underneath the first context's still-running blit worker and Filament
+  // render thread. The result was an access violation on a non-main thread
+  // with no Dart exception and no Windows Error Reporting entry.
+  //
+  // Sharing one context also matches the surrounding state: `_flutterTextures`
+  // is already a file-static shared across instances.
+  //
+  // KNOWN REMAINING INCONSISTENCY: `_flutterTextures` is shared but
+  // `_textureRegistrar` is per-instance, so with two engines one instance can
+  // find a texture registered by the other and mark it on the wrong registrar.
+  // Fixing that properly means keying textures by owning plugin instance.
+  thermion::vulkan::windows::WindowsVulkanContext *ThermionFlutterPlugin::_context = nullptr;
+
   void ThermionFlutterPlugin::RegisterWithRegistrar(
       flutter::PluginRegistrarWindows *registrar)
   {

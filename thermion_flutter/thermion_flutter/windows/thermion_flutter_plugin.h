@@ -67,7 +67,11 @@ public:
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   private:
-    thermion::vulkan::windows::WindowsVulkanContext *_context = nullptr;
+    // Process-wide, NOT per-plugin-instance. Windows registers one
+    // ThermionFlutterPlugin per FlutterEngine, and the Vulkan/D3D state this
+    // points at is process-global. See the definition in the .cpp for why a
+    // per-instance context corrupts a second engine.
+    static thermion::vulkan::windows::WindowsVulkanContext *_context;
     bool OnTextureUnregistered(int64_t flutterTextureId);
 
     // Pending handle swap: after resizeTexture creates new GPU resources,
