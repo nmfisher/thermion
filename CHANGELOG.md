@@ -1,5 +1,23 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.5.0-pre.2
+
+### New features
+- add a WASM gallery of Dart examples, embedded in the documentation site. The
+  gallery is deployed alongside the docs to thermion.dev (Cloudflare Pages) and
+  only updates on release tags.
+- add resolution/aspect presets to the headless `render_demo` CLI example.
+
+### Fixes
+- correct procedural geometry and WebGL material lighting.
+- dispatch `setGltfAnimationTime` on the render thread; it previously applied
+  morph-target weights on the caller's thread and panicked (debug assertion)
+  for any glTF animation driving morph weights.
+- apply the glTF animation on the first `update()` call; the first rendered
+  frame after playback started was previously the asset's rest/export pose
+  instead of animation-frame-0.
+- update the `thermion_flutter` dependency on `thermion_dart` to 0.5.0-pre.2.
+
 ## 0.5.0-pre
 
 ### Breaking changes
