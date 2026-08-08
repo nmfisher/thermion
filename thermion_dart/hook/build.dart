@@ -484,6 +484,16 @@ Future<Directory> getLibDir(
     if (targetArchitecture != Architecture.x64) {
       throw Exception("Unsupported architecture : ${targetArchitecture}");
     }
+  } else if (platform == "linux") {
+    // Linux x64 keeps the legacy zip URL + cache dir. arm64 consumers fetch
+    // the arch-suffixed zip (filament-<v>-linux-arm64-<mode>.zip) and use an
+    // arch-scoped cache dir so the two never collide.
+    if (targetArchitecture == Architecture.arm64) {
+      platform = "linux-arm64";
+      libDir = Directory(path.join(libDir.path, "arm64"));
+    } else if (targetArchitecture != Architecture.x64) {
+      throw Exception("Unsupported architecture for Linux: ${targetArchitecture}");
+    }
   }
 
   logger.info("Searching for Filament libraries under ${libDir.path}");

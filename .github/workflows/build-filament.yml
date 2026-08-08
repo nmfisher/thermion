@@ -329,6 +329,62 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
 
+  build-linux-arm64:
+    name: Build Linux (arm64)
+    # GitHub-hosted arm64 runner — build_linux.sh detects the host arch and
+    # produces filament-<version>-linux-arm64-{release,debug}.zip.
+    runs-on: ubuntu-24.04-arm
+    needs: setup
+    if: contains(needs.setup.outputs.matrix, 'linux')
+    env:
+      FILAMENT_VERSION: ${{ needs.setup.outputs.filament_version }}
+      FILAMENT_REPO: ${{ needs.setup.outputs.filament_repo }}
+    steps:
+      - name: Checkout thermion
+        uses: actions/checkout@v4
+
+      - name: Checkout Filament
+        run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+
+      - name: Build Filament
+        run: |
+          mkdir -p output
+          chmod +x scripts/build_linux.sh
+          scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-linux-arm64-release
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-release.zip
+          retention-days: 7
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-linux-arm64-debug
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-debug.zip
+          retention-days: 7
+
+      - name: Upload to R2
+        if: inputs.upload_to_r2
+        run: |
+          for variant in release debug; do
+            aws s3 cp \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}.zip" \
+              --endpoint-url "${{ env.R2_ENDPOINT }}"
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+
   build-windows:
     name: Build Windows
     runs-on: windows-2022
