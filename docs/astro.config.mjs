@@ -8,6 +8,10 @@ export default defineConfig({
       title: 'Thermion',
       description: 'Cross-platform 3D rendering for Dart and Flutter',
       favicon: '/logo_square.png',
+      // The brand wordmark (logo.png already includes the "Thermion" name), so
+      // it replaces the text title in the sidebar header. Dropped during the
+      // Astro migration (#216) — reinstated.
+      logo: { src: './src/assets/logo.png', replacesTitle: true },
       customCss: ['./src/styles/custom.css'],
       social: [
         {

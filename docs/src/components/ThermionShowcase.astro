@@ -2,123 +2,122 @@
 const examples = [
   {
     id: 'materials_and_lighting',
-    label: 'Materials',
     title: 'Materials and lighting',
     description: 'Animated point lights, physical materials, a shadowed ground plane, and image-based reflections.',
   },
   {
     id: 'animation',
-    label: 'Animation',
     title: 'Skeletal animation',
     description: 'A glTF asset loaded, framed, and animated in the browser.',
   },
   {
     id: 'effects',
-    label: 'Effects',
     title: 'Post-processing',
     description: 'Tune bloom, FXAA, exposure, temperature, tint, contrast, saturation, and vibrance live.',
   },
   {
     id: 'geometry',
-    label: 'Geometry',
     title: 'Procedural geometry',
     description: 'Native geometry buffers, materials, lighting, and camera control without a model file.',
   },
   {
     id: 'basics',
-    label: 'Basics',
     title: 'The essentials',
     description: 'Load a model, position the camera, and orbit the scene.',
   },
 ] as const;
 
-const initial = examples[0];
 const galleryBase = '/gallery/';
 ---
 
 <div class="thermion-showcase" data-thermion-showcase>
-  <nav class="thermion-showcase__tabs" aria-label="Interactive examples">
-    {examples.map((example, index) => (
-      <button
-        type="button"
-        data-scene
-        data-id={example.id}
-        data-title={example.title}
-        data-description={example.description}
-        aria-pressed={index === 0 ? 'true' : 'false'}
+  {examples.map((example) => (
+    <figure class="thermion-showcase__card">
+      <figcaption class="thermion-showcase__caption">
+        <span class="thermion-showcase__title">{example.title}</span>
+        <span class="thermion-showcase__desc">{example.description}</span>
+      </figcaption>
+      <div
+        class="thermion-showcase__stage"
+        data-stage
+        data-src={`${galleryBase}?example=${example.id}&embed=1`}
       >
-        {example.label}
-      </button>
-    ))}
-  </nav>
-
-  <div
-    class="thermion-showcase__stage"
-    data-stage
-    data-src={`${galleryBase}?example=${initial.id}&embed=1`}
-  >
-    <div class="thermion-showcase__prompt">
-      <p data-scene-title>{initial.title}</p>
-      <p data-scene-description>{initial.description}</p>
-      <button type="button" data-play>Start renderer</button>
-    </div>
-    <button type="button" class="thermion-showcase__close" data-close aria-label="Stop renderer">
-      Stop
-    </button>
-  </div>
-
-  <div class="thermion-showcase__footer">
-    <span>Drag to orbit · Scroll to zoom</span>
-    <a data-open-example href={`${galleryBase}?example=${initial.id}`} target="_blank" rel="noreferrer">
-      Open in gallery ↗
-    </a>
-  </div>
+        <div class="thermion-showcase__placeholder" aria-hidden="true">
+          <span class="thermion-showcase__spinner"></span>
+          <span>Starting renderer…</span>
+        </div>
+      </div>
+      <div class="thermion-showcase__footer">
+        <span>Drag to orbit · Scroll to zoom</span>
+        <a href={`${galleryBase}?example=${example.id}`} target="_blank" rel="noreferrer">
+          Open in gallery ↗
+        </a>
+      </div>
+    </figure>
+  ))}
 </div>
 
 <script>
-  const galleryBase = '/gallery/';
-
+  // Each gallery viewer boots lazily: an IntersectionObserver mounts the
+  // (cross-origin-isolated) iframe as the card nears the viewport, and tears
+  // it down when it leaves. DOM removal is the only reliable "pause" for a
+  // cross-origin-isolated iframe — it drops the worker + GL context — so the
+  // viewer fully reboots on return. Teardown is debounced so a card clipped
+  // for a few frames during fast scrolling doesn't thrash its worker.
   document.querySelectorAll<HTMLElement>('[data-thermion-showcase]').forEach((showcase) => {
     if (showcase.dataset.initialized === 'true') return;
     showcase.dataset.initialized = 'true';
 
-    const stage = showcase.querySelector<HTMLElement>('[data-stage]')!;
-    const play = showcase.querySelector<HTMLButtonElement>('[data-play]')!;
-    const close = showcase.querySelector<HTMLButtonElement>('[data-close]')!;
-    const title = showcase.querySelector<HTMLElement>('[data-scene-title]')!;
-    const description = showcase.querySelector<HTMLElement>('[data-scene-description]')!;
-    const external = showcase.querySelector<HTMLAnchorElement>('[data-open-example]')!;
+    const stages = Array.from(showcase.querySelectorAll<HTMLElement>('[data-stage]'));
+    const teardownTimers = new WeakMap<HTMLElement, number>();
 
-    const mount = () => {
-      stage.querySelector('iframe')?.remove();
+    const mount = (stage: HTMLElement) => {
+      if (stage.querySelector('iframe')) return;
       const iframe = document.createElement('iframe');
       iframe.src = stage.dataset.src!;
-      iframe.title = `${title.textContent ?? 'Thermion'} interactive demo`;
+      iframe.title = 'Thermion interactive demo';
       iframe.allow = 'cross-origin-isolated';
       iframe.referrerPolicy = 'strict-origin-when-cross-origin';
       stage.append(iframe);
       stage.classList.add('is-active');
     };
 
-    play.addEventListener('click', mount);
-    close.addEventListener('click', () => {
+    const unmount = (stage: HTMLElement) => {
       stage.querySelector('iframe')?.remove();
       stage.classList.remove('is-active');
-    });
+    };
 
-    showcase.querySelectorAll<HTMLButtonElement>('[data-scene]').forEach((button) => {
-      button.addEventListener('click', () => {
-        showcase.querySelectorAll('[data-scene]').forEach((candidate) => {
-          candidate.setAttribute('aria-pressed', String(candidate === button));
-        });
-
-        title.textContent = button.dataset.title!;
-        description.textContent = button.dataset.description!;
-        stage.dataset.src = `${galleryBase}?example=${button.dataset.id}&embed=1`;
-        external.href = `${galleryBase}?example=${button.dataset.id}`;
-
-        if (stage.classList.contains('is-active')) mount();
-      });
-    });
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            const stage = entry.target as HTMLElement;
+            const pending = teardownTimers.get(stage);
+            if (entry.isIntersecting) {
+              // Came back into range — cancel any pending teardown and boot.
+              if (pending) {
+                clearTimeout(pending);
+                teardownTimers.delete(stage);
+              }
+              mount(stage);
+            } else if (!pending) {
+              // Left range — schedule a teardown after the debounce window.
+              teardownTimers.set(
+                stage,
+                window.setTimeout(() => {
+                  unmount(stage);
+                  teardownTimers.delete(stage);
+                }, 600),
+              );
+            }
+          }
+        },
+        { rootMargin: '200px 0px' },
+      );
+      stages.forEach((stage) => observer.observe(stage));
+    } else {
+      // No IntersectionObserver: mount everything up front (rare/old browsers).
+      stages.forEach((stage) => mount(stage));
+    }
   });
 </script>

@@ -33,6 +33,24 @@
     body.embed #selector,
     body.embed #info { display: none; }
     [hidden] { display: none !important; }
+    /* Full-canvas loading overlay. Covers WASM boot + the multi-MB asset fetch
+       (e.g. the animation scene pulls ~15MB), and is cleared by main.dart once
+       the first frame renders. Not hidden in embed mode — embedded viewers need
+       to see it too. */
+    #loading {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      background: #000; color: #cfd6e0; font: 13px ui-monospace, monospace;
+    }
+    #loading[hidden] { display: none !important; }
+    #loading .spinner {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.18);
+      border-top-color: #6ea8ff;
+      animation: thermion-spin 0.8s linear infinite;
+    }
+    @keyframes thermion-spin { to { transform: rotate(360deg); } }
     #effects-controls {
       position: absolute; top: 8px; right: 8px; z-index: 10;
       box-sizing: border-box; width: min(260px, calc(100vw - 16px));
@@ -74,6 +92,10 @@
     }
   </script>
   <canvas id="thermion_canvas"></canvas>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loading-text">Initializing renderer…</div>
+  </div>
   <div id="selector">
     <label for="example-select">example:</label>
     <select id="example-select"></select>
