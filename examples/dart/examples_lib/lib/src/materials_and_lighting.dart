@@ -16,9 +16,12 @@ Future<void> setupMaterialsAndLighting(
   await camera.lookAt(Vector3(0, 4.0, 11), focus: Vector3(0, 0, 0));
 
   await viewer.setBackgroundColor(0.18, 0.18, 0.18, 1.0);
+  // Dimmed IBL so the three coloured point lights read clearly against the
+  // ambient fill — at higher intensities the image-based lighting washes out
+  // their orbiting contribution.
   await viewer.loadIbl(
     "$assetsDir/materials_studio_ibl.ktx",
-    intensity: 10000,
+    intensity: 3000,
   );
   await viewer.setShadowsEnabled(true);
   await viewer.setShadowType(ShadowType.PCF);

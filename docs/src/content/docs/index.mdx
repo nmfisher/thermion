@@ -14,9 +14,11 @@ across iOS, Android, desktop, and the browser through a single Dart API.
 
 ## Live examples
 
-These scenes are compiled from Dart to WebAssembly and rendered live with Filament.
-Pick one, start the renderer, then drag to orbit and scroll to zoom. Only one instance
-runs at a time.
+These scenes are written in pure Dart — not Flutter widgets — compiled to WebAssembly
+and rendered live with Filament. Each viewer boots automatically as it scrolls into view
+and stops when you scroll away, so only the scenes near the viewport are running. Drag to
+orbit, scroll to zoom. They're the same `examples_lib` scenes that power the standalone
+[gallery](/gallery/), each running in its own cross-origin-isolated iframe.
 
 <ThermionShowcase />
 

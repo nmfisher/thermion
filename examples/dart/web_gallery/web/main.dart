@@ -100,6 +100,12 @@ Future<void> _boot() async {
   final viewer = ThermionViewerFFI(app: app);
   await viewer.initialized;
 
+  // The loading overlay (declared in index.html) spans boot + the scene's asset
+  // fetch (the animation scene pulls ~15MB). Its text is advanced here as each
+  // phase completes, and the overlay is hidden once the first frame is drawn.
+  final loading = document.getElementById('loading');
+  final loadingText = document.getElementById('loading-text');
+
   // A headless swapchain's backing size is fixed at creation, so resizing the
   // browser means rebuilding it. Track the current swapchain and rebuild it
   // (detach -> destroy -> create -> attach -> viewport) on resize.
@@ -118,9 +124,15 @@ Future<void> _boot() async {
     focalLength: 28.0,
   );
 
+  if (loadingText != null) {
+    loadingText.textContent = 'Loading scene…';
+  }
   await setup(viewer, assetsDir: assetsDir);
   if (exampleName == 'effects') {
     await installEffectsControls(viewer);
+  }
+  if (loadingText != null) {
+    loadingText.textContent = 'Starting render loop…';
   }
 
   // Orbit camera: drag to orbit a target (the origin, where transformToUnitCube
@@ -194,8 +206,17 @@ Future<void> _boot() async {
   // animations using the worker's absolute monotonic frame time, so this pump
   // only requests a render. Updating the animation manager here with a Dart
   // frame delta would mix clock domains and repeatedly reset the pose.
+  var firstFrame = true;
   void pump(num _) {
     app.render();
+    // The scene is built and a frame has been requested — drop the loading
+    // overlay now (it has served through boot + the asset fetch). Done on the
+    // first tick rather than right after setup() to avoid a black flash in the
+    // gap between setup completing and the worker drawing its first frame.
+    if (firstFrame) {
+      firstFrame = false;
+      loading?.setAttribute('hidden', '');
+    }
     window.requestAnimationFrame(pump.toJS);
   }
 
