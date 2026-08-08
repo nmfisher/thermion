@@ -3,11 +3,19 @@ name: Generate Artifacts
 on:
   push:
     branches: [ "develop" ]
-    tags:
-      - 'v*'
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
+  # Called by publish-pub-dev.yml on a v* tag push, with verify: true, so the
+  # release can gate publish on freshly-regenerated bindings WITHOUT this
+  # workflow self-triggering on tags (which previously tried to move the tag).
+  workflow_call:
+    inputs:
+      verify:
+        description: 'If true, regenerate as a gate and fail on any uncommitted diff instead of committing/pushing. Used by the release flow.'
+        required: false
+        type: boolean
+        default: false
 
 # This workflow is the ONLY thing that pushes auto-generated commits to the
 # branch. Formatting (previously format.yml) and analyze (previously lint.yml)
@@ -140,8 +148,18 @@ jobs:
         run: |
           git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
 
+      # Release gate (called with verify: true): the tag must already contain
+      # committed bindings. A diff here means bindings are stale — abort the
+      # release rather than shipping or auto-committing.
+      - name: Fail if generated artifacts are stale (verify)
+        if: ${{ inputs.verify == 'true' && steps.git-check.outputs.changed == 'true' }}
+        run: |
+          echo "::error::Generated bindings/materials differ from the committed tag. Run 'make bindings' / 'make materials', commit on develop, then re-tag."
+          git --no-pager diff --stat
+          exit 1
+
       - name: Commit and push if changed
-        if: steps.git-check.outputs.changed == 'true'
+        if: inputs.verify != 'true' && steps.git-check.outputs.changed == 'true'
         env:
           # Pass via env (not inline) to avoid script injection from PR head refs.
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -180,7 +198,7 @@ jobs:
         run: make wasm
 
       - name: Package and upload web artifacts to R2
-        if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        if: inputs.verify != 'true' && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -197,7 +215,7 @@ jobs:
           echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
 
       - name: Commit web.version
-        if: steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        if: inputs.verify != 'true' && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
         env:
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
@@ -226,6 +244,9 @@ jobs:
 
   run-tests:
     name: Run Tests
+    # Skipped when called as the release verify gate — the release orchestrator
+    # (publish-pub-dev.yml) runs its own tests at the tag SHA.
+    if: inputs.verify != 'true'
     needs: generate-artifacts
     uses: ./.github/workflows/run-tests.yml
     with:

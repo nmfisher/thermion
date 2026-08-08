@@ -1,0 +1,133 @@
+name: Create Release
+
+# Single entry point for cutting a release. Dispatch this workflow (with the
+# version to release) instead of pushing a tag by hand — CI is the only thing
+# that creates release tags, so the tag is guaranteed to point at a commit with
+# committed (non-stale) generated bindings and a passing test suite.
+#
+# The tag push itself is what fires the actual release DAG:
+#   - publish-pub-dev.yml (validate -> verify artifacts -> verify swift ->
+#     tests -> publish to pub.dev, behind the pub.dev environment approval)
+#   - deploy.yml (docs + gallery to Cloudflare Pages)
+#
+# Requires the RELEASE_TOKEN repo secret: a fine-grained PAT with Contents
+# read+write on this repo. Pushing the tag with GITHUB_TOKEN would NOT trigger
+# the tag-push workflows (GitHub suppresses events triggered by GITHUB_TOKEN).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 0.5.0 or 0.5.0-pre.1 (no leading "v"; the tag will be v<version>)'
+        required: true
+        type: string
+      ref:
+        description: 'Branch/ref to release from'
+        required: false
+        type: string
+        default: 'develop'
+
+permissions:
+  contents: write
+
+concurrency:
+  # One release at a time.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+    steps:
+      - name: Check inputs
+        id: validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Tolerate (and strip) an accidental leading 'v'.
+          v="${{ inputs.version }}"
+          v="${v#v}"
+          # pub.dev versions: N.N.N with optional -pre / +build suffix.
+          if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version '${{ inputs.version }}'. Expected e.g. 0.5.0 or 0.5.0-pre.1 (no leading 'v')."
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Releasing version $v"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Check lockstep + tag-not-exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="${{ steps.validate.outputs.version }}"
+          dart_v="$(grep -m1 '^version:' thermion_dart/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          flt_v="$(grep -m1 '^version:' thermion_flutter/thermion_flutter/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          echo "thermion_dart version:     $dart_v"
+          echo "thermion_flutter version:  $flt_v"
+          if [ "$dart_v" != "$flt_v" ]; then
+            echo "::error::Lockstep broken: thermion_dart ($dart_v) != thermion_flutter ($flt_v). Bump both pubspecs to $v in a develop PR first."
+            exit 1
+          fi
+          if [ "$dart_v" != "$v" ]; then
+            echo "::error::pubspec version $dart_v does not match requested release $v. Bump both pubspecs (and changelogs) on ${{ inputs.ref }} first, then re-dispatch."
+            exit 1
+          fi
+          if git ls-remote --tags origin "refs/tags/v$v" | grep -q .; then
+            echo "::error::Tag v$v already exists on origin. Delete it (or pick a new version) before re-running."
+            exit 1
+          fi
+          echo "OK: tag v$v can be created"
+
+  verify-artifacts:
+    name: Verify generated artifacts
+    needs: validate
+    uses: ./.github/workflows/generate-artifacts.yml
+    with:
+      verify: true
+
+  verify-swift-bindings:
+    name: Verify swift bindings
+    needs: validate
+    uses: ./.github/workflows/generate-swift-bindings.yml
+    with:
+      verify: true
+
+  tests:
+    name: Test suite
+    needs: [validate, verify-artifacts, verify-swift-bindings]
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      ref: ${{ inputs.ref }}
+
+  tag:
+    name: Create and push tag
+    needs: [validate, verify-artifacts, verify-swift-bindings, tests]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Create and push annotated tag
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error::RELEASE_TOKEN secret is not configured. Create a fine-grained PAT (Contents read+write on this repo) and add it as a repo secret 'RELEASE_TOKEN'. It is required so the tag push triggers the publish/deploy workflows (GITHUB_TOKEN pushes do not)."
+            exit 1
+          fi
+          v="${{ needs.validate.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$v" -m "Release v$v"
+          git push "https://x-access-token:${RELEASE_TOKEN}@github.com/${{ github.repository }}" "refs/tags/v$v"
+          echo "Pushed tag v$v — publish + deploy workflows will run."

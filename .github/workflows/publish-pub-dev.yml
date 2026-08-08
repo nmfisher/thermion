@@ -130,18 +130,41 @@ jobs:
         # for resolution; only pubspec.yaml is published.
         run: flutter pub publish --dry-run
 
+  generate-artifacts:
+    # Verify gate: regenerate dart FFI/JS bindings + materials and FAIL if they
+    # differ from the committed tag. Bindings must be committed on develop
+    # before tagging (shift-left). See docs/CI_PIPELINE.md.
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    name: Verify generated artifacts
+    needs: validate
+    uses: ./.github/workflows/generate-artifacts.yml
+    with:
+      verify: true
+
+  generate-swift-bindings:
+    # Verify gate: regenerate swift bindings (unconditionally on release) and
+    # FAIL if they differ from the committed tag.
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    name: Verify swift bindings
+    needs: validate
+    uses: ./.github/workflows/generate-swift-bindings.yml
+    with:
+      verify: true
+
   tests:
     # Full dart + flutter-build matrix. Only for a real tag push (not the
     # dry-run manual dispatch) so releases can't ship without all checks green.
+    # Waits for both verify gates so tests run against bindings known to be fresh.
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     name: Test suite
+    needs: [validate, generate-artifacts, generate-swift-bindings]
     uses: ./.github/workflows/run-tests.yml
     with:
       ref: ${{ github.ref }}
 
   publish:
     name: Publish to pub.dev
-    needs: [validate, tests]
+    needs: [validate, generate-artifacts, generate-swift-bindings, tests]
     # Only a real tag push publishes. workflow_dispatch never reaches here.
     if: ${{ startsWith(github.ref, 'refs/tags/v') && needs.validate.outputs.already-published != 'true' }}
     runs-on: ubuntu-24.04
