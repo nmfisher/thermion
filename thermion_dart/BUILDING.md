@@ -1,6 +1,9 @@
 # Instructions for building Filament
 
 ```
+# platform=linux builds BOTH x86_64 (ubuntu-24.04) and arm64 (ubuntu-24.04-arm),
+# producing filament-<version>-linux-{release,debug}.zip and
+# filament-<version>-linux-arm64-{release,debug}.zip on R2.
 gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=linux -f clean_build=false -f upload_to_r2=true
 gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=android -f clean_build=false -f upload_to_r2=true 
 gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=windows -f clean_build=false -f upload_to_r2=true
