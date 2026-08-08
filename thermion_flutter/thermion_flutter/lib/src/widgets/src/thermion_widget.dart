@@ -235,6 +235,17 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
   @override
   void dispose() {
+    // Retire the texture FIRST, synchronously. Everything below is enqueued
+    // behind any in-flight allocation/resize and can therefore run many frames
+    // from now, during which a native frame producer would keep marking frames
+    // available for a texture whose engine-side view is already being torn
+    // down. On Windows that use-after-unregister window killed the embedder on
+    // route pop.
+    final texture = _texture;
+    if (texture != null) {
+      ThermionFlutterPlugin.instance.retireTexture(texture);
+    }
+
     _disposing = true;
     _debounceTimer?.cancel();
     final view = widget.view;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -129,6 +130,22 @@ class NativePlatformTextureDescriptorRegistry
       sharedContextPointer: sharedContext == null
           ? nullptr
           : VoidPointerClass.fromAddress(sharedContext),
+    );
+  }
+
+  /// Stops the native blit worker producing frames for [flutterTextureId].
+  ///
+  /// Fire-and-forget by design: this runs on the synchronous disposal path and
+  /// must not be awaited, and a failure here is never worth surfacing over the
+  /// teardown that follows.
+  void retireTexture(int flutterTextureId) {
+    if (!Platform.isWindows) return;
+    unawaited(
+      channel
+          .invokeMethod<void>('retireTexture', flutterTextureId)
+          .catchError((Object error, StackTrace stackTrace) {
+            _logger.fine('Failed to retire texture $flutterTextureId', error);
+          }),
     );
   }
 

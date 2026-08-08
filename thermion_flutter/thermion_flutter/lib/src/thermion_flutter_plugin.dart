@@ -161,6 +161,24 @@ abstract class ThermionFlutterPlugin {
   /// future completes.
   Future<void> destroyTextureForView(View view);
 
+  /// Stops native frame notifications for [descriptor] immediately.
+  ///
+  /// Widget teardown is asynchronous: [destroyTextureForView] is enqueued
+  /// behind any in-flight allocation or resize, so it can run many frames
+  /// after the widget has left the tree. Until it does, a platform that runs
+  /// its own frame producer (Windows' blit worker) keeps marking frames
+  /// available for a texture whose engine-side view is already being torn
+  /// down — a use-after-unregister window that crashed the Windows embedder
+  /// on route pop with a null dereference inside `flutter_windows.dll`.
+  ///
+  /// Retiring first closes that window. Callers should invoke this
+  /// synchronously (fire-and-forget) as the very first step of disposal, then
+  /// proceed with the ordinary teardown. Retirement is undone when a texture
+  /// ID is registered again, so a recycled ID is not permanently muted.
+  ///
+  /// Idempotent, and a no-op on platforms with no native frame producer.
+  void retireTexture(PlatformTextureDescriptor descriptor) {}
+
   @Deprecated('Use destroyTextureForView')
   Future<void> releaseTextureBindingForView(View view) =>
       destroyTextureForView(view);

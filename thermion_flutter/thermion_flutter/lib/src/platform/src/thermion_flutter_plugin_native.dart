@@ -247,4 +247,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   Future<void> destroyTextureForView(View view) {
     return _textureSurfaces.destroyForView(view);
   }
+
+  @override
+  void retireTexture(PlatformTextureDescriptor descriptor) {
+    _textureSurfaces.registry.retireTexture(descriptor.flutterTextureId);
+  }
 }

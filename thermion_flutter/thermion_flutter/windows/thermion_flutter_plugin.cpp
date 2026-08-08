@@ -278,6 +278,15 @@ namespace thermion::tflutter::windows
     flutterTexture->SetFlutterTextureId(flutterTextureId);
     _flutterTextures.push_back(std::move(flutterTexture));
 
+    // Texture IDs can be recycled by the embedder, and `_retiringTextureIds`
+    // is only ever inserted into. Clear any stale retirement for this ID so a
+    // recycled ID is not permanently muted (which would present as a texture
+    // that registers successfully but never receives a frame).
+    {
+      std::lock_guard<std::mutex> blitLock(_blitMutex);
+      _retiringTextureIds.erase(flutterTextureId);
+    }
+
     std::cout << "Registered Flutter texture ID " << flutterTextureId
               << std::endl;
 
@@ -479,6 +488,23 @@ namespace thermion::tflutter::windows
           return;
         }
 
+        // A retired texture must never be marked again — its Flutter-side view
+        // may already be tearing down inside the engine. `EnqueueBlit` performs
+        // this check for the steady-state path, but the pending-swap branch
+        // below calls `MarkTextureFrameAvailable` DIRECTLY and bypassed it
+        // entirely. Check once here so both paths are covered.
+        //
+        // Lock order is _contextMutex (held above) then _blitMutex, matching
+        // BlitWorkerLoop.
+        {
+          std::lock_guard<std::mutex> blitLock(_blitMutex);
+          if (_retiringTextureIds.find(*flutterTextureId) !=
+              _retiringTextureIds.end()) {
+            result->Success(flutter::EncodableValue((int64_t) nullptr));
+            return;
+          }
+        }
+
         // Find the FlutterD3DTexture for this flutterTextureId
         auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
                                { return ft->GetFlutterTextureId() == *flutterTextureId; });
@@ -535,6 +561,23 @@ namespace thermion::tflutter::windows
       } else {
         std::cout << "No context" << std::endl;
       }
+      result->Success(flutter::EncodableValue((int64_t) nullptr));
+    }
+    else if (methodCall.method_name() == "retireTexture")
+    {
+      // Stop producing frames for this texture NOW, ahead of the asynchronous
+      // teardown chain. Widget disposal enqueues `destroyTextureForView`
+      // behind any in-flight allocation/resize, so it can run many frames
+      // after the widget has left the tree — and until it does, the blit
+      // worker keeps calling MarkTextureFrameAvailable for a texture whose
+      // engine-side view is already being destroyed.
+      const auto *flutterTextureId =
+          std::get_if<int64_t>(methodCall.arguments());
+      if (!flutterTextureId) {
+        result->Error("BAD_ARGUMENT", "Missing Flutter texture ID");
+        return;
+      }
+      RetireBlitJobs(*flutterTextureId);
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
     else if (methodCall.method_name() == "destroyContext") {
