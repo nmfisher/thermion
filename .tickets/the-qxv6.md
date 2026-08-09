@@ -59,4 +59,65 @@ It failed:
 - Use gh CLI to download any workflow logs you need (for example: gh run view 31289266607 --log-failed).
 - Write in simplified technical English: short sentences, plain words, no jargon.
 
+## Implementation task (follow-up, same branch/volume asb/release-failure-inv)
+
+The proposal was reviewed. The long-term fix is accepted: make the Filament
+Linux prebuilts single-stdlib. Implement it now. This is NOT proposal-only
+anymore — code changes are allowed, but ONLY in the Filament Linux build
+scripts (and docs/ticket files). Do NOT touch thermion_dart/hook/build.dart,
+CI workflow YAML, or app code unless the analysis shows it is required.
+
+### Task
+Update the Filament Linux build scripts so `libimageio` and `libtinyexr`
+compile with libc++ (`-stdlib=libc++`) instead of the default libstdc++.
+
+### Where
+- `scripts/build_linux.sh`, function `build_third_party_libs()` (lines ~173-215).
+  Two cmake invocations build the affected libs:
+  - imageio: `-DCMAKE_CXX_FLAGS=...` (line ~189)
+  - tinyexr: `-DCMAKE_CXX_FLAGS=...` (line ~204)
+  The script sets `export CXX=clang++` (line ~171) but never passes
+  `-stdlib=libc++`, so clang defaults to libstdc++ — which is exactly why the
+  archives end up as libstdc++ ABI.
+- Check whether the arm64 path uses the same script (`build-linux-arm64` job in
+  `.github/workflows/build-filament.yml` runs `scripts/build_linux.sh`) — if
+  so, one change covers both. If there is a separate arm64 script, update it
+  too.
+
+### What to do
+1. Add `-stdlib=libc++` to the `CMAKE_CXX_FLAGS` of BOTH cmake invocations
+   (imageio and tinyexr). Keep all existing warning-suppression flags and
+   include paths. The function builds both Debug and Release — cover both.
+2. Verify the change actually produces libc++-ABI archives. A full 50-minute
+   Filament build is NOT required. Minimal verification is enough:
+   - compile one tinyexr/imageio translation unit with the new flags and check
+     the object references `std::__1::*` symbols (`nm`), or
+   - run the imageio/tinyexr cmake+ninja steps standalone if the Filament
+     source tree is available in the container; otherwise do the compile-flag
+     check on a small repro file.
+3. Update `docs/release-failure-analysis.md`: mark the long-term fix as
+   implemented. Note that the fix only takes effect once a new `Build Filament`
+   workflow run uploads rebuilt zips to R2 (the release CI downloads those
+   zips; script changes alone do not change already-uploaded artifacts).
+4. Update the ticket: status back to in_progress, add a resolution note when
+   done.
+
+### Deliverable
+- Modified `scripts/build_linux.sh` (+ arm64 variant if one exists).
+- Updated `docs/release-failure-analysis.md`.
+- Updated ticket summary in `.tickets/the-qxv6.md`.
+- Commit on the SAME branch (`asb/release-failure-inv`), push, and update the
+  open PR #224. NEVER merge. NEVER push to main or master.
+
+### Rules
+- Update ticket status with tk if available (start when beginning, close when
+  done); otherwise edit the frontmatter directly (as before — tk was not
+  available in the sandbox).
+- Commit all work locally on your branch.
+- When finished, push your branch and open/update a PR. You may ONLY push your
+  own branch and open a PR. NEVER merge a PR. NEVER commit or push to main or
+  master.
+- Write in simplified technical English: short sentences, plain words, no
+  jargon.
+
 
