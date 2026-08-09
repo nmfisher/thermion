@@ -1,6 +1,6 @@
 ---
 id: the-1ub8
-status: closed
+status: in_progress
 deps: []
 links: []
 created: 2026-08-09T10:30:00Z
@@ -9,34 +9,41 @@ priority: 1
 assignee: Nick Fisher
 tags: [ci, release]
 ---
-# Simplify release: develop is the release source, optional version reads from pubspec
+# Simplify release: MANUAL-ONLY trigger, cuts the tag from develop
 
-Design decision (from Nick): develop is the main branch. PRs get raised
-against develop, and releases are cut FROM develop. Master is just a legacy
-reference — leave it alone, do not build on it; document it as legacy.
+Design decision (from Nick, updated): releases are MANUAL ONLY. Pushes and
+PRs to develop must NOT trigger a release — they only run normal CI
+(Generate Artifacts: regen bindings + tests). The release is triggered by
+hand (workflow_dispatch), and it cuts the tag from the DEVELOP branch tip.
+Master is a legacy reference — leave it alone.
 
-## Task (implementation — for the Claude session)
+## Task (refinement of PR #227 — for the Claude session)
 
-1. release.yml auto gate: currently fires only when Generate Artifacts
-   completed successfully on a MASTER push. Change it so it fires when
-   Generate Artifacts completes green on a DEVELOP push. (The check job's
-   condition gates on github.event.workflow_run.head_branch == 'master' —
-   flip to 'develop'.)
-2. release.yml manual dispatch: make the version input OPTIONAL. When empty,
-   read the version from the checked-out ref's pubspec (same code path as the
-   workflow_run branch already uses). Default ref stays develop. Keep the
-   tag-not-exists and already-released checks exactly as they are.
-3. docs/RELEASING.md: rewrite the runbook so develop is the release source
-   (bump version on develop → merge PR → release fires on develop push, or
-   dispatch manually with no version to use pubspec's). Document master as a
-   legacy reference that is no longer used for releases.
-4. Do not touch publish-pub-dev.yml or deploy.yml — they already work.
+PR #227 currently auto-fires Create Release when Generate Artifacts completes
+green on a develop push. Remove that auto path. The final design:
+
+1. release.yml: REMOVE the `workflow_run` trigger (the auto path). The only
+   trigger is `workflow_dispatch`.
+2. release.yml check job: only acts on workflow_dispatch now. Simplify the
+   `if:` condition accordingly (no workflow_run branch).
+3. release.yml manual dispatch: version input OPTIONAL — when empty, read the
+   version from the checked-out ref's pubspec. Default ref stays develop.
+   The tag is created at the DEVELOP branch tip (resolve ref = develop).
+   Keep the tag-not-exists and already-released checks exactly as they are.
+4. docs/RELEASING.md: rewrite the runbook so releases are manual-only:
+   - push/merge to develop = normal CI only, never a release
+   - to release: run `gh workflow run "Create Release"` (or the GitHub UI
+     dispatch button) with no version — it reads pubspec and tags develop tip
+   - master documented as a legacy reference, not used for releases
+5. Generate Artifacts stays as-is for develop pushes (normal CI: regen +
+   tests) — it just no longer feeds a release chain.
+6. Do not touch publish-pub-dev.yml or deploy.yml — they already work.
 
 ## Rules
-- Work on a fresh branch off origin/develop (NOT the current ci/release-on-merge branch).
+- Update PR #227 (branch ci/release-from-develop) with these changes.
 - Update the ticket with tk: tk start the-1ub8 when you begin, tk close the-1ub8 when done.
 - Commit all work locally.
-- Push your branch and raise a PR into develop when finished.
+- Push your branch and keep the PR into develop updated.
 - NEVER merge a PR yourself, and never commit or push directly to develop or master.
 - Write in simplified technical English: short sentences, plain words, no jargon.
 
