@@ -1,20 +1,38 @@
 name: Create Release
 
-# Single entry point for cutting a release. Dispatch this workflow (with the
-# version to release) instead of pushing a tag by hand — CI is the only thing
-# that creates release tags, so the tag is guaranteed to point at a commit with
-# committed (non-stale) generated bindings and a passing test suite.
+# Single release pathway: a merge to master cuts a release. develop is the
+# integration branch; master is the release branch.
 #
-# The tag push itself is what fires the actual release DAG:
-#   - publish-pub-dev.yml (validate -> verify artifacts -> verify swift ->
-#     tests -> publish to pub.dev, behind the pub.dev environment approval)
-#   - deploy.yml (docs + gallery to Cloudflare Pages)
+# Flow:
+#   merge develop -> master
+#     -> "Generate Artifacts" (push trigger on master) regenerates + commits
+#        bindings and runs the full test matrix at the post-push tip
+#     -> when that run COMPLETES (workflow_run below), this workflow:
+#        check          - read the version from the merged commit's pubspec;
+#                         skip if already released; FAIL if the tag exists but
+#                         the release never completed (a stuck tag)
+#        validate       - version regex, lockstep (both pubspecs), tag-not-exists
+#        wait-swift     - only if the merge also regenerates Swift bindings
+#        tag            - annotated v<version> at the master tip, pushed with
+#                         RELEASE_TOKEN
+#        watch-release  - wait for "Publish to pub.dev" + "Deploy site" to fire
+#     -> the tag push fires Publish to pub.dev (verify gates -> tests -> publish
+#        behind the pub.dev environment approval) and Deploy site (docs + gallery
+#        to Cloudflare Pages).
 #
-# Requires the RELEASE_TOKEN repo secret: a fine-grained PAT with Contents
-# read+write on this repo. Pushing the tag with GITHUB_TOKEN would NOT trigger
-# the tag-push workflows (GitHub suppresses events triggered by GITHUB_TOKEN).
+# The tag push MUST use a fine-grained PAT with BOTH "Contents: read and write"
+# AND "Actions: read and write" (secret RELEASE_TOKEN). GITHUB_TOKEN pushes fire
+# no follow-up runs — and do NOT give the generator workflows a firing PAT
+# either: web.version always differs, so that would loop forever.
+#
+# workflow_dispatch is a manual fallback that releases a specific version from
+# a specific ref (skipping the generate-run gate). Publishing still happens via
+# the tag push.
 
 on:
+  workflow_run:
+    workflows: [ "Generate Artifacts" ]
+    types: [ completed ]
   workflow_dispatch:
     inputs:
       version:
@@ -28,56 +46,109 @@ on:
         default: 'develop'
 
 permissions:
-  contents: write
+  # contents: read — checkout/ls-remote; actions: read — gh run polling
+  # (wait-swift, watch-release). The tag push itself uses RELEASE_TOKEN.
+  contents: read
+  actions: read
 
 concurrency:
-  # One release at a time.
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+  # One release at a time. A newer master push cancels an in-flight chain; that
+  # push's own Generate Artifacts run re-fires it.
+  group: release-master
+  cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate version
+  check:
+    name: Check release needed
     runs-on: ubuntu-24.04
+    # workflow_run fires for EVERY completed Generate Artifacts run (develop
+    # pushes, PRs, tag-time verify calls) — only act on successful runs that
+    # came from a push to master.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.event == 'push') }}
     outputs:
-      version: ${{ steps.validate.outputs.version }}
+      version: ${{ steps.release.outputs.version }}
+      should_release: ${{ steps.release.outputs.should_release }}
+      release_sha: ${{ steps.release.outputs.release_sha }}
     steps:
-      - name: Check inputs
-        id: validate
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.workflow_run.head_sha }}
+
+      - name: Decide what to release
+        id: release
         shell: bash
         run: |
           set -euo pipefail
-          # Tolerate (and strip) an accidental leading 'v'.
-          v="${{ inputs.version }}"
-          v="${v#v}"
-          # pub.dev versions: N.N.N with optional -pre / +build suffix.
-          if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Invalid version '${{ inputs.version }}'. Expected e.g. 0.5.0 or 0.5.0-pre.1 (no leading 'v')."
-            exit 1
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual fallback: version comes from the input.
+            v="${{ inputs.version }}"
+            v="${v#v}"
+            if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::Invalid version '${{ inputs.version }}'. Expected e.g. 0.5.0 or 0.5.0-pre.1 (no leading 'v')."
+              exit 1
+            fi
+            echo "release_sha=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            # Triggered by a completed Generate Artifacts run on master. The
+            # version is whatever the merged commit's pubspec says.
+            v="$(grep -m1 '^version:' thermion_dart/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+            echo "release_sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
           fi
+          echo "Release version: $v"
           echo "version=$v" >> "$GITHUB_OUTPUT"
-          echo "Releasing version $v"
 
+          if git ls-remote --tags origin "refs/tags/v$v" | grep -q .; then
+            echo "::notice::Tag v$v already exists — verifying the release actually completed."
+            released=""
+            exists_on_pubdev() {
+              # Returns 0 if version $2 is listed in pub.dev's API for package $1.
+              local pkg="$1" want="$2"
+              curl -fsSL "https://pub.dev/api/packages/$pkg" \
+                | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if sys.argv[1] in [x['version'] for x in d.get('versions',[])] else 1)" "$want" \
+                || return 1
+            }
+            if exists_on_pubdev thermion_dart "$v" && exists_on_pubdev thermion_flutter "$v"; then
+              released="pub.dev"
+            elif gh run list --workflow "Publish to pub.dev" --event push --branch "v$v" --limit 10 --json conclusion,status \
+                 | python3 -c "import sys,json; sys.exit(0 if any(r.get('conclusion')=='success' and r.get('status')=='completed' for r in json.load(sys.stdin)) else 1)"; then
+              released="a previous run"
+            fi
+            if [ -n "$released" ]; then
+              echo "::notice::v$v was already released ($released) — this push did not cut a new release."
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::Tag v$v exists but the release never completed. Possible causes: the RELEASE_TOKEN PAT lacks 'Actions: read and write' (the tag push fired no workflows), or a publish run failed. Fix the PAT, delete the tag (git push origin :refs/tags/v$v), or bump the version, then merge again. See docs/RELEASING.md."
+              exit 1
+            fi
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  validate:
+    name: Validate version
+    needs: check
+    if: ${{ needs.check.outputs.should_release == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
-          fetch-depth: 0
+          ref: ${{ needs.check.outputs.release_sha }}
 
       - name: Check lockstep + tag-not-exists
         shell: bash
         run: |
           set -euo pipefail
-          v="${{ steps.validate.outputs.version }}"
+          v="${{ needs.check.outputs.version }}"
           dart_v="$(grep -m1 '^version:' thermion_dart/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
           flt_v="$(grep -m1 '^version:' thermion_flutter/thermion_flutter/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
           echo "thermion_dart version:     $dart_v"
           echo "thermion_flutter version:  $flt_v"
           if [ "$dart_v" != "$flt_v" ]; then
-            echo "::error::Lockstep broken: thermion_dart ($dart_v) != thermion_flutter ($flt_v). Bump both pubspecs to $v in a develop PR first."
+            echo "::error::Lockstep broken: thermion_dart ($dart_v) != thermion_flutter ($flt_v). Bump both pubspecs to $v on develop first."
             exit 1
           fi
           if [ "$dart_v" != "$v" ]; then
-            echo "::error::pubspec version $dart_v does not match requested release $v. Bump both pubspecs (and changelogs) on ${{ inputs.ref }} first, then re-dispatch."
+            echo "::error::Pubspec version $dart_v does not match release version $v."
             exit 1
           fi
           if git ls-remote --tags origin "refs/tags/v$v" | grep -q .; then
@@ -86,48 +157,173 @@ jobs:
           fi
           echo "OK: tag v$v can be created"
 
-  verify-artifacts:
-    name: Verify generated artifacts
-    needs: validate
-    uses: ./.github/workflows/generate-artifacts.yml
-    with:
-      verify: true
-
-  verify-swift-bindings:
-    name: Verify swift bindings
-    needs: validate
-    uses: ./.github/workflows/generate-swift-bindings.yml
-    with:
-      verify: true
-
-  tests:
-    name: Test suite
-    needs: [validate, verify-artifacts, verify-swift-bindings]
-    uses: ./.github/workflows/run-tests.yml
-    with:
-      ref: ${{ inputs.ref }}
+  wait-swift:
+    name: Wait for swift bindings
+    needs: check
+    if: ${{ needs.check.outputs.should_release == 'true' && github.event_name == 'workflow_run' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Find and watch swift bindings run
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          ID=""
+          # The swift push trigger is paths-filtered: a merge that didn't touch
+          # the ObjC header fires no run. Give it a short grace period to appear.
+          for i in $(seq 1 12); do
+            ID="$(gh run list --workflow "Generate Swift Bindings" --event push --branch master --commit "$SHA" --limit 1 --json id --jq '.[0].id // ""' 2>/dev/null || true)"
+            [ -n "$ID" ] && break
+            sleep 10
+          done
+          if [ -z "$ID" ]; then
+            echo "No 'Generate Swift Bindings' run for $SHA (paths filter — nothing to regenerate)."
+            exit 0
+          fi
+          echo "Watching Generate Swift Bindings run $ID"
+          if ! timeout 60m gh run watch "$ID" --exit-status >/dev/null 2>&1; then
+            echo "::error::Swift bindings regeneration failed or timed out. See https://github.com/${{ github.repository }}/actions/runs/$ID"
+            exit 1
+          fi
+          echo "Swift bindings regenerated successfully"
 
   tag:
     name: Create and push tag
-    needs: [validate, verify-artifacts, verify-swift-bindings, tests]
+    needs: [check, validate, wait-swift]
+    if: ${{ needs.check.outputs.should_release == 'true' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
+
+      - name: Resolve release tip
+        id: tip
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual fallback: tag the given ref as-is.
+            SHA="$(git rev-parse "${{ needs.check.outputs.release_sha }}")"
+          else
+            # The Generate Artifacts run may have committed regenerated
+            # bindings to master after the merge — tag the current tip so the
+            # tag-path verify gates see the committed (non-stale) bindings.
+            git fetch origin master
+            SHA="$(git rev-parse origin/master)"
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Re-verify version + tag at tip
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="${{ needs.check.outputs.version }}"
+          TIP="${{ steps.tip.outputs.sha }}"
+          dart_v="$(git show "$TIP:thermion_dart/pubspec.yaml" | grep -m1 '^version:' | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          flt_v="$(git show "$TIP:thermion_flutter/thermion_flutter/pubspec.yaml" | grep -m1 '^version:' | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+          if [ "$dart_v" != "$flt_v" ] || [ "$dart_v" != "$v" ]; then
+            echo "::error::Version at tip $TIP ($dart_v/$flt_v) no longer matches release version $v. A push landed after the generate run — its own release chain will take over."
+            exit 1
+          fi
+          if git ls-remote --tags origin "refs/tags/v$v" | grep -q .; then
+            echo "::error::Tag v$v already exists on origin (created between validate and this step). Delete it or bump the version, then merge again."
+            exit 1
+          fi
+          echo "OK: tagging $TIP as v$v"
 
       - name: Create and push annotated tag
         env:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        shell: bash
         run: |
           set -euo pipefail
           if [ -z "$RELEASE_TOKEN" ]; then
-            echo "::error::RELEASE_TOKEN secret is not configured. Create a fine-grained PAT (Contents read+write on this repo) and add it as a repo secret 'RELEASE_TOKEN'. It is required so the tag push triggers the publish/deploy workflows (GITHUB_TOKEN pushes do not)."
+            echo "::error::RELEASE_TOKEN secret is not configured. Create a fine-grained PAT with 'Contents: read and write' AND 'Actions: read and write' on this repo and add it as a repo secret 'RELEASE_TOKEN'. Actions write is required for the tag push to fire the publish/deploy workflows (GITHUB_TOKEN and Contents-only PAT pushes fire no runs)."
             exit 1
           fi
-          v="${{ needs.validate.outputs.version }}"
+          v="${{ needs.check.outputs.version }}"
+          TIP="${{ steps.tip.outputs.sha }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$v" -m "Release v$v"
+          git tag -a "v$v" -m "Release v$v" "$TIP"
           git push "https://x-access-token:${RELEASE_TOKEN}@github.com/${{ github.repository }}" "refs/tags/v$v"
-          echo "Pushed tag v$v — publish + deploy workflows will run."
+          {
+            echo "## Release v$v"
+            echo ""
+            echo "- Tag: \`v$v\` at \`$TIP\`"
+            echo "- The tag push should now fire **Publish to pub.dev** and **Deploy site**."
+            echo "- If no runs appear within ~5 minutes, the RELEASE_TOKEN PAT is missing **Actions: read and write** — see docs/RELEASING.md."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  watch-release:
+    name: Watch publish + deploy
+    needs: [check, tag]
+    if: ${{ needs.check.outputs.should_release == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Wait for Publish to pub.dev run
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="${{ needs.check.outputs.version }}"
+          ID=""
+          for i in $(seq 1 12); do
+            ID="$(gh run list --workflow "Publish to pub.dev" --event push --branch "v$v" --limit 1 --json id --jq '.[0].id // ""' 2>/dev/null || true)"
+            [ -n "$ID" ] && break
+            sleep 25
+          done
+          if [ -z "$ID" ]; then
+            echo "::error::No 'Publish to pub.dev' run fired for tag v$v within 5 minutes. The tag push likely fired no workflows: the RELEASE_TOKEN fine-grained PAT needs BOTH 'Contents: read and write' AND 'Actions: read and write' (a Contents-only PAT pushes silently but fires zero runs). Fix the PAT, delete the tag (git push origin :refs/tags/v$v), and merge again. See docs/RELEASING.md."
+            exit 1
+          fi
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "Publish run: https://github.com/${{ github.repository }}/actions/runs/$ID"
+
+      - name: Wait for Deploy site run to complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="${{ needs.check.outputs.version }}"
+          ID="$(gh run list --workflow "Deploy site" --event push --branch "v$v" --limit 1 --json id --jq '.[0].id // ""' 2>/dev/null || true)"
+          if [ -z "$ID" ]; then
+            echo "::error::No 'Deploy site' run fired for tag v$v. See https://github.com/${{ github.repository }}/actions/workflows/deploy.yml"
+            exit 1
+          fi
+          echo "Deploy run: https://github.com/${{ github.repository }}/actions/runs/$ID"
+          if ! timeout 35m gh run watch "$ID" --exit-status >/dev/null 2>&1; then
+            echo "::error::Site deploy failed or timed out. See https://github.com/${{ github.repository }}/actions/runs/$ID"
+            exit 1
+          fi
+          echo "Site deployed"
+
+      - name: Wait for Publish to complete (or approve)
+        shell: bash
+        run: |
+          set -euo pipefail
+          PUBLISH_ID="${{ steps.publish.outputs.id }}"
+          URL="https://github.com/${{ github.repository }}/actions/runs/$PUBLISH_ID"
+          for i in $(seq 1 240); do # up to 2h; approval can pend for hours
+            STATE="$(gh api "repos/${{ github.repository }}/actions/runs/$PUBLISH_ID" --jq '{status, conclusion}' 2>/dev/null || true)"
+            STATUS="$(echo "$STATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || true)"
+            CONCL="$(echo "$STATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('conclusion',''))" 2>/dev/null || true)"
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCL" = "success" ]; then
+                echo "Publish succeeded: $URL"
+                exit 0
+              fi
+              echo "::error::Publish run ended with '$CONCL': $URL"
+              exit 1
+            fi
+            # Approval-pending at the pub.dev environment: report and stop here —
+            # the release is correctly waiting on a human.
+            PENDING="$(gh api "repos/${{ github.repository }}/actions/runs/$PUBLISH_ID/jobs" --jq '[.jobs[] | select(.status=="queued") | .steps[] | select(.name | ascii_downcase | contains("approval"))] | length' 2>/dev/null || echo 0)"
+            if [ "$PENDING" -gt 0 ]; then
+              echo "Publish is awaiting approval at the pub.dev environment: $URL"
+              exit 0
+            fi
+            sleep 30
+          done
+          # Still running (e.g. tag-path tests) — the publish run is the source
+          # of truth; don't fail a healthy in-flight release.
+          echo "Publish still in progress after 2h: $URL"
+          exit 0
