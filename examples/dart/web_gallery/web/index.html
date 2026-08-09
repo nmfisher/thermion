@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thermion Examples</title>
+  <!--
+    The Emscripten module MUST load first and be awaited onto window.thermion_dart
+    before the Dart (WASM) entry runs; Dart then reads it via
+    NativeLibrary.initBindings("thermion_dart").
+  -->
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 100%; height: 100%; }
+    canvas { width: 100vw; height: 100vh; display: block; }
+    #selector {
+      position: absolute; top: 8px; left: 8px; z-index: 10;
+      display: flex; align-items: center; gap: 6px;
+      color: #ccc; font: 12px ui-monospace, monospace;
+      text-shadow: 0 1px 2px #000;
+    }
+    #selector label { pointer-events: none; }
+    #example-select {
+      font: 12px ui-monospace, monospace; padding: 3px 6px;
+      background: rgba(0,0,0,0.55); color: #eee; border: 1px solid #555;
+      border-radius: 4px; max-width: 220px;
+    }
+    #example-select:focus { outline: none; border-color: #8af; }
+    #info {
+      position: absolute; bottom: 8px; left: 8px;
+      color: #ccc; font: 12px ui-monospace, monospace; pointer-events: none;
+      text-shadow: 0 1px 2px #000;
+    }
+    body.embed #selector,
+    body.embed #info { display: none; }
+    [hidden] { display: none !important; }
+    /* Full-canvas loading overlay. Covers WASM boot + the multi-MB asset fetch
+       (e.g. the animation scene pulls ~15MB), and is cleared by main.dart once
+       the first frame renders. Not hidden in embed mode — embedded viewers need
+       to see it too. */
+    #loading {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      background: #000; color: #cfd6e0; font: 13px ui-monospace, monospace;
+    }
+    #loading[hidden] { display: none !important; }
+    #loading .spinner {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.18);
+      border-top-color: #6ea8ff;
+      animation: thermion-spin 0.8s linear infinite;
+    }
+    @keyframes thermion-spin { to { transform: rotate(360deg); } }
+    #effects-controls {
+      position: absolute; top: 8px; right: 8px; z-index: 10;
+      box-sizing: border-box; width: min(260px, calc(100vw - 16px));
+      max-height: calc(100vh - 16px); overflow-y: auto;
+      padding: 10px; border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 7px; background: rgba(12,14,18,0.86); color: #eee;
+      font: 12px ui-monospace, monospace; backdrop-filter: blur(8px);
+    }
+    #effects-controls h2 {
+      margin: 0 0 7px; font-size: 13px; font-weight: 600;
+    }
+    #effects-controls .toggle {
+      display: flex; align-items: center; gap: 7px; margin: 5px 0;
+    }
+    #effects-controls .slider-label {
+      display: flex; justify-content: space-between; margin-top: 6px;
+    }
+    #effects-controls input[type="range"] { width: 100%; margin: 2px 0 0; }
+    #effects-controls .section {
+      margin-top: 8px; padding-top: 7px;
+      border-top: 1px solid rgba(255,255,255,0.18); color: #bbb;
+    }
+    #effects-reset {
+      width: 100%; margin-top: 8px; padding: 5px 8px;
+      border: 1px solid #666; border-radius: 4px;
+      background: #272a30; color: #eee; font: inherit; cursor: pointer;
+    }
+    #error {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: #f88; font: 14px ui-monospace, monospace; max-width: 80%;
+      text-align: center; display: none;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    if (new URLSearchParams(window.location.search).get('embed') === '1') {
+      document.body.classList.add('embed');
+    }
+  </script>
+  <canvas id="thermion_canvas"></canvas>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loading-text">Initializing renderer…</div>
+  </div>
+  <div id="selector">
+    <label for="example-select">example:</label>
+    <select id="example-select"></select>
+  </div>
+  <div id="info">loading…</div>
+  <aside id="effects-controls" hidden>
+    <h2>Post-processing</h2>
+    <label class="toggle"><input id="effects-fxaa" type="checkbox" checked /> FXAA</label>
+    <label class="toggle"><input id="effects-bloom" type="checkbox" checked /> Bloom</label>
+    <label class="slider-label" for="effects-bloom-strength">Strength <span id="effects-bloom-strength-value">0.30</span></label>
+    <input id="effects-bloom-strength" type="range" min="0" max="1" step="0.01" value="0.30" />
+
+    <label class="toggle section"><input id="effects-color-grading" type="checkbox" checked /> Color grading</label>
+    <label class="slider-label" for="effects-exposure">Exposure <span id="effects-exposure-value">0</span></label>
+    <input id="effects-exposure" type="range" min="-2" max="2" step="0.1" value="0" />
+    <label class="slider-label" for="effects-temperature">Temperature <span id="effects-temperature-value">0</span></label>
+    <input id="effects-temperature" type="range" min="-1" max="1" step="0.05" value="0" />
+    <label class="slider-label" for="effects-tint">Tint <span id="effects-tint-value">0</span></label>
+    <input id="effects-tint" type="range" min="-1" max="1" step="0.01" value="0" />
+    <label class="slider-label" for="effects-contrast">Contrast <span id="effects-contrast-value">1</span></label>
+    <input id="effects-contrast" type="range" min="0.5" max="1.5" step="0.05" value="1" />
+    <label class="slider-label" for="effects-saturation">Saturation <span id="effects-saturation-value">1</span></label>
+    <input id="effects-saturation" type="range" min="0" max="2" step="0.05" value="1" />
+    <label class="slider-label" for="effects-vibrance">Vibrance <span id="effects-vibrance-value">1</span></label>
+    <input id="effects-vibrance" type="range" min="0" max="2" step="0.05" value="1" />
+    <button id="effects-reset" type="button">Reset</button>
+  </aside>
+  <div id="error"></div>
+
+  <script>
+    // Give the canvas its real backing size before downloading either WASM
+    // module. Dart repeats this immediately before engine creation in case the
+    // window changed size while the modules were loading.
+    const canvas = document.getElementById('thermion_canvas');
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+  </script>
+  <script src="thermion_dart.js"></script>
+  <script type="module">
+    // Bootstrap the cross-origin-isolated Emscripten module.
+    try {
+      window.thermion_dart = await thermion_dart();
+    } catch (err) {
+      const el = document.getElementById('error');
+      el.textContent = 'Failed to load thermion_dart.js: ' + err +
+        '\n\nThis page requires cross-origin isolation (COOP/COEP). Serve it with the coi proxy.';
+      el.style.display = 'block';
+      throw err;
+    }
+
+    // Boot the Dart WASM entry (compiled from web/main.dart).
+    try {
+      const dartModulePromise = WebAssembly.compileStreaming(fetch('./main.wasm'));
+      const dart2wasm_runtime = await import('./main.mjs');
+      const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, {});
+      await dart2wasm_runtime.invoke(moduleInstance);
+    } catch (jsErr) {
+      const el = document.getElementById('error');
+      if (el) {
+        el.textContent = 'Failed to boot gallery: ' + jsErr;
+        el.style.display = 'block';
+      }
+      throw jsErr;
+    }
+  </script>
+</body>
+</html>

@@ -1,20 +1,22 @@
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 /// FFI implementation of ColorGrading
 class FFIColorGrading extends ColorGrading {
   final Pointer<TColorGrading> pointer;
 
-  FFIColorGrading(this.pointer);
+  final FFIFilamentApp _app;
+
+  FFIColorGrading(this.pointer, this._app);
 
   @override
   Pointer<TColorGrading> getNativeHandle() => pointer;
 
-  @override
   Future dispose() async {
-    await withVoidCallback((requestId, cb) =>
-        Engine_destroyColorGradingRenderThread(
-            FilamentApp.instance!.engine, pointer, requestId, cb));
+    await withVoidCallback(
+      (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, pointer, requestId, cb),
+    );
   }
 }
 
@@ -23,7 +25,9 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   final Pointer<TColorGradingBuilder> _builder;
   bool _built = false;
 
-  FFIColorGradingBuilder(this._builder);
+  final FFIFilamentApp _app;
+
+  FFIColorGradingBuilder(this._builder, this._app);
 
   void _checkNotBuilt() {
     if (_built) {
@@ -104,8 +108,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   }
 
   @override
-  ColorGradingBuilder channelMixer(
-      Vector3 outRed, Vector3 outGreen, Vector3 outBlue) {
+  ColorGradingBuilder channelMixer(Vector3 outRed, Vector3 outGreen, Vector3 outBlue) {
     _checkNotBuilt();
     ColorGradingBuilder_channelMixer(
       _builder,
@@ -123,8 +126,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   }
 
   @override
-  ColorGradingBuilder shadowsMidtonesHighlights(
-      Vector4 shadows, Vector4 midtones, Vector4 highlights, Vector4 ranges) {
+  ColorGradingBuilder shadowsMidtonesHighlights(Vector4 shadows, Vector4 midtones, Vector4 highlights, Vector4 ranges) {
     _checkNotBuilt();
     ColorGradingBuilder_shadowsMidtonesHighlights(
       _builder,
@@ -149,8 +151,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   }
 
   @override
-  ColorGradingBuilder slopeOffsetPower(
-      Vector3 slope, Vector3 offset, Vector3 power) {
+  ColorGradingBuilder slopeOffsetPower(Vector3 slope, Vector3 offset, Vector3 power) {
     _checkNotBuilt();
     ColorGradingBuilder_slopeOffsetPower(
       _builder,
@@ -168,8 +169,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   }
 
   @override
-  ColorGradingBuilder curves(
-      Vector3 shadowGamma, Vector3 midPoint, Vector3 highlightScale) {
+  ColorGradingBuilder curves(Vector3 shadowGamma, Vector3 midPoint, Vector3 highlightScale) {
     _checkNotBuilt();
     ColorGradingBuilder_curves(
       _builder,
@@ -204,14 +204,13 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   Future<ColorGrading> build() async {
     _checkNotBuilt();
     _built = true;
-    final ptr = await withPointerCallback<TColorGrading>((cb) =>
-        ColorGradingBuilder_buildRenderThread(
-            _builder, FilamentApp.instance!.engine, cb));
-    await withVoidCallback((requestId, cb) =>
-        ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb));
+    final ptr = await withPointerCallback<TColorGrading>(
+      (cb) => ColorGradingBuilder_buildRenderThread(_builder, _app.engine, cb),
+    );
+    await withVoidCallback((requestId, cb) => ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb));
     if (ptr == nullptr) {
       throw Exception('Failed to build ColorGrading');
     }
-    return FFIColorGrading(ptr);
+    return FFIColorGrading(ptr, _app);
   }
 }

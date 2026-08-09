@@ -42,7 +42,6 @@ class Geometry {
     bool createDummyUvs1 = true,
   }) {
     this.attribute0 = attribute0 ?? Float32List(0);
-    this.uvs = uvs ?? Float32List(0);
     this.normals = normals ?? Float32List(0);
 
     if (colors == null) {
@@ -55,10 +54,8 @@ class Geometry {
       }
     }
     this.colors = colors;
-    if (this.colors.length != 0 &&
-        this.colors.length != (vertices.length ~/ 3 * 4)) {
-      throw Exception(
-          "Expected ${vertices.length ~/ 3 * 4} color values (RGBA), got ${this.colors.length}");
+    if (this.colors.length != 0 && this.colors.length != (vertices.length ~/ 3 * 4)) {
+      throw Exception("Expected ${vertices.length ~/ 3 * 4} color values (RGBA), got ${this.colors.length}");
     }
 
     if (uvs == null) {
@@ -69,11 +66,12 @@ class Geometry {
         uvs = makeFloat32List(0);
       }
     }
+    this.uvs = uvs;
 
     final numVertices = vertices.length ~/ 3;
     final expectedUvs = numVertices * 2;
     if (hasUVs && this.uvs.length != expectedUvs) {
-      throw Exception("Expected ${expectedUvs} UVs, got ${this.uvs!.length}");
+      throw Exception("Expected ${expectedUvs} UVs, got ${this.uvs.length}");
     }
 
     // Handle UV1 - ubershader requires two UV sets
@@ -97,10 +95,8 @@ class Geometry {
       throw Exception("Expected ${expectedUvs} UV1s, got ${this.uvs1.length}");
     }
 
-    if (hasAttribute0 &&
-        this.attribute0.length != (this.vertices.length ~/ 3 * 4)) {
-      throw Exception(
-          "Expected ${indices.length * 4} ATTRIBUTE0, got ${this.attribute0.length}");
+    if (hasAttribute0 && this.attribute0.length != (this.vertices.length ~/ 3 * 4)) {
+      throw Exception("Expected ${indices.length * 4} ATTRIBUTE0, got ${this.attribute0.length}");
     }
   }
 

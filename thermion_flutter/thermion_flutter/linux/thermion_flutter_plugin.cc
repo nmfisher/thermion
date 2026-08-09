@@ -348,7 +348,9 @@ static FlMethodResponse *handle_create_texture_vulkan(ThermionFlutterPlugin *sel
   FlTexture *flTexture = FL_TEXTURE(textureGL);
   if (!fl_texture_registrar_register_texture(self->texture_registrar, flTexture))
   {
-    delete extImg;
+    // Nothing has referenced extImg yet (Texture_setExternalImage never ran), so its
+    // refcount is still zero. Let it expire and Filament performs the delete.
+    filament::backend::Platform::ExternalImageHandle reclaim(extImg);
     self->external_images->erase(surfaceId);
     self->vulkan_context->DestroyRenderingSurface(surfaceId);
     return FL_METHOD_RESPONSE(fl_method_error_response_new(
@@ -568,7 +570,9 @@ static FlMethodResponse *handle_destroy_texture(ThermionFlutterPlugin *self, FlM
         auto extIt = self->external_images->find(surfaceId);
         if (extIt != self->external_images->end())
         {
-          delete extIt->second;
+          // Filament holds a reference to this ExternalImage and releases it when the
+          // texture is destroyed; ExternalImage's destructor is protected to forbid manual deletion.
+          // Only drop the raw pointer.
           self->external_images->erase(extIt);
         }
         if (self->vulkan_context)
@@ -736,10 +740,6 @@ static void thermion_flutter_plugin_dispose(GObject *object)
   }
   if (self->external_images)
   {
-    for (auto &pair : *self->external_images)
-    {
-      delete pair.second;
-    }
     delete self->external_images;
     self->external_images = nullptr;
   }

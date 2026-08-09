@@ -13,14 +13,15 @@ class FilamentConfig<T, U> {
   final int stereoscopicEyeCount;
   final bool disableHandleUseAfterFreeCheck;
 
-  FilamentConfig(
-      {required this.backend,
-      required this.loadResource,
-      this.uberArchivePath,
-      this.platform,
-      this.sharedContext,
-      this.stereoscopicEyeCount = 1,
-      this.disableHandleUseAfterFreeCheck = false});
+  FilamentConfig({
+    required this.backend,
+    required this.loadResource,
+    this.uberArchivePath,
+    this.platform,
+    this.sharedContext,
+    this.stereoscopicEyeCount = 1,
+    this.disableHandleUseAfterFreeCheck = false,
+  });
 }
 
 abstract class FilamentApp<T> {
@@ -44,8 +45,7 @@ abstract class FilamentApp<T> {
   Future<Uint8List> loadResource(String uri);
 
   //
-  Future<SwapChain> createHeadlessSwapChain(int width, int height,
-      {bool hasStencilBuffer = false});
+  Future<SwapChain> createHeadlessSwapChain(int width, int height, {bool hasStencilBuffer = false});
 
   //
   Future<SwapChain> createSwapChain(T handle, {bool hasStencilBuffer = false});
@@ -82,40 +82,42 @@ abstract class FilamentApp<T> {
   Future destroyAsset(covariant ThermionAsset asset);
 
   //
-  Future<RenderTarget> createRenderTarget(int width, int height,
-      {covariant Texture? color, covariant Texture? depth});
+  Future<RenderTarget> createRenderTarget(int width, int height, {covariant Texture? color, covariant Texture? depth});
 
   //
-  Future<Texture> createTexture(int width, int height,
-      {int depth = 1,
-      int levels = 1,
-      Set<TextureUsage> flags = const {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
-      TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
-      TextureFormat textureFormat = TextureFormat.RGBA32F,
-      int? importedTextureHandle});
+  Future<Texture> createTexture(
+    int width,
+    int height, {
+    int depth = 1,
+    int levels = 1,
+    Set<TextureUsage> flags = const {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
+    TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
+    TextureFormat textureFormat = TextureFormat.RGBA32F,
+    int? importedTextureHandle,
+  });
 
   Future<void> setExternalImage(Texture texture, int externalImagePtr);
 
   //
-  Future<TextureSampler> createTextureSampler(
-      {TextureMinFilter minFilter = TextureMinFilter.LINEAR,
-      TextureMagFilter magFilter = TextureMagFilter.LINEAR,
-      TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
-      TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
-      TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
-      double anisotropy = 0.0,
-      TextureCompareMode compareMode = TextureCompareMode.NONE,
-      TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL});
+  Future<TextureSampler> createTextureSampler({
+    TextureMinFilter minFilter = TextureMinFilter.LINEAR,
+    TextureMagFilter magFilter = TextureMagFilter.LINEAR,
+    TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
+    TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
+    TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
+    double anisotropy = 0.0,
+    TextureCompareMode compareMode = TextureCompareMode.NONE,
+    TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL,
+  });
 
-  //
-  // Decodes the specified image data.
-  //
-  Future<LinearImage> decodeImage(Uint8List data,
-      {String name = "image", bool requireAlpha = false});
+  /// Decodes [data] into a caller-owned [LinearImage].
+  ///
+  /// The caller must eventually call [LinearImage.destroy].
+  Future<LinearImage> decodeImage(Uint8List data, {String name = "image", bool requireAlpha = false});
 
-  //
-  // Creates an (empty) imge with the given dimensions.
-  //
+  /// Creates a caller-owned empty [LinearImage] with the given dimensions.
+  ///
+  /// The caller must eventually call [LinearImage.destroy].
   Future<LinearImage> createImage(int width, int height, int channels);
 
   //
@@ -262,12 +264,10 @@ abstract class FilamentApp<T> {
   Future<WireframeMaterialInstance> createWireframeMaterialInstance();
 
   //
-  Future<MaterialInstance> getMaterialInstanceAt(
-      ThermionEntity entity, int primitiveIndex);
+  Future<MaterialInstance> getMaterialInstanceAt(ThermionEntity entity, int primitiveIndex);
 
   //
-  Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex,
-      MaterialInstance materialInstance);
+  Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
 
   // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
@@ -278,6 +278,20 @@ abstract class FilamentApp<T> {
   //
   // The returned [Future] will complete when the pipeline step is complete.
   Future render();
+
+  /// Caps the continuous-render framerate to [fps].
+  ///
+  /// If never called, the viewer renders on every vsync — at the display's
+  /// native refresh rate (60 fps on a 60 Hz panel, 120 on a 120 Hz panel,
+  /// and so on). The cap cannot raise the rate above the display refresh; it
+  /// only lowers it by skipping vsyncs or render requests. When the display
+  /// refresh is not an integer multiple of [fps], presentation intervals vary
+  /// as needed to preserve the requested average rate.
+  ///
+  /// Framerate is a property of the *shared* render loop, not of any one
+  /// viewer: all viewers on the same engine are pace-locked to the same rate
+  /// (last writer wins). Values <= 0 remove the cap.
+  void setTargetFramerate(int fps);
 
   //
   Future registerRequestFrameHook(Future Function() hook);
@@ -299,8 +313,7 @@ abstract class FilamentApp<T> {
 
   // Sets the parent transform of [child] to [parent].
   //
-  Future setParent(ThermionEntity child, ThermionEntity? parent,
-      {bool preserveScaling});
+  Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling});
 
   //
   // Returns pixel buffer(s) for [view] (or, if null, all views associated
@@ -308,25 +321,36 @@ abstract class FilamentApp<T> {
   //
   // Pixel buffers will be returned in RGBA float32 format.
   //
-  Future<List<(View, Uint8List)>> capture(SwapChain? swapChain,
-      {View? view,
-      bool captureRenderTarget = false,
-      PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
-      PixelDataType pixelDataType = PixelDataType.FLOAT,
-      Future Function(View)? beforeRender,
-      bool render = true});
+  Future<List<(View, Uint8List)>> capture(
+    SwapChain? swapChain, {
+    View? view,
+    bool captureRenderTarget = false,
+    PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
+    PixelDataType pixelDataType = PixelDataType.FLOAT,
+    Future Function(View)? beforeRender,
+    bool render = true,
+  });
 
   //
-  Future setClearOptions(double r, double g, double b, double a,
-      {int clearStencil = 0, bool discard = false, bool clear = true});
+  Future setClearOptions(
+    double r,
+    double g,
+    double b,
+    double a, {
+    int clearStencil = 0,
+    bool discard = false,
+    bool clear = true,
+  });
 
   // Loads a glTF asset from a raw memory buffer.
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
-      {int initialInstances = 1,
-      bool releaseSourceData = false,
-      bool rebuildVertices = false,
-      bool loadResourcesAsync = false,
-      String? resourceUri});
+  Future<ThermionAsset> loadGltfFromBuffer(
+    Uint8List data, {
+    int initialInstances = 1,
+    bool releaseSourceData = false,
+    bool rebuildVertices = false,
+    bool loadResourcesAsync = false,
+    String? resourceUri,
+  });
 
   //
   Future<T> createColorGrading(ToneMapper mapper);
@@ -335,15 +359,17 @@ abstract class FilamentApp<T> {
   Future<GizmoAsset> createGizmo(View view, GizmoType type);
 
   //
-  Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances,
-      bool releaseSourceData = false});
+  Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances});
 
   //
   Future<ThermionEntity> createDirectLight(DirectLight directLight);
 
   //
   Future flush();
+
+  /// Registers work that must finish before engine-owned render resources are
+  /// torn down.
+  void onBeforeDestroy(Future Function() callback);
 
   //
   void onDestroy(Future Function() callback);
@@ -386,12 +412,7 @@ abstract class FilamentApp<T> {
   //
   // This is useful for clearing render targets with a specific color
   // (including fully transparent for overlay passes).
-  Future<Skybox> createColoredSkybox({
-    required double r,
-    required double g,
-    required double b,
-    required double a,
-  });
+  Future<Skybox> createColoredSkybox({required double r, required double g, required double b, required double a});
 
   //
   Future<bool> isRenderable(ThermionEntity entity);

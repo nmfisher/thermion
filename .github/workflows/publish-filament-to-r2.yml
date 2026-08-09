@@ -1,0 +1,68 @@
+name: Publish Filament to R2 (from artifacts)
+
+# One-off helper: copy already-built Filament zips (from the GitHub artifacts of
+# verified 'Build Filament' runs) into R2 without rebuilding. The zips are
+# named filament-<version>-<platform>-<release|debug>.zip, matching what the
+# thermion build hook downloads. Safe to delete once publishing is done.
+
+on:
+  workflow_dispatch:
+    inputs:
+      android_run:
+        description: 'Android Build Filament run ID (verify run with artifacts)'
+        required: true
+        default: '30462653269'
+      linux_run:
+        description: 'Linux Build Filament run ID'
+        required: true
+        default: '30462656359'
+      windows_run:
+        description: 'Windows Build Filament run ID'
+        required: true
+        default: '30506886883'
+
+env:
+  R2_BUCKET_NAME: thermion
+  R2_ENDPOINT: https://260d4efc65af500536ea376de6452ece.r2.cloudflarestorage.com
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download artifacts and copy to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          pip install --quiet awscli
+
+          publish_platform() {
+            local platform="$1" run_id="$2"
+            for variant in release debug; do
+              local name="filament-${platform}-${variant}"
+              echo "=== $name: downloading from run $run_id ==="
+              if ! gh run download -R "$GITHUB_REPOSITORY" "$run_id" -n "$name" -D "./$name"; then
+                echo "WARN: artifact $name not found in run $run_id -- skipping"
+                continue
+              fi
+              local zip
+              zip="$(find "./$name" -name '*.zip' | head -n1)"
+              if [ -z "$zip" ]; then
+                echo "ERROR: no zip found inside artifact $name"
+                exit 1
+              fi
+              local base
+              base="$(basename "$zip")"
+              echo "=== $name: uploading $base to R2 ==="
+              aws s3 cp "$zip" "s3://${R2_BUCKET_NAME}/${base}" --endpoint-url "${R2_ENDPOINT}"
+              echo "=== $name: published s3://${R2_BUCKET_NAME}/${base} ==="
+            done
+          }
+
+          publish_platform android  "${{ inputs.android_run }}"
+          publish_platform linux    "${{ inputs.linux_run }}"
+          publish_platform windows  "${{ inputs.windows_run }}"
+          echo "=== all published ==="

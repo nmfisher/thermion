@@ -54,12 +54,14 @@ class VirtualControllerInputHandler {
     final delta = (position - _lastAnalogPosition!) * mouseSensitivity;
 
     // Generate mouse movement event with larger delta for more rotation
-    inputHandler.handle(MouseEvent(
-      MouseEventType.move,
-      null, // No button for analog stick movement
-      position,
-      delta * 10.0, // Scale up the delta for more noticeable rotation
-    ));
+    inputHandler.handle(
+      MouseEvent(
+        MouseEventType.move,
+        null, // No button for analog stick movement
+        position,
+        delta * 10.0, // Scale up the delta for more noticeable rotation
+      ),
+    );
 
     _lastAnalogPosition = position;
   }
@@ -69,15 +71,15 @@ class VirtualControllerInputHandler {
   }
 
   void _sendKeyEvent(
-      LogicalKey logicalKey, PhysicalKey physicalKey, bool pressed) {
+    LogicalKey logicalKey,
+    PhysicalKey physicalKey,
+    bool pressed,
+  ) {
     final eventType = pressed ? KeyEventType.down : KeyEventType.up;
 
-    inputHandler.handle(KeyEvent(
-      eventType,
-      logicalKey,
-      physicalKey,
-      synthesized: true,
-    ));
+    inputHandler.handle(
+      KeyEvent(eventType, logicalKey, physicalKey, synthesized: true),
+    );
   }
 
   void dispose() {

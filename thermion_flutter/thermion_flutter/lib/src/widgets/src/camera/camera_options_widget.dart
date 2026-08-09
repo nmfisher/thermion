@@ -6,8 +6,11 @@ class CameraOptionsWidget extends StatefulWidget {
   final Camera camera;
   final CameraOrientation cameraOrientation;
 
-  const CameraOptionsWidget(
-      {super.key, required this.camera, required this.cameraOrientation});
+  const CameraOptionsWidget({
+    super.key,
+    required this.camera,
+    required this.cameraOrientation,
+  });
 
   @override
   State<StatefulWidget> createState() => _CameraOptionsWidgetState();
@@ -50,9 +53,10 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
 
   Future _set() async {
     await widget.camera.setExposure(
-        double.parse(_apertureController.text),
-        double.parse(_speedController.text),
-        double.parse(_sensitivityController.text));
+      double.parse(_apertureController.text),
+      double.parse(_speedController.text),
+      double.parse(_sensitivityController.text),
+    );
     await widget.camera.setModelMatrix(widget.cameraOrientation.compose());
     setState(() {});
   }
@@ -60,54 +64,64 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
   @override
   Widget build(BuildContext context) {
     return Theme(
-        data: ThemeData(platform: TargetPlatform.android),
-        child: Container(
-            decoration: BoxDecoration(color: Colors.white.withAlpha(128)),
-            child: SliderTheme(
-                data: const SliderThemeData(
-                    showValueIndicator: ShowValueIndicator.alwaysVisible,
-                    valueIndicatorTextStyle: TextStyle(color: Colors.black)),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Row(children: [
-                    const Text("Aperture"),
-                    Expanded(
-                        child: TextField(
-                      controller: _apertureController,
-                    )),
-                    const Text("Speed"),
-                    Expanded(child: TextField(controller: _speedController)),
-                    const Text("Sensitivity"),
-                    Expanded(
-                        child: TextField(controller: _sensitivityController)),
-                  ]),
-                  // Row(children: [
-                  //   const Text("Focal length"),
-                  //   Slider(
-                  //       label: _focalLength.toString(),
-                  //       value: _focalLength,
-                  //       min: 1.0,
-                  //       max: 100.0,
-                  //       onChanged: (v) async {
-                  //         setState(() {
-                  //           _focalLength = v;
-                  //         });
-                  //         await widget.camera.setLensProjection(near: kNear, far:kFar, _focalLength);
-                  //       })
-                  // ]),
-                  Row(children: [
-                    const Text("X"),
-                    Slider(
-                        label: widget.cameraOrientation.position.x.toString(),
-                        value: widget.cameraOrientation.position.x,
-                        min: -100.0,
-                        max: 100.0,
-                        onChanged: (v) async {
-                          setState(() {
-                            widget.cameraOrientation.position.x = v;
-                          });
-                          _set();
-                        })
-                  ]),
-                ]))));
+      data: ThemeData(platform: TargetPlatform.android),
+      child: Container(
+        decoration: BoxDecoration(color: Colors.white.withAlpha(128)),
+        child: SliderTheme(
+          data: const SliderThemeData(
+            showValueIndicator: ShowValueIndicator.alwaysVisible,
+            valueIndicatorTextStyle: TextStyle(color: Colors.black),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Text("Aperture"),
+                  Expanded(child: TextField(controller: _apertureController)),
+                  const Text("Speed"),
+                  Expanded(child: TextField(controller: _speedController)),
+                  const Text("Sensitivity"),
+                  Expanded(
+                    child: TextField(controller: _sensitivityController),
+                  ),
+                ],
+              ),
+              // Row(children: [
+              //   const Text("Focal length"),
+              //   Slider(
+              //       label: _focalLength.toString(),
+              //       value: _focalLength,
+              //       min: 1.0,
+              //       max: 100.0,
+              //       onChanged: (v) async {
+              //         setState(() {
+              //           _focalLength = v;
+              //         });
+              //         await widget.camera.setLensProjection(near: kNear, far:kFar, _focalLength);
+              //       })
+              // ]),
+              Row(
+                children: [
+                  const Text("X"),
+                  Slider(
+                    label: widget.cameraOrientation.position.x.toString(),
+                    value: widget.cameraOrientation.position.x,
+                    min: -100.0,
+                    max: 100.0,
+                    onChanged: (v) async {
+                      setState(() {
+                        widget.cameraOrientation.position.x = v;
+                      });
+                      _set();
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -2,6 +2,8 @@ import 'package:thermion_dart/src/filament/src/interface/ktx1_bundle.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_asset.dart';
+import 'ffi_filament_app.dart';
 
 class FFITexturedQuad<T> extends TexturedQuad<T> {
   final ThermionAsset<T> asset;
@@ -17,8 +19,10 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   int? width;
   int? height;
 
-  FFITexturedQuad(
-      {required this.asset, this.texture, this.sampler, required this.mi});
+  final FFIFilamentApp _app;
+
+  FFITexturedQuad({required this.asset, this.texture, this.sampler, required this.mi, required FFIFilamentApp app})
+    : _app = app;
 
   T getNativeHandle() {
     return asset.getNativeHandle();
@@ -28,7 +32,7 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   ///
   ///
   Future destroy() async {
-    await FilamentApp.instance!.destroyAsset(asset);
+    await _app.destroyAsset(asset as FFIAsset);
     await texture?.dispose();
     await sampler?.dispose();
     await mi.destroy();
@@ -65,11 +69,9 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     final texture = await bundle.createTexture();
 
     if (bundle.isCubemap()) {
-      sampler ??= await FilamentApp.instance!.createTextureSampler()
-          as FFITextureSampler;
+      sampler ??= await _app.createTextureSampler() as FFITextureSampler;
       this.texture = texture;
-      await mi.setParameterTexture(
-          "cubeMap", texture as FFITexture, sampler as FFITextureSampler);
+      await mi.setParameterTexture("cubeMap", texture as FFITexture, sampler as FFITextureSampler);
       await setBackgroundColor(1, 1, 1, 0);
       await mi.setParameterInt("showImage", 1);
       await mi.setParameterInt("isCubeMap", 1);
@@ -90,24 +92,20 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
     // RGBA32F texture. So on Windows force an alpha channel at decode time:
     // this yields 4-channel RGBA source data that uploads cleanly into RGBA32F.
     // Other platforms keep the tighter 3-channel RGB32F path.
-    final image = await FilamentApp.instance!
-        .decodeImage(imageData, requireAlpha: IS_WINDOWS);
+    final image = await _app.decodeImage(imageData, requireAlpha: IS_WINDOWS);
     final channels = await image.getChannels();
     if (channels != 3 && channels != 4) {
       throw UnimplementedError("Currently only 3 or 4 channels are supported");
     }
-    final textureFormat =
-        channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F;
-    final pixelFormat =
-        channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB;
+    final textureFormat = channels == 4 ? TextureFormat.RGBA32F : TextureFormat.RGB32F;
+    final pixelFormat = channels == 4 ? PixelDataFormat.RGBA : PixelDataFormat.RGB;
 
-    final texture = await FilamentApp.instance!.createTexture(
-        await image.getWidth(), await image.getHeight(),
-        flags: {
-          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-          TextureUsage.TEXTURE_USAGE_UPLOADABLE
-        },
-        textureFormat: textureFormat);
+    final texture = await _app.createTexture(
+      await image.getWidth(),
+      await image.getHeight(),
+      flags: {TextureUsage.TEXTURE_USAGE_SAMPLEABLE, TextureUsage.TEXTURE_USAGE_UPLOADABLE},
+      textureFormat: textureFormat,
+    );
     await texture.setLinearImage(image, pixelFormat, PixelDataType.FLOAT);
     await setImageFromTexture(texture);
   }
@@ -117,11 +115,9 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   ///
   Future setImageFromTexture(Texture texture) async {
     this.texture = texture;
-    sampler ??=
-        await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
+    sampler ??= await _app.createTextureSampler() as FFITextureSampler;
     await mi.setParameterInt("isCubeMap", 0);
-    await mi.setParameterTexture(
-        "image", texture as FFITexture, sampler as FFITextureSampler);
+    await mi.setParameterTexture("image", texture as FFITexture, sampler as FFITextureSampler);
     await setBackgroundColor(1, 1, 1, 0);
     await mi.setParameterInt("showImage", 1);
     width = await texture.getWidth();
@@ -132,8 +128,7 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   ///
   ///
   @override
-  Future<ThermionAsset> createInstance(
-      {covariant List<MaterialInstance>? materialInstances = null}) {
+  Future<ThermionAsset> createInstance({covariant List<MaterialInstance>? materialInstances = null}) {
     throw UnimplementedError();
   }
 
@@ -178,8 +173,7 @@ class FFITexturedQuad<T> extends TexturedQuad<T> {
   }
 
   @override
-  Future<MaterialInstance> getMaterialInstanceAt(
-      {ThermionEntity? entity, int index = 0}) async {
+  Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0}) async {
     if (index == 0 && (entity == null || entity == this.entity)) {
       return mi;
     }

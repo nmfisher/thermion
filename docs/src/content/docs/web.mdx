@@ -1,0 +1,95 @@
+---
+title: Web
+description: Run Thermion in the browser via WebAssembly.
+---
+
+Thermion runs in the browser by compiling to WebAssembly. You don't build the WASM
+yourself — a native-assets build hook fetches prebuilt artifacts for you.
+
+## Quick start
+
+Run or build your Flutter app for the web as usual:
+
+```bash
+flutter run -d chrome
+# or
+flutter build web
+```
+
+During the build, Thermion's build hook reads the pinned version in `native/web/web.version`,
+downloads the matching `thermion_dart.js` and `thermion_dart.wasm` from Cloudflare R2,
+caches them under `.dart_tool/thermion_dart/web/`, and copies them into your app's `web/`
+directory (next to `index.html`). The first build downloads the artifacts; subsequent
+builds are cached and instant unless the pinned version changes.
+
+:::note
+The multithreaded WASM build needs a cross-origin-isolated page. If your run fails to load,
+see [Cross-origin isolation](#cross-origin-isolation) below.
+:::
+
+## Cross-origin isolation
+
+Thermion's WASM is multithreaded, which relies on `SharedArrayBuffer`. Browsers only expose
+that on a **cross-origin-isolated** page, so you must serve COOP/COEP headers.
+
+For local runs, pass them on the command line:
+
+```bash
+flutter run -d chrome \
+  --web-header=Cross-Origin-Opener-Policy=same-origin \
+  --web-header=Cross-Origin-Embedder-Policy=require-corp
+```
+
+For production, set the headers on your host. On Cloudflare Pages, add a `web/_headers`
+file:
+
+```
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: cross-origin
+```
+
+Static hosts that can't set response headers (e.g. GitHub Pages) won't work — the
+multithreaded build requires them.
+
+## Pre-fetching the artifacts
+
+To fetch the WASM ahead of time (for example, for an offline build):
+
+```bash
+dart run thermion_dart:download_web            # copies into ./web/
+dart run thermion_dart:download_web -o custom  # copies into custom/
+```
+
+## Building the WASM locally
+
+Building the WASM yourself is only needed if you're modifying Thermion's native C++ and
+want to test on web without bumping the pinned version and waiting for CI to rebuild the
+R2 artifacts.
+
+Build the emscripten target locally and opt in via your app's `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      web_local: true
+```
+
+```bash
+# from thermion_dart/native/web/build:
+emcmake cmake ..
+emmake make
+
+flutter run -d chrome
+```
+
+With `web_local` set, the build hook copies `thermion_dart.{js,wasm}` from your local
+`thermion_dart/native/web/build/build/out/` instead of downloading from R2. Remove the
+flag (or set it to `false`) to go back to the pinned prebuilt.
+
+## Live examples
+
+See Thermion running in the browser in the [live examples on the overview](/#live-examples),
+or open the [full-screen gallery](/gallery/).

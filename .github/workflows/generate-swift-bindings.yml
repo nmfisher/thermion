@@ -2,18 +2,24 @@ name: Generate Swift Bindings
 
 on:
   push:
-    branches: [ "develop" ]
-    tags:
-      - 'v*'
+    branches: [ "develop", "master" ]
     paths:
       - 'thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
-      - 'thermion_flutter/thermion_flutter/darwin/include/generated/MetalTextureWrapperObjCAPI.h'
   pull_request:
     branches: [ "develop" ]
     paths:
       - 'thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
-      - 'thermion_flutter/thermion_flutter/darwin/include/generated/MetalTextureWrapperObjCAPI.h'
   workflow_dispatch:
+  # Called by publish-pub-dev.yml on a v* tag push, with verify: true. Note:
+  # paths filters do not apply to workflow_call, so a release call always
+  # regenerates Swift bindings unconditionally ("always on release").
+  workflow_call:
+    inputs:
+      verify:
+        description: 'If true, regenerate as a gate and fail on any uncommitted diff instead of committing/pushing. Used by the release flow.'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: generate-swift-bindings-${{ github.head_ref || github.ref }}
@@ -39,11 +45,15 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: master
+          flutter-version: '3.44.8'
+          channel: stable
           architecture: X64
 
       - name: Generate Swift bindings
         run: make flutter-bindings
+
+      - name: Format generated Swift bindings
+        run: dart format thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
 
       - name: Ensure generated binding file is tracked
         run: git update-index --no-assume-unchanged thermion_flutter/thermion_flutter/lib/src/swift/swift_bindings.g.dart
@@ -52,8 +62,17 @@ jobs:
         id: git-check
         run: git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
 
+      # Release gate (called with verify: true): the tag must already contain
+      # committed Swift bindings. A diff means they are stale — abort release.
+      - name: Fail if swift bindings are stale (verify)
+        if: ${{ inputs.verify == 'true' && steps.git-check.outputs.changed == 'true' }}
+        run: |
+          echo "::error::Generated swift bindings differ from the committed tag. Run 'make flutter-bindings', commit on develop, then re-tag."
+          git --no-pager diff --stat
+          exit 1
+
       - name: Commit and push if changed
-        if: steps.git-check.outputs.changed == 'true'
+        if: inputs.verify != 'true' && steps.git-check.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

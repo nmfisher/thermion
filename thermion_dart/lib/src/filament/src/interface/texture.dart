@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -10,7 +8,7 @@ enum TextureSamplerType {
   SAMPLER_CUBEMAP,
   SAMPLER_EXTERNAL,
   SAMPLER_3D,
-  SAMPLER_CUBEMAP_ARRAY
+  SAMPLER_CUBEMAP_ARRAY,
 }
 
 /// Defines internal texture formats
@@ -21,7 +19,6 @@ enum TextureFormat {
   R8UI, // R 8-bits (unsigned integer)
   R8I, // R 8-bits (signed integer)
   STENCIL8, // Stencil 8-bits
-
   // 16-bits per element
   R16F, // R 16-bits (float)
   R16UI, // R 16-bits (unsigned integer)
@@ -35,7 +32,6 @@ enum TextureFormat {
   RGB5_A1, // RGB 5 bits each, A 1 bit
   RGBA4, // RGBA 4 bits each
   DEPTH16, // Depth 16-bits
-
   // 24-bits per element
   RGB8, // RGB 8-bits each
   SRGB8, // RGB 8-bits each (sRGB color space)
@@ -43,7 +39,6 @@ enum TextureFormat {
   RGB8UI, // RGB 8-bits each (unsigned integer)
   RGB8I, // RGB 8-bits each (signed integer)
   DEPTH24, // Depth 24-bits
-
   // 32-bits per element
   R32F, // R 32-bits (float)
   R32UI, // R 32-bits (unsigned integer)
@@ -62,12 +57,10 @@ enum TextureFormat {
   DEPTH32F, // Depth 32-bits (float)
   DEPTH24_STENCIL8, // Depth 24-bits, Stencil 8-bits
   DEPTH32F_STENCIL8, // Depth 32-bits (float), Stencil 8-bits
-
   // 48-bits per element
   RGB16F, // RGB 16-bits each (float)
   RGB16UI, // RGB 16-bits each (unsigned integer)
   RGB16I, // RGB 16-bits each (signed integer)
-
   // 64-bits per element
   RG32F, // RG 32-bits each (float)
   RG32UI, // RG 32-bits each (unsigned integer)
@@ -75,17 +68,14 @@ enum TextureFormat {
   RGBA16F, // RGBA 16-bits each (float)
   RGBA16UI, // RGBA 16-bits each (unsigned integer)
   RGBA16I, // RGBA 16-bits each (signed integer)
-
   // 96-bits per element
   RGB32F, // RGB 32-bits each (float)
   RGB32UI, // RGB 32-bits each (unsigned integer)
   RGB32I, // RGB 32-bits each (signed integer)
-
   // 128-bits per element
   RGBA32F, // RGBA 32-bits each (float)
   RGBA32UI, // RGBA 32-bits each (unsigned integer)
   RGBA32I, // RGBA 32-bits each (signed integer)
-
   // Compressed formats
   EAC_R11, // EAC R11 (compressed)
   EAC_R11_SIGNED, // EAC R11 (compressed, signed)
@@ -97,7 +87,6 @@ enum TextureFormat {
   ETC2_SRGB8_A1, // ETC2 RGB8A1 (compressed, sRGB)
   ETC2_EAC_RGBA8, // ETC2 RGBA8 (compressed)
   ETC2_EAC_SRGBA8, // ETC2 RGBA8 (compressed, sRGB)
-
   // DXT formats
   DXT1_RGB, // DXT1 RGB (compressed)
   DXT1_RGBA, // DXT1 RGBA (compressed)
@@ -107,7 +96,6 @@ enum TextureFormat {
   DXT1_SRGBA, // DXT1 sRGBA (compressed)
   DXT3_SRGBA, // DXT3 sRGBA (compressed)
   DXT5_SRGBA, // DXT5 sRGBA (compressed)
-
   // ASTC formats
   RGBA_ASTC_4x4, // ASTC 4x4 RGBA (compressed)
   RGBA_ASTC_5x4, // ASTC 5x4 RGBA (compressed)
@@ -137,13 +125,11 @@ enum TextureFormat {
   SRGB8_ALPHA8_ASTC_10x10, // ASTC 10x10 sRGBA (compressed)
   SRGB8_ALPHA8_ASTC_12x10, // ASTC 12x10 sRGBA (compressed)
   SRGB8_ALPHA8_ASTC_12x12, // ASTC 12x12 sRGBA (compressed)
-
   // RGTC formats
   RED_RGTC1, // BC4 unsigned
   SIGNED_RED_RGTC1, // BC4 signed
   RED_GREEN_RGTC2, // BC5 unsigned
   SIGNED_RED_GREEN_RGTC2, // BC5 signed
-
   // BPTC formats
   RGB_BPTC_SIGNED_FLOAT, // BC6H signed
   RGB_BPTC_UNSIGNED_FLOAT, // BC6H unsigned
@@ -181,6 +167,9 @@ enum TextureUsage {
   /// !< Texture can be used the destination of a blit()
   TEXTURE_USAGE_PROTECTED(256),
 
+  /// !< Texture can be used with generateMipmaps()
+  TEXTURE_USAGE_GEN_MIPMAPPABLE(512),
+
   /// !< Default texture usage
   TEXTURE_USAGE_DEFAULT(24);
 
@@ -188,19 +177,20 @@ enum TextureUsage {
   const TextureUsage(this.value);
 
   static TextureUsage fromValue(int value) => switch (value) {
-        0 => TEXTURE_USAGE_NONE,
-        1 => TEXTURE_USAGE_COLOR_ATTACHMENT,
-        2 => TEXTURE_USAGE_DEPTH_ATTACHMENT,
-        4 => TEXTURE_USAGE_STENCIL_ATTACHMENT,
-        8 => TEXTURE_USAGE_UPLOADABLE,
-        16 => TEXTURE_USAGE_SAMPLEABLE,
-        32 => TEXTURE_USAGE_SUBPASS_INPUT,
-        64 => TEXTURE_USAGE_BLIT_SRC,
-        128 => TEXTURE_USAGE_BLIT_DST,
-        256 => TEXTURE_USAGE_PROTECTED,
-        24 => TEXTURE_USAGE_DEFAULT,
-        _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
-      };
+    0 => TEXTURE_USAGE_NONE,
+    1 => TEXTURE_USAGE_COLOR_ATTACHMENT,
+    2 => TEXTURE_USAGE_DEPTH_ATTACHMENT,
+    4 => TEXTURE_USAGE_STENCIL_ATTACHMENT,
+    8 => TEXTURE_USAGE_UPLOADABLE,
+    16 => TEXTURE_USAGE_SAMPLEABLE,
+    32 => TEXTURE_USAGE_SUBPASS_INPUT,
+    64 => TEXTURE_USAGE_BLIT_SRC,
+    128 => TEXTURE_USAGE_BLIT_DST,
+    256 => TEXTURE_USAGE_PROTECTED,
+    512 => TEXTURE_USAGE_GEN_MIPMAPPABLE,
+    24 => TEXTURE_USAGE_DEFAULT,
+    _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
+  };
 }
 
 /// Defines texture wrapping modes for texture coordinates
@@ -212,7 +202,7 @@ enum TextureWrapMode {
   REPEAT,
 
   /// Mirrors the texture at each repeat
-  MIRRORED_REPEAT
+  MIRRORED_REPEAT,
 }
 
 /// Defines texture minification filter types
@@ -233,7 +223,7 @@ enum TextureMinFilter {
   NEAREST_MIPMAP_LINEAR,
 
   /// Linear filtering with linear mipmap interpolation (best quality)
-  LINEAR_MIPMAP_LINEAR
+  LINEAR_MIPMAP_LINEAR,
 }
 
 /// Defines texture magnification filter types
@@ -242,7 +232,7 @@ enum TextureMagFilter {
   NEAREST,
 
   /// Linear interpolation between texels
-  LINEAR
+  LINEAR,
 }
 
 /// Defines texture comparison modes
@@ -251,7 +241,7 @@ enum TextureCompareMode {
   NONE,
 
   /// Compare texture values to reference value
-  COMPARE_TO_TEXTURE
+  COMPARE_TO_TEXTURE,
 }
 
 /// Defines texture comparison functions
@@ -278,7 +268,7 @@ enum TextureCompareFunc {
   ALWAYS,
 
   /// Never passes
-  NEVER
+  NEVER,
 }
 
 /// Defines swizzle operations for texture components
@@ -302,7 +292,7 @@ enum TextureSwizzle {
   ZERO,
 
   /// Use value 1
-  ONE
+  ONE,
 }
 
 /// Defines the texture sampler configuration
@@ -331,20 +321,38 @@ abstract class Texture<T> extends NativeHandle {
   /// Returns the internal format of this texture
   Future<TextureFormat> getFormat();
 
-  /// Sets the given [image] as the source data for this texture.
+  /// Sets [image] as the source data for this texture.
   ///
-  Future setLinearImage(
-      covariant LinearImage image, PixelDataFormat format, PixelDataType type,
-      {int level = 0});
+  /// This method does not take ownership of [image]. The caller may destroy
+  /// the image after the returned [Future] completes; the upload retains its
+  /// own reference to the pixel storage until Filament has consumed it.
+  Future setLinearImage(covariant LinearImage image, PixelDataFormat format, PixelDataType type, {int level = 0});
 
   /// Sets the image data for a 2D texture or a texture level
-  Future<void> setImage(int level, Uint8List buffer, int width, int height,
-      PixelDataFormat format, PixelDataType type,
-      {int depth = 1, int xOffset = 0, int yOffset = 0, int zOffset = 0});
+  Future<void> setImage(
+    int level,
+    Uint8List buffer,
+    int width,
+    int height,
+    PixelDataFormat format,
+    PixelDataType type, {
+    int depth = 1,
+    int xOffset = 0,
+    int yOffset = 0,
+    int zOffset = 0,
+  });
 
   /// Sets the image data for a region of a 2D texture
-  Future setSubImage(int level, int xOffset, int yOffset, int width, int height,
-      Uint8List buffer, PixelDataFormat format, PixelDataType type);
+  Future setSubImage(
+    int level,
+    int xOffset,
+    int yOffset,
+    int width,
+    int height,
+    Uint8List buffer,
+    PixelDataFormat format,
+    PixelDataType type,
+  );
 
   /// Sets an external image (like a video or camera frame) as the texture source
   Future setExternalImage(dynamic externalImage);
@@ -408,8 +416,7 @@ enum PixelDataFormat {
   factory PixelDataFormat.fromValue(int value) {
     return PixelDataFormat.values.firstWhere(
       (format) => format.value == value,
-      orElse: () =>
-          throw ArgumentError('Invalid PixelDataFormat value: $value'),
+      orElse: () => throw ArgumentError('Invalid PixelDataFormat value: $value'),
     );
   }
 }
@@ -470,32 +477,71 @@ enum PixelDataType {
 @deprecated
 typedef ThermionTexture = Texture;
 
+/// A caller-owned image backed by native pixel storage.
+///
+/// Code that obtains a [LinearImage] is responsible for releasing it exactly
+/// once with [destroy], unless the creating API explicitly documents otherwise.
+/// The image and any borrowed data returned by [getData] must not be used after
+/// destruction.
 abstract class LinearImage {
+  /// Releases this image's native pixel storage.
+  ///
+  /// This image must not be used after the returned [Future] completes.
   Future destroy();
+
+  /// Returns a borrowed view of this image's pixel storage.
+  ///
+  /// The returned data remains valid only until [destroy] is called.
   Future<Float32List> getData();
   Future<int> getWidth();
   Future<int> getHeight();
   Future<int> getChannels();
 
-  /// Decodes the image contained in [data] and returns a texture of
-  /// the corresponding size with the image set as mip-level 0.
+  /// Decodes [data] and returns a texture with the image set as mip level 0.
   ///
-  ///
-  static Future<Texture> decodeToTexture(Uint8List data,
-      {TextureFormat textureFormat = TextureFormat.RGB32F,
-      PixelDataFormat pixelDataFormat = PixelDataFormat.RGB,
-      PixelDataType pixelDataType = PixelDataType.FLOAT,
-      int levels = 1,
-      bool requireAlpha = false}) async {
-    final decodedImage = await FilamentApp.instance!
-        .decodeImage(data, requireAlpha: requireAlpha);
+  /// This helper owns and destroys its intermediate [LinearImage]. The caller
+  /// owns the returned texture and must eventually call [Texture.destroy].
+  static Future<Texture> decodeToTexture(
+    Uint8List data, {
+    FilamentApp? app,
+    TextureFormat textureFormat = TextureFormat.RGB32F,
+    PixelDataFormat pixelDataFormat = PixelDataFormat.RGB,
+    PixelDataType pixelDataType = PixelDataType.FLOAT,
+    int levels = 1,
+    bool requireAlpha = false,
+  }) async {
+    final effective = app ?? FilamentApp.instance!;
+    final decodedImage = await effective.decodeImage(data, requireAlpha: requireAlpha);
 
-    final texture = await FilamentApp.instance!.createTexture(
-        await decodedImage.getWidth(), await decodedImage.getHeight(),
-        textureFormat: textureFormat, levels: levels);
+    try {
+      // generateMipmaps() requires GEN_MIPMAPPABLE per Filament's
+      // Texture::generateMipmaps doc; native backends often relax this, WebGL
+      // does not (throws PreconditionPanic). Include the flag whenever the
+      // caller asks for >1 level so the mip path works on every backend.
+      final flags = <TextureUsage>{TextureUsage.TEXTURE_USAGE_SAMPLEABLE, TextureUsage.TEXTURE_USAGE_UPLOADABLE};
+      if (levels > 1) {
+        flags.add(TextureUsage.TEXTURE_USAGE_GEN_MIPMAPPABLE);
+      }
 
-    await texture.setLinearImage(decodedImage, pixelDataFormat, pixelDataType);
+      final texture = await effective.createTexture(
+        await decodedImage.getWidth(),
+        await decodedImage.getHeight(),
+        flags: flags,
+        textureFormat: textureFormat,
+        levels: levels,
+      );
 
-    return texture;
+      try {
+        await texture.setLinearImage(decodedImage, pixelDataFormat, pixelDataType);
+        return texture;
+      } catch (_) {
+        await texture.dispose();
+        rethrow;
+      }
+    } finally {
+      // Texture_loadImage retains a shallow LinearImage copy until Filament's
+      // PixelBufferDescriptor callback reports that the upload was consumed.
+      await decodedImage.destroy();
+    }
   }
 }

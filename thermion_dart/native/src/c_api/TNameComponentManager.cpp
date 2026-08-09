@@ -17,6 +17,11 @@ extern "C"
 		return reinterpret_cast<TNameComponentManager *>(ncm);
 	}
 
+	EMSCRIPTEN_KEEPALIVE void NameComponentManager_destroy(TNameComponentManager *tNameComponentManager)
+	{
+		delete reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
+	}
+
 	EMSCRIPTEN_KEEPALIVE const char *NameComponentManager_getName(TNameComponentManager *tNameComponentManager, EntityId entityId)
 	{
 		auto ncm = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);

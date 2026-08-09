@@ -1,19 +1,22 @@
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 class FFITexture extends Texture<Pointer<TRenderTarget>> {
   final Pointer<TEngine> _engine;
   final Pointer<TTexture> pointer;
 
-  FFITexture(this._engine, this.pointer);
+  FFITexture(this._engine, this.pointer, FFIFilamentApp _);
 
-  Future<void> setLinearImage(covariant FFILinearImage image,
-      PixelDataFormat format, PixelDataType type,
-      {int level = 0}) async {
+  Future<void> setLinearImage(
+    covariant FFILinearImage image,
+    PixelDataFormat format,
+    PixelDataType type, {
+    int level = 0,
+  }) async {
     final tPixelDataFormat = format.value;
     final tPixelDataType = type.value;
     final result = await withBoolCallback((cb) {
-      Texture_loadImageRenderThread(_engine, pointer, image.pointer,
-          tPixelDataFormat, tPixelDataType, level, cb);
+      Texture_loadImageRenderThread(_engine, pointer, image.pointer, tPixelDataFormat, tPixelDataType, level, cb);
     });
 
     if (!result) {
@@ -35,8 +38,7 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
 
   @override
   Future<void> generateMipmaps() async {
-    await withVoidCallback((requestId, cb) =>
-        Texture_generateMipMapsRenderThread(pointer, _engine, requestId, cb));
+    await withVoidCallback((requestId, cb) => Texture_generateMipMapsRenderThread(pointer, _engine, requestId, cb));
   }
 
   @override
@@ -45,9 +47,8 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   }
 
   @override
-  Future<TextureFormat> getFormat() {
-    // TODO: implement getFormat
-    throw UnimplementedError();
+  Future<TextureFormat> getFormat() async {
+    return TextureFormat.values[Texture_getFormat(pointer)];
   }
 
   @override
@@ -78,28 +79,35 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
   }
 
   @override
-  Future<void> setImage(int level, Uint8List buffer, int width, int height,
-      PixelDataFormat format, PixelDataType type,
-      {int depth = 1,
-      int xOffset = 0,
-      int yOffset = 0,
-      int zOffset = 0}) async {
+  Future<void> setImage(
+    int level,
+    Uint8List buffer,
+    int width,
+    int height,
+    PixelDataFormat format,
+    PixelDataType type, {
+    int depth = 1,
+    int xOffset = 0,
+    int yOffset = 0,
+    int zOffset = 0,
+  }) async {
     final success = await withBoolCallback((cb) {
       Texture_setImageRenderThread(
-          _engine,
-          pointer,
-          level,
-          buffer.address,
-          buffer.lengthInBytes,
-          xOffset,
-          yOffset,
-          zOffset,
-          width,
-          height,
-          depth,
-          format.index,
-          type.index,
-          cb);
+        _engine,
+        pointer,
+        level,
+        buffer.address,
+        buffer.lengthInBytes,
+        xOffset,
+        yOffset,
+        zOffset,
+        width,
+        height,
+        depth,
+        format.index,
+        type.index,
+        cb,
+      );
     });
 
     if (!success) {
@@ -109,14 +117,15 @@ class FFITexture extends Texture<Pointer<TRenderTarget>> {
 
   @override
   Future<void> setSubImage(
-      int level,
-      int xOffset,
-      int yOffset,
-      int width,
-      int height,
-      Uint8List buffer,
-      PixelDataFormat format,
-      PixelDataType type) {
+    int level,
+    int xOffset,
+    int yOffset,
+    int width,
+    int height,
+    Uint8List buffer,
+    PixelDataFormat format,
+    PixelDataType type,
+  ) {
     // TODO: implement setSubImage
     throw UnimplementedError();
   }
@@ -132,8 +141,7 @@ class FFILinearImage extends LinearImage {
 
   FFILinearImage(this.pointer);
 
-  static Future<FFILinearImage> createEmpty(
-      int width, int height, int channels) async {
+  static Future<FFILinearImage> createEmpty(int width, int height, int channels) async {
     final imagePtr = await withPointerCallback<TLinearImage>((cb) {
       Image_createEmptyRenderThread(width, height, channels, cb);
     });
@@ -141,10 +149,13 @@ class FFILinearImage extends LinearImage {
     return FFILinearImage(imagePtr);
   }
 
-  static Future<FFILinearImage> decode(Uint8List data,
-      {String name = "image", bool requireAlpha = false}) async {
-    final image = await FilamentApp.instance!
-        .decodeImage(data, name: name, requireAlpha: requireAlpha);
+  static Future<FFILinearImage> decode(
+    FFIFilamentApp app,
+    Uint8List data, {
+    String name = "image",
+    bool requireAlpha = false,
+  }) async {
+    final image = await app.decodeImage(data, name: name, requireAlpha: requireAlpha);
     return image as FFILinearImage;
   }
 
@@ -281,8 +292,7 @@ class FFITextureSampler extends TextureSampler {
 
   Future<void> setAnisotropy(double anisotropy) async {
     await withVoidCallback((requestId, cb) {
-      TextureSampler_setAnisotropyRenderThread(
-          pointer, anisotropy, requestId, cb);
+      TextureSampler_setAnisotropyRenderThread(pointer, anisotropy, requestId, cb);
     });
   }
 

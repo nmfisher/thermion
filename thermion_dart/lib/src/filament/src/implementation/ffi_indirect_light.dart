@@ -8,55 +8,56 @@ class FFIIndirectLight extends IndirectLight {
   final Texture? _irradianceTexture;
   final Texture? _reflectionsTexture;
 
-  FFIIndirectLight._(this.engine, this.pointer, this._irradianceTexture,
-      this._reflectionsTexture);
+  final FFIFilamentApp _app;
+
+  FFIIndirectLight._(this.engine, this.pointer, this._irradianceTexture, this._reflectionsTexture, this._app);
 
   static Future<FFIIndirectLight> fromIrradianceTexture(
-      Texture irradianceTexture,
-      {Texture? reflectionsTexture,
-      double intensity = 30000}) async {
-    final engine = (FilamentApp.instance as FFIFilamentApp).engine;
+    FFIFilamentApp app,
+    Texture irradianceTexture, {
+    Texture? reflectionsTexture,
+    double intensity = 30000,
+  }) async {
+    final engine = app.engine;
     var indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightFromIrradianceTextureRenderThread(
-          engine,
-          reflectionsTexture?.getNativeHandle() ?? nullptr,
-          irradianceTexture.getNativeHandle(),
-          intensity,
-          cb);
+        engine,
+        reflectionsTexture?.getNativeHandle() ?? nullptr,
+        irradianceTexture.getNativeHandle(),
+        intensity,
+        cb,
+      );
     });
     if (indirectLight == nullptr) {
       throw Exception("Failed to create indirect light");
     }
-    return FFIIndirectLight._(
-        engine, indirectLight, irradianceTexture, reflectionsTexture);
+    return FFIIndirectLight._(engine, indirectLight, irradianceTexture, reflectionsTexture, app);
   }
 
   static Future<FFIIndirectLight> fromIrradianceHarmonics(
-      Float32List irradianceHarmonics,
-      {Texture? reflectionsTexture,
-      double intensity = 30000}) async {
-    final engine = (FilamentApp.instance as FFIFilamentApp).engine;
+    FFIFilamentApp app,
+    Float32List irradianceHarmonics, {
+    Texture? reflectionsTexture,
+    double intensity = 30000,
+  }) async {
+    final engine = app.engine;
 
     var indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(
-          engine,
-          (reflectionsTexture as FFITexture?)?.pointer ?? nullptr,
-          irradianceHarmonics.address,
-          intensity,
-          cb);
+        engine,
+        (reflectionsTexture as FFITexture?)?.pointer ?? nullptr,
+        irradianceHarmonics.address,
+        intensity,
+        cb,
+      );
     });
     if (indirectLight == nullptr) {
       throw Exception("Failed to create indirect light");
     }
-    return FFIIndirectLight._(engine, indirectLight, null, reflectionsTexture);
+    return FFIIndirectLight._(engine, indirectLight, null, reflectionsTexture, app);
   }
 
   Future rotate(Matrix3 rotation) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
-    }
-
     IndirectLight_setRotation(this.pointer, rotation.storage.address);
 
     if (FILAMENT_WASM) {
@@ -66,26 +67,26 @@ class FFIIndirectLight extends IndirectLight {
   }
 
   Future destroy() async {
-    await withVoidCallback(
-      (requestId, cb) => Engine_destroyIndirectLightRenderThread(
-        engine,
-        pointer,
-        requestId,
-        cb,
-      ),
-    );
+    await withVoidCallback((requestId, cb) => Engine_destroyIndirectLightRenderThread(engine, pointer, requestId, cb));
 
-    if (_irradianceTexture != null) {
-      await withVoidCallback((requestId, cb) =>
-          Engine_destroyTextureRenderThread(
-              engine, _irradianceTexture.getNativeHandle(), requestId, cb));
+    if (_irradianceTexture != null || _reflectionsTexture != null) {
+      // The indirect light references these textures. Engine destruction is
+      // queued, so drain it before releasing the referenced textures.
+      await _app.flush();
     }
 
-    if (_reflectionsTexture != null &&
-        _reflectionsTexture != _irradianceTexture) {
-      await withVoidCallback((requestId, cb) =>
-          Engine_destroyTextureRenderThread(
-              engine, _reflectionsTexture.getNativeHandle(), requestId, cb));
+    if (_irradianceTexture != null) {
+      await withVoidCallback(
+        (requestId, cb) =>
+            Engine_destroyTextureRenderThread(engine, _irradianceTexture.getNativeHandle(), requestId, cb),
+      );
+    }
+
+    if (_reflectionsTexture != null && _reflectionsTexture != _irradianceTexture) {
+      await withVoidCallback(
+        (requestId, cb) =>
+            Engine_destroyTextureRenderThread(engine, _reflectionsTexture.getNativeHandle(), requestId, cb),
+      );
     }
   }
 }

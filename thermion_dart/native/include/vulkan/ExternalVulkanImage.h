@@ -22,6 +22,9 @@ struct ExternalVulkanImage : public filament::backend::Platform::ExternalImage {
     // Filament-level metadata
     filament::backend::TextureFormat filamentFormat = filament::backend::TextureFormat::RGBA8;
     filament::backend::TextureUsage filamentUsage = filament::backend::TextureUsage::COLOR_ATTACHMENT;
+
+protected:
+    ~ExternalVulkanImage() override = default;
 };
 
 }

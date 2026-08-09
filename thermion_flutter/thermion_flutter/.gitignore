@@ -1,3 +1,8 @@
 .vscode
 .DS_Store
 test/output/*
+
+# Real Swift bindings are checked in (this package owns them, unlike thermion_dart
+# where they're stubs). Un-ignore so git and `dart pub publish` agree — the root
+# .gitignore has a blanket `**/*/*.g.dart` rule.
+!lib/src/swift/swift_bindings.g.dart

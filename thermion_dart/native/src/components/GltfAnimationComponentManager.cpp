@@ -106,10 +106,13 @@ namespace thermion
             {
                 auto &animationStatus = gltfAnimations[i];
 
-                // Initialize start time on first use
+                // Initialize start time on first use, then fall through so the
+                // animation is also applied on this first call (at elapsed 0).
+                // Previously this `continue`d, skipping applyAnimation and
+                // leaving the first rendered frame at the asset's rest/export
+                // pose instead of animation-frame-0.
                 if (animationStatus.startTimeInNanos == 0) {
                     animationStatus.startTimeInNanos = frameTimeInNanos;
-                    continue;
                 }
 
                 uint64_t elapsedInNanos = frameTimeInNanos - animationStatus.startTimeInNanos;

@@ -9,6 +9,5 @@ class TextureDetails {
   final int width;
   final int height;
 
-  TextureDetails(
-      {required this.textureId, required this.width, required this.height});
+  TextureDetails({required this.textureId, required this.width, required this.height});
 }

@@ -12,6 +12,6 @@ typedef FilamentPickResult = ({
   double depth,
   double fragX,
   double fragY,
-  double fragZ
+  double fragZ,
 });
 typedef PickResult = FilamentPickResult;

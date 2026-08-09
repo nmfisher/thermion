@@ -43,6 +43,7 @@ struct CommandResources {
     VkCommandPool commandPool;
     VkQueue queue;
     uint32_t queueFamilyIndex;
+    bool queueSharedWithFilament = false;  // true when the blit had to reuse Filament's queue 0 (single-queue HW)
 };
 
 CommandResources createCommandResources(VkDevice device, VkPhysicalDevice physicalDevice);

@@ -14,8 +14,7 @@ class MorphAnimationData {
   final Float32List data;
   final double frameLengthInMs;
 
-  MorphAnimationData(this.data, this.morphTargets,
-      {required this.frameLengthInMs}) {
+  MorphAnimationData(this.data, this.morphTargets, {required this.frameLengthInMs}) {
     assert(morphTargets.isNotEmpty);
     assert(numFrames > 0);
   }
@@ -41,12 +40,10 @@ class MorphAnimationData {
     for (int frameNum = 0; frameNum < numFrames; frameNum++) {
       for (int newIdx = 0; newIdx < indices.length; newIdx++) {
         var oldIdx = indices[newIdx];
-        newData[(frameNum * indices.length) + newIdx] =
-            data[(frameNum * this.morphTargets.length) + oldIdx];
+        newData[(frameNum * indices.length) + newIdx] = data[(frameNum * this.morphTargets.length) + oldIdx];
       }
     }
-    return MorphAnimationData(newData, newMorphTargets,
-        frameLengthInMs: frameLengthInMs);
+    return MorphAnimationData(newData, newMorphTargets, frameLengthInMs: frameLengthInMs);
   }
 
   String toCSV() {
@@ -54,8 +51,7 @@ class MorphAnimationData {
     sb.writeln(morphTargets.join(","));
     int frameNum = 0;
     for (int i = 0; i < data.length ~/ morphTargets.length; i++) {
-      var frame =
-          data.sublist(i * morphTargets.length, (i + 1) * morphTargets.length);
+      var frame = data.sublist(i * morphTargets.length, (i + 1) * morphTargets.length);
       sb.writeln("$frameNum,$numMorphTargets," + frame.join(','));
       frameNum++;
     }
@@ -63,15 +59,12 @@ class MorphAnimationData {
   }
 
   MorphAnimationData frame(int start, int end) {
-    var frameData = Float32List.sublistView(
-        this.data, start * numMorphTargets, end * numMorphTargets);
-    return MorphAnimationData(frameData, morphTargets,
-        frameLengthInMs: frameLengthInMs);
+    var frameData = Float32List.sublistView(this.data, start * numMorphTargets, end * numMorphTargets);
+    return MorphAnimationData(frameData, morphTargets, frameLengthInMs: frameLengthInMs);
   }
 
   MorphAnimationData rename(List<String> morphTargets) {
-    return MorphAnimationData(data, morphTargets,
-        frameLengthInMs: frameLengthInMs);
+    return MorphAnimationData(data, morphTargets, frameLengthInMs: frameLengthInMs);
   }
 
   void scale(double scale) {
@@ -91,24 +84,20 @@ class MorphAnimationData {
     var mergedData = Float32List(totalSize);
     var offset = 0;
     for (final animation in animations) {
-      mergedData.setRange(
-          offset, offset + animation.data.length, animation.data);
+      mergedData.setRange(offset, offset + animation.data.length, animation.data);
       offset += animation.data.length;
     }
-    return MorphAnimationData(mergedData, animations.first.morphTargets,
-        frameLengthInMs: animations.first.frameLengthInMs);
+    return MorphAnimationData(
+      mergedData,
+      animations.first.morphTargets,
+      frameLengthInMs: animations.first.frameLengthInMs,
+    );
   }
 
-  MorphAnimationData filter({
-    double processNoise = 1e-4,
-    double measurementNoise = 1e-1,
-    double? initialEstimate,
-  }) {
+  MorphAnimationData filter({double processNoise = 1e-4, double measurementNoise = 1e-1, double? initialEstimate}) {
     Float32List filteredData = Float32List(data.length);
 
-    for (int morphTargetIndex = 0;
-        morphTargetIndex < numMorphTargets;
-        morphTargetIndex++) {
+    for (int morphTargetIndex = 0; morphTargetIndex < numMorphTargets; morphTargetIndex++) {
       double estimate = initialEstimate ?? data[morphTargetIndex];
       double errorEstimate = 1.0;
 
@@ -121,18 +110,15 @@ class MorphAnimationData {
         double predictedErrorEstimate = errorEstimate + processNoise;
 
         // Update step
-        double kalmanGain = predictedErrorEstimate /
-            (predictedErrorEstimate + measurementNoise);
-        estimate =
-            predictedEstimate + kalmanGain * (measurement - predictedEstimate);
+        double kalmanGain = predictedErrorEstimate / (predictedErrorEstimate + measurementNoise);
+        estimate = predictedEstimate + kalmanGain * (measurement - predictedEstimate);
         errorEstimate = (1 - kalmanGain) * predictedErrorEstimate;
 
         filteredData[dataIndex] = estimate;
       }
     }
 
-    return MorphAnimationData(filteredData, morphTargets,
-        frameLengthInMs: frameLengthInMs);
+    return MorphAnimationData(filteredData, morphTargets, frameLengthInMs: frameLengthInMs);
   }
 
   MorphAnimationData resample(double newFrameRate) {
@@ -144,16 +130,12 @@ class MorphAnimationData {
     int expectedLength = (numFrames * factor).round();
 
     List<double> x = List.generate(expectedLength, (i) => i / newFrameRate);
-    List<double> xp =
-        List.generate(numFrames, (i) => i * frameLengthInMs / 1000);
+    List<double> xp = List.generate(numFrames, (i) => i * frameLengthInMs / 1000);
 
     Float32List newData = Float32List(expectedLength * numMorphTargets);
 
-    for (int morphTargetIndex = 0;
-        morphTargetIndex < numMorphTargets;
-        morphTargetIndex++) {
-      List<double> yp = List.generate(
-          numFrames, (i) => data[i * numMorphTargets + morphTargetIndex]);
+    for (int morphTargetIndex = 0; morphTargetIndex < numMorphTargets; morphTargetIndex++) {
+      List<double> yp = List.generate(numFrames, (i) => data[i * numMorphTargets + morphTargetIndex]);
 
       for (int i = 0; i < expectedLength; i++) {
         double t = x[i];
@@ -180,7 +162,6 @@ class MorphAnimationData {
       }
     }
 
-    return MorphAnimationData(newData, morphTargets,
-        frameLengthInMs: 1000 / newFrameRate);
+    return MorphAnimationData(newData, morphTargets, frameLengthInMs: 1000 / newFrameRate);
   }
 }

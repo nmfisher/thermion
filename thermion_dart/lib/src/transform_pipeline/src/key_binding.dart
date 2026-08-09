@@ -1,5 +1,4 @@
 import 'package:thermion_dart/thermion_dart.dart';
-import '../../bindings/bindings.dart' as bindings;
 import 'intent_action.dart';
 
 /// Represents a keybinding that maps a logical key to an intent action.
@@ -13,11 +12,7 @@ class KeyBinding {
   /// The value/strength of this intent (default 1.0)
   final double value;
 
-  const KeyBinding({
-    required this.key,
-    required this.action,
-    this.value = 1.0,
-  });
+  const KeyBinding({required this.key, required this.action, this.value = 1.0});
 
   @override
   String toString() => 'KeyBinding(key: $key, action: $action, value: $value)';

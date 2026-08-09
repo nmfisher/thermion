@@ -9,10 +9,7 @@ class ThermionWidget extends StatefulWidget {
   // The viewer whose content will be rendered into this widget.
   final ThermionViewer viewer;
 
-  const ThermionWidget({
-    Key? key,
-    required this.viewer,
-  }) : super(key: key);
+  const ThermionWidget({Key? key, required this.viewer}) : super(key: key);
 
   @override
   State<ThermionWidget> createState() => _ThermionWidgetState();
@@ -35,10 +32,11 @@ class _ThermionWidgetState extends State<ThermionWidget> {
         var focalLength = await camera.getFocalLength();
 
         await camera.setLensProjection(
-            near: near,
-            far: far,
-            focalLength: focalLength,
-            aspect: descriptor.width.toDouble() / descriptor.height.toDouble());
+          near: near,
+          far: far,
+          focalLength: focalLength,
+          aspect: descriptor.width.toDouble() / descriptor.height.toDouble(),
+        );
 
         await view.setViewport(descriptor.width, descriptor.height);
       },
@@ -53,7 +51,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
 class ThermionWidgetInternal extends StatefulWidget {
   final View view;
   final void Function(PlatformTextureDescriptor? descriptor)? onTextureUpdated;
-  final Widget Function(PlatformTextureDescriptor?) surfaceWidgetBuilder;
+  final Widget Function(PlatformTextureDescriptor?, View) surfaceWidgetBuilder;
 
   const ThermionWidgetInternal({
     super.key,
@@ -71,6 +69,8 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
   PlatformTextureDescriptor? _texture;
   Timer? _debounceTimer;
+  Future<void> _textureOperations = Future<void>.value();
+  bool _disposing = false;
 
   // The current texture size (what's actually allocated)
   int _currentWidth = 0;
@@ -82,99 +82,137 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
   @override
   void dispose() {
-    super.dispose();
+    _disposing = true;
     _debounceTimer?.cancel();
-    var texture = _texture;
-    _texture = null;
-    // Tear down per-view plugin bindings (Android: SwapChain bound to
-    // this view) BEFORE releasing the underlying texture. The
-    // SurfaceTexture release frees the swap chain's native window, so
-    // if the swap chain is still attached to the RenderManager when
-    // that happens Filament's next render fires `eglSwapBuffers` on a
-    // null buffer and the emulator/EGL stack logs `EGL_BAD_SURFACE`
-    // until the widget unmount finishes propagating. Sequencing the
-    // two awaits inside an unawaited closure keeps `dispose()` synchronous
-    // for the framework while still ordering the calls.
     final view = widget.view;
-    () async {
-      await ThermionFlutterPlugin.instance.releaseTextureBindingForView(view);
-      await texture?.destroy();
-    }();
+    _enqueueTextureOperation(() async {
+      // The plugin owns the complete dependency-ordered teardown: detach any
+      // descriptor-managed surface, destroy Filament render targets, then
+      // release the platform texture. Serializing this after allocation/resize
+      // also guarantees the final descriptor is destroyed exactly once.
+      await ThermionFlutterPlugin.instance.destroyTextureForView(view);
+      _texture = null;
+    }, 'disposing a Thermion widget texture');
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     var dpr = MediaQuery.of(context).devicePixelRatio;
 
-    return LayoutBuilder(builder: (ctx, constraints) {
-      var width = (constraints.maxWidth * dpr).ceil();
-      var height = (constraints.maxHeight * dpr).ceil();
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        var width = (constraints.maxWidth * dpr).ceil();
+        var height = (constraints.maxHeight * dpr).ceil();
 
-      if (width == 0 || height == 0) {
-        return const SizedBox.shrink();
-      }
-
-      // If size hasn't changed, keep using current texture
-      if (width == _currentWidth && height == _currentHeight) {
-        if (_texture == null) {
-          // Initial case - no texture yet
-          _scheduleTextureAllocation(width, height);
+        if (width == 0 || height == 0) {
+          return const SizedBox.shrink();
         }
-        return widget.surfaceWidgetBuilder(_texture);
-      }
 
-      // Size changed - schedule a debounced allocation
-      _scheduleTextureAllocation(width, height);
+        // If size hasn't changed, keep using current texture
+        if (width == _currentWidth && height == _currentHeight) {
+          if (_texture == null) {
+            // Initial case - no texture yet
+            _scheduleTextureAllocation(width, height);
+          }
+          return widget.surfaceWidgetBuilder(_texture, widget.view);
+        }
 
-      // Keep showing the old texture during debounce
-      return widget.surfaceWidgetBuilder(_texture);
-    });
+        // Size changed - schedule a debounced allocation
+        _scheduleTextureAllocation(width, height);
+
+        // Keep showing the old texture during debounce
+        return widget.surfaceWidgetBuilder(_texture, widget.view);
+      },
+    );
   }
 
   void _scheduleTextureAllocation(int width, int height) {
+    if (_disposing) return;
+
     _pendingWidth = width;
     _pendingHeight = height;
 
     _debounceTimer?.cancel();
     _debounceTimer = Timer(_debounceDuration, () {
-      if (_pendingWidth != null && _pendingHeight != null) {
+      if (!_disposing && _pendingWidth != null && _pendingHeight != null) {
         _allocateTexture(_pendingWidth!, _pendingHeight!);
       }
     });
   }
 
-  void _allocateTexture(int width, int height) async {
+  void _allocateTexture(int width, int height) {
+    _enqueueTextureOperation(
+      () => _performTextureAllocation(width, height),
+      'allocating a Thermion widget texture',
+    );
+  }
+
+  Future<void> _performTextureAllocation(int width, int height) async {
+    if (_disposing) return;
+
     PlatformTextureDescriptor? texture;
 
     if (_texture != null) {
       // Resize existing texture (on Windows this reuses the Flutter
       // texture ID to avoid a black frame flash).
-      texture = await ThermionFlutterPlugin.instance
-          .resizeTexture(_texture!, widget.view, width, height);
+      texture = await ThermionFlutterPlugin.instance.resizeTexture(
+        _texture!,
+        widget.view,
+        width,
+        height,
+      );
     } else {
-      texture = await ThermionFlutterPlugin.instance
-          .createTextureAndBindToView(widget.view, width, height);
-    }
-
-    widget.onTextureUpdated?.call(texture);
-
-    if (!mounted) {
-      texture?.destroy();
-      return;
+      texture = await ThermionFlutterPlugin.instance.createTextureAndBindToView(
+        widget.view,
+        width,
+        height,
+      );
     }
 
     if (texture == null) return;
 
-    setState(() {
-      // On Windows resize, texture is the same object (same flutterTextureId),
-      // so old?.destroy() is skipped to avoid destroying the live texture.
-      final old = _texture;
+    if (_disposing || !mounted) {
+      // Publish the result even if dispose() ran while the platform operation
+      // was awaiting. The queued teardown operation owns releasing this final
+      // descriptor and its per-view binding.
       _texture = texture;
       _currentWidth = width;
       _currentHeight = height;
-      if (old != null && old != texture) {
-        old.destroy();
-      }
+      return;
+    }
+
+    setState(() {
+      // resizeTexture owns disposal of the superseded descriptor. On Windows
+      // it returns the existing descriptor after updating it in place.
+      _texture = texture;
+      _currentWidth = width;
+      _currentHeight = height;
     });
+
+    widget.onTextureUpdated?.call(texture);
+  }
+
+  void _enqueueTextureOperation(
+    Future<void> Function() operation,
+    String context,
+  ) {
+    final previous = _textureOperations;
+    _textureOperations = () async {
+      await previous;
+      try {
+        await operation();
+      } catch (exception, stack) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: exception,
+            stack: stack,
+            library: 'thermion_flutter',
+            context: ErrorDescription('while $context'),
+          ),
+        );
+      }
+    }();
+    unawaited(_textureOperations);
   }
 }

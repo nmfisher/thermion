@@ -9,6 +9,7 @@ extern "C"
 #endif
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider, TNameComponentManager *tNameComponentManager);
+EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_destroy(TGltfAssetLoader *tAssetLoader);
 
 EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     TEngine *tEngine,

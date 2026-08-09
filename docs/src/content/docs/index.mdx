@@ -1,0 +1,36 @@
+---
+title: Thermion
+description: Cross-platform 3D rendering for Dart and Flutter.
+pagefind: false
+---
+
+import ThermionShowcase from '../../components/ThermionShowcase.astro';
+
+Thermion brings Google's physically based [Filament](/filament/) renderer to Dart and
+Flutter. Load glTF models with PBR materials and skeletal animation, then render them
+across iOS, Android, desktop, and the browser through a single Dart API.
+
+[Get started](/getting_started/) · [Quick start](/quickstart/) · [Viewer API](/viewer/)
+
+## Live examples
+
+These scenes are written in pure Dart — not Flutter widgets — compiled to WebAssembly
+and rendered live with Filament. Each viewer boots automatically as it scrolls into view
+and stops when you scroll away, so only the scenes near the viewport are running. Drag to
+orbit, scroll to zoom. They're the same `examples_lib` scenes that power the standalone
+[gallery](/gallery/), each running in its own cross-origin-isolated iframe.
+
+<ThermionShowcase />
+
+## Use it at the level you need
+
+- **[ViewerWidget](/quickstart/)** — the shortest path from a glTF file to an interactive
+  viewport in your Flutter app, with sensible defaults for lighting, camera, and
+  post-processing.
+- **[ThermionViewer](/viewer/)** — direct control over entities, transforms, cameras,
+  lighting, materials, animation, and effects through a Dart API.
+- **[Filament](/filament/)** — the renderer underneath, on native and WebAssembly, with
+  the platform plumbing kept out of your scene code.
+
+Thermion separates rendering from Flutter integration, so the same scene code can drive a
+Flutter texture, a headless Dart process, or a browser canvas.

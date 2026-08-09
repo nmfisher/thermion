@@ -46,6 +46,26 @@ for arg in "$@"; do
   esac
 done
 
+# Detect host architecture. The desktop build is host-native, so an x86_64
+# host produces libs under out/*/filament/lib/x86_64/ and an aarch64 host
+# produces them under out/*/filament/lib/aarch64/.
+HOST_ARCH="$(uname -m)"
+case "$HOST_ARCH" in
+  x86_64)
+    LIB_ARCH_DIR="x86_64"
+    ARCH_TAG=""                     # legacy zip names/cache dirs
+    ;;
+  aarch64)
+    LIB_ARCH_DIR="aarch64"
+    ARCH_TAG="-arm64"
+    ;;
+  *)
+    echo "Error: Unsupported host architecture: $HOST_ARCH"
+    exit 1
+    ;;
+esac
+echo "Host architecture: $HOST_ARCH (library dir: $LIB_ARCH_DIR, zip tag: ${ARCH_TAG:-none})"
+
 # Validate OUTPUT_BASE_DIR exists
 if [ ! -d "$OUTPUT_BASE_DIR" ]; then
   echo "Error: Output base directory does not exist: $OUTPUT_BASE_DIR"
@@ -65,8 +85,8 @@ if [ ! -f "$FILAMENT_BASE_DIR/build.sh" ]; then
 fi
 
 # Check if target directories already exist
-TARGET_RELEASE_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/linux/release"
-TARGET_DEBUG_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/linux/debug"
+TARGET_RELEASE_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/linux${ARCH_TAG}/release"
+TARGET_DEBUG_DIR="$OUTPUT_BASE_DIR/$FILAMENT_VERSION/linux${ARCH_TAG}/debug"
 
 if [ "$BUILD_RELEASE" = true ] && [ -d "$TARGET_RELEASE_DIR" ]; then
   if [ "$CLEAN_FLAG" = "--clean" ]; then
@@ -159,6 +179,11 @@ build_third_party_libs() {
 
   echo "Building imageio ($BUILD_SUFFIX)..."
   mkdir -p "$CMAKE_DIR/libs/imageio" && cd "$CMAKE_DIR/libs/imageio"
+  # -stdlib=libc++: these archives are linked into libthermion_dart.so, which is
+  # built with libc++ (-stdlib=libc++ in thermion_dart/hook/build.dart). Without
+  # this flag clang defaults to libstdc++, so the archives end up libstdc++-ABI
+  # and reference libstdc++ symbols (e.g. std::endl, _ZSt4endl...) that the .so
+  # does not link against. See docs/release-failure-analysis.md.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_CXX_STANDARD=17 \
@@ -166,7 +191,7 @@ build_third_party_libs() {
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
     "$FILAMENT_BASE_DIR/libs/imageio" || {
     echo "Error: imageio cmake failed for $BUILD_SUFFIX"
     return 1
@@ -178,10 +203,11 @@ build_third_party_libs() {
 
   echo "Building tinyexr ($BUILD_SUFFIX)..."
   mkdir -p "$CMAKE_DIR/third_party/tinyexr" && cd "$CMAKE_DIR/third_party/tinyexr"
+  # -stdlib=libc++: see comment in the imageio build above. Same ABI fix.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
     "$FILAMENT_BASE_DIR/third_party/tinyexr" || {
     echo "Error: tinyexr cmake failed for $BUILD_SUFFIX"
     return 1
@@ -248,8 +274,8 @@ fi
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Copying release libraries..."
   echo "Searching for release libraries..."
-  echo "=== out/release/filament/lib/x86_64/ ==="
-  ls -la out/release/filament/lib/x86_64/ 2>&1 || true
+  echo "=== out/release/filament/lib/$LIB_ARCH_DIR/ ==="
+  ls -la out/release/filament/lib/$LIB_ARCH_DIR/ 2>&1 || true
   echo "=== out/cmake-release/libs/imageio/ ==="
   ls -la out/cmake-release/libs/imageio/ 2>&1 || true
   echo "=== out/cmake-release/third_party/tinyexr/ ==="
@@ -259,7 +285,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   echo "=== find tinyexr ==="
   find out/ -name "libtinyexr*" 2>&1 || true
 
-  for lib in out/release/filament/lib/x86_64/*.a; do
+  for lib in out/release/filament/lib/$LIB_ARCH_DIR/*.a; do
     case "$(basename "$lib")" in
       *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
       *) cp "$lib" "$TARGET_RELEASE_DIR/" ;;
@@ -267,7 +293,7 @@ if [ "$BUILD_RELEASE" = true ]; then
   done
 
   # Try multiple known locations for imageio/tinyexr
-  for searchdir in "out/cmake-release/libs/imageio" "out/release/filament/lib/x86_64" "out/cmake-release/third_party/imageio"; do
+  for searchdir in "out/cmake-release/libs/imageio" "out/release/filament/lib/$LIB_ARCH_DIR" "out/cmake-release/third_party/imageio"; do
     if [ -f "$searchdir/libimageio.a" ]; then
       echo "Found imageio at $searchdir"
       cp "$searchdir/libimageio.a" "$TARGET_RELEASE_DIR/"
@@ -278,7 +304,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     echo "WARNING: libimageio.a not found in any known location"
   fi
 
-  for searchdir in "out/cmake-release/third_party/tinyexr" "out/release/filament/lib/x86_64" "out/cmake-release/third_party/tinyexr/tnt"; do
+  for searchdir in "out/cmake-release/third_party/tinyexr" "out/release/filament/lib/$LIB_ARCH_DIR" "out/cmake-release/third_party/tinyexr/tnt"; do
     if [ -f "$searchdir/libtinyexr.a" ]; then
       echo "Found tinyexr at $searchdir"
       cp "$searchdir/libtinyexr.a" "$TARGET_RELEASE_DIR/"
@@ -294,21 +320,21 @@ fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Copying debug libraries..."
   echo "Searching for debug libraries..."
-  echo "=== out/debug/filament/lib/x86_64/ ==="
-  ls -la out/debug/filament/lib/x86_64/ 2>&1 || true
+  echo "=== out/debug/filament/lib/$LIB_ARCH_DIR/ ==="
+  ls -la out/debug/filament/lib/$LIB_ARCH_DIR/ 2>&1 || true
   echo "=== find imageio (debug) ==="
   find out/ -path "*/debug*" -name "libimageio*" 2>&1 || true
   echo "=== find tinyexr (debug) ==="
   find out/ -path "*/debug*" -name "libtinyexr*" 2>&1 || true
 
-  for lib in out/debug/filament/lib/x86_64/*.a; do
+  for lib in out/debug/filament/lib/$LIB_ARCH_DIR/*.a; do
     case "$(basename "$lib")" in
       *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
       *) cp "$lib" "$TARGET_DEBUG_DIR/" ;;
     esac
   done
 
-  for searchdir in "out/cmake-debug/libs/imageio" "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/imageio"; do
+  for searchdir in "out/cmake-debug/libs/imageio" "out/debug/filament/lib/$LIB_ARCH_DIR" "out/cmake-debug/third_party/imageio"; do
     if [ -f "$searchdir/libimageio.a" ]; then
       echo "Found imageio at $searchdir"
       cp "$searchdir/libimageio.a" "$TARGET_DEBUG_DIR/"
@@ -319,7 +345,7 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "WARNING: libimageio.a not found in any known location"
   fi
 
-  for searchdir in "out/cmake-debug/third_party/tinyexr" "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/tinyexr/tnt"; do
+  for searchdir in "out/cmake-debug/third_party/tinyexr" "out/debug/filament/lib/$LIB_ARCH_DIR" "out/cmake-debug/third_party/tinyexr/tnt"; do
     if [ -f "$searchdir/libtinyexr.a" ]; then
       echo "Found tinyexr at $searchdir"
       cp "$searchdir/libtinyexr.a" "$TARGET_DEBUG_DIR/"
@@ -460,12 +486,12 @@ if [ "$BUILD_RELEASE" = true ]; then
   echo "Contents of release directory:"
   ls -la "$TARGET_RELEASE_DIR"
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-release.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
   echo "Release zip contents:"
-  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-release.zip"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip"
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
@@ -473,20 +499,20 @@ if [ "$BUILD_DEBUG" = true ]; then
   echo "Contents of debug directory:"
   ls -la "$TARGET_DEBUG_DIR"
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-debug.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
   echo "Debug zip contents:"
-  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-debug.zip"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip"
 fi
 
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-release.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux-debug.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip"
 fi

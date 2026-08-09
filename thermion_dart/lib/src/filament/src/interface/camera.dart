@@ -64,20 +64,25 @@ abstract class Camera<T> extends NativeHandle {
   ///
   Future<double> getSensitivity();
 
-  Future setProjection(Projection projection, double left, double right,
-      double bottom, double top, double near, double far);
-  Future setProjectionFromHorizontalFieldOfView(
-      double degrees, double near, double far, double aspect);
-  Future setProjectionFromVerticalFieldOfView(
-      double degrees, double near, double far, double aspect);
-  Future setProjectionMatrixWithCulling(
-      Matrix4 projectionMatrix, double near, double far);
+  Future setProjection(
+    Projection projection,
+    double left,
+    double right,
+    double bottom,
+    double top,
+    double near,
+    double far,
+  );
+  Future setProjectionFromHorizontalFieldOfView(double degrees, double near, double far, double aspect);
+  Future setProjectionFromVerticalFieldOfView(double degrees, double near, double far, double aspect);
+  Future setProjectionMatrixWithCulling(Matrix4 projectionMatrix, double near, double far);
 
-  Future setLensProjection(
-      {double near = kNear,
-      double far = kFar,
-      double aspect = 1.0,
-      double focalLength = kFocalLength});
+  Future setLensProjection({
+    double near = kNear,
+    double far = kFar,
+    double aspect = 1.0,
+    double focalLength = kFocalLength,
+  });
 
   Future<Matrix4> getViewMatrix();
   Future<Matrix4> getModelMatrix();

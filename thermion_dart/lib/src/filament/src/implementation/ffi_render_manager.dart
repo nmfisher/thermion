@@ -4,9 +4,76 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
+
+/// Tracks view-to-swapchain associations separately from whether a view should
+/// currently be submitted for rendering.
+///
+/// A view can be paused before its platform surface exists. Keeping that state
+/// independent of the attachment lets a later Android surface callback attach
+/// the correct swapchain without accidentally enabling the view.
+class RenderAttachmentState {
+  final _attachments = <Pointer<TSwapChain>, List<(int, View)>>{};
+  final _renderable = <View, bool>{};
+
+  void attach(View view, Pointer<TSwapChain> swapChain, {int renderOrder = 0}) {
+    final views = _attachments.putIfAbsent(swapChain, () => []);
+    views.removeWhere((entry) => entry.$2 == view);
+    views.add((renderOrder, view));
+    views.sort((a, b) => a.$1.compareTo(b.$1));
+  }
+
+  void setRenderable(View view, bool renderable) {
+    _renderable[view] = renderable;
+  }
+
+  void detach(View view, {Pointer<TSwapChain>? swapChain}) {
+    if (swapChain == null) {
+      for (final views in _attachments.values) {
+        views.removeWhere((entry) => entry.$2 == view);
+      }
+      _renderable.remove(view);
+      return;
+    }
+    _attachments[swapChain]?.removeWhere((entry) => entry.$2 == view);
+  }
+
+  void detachAll(Pointer<TSwapChain> swapChain) {
+    _attachments.remove(swapChain);
+  }
+
+  Map<Pointer<TSwapChain>, List<(int, View)>> activeSnapshot() {
+    return {
+      for (final entry in _attachments.entries)
+        entry.key: entry.value.where((attachment) => _renderable[attachment.$2] ?? true).toList(),
+    };
+  }
+
+  Iterable<View> getAttachedViews(Pointer<TSwapChain> swapChain) =>
+      _attachments[swapChain]?.map((entry) => entry.$2) ?? [];
+
+  Iterable<Pointer<TSwapChain>> getAttachedSwapChains(View view) sync* {
+    for (final entry in _attachments.entries) {
+      if (entry.value.any((attachment) => attachment.$2 == view)) {
+        yield entry.key;
+      }
+    }
+  }
+
+  void clear() {
+    _attachments.clear();
+    _renderable.clear();
+  }
+}
 
 class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   final Pointer<TRenderManager> pointer;
+
+  /// The owning app. The RenderManager wraps engine-bound resources (a
+  /// Renderer created from the Engine) and is only valid while that engine is
+  /// alive. It also reconstructs `FFISwapChain` wrappers for attached
+  /// swapchains, which need the same app.
+  final FFIFilamentApp app;
 
   Pointer<TRenderManager> getNativeHandle() {
     return pointer;
@@ -14,11 +81,21 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   late final _logger = Logger(this.runtimeType.toString());
 
-  FFIRenderManager(this.pointer);
+  FFIRenderManager(this.pointer, this.app);
 
-  static final _attachments = <Pointer<TSwapChain>, List<(int, View)>>{};
+  /// Per-engine view/swapchain attachment state.
+  ///
+  /// This must NOT be static: on web each viewer owns its own engine and its
+  /// own `FFIRenderManager`, and `_syncViews` pushes every entry in this map
+  /// into `pointer`'s native RenderManager. A shared map makes app1's attach
+  /// push app0's swapchain/view into app1's render manager; app1's worker then
+  /// calls `beginFrame` on a swapchain owned by a different engine/WebGL
+  /// context and wedges on its next rAF tick, so every subsequent op on app1
+  /// hangs (the second-viewer quickstart hang). Per-engine state also means
+  /// `destroy()` on one app no longer clears another app's attachments.
+  final _attachmentState = RenderAttachmentState();
 
-  /// Serialises every operation that mutates `_attachments` and runs
+  /// Serialises every operation that mutates attachment state and runs
   /// `_syncViews` (attach / detach / detachAll). Concurrent calls from
   /// sibling viewers in multi-viewer apps were running in parallel,
   /// each taking its own `_syncViews` snapshot at a different moment.
@@ -32,6 +109,11 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   /// view of the world for the duration of its setRenderable round-
   /// trips. View destruction (which awaits `detach(view)` first via
   /// `destroyView`) cannot interleave inside another viewer's sync.
+  ///
+  /// Deliberately static (module-wide, not per-engine): cross-engine attach /
+  /// detach ordering was the source of the original multi-viewer SIGSEGV, and
+  /// with per-engine attachment state the chain only orders quick per-engine
+  /// round-trips — each op still dispatches to its own worker via `pointer`.
   static Future<void> _opChain = Future.value();
 
   Future<T> _serialize<T>(Future<T> Function() op) {
@@ -53,14 +135,15 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   @override
   Future attach(View view, SwapChain swapChain, {int renderOrder = 0}) {
     return _serialize(() async {
-      final handle = swapChain.getNativeHandle();
-      if (!_attachments.containsKey(handle)) {
-        _attachments[handle] = [];
-      }
+      _attachmentState.attach(view, swapChain.getNativeHandle(), renderOrder: renderOrder);
+      await _syncViews();
+    });
+  }
 
-      _attachments[handle]!.removeWhere((v) => v.$2 == view);
-      _attachments[handle]!.add((renderOrder, view));
-      _attachments[handle]!.sort((a, b) => a.$1.compareTo(b.$1));
+  @override
+  Future setRenderable(View view, bool renderable) {
+    return _serialize(() async {
+      _attachmentState.setRenderable(view, renderable);
       await _syncViews();
     });
   }
@@ -68,18 +151,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
   @override
   Future detach(View view, {SwapChain? swapChain}) {
     return _serialize(() async {
-      if (swapChain == null) {
-        for (final swapChainHandle in _attachments.keys) {
-          _attachments[swapChainHandle]!.removeWhere((v) => v.$2 == view);
-        }
-      } else {
-        if (!_attachments.containsKey(swapChain.getNativeHandle())) {
-          _attachments[swapChain.getNativeHandle()] = [];
-        }
-
-        _attachments[swapChain.getNativeHandle()]!
-            .removeWhere((v) => v.$2 == view);
-      }
+      _attachmentState.detach(view, swapChain: swapChain?.getNativeHandle());
       await _syncViews();
     });
   }
@@ -101,10 +173,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     // Snapshotting also tolerates removal: if an entry was deleted
     // by the time we get back to it, the views list will be null
     // and we skip it.
-    final snapshot = <Pointer<TSwapChain>, List<(int, View)>>{};
-    for (final entry in _attachments.entries) {
-      snapshot[entry.key] = List.of(entry.value);
-    }
+    final snapshot = _attachmentState.activeSnapshot();
 
     for (final swapChainHandle in snapshot.keys) {
       final views = snapshot[swapChainHandle];
@@ -114,26 +183,34 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
         pointers[i] = views[i].$2.getNativeHandle();
       }
 
-      await withVoidCallback((requestId, cb) =>
-          RenderManager_setRenderableRenderThread(pointer, swapChainHandle,
-              pointers.cast(), views.length, requestId, cb));
+      await withVoidCallback(
+        (requestId, cb) => RenderManager_setRenderableRenderThread(
+          pointer,
+          swapChainHandle,
+          pointers.cast(),
+          views.length,
+          requestId,
+          cb,
+        ),
+      );
 
       free(pointers);
-      _logger.fine(
-          """Synced ${views.length} views for swapchain $swapChainHandle""");
+      _logger.fine("""Synced ${views.length} views for swapchain $swapChainHandle""");
     }
   }
 
   Future detachAll(SwapChain swapChain) {
     return _serialize(() async {
-      await withVoidCallback((requestId, cb) =>
-          RenderManager_removeSwapChainRenderThread(
-              pointer, swapChain.getNativeHandle(), requestId, cb));
-      _attachments.remove(swapChain.getNativeHandle());
+      await withVoidCallback(
+        (requestId, cb) =>
+            RenderManager_removeSwapChainRenderThread(pointer, swapChain.getNativeHandle(), requestId, cb),
+      );
+      _attachmentState.detachAll(swapChain.getNativeHandle());
     });
   }
 
   void destroy() {
+    _attachmentState.clear();
     RenderManager_destroy(pointer);
   }
 
@@ -149,25 +226,20 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
       final frameTimeInNanos = DateTime.now().microsecondsSinceEpoch * 1000;
 
       await withVoidCallback((requestId, cb) {
-        RenderManager_renderRenderThread(
-            pointer, frameTimeInNanos.toBigInt, requestId, cb);
+        RenderManager_renderRenderThread(pointer, frameTimeInNanos.toBigInt, requestId, cb);
       });
     }
   }
 
   @override
   Iterable<View> getAttachedViews(SwapChain swapChain) {
-    return _attachments[swapChain.getNativeHandle()]?.map((v) => v.$2) ?? [];
+    return _attachmentState.getAttachedViews(swapChain.getNativeHandle());
   }
 
   @override
   Iterable<SwapChain> getAttachedSwapChains(View view) sync* {
-    for (final entry in _attachments.entries) {
-      for (final views in entry.value) {
-        if (views.$2 == view) {
-          yield FFISwapChain(entry.key);
-        }
-      }
+    for (final handle in _attachmentState.getAttachedSwapChains(view)) {
+      yield FFISwapChain(handle, app);
     }
   }
 }

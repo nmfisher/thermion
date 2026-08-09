@@ -16,8 +16,8 @@ done
 # the resgen prefix stays "gizmo".
 mv thermion_dart/native/include/material/gizmo.c thermion_dart/native/include/material/gizmo_material.c
 mv thermion_dart/native/include/material/gizmo.h thermion_dart/native/include/material/gizmo_material.h
-sed -i 's/#include "gizmo\.h"/#include "gizmo_material.h"/' thermion_dart/native/include/material/gizmo_material.c
-sed -i 's/GIZMO_H_/GIZMO_MATERIAL_H_/' thermion_dart/native/include/material/gizmo_material.h
+perl -i -pe 's/#include "gizmo\.h"/#include "gizmo_material.h"/' thermion_dart/native/include/material/gizmo_material.c
+perl -i -pe 's/GIZMO_H_/GIZMO_MATERIAL_H_/' thermion_dart/native/include/material/gizmo_material.h
 
 # Compile example asset materials (no embedded resources)
 for material in customattributes solidcolor viewspace; do \

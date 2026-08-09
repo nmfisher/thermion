@@ -16,13 +16,14 @@ class _IblRotationSliderWidgetState extends State<IblRotationSliderWidget> {
   @override
   Widget build(BuildContext context) {
     return Slider(
-        value: _iblRotation,
-        onChanged: (value) {
-          _iblRotation = value;
-          setState(() {});
-          var rotation = v.Matrix3.identity();
-          Matrix4.rotationY(value * 2 * pi).copyRotation(rotation);
-          widget.controller.rotateIbl(rotation);
-        });
+      value: _iblRotation,
+      onChanged: (value) {
+        _iblRotation = value;
+        setState(() {});
+        var rotation = v.Matrix3.identity();
+        Matrix4.rotationY(value * 2 * pi).copyRotation(rotation);
+        widget.controller.rotateIbl(rotation);
+      },
+    );
   }
 }

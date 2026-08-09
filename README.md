@@ -1,10 +1,8 @@
-![Thermion Logo](docs/logo.png)
+![Thermion Logo](https://raw.githubusercontent.com/nmfisher/thermion/97bb6071/docs/logo.png)
 
 <p align="center">
   <a href="https://thermion.dev/quickstart">Quickstart (Flutter)</a> •
   <a href="https://thermion.dev/">Documentation</a> •
-  <a href="https://thermion.dev/showcase">Showcase</a> •
-  <a href="https://dartpad.thermion.dev/">Playground</a> •
   <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
 </p>
 
@@ -15,7 +13,7 @@
 <a href="https://discord.gg/h2VdDK3EAQ"><img src="https://img.shields.io/discord/993167615587520602?logo=discord&logoColor=fff&labelColor=333940" alt="discord"></a>
 <a href="https://github.com/nmfisher/thermion"><img src="https://img.shields.io/github/contributors/nmfisher/flutter_filament?logo=github&labelColor=333940" alt="contributors"></a>
 
-https://github.com/user-attachments/assets/b0c07b5a-6156-4e42-a09b-5f9bd85fbf32
+[![Thermion demo](https://img.youtube.com/vi/qV82gcMJKjY/maxresdefault.jpg)](https://youtu.be/qV82gcMJKjY)
 
 ### Features
 
@@ -24,14 +22,14 @@ https://github.com/user-attachments/assets/b0c07b5a-6156-4e42-a09b-5f9bd85fbf32
 - camera/entity manipulation with mouse (desktop) and gestures (mobile)
 - skinning + morph animations
 
-Uses the Filament PBR engine (currently v1.56.4).
+Uses the Filament PBR engine (currently v1.69.1).
 
 ### Quickstart (Flutter)
 
 From the command line:
 
 ```bash
-flutter channel master
+flutter channel stable
 flutter upgrade
 flutter config --enable-native-assets  
 ```
@@ -104,6 +102,21 @@ flutter run -d chrome
 
 When set, the build hook copies `thermion_dart.{js,wasm}` from `thermion_dart/native/web/build/build/out/` into your app's `web/` directory instead of downloading from R2. Remove the flag (or set it to `false`) to go back to the pinned prebuilt.
 
+#### Running the test suite on web
+
+The package:test suite runs on Chrome via a wrapper. Do not invoke `dart test -p chrome` directly — the multithreaded WASM build needs `crossOriginIsolated` (a COOP/COEP proxy), and each test file needs an HTML host that loads `thermion_dart.js` and the `thermion_canvas`. The wrapper handles both:
+
+```bash
+# from thermion_dart/
+dart run tool/web_test_runner.dart --assets=../examples/assets test/texture_tests.dart
+```
+
+It stamps per-file `test/<name>.html`, starts `tool/coi_proxy.dart` on port 8899 (injecting the isolation headers and bridging `thermion.assets` / `thermion.output` sentinel hosts for asset reads and capture writes), runs `dart test -p chrome`, and prints a per-file summary.
+
+Flags: `--port=N`, `--timeout=DUR`, `--concurrency=N`, `--assets=DIR`, `--no-proxy` (reuse an external proxy), `--clean` (delete the generated HTML on exit). With no test file arguments, it runs every `test/*_test.dart` and `test/*_tests.dart`.
+
+`test/thermion_dart.{js,wasm}` are gitignored symlinks into `native/web/build/build/out/`, so they stay current after every `make wasm`.
+
 ### Sponsors, Contributors & Acknowledgments
 
 Thermion uses the [Filament](https://github.com/google/filament) Physically Based Rendering engine under the hood.
@@ -124,3 +137,5 @@ Thank you to the following people:
 - [@mwahnish](https://github.com/mwahnish) for bug fixes and web improvements
 - [@aenriqu](https://github.com/aenriqu) for bone animation fixes 
 - [@mushogenshin](https://github.com/mushogenshin) for Android & Windows swapchain & backend fixes
+- [@arthur-lfn](https://github.com/arthur-lfn) for Linux/Vulkan fixes
+- [@wperchinumio](https://github.com/wperchinumio) for detailed bug reports on memory leaks and missing features

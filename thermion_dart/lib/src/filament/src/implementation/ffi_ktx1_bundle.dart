@@ -6,7 +6,9 @@ import 'package:thermion_dart/thermion_dart.dart';
 class FFIKtx1Bundle extends Ktx1Bundle {
   final Pointer<TKtx1Bundle> pointer;
 
-  FFIKtx1Bundle(this.pointer);
+  final FFIFilamentApp _app;
+
+  FFIKtx1Bundle(this.pointer, this._app);
 
   ///
   ///
@@ -26,7 +28,7 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   Float32List getSphericalHarmonics() {
-    var harmonics = Float32List(27);
+    final harmonics = makeFloat32List(27);
     Ktx1Bundle_getSphericalHarmonics(pointer, harmonics.address);
     return harmonics;
   }
@@ -34,27 +36,26 @@ class FFIKtx1Bundle extends Ktx1Bundle {
   ///
   ///
   ///
-  static Future<Ktx1Bundle> create(Uint8List data) async {
+  static Future<Ktx1Bundle> create(FFIFilamentApp app, Uint8List data) async {
     var bundle = Ktx1Bundle_create(data.address, data.length);
 
     if (bundle == nullptr) {
       throw Exception("Failed to decode KTX texture");
     }
 
-    return FFIKtx1Bundle(bundle);
+    return FFIKtx1Bundle(bundle, app);
   }
 
-  Future<Texture> createTexture(
-      {VoidCallback? onTextureUploadComplete,
-      int? textureUploadCompleteRequestId}) async {
+  Future<Texture> createTexture({VoidCallback? onTextureUploadComplete, int? textureUploadCompleteRequestId}) async {
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Ktx1Reader_createTextureRenderThread(
-          (FilamentApp.instance as FFIFilamentApp).engine,
-          pointer,
-          textureUploadCompleteRequestId ?? 0,
-          onTextureUploadComplete ?? nullptr,
-          cb);
+        _app.engine,
+        pointer,
+        textureUploadCompleteRequestId ?? 0,
+        onTextureUploadComplete ?? nullptr,
+        cb,
+      );
     });
-    return FFITexture(FilamentApp.instance!.engine, texturePtr);
+    return FFITexture(_app.engine, texturePtr, _app);
   }
 }

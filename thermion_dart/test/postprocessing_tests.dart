@@ -10,12 +10,16 @@ void main() async {
   await testHelper.setup();
   group("assets", () {
     test('enable/disable postprocessing', () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
-        await testHelper.capture(viewer.view, "empty_scene_no_postprocessing");
-        await viewer.setPostProcessing(true);
-        await testHelper.capture(viewer.view, "empty_scene_postprocessing");
-      }, postProcessing: false, createRenderTarget: true);
+      await testHelper.withViewer(
+        (viewer) async {
+          await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+          await testHelper.capture(viewer.view, "empty_scene_no_postprocessing");
+          await viewer.setPostProcessing(true);
+          await testHelper.capture(viewer.view, "empty_scene_postprocessing");
+        },
+        postProcessing: false,
+        createRenderTarget: true,
+      );
     });
 
     test('enable/disable dithering', () async {
@@ -28,8 +32,7 @@ void main() async {
         await view.setDithering(true);
         expect(await view.isDitheringEnabled(), true);
 
-        final cube = await viewer
-            .createGeometry(GeometryUtils.cube(normals: false, uvs: false));
+        final cube = await viewer.createGeometry(GeometryUtils.cube(normals: false, uvs: false));
 
         await testHelper.capture(viewer.view, "dithering_enabled");
 
@@ -40,20 +43,23 @@ void main() async {
     });
 
     test('bloom', () async {
-      await testHelper.withViewer((viewer) async {
-        await FilamentApp.instance!.setClearOptions(1, 1, 1, 1, clear: false);
-        var asset =
-            await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb");
-        var light = await viewer.addDirectLight(
-            DirectLight.point(intensity: 1000000, falloffRadius: 10));
-        await viewer.setLightPosition(light, 1, 2, 2);
-        await viewer.setBloom(false, 0.5);
-        await testHelper.capture(viewer.view, "postprocessing_no_bloom");
-        await viewer.setBloom(true, 0.5);
-        await testHelper.capture(viewer.view, "postprocessing_bloom_0.5");
-        await viewer.setBloom(true, 1.0);
-        await testHelper.capture(viewer.view, "postprocessing_bloom_1.0");
-      }, postProcessing: true, createRenderTarget: true, bg: kBlue);
+      await testHelper.withViewer(
+        (viewer) async {
+          await FilamentApp.instance!.setClearOptions(1, 1, 1, 1, clear: false);
+          var asset = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb");
+          var light = await viewer.addDirectLight(DirectLight.point(intensity: 1000000, falloffRadius: 10));
+          await viewer.setLightPosition(light, 1, 2, 2);
+          await viewer.setBloom(false, 0.5);
+          await testHelper.capture(viewer.view, "postprocessing_no_bloom");
+          await viewer.setBloom(true, 0.5);
+          await testHelper.capture(viewer.view, "postprocessing_bloom_0.5");
+          await viewer.setBloom(true, 1.0);
+          await testHelper.capture(viewer.view, "postprocessing_bloom_1.0");
+        },
+        postProcessing: true,
+        createRenderTarget: true,
+        bg: kBlue,
+      );
     });
   });
 }

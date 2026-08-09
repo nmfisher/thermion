@@ -15,8 +15,7 @@ const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
 extension type _NativeLibrary(NativeLibrary _) implements JSObject {
-  static _NativeLibrary get instance =>
-      NativeLibrary.instance as _NativeLibrary;
+  static _NativeLibrary get instance => NativeLibrary.instance as _NativeLibrary;
 
   external void _execute_queue();
 }
@@ -75,8 +74,7 @@ void Function(int) _voidCallback = (int requestId) {
 
 final _voidCallbackPtr = _voidCallback.addFunction();
 
-Future<void> withVoidCallback(
-    Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
+Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer();
   var requestId = _lastRequestId;
   _lastRequestId++;
@@ -92,7 +90,8 @@ Future<void> withVoidCallback(
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
-    Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func,
+) async {
   final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<T>) callback = (Pointer<T> ptr) {
@@ -114,8 +113,7 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
   return ptr;
 }
 
-Future<bool> withBoolCallback(
-    Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
+Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
@@ -134,8 +132,7 @@ Future<bool> withBoolCallback(
   return completer.future;
 }
 
-Future<double> withFloatCallback(
-    void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
+Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
   final completer = Completer<double>();
   // ignore: prefer_function_declarations_over_variables
   void Function(double) callback = (double result) {
@@ -150,8 +147,7 @@ Future<double> withFloatCallback(
   return completer.future;
 }
 
-Future<int> withIntCallback(
-    Function(Pointer<NativeFunction<void Function(int)>>) func) async {
+Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
@@ -177,8 +173,7 @@ Pointer<T> allocate<T extends NativeType>(int count) {
   }
 }
 
-Future<int> withUInt32Callback(
-    Function(Pointer<NativeFunction<Void Function(int)>>) func) async {
+Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
@@ -190,9 +185,7 @@ Future<int> withUInt32Callback(
   return completer.future;
 }
 
-Future<String> withCharPtrCallback(
-    Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>)
-        func) async {
+Future<String> withCharPtrCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {
   throw UnimplementedError();
 }
 
@@ -204,5 +197,4 @@ extension DartBigIntExtension on int {
 
 Pointer stackSave() => NativeLibrary.instance.stackSave();
 
-void stackRestore(Pointer ptr) =>
-    NativeLibrary.instance.stackRestore(ptr.cast());
+void stackRestore(Pointer ptr) => NativeLibrary.instance.stackRestore(ptr.cast());

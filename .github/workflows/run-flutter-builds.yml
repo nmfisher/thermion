@@ -23,15 +23,15 @@ jobs:
         include:
           - name: macOS
             os: macos-latest
-            flutter-channel: beta
+            flutter-channel: stable
             flutter-arch: ARM64
           - name: Windows
             os: windows-latest
-            flutter-channel: beta
+            flutter-channel: stable
             flutter-arch: X64
           - name: Linux
             os: ubuntu-22.04
-            flutter-channel: beta
+            flutter-channel: stable
             flutter-arch: X64
     runs-on: ${{ matrix.os }}
     defaults:
@@ -45,8 +45,16 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.44.8'
           channel: ${{ matrix.flutter-channel }}
           architecture: ${{ matrix.flutter-arch }}
+
+      - name: Run thermion_flutter unit tests (macOS)
+        if: matrix.name == 'macOS'
+        working-directory: thermion_flutter/thermion_flutter
+        run: |
+          flutter pub get
+          flutter test
 
       # macOS: build native macOS + Android + web
       - name: Set up JDK 17
@@ -81,6 +89,15 @@ jobs:
       - name: Build viewer (macOS)
         if: matrix.name == 'macOS'
         run: cd viewer && flutter pub get && flutter build macos
+
+      # Runs the thermion_flutter lifecycle integration test (FrameScheduler
+      # stop/start/pause/resume + WidgetsBindingObserver recovery) against the
+      # real macOS target. Validates the Flutter-layer scheduler state machine;
+      # the Linux startFlutterSynced resume re-arm is NOT covered here (needs
+      # a Linux + display-server runner).
+      - name: Run lifecycle integration test (macOS)
+        if: matrix.name == 'macOS'
+        run: cd quickstart && flutter test integration_test/lifecycle_test.dart -d macos
 
       - name: Build quickstart (appbundle)
         if: matrix.name == 'macOS'

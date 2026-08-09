@@ -205,6 +205,7 @@ enum TTextureUsage {
     TEXTURE_USAGE_BLIT_SRC            = 0x0040,            //!< Texture can be used the source of a blit()
     TEXTURE_USAGE_BLIT_DST            = 0x0080,            //!< Texture can be used the destination of a blit()
     TEXTURE_USAGE_PROTECTED           = 0x0100,            //!< Texture can be used the destination of a blit()
+    TEXTURE_USAGE_GEN_MIPMAPPABLE     = 0x0200,            //!< Texture can be used with generateMipmaps()
     TEXTURE_USAGE_DEFAULT             = TEXTURE_USAGE_UPLOADABLE | TEXTURE_USAGE_SAMPLEABLE   //!< Default texture usage
 };
 typedef enum TTextureUsage TTextureUsage;
@@ -246,6 +247,7 @@ EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t level);
+EMSCRIPTEN_KEEPALIVE TTextureFormat Texture_getFormat(TTexture *tTexture);
 EMSCRIPTEN_KEEPALIVE TTextureUsage Texture_getUsage(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE void Texture_generateMipMaps(TTexture *tTexture, TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TKtx1Bundle* Ktx1Bundle_create(

@@ -1,6 +1,7 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -8,11 +9,8 @@ void main() async {
   await testHelper.setup();
 
   test('add/clear point light', () async {
-    await ViewerBuilder(testHelper)
-        .addCube(createUbershader: true)
-        .execute((result) async {
-      var light = await result.viewer.addDirectLight(
-          DirectLight.point(intensity: 1000000, falloffRadius: 10));
+    await ViewerBuilder(testHelper).addCube(createUbershader: true).execute((result) async {
+      var light = await result.viewer.addDirectLight(DirectLight.point(intensity: 1000000, falloffRadius: 10));
       await result.viewer.setLightPosition(light, 1, 2, 2);
       await testHelper.capture(result.viewer.view, "add_point_light");
       await result.viewer.setLightPosition(light, -1, 2, 2);
@@ -23,12 +21,10 @@ void main() async {
   });
 
   test('load/remove ibl from KTX', () async {
-    await ViewerBuilder(testHelper)
-        .setCameraLookAt(Vector3(0, 0, 5))
-        .addCube(createUbershader: true)
-        .execute((result) async {
-      await result.viewer
-          .loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
+    await ViewerBuilder(testHelper).setCameraLookAt(Vector3(0, 0, 5)).addCube(createUbershader: true).execute((
+      result,
+    ) async {
+      await result.viewer.loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
       await testHelper.capture(result.viewer.view, "ibl_ktx_loaded");
       await result.viewer.removeIbl();
       await testHelper.capture(result.viewer.view, "ibl_ktx_removed");
@@ -36,24 +32,24 @@ void main() async {
   });
 
   test('load/remove ibl with manually constructed texture', () async {
-    await ViewerBuilder(testHelper)
-        .setCameraLookAt(Vector3(0, 0, 5))
-        .addCube(createUbershader: true)
-        .addSkybox()
-        .execute((result) async {
-      final texture = await FilamentApp.instance!.createTexture(1, 1,
-          textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
-          flags: {
-            TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-            TextureUsage.TEXTURE_USAGE_UPLOADABLE
-          });
-      var data = Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0))
-          .asUint8List();
-      await texture.setImage(
-          0, data, 1, 1, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+    await ViewerBuilder(
+      testHelper,
+    ).setCameraLookAt(Vector3(0, 0, 5)).addCube(createUbershader: true).addSkybox().execute((result) async {
+      final texture = await FilamentApp.instance!.createTexture(
+        1,
+        1,
+        textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
+        flags: {TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT, TextureUsage.TEXTURE_USAGE_UPLOADABLE},
+      );
+      var data = Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0)).asUint8List();
+      await texture.setImage(0, data, 1, 1, PixelDataFormat.RGBA, PixelDataType.FLOAT);
 
-      var indirectLight = await FFIIndirectLight.fromIrradianceTexture(texture,
-          reflectionsTexture: texture, intensity: 30000.0);
+      var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
+        FilamentApp.instance! as FFIFilamentApp,
+        texture,
+        reflectionsTexture: texture,
+        intensity: 30000.0,
+      );
       final scene = await result.viewer.view.getScene();
       await scene.setIndirectLight(indirectLight);
 
@@ -69,10 +65,10 @@ void main() async {
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
         .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null // Use default ubershader material
-            );
+          position: Vector3(0, -1.5, 0),
+          scale: Vector3(10, 10, 1),
+          color: null, // Use default ubershader material
+        );
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -126,44 +122,38 @@ void main() async {
         .setBackgroundColor(kRed)
         .addCube(color: kBlue)
         .setPostProcessing(true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(2, 1, 1),
-            color: kGreen)
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(2, 1, 1), color: kGreen)
         .execute((result) async {
-      final lightManager = FilamentApp.instance!.lightManager;
+          final lightManager = FilamentApp.instance!.lightManager;
 
-      final sunLight = lightManager.createLight(LightType.SUN);
-      lightManager.setPosition(sunLight, 1.0, 2.0, 3.0);
-      lightManager.setDirection(sunLight, 0.0, -1.0, 0.0);
-      lightManager.setIntensity(sunLight, 50000);
-      final scene = await result.viewer.view.getScene();
-      await scene.addEntity(sunLight);
-      await testHelper.capture(result.viewer.view, "light_created");
+          final sunLight = lightManager.createLight(LightType.SUN);
+          lightManager.setPosition(sunLight, 1.0, 2.0, 3.0);
+          lightManager.setDirection(sunLight, 0.0, -1.0, 0.0);
+          lightManager.setIntensity(sunLight, 50000);
+          final scene = await result.viewer.view.getScene();
+          await scene.addEntity(sunLight);
+          await testHelper.capture(result.viewer.view, "light_created");
 
-      final position = lightManager.getPosition(sunLight);
-      expect(position[0], closeTo(1.0, 0.001));
-      expect(position[1], closeTo(2.0, 0.001));
-      expect(position[2], closeTo(3.0, 0.001));
-      final direction = lightManager.getDirection(sunLight);
-      expect(direction[0], closeTo(0.0, 0.001));
-      expect(direction[1], closeTo(-1.0, 0.001));
-      expect(direction[2], closeTo(0.0, 0.001));
+          final position = lightManager.getPosition(sunLight);
+          expect(position[0], closeTo(1.0, 0.001));
+          expect(position[1], closeTo(2.0, 0.001));
+          expect(position[2], closeTo(3.0, 0.001));
+          final direction = lightManager.getDirection(sunLight);
+          expect(direction[0], closeTo(0.0, 0.001));
+          expect(direction[1], closeTo(-1.0, 0.001));
+          expect(direction[2], closeTo(0.0, 0.001));
 
-      await scene.removeEntity(sunLight);
+          await scene.removeEntity(sunLight);
 
-      lightManager.destroyLight(sunLight);
-    });
+          lightManager.destroyLight(sunLight);
+        });
   });
 
   test('LightManager intensity management', () async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -171,8 +161,7 @@ void main() async {
 
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
-      await testHelper.capture(
-          result.viewer.view, "light_created_default_intensity");
+      await testHelper.capture(result.viewer.view, "light_created_default_intensity");
 
       // Test intensity
       lightManager.setIntensity(sunLight, 100000.0);
@@ -189,10 +178,7 @@ void main() async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -230,11 +216,7 @@ void main() async {
         .setShadowType(ShadowType.PCF)
         .setBackgroundColor(kRed)
         .addCube(castShadows: true, color: kBlue)
-        .addPlane(
-            scale: Vector3(10, 1, 10),
-            receiveShadows: true,
-            castShadows: false,
-            color: kGreen);
+        .addPlane(scale: Vector3(10, 1, 10), receiveShadows: true, castShadows: false, color: kGreen);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -243,8 +225,7 @@ void main() async {
       final sunLight = lightManager.createLight(LightType.SUN);
       lightManager.setDirection(sunLight, 1, -1, 0);
       await scene.addEntity(sunLight);
-      await testHelper.capture(
-          result.viewer.view, "sun_light_created_no_shadows");
+      await testHelper.capture(result.viewer.view, "sun_light_created_no_shadows");
 
       // Test shadow caster
       lightManager.setShadowCaster(sunLight, true);
@@ -281,10 +262,7 @@ void main() async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -292,8 +270,7 @@ void main() async {
 
       final sunLight = lightManager.createLight(LightType.SUN);
       await scene.addEntity(sunLight);
-      await testHelper.capture(
-          result.viewer.view, "light_created_default_channels");
+      await testHelper.capture(result.viewer.view, "light_created_default_channels");
 
       // Test light channels
       lightManager.setLightChannel(sunLight, 1, true);
@@ -315,10 +292,7 @@ void main() async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -343,10 +317,7 @@ void main() async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -361,8 +332,7 @@ void main() async {
       await testHelper.capture(result.viewer.view, "spot_light_cone_set");
 
       expect(lightManager.getSpotLightInnerCone(spotLight), greaterThan(0.0));
-      expect(
-          lightManager.getSpotLightOuterCone(spotLight), closeTo(1.0, 0.001));
+      expect(lightManager.getSpotLightOuterCone(spotLight), closeTo(1.0, 0.001));
 
       await scene.removeEntity(spotLight);
       lightManager.destroyLight(spotLight);
@@ -373,11 +343,7 @@ void main() async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 10, 10), focus: Vector3.zero())
         .addCube(color: kGrey, createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: kWhite,
-            createUbershader: true);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: kWhite, createUbershader: true);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -427,10 +393,7 @@ void main() async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -479,10 +442,7 @@ void main() async {
     final builder = ViewerBuilder(testHelper)
         .setCameraLookAt(Vector3(3, 4, 5), focus: Vector3.zero())
         .addCube(createUbershader: true)
-        .addPlane(
-            position: Vector3(0, -1.5, 0),
-            scale: Vector3(10, 10, 1),
-            color: null);
+        .addPlane(position: Vector3(0, -1.5, 0), scale: Vector3(10, 10, 1), color: null);
 
     await builder.execute((result) async {
       final lightManager = FilamentApp.instance!.lightManager;
@@ -527,19 +487,15 @@ void main() async {
         }
       }
 
-      expect(() => lightManager.computeLogSplits(1, 0.1, 100.0),
-          throwsArgumentError);
-      expect(() => lightManager.computeLogSplits(5, 0.1, 100.0),
-          throwsArgumentError);
+      expect(() => lightManager.computeLogSplits(1, 0.1, 100.0), throwsArgumentError);
+      expect(() => lightManager.computeLogSplits(5, 0.1, 100.0), throwsArgumentError);
 
-      final practicalSplits2 =
-          lightManager.computePracticalSplits(2, 0.1, 100.0, 0.5);
+      final practicalSplits2 = lightManager.computePracticalSplits(2, 0.1, 100.0, 0.5);
       expect(practicalSplits2.length, equals(1));
       expect(practicalSplits2[0], greaterThan(0.0));
       expect(practicalSplits2[0], lessThan(1.0));
 
-      final practicalSplits3 =
-          lightManager.computePracticalSplits(3, 0.1, 100.0, 0.5);
+      final practicalSplits3 = lightManager.computePracticalSplits(3, 0.1, 100.0, 0.5);
       expect(practicalSplits3.length, equals(2));
       for (int i = 0; i < practicalSplits3.length; i++) {
         expect(practicalSplits3[i], greaterThan(0.0));
@@ -549,8 +505,7 @@ void main() async {
         }
       }
 
-      final practicalSplits4 =
-          lightManager.computePracticalSplits(4, 0.1, 100.0, 0.5);
+      final practicalSplits4 = lightManager.computePracticalSplits(4, 0.1, 100.0, 0.5);
       expect(practicalSplits4.length, equals(3));
       for (int i = 0; i < practicalSplits4.length; i++) {
         expect(practicalSplits4[i], greaterThan(0.0));
@@ -564,23 +519,16 @@ void main() async {
       final far = 100.0;
 
       // Test lambda = 0 (should be closer to logarithmic)
-      final practicalSplits0 =
-          lightManager.computePracticalSplits(3, near, far, 0.0);
+      final practicalSplits0 = lightManager.computePracticalSplits(3, near, far, 0.0);
 
       // Test lambda = 1 (should be closer to uniform)
-      final practicalSplits1 =
-          lightManager.computePracticalSplits(3, near, far, 1.0);
+      final practicalSplits1 = lightManager.computePracticalSplits(3, near, far, 1.0);
 
       // Test lambda = 0.5 (should be between uniform and logarithmic)
-      final practicalSplits05 =
-          lightManager.computePracticalSplits(3, near, far, 0.5);
+      final practicalSplits05 = lightManager.computePracticalSplits(3, near, far, 0.5);
 
       // All should be valid splits
-      for (final splits in [
-        practicalSplits0,
-        practicalSplits1,
-        practicalSplits05
-      ]) {
+      for (final splits in [practicalSplits0, practicalSplits1, practicalSplits05]) {
         expect(splits.length, equals(2));
         for (int i = 0; i < splits.length; i++) {
           expect(splits[i], greaterThan(0.0));
@@ -591,21 +539,16 @@ void main() async {
         }
       }
 
-      expect(() => lightManager.computePracticalSplits(1, 0.1, 100.0, 0.5),
-          throwsArgumentError);
-      expect(() => lightManager.computePracticalSplits(5, 0.1, 100.0, 0.5),
-          throwsArgumentError);
-      expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, -0.1),
-          throwsArgumentError);
-      expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, 1.1),
-          throwsArgumentError);
+      expect(() => lightManager.computePracticalSplits(1, 0.1, 100.0, 0.5), throwsArgumentError);
+      expect(() => lightManager.computePracticalSplits(5, 0.1, 100.0, 0.5), throwsArgumentError);
+      expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, -0.1), throwsArgumentError);
+      expect(() => lightManager.computePracticalSplits(3, 0.1, 100.0, 1.1), throwsArgumentError);
 
       final cascades = 3;
 
       final uniformSplits = lightManager.computeUniformSplits(cascades);
       final logSplits = lightManager.computeLogSplits(cascades, near, far);
-      final practicalSplits =
-          lightManager.computePracticalSplits(cascades, near, far, 0.5);
+      final practicalSplits = lightManager.computePracticalSplits(cascades, near, far, 0.5);
 
       expect(uniformSplits.length, equals(2));
       expect(logSplits.length, equals(2));
@@ -614,8 +557,7 @@ void main() async {
       // Results should be different (except possibly coincidentally)
       bool allEqual = true;
       for (int i = 0; i < uniformSplits.length; i++) {
-        if ((uniformSplits[i] - logSplits[i]).abs() > 0.001 ||
-            (uniformSplits[i] - practicalSplits[i]).abs() > 0.001) {
+        if ((uniformSplits[i] - logSplits[i]).abs() > 0.001 || (uniformSplits[i] - practicalSplits[i]).abs() > 0.001) {
           allEqual = false;
           break;
         }

@@ -4,6 +4,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/edge_detection_view.dart';
 import 'package:thermion_dart/src/filament/src/implementation/silhouette_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 abstract class HighlightOverlayManager {
   View get silhouetteView;
@@ -28,8 +29,8 @@ abstract class HighlightOverlayManager {
   });
   Future<void> removeHighlight(ThermionEntity target);
 
-  static Future<HighlightOverlayManager> create(int width, int height) {
-    return FFIHighlightOverlayManager.create(width: width, height: height);
+  static Future<HighlightOverlayManager> create(FFIFilamentApp app, int width, int height) {
+    return FFIHighlightOverlayManager.create(app, width: width, height: height);
   }
 }
 
@@ -104,8 +105,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   final _highlightedEntities = <ThermionEntity>{};
 
   @override
-  Set<ThermionEntity> get highlightedEntities =>
-      Set.unmodifiable(_highlightedEntities);
+  Set<ThermionEntity> get highlightedEntities => Set.unmodifiable(_highlightedEntities);
 
   // State
   View? _mainView;
@@ -126,10 +126,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   ///
   /// Can be called multiple times (e.g. on resize) — will update the
   /// Flutter render target that EdgeDetectionView outputs to.
-  Future<void> setRenderTarget(
-    View mainView,
-    RenderTarget flutterRenderTarget,
-  ) async {
+  Future<void> setRenderTarget(View mainView, RenderTarget flutterRenderTarget) async {
     _mainView = mainView;
 
     if (_flutterRenderTarget == null) {
@@ -143,8 +140,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
       await _createMainViewRenderTarget(width, height);
       await mainView.setRenderTarget(_mainViewRenderTarget);
       await overlayView.setMainSceneTexture(_mainViewColorTexture!);
-      _logger.info(
-          "Main view redirected to internal render target (composite mode)");
+      _logger.info("Main view redirected to internal render target (composite mode)");
     }
 
     _flutterRenderTarget = flutterRenderTarget;
@@ -166,8 +162,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     await overlayView.setRenderTarget(null);
     _swapChain = swapChain;
     await overlayView.setOverlayOnly(true);
-    _logger.info(
-        "EdgeDetectionView registered with swapchain (overlay-only mode)");
+    _logger.info("EdgeDetectionView registered with swapchain (overlay-only mode)");
   }
 
   /// Check if the given render target is the internal one used for main view
@@ -177,29 +172,24 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     return rt == _mainViewRenderTarget;
   }
 
-  FFIHighlightOverlayManager._({
-    required this.silhouetteView,
-    required this.overlayView,
-  });
+  final FFIFilamentApp _app;
+
+  FFIHighlightOverlayManager._({required this.silhouetteView, required this.overlayView, required FFIFilamentApp app})
+    : _app = app;
 
   /// Creates and initializes a new [HighlightOverlayManager].
-  static Future<HighlightOverlayManager> create({
-    required int width,
-    required int height,
-  }) async {
+  static Future<HighlightOverlayManager> create(FFIFilamentApp app, {required int width, required int height}) async {
     // Use 1x1 minimum to avoid 0-dimension textures during early init
     final actualWidth = width > 0 ? width : 1;
     final actualHeight = height > 0 ? height : 1;
 
     // Create silhouette view (first pass)
-    final silhouetteView = await SilhouetteView.create(
-      width: actualWidth,
-      height: actualHeight,
-    );
+    final silhouetteView = await SilhouetteView.create(app, width: actualWidth, height: actualHeight);
     await silhouetteView.setBlendMode(BlendMode.transparent);
 
     // Create edge detection view (second pass)
     final edgeDetectionView = await EdgeDetectionView.create(
+      app,
       width: actualWidth,
       height: actualHeight,
       silhouetteTexture: silhouetteView.colorTexture,
@@ -216,6 +206,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     final manager = FFIHighlightOverlayManager._(
       silhouetteView: silhouetteView,
       overlayView: edgeDetectionView,
+      app: app,
     );
 
     manager._logger.info("Highlight overlay manager initialized");
@@ -245,33 +236,29 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // 1. Main view post-processing outputs linear colors → GPU applies sRGB encoding
     // 2. EdgeDetectionView samples → GPU linearizes the values automatically
     // This prevents double gamma correction that causes brightness shift.
-    _mainViewColorTexture = await FilamentApp.instance!.createTexture(
-      width,
-      height,
-      flags: {
-        TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
-      },
-      textureFormat: TextureFormat.SRGB8_A8,
-    ) as FFITexture;
+    _mainViewColorTexture =
+        await _app.createTexture(
+              width,
+              height,
+              flags: {TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT, TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
+              textureFormat: TextureFormat.SRGB8_A8,
+            )
+            as FFITexture;
 
     // Create depth texture
-    _mainViewDepthTexture = await FilamentApp.instance!.createTexture(
-      width,
-      height,
-      flags: {
-        TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-      },
-      textureFormat: TextureFormat.DEPTH32F,
-    ) as FFITexture;
+    _mainViewDepthTexture =
+        await _app.createTexture(
+              width,
+              height,
+              flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+              textureFormat: TextureFormat.DEPTH32F,
+            )
+            as FFITexture;
 
     // Create render target
-    _mainViewRenderTarget = await FilamentApp.instance!.createRenderTarget(
-      width,
-      height,
-      color: _mainViewColorTexture,
-      depth: _mainViewDepthTexture,
-    ) as FFIRenderTarget;
+    _mainViewRenderTarget =
+        await _app.createRenderTarget(width, height, color: _mainViewColorTexture, depth: _mainViewDepthTexture)
+            as FFIRenderTarget;
   }
 
   Future<void> _resizeMainViewRenderTarget(int width, int height) async {
@@ -293,7 +280,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     // Flush render thread to ensure new textures are bound before destroying old ones
     // This prevents "Invalid texture still bound to MaterialInstance" errors
-    await FilamentApp.instance!.flush();
+    await _app.flush();
 
     // NOW safe to destroy old resources
     await oldRenderTarget?.destroy();
@@ -330,12 +317,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     double b = 0.0,
   }) async {
     // ALWAYS update outline params (even if already highlighted)
-    await overlayView.setOutlineParams(
-      width: outlineWidth,
-      r: r,
-      g: g,
-      b: b,
-    );
+    await overlayView.setOutlineParams(width: outlineWidth, r: r, g: g, b: b);
 
     // Only add silhouette if not already tracked
     if (_highlightedEntities.contains(target)) {
@@ -390,8 +372,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // Tear down render targets and restore original state
     // Restore main view's original render target (only if it was redirected)
     if (_mainView != null && _mainViewRenderTarget != null) {
-      await _mainView!
-          .setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
+      await _mainView!.setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
     }
 
     if (_swapChain != null) {

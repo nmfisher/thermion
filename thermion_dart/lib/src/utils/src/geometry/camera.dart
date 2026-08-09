@@ -17,8 +17,7 @@ class CameraGeometry {
     List<double> uvsList = [];
     List<int> indices = [];
 
-    void addVertex(double x, double y, double z, double nx, double ny,
-        double nz, double u, double v) {
+    void addVertex(double x, double y, double z, double nx, double ny, double nz, double u, double v) {
       verticesList.addAll([x, y, z]);
       if (normals) normalsList.addAll([nx, ny, nz]);
       if (uvs) uvsList.addAll([u, v]);
@@ -102,7 +101,7 @@ class CameraGeometry {
       22,
       20,
       22,
-      23
+      23,
     ];
 
     indices.addAll(bodyIndices);
@@ -127,8 +126,7 @@ class CameraGeometry {
       double normalY = y / lensRadius;
       double normalZ = lensRadius / lensLength;
 
-      double normalLength =
-          sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+      double normalLength = sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
       normalX /= normalLength;
       normalY /= normalLength;
       normalZ /= normalLength;
@@ -173,8 +171,7 @@ class CameraGeometry {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, Uint16List.fromList(indices),
-        normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 
   static Geometry wireframeCamera({
@@ -206,21 +203,16 @@ class CameraGeometry {
         perp1 = [-dy, dx, 0];
       }
 
-      double perpLength =
-          sqrt(perp1[0] * perp1[0] + perp1[1] * perp1[1] + perp1[2] * perp1[2]);
+      double perpLength = sqrt(perp1[0] * perp1[0] + perp1[1] * perp1[1] + perp1[2] * perp1[2]);
       if (perpLength > 0) {
         perp1 = [
           perp1[0] / perpLength * wireThickness,
           perp1[1] / perpLength * wireThickness,
-          perp1[2] / perpLength * wireThickness
+          perp1[2] / perpLength * wireThickness,
         ];
       }
 
-      perp2 = [
-        dy * perp1[2] - dz * perp1[1],
-        dz * perp1[0] - dx * perp1[2],
-        dx * perp1[1] - dy * perp1[0]
-      ];
+      perp2 = [dy * perp1[2] - dz * perp1[1], dz * perp1[0] - dx * perp1[2], dx * perp1[1] - dy * perp1[0]];
 
       List<List<double>> startVerts = [
         [start[0] + perp1[0], start[1] + perp1[1], start[2] + perp1[2]],
@@ -289,10 +281,11 @@ class CameraGeometry {
 
     for (int latNumber = 0; latNumber < latitudeBands; latNumber++) {
       for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
-        addWireSegment(getSpherePoint(latNumber, longNumber),
-            getSpherePoint(latNumber + 1, longNumber));
-        addWireSegment(getSpherePoint(latNumber, longNumber),
-            getSpherePoint(latNumber, (longNumber + 1) % longitudeBands));
+        addWireSegment(getSpherePoint(latNumber, longNumber), getSpherePoint(latNumber + 1, longNumber));
+        addWireSegment(
+          getSpherePoint(latNumber, longNumber),
+          getSpherePoint(latNumber, (longNumber + 1) % longitudeBands),
+        );
       }
     }
 
@@ -333,7 +326,12 @@ class CameraGeometry {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, Uint16List.fromList(indices),
-        normals: _normals, uvs: _uvs, primitiveType: PrimitiveType.TRIANGLES);
+    return Geometry(
+      vertices,
+      Uint16List.fromList(indices),
+      normals: _normals,
+      uvs: _uvs,
+      primitiveType: PrimitiveType.TRIANGLES,
+    );
   }
 }

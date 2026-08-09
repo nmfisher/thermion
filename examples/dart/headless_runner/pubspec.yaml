@@ -1,0 +1,13 @@
+name: thermion_headless_runner
+description: Headless CLI runner for the Thermion examples. Renders any registered example offscreen and writes a PNG.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.3.0
+
+dependencies:
+  thermion_dart:
+    path: ../../../thermion_dart
+  thermion_examples_lib:
+    path: ../examples_lib

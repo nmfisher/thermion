@@ -1,0 +1,89 @@
+name: Deploy site
+
+# Builds the documentation site (Astro) and the WASM examples gallery, stages the
+# gallery under /gallery/ in the docs output, and deploys both to a single
+# Cloudflare Pages project (thermion-docs → thermion.dev).
+#
+# The whole site is already cross-origin-isolated via docs/public/_headers
+# (COOP same-origin + COEP credentialless on /*), so the gallery's
+# SharedArrayBuffer (multithreaded WASM) works without any path-scoped headers.
+#
+# Fires on:
+#   - a release tag push v* (same event publish-pub-dev.yml uses) — the site
+#     deploys on a Thermion release, NOT on every develop commit
+#   - manual dispatch (re-deploy without cutting a release)
+#
+# Requires repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & deploy site
+    # Any standard runner works: the web-artifact download step runs
+    # `dart run thermion_dart:download_web` with `skip_native_build` set (see
+    # examples/dart/web_gallery/pubspec.yaml + thermion_dart/hook/build.dart), so
+    # it does no host C++ compile and needs no C++ toolchain.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- documentation (Astro) ---
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: docs/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: docs/pnpm-lock.yaml
+      - name: Build docs
+        working-directory: docs
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      # --- examples gallery (WASM) ---
+      - uses: dart-lang/setup-dart@v1
+      - name: Resolve gallery dependencies
+        run: |
+          (cd thermion_dart && dart pub get)
+          (cd examples/dart/examples_lib && dart pub get)
+          (cd examples/dart/web_gallery && dart pub get)
+      - name: Download thermion web artifacts (thermion_dart.js/wasm)
+        # Run from the gallery so thermion_dart's build hook picks up the
+        # `skip_native_build` userDefine (declared under hooks.user_defines in
+        # examples/dart/web_gallery/pubspec.yaml). That makes the hook no-op its
+        # host C++ build: download_web.dart only fetches prebuilt artifacts over
+        # HTTP, so no native compile — and no C++ toolchain on the runner — is
+        # needed. (The later `dart compile wasm` step is unaffected: the hook's
+        # buildCodeAssets branch runs before the skip and still downloads for web.)
+        working-directory: examples/dart/web_gallery
+        run: dart run thermion_dart:download_web -o web
+      - name: Copy shared assets
+        run: cp -r examples/assets examples/dart/web_gallery/web/assets
+      - name: Compile gallery to WASM
+        working-directory: examples/dart/web_gallery
+        run: dart compile wasm web/main.dart -o web/main.wasm
+      - name: Stage gallery under docs output
+        run: |
+          mkdir -p docs/dist/gallery
+          cp -r examples/dart/web_gallery/web/. docs/dist/gallery/
+
+      # --- deploy a single Cloudflare Pages project ---
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy docs/dist --project-name=thermion-docs

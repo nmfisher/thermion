@@ -2,16 +2,14 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart'
 import 'package:thermion_dart/src/filament/src/interface/defaults.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_filament_app.dart';
 
 /// Represents a single LOD level of the grid overlay.
 class _GridLevel {
   final ThermionEntity entity;
   final MaterialInstance materialInstance;
 
-  _GridLevel({
-    required this.entity,
-    required this.materialInstance,
-  });
+  _GridLevel({required this.entity, required this.materialInstance});
 }
 
 /// A grid overlay that displays a 3D grid in the XZ plane.
@@ -24,13 +22,17 @@ class GridOverlay {
   final VertexBuffer _vertexBuffer;
   final IndexBuffer _indexBuffer;
 
+  final FFIFilamentApp _app;
+
   GridOverlay._({
     required List<_GridLevel> levels,
     required VertexBuffer vertexBuffer,
     required IndexBuffer indexBuffer,
-  })  : _levels = levels,
-        _vertexBuffer = vertexBuffer,
-        _indexBuffer = indexBuffer;
+    required FFIFilamentApp app,
+  }) : _levels = levels,
+       _vertexBuffer = vertexBuffer,
+       _indexBuffer = indexBuffer,
+       _app = app;
 
   static GridOverlay? _instance;
   static Material? _gridMaterial;
@@ -51,8 +53,7 @@ class GridOverlay {
     const stepSize = 0.25;
     const gridSize = 8; // Number of cells in each direction
     const vertexCount = gridSize * gridSize * 4; // 4 vertices per quad
-    const indexCount =
-        gridSize * gridSize * 6; // 6 indices per quad (2 triangles)
+    const indexCount = gridSize * gridSize * 6; // 6 indices per quad (2 triangles)
 
     final positions = Float32List(vertexCount * 3);
     final indices = Uint32List(indexCount);
@@ -116,7 +117,7 @@ class GridOverlay {
   /// Destroys all resources held by this grid overlay.
   Future destroy() async {
     for (final level in _levels) {
-      await FilamentApp.instance!.destroyEntity(level.entity);
+      await _app.destroyEntity(level.entity);
       await level.materialInstance.destroy();
     }
     await _vertexBuffer.destroy();
@@ -135,30 +136,24 @@ class GridOverlay {
   /// - [spacing]: Interval between grid lines for each LOD level
   /// - [fadeInStart]/[fadeInEnd]: Camera distances where each level fades in
   /// - [fadeOutStart]/[fadeOutEnd]: Camera distances where each level fades out
-  static Future<GridOverlay> create({
+  static Future<GridOverlay> create(
+    FFIFilamentApp app, {
     List<LinearColor> axisColors = kDefaultAxisColors,
     LinearColor gridColor = kDefaultGridColor,
     List<double> spacing = const [1.0, 10.0, 100.0, 1000.0, 10000.0],
     List<double> fadeInStart = const [0.001, 5.0, 50.0, 500.0, 5000.0],
     List<double> fadeInEnd = const [0.001, 50.0, 500.0, 5000.0, 50000.0],
     List<double> fadeOutStart = const [10.0, 500.0, 5000.0, 50000.0, 500000.0],
-    List<double> fadeOutEnd = const [
-      200.0,
-      2000.0,
-      20000.0,
-      200000.0,
-      2000000.0
-    ],
+    List<double> fadeOutEnd = const [200.0, 2000.0, 20000.0, 200000.0, 2000000.0],
   }) async {
     if (_instance != null) {
       return _instance!;
     }
 
-    final app = FilamentApp.instance!;
     final rm = app.renderableManager;
 
     // Create or reuse the grid material
-    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(app.engine));
+    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(app.engine), app);
 
     // Generate shared geometry
     final (positions, indices) = _generateGridGeometry();
@@ -195,14 +190,10 @@ class GridOverlay {
       final materialInstance = await _gridMaterial!.createInstance();
 
       // Configure material parameters
-      await materialInstance.setParameterFloat3(
-          'gridColor', gridColor.r, gridColor.g, gridColor.b);
-      await materialInstance.setParameterFloat3(
-          'axisColorX', axisColors[0].r, axisColors[0].g, axisColors[0].b);
-      await materialInstance.setParameterFloat3(
-          'axisColorY', axisColors[1].r, axisColors[1].g, axisColors[1].b);
-      await materialInstance.setParameterFloat3(
-          'axisColorZ', axisColors[2].r, axisColors[2].g, axisColors[2].b);
+      await materialInstance.setParameterFloat3('gridColor', gridColor.r, gridColor.g, gridColor.b);
+      await materialInstance.setParameterFloat3('axisColorX', axisColors[0].r, axisColors[0].g, axisColors[0].b);
+      await materialInstance.setParameterFloat3('axisColorY', axisColors[1].r, axisColors[1].g, axisColors[1].b);
+      await materialInstance.setParameterFloat3('axisColorZ', axisColors[2].r, axisColors[2].g, axisColors[2].b);
       await materialInstance.setParameterFloat('distance', spacing[i] * 100.0);
       await materialInstance.setParameterFloat('interval', spacing[i]);
       await materialInstance.setParameterFloat('fadeInStart', fadeInStart[i]);
@@ -217,24 +208,13 @@ class GridOverlay {
       }
 
       // Set transparency and culling modes
-      await materialInstance
-          .setTransparencyMode(TransparencyMode.TWO_PASSES_TWO_SIDES);
+      await materialInstance.setTransparencyMode(TransparencyMode.TWO_PASSES_TWO_SIDES);
       await materialInstance.setCullingMode(CullingMode.NONE);
 
       // Build the renderable
       final builder = rm.createBuilder(1);
-      builder.boundingBox(Aabb3.minMax(
-        Vector3(-1.0, -1.0, -1.0),
-        Vector3(1.0, 1.0, 1.0),
-      ));
-      builder.geometry(
-        0,
-        PrimitiveType.TRIANGLES,
-        vertexBuffer,
-        indexBuffer,
-        0,
-        indices.length,
-      );
+      builder.boundingBox(Aabb3.minMax(Vector3(-1.0, -1.0, -1.0), Vector3(1.0, 1.0, 1.0)));
+      builder.geometry(0, PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, indices.length);
       builder.material(0, materialInstance);
       builder.priority(6);
       // Layer mask: 0xFF select, 1 << 7 (Overlay layer) value
@@ -245,18 +225,11 @@ class GridOverlay {
       builder.castShadows(false);
       await builder.build(entity);
 
-      levels.add(_GridLevel(
-        entity: entity,
-        materialInstance: materialInstance,
-      ));
+      levels.add(_GridLevel(entity: entity, materialInstance: materialInstance));
     }
 
     _currentAxisColors = axisColors;
-    _instance = GridOverlay._(
-      levels: levels,
-      vertexBuffer: vertexBuffer,
-      indexBuffer: indexBuffer,
-    );
+    _instance = GridOverlay._(levels: levels, vertexBuffer: vertexBuffer, indexBuffer: indexBuffer, app: app);
 
     return _instance!;
   }
@@ -266,27 +239,21 @@ class GridOverlay {
   /// [axisColors] should be a list of exactly 3 LinearColor objects: [X-axis, Y-axis, Z-axis]
   Future<void> setAxisColor(List<LinearColor> axisColors) async {
     if (axisColors.length != 3) {
-      throw ArgumentError(
-          'axisColors must contain exactly 3 colors for X, Y, and Z axes');
+      throw ArgumentError('axisColors must contain exactly 3 colors for X, Y, and Z axes');
     }
 
     _currentAxisColors = axisColors;
 
     // Update all levels' material instances
     for (final level in _levels) {
-      await level.materialInstance.setParameterFloat3(
-          'axisColorX', axisColors[0].r, axisColors[0].g, axisColors[0].b);
-      await level.materialInstance.setParameterFloat3(
-          'axisColorY', axisColors[1].r, axisColors[1].g, axisColors[1].b);
-      await level.materialInstance.setParameterFloat3(
-          'axisColorZ', axisColors[2].r, axisColors[2].g, axisColors[2].b);
+      await level.materialInstance.setParameterFloat3('axisColorX', axisColors[0].r, axisColors[0].g, axisColors[0].b);
+      await level.materialInstance.setParameterFloat3('axisColorY', axisColors[1].r, axisColors[1].g, axisColors[1].b);
+      await level.materialInstance.setParameterFloat3('axisColorZ', axisColors[2].r, axisColors[2].g, axisColors[2].b);
     }
   }
 
   /// Creating instances is not supported for grid overlays.
-  Future<GridOverlay> createInstance(
-      {List<MaterialInstance>? materialInstances}) async {
-    throw Exception(
-        'Only a single instance of the grid overlay can be created');
+  Future<GridOverlay> createInstance({List<MaterialInstance>? materialInstances}) async {
+    throw Exception('Only a single instance of the grid overlay can be created');
   }
 }

@@ -4,6 +4,7 @@ export 'dart:typed_data';
 import 'dart:async';
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'void_callback_registry.dart';
 export 'package:ffi/ffi.dart';
 export 'dart:ffi' hide Size;
 
@@ -88,14 +89,12 @@ class FinalizableUint8List implements Finalizable {
 
 extension GPFBP on void Function(int, double, double, double) {
   CallbackHolder<GizmoPickCallbackFunction> asCallback() {
-    var nativeCallable =
-        NativeCallable<GizmoPickCallbackFunction>.listener(this);
+    var nativeCallable = NativeCallable<GizmoPickCallbackFunction>.listener(this);
     return CallbackHolder(nativeCallable);
   }
 }
 
-CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(
-    DartPickCallbackFunction fn) {
+CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(DartPickCallbackFunction fn) {
   final nc = NativeCallable<PickCallbackFunction>.listener(fn);
   final cbh = CallbackHolder(nc);
   return cbh;
@@ -115,63 +114,27 @@ extension PCBF on DartPickCallbackFunction {
   }
 }
 
-int _requestId = 0;
-final _requests = <int, Completer>{};
+final _voidCallbackRegistry = VoidCallbackRegistry();
 
-void _voidCallbackHandler(int requestId) {
-  _requests[requestId]!.complete();
-}
-
-late NativeCallable<Void Function(Int32)> _voidCallbackNativeCallable =
-    NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
-
-Future<void> withVoidCallback(
-    Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func) async {
-  var requestId = _requestId;
-  _requestId++;
-  final completer = Completer();
-  _requests[requestId] = completer;
-
-  // Use the module-scoped `_voidCallbackNativeCallable` initialised at
-  // file load. Do NOT reassign it per call: every reassignment orphans
-  // the previous NativeCallable, which native code may still hold a
-  // pointer to. When Dart GC sweeps the orphan, its trampoline
-  // metadata is freed; the next invocation from the native side
-  // calls a removed trampoline, hits the
-  // `DLRT_GetFfiCallbackMetadata` release-assert, and the VM aborts.
-  // On Windows multi-viewer (8 viewers × ~60 fps × multiple FFI
-  // awaits per frame), churn is high enough that GC reliably sweeps
-  // a stale entry within ~20 seconds and the embedder dies — observed
-  // as "Not Responding" on the main window. The single global
-  // listener's handler (`_voidCallbackHandler`) is stateless; it
-  // dispatches by `requestId` through `_requests`, so one trampoline
-  // is sufficient and correct.
-  //
-  // Upstream introduced the reassignment in 760ae8ed8 as a drive-by
-  // change inside an unrelated commit ("add makeInt32List method").
-  // To file upstream once verified.
-  func.call(requestId, _voidCallbackNativeCallable.nativeFunction.cast());
-
-  await completer.future;
-}
+Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func) =>
+    _voidCallbackRegistry.invoke(func);
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
-    Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func) async {
+  Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func,
+) async {
   final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<NativeType>) callback = (Pointer<NativeType> ptr) {
     completer.complete(ptr.cast<T>());
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Pointer<NativeType>)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Pointer<NativeType>)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
   var ptr = await completer.future;
   nativeCallable.close();
   return ptr;
 }
 
-Future<bool> withBoolCallback(
-    Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
+Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
   void Function(bool) callback = (bool result) {
@@ -184,61 +147,52 @@ Future<bool> withBoolCallback(
   return completer.future;
 }
 
-Future<double> withFloatCallback(
-    Function(Pointer<NativeFunction<Void Function(Float)>>) func) async {
+Future<double> withFloatCallback(Function(Pointer<NativeFunction<Void Function(Float)>>) func) async {
   final completer = Completer<double>();
   // ignore: prefer_function_declarations_over_variables
   void Function(double) callback = (double result) {
     completer.complete(result);
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Float)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Float)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
   return completer.future;
 }
 
-Future<int> withIntCallback(
-    Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
+Future<int> withIntCallback(Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
     completer.complete(result);
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Int32)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Int32)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
   return completer.future;
 }
 
-Future<int> withUInt32Callback(
-    Function(Pointer<NativeFunction<Void Function(Uint32)>>) func) async {
+Future<int> withUInt32Callback(Function(Pointer<NativeFunction<Void Function(Uint32)>>) func) async {
   final completer = Completer<int>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {
     completer.complete(result);
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Uint32)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Uint32)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
   return completer.future;
 }
 
-Future<String> withCharPtrCallback(
-    Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>)
-        func) async {
+Future<String> withCharPtrCallback(Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>) func) async {
   final completer = Completer<String>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<Char>) callback = (Pointer<Char> result) {
     completer.complete(result.cast<Utf8>().toDartString());
   };
-  final nativeCallable =
-      NativeCallable<Void Function(Pointer<Char>)>.listener(callback);
+  final nativeCallable = NativeCallable<Void Function(Pointer<Char>)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();

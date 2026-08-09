@@ -17,10 +17,16 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sINITIAL_MEMORY=512mb)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,lengthBytesUTF8,HEAPU8,HEAPU32,HEAPF32)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,lengthBytesUTF8,HEAPU8,HEAPU32,HEAPF32)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_malloc,stackAlloc,_free,stackSave,stackRestore)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFULL_ES3)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
+# Pre-spawn one worker per engine/viewer (matches WebOptions.maxViewers
+# default). With a pool smaller than the viewer count, the Nth pthread_create
+# takes emscripten's lazy-spawn path (spawn + wasm load mid-flight), which is
+# fragile and can hang; the pool workers are loaded and awaited at module
+# startup instead. Each worker receives its own canvas at thread start
+# (emscripten_pthread_attr_settransferredcanvases).
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=8)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_BLOCKING_ON_MAIN_THREAD=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMALLOC=mimalloc)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREENCANVAS_SUPPORT=1)
@@ -32,24 +38,31 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAX_WEBGL_VERSION=2)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFILESYSTEM=0)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASSERTIONS=2)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_ASSERTIONS=1)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_DEBUG=1)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSAFE_HEAP=1)
-  
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSAFE_HEAP_LOG=1)
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_OVERFLOW_CHECK=2)
   set(EMCC_CFLAGS ${EMCC_CFLAGS} -sWARN_UNALIGNED=1)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wover-aligned")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wcast-align -Wover-aligned")
-  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=10485760)
 endif()
 
 if(ENABLE_TRACING)
 add_compile_definitions(ENABLE_TRACING=1)
 message(STATUS "Enabling tracing")
 endif()
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=10485760)
+
+# pthread stack size defaults to 10 MB.
+# Override with -DTHERMION_STACK_SIZE=<bytes>.
+if(NOT DEFINED THERMION_STACK_SIZE)
+  set(THERMION_STACK_SIZE 10485760)
+endif()
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSTACK_SIZE=${THERMION_STACK_SIZE})
+
+
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_PTHREAD=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} "-sOFFSCREENCANVASES_TO_PTHREAD=#thermion_canvas")
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_WORKER=1)
@@ -66,7 +79,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O1")
 endif()
 
-# Set to "ON" to enable verbose linking 
+# Set to "ON" to enable verbose linking
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 add_link_options(${EMCC_CFLAGS} -pthread)
@@ -146,6 +159,11 @@ add_library(geometry STATIC IMPORTED)
 set_property(TARGET geometry PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libgeometry.a")
 set_property(TARGET geometry PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libgeometry.a")
 set_property(TARGET geometry PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libgeometry.a")
+
+add_library(mikktspace STATIC IMPORTED)
+set_property(TARGET mikktspace PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libmikktspace.a")
+set_property(TARGET mikktspace PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmikktspace.a")
+set_property(TARGET mikktspace PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libmikktspace.a")
 
 add_library(filament STATIC IMPORTED)
 set_property(TARGET filament PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libfilament.a")
@@ -283,6 +301,7 @@ target_link_libraries(${MODULE_NAME}
  filament
  backend
  geometry
+ mikktspace
  dracodec
  ibl-lite
  ktxreader
@@ -314,5 +333,4 @@ if(DEFINED EXTERNAL_ALL_LIBRARIES)
   endforeach()
   message(STATUS "Added --whole-archive flags for external libraries to prevent dead code elimination")
 endif()
-
 

@@ -12,6 +12,22 @@ void main(List<String> args) async {
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
     final logger = createBuildLogger(pkgRootFilePath, "link.log");
 
+    // Web builds register no code assets (the wasm is copied into the
+    // consuming app's web/ directory by the build hook), and the tool only
+    // populates `config.code` when buildCodeAssets is true — pass any code
+    // assets through unchanged and skip linking. (Accessing
+    // `input.config.code` unconditionally throws on web.)
+    if (!input.config.buildCodeAssets) {
+      for (final asset in input.assets.code) {
+        output.assets.code.add(asset);
+      }
+      logger.info(
+        "No code assets to build (web build); passed through "
+        "${input.assets.code.length} code asset(s).",
+      );
+      return;
+    }
+
     // The CLinker.library(... LinkerOptions.manual(...)) call below
     // delegates to native_toolchain_c.runCl on Windows, which builds a
     // cl.exe command line from the constructor's `sources` list. Our
@@ -32,9 +48,7 @@ void main(List<String> args) async {
       return;
     }
 
-    final clinker = CLinker.library(
-        name: "thermion_dart",
-        linkerOptions: LinkerOptions.manual(stripDebug: false));
+    final clinker = CLinker.library(name: "thermion_dart", linkerOptions: LinkerOptions.manual(stripDebug: false));
     clinker.run(input: input, output: output, logger: logger);
 
     logger.info("Link step completed!");

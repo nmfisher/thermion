@@ -13,19 +13,17 @@ void main() async {
         .setCameraLookAt(Vector3(10, 10, 10))
         .addCube(unlit: true, color: kRed, createUbershader: true)
         .execute((result) async {
-      // Create the gizmo
-      final gizmo = custom_gizmo.TransformationGizmo(result.viewer);
-      await gizmo.create(
-          type: custom_gizmo.TransformationGizmoType.translation);
+          // Create the gizmo
+          final gizmo = custom_gizmo.TransformationGizmo(result.viewer);
+          await gizmo.create(type: custom_gizmo.TransformationGizmoType.translation);
 
-      // Update gizmo with camera position for proper scaling
-      final camera = await result.viewer.getActiveCamera();
-      final cameraPos = Vector3(3, 3, 3);
-      await gizmo.update(cameraPosition: cameraPos);
+          // Update gizmo with camera position for proper scaling
+          final camera = await result.viewer.getActiveCamera();
+          final cameraPos = Vector3(3, 3, 3);
+          await gizmo.update(cameraPosition: cameraPos);
 
-      await testHelper.capture(
-          result.viewer.view, "gizmo_translation_standalone");
-    });
+          await testHelper.capture(result.viewer.view, "gizmo_translation_standalone");
+        });
   });
 
   test('create and render rotation gizmo', () async {
@@ -33,16 +31,16 @@ void main() async {
         .setCameraLookAt(Vector3(10, 10, 10))
         .addCube(unlit: true, color: kRed, createUbershader: true)
         .execute((result) async {
-      // Create the gizmo
-      final gizmo = custom_gizmo.TransformationGizmo(result.viewer);
-      await gizmo.create(type: custom_gizmo.TransformationGizmoType.rotation);
+          // Create the gizmo
+          final gizmo = custom_gizmo.TransformationGizmo(result.viewer);
+          await gizmo.create(type: custom_gizmo.TransformationGizmoType.rotation);
 
-      // Update gizmo with camera position for proper scaling
-      final camera = await result.viewer.getActiveCamera();
-      final cameraPos = Vector3(3, 3, 3);
-      await gizmo.update(cameraPosition: cameraPos);
+          // Update gizmo with camera position for proper scaling
+          final camera = await result.viewer.getActiveCamera();
+          final cameraPos = Vector3(3, 3, 3);
+          await gizmo.update(cameraPosition: cameraPos);
 
-      await testHelper.capture(result.viewer.view, "gizmo_rotation_standalone");
-    });
+          await testHelper.capture(result.viewer.view, "gizmo_rotation_standalone");
+        });
   });
 }

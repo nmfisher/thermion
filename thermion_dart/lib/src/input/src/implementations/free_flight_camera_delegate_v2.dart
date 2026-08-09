@@ -5,17 +5,21 @@ import '../../input.dart';
 
 class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
   final View view;
+  final FilamentApp app;
   final InputSensitivityOptions sensitivity;
   final bool moveOnHover;
 
   final _heldKeys = <PhysicalKey>{};
   late final Future<void> Function() _onFrame;
 
-  FreeFlightInputHandlerDelegateV2(this.view,
-      {this.sensitivity = const InputSensitivityOptions(),
-      this.moveOnHover = false}) {
+  FreeFlightInputHandlerDelegateV2(
+    this.view,
+    this.app, {
+    this.sensitivity = const InputSensitivityOptions(),
+    this.moveOnHover = false,
+  }) {
     _onFrame = _handleFrame;
-    FilamentApp.instance!.registerRequestFrameHook(_onFrame);
+    app.registerRequestFrameHook(_onFrame);
   }
 
   Future<void> _handleFrame() async {
@@ -41,12 +45,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
       try {
         final camera = await view.getCamera();
         final current = await camera.getModelMatrix();
-        final updated = current *
-            Matrix4.compose(
-              translation,
-              Quaternion.identity(),
-              Vector3.all(1),
-            );
+        final updated = current * Matrix4.compose(translation, Quaternion.identity(), Vector3.all(1));
         await camera.setModelMatrix(updated);
       } catch (_) {
         // Camera may have been disposed
@@ -68,14 +67,8 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
     for (final event in events) {
       switch (event) {
         case ScrollEvent(delta: final delta):
-          translation +=
-              Vector3(0, 0, sensitivity.scrollWheelSensitivity * delta);
-        case MouseEvent(
-            type: final type,
-            button: final button,
-            localPosition: final localPosition,
-            delta: final delta
-          ):
+          translation += Vector3(0, 0, sensitivity.scrollWheelSensitivity * delta);
+        case MouseEvent(type: final type, button: _, localPosition: _, delta: final delta):
           switch (type) {
             case MouseEventType.hover:
               if (!moveOnHover) {
@@ -88,7 +81,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
               break;
           }
           break;
-        case TouchEvent(type: final type, delta: final delta):
+        case TouchEvent(type: final type, delta: _):
           switch (type) {
             // case TouchEventType.move:
             //   rotation += delta!;
@@ -97,37 +90,33 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
               break;
           }
           break;
-        case ScaleStartEvent(numPointers: final numPointers):
+        case ScaleStartEvent(numPointers: _):
           _scaleDelta = 1;
           break;
         case ScaleUpdateEvent(
-            numPointers: final numPointers,
-            localFocalPoint: final localFocalPoint,
-            localFocalPointDelta: final localFocalPointDelta,
-            scale: final scale,
-          ):
+          numPointers: final numPointers,
+          localFocalPoint: _,
+          localFocalPointDelta: final localFocalPointDelta,
+          scale: final scale,
+        ):
           if (numPointers == 1) {
             translation += Vector3(
-                localFocalPointDelta!.$1 * sensitivity.touchSensitivity,
-                localFocalPointDelta!.$2 * sensitivity.touchSensitivity,
-                0);
+              localFocalPointDelta!.$1 * sensitivity.touchSensitivity,
+              localFocalPointDelta.$2 * sensitivity.touchSensitivity,
+              0,
+            );
           } else {
             translation = Vector3(
-                0,
-                0,
-                (_scaleDelta! - scale) *
-                    sensitivity.touchScaleSensitivity *
-                    current.getTranslation().length.abs());
+              0,
+              0,
+              (_scaleDelta! - scale) * sensitivity.touchScaleSensitivity * current.getTranslation().length.abs(),
+            );
             _scaleDelta = scale;
           }
           break;
-        case ScaleEndEvent(numPointers: final numPointers):
+        case ScaleEndEvent(numPointers: _):
           break;
-        case KeyEvent(
-            type: final type,
-            logicalKey: var logicalKey,
-            physicalKey: var physicalKey
-          ):
+        case KeyEvent(type: final type, logicalKey: _, physicalKey: var physicalKey):
           switch (type) {
             case KeyEventType.down:
               _heldKeys.add(physicalKey);
@@ -142,12 +131,13 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
       return;
     }
 
-    var updated = current *
+    var updated =
+        current *
         Matrix4.compose(
-            translation,
-            Quaternion.axisAngle(Vector3(0, 1, 0), rotation.x) *
-                Quaternion.axisAngle(Vector3(1, 0, 0), rotation.y),
-            Vector3.all(1));
+          translation,
+          Quaternion.axisAngle(Vector3(0, 1, 0), rotation.x) * Quaternion.axisAngle(Vector3(1, 0, 0), rotation.y),
+          Vector3.all(1),
+        );
 
     await activeCamera.setModelMatrix(updated);
 
@@ -156,7 +146,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
 
   @override
   Future dispose() async {
-    FilamentApp.instance!.unregisterRequestFrameHook(_onFrame);
+    await app.unregisterRequestFrameHook(_onFrame);
     _heldKeys.clear();
   }
 }

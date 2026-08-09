@@ -95,8 +95,7 @@ abstract class TransformManager<T> extends NativeHandle<T> {
   /// [parent] The parent entity (use null to remove parent)
   /// [preserveScaling] Whether to preserve the child's world scale when
   /// reparenting
-  Future setParent(ThermionEntity child, ThermionEntity? parent,
-      {bool preserveScaling = false});
+  Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling = false});
 
   /// Gets the parent entity of the specified child entity.
   ///

@@ -19,14 +19,12 @@ void main() async {
 
     // Cube has 8 vertices * 3 components (x,y,z)
     expect(meshData.vertices.length, greaterThan(0));
-    expect(meshData.vertices.length % 3, 0,
-        reason: "Vertices should be in groups of 3 (x,y,z)");
+    expect(meshData.vertices.length % 3, 0, reason: "Vertices should be in groups of 3 (x,y,z)");
 
     // Should have indices
     expect(meshData.indices, isNotNull);
     expect(meshData.indices!.length, greaterThan(0));
-    expect(meshData.indices!.length % 3, 0,
-        reason: "Indices should be in groups of 3 (triangles)");
+    expect(meshData.indices!.length % 3, 0, reason: "Indices should be in groups of 3 (triangles)");
 
     // Primitive type should be triangles
     expect(meshData.primitiveType, PrimitiveType.TRIANGLES);
@@ -72,11 +70,7 @@ void main() async {
     final buffer = File(glbPath).readAsBytesSync();
 
     // Try to parse with a mesh name that doesn't exist
-    expect(
-      () async =>
-          await FFIGltfMeshData.parse(buffer, meshName: "NonExistentMesh"),
-      throwsException,
-    );
+    expect(() async => await FFIGltfMeshData.parse(buffer, meshName: "NonExistentMesh"), throwsException);
   });
 
   test('verify indices point to valid vertices', () async {
@@ -89,8 +83,7 @@ void main() async {
 
     // All indices should be within valid range
     for (final index in meshData.indices!) {
-      expect(index, lessThan(vertexCount),
-          reason: "Index $index out of bounds (vertex count: $vertexCount)");
+      expect(index, lessThan(vertexCount), reason: "Index $index out of bounds (vertex count: $vertexCount)");
     }
   });
 }

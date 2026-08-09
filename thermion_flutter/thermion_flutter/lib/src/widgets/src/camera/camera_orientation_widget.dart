@@ -8,7 +8,7 @@ class CameraOrientationWidget extends StatefulWidget {
   final ThermionViewer viewer;
 
   const CameraOrientationWidget({Key? key, required this.viewer})
-      : super(key: key);
+    : super(key: key);
 
   @override
   _CameraOrientationWidgetState createState() =>

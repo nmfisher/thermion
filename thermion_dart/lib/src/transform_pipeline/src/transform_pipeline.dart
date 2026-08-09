@@ -61,9 +61,7 @@ class InputPipeline {
       bindings.TransformPipeline_setEngine(engine);
       _initialized = true;
     } catch (e) {
-      throw Exception(
-        'Failed to initialize InputPipeline: $e',
-      );
+      throw Exception('Failed to initialize InputPipeline: $e');
     }
   }
 
@@ -75,9 +73,7 @@ class InputPipeline {
     try {
       bindings.TransformPipeline_registerPipelineStage(stage, ptr.cast());
     } catch (e) {
-      throw Exception(
-        'Failed to set invert horizontal look for entity: $e',
-      );
+      throw Exception('Failed to set invert horizontal look for entity: $e');
     } finally {
       free(ptr);
     }
@@ -157,11 +153,7 @@ class InputPipeline {
           );
 
         case ScrollEvent():
-          bindings.TransformPipeline_onScrollEvent(
-            event.localPosition.x,
-            event.localPosition.y,
-            event.delta,
-          );
+          bindings.TransformPipeline_onScrollEvent(event.localPosition.x, event.localPosition.y, event.delta);
 
         case TouchEvent():
           // Touch events not yet supported by native bindings
@@ -197,11 +189,9 @@ class InputPipeline {
   /// [value] - Optional value multiplier (default 1.0)
   ///
   /// Throws [Exception] if the operation fails.
-  void addKeyBinding(LogicalKey key, IntentAction action,
-      {double value = 1.0}) {
+  void addKeyBinding(LogicalKey key, IntentAction action, {double value = 1.0}) {
     try {
-      bindings.TransformPipeline_addKeyBinding(
-          key.index, action.nativeValue, value);
+      bindings.TransformPipeline_addKeyBinding(key.index, action.nativeValue, value);
     } catch (e) {
       throw Exception('Failed to add key binding: $e');
     }
@@ -277,11 +267,9 @@ class InputPipeline {
   /// [value] - Optional value multiplier (default 1.0)
   ///
   /// Throws [Exception] if the operation fails.
-  void addMouseButtonBinding(MouseButton button, IntentAction action,
-      {double value = 1.0}) {
+  void addMouseButtonBinding(MouseButton button, IntentAction action, {double value = 1.0}) {
     try {
-      bindings.TransformPipeline_addMouseButtonBinding(
-          button.index, action.nativeValue, value);
+      bindings.TransformPipeline_addMouseButtonBinding(button.index, action.nativeValue, value);
     } catch (e) {
       throw Exception('Failed to add mouse button binding: $e');
     }
@@ -320,8 +308,7 @@ class InputPipeline {
 
       // Add all mouse button bindings from config
       for (final binding in config.mouseButtonBindings) {
-        addMouseButtonBinding(binding.button, binding.action,
-            value: binding.value);
+        addMouseButtonBinding(binding.button, binding.action, value: binding.value);
       }
 
       // Set mouse settings
@@ -329,7 +316,8 @@ class InputPipeline {
       setInvertMouseY(config.invertMouseY);
 
       _logger.info(
-          'Applied input configuration with ${config.keyBindings.length} key bindings and ${config.mouseButtonBindings.length} mouse button bindings');
+        'Applied input configuration with ${config.keyBindings.length} key bindings and ${config.mouseButtonBindings.length} mouse button bindings',
+      );
     } catch (e) {
       throw Exception('Failed to set input configuration: $e');
     }

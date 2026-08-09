@@ -7,9 +7,13 @@ objc-interfaces:
   include:
     - 'SwiftThermionFlutterPluginObjCAPI'
     - 'MetalTextureWrapper'
+    - 'FlutterMetalTextureWrapper'
+    - 'ThermionTextureRegistry'
   module:
     'SwiftThermionFlutterPluginObjCAPI': 'thermion_flutter'
     'MetalTextureWrapper': 'thermion_flutter'
+    'FlutterMetalTextureWrapper': 'thermion_flutter'
+    'ThermionTextureRegistry': 'thermion_flutter'
 headers:
   entry-points:
     - '../darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
