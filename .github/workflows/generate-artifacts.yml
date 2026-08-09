@@ -29,8 +29,8 @@ on:
 # thermion_dart/native/web/web.version always differs (it's a short SHA), so a
 # firing push would loop this workflow forever.
 #
-# develop is the release branch: a push to develop regenerates + tests here, and
-# the completed run gates the release chain (release.yml). master is a legacy
+# develop pushes run normal CI here (regen + tests). This does NOT release —
+# releases are manual via release.yml (workflow_dispatch). master is a legacy
 # reference and does not trigger this workflow.
 permissions:
   contents: write
