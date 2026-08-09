@@ -179,6 +179,11 @@ build_third_party_libs() {
 
   echo "Building imageio ($BUILD_SUFFIX)..."
   mkdir -p "$CMAKE_DIR/libs/imageio" && cd "$CMAKE_DIR/libs/imageio"
+  # -stdlib=libc++: these archives are linked into libthermion_dart.so, which is
+  # built with libc++ (-stdlib=libc++ in thermion_dart/hook/build.dart). Without
+  # this flag clang defaults to libstdc++, so the archives end up libstdc++-ABI
+  # and reference libstdc++ symbols (e.g. std::endl, _ZSt4endl...) that the .so
+  # does not link against. See docs/release-failure-analysis.md.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_CXX_STANDARD=17 \
@@ -186,7 +191,7 @@ build_third_party_libs() {
     -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
     "$FILAMENT_BASE_DIR/libs/imageio" || {
     echo "Error: imageio cmake failed for $BUILD_SUFFIX"
     return 1
@@ -198,10 +203,11 @@ build_third_party_libs() {
 
   echo "Building tinyexr ($BUILD_SUFFIX)..."
   mkdir -p "$CMAKE_DIR/third_party/tinyexr" && cd "$CMAKE_DIR/third_party/tinyexr"
+  # -stdlib=libc++: see comment in the imageio build above. Same ABI fix.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
     "$FILAMENT_BASE_DIR/third_party/tinyexr" || {
     echo "Error: tinyexr cmake failed for $BUILD_SUFFIX"
     return 1
