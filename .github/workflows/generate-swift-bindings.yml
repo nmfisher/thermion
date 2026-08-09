@@ -2,7 +2,7 @@ name: Generate Swift Bindings
 
 on:
   push:
-    branches: [ "develop", "master" ]
+    branches: [ "develop" ]
     paths:
       - 'thermion_flutter/thermion_flutter/darwin/include/generated/SwiftThermionFlutterPluginObjCAPI.h'
   pull_request:
