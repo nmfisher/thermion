@@ -2,7 +2,7 @@ name: Generate Artifacts
 
 on:
   push:
-    branches: [ "develop", "master" ]
+    branches: [ "develop" ]
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
@@ -29,9 +29,9 @@ on:
 # thermion_dart/native/web/web.version always differs (it's a short SHA), so a
 # firing push would loop this workflow forever.
 #
-# master is the release branch: a push to master (e.g. a develop -> master
-# merge) regenerates + tests here, and the completed run gates the release
-# chain (release.yml).
+# develop is the release branch: a push to develop regenerates + tests here, and
+# the completed run gates the release chain (release.yml). master is a legacy
+# reference and does not trigger this workflow.
 permissions:
   contents: write
 

@@ -1,19 +1,20 @@
 name: Create Release
 
-# Single release pathway: a merge to master cuts a release. develop is the
-# integration branch; master is the release branch.
+# Single release pathway: a push to develop cuts a release. develop is the
+# integration branch AND the release branch. (master is a legacy reference —
+# nothing releases from it; see docs/RELEASING.md.)
 #
 # Flow:
-#   merge develop -> master
-#     -> "Generate Artifacts" (push trigger on master) regenerates + commits
+#   push to develop (e.g. merge a version-bump PR)
+#     -> "Generate Artifacts" (push trigger on develop) regenerates + commits
 #        bindings and runs the full test matrix at the post-push tip
 #     -> when that run COMPLETES (workflow_run below), this workflow:
-#        check          - read the version from the merged commit's pubspec;
+#        check          - read the version from the pushed commit's pubspec;
 #                         skip if already released; FAIL if the tag exists but
 #                         the release never completed (a stuck tag)
 #        validate       - version regex, lockstep (both pubspecs), tag-not-exists
-#        wait-swift     - only if the merge also regenerates Swift bindings
-#        tag            - annotated v<version> at the master tip, pushed with
+#        wait-swift     - only if the push also regenerates Swift bindings
+#        tag            - annotated v<version> at the develop tip, pushed with
 #                         RELEASE_TOKEN
 #        watch-release  - wait for "Publish to pub.dev" + "Deploy site" to fire
 #     -> the tag push fires Publish to pub.dev (verify gates -> tests -> publish
@@ -25,9 +26,9 @@ name: Create Release
 # no follow-up runs — and do NOT give the generator workflows a firing PAT
 # either: web.version always differs, so that would loop forever.
 #
-# workflow_dispatch is a manual fallback that releases a specific version from
-# a specific ref (skipping the generate-run gate). Publishing still happens via
-# the tag push.
+# workflow_dispatch is a manual fallback. Leave "version" empty to read it from
+# the checked-out ref's pubspec (same path the automatic run uses). Publishing
+# still happens via the tag push.
 
 on:
   workflow_run:
@@ -36,9 +37,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release, e.g. 0.5.0 or 0.5.0-pre.1 (no leading "v"; the tag will be v<version>)'
-        required: true
+        description: 'Version to release, e.g. 0.5.0 or 0.5.0-pre.1 (no leading "v"; leave empty to read it from pubspec)'
+        required: false
         type: string
+        default: ''
       ref:
         description: 'Branch/ref to release from'
         required: false
@@ -52,9 +54,9 @@ permissions:
   actions: read
 
 concurrency:
-  # One release at a time. A newer master push cancels an in-flight chain; that
+  # One release at a time. A newer develop push cancels an in-flight chain; that
   # push's own Generate Artifacts run re-fires it.
-  group: release-master
+  group: release-develop
   cancel-in-progress: true
 
 jobs:
@@ -63,8 +65,8 @@ jobs:
     runs-on: ubuntu-24.04
     # workflow_run fires for EVERY completed Generate Artifacts run (develop
     # pushes, PRs, tag-time verify calls) — only act on successful runs that
-    # came from a push to master.
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.event == 'push') }}
+    # came from a push to develop.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'develop' && github.event.workflow_run.event == 'push') }}
     outputs:
       version: ${{ steps.release.outputs.version }}
       should_release: ${{ steps.release.outputs.should_release }}
@@ -80,17 +82,23 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual fallback: version comes from the input.
+            # Manual fallback: version comes from the input, or — if left empty —
+            # is read from the checked-out ref's pubspec (same path as the
+            # automatic workflow_run branch below).
             v="${{ inputs.version }}"
             v="${v#v}"
+            if [ -z "$v" ]; then
+              v="$(grep -m1 '^version:' thermion_dart/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
+              echo "No version given; read $v from thermion_dart/pubspec.yaml."
+            fi
             if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
-              echo "::error::Invalid version '${{ inputs.version }}'. Expected e.g. 0.5.0 or 0.5.0-pre.1 (no leading 'v')."
+              echo "::error::Invalid version '$v'. Expected e.g. 0.5.0 or 0.5.0-pre.1 (no leading 'v')."
               exit 1
             fi
             echo "release_sha=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
           else
-            # Triggered by a completed Generate Artifacts run on master. The
-            # version is whatever the merged commit's pubspec says.
+            # Triggered by a completed Generate Artifacts run on develop. The
+            # version is whatever the pushed commit's pubspec says.
             v="$(grep -m1 '^version:' thermion_dart/pubspec.yaml | sed 's/^version:[[:space:]]*//; s/[[:space:]]*$//')"
             echo "release_sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
           fi
@@ -117,7 +125,7 @@ jobs:
               echo "::notice::v$v was already released ($released) — this push did not cut a new release."
               echo "should_release=false" >> "$GITHUB_OUTPUT"
             else
-              echo "::error::Tag v$v exists but the release never completed. Possible causes: the RELEASE_TOKEN PAT lacks 'Actions: read and write' (the tag push fired no workflows), or a publish run failed. Fix the PAT, delete the tag (git push origin :refs/tags/v$v), or bump the version, then merge again. See docs/RELEASING.md."
+              echo "::error::Tag v$v exists but the release never completed. Possible causes: the RELEASE_TOKEN PAT lacks 'Actions: read and write' (the tag push fired no workflows), or a publish run failed. Fix the PAT, delete the tag (git push origin :refs/tags/v$v), or bump the version, then push to develop again (or re-dispatch). See docs/RELEASING.md."
               exit 1
             fi
           else
@@ -172,7 +180,7 @@ jobs:
           # The swift push trigger is paths-filtered: a merge that didn't touch
           # the ObjC header fires no run. Give it a short grace period to appear.
           for i in $(seq 1 12); do
-            ID="$(gh run list --workflow "Generate Swift Bindings" --event push --branch master --commit "$SHA" --limit 1 --json id --jq '.[0].id // ""' 2>/dev/null || true)"
+            ID="$(gh run list --workflow "Generate Swift Bindings" --event push --branch develop --commit "$SHA" --limit 1 --json id --jq '.[0].id // ""' 2>/dev/null || true)"
             [ -n "$ID" ] && break
             sleep 10
           done
@@ -205,10 +213,10 @@ jobs:
             SHA="$(git rev-parse "${{ needs.check.outputs.release_sha }}")"
           else
             # The Generate Artifacts run may have committed regenerated
-            # bindings to master after the merge — tag the current tip so the
+            # bindings to develop after the push — tag the current tip so the
             # tag-path verify gates see the committed (non-stale) bindings.
-            git fetch origin master
-            SHA="$(git rev-parse origin/master)"
+            git fetch origin develop
+            SHA="$(git rev-parse origin/develop)"
           fi
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 

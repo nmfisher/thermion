@@ -5,11 +5,14 @@ GitHub Actions using **OIDC automated publishing** — there are no long-lived
 secrets to manage (the only secret is a fine-grained PAT used to create the
 release tag; see below).
 
-**The release pathway has a single trigger: merging to `master`.** `develop` is
-the integration branch; `master` is the release branch. Merge a version-bump PR
-to `develop`, then merge `develop` into `master`, and CI does everything: it
-regenerates artifacts, runs the test suite, creates the `v<version>` tag, waits
-for your approval, and publishes both packages — plus the docs site.
+**The release pathway has a single trigger: a push to `develop`.** `develop` is
+the integration branch and the release branch. Bump the version, merge the PR to
+`develop`, and CI does the rest: it regenerates artifacts, runs the test suite,
+creates the `v<version>` tag, waits for your approval, and publishes both
+packages — plus the docs site.
+
+**`master` is a legacy reference.** Nothing releases from it and nothing should
+merge into it. Leave it alone.
 
 The two packages are released **in lockstep**: they always share the same
 version number and ship together. `thermion_flutter` depends on `thermion_dart`,
@@ -79,23 +82,20 @@ workflows.
 
    (The changelog is shared content; keep the two files in sync.)
 
-3. **Merge the PR to `develop`** and wait for the `Generate Artifacts` workflow
-   to finish (it regenerates bindings on every develop push and commits any
-   diff; it also runs the test suite). Do not proceed while it is red.
+3. **Merge the PR to `develop`.** That push is the release. CI runs the
+   `Generate Artifacts` workflow, which regenerates and commits bindings and
+   runs the full test matrix at the post-push tip.
 
-4. **Merge `develop` into `master`.** That single merge is the release. You can
-   merge via a PR (`develop` → `master`) or a fast-forward merge locally.
-
-That's it — everything below happens automatically.
+That's it — everything below happens automatically. Do not merge to `master`.
 
 ### What CI does
 
-The merge to `master` fires `Generate Artifacts` (push trigger), which
+The push to `develop` fires `Generate Artifacts` (push trigger), which
 regenerates + commits bindings and runs the full test matrix at the post-push
 tip. When that run **completes successfully**, the `Create Release` workflow
 (`.github/workflows/release.yml`, `workflow_run` trigger) takes over:
 
-1. **`check`** — reads the version from the merged commit's pubspec. If
+1. **`check`** — reads the version from the pushed commit's pubspec. If
    `v<version>` is already tagged **and** the release actually completed
    (versions live on pub.dev or a successful publish run exists), the chain
    stops: the push did not cut a new release. If the tag exists but the release
@@ -103,9 +103,9 @@ tip. When that run **completes successfully**, the `Create Release` workflow
    see [Stuck tags](#stuck-tags) below.
 2. **`validate`** — checks the version format, that both pubspec versions match
    the version, and that the tag doesn't already exist.
-3. **`wait-swift`** — only when the merge also regenerated Swift bindings:
+3. **`wait-swift`** — only when the push also regenerated Swift bindings:
    waits for that run to finish so the tag includes them.
-4. **`tag`** — resolves the current `master` tip (which includes any
+4. **`tag`** — resolves the current `develop` tip (which includes any
    regenerated bindings), re-verifies the version, and pushes an annotated
    `v<version>` tag with the `RELEASE_TOKEN` PAT.
 5. **`watch-release`** — verifies the tag push actually fired the publish and
@@ -145,16 +145,17 @@ The `Create Release` `check` job detects this and **fails loudly** instead of
 silently skipping. To recover:
 
 1. Fix the `RELEASE_TOKEN` PAT (add **Actions → Read and write**), **or**
-2. delete the stuck tag — `git push origin :refs/tags/v<version>` — and merge
-   again (or bump the version instead), **or**
+2. delete the stuck tag — `git push origin :refs/tags/v<version>` — and push to
+   `develop` again (or bump the version instead), **or**
 3. if the version is published and only the tag is missing, push the tag by
    hand: `git push origin v<version>` (it must match the pubspec version).
 
 ### Manual fallback
 
-To release a specific version from a specific ref without the merge-to-master
-trigger (e.g. after a failed release), dispatch **Actions → Create Release →
-Run workflow** with `version` and `ref` (default `develop`). It runs the same
+To release a specific ref without the develop-push trigger (e.g. after a failed
+release), dispatch **Actions → Create Release → Run workflow**. Leave **version**
+empty to read it from that ref's `thermion_dart/pubspec.yaml`. Set **ref**
+(default `develop`) to pick the branch or SHA. It runs the same
 `validate → wait-swift → tag → watch-release` chain and still publishes via the
 tag push. **Do not push tags by hand** — the tag must point at a commit whose
 bindings are committed and whose tests passed.
