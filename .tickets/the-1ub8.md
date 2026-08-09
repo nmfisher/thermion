@@ -1,6 +1,6 @@
 ---
 id: the-1ub8
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-08-09T10:30:00Z
