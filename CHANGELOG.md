@@ -1,5 +1,13 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.5.0-pre.5
+
+- Rework the CI release pipeline: releases are cut from `develop` via a manual
+  dispatch of `Create Release`, which tags the develop tip and publishes both
+  packages plus the docs site.
+- Add publish gates (dry-run validation, regenerated-binding verify checks, full
+  test matrix) that run before anything reaches pub.dev.
+
 ## 0.5.0-pre.2
 
 ### New features
