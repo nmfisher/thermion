@@ -65,14 +65,14 @@ jobs:
       # Release gate (called with verify: true): the tag must already contain
       # committed Swift bindings. A diff means they are stale — abort release.
       - name: Fail if swift bindings are stale (verify)
-        if: ${{ inputs.verify == 'true' && steps.git-check.outputs.changed == 'true' }}
+        if: ${{ inputs.verify && steps.git-check.outputs.changed == 'true' }}
         run: |
           echo "::error::Generated swift bindings differ from the committed tag. Run 'make flutter-bindings', commit on develop, then re-tag."
           git --no-pager diff --stat
           exit 1
 
       - name: Commit and push if changed
-        if: inputs.verify != 'true' && steps.git-check.outputs.changed == 'true'
+        if: ${{ !inputs.verify && steps.git-check.outputs.changed == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
