@@ -21,7 +21,7 @@ dependencies:
   path: ^1.9.0
   crypto: ^3.0.0
   image: ^4.3.0
-  ffigen_js: 0.0.14-pre
+  ffigen_js: ^0.0.14-pre
   
 dev_dependencies:
   ffigen: ^18.1.0
