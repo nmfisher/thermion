@@ -163,14 +163,14 @@ jobs:
       # committed bindings. A diff here means bindings are stale — abort the
       # release rather than shipping or auto-committing.
       - name: Fail if generated artifacts are stale (verify)
-        if: ${{ inputs.verify == 'true' && steps.git-check.outputs.changed == 'true' }}
+        if: ${{ inputs.verify && steps.git-check.outputs.changed == 'true' }}
         run: |
           echo "::error::Generated bindings/materials differ from the committed tag. Run 'make bindings' / 'make materials', commit on develop, then re-tag."
           git --no-pager diff --stat
           exit 1
 
       - name: Commit and push if changed
-        if: inputs.verify != 'true' && steps.git-check.outputs.changed == 'true'
+        if: ${{ !inputs.verify && steps.git-check.outputs.changed == 'true' }}
         env:
           # Pass via env (not inline) to avoid script injection from PR head refs.
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -209,7 +209,7 @@ jobs:
         run: make wasm
 
       - name: Package and upload web artifacts to R2
-        if: inputs.verify != 'true' && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')) }}
         # R2 is a cache, not a release gate: an R2 outage must not block a
         # release (deploy.yml failing later is the softer signal).
         continue-on-error: true
@@ -229,7 +229,7 @@ jobs:
           echo "$SHORT_SHA" > "${{ github.workspace }}/thermion_dart/native/web/web.version"
 
       - name: Commit web.version
-        if: inputs.verify != 'true' && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+        if: ${{ !inputs.verify && steps.changes.outputs.native-changed == 'true' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')) }}
         env:
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
@@ -248,7 +248,7 @@ jobs:
           path: thermion_dart/native/web/build/build/out/
 
       - name: Resolve post-push SHA
-        if: inputs.verify != 'true'
+        if: ${{ !inputs.verify }}
         id: resolve-sha
         env:
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -261,7 +261,7 @@ jobs:
     name: Run Tests
     # Skipped when called as the release verify gate — the release orchestrator
     # (publish-pub-dev.yml) runs its own tests at the tag SHA.
-    if: inputs.verify != 'true'
+    if: ${{ !inputs.verify }}
     needs: generate-artifacts
     uses: ./.github/workflows/run-tests.yml
     with:
