@@ -1,6 +1,6 @@
 ---
 id: the-k5p9
-status: in_progress
+status: closed
 deps: [the-4a2k]
 links: []
 created: 2026-08-10T04:40:00Z
