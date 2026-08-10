@@ -1,6 +1,6 @@
 ---
 id: the-f3wv
-status: in_progress
+status: closed
 deps: [the-k5p9]
 links: []
 created: 2026-08-10T05:10:00Z
