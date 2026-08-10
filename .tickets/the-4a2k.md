@@ -1,6 +1,6 @@
 ---
 id: the-4a2k
-status: in_progress
+status: closed
 deps: [the-upl0]
 links: []
 created: 2026-08-10T03:30:00Z
