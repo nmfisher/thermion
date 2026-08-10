@@ -248,6 +248,7 @@ jobs:
           path: thermion_dart/native/web/build/build/out/
 
       - name: Resolve post-push SHA
+        if: inputs.verify != 'true'
         id: resolve-sha
         env:
           PUSH_BRANCH: ${{ github.head_ref || github.ref_name }}
