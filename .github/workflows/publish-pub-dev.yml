@@ -26,7 +26,8 @@ on:
 
 permissions:
   id-token: write # required to mint the OIDC token for pub.dev
-  contents: read
+  contents: write # required by the called generate-artifacts / generate-swift-bindings reusable workflows
+  actions: read # test/verify gates
 
 concurrency:
   # Never cancel a publish already in flight.
