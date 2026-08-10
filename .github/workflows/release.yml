@@ -207,6 +207,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "v$v" -m "Release v$v" "$TIP"
+          # actions/checkout (persist-credentials: true) writes the GITHUB_TOKEN
+          # as http.https://github.com/.extraheader. That extraheader WINS over
+          # the PAT embedded in the push URL, so the server sees the read-only
+          # github-actions[bot] token (permissions are contents: read here) and
+          # the push 403s. Drop it so the URL PAT is the credential that ships.
+          git config --unset-all http.https://github.com/.extraheader || true
           git push "https://x-access-token:${RELEASE_TOKEN}@github.com/${{ github.repository }}" "refs/tags/v$v"
           {
             echo "## Release v$v"
