@@ -1,6 +1,6 @@
 ---
 id: the-rrd3
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-08-10T01:40:00Z
