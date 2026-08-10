@@ -1,6 +1,6 @@
 ---
 id: the-upl0
-status: in_progress
+status: closed
 deps: [the-rrd3]
 links: []
 created: 2026-08-10T02:58:04Z
