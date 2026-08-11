@@ -755,6 +755,124 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _TransformManager_openLocalTransformTransaction(Pointer<TTransformManager> tTransformManager);
   external void _TransformManager_commitLocalTransformTransaction(Pointer<TTransformManager> tTransformManager);
+  external int _LightManager_createLight(
+    Pointer<TEngine> tEngine,
+    Pointer<TLightManager> tLightManager,
+    int tLightTtype,
+  );
+  external void _LightManager_destroyLight(Pointer<TLightManager> tLightManager, EntityId entity);
+  external int _LightManager_hasComponent(Pointer<TLightManager> tLightManager, EntityId entity);
+  external int _LightManager_getType(Pointer<TLightManager> tLightManager, EntityId entity);
+  external int _LightManager_isDirectional(Pointer<TLightManager> tLightManager, EntityId entity);
+  external int _LightManager_isPointLight(Pointer<TLightManager> tLightManager, EntityId entity);
+  external int _LightManager_isSpotLight(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setPosition(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    double x,
+    double y,
+    double z,
+  );
+  external void _LightManager_getPosition(
+    Pointer<double3> double3_out,
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+  );
+  external void _LightManager_setDirection(
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+    double x,
+    double y,
+    double z,
+  );
+  external void _LightManager_getDirection(
+    Pointer<double3> double3_out,
+    Pointer<TLightManager> tLightManager,
+    EntityId light,
+  );
+  external void _LightManager_setColor(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double r,
+    double g,
+    double b,
+  );
+  external void _LightManager_setColorTemperature(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double colorTemperature,
+  );
+  external void _LightManager_getColor(
+    Pointer<double3> double3_out,
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setIntensity(Pointer<TLightManager> tLightManager, EntityId entity, double intensity);
+  external void _LightManager_setIntensityCandela(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double intensity,
+  );
+  external void _LightManager_setIntensityWatts(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double watts,
+    double efficiency,
+  );
+  external double _LightManager_getIntensity(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setFalloff(Pointer<TLightManager> tLightManager, EntityId entity, double falloff);
+  external double _LightManager_getFalloff(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setSpotLightCone(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double inner,
+    double outer,
+  );
+  external double _LightManager_getSpotLightOuterCone(Pointer<TLightManager> tLightManager, EntityId entity);
+  external double _LightManager_getSpotLightInnerCone(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setSunAngularRadius(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double angularRadius,
+  );
+  external double _LightManager_getSunAngularRadius(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setSunHaloSize(Pointer<TLightManager> tLightManager, EntityId entity, double haloSize);
+  external double _LightManager_getSunHaloSize(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setSunHaloFalloff(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    double haloFalloff,
+  );
+  external double _LightManager_getSunHaloFalloff(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setShadowCaster(Pointer<TLightManager> tLightManager, EntityId entity, bool enabled);
+  external int _LightManager_isShadowCaster(Pointer<TLightManager> tLightManager, EntityId entity);
+  external void _LightManager_setShadowOptions(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    Pointer<TShadowOptions> optionsPtr,
+  );
+  external void _LightManager_getShadowOptions(
+    Pointer<TShadowOptions> TShadowOptions_out,
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+  );
+  external void _LightManager_setLightChannel(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    int channel,
+    bool enable,
+  );
+  external int _LightManager_getLightChannel(Pointer<TLightManager> tLightManager, EntityId entity, int channel);
+  external void _LightManager_computeUniformSplits(Pointer<Float32> splitPositions, int cascades);
+  external void _LightManager_computeLogSplits(Pointer<Float32> splitPositions, int cascades, double near, double far);
+  external void _LightManager_computePracticalSplits(
+    Pointer<Float32> splitPositions,
+    int cascades,
+    double near,
+    double far,
+    double lambda,
+  );
+  external double _LightManager_rgbToColorTemperature(double r, double g, double b);
   external Pointer<Void> _RenderThread_create();
   external Pointer<Void> _RenderThread_createForCanvas(Pointer<Char> canvasSelector);
   external void _RenderThread_destroy(Pointer<Void> renderThread);
@@ -1761,6 +1879,20 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _LightManager_setShadowCasterRenderThread(
+    Pointer<TLightManager> tLightManager,
+    EntityId entityId,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _LightManager_setShadowOptionsRenderThread(
+    Pointer<TLightManager> tLightManager,
+    EntityId entityId,
+    Pointer<TShadowOptions> optionsPtr,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _dummy(Pointer<TGltfMeshData> dummyPtr);
   external int _GltfParser_parseBuffer(
     Pointer<Uint8> data,
@@ -1769,138 +1901,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfMeshData> outMeshData,
   );
   external void _GltfParser_freeMeshData(Pointer<TGltfMeshData> meshData);
-  external int _LightManager_createLight(
-    Pointer<TEngine> tEngine,
-    Pointer<TLightManager> tLightManager,
-    int tLightTtype,
-  );
-  external void _LightManager_destroyLight(Pointer<TLightManager> tLightManager, EntityId entity);
-  external int _LightManager_hasComponent(Pointer<TLightManager> tLightManager, EntityId entity);
-  external int _LightManager_getType(Pointer<TLightManager> tLightManager, EntityId entity);
-  external int _LightManager_isDirectional(Pointer<TLightManager> tLightManager, EntityId entity);
-  external int _LightManager_isPointLight(Pointer<TLightManager> tLightManager, EntityId entity);
-  external int _LightManager_isSpotLight(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setPosition(
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-    double x,
-    double y,
-    double z,
-  );
-  external void _LightManager_getPosition(
-    Pointer<double3> double3_out,
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-  );
-  external void _LightManager_setDirection(
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-    double x,
-    double y,
-    double z,
-  );
-  external void _LightManager_getDirection(
-    Pointer<double3> double3_out,
-    Pointer<TLightManager> tLightManager,
-    EntityId light,
-  );
-  external void _LightManager_setColor(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double r,
-    double g,
-    double b,
-  );
-  external void _LightManager_setColorTemperature(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double colorTemperature,
-  );
-  external void _LightManager_getColor(
-    Pointer<double3> double3_out,
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-  );
-  external void _LightManager_setIntensity(Pointer<TLightManager> tLightManager, EntityId entity, double intensity);
-  external void _LightManager_setIntensityCandela(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double intensity,
-  );
-  external void _LightManager_setIntensityWatts(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double watts,
-    double efficiency,
-  );
-  external double _LightManager_getIntensity(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setFalloff(Pointer<TLightManager> tLightManager, EntityId entity, double falloff);
-  external double _LightManager_getFalloff(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setSpotLightCone(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double inner,
-    double outer,
-  );
-  external double _LightManager_getSpotLightOuterCone(Pointer<TLightManager> tLightManager, EntityId entity);
-  external double _LightManager_getSpotLightInnerCone(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setSunAngularRadius(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double angularRadius,
-  );
-  external double _LightManager_getSunAngularRadius(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setSunHaloSize(Pointer<TLightManager> tLightManager, EntityId entity, double haloSize);
-  external double _LightManager_getSunHaloSize(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setSunHaloFalloff(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    double haloFalloff,
-  );
-  external double _LightManager_getSunHaloFalloff(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setShadowCaster(Pointer<TLightManager> tLightManager, EntityId entity, bool enabled);
-  external int _LightManager_isShadowCaster(Pointer<TLightManager> tLightManager, EntityId entity);
-  external void _LightManager_setShadowOptions(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    Pointer<TShadowOptions> optionsPtr,
-  );
-  external void _LightManager_setShadowCasterRenderThread(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    bool enabled,
-    int requestId,
-    VoidCallback onComplete,
-  );
-  external void _LightManager_setShadowOptionsRenderThread(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    Pointer<TShadowOptions> optionsPtr,
-    int requestId,
-    VoidCallback onComplete,
-  );
-  external void _LightManager_getShadowOptions(
-    Pointer<TShadowOptions> TShadowOptions_out,
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-  );
-  external void _LightManager_setLightChannel(
-    Pointer<TLightManager> tLightManager,
-    EntityId entity,
-    int channel,
-    bool enable,
-  );
-  external int _LightManager_getLightChannel(Pointer<TLightManager> tLightManager, EntityId entity, int channel);
-  external void _LightManager_computeUniformSplits(Pointer<Float32> splitPositions, int cascades);
-  external void _LightManager_computeLogSplits(Pointer<Float32> splitPositions, int cascades, double near, double far);
-  external void _LightManager_computePracticalSplits(
-    Pointer<Float32> splitPositions,
-    int cascades,
-    double near,
-    double far,
-    double lambda,
-  );
-  external double _LightManager_rgbToColorTemperature(double r, double g, double b);
   external void _Scene_addEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_removeEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_setSkybox(Pointer<TScene> tScene, Pointer<TSkybox> skybox);
@@ -4660,6 +4660,262 @@ void TransformManager_commitLocalTransformTransaction(Pointer<TTransformManager>
   return result;
 }
 
+int LightManager_createLight(Pointer<TEngine> tEngine, Pointer<TLightManager> tLightManager, int tLightTtype) {
+  final result = GeneratedBindings.instance._LightManager_createLight(
+    tEngine.cast(),
+    tLightManager.cast(),
+    tLightTtype,
+  );
+  return result;
+}
+
+void LightManager_destroyLight(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_destroyLight(tLightManager.cast(), entity);
+  return result;
+}
+
+bool LightManager_hasComponent(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_hasComponent(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+int LightManager_getType(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getType(tLightManager.cast(), entity);
+  return result;
+}
+
+bool LightManager_isDirectional(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_isDirectional(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+bool LightManager_isPointLight(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_isPointLight(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+bool LightManager_isSpotLight(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_isSpotLight(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+void LightManager_setPosition(Pointer<TLightManager> tLightManager, DartEntityId light, double x, double y, double z) {
+  final result = GeneratedBindings.instance._LightManager_setPosition(tLightManager.cast(), light, x, y, z);
+  return result;
+}
+
+double3 LightManager_getPosition(Pointer<TLightManager> tLightManager, DartEntityId light) {
+  final double3_out = double3.stackAlloc();
+  final result = GeneratedBindings.instance._LightManager_getPosition(double3_out.cast(), tLightManager.cast(), light);
+  return double3_out.toDart();
+}
+
+void LightManager_setDirection(Pointer<TLightManager> tLightManager, DartEntityId light, double x, double y, double z) {
+  final result = GeneratedBindings.instance._LightManager_setDirection(tLightManager.cast(), light, x, y, z);
+  return result;
+}
+
+double3 LightManager_getDirection(Pointer<TLightManager> tLightManager, DartEntityId light) {
+  final double3_out = double3.stackAlloc();
+  final result = GeneratedBindings.instance._LightManager_getDirection(double3_out.cast(), tLightManager.cast(), light);
+  return double3_out.toDart();
+}
+
+void LightManager_setColor(Pointer<TLightManager> tLightManager, DartEntityId entity, double r, double g, double b) {
+  final result = GeneratedBindings.instance._LightManager_setColor(tLightManager.cast(), entity, r, g, b);
+  return result;
+}
+
+void LightManager_setColorTemperature(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double colorTemperature,
+) {
+  final result = GeneratedBindings.instance._LightManager_setColorTemperature(
+    tLightManager.cast(),
+    entity,
+    colorTemperature,
+  );
+  return result;
+}
+
+double3 LightManager_getColor(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final double3_out = double3.stackAlloc();
+  final result = GeneratedBindings.instance._LightManager_getColor(double3_out.cast(), tLightManager.cast(), entity);
+  return double3_out.toDart();
+}
+
+void LightManager_setIntensity(Pointer<TLightManager> tLightManager, DartEntityId entity, double intensity) {
+  final result = GeneratedBindings.instance._LightManager_setIntensity(tLightManager.cast(), entity, intensity);
+  return result;
+}
+
+void LightManager_setIntensityCandela(Pointer<TLightManager> tLightManager, DartEntityId entity, double intensity) {
+  final result = GeneratedBindings.instance._LightManager_setIntensityCandela(tLightManager.cast(), entity, intensity);
+  return result;
+}
+
+void LightManager_setIntensityWatts(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double watts,
+  double efficiency,
+) {
+  final result = GeneratedBindings.instance._LightManager_setIntensityWatts(
+    tLightManager.cast(),
+    entity,
+    watts,
+    efficiency,
+  );
+  return result;
+}
+
+double LightManager_getIntensity(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getIntensity(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity, double falloff) {
+  final result = GeneratedBindings.instance._LightManager_setFalloff(tLightManager.cast(), entity, falloff);
+  return result;
+}
+
+double LightManager_getFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getFalloff(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setSpotLightCone(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  double inner,
+  double outer,
+) {
+  final result = GeneratedBindings.instance._LightManager_setSpotLightCone(tLightManager.cast(), entity, inner, outer);
+  return result;
+}
+
+double LightManager_getSpotLightOuterCone(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getSpotLightOuterCone(tLightManager.cast(), entity);
+  return result;
+}
+
+double LightManager_getSpotLightInnerCone(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getSpotLightInnerCone(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setSunAngularRadius(Pointer<TLightManager> tLightManager, DartEntityId entity, double angularRadius) {
+  final result = GeneratedBindings.instance._LightManager_setSunAngularRadius(
+    tLightManager.cast(),
+    entity,
+    angularRadius,
+  );
+  return result;
+}
+
+double LightManager_getSunAngularRadius(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getSunAngularRadius(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setSunHaloSize(Pointer<TLightManager> tLightManager, DartEntityId entity, double haloSize) {
+  final result = GeneratedBindings.instance._LightManager_setSunHaloSize(tLightManager.cast(), entity, haloSize);
+  return result;
+}
+
+double LightManager_getSunHaloSize(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getSunHaloSize(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setSunHaloFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity, double haloFalloff) {
+  final result = GeneratedBindings.instance._LightManager_setSunHaloFalloff(tLightManager.cast(), entity, haloFalloff);
+  return result;
+}
+
+double LightManager_getSunHaloFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_getSunHaloFalloff(tLightManager.cast(), entity);
+  return result;
+}
+
+void LightManager_setShadowCaster(Pointer<TLightManager> tLightManager, DartEntityId entity, bool enabled) {
+  final result = GeneratedBindings.instance._LightManager_setShadowCaster(tLightManager.cast(), entity, enabled);
+  return result;
+}
+
+bool LightManager_isShadowCaster(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final result = GeneratedBindings.instance._LightManager_isShadowCaster(tLightManager.cast(), entity);
+  return result == 1;
+}
+
+void LightManager_setShadowOptions(Pointer<TLightManager> tLightManager, DartEntityId entity, TShadowOptions options) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance._LightManager_setShadowOptions(
+    tLightManager.cast(),
+    entity,
+    optionsPtr.cast(),
+  );
+  return result;
+}
+
+TShadowOptions LightManager_getShadowOptions(Pointer<TLightManager> tLightManager, DartEntityId entity) {
+  final TShadowOptions_out = TShadowOptions.stackAlloc();
+  final result = GeneratedBindings.instance._LightManager_getShadowOptions(
+    TShadowOptions_out.cast(),
+    tLightManager.cast(),
+    entity,
+  );
+  return TShadowOptions_out.toDart();
+}
+
+void LightManager_setLightChannel(Pointer<TLightManager> tLightManager, DartEntityId entity, int channel, bool enable) {
+  final result = GeneratedBindings.instance._LightManager_setLightChannel(
+    tLightManager.cast(),
+    entity,
+    channel,
+    enable,
+  );
+  return result;
+}
+
+bool LightManager_getLightChannel(Pointer<TLightManager> tLightManager, DartEntityId entity, int channel) {
+  final result = GeneratedBindings.instance._LightManager_getLightChannel(tLightManager.cast(), entity, channel);
+  return result == 1;
+}
+
+void LightManager_computeUniformSplits(Pointer<Float32> splitPositions, int cascades) {
+  final result = GeneratedBindings.instance._LightManager_computeUniformSplits(splitPositions, cascades);
+  return result;
+}
+
+void LightManager_computeLogSplits(Pointer<Float32> splitPositions, int cascades, double near, double far) {
+  final result = GeneratedBindings.instance._LightManager_computeLogSplits(splitPositions, cascades, near, far);
+  return result;
+}
+
+void LightManager_computePracticalSplits(
+  Pointer<Float32> splitPositions,
+  int cascades,
+  double near,
+  double far,
+  double lambda,
+) {
+  final result = GeneratedBindings.instance._LightManager_computePracticalSplits(
+    splitPositions,
+    cascades,
+    near,
+    far,
+    lambda,
+  );
+  return result;
+}
+
+double LightManager_rgbToColorTemperature(double r, double g, double b) {
+  final result = GeneratedBindings.instance._LightManager_rgbToColorTemperature(r, g, b);
+  return result;
+}
+
 Pointer<Void> RenderThread_create() {
   final result = GeneratedBindings.instance._RenderThread_create();
   return Pointer<Void>(result);
@@ -7120,6 +7376,41 @@ void RenderableManager_setReceiveShadowsRenderThread(
   return result;
 }
 
+void LightManager_setShadowCasterRenderThread(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entityId,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._LightManager_setShadowCasterRenderThread(
+    tLightManager.cast(),
+    entityId,
+    enabled,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void LightManager_setShadowOptionsRenderThread(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entityId,
+  TShadowOptions options,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance._LightManager_setShadowOptionsRenderThread(
+    tLightManager.cast(),
+    entityId,
+    optionsPtr.cast(),
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
 void dummy(TGltfMeshData dummy) {
   final dummyPtr = dummy.address;
   final result = GeneratedBindings.instance._dummy(dummyPtr.cast());
@@ -7138,297 +7429,6 @@ int GltfParser_parseBuffer(
 
 void GltfParser_freeMeshData(Pointer<TGltfMeshData> meshData) {
   final result = GeneratedBindings.instance._GltfParser_freeMeshData(meshData.cast());
-  return result;
-}
-
-int LightManager_createLight(Pointer<TEngine> tEngine, Pointer<TLightManager> tLightManager, int tLightTtype) {
-  final result = GeneratedBindings.instance._LightManager_createLight(
-    tEngine.cast(),
-    tLightManager.cast(),
-    tLightTtype,
-  );
-  return result;
-}
-
-void LightManager_destroyLight(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_destroyLight(tLightManager.cast(), entity);
-  return result;
-}
-
-bool LightManager_hasComponent(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_hasComponent(tLightManager.cast(), entity);
-  return result == 1;
-}
-
-int LightManager_getType(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getType(tLightManager.cast(), entity);
-  return result;
-}
-
-bool LightManager_isDirectional(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_isDirectional(tLightManager.cast(), entity);
-  return result == 1;
-}
-
-bool LightManager_isPointLight(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_isPointLight(tLightManager.cast(), entity);
-  return result == 1;
-}
-
-bool LightManager_isSpotLight(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_isSpotLight(tLightManager.cast(), entity);
-  return result == 1;
-}
-
-void LightManager_setPosition(Pointer<TLightManager> tLightManager, DartEntityId light, double x, double y, double z) {
-  final result = GeneratedBindings.instance._LightManager_setPosition(tLightManager.cast(), light, x, y, z);
-  return result;
-}
-
-double3 LightManager_getPosition(Pointer<TLightManager> tLightManager, DartEntityId light) {
-  final double3_out = double3.stackAlloc();
-  final result = GeneratedBindings.instance._LightManager_getPosition(double3_out.cast(), tLightManager.cast(), light);
-  return double3_out.toDart();
-}
-
-void LightManager_setDirection(Pointer<TLightManager> tLightManager, DartEntityId light, double x, double y, double z) {
-  final result = GeneratedBindings.instance._LightManager_setDirection(tLightManager.cast(), light, x, y, z);
-  return result;
-}
-
-double3 LightManager_getDirection(Pointer<TLightManager> tLightManager, DartEntityId light) {
-  final double3_out = double3.stackAlloc();
-  final result = GeneratedBindings.instance._LightManager_getDirection(double3_out.cast(), tLightManager.cast(), light);
-  return double3_out.toDart();
-}
-
-void LightManager_setColor(Pointer<TLightManager> tLightManager, DartEntityId entity, double r, double g, double b) {
-  final result = GeneratedBindings.instance._LightManager_setColor(tLightManager.cast(), entity, r, g, b);
-  return result;
-}
-
-void LightManager_setColorTemperature(
-  Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  double colorTemperature,
-) {
-  final result = GeneratedBindings.instance._LightManager_setColorTemperature(
-    tLightManager.cast(),
-    entity,
-    colorTemperature,
-  );
-  return result;
-}
-
-double3 LightManager_getColor(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final double3_out = double3.stackAlloc();
-  final result = GeneratedBindings.instance._LightManager_getColor(double3_out.cast(), tLightManager.cast(), entity);
-  return double3_out.toDart();
-}
-
-void LightManager_setIntensity(Pointer<TLightManager> tLightManager, DartEntityId entity, double intensity) {
-  final result = GeneratedBindings.instance._LightManager_setIntensity(tLightManager.cast(), entity, intensity);
-  return result;
-}
-
-void LightManager_setIntensityCandela(Pointer<TLightManager> tLightManager, DartEntityId entity, double intensity) {
-  final result = GeneratedBindings.instance._LightManager_setIntensityCandela(tLightManager.cast(), entity, intensity);
-  return result;
-}
-
-void LightManager_setIntensityWatts(
-  Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  double watts,
-  double efficiency,
-) {
-  final result = GeneratedBindings.instance._LightManager_setIntensityWatts(
-    tLightManager.cast(),
-    entity,
-    watts,
-    efficiency,
-  );
-  return result;
-}
-
-double LightManager_getIntensity(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getIntensity(tLightManager.cast(), entity);
-  return result;
-}
-
-void LightManager_setFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity, double falloff) {
-  final result = GeneratedBindings.instance._LightManager_setFalloff(tLightManager.cast(), entity, falloff);
-  return result;
-}
-
-double LightManager_getFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getFalloff(tLightManager.cast(), entity);
-  return result;
-}
-
-void LightManager_setSpotLightCone(
-  Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  double inner,
-  double outer,
-) {
-  final result = GeneratedBindings.instance._LightManager_setSpotLightCone(tLightManager.cast(), entity, inner, outer);
-  return result;
-}
-
-double LightManager_getSpotLightOuterCone(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getSpotLightOuterCone(tLightManager.cast(), entity);
-  return result;
-}
-
-double LightManager_getSpotLightInnerCone(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getSpotLightInnerCone(tLightManager.cast(), entity);
-  return result;
-}
-
-void LightManager_setSunAngularRadius(Pointer<TLightManager> tLightManager, DartEntityId entity, double angularRadius) {
-  final result = GeneratedBindings.instance._LightManager_setSunAngularRadius(
-    tLightManager.cast(),
-    entity,
-    angularRadius,
-  );
-  return result;
-}
-
-double LightManager_getSunAngularRadius(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getSunAngularRadius(tLightManager.cast(), entity);
-  return result;
-}
-
-void LightManager_setSunHaloSize(Pointer<TLightManager> tLightManager, DartEntityId entity, double haloSize) {
-  final result = GeneratedBindings.instance._LightManager_setSunHaloSize(tLightManager.cast(), entity, haloSize);
-  return result;
-}
-
-double LightManager_getSunHaloSize(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getSunHaloSize(tLightManager.cast(), entity);
-  return result;
-}
-
-void LightManager_setSunHaloFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity, double haloFalloff) {
-  final result = GeneratedBindings.instance._LightManager_setSunHaloFalloff(tLightManager.cast(), entity, haloFalloff);
-  return result;
-}
-
-double LightManager_getSunHaloFalloff(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_getSunHaloFalloff(tLightManager.cast(), entity);
-  return result;
-}
-
-void LightManager_setShadowCaster(Pointer<TLightManager> tLightManager, DartEntityId entity, bool enabled) {
-  final result = GeneratedBindings.instance._LightManager_setShadowCaster(tLightManager.cast(), entity, enabled);
-  return result;
-}
-
-bool LightManager_isShadowCaster(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final result = GeneratedBindings.instance._LightManager_isShadowCaster(tLightManager.cast(), entity);
-  return result == 1;
-}
-
-void LightManager_setShadowOptions(Pointer<TLightManager> tLightManager, DartEntityId entity, TShadowOptions options) {
-  final optionsPtr = options.address;
-  final result = GeneratedBindings.instance._LightManager_setShadowOptions(
-    tLightManager.cast(),
-    entity,
-    optionsPtr.cast(),
-  );
-  return result;
-}
-
-void LightManager_setShadowCasterRenderThread(
-  Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  bool enabled,
-  int requestId,
-  DartVoidCallback onComplete,
-) {
-  final result = GeneratedBindings.instance._LightManager_setShadowCasterRenderThread(
-    tLightManager.cast(),
-    entity,
-    enabled,
-    requestId,
-    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
-  );
-  return result;
-}
-
-void LightManager_setShadowOptionsRenderThread(
-  Pointer<TLightManager> tLightManager,
-  DartEntityId entity,
-  TShadowOptions options,
-  int requestId,
-  DartVoidCallback onComplete,
-) {
-  final optionsPtr = options.address;
-  final result = GeneratedBindings.instance._LightManager_setShadowOptionsRenderThread(
-    tLightManager.cast(),
-    entity,
-    optionsPtr.cast(),
-    requestId,
-    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
-  );
-  return result;
-}
-
-TShadowOptions LightManager_getShadowOptions(Pointer<TLightManager> tLightManager, DartEntityId entity) {
-  final TShadowOptions_out = TShadowOptions.stackAlloc();
-  final result = GeneratedBindings.instance._LightManager_getShadowOptions(
-    TShadowOptions_out.cast(),
-    tLightManager.cast(),
-    entity,
-  );
-  return TShadowOptions_out.toDart();
-}
-
-void LightManager_setLightChannel(Pointer<TLightManager> tLightManager, DartEntityId entity, int channel, bool enable) {
-  final result = GeneratedBindings.instance._LightManager_setLightChannel(
-    tLightManager.cast(),
-    entity,
-    channel,
-    enable,
-  );
-  return result;
-}
-
-bool LightManager_getLightChannel(Pointer<TLightManager> tLightManager, DartEntityId entity, int channel) {
-  final result = GeneratedBindings.instance._LightManager_getLightChannel(tLightManager.cast(), entity, channel);
-  return result == 1;
-}
-
-void LightManager_computeUniformSplits(Pointer<Float32> splitPositions, int cascades) {
-  final result = GeneratedBindings.instance._LightManager_computeUniformSplits(splitPositions, cascades);
-  return result;
-}
-
-void LightManager_computeLogSplits(Pointer<Float32> splitPositions, int cascades, double near, double far) {
-  final result = GeneratedBindings.instance._LightManager_computeLogSplits(splitPositions, cascades, near, far);
-  return result;
-}
-
-void LightManager_computePracticalSplits(
-  Pointer<Float32> splitPositions,
-  int cascades,
-  double near,
-  double far,
-  double lambda,
-) {
-  final result = GeneratedBindings.instance._LightManager_computePracticalSplits(
-    splitPositions,
-    cascades,
-    near,
-    far,
-    lambda,
-  );
-  return result;
-}
-
-double LightManager_rgbToColorTemperature(double r, double g, double b) {
-  final result = GeneratedBindings.instance._LightManager_rgbToColorTemperature(r, g, b);
   return result;
 }
 
@@ -10602,151 +10602,6 @@ sealed class TVertexAttributeType {
   static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
 }
 
-extension TRenderManagerExt on Pointer<TRenderManager> {
-  TRenderManager toDart() {
-    return TRenderManager(this);
-  }
-}
-
-final class TRenderManager extends Struct {
-  Pointer<TRenderManager> get address => super.address.cast();
-  TRenderManager(super.address);
-
-  static Pointer<TRenderManager> stackAlloc() {
-    return Pointer<TRenderManager>(NativeLibrary.instance.stackAlloc<TRenderManager>(0));
-  }
-}
-
-extension TAnimationManagerExt on Pointer<TAnimationManager> {
-  TAnimationManager toDart() {
-    return TAnimationManager(this);
-  }
-}
-
-final class TAnimationManager extends Struct {
-  Pointer<TAnimationManager> get address => super.address.cast();
-  TAnimationManager(super.address);
-
-  static Pointer<TAnimationManager> stackAlloc() {
-    return Pointer<TAnimationManager>(NativeLibrary.instance.stackAlloc<TAnimationManager>(0));
-  }
-}
-
-extension TGltfResourceLoaderExt on Pointer<TGltfResourceLoader> {
-  TGltfResourceLoader toDart() {
-    return TGltfResourceLoader(this);
-  }
-}
-
-final class TGltfResourceLoader extends Struct {
-  Pointer<TGltfResourceLoader> get address => super.address.cast();
-  TGltfResourceLoader(super.address);
-
-  static Pointer<TGltfResourceLoader> stackAlloc() {
-    return Pointer<TGltfResourceLoader>(NativeLibrary.instance.stackAlloc<TGltfResourceLoader>(0));
-  }
-}
-
-sealed class TGizmoType {
-  static const GIZMO_TYPE_TRANSLATION = 0;
-  static const GIZMO_TYPE_ROTATION = 1;
-}
-
-extension TGizmoExt on Pointer<TGizmo> {
-  TGizmo toDart() {
-    return TGizmo(this);
-  }
-}
-
-final class TGizmo extends Struct {
-  Pointer<TGizmo> get address => super.address.cast();
-  TGizmo(super.address);
-
-  static Pointer<TGizmo> stackAlloc() {
-    return Pointer<TGizmo>(NativeLibrary.instance.stackAlloc<TGizmo>(0));
-  }
-}
-
-extension TRenderableBuilderExt on Pointer<TRenderableBuilder> {
-  TRenderableBuilder toDart() {
-    return TRenderableBuilder(this);
-  }
-}
-
-final class TRenderableBuilder extends Struct {
-  Pointer<TRenderableBuilder> get address => super.address.cast();
-  TRenderableBuilder(super.address);
-
-  static Pointer<TRenderableBuilder> stackAlloc() {
-    return Pointer<TRenderableBuilder>(NativeLibrary.instance.stackAlloc<TRenderableBuilder>(0));
-  }
-}
-
-extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
-  TGltfMeshData toDart() {
-    return TGltfMeshData(this);
-  }
-}
-
-final class TGltfMeshData extends Struct {
-  Pointer<TGltfMeshData> get address => super.address.cast();
-  Pointer<Float32> get vertices {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 0);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Pointer<Float32>(value.toDartInt);
-  }
-
-  set vertices(Pointer<Float32> val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 0), val.toJS, '*');
-  }
-
-  int get vertexCount {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 4);
-    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
-    return value;
-  }
-
-  set vertexCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 4), val.toJS, 'i32');
-  }
-
-  Pointer<Uint32> get indices {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 8);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Pointer<Uint32>(value.toDartInt);
-  }
-
-  set indices(Pointer<Uint32> val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 8), val.toJS, '*');
-  }
-
-  int get indexCount {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 12);
-    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
-    return value;
-  }
-
-  set indexCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 12), val.toJS, 'i32');
-  }
-
-  int get primitiveType {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 16);
-    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
-    return value;
-  }
-
-  set primitiveType(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 16), val.toJS, 'i32');
-  }
-
-  TGltfMeshData(super.address);
-
-  static Pointer<TGltfMeshData> stackAlloc() {
-    return Pointer<TGltfMeshData>(NativeLibrary.instance.stackAlloc<TGltfMeshData>(20));
-  }
-}
-
 sealed class TLightType {
   static const LIGHT_TYPE_SUN = 0;
   static const LIGHT_TYPE_DIRECTIONAL = 1;
@@ -10990,6 +10845,151 @@ final class TShadowOptions extends Struct {
   }
 }
 
+extension TRenderManagerExt on Pointer<TRenderManager> {
+  TRenderManager toDart() {
+    return TRenderManager(this);
+  }
+}
+
+final class TRenderManager extends Struct {
+  Pointer<TRenderManager> get address => super.address.cast();
+  TRenderManager(super.address);
+
+  static Pointer<TRenderManager> stackAlloc() {
+    return Pointer<TRenderManager>(NativeLibrary.instance.stackAlloc<TRenderManager>(0));
+  }
+}
+
+extension TAnimationManagerExt on Pointer<TAnimationManager> {
+  TAnimationManager toDart() {
+    return TAnimationManager(this);
+  }
+}
+
+final class TAnimationManager extends Struct {
+  Pointer<TAnimationManager> get address => super.address.cast();
+  TAnimationManager(super.address);
+
+  static Pointer<TAnimationManager> stackAlloc() {
+    return Pointer<TAnimationManager>(NativeLibrary.instance.stackAlloc<TAnimationManager>(0));
+  }
+}
+
+extension TGltfResourceLoaderExt on Pointer<TGltfResourceLoader> {
+  TGltfResourceLoader toDart() {
+    return TGltfResourceLoader(this);
+  }
+}
+
+final class TGltfResourceLoader extends Struct {
+  Pointer<TGltfResourceLoader> get address => super.address.cast();
+  TGltfResourceLoader(super.address);
+
+  static Pointer<TGltfResourceLoader> stackAlloc() {
+    return Pointer<TGltfResourceLoader>(NativeLibrary.instance.stackAlloc<TGltfResourceLoader>(0));
+  }
+}
+
+sealed class TGizmoType {
+  static const GIZMO_TYPE_TRANSLATION = 0;
+  static const GIZMO_TYPE_ROTATION = 1;
+}
+
+extension TGizmoExt on Pointer<TGizmo> {
+  TGizmo toDart() {
+    return TGizmo(this);
+  }
+}
+
+final class TGizmo extends Struct {
+  Pointer<TGizmo> get address => super.address.cast();
+  TGizmo(super.address);
+
+  static Pointer<TGizmo> stackAlloc() {
+    return Pointer<TGizmo>(NativeLibrary.instance.stackAlloc<TGizmo>(0));
+  }
+}
+
+extension TRenderableBuilderExt on Pointer<TRenderableBuilder> {
+  TRenderableBuilder toDart() {
+    return TRenderableBuilder(this);
+  }
+}
+
+final class TRenderableBuilder extends Struct {
+  Pointer<TRenderableBuilder> get address => super.address.cast();
+  TRenderableBuilder(super.address);
+
+  static Pointer<TRenderableBuilder> stackAlloc() {
+    return Pointer<TRenderableBuilder>(NativeLibrary.instance.stackAlloc<TRenderableBuilder>(0));
+  }
+}
+
+extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
+  TGltfMeshData toDart() {
+    return TGltfMeshData(this);
+  }
+}
+
+final class TGltfMeshData extends Struct {
+  Pointer<TGltfMeshData> get address => super.address.cast();
+  Pointer<Float32> get vertices {
+    final addr = Pointer<TGltfMeshData>(this.address.addr + 0);
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return Pointer<Float32>(value.toDartInt);
+  }
+
+  set vertices(Pointer<Float32> val) {
+    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 0), val.toJS, '*');
+  }
+
+  int get vertexCount {
+    final addr = Pointer<TGltfMeshData>(this.address.addr + 4);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set vertexCount(int val) {
+    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 4), val.toJS, 'i32');
+  }
+
+  Pointer<Uint32> get indices {
+    final addr = Pointer<TGltfMeshData>(this.address.addr + 8);
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return Pointer<Uint32>(value.toDartInt);
+  }
+
+  set indices(Pointer<Uint32> val) {
+    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 8), val.toJS, '*');
+  }
+
+  int get indexCount {
+    final addr = Pointer<TGltfMeshData>(this.address.addr + 12);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set indexCount(int val) {
+    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 12), val.toJS, 'i32');
+  }
+
+  int get primitiveType {
+    final addr = Pointer<TGltfMeshData>(this.address.addr + 16);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set primitiveType(int val) {
+    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 16), val.toJS, 'i32');
+  }
+
+  TGltfMeshData(super.address);
+
+  static Pointer<TGltfMeshData> stackAlloc() {
+    return Pointer<TGltfMeshData>(NativeLibrary.instance.stackAlloc<TGltfMeshData>(20));
+  }
+}
+
 sealed class TGizmoPickResultType {
   static const AxisX = 0;
   static const AxisY = 1;
@@ -11195,6 +11195,9 @@ extension StructAllocator on Struct {
       case TVertexBufferBuilder:
         final ptr = TVertexBufferBuilder.stackAlloc();
         return ptr.toDart() as T;
+      case TShadowOptions:
+        final ptr = TShadowOptions.stackAlloc();
+        return ptr.toDart() as T;
       case TRenderManager:
         final ptr = TRenderManager.stackAlloc();
         return ptr.toDart() as T;
@@ -11212,9 +11215,6 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TGltfMeshData:
         final ptr = TGltfMeshData.stackAlloc();
-        return ptr.toDart() as T;
-      case TShadowOptions:
-        final ptr = TShadowOptions.stackAlloc();
         return ptr.toDart() as T;
       case TMovementIntentExecutor:
         final ptr = TMovementIntentExecutor.stackAlloc();

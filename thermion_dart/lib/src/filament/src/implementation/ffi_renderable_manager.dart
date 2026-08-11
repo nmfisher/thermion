@@ -194,13 +194,8 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   @override
   Future setCastShadows(ThermionEntity entity, bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) => RenderableManager_setCastShadowsRenderThread(
-        renderableManager,
-        entity,
-        enabled,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          RenderableManager_setCastShadowsRenderThread(renderableManager, entity, enabled, requestId, cb),
     );
   }
 
@@ -212,13 +207,8 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   @override
   Future setReceiveShadows(ThermionEntity entity, bool enabled) async {
     await withVoidCallback(
-      (requestId, cb) => RenderableManager_setReceiveShadowsRenderThread(
-        renderableManager,
-        entity,
-        enabled,
-        requestId,
-        cb,
-      ),
+      (requestId, cb) =>
+          RenderableManager_setReceiveShadowsRenderThread(renderableManager, entity, enabled, requestId, cb),
     );
   }
 

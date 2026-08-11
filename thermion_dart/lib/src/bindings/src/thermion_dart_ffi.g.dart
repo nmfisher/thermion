@@ -1648,6 +1648,177 @@ external void TransformManager_openLocalTransformTransaction(ffi.Pointer<TTransf
 @ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>)>(isLeaf: true)
 external void TransformManager_commitLocalTransformTransaction(ffi.Pointer<TTransformManager> tTransformManager);
 
+@ffi.Native<ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>, ffi.UnsignedInt)>(isLeaf: true)
+external int LightManager_createLight(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TLightManager> tLightManager,
+  int tLightTtype,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external void LightManager_destroyLight(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external bool LightManager_hasComponent(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external int LightManager_getType(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external bool LightManager_isDirectional(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external bool LightManager_isPointLight(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external bool LightManager_isSpotLight(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setPosition(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double3 LightManager_getPosition(ffi.Pointer<TLightManager> tLightManager, int light);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setDirection(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double3 LightManager_getDirection(ffi.Pointer<TLightManager> tLightManager, int light);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setColor(ffi.Pointer<TLightManager> tLightManager, int entity, double r, double g, double b);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+external void LightManager_setColorTemperature(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double colorTemperature,
+);
+
+@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double3 LightManager_getColor(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+external void LightManager_setIntensity(ffi.Pointer<TLightManager> tLightManager, int entity, double intensity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+external void LightManager_setIntensityCandela(ffi.Pointer<TLightManager> tLightManager, int entity, double intensity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setIntensityWatts(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double watts,
+  double efficiency,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double LightManager_getIntensity(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+external void LightManager_setFalloff(ffi.Pointer<TLightManager> tLightManager, int entity, double falloff);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double LightManager_getFalloff(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setSpotLightCone(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double inner,
+  double outer,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double LightManager_getSpotLightOuterCone(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double LightManager_getSpotLightInnerCone(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
+external void LightManager_setSunAngularRadius(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double angularRadius,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double LightManager_getSunAngularRadius(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
+external void LightManager_setSunHaloSize(ffi.Pointer<TLightManager> tLightManager, int entity, double haloSize);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double LightManager_getSunHaloSize(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
+external void LightManager_setSunHaloFalloff(ffi.Pointer<TLightManager> tLightManager, int entity, double haloFalloff);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external double LightManager_getSunHaloFalloff(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void LightManager_setShadowCaster(ffi.Pointer<TLightManager> tLightManager, int entity, bool enabled);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external bool LightManager_isShadowCaster(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, TShadowOptions)>(isLeaf: true)
+external void LightManager_setShadowOptions(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  TShadowOptions options,
+);
+
+@ffi.Native<TShadowOptions Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
+external TShadowOptions LightManager_getShadowOptions(ffi.Pointer<TLightManager> tLightManager, int entity);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt, ffi.Bool)>(isLeaf: true)
+external void LightManager_setLightChannel(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  int channel,
+  bool enable,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt)>(isLeaf: true)
+external bool LightManager_getLightChannel(ffi.Pointer<TLightManager> tLightManager, int entity, int channel);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8)>(isLeaf: true)
+external void LightManager_computeUniformSplits(ffi.Pointer<ffi.Float> splitPositions, int cascades);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float)>(isLeaf: true)
+external void LightManager_computeLogSplits(
+  ffi.Pointer<ffi.Float> splitPositions,
+  int cascades,
+  double near,
+  double far,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+external void LightManager_computePracticalSplits(
+  ffi.Pointer<ffi.Float> splitPositions,
+  int cascades,
+  double near,
+  double far,
+  double lambda,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external double LightManager_rgbToColorTemperature(double r, double g, double b);
+
 @ffi.Native<ffi.Pointer<ffi.Void> Function()>(isLeaf: true)
 external ffi.Pointer<ffi.Void> RenderThread_create();
 
@@ -3516,7 +3687,9 @@ external void RenderableManager_setBonesFromBoneRenderThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(
+  isLeaf: true,
+)
 external void RenderableManager_setCastShadowsRenderThread(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
@@ -3525,11 +3698,33 @@ external void RenderableManager_setCastShadowsRenderThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(
+  isLeaf: true,
+)
 external void RenderableManager_setReceiveShadowsRenderThread(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void LightManager_setShadowCasterRenderThread(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entityId,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, TShadowOptions, ffi.Uint32, VoidCallback)>(
+  isLeaf: true,
+)
+external void LightManager_setShadowOptionsRenderThread(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entityId,
+  TShadowOptions options,
   int requestId,
   VoidCallback onComplete,
 );
@@ -3549,195 +3744,6 @@ external int GltfParser_parseBuffer(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGltfMeshData>)>(isLeaf: true)
 external void GltfParser_freeMeshData(ffi.Pointer<TGltfMeshData> meshData);
-
-@ffi.Native<ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>, ffi.UnsignedInt)>(isLeaf: true)
-external int LightManager_createLight(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TLightManager> tLightManager,
-  int tLightTtype,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external void LightManager_destroyLight(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external bool LightManager_hasComponent(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external int LightManager_getType(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external bool LightManager_isDirectional(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external bool LightManager_isPointLight(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external bool LightManager_isSpotLight(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
-external void LightManager_setPosition(
-  ffi.Pointer<TLightManager> tLightManager,
-  int light,
-  double x,
-  double y,
-  double z,
-);
-
-@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double3 LightManager_getPosition(ffi.Pointer<TLightManager> tLightManager, int light);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
-external void LightManager_setDirection(
-  ffi.Pointer<TLightManager> tLightManager,
-  int light,
-  double x,
-  double y,
-  double z,
-);
-
-@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double3 LightManager_getDirection(ffi.Pointer<TLightManager> tLightManager, int light);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
-external void LightManager_setColor(ffi.Pointer<TLightManager> tLightManager, int entity, double r, double g, double b);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
-external void LightManager_setColorTemperature(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  double colorTemperature,
-);
-
-@ffi.Native<double3 Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double3 LightManager_getColor(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
-external void LightManager_setIntensity(ffi.Pointer<TLightManager> tLightManager, int entity, double intensity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
-external void LightManager_setIntensityCandela(ffi.Pointer<TLightManager> tLightManager, int entity, double intensity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>(isLeaf: true)
-external void LightManager_setIntensityWatts(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  double watts,
-  double efficiency,
-);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double LightManager_getIntensity(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
-external void LightManager_setFalloff(ffi.Pointer<TLightManager> tLightManager, int entity, double falloff);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double LightManager_getFalloff(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double, ffi.Double)>(isLeaf: true)
-external void LightManager_setSpotLightCone(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  double inner,
-  double outer,
-);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double LightManager_getSpotLightOuterCone(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double LightManager_getSpotLightInnerCone(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
-external void LightManager_setSunAngularRadius(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  double angularRadius,
-);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double LightManager_getSunAngularRadius(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
-external void LightManager_setSunHaloSize(ffi.Pointer<TLightManager> tLightManager, int entity, double haloSize);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double LightManager_getSunHaloSize(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
-external void LightManager_setSunHaloFalloff(ffi.Pointer<TLightManager> tLightManager, int entity, double haloFalloff);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external double LightManager_getSunHaloFalloff(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool)>(isLeaf: true)
-external void LightManager_setShadowCaster(ffi.Pointer<TLightManager> tLightManager, int entity, bool enabled);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external bool LightManager_isShadowCaster(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, TShadowOptions)>(isLeaf: true)
-external void LightManager_setShadowOptions(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  TShadowOptions options,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
-external void LightManager_setShadowCasterRenderThread(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  bool enabled,
-  int requestId,
-  VoidCallback onComplete,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, TShadowOptions, ffi.Uint32, VoidCallback)>(isLeaf: true)
-external void LightManager_setShadowOptionsRenderThread(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  TShadowOptions options,
-  int requestId,
-  VoidCallback onComplete,
-);
-
-@ffi.Native<TShadowOptions Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
-external TShadowOptions LightManager_getShadowOptions(ffi.Pointer<TLightManager> tLightManager, int entity);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt, ffi.Bool)>(isLeaf: true)
-external void LightManager_setLightChannel(
-  ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  int channel,
-  bool enable,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TLightManager>, EntityId, ffi.UnsignedInt)>(isLeaf: true)
-external bool LightManager_getLightChannel(ffi.Pointer<TLightManager> tLightManager, int entity, int channel);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8)>(isLeaf: true)
-external void LightManager_computeUniformSplits(ffi.Pointer<ffi.Float> splitPositions, int cascades);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float)>(isLeaf: true)
-external void LightManager_computeLogSplits(
-  ffi.Pointer<ffi.Float> splitPositions,
-  int cascades,
-  double near,
-  double far,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Float>, ffi.Uint8, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
-external void LightManager_computePracticalSplits(
-  ffi.Pointer<ffi.Float> splitPositions,
-  int cascades,
-  double near,
-  double far,
-  double lambda,
-);
-
-@ffi.Native<ffi.Double Function(ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
-external double LightManager_rgbToColorTemperature(double r, double g, double b);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>(isLeaf: true)
 external void Scene_addEntity(ffi.Pointer<TScene> tScene, int entityId);
@@ -5450,25 +5456,6 @@ sealed class TBackend {
   static const BACKEND_NOOP = 4;
 }
 
-typedef FilamentRenderCallbackFunction = ffi.Void Function(ffi.Pointer<ffi.Void> owner);
-typedef DartFilamentRenderCallbackFunction = void Function(ffi.Pointer<ffi.Void> owner);
-typedef FilamentRenderCallback = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
-
-final class TGltfMeshData extends ffi.Struct {
-  external ffi.Pointer<ffi.Float> vertices;
-
-  @ffi.Uint32()
-  external int vertexCount;
-
-  external ffi.Pointer<ffi.Uint32> indices;
-
-  @ffi.Uint32()
-  external int indexCount;
-
-  @ffi.UnsignedInt()
-  external int primitiveType;
-}
-
 sealed class TLightType {
   static const LIGHT_TYPE_SUN = 0;
   static const LIGHT_TYPE_DIRECTIONAL = 1;
@@ -5543,6 +5530,25 @@ final class TShadowOptions extends ffi.Struct {
 
   @ffi.Float()
   external double transformW;
+}
+
+typedef FilamentRenderCallbackFunction = ffi.Void Function(ffi.Pointer<ffi.Void> owner);
+typedef DartFilamentRenderCallbackFunction = void Function(ffi.Pointer<ffi.Void> owner);
+typedef FilamentRenderCallback = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
+
+final class TGltfMeshData extends ffi.Struct {
+  external ffi.Pointer<ffi.Float> vertices;
+
+  @ffi.Uint32()
+  external int vertexCount;
+
+  external ffi.Pointer<ffi.Uint32> indices;
+
+  @ffi.Uint32()
+  external int indexCount;
+
+  @ffi.UnsignedInt()
+  external int primitiveType;
 }
 
 sealed class TGizmoAxis {
