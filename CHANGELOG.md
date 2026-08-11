@@ -1,5 +1,15 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.6.0
+
+### Fixes
+- dispatch light and renderable shadow setters on the render thread;
+  `LightManager.setShadowCaster`/`setShadowOptions` and
+  `RenderableManager.setCastShadows`/`setReceiveShadows` previously ran on the
+  caller's thread, racing Filament's renderer so the shadow flags never
+  reliably took effect — realtime shadows did not render even with view
+  shadowing enabled.
+
 ## 0.5.0-pre.5
 
 - Rework the CI release pipeline: releases are cut from `develop` via a manual
