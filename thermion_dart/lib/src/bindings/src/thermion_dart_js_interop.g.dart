@@ -1747,6 +1747,20 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _RenderableManager_setCastShadowsRenderThread(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _RenderableManager_setReceiveShadowsRenderThread(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _dummy(Pointer<TGltfMeshData> dummyPtr);
   external int _GltfParser_parseBuffer(
     Pointer<Uint8> data,
@@ -1850,6 +1864,20 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TLightManager> tLightManager,
     EntityId entity,
     Pointer<TShadowOptions> optionsPtr,
+  );
+  external void _LightManager_setShadowCasterRenderThread(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    bool enabled,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _LightManager_setShadowOptionsRenderThread(
+    Pointer<TLightManager> tLightManager,
+    EntityId entity,
+    Pointer<TShadowOptions> optionsPtr,
+    int requestId,
+    VoidCallback onComplete,
   );
   external void _LightManager_getShadowOptions(
     Pointer<TShadowOptions> TShadowOptions_out,
@@ -7058,6 +7086,40 @@ void RenderableManager_setBonesFromBoneRenderThread(
   return result;
 }
 
+void RenderableManager_setCastShadowsRenderThread(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderableManager_setCastShadowsRenderThread(
+    tRenderableManager.cast(),
+    entityId,
+    enabled,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void RenderableManager_setReceiveShadowsRenderThread(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderableManager_setReceiveShadowsRenderThread(
+    tRenderableManager.cast(),
+    entityId,
+    enabled,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
 void dummy(TGltfMeshData dummy) {
   final dummyPtr = dummy.address;
   final result = GeneratedBindings.instance._dummy(dummyPtr.cast());
@@ -7274,6 +7336,41 @@ void LightManager_setShadowOptions(Pointer<TLightManager> tLightManager, DartEnt
     tLightManager.cast(),
     entity,
     optionsPtr.cast(),
+  );
+  return result;
+}
+
+void LightManager_setShadowCasterRenderThread(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  bool enabled,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._LightManager_setShadowCasterRenderThread(
+    tLightManager.cast(),
+    entity,
+    enabled,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void LightManager_setShadowOptionsRenderThread(
+  Pointer<TLightManager> tLightManager,
+  DartEntityId entity,
+  TShadowOptions options,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final optionsPtr = options.address;
+  final result = GeneratedBindings.instance._LightManager_setShadowOptionsRenderThread(
+    tLightManager.cast(),
+    entity,
+    optionsPtr.cast(),
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
   return result;
 }

@@ -2770,4 +2770,76 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // Shadow flags MUST be applied on the render thread — Filament's
+  // RenderableManager/LightManager are not concurrency-safe, so the
+  // non-render-thread setters race the renderer and the flags don't take
+  // (realtime shadows never appear).
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadowsRenderThread(
+      TRenderableManager *tRenderableManager,
+      EntityId entityId,
+      bool enabled,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = RT(tRenderableManager);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderableManager_setCastShadows(tRenderableManager, entityId, enabled);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadowsRenderThread(
+      TRenderableManager *tRenderableManager,
+      EntityId entityId,
+      bool enabled,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = RT(tRenderableManager);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderableManager_setReceiveShadows(tRenderableManager, entityId, enabled);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCasterRenderThread(
+      TLightManager *tLightManager,
+      EntityId entityId,
+      bool enabled,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = RT(tLightManager);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          LightManager_setShadowCaster(tLightManager, entityId, enabled);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptionsRenderThread(
+      TLightManager *tLightManager,
+      EntityId entityId,
+      TShadowOptions options,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = RT(tLightManager);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          LightManager_setShadowOptions(tLightManager, entityId, options);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
 }
