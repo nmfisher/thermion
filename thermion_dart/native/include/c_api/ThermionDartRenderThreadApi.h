@@ -9,6 +9,7 @@
 #include "TVertexBuffer.h"
 #include "TIndexBuffer.h"
 #include "TTransformManager.h"
+#include "TLightManager.h"
 
 #ifdef __cplusplus
 namespace thermion
@@ -497,6 +498,40 @@ namespace thermion
             const float *bones,
             size_t boneCount,
             size_t offset,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        // Shadow flags MUST be applied on the render thread — Filament's
+        // RenderableManager/LightManager are not concurrency-safe, so the
+        // non-render-thread setters race the renderer and the flags don't take
+        // (realtime shadows never appear). These mirror the existing render-
+        // thread dispatch pattern.
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadowsRenderThread(
+            TRenderableManager *tRenderableManager,
+            EntityId entityId,
+            bool enabled,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadowsRenderThread(
+            TRenderableManager *tRenderableManager,
+            EntityId entityId,
+            bool enabled,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void LightManager_setShadowCasterRenderThread(
+            TLightManager *tLightManager,
+            EntityId entityId,
+            bool enabled,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptionsRenderThread(
+            TLightManager *tLightManager,
+            EntityId entityId,
+            TShadowOptions options,
             uint32_t requestId,
             VoidCallback onComplete
         );

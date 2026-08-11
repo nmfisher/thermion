@@ -122,13 +122,13 @@ abstract class LightManager<T> extends NativeHandle<T> {
   // ============================================================================
 
   /// Enables or disables shadow casting for the specified light.
-  void setShadowCaster(ThermionEntity light, bool enabled);
+  Future<void> setShadowCaster(ThermionEntity light, bool enabled);
 
   /// Returns whether the light casts shadows.
   bool isShadowCaster(ThermionEntity light);
 
   /// Sets the shadow options for the light.
-  void setShadowOptions(ThermionEntity light, ShadowOptions options);
+  Future<void> setShadowOptions(ThermionEntity light, ShadowOptions options);
 
   /// Returns the shadow options for the light.
   ShadowOptions getShadowOptions(ThermionEntity light);

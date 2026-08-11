@@ -1,5 +1,13 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.6.0
+
+### Breaking changes
+- `LightManager.setShadowCaster`/`setShadowOptions` and
+  `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
+  instead of `void` (internally, these now correctly run on the
+  main Filament thread).
+
 ## 0.5.0-pre.5
 
 - Rework the CI release pipeline: releases are cut from `develop` via a manual
