@@ -1509,7 +1509,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     // Note: Sun-specific properties (angular radius, halo size, halo falloff)
     // are not currently exposed in the Dart LightManager interface
-    lightManager.setShadowCaster(entity, directLight.castShadows);
+    await lightManager.setShadowCaster(entity, directLight.castShadows);
 
     return entity;
   }

@@ -228,7 +228,7 @@ void main() async {
       await testHelper.capture(result.viewer.view, "sun_light_created_no_shadows");
 
       // Test shadow caster
-      lightManager.setShadowCaster(sunLight, true);
+      await lightManager.setShadowCaster(sunLight, true);
       await testHelper.capture(result.viewer.view, "shadow_caster_enabled");
 
       expect(lightManager.isShadowCaster(sunLight), isTrue);
@@ -242,7 +242,7 @@ void main() async {
         normalBias: 2.0,
         stable: true,
       );
-      lightManager.setShadowOptions(sunLight, shadowOptions);
+      await lightManager.setShadowOptions(sunLight, shadowOptions);
       await testHelper.capture(result.viewer.view, "shadow_options_configured");
 
       final retrievedOptions = lightManager.getShadowOptions(sunLight);

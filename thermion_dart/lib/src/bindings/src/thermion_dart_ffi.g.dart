@@ -3516,6 +3516,24 @@ external void RenderableManager_setBonesFromBoneRenderThread(
   VoidCallback onComplete,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void RenderableManager_setCastShadowsRenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void RenderableManager_setReceiveShadowsRenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
 @ffi.Native<ffi.Void Function(TGltfMeshData)>(isLeaf: true)
 external void dummy(TGltfMeshData dummy);
 
@@ -3664,6 +3682,24 @@ external void LightManager_setShadowOptions(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
   TShadowOptions options,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void LightManager_setShadowCasterRenderThread(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  bool enabled,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, TShadowOptions, ffi.Uint32, VoidCallback)>(isLeaf: true)
+external void LightManager_setShadowOptionsRenderThread(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  TShadowOptions options,
+  int requestId,
+  VoidCallback onComplete,
 );
 
 @ffi.Native<TShadowOptions Function(ffi.Pointer<TLightManager>, EntityId)>(isLeaf: true)
