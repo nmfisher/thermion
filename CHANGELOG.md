@@ -2,13 +2,11 @@
 
 ## 0.6.0
 
-### Fixes
-- dispatch light and renderable shadow setters on the render thread;
-  `LightManager.setShadowCaster`/`setShadowOptions` and
-  `RenderableManager.setCastShadows`/`setReceiveShadows` previously ran on the
-  caller's thread, racing Filament's renderer so the shadow flags never
-  reliably took effect — realtime shadows did not render even with view
-  shadowing enabled.
+### Breaking changes
+- `LightManager.setShadowCaster`/`setShadowOptions` and
+  `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
+  instead of `void` (internally, these now correctly run on the
+  main Filament thread).
 
 ## 0.5.0-pre.5
 
