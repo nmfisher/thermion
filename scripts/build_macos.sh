@@ -112,6 +112,18 @@ python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
+# Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
+# (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
+# appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
+# versions whose CMakeLists lacks the anchor string.
+echo "Patching tinyexr CMakeLists.txt..."
+TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
+if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+fi
+
 # Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo "Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM..."
 FFILAMENT_ASSET_H="$FILAMENT_BASE_DIR/libs/gltfio/src/FFilamentAsset.h"
