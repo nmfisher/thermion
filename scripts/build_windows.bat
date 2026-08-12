@@ -1,9 +1,9 @@
 @echo off
 REM Windows build script for Filament
 REM Usage: build_windows.bat <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]
-REM Example: build_windows.bat C:\path\to\filament v1.69.0 C:\path\to\output
-REM          build_windows.bat C:\path\to\filament v1.69.0 C:\path\to\output --clean
-REM          build_windows.bat C:\path\to\filament v1.69.0 C:\path\to\output --release
+REM Example: build_windows.bat C:\path\to\filament v1.74.0 C:\path\to\output
+REM          build_windows.bat C:\path\to\filament v1.74.0 C:\path\to\output --clean
+REM          build_windows.bat C:\path\to\filament v1.74.0 C:\path\to\output --release
 
 setlocal enabledelayedexpansion
 
@@ -13,9 +13,9 @@ set "SCRIPT_DIR=%~dp0"
 REM Validate arguments
 if "%~3"=="" (
   echo Usage: %0 ^<FILAMENT_BASE_DIR^> ^<FILAMENT_VERSION^> ^<OUTPUT_BASE_DIR^> [options]
-  echo Example: %0 C:\path\to\filament v1.69.0 C:\path\to\output
-  echo          %0 C:\path\to\filament v1.69.0 C:\path\to\output --clean
-  echo          %0 C:\path\to\filament v1.69.0 C:\path\to\output --release
+  echo Example: %0 C:\path\to\filament v1.74.0 C:\path\to\output
+  echo          %0 C:\path\to\filament v1.74.0 C:\path\to\output --clean
+  echo          %0 C:\path\to\filament v1.74.0 C:\path\to\output --release
   echo.
   echo Options:
   echo   --clean         Remove existing target directories before building
@@ -99,6 +99,10 @@ call git checkout %FILAMENT_VERSION% || (
   exit /b 1
 )
 
+REM Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+REM Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
+python "%SCRIPT_DIR%patch_libassimp_tnt.py" "%FILAMENT_BASE_DIR%"
+
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM...
 set "GLTFIO_HEADER=%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h"
@@ -114,7 +118,7 @@ cd /d "%FILAMENT_BASE_DIR%\out" || exit /b 1
 
 REM Run CMake configuration
 echo Configuring Filament for Windows...
-cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
+cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
   echo Error: CMake configuration failed
   exit /b 1
 )
@@ -135,6 +139,30 @@ if "!BUILD_RELEASE!"=="true" (
   cmake --build . --target imageio --config Release || (
     echo Warning: imageio release build failed
   )
+
+  REM Build libassimp for release
+  echo Building libassimp for release...
+  cd "%FILAMENT_BASE_DIR%\out"
+  if not exist "cmake-release-assimp" mkdir cmake-release-assimp
+  cd cmake-release-assimp
+  cmake -G "Visual Studio 17 2022" -T v142 ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_CXX_STANDARD=17 ^
+    -DCMAKE_C_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
+    -DCMAKE_CXX_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
+    -DASSIMP_BUILD_TESTS=OFF ^
+    -DASSIMP_BUILD_SAMPLES=OFF ^
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF ^
+    "%FILAMENT_BASE_DIR%\third_party\libassimp\tnt" || (
+    echo Error: libassimp release cmake configuration failed
+    exit /b 1
+  )
+  cmake --build . --config Release || (
+    echo Error: libassimp release build failed
+    exit /b 1
+  )
+  cd "%FILAMENT_BASE_DIR%\out"
 
   REM Install release to get headers in a known location
   echo Installing release...
@@ -160,6 +188,30 @@ if "!BUILD_DEBUG!"=="true" (
   cmake --build . --target imageio --config Debug || (
     echo Warning: imageio debug build failed
   )
+
+  REM Build libassimp for debug
+  echo Building libassimp for debug...
+  cd "%FILAMENT_BASE_DIR%\out"
+  if not exist "cmake-debug-assimp" mkdir cmake-debug-assimp
+  cd cmake-debug-assimp
+  cmake -G "Visual Studio 17 2022" -T v142 ^
+    -DCMAKE_BUILD_TYPE=Debug ^
+    -DCMAKE_CXX_STANDARD=17 ^
+    -DCMAKE_C_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
+    -DCMAKE_CXX_FLAGS=/I%FILAMENT_BASE_DIR%\third_party\libz ^
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF ^
+    -DASSIMP_BUILD_TESTS=OFF ^
+    -DASSIMP_BUILD_SAMPLES=OFF ^
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF ^
+    "%FILAMENT_BASE_DIR%\third_party\libassimp\tnt" || (
+    echo Error: libassimp debug cmake configuration failed
+    exit /b 1
+  )
+  cmake --build . --config Debug || (
+    echo Error: libassimp debug build failed
+    exit /b 1
+  )
+  cd "%FILAMENT_BASE_DIR%\out"
 
   REM Install debug to get headers in a known location
   echo Installing debug...
@@ -236,8 +288,8 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_RELEASE_DIR%\include\imageio\" || (
+  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_RELEASE_DIR%\include\" || (
     echo Error: Failed to copy imageio headers to target
     exit /b 1
   )
@@ -267,6 +319,13 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
+  REM Copy libassimp headers
+  mkdir "%TARGET_RELEASE_DIR%\include\third_party\libassimp\include" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\third_party\libassimp\include\assimp" "%TARGET_RELEASE_DIR%\include\third_party\libassimp\include\assimp\" || (
+    echo Error: Failed to copy assimp headers to target
+    exit /b 1
+  )
+
   REM Copy uberarchive.h for release
   mkdir "%TARGET_RELEASE_DIR%\include\release\gltfio\materials" 2>nul
   copy /Y "%FILAMENT_BASE_DIR%\out\install-release\include\gltfio\materials\uberarchive.h" "%TARGET_RELEASE_DIR%\include\release\gltfio\materials\" 2>nul
@@ -282,8 +341,8 @@ if "!BUILD_DEBUG!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_DEBUG_DIR%\include\imageio\" || (
+  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_DEBUG_DIR%\include\" || (
     echo Error: Failed to copy imageio headers to target
     exit /b 1
   )
@@ -313,57 +372,72 @@ if "!BUILD_DEBUG!"=="true" (
     exit /b 1
   )
 
+  REM Copy libassimp headers
+  mkdir "%TARGET_DEBUG_DIR%\include\third_party\libassimp\include" 2>nul
+  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\third_party\libassimp\include\assimp" "%TARGET_DEBUG_DIR%\include\third_party\libassimp\include\assimp\" || (
+    echo Error: Failed to copy assimp headers to target
+    exit /b 1
+  )
+
   REM Copy uberarchive.h for debug
   mkdir "%TARGET_DEBUG_DIR%\include\debug\gltfio\materials" 2>nul
   copy /Y "%FILAMENT_BASE_DIR%\out\install-debug\include\gltfio\materials\uberarchive.h" "%TARGET_DEBUG_DIR%\include\debug\gltfio\materials\" 2>nul
 )
 
-REM Copy header files to thermion_dart
-set "COPY_HEADERS_OPTS="
-if "!BUILD_RELEASE!"=="true" if "!BUILD_DEBUG!"=="false" set "COPY_HEADERS_OPTS=--release"
-if "!BUILD_DEBUG!"=="true" if "!BUILD_RELEASE!"=="false" set "COPY_HEADERS_OPTS=--debug"
+REM Filament headers are bundled into the artifact zip's include/ above (per
+REM target dir). They are no longer copied into a committed tree under
+REM thermion_dart/native/include/filament -- consumers source them from the
+REM version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
-call "%SCRIPT_DIR%copy_headers.bat" "%FILAMENT_BASE_DIR%" !COPY_HEADERS_OPTS! || (
-  echo Error: Failed to copy headers
-  exit /b 1
+REM Obtain vulkan-1.lib (Vulkan loader import lib; version-independent, not
+REM Filament-specific). Filament's build above uses vendored Vulkan headers and
+REM loads the loader dynamically, so it neither produces vulkan-1.lib nor needs
+REM a Vulkan SDK -- but the thermion Windows link does. The github runner has no
+REM Vulkan SDK either, so source vulkan-1.lib from R2. Try the runner SDK first
+REM (in case a future image exposes it), then fall back to extracting the single
+REM vulkan-1.lib entry from the existing v1.69.1 Windows release zip on R2.
+set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.69.1-windows-release.zip"
+set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
+
+if exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
+  echo Using cached vulkan-1.lib from: %OUTPUT_BASE_DIR%\vulkan-1.lib
+  goto :vulkan_done
 )
 
-REM Download vulkan-1.lib from v1.69.1 (reusable across versions)
-set "VULKAN_LIB_URL=https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.69.1-windows-release-vulkan.zip"
-set "VULKAN_LIB_ZIP=%OUTPUT_BASE_DIR%\vulkan-1-temp.zip"
-set "VULKAN_LIB_EXTRACT=%OUTPUT_BASE_DIR%\vulkan-1-temp"
+REM 1) Runner Vulkan SDK (VULKAN_SDK env var, set by the LunarG installer).
+if exist "%VULKAN_SDK%\Lib\vulkan-1.lib" (
+  copy /Y "%VULKAN_SDK%\Lib\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
+  echo Copied vulkan-1.lib from Vulkan SDK: %VULKAN_SDK%\Lib\vulkan-1.lib
+  goto :vulkan_done
+)
 
+REM 2) Runner Vulkan SDK (glob, in case the env var is unset).
+for %%F in ("C:\VulkanSDK\*\Lib\vulkan-1.lib") do (
+  copy /Y "%%F" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
+  echo Copied vulkan-1.lib from: %%F
+  goto :vulkan_done
+)
+
+REM 3) Extract vulkan-1.lib from the existing v1.69.1 Windows release zip on R2.
+REM    vulkan-1.lib is version-independent (Vulkan loader import lib); the
+REM    version-specific vulkan-only zip was never uploaded, but the full v1.69.1
+REM    artifact is a stable source. Extract only the single entry (no full unzip).
+echo Vulkan SDK not found on runner; extracting vulkan-1.lib from v1.69.1 R2 zip...
+powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
+  echo Error: Failed to download vulkan source zip
+  exit /b 1
+)
+powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[System.IO.Compression.ZipFile]::OpenRead('%VULKAN_LIB_ZIP%'); $e=$z.GetEntry('vulkan-1.lib'); if($e){[System.IO.Compression.ZipFileExtensions]::ExtractToFile($e,'%OUTPUT_BASE_DIR%\vulkan-1.lib',$true)}else{Write-Host 'Error: vulkan-1.lib not found in source zip'; exit 1}; $z.Dispose()" || (
+  echo Error: Failed to extract vulkan-1.lib from source zip
+  exit /b 1
+)
+del /q "%VULKAN_LIB_ZIP%" 2>nul
+echo vulkan-1.lib cached at: %OUTPUT_BASE_DIR%\vulkan-1.lib
+
+:vulkan_done
 if not exist "%OUTPUT_BASE_DIR%\vulkan-1.lib" (
-  echo Downloading filament v1.69.1 to extract vulkan-1.lib...
-  powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%VULKAN_LIB_URL%' -OutFile '%VULKAN_LIB_ZIP%'" || (
-    echo Error: Failed to download filament v1.69.1 zip
-    exit /b 1
-  )
-
-  echo Extracting vulkan-1.lib from zip...
-  if exist "%VULKAN_LIB_EXTRACT%" rmdir /s /q "%VULKAN_LIB_EXTRACT%"
-  mkdir "%VULKAN_LIB_EXTRACT%"
-  powershell -Command "Expand-Archive -Path '%VULKAN_LIB_ZIP%' -DestinationPath '%VULKAN_LIB_EXTRACT%' -Force" || (
-    echo Error: Failed to extract filament v1.69.1 zip
-    exit /b 1
-  )
-
-  REM Copy vulkan-1.lib to output base for reuse
-  if exist "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" (
-    copy /Y "%VULKAN_LIB_EXTRACT%\vulkan-1.lib" "%OUTPUT_BASE_DIR%\vulkan-1.lib" >nul
-  ) else (
-    echo Error: vulkan-1.lib not found in v1.69.1 zip
-    echo Contents of extracted zip:
-    dir /b "%VULKAN_LIB_EXTRACT%"
-    exit /b 1
-  )
-
-  REM Cleanup temp files
-  del /q "%VULKAN_LIB_ZIP%" 2>nul
-  rmdir /s /q "%VULKAN_LIB_EXTRACT%" 2>nul
-  echo vulkan-1.lib cached at: %OUTPUT_BASE_DIR%\vulkan-1.lib
-) else (
-  echo Using cached vulkan-1.lib from: %OUTPUT_BASE_DIR%\vulkan-1.lib
+  echo Error: could not obtain vulkan-1.lib from the Vulkan SDK or R2
+  exit /b 1
 )
 
 REM Copy vulkan-1.lib to target directories

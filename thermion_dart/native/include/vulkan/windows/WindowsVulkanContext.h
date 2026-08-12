@@ -12,8 +12,8 @@
 #include <thread>
 #include <vector>
 
-#include "filament/backend/Platform.h"
-#include "filament/backend/platforms/VulkanPlatform.h"
+#include "backend/Platform.h"
+#include "backend/platforms/VulkanPlatform.h"
 
 #include "windows/import.h"
 

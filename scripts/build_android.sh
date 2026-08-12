@@ -6,9 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.69.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
@@ -100,9 +100,13 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
+python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
 # Set compiler to clang (Filament requires clang, rejects GCC)
 export CC=clang
@@ -209,6 +213,30 @@ build_third_party_for_arch() {
     return 1
   }
 
+  echo "Building libassimp for $ABI ($BUILD_SUFFIX)..."
+  mkdir -p "$CMAKE_DIR/third_party/libassimp" && cd "$CMAKE_DIR/third_party/libassimp"
+  cmake -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$NDK_TOOLCHAIN" \
+    -DANDROID_ABI="$ABI" \
+    -DANDROID_PLATFORM=android-21 \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DCMAKE_C_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
+    -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+    -DASSIMP_BUILD_TESTS=OFF \
+    -DASSIMP_BUILD_SAMPLES=OFF \
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+    "$FILAMENT_BASE_DIR/third_party/libassimp/tnt" || {
+    echo "Error: libassimp cmake failed for $ABI ($BUILD_SUFFIX)"
+    return 1
+  }
+  ninja || {
+    echo "Error: libassimp build failed for $ABI ($BUILD_SUFFIX)"
+    return 1
+  }
+
   cd "$FILAMENT_BASE_DIR"
 }
 
@@ -269,6 +297,15 @@ if [ "$BUILD_RELEASE" = true ]; then
     else
       echo "WARNING: libtinyexr.a not found for $ARCH at $TINYEXR_SRC"
     fi
+
+    # Copy libassimp (built per-arch by build_third_party_for_arch)
+    ASSIMP_SRC="out/cmake-android-release-${CMAKE_ARCH}/third_party/libassimp/libassimp.a"
+    if [ -f "$ASSIMP_SRC" ]; then
+      echo "Found libassimp at $ASSIMP_SRC"
+      cp "$ASSIMP_SRC" "$TARGET_RELEASE_DIR/$ARCH/"
+    else
+      echo "WARNING: libassimp.a not found for $ARCH at $ASSIMP_SRC"
+    fi
   done
 fi
 
@@ -308,6 +345,15 @@ if [ "$BUILD_DEBUG" = true ]; then
     else
       echo "WARNING: libtinyexr.a not found for $ARCH at $TINYEXR_SRC"
     fi
+
+    # Copy libassimp (built per-arch by build_third_party_for_arch)
+    ASSIMP_SRC="out/cmake-android-debug-${CMAKE_ARCH}/third_party/libassimp/libassimp.a"
+    if [ -f "$ASSIMP_SRC" ]; then
+      echo "Found libassimp at $ASSIMP_SRC"
+      cp "$ASSIMP_SRC" "$TARGET_DEBUG_DIR/$ARCH/"
+    else
+      echo "WARNING: libassimp.a not found for $ARCH at $ASSIMP_SRC"
+    fi
   done
 fi
 
@@ -325,7 +371,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -334,6 +380,20 @@ if [ "$BUILD_RELEASE" = true ]; then
   mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_RELEASE_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -357,7 +417,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -366,6 +426,20 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_DEBUG_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -378,61 +452,11 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy header files to thermion_dart
-# All shared headers go to native/include/filament/
-# Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
+# Filament headers are bundled into the artifact zip's include/ above (per
+# target dir). They are no longer copied into a committed tree under
+# thermion_dart/native/include/filament — consumers source them from the
+# version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
-if [ "$BUILD_RELEASE" = true ]; then
-  HEADER_SOURCE="out/android-release/filament/include"
-elif [ "$BUILD_DEBUG" = true ]; then
-  HEADER_SOURCE="out/android-debug/filament/include"
-fi
-
-echo "Copying Filament header files to thermion_dart..."
-rm -rf "$THERMION_INCLUDE"
-mkdir -p "$THERMION_INCLUDE"
-cd "$FILAMENT_BASE_DIR"
-cp -R $HEADER_SOURCE/* "$THERMION_INCLUDE/" || {
-  echo "Error: Failed to copy Filament headers"
-  exit 1
-}
-
-# Copy imageio headers (not included in main include dir)
-mkdir -p "$THERMION_INCLUDE/imageio"
-cp -R libs/imageio/include/* "$THERMION_INCLUDE/imageio/" || {
-  echo "Error: Failed to copy imageio headers"
-  exit 1
-}
-
-# Copy release-specific uberarchive.h
-if [ "$BUILD_RELEASE" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/release/gltfio/materials"
-  cp out/android-release/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/release/gltfio/materials/" || {
-    echo "Error: Failed to copy release uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy debug-specific uberarchive.h
-if [ "$BUILD_DEBUG" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/debug/gltfio/materials"
-  cp out/android-debug/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/debug/gltfio/materials/" || {
-    echo "Error: Failed to copy debug uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy stb_image.h (third-party header used by TTexture.cpp)
-mkdir -p "$THERMION_INCLUDE/third_party/stb"
-cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$THERMION_INCLUDE/third_party/stb/" || {
-  echo "Error: Failed to copy stb_image.h"
-  exit 1
-}
-
-echo "Headers copied to: $THERMION_INCLUDE"
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then
