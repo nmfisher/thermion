@@ -641,9 +641,10 @@ copy_web_headers() {
     exit 1
   }
 
-  # imageio headers (not part of the main install include dir)
-  mkdir -p "$inc/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include/"* "$inc/imageio/" || {
+  # imageio headers (not part of the main install include dir).
+  # libs/imageio/include/ contains an imageio/ subdir, so copy into $inc/ to
+  # land at include/imageio/ImageDecoder.h (consumers include <imageio/...>).
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include/"* "$inc/" || {
     echo "Error: Failed to copy imageio headers"
     exit 1
   }
