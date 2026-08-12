@@ -137,7 +137,7 @@ TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
 if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
   echo "Already patched"
 else
-  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
 fi
 
 # Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time

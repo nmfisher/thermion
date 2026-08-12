@@ -117,7 +117,7 @@ TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
 if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
   echo "Already patched"
 else
-  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
 fi
 
 # Run release build (-s adds iOS simulator support, -l builds universal libraries)
@@ -201,14 +201,14 @@ if [ "$BUILD_RELEASE" = true ]; then
   # Build libz for release
   echo "Building libz (release)..."
   cd "$FILAMENT_BASE_DIR"
-  cd out/cmake-ios-release-arm64/third_party
+  cd out/cmake-ios-release-arm64-iphoneos/third_party
   mkdir -p libz && cd libz
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
   # Build imageio for release
   echo "Building imageio (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
   mkdir -p imageio && cd imageio
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
@@ -224,7 +224,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Build tinyexr for release
   echo "Building tinyexr (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
@@ -236,7 +236,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Build libassimp for release
   echo "Building libassimp (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
   rm -rf libassimp
   mkdir -p libassimp && cd libassimp
   cmake -G Ninja \
@@ -253,16 +253,16 @@ if [ "$BUILD_RELEASE" = true ]; then
   # Copy release third-party libraries
   echo "Copying release third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
-  cp out/cmake-ios-release-arm64/third_party/libz/*.a "$TARGET_RELEASE_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-release-arm64/third_party/imageio/*.a "$TARGET_RELEASE_DIR/" || {
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/libz/*.a "$TARGET_RELEASE_DIR/" || echo "Warning: No libz libraries found"
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/imageio/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy imageio libraries"
     exit 1
   }
-  cp out/cmake-ios-release-arm64/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
-  cp out/cmake-ios-release-arm64/third_party/libassimp/libassimp.a "$TARGET_RELEASE_DIR/" || {
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/libassimp/libassimp.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
@@ -322,14 +322,14 @@ if [ "$BUILD_DEBUG" = true ]; then
   # Build libz for debug
   echo "Building libz (debug)..."
   cd "$FILAMENT_BASE_DIR"
-  cd out/cmake-ios-debug-arm64/third_party
+  cd out/cmake-ios-debug-arm64-iphoneos/third_party
   mkdir -p libz && cd libz
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Debug "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
   # Build imageio for debug
   echo "Building imageio (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
   mkdir -p imageio && cd imageio
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Debug \
@@ -345,7 +345,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Build tinyexr for debug
   echo "Building tinyexr (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 \
@@ -357,7 +357,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Build libassimp for debug
   echo "Building libassimp (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
   rm -rf libassimp
   mkdir -p libassimp && cd libassimp
   cmake -G Ninja \
@@ -374,16 +374,16 @@ if [ "$BUILD_DEBUG" = true ]; then
   # Copy debug third-party libraries
   echo "Copying debug third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
-  cp out/cmake-ios-debug-arm64/third_party/libz/*.a "$TARGET_DEBUG_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-debug-arm64/third_party/imageio/*.a "$TARGET_DEBUG_DIR/" || {
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/libz/*.a "$TARGET_DEBUG_DIR/" || echo "Warning: No libz libraries found"
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/imageio/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy imageio libraries"
     exit 1
   }
-  cp out/cmake-ios-debug-arm64/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
-  cp out/cmake-ios-debug-arm64/third_party/libassimp/libassimp.a "$TARGET_DEBUG_DIR/" || {
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/libassimp/libassimp.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy libassimp libraries"
     exit 1
   }

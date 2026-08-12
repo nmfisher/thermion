@@ -87,6 +87,18 @@ if ! grep -q 'arm64.*iphonesimulator' build.sh; then
 ' build.sh
 fi
 
+# Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
+# (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
+# appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
+# versions whose CMakeLists lacks the anchor string.
+echo "Patching tinyexr CMakeLists.txt..."
+TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
+if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+fi
+
 # We also need to patch create-universal-libs.sh to handle three architectures.
 # Instead of patching lipo (which can't merge two arm64 slices), we'll build
 # separately and skip the universal step. Run Filament's build without -l.
