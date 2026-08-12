@@ -195,7 +195,10 @@ outputDirectory : ${outputDirectory.path}
       // runtime, just like the perfetto case above. iOS debug never enables
       // them (its cmake invocation passes neither option); Windows links
       // libraries via #pragma comment(lib) in ThermionWin32.h instead.
-      if ({OS.macOS, OS.android, OS.linux}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
+      if ({OS.macOS, OS.android, OS.linux}.contains(targetOS) && buildMode == BuildMode.debug) ...[
+        "matdbg",
+        "fgviewer",
+      ],
     ];
 
     if (targetOS == OS.windows) {
