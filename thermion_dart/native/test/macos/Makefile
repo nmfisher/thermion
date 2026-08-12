@@ -2,7 +2,7 @@
 # Using clang to build shared library directly
 
 # Configuration variables
-FILAMENT_VERSION = v1.69.1
+FILAMENT_VERSION = v1.74.0
 PACKAGE_NAME = thermion_dart
 PLATFORM = macos
 
@@ -24,7 +24,7 @@ NATIVE_INCLUDE_DIR = $(PKG_ROOT)/include
 OUTPUT_DIR = $(PKG_ROOT)/build
 
 # Hardcoded library path (for Filament libraries)
-LIB_DIR = /Users/nickfisher/Documents/thermion/thermion_dart/.dart_tool/thermion_dart/lib/v1.69.1/macos/debug
+LIB_DIR = /Users/nickfisher/Documents/thermion/thermion_dart/.dart_tool/thermion_dart/lib/v1.74.0/macos/debug
 
 # Libraries are already in LIB_DIR, no download needed
 

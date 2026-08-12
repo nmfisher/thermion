@@ -68,9 +68,6 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 #   source directory (follows symlinks / junctions).
 
 set(_TD_INCLUDE "")
-set(_TD_FILAMENT_INCLUDE "")
-set(_TD_FILAMENT_DEBUG "")
-set(_TD_FILAMENT_RELEASE "")
 set(_TD_VULKAN_WINDOWS "")
 
 # Walk up from runner_BINARY_DIR to find the Flutter app root
@@ -125,13 +122,6 @@ endif()
 
 if(_td_root)
   set(_TD_INCLUDE "${_td_root}/native/include")
-  set(_TD_FILAMENT_INCLUDE "${_td_root}/native/include/filament")
-  if(EXISTS "${_td_root}/native/include/filament/debug")
-    set(_TD_FILAMENT_DEBUG "${_td_root}/native/include/filament/debug")
-  endif()
-  if(EXISTS "${_td_root}/native/include/filament/release")
-    set(_TD_FILAMENT_RELEASE "${_td_root}/native/include/filament/release")
-  endif()
   if(EXISTS "${_td_root}/native/include/vulkan/windows")
     set(_TD_VULKAN_WINDOWS "${_td_root}/native/include/vulkan/windows")
   endif()
@@ -143,13 +133,6 @@ else()
     "${_REAL_PLUGIN_DIR}/../../../thermion_dart/native/include" ABSOLUTE)
   if(EXISTS "${_BASE}")
     set(_TD_INCLUDE "${_BASE}")
-    set(_TD_FILAMENT_INCLUDE "${_BASE}/filament")
-    if(EXISTS "${_BASE}/filament/debug")
-      set(_TD_FILAMENT_DEBUG "${_BASE}/filament/debug")
-    endif()
-    if(EXISTS "${_BASE}/filament/release")
-      set(_TD_FILAMENT_RELEASE "${_BASE}/filament/release")
-    endif()
     if(EXISTS "${_BASE}/vulkan/windows")
       set(_TD_VULKAN_WINDOWS "${_BASE}/vulkan/windows")
     endif()
@@ -168,11 +151,6 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}"
   ${DART_PKG_HEADERS}
   "${_TD_INCLUDE}"
-  "${_TD_FILAMENT_INCLUDE}"
-  "$<$<CONFIG:Debug>:${_TD_FILAMENT_DEBUG}>"
-  "$<$<CONFIG:Release>:${_TD_FILAMENT_RELEASE}>"
-  "$<$<CONFIG:RelWithDebInfo>:${_TD_FILAMENT_RELEASE}>"
-  "$<$<CONFIG:MinSizeRel>:${_TD_FILAMENT_RELEASE}>"
   "${_TD_VULKAN_WINDOWS}"
 )
 
