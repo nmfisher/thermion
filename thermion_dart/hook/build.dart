@@ -89,10 +89,7 @@ outputDirectory : ${outputDirectory.path}
     // Version-matched Filament headers extracted from the same R2 artifact as
     // the libraries (see getLibDir). Expressed relative to the package root to
     // match the convention of the other includeDirs entries.
-    final artifactIncludeRel = path.relative(
-      libResult.includeDir.path,
-      from: pkgRootFilePath,
-    );
+    final artifactIncludeRel = path.relative(libResult.includeDir.path, from: pkgRootFilePath);
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -578,10 +575,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   // The entire zip (libraries AND the `include/` header tree) is extracted to
   // `unzipDir`; for Android the per-arch libs live in a subdir but headers are
   // shared at the extraction root.
-  return (
-    libDir: libDir,
-    includeDir: Directory(path.join(unzipDir, 'include')),
-  );
+  return (libDir: libDir, includeDir: Directory(path.join(unzipDir, 'include')));
 }
 
 const _webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';
