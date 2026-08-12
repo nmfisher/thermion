@@ -14,10 +14,15 @@ set(MODULE_NAME "thermion_dart")
 
 set(EMCC_CFLAGS --bind)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_TABLE_GROWTH=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_MEMORY_GROWTH=0)
+# Heap growth enabled 2026-08-12: a fixed 512 MB heap OOMs on real AoA
+# capture-map texture payloads (3 layers x 3840^2 RGBA + G-buffers). With
+# shared memory (pthreads) the browser reserves MAXIMUM_MEMORY's address
+# range up front, so keep the initial small and the maximum bounded.
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_MEMORY_GROWTH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sINITIAL_MEMORY=512mb)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAXIMUM_MEMORY=2gb)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,lengthBytesUTF8,HEAPU8,HEAPU32,HEAPF32)
