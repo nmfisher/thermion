@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'dart:ui_web' as ui_web;
+
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide View;
