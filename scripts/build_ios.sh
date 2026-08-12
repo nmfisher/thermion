@@ -108,6 +108,18 @@ python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
+# Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
+# (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
+# appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
+# versions whose CMakeLists lacks the anchor string.
+echo "Patching tinyexr CMakeLists.txt..."
+TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
+if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+fi
+
 # Run release build (-s adds iOS simulator support, -l builds universal libraries)
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for iOS (release)..."
@@ -150,10 +162,38 @@ if [ "$BUILD_RELEASE" = true ]; then
     if [ "${#_slices[@]}" -eq 1 ]; then
       cp "${_slices[0]}" "$TARGET_RELEASE_DIR/$_name.a"
     else
-      lipo -create "${_slices[@]}" -output "$TARGET_RELEASE_DIR/$_name.a" || {
+      # Slices can overlap in architecture — v1.75.0's simulator slices are
+      # fat (arm64 + x86_64) while the device slices are arm64-only, so
+      # lipo -create of all slices fails ("same architectures and can't be
+      # in the same fat output file"). Deduplicate by extracting a thin
+      # slice per unique architecture, then combine those.
+      _have=()
+      _inputs=()
+      _tmpdir=$(mktemp -d)
+      for _a in "${_slices[@]}"; do
+        for _arch in $(lipo -archs "$_a"); do
+          case " ${_have[*]} " in
+            *" $_arch "*) continue ;;
+          esac
+          _have+=("$_arch")
+          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
+            _inputs+=("$_a")
+          else
+            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
+              echo "Error: failed to extract $_arch from $_a"
+              rm -rf "$_tmpdir"
+              exit 1
+            }
+            _inputs+=("$_tmpdir/$_name-$_arch.a")
+          fi
+        done
+      done
+      lipo -create "${_inputs[@]}" -output "$TARGET_RELEASE_DIR/$_name.a" || {
         echo "Error: failed to lipo universal library $_name"
+        rm -rf "$_tmpdir"
         exit 1
       }
+      rm -rf "$_tmpdir"
     fi
   done
   echo "Extracted universal libraries from XCFrameworks into $TARGET_RELEASE_DIR"
@@ -245,10 +285,36 @@ if [ "$BUILD_DEBUG" = true ]; then
     if [ "${#_slices[@]}" -eq 1 ]; then
       cp "${_slices[0]}" "$TARGET_DEBUG_DIR/$_name.a"
     else
-      lipo -create "${_slices[@]}" -output "$TARGET_DEBUG_DIR/$_name.a" || {
+      # See the release block above: slices can overlap in architecture
+      # (v1.75.0's simulator slices are fat arm64+x86_64), so deduplicate by
+      # extracting a thin slice per unique architecture before combining.
+      _have=()
+      _inputs=()
+      _tmpdir=$(mktemp -d)
+      for _a in "${_slices[@]}"; do
+        for _arch in $(lipo -archs "$_a"); do
+          case " ${_have[*]} " in
+            *" $_arch "*) continue ;;
+          esac
+          _have+=("$_arch")
+          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
+            _inputs+=("$_a")
+          else
+            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
+              echo "Error: failed to extract $_arch from $_a"
+              rm -rf "$_tmpdir"
+              exit 1
+            }
+            _inputs+=("$_tmpdir/$_name-$_arch.a")
+          fi
+        done
+      done
+      lipo -create "${_inputs[@]}" -output "$TARGET_DEBUG_DIR/$_name.a" || {
         echo "Error: failed to lipo universal library $_name"
+        rm -rf "$_tmpdir"
         exit 1
       }
+      rm -rf "$_tmpdir"
     fi
   done
   echo "Extracted universal libraries from XCFrameworks into $TARGET_DEBUG_DIR"
