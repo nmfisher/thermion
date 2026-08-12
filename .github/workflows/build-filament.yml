@@ -488,7 +488,7 @@ jobs:
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: '3.1.60'
+          version: '6.0.4'
 
       - name: Build Filament
         run: |

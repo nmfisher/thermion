@@ -1,5 +1,6 @@
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:flutter/material.dart';
+
 import '../../../utils/camera_orientation.dart';
 
 class CameraOptionsWidget extends StatefulWidget {

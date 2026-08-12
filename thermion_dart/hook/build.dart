@@ -77,14 +77,19 @@ outputDirectory : ${outputDirectory.path}
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
-    var libDir = (await getLibDir(
+    final libResult = await getLibDir(
       packageRoot,
       targetOS,
       targetArchitecture,
       logger,
       buildMode,
       isIOSSimulator: isIOSSimulator,
-    )).path;
+    );
+    var libDir = libResult.libDir.path;
+    // Version-matched Filament headers extracted from the same R2 artifact as
+    // the libraries (see getLibDir). Expressed relative to the package root to
+    // match the convention of the other includeDirs entries.
+    final artifactIncludeRel = path.relative(libResult.includeDir.path, from: pkgRootFilePath);
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -152,6 +157,15 @@ outputDirectory : ${outputDirectory.path}
       if (targetOS != OS.iOS) "filamat",
       if (targetOS == OS.linux) "shaders",
       "utils",
+      // Android links Filament's Perfetto tracing archive. utils is always
+      // built with src/android/Systrace.cpp on Android, and its debug object
+      // references perfetto::internal::InProcessTracingBackend::GetInstance().
+      // build_android.sh bundles libperfetto.a in both release and debug zips;
+      // linking it unconditionally is harmless when unused (static archives
+      // only yield members needed to resolve references). Without it the
+      // shared library keeps an undefined perfetto symbol and dlopen fails at
+      // runtime: "cannot locate symbol ...InProcessTracingBackend...".
+      if (targetOS == OS.android) "perfetto",
       "filabridge",
       "gltfio_core",
       if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
@@ -172,7 +186,16 @@ outputDirectory : ${outputDirectory.path}
       if (!{OS.linux, OS.android}.contains(targetOS)) "zstd",
       //"mikktspace",
       "geometry",
-      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
+      // Debug builds of Filament enable the Material Debug Server and Frame
+      // Graph viewer (build.sh -d/-t -> FILAMENT_ENABLE_MATDBG/FGVIEWER), so
+      // the debug zips for desktop (macOS/Linux) and Android ship
+      // libmatdbg.a/libfgviewer.a and their filament archives reference them
+      // (e.g. filament::matdbg::DebugServer). Without these the debug shared
+      // library keeps undefined matdbg/fgviewer symbols and dlopen fails at
+      // runtime, just like the perfetto case above. iOS debug never enables
+      // them (its cmake invocation passes neither option); Windows links
+      // libraries via #pragma comment(lib) in ThermionWin32.h instead.
+      if ({OS.macOS, OS.android, OS.linux}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
     ];
 
     if (targetOS == OS.windows) {
@@ -195,14 +218,19 @@ outputDirectory : ${outputDirectory.path}
 
     final flags = <String>[]; //"-fsanitize=address"];
 
-    // Collect include directories including plugin includes
-    // Use debug or release Filament headers based on build mode
-    // Headers are under filament/debug or filament/release so includes like <filament/SomeHeader.h> work
-    final filamentIncludeDir = [
-      'native/include/filament',
-      buildMode == BuildMode.debug ? 'native/include/filament/debug' : 'native/include/filament/release',
-    ];
-    final includeDirs = <String>['native/include', ...filamentIncludeDir];
+    // Include directories:
+    //  - `native/include`     : Thermion's OWN headers (c_api/, components/,
+    //                           ...) still committed in-tree.
+    //  - `artifactIncludeRel` : the Filament C++ headers, sourced from the
+    //                           version-matched R2 artifact extracted by
+    //                           getLibDir() (under .dart_tool/.../include).
+    //                           This replaces a hand-committed Filament header
+    //                           tree that drifted out of sync with the linked
+    //                           libraries on version bumps. `<filament/...>`,
+    //                           `<utils/...>`, `<backend/...>` and
+    //                           `<gltfio/materials/uberarchive.h>` all resolve
+    //                           from this flat root.
+    final includeDirs = <String>['native/include', artifactIncludeRel];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {
@@ -430,7 +458,7 @@ String _getFilamentVersion() {
     return parts.length >= 2 ? parts[1] : parts[0];
   }
   // Fallback to hardcoded version if file doesn't exist
-  return "v1.69.1";
+  return "v1.74.0";
 }
 
 String _FILAMENT_VERSION = _getFilamentVersion();
@@ -441,7 +469,12 @@ String _getLibraryUrl(String platform, String mode) {
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
-Future<Directory> getLibDir(
+// The downloaded zip also contains a complete, version-matched Filament header tree
+// under `include/`, which is extracted alongside the libraries. We return that include
+// directory so consumers compile against headers that always match the linked
+// libraries (rather than a hand-committed tree that drifts on version bumps).
+//
+Future<({Directory libDir, Directory includeDir})> getLibDir(
   Uri packageRoot,
   OS targetOS,
   Architecture targetArchitecture,
@@ -557,7 +590,10 @@ Future<Directory> getLibDir(
     }
     successToken.writeAsStringSync("SUCCESS");
   }
-  return libDir;
+  // The entire zip (libraries AND the `include/` header tree) is extracted to
+  // `unzipDir`; for Android the per-arch libs live in a subdir but headers are
+  // shared at the extraction root.
+  return (libDir: libDir, includeDir: Directory(path.join(unzipDir, 'include')));
 }
 
 const _webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';

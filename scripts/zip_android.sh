@@ -2,7 +2,7 @@
 
 # Creates android release/debug zip files from an existing Filament out directory.
 # Usage: ./zip_android.sh <OUT_DIR> <FILAMENT_VERSION> <OUTPUT_DIR>
-# Example: ./zip_android.sh /tmp/out v1.69.1 /tmp
+# Example: ./zip_android.sh /tmp/out v1.74.0 /tmp
 #
 # NOTE: imageio/tinyexr must have been cross-compiled for each Android arch
 # (placed at out/cmake-android-{release,debug}-{arch}/third_party/{imageio,tinyexr}/).
@@ -11,7 +11,7 @@
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <OUT_DIR> <FILAMENT_VERSION> <OUTPUT_DIR>"
   echo "  OUT_DIR: path to Filament's out/ directory"
-  echo "  FILAMENT_VERSION: e.g. v1.69.1"
+  echo "  FILAMENT_VERSION: e.g. v1.74.0"
   echo "  OUTPUT_DIR: where to write the zip files"
   exit 1
 fi

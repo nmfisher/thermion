@@ -20,6 +20,21 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
   "/usr/include/gtk-3.0"
   )
 
+# Filament C++ headers are sourced from the version-matched R2 artifact via
+# thermion_dart's build hook, which writes DART_PKG_HEADERS (the extracted
+# artifact `include/` plus Thermion's own `native/include`) to
+# generated_headers.cmake. See thermion_flutter/hook/build.dart.
+set(GENERATED_HEADERS_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/generated_headers.cmake")
+if(EXISTS "${GENERATED_HEADERS_CMAKE}")
+  include("${GENERATED_HEADERS_CMAKE}")
+else()
+  message(STATUS
+    "thermion_flutter: ${GENERATED_HEADERS_CMAKE} not yet present; "
+    "DART_PKG_HEADERS is empty. The dart_build step will produce it and the "
+    "next build will pick it up automatically.")
+  set(DART_PKG_HEADERS "")
+endif()
+
 # thermion_dart native-assets output
 # Flutter places native-assets at: <project>/build/native_assets/linux/
 # CMake build dir is: <project>/build/linux/x64/{release,debug}/
@@ -36,9 +51,6 @@ target_include_directories(${PLUGIN_NAME} PRIVATE "${NATIVE_ASSETS_DIR}")
 #   source directory (follows symlinks).
 
 set(_TD_INCLUDE "")
-set(_TD_FILAMENT_INCLUDE "")
-set(_TD_FILAMENT_DEBUG "")
-set(_TD_FILAMENT_RELEASE "")
 set(_TD_VULKAN_LINUX "")
 set(_TD_OPENGL_LINUX "")
 
@@ -94,13 +106,6 @@ endif()
 
 if(_td_root)
   set(_TD_INCLUDE "${_td_root}/native/include")
-  set(_TD_FILAMENT_INCLUDE "${_td_root}/native/include/filament")
-  if(EXISTS "${_td_root}/native/include/filament/debug")
-    set(_TD_FILAMENT_DEBUG "${_td_root}/native/include/filament/debug")
-  endif()
-  if(EXISTS "${_td_root}/native/include/filament/release")
-    set(_TD_FILAMENT_RELEASE "${_td_root}/native/include/filament/release")
-  endif()
   if(EXISTS "${_td_root}/native/include/vulkan/linux")
     set(_TD_VULKAN_LINUX "${_td_root}/native/include/vulkan/linux")
   endif()
@@ -113,13 +118,6 @@ else()
     "${_REAL_PLUGIN_DIR}/../../../thermion_dart/native/include" ABSOLUTE)
   if(EXISTS "${_BASE}")
     set(_TD_INCLUDE "${_BASE}")
-    set(_TD_FILAMENT_INCLUDE "${_BASE}/filament")
-    if(EXISTS "${_BASE}/filament/debug")
-      set(_TD_FILAMENT_DEBUG "${_BASE}/filament/debug")
-    endif()
-    if(EXISTS "${_BASE}/filament/release")
-      set(_TD_FILAMENT_RELEASE "${_BASE}/filament/release")
-    endif()
     if(EXISTS "${_BASE}/vulkan/linux")
       set(_TD_VULKAN_LINUX "${_BASE}/vulkan/linux")
     endif()
@@ -131,12 +129,8 @@ else()
 endif()
 
 target_include_directories(${PLUGIN_NAME} PRIVATE
+  ${DART_PKG_HEADERS}
   "${_TD_INCLUDE}"
-  "${_TD_FILAMENT_INCLUDE}"
-  "$<$<CONFIG:Debug>:${_TD_FILAMENT_DEBUG}>"
-  "$<$<CONFIG:Release>:${_TD_FILAMENT_RELEASE}>"
-  "$<$<CONFIG:RelWithDebInfo>:${_TD_FILAMENT_RELEASE}>"
-  "$<$<CONFIG:MinSizeRel>:${_TD_FILAMENT_RELEASE}>"
   "${_TD_VULKAN_LINUX}"
   "${_TD_OPENGL_LINUX}"
 )

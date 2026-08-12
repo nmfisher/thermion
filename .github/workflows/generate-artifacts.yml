@@ -69,6 +69,11 @@ jobs:
             materials-changed:
               - 'materials/**'
               - 'examples/assets/*.mat'
+              # A Filament version bump can change the material package format
+              # (MaterialDefinition panics on version mismatch), so the
+              # materials must be recompiled with the new matc even when no
+              # .mat source changed.
+              - 'filament.version'
 
       - name: Setup CMake
         if: steps.changes.outputs.native-changed == 'true'
@@ -200,7 +205,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: thermion_dart/native/web/lib/release
-          key: filament-web-${{ hashFiles('Makefile') }}
+          key: filament-web-${{ hashFiles('filament.version') }}
           restore-keys: |
             filament-web-
 

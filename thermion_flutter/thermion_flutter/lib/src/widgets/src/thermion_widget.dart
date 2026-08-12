@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide View;
+
 import '../../platform/src/platform_texture_descriptor.dart';
 import 'thermion_widget_internal/surface_widget_builder.dart';
+
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 class ThermionWidget extends StatefulWidget {
