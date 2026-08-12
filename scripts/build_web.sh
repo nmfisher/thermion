@@ -604,6 +604,15 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
+  # v1.74.0+ builds zlib's SHARED target (named libz.a via OUTPUT_NAME) as an
+  # Emscripten shared module, which never yields a .a, so only libzstatic.a
+  # ships. The web CMakeLists links a `z` target expecting libz.a (both
+  # archives were byte-identical in v1.69.1), so alias it from the static
+  # build to keep the artifact contract.
+  if [ ! -f "$TARGET_RELEASE_DIR/libz.a" ] && [ -f "$TARGET_RELEASE_DIR/libzstatic.a" ]; then
+    cp "$TARGET_RELEASE_DIR/libzstatic.a" "$TARGET_RELEASE_DIR/libz.a"
+  fi
+
   # Copy .bc (bitcode) files if they exist
   find out/cmake-webgl-release -name "*.bc" -type f -exec cp {} "$TARGET_RELEASE_DIR/" \; 2>/dev/null
 fi
@@ -618,6 +627,12 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "Error: Failed to copy debug libraries"
     exit 1
   }
+
+  # See the release block above: v1.74.0+ only ships libzstatic.a; alias it
+  # so the `z` target in the web CMakeLists resolves.
+  if [ ! -f "$TARGET_DEBUG_DIR/libz.a" ] && [ -f "$TARGET_DEBUG_DIR/libzstatic.a" ]; then
+    cp "$TARGET_DEBUG_DIR/libzstatic.a" "$TARGET_DEBUG_DIR/libz.a"
+  fi
 
   # Copy .bc (bitcode) files if they exist
   find out/cmake-webgl-debug -name "*.bc" -type f -exec cp {} "$TARGET_DEBUG_DIR/" \; 2>/dev/null
