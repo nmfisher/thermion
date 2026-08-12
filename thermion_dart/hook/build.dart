@@ -186,7 +186,16 @@ outputDirectory : ${outputDirectory.path}
       if (!{OS.linux, OS.android}.contains(targetOS)) "zstd",
       //"mikktspace",
       "geometry",
-      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
+      // Debug builds of Filament enable the Material Debug Server and Frame
+      // Graph viewer (build.sh -d/-t -> FILAMENT_ENABLE_MATDBG/FGVIEWER), so
+      // the debug zips for desktop (macOS/Linux) and Android ship
+      // libmatdbg.a/libfgviewer.a and their filament archives reference them
+      // (e.g. filament::matdbg::DebugServer). Without these the debug shared
+      // library keeps undefined matdbg/fgviewer symbols and dlopen fails at
+      // runtime, just like the perfetto case above. iOS debug never enables
+      // them (its cmake invocation passes neither option); Windows links
+      // libraries via #pragma comment(lib) in ThermionWin32.h instead.
+      if ({OS.macOS, OS.android, OS.linux}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
     ];
 
     if (targetOS == OS.windows) {
