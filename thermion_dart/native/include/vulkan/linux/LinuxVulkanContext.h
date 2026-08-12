@@ -6,8 +6,8 @@
 
 #include "SurfaceExportInfo.h"
 #include "bluevk/BlueVK.h"
-#include "filament/backend/Platform.h"
-#include "filament/backend/platforms/VulkanPlatform.h"
+#include "backend/Platform.h"
+#include "backend/platforms/VulkanPlatform.h"
 
 namespace thermion::vulkan::linux_platform {
 

@@ -3,8 +3,8 @@
 #include <mutex>
 
 #include "utils/ostream.h"
-#include "filament/backend/Platform.h"
-#include "filament/backend/platforms/VulkanPlatform.h"
+#include "backend/Platform.h"
+#include "backend/platforms/VulkanPlatform.h"
 
 #include "windows/import.h"
 
@@ -30,7 +30,8 @@ class WindowsVulkanPlatform : public filament::backend::VulkanPlatform {
              uint64_t flags) const noexcept override;
 
        ExternalImageMetadata extractExternalImageMetadata(ExternalImageHandleRef image) const override;
-       ImageData createVkImageFromExternal(ExternalImageHandleRef image) const override;
+       ImageData createVkImageFromExternal(ExternalImageHandleRef image,
+              uint32_t logicalWidth, uint32_t logicalHeight) const override;
 
        SwapChainPtr current = std::nullptr_t();
        std::mutex mutex;
