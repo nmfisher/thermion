@@ -369,6 +369,19 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
+  # Filament's install rules never install libs/utils/include/utils/android/
+  # (those headers are internal to its own Android build), but the installed
+  # utils/Systrace.h includes <utils/android/Systrace.h> under __ANDROID__,
+  # and that header pulls in PerformanceHintManager.h. Copy the whole
+  # platform dir from the checked-out tag so the zip's include/ tree is
+  # complete for Android consumers.
+  mkdir -p "$TARGET_RELEASE_DIR/include/utils/android"
+  cp "$FILAMENT_BASE_DIR/libs/utils/include/utils/android/"*.h \
+      "$TARGET_RELEASE_DIR/include/utils/android/" || {
+    echo "Error: Failed to copy utils/android headers to target"
+    exit 1
+  }
+
   # Copy imageio headers
   mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
   cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
@@ -412,6 +425,16 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p "$TARGET_DEBUG_DIR/include"
   cp -R "$FILAMENT_BASE_DIR/$HEADER_SOURCE"/* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy debug headers to target"
+    exit 1
+  }
+
+  # See the release branch above: Filament never installs utils/android/, but
+  # the installed utils/Systrace.h includes <utils/android/Systrace.h> under
+  # __ANDROID__. Bundle the platform dir from the source tree as well.
+  mkdir -p "$TARGET_DEBUG_DIR/include/utils/android"
+  cp "$FILAMENT_BASE_DIR/libs/utils/include/utils/android/"*.h \
+      "$TARGET_DEBUG_DIR/include/utils/android/" || {
+    echo "Error: Failed to copy utils/android headers to target"
     exit 1
   }
 
