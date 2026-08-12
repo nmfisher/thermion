@@ -157,6 +157,15 @@ outputDirectory : ${outputDirectory.path}
       if (targetOS != OS.iOS) "filamat",
       if (targetOS == OS.linux) "shaders",
       "utils",
+      // Android links Filament's Perfetto tracing archive. utils is always
+      // built with src/android/Systrace.cpp on Android, and its debug object
+      // references perfetto::internal::InProcessTracingBackend::GetInstance().
+      // build_android.sh bundles libperfetto.a in both release and debug zips;
+      // linking it unconditionally is harmless when unused (static archives
+      // only yield members needed to resolve references). Without it the
+      // shared library keeps an undefined perfetto symbol and dlopen fails at
+      // runtime: "cannot locate symbol ...InProcessTracingBackend...".
+      if (targetOS == OS.android) "perfetto",
       "filabridge",
       "gltfio_core",
       if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
