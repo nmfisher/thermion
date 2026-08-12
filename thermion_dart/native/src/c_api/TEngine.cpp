@@ -7,7 +7,7 @@
 #include "c_api/TEngine.h"
 
 #include <filament/Camera.h>
-#include <filament/backend/DriverEnums.h>
+#include <backend/DriverEnums.h>
 #include <filament/DebugRegistry.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>

@@ -10,7 +10,7 @@
 #include <iostream>
 #include <unordered_map>
 
-#include "filament/backend/platforms/VulkanPlatform.h"
+#include "backend/platforms/VulkanPlatform.h"
 #include "Log.hpp"
 
 namespace thermion::vulkan::linux_platform {
