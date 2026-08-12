@@ -22,7 +22,7 @@
 
 #include <cgltf.h>
 
-#include <filament/geometry/SurfaceOrientation.h>
+#include <geometry/SurfaceOrientation.h>
 
 #include <utils/NameComponentManager.h>
 
