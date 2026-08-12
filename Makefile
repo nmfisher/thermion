@@ -4,10 +4,11 @@ wasm:
 		mkdir -p thermion_dart/native/web/lib/release; \
 		curl -L -o thermion_dart/native/web/lib/release/filament-v1.74.0-web-release.zip \
 			https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-v1.74.0-web-release.zip; \
-		echo "Extracting filament-v1.74.0-web-release.zip..."; \
-		cd thermion_dart/native/web/lib/release && \
-		unzip filament-v1.74.0-web-release.zip; \
 	fi
+	@echo "Extracting filament-v1.74.0-web-release.zip..."; \
+	cd thermion_dart/native/web/lib/release && \
+	rm -rf include lib && \
+	unzip -o filament-v1.74.0-web-release.zip
 	cd thermion_dart/native/web && \
 	mkdir -p build && \
 	cd build && \

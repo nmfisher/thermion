@@ -193,7 +193,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: thermion_dart/native/web/lib/release
-          key: filament-web-${{ hashFiles('Makefile') }}
+          key: filament-web-${{ hashFiles('filament.version') }}
           restore-keys: |
             filament-web-
 
