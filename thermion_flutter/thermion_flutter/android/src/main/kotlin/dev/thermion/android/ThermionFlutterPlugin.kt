@@ -252,10 +252,19 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.error("TEXTURE_NOT_FOUND", "Texture with id $textureId not found", null)
                 }
             }
-        "getDriverPlatform" -> { 
+        "getRenderingContext" -> {
+          // The Dart registry reads the driver platform and the shared context
+          // in ONE channel call so both are captured under a single native
+          // lock on multi-engine platforms. Android's Filament OpenGL backend
+          // creates its own context, so both values are null — the same
+          // answers the legacy getDriverPlatform/getSharedContext handlers
+          // below have always returned.
+          result.success(listOf(null, null))
+        }
+        "getDriverPlatform" -> {
           result.success(null)
         }
-        "getSharedContext" -> { 
+        "getSharedContext" -> {
           result.success(null)
         }
         else -> {
