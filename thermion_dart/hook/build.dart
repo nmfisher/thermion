@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
+  
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
@@ -183,7 +184,15 @@ outputDirectory : ${outputDirectory.path}
       "smol-v",
       "basis_transcoder",
       "uberarchive",
-      if (!{OS.linux, OS.android}.contains(targetOS)) "zstd",
+      // Filament 1.75.0's libfilamat.a references external ZSTD_* symbols
+      // (e.g. ZSTD_getFrameContentSize). Desktop/iOS/Android have no guarantee
+      // of a system libzstd, so link the static libzstd.a bundled in the R2
+      // artifact for every platform except Linux, which uses the system
+      // libzstd.so. Without this, Android dlopen fails at runtime with
+      // "cannot locate symbol ZSTD_getFrameContentSize" (Android ships no
+      // libzstd), and the libzstd.a must be present in the Android zip — see
+      // scripts/zip_android.sh.
+      if (targetOS != OS.linux) "zstd",
       //"mikktspace",
       "geometry",
       // Debug builds of Filament enable the Material Debug Server and Frame
@@ -195,7 +204,10 @@ outputDirectory : ${outputDirectory.path}
       // runtime, just like the perfetto case above. iOS debug never enables
       // them (its cmake invocation passes neither option); Windows links
       // libraries via #pragma comment(lib) in ThermionWin32.h instead.
-      if ({OS.macOS, OS.android, OS.linux}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
+      if ({OS.macOS, OS.android, OS.linux}.contains(targetOS) && buildMode == BuildMode.debug) ...[
+        "matdbg",
+        "fgviewer",
+      ],
     ];
 
     if (targetOS == OS.windows) {
@@ -448,22 +460,26 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-String _getFilamentVersion() {
-  final versionFile = File(
-    path.join(path.dirname(path.dirname(Platform.script.toFilePath(windows: Platform.isWindows))), 'filament.version'),
-  );
+// filament.version lives at the repo root (the parent of this package). We
+// can't derive that from `Platform.script`: when this hook runs as a *compiled
+// build hook* the script URI points at the consuming package's
+// `.dart_tool/hooks_runner/.../hook.dill`, not at this source file, so the old
+// `dirname(dirname(script))` computation landed inside the wrong package and
+// the file was never found (bare `throw Exception()`). Resolve it relative to
+// the package root that getLibDir already has instead.
+String _getFilamentVersion(Uri packageRoot) {
+  final pkgPath = packageRoot.toFilePath(windows: Platform.isWindows);
+  final versionFile = File(path.join(path.dirname(pkgPath), 'filament.version'));
   if (versionFile.existsSync()) {
     final parts = versionFile.readAsStringSync().trim().split(RegExp(r'\s+'));
     // Format: "<repo> <version>" - return the version (second field)
     return parts.length >= 2 ? parts[1] : parts[0];
   }
-  // Fallback to hardcoded version if file doesn't exist
-  return "v1.74.0";
+  throw Exception('filament.version not found at ${versionFile.path}');
 }
 
-String _FILAMENT_VERSION = _getFilamentVersion();
-String _getLibraryUrl(String platform, String mode) {
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
+String _getLibraryUrl(String version, String platform, String mode) {
+  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
 }
 
 //
@@ -484,6 +500,8 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 }) async {
   var platform = targetOS.toString().toLowerCase();
 
+  final version = _getFilamentVersion(packageRoot);
+
   // Use separate library directory for iOS simulator (arm64 simulator
   // libraries can't be lipo'd with arm64 device libraries).
   if (isIOSSimulator) {
@@ -498,7 +516,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       ".dart_tool",
       "thermion_dart",
       "lib",
-      _FILAMENT_VERSION,
+      version,
       platform,
       mode,
     ),
@@ -531,7 +549,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  var url = _getLibraryUrl(platform, mode);
+  var url = _getLibraryUrl(version, platform, mode);
 
   final filename = url.split("/").last;
 

@@ -2,7 +2,7 @@
 
 ## 0.6.0
 
-Update to Filament v1.74.0!
+Update to Filament v1.75.0!
 
 ### Breaking changes
 - `LightManager.setShadowCaster`/`setShadowOptions` and

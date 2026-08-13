@@ -58,8 +58,10 @@ namespace thermion
     class GltfAnimationComponentManager : public utils::SingleInstanceComponentManager<GltfAnimationComponent> {
         public:
             GltfAnimationComponentManager(
+                utils::EntityManager &em,
                 filament::TransformManager &transformManager,
-                filament::RenderableManager &renderableManager) : 
+                filament::RenderableManager &renderableManager) :
+                    utils::SingleInstanceComponentManager<GltfAnimationComponent>(em, "GltfAnimationComponentManager"),
                     mTransformManager(transformManager), mRenderableManager(renderableManager) {};
             ~GltfAnimationComponentManager() = default;
             void addAnimationComponent(FilamentInstance *target);

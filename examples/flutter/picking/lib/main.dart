@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart' hide View;
+import 'package:flutter/services.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 void main() {
@@ -41,14 +42,28 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _thermionViewer = await ThermionFlutterPlugin.createViewer();
+      _thermionViewer!.view.setTransparentPickingEnabled(true);
+      // var matData = await rootBundle.load("assets/picking_index0.filamat");
+      // var mat = await FilamentApp.instance!
+      //     .createMaterial(matData.buffer.asUint8List(matData.offsetInBytes));
+      // var mi = await mat.createInstance();
+      // await mi.setParameterFloat4("baseColorFactor", 1, 0, 0, 1);
+      // await mi.setParameterInt("baseColorIndex", -1);
+
       var asset = await _thermionViewer!
-          .loadGltf("assets/cube.glb", initialInstances: 4);
+          .createGeometry(GeometryUtils.cube(), materialInstances: [
+            // mi
+            ]);
+
       var instances = <ThermionAsset>[
-        await asset.getInstance(0),
+        await asset.createInstance(),
         await asset.createInstance(),
         await asset.createInstance(),
         await asset.createInstance()
       ];
+      for (final instance in instances) {
+        await _thermionViewer!.addToScene(instance);
+      }
 
       var vectors = <Vector2>[
         Vector2(1, 1),
@@ -83,12 +98,14 @@ class _MyHomePageState extends State<MyHomePage> {
       final camera = await _thermionViewer!.getActiveCamera();
       await camera.lookAt(Vector3(0, 0, 10));
 
-      await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
+      // await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
       await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
-      await _thermionViewer!.setPostProcessing(true);
+      await _thermionViewer!.setPostProcessing(false);
+      await _thermionViewer!.view.setBlendMode(BlendMode.transparent);
 
       var pickingDelegate = _InputHandlerDelegate(_thermionViewer!.view,
           (ThermionEntity entity, int x, int y) async {
+        print("PICKED $entity");
         int picked = -1;
         for (int i = 0; i < instances.length; i++) {
           var instance = instances[i];
@@ -163,16 +180,16 @@ class _InputHandlerDelegate extends InputHandlerDelegate {
         case MouseEvent(:final type, :final localPosition):
           switch (type) {
             case MouseEventType.buttonDown:
-              await view.pick(
-                  localPosition.x.toInt(), localPosition.y.toInt(), _onPickResult);
+              await view.pick(localPosition.x.toInt(), localPosition.y.toInt(),
+                  _onPickResult);
             default:
               break;
           }
           break;
         case TouchEvent(:final localPosition):
           if (localPosition != null) {
-            await view.pick(
-                localPosition.x.toInt(), localPosition.y.toInt(), _onPickResult);
+            await view.pick(localPosition.x.toInt(), localPosition.y.toInt(),
+                _onPickResult);
           }
           break;
         default:
