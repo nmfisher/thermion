@@ -39,14 +39,17 @@ for BUILD_TYPE in release debug; do
     CMAKE_ARCH=$(abi_to_cmake_arch "$ARCH")
     mkdir -p "$STAGE_DIR/$ARCH"
 
-    # Copy main Filament libraries
+    # Copy main Filament libraries.
+    # NOTE: libzstd.a MUST be included. As of Filament 1.75.0, libfilamat.a
+    # references external ZSTD_* symbols (e.g. ZSTD_getFrameContentSize) that
+    # are no longer bundled inside the Filament archives. Android has no system
+    # libzstd, so omitting libzstd.a leaves those symbols undefined and dlopen
+    # of libthermion_dart.so fails at runtime:
+    #   "cannot locate symbol ZSTD_getFrameContentSize".
     SRC="$OUT_DIR/android-${BUILD_TYPE}/filament/lib/$ARCH"
     if [ -d "$SRC" ]; then
       for lib in "$SRC"/*.a; do
-        case "$(basename "$lib")" in
-          *zstd*) echo "Skipping $(basename "$lib") (bundled in Filament)" ;;
-          *) cp "$lib" "$STAGE_DIR/$ARCH/" ;;
-        esac
+        cp "$lib" "$STAGE_DIR/$ARCH/"
       done
     else
       echo "WARNING: $SRC not found"

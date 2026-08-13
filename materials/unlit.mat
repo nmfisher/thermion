@@ -1,6 +1,6 @@
 material {
     name : Unlit,
-    requires : [ position ],
+    requires : [ position, uv0 ],
     parameters : [
         {
             type : sampler2d,

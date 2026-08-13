@@ -32,9 +32,10 @@ namespace thermion
     {
         auto &transformManager = mEngine->getTransformManager();
         auto &renderableManager = mEngine->getRenderableManager();
-        mGltfAnimationComponentManager = std::make_unique<GltfAnimationComponentManager>(transformManager, renderableManager);
-        mMorphAnimationComponentManager = std::make_unique<MorphAnimationComponentManager>(transformManager, renderableManager);
-        mBoneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(transformManager, renderableManager);
+        auto &em = EntityManager::get();
+        mGltfAnimationComponentManager = std::make_unique<GltfAnimationComponentManager>(em, transformManager, renderableManager);
+        mMorphAnimationComponentManager = std::make_unique<MorphAnimationComponentManager>(em, transformManager, renderableManager);
+        mBoneAnimationComponentManager = std::make_unique<BoneAnimationComponentManager>(em, transformManager, renderableManager);
     }
 
     AnimationManager::~AnimationManager()

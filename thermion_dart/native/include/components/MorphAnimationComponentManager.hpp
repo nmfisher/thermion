@@ -48,8 +48,10 @@ namespace thermion
     class MorphAnimationComponentManager : public utils::SingleInstanceComponentManager<MorphAnimationComponent> {
         public:
             MorphAnimationComponentManager(
+                utils::EntityManager &em,
                 filament::TransformManager &transformManager,
-                filament::RenderableManager &renderableManager) : 
+                filament::RenderableManager &renderableManager) :
+                    utils::SingleInstanceComponentManager<MorphAnimationComponent>(em, "MorphAnimationComponentManager"),
                     mTransformManager(transformManager), mRenderableManager(renderableManager) {};
             ~MorphAnimationComponentManager() {};
             
