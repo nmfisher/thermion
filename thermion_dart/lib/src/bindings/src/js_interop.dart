@@ -185,7 +185,54 @@ Future<bool> Texture_setImageFromBuffer(
   }
 }
 
-Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
+var _ktx2StagedInputBytes = 0;
+
+/// Creates a KTX2 texture from [data] on the render thread.
+///
+/// `ffigen_js` copies `Uint8List.address` into WASM memory. Real KTX2 inputs
+/// exceed its 32 KiB threshold and therefore use `malloc`; the returned pointer
+/// must be freed only after the render-thread callback has settled. The native
+/// entry point copies the bytes synchronously before it queues the task, so the
+/// callback is the ownership boundary.
+Future<Pointer<TKtx2LoadResult>> Ktx2Reader_createTextureFromBuffer(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Uint8List data,
+  int transferFunction,
+  int maxMipLevels,
+) async {
+  final ptr = data.address;
+  final size = data.lengthInBytes;
+  _ktx2StagedInputBytes += size;
+  try {
+    return await withPointerCallback<TKtx2LoadResult>((cb) {
+      Ktx2Reader_createTextureJobThread(
+        jobThread,
+        tEngine,
+        ptr,
+        size,
+        transferFunction,
+        maxMipLevels,
+        cb,
+      );
+    });
+  } finally {
+    // No-op for ffigen_js's < 32 KiB stack allocation; releases its malloc'd
+    // copy for real texture inputs.
+    ptr.free();
+    _ktx2StagedInputBytes -= size;
+  }
+}
+
+/// Bytes currently staged by pending web KTX2 calls.
+///
+/// Exposed for ownership tests so successful and unsupported loads can assert
+/// that their staging allocation returned to baseline.
+int get debugKtx2StagedInputBytes => _ktx2StagedInputBytes;
+
+Future<bool> withBoolCallback(
+  Function(Pointer<NativeFunction<Void Function(Bool)>>) func,
+) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
   void Function(int) callback = (int result) {

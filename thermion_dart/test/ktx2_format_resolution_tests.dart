@@ -19,22 +19,21 @@
 // resolved against real driver capabilities, so the backend is part of the
 // result and every reported format is only claimed for the backend named in the
 // output.
-@Timeout(Duration(seconds: 45))
+@Timeout(Duration(seconds: 120))
 library;
-
-import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import 'helpers.dart';
+import 'src/ktx2_staging_debug.dart';
 
 const _defaultFixtureDir =
     r'D:\UE to Table\.test_capture_interactive\ktx2_sample\Ktx2Sample\layers\00_ktx2_sample';
 
 Backend _backendFromEnv() {
-  switch (Platform.environment['THERMION_BACKEND']?.toLowerCase()) {
+  switch (testEnvironment('THERMION_BACKEND')?.toLowerCase()) {
     case 'gl':
     case 'opengl':
       return Backend.OPENGL;
@@ -47,7 +46,9 @@ Backend _backendFromEnv() {
 }
 
 String get _fixtureDir =>
-    Platform.environment['KTX2_FIXTURE_DIR'] ?? _defaultFixtureDir;
+    isWeb ? '.' : testEnvironment('KTX2_FIXTURE_DIR') ?? _defaultFixtureDir;
+
+String _fixturePath(String name) => isWeb ? name : '$_fixtureDir/$name';
 
 void _report(String label, Ktx2LoadResult result) {
   print(
@@ -92,7 +93,7 @@ void main() async {
     int maxMipLevels = 1,
     Ktx2TransferFunction? expectTransfer,
   }) async {
-    final path = '$_fixtureDir${Platform.pathSeparator}$name';
+    final path = _fixturePath(name);
     final data = await loadResourceBytes(path);
     late Ktx2LoadResult result;
     await ViewerBuilder(testHelper).execute((_) async {
@@ -105,6 +106,75 @@ void main() async {
     _report('$name (maxMipLevels=$maxMipLevels)', result);
     return result;
   }
+
+  test(
+    'TextureFormat.isCompressed uses the explicit compressed allow-list',
+    () {
+      const expectedCompressed = <TextureFormat>{
+        TextureFormat.EAC_R11,
+        TextureFormat.EAC_R11_SIGNED,
+        TextureFormat.EAC_RG11,
+        TextureFormat.EAC_RG11_SIGNED,
+        TextureFormat.ETC2_RGB8,
+        TextureFormat.ETC2_SRGB8,
+        TextureFormat.ETC2_RGB8_A1,
+        TextureFormat.ETC2_SRGB8_A1,
+        TextureFormat.ETC2_EAC_RGBA8,
+        TextureFormat.ETC2_EAC_SRGBA8,
+        TextureFormat.DXT1_RGB,
+        TextureFormat.DXT1_RGBA,
+        TextureFormat.DXT3_RGBA,
+        TextureFormat.DXT5_RGBA,
+        TextureFormat.DXT1_SRGB,
+        TextureFormat.DXT1_SRGBA,
+        TextureFormat.DXT3_SRGBA,
+        TextureFormat.DXT5_SRGBA,
+        TextureFormat.RGBA_ASTC_4x4,
+        TextureFormat.RGBA_ASTC_5x4,
+        TextureFormat.RGBA_ASTC_5x5,
+        TextureFormat.RGBA_ASTC_6x5,
+        TextureFormat.RGBA_ASTC_6x6,
+        TextureFormat.RGBA_ASTC_8x5,
+        TextureFormat.RGBA_ASTC_8x6,
+        TextureFormat.RGBA_ASTC_8x8,
+        TextureFormat.RGBA_ASTC_10x5,
+        TextureFormat.RGBA_ASTC_10x6,
+        TextureFormat.RGBA_ASTC_10x8,
+        TextureFormat.RGBA_ASTC_10x10,
+        TextureFormat.RGBA_ASTC_12x10,
+        TextureFormat.RGBA_ASTC_12x12,
+        TextureFormat.SRGB8_ALPHA8_ASTC_4x4,
+        TextureFormat.SRGB8_ALPHA8_ASTC_5x4,
+        TextureFormat.SRGB8_ALPHA8_ASTC_5x5,
+        TextureFormat.SRGB8_ALPHA8_ASTC_6x5,
+        TextureFormat.SRGB8_ALPHA8_ASTC_6x6,
+        TextureFormat.SRGB8_ALPHA8_ASTC_8x5,
+        TextureFormat.SRGB8_ALPHA8_ASTC_8x6,
+        TextureFormat.SRGB8_ALPHA8_ASTC_8x8,
+        TextureFormat.SRGB8_ALPHA8_ASTC_10x5,
+        TextureFormat.SRGB8_ALPHA8_ASTC_10x6,
+        TextureFormat.SRGB8_ALPHA8_ASTC_10x8,
+        TextureFormat.SRGB8_ALPHA8_ASTC_10x10,
+        TextureFormat.SRGB8_ALPHA8_ASTC_12x10,
+        TextureFormat.SRGB8_ALPHA8_ASTC_12x12,
+        TextureFormat.RED_RGTC1,
+        TextureFormat.SIGNED_RED_RGTC1,
+        TextureFormat.RED_GREEN_RGTC2,
+        TextureFormat.SIGNED_RED_GREEN_RGTC2,
+        TextureFormat.RGB_BPTC_SIGNED_FLOAT,
+        TextureFormat.RGB_BPTC_UNSIGNED_FLOAT,
+        TextureFormat.RGBA_BPTC_UNORM,
+        TextureFormat.SRGB_ALPHA_BPTC_UNORM,
+      };
+
+      expect(
+        TextureFormat.values.where((format) => format.isCompressed).toSet(),
+        expectedCompressed,
+      );
+      expect(TextureFormat.RGBA8.isCompressed, isFalse);
+      expect(TextureFormat.SRGB8_A8.isCompressed, isFalse);
+    },
+  );
 
   test(
     'albedo.ktx2 (sRGB UASTC) loads and resolves to an sRGB format',
@@ -124,6 +194,7 @@ void main() async {
       // Assert on what was actually resolved, otherwise a silent SRGB8_A8
       // fallback is indistinguishable from the BC7 we asked for.
       expect(result.resolvedFormat, isNotNull);
+      expect(result.resolvedFormat!.isCompressed, isTrue);
       expect(
         result.hardwareSrgbDecode,
         isTrue,
@@ -159,6 +230,7 @@ void main() async {
     expect(result.sourceTransfer, Ktx2TransferFunction.linear);
     expect(result.hardwareSrgbDecode, isFalse);
     expect(result.resolvedFormat, isNotNull);
+    expect(result.resolvedFormat!.isCompressed, isTrue);
 
     // The blob's DFD declares UASTC channel id 0 (RGB).
     expect(result.sourceChannelCount, 3);
@@ -182,4 +254,31 @@ void main() async {
     expect(result.isLoaded, isFalse);
     expect(result.texture, isNull);
   });
+
+  test(
+    'web wrapper releases staged inputs across success and unsupported loads',
+    () async {
+      final baseline = debugKtx2StagedInputBytes;
+
+      for (var iteration = 0; iteration < 8; iteration++) {
+        final albedo = await load('albedo.ktx2');
+        expect(albedo.isLoaded, isTrue);
+        expect(albedo.resolvedFormat?.isCompressed, isTrue);
+        expect(debugKtx2StagedInputBytes, baseline);
+        await albedo.texture!.destroy();
+
+        final normal = await load('normal.ktx2');
+        expect(normal.isLoaded, isTrue);
+        expect(normal.resolvedFormat?.isCompressed, isTrue);
+        expect(debugKtx2StagedInputBytes, baseline);
+        await normal.texture!.destroy();
+
+        final unsupported = await load('depth.ktx2');
+        expect(unsupported.isLoaded, isFalse);
+        expect(unsupported.texture, isNull);
+        expect(debugKtx2StagedInputBytes, baseline);
+      }
+    },
+    skip: isWeb ? false : 'WASM staging ownership applies only in browsers',
+  );
 }

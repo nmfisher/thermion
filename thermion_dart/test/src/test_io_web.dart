@@ -33,6 +33,7 @@ bool get platformIsWindows => false;
 bool get platformIsLinux => false;
 bool get isWeb => true;
 String get currentDirPath => ".";
+String? testEnvironment(String name) => null;
 
 /// Sentinel host the COI proxy serves local asset files from (--assets dir).
 const _assetsHost = 'thermion.assets';

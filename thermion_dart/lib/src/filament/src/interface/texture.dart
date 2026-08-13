@@ -137,6 +137,70 @@ enum TextureFormat {
   SRGB_ALPHA_BPTC_UNORM, // BC7 sRGB
 }
 
+extension TextureFormatClassification on TextureFormat {
+  /// Whether this is an explicitly supported block-compressed GPU format.
+  ///
+  /// This is deliberately an allow-list instead of relying on enum names or
+  /// ordinal ranges. Consumers can therefore distinguish a successful KTX2
+  /// load that resolved to compression from an uncompressed fallback.
+  bool get isCompressed => const <TextureFormat>{
+    TextureFormat.EAC_R11,
+    TextureFormat.EAC_R11_SIGNED,
+    TextureFormat.EAC_RG11,
+    TextureFormat.EAC_RG11_SIGNED,
+    TextureFormat.ETC2_RGB8,
+    TextureFormat.ETC2_SRGB8,
+    TextureFormat.ETC2_RGB8_A1,
+    TextureFormat.ETC2_SRGB8_A1,
+    TextureFormat.ETC2_EAC_RGBA8,
+    TextureFormat.ETC2_EAC_SRGBA8,
+    TextureFormat.DXT1_RGB,
+    TextureFormat.DXT1_RGBA,
+    TextureFormat.DXT3_RGBA,
+    TextureFormat.DXT5_RGBA,
+    TextureFormat.DXT1_SRGB,
+    TextureFormat.DXT1_SRGBA,
+    TextureFormat.DXT3_SRGBA,
+    TextureFormat.DXT5_SRGBA,
+    TextureFormat.RGBA_ASTC_4x4,
+    TextureFormat.RGBA_ASTC_5x4,
+    TextureFormat.RGBA_ASTC_5x5,
+    TextureFormat.RGBA_ASTC_6x5,
+    TextureFormat.RGBA_ASTC_6x6,
+    TextureFormat.RGBA_ASTC_8x5,
+    TextureFormat.RGBA_ASTC_8x6,
+    TextureFormat.RGBA_ASTC_8x8,
+    TextureFormat.RGBA_ASTC_10x5,
+    TextureFormat.RGBA_ASTC_10x6,
+    TextureFormat.RGBA_ASTC_10x8,
+    TextureFormat.RGBA_ASTC_10x10,
+    TextureFormat.RGBA_ASTC_12x10,
+    TextureFormat.RGBA_ASTC_12x12,
+    TextureFormat.SRGB8_ALPHA8_ASTC_4x4,
+    TextureFormat.SRGB8_ALPHA8_ASTC_5x4,
+    TextureFormat.SRGB8_ALPHA8_ASTC_5x5,
+    TextureFormat.SRGB8_ALPHA8_ASTC_6x5,
+    TextureFormat.SRGB8_ALPHA8_ASTC_6x6,
+    TextureFormat.SRGB8_ALPHA8_ASTC_8x5,
+    TextureFormat.SRGB8_ALPHA8_ASTC_8x6,
+    TextureFormat.SRGB8_ALPHA8_ASTC_8x8,
+    TextureFormat.SRGB8_ALPHA8_ASTC_10x5,
+    TextureFormat.SRGB8_ALPHA8_ASTC_10x6,
+    TextureFormat.SRGB8_ALPHA8_ASTC_10x8,
+    TextureFormat.SRGB8_ALPHA8_ASTC_10x10,
+    TextureFormat.SRGB8_ALPHA8_ASTC_12x10,
+    TextureFormat.SRGB8_ALPHA8_ASTC_12x12,
+    TextureFormat.RED_RGTC1,
+    TextureFormat.SIGNED_RED_RGTC1,
+    TextureFormat.RED_GREEN_RGTC2,
+    TextureFormat.SIGNED_RED_GREEN_RGTC2,
+    TextureFormat.RGB_BPTC_SIGNED_FLOAT,
+    TextureFormat.RGB_BPTC_UNSIGNED_FLOAT,
+    TextureFormat.RGBA_BPTC_UNORM,
+    TextureFormat.SRGB_ALPHA_BPTC_UNORM,
+  }.contains(this);
+}
+
 enum TextureUsage {
   TEXTURE_USAGE_NONE(0),
 

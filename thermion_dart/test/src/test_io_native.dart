@@ -19,6 +19,7 @@ bool get platformIsWindows => Platform.isWindows;
 bool get platformIsLinux => Platform.isLinux;
 bool get isWeb => false;
 String get currentDirPath => Directory.current.path;
+String? testEnvironment(String name) => Platform.environment[name];
 
 Future<Uint8List> loadResourceBytes(String uri) async {
   uri = uri.replaceAll("file://", "");

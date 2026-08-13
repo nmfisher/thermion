@@ -193,7 +193,41 @@ Future<bool> Texture_setImageFromBuffer(
   });
 }
 
-Future<bool> withBoolCallback(Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
+/// Creates a KTX2 texture from [data] on the render thread.
+///
+/// On native, `Uint8List.address` is a zero-copy address into the Dart heap and
+/// must remain inline in the leaf `@Native` invocation. The render-thread C API
+/// copies the bytes synchronously before returning, so no Dart-side ownership
+/// or release step is required.
+Future<Pointer<TKtx2LoadResult>> Ktx2Reader_createTextureFromBuffer(
+  Pointer<TJobThread> jobThread,
+  Pointer<TEngine> tEngine,
+  Uint8List data,
+  int transferFunction,
+  int maxMipLevels,
+) {
+  return withPointerCallback<TKtx2LoadResult>((cb) {
+    Ktx2Reader_createTextureJobThread(
+        jobThread,
+      tEngine,
+      data.address,
+      data.lengthInBytes,
+      transferFunction,
+      maxMipLevels,
+      cb,
+    );
+  });
+}
+
+/// Native KTX2 inputs are zero-copy, so there are no staged bytes to own.
+///
+/// Exposed for cross-platform ownership tests; production callers should not
+/// use this diagnostic.
+int get debugKtx2StagedInputBytes => 0;
+
+Future<bool> withBoolCallback(
+  Function(Pointer<NativeFunction<Void Function(Bool)>>) func,
+) async {
   final completer = Completer<bool>();
   // ignore: prefer_function_declarations_over_variables
   void Function(bool) callback = (bool result) {
