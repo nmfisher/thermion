@@ -790,6 +790,21 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 Future<void> _downloadWebArtifacts(BuildInput input, Logger logger) async {
   final packageRoot = input.packageRoot.toFilePath(windows: Platform.isWindows);
 
+  // The consuming application owns and versions thermion_dart.js/.wasm.
+  // Set `web_vendored: true` under `hooks.user_defines.thermion_dart` in the
+  // consuming app's pubspec.yaml to keep both the local-build copy and the R2
+  // download from replacing those files.
+  final webVendored = input.userDefines["web_vendored"];
+  if (webVendored == true ||
+      webVendored == "true" ||
+      webVendored == 1 ||
+      webVendored == "1") {
+    logger.info(
+      '[web_vendored] Preserving artifacts in the consuming app web/ directory',
+    );
+    return;
+  }
+
   // The "web_variant" user define selects which prebuilt engine to fetch:
   //   unset / "worker" / "default" — the standard engine (render commands
   //                                dispatched to a worker thread)
