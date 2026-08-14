@@ -1,6 +1,6 @@
 ---
 id: the-c8d3
-status: in-progress
+status: closed
 deps: []
 links: []
 created: 2026-08-14T11:21:35Z
