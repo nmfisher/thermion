@@ -1,6 +1,6 @@
 ---
 id: the-0rkw
-status: open
+status: in_progress
 deps: []
 links: []
 created: 2026-08-14T10:09:54Z

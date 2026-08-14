@@ -151,11 +151,17 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Sources : $sources");
 
+    // NOTE: imageio, tinyexr, png, z, filamat, and filameshio are
+    // deliberately NOT linked. The wrapper source never calls into any of
+    // them (see docs/optional-libs-proposal.md): PNG/JPEG decoding goes
+    // through the self-contained stb_image, screenshots are PNG-encoded on
+    // the Dart side, and every material is a precompiled .package blob.
+    // filamat was only ever needed by declarative plugins that compile
+    // materials at runtime; if such a plugin appears, re-add filamat
+    // for its build.
     var libs = [
       "filament",
       "backend",
-      "filameshio",
-      if (targetOS != OS.iOS) "filamat",
       if (targetOS == OS.linux) "shaders",
       "utils",
       // Android links Filament's Perfetto tracing archive. utils is always
@@ -172,27 +178,21 @@ outputDirectory : ${outputDirectory.path}
       if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
       "filament-iblprefilter",
       "image",
-      "imageio",
-      "tinyexr",
       "filaflat",
       "dracodec",
       "ibl",
       "ktxreader",
-      "z",
       "stb",
       "uberzlib",
       "smol-v",
       "basis_transcoder",
       "uberarchive",
-      // Filament 1.75.0's libfilamat.a references external ZSTD_* symbols
-      // (e.g. ZSTD_getFrameContentSize). Desktop/iOS/Android have no guarantee
-      // of a system libzstd, so link the static libzstd.a bundled in the R2
-      // artifact for every platform except Linux, which uses the system
-      // libzstd.so. Without this, Android dlopen fails at runtime with
-      // "cannot locate symbol ZSTD_getFrameContentSize" (Android ships no
-      // libzstd), and the libzstd.a must be present in the Android zip — see
-      // scripts/zip_android.sh.
-      if (targetOS != OS.linux) "zstd",
+      // Not filamat-only: filament, gltfio_core, uberzlib, and
+      // basis_transcoder all reference ZSTD_* symbols (verified by nm on the
+      // v1.75.0 archives). The Linux artifact ships no libzstd.a, so -lzstd
+      // resolves to the system libzstd.so there (as before); other platforms
+      // use the static libzstd.a from the R2 artifact.
+      "zstd",
       //"mikktspace",
       "geometry",
       // Debug builds of Filament enable the Material Debug Server and Frame
@@ -404,19 +404,28 @@ outputDirectory : ${outputDirectory.path}
         if (objcObjectFiles.isNotEmpty) ...['-lthermion_objc', '-L${Directory.systemTemp.path}'],
         ...flags,
         ...frameworks,
-        if (targetOS == OS.linux) ...["-Wl,--whole-archive"],
-        if (targetOS != OS.windows) ...[
-          ...libs.map((lib) => "-l$lib"),
-          if (targetOS == OS.linux) ...[
-            "-Wl,--no-whole-archive",
-            '-lGL',
-            '-lEGL',
-          ] else if (targetOS != OS.android) ...[
-            "-lc++",
-            "",
-          ],
-          "-L$libDir",
+        // NOTE: the -l library list is NOT passed here. native_toolchain_c
+        // emits [flags] BEFORE the source files on the link command, so a
+        // static archive named here is searched before any object exists
+        // and nothing is ever extracted from it. That is why this hook
+        // historically wrapped the whole list in -Wl,--whole-archive on
+        // Linux: whole-archive includes every member unconditionally, so
+        // position did not matter — at the cost of disabling dead-code
+        // elimination entirely (~23 MB of never-called code on Linux; see
+        // docs/optional-libs-proposal.md). The libraries are now passed
+        // via CBuilder's `libraries:` argument, which native_toolchain_c
+        // emits AFTER the output file, where the linker can extract only
+        // the members that are actually referenced. The Filament archives
+        // reference each other cyclically, so the list is passed twice
+        // (poor man's --start-group).
+        if (targetOS == OS.linux) ...[
+          '-lGL',
+          '-lEGL',
+        ] else if (targetOS != OS.android) ...[
+          "-lc++",
+          "",
         ],
+        if (targetOS != OS.windows) "-L$libDir",
         if (targetOS == OS.linux)
           '-Wl,--no-as-needed'
         else if (targetOS != OS.windows && targetOS != OS.android)
@@ -438,6 +447,9 @@ outputDirectory : ${outputDirectory.path}
         ],
       ],
       libraryDirectories: [libDir],
+      // Linked after the objects (see the comment above the flags). Windows
+      // links via #pragma comment(lib) in ThermionWin32.h instead.
+      libraries: targetOS == OS.windows ? const [] : [...libs, ...libs],
     );
 
     await cbuilder.run(input: input, output: output, logger: logger);

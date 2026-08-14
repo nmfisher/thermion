@@ -1,6 +1,8 @@
 # Proposal: compile-time opt-in/out of optional native libraries
 
-Status: draft (proposal only, no code changes). Revised after review.
+Status: **IMPLEMENTED on Linux** (2026-08-14, branch
+`asb/optional-libs-proposal`). See §8 for measured results. Web edits are
+in place but not build-verified (no emsdk in the sandbox).
 Ticket: `the-0rkw`.
 
 Goal: let consumers exclude native libraries they do not need, so binaries get
@@ -19,10 +21,12 @@ smaller. The named examples were libpng and libz. The short answer:
   `z`, `zstd`, `filamat`, `filameshio`. The wrapper source never calls any of
   them. On Android, iOS, macOS, Windows, and web, dead-code elimination (DCE)
   removes most of them already. Expected gains there are small.
-- **Linux is the exception.** The build hook wraps *all* Filament archives in
-  `--whole-archive` on Linux (`thermion_dart/hook/build.dart:407-411`). No
-  DCE happens. Every linked archive is fully included. This is where a real
-  win waits: roughly 1-3 MB or more per build.
+- **Linux was the exception.** The build hook wrapped *all* Filament archives
+  in `--whole-archive` on Linux (`thermion_dart/hook/build.dart:407-411`). No
+  DCE happened. Every linked archive was fully included. **Fixed — see §8:**
+  the measured saving was 15.6 MB (-61%), far above the 1-3 MB estimated
+  below, because the estimate predates discovering that `--whole-archive`
+  was masking a flag-ordering bug (§8.2).
 
 So the honest framing: image support stays; a short list of never-called
 libraries can go. That is mostly a *Linux problem* plus a *hygiene problem*
@@ -97,8 +101,8 @@ template use. Every verdict below cites the evidence.
 | **imageio** | only two includes in `TEngine.cpp:31-32`. Zero `ImageDecoder`/`ImageEncoder` calls anywhere. Screenshot PNG encoding happens on the **Dart side** (`lib/src/utils/src/image.dart:3,147`, the `image` package's `encodePng`) | **dead** |
 | **tinyexr** | dependency of imageio only; no direct references | **dead** |
 | **png (libpng)** | zero direct calls. PNG decode goes through self-contained stb, not libpng. The hook does not even link it (web does) | **dead** — and dropping it does *not* lose PNG support |
-| **z (zlib)** | referenced only by libpng/tinyexr (both dead). stb does not need zlib. uberzlib is a separate self-contained amalgamation | **likely dead** on native; on web it is still needed while png/tinyexr stay in the web link list. Verify by linking without it |
-| **zstd** | pulled only by filamat (`build.dart:187-195` comment: filamat refs `ZSTD_*`). No other references | dead once filamat goes. Note: iOS links zstd but not filamat — that zstd entry is probably already unnecessary |
+| **z (zlib)** | referenced only by libpng/tinyexr (both dead). stb does not need zlib. uberzlib is a separate self-contained amalgamation. **Verified by link:** no remaining archive references `inflate`/`deflate`/`zlibVersion` (`nm` over every linked `.a`), and the stripped Linux build resolves cleanly without `-lz` | **dead** on native. On web, `z` stays in the link list until a web build verifies its removal |
+| **zstd** | ~~pulled only by filamat~~ **WRONG — found by build.** `nm` on the v1.75.0 archives: `filament` (5 refs), `gltfio_core` (4), `uberzlib` (5), and `basis_transcoder` (3) all reference `ZSTD_*`. Removing zstd left `ZSTD_decompress`/`ZSTD_getFrameContentSize`/`ZSTD_getErrorName`/`ZSTD_isError` unresolved | **core (transitive)**. Linux links the system `libzstd.so` (the artifact ships no `libzstd.a`); other platforms use the static `libzstd.a` from the artifact |
 | **filamat** | zero `<filamat/...>` includes, zero calls. All materials are precompiled `.package` blobs built with `filament::Material::Builder().package(...)` (`TEngine.cpp:290`, `TMaterialInstance.cpp:57-115`) — that is the `filament` lib, not filamat. iOS and web already ship without it | **dead for core**; keep available for declarative plugins that compile materials at runtime |
 | **filameshio** | zero references in wrapper source (only `native/test/macos`) | **dead** |
 | **basis_encoder (web)** | linked in web CMakeLists but no wrapper references (encoding happens at build time elsewhere) | likely already DCE'd on web; drop from link list and measure |
@@ -116,10 +120,11 @@ basis_transcoder, dracodec (by default), filaflat, smol-v, perfetto
 imageio, tinyexr, libpng, filameshio. Nothing calls them. Removing them is a
 bug fix, not a feature.
 
-**Dead for core, needed by plugins:** filamat (+ zstd). External declarative
-plugins may compile materials at runtime; that is why filamat is linked on
-non-iOS. Make it opt-in (`runtime_materials: true`), default off, and let the
-plugin config declare it.
+**Dead for core, needed by plugins:** filamat. External declarative plugins
+may compile materials at runtime; that is why filamat was linked on non-iOS.
+It is now unlinked; if such a plugin appears, re-add filamat for its build.
+**zstd is NOT in this set** — see the corrected verdict in §2: four core
+archives reference `ZSTD_*`, so zstd stays linked everywhere.
 
 **Possible later opt-outs (real API impact, not proposed now):**
 - dracodec — only needed for Draco-compressed glTF assets.
@@ -314,3 +319,97 @@ Because of this, **step 1 of the plan is measurement**, not flag plumbing.
    if step 1 shows meaningful sizes and users ask for it.
 5. **CI size report.** Print binary sizes per platform per PR, so future
    additions show their cost immediately.
+
+---
+
+## 8. Implementation results (2026-08-14, branch asb/optional-libs-proposal)
+
+### What changed
+
+1. `thermion_dart/hook/build.dart`: removed `imageio`, `tinyexr`, `z`,
+   `filamat`, `filameshio` from the link list; `zstd` stays (corrected
+   verdict, see §2). The two dead `imageio` includes were deleted from
+   `TEngine.cpp`.
+2. **The `--whole-archive` on Linux was the real cause of the bloat, and it
+   was masking a flag-ordering bug.** `native_toolchain_c` emits
+   `CBuilder.flags` *before* the source files on the link command, but emits
+   the `libraries:` argument *after* the output file. The old hook passed
+   `-l<lib>` through `flags`, so every archive was searched **before any
+   object existed** — selective extraction could never pull anything, and
+   `--whole-archive` was the only way to make that link work (it includes
+   every member unconditionally, position irrelevant). The fix passes the
+   libraries via CBuilder's `libraries:` argument (correct position) and
+   lists them twice to handle the circular references between Filament
+   archives (poor man's `--start-group`). `--whole-archive` is gone.
+3. `ThermionWin32.h`: removed the `filamat`, `imageio`, `tinyexr`, `z`,
+   `zstd` pragmas. (Windows links only via these pragmas; the hook's `-l`
+   flags never applied there. Not build-verified — no Windows in the
+   sandbox.)
+4. `native/web/CMakeLists.txt`: removed `imageio`, `tinyexr`, `png` link
+   entries and the unused `filamat`/`filameshio` imported targets. `z` and
+   `basis_encoder` stay pending a web build. Not build-verified (no emsdk
+   in the sandbox).
+5. `thermion_flutter/linux/CMakeLists.txt`: dropped the
+   `--allow-shlib-undefined` workaround. Its cause (unresolved basisu/draco
+   encoder symbols from whole-archive'd filamat) is gone; `ldd -r` now
+   reports zero unresolved symbols, and the example app links without it.
+
+### Measured size (Linux arm64, release, quickstart example)
+
+| | bytes | vs baseline |
+|---|---|---|
+| baseline (whole-archive, full lib list) | 25,679,848 | — |
+| stripped list + `libraries:` placement | **10,051,304** | **-61%** |
+
+Intermediate data point: stripping the lib list while keeping the flags in
+the old position produced a 2,231,536-byte `.so` that *looked* fine but had
+silently-unresolved `cgltf_*` symbols (shared libraries allow undefined
+symbols at link time). `ldd -r` catches this class of bug — always run it
+after touching this link.
+
+### Verification
+
+- `flutter analyze`: 0 errors.
+- Clean `flutter build linux --release`: links, with and without the
+  `--allow-shlib-undefined` workaround removed.
+- `ldd -r libthermion_dart.so`: **0 undefined symbols** after relocation.
+- `nm` audit: 0 references to `png_*`, `inflate`/`deflate`, `imageio`,
+  `filamesh`, `cgltf_*` (cgltf now defined inside the `.so`).
+- Runtime: quickstart app runs under `xvfb` for 45 s+ without crash;
+  `libthermion_dart.so` is mapped in every app process; the app loads
+  `cube.glb` (exercises gltfio/cgltf) and KTX skybox/IBL (exercises
+  ktxreader/basis).
+- Core APIs still exported: `Image_decode`, `Ktx2Reader_createTexture`,
+  `Engine_buildMaterial` (stb/image/ktxreader untouched).
+
+### Per-library outcome
+
+| Library | Outcome | Why |
+|---|---|---|
+| imageio | **stripped** (all platforms incl. web link list) | dead includes removed; no references |
+| tinyexr | **stripped** | imageio dependency only |
+| png (libpng) | **stripped** (web link list) | PNG decode is stb, self-contained |
+| z (zlib) | **stripped** (hook) | verified: no linked archive references zlib symbols; Linux artifact never shipped libz.a/libpng.a anyway |
+| filamat | **stripped** (hook + web target + Windows pragma) | precompiled materials only; iOS and web already shipped without it |
+| filameshio | **stripped** | zero references |
+| zstd | **REVERTED (kept)** | build evidence: filament/gltfio_core/uberzlib/basis_transcoder reference `ZSTD_*`. Linux uses system `libzstd.so` (now a real DT_NEEDED entry instead of an implicit runtime hope) |
+| basis_transcoder, dracodec, filaflat, smol-v, ibl, filament-iblprefilter | **kept** | per ticket instructions; filaflat/smol-v are transitively required by filament/gltfio and link-verified |
+
+### Known issues found (pre-existing, not caused by this change)
+
+- Linux **debug** hook builds fail: the v1.75.0 linux *debug* R2 artifact's
+  `include/` lacks `bluevk/BlueVK.h` (the release artifact has it). Seen
+  before any of these edits.
+- `examples/dart/cli_headless` no longer compiles against the current Dart
+  API (`ThermionViewerFFI` signature changed). Pre-existing example rot.
+
+### Not verified in this sandbox
+
+- Windows (no toolchain): pragma edits are evidence-based but unbuilt.
+- Web (no emsdk): link-list edits applied; `z`/`basis_encoder` removal
+  deferred until a web build can confirm.
+- Android/iOS/macOS: not buildable here; the hook change (lib list +
+  `libraries:` placement) applies to them too. `matdbg`/`fgviewer` (debug
+  desktop+Android) and `perfetto` (Android) are still linked as before.
+  The `libraries:`-position change should be neutral (better) for them,
+  but a CI build should confirm.
