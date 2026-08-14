@@ -204,11 +204,23 @@ outputDirectory : ${outputDirectory.path}
       // runtime, just like the perfetto case above. iOS debug never enables
       // them (its cmake invocation passes neither option); Windows links
       // libraries via #pragma comment(lib) in ThermionWin32.h instead.
-      if ({OS.macOS, OS.android, OS.linux}.contains(targetOS) && buildMode == BuildMode.debug) ...[
+      if ({OS.macOS, OS.android}.contains(targetOS) && buildMode == BuildMode.debug) ...[
         "matdbg",
         "fgviewer",
       ],
     ];
+
+    // On Linux the same matdbg/fgviewer archives must be linked, but OUTSIDE
+    // the -Wl,--whole-archive group below: both archives bundle civetweb
+    // (libcivetweb_civetweb.c.o defines mg_*), and whole-archive pulls every
+    // member of both, producing "multiple definition of `mg_*`" link errors.
+    // With normal archive semantics the linker only pulls the members needed
+    // to satisfy libfilament.a's matdbg/fgviewer references (libfilament.a
+    // itself is whole-archived), so civetweb is included exactly once.
+    // See the-c8d3.
+    final linuxDebugLibs = (targetOS == OS.linux && buildMode == BuildMode.debug)
+        ? ["matdbg", "fgviewer"]
+        : <String>[];
 
     if (targetOS == OS.windows) {
       // we just need the libDir and don't need to explicitly link the actual libs
@@ -409,6 +421,7 @@ outputDirectory : ${outputDirectory.path}
           ...libs.map((lib) => "-l$lib"),
           if (targetOS == OS.linux) ...[
             "-Wl,--no-whole-archive",
+            ...linuxDebugLibs.map((lib) => "-l$lib"),
             '-lGL',
             '-lEGL',
           ] else if (targetOS != OS.android) ...[
@@ -607,6 +620,46 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       }
     }
     successToken.writeAsStringSync("SUCCESS");
+  }
+
+  // Some published debug artifacts (e.g. the v1.75.0 linux debug zip) were
+  // built by a script bug that copied the bluevk headers into the *release*
+  // target dir, so their include/ tree lacks bluevk/, vulkan/ and vk_video/
+  // and any compile of <bluevk/BlueVK.h> fails (LinuxVulkanContext/
+  // LinuxVulkanUtils under native/include/vulkan/linux/). Those headers are
+  // build-mode-independent, so heal the cache by merging them in from the
+  // release artifact of the same version. Checked outside the success-token
+  // guard above so caches extracted from an already-broken zip are repaired
+  // too. No-op once the artifact is re-uploaded with the headers present.
+  // See the-c8d3.
+  if (targetOS != OS.iOS &&
+      !File(path.join(unzipDir, 'include', 'bluevk', 'BlueVK.h')).existsSync()) {
+    logger.warning(
+      "include/bluevk/BlueVK.h is missing from the $platform/$mode artifact; "
+      "fetching bluevk headers from the release artifact to repair the cache",
+    );
+    final releaseUrl = _getLibraryUrl(version, platform, "release");
+    final releaseZip = File(path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${path.basename(releaseUrl)}'));
+    final releaseRequest = await HttpClient().getUrl(Uri.parse(releaseUrl));
+    final releaseResponse = await releaseRequest.close();
+    if (releaseResponse.statusCode != 200) {
+      throw Exception("Release libraries not found at $releaseUrl (needed for missing bluevk headers)");
+    }
+    await releaseResponse.pipe(releaseZip.openWrite());
+    final releaseArchive = ZipDecoder().decodeBytes(await releaseZip.readAsBytes());
+    for (final file in releaseArchive) {
+      if (!file.isFile) continue;
+      final name = file.name;
+      if (name.startsWith('include/bluevk/') ||
+          name.startsWith('include/vulkan/') ||
+          name.startsWith('include/vk_video/')) {
+        final f = File(path.join(unzipDir, name));
+        await f.create(recursive: true);
+        await f.writeAsBytes(file.content as List<int>);
+      }
+    }
+    await releaseZip.delete();
+    logger.warning("Repaired include/ with bluevk headers from $releaseUrl");
   }
   // The entire zip (libraries AND the `include/` header tree) is extracted to
   // `unzipDir`; for Android the per-arch libs live in a subdir but headers are

@@ -1,6 +1,6 @@
 ---
 id: the-c8d3
-status: open
+status: in-progress
 deps: []
 links: []
 created: 2026-08-14T11:21:35Z
@@ -86,3 +86,76 @@ branch (e.g. asb/linux-debug-artifact). The ticket above is the spec.
   report — the main agent will push).
 - Never merge the PR. Never commit or push directly to master/develop.
 - Simplified technical English: short sentences, plain words.
+
+## Resolution (2026-08-14, asb/linux-debug-artifact)
+
+### Root cause
+
+The download was NOT corrupted. The debug zip itself is missing the
+headers. `scripts/build_linux.sh`'s debug block copied the bluevk
+headers to `$TARGET_RELEASE_DIR/include/` instead of
+`$TARGET_DEBUG_DIR/include/` (copy-paste typo). So the debug zip ships
+`libbluevk.a` but no `bluevk/`, `vulkan/`, or `vk_video/` headers, and
+the release zip just got them twice.
+
+Verified by downloading both R2 zips and diffing their `include/`
+trees: the debug zip is missing exactly the `libs/bluevk/include/`
+tree. Reproduced the compile failure with clang against the extracted
+debug include dir (`fatal error: 'bluevk/BlueVK.h' file not found`).
+
+Same typo existed in the debug blocks of `build_macos.sh` and
+`build_ios.sh` (Android was already correct). Fixed all three.
+
+### Second bug found (masked by the first)
+
+After the headers were fixed, Linux debug linking failed: `libmatdbg.a`
+and `libfgviewer.a` both bundle civetweb, and the hook linked them
+inside `-Wl,--whole-archive`, so every member of both was pulled in ->
+"multiple definition of `mg_*`". Fixed in `hook/build.dart`: on Linux,
+`matdbg`/`fgviewer` now link AFTER `--no-whole-archive` (normal archive
+semantics pull only needed members; `libfilament.a` is whole-archived
+so its references still resolve).
+
+### Fix (2 parts)
+
+1. `scripts/build_linux.sh` (+ macos/ios): debug block now copies
+   bluevk headers to `$TARGET_DEBUG_DIR`. Future artifacts are correct.
+2. `thermion_dart/hook/build.dart` (`getLibDir`): after extraction, if
+   `include/bluevk/BlueVK.h` is missing, fetch the release zip of the
+   same version/platform and merge `bluevk/`, `vulkan/`, `vk_video/`
+   into the cache. Headers are build-mode-independent. Checked outside
+   the success-token guard, so caches extracted from a broken zip heal
+   too. No-op once artifacts are re-uploaded correctly. Skipped on iOS
+   (never compiles vulkan sources). This makes existing machines work
+   without waiting for an R2 re-upload.
+
+NOTE for Nick: the v1.75.0 linux (x64 + arm64), macOS and iOS DEBUG
+zips on R2 are still missing the bluevk headers. Rebuild/re-upload when
+convenient (the hook repair covers users in the meantime; sandbox had
+no R2 credentials so re-upload was not possible from here).
+
+### Verification
+
+- Reproduced original failure (missing `<bluevk/BlueVK.h>`), confirmed
+  repair logs fire and build proceeds.
+- `examples/dart/cli_headless` with `mode: debug` (aarch64 host,
+  linux-arm64 debug artifact): hook compiles + links
+  `libthermion_dart.so` (347 MB). `ldd -r` reports the same 48
+  undefined symbols as the RELEASE build (png_*/mz_*/basisu encoder
+  symbols, pre-existing, identical set in both modes — not a debug
+  regression; both also behave the same under `dlopen` RTLD_NOW).
+- Release build with the same modified hook: completes fine (bluevk
+  repair is a no-op there).
+- `dart analyze hook/build.dart`: clean. `flutter analyze`: 0 errors
+  (51 pre-existing infos). `bash -n` on all three scripts: OK.
+- Full `scripts/build_linux.sh --debug` (Filament from source) not run:
+  no filament checkout in the sandbox. The script fix is the one-line
+  target-dir correction; verified by inspection + parse.
+- the-0rkw interaction: built against the current branch's hook (the
+  asb/optional-libs-proposal hook is not merged here). The debug
+  failure predates it and the fix is independent of `libraries:`
+  placement.
+- Example's own Dart code has pre-existing API drift errors
+  (`FilamentApp.register`) unrelated to this ticket; the native build
+  hook (the failing step) completes.
+
