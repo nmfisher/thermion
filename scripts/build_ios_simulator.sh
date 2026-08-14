@@ -63,6 +63,20 @@ fi
 
 cd "$FILAMENT_BASE_DIR" || exit 1
 
+# build_ios.sh (Filament's build.sh) builds the host code-generator tools once,
+# as prebuilt artifacts under out/prebuilt-tools-release/, and every iOS
+# cross-build imports them via ImportExecutables-Prebuilt.cmake. The top-level
+# out/ImportExecutables-<Debug|Release>.cmake is NOT produced on 1.75.0, so the
+# Filament cross-build below must point at the prebuilt dir too — otherwise
+# CMake falls back to ${CMAKE_BUILD_TYPE} and fails with
+# "include could not find requested file: out/ImportExecutables-Debug.cmake".
+PREBUILT_TOOLS_IMPORT="out/prebuilt-tools-release/ImportExecutables-Prebuilt.cmake"
+if [ ! -f "$PREBUILT_TOOLS_IMPORT" ]; then
+  echo "Error: $PREBUILT_TOOLS_IMPORT not found."
+  echo "Run build_ios.sh first — it builds the host tools this script imports."
+  exit 1
+fi
+
 # Ensure we're on the right tag (build_ios.sh should have already checked this out)
 CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 if [ "$CURRENT_TAG" != "$FILAMENT_VERSION" ]; then
@@ -119,7 +133,7 @@ build_sim_target() {
 
   cmake \
     -G Ninja \
-    -DIMPORT_EXECUTABLES_DIR=out \
+    -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/prebuilt-tools-release \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="../ios-${lc_type}-sim/filament" \
     -DIOS_ARCH="arm64" \
