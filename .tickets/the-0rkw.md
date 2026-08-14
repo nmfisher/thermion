@@ -63,8 +63,10 @@ Cover:
 - Update this ticket with tk: start the-0rkw when you begin, close it when
   done (tk may not be installed — edit the status field directly).
 - Commit the proposal document locally on the asb/ branch.
-- Push + open a PR when finished (if push is blocked, commit and report).
-- Never merge the PR. Never commit or push directly to master/develop.
+- DO NOT raise a PR. DO NOT push the branch. This is LOCAL PLANNING ONLY —
+  Nick will review the proposal document in the sandbox volume.
+- Do NOT close this ticket (the-0rkw) — leave it open until Nick reviews.
+- Keep the sandbox/volume alive: commit locally, that is all.
 - Simplified technical English: short sentences, plain words.
 - PROPOSAL-ONLY: no code/test/build changes. Ever. This is a plan.
 
