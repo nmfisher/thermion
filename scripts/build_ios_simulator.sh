@@ -146,6 +146,14 @@ build_sim_target() {
   ninja
   ninja install
 
+  # Echo the install tree so the layout Filament produced is visible in the
+  # CI log (1.75.0 emits XCFramework bundles, not the flat lib/<arch>/*.a that
+  # older versions produced). copy_sim_libs handles both, but this avoids
+  # blind guessing if that ever changes again.
+  echo "Installed ${lc_type} simulator lib layout:"
+  find "../ios-${lc_type}-sim/filament/lib" \
+    \( -name '*.a' -o -name '*.xcframework' \) -maxdepth 2 2>/dev/null || true
+
   popd > /dev/null
 }
 
@@ -206,12 +214,51 @@ copy_sim_libs() {
 
   mkdir -p "$TARGET_DIR"
 
-  # Copy main Filament libs (installed by ninja install)
-  echo "Copying ${lc_type} simulator libraries..."
-  cp out/ios-${lc_type}-sim/filament/lib/arm64/*.a "$TARGET_DIR/" || {
-    echo "Error: Failed to copy simulator libraries"
+  # Copy main Filament libs (installed by ninja install).
+  # Filament 1.75.0's iOS install emits XCFramework bundles
+  # (lib<name>.xcframework/) rather than the flat lib/<arch>/*.a layout older
+  # versions produced. Extract the simulator slice from each xcframework so we
+  # end up with one flat lib<name>.a per library (what build.dart links).
+  # Fall back to the legacy flat layout if that's what this version installs.
+  local found=0
+  local INSTALL_LIB="out/ios-${lc_type}-sim/filament/lib"
+  echo "Copying ${lc_type} simulator libraries from $INSTALL_LIB..."
+
+  if ls -d "$INSTALL_LIB"/*.xcframework >/dev/null 2>&1; then
+    for _xcf in "$INSTALL_LIB"/*.xcframework; do
+      [ -d "$_xcf" ] || continue
+      _name=$(basename "$_xcf" .xcframework)
+      # The simulator slice lives under a directory whose name contains
+      # "simulator" (e.g. ios-arm64_x86_64-simulator).
+      _slice=$(find "$_xcf" -type f -name '*.a' -path '*simulator*' | head -n1)
+      if [ -z "$_slice" ]; then
+        # Fallback: first .a in the bundle.
+        _slice=$(find "$_xcf" -type f -name '*.a' | head -n1)
+      fi
+      if [ -n "$_slice" ]; then
+        cp "$_slice" "$TARGET_DIR/$_name.a"
+        found=1
+      else
+        echo "Warning: no .a found in $_xcf"
+      fi
+    done
+  fi
+
+  # Legacy flat layouts: lib/arm64/*.a or lib/*.a
+  if ls "$INSTALL_LIB"/arm64/*.a >/dev/null 2>&1; then
+    cp "$INSTALL_LIB"/arm64/*.a "$TARGET_DIR/"; found=1
+  fi
+  if ls "$INSTALL_LIB"/*.a >/dev/null 2>&1; then
+    cp "$INSTALL_LIB"/*.a "$TARGET_DIR/"; found=1
+  fi
+
+  if [ "$found" = 0 ]; then
+    echo "Error: No Filament simulator libraries found under $INSTALL_LIB"
+    echo "--- full install lib tree ---"
+    find "$INSTALL_LIB" -maxdepth 3 -print 2>/dev/null || true
     exit 1
-  }
+  fi
+  echo "Copied $(ls "$TARGET_DIR"/*.a 2>/dev/null | wc -l | tr -d ' ') main simulator libraries"
 
   # Copy third-party libs
   local TP_DIR="out/cmake-ios-${lc_type}-arm64-sim/third_party"
