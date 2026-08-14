@@ -1,24 +1,32 @@
-# Proposal: compile-time opt-in/opt-out of optional native libraries
+# Proposal: compile-time opt-in/out of optional native libraries
 
-Status: draft (proposal only, no code changes).
+Status: draft (proposal only, no code changes). Revised after review.
 Ticket: `the-0rkw`.
 
 Goal: let consumers exclude native libraries they do not need, so binaries get
 smaller. The named examples were libpng and libz. The short answer:
 
-- **Most of the "optional" libraries are already dead in the link.** The
-  wrapper source never calls into `imageio`, `tinyexr`, `libpng`, `filamat`,
-  or `filameshio`. On Android, iOS, macOS, Windows, and web, dead-code
-  elimination (DCE) removes most of them already. Expected gains there are
-  small.
+- **Image decoding is core, not optional.** The public Dart API
+  `Texture.decodeToTexture()` ends in `stbi_load_from_memory()`
+  (`TTexture.cpp:52`). Nearly every consumer loads PNG/JPEG textures, either
+  directly or through glTF (`TGltfResourceLoader.cpp:45-49` registers the stb
+  provider for `image/png` and `image/jpeg`). `stb`, `image`, and `ktxreader`
+  are load-bearing. They cannot be compiled out.
+- **"libpng is dead" does not mean "PNG support is dead".** PNG decoding goes
+  through `stb_image`, which is self-contained. It does not use libpng. So we
+  can drop libpng (where linked) without losing PNG support.
+- **What is actually unused by the wrapper:** `imageio`, `tinyexr`, `libpng`,
+  `z`, `zstd`, `filamat`, `filameshio`. The wrapper source never calls any of
+  them. On Android, iOS, macOS, Windows, and web, dead-code elimination (DCE)
+  removes most of them already. Expected gains there are small.
 - **Linux is the exception.** The build hook wraps *all* Filament archives in
   `--whole-archive` on Linux (`thermion_dart/hook/build.dart:407-411`). No
   DCE happens. Every linked archive is fully included. This is where a real
   win waits: roughly 1-3 MB or more per build.
 
-So the honest framing: this is mostly a *Linux problem* plus a *hygiene
-problem* (dead includes and dead link entries), not a cross-platform size
-emergency.
+So the honest framing: image support stays; a short list of never-called
+libraries can go. That is mostly a *Linux problem* plus a *hygiene problem*
+(dead includes and dead link entries), not a cross-platform size emergency.
 
 ---
 
@@ -31,9 +39,9 @@ The link list lives in `thermion_dart/hook/build.dart:154-211`:
 | Library | Linked | Notes |
 |---|---|---|
 | filament, backend, filabridge, utils, geometry, gltfio_core, gltfio (desktop), image, filaflat, ibl, ktxreader, stb, uberzlib, uberarchive, smol-v, basis_transcoder, dracodec, filament-iblprefilter | all platforms | core render path |
-| filamat | all except iOS | runtime material compiler |
+| filamat | all except iOS | runtime material compiler. iOS already ships without it — proof the core does not need it |
 | filameshio | all | filamesh mesh loader |
-| imageio, tinyexr | all | PNG/EXR decode+encode |
+| imageio, tinyexr | all | PNG/EXR decode+encode via imageio |
 | z | all | zlib |
 | zstd | all except Linux | pulled by filamat (1.75.0 refs `ZSTD_*`) |
 | perfetto | Android | required by utils/Systrace |
@@ -55,8 +63,8 @@ into the binary, which then need `--allow-shlib-undefined` to link at all.
 filament, backend, geometry, mikktspace, dracodec, ibl-lite, ktxreader,
 filaflat, filabridge, image, imageio, utils, stb, uberzlib, uberarchive,
 meshoptimizer, basis_transcoder, **basis_encoder**, z, zstd, **png**, tinyexr.
-(`filamat`, `filameshio`, `camutils` are imported but *not* linked — web
-already ships without filamat, which proves the core does not need it.)
+(`filamat`, `filameshio`, `camutils` are imported as targets but *not* linked
+— like iOS, web already ships without filamat.)
 
 Emscripten does function-level DCE by default. Only `EXTERNAL_ALL_LIBRARIES`
 (declarative plugins) get `--whole-archive`
@@ -65,25 +73,35 @@ The question for web is empirical: measure before assuming.
 
 ---
 
-## 2. What the wrapper actually uses
+## 2. What the wrapper actually uses (per-library verdicts)
 
-Verified by grepping `thermion_dart/native/src`:
+Verified by grepping `thermion_dart/native/src` for includes, calls, and
+template use. Every verdict below cites the evidence.
+
+### Core — used by public APIs, must stay
 
 | Library | Used where | Verdict |
 |---|---|---|
-| **stb** | `TTexture.cpp:26,52` (`stbi_load_from_memory` for `Image_decode`, used by e.g. the picking example); `TGltfResourceLoader.cpp:45-49` (gltfio stb provider for `image/png` + `image/jpeg`) | **core** — nearly every consumer loads PNG/JPEG textures |
-| **image** | `TTexture.cpp:15-16` (LinearImage, color transform) | core |
-| **ktxreader** (+ basis_transcoder) | `TTexture.cpp:19-20,132-194` (KTX1/KTX2); `TGltfResourceLoader.cpp:46-47` (`image/ktx2`) | core for KTX2 assets; could be opt-out for apps that use no KTX2 |
-| **uberarchive + uberzlib** | `TGltfAssetLoader.cpp:22,49`, `TEngine.cpp:29` (default ubershader materials) | core |
-| **imageio** | only two includes in `TEngine.cpp:31-32`. Zero calls anywhere. Screenshot PNG encoding happens on the **Dart side** (`lib/src/utils/src/image.dart:72-147`, the `image` package) | **dead** |
-| **tinyexr** | dependency of imageio only | **dead** |
-| **png (libpng)** | dependency of imageio only; hook does not even link it | **dead** |
-| **z (zlib)** | referenced by libpng/tinyexr (both dead) and gltfio's stb provider (stb needs zlib for PNG? no — stb is self-contained) | **likely dead**; verify by linking without it |
-| **filamat** | zero includes of `<filamat/...>` in wrapper source. All materials are precompiled `.package` blobs built with `Material::Builder().package(...)` (`TEngine.cpp:290`, `TMaterialInstance.cpp:57-114`) — that is the `filament` lib, not filamat | **dead for core**; kept only for declarative plugins that compile materials at runtime |
-| **zstd** | pulled only by filamat (`build.dart:187-195`) | dead if filamat goes |
+| **stb** | `TTexture.cpp:26,42-52`: `Image_decode` calls `stbi_load_from_memory`. This is the back end of the public Dart API `Texture.decodeToTexture()` → `FilamentApp.decodeImage()` (`lib/src/filament/src/interface/texture.dart:504-514`, `ffi_filament_app.dart:548-551`). Also `TGltfResourceLoader.cpp:45,48-49`: gltfio stb provider for `image/png` + `image/jpeg` glTF textures | **core**. Nearly every consumer loads PNG/JPEG |
+| **image** | `TTexture.cpp:15-16` (LinearImage, ColorTransform); `:62-77` every decode wraps the stb output in `toLinear`/`toLinearWithAlpha` + `sRGBToLinear`; `:104+` `image::Ktx1Bundle` | **core**. It is the return type of `Image_decode` |
+| **ktxreader** | `TTexture.cpp:19-20,102-194`: `Ktx1Bundle_*`, `Ktx2Reader_createTexture`, `Ktx1Reader_createTexture`; render-thread variants in `ThermionDartRenderThreadApi.cpp:1897-1928`; gltfio ktx2 provider `TGltfResourceLoader.cpp:46-47` | **core** for any KTX1/KTX2 asset (incl. IBL/skybox textures) |
+| **basis_transcoder** | no direct calls, but `ktxreader::Ktx2Reader` needs it for basis-supercompressed KTX2 | **core** (transitive, via ktxreader) |
+| **uberzlib + uberarchive** | `TGltfAssetLoader.cpp:50`: `createUbershaderProvider` is the default material provider for glTF assets | **core** |
+| **dracodec** | no direct wrapper references; referenced from inside gltfio_core for Draco-compressed glTF meshes | core by default; opt-out only for apps that know their assets have no Draco meshes |
+| **filaflat, smol-v, ibl, filament-iblprefilter** | no direct wrapper references; filaflat/smol-v are referenced transitively by filament/gltfio | verify individually by removal, not by claim |
+
+### Dead in the wrapper — candidates for removal or opt-out
+
+| Library | Evidence | Verdict |
+|---|---|---|
+| **imageio** | only two includes in `TEngine.cpp:31-32`. Zero `ImageDecoder`/`ImageEncoder` calls anywhere. Screenshot PNG encoding happens on the **Dart side** (`lib/src/utils/src/image.dart:3,147`, the `image` package's `encodePng`) | **dead** |
+| **tinyexr** | dependency of imageio only; no direct references | **dead** |
+| **png (libpng)** | zero direct calls. PNG decode goes through self-contained stb, not libpng. The hook does not even link it (web does) | **dead** — and dropping it does *not* lose PNG support |
+| **z (zlib)** | referenced only by libpng/tinyexr (both dead). stb does not need zlib. uberzlib is a separate self-contained amalgamation | **likely dead** on native; on web it is still needed while png/tinyexr stay in the web link list. Verify by linking without it |
+| **zstd** | pulled only by filamat (`build.dart:187-195` comment: filamat refs `ZSTD_*`). No other references | dead once filamat goes. Note: iOS links zstd but not filamat — that zstd entry is probably already unnecessary |
+| **filamat** | zero `<filamat/...>` includes, zero calls. All materials are precompiled `.package` blobs built with `filament::Material::Builder().package(...)` (`TEngine.cpp:290`, `TMaterialInstance.cpp:57-115`) — that is the `filament` lib, not filamat. iOS and web already ship without it | **dead for core**; keep available for declarative plugins that compile materials at runtime |
 | **filameshio** | zero references in wrapper source (only `native/test/macos`) | **dead** |
-| **dracodec** | not referenced by wrapper directly; referenced by gltfio_core (Draco-compressed glTF meshes) | core unless assets are known Draco-free |
-| **filaflat, smol-v, ibl, filament-iblprefilter** | no direct wrapper references; referenced transitively by filament/gltfio (filaflat, smol-v) or not at all (ibl-prefilter) | verify individually by removal |
+| **basis_encoder (web)** | linked in web CMakeLists but no wrapper references (encoding happens at build time elsewhere) | likely already DCE'd on web; drop from link list and measure |
 
 ---
 
@@ -91,21 +109,24 @@ Verified by grepping `thermion_dart/native/src`:
 
 **Core (keep always):** filament, backend, filabridge, utils, geometry,
 gltfio(_core), image, stb, uberzlib, uberarchive, ktxreader,
-basis_transcoder, filaflat, smol-v, perfetto (Android), matdbg/fgviewer
-(debug).
+basis_transcoder, dracodec (by default), filaflat, smol-v, perfetto
+(Android), matdbg/fgviewer (debug).
 
 **Dead today — candidates for deletion, not flags:**
 imageio, tinyexr, libpng, filameshio. Nothing calls them. Removing them is a
 bug fix, not a feature.
 
 **Dead for core, needed by plugins:** filamat (+ zstd). External declarative
-plugins may compile materials at runtime; that is why filamat is linked. Make
-it opt-in (`runtime_materials: true`), default off, and let the plugin
-config declare it.
+plugins may compile materials at runtime; that is why filamat is linked on
+non-iOS. Make it opt-in (`runtime_materials: true`), default off, and let the
+plugin config declare it.
 
-**Genuinely optional features (opt-out with real API impact):**
+**Possible later opt-outs (real API impact, not proposed now):**
 - dracodec — only needed for Draco-compressed glTF assets.
-- ktxreader/basis_transcoder — only needed for KTX1/KTX2 textures.
+- ktxreader/basis_transcoder — only needed for KTX1/KTX2 textures. These are
+  *public APIs* (`Ktx1Bundle_*`, `Ktx*Reader_createTexture`, plus the gltfio
+  `image/ktx2` provider), so opting out means guarded stubs and a capability
+  flag, not a quiet removal.
 Both are referenced from *inside* gltfio_core / ktxreader, so opting out
 needs the wrappers in our own C API to be guarded, and (for draco) possibly
 a Filament rebuild — see §6 phase 4.
@@ -139,10 +160,11 @@ pass matching `-DTHERMION_*` defines so the wrapper source can guard code.
 
 ### 4.2 Preprocessor guards in the wrapper
 
-Wrap the feature entry points (e.g. `Image_decode`, `Ktx*Reader_*`,
-`Engine_buildMaterial`) in `#if defined(THERMION_ENABLE_...)`. Compiled-out
-functions must still exist and return a clear error — a missing FFI symbol
-crashes the isolate, a returned error does not. Example:
+Wrap the feature entry points (e.g. `Ktx*Reader_*`,
+`MaterialProvider_createMaterialInstance`) in
+`#if defined(THERMION_ENABLE_...)`. Compiled-out functions must still exist
+and return a clear error — a missing FFI symbol crashes the isolate, a
+returned error does not. Example:
 
 ```cpp
 #if THERMION_ENABLE_KTX
@@ -156,6 +178,8 @@ TTexture *Ktx2Reader_createTexture(...) {
 ```
 
 The two dead `imageio` includes in `TEngine.cpp:31-32` are deleted outright.
+`Image_decode`, `LinearImage`, and the stb/image code paths are **not**
+touched — they are core.
 
 ### 4.3 Web CMake options
 
@@ -232,10 +256,11 @@ Because of this, **step 1 of the plan is measurement**, not flag plumbing.
 
 ## 6. Risks
 
-1. **gltfio texture decoding.** `TGltfResourceLoader.cpp:45-49` registers
-   stb (png/jpeg) and ktx2 providers. These are core; the proposal does not
-   touch them. Draco opt-out breaks loading of Draco-compressed glTFs at
-   runtime — the error must be clear, and the docs must say so.
+1. **Core image decoding must not regress.** `Image_decode` (stb + image)
+   and the gltfio stb/ktx2 providers (`TGltfResourceLoader.cpp:45-49`) are
+   on every asset-load path. The proposal does not touch them. Any change
+   to the link list must keep `stb`, `image`, `ktxreader`,
+   `basis_transcoder` linked everywhere.
 2. **Plugins that need filamat.** Removing filamat by default can break
    declarative plugins that compile materials at runtime. Mitigation: the
    `requires:` mechanism (§4.5) and a release-note warning.
@@ -245,11 +270,11 @@ Because of this, **step 1 of the plan is measurement**, not flag plumbing.
 4. **Windows link list is in a header.** `ThermionWin32.h` pragmas must
    stay in sync with the flags, or LINK fails. Gate the pragmas with the
    same defines.
-5. **Test impact.** `native/test/linux/CMakeLists.txt:77` and
-   `native/test/macos/CMakeLists.txt:101,109` link imageio/filameshio.
-   Tests keep the full (all-features) configuration; flags default matters:
-   if flags default to OFF, CI must build a "minimal" matrix entry to keep
-   it honest.
+5. **Test impact.** `native/test/linux/CMakeLists.txt:67,77-78` and
+   `native/test/macos/CMakeLists.txt:101-102,109-110` link
+   filamat/imageio/tinyexr/filameshio. Tests keep the full (all-features)
+   configuration; flags default matters: if flags default to OFF, CI must
+   build a "minimal" matrix entry to keep it honest.
 6. **Version drift.** The R2 artifacts stay complete; flags only change
    link selection. No new artifact variants are needed for the hook
    platforms. Web ships its own lib dir, so its CMake option needs no
@@ -274,7 +299,7 @@ Because of this, **step 1 of the plan is measurement**, not flag plumbing.
    and from the web link list. Keep `z`/`zstd` decisions pending step 1
    data. Expect the Linux win here. Re-run tests.
 3. **Flags + capability query.** Add `image_io`, `runtime_materials`,
-   `filamesh`, `ktx`, (later) `draco` user_defines; preprocessor guards
+   `filamesh`, and (later) `ktx`/`draco` user_defines; preprocessor guards
    with error-returning stubs; `Engine_getCapabilities`; regenerate
    bindings (`make bindings`); plugin `requires:` list; document in
    `thermion_dart/README.md` next to the existing `user_defines` examples.
@@ -284,7 +309,8 @@ Because of this, **step 1 of the plan is measurement**, not flag plumbing.
    referenced from inside gltfio_core, so removing it fully means a Filament
    rebuild with draco disabled (patch or upstream CMake option) in
    `scripts/build_android.sh` / `build_ios.sh` / `build_linux.sh` /
-   `build_macos.sh`. Only do this if step 1 shows meaningful sizes and users
-   ask for it.
+   `build_macos.sh`. ktxreader is our own wrapper API plus the gltfio
+   provider, so it needs guarded stubs and a capability flag. Only do this
+   if step 1 shows meaningful sizes and users ask for it.
 5. **CI size report.** Print binary sizes per platform per PR, so future
    additions show their cost immediately.
