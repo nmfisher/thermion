@@ -53,3 +53,36 @@ caused by the-0rkw.
 - Standard: branch + PR (or local-only if Nick says so), never push to
   master/develop directly, never merge.
 - Simplified technical English.
+
+## Sandbox brief (for the agent — read this first)
+
+You are a coding agent fixing the Linux debug build. Work on the asb/
+branch (e.g. asb/linux-debug-artifact). The ticket above is the spec.
+
+### Steps
+
+1. Reproduce: run `scripts/build_linux.sh --debug` (or the failing hook
+   step) and confirm the exact error (missing bluevk/BlueVK.h).
+2. Investigate the v1.75.0 linux debug R2 artifact — where it comes
+   from, whether it is genuinely missing the header or the download is
+   incomplete/corrupted.
+3. Fix it, evaluating the options in the ticket (patch header from
+   release artifact / re-fetch / tolerate in hook / bump-pin version).
+   Pick the safest fix that works for other machines too (do NOT rely on
+   local state).
+4. Verify: `scripts/build_linux.sh --debug` completes and the debug
+   `.so` links clean (ldd -r). Also confirm the release build still
+   works (the-0rkw hook changes are on asb/optional-libs-proposal — if
+   that branch's hook is not merged, build against the current branch's
+   hook and note the interaction).
+5. Report: root cause, the fix, verification output.
+
+### Rules
+
+- Update this ticket with tk: start the-c8d3 when you begin, close when
+  done (tk may not be installed — edit the status field directly).
+- Commit all work locally on the asb/ branch.
+- Push + open a PR when finished (if git push is blocked, commit and
+  report — the main agent will push).
+- Never merge the PR. Never commit or push directly to master/develop.
+- Simplified technical English: short sentences, plain words.
