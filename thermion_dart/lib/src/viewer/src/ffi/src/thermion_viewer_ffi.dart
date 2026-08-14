@@ -166,7 +166,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await _removeIbl(destroy: true);
     await clearBackgroundImage(destroy: true);
 
-    await destroyAssets();
+    await _destroyAssets();
     await destroyLights();
 
     for (final callback in _onDispose) {
@@ -536,27 +536,35 @@ class ThermionViewerFFI extends ThermionViewer {
     bool rebuildVertices = false,
     bool loadResourcesAsync = false,
     String? resourceUri,
-  }) async {
-    var asset = await _app.loadGltfFromBuffer(
-      data,
-      initialInstances: initialInstances,
-      releaseSourceData: releaseSourceData,
-      rebuildVertices: rebuildVertices,
-      loadResourcesAsync: loadResourcesAsync,
-      resourceUri: resourceUri,
-    );
+  }) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(() async {
+      var asset = await _app.loadGltfFromBuffer(
+        data,
+        initialInstances: initialInstances,
+        releaseSourceData: releaseSourceData,
+        rebuildVertices: rebuildVertices,
+        loadResourcesAsync: loadResourcesAsync,
+        resourceUri: resourceUri,
+      );
 
-    _assets.add(asset);
-    if (addToScene) {
-      await scene.add(asset);
-    }
+      _assets.add(asset);
+      if (addToScene) {
+        await scene.add(asset);
+      }
 
-    return asset;
+      return asset;
+    });
   }
 
   //
   @override
-  Future destroyAsset(ThermionAsset asset) async {
+  Future destroyAsset(ThermionAsset asset) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(() => _destroyAsset(asset));
+  }
+
+  Future _destroyAsset(ThermionAsset asset) async {
     _assets.remove(asset);
     await scene.remove(asset);
     await view.removeStencilHighlight(asset);
@@ -568,7 +576,12 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future destroyAssets() async {
+  Future destroyAssets() {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(_destroyAssets);
+  }
+
+  Future _destroyAssets() async {
     _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
       _logger.info("Destroying asset ${asset.getNativeHandle()}");
@@ -841,14 +854,17 @@ class ThermionViewerFFI extends ThermionViewer {
     Geometry geometry, {
     List<MaterialInstance>? materialInstances,
     bool addToScene = true,
-  }) async {
-    final asset = await _app.createGeometry(geometry, materialInstances: materialInstances);
-    _assets.add(asset);
-    if (addToScene) {
-      await scene.add(asset);
-    }
+  }) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(() async {
+      final asset = await _app.createGeometry(geometry, materialInstances: materialInstances);
+      _assets.add(asset);
+      if (addToScene) {
+        await scene.add(asset);
+      }
 
-    return asset;
+      return asset;
+    });
   }
 
   final _gizmos = <GizmoType, GizmoAsset>{};

@@ -156,7 +156,7 @@ class OrbitInputHandlerDelegate extends InputHandlerDelegate {
           localFocalPointDelta: final localFocalPointDelta,
         ):
           if (numPointers == 1) {
-            deltaAzimuth -= localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
+            deltaAzimuth -= localFocalPointDelta.$1 * sensitivity.touchSensitivity;
             deltaElevation -= localFocalPointDelta.$2 * sensitivity.touchSensitivity;
           } else {
             _radiusScaleFactor = scaleFactor;

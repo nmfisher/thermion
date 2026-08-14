@@ -3,15 +3,40 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 
+/// Thrown when [FFIMaterialInstance.destroy] is called on an instance that is
+/// still bound to one or more live renderables (tracked by
+/// [FFIFilamentApp]'s material-instance binding registry). Destroying it
+/// anyway would leave those renderables referencing freed native memory.
+class MaterialInstanceInUseException implements Exception {
+  final int boundAssetCount;
+
+  MaterialInstanceInUseException(this.boundAssetCount);
+
+  @override
+  String toString() =>
+      "MaterialInstance is still bound to $boundAssetCount live asset(s); "
+      "destroy or reassign the assets that reference it before destroying "
+      "the material instance";
+}
+
 class FFIMaterial extends Material<Pointer<TMaterial>> {
   final Pointer<TMaterial> pointer;
 
   final FFIFilamentApp _app;
 
+  bool _destroyed = false;
+
   FFIMaterial(this.pointer, this._app);
+
+  void _throwIfDestroyed() {
+    if (_destroyed) {
+      throw StateError("This Material has already been destroyed");
+    }
+  }
 
   @override
   Future<MaterialInstance> createInstance() async {
+    _throwIfDestroyed();
     var ptr = await withPointerCallback<TMaterialInstance>((cb) {
       Material_createInstanceRenderThread(pointer, cb);
     });
@@ -19,6 +44,10 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
   }
 
   Future destroy() async {
+    if (_destroyed) {
+      return;
+    }
+    _destroyed = true;
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialRenderThread(_app.engine, pointer, requestId, cb);
     });
@@ -26,11 +55,13 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
 
   @override
   Future<bool> hasParameter(String propertyName) async {
+    _throwIfDestroyed();
     return Material_hasParameter(pointer, propertyName.toNativeUtf8().cast<Char>());
   }
 
   @override
   Future<BlendingMode> getBlendingMode() async {
+    _throwIfDestroyed();
     return BlendingMode.values[Material_getBlendingMode(pointer)];
   }
 
@@ -45,43 +76,58 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   final FFIFilamentApp _app;
 
+  bool _destroyed = false;
+
   FFIMaterialInstance(this.pointer, this._app) {
     if (pointer == nullptr) {
       throw Exception("MaterialInstance not found");
     }
   }
 
+  void _throwIfDestroyed() {
+    if (_destroyed) {
+      throw StateError("This MaterialInstance has already been destroyed");
+    }
+  }
+
   Future setDoubleSided(bool doubleSided) async {
+    _throwIfDestroyed();
     MaterialInstance_setDoubleSided(this.pointer, doubleSided);
   }
 
   @override
   Future setDepthCullingEnabled(bool enabled) async {
+    _throwIfDestroyed();
     MaterialInstance_setDepthCulling(this.pointer, enabled);
   }
 
   @override
   Future setDepthWriteEnabled(bool enabled) async {
+    _throwIfDestroyed();
     MaterialInstance_setDepthWrite(this.pointer, enabled);
   }
 
   @override
   Future setParameterFloat(String name, double value) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterFloat(pointer, name.toNativeUtf8().cast<Char>(), value);
   }
 
   @override
   Future setParameterFloat2(String name, double x, double y) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterFloat2(pointer, name.toNativeUtf8().cast<Char>(), x, y);
   }
 
   @override
   Future setParameterFloat3(String name, double x, double y, double z) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterFloat3(pointer, name.toNativeUtf8().cast<Char>(), x, y, z);
   }
 
   @override
   Future setParameterFloat3Array(String name, List<Vector3> array) async {
+    _throwIfDestroyed();
     final ptr = name.toNativeUtf8().cast<Char>();
     final data = Float64List(array.length * 3);
     int i = 0;
@@ -101,71 +147,92 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future setParameterFloat4(String name, double x, double y, double z, double w) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterFloat4(pointer, name.toNativeUtf8().cast<Char>(), x, y, z, w);
   }
 
   @override
   Future setParameterInt(String name, int value) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterInt(pointer, name.toNativeUtf8().cast<Char>(), value);
   }
 
   @override
   Future setDepthFunc(SamplerCompareFunction depthFunc) async {
+    _throwIfDestroyed();
     MaterialInstance_setDepthFunc(pointer, depthFunc.index);
   }
 
   @override
   Future setStencilCompareFunction(SamplerCompareFunction func, [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilCompareFunction(pointer, func.index, face.toFFI());
   }
 
   @override
   Future setStencilOpDepthFail(StencilOperation op, [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilOpDepthFail(pointer, op.index, face.toFFI());
   }
 
   @override
   Future setStencilOpDepthStencilPass(StencilOperation op, [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilOpDepthStencilPass(pointer, op.index, face.toFFI());
   }
 
   @override
   Future setStencilOpStencilFail(StencilOperation op, [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilOpStencilFail(pointer, op.index, face.toFFI());
   }
 
   @override
   Future setStencilReferenceValue(int value, [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilReferenceValue(pointer, value, face.toFFI());
   }
 
   @override
   Future setStencilWriteEnabled(bool enabled) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilWrite(pointer, enabled);
   }
 
   @override
   Future setCullingMode(CullingMode cullingMode) async {
+    _throwIfDestroyed();
     MaterialInstance_setCullingMode(pointer, cullingMode.index);
     ;
   }
 
   @override
   Future<bool> isStencilWriteEnabled() async {
+    _throwIfDestroyed();
     return MaterialInstance_isStencilWriteEnabled(pointer);
   }
 
   @override
   Future setStencilReadMask(int mask) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilReadMask(pointer, mask);
   }
 
   @override
   Future setStencilWriteMask(int mask) async {
+    _throwIfDestroyed();
     MaterialInstance_setStencilWriteMask(pointer, mask);
   }
 
   Future destroy() async {
+    if (_destroyed) {
+      return;
+    }
+    final boundAssets = _app.getBoundAssetsForMaterialInstance(pointer.address);
+    if (boundAssets.isNotEmpty) {
+      throw MaterialInstanceInUseException(boundAssets.length);
+    }
+    _destroyed = true;
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialInstanceRenderThread(_app.engine, this.pointer, requestId, cb);
     });
@@ -173,26 +240,31 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future setTransparencyMode(TransparencyMode mode) async {
+    _throwIfDestroyed();
     MaterialInstance_setTransparencyMode(pointer, mode.index);
   }
 
   @override
   Future<TransparencyMode> getTransparencyMode() async {
+    _throwIfDestroyed();
     return TransparencyMode.values[MaterialInstance_getTransparencyMode(pointer)];
   }
 
   @override
   Future setParameterTexture(String name, covariant FFITexture texture, covariant FFITextureSampler sampler) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterTexture(pointer, name.toNativeUtf8().cast<Char>(), texture.pointer, sampler.pointer);
   }
 
   @override
   Future setParameterBool(String name, bool value) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterBool(pointer, name.toNativeUtf8().cast<Char>(), value);
   }
 
   @override
   Future setParameterMat3(String name, Matrix3 matrix) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterMat3(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
 
     if (FILAMENT_WASM) {
@@ -202,6 +274,7 @@ class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
 
   @override
   Future setParameterMat4(String name, Matrix4 matrix) async {
+    _throwIfDestroyed();
     MaterialInstance_setParameterMat4(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
   }
 

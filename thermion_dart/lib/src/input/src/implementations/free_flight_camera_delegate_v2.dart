@@ -101,7 +101,7 @@ class FreeFlightInputHandlerDelegateV2 extends InputHandlerDelegate {
         ):
           if (numPointers == 1) {
             translation += Vector3(
-              localFocalPointDelta!.$1 * sensitivity.touchSensitivity,
+              localFocalPointDelta.$1 * sensitivity.touchSensitivity,
               localFocalPointDelta.$2 * sensitivity.touchSensitivity,
               0,
             );
