@@ -124,3 +124,65 @@ overgeneralized. Re-review and fix the document. Be comprehensive this time.
 
 Rules unchanged: no code/test/build changes, simplified technical English,
 commit locally only.
+## RESUME — IMPLEMENT the stripping now (2026-08-14)
+
+Nick reviewed your corrected proposal and approves. IMPLEMENTATION MODE:
+this is no longer proposal-only. Strip the libraries you judged totally
+unnecessary, working from the local filament-v1.75.0-based branch (this
+branch, asb/optional-libs-proposal). Make code/build changes. Run builds.
+
+### What to strip (your own verdicts — implement them)
+
+Strip the "dead" set where you have solid evidence:
+- imageio (includes only in TEngine.cpp:31-32, zero calls; screenshot
+  encoding is Dart-side via the image package)
+- tinyexr (imageio dependency only)
+- png / libpng (zero direct calls; stb is self-contained)
+- filamat (zero calls; materials are precompiled .package blobs; iOS and
+  web already ship without it)
+- filameshio (zero wrapper references)
+- zstd where it is only pulled by filamat (once filamat is gone, drop it;
+  note iOS links zstd without filamat — that entry is likely already
+  unnecessary)
+- z / zlib where it is only needed by the dead set (uberzlib is separate
+  and stays). On web, keep z while png/tinyexr remain in the web link
+  list, then re-check once they are removed.
+
+Be careful with the "verify individually" set — do NOT strip these
+without checking:
+- basis_transcoder (ktxreader needs it for KTX2)
+- dracodec (gltfio uses it for Draco meshes — opt-out only if truly
+  unused by your assets; default keep)
+- filaflat, smol-v, ibl, filament-iblprefilter (verify by removal attempt
+  + build, not by claim)
+- uberzlib/uberarchive (core — glTF ubershader provider)
+
+### Linux --whole-archive (the real win)
+
+The hook wraps ALL Filament archives in --whole-archive on Linux
+(thermion_dart/hook/build.dart:407-411), so stripping link entries alone
+changes nothing there. Address this too: scope the whole-archive to only
+the archives that actually need it (or drop it entirely and add the few
+required symbols explicitly), so the dead libs actually get eliminated.
+Verify the Linux build still links and runs after the change.
+
+### Verification (required)
+
+- Rebuild the platforms you can in the sandbox (at minimum Linux; web
+  if feasible) and run the existing tests for the touched paths.
+- Measure/estimate the binary size before vs after per platform and
+  record the numbers in the proposal doc.
+- If a strip breaks a build or a test, revert that specific strip and
+  record why in the doc (evidence over claims).
+- Report per-library: stripped / kept / reverted-why.
+
+### Rules
+
+- Update the ticket with tk (edit status field directly if tk is not
+  installed): in_progress when you start, then leave it open when done —
+  Nick reviews before closing.
+- Commit all work locally on this branch.
+- Do NOT push. Do NOT raise a PR. Nick reviews locally first (local
+  planning mode as before, but with implementation).
+- Never commit or push directly to master/develop.
+- Simplified technical English: short sentences, plain words.
