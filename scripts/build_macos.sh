@@ -419,7 +419,7 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
-  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy bluevk headers to target"
     exit 1
   }
