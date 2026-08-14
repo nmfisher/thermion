@@ -67,3 +67,60 @@ Cover:
 - Never merge the PR. Never commit or push directly to master/develop.
 - Simplified technical English: short sentences, plain words.
 - PROPOSAL-ONLY: no code/test/build changes. Ever. This is a plan.
+
+## RESUME — your proposal's headline claim is WRONG, re-review (2026-08-14)
+
+Nick reviewed your proposal. Your headline said: "The wrapper source never
+calls into imageio, tinyexr, libpng, filamat, or filameshio... DCE removes
+most of them already." Nick disagrees, and he is RIGHT. The main agent
+re-reviewed the source independently and confirmed it. Your headline
+overgeneralized. Re-review and fix the document. Be comprehensive this time.
+
+### Evidence from an independent source review (verified line by line)
+
+1. **PNG decoding IS a first-class, user-facing feature.** The Dart API
+   `Texture.decodeToTexture()` -> `FilamentApp.decodeImage()` -> FFI
+   `Image_decode()` -> `stbi_load_from_memory()` (TTexture.cpp:52) decodes
+   PNG/JPEG textures. This is a public API used on every image load. Your
+   doc's own detail table (lines 74-76) correctly listed stb as "core -
+   nearly every consumer loads PNG/JPEG textures" — that CONTRADICTS your
+   headline claim. stb is NOT optional.
+
+2. **stb provider for glTF is used.** TGltfResourceLoader.cpp:45-49:
+   `gltfio::createStbProvider()` + `addTextureProvider("image/png", ...)`
+   + `("image/jpeg", ...)`. glTF assets load PNG/JPEG textures through it.
+
+3. **The `image` library is heavily used.** Ktx1Bundle/Ktx2Bundle +
+   LinearImage + sRGBToLinear color transforms across TTexture.cpp and
+   ThermionDartRenderThreadApi.cpp. Not dead.
+
+4. **What MIGHT actually be dead (verify, don't assume):**
+   - imageio/ImageDecoder.h + ImageEncoder.h are INCLUDED in TEngine.cpp
+     (lines 31-32) but no instantiated calls were found — possibly dead
+     includes; the imageio/tinyexr LIBRARIES may be DCE'd.
+   - Direct libpng calls: none found (PNG goes through stb_image, which is
+     self-contained — NOT libpng). So "libpng" may be droppable, but PNG
+     decode capability is NOT.
+   - filamat / filameshio: no direct calls found — verify before claiming.
+
+### What to do (approved by Nick)
+
+1. Re-review comprehensively: for EVERY library in your link lists, grep
+   the actual native source (thermion_dart/native/src/ and the web
+   CMakeLists) for real usage — includes, instantiated calls, template
+   instantiations, and transitive needs (e.g. does gltfio's stb provider
+   need zlib? does ktxreader need basis_transcoder? does image need
+   anything?).
+2. Correct the document: fix the headline and section 2 (optional vs core)
+   to match the evidence. stb, image, ktxreader are CORE. Only genuinely
+   unused libs (imageio/tinyexr/filamat/filameshio, maybe direct libpng)
+   are candidates for opt-out.
+3. Keep the Linux --whole-archive finding (it is real and valuable), but
+   present the whole picture honestly: per-library verdict table with
+   evidence, per platform, and realistic size impact.
+4. Commit the corrected document on this branch. Do NOT push, do NOT raise
+   a PR, do NOT close the ticket — local planning only, as instructed.
+5. Report what you changed and your per-library verdicts.
+
+Rules unchanged: no code/test/build changes, simplified technical English,
+commit locally only.
