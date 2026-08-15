@@ -160,7 +160,19 @@ if [ "$WEBGPU_FLAG" = true ]; then
   CMAKE_INJECT="$CMAKE_INJECT -DFILAMENT_SUPPORTS_WEBGPU=ON"
 fi
 echo "Patching Filament build.sh to inject: $CMAKE_INJECT"
-sed -i.bak "s|\${architectures} \\\$|\${architectures} $CMAKE_INJECT \\|g" build.sh
+# Keep the sed expression single-quoted: the pattern must reach sed as
+# ${architectures} \\$ (escaped backslash + end-of-line anchor) and the
+# replacement as ... \\ (escaped backslash). In double quotes the shell
+# collapses those to \$ / \, which makes sed fail with "unterminated `s'
+# command" — the injection silently never happens and Filament builds the
+# samples, whose debug link then fails on duplicate stb_image_write symbols.
+sed -i.bak 's|\${architectures} \\$|\${architectures} '"$CMAKE_INJECT"' \\|g' build.sh
+if grep -q 'FILAMENT_SKIP_SAMPLES' build.sh; then
+  echo "build.sh patched successfully"
+else
+  echo "Error: build.sh patch did not match — FILAMENT_SKIP_SAMPLES not injected"
+  exit 1
+fi
 
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
