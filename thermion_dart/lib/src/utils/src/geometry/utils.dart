@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 
+import '../../../filament/src/implementation/ffi_model_importer.dart';
+
 class GeometryUtils {
   /// Expand triangle strip indices to triangle list indices.
   ///
@@ -415,4 +417,65 @@ class GeometryUtils {
 
   static Geometry sphere({bool normals = true, bool uvs = true, int latitudeBands = 20, int longitudeBands = 20}) =>
       SphereGeometry.sphere(normals: normals, uvs: uvs, latitudeBands: latitudeBands, longitudeBands: longitudeBands);
+
+  /// Parses a model file from the given byte buffer and returns a list of
+  /// geometry groups. Each group corresponds to a named object/mesh (or
+  /// material partition) in the file.
+  ///
+  /// [formatHint] is the file extension *without* the dot (e.g. "obj", "fbx",
+  /// "glb", "stl", "ply"); Assimp uses it to select the right importer when
+  /// reading from memory.
+  ///
+  /// [flipUvs] - If true (default), flips UV coordinates vertically. Most
+  ///            formats (OBJ, FBX) use bottom-left UV origin, while Filament
+  ///            uses top-left. Flipping is applied here only (not in native
+  ///            Assimp), so it is not double-applied.
+  ///
+  /// Returns a list of [ModelGeometryGroup] objects.
+  static List<ModelGeometryGroup> parseModelFromBuffer(
+    Uint8List data, {
+    required String formatHint,
+    bool flipUvs = true,
+  }) {
+    final meshes = ModelImporter.loadFromBuffer(data, formatHint: formatHint);
+    return meshes.map((mesh) {
+      final geometry = mesh.toGeometry(
+        flipUvs: flipUvs,
+        createDummyColors: true,
+        createDummyUvs: true,
+      );
+      return ModelGeometryGroup(
+        name: mesh.name,
+        materialName: mesh.materialName,
+        geometry: geometry,
+      );
+    }).toList();
+  }
+
+  /// Convenience wrapper for OBJ files (equivalent to
+  /// [parseModelFromBuffer] with [formatHint] `"obj"`).
+  static List<ModelGeometryGroup> parseObjFromBuffer(Uint8List data,
+          {bool flipUvs = true}) =>
+      parseModelFromBuffer(data, formatHint: 'obj', flipUvs: flipUvs);
+}
+
+/// Represents a geometry group parsed from a model file.
+///
+/// A model file can contain multiple objects/meshes, each with its own
+/// material assignment. This class represents one such group.
+class ModelGeometryGroup {
+  /// Object/mesh name.
+  final String? name;
+
+  /// Material name.
+  final String? materialName;
+
+  /// The geometry data for this group.
+  final Geometry geometry;
+
+  ModelGeometryGroup({
+    this.name,
+    this.materialName,
+    required this.geometry,
+  });
 }

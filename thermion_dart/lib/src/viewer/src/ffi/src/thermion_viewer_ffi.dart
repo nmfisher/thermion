@@ -556,6 +556,67 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
+  Future<List<ThermionAsset>> loadModel(
+    String uri, {
+    bool addToScene = true,
+    bool flipUvs = true,
+  }) async {
+    final data = await FilamentApp.instance!.loadResource(uri);
+    final formatHint = _extensionHintFromUri(uri);
+    return loadModelFromBuffer(
+      data,
+      formatHint: formatHint,
+      addToScene: addToScene,
+      flipUvs: flipUvs,
+    );
+  }
+
+  //
+  @override
+  Future<List<ThermionAsset>> loadModelFromBuffer(
+    Uint8List data, {
+    required String formatHint,
+    bool addToScene = true,
+    bool flipUvs = true,
+  }) async {
+    final groups = GeometryUtils.parseModelFromBuffer(
+      data,
+      formatHint: formatHint,
+      flipUvs: flipUvs,
+    );
+    final assets = <ThermionAsset>[];
+
+    for (final group in groups) {
+      final asset = await createGeometry(
+        group.geometry,
+        addToScene: addToScene,
+      );
+      assets.add(asset);
+    }
+
+    return assets;
+  }
+
+  /// Extracts the Assimp format hint (file extension without dot, lowercased)
+  /// from a URI/path. Returns "obj" if no extension is found.
+  static String _extensionHintFromUri(String uri) {
+    final withoutQuery = uri.split('?').first.split('#').first;
+    final dot = withoutQuery.lastIndexOf('.');
+    if (dot < 0 || dot == withoutQuery.length - 1) return 'obj';
+    final ext = withoutQuery.substring(dot + 1).toLowerCase();
+    // Strip a trailing compressed extension like ".gz" (e.g. "file.glb.gz").
+    if (ext == 'gz') {
+      final inner = withoutQuery.substring(0, dot);
+      final innerDot = inner.lastIndexOf('.');
+      if (innerDot >= 0) {
+        return inner.substring(innerDot + 1).toLowerCase();
+      }
+    }
+    return ext;
+  }
+
+  //
+  @override
   Future destroyAsset(ThermionAsset asset) async {
     _assets.remove(asset);
     await scene.remove(asset);
