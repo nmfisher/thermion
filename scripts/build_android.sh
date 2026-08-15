@@ -284,13 +284,13 @@ if [ "$BUILD_RELEASE" = true ]; then
     CMAKE_ARCH=$(abi_to_cmake_arch "$ARCH")
     mkdir -p "$TARGET_RELEASE_DIR/$ARCH"
 
-    # Copy main Filament libraries
-    for lib in out/android-release/filament/lib/$ARCH/*.a; do
-      case "$(basename "$lib")" in
-        *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
-        *) cp "$lib" "$TARGET_RELEASE_DIR/$ARCH/" ;;
-      esac
-    done
+    # Copy main Filament libraries.
+    # libzstd.a MUST be staged: as of Filament 1.75.0 libfilamat.a has
+    # undefined zstd symbols and thermion_dart links -lzstd explicitly
+    # (see zip_android.sh). Skipping it here leaves the R2 artifact
+    # without libzstd.a and the Android link fails with
+    # "unable to find library -lzstd".
+    cp out/android-release/filament/lib/$ARCH/*.a "$TARGET_RELEASE_DIR/$ARCH/"
 
     # Copy imageio (built per-arch by build_third_party_for_arch)
     IMAGEIO_SRC="out/cmake-android-release-${CMAKE_ARCH}/third_party/imageio/libimageio.a"
@@ -332,13 +332,8 @@ if [ "$BUILD_DEBUG" = true ]; then
     CMAKE_ARCH=$(abi_to_cmake_arch "$ARCH")
     mkdir -p "$TARGET_DEBUG_DIR/$ARCH"
 
-    # Copy main Filament libraries
-    for lib in out/android-debug/filament/lib/$ARCH/*.a; do
-      case "$(basename "$lib")" in
-        *zstd*) echo "Skipping $lib (bundled in Filament already)" ;;
-        *) cp "$lib" "$TARGET_DEBUG_DIR/$ARCH/" ;;
-      esac
-    done
+    # Copy main Filament libraries (libzstd.a included; see release note above)
+    cp out/android-debug/filament/lib/$ARCH/*.a "$TARGET_DEBUG_DIR/$ARCH/"
 
     # Copy imageio (built per-arch by build_third_party_for_arch)
     IMAGEIO_SRC="out/cmake-android-debug-${CMAKE_ARCH}/third_party/imageio/libimageio.a"

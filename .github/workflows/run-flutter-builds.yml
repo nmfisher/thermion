@@ -49,8 +49,23 @@ jobs:
           channel: ${{ matrix.flutter-channel }}
           architecture: ${{ matrix.flutter-arch }}
 
+      # The plugin's CMake configure runs BEFORE the in-build hook step that
+      # extracts the Filament headers from the R2 artifact and writes
+      # .dart_tool/generated_headers.cmake (DART_PKG_HEADERS). On a fresh
+      # checkout the first `flutter build windows/linux` therefore configures
+      # with an empty DART_PKG_HEADERS and the plugin compile fails on
+      # bluevk/BlueVK.h. Running the plugin unit tests first fires the build
+      # hooks out of band, so the header dir and generated_headers.cmake
+      # already exist when cmake configures.
       - name: Run thermion_flutter unit tests (macOS)
         if: matrix.name == 'macOS'
+        working-directory: thermion_flutter/thermion_flutter
+        run: |
+          flutter pub get
+          flutter test
+
+      - name: Run thermion_flutter unit tests (Windows)
+        if: matrix.name == 'Windows'
         working-directory: thermion_flutter/thermion_flutter
         run: |
           flutter pub get
@@ -126,7 +141,19 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libdrm-dev libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev
+
+      # Same priming as the Windows/macOS unit test steps above: fires the
+      # build hooks so the Filament headers are extracted and
+      # generated_headers.cmake exists before cmake configures. Must run
+      # after the toolchain deps above are installed.
+      - name: Run thermion_flutter unit tests (Linux)
+        if: matrix.name == 'Linux'
+        working-directory: thermion_flutter/thermion_flutter
+        shell: bash
+        run: |
+          flutter pub get
+          flutter test
 
       - name: Build quickstart (Linux)
         if: matrix.name == 'Linux'
