@@ -11,3 +11,10 @@ dependencies:
     path: ../../../thermion_dart
   thermion_examples_lib:
     path: ../examples_lib
+
+# Mirrors the override in examples_lib (pub only honours overrides from the
+# root package): reactphysics3d_dart pins ffigen_js 0.0.5-pre, conflicting
+# with thermion_dart's ffigen_js ^0.0.14-pre. ffigen_js is only used by
+# reactphysics3d_dart's web bindings, so this is safe for the native runner.
+dependency_overrides:
+  ffigen_js: ^0.0.14-pre
