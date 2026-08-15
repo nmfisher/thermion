@@ -31,6 +31,19 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // the instance owner.
   bool get _sourceDataReleased => isInstance ? instanceOwner!._sourceDataReleased : _released;
 
+  // Set by [dispose], which runs after the native SceneAsset has been
+  // destroyed. Any method that touches the native asset/entity afterwards
+  // would be a use-after-free, so they throw instead.
+  bool _disposed = false;
+
+  bool get isDisposed => _disposed;
+
+  void _throwIfDisposed() {
+    if (_disposed) {
+      throw StateError("This asset has already been destroyed");
+    }
+  }
+
   final FFIFilamentApp _app;
 
   FFIAsset(this.asset, {this.instanceOwner = null, required FFIFilamentApp app}) : _app = app {
@@ -39,6 +52,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   @override
   SceneAssetType get type {
+    _throwIfDisposed();
     final t = SceneAsset_getType(asset);
     switch (t) {
       case TSceneAssetType.SCENE_ASSET_TYPE_GLTF:
@@ -66,6 +80,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
+    _throwIfDisposed();
     if (_childEntities == null) {
       var count = SceneAsset_getChildEntityCount(asset);
 
@@ -90,6 +105,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<List<String?>> getChildEntityNames() async {
+    _throwIfDisposed();
     final childEntities = await getChildEntities();
     var names = <String?>[];
     for (final entity in childEntities) {
@@ -102,6 +118,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<ThermionEntity?> getChildEntity(String childName) async {
+    _throwIfDisposed();
     final childEntities = await getChildEntities();
     for (final entity in childEntities) {
       var name = _app.getNameForEntity(entity);
@@ -115,6 +132,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<ThermionAsset> getInstance(int index) async {
+    _throwIfDisposed();
     if (isInstance) {
       throw Exception(
         """This is itself an instance. Call getInstance on the """
@@ -131,6 +149,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<FFIAsset> createInstance({List<MaterialInstance>? materialInstances = null}) async {
+    _throwIfDisposed();
     if (isInstance) {
       return instanceOwner!.createInstance(materialInstances: materialInstances);
     }
@@ -163,18 +182,26 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (created == nullptr) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, instanceOwner: this, app: _app);
+    final instance = FFIAsset(created, instanceOwner: this, app: _app);
+    if (materialInstances != null) {
+      for (final mi in materialInstances.cast<FFIMaterialInstance>()) {
+        _app.registerMaterialInstanceBinding(mi, instance);
+      }
+    }
+    return instance;
   }
 
   //
   @override
   Future<int> getInstanceCount() async {
+    _throwIfDisposed();
     return SceneAsset_getInstanceCount(asset);
   }
 
   //
   @override
   Future<List<ThermionAsset>> getInstances() async {
+    _throwIfDisposed();
     var count = await getInstanceCount();
     final result = List<ThermionAsset>.generate(count, (i) {
       _logger.fine("Getting instance at index $i");
@@ -191,6 +218,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future releaseSourceData() async {
+    _throwIfDisposed();
     if (isInstance) {
       throw StateError("releaseSourceData must be called on the owning asset, not an instance");
     }
@@ -206,11 +234,17 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future dispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     _childEntities?.free();
+    _childEntities = null;
   }
 
   //
   Future<v64.Aabb3> getBoundingBox() async {
+    _throwIfDisposed();
     final entities = <ThermionEntity>[];
     if (_app.renderableManager.isRenderable(entity)) {
       entities.add(entity);
@@ -230,6 +264,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0}) async {
+    _throwIfDisposed();
     if (entity == null) {
       if (_app.renderableManager.isRenderable(this.entity)) {
         entity ??= this.entity;
@@ -256,6 +291,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future setMaterialInstanceForAll(FFIMaterialInstance instance) async {
+    _throwIfDisposed();
     for (int i = 0; i < await getPrimitiveCount(entity: entity); i++) {
       if (_app.renderableManager.isRenderable(entity)) {
         await setMaterialInstanceAt(instance, entity: entity, primitiveIndex: i);
@@ -279,11 +315,13 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   @override
   Future setFlatShading(bool flatShading) async {
+    _throwIfDisposed();
     await withVoidCallback((requestId, cb) => SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
   }
 
   //
   Future<Map<ThermionEntity, List<MaterialInstance>>> getMaterialInstancesAsMap() async {
+    _throwIfDisposed();
     final result = <ThermionEntity, List<MaterialInstance>>{};
     var entities = [entity, ...await getChildEntities()];
 
@@ -300,6 +338,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future setMaterialInstancesFromMap(Map<ThermionEntity, List<MaterialInstance>> materialInstances) async {
+    _throwIfDisposed();
     for (final entity in materialInstances.keys) {
       if (_app.renderableManager.isRenderable(entity)) {
         for (int i = 0; i < materialInstances[entity]!.length; i++) {
@@ -313,6 +352,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future setMaterialInstanceAt(MaterialInstance instance, {int? entity = null, int primitiveIndex = 0}) async {
+    _throwIfDisposed();
     if (entity != null && !_app.renderableManager.isRenderable(entity)) {
       _logger.warning("Provided entity is not renderable");
       return;
@@ -335,13 +375,24 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       throw Exception("Failed to find renderable entity");
     }
 
+    final previous = await _app.renderableManager.getMaterialInstanceAt(entity, primitiveIndex);
     if (!await _app.renderableManager.setMaterialInstanceAt(entity, primitiveIndex, instance)) {
       _logger.warning("Failed to set material instance for entity $entity at primitive index ${primitiveIndex}");
+      return;
+    }
+    // Track the swap so destroying a still-referenced material instance can
+    // be caught on the Dart side instead of crashing natively.
+    if (previous is FFIMaterialInstance) {
+      _app.unregisterMaterialInstanceBinding(previous.pointer.address, this);
+    }
+    if (instance is FFIMaterialInstance) {
+      _app.registerMaterialInstanceBinding(instance, this);
     }
   }
 
   //
   Future setCastShadows(bool castShadows) async {
+    _throwIfDisposed();
     await _app.renderableManager.setCastShadows(this.entity, castShadows);
     for (final entity in await this.getChildEntities()) {
       await _app.renderableManager.setCastShadows(entity, castShadows);
@@ -350,6 +401,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future setReceiveShadows(bool receiveShadows) async {
+    _throwIfDisposed();
     await _app.renderableManager.setReceiveShadows(this.entity, receiveShadows);
     for (final entity in await this.getChildEntities()) {
       await _app.renderableManager.setReceiveShadows(entity, receiveShadows);
@@ -358,29 +410,34 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<bool> isCastShadowsEnabled({ThermionEntity? entity}) async {
+    _throwIfDisposed();
     entity ??= this.entity;
     return _app.renderableManager.isShadowCaster(entity);
   }
 
   //
   Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity}) async {
+    _throwIfDisposed();
     entity ??= this.entity;
     return _app.renderableManager.isShadowReceiver(entity);
   }
 
   //
   Future transformToUnitCube() async {
+    _throwIfDisposed();
     _app.transformManager.transformToUnitCube(entity, await getBoundingBox());
   }
 
   //
   Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer) async {
+    _throwIfDisposed();
     await _app.renderableManager.setVisibilityLayer(entity, layer.value);
   }
 
   //
   @override
   Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) async {
+    _throwIfDisposed();
     if (weights.isEmpty) {
       throw Exception("Weights must not be empty");
     }
@@ -394,6 +451,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) async {
+    _throwIfDisposed();
     entity ??= this.entity;
 
     var names = <String>[];
@@ -410,6 +468,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
+    _throwIfDisposed();
     var boneCount = await getBoneCount(skinIndex: skinIndex);
     var names = <String>[];
     for (int i = 0; i < boneCount; i++) {
@@ -426,6 +485,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   // Gets the number of bones at skin [skinIndex].
   // Returns the number of bones, or 0 if none found.
   Future<int> getBoneCount({int skinIndex = 0}) async {
+    _throwIfDisposed();
     return SceneAsset_getBoneCount(asset, skinIndex);
   }
 
@@ -436,6 +496,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<List<String>> getGltfAnimationNames() async {
+    _throwIfDisposed();
     if (type != SceneAssetType.gltf) {
       _logger.warning("getGltfAnimationNames should only be called on gltf assets");
       return [];
@@ -458,6 +519,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future<double> getGltfAnimationDuration(int animationIndex) async {
+    _throwIfDisposed();
     if (type != SceneAssetType.gltf) {
       throw Exception("getGltfAnimationDuration can only be called on glTF assets");
     }
@@ -467,6 +529,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<double> getGltfAnimationDurationByName(String name) async {
+    _throwIfDisposed();
     if (type != SceneAssetType.gltf) {
       throw Exception("getGltfAnimationDurationByName can only be called on glTF assets");
     }
@@ -480,6 +543,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future clearMorphAnimationData(ThermionEntity entity) async {
+    _throwIfDisposed();
     if (!_app.animationManager.clearMorphAnimation(entity)) {
       throw Exception("Failed to clear morph animation");
     }
@@ -488,6 +552,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future setMorphAnimationData(MorphAnimationData animation, {List<String>? targetMeshNames}) async {
+    _throwIfDisposed();
     var childEntities = await getChildEntities();
 
     var childNames = childEntities.map((e) => _app.getNameForEntity(e)).toList();
@@ -566,6 +631,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     double maxDelta = 1.0,
     bool loop = false,
   }) async {
+    _throwIfDisposed();
     if (animation.space != Space.Bone && animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
     }
@@ -667,6 +733,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
+    _throwIfDisposed();
     entity ??= this.entity;
     final transform = _app.transformManager.getLocalTransform(entity);
     return transform;
@@ -674,16 +741,19 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
+    _throwIfDisposed();
     return _app.getWorldTransform(entity ?? this.entity);
   }
 
   //
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
+    _throwIfDisposed();
     await _app.setTransform(entity ?? this.entity, transform);
   }
 
   //
   Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0}) async {
+    _throwIfDisposed();
     if (!isInstance) {
       throw Exception("getInverseBindMatrix can only be called on an instance of an asset");
     }
@@ -694,6 +764,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<List<ThermionEntity>> getBones({int skinIndex = 0}) async {
+    _throwIfDisposed();
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
@@ -705,6 +776,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future setBoneTransform(int boneIndex, Matrix4 transform, {ThermionEntity? entity, int skinIndex = 0}) async {
+    _throwIfDisposed();
     if (skinIndex != 0) {
       throw UnimplementedError("TODO - support skinIndex != 0");
     }
@@ -738,6 +810,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future resetBones() async {
+    _throwIfDisposed();
     _app.animationManager.resetToRestPose(this);
   }
 
@@ -752,6 +825,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     double startOffset = 0.0,
     double speed = 1.0,
   }) async {
+    _throwIfDisposed();
     final success = _app.animationManager.playGltfAnimation(
       this,
       index,
@@ -770,6 +844,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future stopGltfAnimation(int animationIndex) async {
+    _throwIfDisposed();
     final success = _app.animationManager.stopGltfAnimation(this, animationIndex);
     if (!success) {
       throw Exception("Failed to stop glTF animation. Check logs for details");
@@ -779,6 +854,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future stopGltfAnimationByName(String name) async {
+    _throwIfDisposed();
     var animations = await getGltfAnimationNames();
     await stopGltfAnimation(animations.indexOf(name));
   }
@@ -794,6 +870,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     double speed = 1.0,
     bool wait = false,
   }) async {
+    _throwIfDisposed();
     var animations = await getGltfAnimationNames();
     var index = animations.indexOf(name);
     var duration = await getGltfAnimationDuration(index);
@@ -813,12 +890,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   //
   @override
   Future setGltfAnimationTime(int index, double timeInSeconds) async {
+    _throwIfDisposed();
     await _app.animationManager.setGltfAnimationTime(this, index, timeInSeconds);
   }
 
   //
   @override
   Future addAnimationComponent() async {
+    _throwIfDisposed();
     if (!{SceneAssetType.geometry, SceneAssetType.gltf, SceneAssetType.light}.contains(this.type)) {
       throw Exception(
         "Only geometry, gltf and lights support adding animation "
@@ -830,6 +909,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future removeAnimationComponent() async {
+    _throwIfDisposed();
     if (!{SceneAssetType.geometry, SceneAssetType.gltf, SceneAssetType.light}.contains(this.type)) {
       return;
     }
@@ -849,6 +929,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future<int> getPrimitiveCount({ThermionEntity? entity}) async {
+    _throwIfDisposed();
     return _app.getPrimitiveCount(entity ??= this.entity);
   }
 
@@ -861,17 +942,20 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   /// points to the entity's first primitive; if the entity has multiple
   /// primitives, they occupy consecutive indices [offset, offset + primitiveCount).
   Future<int> getPrimitiveOffsetForEntity(ThermionEntity entity) async {
+    _throwIfDisposed();
     return SceneAsset_getPrimitiveOffsetForEntity(asset, entity);
   }
 
   //
   @override
   Future<bool> containsChild(ThermionEntity entity) async {
+    _throwIfDisposed();
     return (await getChildEntities()).contains(entity);
   }
 
   @override
   VertexBuffer? getVertexBuffer({int primitiveIndex = 0}) {
+    _throwIfDisposed();
     final vbPtr = SceneAsset_getVertexBuffer(asset, primitiveIndex);
     if (vbPtr == nullptr) {
       return null;

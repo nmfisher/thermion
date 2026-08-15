@@ -411,17 +411,59 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // destroyed. It may be marked as unused, and recycled the next time
   // createInstance is called.
   Future destroyAsset(covariant FFIAsset asset) async {
-    await asset.removeAnimationComponent();
-    if (!asset.isInstance) {
-      for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
-        await instance.removeAnimationComponent();
-        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(instance.asset, requestId, cb));
-        await instance.dispose();
-      }
+    if (asset.isDisposed) {
+      return;
     }
+    try {
+      await asset.removeAnimationComponent();
+      if (!asset.isInstance) {
+        for (final instance in (await asset.getInstances()).cast<FFIAsset>()) {
+          await instance.removeAnimationComponent();
+          await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(instance.asset, requestId, cb));
+          await instance.dispose();
+          releaseMaterialInstanceBindings(instance);
+        }
+      }
 
-    await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(asset.asset, requestId, cb));
-    await asset.dispose();
+      await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(asset.asset, requestId, cb));
+      await asset.dispose();
+    } finally {
+      releaseMaterialInstanceBindings(asset);
+    }
+  }
+
+  // Dart-side registry of material instances bound to renderables. Destroying
+  // a material instance that a live renderable still references is a native
+  // use-after-free, so FFIMaterialInstance.destroy consults this registry and
+  // throws instead of proceeding. Bindings are registered when an instance is
+  // passed to createGeometry/FFIAsset.createInstance, or assigned via
+  // FFIAsset.setMaterialInstanceAt (which also releases the binding of the
+  // instance it replaces), and released when the owning asset is destroyed.
+  final _materialInstanceBindings = <int, Set<FFIAsset>>{};
+
+  void registerMaterialInstanceBinding(FFIMaterialInstance instance, FFIAsset asset) {
+    _materialInstanceBindings.putIfAbsent(instance.pointer.address, () => <FFIAsset>{}).add(asset);
+  }
+
+  void unregisterMaterialInstanceBinding(int materialInstanceAddress, FFIAsset asset) {
+    final bound = _materialInstanceBindings[materialInstanceAddress];
+    bound?.remove(asset);
+    if (bound != null && bound.isEmpty) {
+      _materialInstanceBindings.remove(materialInstanceAddress);
+    }
+  }
+
+  // Releases every material-instance binding held by [asset] (called when the
+  // asset is destroyed and its renderables no longer reference any instance).
+  void releaseMaterialInstanceBindings(FFIAsset asset) {
+    _materialInstanceBindings.removeWhere((_, bound) {
+      bound.remove(asset);
+      return bound.isEmpty;
+    });
+  }
+
+  Set<FFIAsset> getBoundAssetsForMaterialInstance(int materialInstanceAddress) {
+    return _materialInstanceBindings[materialInstanceAddress] ?? const {};
   }
 
   //
@@ -1487,7 +1529,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create geometry");
     }
 
-    return FFIAsset(assetPtr, app: this);
+    final asset = FFIAsset(assetPtr, app: this);
+    if (materialInstances != null) {
+      for (final instance in materialInstances.cast<FFIMaterialInstance>()) {
+        registerMaterialInstanceBinding(instance, asset);
+      }
+    }
+    return asset;
   }
 
   //

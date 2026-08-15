@@ -6,9 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.69.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
@@ -100,9 +100,25 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
+python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+
+# Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
+# (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
+# appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
+# versions whose CMakeLists lacks the anchor string.
+echo "Patching tinyexr CMakeLists.txt..."
+TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
+if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+fi
 
 # Run release build (-s adds iOS simulator support, -l builds universal libraries)
 if [ "$BUILD_RELEASE" = true ]; then
@@ -131,24 +147,68 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy release libraries
-  echo "Copying release libraries..."
-  cp out/ios-release/filament/lib/universal/*.a "$TARGET_RELEASE_DIR/" || {
-    echo "Error: Failed to copy release libraries"
-    exit 1
-  }
+  # Filament v1.74.0 builds iOS XCFramework bundles (lib<name>.xcframework/)
+  # and removes the intermediate flat per-arch .a directories. Thermion links
+  # flat -l<name> .a archives, so extract the per-slice .a from each xcframework
+  # and lipo the slices into a single universal (device + simulator) .a in the
+  # target directory.
+  _LIB_DIR="out/ios-release/filament/lib"
+  for _xcf in "$_LIB_DIR"/*.xcframework; do
+    [ -d "$_xcf" ] || continue
+    _name=$(basename "$_xcf" .xcframework)
+    _slices=()
+    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
+    [ "${#_slices[@]}" -gt 0 ] || continue
+    if [ "${#_slices[@]}" -eq 1 ]; then
+      cp "${_slices[0]}" "$TARGET_RELEASE_DIR/$_name.a"
+    else
+      # Slices can overlap in architecture — v1.75.0's simulator slices are
+      # fat (arm64 + x86_64) while the device slices are arm64-only, so
+      # lipo -create of all slices fails ("same architectures and can't be
+      # in the same fat output file"). Deduplicate by extracting a thin
+      # slice per unique architecture, then combine those.
+      _have=()
+      _inputs=()
+      _tmpdir=$(mktemp -d)
+      for _a in "${_slices[@]}"; do
+        for _arch in $(lipo -archs "$_a"); do
+          case " ${_have[*]} " in
+            *" $_arch "*) continue ;;
+          esac
+          _have+=("$_arch")
+          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
+            _inputs+=("$_a")
+          else
+            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
+              echo "Error: failed to extract $_arch from $_a"
+              rm -rf "$_tmpdir"
+              exit 1
+            }
+            _inputs+=("$_tmpdir/$_name-$_arch.a")
+          fi
+        done
+      done
+      lipo -create "${_inputs[@]}" -output "$TARGET_RELEASE_DIR/$_name.a" || {
+        echo "Error: failed to lipo universal library $_name"
+        rm -rf "$_tmpdir"
+        exit 1
+      }
+      rm -rf "$_tmpdir"
+    fi
+  done
+  echo "Extracted universal libraries from XCFrameworks into $TARGET_RELEASE_DIR"
 
   # Build libz for release
   echo "Building libz (release)..."
   cd "$FILAMENT_BASE_DIR"
-  cd out/cmake-ios-release-arm64/third_party
+  cd out/cmake-ios-release-arm64-iphoneos/third_party
   mkdir -p libz && cd libz
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
   # Build imageio for release
   echo "Building imageio (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
   mkdir -p imageio && cd imageio
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
@@ -164,7 +224,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Build tinyexr for release
   echo "Building tinyexr (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
@@ -174,16 +234,36 @@ if [ "$BUILD_RELEASE" = true ]; then
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
+  # Build libassimp for release
+  echo "Building libassimp (release)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-release-arm64-iphoneos/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DIOS=1 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
+
   # Copy release third-party libraries
   echo "Copying release third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
-  cp out/cmake-ios-release-arm64/third_party/libz/*.a "$TARGET_RELEASE_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-release-arm64/third_party/imageio/*.a "$TARGET_RELEASE_DIR/" || {
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/libz/*.a "$TARGET_RELEASE_DIR/" || echo "Warning: No libz libraries found"
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/imageio/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy imageio libraries"
     exit 1
   }
-  cp out/cmake-ios-release-arm64/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
+    exit 1
+  }
+  cp out/cmake-ios-release-arm64-iphoneos/third_party/libassimp/libassimp.a "$TARGET_RELEASE_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
 fi
@@ -194,24 +274,62 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy debug libraries
-  echo "Copying debug libraries..."
-  cp out/ios-debug/filament/lib/universal/*.a "$TARGET_DEBUG_DIR/" || {
-    echo "Error: Failed to copy debug libraries"
-    exit 1
-  }
+  # Extract universal libs from XCFrameworks (see release block above).
+  _LIB_DIR="out/ios-debug/filament/lib"
+  for _xcf in "$_LIB_DIR"/*.xcframework; do
+    [ -d "$_xcf" ] || continue
+    _name=$(basename "$_xcf" .xcframework)
+    _slices=()
+    while IFS= read -r -d '' _a; do _slices+=("$_a"); done < <(find "$_xcf" -name '*.a' -print0)
+    [ "${#_slices[@]}" -gt 0 ] || continue
+    if [ "${#_slices[@]}" -eq 1 ]; then
+      cp "${_slices[0]}" "$TARGET_DEBUG_DIR/$_name.a"
+    else
+      # See the release block above: slices can overlap in architecture
+      # (v1.75.0's simulator slices are fat arm64+x86_64), so deduplicate by
+      # extracting a thin slice per unique architecture before combining.
+      _have=()
+      _inputs=()
+      _tmpdir=$(mktemp -d)
+      for _a in "${_slices[@]}"; do
+        for _arch in $(lipo -archs "$_a"); do
+          case " ${_have[*]} " in
+            *" $_arch "*) continue ;;
+          esac
+          _have+=("$_arch")
+          if [ "$(lipo -archs "$_a" | wc -w)" -eq 1 ]; then
+            _inputs+=("$_a")
+          else
+            lipo -extract "$_arch" "$_a" -output "$_tmpdir/$_name-$_arch.a" || {
+              echo "Error: failed to extract $_arch from $_a"
+              rm -rf "$_tmpdir"
+              exit 1
+            }
+            _inputs+=("$_tmpdir/$_name-$_arch.a")
+          fi
+        done
+      done
+      lipo -create "${_inputs[@]}" -output "$TARGET_DEBUG_DIR/$_name.a" || {
+        echo "Error: failed to lipo universal library $_name"
+        rm -rf "$_tmpdir"
+        exit 1
+      }
+      rm -rf "$_tmpdir"
+    fi
+  done
+  echo "Extracted universal libraries from XCFrameworks into $TARGET_DEBUG_DIR"
 
   # Build libz for debug
   echo "Building libz (debug)..."
   cd "$FILAMENT_BASE_DIR"
-  cd out/cmake-ios-debug-arm64/third_party
+  cd out/cmake-ios-debug-arm64-iphoneos/third_party
   mkdir -p libz && cd libz
   cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Debug "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
   # Build imageio for debug
   echo "Building imageio (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
   mkdir -p imageio && cd imageio
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Debug \
@@ -227,7 +345,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Build tinyexr for debug
   echo "Building tinyexr (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64/third_party"
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
   mkdir -p tinyexr && cd tinyexr
   cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 \
@@ -237,16 +355,36 @@ if [ "$BUILD_DEBUG" = true ]; then
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 
+  # Build libassimp for debug
+  echo "Building libassimp (debug)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-ios-debug-arm64-iphoneos/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DIOS=1 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
+
   # Copy debug third-party libraries
   echo "Copying debug third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
-  cp out/cmake-ios-debug-arm64/third_party/libz/*.a "$TARGET_DEBUG_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-ios-debug-arm64/third_party/imageio/*.a "$TARGET_DEBUG_DIR/" || {
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/libz/*.a "$TARGET_DEBUG_DIR/" || echo "Warning: No libz libraries found"
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/imageio/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy imageio libraries"
     exit 1
   }
-  cp out/cmake-ios-debug-arm64/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
+    exit 1
+  }
+  cp out/cmake-ios-debug-arm64-iphoneos/third_party/libassimp/libassimp.a "$TARGET_DEBUG_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
     exit 1
   }
 fi
@@ -265,7 +403,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -274,6 +412,20 @@ if [ "$BUILD_RELEASE" = true ]; then
   mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_RELEASE_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -297,7 +449,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -306,6 +458,20 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_DEBUG_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -318,61 +484,10 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy header files to thermion_dart
-# All shared headers go to native/include/filament/
-# Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
-
-if [ "$BUILD_RELEASE" = true ]; then
-  HEADER_SOURCE="out/ios-release/filament/include"
-elif [ "$BUILD_DEBUG" = true ]; then
-  HEADER_SOURCE="out/ios-debug/filament/include"
-fi
-
-echo "Copying Filament header files to thermion_dart..."
-rm -rf "$THERMION_INCLUDE"
-mkdir -p "$THERMION_INCLUDE"
-cd "$FILAMENT_BASE_DIR"
-cp -R $HEADER_SOURCE/* "$THERMION_INCLUDE/" || {
-  echo "Error: Failed to copy Filament headers"
-  exit 1
-}
-
-# Copy imageio headers (not included in main include dir)
-mkdir -p "$THERMION_INCLUDE/imageio"
-cp -R libs/imageio/include/* "$THERMION_INCLUDE/imageio/" || {
-  echo "Error: Failed to copy imageio headers"
-  exit 1
-}
-
-# Copy release-specific uberarchive.h
-if [ "$BUILD_RELEASE" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/release/gltfio/materials"
-  cp out/ios-release/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/release/gltfio/materials/" || {
-    echo "Error: Failed to copy release uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy debug-specific uberarchive.h
-if [ "$BUILD_DEBUG" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/debug/gltfio/materials"
-  cp out/ios-debug/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/debug/gltfio/materials/" || {
-    echo "Error: Failed to copy debug uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy stb_image.h (third-party header used by TTexture.cpp)
-mkdir -p "$THERMION_INCLUDE/third_party/stb"
-cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$THERMION_INCLUDE/third_party/stb/" || {
-  echo "Error: Failed to copy stb_image.h"
-  exit 1
-}
-
-echo "Headers copied to: $THERMION_INCLUDE"
+# Filament headers are bundled into the artifact zip's include/ above (per
+# target dir). They are no longer copied into a committed tree under
+# thermion_dart/native/include/filament — consumers source them from the
+# version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then

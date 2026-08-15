@@ -14,7 +14,7 @@
 #include <filament/Texture.h>
 #include <filament/Viewport.h>
 #include <filament/View.h>
-#include <filament/math/mat4.h>
+#include <math/mat4.h>
 
 #include "c_api/TTexture.h"
 

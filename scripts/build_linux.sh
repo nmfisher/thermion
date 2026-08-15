@@ -6,9 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.69.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
@@ -120,9 +120,25 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
+python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+
+# Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
+# (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
+# appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
+# versions whose CMakeLists lacks the anchor string.
+echo "Patching tinyexr CMakeLists.txt..."
+TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
+if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+fi
 
 # Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo "Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM..."
@@ -214,6 +230,27 @@ build_third_party_libs() {
   }
   ninja || {
     echo "Error: tinyexr build failed for $BUILD_SUFFIX"
+    return 1
+  }
+
+  echo "Building libassimp ($BUILD_SUFFIX)..."
+  mkdir -p "$CMAKE_DIR/third_party/libassimp" && cd "$CMAKE_DIR/third_party/libassimp"
+  cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DCMAKE_C_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
+    -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
+    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+    -DASSIMP_BUILD_TESTS=OFF \
+    -DASSIMP_BUILD_SAMPLES=OFF \
+    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+    "$FILAMENT_BASE_DIR/third_party/libassimp/tnt" || {
+    echo "Error: libassimp cmake failed for $BUILD_SUFFIX"
+    return 1
+  }
+  ninja || {
+    echo "Error: libassimp build failed for $BUILD_SUFFIX"
     return 1
   }
 
@@ -314,6 +351,17 @@ if [ "$BUILD_RELEASE" = true ]; then
   if [ ! -f "$TARGET_RELEASE_DIR/libtinyexr.a" ]; then
     echo "WARNING: libtinyexr.a not found in any known location"
   fi
+
+  for searchdir in "out/cmake-release/third_party/libassimp" "out/release/filament/lib/x86_64" "out/cmake-release/third_party/libassimp/tnt"; do
+    if [ -f "$searchdir/libassimp.a" ]; then
+      echo "Found assimp at $searchdir"
+      cp "$searchdir/libassimp.a" "$TARGET_RELEASE_DIR/"
+      break
+    fi
+  done
+  if [ ! -f "$TARGET_RELEASE_DIR/libassimp.a" ]; then
+    echo "WARNING: libassimp.a not found in any known location"
+  fi
 fi
 
 # Copy debug libraries
@@ -355,6 +403,17 @@ if [ "$BUILD_DEBUG" = true ]; then
   if [ ! -f "$TARGET_DEBUG_DIR/libtinyexr.a" ]; then
     echo "WARNING: libtinyexr.a not found in any known location"
   fi
+
+  for searchdir in "out/cmake-debug/third_party/libassimp" "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/libassimp/tnt"; do
+    if [ -f "$searchdir/libassimp.a" ]; then
+      echo "Found assimp at $searchdir"
+      cp "$searchdir/libassimp.a" "$TARGET_DEBUG_DIR/"
+      break
+    fi
+  done
+  if [ ! -f "$TARGET_DEBUG_DIR/libassimp.a" ]; then
+    echo "WARNING: libassimp.a not found in any known location"
+  fi
 fi
 
 # Copy header files to target directories (for inclusion in R2 upload zips)
@@ -371,7 +430,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -380,6 +439,20 @@ if [ "$BUILD_RELEASE" = true ]; then
   mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_RELEASE_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -403,7 +476,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -412,6 +485,23 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  # (the-c8d3: this previously targeted $TARGET_RELEASE_DIR, so debug zips
+  # shipped without bluevk headers and debug hook builds failed on
+  # <bluevk/BlueVK.h>)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_DEBUG_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -424,61 +514,11 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy header files to thermion_dart
-# All shared headers go to native/include/filament/
-# Only uberarchive.h differs between debug/release, copied to debug/ and release/ subdirs
-THERMION_INCLUDE="$SCRIPT_DIR/../thermion_dart/native/include/filament"
+# Filament headers are bundled into the artifact zip's include/ above (per
+# target dir). They are no longer copied into a committed tree under
+# thermion_dart/native/include/filament — consumers source them from the
+# version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
-if [ "$BUILD_RELEASE" = true ]; then
-  HEADER_SOURCE="out/release/filament/include"
-elif [ "$BUILD_DEBUG" = true ]; then
-  HEADER_SOURCE="out/debug/filament/include"
-fi
-
-echo "Copying Filament header files to thermion_dart..."
-rm -rf "$THERMION_INCLUDE"
-mkdir -p "$THERMION_INCLUDE"
-cd "$FILAMENT_BASE_DIR"
-cp -R $HEADER_SOURCE/* "$THERMION_INCLUDE/" || {
-  echo "Error: Failed to copy Filament headers"
-  exit 1
-}
-
-# Copy imageio headers (not included in main include dir)
-mkdir -p "$THERMION_INCLUDE/imageio"
-cp -R libs/imageio/include/* "$THERMION_INCLUDE/imageio/" || {
-  echo "Error: Failed to copy imageio headers"
-  exit 1
-}
-
-# Copy release-specific uberarchive.h
-if [ "$BUILD_RELEASE" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/release/gltfio/materials"
-  cp out/release/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/release/gltfio/materials/" || {
-    echo "Error: Failed to copy release uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy debug-specific uberarchive.h
-if [ "$BUILD_DEBUG" = true ]; then
-  mkdir -p "$THERMION_INCLUDE/debug/gltfio/materials"
-  cp out/debug/filament/include/gltfio/materials/uberarchive.h \
-    "$THERMION_INCLUDE/debug/gltfio/materials/" || {
-    echo "Error: Failed to copy debug uberarchive.h"
-    exit 1
-  }
-fi
-
-# Copy stb_image.h (third-party header used by TTexture.cpp)
-mkdir -p "$THERMION_INCLUDE/third_party/stb"
-cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$THERMION_INCLUDE/third_party/stb/" || {
-  echo "Error: Failed to copy stb_image.h"
-  exit 1
-}
-
-echo "Headers copied to: $THERMION_INCLUDE"
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then

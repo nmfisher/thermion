@@ -2,11 +2,14 @@
 
 ## 0.6.0
 
+Update to Filament v1.75.0!
+
 ### Breaking changes
 - `LightManager.setShadowCaster`/`setShadowOptions` and
   `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
   instead of `void` (internally, these now correctly run on the
   main Filament thread).
+
 
 ## 0.5.0-pre.5
 

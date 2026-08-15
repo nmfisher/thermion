@@ -63,6 +63,20 @@ fi
 
 cd "$FILAMENT_BASE_DIR" || exit 1
 
+# build_ios.sh (Filament's build.sh) builds the host code-generator tools once,
+# as prebuilt artifacts under out/prebuilt-tools-release/, and every iOS
+# cross-build imports them via ImportExecutables-Prebuilt.cmake. The top-level
+# out/ImportExecutables-<Debug|Release>.cmake is NOT produced on 1.75.0, so the
+# Filament cross-build below must point at the prebuilt dir too — otherwise
+# CMake falls back to ${CMAKE_BUILD_TYPE} and fails with
+# "include could not find requested file: out/ImportExecutables-Debug.cmake".
+PREBUILT_TOOLS_IMPORT="out/prebuilt-tools-release/ImportExecutables-Prebuilt.cmake"
+if [ ! -f "$PREBUILT_TOOLS_IMPORT" ]; then
+  echo "Error: $PREBUILT_TOOLS_IMPORT not found."
+  echo "Run build_ios.sh first — it builds the host tools this script imports."
+  exit 1
+fi
+
 # Ensure we're on the right tag (build_ios.sh should have already checked this out)
 CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 if [ "$CURRENT_TAG" != "$FILAMENT_VERSION" ]; then
@@ -87,6 +101,18 @@ if ! grep -q 'arm64.*iphonesimulator' build.sh; then
 ' build.sh
 fi
 
+# Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
+# (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
+# appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
+# versions whose CMakeLists lacks the anchor string.
+echo "Patching tinyexr CMakeLists.txt..."
+TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
+if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+fi
+
 # We also need to patch create-universal-libs.sh to handle three architectures.
 # Instead of patching lipo (which can't merge two arm64 slices), we'll build
 # separately and skip the universal step. Run Filament's build without -l.
@@ -107,7 +133,7 @@ build_sim_target() {
 
   cmake \
     -G Ninja \
-    -DIMPORT_EXECUTABLES_DIR=out \
+    -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/prebuilt-tools-release \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="../ios-${lc_type}-sim/filament" \
     -DIOS_ARCH="arm64" \
@@ -119,6 +145,14 @@ build_sim_target() {
 
   ninja
   ninja install
+
+  # Echo the install tree so the layout Filament produced is visible in the
+  # CI log (1.75.0 emits XCFramework bundles, not the flat lib/<arch>/*.a that
+  # older versions produced). copy_sim_libs handles both, but this avoids
+  # blind guessing if that ever changes again.
+  echo "Installed ${lc_type} simulator lib layout:"
+  find "../ios-${lc_type}-sim/filament/lib" \
+    \( -name '*.a' -o -name '*.xcframework' \) -maxdepth 2 2>/dev/null || true
 
   popd > /dev/null
 }
@@ -180,12 +214,48 @@ copy_sim_libs() {
 
   mkdir -p "$TARGET_DIR"
 
-  # Copy main Filament libs (installed by ninja install)
-  echo "Copying ${lc_type} simulator libraries..."
-  cp out/ios-${lc_type}-sim/filament/lib/arm64/*.a "$TARGET_DIR/" || {
-    echo "Error: Failed to copy simulator libraries"
+  # Copy main Filament libs (installed by ninja install) into flat lib<name>.a
+  # archives (what build.dart links). Filament's iOS install layout varies by
+  # version/platform:
+  #   - arm64 iphonesimulator (this build): lib/arm64-iphonesimulator/*.a
+  #     (the subdir is "${IOS_ARCH}-${PLATFORM_NAME}")
+  #   - other arm builds:                    lib/<arch>/*.a  (e.g. lib/arm64)
+  #   - some packaging flows:                lib/*.xcframework/<slice>/*.a
+  # Collect every .a under lib/ at one subdir of depth (covers the first two)
+  # and also extract a slice from any xcframework bundle.
+  local found=0
+  local INSTALL_LIB="out/ios-${lc_type}-sim/filament/lib"
+  echo "Copying ${lc_type} simulator libraries from $INSTALL_LIB..."
+  shopt -s nullglob
+
+  # Flat or one-level-arch subdir: lib/*.a and lib/*/*.a
+  for _a in "$INSTALL_LIB"/*.a "$INSTALL_LIB"/*/*.a; do
+    cp "$_a" "$TARGET_DIR/$(basename "$_a")"
+    found=1
+  done
+
+  # XCFramework bundles: extract one .a slice each (simulator slice preferred).
+  for _xcf in "$INSTALL_LIB"/*.xcframework; do
+    [ -d "$_xcf" ] || continue
+    _name=$(basename "$_xcf" .xcframework)
+    _slice=$(find "$_xcf" -type f -name '*.a' -path '*simulator*' | head -n1)
+    [ -z "$_slice" ] && _slice=$(find "$_xcf" -type f -name '*.a' | head -n1)
+    if [ -n "$_slice" ]; then
+      cp "$_slice" "$TARGET_DIR/$_name.a"
+      found=1
+    else
+      echo "Warning: no .a found in $_xcf"
+    fi
+  done
+  shopt -u nullglob
+
+  if [ "$found" = 0 ]; then
+    echo "Error: No Filament simulator libraries found under $INSTALL_LIB"
+    echo "--- full install lib tree ---"
+    find "$INSTALL_LIB" -maxdepth 3 -print 2>/dev/null || true
     exit 1
-  }
+  fi
+  echo "Copied $(ls "$TARGET_DIR"/*.a 2>/dev/null | wc -l | tr -d ' ') main simulator libraries"
 
   # Copy third-party libs
   local TP_DIR="out/cmake-ios-${lc_type}-arm64-sim/third_party"

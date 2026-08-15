@@ -49,8 +49,10 @@ namespace thermion
     class BoneAnimationComponentManager : public utils::SingleInstanceComponentManager<BoneAnimationComponent> {
         public:
             BoneAnimationComponentManager(
+                utils::EntityManager &em,
                 filament::TransformManager &transformManager,
-                filament::RenderableManager &renderableManager) : 
+                filament::RenderableManager &renderableManager) :
+                    utils::SingleInstanceComponentManager<BoneAnimationComponent>(em, "BoneAnimationComponentManager"),
                     mTransformManager(transformManager), mRenderableManager(renderableManager) {};
             ~BoneAnimationComponentManager() {};
             

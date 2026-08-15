@@ -7,7 +7,7 @@
 #include "c_api/TEngine.h"
 
 #include <filament/Camera.h>
-#include <filament/backend/DriverEnums.h>
+#include <backend/DriverEnums.h>
 #include <filament/DebugRegistry.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>
@@ -75,13 +75,20 @@ namespace thermion
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;
             config.disableHandleUseAfterFreeCheck = disableHandleUseAfterFreeCheck;
+
             auto *platform = reinterpret_cast<filament::backend::Platform *>(tPlatform);
-            auto *engine = filament::Engine::create(
-                static_cast<filament::Engine::Backend>(backend),
-                platform,
-                tSharedContext,
-                &config
-            );
+                  
+            auto *engine = filament::Engine::Builder()
+                .backend(static_cast<filament::Engine::Backend>(backend))
+                .platform(platform)
+                .featureLevel(filament::Engine::FeatureLevel::FEATURE_LEVEL_1)
+                .sharedContext(tSharedContext)
+                .config(&config)
+                .build();
+
+            Log("BUILDING WITH CUSTOM BACKEND");
+
+            
             return reinterpret_cast<TEngine *>(engine);
         }
 

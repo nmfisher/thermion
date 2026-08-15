@@ -1,4 +1,4 @@
-#include <filament/geometry/SurfaceOrientation.h>
+#include <geometry/SurfaceOrientation.h>
 #include <utils/compiler.h>
 
 #include "Log.hpp"

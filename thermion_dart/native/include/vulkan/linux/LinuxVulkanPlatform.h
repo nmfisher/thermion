@@ -55,7 +55,8 @@ public:
     }
 
     ImageData createVkImageFromExternal(
-            Platform::ExternalImageHandleRef image) const override {
+            Platform::ExternalImageHandleRef image,
+            uint32_t logicalWidth, uint32_t logicalHeight) const override {
         std::cerr << "[ThermionVk:Platform] createVkImageFromExternal called" << std::endl;
 
         const auto* extImg = static_cast<const thermion::vulkan::ExternalVulkanImage*>(image.get());
@@ -78,12 +79,10 @@ public:
         return data;
     }
 
-    Platform::Sync* createSync(VkFence fence,
+    Platform::Sync* createSync(
             std::shared_ptr<filament::backend::VulkanCmdFence> fenceStatus) noexcept override {
-        VulkanSync* sync = new VulkanSync();
-        sync->fence = fence;
-        sync->fenceStatus = fenceStatus;
-        return sync;
+        // v1.74.0: VulkanSync has no default ctor / no `fence` member; construct directly.
+        return new VulkanSync(fenceStatus);
     }
 };
 

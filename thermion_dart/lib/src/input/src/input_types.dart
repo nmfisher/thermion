@@ -50,7 +50,7 @@ class ScaleUpdateEvent extends InputEvent {
   final int numPointers;
   final ScaleEventType type = ScaleEventType.update;
   final (double, double) localFocalPoint;
-  final (double, double)? localFocalPointDelta;
+  final (double, double) localFocalPointDelta;
   final double rotation;
   final double scale;
   final double horizontalScale;
