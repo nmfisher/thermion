@@ -69,6 +69,11 @@ jobs:
             materials-changed:
               - 'materials/**'
               - 'examples/assets/*.mat'
+              # A Filament version bump can change the material package
+              # format (MaterialDefinition panics on version mismatch), so
+              # the materials must be recompiled with the new matc even when
+              # no .mat source changed (ticket the-33h6).
+              - 'filament.version'
 
       - name: Setup CMake
         if: steps.changes.outputs.native-changed == 'true'
@@ -88,28 +93,16 @@ jobs:
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
 
-      - name: Read Filament version
+      - name: Cache Filament build tools
         if: steps.changes.outputs.materials-changed == 'true'
-        id: filament-version
-        run: |
-          FILAMENT_VERSION=$(awk '{print $2}' filament.version)
-          echo "version=$FILAMENT_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Download Filament binaries (Linux)
-        if: steps.changes.outputs.materials-changed == 'true'
-        run: |
-          FILAMENT_VERSION=${{ steps.filament-version.outputs.version }}
-          curl -L -o filament.tgz "https://github.com/google/filament/releases/download/${FILAMENT_VERSION}/filament-${FILAMENT_VERSION}-linux.tgz"
-          mkdir -p filament-binaries
-          tar xzf filament.tgz -C filament-binaries --strip-components=1
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/thermion/filament-tools
+          key: filament-tools-${{ runner.os }}-${{ hashFiles('filament.version') }}
 
       - name: Compile materials
         if: steps.changes.outputs.materials-changed == 'true'
-        env:
-          FILAMENT_PATH: ${{ github.workspace }}/filament-binaries/bin
-        run: |
-          chmod +x materials/build.sh
-          make materials
+        run: scripts/regenerate-materials.sh
 
       - name: Generate bindings
         run: make dart-bindings
