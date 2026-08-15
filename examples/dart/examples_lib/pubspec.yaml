@@ -13,3 +13,14 @@ dependencies:
     git:
       url: https://github.com/nmfisher/assimp_dart.git
   vector_math: ^2.1.4
+  reactphysics3d_dart:
+    git:
+      url: https://github.com/nmfisher/reactphysics3d_dart.git
+      ref: 52eec72e06b322080d395415bc1dfaffd8c45d2f
+
+# reactphysics3d_dart pins ffigen_js 0.0.5-pre, which conflicts with
+# thermion_dart's ffigen_js ^0.0.14-pre. ffigen_js is only imported by
+# reactphysics3d_dart's web (JS interop) bindings, so forcing the newer
+# version is safe for the native/headless path this package uses.
+dependency_overrides:
+  ffigen_js: ^0.0.14-pre
