@@ -9,9 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.69.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.69.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
@@ -104,9 +104,25 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
+python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
+
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+
+# Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
+# (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
+# appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
+# versions whose CMakeLists lacks the anchor string.
+echo "Patching tinyexr CMakeLists.txt..."
+TINYEXR_CMAKE="$FILAMENT_BASE_DIR/third_party/tinyexr/CMakeLists.txt"
+if grep -q "Wno-implicit-int-conversion" "$TINYEXR_CMAKE"; then
+  echo "Already patched"
+else
+  sed -i.bak 's|-Wno-unused-member-function|-Wno-unused-member-function -Wno-implicit-int-conversion -Wno-implicit-int-float-conversion -Wno-old-style-cast -Wno-sign-conversion -Wno-unused-parameter -Wno-unused-function -Wno-poison-system-directories|' "$TINYEXR_CMAKE"
+fi
 
 # Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo "Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM..."
@@ -181,6 +197,22 @@ if [ "$BUILD_RELEASE" = true ]; then
           -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
+
+  # Build libassimp for release
+  echo "Building libassimp (release)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-release/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
 fi
 
 # Build third-party libraries for debug
@@ -224,6 +256,22 @@ if [ "$BUILD_DEBUG" = true ]; then
           -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
+
+  # Build libassimp for debug
+  echo "Building libassimp (debug)..."
+  cd "$FILAMENT_BASE_DIR/out/cmake-debug/third_party"
+  rm -rf libassimp
+  mkdir -p libassimp && cd libassimp
+  cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+          -DASSIMP_BUILD_TESTS=OFF \
+          -DASSIMP_BUILD_SAMPLES=OFF \
+          -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+          "$FILAMENT_BASE_DIR/third_party/libassimp/tnt"
+  ninja
 fi
 
 # Create target directories and copy libs
@@ -265,6 +313,10 @@ if [ "$BUILD_RELEASE" = true ]; then
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
+  cp out/cmake-release/third_party/libassimp/libassimp.a "$TARGET_RELEASE_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
+    exit 1
+  }
 fi
 
 # Copy debug libraries
@@ -288,6 +340,10 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
   }
+  cp out/cmake-debug/third_party/libassimp/libassimp.a "$TARGET_DEBUG_DIR/" || {
+    echo "Error: Failed to copy libassimp libraries"
+    exit 1
+  }
 fi
 
 # Copy header files to target directories (for inclusion in R2 upload zips)
@@ -304,7 +360,7 @@ if [ "$BUILD_RELEASE" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -313,6 +369,20 @@ if [ "$BUILD_RELEASE" = true ]; then
   mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_RELEASE_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -336,7 +406,7 @@ if [ "$BUILD_DEBUG" = true ]; then
 
   # Copy imageio headers
   mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/imageio/" || {
+  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy imageio headers to target"
     exit 1
   }
@@ -345,6 +415,20 @@ if [ "$BUILD_DEBUG" = true ]; then
   mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h to target"
+    exit 1
+  }
+
+  # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
+  cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
+    echo "Error: Failed to copy bluevk headers to target"
+    exit 1
+  }
+
+  # Copy libassimp headers
+  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/libassimp/include"
+  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
+    "$TARGET_DEBUG_DIR/include/third_party/libassimp/include/" || {
+    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -357,18 +441,10 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
-# Copy header files to thermion_dart
-COPY_HEADERS_OPTS=""
-if [ "$BUILD_RELEASE" = true ] && [ "$BUILD_DEBUG" = false ]; then
-  COPY_HEADERS_OPTS="--release"
-elif [ "$BUILD_DEBUG" = true ] && [ "$BUILD_RELEASE" = false ]; then
-  COPY_HEADERS_OPTS="--debug"
-fi
-
-"$SCRIPT_DIR/copy_headers.sh" "$FILAMENT_BASE_DIR" $COPY_HEADERS_OPTS || {
-  echo "Error: Failed to copy headers"
-  exit 1
-}
+# Filament headers are bundled into the artifact zip's include/ above (per
+# target dir). They are no longer copied into a committed tree under
+# thermion_dart/native/include/filament — consumers source them from the
+# version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
 # Create zip files
 if [ "$BUILD_RELEASE" = true ]; then

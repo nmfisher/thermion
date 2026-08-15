@@ -142,12 +142,16 @@ target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament)
+# Filament headers come from the version-matched web R2 artifact, extracted by
+# the `make wasm` target into lib/<mode>/include/ (flat layout, with the
+# web-specific gltfio/materials/uberarchive.h). This replaces a committed
+# Filament header tree that could drift on version bumps.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament/debug)
+  set(FILAMENT_HEADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/include")
 else()
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament/release)
+  set(FILAMENT_HEADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/include")
 endif()
+include_directories(${FILAMENT_HEADERS_DIR})
 
 
 add_library(backend STATIC IMPORTED)

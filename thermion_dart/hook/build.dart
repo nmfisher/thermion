@@ -77,14 +77,19 @@ outputDirectory : ${outputDirectory.path}
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
-    var libDir = (await getLibDir(
+    final libResult = await getLibDir(
       packageRoot,
       targetOS,
       targetArchitecture,
       logger,
       buildMode,
       isIOSSimulator: isIOSSimulator,
-    )).path;
+    );
+    var libDir = libResult.libDir.path;
+    // Version-matched Filament headers extracted from the same R2 artifact as
+    // the libraries (see getLibDir). Expressed relative to the package root to
+    // match the convention of the other includeDirs entries.
+    final artifactIncludeRel = path.relative(libResult.includeDir.path, from: pkgRootFilePath);
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -152,6 +157,15 @@ outputDirectory : ${outputDirectory.path}
       if (targetOS != OS.iOS) "filamat",
       if (targetOS == OS.linux) "shaders",
       "utils",
+      // Android links Filament's Perfetto tracing archive. utils is always
+      // built with src/android/Systrace.cpp on Android, and its debug object
+      // references perfetto::internal::InProcessTracingBackend::GetInstance().
+      // build_android.sh bundles libperfetto.a in both release and debug zips;
+      // linking it unconditionally is harmless when unused (static archives
+      // only yield members needed to resolve references). Without it the
+      // shared library keeps an undefined perfetto symbol and dlopen fails at
+      // runtime: "cannot locate symbol ...InProcessTracingBackend...".
+      if (targetOS == OS.android) "perfetto",
       "filabridge",
       "gltfio_core",
       if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
@@ -169,11 +183,38 @@ outputDirectory : ${outputDirectory.path}
       "smol-v",
       "basis_transcoder",
       "uberarchive",
-      if (!{OS.linux, OS.android}.contains(targetOS)) "zstd",
+      // Filament 1.75.0's libfilamat.a references external ZSTD_* symbols
+      // (e.g. ZSTD_getFrameContentSize). Desktop/iOS/Android have no guarantee
+      // of a system libzstd, so link the static libzstd.a bundled in the R2
+      // artifact for every platform except Linux, which uses the system
+      // libzstd.so. Without this, Android dlopen fails at runtime with
+      // "cannot locate symbol ZSTD_getFrameContentSize" (Android ships no
+      // libzstd), and the libzstd.a must be present in the Android zip — see
+      // scripts/zip_android.sh.
+      if (targetOS != OS.linux) "zstd",
       //"mikktspace",
       "geometry",
-      if (targetOS == OS.macOS && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
+      // Debug builds of Filament enable the Material Debug Server and Frame
+      // Graph viewer (build.sh -d/-t -> FILAMENT_ENABLE_MATDBG/FGVIEWER), so
+      // the debug zips for desktop (macOS/Linux) and Android ship
+      // libmatdbg.a/libfgviewer.a and their filament archives reference them
+      // (e.g. filament::matdbg::DebugServer). Without these the debug shared
+      // library keeps undefined matdbg/fgviewer symbols and dlopen fails at
+      // runtime, just like the perfetto case above. iOS debug never enables
+      // them (its cmake invocation passes neither option); Windows links
+      // libraries via #pragma comment(lib) in ThermionWin32.h instead.
+      if ({OS.macOS, OS.android}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
     ];
+
+    // On Linux the same matdbg/fgviewer archives must be linked, but OUTSIDE
+    // the -Wl,--whole-archive group below: both archives bundle civetweb
+    // (libcivetweb_civetweb.c.o defines mg_*), and whole-archive pulls every
+    // member of both, producing "multiple definition of `mg_*`" link errors.
+    // With normal archive semantics the linker only pulls the members needed
+    // to satisfy libfilament.a's matdbg/fgviewer references (libfilament.a
+    // itself is whole-archived), so civetweb is included exactly once.
+    // See the-c8d3.
+    final linuxDebugLibs = (targetOS == OS.linux && buildMode == BuildMode.debug) ? ["matdbg", "fgviewer"] : <String>[];
 
     if (targetOS == OS.windows) {
       // we just need the libDir and don't need to explicitly link the actual libs
@@ -195,14 +236,19 @@ outputDirectory : ${outputDirectory.path}
 
     final flags = <String>[]; //"-fsanitize=address"];
 
-    // Collect include directories including plugin includes
-    // Use debug or release Filament headers based on build mode
-    // Headers are under filament/debug or filament/release so includes like <filament/SomeHeader.h> work
-    final filamentIncludeDir = [
-      'native/include/filament',
-      buildMode == BuildMode.debug ? 'native/include/filament/debug' : 'native/include/filament/release',
-    ];
-    final includeDirs = <String>['native/include', ...filamentIncludeDir];
+    // Include directories:
+    //  - `native/include`     : Thermion's OWN headers (c_api/, components/,
+    //                           ...) still committed in-tree.
+    //  - `artifactIncludeRel` : the Filament C++ headers, sourced from the
+    //                           version-matched R2 artifact extracted by
+    //                           getLibDir() (under .dart_tool/.../include).
+    //                           This replaces a hand-committed Filament header
+    //                           tree that drifted out of sync with the linked
+    //                           libraries on version bumps. `<filament/...>`,
+    //                           `<utils/...>`, `<backend/...>` and
+    //                           `<gltfio/materials/uberarchive.h>` all resolve
+    //                           from this flat root.
+    final includeDirs = <String>['native/include', artifactIncludeRel];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {
@@ -369,6 +415,7 @@ outputDirectory : ${outputDirectory.path}
           ...libs.map((lib) => "-l$lib"),
           if (targetOS == OS.linux) ...[
             "-Wl,--no-whole-archive",
+            ...linuxDebugLibs.map((lib) => "-l$lib"),
             '-lGL',
             '-lEGL',
           ] else if (targetOS != OS.android) ...[
@@ -420,28 +467,37 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-String _getFilamentVersion() {
-  final versionFile = File(
-    path.join(path.dirname(path.dirname(Platform.script.toFilePath(windows: Platform.isWindows))), 'filament.version'),
-  );
+// filament.version lives at the repo root (the parent of this package). We
+// can't derive that from `Platform.script`: when this hook runs as a *compiled
+// build hook* the script URI points at the consuming package's
+// `.dart_tool/hooks_runner/.../hook.dill`, not at this source file, so the old
+// `dirname(dirname(script))` computation landed inside the wrong package and
+// the file was never found (bare `throw Exception()`). Resolve it relative to
+// the package root that getLibDir already has instead.
+String _getFilamentVersion(Uri packageRoot) {
+  final pkgPath = packageRoot.toFilePath(windows: Platform.isWindows);
+  final versionFile = File(path.join(path.dirname(pkgPath), 'filament.version'));
   if (versionFile.existsSync()) {
     final parts = versionFile.readAsStringSync().trim().split(RegExp(r'\s+'));
     // Format: "<repo> <version>" - return the version (second field)
     return parts.length >= 2 ? parts[1] : parts[0];
   }
-  // Fallback to hardcoded version if file doesn't exist
-  return "v1.69.1";
+  throw Exception('filament.version not found at ${versionFile.path}');
 }
 
-String _FILAMENT_VERSION = _getFilamentVersion();
-String _getLibraryUrl(String platform, String mode) {
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
+String _getLibraryUrl(String version, String platform, String mode) {
+  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
 }
 
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
-Future<Directory> getLibDir(
+// The downloaded zip also contains a complete, version-matched Filament header tree
+// under `include/`, which is extracted alongside the libraries. We return that include
+// directory so consumers compile against headers that always match the linked
+// libraries (rather than a hand-committed tree that drifts on version bumps).
+//
+Future<({Directory libDir, Directory includeDir})> getLibDir(
   Uri packageRoot,
   OS targetOS,
   Architecture targetArchitecture,
@@ -450,6 +506,8 @@ Future<Directory> getLibDir(
   bool isIOSSimulator = false,
 }) async {
   var platform = targetOS.toString().toLowerCase();
+
+  final version = _getFilamentVersion(packageRoot);
 
   // Use separate library directory for iOS simulator (arm64 simulator
   // libraries can't be lipo'd with arm64 device libraries).
@@ -465,7 +523,7 @@ Future<Directory> getLibDir(
       ".dart_tool",
       "thermion_dart",
       "lib",
-      _FILAMENT_VERSION,
+      version,
       platform,
       mode,
     ),
@@ -498,7 +556,7 @@ Future<Directory> getLibDir(
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  var url = _getLibraryUrl(platform, mode);
+  var url = _getLibraryUrl(version, platform, mode);
 
   final filename = url.split("/").last;
 
@@ -557,7 +615,51 @@ Future<Directory> getLibDir(
     }
     successToken.writeAsStringSync("SUCCESS");
   }
-  return libDir;
+
+  // Some published debug artifacts (e.g. the v1.75.0 linux debug zip) were
+  // built by a script bug that copied the bluevk headers into the *release*
+  // target dir, so their include/ tree lacks bluevk/, vulkan/ and vk_video/
+  // and any compile of <bluevk/BlueVK.h> fails (LinuxVulkanContext/
+  // LinuxVulkanUtils under native/include/vulkan/linux/). Those headers are
+  // build-mode-independent, so heal the cache by merging them in from the
+  // release artifact of the same version. Checked outside the success-token
+  // guard above so caches extracted from an already-broken zip are repaired
+  // too. No-op once the artifact is re-uploaded with the headers present.
+  // See the-c8d3.
+  if (targetOS != OS.iOS && !File(path.join(unzipDir, 'include', 'bluevk', 'BlueVK.h')).existsSync()) {
+    logger.warning(
+      "include/bluevk/BlueVK.h is missing from the $platform/$mode artifact; "
+      "fetching bluevk headers from the release artifact to repair the cache",
+    );
+    final releaseUrl = _getLibraryUrl(version, platform, "release");
+    final releaseZip = File(
+      path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${path.basename(releaseUrl)}'),
+    );
+    final releaseRequest = await HttpClient().getUrl(Uri.parse(releaseUrl));
+    final releaseResponse = await releaseRequest.close();
+    if (releaseResponse.statusCode != 200) {
+      throw Exception("Release libraries not found at $releaseUrl (needed for missing bluevk headers)");
+    }
+    await releaseResponse.pipe(releaseZip.openWrite());
+    final releaseArchive = ZipDecoder().decodeBytes(await releaseZip.readAsBytes());
+    for (final file in releaseArchive) {
+      if (!file.isFile) continue;
+      final name = file.name;
+      if (name.startsWith('include/bluevk/') ||
+          name.startsWith('include/vulkan/') ||
+          name.startsWith('include/vk_video/')) {
+        final f = File(path.join(unzipDir, name));
+        await f.create(recursive: true);
+        await f.writeAsBytes(file.content as List<int>);
+      }
+    }
+    await releaseZip.delete();
+    logger.warning("Repaired include/ with bluevk headers from $releaseUrl");
+  }
+  // The entire zip (libraries AND the `include/` header tree) is extracted to
+  // `unzipDir`; for Android the per-arch libs live in a subdir but headers are
+  // shared at the extraction root.
+  return (libDir: libDir, includeDir: Directory(path.join(unzipDir, 'include')));
 }
 
 const _webR2BaseUrl = 'https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev';

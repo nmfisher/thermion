@@ -7,7 +7,7 @@
 #include <filament/Texture.h>
 #include <filament/TransformManager.h>
 #include <filament/Viewport.h>
-#include <filament/geometry/SurfaceOrientation.h>
+#include <geometry/SurfaceOrientation.h>
 
 #include "Log.hpp"
 #include "scene/GeometrySceneAsset.hpp"

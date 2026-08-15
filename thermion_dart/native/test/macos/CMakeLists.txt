@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(thermion_dart VERSION 1.0.0 LANGUAGES CXX C)
 
 # Configuration variables
-set(FILAMENT_VERSION "v1.69.1")
+set(FILAMENT_VERSION "v1.74.0")
 set(PACKAGE_NAME "thermion_dart")
 set(PLATFORM "macos")
 
@@ -72,32 +72,26 @@ add_library(thermion_dart SHARED
     ${DART_API_SOURCES}
 )
 
-# Include directories - select debug or release Filament headers based on build type
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(FILAMENT_INCLUDE_DIR "${NATIVE_ROOT}/include/filament/debug")
-else()
-  set(FILAMENT_INCLUDE_DIR "${NATIVE_ROOT}/include/filament/release")
-endif()
-
-target_include_directories(thermion_dart PRIVATE
-    "${NATIVE_ROOT}/include"
-    "${NATIVE_ROOT}/include/filament"
-    "${FILAMENT_INCLUDE_DIR}"
-)
-
-# Set the output name of the library
-set_target_properties(thermion_dart PROPERTIES 
-    OUTPUT_NAME "thermion_dart"
-    PREFIX "lib"
-    SUFFIX ".dylib"
-)
-
-# Filament libraries path - select debug or release based on build type
+# Filament libraries path + headers, from the version-matched R2 artifact
+# extracted by thermion_dart's build hook under .dart_tool/.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/debug")
 else()
   set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/release")
 endif()
+set(FILAMENT_INCLUDE_DIR "${FILAMENT_LIB_DIR}/include")
+
+target_include_directories(thermion_dart PRIVATE
+    "${NATIVE_ROOT}/include"
+    "${FILAMENT_INCLUDE_DIR}"
+)
+
+# Set the output name of the library
+set_target_properties(thermion_dart PROPERTIES
+    OUTPUT_NAME "thermion_dart"
+    PREFIX "lib"
+    SUFFIX ".dylib"
+)
 
 # Link libraries
 target_link_directories(thermion_dart PRIVATE ${FILAMENT_LIB_DIR})

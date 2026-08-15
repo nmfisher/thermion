@@ -2,7 +2,7 @@
 
 #include "c_api/TSkybox.h"
 
-#include <filament/math/mat4.h>
+#include <math/mat4.h>
 #include <filament/Skybox.h>
 
 #include "Log.hpp"

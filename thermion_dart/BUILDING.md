@@ -4,13 +4,13 @@
 # platform=linux builds BOTH x86_64 (ubuntu-24.04) and arm64 (ubuntu-24.04-arm),
 # producing filament-<version>-linux-{release,debug}.zip and
 # filament-<version>-linux-arm64-{release,debug}.zip on R2.
-gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=linux -f clean_build=false -f upload_to_r2=true
-gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=android -f clean_build=false -f upload_to_r2=true 
-gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=windows -f clean_build=false -f upload_to_r2=true
-gh workflow run "Build Filament" --ref filament/v1.69.1 -f platform=macos -f clean_build=false -f upload_to_r2=true
+gh workflow run "Build Filament" --ref filament/v1.74.0 -f platform=linux -f clean_build=false -f upload_to_r2=true
+gh workflow run "Build Filament" --ref filament/v1.74.0 -f platform=android -f clean_build=false -f upload_to_r2=true 
+gh workflow run "Build Filament" --ref filament/v1.74.0 -f platform=windows -f clean_build=false -f upload_to_r2=true
+gh workflow run "Build Filament" --ref filament/v1.74.0 -f platform=macos -f clean_build=false -f upload_to_r2=true
 ```
 
-Below are instructions for building the Filament (currently pinned to v1.69.1) for each of the target platforms.
+Below are instructions for building the Filament (currently pinned to v1.74.0) for each of the target platforms.
 
 This is only for developers extending the Thermion package itself; if you are simply using Thermion as a dependency in your `pubspec.yaml`, you can ignore this.
 
@@ -90,9 +90,9 @@ cmake -G Ninja \
 ```
 ./build.sh -i -f -p android release
 ./build.sh -i -f -t -d -p android debug # builds with the framegraph viewer/material debug server enabled
-for file in libimageio.a libtinyexr.a; do for arch in arm64-v8a armeabi-v7a x86_64 x86; do cp /Volumes/T7/v1.51.2/android/release/$arch/$file ~/Documents/thermion/thermion_dart/.dart_tool/thermion_dart/lib/v1.69.1/android/debug/$arch/; done; done
-cd out/android-release/filament/lib/ && zip -r filament-v1.69.1-android-release.zip  arm* x86* && rclone copy filament-v1.69.1-android-release.zip thermion:thermion/
-cd out/android-debug/filament/lib/ && zip -r filament-v1.69.1-android-debug.zip  arm* x86* && rclone copy filament-v1.69.1-android-debug.zip thermion:thermion/ 
+for file in libimageio.a libtinyexr.a; do for arch in arm64-v8a armeabi-v7a x86_64 x86; do cp /Volumes/T7/v1.51.2/android/release/$arch/$file ~/Documents/thermion/thermion_dart/.dart_tool/thermion_dart/lib/v1.74.0/android/debug/$arch/; done; done
+cd out/android-release/filament/lib/ && zip -r filament-v1.74.0-android-release.zip  arm* x86* && rclone copy filament-v1.74.0-android-release.zip thermion:thermion/
+cd out/android-debug/filament/lib/ && zip -r filament-v1.74.0-android-debug.zip  arm* x86* && rclone copy filament-v1.74.0-android-debug.zip thermion:thermion/ 
 ```
 
 ## Windows

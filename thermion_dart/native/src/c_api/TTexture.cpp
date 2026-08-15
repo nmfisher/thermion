@@ -8,13 +8,13 @@
 #include <filament/RenderTarget.h>
 #include <filament/Scene.h>
 #include <filament/Texture.h>
-#include <filament/backend/DriverEnums.h>
+#include <backend/DriverEnums.h>
 #include <filament/TextureSampler.h>
 #include <filament/TransformManager.h>
 #include <filament/View.h>
-#include <filament/image/LinearImage.h>
-#include <filament/image/ColorTransform.h>
-#include <filament/backend/DriverEnums.h>
+#include <image/LinearImage.h>
+#include <image/ColorTransform.h>
+#include <backend/DriverEnums.h>
 
 #include <ktxreader/Ktx1Reader.h>
 #include <ktxreader/Ktx2Reader.h>
@@ -23,7 +23,7 @@
 
 #include "Log.hpp"
 
-#include <filament/third_party/stb/stb_image.h>
+#include <third_party/stb/stb_image.h>
 
 #ifdef __cplusplus
 namespace thermion
