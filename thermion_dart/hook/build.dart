@@ -451,6 +451,18 @@ outputDirectory : ${outputDirectory.path}
             ...linuxDebugLibs.map((lib) => "-l$lib"),
             '-lGL',
             '-lEGL',
+            // The Linux libassimp.a is built with gcc/libstdc++, while the
+            // rest of this link uses libc++ (-stdlib=libc++ above). The two
+            // STLs mangle differently (_ZSt4cout vs _ZNSt3__14coutE), so
+            // libc++ cannot satisfy libassimp's references. A -shared link
+            // leaves them as undefined symbols (allowed at link time), and
+            // dlopen then fails at runtime with "undefined symbol:
+            // _ZSt4cout". Linking libstdc++ adds the DT_NEEDED entry that
+            // resolves them. Passed via -Wl because the clang driver
+            // silently DROPS a bare "-lstdc++" from the linker job when
+            // -stdlib=libc++ is in effect. Outside the whole-archive group
+            // so its objects are only pulled if referenced.
+            if (assimpEnabled) '-Wl,-lstdc++',
           ] else if (targetOS != OS.android) ...[
             "-lc++",
             "",
