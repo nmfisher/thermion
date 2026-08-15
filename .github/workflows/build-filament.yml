@@ -131,6 +131,27 @@ jobs:
             echo "ZIP_SUFFIX=" >> $GITHUB_ENV
           fi
 
+      - name: Free disk space
+        # The WebGPU build zips huge Dawn debug artifacts and ran out of disk
+        # (zip I/O error - No space left on device). jlumbroso/free-disk-space
+        # is Ubuntu-only, so delete the large preinstalled toolchains this
+        # build does not need: extra Xcode versions (keep the selected one),
+        # Android SDK/NDK, simulator runtimes, dotnet and ghcup.
+        run: |
+          df -h / | tail -1
+          SELECTED_XCODE=$(basename "$(dirname "$(dirname "$(xcode-select -p)")")")
+          echo "Keeping $SELECTED_XCODE"
+          for xcode in /Applications/Xcode*.app; do
+            if [ "$(basename "$xcode")" != "$SELECTED_XCODE" ]; then
+              echo "Removing $xcode"
+              sudo rm -rf "$xcode"
+            fi
+          done
+          sudo rm -rf /usr/local/lib/android /Users/runner/Library/Android
+          sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator
+          sudo rm -rf /usr/local/share/dotnet /usr/local/.ghcup /usr/local/share/boost
+          df -h / | tail -1
+
       - name: Build Filament
         run: |
           mkdir -p output
