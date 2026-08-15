@@ -55,13 +55,14 @@ jobs:
         if: matrix.name == 'Windows'
         uses: ./.github/actions/setup-windows-env
 
-      - name: Enable debug mode for tests
+      - name: Enable debug mode + assimp for tests
         shell: bash
         run: |
           echo 'hooks:' >> thermion_dart/pubspec.yaml
           echo '  user_defines:' >> thermion_dart/pubspec.yaml
           echo '    thermion_dart:' >> thermion_dart/pubspec.yaml
           echo '      mode: debug' >> thermion_dart/pubspec.yaml
+          echo '      assimp: true' >> thermion_dart/pubspec.yaml
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -88,6 +89,7 @@ jobs:
             test/morph_animation_tests.dart \
             test/renderable_manager_tests.dart \
             test/gltf_parser_tests.dart \
+            test/model_import_tests.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
@@ -108,6 +110,7 @@ jobs:
             test/scene_tests.dart `
             test/picking_tests.dart `
             test/image_tests.dart `
+            test/model_import_tests.dart `
             --concurrency=1
 
       - name: Zip output

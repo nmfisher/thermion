@@ -153,6 +153,17 @@ else()
 endif()
 include_directories(${FILAMENT_HEADERS_DIR})
 
+# Assimp model loading is opt-in (disabled by default). The prebuilt libassimp.a
+# is always produced by build_web.sh; to bake it into the wasm module, pass
+# -DTHERMION_ASSIMP=1 when configuring this CMake build. The Assimp headers
+# ship inside the web R2 artifact's include tree (staged by copy_web_headers in
+# build_web.sh), so resolve them from FILAMENT_HEADERS_DIR like the Filament
+# headers instead of vendoring a copy in-tree.
+if(THERMION_ASSIMP)
+include_directories(${FILAMENT_HEADERS_DIR}/third_party/libassimp/include)
+add_compile_definitions(THERMION_ASSIMP=1)
+endif()
+
 
 add_library(backend STATIC IMPORTED)
 set_property(TARGET backend PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libbackend.a")
@@ -284,6 +295,13 @@ set_property(TARGET png PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE
 set_property(TARGET png PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng16.a")
 set_property(TARGET png PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng16.a")
 
+if(THERMION_ASSIMP)
+add_library(assimp STATIC IMPORTED)
+set_property(TARGET assimp PROPERTY IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/debug/libassimp.a")
+set_property(TARGET assimp PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libassimp.a")
+set_property(TARGET assimp PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libassimp.a")
+endif()
+
 # Diagnostic: Check if EXTERNAL_ALL_LIBRARIES is visible
 if(DEFINED EXTERNAL_ALL_LIBRARIES)
   message(STATUS "EXTERNAL_ALL_LIBRARIES is defined at link time: ${EXTERNAL_ALL_LIBRARIES}")
@@ -324,6 +342,7 @@ target_link_libraries(${MODULE_NAME}
  zstd
  png
  tinyexr
+ $<$<BOOL:${THERMION_ASSIMP}>:assimp>
  ${EXTERNAL_ALL_LIBRARIES}
 )
 

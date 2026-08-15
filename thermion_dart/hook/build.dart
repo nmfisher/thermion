@@ -150,6 +150,19 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Sources : $sources");
 
+    // Assimp-backed model loading (OBJ/FBX/STL/PLY/...) is opt-in: the prebuilt
+    // libassimp.a is always produced by the platform build scripts, but it is
+    // only linked into a downstream app when enabled here. Enable via:
+    //   hooks:
+    //     user_defines:
+    //       thermion_dart:
+    //         assimp: true
+    final assimpEnabled =
+        input.userDefines["assimp"] == true ||
+        input.userDefines["assimp"] == "true" ||
+        input.userDefines["assimp"] == 1 ||
+        input.userDefines["assimp"] == "1";
+
     var libs = [
       "filament",
       "backend",
@@ -192,6 +205,10 @@ outputDirectory : ${outputDirectory.path}
       // libzstd), and the libzstd.a must be present in the Android zip — see
       // scripts/zip_android.sh.
       if (targetOS != OS.linux) "zstd",
+      // Assimp model loading is opt-in at link time (see assimpEnabled above):
+      // the prebuilt libassimp.a is always produced by the platform build
+      // scripts, but only linked when the consuming app enables it.
+      if (assimpEnabled) "assimp",
       //"mikktspace",
       "geometry",
       // Debug builds of Filament enable the Material Debug Server and Frame
@@ -229,6 +246,12 @@ outputDirectory : ${outputDirectory.path}
       defines["ENABLE_TRACING"] = "1";
     }
 
+    // Assimp model loading compile-time flag (see assimpEnabled above).
+    if (assimpEnabled) {
+      logger.info("Enabling Assimp model loading");
+      defines["THERMION_ASSIMP"] = "1";
+    }
+
     // Check for plugin configuration
     final pluginConfigs = input.userDefines["plugins"] as List<dynamic>?;
 
@@ -248,7 +271,17 @@ outputDirectory : ${outputDirectory.path}
     //                           `<utils/...>`, `<backend/...>` and
     //                           `<gltfio/materials/uberarchive.h>` all resolve
     //                           from this flat root.
-    final includeDirs = <String>['native/include', artifactIncludeRel];
+    //  - the Assimp headers, only when Assimp model loading is enabled (see
+    //                           assimpEnabled above). These are bundled in the
+    //                           same R2 artifact under
+    //                           include/third_party/libassimp/include/ and
+    //                           cover the `<assimp/...>` includes of
+    //                           model_import.cpp — no vendored copy in-tree.
+    final includeDirs = <String>[
+      'native/include',
+      artifactIncludeRel,
+      if (assimpEnabled) path.join(artifactIncludeRel, 'third_party', 'libassimp', 'include'),
+    ];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {
