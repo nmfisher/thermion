@@ -200,11 +200,12 @@ f 1 3 4
     });
   });
 
-  // Exercises the formatHint path (Assimp selects the importer from the hint
-  // rather than the hardcoded "obj" path) using a text-based format we can
-  // author inline. This is the regression test for "FBX/multi-format" support:
-  // any Assimp-readable format works once the correct hint is supplied.
-  group('Multi-format loading (formatHint)', () {
+  // Exercises the unified model-import facade (AssimpImporter → RawMesh).
+  // Assimp selects the importer from the format hint rather than the
+  // hardcoded "obj" path, using text-based formats we can author inline.
+  // This is the regression test for "FBX/multi-format" support: any
+  // Assimp-readable format works once the correct hint is supplied.
+  group('Multi-format loading (ModelFileImporter facade)', () {
     test('load STL via formatHint and parse geometry', () async {
       // Minimal ASCII STL: two triangles forming a quad in the XY plane.
       final stl = '''
@@ -227,13 +228,17 @@ endsolid test
 ''';
       final buffer = Uint8List.fromList(stl.codeUnits);
 
-      final groups = GeometryUtils.parseModelFromBuffer(buffer, formatHint: 'stl');
+      expect(AssimpImporter().isSupported, true, reason: "Tests require a build with Assimp enabled");
 
-      expect(groups.isNotEmpty, true, reason: "STL should parse into at least one mesh group");
-      final geometry = groups.first.geometry;
-      expect(geometry.vertices.isNotEmpty, true);
+      final meshes = AssimpImporter().parse(buffer, formatHint: 'stl');
+
+      expect(meshes.isNotEmpty, true, reason: "STL should parse into at least one mesh");
+      final mesh = meshes.first;
+      expect(mesh.positions.isNotEmpty, true);
+      expect(mesh.positions.length % 3, 0, reason: "Positions should be in groups of 3 (x,y,z)");
       // Two triangles -> 6 indices.
-      expect(geometry.indices.length, 6, reason: "STL quad (2 triangles) should have 6 indices");
+      expect(mesh.indices.length, 6, reason: "STL quad (2 triangles) should have 6 indices");
+      expect(mesh.primitiveType, PrimitiveType.TRIANGLES);
     });
 
     test('load PLY via formatHint and parse geometry', () async {
@@ -255,10 +260,10 @@ end_header
 ''';
       final buffer = Uint8List.fromList(ply.codeUnits);
 
-      final groups = GeometryUtils.parseModelFromBuffer(buffer, formatHint: 'ply');
+      final meshes = AssimpImporter().parse(buffer, formatHint: 'ply');
 
-      expect(groups.isNotEmpty, true, reason: "PLY should parse into at least one mesh group");
-      expect(groups.first.geometry.indices.length, 3, reason: "PLY single triangle should have 3 indices");
+      expect(meshes.isNotEmpty, true, reason: "PLY should parse into at least one mesh");
+      expect(meshes.first.indices.length, 3, reason: "PLY single triangle should have 3 indices");
     });
   });
 }
