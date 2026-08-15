@@ -104,7 +104,10 @@ jobs:
 
   build-macos:
     name: Build macOS
-    runs-on: macos-14
+    # Xcode 16 (Clang 16+) is required for Dawn's use of C++20 parenthesized
+    # aggregate initialization (P0960). macos-14 ships Xcode 15.4 / Clang 15,
+    # which lacks P0960 and fails compiling third_party/dawn/src/dawn/platform.
+    runs-on: macos-15
     needs: setup
     if: contains(needs.setup.outputs.matrix, 'macos')
     env:
