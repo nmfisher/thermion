@@ -270,13 +270,16 @@ outputDirectory : ${outputDirectory.path}
     //                           `<utils/...>`, `<backend/...>` and
     //                           `<gltfio/materials/uberarchive.h>` all resolve
     //                           from this flat root.
-    //  - the vendored Assimp headers, only when Assimp model loading is
-    //                           enabled (see assimpEnabled above). These cover
-    //                           `<assimp/...>` includes for model_import.cpp.
+    //  - the Assimp headers, only when Assimp model loading is enabled (see
+    //                           assimpEnabled above). These are bundled in the
+    //                           same R2 artifact under
+    //                           include/third_party/libassimp/include/ and
+    //                           cover the `<assimp/...>` includes of
+    //                           model_import.cpp — no vendored copy in-tree.
     final includeDirs = <String>[
       'native/include',
       artifactIncludeRel,
-      if (assimpEnabled) 'native/include/filament/third_party/libassimp/include',
+      if (assimpEnabled) path.join(artifactIncludeRel, 'third_party', 'libassimp', 'include'),
     ];
 
     // Process plugins after flags and includeDirs are declared

@@ -155,9 +155,12 @@ include_directories(${FILAMENT_HEADERS_DIR})
 
 # Assimp model loading is opt-in (disabled by default). The prebuilt libassimp.a
 # is always produced by build_web.sh; to bake it into the wasm module, pass
-# -DTHERMION_ASSIMP=1 when configuring this CMake build.
+# -DTHERMION_ASSIMP=1 when configuring this CMake build. The Assimp headers
+# ship inside the web R2 artifact's include tree (staged by copy_web_headers in
+# build_web.sh), so resolve them from FILAMENT_HEADERS_DIR like the Filament
+# headers instead of vendoring a copy in-tree.
 if(THERMION_ASSIMP)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/filament/third_party/libassimp/include)
+include_directories(${FILAMENT_HEADERS_DIR}/third_party/libassimp/include)
 add_compile_definitions(THERMION_ASSIMP=1)
 endif()
 
