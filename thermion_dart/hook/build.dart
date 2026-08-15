@@ -79,7 +79,8 @@ outputDirectory : ${outputDirectory.path}
     // which static libs we link, and which material variant we compile.
     //
     // The "backend" user define selects the material/shader variant:
-    //   "native"  (default) — OpenGL + Metal + Vulkan (GLSL, SPIR-V, MSL)
+    //   "native"  (default) — per-platform GLSL/SPIR-V/MSL set: Metal on
+    //                         iOS/macOS, Vulkan+OpenGL on Android and desktop
     //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
     //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
     //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
@@ -151,26 +152,45 @@ outputDirectory : ${outputDirectory.path}
     }
 
     // Material source paths — platform-specific variants.
-    // Each material has _native, _webgpu, _web_webgl, and _web_combined
-    // variants with identical C symbols. The build hook compiles only one.
-    // Falls back to unsuffixed .c files if the platform variant doesn't
-    // exist yet (i.e., make materials hasn't been re-run).
-    final materialSuffix = switch (backend) {
+    // Each material has per-platform native variants (_apple, _android,
+    // _desktop) plus _webgpu, _web_webgl, and _web_combined variants, all
+    // with identical C symbols. The build hook compiles exactly one: the web
+    // variants follow the "backend" user define, the native variants follow
+    // the target OS (Apple = Metal, Android = Vulkan+GL, desktop Linux/
+    // Windows = Vulkan+GL — both GL-capable platforms keep runtime backend
+    // selection working).
+    // Falls back to the pre-split _native variant if the per-platform files
+    // don't exist yet (i.e., make materials hasn't been re-run since the
+    // split), then to unsuffixed .c files for pre-split trees.
+    var materialSuffix = switch (backend) {
       'webgpu' => '_webgpu',
       'webgl2' => '_web_webgl',
       'hybrid' => '_web_combined',
-      _ => '_native',
+      _ when targetOS == OS.iOS || targetOS == OS.macOS => '_apple',
+      _ when targetOS == OS.android => '_android',
+      _ => '_desktop',
     };
-    final materialDefine = switch (backend) {
-      'webgpu' => 'THERMION_MATERIAL_WEBGPU',
-      'webgl2' => 'THERMION_MATERIAL_WEB_WEBGL',
-      'hybrid' => 'THERMION_MATERIAL_WEB_COMBINED',
+    var materialDefine = switch (materialSuffix) {
+      '_webgpu' => 'THERMION_MATERIAL_WEBGPU',
+      '_web_webgl' => 'THERMION_MATERIAL_WEB_WEBGL',
+      '_web_combined' => 'THERMION_MATERIAL_WEB_COMBINED',
+      '_apple' => 'THERMION_MATERIAL_APPLE',
+      '_android' => 'THERMION_MATERIAL_ANDROID',
+      '_desktop' => 'THERMION_MATERIAL_DESKTOP',
       _ => 'THERMION_MATERIAL_NATIVE',
     };
 
     final defines = <String, String?>{};
-    defines[materialDefine] = "1";
     final materialDir = path.join(pkgRootFilePath, 'native/include/material');
+    // If the per-platform variant hasn't been generated yet, fall back to the
+    // pre-split _native blob (all backends, larger, but compilable).
+    if (materialSuffix != '_native' &&
+        !File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
+      logger.info("Material variant $materialSuffix not found; falling back to _native");
+      materialSuffix = '_native';
+      materialDefine = 'THERMION_MATERIAL_NATIVE';
+    }
+    defines[materialDefine] = "1";
     String materialPath(String name, String suffix) {
       final suffixed =
           path.join(materialDir, '${name}$suffix.c');
