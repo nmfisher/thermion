@@ -34,8 +34,6 @@ else()
     "next build will pick it up automatically.")
   set(DART_PKG_HEADERS "")
 endif()
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  "${GENERATED_HEADERS_CMAKE}")
 
 # thermion_dart native-assets output
 # Flutter places native-assets at: <project>/build/native_assets/linux/
