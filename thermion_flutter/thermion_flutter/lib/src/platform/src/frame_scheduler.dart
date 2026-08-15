@@ -5,14 +5,15 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/scheduler.dart';
 import 'package:logging/logging.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
     show
         FrameScheduler_startWithCallback,
-        FrameScheduler_stop,
+        FrameScheduler_removePort,
+        FrameScheduler_removeCallback,
         FrameTickCallbackFunction,
         FrameScheduler_initDartApi,
         FrameScheduler_startWithPort,
@@ -111,8 +112,10 @@ class FrameScheduler {
   /// created. Monotonic; sample deltas to measure dispatched frames per second.
   int get dispatchedFrameCount => _dispatchedFrameCount;
 
-  /// Start the native scheduler. Picks port mode in debug builds on
-  /// macOS/iOS/Android/Windows and a direct native callback otherwise.
+  /// Start the native scheduler. Uses port mode in every build mode on
+  /// macOS/iOS/Android/Windows and a direct native callback otherwise. The
+  /// native scheduler is process-wide and multi-client: this registers this
+  /// isolate as one client.
   ///
   /// Idempotent: a no-op if already active. Guards against a rapid
   /// pause→resume (or an in-flight [start]) double-registering the
@@ -122,12 +125,17 @@ class FrameScheduler {
     _active = true;
     final generation = ++_sourceGeneration;
 
+    // Port mode in EVERY build mode (not just debug): the shared native
+    // scheduler can outlive this isolate (another engine keeps it running when
+    // a popout window closes without a clean FilamentApp.destroy), and a dead
+    // port is pruned natively on its first failed post while a dead
+    // NativeCallable trampoline invoked from the dispatch thread is undefined
+    // behaviour.
     final usePortMode =
-        kDebugMode &&
-        (Platform.isMacOS ||
-            Platform.isIOS ||
-            Platform.isAndroid ||
-            Platform.isWindows);
+        Platform.isMacOS ||
+        Platform.isIOS ||
+        Platform.isAndroid ||
+        Platform.isWindows;
 
     if (usePortMode) {
       await _initializePortMode();
@@ -169,11 +177,15 @@ class FrameScheduler {
     _logger.info('Flutter-synced render loop started');
   }
 
-  /// Stop the native scheduler and release the Dart-side callback/port.
+  /// Deregister this isolate's client from the shared native scheduler and
+  /// release the Dart-side callback/port.
   ///
-  /// Safe to call when already stopped. Always calls the native stop —
-  /// after hot restart the native scheduler may still be running with a
-  /// dangling pointer from the previous isolate.
+  /// Deliberately does NOT call the global : the native
+  /// scheduler is shared by every engine in the process (primary window and
+  /// popouts), and the global stop would freeze the other window's frame loop.
+  /// A port left behind by a dead isolate (hot restart) is pruned natively on
+  /// its first failed post, and the scheduler itself is torn down when its last
+  /// client deregisters.
   void stop() {
     ++_sourceGeneration;
     _active = false;
@@ -182,14 +194,19 @@ class FrameScheduler {
     _flutterAppliedFpsLimit = 0;
     _nextFlutterFrameUs = 0;
 
-    // Always stop native state even when Dart has just hot-restarted and no
-    // longer remembers that the previous isolate started a scheduler.
-    FrameScheduler_stop();
+    final callable = _tickCallable;
+    if (callable != null) {
+      FrameScheduler_removeCallback(callable.nativeFunction);
+    }
+    final port = _framePort;
+    if (port != null) {
+      FrameScheduler_removePort(port.sendPort.nativePort);
+    }
 
-    _tickCallable?.close();
+    callable?.close();
     _tickCallable = null;
 
-    _framePort?.close();
+    port?.close();
     _framePort = null;
   }
 
