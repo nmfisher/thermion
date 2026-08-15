@@ -30,7 +30,7 @@ extern "C"
   // deregisters through FrameScheduler_removePort /
   // FrameScheduler_removeCallback.
   //
-  // Lock order: _schedulerLifecycleMutex (outer) -> _frameClientsMutex
+  // Lock order: _schedulerLifecycleMutex() (outer) -> _frameClientsMutex()
   // (inner). The dispatch thread only ever takes the inner mutex, so a
   // lifecycle holder joining the dispatch thread cannot deadlock.
   //
@@ -45,9 +45,22 @@ extern "C"
     FrameTickCallback callback; // nullptr for port clients
     int64_t port;               // 0 for callback clients
   };
-  static std::mutex _schedulerLifecycleMutex;
-  static std::mutex _frameClientsMutex;
-  static std::vector<FrameClient> _frameClients;
+  // Function-local lazy statics (never destroyed): nothing runs at image
+  // load, which keeps the plugin free of static-initialization order and
+  // CRT-mix hazards - a namespace-scope std::mutex here fast-failed the
+  // DEBUG Windows runner at process init (0xC0000409 before wWinMain).
+  static std::mutex& _schedulerLifecycleMutex() {
+    static std::mutex* m = new std::mutex();
+    return *m;
+  }
+  static std::mutex& _frameClientsMutex() {
+    static std::mutex* m = new std::mutex();
+    return *m;
+  }
+  static std::vector<FrameClient>& _frameClients() {
+    static std::vector<FrameClient>* v = new std::vector<FrameClient>();
+    return *v;
+  }
 
   static std::atomic<int> _targetFpsLimit{0};
 
@@ -57,8 +70,8 @@ extern "C"
 
 #ifndef __EMSCRIPTEN__
   static void _fanoutFrameCallback(uint64_t frameTimeNanos, void* /*userData*/) {
-    std::lock_guard<std::mutex> lock(_frameClientsMutex);
-    for (auto it = _frameClients.begin(); it != _frameClients.end();) {
+    std::lock_guard<std::mutex> lock(_frameClientsMutex());
+    for (auto it = _frameClients().begin(); it != _frameClients().end();) {
       if (it->callback) {
         it->callback(frameTimeNanos);
         ++it;
@@ -67,7 +80,7 @@ extern "C"
       if (Dart_PostCObject_DL == nullptr) {
         // Dart_InitializeApiDL never succeeded; this port can never be
         // reached. Drop the client instead of dereferencing null.
-        it = _frameClients.erase(it);
+        it = _frameClients().erase(it);
         continue;
       }
       Dart_CObject msg;
@@ -77,7 +90,7 @@ extern "C"
         ++it;
       } else {
         // The receiving isolate is gone (hot restart / closed window).
-        it = _frameClients.erase(it);
+        it = _frameClients().erase(it);
       }
     }
     // Never stop/delete the scheduler from inside its own dispatch: platform
@@ -86,7 +99,7 @@ extern "C"
     // FrameScheduler_stop().
   }
 
-  // Caller must hold _schedulerLifecycleMutex.
+  // Caller must hold _schedulerLifecycleMutex().
   static void _ensureSchedulerStartedLocked(int targetFps) {
     if (_frameScheduler) return; // already running with the fan-out callback
     _frameScheduler = thermion::FrameScheduler::create(targetFps);
@@ -94,7 +107,7 @@ extern "C"
     _frameScheduler->start(_fanoutFrameCallback, nullptr);
   }
 
-  // Caller must hold _schedulerLifecycleMutex.
+  // Caller must hold _schedulerLifecycleMutex().
   static void _stopSchedulerLocked() {
     if (!_frameScheduler) return;
     _frameScheduler->stop();
@@ -108,18 +121,18 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_startWithCallback(
       FrameTickCallback tickCallback, int targetFps) {
 #ifndef __EMSCRIPTEN__
-    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex);
+    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex());
     {
-      std::lock_guard<std::mutex> lock(_frameClientsMutex);
+      std::lock_guard<std::mutex> lock(_frameClientsMutex());
       bool present = false;
-      for (const auto& client : _frameClients) {
+      for (const auto& client : _frameClients()) {
         if (client.callback == tickCallback) {
           present = true;
           break;
         }
       }
       if (!present) {
-        _frameClients.push_back(FrameClient{tickCallback, 0});
+        _frameClients().push_back(FrameClient{tickCallback, 0});
       }
     }
     _ensureSchedulerStartedLocked(targetFps);
@@ -131,10 +144,10 @@ extern "C"
     // Legacy remove-everything teardown. With more than one live engine this
     // stops every window's frame loop - per-client removal goes through
     // FrameScheduler_removePort / FrameScheduler_removeCallback instead.
-    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex);
+    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex());
     {
-      std::lock_guard<std::mutex> lock(_frameClientsMutex);
-      _frameClients.clear();
+      std::lock_guard<std::mutex> lock(_frameClientsMutex());
+      _frameClients().clear();
     }
     _stopSchedulerLocked();
 #endif
@@ -142,18 +155,18 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_removePort(int64_t port) {
 #ifndef __EMSCRIPTEN__
-    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex);
+    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex());
     bool empty;
     {
-      std::lock_guard<std::mutex> lock(_frameClientsMutex);
-      _frameClients.erase(
-          std::remove_if(_frameClients.begin(), _frameClients.end(),
+      std::lock_guard<std::mutex> lock(_frameClientsMutex());
+      _frameClients().erase(
+          std::remove_if(_frameClients().begin(), _frameClients().end(),
                          [port](const FrameClient& client) {
                            return client.callback == nullptr &&
                                   client.port == port;
                          }),
-          _frameClients.end());
-      empty = _frameClients.empty();
+          _frameClients().end());
+      empty = _frameClients().empty();
     }
     if (empty) {
       _stopSchedulerLocked();
@@ -163,17 +176,17 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_removeCallback(FrameTickCallback callback) {
 #ifndef __EMSCRIPTEN__
-    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex);
+    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex());
     bool empty;
     {
-      std::lock_guard<std::mutex> lock(_frameClientsMutex);
-      _frameClients.erase(
-          std::remove_if(_frameClients.begin(), _frameClients.end(),
+      std::lock_guard<std::mutex> lock(_frameClientsMutex());
+      _frameClients().erase(
+          std::remove_if(_frameClients().begin(), _frameClients().end(),
                          [callback](const FrameClient& client) {
                            return client.callback == callback;
                          }),
-          _frameClients.end());
-      empty = _frameClients.empty();
+          _frameClients().end());
+      empty = _frameClients().empty();
     }
     if (empty) {
       _stopSchedulerLocked();
@@ -201,18 +214,18 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_startWithPort(int64_t port, int targetFps) {
 #ifndef __EMSCRIPTEN__
-    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex);
+    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex());
     {
-      std::lock_guard<std::mutex> lock(_frameClientsMutex);
+      std::lock_guard<std::mutex> lock(_frameClientsMutex());
       bool present = false;
-      for (const auto& client : _frameClients) {
+      for (const auto& client : _frameClients()) {
         if (client.callback == nullptr && client.port == port) {
           present = true;
           break;
         }
       }
       if (!present) {
-        _frameClients.push_back(FrameClient{nullptr, port});
+        _frameClients().push_back(FrameClient{nullptr, port});
       }
     }
     // The scheduler always runs in callback mode with the fan-out trampoline;
@@ -227,7 +240,7 @@ extern "C"
 #ifndef __EMSCRIPTEN__
     // The cap is process-wide: with two engines registered the shared
     // scheduler dispatches at one rate for both windows.
-    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex);
+    std::lock_guard<std::mutex> lifecycle(_schedulerLifecycleMutex());
     if (_frameScheduler) {
       _frameScheduler->setTargetFps(normalizedFps);
     }
