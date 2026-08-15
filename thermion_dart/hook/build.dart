@@ -157,7 +157,8 @@ outputDirectory : ${outputDirectory.path}
     //     user_defines:
     //       thermion_dart:
     //         assimp: true
-    final assimpEnabled = input.userDefines["assimp"] == true ||
+    final assimpEnabled =
+        input.userDefines["assimp"] == true ||
         input.userDefines["assimp"] == "true" ||
         input.userDefines["assimp"] == 1 ||
         input.userDefines["assimp"] == "1";

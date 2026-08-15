@@ -16,22 +16,17 @@ void main() async {
       final groups = GeometryUtils.parseObjFromBuffer(buffer);
 
       // Should have at least one mesh group
-      expect(groups.isNotEmpty, true,
-          reason: "OBJ file should contain at least one mesh group");
+      expect(groups.isNotEmpty, true, reason: "OBJ file should contain at least one mesh group");
 
       final group = groups.first;
 
       // Verify vertices
-      expect(group.geometry.vertices.isNotEmpty, true,
-          reason: "Mesh should have vertices");
-      expect(group.geometry.vertices.length % 3, 0,
-          reason: "Vertices should be in groups of 3 (x,y,z)");
+      expect(group.geometry.vertices.isNotEmpty, true, reason: "Mesh should have vertices");
+      expect(group.geometry.vertices.length % 3, 0, reason: "Vertices should be in groups of 3 (x,y,z)");
 
       // Verify indices
-      expect(group.geometry.indices.isNotEmpty, true,
-          reason: "Mesh should have indices");
-      expect(group.geometry.indices.length % 3, 0,
-          reason: "Indices should be in groups of 3 (triangles)");
+      expect(group.geometry.indices.isNotEmpty, true, reason: "Mesh should have indices");
+      expect(group.geometry.indices.length % 3, 0, reason: "Indices should be in groups of 3 (triangles)");
 
       print("Parsed OBJ with ${group.geometry.vertices.length ~/ 3} vertices");
       print("Parsed ${group.geometry.indices.length ~/ 3} triangles");
@@ -48,17 +43,15 @@ void main() async {
     });
 
     test('load OBJ and create renderable asset', () async {
-      await ViewerBuilder(testHelper)
-          .setBackgroundColor(kWhite)
-          .setCameraPosition(Vector3(3, 3, 3))
-          .execute((result) async {
+      await ViewerBuilder(testHelper).setBackgroundColor(kWhite).setCameraPosition(Vector3(3, 3, 3)).execute((
+        result,
+      ) async {
         final objPath = "${testHelper.assetsDir}/test_cube.obj";
         final buffer = File(objPath).readAsBytesSync();
 
         // Load OBJ and create assets
         final assets = await result.viewer.loadModelFromBuffer(buffer, formatHint: 'obj');
-        expect(assets.isNotEmpty, true,
-            reason: "Should load at least one asset from OBJ");
+        expect(assets.isNotEmpty, true, reason: "Should load at least one asset from OBJ");
 
         // Add to scene
         for (final asset in assets) {
@@ -109,10 +102,8 @@ void main() async {
       // Original OBJ has v values 0.0 or 1.0, so flipped should be 1.0 or 0.0
       for (int i = 1; i < uvs.length; i += 2) {
         final v = uvs[i];
-        expect(v, greaterThanOrEqualTo(0.0),
-            reason: "Flipped V value should be >= 0");
-        expect(v, lessThanOrEqualTo(1.0),
-            reason: "Flipped V value should be <= 1");
+        expect(v, greaterThanOrEqualTo(0.0), reason: "Flipped V value should be >= 0");
+        expect(v, lessThanOrEqualTo(1.0), reason: "Flipped V value should be <= 1");
       }
     });
 
@@ -176,8 +167,7 @@ f 5 6 7 8
       expect(groups.length, greaterThanOrEqualTo(1));
 
       // Total vertices should be 8 (4 per cube)
-      final totalVertices =
-          groups.fold<int>(0, (sum, g) => sum + g.geometry.vertices.length ~/ 3);
+      final totalVertices = groups.fold<int>(0, (sum, g) => sum + g.geometry.vertices.length ~/ 3);
       expect(totalVertices, 8, reason: "Should have 8 vertices total (2 cubes × 4 vertices)");
     });
 
@@ -237,18 +227,13 @@ endsolid test
 ''';
       final buffer = Uint8List.fromList(stl.codeUnits);
 
-      final groups = GeometryUtils.parseModelFromBuffer(
-        buffer,
-        formatHint: 'stl',
-      );
+      final groups = GeometryUtils.parseModelFromBuffer(buffer, formatHint: 'stl');
 
-      expect(groups.isNotEmpty, true,
-          reason: "STL should parse into at least one mesh group");
+      expect(groups.isNotEmpty, true, reason: "STL should parse into at least one mesh group");
       final geometry = groups.first.geometry;
       expect(geometry.vertices.isNotEmpty, true);
       // Two triangles -> 6 indices.
-      expect(geometry.indices.length, 6,
-          reason: "STL quad (2 triangles) should have 6 indices");
+      expect(geometry.indices.length, 6, reason: "STL quad (2 triangles) should have 6 indices");
     });
 
     test('load PLY via formatHint and parse geometry', () async {
@@ -270,15 +255,10 @@ end_header
 ''';
       final buffer = Uint8List.fromList(ply.codeUnits);
 
-      final groups = GeometryUtils.parseModelFromBuffer(
-        buffer,
-        formatHint: 'ply',
-      );
+      final groups = GeometryUtils.parseModelFromBuffer(buffer, formatHint: 'ply');
 
-      expect(groups.isNotEmpty, true,
-          reason: "PLY should parse into at least one mesh group");
-      expect(groups.first.geometry.indices.length, 3,
-          reason: "PLY single triangle should have 3 indices");
+      expect(groups.isNotEmpty, true, reason: "PLY should parse into at least one mesh group");
+      expect(groups.first.geometry.indices.length, 3, reason: "PLY single triangle should have 3 indices");
     });
   });
 }

@@ -196,8 +196,7 @@ abstract class ThermionViewer {
   // use a bottom-left origin, Filament uses top-left).
   //
   // Returns a list of [ThermionAsset] instances, one per object/mesh in the file.
-  Future<List<ThermionAsset>> loadModel(String uri,
-      {bool addToScene = true, bool flipUvs = true});
+  Future<List<ThermionAsset>> loadModel(String uri, {bool addToScene = true, bool flipUvs = true});
 
   // Loads a model file from the specified buffer via Assimp.
   //
@@ -206,8 +205,12 @@ abstract class ThermionViewer {
   // from memory.
   //
   // Returns a list of [ThermionAsset] instances, one per object/mesh in the file.
-  Future<List<ThermionAsset>> loadModelFromBuffer(Uint8List data,
-      {required String formatHint, bool addToScene = true, bool flipUvs = true});
+  Future<List<ThermionAsset>> loadModelFromBuffer(
+    Uint8List data, {
+    required String formatHint,
+    bool addToScene = true,
+    bool flipUvs = true,
+  });
 
   // Destroys [asset] and all underlying resources
   // (including instances, but excluding any manually created material instances).

@@ -556,19 +556,10 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future<List<ThermionAsset>> loadModel(
-    String uri, {
-    bool addToScene = true,
-    bool flipUvs = true,
-  }) async {
+  Future<List<ThermionAsset>> loadModel(String uri, {bool addToScene = true, bool flipUvs = true}) async {
     final data = await FilamentApp.instance!.loadResource(uri);
     final formatHint = _extensionHintFromUri(uri);
-    return loadModelFromBuffer(
-      data,
-      formatHint: formatHint,
-      addToScene: addToScene,
-      flipUvs: flipUvs,
-    );
+    return loadModelFromBuffer(data, formatHint: formatHint, addToScene: addToScene, flipUvs: flipUvs);
   }
 
   //
@@ -579,18 +570,11 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
     bool flipUvs = true,
   }) async {
-    final groups = GeometryUtils.parseModelFromBuffer(
-      data,
-      formatHint: formatHint,
-      flipUvs: flipUvs,
-    );
+    final groups = GeometryUtils.parseModelFromBuffer(data, formatHint: formatHint, flipUvs: flipUvs);
     final assets = <ThermionAsset>[];
 
     for (final group in groups) {
-      final asset = await createGeometry(
-        group.geometry,
-        addToScene: addToScene,
-      );
+      final asset = await createGeometry(group.geometry, addToScene: addToScene);
       assets.add(asset);
     }
 

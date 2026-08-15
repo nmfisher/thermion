@@ -439,23 +439,14 @@ class GeometryUtils {
   }) {
     final meshes = ModelImporter.loadFromBuffer(data, formatHint: formatHint);
     return meshes.map((mesh) {
-      final geometry = mesh.toGeometry(
-        flipUvs: flipUvs,
-        createDummyColors: true,
-        createDummyUvs: true,
-      );
-      return ModelGeometryGroup(
-        name: mesh.name,
-        materialName: mesh.materialName,
-        geometry: geometry,
-      );
+      final geometry = mesh.toGeometry(flipUvs: flipUvs, createDummyColors: true, createDummyUvs: true);
+      return ModelGeometryGroup(name: mesh.name, materialName: mesh.materialName, geometry: geometry);
     }).toList();
   }
 
   /// Convenience wrapper for OBJ files (equivalent to
   /// [parseModelFromBuffer] with [formatHint] `"obj"`).
-  static List<ModelGeometryGroup> parseObjFromBuffer(Uint8List data,
-          {bool flipUvs = true}) =>
+  static List<ModelGeometryGroup> parseObjFromBuffer(Uint8List data, {bool flipUvs = true}) =>
       parseModelFromBuffer(data, formatHint: 'obj', flipUvs: flipUvs);
 }
 
@@ -473,9 +464,5 @@ class ModelGeometryGroup {
   /// The geometry data for this group.
   final Geometry geometry;
 
-  ModelGeometryGroup({
-    this.name,
-    this.materialName,
-    required this.geometry,
-  });
+  ModelGeometryGroup({this.name, this.materialName, required this.geometry});
 }

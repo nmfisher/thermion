@@ -32,21 +32,13 @@ class ImportedMesh {
   });
 
   /// Creates a Geometry object from this mesh data.
-  Geometry toGeometry({
-    bool flipUvs = false,
-    bool createDummyColors = true,
-    bool createDummyUvs = true,
-  }) {
+  Geometry toGeometry({bool flipUvs = false, bool createDummyColors = true, bool createDummyUvs = true}) {
     // Flip UVs if requested (most model formats use bottom-left origin, Filament top-left)
     // Pass null when uvs are empty to allow Geometry constructor to create dummy UVs
-    final Float32List? processedUvs = uvs.isEmpty
-        ? null
-        : (flipUvs ? _flipUVs(uvs) : uvs);
+    final Float32List? processedUvs = uvs.isEmpty ? null : (flipUvs ? _flipUVs(uvs) : uvs);
 
     // Determine index type based on index count
-    final indexType = indices.length <= 65535
-        ? IndexType.USHORT
-        : IndexType.UINT;
+    final indexType = indices.length <= 65535 ? IndexType.USHORT : IndexType.UINT;
 
     // Convert indices to appropriate type
     final List<int> convertedIndices;
@@ -71,7 +63,7 @@ class ImportedMesh {
   static Float32List _flipUVs(Float32List uvs) {
     final result = Float32List(uvs.length);
     for (int i = 0; i < uvs.length; i += 2) {
-      result[i] = uvs[i];       // u unchanged
+      result[i] = uvs[i]; // u unchanged
       result[i + 1] = 1.0 - uvs[i + 1]; // v flipped
     }
     return result;
@@ -146,8 +138,7 @@ class ModelImporter {
     final hintPointer = formatHint.toNativeUtf8().cast<Char>();
 
     try {
-      final importerPtr =
-          ModelImporter_loadFromBuffer(dataPointer, data.length, hintPointer);
+      final importerPtr = ModelImporter_loadFromBuffer(dataPointer, data.length, hintPointer);
 
       if (importerPtr == nullptr) {
         throw Exception('Failed to load model ($formatHint): Assimp returned null importer');
@@ -185,12 +176,7 @@ class ModelImporter {
     // Get vertices
     final verticesPtrPtr = calloc<Pointer<Float>>();
     final verticesCountPtr = calloc<Int>();
-    ModelImporter_getVertices(
-      importerPtr,
-      meshIndex,
-      verticesPtrPtr,
-      verticesCountPtr,
-    );
+    ModelImporter_getVertices(importerPtr, meshIndex, verticesPtrPtr, verticesCountPtr);
 
     if (verticesCountPtr.value == 0) {
       calloc.free(verticesPtrPtr);
@@ -209,12 +195,7 @@ class ModelImporter {
     // Get indices
     final indicesPtrPtr = calloc<Pointer<Uint32>>();
     final indicesCountPtr = calloc<Int>();
-    ModelImporter_getIndices(
-      importerPtr,
-      meshIndex,
-      indicesPtrPtr,
-      indicesCountPtr,
-    );
+    ModelImporter_getIndices(importerPtr, meshIndex, indicesPtrPtr, indicesCountPtr);
 
     if (indicesCountPtr.value == 0) {
       calloc.free(indicesPtrPtr);
@@ -233,17 +214,10 @@ class ModelImporter {
     // Get normals (optional)
     final normalsPtrPtr = calloc<Pointer<Float>>();
     final normalsCountPtr = calloc<Int>();
-    ModelImporter_getNormals(
-      importerPtr,
-      meshIndex,
-      normalsPtrPtr,
-      normalsCountPtr,
-    );
+    ModelImporter_getNormals(importerPtr, meshIndex, normalsPtrPtr, normalsCountPtr);
 
     final normals = normalsCountPtr.value > 0
-        ? Float32List.fromList(
-            normalsPtrPtr.value.asTypedList(normalsCountPtr.value),
-          )
+        ? Float32List.fromList(normalsPtrPtr.value.asTypedList(normalsCountPtr.value))
         : Float32List(0);
 
     // Free temporary pointers
@@ -253,17 +227,10 @@ class ModelImporter {
     // Get UVs (optional)
     final uvsPtrPtr = calloc<Pointer<Float>>();
     final uvsCountPtr = calloc<Int>();
-    ModelImporter_getUVs(
-      importerPtr,
-      meshIndex,
-      uvsPtrPtr,
-      uvsCountPtr,
-    );
+    ModelImporter_getUVs(importerPtr, meshIndex, uvsPtrPtr, uvsCountPtr);
 
     final uvs = uvsCountPtr.value > 0
-        ? Float32List.fromList(
-            uvsPtrPtr.value.asTypedList(uvsCountPtr.value),
-          )
+        ? Float32List.fromList(uvsPtrPtr.value.asTypedList(uvsCountPtr.value))
         : Float32List(0);
 
     // Free temporary pointers
@@ -272,15 +239,11 @@ class ModelImporter {
 
     // Get material name (optional)
     final materialNamePtr = ModelImporter_getMaterialName(importerPtr, meshIndex);
-    final materialName = materialNamePtr != nullptr
-        ? _safeDartString(materialNamePtr)
-        : null;
+    final materialName = materialNamePtr != nullptr ? _safeDartString(materialNamePtr) : null;
 
     // Get mesh name (optional)
     final meshNamePtr = ModelImporter_getMeshName(importerPtr, meshIndex);
-    final meshName = meshNamePtr != nullptr
-        ? _safeDartString(meshNamePtr)
-        : null;
+    final meshName = meshNamePtr != nullptr ? _safeDartString(meshNamePtr) : null;
 
     return ImportedMesh(
       name: meshName,
