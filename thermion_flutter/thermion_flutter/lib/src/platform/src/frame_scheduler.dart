@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'dart:isolate';
+
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/scheduler.dart';
 import 'package:logging/logging.dart';
