@@ -18,7 +18,8 @@ if [ $# -lt 3 ]; then
   echo "  --clean         Remove existing target directories before building"
   echo "  --release       Build release only"
   echo "  --debug         Build debug only"
-  echo "  --webgpu        Build with FILAMENT_SUPPORTS_WEBGPU=ON (includes Dawn)"
+  echo "  --webgpu        Build with FILAMENT_SUPPORTS_WEBGPU=ON (includes Dawn);"
+  echo "                  also stages matc + resgen into the -webgpu zips"
   echo "  --upload        Upload resulting zip(s) to Cloudflare R2 after build"
   echo "  (default)       Build both release and debug, no WebGPU, no upload"
   echo ""
@@ -397,8 +398,48 @@ copy_dawn_artifacts() {
   fi
 }
 
+# Stage the matc and resgen host tools into the artifact dir when --webgpu
+# is set. The official Filament release matc is built without
+# FILAMENT_SUPPORTS_WEBGPU and cannot compile -a webgpu materials (WGSL);
+# the ones built here can, and scripts/regenerate-materials.sh fetches them
+# from the webgpu-suffixed R2 zip instead of the release tarball. On macOS
+# the tools are built as universal (arm64;x86_64) binaries.
+copy_filament_tools() {
+  local build_type="$1"   # release or debug — which out/ subtree to take from
+  local target_dir="$2"
+  for tool in matc resgen; do
+    local tool_bin=""
+    # build.sh -i installs the tools into out/<type>/filament/bin; the build
+    # tree copy lives at out/cmake-<type>/tools/<tool>/<tool>.
+    for candidate in \
+      "$FILAMENT_BASE_DIR/out/${build_type}/filament/bin/${tool}" \
+      "$FILAMENT_BASE_DIR/out/cmake-${build_type}/tools/${tool}/${tool}"; do
+      if [ -f "$candidate" ]; then
+        tool_bin="$candidate"
+        break
+      fi
+    done
+    if [ -z "$tool_bin" ]; then
+      # Layout safety net: search the whole build tree as a last resort.
+      tool_bin=$(find "$FILAMENT_BASE_DIR/out" -type f -name "$tool" 2>/dev/null | head -1)
+    fi
+    if [ -z "$tool_bin" ]; then
+      echo "Error: ${tool} not found in Filament build output (out/${build_type})"
+      return 1
+    fi
+    echo "Staging ${tool}: ${tool_bin} -> ${target_dir}/bin/${tool}"
+    mkdir -p "$target_dir/bin"
+    cp "$tool_bin" "$target_dir/bin/${tool}" || return 1
+    chmod +x "$target_dir/bin/${tool}"
+  done
+}
+
 if [ "$WEBGPU_FLAG" = true ] && [ "$BUILD_RELEASE" = true ]; then
   copy_dawn_artifacts "out/cmake-release" "$TARGET_RELEASE_DIR"
+  copy_filament_tools release "$TARGET_RELEASE_DIR" || {
+    echo "Error: failed to stage WebGPU-capable matc/resgen for release"
+    exit 1
+  }
 fi
 
 # Copy debug libraries
@@ -430,6 +471,10 @@ fi
 
 if [ "$WEBGPU_FLAG" = true ] && [ "$BUILD_DEBUG" = true ]; then
   copy_dawn_artifacts "out/cmake-debug" "$TARGET_DEBUG_DIR"
+  copy_filament_tools debug "$TARGET_DEBUG_DIR" || {
+    echo "Error: failed to stage WebGPU-capable matc/resgen for debug"
+    exit 1
+  }
 fi
 
 # Copy header files to target directories (for inclusion in R2 upload zips)
