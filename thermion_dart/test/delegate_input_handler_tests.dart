@@ -38,11 +38,9 @@ class _RecordingDelegate extends InputHandlerDelegate {
   }
 }
 
-MouseEvent _move(double x) =>
-    MouseEvent(MouseEventType.move, MouseButton.left, Vector2(x, 0), Vector2(1, 0));
+MouseEvent _move(double x) => MouseEvent(MouseEventType.move, MouseButton.left, Vector2(x, 0), Vector2(1, 0));
 
-MouseEvent _hover(double x) =>
-    MouseEvent(MouseEventType.hover, null, Vector2(x, 0), Vector2(2, 0));
+MouseEvent _hover(double x) => MouseEvent(MouseEventType.hover, null, Vector2(x, 0), Vector2(2, 0));
 
 void main() {
   late _RecordingDelegate delegate;

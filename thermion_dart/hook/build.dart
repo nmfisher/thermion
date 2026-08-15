@@ -9,7 +9,6 @@ import 'package:path/path.dart' as path;
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
-  
   await build(args, (BuildInput input, BuildOutputBuilder output) async {
     final packageRoot = input.packageRoot;
     var pkgRootFilePath = packageRoot.toFilePath(windows: Platform.isWindows);
@@ -204,10 +203,7 @@ outputDirectory : ${outputDirectory.path}
       // runtime, just like the perfetto case above. iOS debug never enables
       // them (its cmake invocation passes neither option); Windows links
       // libraries via #pragma comment(lib) in ThermionWin32.h instead.
-      if ({OS.macOS, OS.android}.contains(targetOS) && buildMode == BuildMode.debug) ...[
-        "matdbg",
-        "fgviewer",
-      ],
+      if ({OS.macOS, OS.android}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
     ];
 
     // On Linux the same matdbg/fgviewer archives must be linked, but OUTSIDE
@@ -218,9 +214,7 @@ outputDirectory : ${outputDirectory.path}
     // to satisfy libfilament.a's matdbg/fgviewer references (libfilament.a
     // itself is whole-archived), so civetweb is included exactly once.
     // See the-c8d3.
-    final linuxDebugLibs = (targetOS == OS.linux && buildMode == BuildMode.debug)
-        ? ["matdbg", "fgviewer"]
-        : <String>[];
+    final linuxDebugLibs = (targetOS == OS.linux && buildMode == BuildMode.debug) ? ["matdbg", "fgviewer"] : <String>[];
 
     if (targetOS == OS.windows) {
       // we just need the libDir and don't need to explicitly link the actual libs
@@ -632,14 +626,15 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   // guard above so caches extracted from an already-broken zip are repaired
   // too. No-op once the artifact is re-uploaded with the headers present.
   // See the-c8d3.
-  if (targetOS != OS.iOS &&
-      !File(path.join(unzipDir, 'include', 'bluevk', 'BlueVK.h')).existsSync()) {
+  if (targetOS != OS.iOS && !File(path.join(unzipDir, 'include', 'bluevk', 'BlueVK.h')).existsSync()) {
     logger.warning(
       "include/bluevk/BlueVK.h is missing from the $platform/$mode artifact; "
       "fetching bluevk headers from the release artifact to repair the cache",
     );
     final releaseUrl = _getLibraryUrl(version, platform, "release");
-    final releaseZip = File(path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${path.basename(releaseUrl)}'));
+    final releaseZip = File(
+      path.join(Directory.systemTemp.path, 'thermion_bluevk_repair_${path.basename(releaseUrl)}'),
+    );
     final releaseRequest = await HttpClient().getUrl(Uri.parse(releaseUrl));
     final releaseResponse = await releaseRequest.close();
     if (releaseResponse.statusCode != 200) {
