@@ -1,10 +1,13 @@
 import 'dart:async';
+
 import 'package:thermion_dart/thermion_dart.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_flutter/src/options.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
+
 import 'platform/platform.dart';
+
 import 'package:logging/logging.dart';
 
 export 'platform/platform.dart' hide ThermionFlutterPluginImpl;
