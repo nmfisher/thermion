@@ -19,3 +19,4 @@ pubspec_overrides.yaml
 .wrangler
 node_modules
 .claude
+.tickets
