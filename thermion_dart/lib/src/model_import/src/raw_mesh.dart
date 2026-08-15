@@ -85,8 +85,9 @@ class RawMesh {
     );
   }
 
-  /// No-op. Retained for source compatibility with the former
-  /// [ImportedMesh.dispose]; buffers are Dart-owned copies.
+  /// No-op. All buffers are Dart-owned copies, so there is nothing to
+  /// release; kept so [RawMesh] can be used in `try/finally` dispose
+  /// patterns alongside other resource-holding objects.
   void dispose() {}
 
   static Float32List _flipUVs(Float32List uvs) {
