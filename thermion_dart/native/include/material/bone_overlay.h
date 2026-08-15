@@ -1,18 +1,16 @@
 #ifndef BONE_OVERLAY_H_
 #define BONE_OVERLAY_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#if defined(THERMION_MATERIAL_NATIVE)
+#include "bone_overlay_native.h"
+#elif defined(THERMION_MATERIAL_WEBGPU)
+#include "bone_overlay_webgpu.h"
+#elif defined(THERMION_MATERIAL_WEB_WEBGL)
+#include "bone_overlay_web_webgl.h"
+#elif defined(THERMION_MATERIAL_WEB_COMBINED)
+#include "bone_overlay_web_combined.h"
+#else
+#error "No material backend variant selected. Define one of: THERMION_MATERIAL_NATIVE, THERMION_MATERIAL_WEBGPU, THERMION_MATERIAL_WEB_WEBGL, THERMION_MATERIAL_WEB_COMBINED"
 #endif
-    extern const uint8_t BONE_OVERLAY_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define BONE_OVERLAY_BONE_OVERLAY_OFFSET 0
-#define BONE_OVERLAY_BONE_OVERLAY_SIZE 192300
-#define BONE_OVERLAY_BONE_OVERLAY_DATA (BONE_OVERLAY_PACKAGE + BONE_OVERLAY_BONE_OVERLAY_OFFSET)
 
 #endif

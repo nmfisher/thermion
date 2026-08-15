@@ -69,10 +69,16 @@ class WebOptions {
   final int maxViewers;
   final String jsPath;
 
+  /// Filament backend to use on the web. If null, defaults to [Backend.OPENGL]
+  /// (WebGL2). Pass [Backend.WEBGPU] to use the WebGPU backend; the caller is
+  /// responsible for verifying availability first via [WebGpu.isSupported].
+  final Backend? backend;
+
   const WebOptions({
     this.importCanvasAsWidget = true,
     this.createCanvas = true,
     this.maxViewers = 8,
     this.jsPath = "./thermion_dart.js",
+    this.backend,
   });
 }

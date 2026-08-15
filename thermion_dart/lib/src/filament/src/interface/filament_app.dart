@@ -27,6 +27,8 @@ class FilamentConfig<T, U> {
 abstract class FilamentApp<T> {
   static FilamentApp? instance;
 
+  Backend get backend;
+
   T get engine;
   T get gltfAssetLoader;
   T get renderer;

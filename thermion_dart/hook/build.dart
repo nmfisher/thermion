@@ -75,6 +75,36 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
+    // Detect backend early — it affects which R2 artifact we download,
+    // which static libs we link, and which material variant we compile.
+    //
+    // The "backend" user define selects the material/shader variant:
+    //   "native"  (default) — OpenGL + Metal + Vulkan (GLSL, SPIR-V, MSL)
+    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
+    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
+    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
+    //                         enables runtime backend selection.
+    //
+    // Legacy: "webgpu: true" is equivalent to backend: "webgpu".
+    final backendRaw = input.userDefines["backend"];
+    final legacyWebgpu = input.userDefines["webgpu"];
+    final String backend;
+    if (backendRaw == "webgpu" || backendRaw == "WebGPU") {
+      backend = "webgpu";
+    } else if (backendRaw == "webgl2" || backendRaw == "WebGL2") {
+      backend = "webgl2";
+    } else if (backendRaw == "hybrid" || backendRaw == "combined") {
+      backend = "hybrid";
+    } else if (legacyWebgpu == true ||
+        legacyWebgpu == "true" ||
+        legacyWebgpu == 1 ||
+        legacyWebgpu == "1") {
+      backend = "webgpu"; // legacy compat
+    } else {
+      backend = "native";
+    }
+    final bool webgpuEnabled = backend == "webgpu";
+
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
     final libResult = await getLibDir(
@@ -84,6 +114,7 @@ outputDirectory : ${outputDirectory.path}
       logger,
       buildMode,
       isIOSSimulator: isIOSSimulator,
+      webgpuEnabled: webgpuEnabled,
     );
     var libDir = libResult.libDir.path;
     // Version-matched Filament headers extracted from the same R2 artifact as
@@ -120,23 +151,50 @@ outputDirectory : ${outputDirectory.path}
       sources = sources.where((p) => !p.contains("vulkan")).toList();
     }
 
-    // Material source paths (used by _processMaterials below)
+    // Material source paths — platform-specific variants.
+    // Each material has _native, _webgpu, _web_webgl, and _web_combined
+    // variants with identical C symbols. The build hook compiles only one.
+    // Falls back to unsuffixed .c files if the platform variant doesn't
+    // exist yet (i.e., make materials hasn't been re-run).
+    final materialSuffix = switch (backend) {
+      'webgpu' => '_webgpu',
+      'webgl2' => '_web_webgl',
+      'hybrid' => '_web_combined',
+      _ => '_native',
+    };
+    final materialDefine = switch (backend) {
+      'webgpu' => 'THERMION_MATERIAL_WEBGPU',
+      'webgl2' => 'THERMION_MATERIAL_WEB_WEBGL',
+      'hybrid' => 'THERMION_MATERIAL_WEB_COMBINED',
+      _ => 'THERMION_MATERIAL_NATIVE',
+    };
+
+    final defines = <String, String?>{};
+    defines[materialDefine] = "1";
+    final materialDir = path.join(pkgRootFilePath, 'native/include/material');
+    String materialPath(String name, String suffix) {
+      final suffixed =
+          path.join(materialDir, '${name}$suffix.c');
+      if (File(suffixed).existsSync()) return 'native/include/material/${name}$suffix.c';
+      // Fallback: unsuffixed .c (pre-split materials)
+      final fallbackName = name == 'gizmo' ? 'gizmo_material' : name;
+      return 'native/include/material/$fallbackName.c';
+    }
+
     final materialSources = <String, String>{
-      'capture_uv': 'native/include/material/capture_uv.c',
-      'grid': 'native/include/material/grid.c',
-      'image': 'native/include/material/image.c',
-      'linear_depth': 'native/include/material/linear_depth.c',
-      'unlit_fixed_size': 'native/include/material/unlit_fixed_size.c',
-      'silhouette': 'native/include/material/silhouette.c',
-      'edge_outline': 'native/include/material/edge_outline.c',
-      'wireframe': 'native/include/material/wireframe.c',
-      'translation_axis': 'native/include/material/translation_axis.c',
+      'capture_uv': materialPath('capture_uv', materialSuffix),
+      'grid': materialPath('grid', materialSuffix),
+      'image': materialPath('image', materialSuffix),
+      'linear_depth': materialPath('linear_depth', materialSuffix),
+      'unlit_fixed_size': materialPath('unlit_fixed_size', materialSuffix),
+      'silhouette': materialPath('silhouette', materialSuffix),
+      'edge_outline': materialPath('edge_outline', materialSuffix),
+      'wireframe': materialPath('wireframe', materialSuffix),
+      'translation_axis': materialPath('translation_axis', materialSuffix),
       // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-      // with scene/Gizmo.cpp on Windows (both produced gizmo.obj, the
-      // material write-clobbered the class .obj, and the linker reported
-      // four LNK2019s for thermion::Gizmo::{Gizmo,pick,highlight,unhighlight}).
-      'gizmo': 'native/include/material/gizmo_material.c',
-      'bone_overlay': 'native/include/material/bone_overlay.c',
+      // with scene/Gizmo.cpp on Windows.
+      'gizmo': materialPath('gizmo_material', materialSuffix),
+      'bone_overlay': materialPath('bone_overlay', materialSuffix),
     };
 
     // Add gizmo resources (always included)
@@ -171,8 +229,14 @@ outputDirectory : ${outputDirectory.path}
       if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
       "filament-iblprefilter",
       "image",
-      "imageio",
-      "tinyexr",
+      // imageio + tinyexr: on Linux, the currently-published R2 artifacts
+      // were built without -stdlib=libc++, so they pull in libstdc++ symbols
+      // (std::__cxx11::* / std::cerr) that clash with the libc++ used by
+      // everything else in the .so.  The build script has been fixed to
+      // pass -stdlib=libc++ — once the next CI build uploads new artifacts
+      // these exclusions can be removed.
+      if (targetOS != OS.linux) "imageio",
+      if (targetOS != OS.linux) "tinyexr",
       "filaflat",
       "dracodec",
       "ibl",
@@ -222,11 +286,30 @@ outputDirectory : ${outputDirectory.path}
       libDir = Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
     }
 
-    final defines = <String, String?>{};
-
     if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
       logger.info("Enabling tracing");
       defines["ENABLE_TRACING"] = "1";
+    }
+
+    // Opt-in native WebGPU support. Requires a Filament build with
+    // FILAMENT_SUPPORTS_WEBGPU=ON whose Dawn static libs are co-located
+    // with the regular filament libs in libDir. Intended for local
+    // testing only — shipping native builds should continue to use
+    // Metal/Vulkan/OpenGL.
+    if (webgpuEnabled) {
+      logger.info("Enabling native WebGPU (Dawn)");
+      defines["THERMION_SUPPORTS_WEBGPU"] = "1";
+      // libwebgpu_dawn.a is a "monolithic" archive built by Dawn's
+      // `webgpu_dawn` target — it already includes dawn_native,
+      // dawn_proc, dawn_common, dawn_platform, dawn_wire AND the full
+      // Tint compiler stack. Linking the granular libs alongside it
+      // produces multiple-definition errors. Use the monolith alone;
+      // add abseil because it's required by webgpu_dawn but exported
+      // as a separate archive.
+      libs.addAll(<String>[
+        "webgpu_dawn",
+        "abseil",
+      ]);
     }
 
     // Check for plugin configuration
@@ -329,6 +412,21 @@ outputDirectory : ${outputDirectory.path}
 
     if (targetOS == OS.linux) {
       flags.add("-Wl,--export-dynamic");
+      // Filament's libbackend.a is built with -fno-rtti, so classes
+      // like backend::OpenGLPlatform have no typeinfo. Compiling
+      // Thermion's subclasses (ThermionPlatformEGLHeadless etc) with
+      // RTTI on creates vtables that reference the missing typeinfo
+      // symbol and the resulting .so fails to load. Match Filament's
+      // flag to keep vtables minimal.
+      flags.add("-fno-rtti");
+      // Dawn's webgpu_dawn monolithic archive bundles its own copy of
+      // SPIRV-Tools, which collides at link time with the SPIRV-Tools
+      // objects that Filament's filamat bundles. Let the linker pick
+      // one — both copies are compatible for symbol resolution and we
+      // don't care which gets exported. Only enable when webgpu is on.
+      if (webgpuEnabled) {
+        flags.add("-Wl,--allow-multiple-definition");
+      }
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
@@ -485,8 +583,9 @@ String _getFilamentVersion(Uri packageRoot) {
   throw Exception('filament.version not found at ${versionFile.path}');
 }
 
-String _getLibraryUrl(String version, String platform, String mode) {
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
+String _getLibraryUrl(String version, String platform, String mode, {bool webgpu = false}) {
+  final suffix = webgpu ? "-webgpu" : "";
+  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}${suffix}.zip";
 }
 
 //
@@ -504,6 +603,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
   Logger logger,
   BuildMode buildMode, {
   bool isIOSSimulator = false,
+  bool webgpuEnabled = false,
 }) async {
   var platform = targetOS.toString().toLowerCase();
 
@@ -556,7 +656,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  var url = _getLibraryUrl(version, platform, mode);
+  var url = _getLibraryUrl(version, platform, mode, webgpu: webgpuEnabled);
 
   final filename = url.split("/").last;
 

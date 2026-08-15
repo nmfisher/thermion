@@ -1,18 +1,16 @@
 #ifndef IMAGE_H_
 #define IMAGE_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#if defined(THERMION_MATERIAL_NATIVE)
+#include "image_native.h"
+#elif defined(THERMION_MATERIAL_WEBGPU)
+#include "image_webgpu.h"
+#elif defined(THERMION_MATERIAL_WEB_WEBGL)
+#include "image_web_webgl.h"
+#elif defined(THERMION_MATERIAL_WEB_COMBINED)
+#include "image_web_combined.h"
+#else
+#error "No material backend variant selected. Define one of: THERMION_MATERIAL_NATIVE, THERMION_MATERIAL_WEBGPU, THERMION_MATERIAL_WEB_WEBGL, THERMION_MATERIAL_WEB_COMBINED"
 #endif
-    extern const uint8_t IMAGE_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define IMAGE_IMAGE_OFFSET 0
-#define IMAGE_IMAGE_SIZE 68627
-#define IMAGE_IMAGE_DATA (IMAGE_PACKAGE + IMAGE_IMAGE_OFFSET)
 
 #endif

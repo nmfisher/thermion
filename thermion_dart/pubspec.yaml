@@ -25,6 +25,14 @@ dependencies:
   
 dev_dependencies:
   ffigen: ^18.1.0
-  test: ^1.28.0
+  test: ^1.31.1
   mockito: ^5.0.0
   build_runner: ^2.0.0
+
+# Local testing: turn on the Dawn-backed WebGPU path in the build hook.
+# Requires a Filament artifact built with FILAMENT_SUPPORTS_WEBGPU=ON
+# staged at .dart_tool/thermion_dart/lib/<version>/<platform>/<mode>/.
+hooks:
+  user_defines:
+    thermion_dart:
+      webgpu: true

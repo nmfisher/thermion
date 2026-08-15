@@ -62,11 +62,11 @@ EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneView(TRenderer *tRenderer, TV
 }
 
 EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
-    TRenderer *tRenderer, 
+    TRenderer *tRenderer,
     float headRoomRatio,
     float scaleRate,
-    uint8_t history, 
-    uint8_t interval 
+    uint8_t history,
+    uint8_t interval
 ) {
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     filament::Renderer::FrameRateOptions fro;
@@ -77,6 +77,14 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
     renderer->setFrameRateOptions(fro);
 }
 
+// When THERMION_SUPPORTS_WEBGPU is defined, we need to synchronise the
+// async Dawn readback.  The WebGPU backend queues a GPU→CPU staging copy
+// that only completes once Dawn has processed events.  The Dawn event
+// processing is done in Engine_flushAndWait() (TEngine.cpp) which runs
+// after endFrame during the Dart capture() flow.  The callback handler
+// here is the same for all backends — on synchronous backends the
+// callback fires inside readPixels(); on WebGPU it fires later during
+// flushAndWait when Dawn events are processed.
 class CaptureCallbackHandler : public filament::backend::CallbackHandler
 {
   void post(void *user, Callback callback)
@@ -93,9 +101,9 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     TRenderTarget *tRenderTarget,
     TPixelDataFormat tPixelBufferFormat,
     TPixelDataType tPixelDataType,
-    uint8_t *out, 
+    uint8_t *out,
     size_t outLength) {
-    
+
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
 
@@ -105,9 +113,7 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     auto *dispatcher = new CaptureCallbackHandler();
     auto callback = [](void *buf, size_t size, void *data)
     {
-      
     };
-
 
     auto pbd = filament::Texture::PixelBufferDescriptor(
         out, outLength,
@@ -123,7 +129,6 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     } else {
         renderer->readPixels(xOffset, yOffset, width, height, std::move(pbd));
     }
-
 }
 
 

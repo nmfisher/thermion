@@ -120,6 +120,12 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
               'OpenGL is only supported on Android and Linux',
             );
           }
+        case Backend.WEBGPU:
+          // Local-testing only. Requires the thermion_dart native lib to
+          // have been built with hooks.user_defines.thermion_dart.webgpu:
+          // true (which links Dawn) against a Filament built with
+          // FILAMENT_SUPPORTS_WEBGPU=ON. Engine_create auto-constructs
+          // the platform-specific WebGPUPlatform subclass on the C++ side.
         default:
           throw UnsupportedError('Unsupported backend: $configured');
       }

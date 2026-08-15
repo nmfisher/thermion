@@ -1,17 +1,16 @@
 #ifndef CAPTURE_UV_H_
 #define CAPTURE_UV_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#if defined(THERMION_MATERIAL_NATIVE)
+#include "capture_uv_native.h"
+#elif defined(THERMION_MATERIAL_WEBGPU)
+#include "capture_uv_webgpu.h"
+#elif defined(THERMION_MATERIAL_WEB_WEBGL)
+#include "capture_uv_web_webgl.h"
+#elif defined(THERMION_MATERIAL_WEB_COMBINED)
+#include "capture_uv_web_combined.h"
+#else
+#error "No material backend variant selected. Define one of: THERMION_MATERIAL_NATIVE, THERMION_MATERIAL_WEBGPU, THERMION_MATERIAL_WEB_WEBGL, THERMION_MATERIAL_WEB_COMBINED"
 #endif
-    extern const uint8_t CAPTURE_UV_PACKAGE[];
-    extern int CAPTURE_UV_CAPTURE_UV_OFFSET;
-    extern int CAPTURE_UV_CAPTURE_UV_SIZE;
-#ifdef __cplusplus
-}
-#endif
-#define CAPTURE_UV_CAPTURE_UV_DATA (CAPTURE_UV_PACKAGE + CAPTURE_UV_CAPTURE_UV_OFFSET)
 
 #endif

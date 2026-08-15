@@ -6,15 +6,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Validate arguments
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <FILAMENT_BASE_DIR> <FILAMENT_VERSION> <OUTPUT_BASE_DIR> [options]"
-  echo "Example: $0 /path/to/filament v1.74.0 /path/to/output"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --clean"
-  echo "         $0 /path/to/filament v1.74.0 /path/to/output --release"
+  echo "Example: $0 /path/to/filament v1.75.0 /path/to/output"
+  echo "         $0 /path/to/filament latest /path/to/output --webgpu --upload"
+  echo "         $0 /path/to/filament v1.75.0 /path/to/output --clean"
+  echo "         $0 /path/to/filament v1.75.0 /path/to/output --release"
   echo ""
   echo "Options:"
   echo "  --clean         Remove existing target directories before building"
   echo "  --release       Build release only"
   echo "  --debug         Build debug only"
-  echo "  (default)       Build both release and debug"
+  echo "  --webgpu        Build with FILAMENT_SUPPORTS_WEBGPU=ON (includes Dawn);"
+  echo "                  also stages matc + resgen into the -webgpu zips"
+  echo "  --upload        Upload resulting zip(s) to Cloudflare R2 after build"
+  echo "  (default)       Build both release and debug, no WebGPU, no upload"
+  echo ""
+  echo "If FILAMENT_VERSION is 'latest', the newest v*.* tag on"
+  echo "https://github.com/google/filament is resolved and checked out."
   exit 1
 fi
 
@@ -27,6 +34,8 @@ shift 3
 CLEAN_FLAG=""
 BUILD_RELEASE=true
 BUILD_DEBUG=true
+WEBGPU_FLAG=false
+UPLOAD_FLAG=false
 
 for arg in "$@"; do
   case $arg in
@@ -38,6 +47,12 @@ for arg in "$@"; do
       ;;
     --debug)
       BUILD_RELEASE=false
+      ;;
+    --webgpu)
+      WEBGPU_FLAG=true
+      ;;
+    --upload)
+      UPLOAD_FLAG=true
       ;;
     *)
       echo "Unknown option: $arg"
@@ -65,6 +80,20 @@ case "$HOST_ARCH" in
     ;;
 esac
 echo "Host architecture: $HOST_ARCH (library dir: $LIB_ARCH_DIR, zip tag: ${ARCH_TAG:-none})"
+
+# Resolve FILAMENT_VERSION=latest by querying github for the newest v*.* tag.
+if [ "$FILAMENT_VERSION" = "latest" ]; then
+  echo "Resolving latest Filament tag..."
+  FILAMENT_VERSION=$(git ls-remote --tags --refs --sort=-version:refname \
+    https://github.com/google/filament 'v*' \
+    | awk -F/ '{print $NF}' \
+    | head -1)
+  if [ -z "$FILAMENT_VERSION" ]; then
+    echo "Error: could not resolve latest Filament tag from github"
+    exit 1
+  fi
+  echo "Latest Filament: $FILAMENT_VERSION"
+fi
 
 # Validate OUTPUT_BASE_DIR exists
 if [ ! -d "$OUTPUT_BASE_DIR" ]; then
@@ -125,8 +154,26 @@ git checkout "${FILAMENT_VERSION}" || {
 python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
 
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
-echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+# When --webgpu is set, also inject -DFILAMENT_SUPPORTS_WEBGPU=ON so the
+# Dawn-based WebGPU backend gets built into libbackend.a.
+CMAKE_INJECT="-DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON"
+if [ "$WEBGPU_FLAG" = true ]; then
+  CMAKE_INJECT="$CMAKE_INJECT -DFILAMENT_SUPPORTS_WEBGPU=ON"
+fi
+echo "Patching Filament build.sh to inject: $CMAKE_INJECT"
+# Keep the sed expression single-quoted: the pattern must reach sed as
+# ${architectures} \\$ (escaped backslash + end-of-line anchor) and the
+# replacement as ... \\ (escaped backslash). In double quotes the shell
+# collapses those to \$ / \, which makes sed fail with "unterminated `s'
+# command" — the injection silently never happens and Filament builds the
+# samples, whose debug link then fails on duplicate stb_image_write symbols.
+sed -i.bak 's|\${architectures} \\$|\${architectures} '"$CMAKE_INJECT"' \\|g' build.sh
+if grep -q 'FILAMENT_SKIP_SAMPLES' build.sh; then
+  echo "build.sh patched successfully"
+else
+  echo "Error: build.sh patch did not match — FILAMENT_SKIP_SAMPLES not injected"
+  exit 1
+fi
 
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
@@ -364,6 +411,95 @@ if [ "$BUILD_RELEASE" = true ]; then
   fi
 fi
 
+# Copy Dawn / WebGPU libs and headers when --webgpu was set.
+# Dawn is built as a third-party subproject and produces many granular
+# static libs (dawn_native, dawn_proc, webgpu_dawn, the Tint compiler
+# stack, absl, etc.) scattered through its build tree — so we recurse.
+copy_dawn_artifacts() {
+  local cmake_dir="$1"
+  local target_dir="$2"
+  local dawn_build="$FILAMENT_BASE_DIR/$cmake_dir/third_party/dawn"
+  local dawn_src="$FILAMENT_BASE_DIR/third_party/dawn"
+  if [ ! -d "$dawn_build" ]; then
+    echo "Warning: dawn build dir not found at $dawn_build — skipping"
+    return 0
+  fi
+  echo "Copying Dawn static libs from $dawn_build..."
+  find "$dawn_build" -name '*.a' -type f -exec cp {} "$target_dir/" \;
+
+  # Dawn's webgpu headers live in two places that we need to merge into
+  # the target include dir:
+  #   1. third_party/dawn/include/webgpu/*       (source tree — webgpu_cpp.h, webgpu.h)
+  #   2. <build>/third_party/dawn/gen/include/webgpu/*  (generated — chained-struct etc)
+  # The previous logic only copied (2) which left consumers unable to
+  # #include <webgpu/webgpu_cpp.h>.
+  mkdir -p "$target_dir/include/webgpu"
+  if [ -d "$dawn_src/include/webgpu" ]; then
+    echo "Copying source-tree webgpu headers from $dawn_src/include/webgpu..."
+    cp -R "$dawn_src/include/webgpu"/* "$target_dir/include/webgpu/" || true
+  fi
+  if [ -d "$dawn_build/gen/include/webgpu" ]; then
+    echo "Copying generated webgpu headers from $dawn_build/gen/include/webgpu..."
+    cp -R "$dawn_build/gen/include/webgpu"/* "$target_dir/include/webgpu/" || true
+  fi
+
+  # Some configurations include via <dawn/webgpu.h> instead of <webgpu/...>.
+  # Capture dawn/* as well so either include path works.
+  if [ -d "$dawn_src/include/dawn" ]; then
+    mkdir -p "$target_dir/include/dawn"
+    cp -R "$dawn_src/include/dawn"/* "$target_dir/include/dawn/" || true
+  fi
+  if [ -d "$dawn_build/gen/include/dawn" ]; then
+    mkdir -p "$target_dir/include/dawn"
+    cp -R "$dawn_build/gen/include/dawn"/* "$target_dir/include/dawn/" || true
+  fi
+}
+
+# Stage the matc and resgen host tools into the artifact dir when --webgpu
+# is set. The official Filament release matc is built without
+# FILAMENT_SUPPORTS_WEBGPU and cannot compile -a webgpu materials (WGSL);
+# the ones built here can, and scripts/regenerate-materials.sh fetches them
+# from the webgpu-suffixed R2 zip instead of the release tarball. On Linux
+# Filament links libc++ statically (USE_STATIC_LIBCXX), so the staged
+# binaries are self-contained.
+copy_filament_tools() {
+  local build_type="$1"   # release or debug — which out/ subtree to take from
+  local target_dir="$2"
+  for tool in matc resgen; do
+    local tool_bin=""
+    # build.sh -i installs the tools into out/<type>/filament/bin; the build
+    # tree copy lives at out/cmake-<type>/tools/<tool>/<tool>.
+    for candidate in \
+      "$FILAMENT_BASE_DIR/out/${build_type}/filament/bin/${tool}" \
+      "$FILAMENT_BASE_DIR/out/cmake-${build_type}/tools/${tool}/${tool}"; do
+      if [ -f "$candidate" ]; then
+        tool_bin="$candidate"
+        break
+      fi
+    done
+    if [ -z "$tool_bin" ]; then
+      # Layout safety net: search the whole build tree as a last resort.
+      tool_bin=$(find "$FILAMENT_BASE_DIR/out" -type f -name "$tool" 2>/dev/null | head -1)
+    fi
+    if [ -z "$tool_bin" ]; then
+      echo "Error: ${tool} not found in Filament build output (out/${build_type})"
+      return 1
+    fi
+    echo "Staging ${tool}: ${tool_bin} -> ${target_dir}/bin/${tool}"
+    mkdir -p "$target_dir/bin"
+    cp "$tool_bin" "$target_dir/bin/${tool}" || return 1
+    chmod +x "$target_dir/bin/${tool}"
+  done
+}
+
+if [ "$WEBGPU_FLAG" = true ] && [ "$BUILD_RELEASE" = true ]; then
+  copy_dawn_artifacts "out/cmake-release" "$TARGET_RELEASE_DIR"
+  copy_filament_tools release "$TARGET_RELEASE_DIR" || {
+    echo "Error: failed to stage WebGPU-capable matc/resgen for release"
+    exit 1
+  }
+fi
+
 # Copy debug libraries
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Copying debug libraries..."
@@ -414,6 +550,14 @@ if [ "$BUILD_DEBUG" = true ]; then
   if [ ! -f "$TARGET_DEBUG_DIR/libassimp.a" ]; then
     echo "WARNING: libassimp.a not found in any known location"
   fi
+fi
+
+if [ "$WEBGPU_FLAG" = true ] && [ "$BUILD_DEBUG" = true ]; then
+  copy_dawn_artifacts "out/cmake-debug" "$TARGET_DEBUG_DIR"
+  copy_filament_tools debug "$TARGET_DEBUG_DIR" || {
+    echo "Error: failed to stage WebGPU-capable matc/resgen for debug"
+    exit 1
+  }
 fi
 
 # Copy header files to target directories (for inclusion in R2 upload zips)
@@ -520,18 +664,26 @@ fi
 # version-matched R2 artifact at build time (see thermion_dart/hook/build.dart).
 
 
-# Create zip files
+# Create zip files. Suffix with -webgpu when --webgpu was set so the
+# WebGPU-enabled build is uploaded under a distinct R2 key and never
+# overwrites the canonical artifact that downstream consumers fetch via
+# hook/build.dart.
+ZIP_SUFFIX=""
+if [ "$WEBGPU_FLAG" = true ]; then
+  ZIP_SUFFIX="-webgpu"
+fi
+
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
   echo "Contents of release directory:"
   ls -la "$TARGET_RELEASE_DIR"
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release${ZIP_SUFFIX}.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
   echo "Release zip contents:"
-  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release${ZIP_SUFFIX}.zip"
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
@@ -539,20 +691,40 @@ if [ "$BUILD_DEBUG" = true ]; then
   echo "Contents of debug directory:"
   ls -la "$TARGET_DEBUG_DIR"
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug${ZIP_SUFFIX}.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
   echo "Debug zip contents:"
-  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug${ZIP_SUFFIX}.zip"
 fi
 
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release${ZIP_SUFFIX}.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug${ZIP_SUFFIX}.zip"
+fi
+
+# Optional upload to Cloudflare R2. Uses scripts/upload_r2.sh, which picks
+# wrangler vs aws CLI based on file size. Credentials must already be
+# configured (wrangler login or R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY env vars).
+if [ "$UPLOAD_FLAG" = true ]; then
+  echo ""
+  echo "Uploading artifacts to Cloudflare R2..."
+  if [ "$BUILD_RELEASE" = true ]; then
+    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release${ZIP_SUFFIX}.zip" || {
+      echo "Error: Failed to upload release zip"
+      exit 1
+    }
+  fi
+  if [ "$BUILD_DEBUG" = true ]; then
+    "$SCRIPT_DIR/upload_r2.sh" "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug${ZIP_SUFFIX}.zip" || {
+      echo "Error: Failed to upload debug zip"
+      exit 1
+    }
+  fi
 fi

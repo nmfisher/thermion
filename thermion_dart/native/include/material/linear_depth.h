@@ -1,18 +1,16 @@
 #ifndef LINEAR_DEPTH_H_
 #define LINEAR_DEPTH_H_
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#if defined(THERMION_MATERIAL_NATIVE)
+#include "linear_depth_native.h"
+#elif defined(THERMION_MATERIAL_WEBGPU)
+#include "linear_depth_webgpu.h"
+#elif defined(THERMION_MATERIAL_WEB_WEBGL)
+#include "linear_depth_web_webgl.h"
+#elif defined(THERMION_MATERIAL_WEB_COMBINED)
+#include "linear_depth_web_combined.h"
+#else
+#error "No material backend variant selected. Define one of: THERMION_MATERIAL_NATIVE, THERMION_MATERIAL_WEBGPU, THERMION_MATERIAL_WEB_WEBGL, THERMION_MATERIAL_WEB_COMBINED"
 #endif
-    extern const uint8_t LINEAR_DEPTH_PACKAGE[];
-#ifdef __cplusplus
-}
-#endif
-
-#define LINEAR_DEPTH_LINEAR_DEPTH_OFFSET 0
-#define LINEAR_DEPTH_LINEAR_DEPTH_SIZE 139115
-#define LINEAR_DEPTH_LINEAR_DEPTH_DATA (LINEAR_DEPTH_PACKAGE + LINEAR_DEPTH_LINEAR_DEPTH_OFFSET)
 
 #endif

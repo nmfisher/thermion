@@ -5486,8 +5486,11 @@ sealed class TBackend {
   /// !< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
   static const BACKEND_METAL = 3;
 
+  /// !< Selects the WebGPU driver if the platform supports webgpu.
+  static const BACKEND_WEBGPU = 4;
+
   /// !< Selects the no-op driver for testing purposes.
-  static const BACKEND_NOOP = 4;
+  static const BACKEND_NOOP = 5;
 }
 
 sealed class TLightType {

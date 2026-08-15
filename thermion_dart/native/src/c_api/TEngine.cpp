@@ -4,10 +4,32 @@
 #include <backend/platforms/PlatformWebGL.h>
 #endif
 
+// Native WebGPU support is opt-in: consuming app must set
+// `hooks.user_defines.thermion_dart.webgpu: true` in pubspec, which causes
+// the build hook to define THERMION_SUPPORTS_WEBGPU and link the Dawn libs.
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+  #if defined(__APPLE__)
+    #include <backend/platforms/WebGPUPlatformApple.h>
+  #elif defined(__linux__)
+    #include <backend/platforms/WebGPUPlatformLinux.h>
+  #elif defined(_WIN32)
+    #include <backend/platforms/WebGPUPlatformWindows.h>
+  #elif defined(__ANDROID__)
+    #include <backend/platforms/WebGPUPlatformAndroid.h>
+  #endif
+#endif
+
 #include "c_api/TEngine.h"
 
 #include <filament/Camera.h>
 #include <backend/DriverEnums.h>
+
+// Global WebGPU platform pointer, set during Engine_create when the WebGPU
+// backend is selected.  Other translation units (e.g. TRenderer.cpp) can
+// use this to access the Dawn wgpu::Instance for event processing.
+#if defined(THERMION_SUPPORTS_WEBGPU) && !defined(__EMSCRIPTEN__)
+filament::backend::WebGPUPlatform* g_webgpuPlatform = nullptr;
+#endif
 #include <filament/DebugRegistry.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>
@@ -65,12 +87,31 @@ namespace thermion
             bool disableHandleUseAfterFreeCheck)
         {
             #ifdef __EMSCRIPTEN__
-            // Engine_create runs inside the engine's RenderThread task, so the
-            // active thread IS this engine's thread — create the WebGL context
-            // on the canvas that was transferred to it.
-            auto handle = Thermion_createGLContext(RenderThread_getActiveCanvasSelector());
-            tSharedContext = (void*)handle;
-            tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            if (backend == BACKEND_WEBGPU) {
+                tPlatform = Thermion_createWebGPUPlatform();
+                tSharedContext = nullptr;
+            } else {
+                // Engine_create runs inside the engine's RenderThread task, so
+                // the active thread IS this engine's thread — create the WebGL
+                // context on the canvas that was transferred to it.
+                auto handle = Thermion_createGLContext(RenderThread_getActiveCanvasSelector());
+                tSharedContext = (void*)handle;
+                tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            }
+            #elif defined(THERMION_SUPPORTS_WEBGPU)
+            if (backend == BACKEND_WEBGPU && !tPlatform) {
+                #if defined(__APPLE__)
+                tPlatform = new filament::backend::WebGPUPlatformApple();
+                #elif defined(__linux__)
+                tPlatform = new filament::backend::WebGPUPlatformLinux();
+                #elif defined(_WIN32)
+                tPlatform = new filament::backend::WebGPUPlatformWindows();
+                #elif defined(__ANDROID__)
+                tPlatform = new filament::backend::WebGPUPlatformAndroid();
+                #endif
+                g_webgpuPlatform =
+                    static_cast<filament::backend::WebGPUPlatform*>(tPlatform);
+            }
             #endif
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;
