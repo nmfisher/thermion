@@ -163,6 +163,25 @@
 
 extern "C" {
 
+    // TMeshData buffers and strings are malloced by GltfParser_parseBuffer,
+    // so free() is the matching deallocator for everything here.
+    EMSCRIPTEN_KEEPALIVE void MeshData_dispose(TMeshData* meshData)
+    {
+        if (!meshData)
+        {
+            return;
+        }
+
+        free(meshData->name);
+        free(meshData->materialName);
+        free(meshData->vertices);
+        free(meshData->normals);
+        free(meshData->uvs);
+        free(meshData->indices);
+
+        memset(meshData, 0, sizeof(TMeshData));
+    }
+
     EMSCRIPTEN_KEEPALIVE int GltfParser_parseBuffer(
         const uint8_t *data,
         size_t length,

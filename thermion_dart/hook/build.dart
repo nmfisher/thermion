@@ -150,33 +150,6 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Sources : $sources");
 
-    // Assimp-backed model loading (OBJ/FBX/STL/PLY/...) is opt-in: the prebuilt
-    // libassimp.a is always produced by the platform build scripts, but it is
-    // only linked into a downstream app when enabled here. Enable via:
-    //   hooks:
-    //     user_defines:
-    //       thermion_dart:
-    //         assimp: true
-    final assimpEnabled =
-        input.userDefines["assimp"] == true ||
-        input.userDefines["assimp"] == "true" ||
-        input.userDefines["assimp"] == 1 ||
-        input.userDefines["assimp"] == "1";
-
-    // Everything linked into libthermion_dart.so is built with libc++ on
-    // Linux/macOS/Android, so a libassimp.a compiled against libstdc++
-    // cannot link correctly: its _ZNSt7__cxx11-mangled references stay
-    // undefined (allowed in a -shared link) and dlopen fails at runtime —
-    // or libstdc++ gets pulled in as a second C++ runtime and tests crash
-    // deep inside libc++abi's RTTI machinery. This happened on CI (Linux
-    // x64 FBX round-trip; see PR #195). Fail the consuming build with an
-    // actionable message instead of letting a stale R2 artifact surface as
-    // a mysterious test crash. The publishing workflow has its own nm-based
-    // version of this check; this one protects consumers directly.
-    if (assimpEnabled && targetOS != OS.windows) {
-      await _assertSingleCppAbi(path.join(libDir, 'libassimp.a'), logger);
-    }
-
     var libs = [
       "filament",
       "backend",
@@ -219,21 +192,6 @@ outputDirectory : ${outputDirectory.path}
       // libzstd), and the libzstd.a must be present in the Android zip — see
       // scripts/zip_android.sh.
       if (targetOS != OS.linux) "zstd",
-      // Assimp model loading is opt-in at link time (see assimpEnabled above):
-      // the prebuilt libassimp.a is always produced by the platform build
-      // scripts, but only linked when the consuming app enables it.
-      //
-      // Once linked, everything in libthermion_dart.so must come from ONE
-      // C++ runtime. An earlier revision also linked -Wl,-lstdc++ here
-      // because the R2 libassimp.a was a gcc/libstdc++ build; that left two
-      // C++ runtimes in one process and crashed CI's Linux x64 FBX
-      // round-trip inside libc++abi's RTTI walk (dynamic_cast dispatching
-      // through mismatched __si_class_type_info vtables). R2 now serves a
-      // libc++-built libassimp.a (verified: zero _ZNSt7__cxx11 references),
-      // so libstdc++ is not linked at all. The _assertSingleCppAbi guard
-      // below keeps it that way by failing the build loudly if a stale
-      // artifact ever comes back.
-      if (assimpEnabled) "assimp",
       //"mikktspace",
       "geometry",
       // Debug builds of Filament enable the Material Debug Server and Frame
@@ -271,12 +229,6 @@ outputDirectory : ${outputDirectory.path}
       defines["ENABLE_TRACING"] = "1";
     }
 
-    // Assimp model loading compile-time flag (see assimpEnabled above).
-    if (assimpEnabled) {
-      logger.info("Enabling Assimp model loading");
-      defines["THERMION_ASSIMP"] = "1";
-    }
-
     // Check for plugin configuration
     final pluginConfigs = input.userDefines["plugins"] as List<dynamic>?;
 
@@ -296,16 +248,9 @@ outputDirectory : ${outputDirectory.path}
     //                           `<utils/...>`, `<backend/...>` and
     //                           `<gltfio/materials/uberarchive.h>` all resolve
     //                           from this flat root.
-    //  - the Assimp headers, only when Assimp model loading is enabled (see
-    //                           assimpEnabled above). These are bundled in the
-    //                           same R2 artifact under
-    //                           include/third_party/libassimp/include/ and
-    //                           cover the `<assimp/...>` includes of
-    //                           model_import.cpp — no vendored copy in-tree.
     final includeDirs = <String>[
       'native/include',
       artifactIncludeRel,
-      if (assimpEnabled) path.join(artifactIncludeRel, 'third_party', 'libassimp', 'include'),
     ];
 
     // Process plugins after flags and includeDirs are declared
@@ -482,11 +427,6 @@ outputDirectory : ${outputDirectory.path}
           ],
           "-L$libDir",
         ],
-        // (Linux used to pass -Wl,--no-as-needed here to keep a DT_NEEDED
-        // entry for libstdc++, back when the R2 libassimp.a was a libstdc++
-        // build. R2 now serves a libc++-built libassimp.a, so neither that
-        // flag nor the libstdc++ link exists any more; see the note next to
-        // the "assimp" entry in libs above.)
         if (targetOS != OS.linux && targetOS != OS.windows && targetOS != OS.android)
           '-lc++',
         if (platform == "windows") ...[
@@ -526,55 +466,6 @@ outputDirectory : ${outputDirectory.path}
       );
     }
   });
-}
-
-/// Throws if the prebuilt [archive] (libassimp.a) carries libstdc++-mangled
-/// references, i.e. was not built with the same C++ runtime as the rest of
-/// this link. Symbol names appear verbatim in the archive's symbol table, so
-/// a raw byte scan for the libstdc++ std::string ABI marker is sufficient —
-/// no nm/ar parsing needed. Chunks are read with an overlap so a marker
-/// straddling a read boundary is still found.
-Future<void> _assertSingleCppAbi(String archivePath, Logger logger) async {
-  final marker = '_ZNSt7__cxx11'.codeUnits;
-  final archive = File(archivePath);
-  if (!archive.existsSync()) {
-    throw Exception(
-      'libassimp.a not found at $archivePath — the Filament artifact zip is '
-      'incomplete. Delete the enclosing directory and rebuild to re-download.',
-    );
-  }
-  logger.info('Checking C++ ABI of $archivePath');
-  var carry = <int>[];
-  await for (final chunk in archive.openRead()) {
-    final data = carry.isEmpty ? chunk : [...carry, ...chunk];
-    final first = marker[0];
-    for (var i = 0; i + marker.length <= data.length; i++) {
-      if (data[i] != first) continue;
-      var matches = true;
-      for (var j = 1; j < marker.length; j++) {
-        if (data[i + j] != marker[j]) {
-          matches = false;
-          break;
-        }
-      }
-      if (matches) {
-        throw Exception(
-          'libassimp.a at $archivePath references libstdc++ symbols '
-          '(_ZNSt7__cxx11...): this Filament artifact was built WITHOUT '
-          '-stdlib=libc++, so it cannot be linked into libthermion_dart.so '
-          'alongside the libc++-built Filament libraries. Republish the '
-          "artifact from the repo's 'Build Filament' workflow (platform for "
-          'this target, upload_to_r2=true), then delete $archivePath '
-          '(and the enclosing extraction directory) so the next build '
-          're-downloads it.',
-        );
-      }
-    }
-    carry = data.length < marker.length
-        ? data.toList()
-        : data.sublist(data.length - marker.length + 1);
-  }
-  logger.info('libassimp.a is a libc++ build (no libstdc++ references)');
 }
 
 // filament.version lives at the repo root (the parent of this package). We
