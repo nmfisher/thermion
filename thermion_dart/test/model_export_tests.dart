@@ -63,8 +63,11 @@ void main() async {
 
     test('export rejects unsupported formats and empty mesh lists', () {
       final exporter = AssimpExporter();
-      expect(() => exporter.export([_quadMesh()], formatHint: 'obj'), throwsArgumentError,
-          reason: "Only FBX is compiled in");
+      expect(
+        () => exporter.export([_quadMesh()], formatHint: 'obj'),
+        throwsArgumentError,
+        reason: "Only FBX is compiled in",
+      );
       expect(() => exporter.export([], formatHint: 'fbx'), throwsArgumentError);
     });
 
