@@ -1,4 +1,15 @@
-name: Dart Tests
+name: Assimp Tests
+
+# Assimp-backed model-import tests, split out of the regular Dart Tests
+# workflow: that one builds WITHOUT the assimp user_define (the normal
+# downstream configuration), this one opts into the assimp link
+# (`assimp: true`) and runs the tests that load models through the
+# Assimp importer. Runner images, caching and environment setup mirror
+# run-dart-tests.yml exactly so results stay comparable between the two.
+#
+# gltf_parser_tests.dart is NOT here: it exercises CgltfImporter
+# (the cgltf path), which is always compiled and needs no assimp link —
+# it stays in the regular Dart Tests workflow.
 
 on:
   workflow_call:
@@ -15,8 +26,8 @@ on:
         type: string
 
 jobs:
-  dart-tests:
-    name: Dart Tests (${{ matrix.name }})
+  assimp-tests:
+    name: Assimp Tests (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
@@ -55,13 +66,14 @@ jobs:
         if: matrix.name == 'Windows'
         uses: ./.github/actions/setup-windows-env
 
-      - name: Enable debug mode for tests
+      - name: Enable debug mode + assimp for tests
         shell: bash
         run: |
           echo 'hooks:' >> thermion_dart/pubspec.yaml
           echo '  user_defines:' >> thermion_dart/pubspec.yaml
           echo '    thermion_dart:' >> thermion_dart/pubspec.yaml
           echo '      mode: debug' >> thermion_dart/pubspec.yaml
+          echo '      assimp: true' >> thermion_dart/pubspec.yaml
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -73,21 +85,7 @@ jobs:
         run: |
           dart pub get
           xvfb-run dart test -j1 \
-            test/asset_tests.dart \
-            test/instancing_tests.dart \
-            test/light_tests.dart \
-            test/entity_tests.dart \
-            test/geometry_tests.dart \
-            test/view_tests.dart \
-            test/postprocessing_tests.dart \
-            test/scene_tests.dart \
-            test/picking_tests.dart \
-            test/image_tests.dart \
-            test/gltf_animation_tests.dart \
-            test/bone_animation_tests.dart \
-            test/morph_animation_tests.dart \
-            test/renderable_manager_tests.dart \
-            test/gltf_parser_tests.dart \
+            test/model_import_tests.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
@@ -98,57 +96,19 @@ jobs:
         run: |
           dart pub get
           dart test -j1 `
-            test/asset_tests.dart `
-            test/instancing_tests.dart `
-            test/light_tests.dart `
-            test/entity_tests.dart `
-            test/geometry_tests.dart `
-            test/view_tests.dart `
-            test/postprocessing_tests.dart `
-            test/scene_tests.dart `
-            test/picking_tests.dart `
-            test/image_tests.dart `
+            test/model_import_tests.dart `
             --concurrency=1
 
-      - name: Zip output
-        if: matrix.name == 'Linux'
-        run: zip -r output.zip ./thermion_dart/test/output
-
-      - name: Upload test output
-        if: matrix.name == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: golden-images-${{ github.sha }}
-          path: output.zip
-
-      - name: Download golden images from previous run
-        if: matrix.name == 'Linux'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh run download 31859320186 \
-            --name golden-images-bf88d58c9fd228bfd35d7d52bf88bceb8b3984e8  \
-            --dir ./thermion_dart/test/golden-downloads
-      - name: Unzip golden images
-        if: matrix.name == 'Linux'
-        run: |
-          cd thermion_dart/test/golden-downloads && unzip output.zip
-
-      - name: Install Python dependencies
-        if: matrix.name == 'Linux'
-        run: |
-          python -m pip install --upgrade pip
-          pip install Pillow numpy
-
-      - name: Compare golden images
-        if: matrix.name == 'Linux'
-        run: cd thermion_dart/test && python compare_goldens.py
+      # No golden-image steps here: model_import_tests.dart writes no PNGs
+      # (parse/asset assertions only), so there is nothing to zip or
+      # compare — and test/output content of the regular workflow is
+      # unaffected by moving this test out of it.
 
       - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs-dart-${{ matrix.name }}
+          name: build-logs-assimp-${{ matrix.name }}
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
