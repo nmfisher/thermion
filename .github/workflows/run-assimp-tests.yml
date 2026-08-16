@@ -1,0 +1,116 @@
+name: Assimp Tests
+
+# Assimp-backed model-import tests, split out of the regular Dart Tests
+# workflow: that one builds WITHOUT the assimp user_define (the normal
+# downstream configuration), this one opts into the assimp link
+# (`assimp: true`) and runs the tests that load models through the
+# Assimp importer. Runner images, caching and environment setup mirror
+# run-dart-tests.yml exactly so results stay comparable between the two.
+#
+# gltf_parser_tests.dart is NOT here: it exercises CgltfImporter
+# (the cgltf path), which is always compiled and needs no assimp link —
+# it stays in the regular Dart Tests workflow.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (SHA or branch) to check out
+        required: false
+        type: string
+
+jobs:
+  assimp-tests:
+    name: Assimp Tests (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-22.04
+          - name: Windows
+            os: windows-2022
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~\AppData\Local\Pub\Cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Setup build environment (Linux)
+        if: matrix.name == 'Linux'
+        uses: ./.github/actions/setup-build-env
+
+      - name: Install EGL libraries (Linux)
+        if: matrix.name == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev
+
+      - name: Setup build environment (Windows)
+        if: matrix.name == 'Windows'
+        uses: ./.github/actions/setup-windows-env
+
+      - name: Enable debug mode + assimp for tests
+        shell: bash
+        run: |
+          echo 'hooks:' >> thermion_dart/pubspec.yaml
+          echo '  user_defines:' >> thermion_dart/pubspec.yaml
+          echo '    thermion_dart:' >> thermion_dart/pubspec.yaml
+          echo '      mode: debug' >> thermion_dart/pubspec.yaml
+          echo '      assimp: true' >> thermion_dart/pubspec.yaml
+
+      - name: Clean cached Filament libraries
+        shell: bash
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
+
+      - name: Run tests (Linux)
+        if: matrix.name == 'Linux'
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          xvfb-run dart test -j1 \
+            test/model_import_tests.dart \
+            test/model_export_tests.dart \
+            --concurrency=1
+
+      - name: Run tests (Windows)
+        if: matrix.name == 'Windows'
+        working-directory: thermion_dart
+        env:
+          VK_ICD_FILENAMES: C:\swiftshader\vk_swiftshader_icd.json
+        run: |
+          dart pub get
+          dart test -j1 `
+            test/model_import_tests.dart `
+            test/model_export_tests.dart `
+            --concurrency=1
+
+      # No golden-image steps here: the model import/export tests write no
+      # PNGs (parse/export assertions only), so there is nothing to zip or
+      # compare — and test/output content of the regular workflow is
+      # unaffected by moving these tests out of it.
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-assimp-${{ matrix.name }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
