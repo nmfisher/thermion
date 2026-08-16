@@ -93,6 +93,13 @@ jobs:
       - name: Install deps (Linux runners)
         if: matrix.platform == 'linux' || matrix.platform == 'android' || matrix.platform == 'web'
         run: sudo apt-get update && sudo apt-get install -y ninja-build
+      # clang + libc++ for the Linux libassimp build: build_linux.sh compiles
+      # libassimp with -stdlib=libc++ (single C++ ABI with libthermion_dart.so,
+      # see the comment there), and gcc silently ignores that flag — so the
+      # mirror below must use clang too.
+      - name: Install clang + libc++ (Linux)
+        if: matrix.platform == 'linux'
+        run: sudo apt-get install -y clang libc++-dev libc++abi-dev
 
       - name: Setup Android NDK
         if: matrix.platform == 'android'
@@ -133,9 +140,18 @@ jobs:
         run: |
           mkdir -p filament/out/assimp
           cd filament/out/assimp
+          # Linux: -stdlib=libc++ + clang, same single-ABI rule as
+          # build_linux.sh (see the comment there). macOS clang already
+          # defaults to libc++, so the flag is added for Linux only.
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            export CC=clang CXX=clang++
+            EXTRA_CXXFLAGS="-stdlib=libc++"
+          else
+            EXTRA_CXXFLAGS=""
+          fi
           cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
             -DCMAKE_C_FLAGS="-I$GITHUB_WORKSPACE/filament/third_party/libz" \
-            -DCMAKE_CXX_FLAGS="-I$GITHUB_WORKSPACE/filament/third_party/libz" \
+            -DCMAKE_CXX_FLAGS="$EXTRA_CXXFLAGS -I$GITHUB_WORKSPACE/filament/third_party/libz" \
             -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
             -DASSIMP_BUILD_TESTS=OFF \
             -DASSIMP_BUILD_SAMPLES=OFF \

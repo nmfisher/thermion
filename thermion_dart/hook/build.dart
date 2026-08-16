@@ -451,14 +451,23 @@ outputDirectory : ${outputDirectory.path}
             ...linuxDebugLibs.map((lib) => "-l$lib"),
             '-lGL',
             '-lEGL',
-            // The Linux libassimp.a is built with gcc/libstdc++, while the
-            // rest of this link uses libc++ (-stdlib=libc++ above). The two
-            // STLs mangle differently (_ZSt4cout vs _ZNSt3__14coutE), so
-            // libc++ cannot satisfy libassimp's references. A -shared link
-            // leaves them as undefined symbols (allowed at link time), and
-            // dlopen then fails at runtime with "undefined symbol:
-            // _ZSt4cout". Linking libstdc++ adds the DT_NEEDED entry that
-            // resolves them. Passed via -Wl because the clang driver
+            // TRANSITIONAL — remove once R2 serves the libc++-built
+            // libassimp.a (see scripts/build_linux.sh). The old artifact's
+            // libassimp.a was built with gcc/libstdc++, while the rest of
+            // this link uses libc++ (-stdlib=libc++ above). The two STLs
+            // mangle differently (_ZSt4cout vs _ZNSt3__14coutE), so libc++
+            // cannot satisfy libassimp's references. A -shared link leaves
+            // them as undefined symbols (allowed at link time), and dlopen
+            // then fails at runtime with "undefined symbol: _ZSt4cout".
+            // Linking libstdc++ adds the DT_NEEDED entry that resolves
+            // them — and, worse, leaves two C++ runtimes in one process,
+            // which crashed CI's Linux x64 FBX round-trip inside
+            // libc++abi's exception machinery (assimp throwing through
+            // libstdc++ while the catch sites are libc++). With the
+            // rebuilt artifact there are no libstdc++ references left, so
+            // this becomes inert — the DT_NEEDED entry may remain (see
+            // the linked verify below), but no symbol resolves through
+            // libstdc++ any more. Passed via -Wl because the clang driver
             // silently DROPS a bare "-lstdc++" from the linker job when
             // -stdlib=libc++ is in effect. Outside the whole-archive group
             // so its objects are only pulled if referenced.
