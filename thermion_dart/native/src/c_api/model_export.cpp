@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 
 #ifdef THERMION_ASSIMP
 #include <assimp/Exporter.hpp>
@@ -151,63 +152,81 @@ namespace thermion
             scene->mRootNode->mNumChildren = static_cast<unsigned>(meshCount);
             scene->mRootNode->mChildren = new aiNode *[meshCount]();
 
-            for (int i = 0; i < meshCount; i++)
+            // Exception barrier: buildScene must not let an exception
+            // escape (see the note in model_import.cpp); a throw partway
+            // through the loop still frees everything built so far.
+            try
             {
-                const TMeshData &src = meshes[i];
-                if (src.primitiveType != PRIMITIVETYPE_TRIANGLES)
+                for (int i = 0; i < meshCount; i++)
                 {
-                    ERROR("Mesh %d is not a triangle list (type %d); export supports triangles only",
-                          i, static_cast<int>(src.primitiveType));
-                    freeScene(scene);
-                    return nullptr;
-                }
-                if (src.vertices == nullptr)
-                {
-                    ERROR("Mesh %d has no positions", i);
-                    freeScene(scene);
-                    return nullptr;
+                    const TMeshData &src = meshes[i];
+                    if (src.primitiveType != PRIMITIVETYPE_TRIANGLES)
+                    {
+                        ERROR("Mesh %d is not a triangle list (type %d); export supports triangles only",
+                              i, static_cast<int>(src.primitiveType));
+                        freeScene(scene);
+                        return nullptr;
+                    }
+                    if (src.vertices == nullptr)
+                    {
+                        ERROR("Mesh %d has no positions", i);
+                        freeScene(scene);
+                        return nullptr;
+                    }
+
+                    aiMesh *mesh = buildMesh(src, i);
+                    if (!mesh)
+                    {
+                        freeScene(scene);
+                        return nullptr;
+                    }
+                    scene->mMeshes[i] = mesh;
+
+                    // One material per mesh (FBX requirement). The name is all we keep
+                    // from the source material; assimp fills the rest with defaults.
+                    auto *material = new aiMaterial();
+                    char materialFallback[32];
+                    aiString materialName;
+                    setAiString(materialName, src.materialName);
+                    if (materialName.length == 0)
+                    {
+                        materialName.Set(fallbackName(materialFallback, sizeof(materialFallback), "Material", i));
+                    }
+                    material->AddProperty(&materialName, AI_MATKEY_NAME);
+                    scene->mMaterials[i] = material;
+
+                    // One identity-transform node per mesh, named after the mesh so
+                    // the name survives the round trip.
+                    char nodeFallback[32];
+                    aiString nodeName;
+                    setAiString(nodeName, src.name);
+                    if (nodeName.length == 0)
+                    {
+                        nodeName.Set(fallbackName(nodeFallback, sizeof(nodeFallback), "Mesh", i));
+                    }
+                    auto *node = new aiNode();
+                    node->mName = nodeName;
+                    node->mNumMeshes = 1;
+                    node->mMeshes = new unsigned[1];
+                    node->mMeshes[0] = static_cast<unsigned>(i);
+                    node->mParent = scene->mRootNode;
+                    scene->mRootNode->mChildren[i] = node;
                 }
 
-                aiMesh *mesh = buildMesh(src, i);
-                if (!mesh)
-                {
-                    freeScene(scene);
-                    return nullptr;
-                }
-                scene->mMeshes[i] = mesh;
-
-                // One material per mesh (FBX requirement). The name is all we keep
-                // from the source material; assimp fills the rest with defaults.
-                auto *material = new aiMaterial();
-                char materialFallback[32];
-                aiString materialName;
-                setAiString(materialName, src.materialName);
-                if (materialName.length == 0)
-                {
-                    materialName.Set(fallbackName(materialFallback, sizeof(materialFallback), "Material", i));
-                }
-                material->AddProperty(&materialName, AI_MATKEY_NAME);
-                scene->mMaterials[i] = material;
-
-                // One identity-transform node per mesh, named after the mesh so
-                // the name survives the round trip.
-                char nodeFallback[32];
-                aiString nodeName;
-                setAiString(nodeName, src.name);
-                if (nodeName.length == 0)
-                {
-                    nodeName.Set(fallbackName(nodeFallback, sizeof(nodeFallback), "Mesh", i));
-                }
-                auto *node = new aiNode();
-                node->mName = nodeName;
-                node->mNumMeshes = 1;
-                node->mMeshes = new unsigned[1];
-                node->mMeshes[0] = static_cast<unsigned>(i);
-                node->mParent = scene->mRootNode;
-                scene->mRootNode->mChildren[i] = node;
+                return scene;
             }
-
-            return scene;
+            catch (const std::exception &e)
+            {
+                ERROR("Building export scene threw: %s", e.what());
+                freeScene(scene);
+                return nullptr;
+            }
+            catch (...)
+            {
+                ERROR("Building export scene threw an unknown exception");
+                freeScene(scene);
+                return nullptr;
+            }
         }
 
         // The destructors of aiNode/aiMesh/aiScene/aiFace (some out-of-line in
@@ -301,52 +320,68 @@ namespace thermion
 
             const char *format = (formatId && formatId[0] != '\0') ? formatId : "fbx";
 
-            aiScene *scene = buildScene(meshes, meshCount);
-            if (!scene)
+            aiScene *scene = nullptr;
+            try
             {
-                return nullptr;
-            }
-
-            uint8_t *result = nullptr;
-            {
-                Assimp::Exporter exporter;
-                const aiExportDataBlob *blob = exporter.ExportToBlob(scene, format, 0u, nullptr);
-                if (!blob || !blob->data || blob->size == 0)
+                scene = buildScene(meshes, meshCount);
+                if (!scene)
                 {
-                    ERROR("Model export failed (%s): %s", format, exporter.GetErrorString());
+                    return nullptr;
                 }
-                else
+
+                uint8_t *result = nullptr;
                 {
-                    // FBX is a single-file format: the first blob is the model
-                    // file itself, any chained entries are auxiliary files the
-                    // exporter asked to write alongside it (assimp's blob
-                    // exporter names its scratch file "$blobfile"). There is
-                    // nothing to store them in (we return one buffer), so drop
-                    // them — the main file is complete on its own. TRACE only:
-                    // this happens on every export and loses nothing (this API
-                    // never writes textures or other companions).
-                    for (const aiExportDataBlob *extra = blob->next; extra; extra = extra->next)
+                    Assimp::Exporter exporter;
+                    const aiExportDataBlob *blob = exporter.ExportToBlob(scene, format, 0u, nullptr);
+                    if (!blob || !blob->data || blob->size == 0)
                     {
-                        TRACE("Model export (%s): dropping auxiliary file \"%s\" (%zu bytes)",
-                              format, extra->name.C_Str(), extra->size);
-                    }
-                    result = static_cast<uint8_t *>(malloc(blob->size));
-                    if (result)
-                    {
-                        memcpy(result, blob->data, blob->size);
-                        *outSize = static_cast<int64_t>(blob->size);
+                        ERROR("Model export failed (%s): %s", format, exporter.GetErrorString());
                     }
                     else
                     {
-                        ERROR("Model export: out of memory for %zu bytes", blob->size);
+                        // FBX is a single-file format: the first blob is the model
+                        // file itself, any chained entries are auxiliary files the
+                        // exporter asked to write alongside it (assimp's blob
+                        // exporter names its scratch file "$blobfile"). There is
+                        // nothing to store them in (we return one buffer), so drop
+                        // them — the main file is complete on its own. TRACE only:
+                        // this happens on every export and loses nothing (this API
+                        // never writes textures or other companions).
+                        for (const aiExportDataBlob *extra = blob->next; extra; extra = extra->next)
+                        {
+                            TRACE("Model export (%s): dropping auxiliary file \"%s\" (%zu bytes)",
+                                  format, extra->name.C_Str(), extra->size);
+                        }
+                        result = static_cast<uint8_t *>(malloc(blob->size));
+                        if (result)
+                        {
+                            memcpy(result, blob->data, blob->size);
+                            *outSize = static_cast<int64_t>(blob->size);
+                        }
+                        else
+                        {
+                            ERROR("Model export: out of memory for %zu bytes", blob->size);
+                        }
                     }
+                    // The Exporter owns the blob and frees it when it goes out of
+                    // scope (or on the next Export call).
                 }
-                // The Exporter owns the blob and frees it when it goes out of
-                // scope (or on the next Export call).
-            }
 
-            freeScene(scene);
-            return result;
+                freeScene(scene);
+                return result;
+            }
+            catch (const std::exception &e)
+            {
+                ERROR("Model export threw: %s", e.what());
+                freeScene(scene);
+                return nullptr;
+            }
+            catch (...)
+            {
+                ERROR("Model export threw an unknown exception");
+                freeScene(scene);
+                return nullptr;
+            }
         }
 
         EMSCRIPTEN_KEEPALIVE void ModelExporter_disposeBuffer(uint8_t *data)

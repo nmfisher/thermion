@@ -265,5 +265,23 @@ end_header
       expect(meshes.isNotEmpty, true, reason: "PLY should parse into at least one mesh");
       expect(meshes.first.indices.length, 3, reason: "PLY single triangle should have 3 indices");
     });
+
+    // Regression: malformed data fed to an importer must surface as a Dart
+    // exception. The native entry points catch C++ exceptions at the FFI
+    // boundary; without that barrier an exception escaping Assimp unwinds
+    // through Dart frames and kills the process (CI crashed this way inside
+    // libc++abi on Linux x64).
+    test('garbage data throws instead of crashing (per format)', () {
+      final importer = AssimpImporter();
+      // Pseudo-random non-zero bytes: enough structure to draw the binary
+      // FBX/STL readers deep into parsing before they reject it.
+      final garbage = Uint8List.fromList(
+        List<int>.generate(1024, (i) => (i * 31 + 7) & 0xFF),
+      );
+      for (final hint in ['fbx', 'obj', 'stl', 'ply']) {
+        expect(() => importer.parse(garbage, formatHint: hint), throwsException,
+            reason: "Garbage input with hint '$hint' should throw, not crash");
+      }
+    });
   });
 }
