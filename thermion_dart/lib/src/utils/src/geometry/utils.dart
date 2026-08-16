@@ -2,43 +2,6 @@ import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class GeometryUtils {
-  /// Expand triangle strip indices to triangle list indices.
-  ///
-  /// OpenGL/glTF triangle strip convention:
-  /// - Triangle i (even): v[i], v[i+1], v[i+2]
-  /// - Triangle i (odd):  v[i+1], v[i], v[i+2]
-  ///
-  /// This maintains consistent front-face winding (CCW).
-  static List<int> expandTriangleStrip(List<int> stripIndices) {
-    if (stripIndices.length < 3) {
-      return [];
-    }
-
-    final numTriangles = stripIndices.length - 2;
-    final triangleIndices = <int>[];
-
-    for (int i = 0; i < numTriangles; i++) {
-      final i0 = stripIndices[i];
-      final i1 = stripIndices[i + 1];
-      final i2 = stripIndices[i + 2];
-
-      // OpenGL triangle strip winding convention
-      if (i % 2 == 0) {
-        // Even triangles: v[i], v[i+1], v[i+2]
-        triangleIndices.add(i0);
-        triangleIndices.add(i1);
-        triangleIndices.add(i2);
-      } else {
-        // Odd triangles: v[i+1], v[i], v[i+2]
-        triangleIndices.add(i1);
-        triangleIndices.add(i0);
-        triangleIndices.add(i2);
-      }
-    }
-
-    return triangleIndices;
-  }
-
   /// Duplicate vertices so each triangle has unique vertices,
   /// and add barycentric coordinates to CUSTOM0 (attribute0).
   ///
@@ -415,4 +378,52 @@ class GeometryUtils {
 
   static Geometry sphere({bool normals = true, bool uvs = true, int latitudeBands = 20, int longitudeBands = 20}) =>
       SphereGeometry.sphere(normals: normals, uvs: uvs, latitudeBands: latitudeBands, longitudeBands: longitudeBands);
+
+  /// Parses a model file from the given byte buffer and returns a list of
+  /// geometry groups. Each group corresponds to a named object/mesh (or
+  /// material partition) in the file.
+  ///
+  /// [formatHint] is the file extension *without* the dot (e.g. "obj", "fbx",
+  /// "glb", "stl", "ply"); Assimp uses it to select the right importer when
+  /// reading from memory.
+  ///
+  /// [flipUvs] - If true (default), flips UV coordinates vertically. Most
+  ///            formats (OBJ, FBX) use bottom-left UV origin, while Filament
+  ///            uses top-left. Flipping is applied here only (not in native
+  ///            Assimp), so it is not double-applied.
+  ///
+  /// Returns a list of [ModelGeometryGroup] objects.
+  static List<ModelGeometryGroup> parseModelFromBuffer(
+    Uint8List data, {
+    required String formatHint,
+    bool flipUvs = true,
+  }) {
+    final meshes = AssimpImporter().parse(data, formatHint: formatHint);
+    return meshes.map((mesh) {
+      final geometry = mesh.toGeometry(flipUvs: flipUvs, createDummyColors: true, createDummyUvs: true);
+      return ModelGeometryGroup(name: mesh.name, materialName: mesh.materialName, geometry: geometry);
+    }).toList();
+  }
+
+  /// Convenience wrapper for OBJ files (equivalent to
+  /// [parseModelFromBuffer] with [formatHint] `"obj"`).
+  static List<ModelGeometryGroup> parseObjFromBuffer(Uint8List data, {bool flipUvs = true}) =>
+      parseModelFromBuffer(data, formatHint: 'obj', flipUvs: flipUvs);
+}
+
+/// Represents a geometry group parsed from a model file.
+///
+/// A model file can contain multiple objects/meshes, each with its own
+/// material assignment. This class represents one such group.
+class ModelGeometryGroup {
+  /// Object/mesh name.
+  final String? name;
+
+  /// Material name.
+  final String? materialName;
+
+  /// The geometry data for this group.
+  final Geometry geometry;
+
+  ModelGeometryGroup({this.name, this.materialName, required this.geometry});
 }

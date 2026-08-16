@@ -36,4 +36,12 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "mikktspace.lib")
+// Opt-in like the "assimp" entry in hook/build.dart's libs list: the
+// artifact zip always ships assimp.lib, but it is only linked when the
+// consuming app enables assimp (which also defines THERMION_ASSIMP for
+// every translation unit). Without this pragma, model_import.cpp's ai*
+// references go unresolved (LNK2019).
+#ifdef THERMION_ASSIMP
+#pragma comment(lib, "assimp.lib")
+#endif
  

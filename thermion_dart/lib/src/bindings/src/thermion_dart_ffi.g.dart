@@ -390,6 +390,28 @@ external void Gizmo_highlight(ffi.Pointer<TGizmo> tGizmo, int axis);
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>)>(isLeaf: true)
 external void Gizmo_unhighlight(ffi.Pointer<TGizmo> tGizmo);
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMeshData>)>(isLeaf: true)
+external void MeshData_dispose(ffi.Pointer<TMeshData> meshData);
+
+@ffi.Native<ffi.Bool Function()>(isLeaf: true)
+external bool ModelImporter_isSupported();
+
+@ffi.Native<ffi.Pointer<TModelImporter> Function(ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+external ffi.Pointer<TModelImporter> ModelImporter_loadFromBuffer(
+  ffi.Pointer<ffi.Uint8> data,
+  int size,
+  ffi.Pointer<ffi.Char> extensionHint,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<TModelImporter>)>(isLeaf: true)
+external int ModelImporter_getMeshCount(ffi.Pointer<TModelImporter> importer);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<TModelImporter>, ffi.Int, ffi.Pointer<TMeshData>)>(isLeaf: true)
+external int ModelImporter_getMesh(ffi.Pointer<TModelImporter> importer, int meshIndex, ffi.Pointer<TMeshData> outMesh);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TModelImporter>)>(isLeaf: true)
+external void ModelImporter_destroy(ffi.Pointer<TModelImporter> importer);
+
 @ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TMaterial>)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance> Material_createInstance(ffi.Pointer<TMaterial> tMaterial);
 
@@ -846,21 +868,15 @@ external void Camera_setProjection(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(TGltfMeshData)>(isLeaf: true)
-external void dummy(TGltfMeshData dummy);
-
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>, ffi.Pointer<TGltfMeshData>)>(
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>, ffi.Pointer<TMeshData>)>(
   isLeaf: true,
 )
 external int GltfParser_parseBuffer(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   ffi.Pointer<ffi.Char> meshName,
-  ffi.Pointer<TGltfMeshData> outMeshData,
+  ffi.Pointer<TMeshData> outMeshData,
 );
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfMeshData>)>(isLeaf: true)
-external void GltfParser_freeMeshData(ffi.Pointer<TGltfMeshData> meshData);
 
 @ffi.Native<
   ffi.Pointer<TTexture> Function(
@@ -5122,6 +5138,37 @@ typedef GizmoPickCallbackFunction =
 typedef DartGizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
 typedef GizmoPickCallback = ffi.Pointer<ffi.NativeFunction<GizmoPickCallbackFunction>>;
 
+final class TMeshData extends ffi.Struct {
+  external ffi.Pointer<ffi.Char> name;
+
+  external ffi.Pointer<ffi.Char> materialName;
+
+  external ffi.Pointer<ffi.Float> vertices;
+
+  @ffi.Int()
+  external int vertexCount;
+
+  external ffi.Pointer<ffi.Float> normals;
+
+  @ffi.Int()
+  external int normalCount;
+
+  external ffi.Pointer<ffi.Float> uvs;
+
+  @ffi.Int()
+  external int uvCount;
+
+  external ffi.Pointer<ffi.Uint32> indices;
+
+  @ffi.Int()
+  external int indexCount;
+
+  @ffi.UnsignedInt()
+  external int primitiveType;
+}
+
+final class TModelImporter extends ffi.Opaque {}
+
 sealed class TSamplerCompareFunc {
   /// !< Less or equal
   static const LE = 0;
@@ -5200,21 +5247,6 @@ sealed class TBlendingMode {
 sealed class TProjection {
   static const Perspective = 0;
   static const Orthographic = 1;
-}
-
-final class TGltfMeshData extends ffi.Struct {
-  external ffi.Pointer<ffi.Float> vertices;
-
-  @ffi.Uint32()
-  external int vertexCount;
-
-  external ffi.Pointer<ffi.Uint32> indices;
-
-  @ffi.Uint32()
-  external int indexCount;
-
-  @ffi.UnsignedInt()
-  external int primitiveType;
 }
 
 sealed class TTextureSamplerType {
