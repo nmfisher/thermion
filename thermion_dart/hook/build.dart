@@ -96,10 +96,7 @@ outputDirectory : ${outputDirectory.path}
       backend = "webgl2";
     } else if (backendRaw == "hybrid" || backendRaw == "combined") {
       backend = "hybrid";
-    } else if (legacyWebgpu == true ||
-        legacyWebgpu == "true" ||
-        legacyWebgpu == 1 ||
-        legacyWebgpu == "1") {
+    } else if (legacyWebgpu == true || legacyWebgpu == "true" || legacyWebgpu == 1 || legacyWebgpu == "1") {
       backend = "webgpu"; // legacy compat
     } else {
       backend = "native";
@@ -184,16 +181,14 @@ outputDirectory : ${outputDirectory.path}
     final materialDir = path.join(pkgRootFilePath, 'native/include/material');
     // If the per-platform variant hasn't been generated yet, fall back to the
     // pre-split _native blob (all backends, larger, but compilable).
-    if (materialSuffix != '_native' &&
-        !File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
+    if (materialSuffix != '_native' && !File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
       logger.info("Material variant $materialSuffix not found; falling back to _native");
       materialSuffix = '_native';
       materialDefine = 'THERMION_MATERIAL_NATIVE';
     }
     defines[materialDefine] = "1";
     String materialPath(String name, String suffix) {
-      final suffixed =
-          path.join(materialDir, '${name}$suffix.c');
+      final suffixed = path.join(materialDir, '${name}$suffix.c');
       if (File(suffixed).existsSync()) return 'native/include/material/${name}$suffix.c';
       // Fallback: unsuffixed .c (pre-split materials)
       final fallbackName = name == 'gizmo' ? 'gizmo_material' : name;
