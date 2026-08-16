@@ -401,12 +401,7 @@ class GeometryUtils {
     final meshes = AssimpImporter().parse(data, formatHint: formatHint);
     return meshes.map((mesh) {
       final geometry = mesh.toGeometry(flipUvs: flipUvs, createDummyColors: true, createDummyUvs: true);
-      return ModelGeometryGroup(
-        name: mesh.name,
-        materialName: mesh.materialName,
-        geometry: geometry,
-        rawMesh: mesh,
-      );
+      return ModelGeometryGroup(name: mesh.name, materialName: mesh.materialName, geometry: geometry, rawMesh: mesh);
     }).toList();
   }
 
