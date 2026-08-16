@@ -1,5 +1,12 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
+/// The `allocate` shim (see bindings/src/ffi.dart and its js_interop
+/// counterpart) hands out pointer-sized slots and only supports
+/// Char/Pointer elements. TMeshData spans several slots, so request the
+/// ceiling in pointer units and cast.
+final int _tMeshDataSlots =
+    (sizeOf<TMeshData>() + sizeOf<Pointer>() - 1) ~/ sizeOf<Pointer>();
+
 /// [ModelFileImporter] backed by the cgltf parser compiled into the
 /// Filament build (always available, no opt-in).
 ///
@@ -15,7 +22,7 @@ class CgltfImporter implements ModelFileImporter {
   List<RawMesh> parse(Uint8List data, {String formatHint = 'gltf', String? meshName}) {
     final meshNamePtr = meshName != null ? meshName.toNativeUtf8().cast<Char>() : nullptr;
 
-    final outMeshData = calloc<TMeshData>();
+    final outMeshData = allocate<PointerClass>(_tMeshDataSlots).cast<TMeshData>();
 
     try {
       final result = GltfParser_parseBuffer(data.address, data.length, meshNamePtr, outMeshData);
@@ -40,7 +47,7 @@ class CgltfImporter implements ModelFileImporter {
       return [raw];
     } finally {
       MeshData_dispose(outMeshData);
-      calloc.free(outMeshData);
+      free(outMeshData);
       if (meshNamePtr != nullptr) {
         free(meshNamePtr);
       }

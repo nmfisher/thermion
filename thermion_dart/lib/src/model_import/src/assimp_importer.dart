@@ -1,5 +1,12 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
+/// The `allocate` shim (see bindings/src/ffi.dart and its js_interop
+/// counterpart) hands out pointer-sized slots and only supports
+/// Char/Pointer elements. TMeshData spans several slots, so request the
+/// ceiling in pointer units and cast.
+final int _tMeshDataSlots =
+    (sizeOf<TMeshData>() + sizeOf<Pointer>() - 1) ~/ sizeOf<Pointer>();
+
 /// [ModelFileImporter] backed by the Assimp native library.
 ///
 /// Supports any format Assimp can read (OBJ, FBX, glTF/glb, STL, PLY, ...).
@@ -25,7 +32,7 @@ class AssimpImporter implements ModelFileImporter {
       );
     }
 
-    final dataPointer = calloc<Uint8>(data.length);
+    final dataPointer = allocate<Char>(data.length).cast<Uint8>();
     dataPointer.asTypedList(data.length).setAll(0, data);
 
     // Assimp's format hint: file extension without the leading dot.
@@ -46,7 +53,7 @@ class AssimpImporter implements ModelFileImporter {
 
         // One TMeshData slot reused for every mesh: getMesh fills it,
         // we copy to Dart memory, MeshData_dispose frees the native copy.
-        final outMesh = calloc<TMeshData>();
+        final outMesh = allocate<PointerClass>(_tMeshDataSlots).cast<TMeshData>();
         final meshes = <RawMesh>[];
 
         try {
@@ -71,7 +78,7 @@ class AssimpImporter implements ModelFileImporter {
           }
         } finally {
           MeshData_dispose(outMesh);
-          calloc.free(outMesh);
+          free(outMesh);
         }
 
         return meshes;
@@ -79,8 +86,8 @@ class AssimpImporter implements ModelFileImporter {
         ModelImporter_destroy(importerPtr);
       }
     } finally {
-      calloc.free(dataPointer);
-      calloc.free(hintPointer);
+      free(dataPointer);
+      free(hintPointer);
     }
   }
 
