@@ -345,7 +345,17 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf check && mkdir check && cd check
-          for z in ../output/filament-*.zip; do unzip -q "$z"; done
+          for z in ../output/filament-*.zip; do
+            # Each zip gets its own subdir: the release and debug zips
+            # contain same-named archives, and extracting both into one
+            # directory makes unzip prompt "replace X?" interactively —
+            # a runner has no stdin, so unzip dies on EOF before nm ever
+            # runs. Separate dirs also keep nm's output attributed to
+            # the zip the bad archive came from.
+            d="$(basename "$z" .zip)"
+            mkdir -p "$d"
+            unzip -q "$z" -d "$d"
+          done
           # Archive members reference these without a version suffix (nm shows
           # plain "U __isoc23_strtol"), so match on names: the ISO C23
           # strtol/strtoul/sscanf family glibc >= 2.38 renamed to __isoc23_*,
@@ -446,7 +456,17 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf check && mkdir check && cd check
-          for z in ../output/filament-*.zip; do unzip -q "$z"; done
+          for z in ../output/filament-*.zip; do
+            # Each zip gets its own subdir: the release and debug zips
+            # contain same-named archives, and extracting both into one
+            # directory makes unzip prompt "replace X?" interactively —
+            # a runner has no stdin, so unzip dies on EOF before nm ever
+            # runs. Separate dirs also keep nm's output attributed to
+            # the zip the bad archive came from.
+            d="$(basename "$z" .zip)"
+            mkdir -p "$d"
+            unzip -q "$z" -d "$d"
+          done
           # Archive members reference these without a version suffix (nm shows
           # plain "U __isoc23_strtol"), so match on names: the ISO C23
           # strtol/strtoul/sscanf family glibc >= 2.38 renamed to __isoc23_*,
