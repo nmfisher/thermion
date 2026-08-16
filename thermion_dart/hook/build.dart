@@ -163,6 +163,20 @@ outputDirectory : ${outputDirectory.path}
         input.userDefines["assimp"] == 1 ||
         input.userDefines["assimp"] == "1";
 
+    // Everything linked into libthermion_dart.so is built with libc++ on
+    // Linux/macOS/Android, so a libassimp.a compiled against libstdc++
+    // cannot link correctly: its _ZNSt7__cxx11-mangled references stay
+    // undefined (allowed in a -shared link) and dlopen fails at runtime —
+    // or libstdc++ gets pulled in as a second C++ runtime and tests crash
+    // deep inside libc++abi's RTTI machinery. This happened on CI (Linux
+    // x64 FBX round-trip; see PR #195). Fail the consuming build with an
+    // actionable message instead of letting a stale R2 artifact surface as
+    // a mysterious test crash. The publishing workflow has its own nm-based
+    // version of this check; this one protects consumers directly.
+    if (assimpEnabled && targetOS != OS.windows) {
+      await _assertSingleCppAbi(path.join(libDir, 'libassimp.a'), logger);
+    }
+
     var libs = [
       "filament",
       "backend",
@@ -208,6 +222,17 @@ outputDirectory : ${outputDirectory.path}
       // Assimp model loading is opt-in at link time (see assimpEnabled above):
       // the prebuilt libassimp.a is always produced by the platform build
       // scripts, but only linked when the consuming app enables it.
+      //
+      // Once linked, everything in libthermion_dart.so must come from ONE
+      // C++ runtime. An earlier revision also linked -Wl,-lstdc++ here
+      // because the R2 libassimp.a was a gcc/libstdc++ build; that left two
+      // C++ runtimes in one process and crashed CI's Linux x64 FBX
+      // round-trip inside libc++abi's RTTI walk (dynamic_cast dispatching
+      // through mismatched __si_class_type_info vtables). R2 now serves a
+      // libc++-built libassimp.a (verified: zero _ZNSt7__cxx11 references),
+      // so libstdc++ is not linked at all. The _assertSingleCppAbi guard
+      // below keeps it that way by failing the build loudly if a stale
+      // artifact ever comes back.
       if (assimpEnabled) "assimp",
       //"mikktspace",
       "geometry",
@@ -451,36 +476,18 @@ outputDirectory : ${outputDirectory.path}
             ...linuxDebugLibs.map((lib) => "-l$lib"),
             '-lGL',
             '-lEGL',
-            // TRANSITIONAL — remove once R2 serves the libc++-built
-            // libassimp.a (see scripts/build_linux.sh). The old artifact's
-            // libassimp.a was built with gcc/libstdc++, while the rest of
-            // this link uses libc++ (-stdlib=libc++ above). The two STLs
-            // mangle differently (_ZSt4cout vs _ZNSt3__14coutE), so libc++
-            // cannot satisfy libassimp's references. A -shared link leaves
-            // them as undefined symbols (allowed at link time), and dlopen
-            // then fails at runtime with "undefined symbol: _ZSt4cout".
-            // Linking libstdc++ adds the DT_NEEDED entry that resolves
-            // them — and, worse, leaves two C++ runtimes in one process,
-            // which crashed CI's Linux x64 FBX round-trip inside
-            // libc++abi's exception machinery (assimp throwing through
-            // libstdc++ while the catch sites are libc++). With the
-            // rebuilt artifact there are no libstdc++ references left, so
-            // this becomes inert — the DT_NEEDED entry may remain (see
-            // the linked verify below), but no symbol resolves through
-            // libstdc++ any more. Passed via -Wl because the clang driver
-            // silently DROPS a bare "-lstdc++" from the linker job when
-            // -stdlib=libc++ is in effect. Outside the whole-archive group
-            // so its objects are only pulled if referenced.
-            if (assimpEnabled) '-Wl,-lstdc++',
           ] else if (targetOS != OS.android) ...[
             "-lc++",
             "",
           ],
           "-L$libDir",
         ],
-        if (targetOS == OS.linux)
-          '-Wl,--no-as-needed'
-        else if (targetOS != OS.windows && targetOS != OS.android)
+        // (Linux used to pass -Wl,--no-as-needed here to keep a DT_NEEDED
+        // entry for libstdc++, back when the R2 libassimp.a was a libstdc++
+        // build. R2 now serves a libc++-built libassimp.a, so neither that
+        // flag nor the libstdc++ link exists any more; see the note next to
+        // the "assimp" entry in libs above.)
+        if (targetOS != OS.linux && targetOS != OS.windows && targetOS != OS.android)
           '-lc++',
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
@@ -519,6 +526,55 @@ outputDirectory : ${outputDirectory.path}
       );
     }
   });
+}
+
+/// Throws if the prebuilt [archive] (libassimp.a) carries libstdc++-mangled
+/// references, i.e. was not built with the same C++ runtime as the rest of
+/// this link. Symbol names appear verbatim in the archive's symbol table, so
+/// a raw byte scan for the libstdc++ std::string ABI marker is sufficient —
+/// no nm/ar parsing needed. Chunks are read with an overlap so a marker
+/// straddling a read boundary is still found.
+Future<void> _assertSingleCppAbi(String archivePath, Logger logger) async {
+  final marker = '_ZNSt7__cxx11'.codeUnits;
+  final archive = File(archivePath);
+  if (!archive.existsSync()) {
+    throw Exception(
+      'libassimp.a not found at $archivePath — the Filament artifact zip is '
+      'incomplete. Delete the enclosing directory and rebuild to re-download.',
+    );
+  }
+  logger.info('Checking C++ ABI of $archivePath');
+  var carry = <int>[];
+  await for (final chunk in archive.openRead()) {
+    final data = carry.isEmpty ? chunk : [...carry, ...chunk];
+    final first = marker[0];
+    for (var i = 0; i + marker.length <= data.length; i++) {
+      if (data[i] != first) continue;
+      var matches = true;
+      for (var j = 1; j < marker.length; j++) {
+        if (data[i + j] != marker[j]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        throw Exception(
+          'libassimp.a at $archivePath references libstdc++ symbols '
+          '(_ZNSt7__cxx11...): this Filament artifact was built WITHOUT '
+          '-stdlib=libc++, so it cannot be linked into libthermion_dart.so '
+          'alongside the libc++-built Filament libraries. Republish the '
+          "artifact from the repo's 'Build Filament' workflow (platform for "
+          'this target, upload_to_r2=true), then delete $archivePath '
+          '(and the enclosing extraction directory) so the next build '
+          're-downloads it.',
+        );
+      }
+    }
+    carry = data.length < marker.length
+        ? data.toList()
+        : data.sublist(data.length - marker.length + 1);
+  }
+  logger.info('libassimp.a is a libc++ build (no libstdc++ references)');
 }
 
 // filament.version lives at the repo root (the parent of this package). We
