@@ -58,10 +58,23 @@ jobs:
       - name: Enable debug mode for tests
         shell: bash
         run: |
-          echo 'hooks:' >> thermion_dart/pubspec.yaml
-          echo '  user_defines:' >> thermion_dart/pubspec.yaml
-          echo '    thermion_dart:' >> thermion_dart/pubspec.yaml
-          echo '      mode: debug' >> thermion_dart/pubspec.yaml
+          # pubspec.yaml ships a local-only hooks.user_defines block (the
+          # WebGPU/Dawn toggle). Strip any existing block before appending:
+          # appending on top of it leaves two top-level `hooks:` keys, and
+          # `dart pub get` then fails with "Duplicate mapping key".
+          # CI runs the native backend, so the local WebGPU override must go.
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
+          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                mode: debug
+          EOF
 
       - name: Clean cached Filament libraries
         shell: bash
@@ -88,6 +101,12 @@ jobs:
             test/morph_animation_tests.dart \
             test/renderable_manager_tests.dart \
             test/gltf_parser_tests.dart \
+            test/overlay_tests.dart \
+            test/wireframe_renderable_test.dart \
+            test/gizmo_tests_new.dart \
+            test/all_axes_test.dart \
+            test/bone_picking_tests.dart \
+            test/all_materials_smoke_test.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
@@ -108,6 +127,11 @@ jobs:
             test/scene_tests.dart `
             test/picking_tests.dart `
             test/image_tests.dart `
+            test/overlay_tests.dart `
+            test/wireframe_renderable_test.dart `
+            test/gizmo_tests_new.dart `
+            test/all_axes_test.dart `
+            test/all_materials_smoke_test.dart `
             --concurrency=1
 
       - name: Zip output
@@ -149,6 +173,81 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs-dart-${{ matrix.name }}
+          path: |
+            ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  # macOS runs the Metal backend against a headless swapchain. Metal needs no
+  # display server (unlike the Linux job's xvfb) and no software rasterizer
+  # (unlike the Windows job's SwiftShader), so the only setup needed is the
+  # Dart SDK: the build hook downloads the universal macOS Filament archive
+  # from R2 and compiles the glue sources with the stock Apple toolchain.
+  # The material variant is the default "native" one, which matc built with
+  # -a metal among its targets.
+  #
+  # The test list is a deliberate subset: it starts with the tests that cover
+  # the per-platform materials (image, grid, translation_axis, wireframe,
+  # gizmo) and the basic asset path. Widen it gradually rather than mirroring
+  # the Linux list wholesale, which was never validated on macOS.
+  dart-tests-macos:
+    name: Dart Tests (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-macOS-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-macOS-
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Enable debug mode for tests
+        shell: bash
+        run: |
+          # See the equivalent step in dart-tests: strip the local-only
+          # hooks.user_defines block before appending, so the file never
+          # carries two top-level `hooks:` keys.
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
+          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                mode: debug
+          EOF
+
+      - name: Clean cached Filament libraries
+        shell: bash
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
+
+      - name: Run tests (macOS)
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart test -j1 \
+            test/asset_tests.dart \
+            test/image_tests.dart \
+            test/overlay_tests.dart \
+            test/wireframe_renderable_test.dart \
+            test/gizmo_tests_new.dart \
+            --concurrency=1
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-dart-macOS
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5

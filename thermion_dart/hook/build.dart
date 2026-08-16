@@ -75,6 +75,34 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
+    // Detect backend early — it affects which R2 artifact we download,
+    // which static libs we link, and which material variant we compile.
+    //
+    // The "backend" user define selects the material/shader variant:
+    //   "native"  (default) — per-platform GLSL/SPIR-V/MSL set: Metal on
+    //                         iOS/macOS, Vulkan+OpenGL on Android and desktop
+    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
+    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
+    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
+    //                         enables runtime backend selection.
+    //
+    // Legacy: "webgpu: true" is equivalent to backend: "webgpu".
+    final backendRaw = input.userDefines["backend"];
+    final legacyWebgpu = input.userDefines["webgpu"];
+    final String backend;
+    if (backendRaw == "webgpu" || backendRaw == "WebGPU") {
+      backend = "webgpu";
+    } else if (backendRaw == "webgl2" || backendRaw == "WebGL2") {
+      backend = "webgl2";
+    } else if (backendRaw == "hybrid" || backendRaw == "combined") {
+      backend = "hybrid";
+    } else if (legacyWebgpu == true || legacyWebgpu == "true" || legacyWebgpu == 1 || legacyWebgpu == "1") {
+      backend = "webgpu"; // legacy compat
+    } else {
+      backend = "native";
+    }
+    final bool webgpuEnabled = backend == "webgpu";
+
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
     final libResult = await getLibDir(
@@ -120,23 +148,67 @@ outputDirectory : ${outputDirectory.path}
       sources = sources.where((p) => !p.contains("vulkan")).toList();
     }
 
-    // Material source paths (used by _processMaterials below)
+    // Material source paths — platform-specific variants.
+    // Each material has per-platform native variants (_apple, _android,
+    // _desktop) plus _webgpu, _web_webgl, and _web_combined variants, all
+    // with identical C symbols. The build hook compiles exactly one: the web
+    // variants follow the "backend" user define, the native variants follow
+    // the target OS (Apple = Metal, Android = Vulkan+GL, desktop Linux/
+    // Windows = Vulkan+GL — both GL-capable platforms keep runtime backend
+    // selection working).
+    // Falls back to the pre-split _native variant if the per-platform files
+    // don't exist yet (i.e., make materials hasn't been re-run since the
+    // split), then to unsuffixed .c files for pre-split trees.
+    var materialSuffix = switch (backend) {
+      'webgpu' => '_webgpu',
+      'webgl2' => '_web_webgl',
+      'hybrid' => '_web_combined',
+      _ when targetOS == OS.iOS || targetOS == OS.macOS => '_apple',
+      _ when targetOS == OS.android => '_android',
+      _ => '_desktop',
+    };
+    var materialDefine = switch (materialSuffix) {
+      '_webgpu' => 'THERMION_MATERIAL_WEBGPU',
+      '_web_webgl' => 'THERMION_MATERIAL_WEB_WEBGL',
+      '_web_combined' => 'THERMION_MATERIAL_WEB_COMBINED',
+      '_apple' => 'THERMION_MATERIAL_APPLE',
+      '_android' => 'THERMION_MATERIAL_ANDROID',
+      '_desktop' => 'THERMION_MATERIAL_DESKTOP',
+      _ => 'THERMION_MATERIAL_NATIVE',
+    };
+
+    final defines = <String, String?>{};
+    final materialDir = path.join(pkgRootFilePath, 'native/include/material');
+    // If the per-platform variant hasn't been generated yet, fall back to the
+    // pre-split _native blob (all backends, larger, but compilable).
+    if (materialSuffix != '_native' && !File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
+      logger.info("Material variant $materialSuffix not found; falling back to _native");
+      materialSuffix = '_native';
+      materialDefine = 'THERMION_MATERIAL_NATIVE';
+    }
+    defines[materialDefine] = "1";
+    String materialPath(String name, String suffix) {
+      final suffixed = path.join(materialDir, '${name}$suffix.c');
+      if (File(suffixed).existsSync()) return 'native/include/material/${name}$suffix.c';
+      // Fallback: unsuffixed .c (pre-split materials)
+      final fallbackName = name == 'gizmo' ? 'gizmo_material' : name;
+      return 'native/include/material/$fallbackName.c';
+    }
+
     final materialSources = <String, String>{
-      'capture_uv': 'native/include/material/capture_uv.c',
-      'grid': 'native/include/material/grid.c',
-      'image': 'native/include/material/image.c',
-      'linear_depth': 'native/include/material/linear_depth.c',
-      'unlit_fixed_size': 'native/include/material/unlit_fixed_size.c',
-      'silhouette': 'native/include/material/silhouette.c',
-      'edge_outline': 'native/include/material/edge_outline.c',
-      'wireframe': 'native/include/material/wireframe.c',
-      'translation_axis': 'native/include/material/translation_axis.c',
+      'capture_uv': materialPath('capture_uv', materialSuffix),
+      'grid': materialPath('grid', materialSuffix),
+      'image': materialPath('image', materialSuffix),
+      'linear_depth': materialPath('linear_depth', materialSuffix),
+      'unlit_fixed_size': materialPath('unlit_fixed_size', materialSuffix),
+      'silhouette': materialPath('silhouette', materialSuffix),
+      'edge_outline': materialPath('edge_outline', materialSuffix),
+      'wireframe': materialPath('wireframe', materialSuffix),
+      'translation_axis': materialPath('translation_axis', materialSuffix),
       // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-      // with scene/Gizmo.cpp on Windows (both produced gizmo.obj, the
-      // material write-clobbered the class .obj, and the linker reported
-      // four LNK2019s for thermion::Gizmo::{Gizmo,pick,highlight,unhighlight}).
-      'gizmo': 'native/include/material/gizmo_material.c',
-      'bone_overlay': 'native/include/material/bone_overlay.c',
+      // with scene/Gizmo.cpp on Windows.
+      'gizmo': materialPath('gizmo_material', materialSuffix),
+      'bone_overlay': materialPath('bone_overlay', materialSuffix),
     };
 
     // Add gizmo resources (always included)
@@ -221,8 +293,6 @@ outputDirectory : ${outputDirectory.path}
       // (these are linked via ThermionWin32.h)
       libDir = Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
     }
-
-    final defines = <String, String?>{};
 
     if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
       logger.info("Enabling tracing");
