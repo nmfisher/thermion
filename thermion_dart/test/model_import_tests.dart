@@ -275,12 +275,13 @@ end_header
       final importer = AssimpImporter();
       // Pseudo-random non-zero bytes: enough structure to draw the binary
       // FBX/STL readers deep into parsing before they reject it.
-      final garbage = Uint8List.fromList(
-        List<int>.generate(1024, (i) => (i * 31 + 7) & 0xFF),
-      );
+      final garbage = Uint8List.fromList(List<int>.generate(1024, (i) => (i * 31 + 7) & 0xFF));
       for (final hint in ['fbx', 'obj', 'stl', 'ply']) {
-        expect(() => importer.parse(garbage, formatHint: hint), throwsException,
-            reason: "Garbage input with hint '$hint' should throw, not crash");
+        expect(
+          () => importer.parse(garbage, formatHint: hint),
+          throwsException,
+          reason: "Garbage input with hint '$hint' should throw, not crash",
+        );
       }
     });
   });
