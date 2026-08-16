@@ -58,7 +58,10 @@ void readVkImageToBitmap(
     const char* outputPath
 );
 
-VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device, uint32_t* queueFamilyIndex);
+// `queueCount` (optional) receives how many queues the device was actually
+// created with in `queueFamilyIndex`'s family. Callers hand queue 0 to the
+// first filament Engine, 1 to the blit worker and 2+ to further engines.
+VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device, uint32_t* queueFamilyIndex, uint32_t* queueCount = nullptr);
 
 void createDeviceWithGraphicsQueue(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex, VkDevice* device);
 void fillImageWithColor(

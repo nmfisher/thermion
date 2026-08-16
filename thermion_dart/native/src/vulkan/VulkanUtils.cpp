@@ -2,6 +2,8 @@
 
 #include "vulkan/VulkanUtils.h"
 
+#include <algorithm>
+
 #include "Log.hpp"
 
 #include <fstream>
@@ -586,7 +588,7 @@ void readVkImageToBitmap(
 }
 
 // Consolidated function for creating logical device
-VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device, uint32_t* queueFamilyIndex)
+VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device, uint32_t* queueFamilyIndex, uint32_t* queueCount)
 {
     uint32_t deviceCount = 0;
     bluevk::vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -613,26 +615,37 @@ VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevi
         #endif
         VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, };
 
-    // Request a second queue in the family when the hardware exposes one.
-    // Queue 0 is handed to Filament via VulkanSharedContext (render thread);
-    // the D3D-interop Blit submits from the Flutter platform thread. VkQueue
-    // access is externally synchronized, so sharing one queue across those
-    // two threads is a data race — tolerated by some drivers, but newer
-    // NVIDIA drivers (observed on RTX 5090 / 610.62) fail the first
-    // concurrent submission with VK_ERROR_DEVICE_LOST. With two queues the
-    // blit gets its own (see createCommandResources).
+    // Request as many queues in the family as we can use, up to
+    // kMaxRequestedQueues. VkQueue access is externally synchronized, so two
+    // threads submitting to one queue is a data race — tolerated by some
+    // drivers, but newer NVIDIA drivers fail the first concurrent submission
+    // with VK_ERROR_DEVICE_LOST (observed on RTX 5090 / 610.62 for the blit,
+    // and on RTX 3080 / 595.95 the moment a SECOND filament Engine started
+    // submitting). Every independent submitter therefore gets its own queue:
+    //
+    //   queue 0  -> the first filament Engine   (VulkanSharedContext)
+    //   queue 1  -> the D3D-interop Blit worker (see createCommandResources)
+    //   queue 2+ -> additional filament Engines (popout windows)
+    //
+    // Requesting a queue costs nothing if nobody fetches it, so this is sized
+    // for the popout ceiling rather than the current window count.
+    constexpr uint32_t kMaxRequestedQueues = 4;
     uint32_t familyCount = 0;
     bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, nullptr);
     std::vector<VkQueueFamilyProperties> families(familyCount);
     bluevk::vkGetPhysicalDeviceQueueFamilyProperties(*physicalDevice, &familyCount, families.data());
-    const uint32_t queueCount =
-        families[*queueFamilyIndex].queueCount >= 2 ? 2u : 1u;
+    const uint32_t queueCountRequested = std::min(
+        families[*queueFamilyIndex].queueCount, kMaxRequestedQueues);
 
-    float queuePriorities[2] = {1.0f, 1.0f};
+    if (queueCount) {
+        *queueCount = queueCountRequested;
+    }
+
+    float queuePriorities[kMaxRequestedQueues] = {1.0f, 1.0f, 1.0f, 1.0f};
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = *queueFamilyIndex;
-    queueCreateInfo.queueCount = queueCount;
+    queueCreateInfo.queueCount = queueCountRequested;
     queueCreateInfo.pQueuePriorities = queuePriorities;
 
     VkDeviceCreateInfo deviceCreateInfo = {};

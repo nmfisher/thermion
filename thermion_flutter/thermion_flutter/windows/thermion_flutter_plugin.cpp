@@ -653,12 +653,14 @@ namespace thermion::tflutter::windows
       std::lock_guard<std::mutex> contextLock(_contextMutex);
       auto *context = EnsureContextLocked();
       std::vector<flutter::EncodableValue> resultList;
-      // Platform: per ENGINE. Shared context: per PROCESS. See
+      // Both are per ENGINE: the platform object itself, and the
+      // VulkanSharedContext carrying this engine's VkQueue index. Only the
+      // VkInstance/VkDevice inside them are process-wide. See
       // EnginePlatformLocked().
-      resultList.push_back(
-          flutter::EncodableValue((int64_t)EnginePlatformLocked()));
-      resultList.push_back(
-          flutter::EncodableValue((int64_t)context->GetSharedContext()));
+      auto *platform = EnginePlatformLocked();
+      auto *sharedContext = context->GetSharedContextForPlatform(platform);
+      resultList.push_back(flutter::EncodableValue((int64_t)platform));
+      resultList.push_back(flutter::EncodableValue((int64_t)sharedContext));
       result->Success(resultList);
     }
     else if (methodCall.method_name() == "createTexture")
