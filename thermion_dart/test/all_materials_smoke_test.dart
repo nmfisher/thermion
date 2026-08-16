@@ -38,11 +38,7 @@ void main() async {
 
       // grid + translation_axis are created by their overlay helpers.
       await viewer.setGridOverlayVisibility(true);
-      await viewer.setTranslationAxisVisibility(
-        true,
-        origin: Vector3.zero(),
-        axis: Axis.X,
-      );
+      await viewer.setTranslationAxisVisibility(true, origin: Vector3.zero(), axis: Axis.X);
 
       // image backs the background quad.
       await viewer.setBackgroundImage("file://${testHelper.assetsDir}/background.ktx");
