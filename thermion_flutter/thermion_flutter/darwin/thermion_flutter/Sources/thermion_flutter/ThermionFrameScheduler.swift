@@ -4,6 +4,13 @@ import QuartzCore
 import CoreVideo
 #endif
 import Foundation
+// Under Swift Package Manager the Dart Native API C symbols live in their own
+// module (SPM can't mix C and Swift in one target). Under CocoaPods everything
+// is one module and the symbols come from the umbrella header, so this import
+// does not exist and is skipped.
+#if canImport(thermion_flutter_dart_api)
+import thermion_flutter_dart_api
+#endif
 
 @objc public class ThermionFrameScheduler: NSObject {
     private typealias FrameCallback = @convention(c) (UInt64) -> Void
