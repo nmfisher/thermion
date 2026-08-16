@@ -86,6 +86,7 @@ jobs:
           dart pub get
           xvfb-run dart test -j1 \
             test/model_import_tests.dart \
+            test/model_export_tests.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
@@ -97,12 +98,13 @@ jobs:
           dart pub get
           dart test -j1 `
             test/model_import_tests.dart `
+            test/model_export_tests.dart `
             --concurrency=1
 
-      # No golden-image steps here: model_import_tests.dart writes no PNGs
-      # (parse/asset assertions only), so there is nothing to zip or
+      # No golden-image steps here: the model import/export tests write no
+      # PNGs (parse/export assertions only), so there is nothing to zip or
       # compare — and test/output content of the regular workflow is
-      # unaffected by moving this test out of it.
+      # unaffected by moving these tests out of it.
 
       - name: Upload logs
         if: failure()
