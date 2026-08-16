@@ -100,7 +100,7 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+# Patch the libassimp tnt overlay to enable STL/PLY import + FBX export.
 # Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
 python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
 

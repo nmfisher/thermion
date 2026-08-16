@@ -1,5 +1,9 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
+/// [GltfMeshData] produced by the cgltf side of the model-import facade.
+///
+/// Kept as the concrete type returned by `FilamentApp.parseGltf` (public
+/// API); parsing itself now lives in [CgltfImporter].
 class FFIGltfMeshData extends GltfMeshData {
   FFIGltfMeshData({required super.vertices, super.indices, required super.primitiveType});
 
@@ -7,38 +11,18 @@ class FFIGltfMeshData extends GltfMeshData {
   /// Returns vertex positions (xyz) and optional indices.
   /// If [meshName] is specified, only extracts data for that specific mesh.
   static Future<GltfMeshData> parse(Uint8List data, {String? meshName}) async {
-    final meshNamePtr = meshName != null ? meshName.toNativeUtf8().cast<Char>() : nullptr;
-
-    final meshData = Struct.create<TGltfMeshData>();
-
-    try {
-      final result = GltfParser_parseBuffer(data.address, data.length, meshNamePtr, meshData.address);
-
-      if (result != 0) {
-        throw Exception("Failed to parse glTF for physics (error code: $result)");
-      }
-
-      // Copy to Dart lists
-      final vertices = Float32List(meshData.vertexCount);
-      vertices.setRange(0, vertices.length, meshData.vertices.asTypedList(meshData.vertexCount));
-
-      Uint32List? indices;
-      if (meshData.indices != nullptr && meshData.indexCount > 0) {
-        indices = Uint32List(meshData.indexCount);
-        indices.setRange(0, indices.length, meshData.indices.asTypedList(meshData.indexCount));
-      }
-
-      GltfParser_freeMeshData(meshData.address);
-
-      return FFIGltfMeshData(
-        vertices: vertices,
-        indices: indices,
-        primitiveType: PrimitiveType.values[meshData.primitiveType],
-      );
-    } finally {
-      if (meshNamePtr != nullptr) {
-        free(meshNamePtr);
-      }
-    }
+    final raw = CgltfImporter().parse(data, formatHint: 'gltf', meshName: meshName).first;
+    // This consumer takes a copy: [GltfMeshData] is a plain public data
+    // holder with no dispose hook, and physics keeps it for the lifetime of
+    // the collision object, so the native buffers cannot be tied to it.
+    // Copying lets the importer's native memory be released right away
+    // instead of being held until process exit.
+    final mesh = FFIGltfMeshData(
+      vertices: Float32List.fromList(raw.positions),
+      indices: raw.indices.isEmpty ? null : Uint32List.fromList(raw.indices),
+      primitiveType: raw.primitiveType,
+    );
+    raw.dispose();
+    return mesh;
   }
 }

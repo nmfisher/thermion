@@ -20,6 +20,13 @@ jobs:
     with:
       ref: ${{ inputs.ref }}
 
+  # Same shape as dart-tests, but with the assimp user_define enabled and
+  # only the model-import tests (see run-assimp-tests.yml).
+  assimp-tests:
+    uses: ./.github/workflows/run-assimp-tests.yml
+    with:
+      ref: ${{ inputs.ref }}
+
   flutter-builds:
     uses: ./.github/workflows/run-flutter-builds.yml
     with:

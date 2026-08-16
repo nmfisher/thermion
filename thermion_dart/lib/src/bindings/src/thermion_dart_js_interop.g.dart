@@ -176,6 +176,16 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Gizmo_pick(Pointer<TGizmo> tGizmo, int x, int y, GizmoPickCallback callback);
   external void _Gizmo_highlight(Pointer<TGizmo> tGizmo, int axis);
   external void _Gizmo_unhighlight(Pointer<TGizmo> tGizmo);
+  external void _MeshData_dispose(Pointer<TMeshData> meshData);
+  external int _ModelImporter_isSupported();
+  external Pointer<TModelImporter> _ModelImporter_loadFromBuffer(
+    Pointer<Uint8> data,
+    size_t size,
+    Pointer<Char> extensionHint,
+  );
+  external int _ModelImporter_getMeshCount(Pointer<TModelImporter> importer);
+  external int _ModelImporter_getMesh(Pointer<TModelImporter> importer, int meshIndex, Pointer<TMeshData> outMesh);
+  external void _ModelImporter_destroy(Pointer<TModelImporter> importer);
   external Pointer<TMaterialInstance> _Material_createInstance(Pointer<TMaterial> tMaterial);
   external int _Material_getFeatureLevel(Pointer<TMaterial> tMaterial);
   external Pointer<TMaterial> _Material_createImageMaterial(Pointer<TEngine> tEngine);
@@ -386,14 +396,12 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double near,
     double far,
   );
-  external void _dummy(Pointer<TGltfMeshData> dummyPtr);
   external int _GltfParser_parseBuffer(
     Pointer<Uint8> data,
     size_t length,
     Pointer<Char> meshName,
-    Pointer<TGltfMeshData> outMeshData,
+    Pointer<TMeshData> outMeshData,
   );
-  external void _GltfParser_freeMeshData(Pointer<TGltfMeshData> meshData);
   external Pointer<TTexture> _Texture_build(
     Pointer<TEngine> engine,
     int width,
@@ -2322,6 +2330,14 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _FilamentAsset_getEntities(Pointer<TFilamentAsset> filamentAsset, Pointer<Int32> out);
   external EntityId _FilamentAsset_getWireframe(Pointer<TFilamentAsset> filamentAsset);
   external Pointer<Void> _FilamentAsset_getSourceAsset(Pointer<TFilamentAsset> filamentAsset);
+  external int _ModelExporter_isSupported();
+  external Pointer<Uint8> _ModelExporter_exportToBuffer(
+    Pointer<TMeshData> meshes,
+    int meshCount,
+    Pointer<Char> formatId,
+    Pointer<Int64> outSize,
+  );
+  external void _ModelExporter_disposeBuffer(Pointer<Uint8> data);
   external void _Scene_addEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_removeEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_setSkybox(Pointer<TScene> tScene, Pointer<TSkybox> skybox);
@@ -2939,6 +2955,40 @@ void Gizmo_highlight(Pointer<TGizmo> tGizmo, int axis) {
 
 void Gizmo_unhighlight(Pointer<TGizmo> tGizmo) {
   final result = GeneratedBindings.instance._Gizmo_unhighlight(tGizmo.cast());
+  return result;
+}
+
+void MeshData_dispose(Pointer<TMeshData> meshData) {
+  final result = GeneratedBindings.instance._MeshData_dispose(meshData.cast());
+  return result;
+}
+
+bool ModelImporter_isSupported() {
+  final result = GeneratedBindings.instance._ModelImporter_isSupported();
+  return result == 1;
+}
+
+Pointer<TModelImporter> ModelImporter_loadFromBuffer(
+  Pointer<Uint8> data,
+  Dartsize_t size,
+  Pointer<Char> extensionHint,
+) {
+  final result = GeneratedBindings.instance._ModelImporter_loadFromBuffer(data, size, extensionHint);
+  return Pointer<TModelImporter>(result);
+}
+
+int ModelImporter_getMeshCount(Pointer<TModelImporter> importer) {
+  final result = GeneratedBindings.instance._ModelImporter_getMeshCount(importer.cast());
+  return result;
+}
+
+int ModelImporter_getMesh(Pointer<TModelImporter> importer, int meshIndex, Pointer<TMeshData> outMesh) {
+  final result = GeneratedBindings.instance._ModelImporter_getMesh(importer.cast(), meshIndex, outMesh.cast());
+  return result;
+}
+
+void ModelImporter_destroy(Pointer<TModelImporter> importer) {
+  final result = GeneratedBindings.instance._ModelImporter_destroy(importer.cast());
   return result;
 }
 
@@ -3595,24 +3645,13 @@ void Camera_setProjection(
   return result;
 }
 
-void dummy(TGltfMeshData dummy) {
-  final dummyPtr = dummy.address;
-  final result = GeneratedBindings.instance._dummy(dummyPtr.cast());
-  return result;
-}
-
 int GltfParser_parseBuffer(
   Pointer<Uint8> data,
   Dartsize_t length,
   Pointer<Char> meshName,
-  Pointer<TGltfMeshData> outMeshData,
+  Pointer<TMeshData> outMeshData,
 ) {
   final result = GeneratedBindings.instance._GltfParser_parseBuffer(data, length, meshName, outMeshData.cast());
-  return result;
-}
-
-void GltfParser_freeMeshData(Pointer<TGltfMeshData> meshData) {
-  final result = GeneratedBindings.instance._GltfParser_freeMeshData(meshData.cast());
   return result;
 }
 
@@ -8575,6 +8614,26 @@ Pointer<Void> FilamentAsset_getSourceAsset(Pointer<TFilamentAsset> filamentAsset
   return Pointer<Void>(result);
 }
 
+bool ModelExporter_isSupported() {
+  final result = GeneratedBindings.instance._ModelExporter_isSupported();
+  return result == 1;
+}
+
+Pointer<Uint8> ModelExporter_exportToBuffer(
+  Pointer<TMeshData> meshes,
+  int meshCount,
+  Pointer<Char> formatId,
+  Pointer<Int64> outSize,
+) {
+  final result = GeneratedBindings.instance._ModelExporter_exportToBuffer(meshes.cast(), meshCount, formatId, outSize);
+  return Pointer<Uint8>(result);
+}
+
+void ModelExporter_disposeBuffer(Pointer<Uint8> data) {
+  final result = GeneratedBindings.instance._ModelExporter_disposeBuffer(data);
+  return result;
+}
+
 void Scene_addEntity(Pointer<TScene> tScene, DartEntityId entityId) {
   final result = GeneratedBindings.instance._Scene_addEntity(tScene.cast(), entityId);
   return result;
@@ -9688,6 +9747,39 @@ sealed class TGizmoAxis {
   static const Z = 2;
 }
 
+extension TMeshDataExt on Pointer<TMeshData> {
+  TMeshData toDart() {
+    return TMeshData(this);
+  }
+}
+
+final class TMeshData extends Struct {
+  Pointer<TMeshData> get address => super.address.cast();
+  TMeshData(super.address);
+
+  static Pointer<TMeshData> stackAlloc() {
+    return Pointer<TMeshData>(NativeLibrary.instance.stackAlloc<TMeshData>(0));
+  }
+}
+
+extension TModelImporterExt on Pointer<TModelImporter> {
+  TModelImporter toDart() {
+    return TModelImporter(this);
+  }
+}
+
+final class TModelImporter extends Struct {
+  Pointer<TModelImporter> get address => super.address.cast();
+  TModelImporter(super.address);
+
+  static Pointer<TModelImporter> stackAlloc() {
+    return Pointer<TModelImporter>(NativeLibrary.instance.stackAlloc<TModelImporter>(0));
+  }
+}
+
+typedef size_t = int;
+typedef Dartsize_t = int;
+
 extension TMaterialInstanceExt on Pointer<TMaterialInstance> {
   TMaterialInstance toDart() {
     return TMaterialInstance(this);
@@ -9962,9 +10054,6 @@ sealed class TSceneAssetType {
   static const SCENE_ASSET_TYPE_GIZMO = 6;
 }
 
-typedef size_t = int;
-typedef Dartsize_t = int;
-
 extension double4x4Ext on Pointer<double4x4> {
   double4x4 toDart() {
     return double4x4(this);
@@ -10068,71 +10157,6 @@ final class double3 extends Struct {
 sealed class TProjection {
   static const Perspective = 0;
   static const Orthographic = 1;
-}
-
-extension TGltfMeshDataExt on Pointer<TGltfMeshData> {
-  TGltfMeshData toDart() {
-    return TGltfMeshData(this);
-  }
-}
-
-final class TGltfMeshData extends Struct {
-  Pointer<TGltfMeshData> get address => super.address.cast();
-  Pointer<Float32> get vertices {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 0);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Pointer<Float32>(value.toDartInt);
-  }
-
-  set vertices(Pointer<Float32> val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 0), val.toJS, '*');
-  }
-
-  int get vertexCount {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 4);
-    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
-    return value;
-  }
-
-  set vertexCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 4), val.toJS, 'i32');
-  }
-
-  Pointer<Uint32> get indices {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 8);
-    final value = NativeLibrary.instance.getValue(addr, '*');
-    return Pointer<Uint32>(value.toDartInt);
-  }
-
-  set indices(Pointer<Uint32> val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 8), val.toJS, '*');
-  }
-
-  int get indexCount {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 12);
-    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
-    return value;
-  }
-
-  set indexCount(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 12), val.toJS, 'i32');
-  }
-
-  int get primitiveType {
-    final addr = Pointer<TGltfMeshData>(this.address.addr + 16);
-    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
-    return value;
-  }
-
-  set primitiveType(int val) {
-    NativeLibrary.instance.setValue(Pointer<TGltfMeshData>(this.address.addr + 16), val.toJS, 'i32');
-  }
-
-  TGltfMeshData(super.address);
-
-  static Pointer<TGltfMeshData> stackAlloc() {
-    return Pointer<TGltfMeshData>(NativeLibrary.instance.stackAlloc<TGltfMeshData>(20));
-  }
 }
 
 sealed class TTextureSamplerType {
@@ -11122,6 +11146,12 @@ extension StructAllocator on Struct {
       case TMaterial:
         final ptr = TMaterial.stackAlloc();
         return ptr.toDart() as T;
+      case TMeshData:
+        final ptr = TMeshData.stackAlloc();
+        return ptr.toDart() as T;
+      case TModelImporter:
+        final ptr = TModelImporter.stackAlloc();
+        return ptr.toDart() as T;
       case TMaterialInstance:
         final ptr = TMaterialInstance.stackAlloc();
         return ptr.toDart() as T;
@@ -11148,9 +11178,6 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case double3:
         final ptr = double3.stackAlloc();
-        return ptr.toDart() as T;
-      case TGltfMeshData:
-        final ptr = TGltfMeshData.stackAlloc();
         return ptr.toDart() as T;
       case TLinearImage:
         final ptr = TLinearImage.stackAlloc();
