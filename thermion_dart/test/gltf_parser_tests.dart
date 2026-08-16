@@ -10,47 +10,46 @@ void main() async {
     await testHelper.setup();
   });
 
-  // CgltfImporter is the facade implementation behind parseGltf; it returns
-  // the shared RawMesh type (positions/indices merged across the meshes of
-  // the file, strips/fans expanded to triangle lists natively).
+  // parseGltf is the published cgltf-backed path (positions/indices merged
+  // across the meshes of the file, strips/fans expanded to triangle lists
+  // natively in GltfParser_parseBuffer).
   test('parse cube.glb for physics', () async {
     final glbPath = "${testHelper.assetsDir}/cube.glb";
     final buffer = File(glbPath).readAsBytesSync();
 
-    final meshes = CgltfImporter().parse(buffer, formatHint: 'glb');
-    expect(meshes.length, 1, reason: "cgltf path returns one merged mesh");
-    final mesh = meshes.first;
+    final mesh = await FilamentApp.instance!.parseGltf(buffer);
+    final indices = mesh.indices ?? Uint32List(0);
 
     // Cube has 8 vertices * 3 components (x,y,z)
-    expect(mesh.positions.length, greaterThan(0));
-    expect(mesh.positions.length % 3, 0, reason: "Vertices should be in groups of 3 (x,y,z)");
+    expect(mesh.vertices.length, greaterThan(0));
+    expect(mesh.vertices.length % 3, 0, reason: "Vertices should be in groups of 3 (x,y,z)");
 
     // Should have indices
-    expect(mesh.indices.length, greaterThan(0));
-    expect(mesh.indices.length % 3, 0, reason: "Indices should be in groups of 3 (triangles)");
+    expect(indices.length, greaterThan(0));
+    expect(indices.length % 3, 0, reason: "Indices should be in groups of 3 (triangles)");
 
     // Primitive type should be triangles
     expect(mesh.primitiveType, PrimitiveType.TRIANGLES);
 
-    print("Parsed ${mesh.vertexCount} vertices");
-    print("Parsed ${mesh.indices.length ~/ 3} triangles");
+    print("Parsed ${mesh.vertices.length ~/ 3} vertices");
+    print("Parsed ${indices.length ~/ 3} triangles");
   });
 
   test('parse cube.glb and verify vertex bounds', () async {
     final glbPath = "${testHelper.assetsDir}/cube.glb";
     final buffer = File(glbPath).readAsBytesSync();
 
-    final mesh = CgltfImporter().parse(buffer, formatHint: 'glb').first;
+    final mesh = await FilamentApp.instance!.parseGltf(buffer);
 
     // Find min/max bounds
     double minX = double.infinity, maxX = double.negativeInfinity;
     double minY = double.infinity, maxY = double.negativeInfinity;
     double minZ = double.infinity, maxZ = double.negativeInfinity;
 
-    for (int i = 0; i < mesh.positions.length; i += 3) {
-      final x = mesh.positions[i];
-      final y = mesh.positions[i + 1];
-      final z = mesh.positions[i + 2];
+    for (int i = 0; i < mesh.vertices.length; i += 3) {
+      final x = mesh.vertices[i];
+      final y = mesh.vertices[i + 1];
+      final z = mesh.vertices[i + 2];
 
       minX = x < minX ? x : minX;
       maxX = x > maxX ? x : maxX;
@@ -73,19 +72,19 @@ void main() async {
     final buffer = File(glbPath).readAsBytesSync();
 
     // Try to parse with a mesh name that doesn't exist
-    expect(() => CgltfImporter().parse(buffer, meshName: "NonExistentMesh"), throwsException);
+    expectLater(FilamentApp.instance!.parseGltf(buffer, meshName: "NonExistentMesh"), throwsException);
   });
 
   test('verify indices point to valid vertices', () async {
     final glbPath = "${testHelper.assetsDir}/cube.glb";
     final buffer = File(glbPath).readAsBytesSync();
 
-    final mesh = CgltfImporter().parse(buffer, formatHint: 'glb').first;
-
-    final vertexCount = mesh.vertexCount;
+    final mesh = await FilamentApp.instance!.parseGltf(buffer);
+    final indices = mesh.indices ?? Uint32List(0);
+    final vertexCount = mesh.vertices.length ~/ 3;
 
     // All indices should be within valid range
-    for (final index in mesh.indices) {
+    for (final index in indices) {
       expect(index, lessThan(vertexCount), reason: "Index $index out of bounds (vertex count: $vertexCount)");
     }
   });

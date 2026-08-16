@@ -188,30 +188,6 @@ abstract class ThermionViewer {
     bool addToScene = true,
   });
 
-  // Loads a model file (OBJ, FBX, glTF/glb, STL, PLY, ...) from the specified
-  // [uri] via Assimp. The importer is selected from the file extension.
-  //
-  // If [addToScene] is [true], all renderable entities in each mesh will be
-  // added to the scene. [flipUvs] flips UV coordinates vertically (most formats
-  // use a bottom-left origin, Filament uses top-left).
-  //
-  // Returns a list of [ThermionAsset] instances, one per object/mesh in the file.
-  Future<List<ThermionAsset>> loadModel(String uri, {bool addToScene = true, bool flipUvs = true});
-
-  // Loads a model file from the specified buffer via Assimp.
-  //
-  // [formatHint] is the file extension *without* the dot (e.g. "obj", "fbx",
-  // "glb", "stl", "ply"); Assimp uses it to select the importer when reading
-  // from memory.
-  //
-  // Returns a list of [ThermionAsset] instances, one per object/mesh in the file.
-  Future<List<ThermionAsset>> loadModelFromBuffer(
-    Uint8List data, {
-    required String formatHint,
-    bool addToScene = true,
-    bool flipUvs = true,
-  });
-
   // Destroys [asset] and all underlying resources
   // (including instances, but excluding any manually created material instances).
   //

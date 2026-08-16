@@ -7,5 +7,4 @@ export 'src/input/input.dart';
 export 'src/utils/utils.dart';
 export 'src/animation/animation.dart';
 export 'src/filament/filament.dart';
-export 'src/model_import/model_import.dart';
 export 'src/bindings/bindings.dart' hide Aabb2, Aabb3;
