@@ -46,8 +46,12 @@ jobs:
         include:
           - platform: windows
             runner: windows-2022
+          # ubuntu-22.04 to match the "Build Filament" linux job's glibc 2.35
+          # baseline (see the runs-on comment there): an assimp archive built
+          # against newer glibc headers references __isoc23_*@GLIBC_2.38 and
+          # fails to dlopen on older distros.
           - platform: linux
-            runner: ubuntu-24.04
+            runner: ubuntu-22.04
           - platform: macos
             runner: macos-14
           - platform: ios

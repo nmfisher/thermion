@@ -280,7 +280,18 @@ jobs:
 
   build-linux:
     name: Build Linux
-    runs-on: ubuntu-24.04
+    # ubuntu-22.04 (glibc 2.35) is deliberate — it is the oldest glibc we
+    # support, matching the ubuntu-22.04 Dart Tests runner. Building on
+    # ubuntu-24.04 (glibc 2.39) made the static archives reference
+    # __isoc23_*@GLIBC_2.38 (ISO C23 strtol/strtoul/sscanf redirects emitted
+    # by glibc >= 2.38 headers), which dlopen cannot resolve on older
+    # distros ("undefined symbol: __isoc23_strtol"). glibc's redirect has no
+    # compile-time opt-out, so the only fix is older headers at build time.
+    # Filament needs clang/libc++ >= 17 and jammy's distro clang is 14, so
+    # the install step below adds clang-18 from apt.llvm.org — the same major
+    # version ubuntu-24.04 shipped, keeping the toolchain identical while
+    # dropping only the glibc baseline.
+    runs-on: ubuntu-22.04
     needs: setup
     if: contains(needs.setup.outputs.matrix, 'linux')
     env:
@@ -293,16 +304,60 @@ jobs:
       - name: Checkout Filament
         run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
 
+      - name: Setup CMake
+        # jammy ships CMake 3.22; pin the same 3.30 the Windows job uses so
+        # the only variable changing vs the previous ubuntu-24.04 build is
+        # the glibc headers.
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.30.0'
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          sudo apt-get install -y ca-certificates wget ninja-build \
+            libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
+          # 14, too old for Filament). See the runs-on comment above.
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libc++-18-dev libc++abi-18-dev
+          # build_linux.sh hardcodes CC=clang/CXX=clang++ and apt.llvm.org
+          # only installs versioned binaries, so point the unversioned names
+          # at clang-18.
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 200
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 200
+          clang --version
 
       - name: Build Filament
         run: |
           mkdir -p output
           chmod +x scripts/build_linux.sh
           scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Reject glibc symbol references newer than 2.35
+        # Guards the glibc baseline described in the runs-on comment above:
+        # a static archive compiled against glibc >= 2.38 headers references
+        # __isoc23_*@GLIBC_2.38 and dlopen fails on older distros. Fail the
+        # build here instead of uploading a broken artifact to R2.
+        run: |
+          set -euo pipefail
+          rm -rf check && mkdir check && cd check
+          for z in ../output/filament-*.zip; do unzip -q "$z"; done
+          # Archive members reference these without a version suffix (nm shows
+          # plain "U __isoc23_strtol"), so match on names: the ISO C23
+          # strtol/strtoul/sscanf family glibc >= 2.38 renamed to __isoc23_*,
+          # plus any explicitly versioned ref newer than GLIBC_2.35.
+          refs=$(nm -A $(find . -name '*.a') 2>/dev/null | grep -E ' U (__isoc23_|.*@GLIBC_2\.(3[6-9]|[4-9][0-9]))' || true)
+          if [ -n "$refs" ]; then
+            echo "Archives reference glibc symbols newer than GLIBC_2.35;"
+            echo "they would fail to dlopen on ubuntu-22.04 (glibc 2.35):"
+            echo "$refs"
+            exit 1
+          fi
+          echo "OK: no glibc symbol references newer than GLIBC_2.35"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
@@ -336,7 +391,8 @@ jobs:
     name: Build Linux (arm64)
     # GitHub-hosted arm64 runner — build_linux.sh detects the host arch and
     # produces filament-<version>-linux-arm64-{release,debug}.zip.
-    runs-on: ubuntu-24.04-arm
+    # ubuntu-22.04-arm for the same glibc 2.35 baseline as build-linux above.
+    runs-on: ubuntu-22.04-arm
     needs: setup
     if: contains(needs.setup.outputs.matrix, 'linux')
     env:
@@ -349,16 +405,60 @@ jobs:
       - name: Checkout Filament
         run: git clone --depth 1 --branch ${{ env.FILAMENT_VERSION }} ${{ env.FILAMENT_REPO }} filament
 
+      - name: Setup CMake
+        # jammy ships CMake 3.22; pin the same 3.30 the Windows job uses so
+        # the only variable changing vs the previous ubuntu-24.04 build is
+        # the glibc headers.
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.30.0'
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang libc++-dev libc++abi-dev ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          sudo apt-get install -y ca-certificates wget ninja-build \
+            libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxxf86vm-dev
+          # clang-18 + libc++ 18 from apt.llvm.org (jammy's distro clang is
+          # 14, too old for Filament). See the runs-on comment above.
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y libc++-18-dev libc++abi-18-dev
+          # build_linux.sh hardcodes CC=clang/CXX=clang++ and apt.llvm.org
+          # only installs versioned binaries, so point the unversioned names
+          # at clang-18.
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 200
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 200
+          clang --version
 
       - name: Build Filament
         run: |
           mkdir -p output
           chmod +x scripts/build_linux.sh
           scripts/build_linux.sh filament ${{ env.FILAMENT_VERSION }} output --clean
+
+      - name: Reject glibc symbol references newer than 2.35
+        # Guards the glibc baseline described in the runs-on comment above:
+        # a static archive compiled against glibc >= 2.38 headers references
+        # __isoc23_*@GLIBC_2.38 and dlopen fails on older distros. Fail the
+        # build here instead of uploading a broken artifact to R2.
+        run: |
+          set -euo pipefail
+          rm -rf check && mkdir check && cd check
+          for z in ../output/filament-*.zip; do unzip -q "$z"; done
+          # Archive members reference these without a version suffix (nm shows
+          # plain "U __isoc23_strtol"), so match on names: the ISO C23
+          # strtol/strtoul/sscanf family glibc >= 2.38 renamed to __isoc23_*,
+          # plus any explicitly versioned ref newer than GLIBC_2.35.
+          refs=$(nm -A $(find . -name '*.a') 2>/dev/null | grep -E ' U (__isoc23_|.*@GLIBC_2\.(3[6-9]|[4-9][0-9]))' || true)
+          if [ -n "$refs" ]; then
+            echo "Archives reference glibc symbols newer than GLIBC_2.35;"
+            echo "they would fail to dlopen on ubuntu-22.04 (glibc 2.35):"
+            echo "$refs"
+            exit 1
+          fi
+          echo "OK: no glibc symbol references newer than GLIBC_2.35"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
