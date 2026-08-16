@@ -1,36 +1,9 @@
-import 'package:thermion_dart/thermion_dart.dart';
-
-/// Loads a multi-format model (OBJ here) through the Assimp importer,
-/// normalises each mesh to the unit cube, frames it with a perspective
-/// camera, and adds a skybox + IBL for context.
+/// Loads a multi-format model (OBJ here) through assimp_dart and renders it
+/// with thermion — the reference consumer-side glue between the two packages.
 ///
-/// `loadModel` returns one [ThermionAsset] per mesh in the file — unlike
-/// [ThermionViewer.loadGltf], which returns a single scene asset. Requires
-/// a native build with Assimp enabled (`assimp: true` under
-/// `hooks.user_defines.thermion_dart`).
-///
-/// `assetsDir` is the base path for assets — a `file://` URI on native (handled
-/// by the configured resource loader) or a bare relative path like `assets` on
-/// web (fetched over HTTP by the default web resource loader).
-Future<void> setupLoadModel(
-  ThermionViewer viewer, {
-  required String assetsDir,
-}) async {
-  final camera = await viewer.getActiveCamera();
-  await camera.setLensProjection(
-    near: 0.1,
-    far: 100.0,
-    aspect: 1.0,
-    focalLength: 28.0,
-  );
-
-  final assets = await viewer.loadModel("$assetsDir/test_cube.obj");
-  for (final asset in assets) {
-    await asset.transformToUnitCube();
-  }
-
-  await camera.lookAt(Vector3(3.0, 3.0, 3.0), focus: Vector3(0, 0, 0));
-
-  await viewer.loadSkybox("$assetsDir/default_env_skybox.ktx");
-  await viewer.loadIbl("$assetsDir/default_env_ibl.ktx");
-}
+/// The assimp-backed implementation lives in load_model_assimp.dart and is
+/// conditionally exported for native builds only: assimp_dart is a
+/// native-only package (dart:ffi), and examples_lib must stay
+/// web-compilable for the gallery. Web builds get the stub in
+/// load_model_stub.dart.
+export 'load_model_stub.dart' if (dart.library.io) 'load_model_assimp.dart';
