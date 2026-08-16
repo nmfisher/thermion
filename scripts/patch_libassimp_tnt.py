@@ -15,9 +15,10 @@ The `tnt` overlay hardcodes the feature set:
   - export is effectively off because the per-format exporter *sources* are not
     compiled, even though Exporter.cpp's registration table is. (The overlay sets
     `-DASSIMP_BUILD_NO_EXPORTER`, but assimp's real guard is
-    `ASSIMP_BUILD_NO_EXPORT`; the ...EXPORTER macro is a no-op. The build links
-    today only because nothing references Assimp::Exporter, so Exporter.o is
-    never pulled from the archive.)
+    `ASSIMP_BUILD_NO_EXPORT`; the ...EXPORTER macro is a no-op. Before Thermion's
+    native/src/c_api/model_export.cpp referenced Assimp::Exporter, Exporter.o
+    was never pulled from the archive; now that it is, the FBX exporter sources
+    below must be compiled or the link fails.)
 
 So to make export usable we (a) compile the exporter sources for FBX,
 and (b) disable every *other* exporter via per-format `ASSIMP_BUILD_NO_*_EXPORTER`
