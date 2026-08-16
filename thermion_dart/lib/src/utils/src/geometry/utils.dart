@@ -401,7 +401,12 @@ class GeometryUtils {
     final meshes = AssimpImporter().parse(data, formatHint: formatHint);
     return meshes.map((mesh) {
       final geometry = mesh.toGeometry(flipUvs: flipUvs, createDummyColors: true, createDummyUvs: true);
-      return ModelGeometryGroup(name: mesh.name, materialName: mesh.materialName, geometry: geometry);
+      return ModelGeometryGroup(
+        name: mesh.name,
+        materialName: mesh.materialName,
+        geometry: geometry,
+        rawMesh: mesh,
+      );
     }).toList();
   }
 
@@ -425,5 +430,16 @@ class ModelGeometryGroup {
   /// The geometry data for this group.
   final Geometry geometry;
 
-  ModelGeometryGroup({this.name, this.materialName, required this.geometry});
+  /// The [RawMesh] this group was parsed from, when it came from a model
+  /// file (null for hand-built groups).
+  ///
+  /// [geometry]'s positions/normals are typed-data views backed by native
+  /// memory owned by this mesh. They stay valid until [RawMesh.dispose] is
+  /// called — `loadModelFromBuffer` disposes after uploading the geometry;
+  /// callers using [geometry] on their own must keep this mesh undisposed
+  /// for as long as they read from it (and dispose it when done, or accept
+  /// that the memory is held until process exit).
+  final RawMesh? rawMesh;
+
+  ModelGeometryGroup({this.name, this.materialName, required this.geometry, this.rawMesh});
 }

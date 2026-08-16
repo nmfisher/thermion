@@ -27,26 +27,17 @@ class CgltfImporter implements ModelFileImporter {
       final result = GltfParser_parseBuffer(data.address, data.length, meshNamePtr, outMeshData);
 
       if (result != 0) {
+        // The shim allocates zeroed memory, so disposing a partially filled
+        // struct is safe (MeshData_dispose tolerates null pointers).
+        MeshData_dispose(outMeshData);
+        free(outMeshData);
         throw Exception('Failed to parse glTF (error code: $result)');
       }
 
-      final ref = outMeshData.ref;
-      final raw = RawMesh(
-        name: ref.name == nullptr ? null : ref.name.cast<Utf8>().toDartString(),
-        materialName: null,
-        positions: ref.vertices == nullptr || ref.vertexCount <= 0
-            ? Float32List(0)
-            : Float32List.fromList(ref.vertices.asTypedList(ref.vertexCount)),
-        indices: ref.indices == nullptr || ref.indexCount <= 0
-            ? Uint32List(0)
-            : Uint32List.fromList(ref.indices.asTypedList(ref.indexCount)),
-        primitiveType: PrimitiveType.values[ref.primitiveType],
-      );
-
-      return [raw];
+      // Ownership of the struct and its malloc'd buffers moves into the
+      // RawMesh; freed by RawMesh.dispose, not here.
+      return [RawMesh.fromNative(outMeshData)];
     } finally {
-      MeshData_dispose(outMeshData);
-      free(outMeshData);
       if (meshNamePtr != nullptr) {
         free(meshNamePtr);
       }

@@ -50,34 +50,32 @@ class AssimpImporter implements ModelFileImporter {
           throw Exception('Failed to load model ($formatHint): No meshes found in file');
         }
 
-        // One TMeshData slot reused for every mesh: getMesh fills it,
-        // we copy to Dart memory, MeshData_dispose frees the native copy.
-        final outMesh = allocate<PointerClass>(_tMeshDataSlots).cast<TMeshData>();
+        // Each mesh gets its own TMeshData: getMesh fills it with freshly
+        // malloc'd buffers that are private copies of the scene data, and
+        // ownership of struct + buffers moves into the RawMesh (freed by
+        // RawMesh.dispose). Nothing is disposed between meshes — the views
+        // handed to the caller stay valid after the importer is destroyed.
         final meshes = <RawMesh>[];
 
         try {
           for (int i = 0; i < meshCount; i++) {
+            final outMesh = allocate<PointerClass>(_tMeshDataSlots).cast<TMeshData>();
             final result = ModelImporter_getMesh(importerPtr, i, outMesh);
             if (result != 0) {
+              // getMesh may have filled the struct partially (it cleans up
+              // its own buffers on malloc failure, but not the struct).
+              MeshData_dispose(outMesh);
+              free(outMesh);
               throw Exception('Failed to read mesh $i from model ($formatHint): error $result');
             }
-            final ref = outMesh.ref;
-            meshes.add(
-              RawMesh(
-                name: _safeDartString(ref.name),
-                materialName: _safeDartString(ref.materialName),
-                positions: _copyFloats(ref.vertices, ref.vertexCount),
-                normals: _copyFloats(ref.normals, ref.normalCount),
-                uvs: _copyFloats(ref.uvs, ref.uvCount),
-                indices: _copyIndices(ref.indices, ref.indexCount),
-                primitiveType: PrimitiveType.values[ref.primitiveType],
-              ),
-            );
-            MeshData_dispose(outMesh);
+            meshes.add(RawMesh.fromNative(outMesh));
           }
-        } finally {
-          MeshData_dispose(outMesh);
-          free(outMesh);
+        } catch (_) {
+          // Don't leak the meshes already adopted on the error path.
+          for (final mesh in meshes) {
+            mesh.dispose();
+          }
+          rethrow;
         }
 
         return meshes;
@@ -87,31 +85,6 @@ class AssimpImporter implements ModelFileImporter {
     } finally {
       free(dataPointer);
       free(hintPointer);
-    }
-  }
-
-  static Float32List _copyFloats(Pointer<Float> pointer, int count) {
-    if (pointer == nullptr || count <= 0) {
-      return Float32List(0);
-    }
-    return Float32List.fromList(pointer.asTypedList(count));
-  }
-
-  static Uint32List _copyIndices(Pointer<Uint32> pointer, int count) {
-    if (pointer == nullptr || count <= 0) {
-      return Uint32List(0);
-    }
-    return Uint32List.fromList(pointer.asTypedList(count));
-  }
-
-  /// Convert a C string pointer to a Dart string, null on null pointer or
-  /// invalid UTF-8.
-  static String? _safeDartString(Pointer<Char> ptr) {
-    if (ptr == nullptr) return null;
-    try {
-      return ptr.cast<Utf8>().toDartString();
-    } catch (_) {
-      return null;
     }
   }
 }

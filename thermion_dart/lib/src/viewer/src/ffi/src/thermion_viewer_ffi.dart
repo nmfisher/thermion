@@ -573,9 +573,21 @@ class ThermionViewerFFI extends ThermionViewer {
     final groups = GeometryUtils.parseModelFromBuffer(data, formatHint: formatHint, flipUvs: flipUvs);
     final assets = <ThermionAsset>[];
 
-    for (final group in groups) {
-      final asset = await createGeometry(group.geometry, addToScene: addToScene);
-      assets.add(asset);
+    try {
+      for (final group in groups) {
+        final asset = await createGeometry(group.geometry, addToScene: addToScene);
+        assets.add(asset);
+      }
+    } finally {
+      // The group geometries' positions/normals are views over native
+      // buffers owned by their RawMesh. createGeometry's uploads copy the
+      // bytes synchronously (the *RenderThread setters std::copy into a
+      // std::vector before returning) and the awaited future resolves only
+      // after the engine has taken them, so the buffers are no longer
+      // needed once every upload has completed.
+      for (final group in groups) {
+        group.rawMesh?.dispose();
+      }
     }
 
     return assets;

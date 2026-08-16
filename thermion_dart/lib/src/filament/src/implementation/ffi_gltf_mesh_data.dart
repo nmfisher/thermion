@@ -12,10 +12,17 @@ class FFIGltfMeshData extends GltfMeshData {
   /// If [meshName] is specified, only extracts data for that specific mesh.
   static Future<GltfMeshData> parse(Uint8List data, {String? meshName}) async {
     final raw = CgltfImporter().parse(data, formatHint: 'gltf', meshName: meshName).first;
-    return FFIGltfMeshData(
-      vertices: raw.positions,
-      indices: raw.indices.isEmpty ? null : raw.indices,
+    // This consumer takes a copy: [GltfMeshData] is a plain public data
+    // holder with no dispose hook, and physics keeps it for the lifetime of
+    // the collision object, so the native buffers cannot be tied to it.
+    // Copying lets the importer's native memory be released right away
+    // instead of being held until process exit.
+    final mesh = FFIGltfMeshData(
+      vertices: Float32List.fromList(raw.positions),
+      indices: raw.indices.isEmpty ? null : Uint32List.fromList(raw.indices),
       primitiveType: raw.primitiveType,
     );
+    raw.dispose();
+    return mesh;
   }
 }
