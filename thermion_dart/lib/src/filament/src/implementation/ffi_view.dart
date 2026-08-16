@@ -53,17 +53,6 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setRenderTarget(RenderTarget? renderTarget) async {
-    // When highlight overlay is enabled, the main view renders to an internal
-    // render target. Flutter-provided render targets go to EdgeDetectionView.
-    if (_highlightOverlayManager != null && renderTarget != null) {
-      final isInternalRT = _highlightOverlayManager!.isInternalRenderTarget(renderTarget);
-      if (!isInternalRT) {
-        // This is a Flutter RT - redirect to EdgeDetectionView
-        await _highlightOverlayManager!.setRenderTarget(this, renderTarget as FFIRenderTarget);
-        return;
-      }
-    }
-
     if (renderTarget != null) {
       await withVoidCallback(
         (requestId, cb) => View_setRenderTargetRenderThread(view, renderTarget.getNativeHandle(), requestId, cb),
@@ -73,6 +62,17 @@ class FFIView extends View<Pointer<TView>> {
       await withVoidCallback((requestId, cb) => View_setRenderTargetRenderThread(view, nullptr, requestId, cb));
       this.renderTarget = null;
     }
+  }
+
+  @override
+  Future setPresentationRenderTarget(RenderTarget? renderTarget) async {
+    final overlay = _highlightOverlayManager;
+    if (overlay == null) {
+      await setRenderTarget(renderTarget);
+      return;
+    }
+
+    await overlay.setRenderTarget(this, renderTarget);
   }
 
   @override
@@ -497,6 +497,13 @@ class FFIView extends View<Pointer<TView>> {
     }
 
     // Configure output: render target (macOS/iOS) or swapchain (web/Android)
+    // A newly-created overlay has no highlights. Record both auxiliary passes
+    // as inactive before attaching them so no intermediate attachment sync can
+    // submit an empty full-screen pass.
+    await rm.setRenderables({
+      _highlightOverlayManager!.silhouetteView: false,
+      _highlightOverlayManager!.overlayView: false,
+    });
     await rm.detach(this, swapChain: swapChains.first);
     await rm.attach(_highlightOverlayManager!.silhouetteView, swapChains.first, renderOrder: 0);
     await rm.attach(this, swapChains.first, renderOrder: 1);
@@ -590,6 +597,13 @@ class FFIView extends View<Pointer<TView>> {
       return;
     }
 
+    // Apply the outline appearance once per call. addHighlight is invoked
+    // once per primitive below; setting the material parameters there would
+    // re-upload the same values N times for an N-primitive entity (and the
+    // consecutive-color-update behavior relies on this running even when the
+    // entity is already highlighted).
+    await _highlightOverlayManager!.setOutlineParams(width: outlineWidth, r: r, g: g, b: b);
+
     // Get the primitive count for this entity
     final primCount = await _app.getPrimitiveCount(entity);
 
@@ -617,16 +631,15 @@ class FFIView extends View<Pointer<TView>> {
       final indexCount = IndexBuffer_getIndexCount(indexBuffer);
       final ffiIndexBuffer = FFIIndexBuffer(indexBuffer, _app.engine);
 
-      // Create silhouette for this primitive
+      // Create silhouette for this primitive (deduplicated per
+      // entity+primitive, so re-highlighting an entity doesn't duplicate
+      // renderables)
       await _highlightOverlayManager!.addHighlight(
         target: entity,
         vertexBuffer: vertexBuffer,
         indexBuffer: ffiIndexBuffer,
         indexCount: indexCount,
-        outlineWidth: outlineWidth,
-        r: r,
-        g: g,
-        b: b,
+        primitiveKey: flatPrimIndex,
       );
     }
 
