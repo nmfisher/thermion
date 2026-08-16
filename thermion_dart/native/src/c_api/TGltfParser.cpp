@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <cstdlib>
 
         // Helper to convert cgltf_primitive_type to TPrimitiveType
         static TPrimitiveType convertPrimitiveType(cgltf_primitive_type type)
@@ -162,11 +163,30 @@
 
 extern "C" {
 
+    // TMeshData buffers and strings are malloced by GltfParser_parseBuffer,
+    // so free() is the matching deallocator for everything here.
+    EMSCRIPTEN_KEEPALIVE void MeshData_dispose(TMeshData* meshData)
+    {
+        if (!meshData)
+        {
+            return;
+        }
+
+        free(meshData->name);
+        free(meshData->materialName);
+        free(meshData->vertices);
+        free(meshData->normals);
+        free(meshData->uvs);
+        free(meshData->indices);
+
+        memset(meshData, 0, sizeof(TMeshData));
+    }
+
     EMSCRIPTEN_KEEPALIVE int GltfParser_parseBuffer(
         const uint8_t *data,
         size_t length,
         const char *meshName,
-        TGltfMeshData *outMeshData)
+        TMeshData *outMeshData)
     {
         if (!outMeshData)
         {
@@ -175,10 +195,7 @@ extern "C" {
         }
 
         // Initialize output
-        outMeshData->vertices = nullptr;
-        outMeshData->vertexCount = 0;
-        outMeshData->indices = nullptr;
-        outMeshData->indexCount = 0;
+        memset(outMeshData, 0, sizeof(TMeshData));
         outMeshData->primitiveType = PRIMITIVETYPE_TRIANGLES;
 
         cgltf_options options = {};
@@ -307,8 +324,19 @@ extern "C" {
                 }
             }
 
-            cgltf_free(gltfData);
+            // Copy the mesh name before cgltf_free: [mesh] points into
+            // [gltfData], which is released below.
+            if (mesh->name && mesh->name[0] != '\0')
+            {
+                size_t nameLen = strlen(mesh->name) + 1;
+                outMeshData->name = static_cast<char *>(malloc(nameLen));
+                if (outMeshData->name)
+                {
+                    memcpy(outMeshData->name, mesh->name, nameLen);
+                }
+            }
 
+            cgltf_free(gltfData);
 
             if (allVertices.empty())
             {
@@ -316,14 +344,23 @@ extern "C" {
                 return -1;
             }
 
-            outMeshData->vertexCount = allVertices.size();
-            outMeshData->vertices = new float[allVertices.size()];
+            outMeshData->vertexCount = static_cast<int>(allVertices.size());
+            outMeshData->vertices = static_cast<float *>(malloc(allVertices.size() * sizeof(float)));
+            if (!outMeshData->vertices)
+            {
+                return -1;
+            }
             memcpy(outMeshData->vertices, allVertices.data(), allVertices.size() * sizeof(float));
 
-            outMeshData->indexCount = allIndices.size();
+            outMeshData->indexCount = static_cast<int>(allIndices.size());
             if (!allIndices.empty())
             {
-                outMeshData->indices = new uint32_t[allIndices.size()];
+                outMeshData->indices = static_cast<uint32_t *>(malloc(allIndices.size() * sizeof(uint32_t)));
+                if (!outMeshData->indices)
+                {
+                    MeshData_dispose(outMeshData);
+                    return -1;
+                }
                 memcpy(outMeshData->indices, allIndices.data(), allIndices.size() * sizeof(uint32_t));
             }
             else
@@ -339,19 +376,5 @@ extern "C" {
         }
         return -1; // No matching mesh found
     }
-
-    EMSCRIPTEN_KEEPALIVE void GltfParser_freeMeshData(TGltfMeshData *meshData)
-    {
-        if (!meshData)
-            return;
-
-        delete[] meshData->vertices;
-        delete[] meshData->indices;
-
-        meshData->vertices = nullptr;
-        meshData->indices = nullptr;
-        meshData->vertexCount = 0;
-        meshData->indexCount = 0;
-    }
 }
-    
+

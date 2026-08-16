@@ -120,7 +120,7 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch the libassimp tnt overlay to enable STL/PLY import + glTF2/FBX export.
+# Patch the libassimp tnt overlay to enable STL/PLY import + FBX export.
 # Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
 python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
 
@@ -235,12 +235,20 @@ build_third_party_libs() {
 
   echo "Building libassimp ($BUILD_SUFFIX)..."
   mkdir -p "$CMAKE_DIR/third_party/libassimp" && cd "$CMAKE_DIR/third_party/libassimp"
+  # -stdlib=libc++: MANDATORY, same ABI fix as imageio/tinyexr above. Without
+  # it clang defaults to libstdc++ and the archive links two C++ runtimes into
+  # libthermion_dart.so: assimp's internals (FBX node names, error strings,
+  # exception machinery) run on libstdc++ while everything around them —
+  # including the exception barriers in model_import.cpp/model_export.cpp —
+  # runs on libc++. That mix crashed CI's Linux x64 FBX round-trip test inside
+  # libc++abi's unwind machinery (SEGV, si_addr=0x10), and no FFI-side guard
+  # can catch it. See docs/release-failure-analysis.md and #224.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DCMAKE_C_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
-    -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
+    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I$FILAMENT_BASE_DIR/third_party/libz" \
     -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
     -DASSIMP_BUILD_TESTS=OFF \
     -DASSIMP_BUILD_SAMPLES=OFF \

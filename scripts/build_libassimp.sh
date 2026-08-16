@@ -64,12 +64,22 @@ python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
 # ------------------------------------------------------------------
 echo ""
 echo "--- libassimp ---"
+# Mirror scripts/build_linux.sh: clang + libc++. The -stdlib flag is not
+# cosmetic — a libstdc++ libassimp links a second C++ runtime into
+# libthermion_dart.so and crashes at runtime on Linux x64 (see the comment
+# in build_linux.sh's libassimp block). gcc silently ignores -stdlib=libc++,
+# so the compiler must be pinned to clang as well.
+export CC=clang
+export CXX=clang++
 mkdir -p "$FILAMENT_BASE_DIR/out/$NINJA_DIR/third_party/libassimp"
 cd "$FILAMENT_BASE_DIR/out/$NINJA_DIR/third_party/libassimp"
 if [ ! -f CMakeCache.txt ]; then
     cmake -G Ninja \
         -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
         -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DCMAKE_C_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
+        -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I$FILAMENT_BASE_DIR/third_party/libz" \
         -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
         -DASSIMP_BUILD_TESTS=OFF \
         -DASSIMP_BUILD_SAMPLES=OFF \

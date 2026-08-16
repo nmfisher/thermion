@@ -248,7 +248,10 @@ outputDirectory : ${outputDirectory.path}
     //                           `<utils/...>`, `<backend/...>` and
     //                           `<gltfio/materials/uberarchive.h>` all resolve
     //                           from this flat root.
-    final includeDirs = <String>['native/include', artifactIncludeRel];
+    final includeDirs = <String>[
+      'native/include',
+      artifactIncludeRel,
+    ];
 
     // Process plugins after flags and includeDirs are declared
     if (pluginConfigs != null && consumingPackageRoot != null) {
@@ -424,9 +427,7 @@ outputDirectory : ${outputDirectory.path}
           ],
           "-L$libDir",
         ],
-        if (targetOS == OS.linux)
-          '-Wl,--no-as-needed'
-        else if (targetOS != OS.windows && targetOS != OS.android)
+        if (targetOS != OS.linux && targetOS != OS.windows && targetOS != OS.android)
           '-lc++',
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
