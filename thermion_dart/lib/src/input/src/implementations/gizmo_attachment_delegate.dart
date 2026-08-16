@@ -199,15 +199,17 @@ class GizmoAttachmentDelegate extends InputHandlerDelegate {
           if (_isDraggingGizmo) {
             final x = event.localPosition.x.toInt();
             final y = event.localPosition.y.toInt();
-            await _gizmo!.updateDrag(x, y);
+            await _gizmo!.updateDrag(x, y, context: await GizmoCameraContext.fetch(viewer));
             _reportTransformChange();
-          } else {
-            // Update gizmo position and check for hover
-            await _gizmo?.update();
+          } else if (_gizmo != null) {
+            // Fetch camera state once and share it between the position
+            // update and hover picking to avoid redundant FFI reads.
+            final cameraContext = await GizmoCameraContext.fetch(viewer);
+            await _gizmo!.update(cameraPosition: cameraContext.cameraPosition);
             if (!_isDraggingGizmo) {
               final x = event.localPosition.x.toInt();
               final y = event.localPosition.y.toInt();
-              await _gizmo?.hover(x, y);
+              await _gizmo!.hover(x, y, context: cameraContext);
             }
           }
           break;

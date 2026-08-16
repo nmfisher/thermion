@@ -6,6 +6,50 @@ enum TransformationGizmoType { translation, scale, rotation }
 
 enum GizmoAxis { x, y, z, none }
 
+/// Camera/viewport state for a single input event.
+///
+/// [TransformationGizmo.update], [pickAxis] and the drag handlers all need
+/// the same camera matrices; fetching them once per event and passing this
+/// object down avoids re-reading (and re-allocating) them 2-3 times per
+/// pointer event.
+class GizmoCameraContext {
+  final Viewport viewport;
+  final Matrix4 projectionMatrix;
+  final Matrix4 viewMatrix;
+  final Matrix4 modelMatrix;
+  final Vector3 cameraPosition;
+
+  GizmoCameraContext({
+    required this.viewport,
+    required this.projectionMatrix,
+    required this.viewMatrix,
+    required this.modelMatrix,
+    required this.cameraPosition,
+  });
+
+  static Future<GizmoCameraContext> fetch(ThermionViewer viewer) async {
+    final camera = await viewer.getActiveCamera();
+    final view = await viewer.view;
+    return GizmoCameraContext(
+      viewport: await view.getViewport(),
+      projectionMatrix: await camera.getProjectionMatrix(),
+      viewMatrix: await camera.getViewMatrix(),
+      modelMatrix: await camera.getModelMatrix(),
+      cameraPosition: await camera.getPosition(),
+    );
+  }
+
+  /// Projects a world-space point to screen (viewport) space.
+  Vector2 projectToScreen(Vector3 worldPos) {
+    final clipSpace = projectionMatrix * viewMatrix * Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
+    final ndc = clipSpace / clipSpace.w;
+    return Vector2(
+      ((ndc.x + 1.0) / 2.0) * viewport.width.toDouble(),
+      ((1.0 - ndc.y) / 2.0) * viewport.height.toDouble(),
+    );
+  }
+}
+
 class TransformationGizmo {
   final ThermionViewer viewer;
 
@@ -42,6 +86,9 @@ class TransformationGizmo {
   Vector2? _dragStartScreen;
   Matrix4? _targetStartTransform;
   Matrix4? _lastComputedWorldTransform; // Last computed world transform for callback
+
+  // Last transform applied to the root entity (used to skip redundant writes)
+  Matrix4? _lastRootTransform;
 
   // Hover state
   GizmoAxis _hoveredAxis = GizmoAxis.none;
@@ -423,10 +470,9 @@ class TransformationGizmo {
     if (_isDisposed) return;
 
     // Always get camera position for scale calculation
-    final camera = await viewer.getActiveCamera();
+    final camPos = cameraPosition ?? await (await viewer.getActiveCamera()).getPosition();
     if (_isDisposed) return;
 
-    final camPos = cameraPosition ?? await camera.getPosition();
     final dist = targetPos.distanceTo(camPos);
 
     // Scale proportionally to distance to maintain constant screen-space size
@@ -435,20 +481,29 @@ class TransformationGizmo {
     final scale = dist * screenSizeFactor / _axisLength;
 
     final rootTransform = Matrix4.compose(targetPos, Quaternion.identity(), Vector3.all(scale));
+
+    // Input events fire far more often than the camera or target moves;
+    // skip the FFI write when the computed transform is unchanged.
+    if (_lastRootTransform != null && _transformsEqual(_lastRootTransform!, rootTransform)) {
+      return;
+    }
     await viewer.app.setTransform(_rootEntity!, rootTransform);
+    _lastRootTransform = rootTransform;
   }
 
-  Future<GizmoAxis> pickAxis(int x, int y) async {
+  static bool _transformsEqual(Matrix4 a, Matrix4 b) {
+    for (int i = 0; i < 16; i++) {
+      if (a.storage[i] != b.storage[i]) return false;
+    }
+    return true;
+  }
+
+  Future<GizmoAxis> pickAxis(int x, int y, {GizmoCameraContext? context}) async {
     if (_isDisposed || _attachedTarget == null) return GizmoAxis.none;
 
     // Use screen-space picking to avoid depth buffer issues
-    final camera = await viewer.getActiveCamera();
+    final ctx = context ?? await GizmoCameraContext.fetch(viewer);
     if (_isDisposed) return GizmoAxis.none;
-
-    final view = await viewer.view;
-    final viewport = await view.getViewport();
-    final projectionMatrix = await camera.getProjectionMatrix();
-    final viewMatrix = await camera.getViewMatrix();
 
     // Get gizmo world position
     final gizmoTransform = await viewer.app.transformManager.getWorldTransform(_rootEntity!);
@@ -456,14 +511,7 @@ class TransformationGizmo {
     final gizmoScale = gizmoTransform.getColumn(0).xyz.length;
 
     // Project a point from world space to screen space
-    Vector2 projectToScreen(Vector3 worldPos) {
-      final clipSpace = projectionMatrix * viewMatrix * Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
-      final ndc = clipSpace / clipSpace.w;
-      return Vector2(
-        ((ndc.x + 1.0) / 2.0) * viewport.width.toDouble(),
-        ((1.0 - ndc.y) / 2.0) * viewport.height.toDouble(),
-      );
-    }
+    Vector2 projectToScreen(Vector3 worldPos) => ctx.projectToScreen(worldPos);
 
     // Distance from point to line segment in 2D
     double pointToSegmentDistance(Vector2 p, Vector2 a, Vector2 b) {
@@ -543,11 +591,11 @@ class TransformationGizmo {
   /// floating point drift from reading back via getWorldTransform.
   Matrix4? get lastComputedWorldTransform => _lastComputedWorldTransform;
 
-  Future<bool> startDrag(int screenX, int screenY) async {
+  Future<bool> startDrag(int screenX, int screenY, {GizmoCameraContext? context}) async {
     if (_isDisposed || _attachedTarget == null) return false;
 
     // Pick to find which axis was clicked
-    _activeAxis = await pickAxis(screenX, screenY);
+    _activeAxis = await pickAxis(screenX, screenY, context: context);
     if (_isDisposed || _activeAxis == GizmoAxis.none) return false;
 
     // Store initial state
@@ -559,7 +607,7 @@ class TransformationGizmo {
 
     // For rotation gizmos, position markers at click location on ring
     if (_type == TransformationGizmoType.rotation) {
-      final startPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
+      final startPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis, context: context);
       if (_isDisposed) return false;
 
       if (startPos != null) {
@@ -578,10 +626,10 @@ class TransformationGizmo {
     return true;
   }
 
-  Future<void> hover(int screenX, int screenY) async {
+  Future<void> hover(int screenX, int screenY, {GizmoCameraContext? context}) async {
     if (_isDisposed || _activeAxis != GizmoAxis.none) return;
 
-    final hovered = await pickAxis(screenX, screenY);
+    final hovered = await pickAxis(screenX, screenY, context: context);
     if (_isDisposed) return;
 
     if (hovered != _hoveredAxis) {
@@ -590,30 +638,28 @@ class TransformationGizmo {
     }
   }
 
-  Future<void> updateDrag(int screenX, int screenY) async {
+  Future<void> updateDrag(int screenX, int screenY, {GizmoCameraContext? context}) async {
     if (_isDisposed || _activeAxis == GizmoAxis.none || _attachedTarget == null) return;
 
+    final ctx = context ?? await GizmoCameraContext.fetch(viewer);
+    if (_isDisposed) return;
+
     if (_type == TransformationGizmoType.rotation) {
-      await _updateRotationDrag(screenX, screenY);
+      await _updateRotationDrag(screenX, screenY, ctx);
     } else {
-      await _updateTranslationDrag(screenX, screenY);
+      await _updateTranslationDrag(screenX, screenY, ctx);
     }
   }
 
-  Future<void> _updateTranslationDrag(int screenX, int screenY) async {
+  Future<void> _updateTranslationDrag(int screenX, int screenY, GizmoCameraContext ctx) async {
     if (_isDisposed) return;
     final currentScreen = Vector2(screenX.toDouble(), screenY.toDouble());
     final screenDelta = currentScreen - _dragStartScreen!;
 
-    final camera = await viewer.getActiveCamera();
-    if (_isDisposed) return;
-
-    final view = await viewer.view;
-    final viewport = await view.getViewport();
-
-    final projectionMatrix = await camera.getProjectionMatrix();
-    final viewMatrix = await camera.getViewMatrix();
-    final inverseViewMatrix = await camera.getModelMatrix();
+    final viewport = ctx.viewport;
+    final projectionMatrix = ctx.projectionMatrix;
+    final viewMatrix = ctx.viewMatrix;
+    final inverseViewMatrix = ctx.modelMatrix;
     final inverseProjectionMatrix = projectionMatrix.clone()..invert();
 
     // Re-check validity before using transforms
@@ -667,24 +713,19 @@ class TransformationGizmo {
 
       // Update gizmo position directly only if still alive
       if (!_isDisposed) {
-        await update(position: newWorldPos);
+        await update(cameraPosition: ctx.cameraPosition, position: newWorldPos);
       }
     }
   }
 
-  Future<void> _updateRotationDrag(int screenX, int screenY) async {
+  Future<void> _updateRotationDrag(int screenX, int screenY, GizmoCameraContext ctx) async {
     if (_isDisposed) return;
     final currentScreen = Vector2(screenX.toDouble(), screenY.toDouble());
 
-    final camera = await viewer.getActiveCamera();
-    if (_isDisposed) return;
-
-    final view = await viewer.view;
-    final viewport = await view.getViewport();
-
-    final projectionMatrix = await camera.getProjectionMatrix();
-    final viewMatrix = await camera.getViewMatrix();
-    final cameraPosition = await camera.getPosition();
+    final viewport = ctx.viewport;
+    final projectionMatrix = ctx.projectionMatrix;
+    final viewMatrix = ctx.viewMatrix;
+    final cameraPosition = ctx.cameraPosition;
 
     if (_isDisposed || _targetStartTransform == null) return;
 
@@ -703,7 +744,7 @@ class TransformationGizmo {
 
     // Update current marker position on the ring
     if (_currentMarker != null) {
-      final currentPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis);
+      final currentPos = await _getMarkerPositionOnRing(screenX, screenY, _activeAxis, context: ctx);
       if (currentPos != null && !_isDisposed) {
         await _updateMarkerPosition(_currentMarker!, currentPos);
       }
@@ -816,16 +857,16 @@ class TransformationGizmo {
 
   /// Get marker position on ring by projecting ring points to screen space
   /// and finding the closest point to the mouse cursor.
-  Future<Vector3?> _getMarkerPositionOnRing(int screenX, int screenY, GizmoAxis axis) async {
+  Future<Vector3?> _getMarkerPositionOnRing(
+    int screenX,
+    int screenY,
+    GizmoAxis axis, {
+    GizmoCameraContext? context,
+  }) async {
     if (_isDisposed || _rootEntity == null) return null;
 
-    final camera = await viewer.getActiveCamera();
+    final ctx = context ?? await GizmoCameraContext.fetch(viewer);
     if (_isDisposed) return null;
-
-    final view = await viewer.view;
-    final viewport = await view.getViewport();
-    final projectionMatrix = await camera.getProjectionMatrix();
-    final viewMatrix = await camera.getViewMatrix();
 
     // Get gizmo world position and scale
     final gizmoTransform = await viewer.app.transformManager.getWorldTransform(_rootEntity!);
@@ -837,12 +878,7 @@ class TransformationGizmo {
     // Project a point from local ring space to screen space
     Vector2 projectToScreen(Vector3 localPos) {
       final worldPos = gizmoWorldPos + localPos * gizmoScale;
-      final clipSpace = projectionMatrix * viewMatrix * Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0);
-      final ndc = clipSpace / clipSpace.w;
-      return Vector2(
-        ((ndc.x + 1.0) / 2.0) * viewport.width.toDouble(),
-        ((1.0 - ndc.y) / 2.0) * viewport.height.toDouble(),
-      );
+      return ctx.projectToScreen(worldPos);
     }
 
     // Distance from point to line segment in 2D
@@ -936,6 +972,11 @@ class TransformationGizmo {
       viewer.app.transformManager.setParent(_currentMarker!, _rootEntity!);
     }
 
+    // Draw on top of the rings (set once here; the priority never changes,
+    // so it must not be re-set on every marker move).
+    await viewer.app.setPriority(_startMarker!, 7);
+    await viewer.app.setPriority(_currentMarker!, 7);
+
     // Initially hide markers
     await _hideMarkers();
   }
@@ -959,7 +1000,6 @@ class TransformationGizmo {
 
     final markerTransform = Matrix4.compose(localPosition, Quaternion.identity(), Vector3.all(1.0));
     await viewer.app.setTransform(marker, markerTransform);
-    await viewer.app.setPriority(marker, 7);
   }
 
   Future<void> _updateHighlights() async {
@@ -991,25 +1031,25 @@ class TransformationGizmo {
     if (_isDisposed) return;
     _isDisposed = true; // Set flag immediately
 
-    // Remove all assets from the scene
+    // Destroy the geometry assets (also removes them from the scene and
+    // frees their native vertex/index buffers).
     for (final asset in _assets) {
-      await viewer.removeFromScene(asset);
-      // If your API supports destroying entities explicitly, do it here.
-      // e.g. await viewer.app.removeEntity(asset.entity);
+      await viewer.destroyAsset(asset);
     }
     _assets.clear();
 
-    // Destroy Root Entity
+    // Destroy root entity (its children are gone by now).
     if (_rootEntity != null) {
-      // Assuming removeEntity exists in your version of FilamentApp
-      // If not, just null it out, as child removal usually handles it.
-      try {
-        // await viewer.app.removeEntity(_rootEntity!);
-      } catch (e) {
-        // ignore
-      }
+      await viewer.app.destroyEntity(_rootEntity!);
       _rootEntity = null;
     }
+
+    // Destroy material instances.
+    await _redMat?.destroy();
+    await _greenMat?.destroy();
+    await _blueMat?.destroy();
+    await _whiteMat?.destroy();
+    await _yellowMat?.destroy();
 
     _startMarker = null;
     _currentMarker = null;
@@ -1027,5 +1067,7 @@ class TransformationGizmo {
     _hoveredAxis = GizmoAxis.none;
     _dragStartScreen = null;
     _targetStartTransform = null;
+    _lastComputedWorldTransform = null;
+    _lastRootTransform = null;
   }
 }
