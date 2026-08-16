@@ -16,3 +16,7 @@ test/generated/libThermionTextureSwift.dylib
 # (`dart test -p chrome`). Rebuild with `make wasm`.
 test/thermion_dart.js
 test/thermion_dart.wasm
+
+# Assembly/bin material files are unused (build hook uses .c files)
+native/include/material/*.S
+native/include/material/*.bin

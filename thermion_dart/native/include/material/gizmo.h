@@ -1,20 +1,20 @@
-#ifndef BONE_OVERLAY_H_
-#define BONE_OVERLAY_H_
+#ifndef GIZMO_H_
+#define GIZMO_H_
 
 #if defined(THERMION_MATERIAL_APPLE)
-#include "bone_overlay_apple.h"
+#include "gizmo_material_apple.h"
 #elif defined(THERMION_MATERIAL_ANDROID)
-#include "bone_overlay_android.h"
+#include "gizmo_material_android.h"
 #elif defined(THERMION_MATERIAL_DESKTOP)
-#include "bone_overlay_desktop.h"
+#include "gizmo_material_desktop.h"
 #elif defined(THERMION_MATERIAL_WEBGPU)
-#include "bone_overlay_webgpu.h"
+#include "gizmo_material_webgpu.h"
 #elif defined(THERMION_MATERIAL_WEB_WEBGL)
-#include "bone_overlay_web_webgl.h"
+#include "gizmo_material_web_webgl.h"
 #elif defined(THERMION_MATERIAL_WEB_COMBINED)
-#include "bone_overlay_web_combined.h"
+#include "gizmo_material_web_combined.h"
 #elif defined(THERMION_MATERIAL_NATIVE)
-#include "bone_overlay_native.h"
+#include "gizmo_material_native.h"
 #else
 #error "No material backend variant selected. Define one of: THERMION_MATERIAL_APPLE, THERMION_MATERIAL_ANDROID, THERMION_MATERIAL_DESKTOP, THERMION_MATERIAL_WEBGPU, THERMION_MATERIAL_WEB_WEBGL, THERMION_MATERIAL_WEB_COMBINED"
 #endif
