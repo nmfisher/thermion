@@ -153,6 +153,25 @@ The gizmo and overlay systems don't share code today, and mostly shouldn't — b
 9. Ghost-renderable factory + camera-state cache shared by gizmo/wireframe/bbox/silhouette (§3.1/3.2). **M.**
 10. Give the gizmo a proper per-frame hook (app render hooks) instead of pull-based `update()` from input events (§1.5). **S–M.**
 
+### Implementation status (2026-08-16 follow-up)
+
+The six quick wins were implemented on `asb/gizmo-overlay-review`.
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| 1 | Gizmo dispose leak | **Implemented** | `TransformationGizmo.dispose()` now destroys the loaded glb assets through `viewer.destroyAsset`, plus entities and material instances; idempotent. |
+| 2 | Skip overlay passes when empty | **Implemented** | `FFIHighlightOverlayManager._applySuspension()` flips `setRenderable` on the silhouette/edge views at empty↔non-empty transitions — no destroy/rebuild. In composite mode the main view is pointed back at the Flutter-provided render target while suspended (new `FFIView.setRenderTargetDirect` bypasses the `setRenderTarget` interception). Structural item 8 (skipping the offscreen main-scene texture entirely) is still open. |
+| 3 | Delete commented-out gizmo files | **Implemented (files only)** | The four fully-commented files are gone. The live native `TGizmo` path and the embedded glb blobs were intentionally retained (owner decision); removing them needs bindings + hooks work and is deferred. |
+| 4 | Outline params once per call | **Implemented** | `setStencilHighlight` calls `setOutlineParams` once; `addHighlight` no longer takes color/width. The per-primitive keying half of structural item 7 also landed: silhouettes are deduplicated per (entity, primitive) instead of first-primitive-only. |
+| 5 | Cache camera state per event | **Implemented (Dart-level)** | `GizmoCameraContext.fetch()` is called once per move/hover and shared by update/hover/drag. The single-FFI-call `getCameraFrame()` variant needs a new native API — deferred. |
+| 6 | DEPTH24 + setPriority | **Implemented** | Silhouette depth is DEPTH24 (create and resize paths); the axis-marker `setPriority(7)` is set once at creation. |
+
+**Fix required along the way:** `FilamentApp.capture` rendered every attached view, including non-renderable ones. While the overlay is suspended the edge view still points at the Flutter render target, so capture's render of it cleared the target after the main view had already drawn (all-zero captures). Capture now renders only views the frame loop would render (`RenderManager.isRenderable`) but still reads back every attached view.
+
+**Pre-existing behavior found while verifying:** `setStencilHighlight` has always been a no-op on procedural (`createGeometry`) assets — `SceneAsset_getPrimitiveOffsetForEntity` returns -1 for Geometry-type assets (`native/src/c_api/TSceneAsset.cpp:260-268`), so stencil highlights only work on glTF assets loaded with `rebuildVertices: true`. Unchanged by this work; worth documenting or fixing separately.
+
+**Verification:** `flutter analyze` — 0 errors, no new warnings. Full test suite — 42 passed, 1 pre-existing failure (`input_pipeline_test` toString case, fails on the clean tree too). Pixel-diff of `view_tests` captures against a clean-tree baseline: silhouette view byte-identical, main view ±1 LSB, composite view same content (per-pixel deltas ≤ 50/255 from rendering direct to the float Flutter target instead of through the SRGB8 composite — the intended change), after-overlay-disabled identical.
+
 ---
 
 ## 5. Verdict
