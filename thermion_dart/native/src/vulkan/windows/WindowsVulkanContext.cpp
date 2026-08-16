@@ -241,7 +241,8 @@ class WindowsVulkanContext::Impl {
                 return;
             }
 
-            _platform = std::make_unique<WindowsVulkanPlatform>();
+            // Platforms are created on demand, one per engine, by
+            // CreatePlatform() — see the note there.
 
             // Command buffer allocation
             VkCommandBufferAllocateInfo cmdBufInfo{};
@@ -811,8 +812,61 @@ class WindowsVulkanContext::Impl {
             return &_sharedContext;
         }
 
+        // A filament::backend::Platform belongs to exactly ONE Engine.
+        // Engine::create() drives it through createDriver() -> createDevice(),
+        // which writes the platform's instance/device/queue state, and
+        // WindowsVulkanPlatform additionally tracks the CURRENT swapchain and
+        // colour index per engine. Handing the same platform to a second
+        // Engine (a popout window creating its own engine) re-ran device
+        // selection on the live object underneath the first engine and left
+        // the second engine's backend spinning on its own thread.
+        //
+        // The VkInstance / VkPhysicalDevice / VkDevice / queue stay shared:
+        // that is what VulkanSharedContext (GetSharedContext) is for, and a
+        // second VkInstance would rebind the process-global BlueVK dispatch
+        // table underneath the first context.
+        //
+        // Ownership never leaves the context (Filament does not take it).
+        // A platform returned through ReleasePlatform is reused by the next
+        // engine — sequential reuse is what a single engine already does
+        // across a hot restart.
+        filament::backend::Platform *CreatePlatform() {
+            if (!_freePlatforms.empty()) {
+                auto *reused = _freePlatforms.back();
+                _freePlatforms.pop_back();
+                return reused;
+            }
+            _platforms.push_back(std::make_unique<WindowsVulkanPlatform>());
+            Log("Created Vulkan platform #%zu (one per engine).",
+                _platforms.size());
+            return _platforms.back().get();
+        }
+
+        // Called when the engine that owned `platform` is gone. Idempotent
+        // and tolerant of pointers this context did not hand out.
+        void ReleasePlatform(filament::backend::Platform *platform) {
+            if (!platform) {
+                return;
+            }
+            for (const auto &owned : _platforms) {
+                if (owned.get() != platform) {
+                    continue;
+                }
+                for (auto *free : _freePlatforms) {
+                    if (free == platform) {
+                        return; // already released
+                    }
+                }
+                _freePlatforms.push_back(owned.get());
+                return;
+            }
+        }
+
         filament::backend::Platform *GetPlatform() {
-            return _platform.get();
+            if (_platforms.empty()) {
+                return CreatePlatform();
+            }
+            return _platforms.front().get();
         }
 
     private:
@@ -843,7 +897,11 @@ class WindowsVulkanContext::Impl {
         std::vector<std::unique_ptr<thermion::windows::d3d::D3DTexture>> _graveyardD3D;
         int _graveyardFrames = 0;
 
-        std::unique_ptr<WindowsVulkanPlatform> _platform;
+        // One per live Engine. Owned here for the life of the context;
+        // _freePlatforms holds the ones whose engine has gone away and which
+        // the next engine may reuse. See CreatePlatform().
+        std::vector<std::unique_ptr<WindowsVulkanPlatform>> _platforms;
+        std::vector<WindowsVulkanPlatform *> _freePlatforms;
 
         filament::backend::VulkanPlatform::VulkanSharedContext _sharedContext{};
 
@@ -887,6 +945,14 @@ void WindowsVulkanContext::readPixelsFromImage(
 
 filament::backend::Platform *WindowsVulkanContext::GetPlatform() {
     return pImpl->GetPlatform();
+}
+
+filament::backend::Platform *WindowsVulkanContext::CreatePlatform() {
+    return pImpl->CreatePlatform();
+}
+
+void WindowsVulkanContext::ReleasePlatform(filament::backend::Platform *platform) {
+    pImpl->ReleasePlatform(platform);
 }
 
 WindowsVulkanContext::WindowsVulkanContext() : pImpl(std::make_unique<WindowsVulkanContext::Impl>()) {}

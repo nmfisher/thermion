@@ -113,6 +113,16 @@ public:
     bool _usePortMode = false;
     static bool _dartApiInitialized;
 
+    // This engine's filament Platform. Per INSTANCE, not static: Windows
+    // registers one plugin per FlutterEngine and a Platform belongs to a
+    // single filament Engine (see WindowsVulkanContext::CreatePlatform).
+    // Cached so repeated getRenderingContext calls from the same engine —
+    // e.g. a hot restart re-initialising — keep handing back the same
+    // platform, which is the pre-existing single-engine behaviour.
+    // Caller must hold _contextMutex.
+    filament::backend::Platform *EnginePlatformLocked();
+    filament::backend::Platform *_enginePlatform = nullptr;
+
 };
 
 } // namespace thermion_flutter

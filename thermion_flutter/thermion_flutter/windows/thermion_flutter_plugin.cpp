@@ -36,11 +36,31 @@
 
 #include "flutter_d3d_texture.h"
 
+// Declared here rather than by including c_api/ThermionDartRenderThreadApi.h:
+// that header drags in the whole T* API surface, and this translation unit is
+// already sensitive to Filament header ordering (see the utils::io forward
+// declaration in the plugin header). DLL_EXPORT resolves to dllimport here
+// (THERMION_WIN32_KHR_BUILD) and to dllexport inside thermion_dart, which is
+// the same pairing WindowsVulkanContext already uses.
+namespace thermion
+{
+  extern "C"
+  {
+    DLL_EXPORT bool EngineLifecycle_lock(int timeoutMs);
+    DLL_EXPORT void EngineLifecycle_unlock();
+  }
+}
 
 namespace thermion::tflutter::windows
 {
 
   using namespace std::chrono_literals;
+
+  // How long window teardown waits for an in-flight engine creation on the
+  // shared render thread. Long enough to cover a real create (hundreds of ms
+  // to a few seconds on a cold Vulkan device), short enough that a wedged
+  // create cannot make a window unclosable.
+  constexpr int kEngineCreateDrainMs = 10000;
 
   // Static member initialization for Dart API DL
   bool ThermionFlutterPlugin::_dartApiInitialized = false;
@@ -77,6 +97,19 @@ namespace thermion::tflutter::windows
       _context = new thermion::vulkan::windows::WindowsVulkanContext();
     }
     return _context;
+  }
+
+  // The context (VkInstance/VkDevice) is process-wide, but a filament
+  // Platform belongs to one Engine, and Windows registers one plugin per
+  // FlutterEngine. Handing a single platform to two engines re-ran Vulkan
+  // device selection on the live object underneath the first engine.
+  // Cached per instance so a hot restart's second getRenderingContext keeps
+  // the same platform (the pre-existing single-engine behaviour).
+  filament::backend::Platform *ThermionFlutterPlugin::EnginePlatformLocked() {
+    if (!_enginePlatform) {
+      _enginePlatform = EnsureContextLocked()->CreatePlatform();
+    }
+    return _enginePlatform;
   }
 
   // Defined below alongside the blit-worker state they manage; declared here
@@ -312,6 +345,15 @@ namespace thermion::tflutter::windows
     _shuttingDown.store(true);
     StopFrameScheduler();
 
+    // Engine creation runs on the shared render thread and does not stop
+    // because this window is closing. A popout watchdog closing the window
+    // mid-create tore surfaces and the blit worker out from under an engine
+    // that was still being built, and aborted a plugin worker thread. Wait
+    // for any in-flight create to finish before destroying anything it may
+    // be about to use. Bounded: a create that never returns must not make a
+    // window unclosable.
+    const bool lifecycleLocked = EngineLifecycle_lock(kEngineCreateDrainMs);
+
     // Per-engine shutdown barrier.
     //
     // The Dart-side `retireTexture` call is an asynchronous optimisation, not a
@@ -374,6 +416,20 @@ namespace thermion::tflutter::windows
     // Called without _contextMutex held — the join would otherwise deadlock
     // against a worker waiting for that lock.
     ReleaseBlitWorker();
+
+    // This engine is gone, so its platform can serve the next one rather
+    // than accumulating one per popout open/close cycle.
+    if (_enginePlatform) {
+      std::lock_guard<std::mutex> contextLock(_contextMutex);
+      if (_context) {
+        _context->ReleasePlatform(_enginePlatform);
+      }
+      _enginePlatform = nullptr;
+    }
+
+    if (lifecycleLocked) {
+      EngineLifecycle_unlock();
+    }
   }
 
   void ThermionFlutterPlugin::CreateTexture(
@@ -597,8 +653,10 @@ namespace thermion::tflutter::windows
       std::lock_guard<std::mutex> contextLock(_contextMutex);
       auto *context = EnsureContextLocked();
       std::vector<flutter::EncodableValue> resultList;
+      // Platform: per ENGINE. Shared context: per PROCESS. See
+      // EnginePlatformLocked().
       resultList.push_back(
-          flutter::EncodableValue((int64_t)context->GetPlatform()));
+          flutter::EncodableValue((int64_t)EnginePlatformLocked()));
       resultList.push_back(
           flutter::EncodableValue((int64_t)context->GetSharedContext()));
       result->Success(resultList);
@@ -764,8 +822,7 @@ namespace thermion::tflutter::windows
       // form. Locked because an unsynchronised check-then-construct let two
       // engine platform threads each build a context.
       std::lock_guard<std::mutex> contextLock(_contextMutex);
-      result->Success(
-          flutter::EncodableValue((int64_t)EnsureContextLocked()->GetPlatform()));
+      result->Success(flutter::EncodableValue((int64_t)EnginePlatformLocked()));
     }
     else if (methodCall.method_name() == "startFrameScheduler")
     {

@@ -49,7 +49,16 @@ namespace thermion::vulkan::windows {
           std::vector<uint8_t>& outPixels
         );
 
+        // The first engine's platform (creating it if the context has none).
         filament::backend::Platform* GetPlatform();
+
+        // A platform for one engine. A Platform instance belongs to a single
+        // filament Engine; the VkInstance/VkDevice behind it stay shared via
+        // GetSharedContext(). Owned by the context, never freed.
+        filament::backend::Platform* CreatePlatform();
+
+        // Marks a platform reusable because its engine is gone.
+        void ReleasePlatform(filament::backend::Platform* platform);
 
     private:
         class Impl;
