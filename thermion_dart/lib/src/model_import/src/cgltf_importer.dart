@@ -4,8 +4,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// counterpart) hands out pointer-sized slots and only supports
 /// Char/Pointer elements. TMeshData spans several slots, so request the
 /// ceiling in pointer units and cast.
-final int _tMeshDataSlots =
-    (sizeOf<TMeshData>() + sizeOf<Pointer>() - 1) ~/ sizeOf<Pointer>();
+final int _tMeshDataSlots = (sizeOf<TMeshData>() + sizeOf<Pointer>() - 1) ~/ sizeOf<Pointer>();
 
 /// [ModelFileImporter] backed by the cgltf parser compiled into the
 /// Filament build (always available, no opt-in).
