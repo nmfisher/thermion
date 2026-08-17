@@ -178,7 +178,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     for (final swapChainHandle in snapshot.keys) {
       final views = snapshot[swapChainHandle];
       if (views == null) continue;
-      final pointers = allocate<PointerClass>(views.length);
+      final pointers = allocate<PointerClass>(views.length * sizeOf<PointerClass>());
       for (int i = 0; i < views.length; i++) {
         pointers[i] = views[i].$2.getNativeHandle();
       }
