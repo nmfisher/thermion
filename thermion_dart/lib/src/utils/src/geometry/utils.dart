@@ -2,6 +2,43 @@ import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class GeometryUtils {
+  /// Expand triangle strip indices to triangle list indices.
+  ///
+  /// OpenGL/glTF triangle strip convention:
+  /// - Triangle i (even): v[i], v[i+1], v[i+2]
+  /// - Triangle i (odd):  v[i+1], v[i], v[i+2]
+  ///
+  /// This maintains consistent front-face winding (CCW).
+  static List<int> expandTriangleStrip(List<int> stripIndices) {
+    if (stripIndices.length < 3) {
+      return [];
+    }
+
+    final numTriangles = stripIndices.length - 2;
+    final triangleIndices = <int>[];
+
+    for (int i = 0; i < numTriangles; i++) {
+      final i0 = stripIndices[i];
+      final i1 = stripIndices[i + 1];
+      final i2 = stripIndices[i + 2];
+
+      // OpenGL triangle strip winding convention
+      if (i % 2 == 0) {
+        // Even triangles: v[i], v[i+1], v[i+2]
+        triangleIndices.add(i0);
+        triangleIndices.add(i1);
+        triangleIndices.add(i2);
+      } else {
+        // Odd triangles: v[i+1], v[i], v[i+2]
+        triangleIndices.add(i1);
+        triangleIndices.add(i0);
+        triangleIndices.add(i2);
+      }
+    }
+
+    return triangleIndices;
+  }
+
   /// Duplicate vertices so each triangle has unique vertices,
   /// and add barycentric coordinates to CUSTOM0 (attribute0).
   ///
