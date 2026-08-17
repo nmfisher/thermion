@@ -64,8 +64,8 @@ class CallbackHolder<T extends Function> {
   }
 }
 
-Pointer<T> allocate<T extends NativeType>(int count) {
-  return calloc.allocate<T>(count * sizeOf<Pointer>());
+Pointer<T> allocate<T extends NativeType>(int byteCount) {
+  return calloc.allocate<T>(byteCount);
 }
 
 void free(Pointer ptr) {

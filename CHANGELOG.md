@@ -4,6 +4,9 @@
 
 Update to Filament v1.75.0!
 
+### Changes
+- `allocate` FFI shim now takes `byteCount` instead of `count`
+
 ### Breaking changes
 - `LightManager.setShadowCaster`/`setShadowOptions` and
   `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
