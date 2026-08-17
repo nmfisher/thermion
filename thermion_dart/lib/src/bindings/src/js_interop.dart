@@ -162,12 +162,11 @@ Future<int> withIntCallback(Function(Pointer<NativeFunction<void Function(int)>>
   return completer.future;
 }
 
-Pointer<T> allocate<T extends NativeType>(int count) {
+Pointer<T> allocate<T extends NativeType>(int byteCount) {
   switch (T) {
     case PointerClass:
-      return malloc(count * 4);
     case Char:
-      return malloc(count);
+      return malloc(byteCount);
     default:
       throw Exception(T.toString());
   }
