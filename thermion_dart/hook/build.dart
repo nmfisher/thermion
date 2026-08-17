@@ -424,7 +424,10 @@ outputDirectory : ${outputDirectory.path}
           ],
           "-L$libDir",
         ],
-        if (targetOS != OS.linux && targetOS != OS.windows && targetOS != OS.android) '-lc++',
+        if (targetOS == OS.linux)
+          '-Wl,--no-as-needed'
+        else if (targetOS != OS.windows && targetOS != OS.android)
+          '-lc++',
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
           "@${srcs.uri.toFilePath(windows: true)}",
