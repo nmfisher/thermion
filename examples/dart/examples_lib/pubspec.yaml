@@ -9,4 +9,7 @@ environment:
 dependencies:
   thermion_dart:
     path: ../../../thermion_dart
+  assimp_dart:
+    git:
+      url: https://github.com/nmfisher/assimp_dart.git
   vector_math: ^2.1.4

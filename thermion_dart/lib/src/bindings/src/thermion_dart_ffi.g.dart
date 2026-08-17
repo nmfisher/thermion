@@ -846,21 +846,18 @@ external void Camera_setProjection(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(TGltfMeshData)>(isLeaf: true)
-external void dummy(TGltfMeshData dummy);
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMeshData>)>(isLeaf: true)
+external void MeshData_dispose(ffi.Pointer<TMeshData> meshData);
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>, ffi.Pointer<TGltfMeshData>)>(
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>, ffi.Pointer<TMeshData>)>(
   isLeaf: true,
 )
 external int GltfParser_parseBuffer(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   ffi.Pointer<ffi.Char> meshName,
-  ffi.Pointer<TGltfMeshData> outMeshData,
+  ffi.Pointer<TMeshData> outMeshData,
 );
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfMeshData>)>(isLeaf: true)
-external void GltfParser_freeMeshData(ffi.Pointer<TGltfMeshData> meshData);
 
 @ffi.Native<
   ffi.Pointer<TTexture> Function(
@@ -5202,15 +5199,29 @@ sealed class TProjection {
   static const Orthographic = 1;
 }
 
-final class TGltfMeshData extends ffi.Struct {
+final class TMeshData extends ffi.Struct {
+  external ffi.Pointer<ffi.Char> name;
+
+  external ffi.Pointer<ffi.Char> materialName;
+
   external ffi.Pointer<ffi.Float> vertices;
 
-  @ffi.Uint32()
+  @ffi.Int()
   external int vertexCount;
+
+  external ffi.Pointer<ffi.Float> normals;
+
+  @ffi.Int()
+  external int normalCount;
+
+  external ffi.Pointer<ffi.Float> uvs;
+
+  @ffi.Int()
+  external int uvCount;
 
   external ffi.Pointer<ffi.Uint32> indices;
 
-  @ffi.Uint32()
+  @ffi.Int()
   external int indexCount;
 
   @ffi.UnsignedInt()
