@@ -5,8 +5,7 @@
 Update to Filament v1.75.0!
 
 ### Changes
-- `allocate` FFI shim now takes a byte count instead of a count of
-  pointer-sized slots
+- `allocate` FFI shim now takes `byteCount` instead of `count`
 
 ### Breaking changes
 - `LightManager.setShadowCaster`/`setShadowOptions` and
