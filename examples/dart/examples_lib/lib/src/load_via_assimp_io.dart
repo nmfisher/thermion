@@ -18,7 +18,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 ///    thread before its future resolves,
 /// 4. `dispose` each [RawMesh] exactly once after the upload — the typed-data
 ///    views point into native memory, so they must not be read afterwards.
-Future<void> setupLoadModel(
+Future<void> setupLoadViaAssimp(
   ThermionViewer viewer, {
   required String assetsDir,
 }) async {
