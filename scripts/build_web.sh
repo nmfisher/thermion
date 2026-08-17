@@ -138,10 +138,6 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch the libassimp tnt overlay to enable STL/PLY import + FBX export.
-# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
-python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
-
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
@@ -378,31 +374,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     echo "Error: tinyexr release build failed"
     exit 1
   }
-
-  # Build libassimp for release
-  echo "Building libassimp (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-release/third_party"
-  mkdir -p libassimp && cd libassimp
-
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_STANDARD=20 \
-    -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
-    -DCMAKE_C_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
-    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
-    -DASSIMP_BUILD_TESTS=OFF \
-    -DASSIMP_BUILD_SAMPLES=OFF \
-    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
-    ../../../../third_party/libassimp/tnt || {
-    echo "Error: libassimp release cmake configuration failed"
-    exit 1
-  }
-
-  ninja || {
-    echo "Error: libassimp release build failed"
-    exit 1
-  }
 fi
 
 # Build debug (if requested)
@@ -549,31 +520,6 @@ if [ "$BUILD_DEBUG" = true ]; then
     echo "Error: tinyexr debug build failed"
     exit 1
   }
-
-  # Build libassimp for debug
-  echo "Building libassimp (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-webgl-debug/third_party"
-  mkdir -p libassimp && cd libassimp
-
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_CXX_STANDARD=20 \
-    -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN_CMAKE" \
-    -DCMAKE_C_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
-    -DCMAKE_CXX_FLAGS="-pthread -I../libz -I../../../../third_party/libz -matomics -mbulk-memory" \
-    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
-    -DASSIMP_BUILD_TESTS=OFF \
-    -DASSIMP_BUILD_SAMPLES=OFF \
-    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
-    ../../../../third_party/libassimp/tnt || {
-    echo "Error: libassimp debug cmake configuration failed"
-    exit 1
-  }
-
-  ninja || {
-    echo "Error: libassimp debug build failed"
-    exit 1
-  }
 fi
 
 # Create target directories and copy libraries
@@ -668,13 +614,6 @@ copy_web_headers() {
   mkdir -p "$inc/third_party/stb"
   cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$inc/third_party/stb/" || {
     echo "Error: Failed to copy stb_image.h"
-    exit 1
-  }
-
-  # Assimp headers (for model import support)
-  mkdir -p "$inc/third_party/libassimp/include"
-  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" "$inc/third_party/libassimp/include/" || {
-    echo "Error: Failed to copy Assimp headers"
     exit 1
   }
 }

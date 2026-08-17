@@ -1,39 +1,26 @@
 name: 'Setup Build Environment'
 description: 'Set up LLVM, MESA, and Dart for Dart-only builds'
-inputs:
-  install_llvm:
-    description: >-
-      Install the pinned LLVM 16 tarball and add it to PATH + LD_LIBRARY_PATH.
-      Set to 'false' for jobs that install their own artifact-matched clang +
-      libc++ runtime (e.g. the Assimp test job); the tarball's exported
-      LD_LIBRARY_PATH would otherwise make the test process run linked C++
-      code against the tarball's libc++abi instead of the system runtime.
-    default: 'true'
 runs:
   using: 'composite'
   steps:
     - uses: actions/checkout@v4
     - name: Cache LLVM
-      if: inputs.install_llvm != 'false'
       id: cache-llvm
       uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/llvm
         key: llvm-16-${{ runner.os }}
     - name: Setup LLVM
-      if: inputs.install_llvm != 'false'
       uses: KyleMayes/install-llvm-action@v1
       with:
         version: "16"
         cached: ${{ steps.cache-llvm.outputs.cache-hit }}
     - name: Add LLVM to PATH
-      if: inputs.install_llvm != 'false'
       shell: bash
       run: |
         echo "${{ github.workspace }}/llvm/bin" >> $GITHUB_PATH
         echo "LD_LIBRARY_PATH=${{ github.workspace }}/llvm/lib/x86_64-unknown-linux-gnu/" >> $GITHUB_ENV
     - name: Verify installation
-      if: inputs.install_llvm != 'false'
       shell: bash
       run: clang --version
     - name: Install MESA

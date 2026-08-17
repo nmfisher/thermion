@@ -120,10 +120,6 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch the libassimp tnt overlay to enable STL/PLY import + FBX export.
-# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
-python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
-
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
@@ -233,35 +229,6 @@ build_third_party_libs() {
     return 1
   }
 
-  echo "Building libassimp ($BUILD_SUFFIX)..."
-  mkdir -p "$CMAKE_DIR/third_party/libassimp" && cd "$CMAKE_DIR/third_party/libassimp"
-  # -stdlib=libc++: MANDATORY, same ABI fix as imageio/tinyexr above. Without
-  # it clang defaults to libstdc++ and the archive links two C++ runtimes into
-  # libthermion_dart.so: assimp's internals (FBX node names, error strings,
-  # exception machinery) run on libstdc++ while everything around them —
-  # including the exception barriers in model_import.cpp/model_export.cpp —
-  # runs on libc++. That mix crashed CI's Linux x64 FBX round-trip test inside
-  # libc++abi's unwind machinery (SEGV, si_addr=0x10), and no FFI-side guard
-  # can catch it. See docs/release-failure-analysis.md and #224.
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-    -DCMAKE_C_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
-    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I$FILAMENT_BASE_DIR/third_party/libz" \
-    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
-    -DASSIMP_BUILD_TESTS=OFF \
-    -DASSIMP_BUILD_SAMPLES=OFF \
-    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
-    "$FILAMENT_BASE_DIR/third_party/libassimp/tnt" || {
-    echo "Error: libassimp cmake failed for $BUILD_SUFFIX"
-    return 1
-  }
-  ninja || {
-    echo "Error: libassimp build failed for $BUILD_SUFFIX"
-    return 1
-  }
-
   cd "$FILAMENT_BASE_DIR"
 }
 
@@ -359,17 +326,6 @@ if [ "$BUILD_RELEASE" = true ]; then
   if [ ! -f "$TARGET_RELEASE_DIR/libtinyexr.a" ]; then
     echo "WARNING: libtinyexr.a not found in any known location"
   fi
-
-  for searchdir in "out/cmake-release/third_party/libassimp" "out/release/filament/lib/x86_64" "out/cmake-release/third_party/libassimp/tnt"; do
-    if [ -f "$searchdir/libassimp.a" ]; then
-      echo "Found assimp at $searchdir"
-      cp "$searchdir/libassimp.a" "$TARGET_RELEASE_DIR/"
-      break
-    fi
-  done
-  if [ ! -f "$TARGET_RELEASE_DIR/libassimp.a" ]; then
-    echo "WARNING: libassimp.a not found in any known location"
-  fi
 fi
 
 # Copy debug libraries
@@ -411,17 +367,6 @@ if [ "$BUILD_DEBUG" = true ]; then
   if [ ! -f "$TARGET_DEBUG_DIR/libtinyexr.a" ]; then
     echo "WARNING: libtinyexr.a not found in any known location"
   fi
-
-  for searchdir in "out/cmake-debug/third_party/libassimp" "out/debug/filament/lib/x86_64" "out/cmake-debug/third_party/libassimp/tnt"; do
-    if [ -f "$searchdir/libassimp.a" ]; then
-      echo "Found assimp at $searchdir"
-      cp "$searchdir/libassimp.a" "$TARGET_DEBUG_DIR/"
-      break
-    fi
-  done
-  if [ ! -f "$TARGET_DEBUG_DIR/libassimp.a" ]; then
-    echo "WARNING: libassimp.a not found in any known location"
-  fi
 fi
 
 # Copy header files to target directories (for inclusion in R2 upload zips)
@@ -453,14 +398,6 @@ if [ "$BUILD_RELEASE" = true ]; then
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
     echo "Error: Failed to copy bluevk headers to target"
-    exit 1
-  }
-
-  # Copy libassimp headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
-  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
-    "$TARGET_RELEASE_DIR/include/third_party/libassimp/include/" || {
-    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
@@ -502,14 +439,6 @@ if [ "$BUILD_DEBUG" = true ]; then
   # <bluevk/BlueVK.h>)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy bluevk headers to target"
-    exit 1
-  }
-
-  # Copy libassimp headers
-  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/libassimp/include"
-  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
-    "$TARGET_DEBUG_DIR/include/third_party/libassimp/include/" || {
-    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 

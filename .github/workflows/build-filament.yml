@@ -374,9 +374,12 @@ jobs:
           # libstdc++-built archive (undefined _ZNSt7__cxx11... std::string
           # refs) pulls a second C++ runtime into the process; the two
           # runtimes' exception/unwind machinery then conflict and crash at
-          # runtime (CI's Linux x64 FBX round-trip SEGV'd inside libc++abi
-          # before libassimp was switched to -stdlib=libc++). Reject here
-          # instead of shipping the broken artifact to R2.
+          # runtime. Reject here instead of shipping the broken artifact to
+          # R2. (Historical note: this guard was introduced when a
+          # libstdc++-built libassimp crashed CI's Linux x64 FBX round-trip
+          # test; libassimp no longer ships in these zips — it moved to the
+          # assimp_dart repository — but the check still guards the Filament
+          # archives this package links.)
           cpprefs=$(nm -A $(find . -name '*.a') 2>/dev/null | grep ' U _ZNSt7__cxx11' || true)
           if [ -n "$cpprefs" ]; then
             echo "Archives reference the libstdc++ ABI (_ZNSt7__cxx11); they must be built with -stdlib=libc++ (see scripts/build_linux.sh):"
@@ -501,9 +504,12 @@ jobs:
           # libstdc++-built archive (undefined _ZNSt7__cxx11... std::string
           # refs) pulls a second C++ runtime into the process; the two
           # runtimes' exception/unwind machinery then conflict and crash at
-          # runtime (CI's Linux x64 FBX round-trip SEGV'd inside libc++abi
-          # before libassimp was switched to -stdlib=libc++). Reject here
-          # instead of shipping the broken artifact to R2.
+          # runtime. Reject here instead of shipping the broken artifact to
+          # R2. (Historical note: this guard was introduced when a
+          # libstdc++-built libassimp crashed CI's Linux x64 FBX round-trip
+          # test; libassimp no longer ships in these zips — it moved to the
+          # assimp_dart repository — but the check still guards the Filament
+          # archives this package links.)
           cpprefs=$(nm -A $(find . -name '*.a') 2>/dev/null | grep ' U _ZNSt7__cxx11' || true)
           if [ -n "$cpprefs" ]; then
             echo "Archives reference the libstdc++ ABI (_ZNSt7__cxx11); they must be built with -stdlib=libc++ (see scripts/build_linux.sh):"

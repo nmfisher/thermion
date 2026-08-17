@@ -100,10 +100,6 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch the libassimp tnt overlay to enable STL/PLY import + FBX export.
-# Must run AFTER the checkout so it patches the checked-out tag. Idempotent.
-python3 "$SCRIPT_DIR/patch_libassimp_tnt.py" "$FILAMENT_BASE_DIR"
-
 # Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
@@ -225,30 +221,6 @@ build_third_party_for_arch() {
     return 1
   }
 
-  echo "Building libassimp for $ABI ($BUILD_SUFFIX)..."
-  mkdir -p "$CMAKE_DIR/third_party/libassimp" && cd "$CMAKE_DIR/third_party/libassimp"
-  cmake -G Ninja \
-    -DCMAKE_TOOLCHAIN_FILE="$NDK_TOOLCHAIN" \
-    -DANDROID_ABI="$ABI" \
-    -DANDROID_PLATFORM=android-21 \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-    -DCMAKE_C_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
-    -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/third_party/libz" \
-    -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
-    -DASSIMP_BUILD_TESTS=OFF \
-    -DASSIMP_BUILD_SAMPLES=OFF \
-    -DASSIMP_WARNINGS_AS_ERRORS=OFF \
-    "$FILAMENT_BASE_DIR/third_party/libassimp/tnt" || {
-    echo "Error: libassimp cmake failed for $ABI ($BUILD_SUFFIX)"
-    return 1
-  }
-  ninja || {
-    echo "Error: libassimp build failed for $ABI ($BUILD_SUFFIX)"
-    return 1
-  }
-
   cd "$FILAMENT_BASE_DIR"
 }
 
@@ -309,15 +281,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     else
       echo "WARNING: libtinyexr.a not found for $ARCH at $TINYEXR_SRC"
     fi
-
-    # Copy libassimp (built per-arch by build_third_party_for_arch)
-    ASSIMP_SRC="out/cmake-android-release-${CMAKE_ARCH}/third_party/libassimp/libassimp.a"
-    if [ -f "$ASSIMP_SRC" ]; then
-      echo "Found libassimp at $ASSIMP_SRC"
-      cp "$ASSIMP_SRC" "$TARGET_RELEASE_DIR/$ARCH/"
-    else
-      echo "WARNING: libassimp.a not found for $ARCH at $ASSIMP_SRC"
-    fi
   done
 fi
 
@@ -351,15 +314,6 @@ if [ "$BUILD_DEBUG" = true ]; then
       cp "$TINYEXR_SRC" "$TARGET_DEBUG_DIR/$ARCH/"
     else
       echo "WARNING: libtinyexr.a not found for $ARCH at $TINYEXR_SRC"
-    fi
-
-    # Copy libassimp (built per-arch by build_third_party_for_arch)
-    ASSIMP_SRC="out/cmake-android-debug-${CMAKE_ARCH}/third_party/libassimp/libassimp.a"
-    if [ -f "$ASSIMP_SRC" ]; then
-      echo "Found libassimp at $ASSIMP_SRC"
-      cp "$ASSIMP_SRC" "$TARGET_DEBUG_DIR/$ARCH/"
-    else
-      echo "WARNING: libassimp.a not found for $ARCH at $ASSIMP_SRC"
     fi
   done
 fi
@@ -409,14 +363,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy libassimp headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/libassimp/include"
-  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
-    "$TARGET_RELEASE_DIR/include/third_party/libassimp/include/" || {
-    echo "Error: Failed to copy assimp headers to target"
-    exit 1
-  }
-
   # Copy release-specific uberarchive.h
   mkdir -p "$TARGET_RELEASE_DIR/include/release/gltfio/materials"
   cp "$FILAMENT_BASE_DIR/out/android-release/filament/include/gltfio/materials/uberarchive.h" \
@@ -462,14 +408,6 @@ if [ "$BUILD_DEBUG" = true ]; then
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
     echo "Error: Failed to copy bluevk headers to target"
-    exit 1
-  }
-
-  # Copy libassimp headers
-  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/libassimp/include"
-  cp -R "$FILAMENT_BASE_DIR/third_party/libassimp/include/assimp" \
-    "$TARGET_DEBUG_DIR/include/third_party/libassimp/include/" || {
-    echo "Error: Failed to copy assimp headers to target"
     exit 1
   }
 
