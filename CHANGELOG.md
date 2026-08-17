@@ -4,6 +4,12 @@
 
 Update to Filament v1.75.0!
 
+### Changes
+- The internal `allocate` FFI shim now takes a byte count (matching
+  `package:ffi`'s `Allocator.allocate`) instead of a count of
+  pointer-sized slots, fixing platform-dependent buffer sizes for
+  `Char` allocations.
+
 ### Breaking changes
 - `LightManager.setShadowCaster`/`setShadowOptions` and
   `RenderableManager.setCastShadows`/`setReceiveShadows` now return `Future`
