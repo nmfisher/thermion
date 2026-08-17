@@ -25,6 +25,7 @@ import 'geometry_primitives.dart';
 import 'gltf_animation.dart';
 import 'lighting_setup.dart';
 import 'load_gltf.dart';
+import 'load_via_assimp.dart';
 import 'shadows.dart';
 import 'skybox_and_background.dart';
 
@@ -49,6 +50,7 @@ final Map<String, ExampleSetup> registry = {
   'instancing': setupInstancing,
   'lighting_setup': setupLightingSetup,
   'load_gltf': setupLoadGltf,
+  'load_via_assimp': setupLoadViaAssimp,
   'materials_pbr': setupMaterialsPbr,
   'morph_targets': setupMorphTargets,
   'picking': setupPicking,
