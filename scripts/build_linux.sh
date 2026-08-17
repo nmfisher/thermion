@@ -195,7 +195,7 @@ build_third_party_libs() {
   # built with libc++ (-stdlib=libc++ in thermion_dart/hook/build.dart). Without
   # this flag clang defaults to libstdc++, so the archives end up libstdc++-ABI
   # and reference libstdc++ symbols (e.g. std::endl, _ZSt4endl...) that the .so
-  # does not link against. See docs/release-failure-analysis.md.
+  # does not link against.
   cmake -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_CXX_STANDARD=17 \
