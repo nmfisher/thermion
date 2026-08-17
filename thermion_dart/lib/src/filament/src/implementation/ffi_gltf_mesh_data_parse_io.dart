@@ -1,10 +1,5 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
-// The `allocate` shim (see bindings/src/ffi.dart) hands out pointer-sized
-// slots and only supports Char/Pointer elements. TMeshData spans several
-// slots, so request the ceiling in pointer units and cast.
-final int _tMeshDataSlots = (sizeOf<TMeshData>() + sizeOf<Pointer>() - 1) ~/ sizeOf<Pointer>();
-
 /// Native (dart:ffi) implementation of [FFIGltfMeshData.parse]: calls
 /// GltfParser_parseBuffer through the ffigen bindings and copies the
 /// malloc'd native buffers into plain Dart lists.
@@ -14,7 +9,7 @@ Future<({Float32List vertices, Uint32List? indices, PrimitiveType primitiveType}
 ) async {
   final meshNamePtr = meshName != null ? meshName.toNativeUtf8().cast<Char>() : nullptr;
 
-  final outMeshData = allocate<PointerClass>(_tMeshDataSlots).cast<TMeshData>();
+  final outMeshData = allocate<TMeshData>(sizeOf<TMeshData>());
 
   try {
     final result = GltfParser_parseBuffer(data.address, data.length, meshNamePtr, outMeshData);
