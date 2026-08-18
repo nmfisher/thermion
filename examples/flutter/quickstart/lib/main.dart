@@ -97,9 +97,9 @@ class _MyHomePageState extends State<MyHomePage> {
   /// Batch size for the footer's add/remove control.
   int _batch = 1;
 
-  /// Web builds render every view into a single shared DOM canvas, so only
-  /// one viewer can be displayed at a time — cap the batch accordingly.
-  final int _maxBatch = kIsWeb ? 1 : 64;
+  /// Web runs one engine/canvas/worker per viewer; WebOptions.maxViewers
+  /// (default 8) caps concurrent viewers there. Native has no such cap.
+  final int _maxBatch = kIsWeb ? 8 : 64;
 
   late DirectLight _sun;
 
@@ -154,11 +154,11 @@ class _MyHomePageState extends State<MyHomePage> {
       child: SafeArea(
         child: Column(
           children: [
-            _Header(count: _tiles.length, multiViewer: !kIsWeb),
+            _Header(count: _tiles.length, multiViewer: true),
             const _Divider(),
             Expanded(
               child: _tiles.isEmpty
-                  ? const _EmptyState(singleViewerOnly: kIsWeb)
+                  ? const _EmptyState()
                   : GridView.count(
                       crossAxisCount: 2,
                       childAspectRatio: 1,
@@ -266,8 +266,7 @@ class _Divider extends StatelessWidget {
 }
 
 class _EmptyState extends StatefulWidget {
-  const _EmptyState({required this.singleViewerOnly});
-  final bool singleViewerOnly;
+  const _EmptyState();
 
   @override
   State<_EmptyState> createState() => _EmptyStateState();
@@ -323,11 +322,9 @@ class _EmptyStateState extends State<_EmptyState>
                     letterSpacing: 0.2,
                   )),
               const SizedBox(height: 6),
-              Text(
-                widget.singleViewerOnly
-                    ? 'Web builds support a single viewer at a time.'
-                    : 'Set a batch with the stepper, then hit “Add”.',
-                style: const TextStyle(color: _textDim, fontSize: 12.5),
+              const Text(
+                'Set a batch with the stepper, then hit “Add”.',
+                style: TextStyle(color: _textDim, fontSize: 12.5),
               ),
             ],
           );
