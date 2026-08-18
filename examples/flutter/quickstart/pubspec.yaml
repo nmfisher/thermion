@@ -23,14 +23,6 @@ dependency_overrides:
   thermion_flutter:
     path: ../../../thermion_flutter/thermion_flutter
 
-# Iterating on thermion_dart's native C++ against web: copy the locally
-# built emscripten artifacts (native/web/build/build/out) instead of
-# downloading the R2 release build. Remove before shipping.
-hooks:
-  user_defines:
-    thermion_dart:
-      web_local: true
-  
 dev_dependencies:
   flutter_test:
     sdk: flutter
