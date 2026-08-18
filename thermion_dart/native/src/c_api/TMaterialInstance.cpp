@@ -16,7 +16,7 @@
 #include "material/silhouette.h"
 #include "material/edge_outline.h"
 #include "material/translation_axis.h"
-#include "material/gizmo_material.h"
+#include "material/gizmo.h"
 #include "material/wireframe.h"
 #include "material/bone_overlay.h"
 
