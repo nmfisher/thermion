@@ -1,0 +1,68 @@
+---
+title: Build Configuration
+description: Configure Thermion's native build via hooks.user_defines.
+---
+
+Thermion's native build is configured from your app's `pubspec.yaml` under
+`hooks.user_defines.thermion_dart`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      # ... any of the keys described below
+```
+
+## Material backend variants
+
+Thermion ships a set of built-in materials (gizmo, grid, wireframe, skybox
+helpers, ...), each precompiled into per-platform shader variants. By default
+your app gets **every backend usable on the target platform**, so runtime
+backend selection always works:
+
+| Platform | Default variant | Backends included |
+| --- | --- | --- |
+| iOS / macOS | `_apple` | Metal |
+| Android | `_android` | Vulkan + OpenGL |
+| Linux / Windows | `_desktop` | Vulkan + OpenGL |
+
+If your app commits to specific backends, you can drop the others and shave
+the unused shader code out of your binary with `materials.backends`:
+
+```yaml
+hooks:
+  user_defines:
+    thermion_dart:
+      materials:
+        backends:
+          ios: metal
+          android: [opengl, vulkan]
+          linux: [opengl]
+          windows: [vulkan]
+```
+
+- **OS keys**: `ios`, `macos`, `apple` (alias covering both), `android`,
+  `linux`, `windows`. Each value is a backend name or a list. An OS you don't
+  list keeps its all-backends default from the table above.
+- **Backends**: `metal` on iOS/macOS (the only option there); `opengl` and
+  `vulkan` on Android/Linux/Windows, individually or together.
+- Selecting a single backend means exactly that: a device that doesn't
+  support it will fail to render those materials — there is no fallback
+  compiled in.
+- The web target is not configurable here (the web WASM ships with its
+  material variant prebuilt — see [Web](/web/)). For native WebGPU/Dawn or
+  other explicit variant overrides, use the flat `backend` key:
+  `backend: webgpu`, `backend: webgl2`, or `backend: hybrid`. If both are
+  set, `materials.backends` wins.
+
+Invalid configuration (a typo'd OS key, `metal` on Android, an empty list)
+fails the build with an error naming the problem key.
+
+## Other keys
+
+- `mode: debug` and `tracing: enabled` — see
+  [Debugging](/debugging/).
+- `web_local: true` — serve locally-built web artifacts instead of the
+  prebuilt ones, see [Web](/web/).
+- `skip_native_build: true` — skip the native C++ build entirely (used when
+  running pure-Dart tooling in this package).

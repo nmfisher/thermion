@@ -1,20 +1,24 @@
 #!/bin/bash
 set -euo pipefail
 
-# Builds materials for all platforms, producing six variants per material:
+# Builds materials for all platforms, producing eight variants per material:
 #
 #   Variant         | matc flags                  | Use case
 #   ----------------|-----------------------------|----------------------------------
 #   _apple          | -a metal                    | iOS/macOS (Metal only)
 #   _android        | -a vulkan -a opengl         | Android (Vulkan/GL, runtime selection)
 #   _desktop        | -a vulkan -a opengl         | Linux/Windows (Vulkan/GL, runtime selection)
+#   _opengl         | -a opengl                   | Android/Linux/Windows, GL-only (opt-in via materials.backends)
+#   _vulkan         | -a vulkan                   | Android/Linux/Windows, Vulkan-only (opt-in via materials.backends)
 #   _webgpu         | -a webgpu                   | Native Dawn or web WebGPU-only
 #   _web_webgl      | -a opengl                   | Web WebGL2-only (smallest web variant)
 #   _web_combined   | -a opengl -a webgpu         | Web dual-backend (runtime selection)
 #
 # The former _native variant (-a opengl -a metal -a vulkan) bundled every
 # backend into one blob, so each platform carried shaders it never uses
-# (~5.5MB total across materials). The per-platform split removes that.
+# (~5.5MB total across materials). The per-platform split removes that;
+# _opengl/_vulkan let apps shed even more by committing to a single backend
+# (no runtime fallback if the device doesn't support it).
 #
 # All variants use the same resgen prefix so the C symbols are identical
 # (IMAGE_PACKAGE, IMAGE_IMAGE_DATA, etc.). Only one .c is compiled by the
@@ -115,16 +119,18 @@ create_forwarding_header() {
 #include "${stem}_android.h"
 #elif defined(THERMION_MATERIAL_DESKTOP)
 #include "${stem}_desktop.h"
+#elif defined(THERMION_MATERIAL_OPENGL)
+#include "${stem}_opengl.h"
+#elif defined(THERMION_MATERIAL_VULKAN)
+#include "${stem}_vulkan.h"
 #elif defined(THERMION_MATERIAL_WEBGPU)
 #include "${stem}_webgpu.h"
 #elif defined(THERMION_MATERIAL_WEB_WEBGL)
 #include "${stem}_web_webgl.h"
 #elif defined(THERMION_MATERIAL_WEB_COMBINED)
 #include "${stem}_web_combined.h"
-#elif defined(THERMION_MATERIAL_NATIVE)
-#include "${stem}_native.h"
 #else
-#error "No material backend variant selected. Define one of: THERMION_MATERIAL_APPLE, THERMION_MATERIAL_ANDROID, THERMION_MATERIAL_DESKTOP, THERMION_MATERIAL_WEBGPU, THERMION_MATERIAL_WEB_WEBGL, THERMION_MATERIAL_WEB_COMBINED"
+#error "No material backend variant selected. Define one of: THERMION_MATERIAL_APPLE, THERMION_MATERIAL_ANDROID, THERMION_MATERIAL_DESKTOP, THERMION_MATERIAL_OPENGL, THERMION_MATERIAL_VULKAN, THERMION_MATERIAL_WEBGPU, THERMION_MATERIAL_WEB_WEBGL, THERMION_MATERIAL_WEB_COMBINED"
 #endif
 
 #endif
@@ -141,6 +147,8 @@ for material in "${MATERIALS[@]}"; do
     build_variant "$material" apple     -a metal
     build_variant "$material" android   -a vulkan -a opengl
     build_variant "$material" desktop   -a vulkan -a opengl
+    build_variant "$material" opengl    -a opengl
+    build_variant "$material" vulkan    -a vulkan
     build_variant "$material" webgpu   -a webgpu
     build_variant "$material" web_webgl -a opengl
     build_variant "$material" web_combined -a opengl -a webgpu
@@ -159,11 +167,13 @@ done
 echo "=== gizmo rename special case ==="
 
 # Build gizmo as a regular material first
-for suffix in apple android desktop webgpu web_webgl web_combined; do
+for suffix in apple android desktop opengl vulkan webgpu web_webgl web_combined; do
     case "$suffix" in
         apple)        matc_flags="-a metal" ;;
         android)      matc_flags="-a vulkan -a opengl" ;;
         desktop)      matc_flags="-a vulkan -a opengl" ;;
+        opengl)       matc_flags="-a opengl" ;;
+        vulkan)       matc_flags="-a vulkan" ;;
         webgpu)       matc_flags="-a webgpu" ;;
         web_webgl)    matc_flags="-a opengl" ;;
         web_combined) matc_flags="-a opengl -a webgpu" ;;

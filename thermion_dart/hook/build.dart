@@ -6,6 +6,7 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
+import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
@@ -101,7 +102,6 @@ outputDirectory : ${outputDirectory.path}
     } else {
       backend = "native";
     }
-    final bool webgpuEnabled = backend == "webgpu";
 
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
@@ -150,41 +150,43 @@ outputDirectory : ${outputDirectory.path}
 
     // Material source paths — platform-specific variants.
     // Each material has per-platform native variants (_apple, _android,
-    // _desktop) plus _webgpu, _web_webgl, and _web_combined variants, all
-    // with identical C symbols. The build hook compiles exactly one: the web
-    // variants follow the "backend" user define, the native variants follow
-    // the target OS (Apple = Metal, Android = Vulkan+GL, desktop Linux/
-    // Windows = Vulkan+GL — both GL-capable platforms keep runtime backend
-    // selection working).
-    // Falls back to the pre-split _native variant if the per-platform files
-    // don't exist yet (i.e., make materials hasn't been re-run since the
-    // split), then to unsuffixed .c files for pre-split trees.
-    var materialSuffix = switch (backend) {
-      'webgpu' => '_webgpu',
-      'webgl2' => '_web_webgl',
-      'hybrid' => '_web_combined',
-      _ when targetOS == OS.iOS || targetOS == OS.macOS => '_apple',
-      _ when targetOS == OS.android => '_android',
-      _ => '_desktop',
-    };
-    var materialDefine = switch (materialSuffix) {
-      '_webgpu' => 'THERMION_MATERIAL_WEBGPU',
-      '_web_webgl' => 'THERMION_MATERIAL_WEB_WEBGL',
-      '_web_combined' => 'THERMION_MATERIAL_WEB_COMBINED',
-      '_apple' => 'THERMION_MATERIAL_APPLE',
-      '_android' => 'THERMION_MATERIAL_ANDROID',
-      '_desktop' => 'THERMION_MATERIAL_DESKTOP',
-      _ => 'THERMION_MATERIAL_NATIVE',
-    };
+    // _desktop, _opengl, _vulkan) plus _webgpu, _web_webgl, and
+    // _web_combined variants, all with identical C symbols. The build hook
+    // compiles exactly one, resolved by resolveMaterialBackend:
+    //  - the "materials.backends" user define (per-OS backend subsets, e.g.
+    //    { android: [vulkan] } → _vulkan),
+    //  - else the "backend" user define (webgpu/webgl2/hybrid → their
+    //    variants, incl. native Dawn),
+    //  - else the target OS default (Apple = Metal, Android = Vulkan+GL,
+    //    desktop Linux/Windows = Vulkan+GL — both GL-capable platforms keep
+    //    runtime backend selection working).
+    final rawMaterialsDefine = input.userDefines["materials"];
+    final backendsConfig = rawMaterialsDefine is Map<String, dynamic>
+        ? rawMaterialsDefine["backends"] as Map<String, dynamic>?
+        : null;
+    final materialResolution = resolveMaterialBackend(
+      backendsConfig: backendsConfig,
+      targetOS: targetOS.toString().split('.').last.toLowerCase(),
+      backendOverride: backend == "native" ? null : backend,
+    );
+    for (final warning in materialResolution.warnings) {
+      logger.warning(warning);
+    }
+    final materialSuffix = materialResolution.suffix;
+    final materialDefine = materialResolution.define;
 
     final defines = <String, String?>{};
     final materialDir = path.join(pkgRootFilePath, 'native/include/material');
-    // If the per-platform variant hasn't been generated yet, fall back to the
-    // pre-split _native blob (all backends, larger, but compilable).
-    if (materialSuffix != '_native' && !File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
-      logger.info("Material variant $materialSuffix not found; falling back to _native");
-      materialSuffix = '_native';
-      materialDefine = 'THERMION_MATERIAL_NATIVE';
+    // A selected variant whose blobs are missing is a hard error: silently
+    // falling back would compile the wrong backends into the app.
+    if (!File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
+      throw Exception(
+        "Material variant '$materialSuffix' (define $materialDefine) was "
+        "selected but its generated files are missing from $materialDir.\n"
+        "Run scripts/regenerate-materials.sh (or the Regenerate Materials CI "
+        "workflow) to generate all variant blobs, or adjust the "
+        "materials.backends configuration in your pubspec.yaml.",
+      );
     }
     defines[materialDefine] = "1";
     String materialPath(String name, String suffix) {
@@ -335,8 +337,16 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
-    // Process materials configuration
-    final materialConfigs = input.userDefines["materials"] as Map<String, dynamic>?;
+    // Process materials configuration. Strip the "backends" key (consumed by
+    // resolveMaterialBackend above) so it isn't treated as a material name.
+    // An empty remainder means "no selective config" — pass null so
+    // _processMaterials includes all materials (a map, even empty, means
+    // "only materials explicitly set to true").
+    Map<String, dynamic>? materialConfigs;
+    if (rawMaterialsDefine is Map<String, dynamic>) {
+      final stripped = Map<String, dynamic>.from(rawMaterialsDefine)..remove("backends");
+      materialConfigs = stripped.isEmpty ? null : stripped;
+    }
     _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
 
     var frameworks = [];
