@@ -6,6 +6,7 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
+import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/logging/log.dart';
 
 void main(List<String> args) async {
@@ -75,6 +76,33 @@ outputDirectory : ${outputDirectory.path}
 
     logger.info("Building Thermion for ${targetOS} in mode ${buildMode.name}");
 
+    // Detect backend early — it affects which R2 artifact we download,
+    // which static libs we link, and which material variant we compile.
+    //
+    // The "backend" user define selects the material/shader variant:
+    //   "native"  (default) — per-platform GLSL/SPIR-V/MSL set: Metal on
+    //                         iOS/macOS, Vulkan+OpenGL on Android and desktop
+    //   "webgpu"            — WebGPU only (WGSL). Enables native Dawn linking.
+    //   "webgl2"            — WebGL2 only (GLSL). Web-only, smallest variant.
+    //   "hybrid"            — WebGL2 + WebGPU combined (GLSL + WGSL). Web-only,
+    //                         enables runtime backend selection.
+    //
+    // Legacy: "webgpu: true" is equivalent to backend: "webgpu".
+    final backendRaw = input.userDefines["backend"];
+    final legacyWebgpu = input.userDefines["webgpu"];
+    final String backend;
+    if (backendRaw == "webgpu" || backendRaw == "WebGPU") {
+      backend = "webgpu";
+    } else if (backendRaw == "webgl2" || backendRaw == "WebGL2") {
+      backend = "webgl2";
+    } else if (backendRaw == "hybrid" || backendRaw == "combined") {
+      backend = "hybrid";
+    } else if (legacyWebgpu == true || legacyWebgpu == "true" || legacyWebgpu == 1 || legacyWebgpu == "1") {
+      backend = "webgpu"; // legacy compat
+    } else {
+      backend = "native";
+    }
+
     final isIOSSimulator = targetOS == OS.iOS && config.code.iOS.targetSdk == IOSSdk.iPhoneSimulator;
 
     final libResult = await getLibDir(
@@ -120,23 +148,69 @@ outputDirectory : ${outputDirectory.path}
       sources = sources.where((p) => !p.contains("vulkan")).toList();
     }
 
-    // Material source paths (used by _processMaterials below)
+    // Material source paths — platform-specific variants.
+    // Each material has per-platform native variants (_apple, _android,
+    // _desktop, _opengl, _vulkan) plus _webgpu, _web_webgl, and
+    // _web_combined variants, all with identical C symbols. The build hook
+    // compiles exactly one, resolved by resolveMaterialBackend:
+    //  - the "materials.backends" user define (per-OS backend subsets, e.g.
+    //    { android: [vulkan] } → _vulkan),
+    //  - else the "backend" user define (webgpu/webgl2/hybrid → their
+    //    variants, incl. native Dawn),
+    //  - else the target OS default (Apple = Metal, Android = Vulkan+GL,
+    //    desktop Linux/Windows = Vulkan+GL — both GL-capable platforms keep
+    //    runtime backend selection working).
+    final rawMaterialsDefine = input.userDefines["materials"];
+    final backendsConfig = rawMaterialsDefine is Map<String, dynamic>
+        ? rawMaterialsDefine["backends"] as Map<String, dynamic>?
+        : null;
+    final materialResolution = resolveMaterialBackend(
+      backendsConfig: backendsConfig,
+      targetOS: targetOS.toString().split('.').last.toLowerCase(),
+      backendOverride: backend == "native" ? null : backend,
+    );
+    for (final warning in materialResolution.warnings) {
+      logger.warning(warning);
+    }
+    final materialSuffix = materialResolution.suffix;
+    final materialDefine = materialResolution.define;
+
+    final defines = <String, String?>{};
+    final materialDir = path.join(pkgRootFilePath, 'native/include/material');
+    // A selected variant whose blobs are missing is a hard error: silently
+    // falling back would compile the wrong backends into the app.
+    if (!File(path.join(materialDir, 'image$materialSuffix.c')).existsSync()) {
+      throw Exception(
+        "Material variant '$materialSuffix' (define $materialDefine) was "
+        "selected but its generated files are missing from $materialDir.\n"
+        "Run scripts/regenerate-materials.sh (or the Regenerate Materials CI "
+        "workflow) to generate all variant blobs, or adjust the "
+        "materials.backends configuration in your pubspec.yaml.",
+      );
+    }
+    defines[materialDefine] = "1";
+    String materialPath(String name, String suffix) {
+      final suffixed = path.join(materialDir, '${name}$suffix.c');
+      if (File(suffixed).existsSync()) return 'native/include/material/${name}$suffix.c';
+      // Fallback: unsuffixed .c (pre-split materials)
+      final fallbackName = name == 'gizmo' ? 'gizmo_material' : name;
+      return 'native/include/material/$fallbackName.c';
+    }
+
     final materialSources = <String, String>{
-      'capture_uv': 'native/include/material/capture_uv.c',
-      'grid': 'native/include/material/grid.c',
-      'image': 'native/include/material/image.c',
-      'linear_depth': 'native/include/material/linear_depth.c',
-      'unlit_fixed_size': 'native/include/material/unlit_fixed_size.c',
-      'silhouette': 'native/include/material/silhouette.c',
-      'edge_outline': 'native/include/material/edge_outline.c',
-      'wireframe': 'native/include/material/wireframe.c',
-      'translation_axis': 'native/include/material/translation_axis.c',
+      'capture_uv': materialPath('capture_uv', materialSuffix),
+      'grid': materialPath('grid', materialSuffix),
+      'image': materialPath('image', materialSuffix),
+      'linear_depth': materialPath('linear_depth', materialSuffix),
+      'unlit_fixed_size': materialPath('unlit_fixed_size', materialSuffix),
+      'silhouette': materialPath('silhouette', materialSuffix),
+      'edge_outline': materialPath('edge_outline', materialSuffix),
+      'wireframe': materialPath('wireframe', materialSuffix),
+      'translation_axis': materialPath('translation_axis', materialSuffix),
       // Renamed from gizmo.c to avoid a case-insensitive .obj collision
-      // with scene/Gizmo.cpp on Windows (both produced gizmo.obj, the
-      // material write-clobbered the class .obj, and the linker reported
-      // four LNK2019s for thermion::Gizmo::{Gizmo,pick,highlight,unhighlight}).
-      'gizmo': 'native/include/material/gizmo_material.c',
-      'bone_overlay': 'native/include/material/bone_overlay.c',
+      // with scene/Gizmo.cpp on Windows.
+      'gizmo': materialPath('gizmo_material', materialSuffix),
+      'bone_overlay': materialPath('bone_overlay', materialSuffix),
     };
 
     // Add gizmo resources (always included)
@@ -222,8 +296,6 @@ outputDirectory : ${outputDirectory.path}
       libDir = Directory(libDir).uri.toFilePath(windows: targetOS == OS.windows);
     }
 
-    final defines = <String, String?>{};
-
     if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
       logger.info("Enabling tracing");
       defines["ENABLE_TRACING"] = "1";
@@ -265,8 +337,16 @@ outputDirectory : ${outputDirectory.path}
       );
     }
 
-    // Process materials configuration
-    final materialConfigs = input.userDefines["materials"] as Map<String, dynamic>?;
+    // Process materials configuration. Strip the "backends" key (consumed by
+    // resolveMaterialBackend above) so it isn't treated as a material name.
+    // An empty remainder means "no selective config" — pass null so
+    // _processMaterials includes all materials (a map, even empty, means
+    // "only materials explicitly set to true").
+    Map<String, dynamic>? materialConfigs;
+    if (rawMaterialsDefine is Map<String, dynamic>) {
+      final stripped = Map<String, dynamic>.from(rawMaterialsDefine)..remove("backends");
+      materialConfigs = stripped.isEmpty ? null : stripped;
+    }
     _processMaterials(materialConfigs, materialSources, sources, defines, logger, pkgRootFilePath);
 
     var frameworks = [];

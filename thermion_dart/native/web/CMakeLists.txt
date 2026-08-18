@@ -88,6 +88,34 @@ link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
+# Material backend variant selection.
+# Set -DTHERMION_MATERIAL_VARIANT=<value> on the cmake command line:
+#   native       — OpenGL+Metal+Vulkan (GLSL, SPIR-V, MSL) [default for native, not for web]
+#   webgpu       — WebGPU only (WGSL)
+#   web_webgl    — WebGL2 only (GLSL), smallest web variant
+#   web_combined — WebGL2 + WebGPU (GLSL + WGSL), runtime backend selection
+if(NOT DEFINED THERMION_MATERIAL_VARIANT)
+  set(THERMION_MATERIAL_VARIANT "web_webgl")
+endif()
+message(STATUS "Material variant: ${THERMION_MATERIAL_VARIANT}")
+
+# Collect material .c files for the selected variant only.
+# Using an explicit list avoids the glob picking up _native.c AND _webgpu.c
+# (which would cause duplicate symbol definitions).
+set(MATERIAL_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/capture_uv_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/grid_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/image_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/linear_depth_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/unlit_fixed_size_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/silhouette_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/edge_outline_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/wireframe_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/translation_axis_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/bone_overlay_${THERMION_MATERIAL_VARIANT}.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/gizmo_material_${THERMION_MATERIAL_VARIANT}.c"
+)
+
 file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/c_api/*.cpp"
@@ -97,7 +125,6 @@ file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/scene/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/transform_pipeline/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp"
    # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp"
   )
@@ -130,11 +157,15 @@ else()
 endif()
 
 message(STATUS "Total source files being compiled: ${SOURCES}")
-add_executable(${MODULE_NAME} ${SOURCES})
+add_executable(${MODULE_NAME} ${SOURCES} ${MATERIAL_SOURCES})
 
 set_target_properties(${MODULE_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${MODULE_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
+
+# Set the material backend define so forwarding headers resolve correctly.
+string(TOUPPER ${THERMION_MATERIAL_VARIANT} VARIANT_UPPER)
+target_compile_definitions(${MODULE_NAME} PRIVATE THERMION_MATERIAL_${VARIANT_UPPER})
 target_compile_options(${MODULE_NAME} PRIVATE -matomics -mbulk-memory)
 target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)
 

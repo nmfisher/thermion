@@ -43,6 +43,7 @@ export default defineConfig({
           label: 'More',
           items: [
             { label: 'Filament', slug: 'filament' },
+            { label: 'Build Configuration', slug: 'build_configuration' },
             { label: 'Debugging', slug: 'debugging' },
             { label: 'Contributing', slug: 'contributing' },
             { label: 'Discord', link: 'https://discord.gg/h2VdDK3EAQ' },
