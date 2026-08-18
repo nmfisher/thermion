@@ -11,10 +11,6 @@ the concurrent mount/dispose stress path. Use the **×** on a cell to remove
 it individually. On web, each viewer runs its own engine and canvas, and the
 batch is capped by `WebOptions.maxViewers`.
 
-> On web builds the batch stepper is capped at 1: every view renders into a
-> single shared DOM canvas, so more than one viewer cannot be displayed.
-> Multi-viewer is a native (desktop/mobile) capability for now.
-
 > Note: the grid is rebuilt from a fresh list on every add/remove (see
 > `_MyHomePageState`). Mutating the list in place will leave new cells latent
 > until a layout pass (e.g. a window resize) forces the `GridView` to
