@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_manager.dart';
@@ -914,6 +915,162 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await oldFFIMaterial.destroy();
     }
     return newMaterial;
+  }
+
+  static final _includeRegExp = RegExp(r'^[ \t]*#[ \t]*include[ \t]*["<]([^">]+)[">][ \t]*$');
+
+  /// Flattens `#include` directives in [source] using this app's resource
+  /// loader, so the native compiler receives a single self-contained buffer
+  /// (matp only sees the bytes it is handed; it has no include callback).
+  ///
+  /// Each include is resolved against [includePaths] in order, then tried as
+  /// a bare path through the loader. Circular and over-deep include chains
+  /// are rejected rather than looped.
+  Future<String> _resolveIncludes(String source, List<String> includePaths) async {
+    Future<String?> tryLoad(String uri) async {
+      try {
+        return utf8.decode(await _loadResource(uri));
+      } catch (_) {
+        return null;
+      }
+    }
+
+    Future<String> expand(String text, String referencing, List<String> active) async {
+      final lines = text.split('\n');
+      final out = <String>[];
+      for (final line in lines) {
+        final match = _includeRegExp.firstMatch(line);
+        if (match == null) {
+          out.add(line);
+          continue;
+        }
+        final name = match.group(1)!;
+        if (active.contains(name)) {
+          throw MaterialCompileException(
+              "#include \"$name\" from $referencing is circular (${active.join(" -> ")} -> $name)");
+        }
+        if (active.length >= 64) {
+          throw MaterialCompileException(
+              "#include nesting exceeded 64 levels at \"$name\" from $referencing");
+        }
+        String? included;
+        String? resolvedAs;
+        for (final dir in [...includePaths, ""]) {
+          final candidate = dir.isEmpty || dir.endsWith("/") ? "$dir$name" : "$dir/$name";
+          final contents = await tryLoad(candidate);
+          if (contents != null) {
+            included = contents;
+            resolvedAs = candidate;
+            break;
+          }
+        }
+        if (included == null) {
+          throw MaterialCompileException("Could not resolve #include \"$name\" "
+              "from $referencing (searched: ${includePaths.isEmpty ? "<loader>" : includePaths.join(", ")})");
+        }
+        // Splice the file in place of the directive. Nested includes in the
+        // included file are resolved the same way.
+        out.add(await expand(included, resolvedAs!, [...active, name]));
+      }
+      return out.join('\n');
+    }
+
+    return expand(source, "<source>", []);
+  }
+
+  @override
+  Future<Uint8List> compileMaterial(
+    String matSource, {
+    MaterialCompilePlatform platform = MaterialCompilePlatform.all,
+    Set<MaterialTargetApi>? targetApi,
+    MaterialOptimization optimization = MaterialOptimization.performance,
+    Map<String, String> defines = const {},
+    List<String> includePaths = const [],
+    bool embedSource = true,
+  }) async {
+    if (FILAMENT_WASM) {
+      throw UnsupportedError(
+          "compileMaterial is not supported on web: the WASM engine does not link the "
+          "material compiler. Pre-compile .mat sources to .filamat with matc and load "
+          "them with createMaterial instead.");
+    }
+
+    final platformFlag = switch (platform) {
+      MaterialCompilePlatform.desktop => TMaterialPlatform.T_MATERIAL_PLATFORM_DESKTOP,
+      MaterialCompilePlatform.mobile => TMaterialPlatform.T_MATERIAL_PLATFORM_MOBILE,
+      MaterialCompilePlatform.all => TMaterialPlatform.T_MATERIAL_PLATFORM_ALL,
+    };
+    // Null targetApi lets native derive the target from the engine's backend,
+    // which is what makes the package loadable by the running engine.
+    var targetApiFlag = TMaterialTargetApi.T_MATERIAL_TARGET_API_FROM_ENGINE;
+    if (targetApi != null && targetApi.isNotEmpty) {
+      targetApiFlag = 0;
+      for (final api in targetApi) {
+        targetApiFlag |= switch (api) {
+          MaterialTargetApi.opengl => TMaterialTargetApi.T_MATERIAL_TARGET_API_OPENGL,
+          MaterialTargetApi.vulkan => TMaterialTargetApi.T_MATERIAL_TARGET_API_VULKAN,
+          MaterialTargetApi.metal => TMaterialTargetApi.T_MATERIAL_TARGET_API_METAL,
+          MaterialTargetApi.webgpu => TMaterialTargetApi.T_MATERIAL_TARGET_API_WEBGPU,
+        };
+      }
+    }
+    final optimizationLevel = switch (optimization) {
+      MaterialOptimization.none => TMaterialOptimization.T_MATERIAL_OPTIMIZATION_NONE,
+      MaterialOptimization.preprocessor => TMaterialOptimization.T_MATERIAL_OPTIMIZATION_PREPROCESSOR,
+      MaterialOptimization.size => TMaterialOptimization.T_MATERIAL_OPTIMIZATION_SIZE,
+      MaterialOptimization.performance => TMaterialOptimization.T_MATERIAL_OPTIMIZATION_PERFORMANCE,
+    };
+
+    final flattened = await _resolveIncludes(matSource, includePaths);
+    final sourceByteLength = utf8.encode(flattened).length;
+
+    final sourcePtr = flattened.toNativeUtf8().cast<Char>();
+    final definesPtr = defines.isEmpty
+        ? nullptr.cast<Char>()
+        : jsonEncode(defines).toNativeUtf8().cast<Char>();
+    final outError = allocate<Char>(1024);
+    outError[0] = 0;
+    // Written by the render-thread task before the completion callback fires.
+    final outData = allocate<Pointer<Uint8>>(sizeOf<Pointer<Uint8>>());
+    final outSize = allocate<IntPtr>(sizeOf<IntPtr>());
+    try {
+      await withVoidCallback((requestId, cb) {
+        Engine_compileMaterialRenderThread(
+          engine,
+          sourcePtr,
+          sourceByteLength,
+          platformFlag,
+          targetApiFlag,
+          optimizationLevel,
+          definesPtr,
+          embedSource ? 1 : 0,
+          outError,
+          1024,
+          outData,
+          outSize.cast(),
+          requestId,
+          cb,
+        );
+      });
+      final data = outData.value;
+      if (data == nullptr) {
+        throw MaterialCompileException(outError.cast<Utf8>().toDartString());
+      }
+      final size = outSize.value;
+      // Copy out of the native buffer, then hand it back. The buffer stays
+      // valid from the task's write until this free; nothing else touches it.
+      final compiled = Uint8List.fromList(data.asTypedList(size));
+      Engine_freeCompiledMaterial(data);
+      return compiled;
+    } finally {
+      free(sourcePtr);
+      if (definesPtr != nullptr) {
+        free(definesPtr);
+      }
+      free(outError);
+      free(outData);
+      free(outSize);
+    }
   }
 
   final _swapChains = <SwapChain>[];

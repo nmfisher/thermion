@@ -36,6 +36,14 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
   }
 
   Future destroy() async {
+    // Filament requires every instance of a material to be gone before the
+    // material itself; destroying a material with live instances strands the
+    // render thread. Retire the instances this wrapper created (they must
+    // already be detached from live renderables — see reloadMaterialFromBytes,
+    // which re-points renderables before retiring old instances).
+    for (final instance in List.of(createdInstances)) {
+      await instance.destroy();
+    }
     await withVoidCallback((requestId, cb) {
       Engine_destroyMaterialRenderThread(_app.engine, pointer, requestId, cb);
     });

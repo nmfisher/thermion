@@ -58,6 +58,103 @@ EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine);
     
 EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t* materialData, size_t length);
+
+// ---------------------------------------------------------------------------
+// Runtime material compilation (.mat source -> .filamat package).
+//
+// Phase 1 of docs/research/runtime-material-compile.md. The real
+// implementation is only linked into desktop builds (linux/macos/windows,
+// where the artifact ships libfilamat + libmatp); every other platform gets
+// a stub that fails with an explanatory message. The header declares the API
+// unconditionally so bindings generate everywhere.
+// ---------------------------------------------------------------------------
+
+enum TMaterialPlatform {
+    // Values match filamat::MaterialBuilderBase::Platform.
+    T_MATERIAL_PLATFORM_DESKTOP = 0,
+    T_MATERIAL_PLATFORM_MOBILE = 1,
+    T_MATERIAL_PLATFORM_ALL = 2,
+};
+typedef enum TMaterialPlatform TMaterialPlatform;
+
+enum TMaterialTargetApi {
+    // Bit values match filamat::MaterialBuilderBase::TargetApi and may be
+    // OR-ed together.
+    T_MATERIAL_TARGET_API_OPENGL = 0x01,
+    T_MATERIAL_TARGET_API_VULKAN = 0x02,
+    T_MATERIAL_TARGET_API_METAL = 0x04,
+    T_MATERIAL_TARGET_API_WEBGPU = 0x08,
+    T_MATERIAL_TARGET_API_ALL = 0x0F,
+    // Derive the target from the engine's active backend (recommended).
+    T_MATERIAL_TARGET_API_FROM_ENGINE = 0x100,
+};
+typedef enum TMaterialTargetApi TMaterialTargetApi;
+
+enum TMaterialOptimization {
+    // Values match filamat::MaterialBuilderBase::Optimization.
+    T_MATERIAL_OPTIMIZATION_NONE = 0,
+    T_MATERIAL_OPTIMIZATION_PREPROCESSOR = 1,
+    T_MATERIAL_OPTIMIZATION_SIZE = 2,
+    T_MATERIAL_OPTIMIZATION_PERFORMANCE = 3,
+};
+typedef enum TMaterialOptimization TMaterialOptimization;
+
+/// Compiles .mat [matSource] ([length] bytes, not necessarily
+/// NUL-terminated) into a filamat package, synchronously on the calling
+/// thread. #include directives must already be resolved by the caller (the
+/// Dart layer flattens them).
+///
+/// [platform]/[targetApi]/[optimization] select the compilation targets;
+/// pass T_MATERIAL_TARGET_API_FROM_ENGINE to derive targetApi from the
+/// engine's backend.
+///
+/// [definesJson] is either nullptr or a flat JSON object of preprocessor
+/// defines, e.g. `{"OCCLUSION": "1"}`. Only string keys/values and basic
+/// backslash escapes are supported.
+///
+/// [embedSource] controls whether the .mat source is embedded in the
+/// package (matc's no-embed-source flag).
+///
+/// On success returns a malloc'd buffer of *outSize bytes that the caller
+/// must release with [Engine_freeCompiledMaterial]. On failure returns
+/// nullptr and writes a NUL-terminated message into [outError] (capacity
+/// [outErrorCap]).
+EMSCRIPTEN_KEEPALIVE const uint8_t *Engine_compileMaterial(
+    TEngine *tEngine,
+    const char *matSource,
+    size_t length,
+    TMaterialPlatform platform,
+    TMaterialTargetApi targetApi,
+    TMaterialOptimization optimization,
+    const char *definesJson,
+    uint8_t embedSource,
+    char *outError,
+    size_t outErrorCap,
+    size_t *outSize);
+
+/// Releases a buffer returned by [Engine_compileMaterial].
+EMSCRIPTEN_KEEPALIVE void Engine_freeCompiledMaterial(const uint8_t *data);
+
+/// As [Engine_compileMaterial], but the work runs on the engine's render
+/// thread. The task writes the malloc'd package to *[outData] and its size to
+/// *[outSize] (release it with [Engine_freeCompiledMaterial]), or nullptr on
+/// failure with the message in [outError], then invokes [onComplete] with
+/// [requestId].
+EMSCRIPTEN_KEEPALIVE void Engine_compileMaterialRenderThread(
+    TEngine *tEngine,
+    const char *matSource,
+    size_t length,
+    TMaterialPlatform platform,
+    TMaterialTargetApi targetApi,
+    TMaterialOptimization optimization,
+    const char *definesJson,
+    uint8_t embedSource,
+    char *outError,
+    size_t outErrorCap,
+    const uint8_t **outData,
+    size_t *outSize,
+    uint32_t requestId,
+    void (*onComplete)(int32_t requestId));
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterial(TEngine *tEngine, TMaterial *tMaterial);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstance(TEngine *tEngine, TMaterialInstance *tMaterialInstance);
 EMSCRIPTEN_KEEPALIVE TScene *Engine_createScene(TEngine *tEngine);

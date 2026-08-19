@@ -229,6 +229,13 @@ outputDirectory : ${outputDirectory.path}
       "backend",
       "filameshio",
       if (targetOS != OS.iOS) "filamat",
+      // The .mat parser backing runtime material compilation
+      // (Engine_compileMaterial). Only the desktop artifacts ship libmatp
+      // (Android/iOS have filamat only, web has neither — see
+      // docs/research/runtime-material-compile.md), so it is linked on
+      // desktop only, ahead of utils because libmatp references it. Windows
+      // links via #pragma comment(lib) in ThermionWin32.h instead.
+      if (targetOS == OS.linux || targetOS == OS.macOS) "matp",
       if (targetOS == OS.linux) "shaders",
       "utils",
       // Android links Filament's Perfetto tracing archive. utils is always
@@ -299,6 +306,14 @@ outputDirectory : ${outputDirectory.path}
     if ((input.userDefines["tracing"] as String?)?.isNotEmpty == true) {
       logger.info("Enabling tracing");
       defines["ENABLE_TRACING"] = "1";
+    }
+
+    // Runtime material compilation (Phase 1 of
+    // docs/research/runtime-material-compile.md): the compiler implementation
+    // is linked into desktop builds only (where the artifact ships
+    // libmatp.a); other platforms compile a stub that returns a clear error.
+    if (targetOS == OS.linux || targetOS == OS.macOS || targetOS == OS.windows) {
+      defines["THERMION_RUNTIME_MATERIAL_COMPILE"] = "1";
     }
 
     // Check for plugin configuration

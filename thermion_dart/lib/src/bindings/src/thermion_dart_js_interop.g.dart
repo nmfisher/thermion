@@ -1285,6 +1285,65 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Uint8> materialData,
     size_t length,
   );
+
+  /// Compiles .mat [matSource] ([length] bytes, not necessarily
+  /// NUL-terminated) into a filamat package, synchronously on the calling
+  /// thread. #include directives must already be resolved by the caller (the
+  /// Dart layer flattens them).
+  ///
+  /// [platform]/[targetApi]/[optimization] select the compilation targets;
+  /// pass T_MATERIAL_TARGET_API_FROM_ENGINE to derive targetApi from the
+  /// engine's backend.
+  ///
+  /// [definesJson] is either nullptr or a flat JSON object of preprocessor
+  /// defines, e.g. `{"OCCLUSION": "1"}`. Only string keys/values and basic
+  /// backslash escapes are supported.
+  ///
+  /// [embedSource] controls whether the .mat source is embedded in the
+  /// package (matc's no-embed-source flag).
+  ///
+  /// On success returns a malloc'd buffer of *outSize bytes that the caller
+  /// must release with [Engine_freeCompiledMaterial]. On failure returns
+  /// nullptr and writes a NUL-terminated message into [outError] (capacity
+  /// [outErrorCap]).
+  external Pointer<Uint8> _Engine_compileMaterial(
+    Pointer<TEngine> tEngine,
+    Pointer<Char> matSource,
+    size_t length,
+    int platform,
+    int targetApi,
+    int optimization,
+    Pointer<Char> definesJson,
+    int embedSource,
+    Pointer<Char> outError,
+    size_t outErrorCap,
+    Pointer<Int32> outSize,
+  );
+
+  /// Releases a buffer returned by [Engine_compileMaterial].
+  external void _Engine_freeCompiledMaterial(Pointer<Uint8> data);
+
+  /// As [Engine_compileMaterial], but the work runs on the engine's render
+  /// thread. The task writes the malloc'd package to *[outData] and its size to
+  /// *[outSize] (release it with [Engine_freeCompiledMaterial]), or nullptr on
+  /// failure with the message in [outError], then invokes [onComplete] with
+  /// [requestId].
+  external void _Engine_compileMaterialRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<Char> matSource,
+    size_t length,
+    int platform,
+    int targetApi,
+    int optimization,
+    Pointer<Char> definesJson,
+    int embedSource,
+    Pointer<Char> outError,
+    size_t outErrorCap,
+    Pointer<PointerClass<Uint8>> outData,
+    Pointer<Int32> outSize,
+    int requestId,
+    Pointer<NativeFunction<void Function(int requestId)>> onComplete,
+  );
   external void _Engine_destroyMaterial(Pointer<TEngine> tEngine, Pointer<TMaterial> tMaterial);
   external void _Engine_destroyMaterialInstance(Pointer<TEngine> tEngine, Pointer<TMaterialInstance> tMaterialInstance);
   external Pointer<TScene> _Engine_createScene(Pointer<TEngine> tEngine);
@@ -6104,6 +6163,101 @@ void Engine_execute(Pointer<TEngine> tEngine) {
 Pointer<TMaterial> Engine_buildMaterial(Pointer<TEngine> tEngine, Pointer<Uint8> materialData, Dartsize_t length) {
   final result = GeneratedBindings.instance._Engine_buildMaterial(tEngine.cast(), materialData, length);
   return Pointer<TMaterial>(result);
+}
+
+/// Compiles .mat [matSource] ([length] bytes, not necessarily
+/// NUL-terminated) into a filamat package, synchronously on the calling
+/// thread. #include directives must already be resolved by the caller (the
+/// Dart layer flattens them).
+///
+/// [platform]/[targetApi]/[optimization] select the compilation targets;
+/// pass T_MATERIAL_TARGET_API_FROM_ENGINE to derive targetApi from the
+/// engine's backend.
+///
+/// [definesJson] is either nullptr or a flat JSON object of preprocessor
+/// defines, e.g. `{"OCCLUSION": "1"}`. Only string keys/values and basic
+/// backslash escapes are supported.
+///
+/// [embedSource] controls whether the .mat source is embedded in the
+/// package (matc's no-embed-source flag).
+///
+/// On success returns a malloc'd buffer of *outSize bytes that the caller
+/// must release with [Engine_freeCompiledMaterial]. On failure returns
+/// nullptr and writes a NUL-terminated message into [outError] (capacity
+/// [outErrorCap]).
+Pointer<Uint8> Engine_compileMaterial(
+  Pointer<TEngine> tEngine,
+  Pointer<Char> matSource,
+  Dartsize_t length,
+  int platform,
+  int targetApi,
+  int optimization,
+  Pointer<Char> definesJson,
+  int embedSource,
+  Pointer<Char> outError,
+  Dartsize_t outErrorCap,
+  Pointer<Int32> outSize,
+) {
+  final result = GeneratedBindings.instance._Engine_compileMaterial(
+    tEngine.cast(),
+    matSource,
+    length,
+    platform,
+    targetApi,
+    optimization,
+    definesJson,
+    embedSource,
+    outError,
+    outErrorCap,
+    outSize,
+  );
+  return Pointer<Uint8>(result);
+}
+
+/// Releases a buffer returned by [Engine_compileMaterial].
+void Engine_freeCompiledMaterial(Pointer<Uint8> data) {
+  final result = GeneratedBindings.instance._Engine_freeCompiledMaterial(data);
+  return result;
+}
+
+/// As [Engine_compileMaterial], but the work runs on the engine's render
+/// thread. The task writes the malloc'd package to *[outData] and its size to
+/// *[outSize] (release it with [Engine_freeCompiledMaterial]), or nullptr on
+/// failure with the message in [outError], then invokes [onComplete] with
+/// [requestId].
+void Engine_compileMaterialRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<Char> matSource,
+  Dartsize_t length,
+  int platform,
+  int targetApi,
+  int optimization,
+  Pointer<Char> definesJson,
+  int embedSource,
+  Pointer<Char> outError,
+  Dartsize_t outErrorCap,
+  Pointer<PointerClass<Uint8>> outData,
+  Pointer<Int32> outSize,
+  int requestId,
+  Pointer<NativeFunction<void Function(int requestId)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._Engine_compileMaterialRenderThread(
+    tEngine.cast(),
+    matSource,
+    length,
+    platform,
+    targetApi,
+    optimization,
+    definesJson,
+    embedSource,
+    outError,
+    outErrorCap,
+    outData,
+    outSize,
+    requestId,
+    onComplete.cast(),
+  );
+  return result;
 }
 
 void Engine_destroyMaterial(Pointer<TEngine> tEngine, Pointer<TMaterial> tMaterial) {
@@ -11301,6 +11455,28 @@ final class TFence extends Struct {
   }
 }
 
+sealed class TMaterialPlatform {
+  static const T_MATERIAL_PLATFORM_DESKTOP = 0;
+  static const T_MATERIAL_PLATFORM_MOBILE = 1;
+  static const T_MATERIAL_PLATFORM_ALL = 2;
+}
+
+sealed class TMaterialTargetApi {
+  static const T_MATERIAL_TARGET_API_OPENGL = 1;
+  static const T_MATERIAL_TARGET_API_VULKAN = 2;
+  static const T_MATERIAL_TARGET_API_METAL = 4;
+  static const T_MATERIAL_TARGET_API_WEBGPU = 8;
+  static const T_MATERIAL_TARGET_API_ALL = 15;
+  static const T_MATERIAL_TARGET_API_FROM_ENGINE = 256;
+}
+
+sealed class TMaterialOptimization {
+  static const T_MATERIAL_OPTIMIZATION_NONE = 0;
+  static const T_MATERIAL_OPTIMIZATION_PREPROCESSOR = 1;
+  static const T_MATERIAL_OPTIMIZATION_SIZE = 2;
+  static const T_MATERIAL_OPTIMIZATION_PERFORMANCE = 3;
+}
+
 extension TDebugRegistryExt on Pointer<TDebugRegistry> {
   TDebugRegistry toDart() {
     return TDebugRegistry(this);
@@ -11528,7 +11704,15 @@ extension StructAllocator on Struct {
   }
 }
 
-extension NativeFunctionPointer0<T extends NativeType> on void Function() {
+extension NativeFunctionPointer0<T extends NativeType> on void Function(int requestId) {
+  Pointer<NativeFunction<void Function(int requestId)>> addFunction() {
+    return Pointer<NativeFunction<void Function(int requestId)>>(
+      NativeLibrary.instance.addFunction<void Function(int requestId)>(this.toJS, 'vi'),
+    ).cast();
+  }
+}
+
+extension NativeFunctionPointer1<T extends NativeType> on void Function() {
   Pointer<NativeFunction<void Function()>> addFunction() {
     return Pointer<NativeFunction<void Function()>>(
       NativeLibrary.instance.addFunction<void Function()>(this.toJS, 'v'),
@@ -11536,7 +11720,7 @@ extension NativeFunctionPointer0<T extends NativeType> on void Function() {
   }
 }
 
-extension NativeFunctionPointer1<T extends NativeType> on void Function(Pointer<T>) {
+extension NativeFunctionPointer2<T extends NativeType> on void Function(Pointer<T>) {
   Pointer<NativeFunction<void Function(Pointer<TAnimationManager>)>> addFunction() {
     return Pointer<NativeFunction<void Function(Pointer<TAnimationManager>)>>(
       NativeLibrary.instance.addFunction<void Function(Pointer<TAnimationManager>)>(this.toJS, 'vp'),
@@ -11544,7 +11728,7 @@ extension NativeFunctionPointer1<T extends NativeType> on void Function(Pointer<
   }
 }
 
-extension NativeFunctionPointer17<T extends NativeType> on void Function(bool) {
+extension NativeFunctionPointer18<T extends NativeType> on void Function(bool) {
   Pointer<NativeFunction<void Function(bool)>> addFunction() {
     return Pointer<NativeFunction<void Function(bool)>>(
       NativeLibrary.instance.addFunction<void Function(bool)>(this.toJS, 'vi'),
@@ -11552,15 +11736,7 @@ extension NativeFunctionPointer17<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer47<T extends NativeType> on void Function(int) {
-  Pointer<NativeFunction<void Function(int)>> addFunction() {
-    return Pointer<NativeFunction<void Function(int)>>(
-      NativeLibrary.instance.addFunction<void Function(int)>(this.toJS, 'vi'),
-    ).cast();
-  }
-}
-
-extension NativeFunctionPointer61<T extends NativeType> on void Function(double) {
+extension NativeFunctionPointer62<T extends NativeType> on void Function(double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(
       NativeLibrary.instance.addFunction<void Function(double)>(this.toJS, 'vf'),

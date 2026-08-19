@@ -128,6 +128,42 @@ abstract class FilamentApp<T> {
   //
   Future<Material> createMaterial(Uint8List data);
 
+  /// Compiles .mat [matSource] into a .filamat package at runtime — the
+  /// same container [createMaterial] accepts — using the Filament material
+  /// compiler linked into the engine library (matc's pipeline: parse the
+  /// material definition, generate + optimize shaders for the target).
+  ///
+  /// Phase 1 of docs/research/runtime-material-compile.md. Currently
+  /// supported on desktop (linux/macOS/Windows); other platforms throw
+  /// [UnsupportedError].
+  ///
+  /// [targetApi] selects which graphics APIs the package carries shaders
+  /// for; null derives it from the engine's active backend (recommended, and
+  /// what a reload-and-continue workflow wants). [platform] defaults to
+  /// generating both desktop and mobile variants. [optimization] mirrors
+  /// matc's -O flags (default PERFORMANCE, like release materials).
+  ///
+  /// [defines] are passed to the shader preprocessor (matc's -D). [matSource]
+  /// must not contain unresolved #include directives: [includePaths] lists
+  /// directories to resolve them from, and includes are flattened by this
+  /// library before compiling (circular includes are an error).
+  ///
+  /// [embedSource] controls whether the .mat source is embedded in the
+  /// package (matc's -e / no-embed-source); embedded source makes packages
+  /// self-describing for tooling at a small size cost.
+  ///
+  /// Throws [MaterialCompileException] with the compiler's message when the
+  /// source fails to parse or the shaders fail to build.
+  Future<Uint8List> compileMaterial(
+    String matSource, {
+    MaterialCompilePlatform platform = MaterialCompilePlatform.all,
+    Set<MaterialTargetApi>? targetApi,
+    MaterialOptimization optimization = MaterialOptimization.performance,
+    Map<String, String> defines = const {},
+    List<String> includePaths = const [],
+    bool embedSource = true,
+  });
+
   //
   Future<MaterialInstance> createUbershaderMaterialInstance({
     bool doubleSided = false,
@@ -504,4 +540,27 @@ class MaterialInstanceUse {
   final MaterialInstance materialInstance;
 
   MaterialInstanceUse(this.entity, this.primitiveIndex, this.materialInstance);
+}
+
+/// Which platform flavor of shaders a runtime compile generates
+/// (matc's -g/-p selection). Mirrors filamat's Platform.
+enum MaterialCompilePlatform { desktop, mobile, all }
+
+/// Which graphics API a runtime compile generates shaders for (matc's -a).
+/// Pass a Set to generate several; omit [FilamentApp.compileMaterial]'s
+/// targetApi to derive it from the engine's backend.
+enum MaterialTargetApi { opengl, vulkan, metal, webgpu }
+
+/// Optimization level for a runtime compile (matc's -O).
+enum MaterialOptimization { none, preprocessor, size, performance }
+
+/// Thrown by [FilamentApp.compileMaterial] when the .mat source fails to
+/// parse or its shaders fail to build. The message comes from the compiler.
+class MaterialCompileException implements Exception {
+  final String message;
+
+  MaterialCompileException(this.message);
+
+  @override
+  String toString() => "MaterialCompileException: $message";
 }

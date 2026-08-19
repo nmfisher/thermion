@@ -2547,6 +2547,99 @@ external ffi.Pointer<TMaterial> Engine_buildMaterial(
   int length,
 );
 
+/// Compiles .mat [matSource] ([length] bytes, not necessarily
+/// NUL-terminated) into a filamat package, synchronously on the calling
+/// thread. #include directives must already be resolved by the caller (the
+/// Dart layer flattens them).
+///
+/// [platform]/[targetApi]/[optimization] select the compilation targets;
+/// pass T_MATERIAL_TARGET_API_FROM_ENGINE to derive targetApi from the
+/// engine's backend.
+///
+/// [definesJson] is either nullptr or a flat JSON object of preprocessor
+/// defines, e.g. `{"OCCLUSION": "1"}`. Only string keys/values and basic
+/// backslash escapes are supported.
+///
+/// [embedSource] controls whether the .mat source is embedded in the
+/// package (matc's no-embed-source flag).
+///
+/// On success returns a malloc'd buffer of *outSize bytes that the caller
+/// must release with [Engine_freeCompiledMaterial]. On failure returns
+/// nullptr and writes a NUL-terminated message into [outError] (capacity
+/// [outErrorCap]).
+@ffi.Native<
+  ffi.Pointer<ffi.Uint8> Function(
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.Pointer<ffi.Char>,
+    ffi.Uint8,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.Pointer<ffi.Size>,
+  )
+>(isLeaf: true)
+external ffi.Pointer<ffi.Uint8> Engine_compileMaterial(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> matSource,
+  int length,
+  int platform,
+  int targetApi,
+  int optimization,
+  ffi.Pointer<ffi.Char> definesJson,
+  int embedSource,
+  ffi.Pointer<ffi.Char> outError,
+  int outErrorCap,
+  ffi.Pointer<ffi.Size> outSize,
+);
+
+/// Releases a buffer returned by [Engine_compileMaterial].
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Uint8>)>(isLeaf: true)
+external void Engine_freeCompiledMaterial(ffi.Pointer<ffi.Uint8> data);
+
+/// As [Engine_compileMaterial], but the work runs on the engine's render
+/// thread. The task writes the malloc'd package to *[outData] and its size to
+/// *[outSize] (release it with [Engine_freeCompiledMaterial]), or nullptr on
+/// failure with the message in [outError], then invokes [onComplete] with
+/// [requestId].
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.Pointer<ffi.Char>,
+    ffi.Uint8,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.Pointer<ffi.Pointer<ffi.Uint8>>,
+    ffi.Pointer<ffi.Size>,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32 requestId)>>,
+  )
+>(isLeaf: true)
+external void Engine_compileMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> matSource,
+  int length,
+  int platform,
+  int targetApi,
+  int optimization,
+  ffi.Pointer<ffi.Char> definesJson,
+  int embedSource,
+  ffi.Pointer<ffi.Char> outError,
+  int outErrorCap,
+  ffi.Pointer<ffi.Pointer<ffi.Uint8>> outData,
+  ffi.Pointer<ffi.Size> outSize,
+  int requestId,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32 requestId)>> onComplete,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(isLeaf: true)
 external void Engine_destroyMaterial(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TMaterial> tMaterial);
 
@@ -5749,6 +5842,28 @@ sealed class TBackend {
 
   /// !< Selects the no-op driver for testing purposes.
   static const BACKEND_NOOP = 4;
+}
+
+sealed class TMaterialPlatform {
+  static const T_MATERIAL_PLATFORM_DESKTOP = 0;
+  static const T_MATERIAL_PLATFORM_MOBILE = 1;
+  static const T_MATERIAL_PLATFORM_ALL = 2;
+}
+
+sealed class TMaterialTargetApi {
+  static const T_MATERIAL_TARGET_API_OPENGL = 1;
+  static const T_MATERIAL_TARGET_API_VULKAN = 2;
+  static const T_MATERIAL_TARGET_API_METAL = 4;
+  static const T_MATERIAL_TARGET_API_WEBGPU = 8;
+  static const T_MATERIAL_TARGET_API_ALL = 15;
+  static const T_MATERIAL_TARGET_API_FROM_ENGINE = 256;
+}
+
+sealed class TMaterialOptimization {
+  static const T_MATERIAL_OPTIMIZATION_NONE = 0;
+  static const T_MATERIAL_OPTIMIZATION_PREPROCESSOR = 1;
+  static const T_MATERIAL_OPTIMIZATION_SIZE = 2;
+  static const T_MATERIAL_OPTIMIZATION_PERFORMANCE = 3;
 }
 
 typedef FilamentRenderCallbackFunction = ffi.Void Function(ffi.Pointer<ffi.Void> owner);

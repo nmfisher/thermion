@@ -35,8 +35,195 @@
 #include <utils/EntityManager.h>
 #include <utils/NameComponentManager.h>
 
+#ifdef THERMION_RUNTIME_MATERIAL_COMPILE
+#include <filamat/MaterialBuilder.h>
+#include <filamat/Package.h>
+#include <filament-matp/Config.h>
+#include <filament-matp/MaterialParser.h>
+#include <utils/Status.h>
+
+// The prebuilt artifact's include tree does not ship utils/JobSystem.h; a
+// forward declaration is all Engine_compileMaterial needs (it only passes
+// engine->getJobSystem() by reference).
+namespace utils
+{
+    class JobSystem;
+}
+
+#include <cstring>
+#include <cstdio>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
+#endif
+
 #include "Log.hpp"
 #include "MathUtils.hpp"
+
+namespace thermion
+{
+
+    void writeError(char *outError, size_t outErrorCap, const char *message)
+    {
+        if (outError == nullptr || outErrorCap == 0)
+        {
+            return;
+        }
+        snprintf(outError, outErrorCap, "%s", message);
+    }
+#ifdef THERMION_RUNTIME_MATERIAL_COMPILE
+    // =====================================================================
+    // Runtime material compilation (Phase 1 of
+    // docs/research/runtime-material-compile.md).
+    //
+    // The proven sequence, mirroring matc: MaterialBuilder::init() once,
+    // matp::MaterialParser::parse() of the (already include-resolved)
+    // source into a MaterialBuilder, then MaterialBuilder::build() on the
+    // engine's JobSystem.
+    // =====================================================================
+
+    /// Minimal matp::Config for runtime compilation. matc fills this from
+    /// command-line flags; we only need the platform/target/optimization
+    /// selection — output/input sinks and the string forms are unused by
+    /// MaterialParser::parse.
+    class RuntimeMaterialConfig : public matp::Config
+    {
+    public:
+        RuntimeMaterialConfig(
+            Platform platform,
+            TargetApi targetApi,
+            Optimization optimization,
+            bool includeSourceMaterial)
+        {
+            mPlatform = platform;
+            mTargetApi = targetApi;
+            mOptimizationLevel = optimization;
+            mIncludeSourceMaterial = includeSourceMaterial;
+            // Engine_create pins the engine to FEATURE_LEVEL_1; generate
+            // for the same level so packages always load.
+            mFeatureLevel = filament::backend::FeatureLevel::FEATURE_LEVEL_1;
+        }
+
+        Output *getOutput() const noexcept override { return nullptr; }
+        Input *getInput() const noexcept override { return nullptr; }
+        std::string toString() const noexcept override { return "thermion_runtime_compile"; }
+        std::string toPIISafeString() const noexcept override { return "thermion_runtime_compile"; }
+    };
+
+    /// Serializes every compile. MaterialBuilder::init()/shutdown() are
+    /// refcounted but glslang's global initialization is not thread-safe,
+    /// so the first init and all builds share one mutex. We never call
+    /// shutdown — the builder state lives for the process lifetime, which
+    /// also removes any racing with a concurrent engine teardown.
+    std::mutex &materialCompileMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    /// Parses a flat JSON object of string -> string, e.g.
+    /// {"OCCLUSION": "1", "TINT": "0.5"}. Accepts whitespace between
+    /// tokens and the backslash escapes \" \\ \/ \n \t \r. Returns false
+    /// on malformed input (the whole compile then fails with an error
+    /// pointing at the defines).
+    bool parseDefinesJson(const char *json, std::vector<std::pair<std::string, std::string>> &out)
+    {
+        const char *p = json;
+        auto skipWhitespace = [&p]()
+        {
+            while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
+            {
+                p++;
+            }
+        };
+        auto parseString = [&](std::string &result) -> bool
+        {
+            if (*p != '"')
+            {
+                return false;
+            }
+            p++;
+            result.clear();
+            while (*p != '"')
+            {
+                if (*p == '\0')
+                {
+                    return false;
+                }
+                if (*p == '\\')
+                {
+                    p++;
+                    switch (*p)
+                    {
+                        case '"': result += '"'; break;
+                        case '\\': result += '\\'; break;
+                        case '/': result += '/'; break;
+                        case 'n': result += '\n'; break;
+                        case 't': result += '\t'; break;
+                        case 'r': result += '\r'; break;
+                        default: return false;
+                    }
+                }
+                else
+                {
+                    result += *p;
+                }
+                p++;
+            }
+            p++; // closing quote
+            return true;
+        };
+
+        skipWhitespace();
+        if (*p != '{')
+        {
+            return false;
+        }
+        p++;
+        skipWhitespace();
+        if (*p == '}')
+        {
+            return true;
+        }
+        while (true)
+        {
+            skipWhitespace();
+            std::string key;
+            if (!parseString(key))
+            {
+                return false;
+            }
+            skipWhitespace();
+            if (*p != ':')
+            {
+                return false;
+            }
+            p++;
+            skipWhitespace();
+            std::string value;
+            if (!parseString(value))
+            {
+                return false;
+            }
+            out.emplace_back(std::move(key), std::move(value));
+            skipWhitespace();
+            if (*p == ',')
+            {
+                p++;
+                continue;
+            }
+            if (*p == '}')
+            {
+                return true;
+            }
+            return false;
+        }
+    }
+
+#endif
+
+}
 
 #ifdef __cplusplus
 namespace thermion
@@ -51,6 +238,7 @@ namespace thermion
         void RenderThread_registerOwnerFromOwner(void *owner, void *knownOwner);
         const char *RenderThread_getActiveCanvasSelector();
 #endif
+
 
         EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT = filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT;
         EMSCRIPTEN_KEEPALIVE uint64_t TSWAP_CHAIN_CONFIG_READABLE = filament::backend::SWAP_CHAIN_CONFIG_READABLE;
@@ -302,6 +490,170 @@ namespace thermion
             auto *mi = reinterpret_cast<MaterialInstance *>(tMaterialInstance);
             engine->destroy(mi);
         }
+
+#ifdef THERMION_RUNTIME_MATERIAL_COMPILE
+        EMSCRIPTEN_KEEPALIVE const uint8_t *Engine_compileMaterial(
+            TEngine *tEngine,
+            const char *matSource,
+            size_t length,
+            TMaterialPlatform platform,
+            TMaterialTargetApi targetApi,
+            TMaterialOptimization optimization,
+            const char *definesJson,
+            uint8_t embedSource,
+            char *outError,
+            size_t outErrorCap,
+            size_t *outSize)
+        {
+            if (outSize != nullptr)
+            {
+                *outSize = 0;
+            }
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+
+            using BuilderPlatform = filamat::MaterialBuilder::Platform;
+            using BuilderTargetApi = filamat::MaterialBuilder::TargetApi;
+            using BuilderOptimization = filamat::MaterialBuilder::Optimization;
+
+            if (platform > T_MATERIAL_PLATFORM_ALL)
+            {
+                writeError(outError, outErrorCap, "invalid platform");
+                return nullptr;
+            }
+            if (optimization > T_MATERIAL_OPTIMIZATION_PERFORMANCE)
+            {
+                writeError(outError, outErrorCap, "invalid optimization level");
+                return nullptr;
+            }
+
+            BuilderTargetApi builderTargetApi;
+            uint32_t resolved = targetApi;
+            if (targetApi == T_MATERIAL_TARGET_API_FROM_ENGINE)
+            {
+                builderTargetApi = filamat::targetApiFromBackend(engine->getBackend());
+            }
+            else
+            {
+                if ((targetApi & ~T_MATERIAL_TARGET_API_ALL) != 0)
+                {
+                    writeError(outError, outErrorCap, "invalid target API flags");
+                    return nullptr;
+                }
+                builderTargetApi = (BuilderTargetApi)(resolved);
+            }
+
+            // Everything below shares one mutex: MaterialBuilder::init()'s
+            // glslang setup is not thread-safe, and builds on one engine's
+            // JobSystem should not race each other.
+            std::lock_guard<std::mutex> lock(materialCompileMutex());
+            static bool materialBuilderInitialized = false;
+            if (!materialBuilderInitialized)
+            {
+                filamat::MaterialBuilder::init();
+                materialBuilderInitialized = true;
+            }
+
+            std::vector<std::pair<std::string, std::string>> defines;
+            if (definesJson != nullptr && definesJson[0] != '\0')
+            {
+                if (!parseDefinesJson(definesJson, defines))
+                {
+                    writeError(outError, outErrorCap,
+                        "definesJson must be a flat JSON object of strings, e.g. {\"KEY\": \"value\"}");
+                    return nullptr;
+                }
+            }
+
+            // parse() takes a non-const buffer (it rewrites the source in
+            // place when applying substitutions).
+            std::unique_ptr<const char[]> buffer(new char[length + 1]);
+            memcpy((void *)buffer.get(), matSource, length);
+            ((char *)buffer.get())[length] = '\0';
+            ssize_t size = (ssize_t)length;
+
+            RuntimeMaterialConfig config(
+                (BuilderPlatform)platform, builderTargetApi, (BuilderOptimization)optimization,
+                embedSource != 0);
+
+            filamat::MaterialBuilder builder;
+            builder.platform(config.getPlatform())
+                .targetApi(config.getTargetApi())
+                .optimization(config.getOptimizationLevel())
+                .featureLevel(config.getFeatureLevel())
+                .materialSource(std::string_view(buffer.get(), length));
+            for (const auto &define : defines)
+            {
+                builder.shaderDefine(define.first.c_str(), define.second.c_str());
+            }
+
+            matp::MaterialParser parser;
+            utils::Status status = parser.parse(builder, config, size, buffer);
+            if (status.getCode() != utils::StatusCode::OK)
+            {
+                auto message = status.getMessage();
+                char formatted[512];
+                snprintf(formatted, sizeof(formatted), "material parse failed: %.*s",
+                    (int)message.size(), message.data());
+                writeError(outError, outErrorCap, formatted);
+                return nullptr;
+            }
+
+            filamat::Package package = builder.build(engine->getJobSystem());
+            if (!package.isValid())
+            {
+                // Shader compilation diagnostics are emitted to the log by
+                // glslang; there is no in-band channel for them.
+                writeError(outError, outErrorCap,
+                    "material build failed (see engine log for shader diagnostics)");
+                return nullptr;
+            }
+
+            uint8_t *result = (uint8_t *)malloc(package.getSize());
+            if (result == nullptr)
+            {
+                writeError(outError, outErrorCap, "out of memory copying package");
+                return nullptr;
+            }
+            memcpy(result, package.getData(), package.getSize());
+            if (outSize != nullptr)
+            {
+                *outSize = package.getSize();
+            }
+            return result;
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Engine_freeCompiledMaterial(const uint8_t *data)
+        {
+            free((void *)data);
+        }
+#else
+        EMSCRIPTEN_KEEPALIVE const uint8_t *Engine_compileMaterial(
+            TEngine *tEngine,
+            const char *matSource,
+            size_t length,
+            TMaterialPlatform platform,
+            TMaterialTargetApi targetApi,
+            TMaterialOptimization optimization,
+            const char *definesJson,
+            uint8_t embedSource,
+            char *outError,
+            size_t outErrorCap,
+            size_t *outSize)
+        {
+            // filamat/matp are not linked into this build (see
+            // docs/research/runtime-material-compile.md section 5: Phase 1
+            // covers desktop; mobile/web artifacts do not ship libmatp).
+            writeError(outError, outErrorCap,
+                "runtime material compilation is not supported on this platform");
+            if (outSize != nullptr)
+            {
+                *outSize = 0;
+            }
+            return nullptr;
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Engine_freeCompiledMaterial(const uint8_t *data) {}
+#endif
 
         EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture)
         {
