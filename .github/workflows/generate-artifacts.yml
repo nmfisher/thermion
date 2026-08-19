@@ -66,6 +66,12 @@ jobs:
           filters: |
             native-changed:
               - 'thermion_dart/native/**'
+              # These drive the web (Emscripten) build too: the Makefile's wasm
+              # target and the scripts it calls decide what goes into the
+              # shipped thermion_dart.wasm.
+              - 'Makefile'
+              - 'scripts/build_reactphysics3d_web.sh'
+              - 'scripts/verify_web_wasm_exports.sh'
             materials-changed:
               - 'materials/**'
               - 'examples/assets/*.mat'
@@ -197,6 +203,19 @@ jobs:
           restore-keys: |
             filament-web-
 
+      # ReactPhysics3D sources + the Emscripten build of libreactphysics3d.a
+      # that gets linked into thermion_dart.wasm. Keyed on the staging script
+      # so a ref bump in it rebuilds.
+      - name: Cache ReactPhysics3D web build
+        if: steps.changes.outputs.native-changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: thermion_dart/native/web/lib/external
+          key: rp3d-web-${{ hashFiles('scripts/build_reactphysics3d_web.sh') }}
+
+      # Builds the single thermion_dart WASM with ReactPhysics3D linked in via
+      # the EXTERNAL_PROJECTS hook, then verifies the _rp3d_* exports made it
+      # (the link would otherwise fail silently -- see the verify script).
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'
         run: make wasm
