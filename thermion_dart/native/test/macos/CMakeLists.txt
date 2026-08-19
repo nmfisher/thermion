@@ -36,17 +36,28 @@ file(GLOB_RECURSE SOURCES
 # Exclude specific files
 list(FILTER SOURCES EXCLUDE REGEX "CMakeLists.txt|main.cpp|windows|linux|d3d|build")
 
-# Material and resource sources
+# Material and resource sources — macOS is Metal-only, so use the _apple
+# variant. Fall back to the pre-split _native blob (all backends) if the
+# per-platform variant hasn't been generated yet (make materials).
+set(THERMION_MATERIAL_VARIANT "apple")
+if(NOT EXISTS "${NATIVE_ROOT}/include/material/image_${THERMION_MATERIAL_VARIANT}.c")
+    message(STATUS "Material variant ${THERMION_MATERIAL_VARIANT} not found; falling back to _native")
+    set(THERMION_MATERIAL_VARIANT "native")
+endif()
+add_definitions(-DTHERMION_MATERIAL_${THERMION_MATERIAL_VARIANT})
+
 set(MATERIAL_SOURCES
-    "${NATIVE_ROOT}/include/material/capture_uv.c"
-    "${NATIVE_ROOT}/include/material/grid.c"
-    "${NATIVE_ROOT}/include/material/image.c"
-    "${NATIVE_ROOT}/include/material/linear_depth.c"
-    "${NATIVE_ROOT}/include/material/unlit_fixed_size.c"
-    "${NATIVE_ROOT}/include/material/silhouette.c"
-    "${NATIVE_ROOT}/include/material/edge_outline.c"
-    "${NATIVE_ROOT}/include/material/wireframe.c"
-    "${NATIVE_ROOT}/include/material/translation_axis.c"
+    "${NATIVE_ROOT}/include/material/capture_uv_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/grid_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/image_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/linear_depth_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/unlit_fixed_size_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/silhouette_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/edge_outline_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/wireframe_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/translation_axis_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/bone_overlay_${THERMION_MATERIAL_VARIANT}.c"
+    "${NATIVE_ROOT}/include/material/gizmo_material_${THERMION_MATERIAL_VARIANT}.c"
 )
 
 set_source_files_properties(${MATERIAL_SOURCES} PROPERTIES LANGUAGE CXX)

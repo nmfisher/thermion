@@ -126,6 +126,26 @@ jobs:
         if: matrix.name == 'macOS'
         run: cd viewer && flutter build appbundle
 
+      # materials.backends e2e for Android: rebuild the quickstart appbundle
+      # with the vulkan-only material variant selected via user_defines.
+      # Backs up the pubspec and strips any existing hooks block first (the
+      # strip-then-append pattern from run-dart-tests.yml), restoring it
+      # afterwards so the define applies to exactly this build.
+      - name: Build quickstart (appbundle, android vulkan-only materials)
+        if: matrix.name == 'macOS'
+        run: |
+          cd quickstart
+          cp pubspec.yaml pubspec.yaml.orig
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' pubspec.yaml > pubspec.yaml.tmp
+          mv pubspec.yaml.tmp pubspec.yaml
+          printf '\nhooks:\n  user_defines:\n    thermion_dart:\n      materials:\n        backends:\n          android: vulkan\n' >> pubspec.yaml
+          flutter build appbundle
+          mv pubspec.yaml.orig pubspec.yaml
+
       # Windows: build native Windows
       - name: Build quickstart (Windows)
         if: matrix.name == 'Windows'
