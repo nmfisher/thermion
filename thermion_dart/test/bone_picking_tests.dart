@@ -4,8 +4,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'helpers.dart';
 
-import 'package:thermion_dart/thermion_dart.dart';
-
 /// Visualizes bones with Blender-style head/tail shapes.
 ///
 /// Each bone is rendered as:
@@ -603,6 +601,11 @@ void main() async {
       final viewport = await viewer.view.getViewport();
       final centerX = viewport.width ~/ 2;
       final centerY = viewport.height ~/ 2;
+
+      // The bone overlay material is blended (transparent), and View::pick
+      // only considers opaque renderables unless transparent picking is
+      // enabled (it is disabled by default in Filament).
+      await viewer.view.setTransparentPickingEnabled(true);
 
       print('Picking at center: ($centerX, $centerY)');
 
