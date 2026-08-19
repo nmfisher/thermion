@@ -269,6 +269,44 @@ abstract class FilamentApp<T> {
   //
   Future setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
 
+  /// Replaces [oldMaterial] with a [Material] built from [materialBytes]
+  /// (the same container [createMaterial] accepts), keeping renderables
+  /// visually continuous.
+  ///
+  /// This is the reload path from the runtime-material-compile design
+  /// (docs/research/runtime-material-compile.md, section 4.1): Filament does
+  /// not allow re-parenting a MaterialInstance to another Material, so the
+  /// swap is: build the new material, create one replacement instance per
+  /// distinct instance of the old material, replay each old instance's
+  /// recorded state onto its replacement, point every affected renderable
+  /// primitive at the replacement, then destroy the old instances and the old
+  /// material on the render thread.
+  ///
+  /// Parameter and raster state are replayed from the shadow recording kept
+  /// by the MaterialInstance wrappers: every setParameter*/set* call made
+  /// through this library is captured. Values set only through native code
+  /// (none today) or parameters relying on the material's declared defaults
+  /// cannot be recovered; instances whose state was never touched are
+  /// re-created with the new material's defaults.
+  ///
+  /// Set [destroyOld] to false to keep the old material alive (e.g. to fade
+  /// between materials yourself); you then own it and its instances.
+  Future<Material> reloadMaterialFromBytes(Material oldMaterial, Uint8List materialBytes, {bool destroyOld = true});
+
+  /// Returns every renderable primitive, across all scenes, currently drawn
+  /// with an instance of [material] — including instances attached by asset
+  /// loaders outside this library (found by scanning the scene) and instances
+  /// attached via [setMaterialInstanceAt] that are not yet in a scene
+  /// (found from the app's own records).
+  ///
+  /// This is the entity-scan helper of the reload design (section 4.1, L2).
+  /// It is exposed separately from [reloadMaterialFromBytes] because callers
+  /// may want the list of affected entities for their own bookkeeping (for
+  /// example to re-run per-entity material setup after a reload).
+  Future<List<MaterialInstanceUse>> findRenderablesUsingMaterial(Material material);
+
+
+
   // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
 
@@ -448,4 +486,22 @@ abstract class FilamentApp<T> {
   // Returns vertex positions (xyz) and optional indices.
   // If [meshName] is specified, only extracts data for that specific mesh.
   Future<GltfMeshData> parseGltf(Uint8List data, {String? meshName});
+}
+
+/// One hit from [FilamentApp.findRenderablesUsingMaterial]: a renderable
+/// primitive currently drawn with a material instance that belongs to a given
+/// material.
+class MaterialInstanceUse {
+  /// The renderable entity. Combine with [primitiveIndex] for
+  /// [FilamentApp.setMaterialInstanceAt].
+  final ThermionEntity entity;
+
+  /// Which primitive of [entity]'s renderable uses the material instance.
+  final int primitiveIndex;
+
+  /// The instance in use. After a material reload this refers to a retired
+  /// instance; re-fetch uses from the app instead of caching them.
+  final MaterialInstance materialInstance;
+
+  MaterialInstanceUse(this.entity, this.primitiveIndex, this.materialInstance);
 }

@@ -265,7 +265,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   //
   Future<Scene> createScene() async {
-    return FFIScene(Engine_createScene(engine), this);
+    final scene = FFIScene(Engine_createScene(engine), this);
+    _scenes.add(scene);
+    return scene;
   }
 
   //
@@ -735,6 +737,183 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   Future setMaterialInstanceAt(ThermionEntity entity, int index, MaterialInstance materialInstance) async {
     await renderableManager.setMaterialInstanceAt(entity, index, materialInstance);
+  }
+
+  /// Scenes created by this app, for scans that must walk scene contents
+  /// (see [findRenderablesUsingMaterial]). Kept in creation order; pruned in
+  /// [destroyScene].
+  final _scenes = <FFIScene>[];
+
+  /// One wrapper per live native MaterialInstance pointer.
+  ///
+  /// Filament instances are write-only, so parameter/raster state is recorded
+  /// on the Dart wrapper (MaterialInstanceShadowState) rather than read back
+  /// from native. Returning the *same* wrapper for repeated lookups of one
+  /// native instance is what keeps that recording complete — otherwise each
+  /// getMaterialInstanceAt would hand out a fresh wrapper with an empty
+  /// recording and a later reload would silently drop earlier mutations.
+  final _materialInstanceWrappers = <Pointer<TMaterialInstance>, FFIMaterialInstance>{};
+
+  /// Attachments made through [setMaterialInstanceAt], keyed by the attached
+  /// instance. The scene scan in [findRenderablesUsingMaterial] cannot see
+  /// renderables that are not in a scene yet; this records them so a reload
+  /// can still re-point them before destroying the old instances.
+  final _materialInstanceAttachments = <Pointer<TMaterialInstance>, Set<(ThermionEntity, int)>>{};
+
+  /// Returns the wrapper for [pointer], creating (and caching) it on first
+  /// use. Callers that hold the returned wrapper must not use it after the
+  /// underlying instance has been destroyed.
+  FFIMaterialInstance getOrCreateMaterialInstanceWrapper(Pointer<TMaterialInstance> pointer) {
+    return _materialInstanceWrappers.putIfAbsent(pointer, () => FFIMaterialInstance(pointer, this));
+  }
+
+  /// Caches [instance] as the sole wrapper for its native pointer (used when
+  /// a new instance is created, where there is no pre-existing wrapper).
+  void adoptMaterialInstance(FFIMaterialInstance instance) {
+    _materialInstanceWrappers[instance.pointer] = instance;
+  }
+
+  /// Drops the wrapper and attachment records for [instance]. Called when the
+  /// instance is destroyed.
+  void forgetMaterialInstance(FFIMaterialInstance instance) {
+    _materialInstanceWrappers.remove(instance.pointer);
+    _materialInstanceAttachments.remove(instance.pointer);
+  }
+
+  /// Records that [instance] was attached to a renderable primitive via
+  /// [setMaterialInstanceAt].
+  void recordMaterialInstanceAttachment(ThermionEntity entity, int primitiveIndex, FFIMaterialInstance instance) {
+    _materialInstanceAttachments.putIfAbsent(instance.pointer, () => {}).add((entity, primitiveIndex));
+  }
+
+  /// Drops the record for an attachment that was cleared or overwritten.
+  /// Overwrites record the new instance through [recordMaterialInstanceAttachment];
+  /// the stale (entity, primitive) entry for [instance] is removed here.
+  void forgetMaterialInstanceAttachment(ThermionEntity entity, int primitiveIndex, FFIMaterialInstance instance) {
+    _materialInstanceAttachments[instance.pointer]?.remove((entity, primitiveIndex));
+  }
+
+  @override
+  Future<List<MaterialInstanceUse>> findRenderablesUsingMaterial(Material material) async {
+    final ffiMaterial = material as FFIMaterial;
+    final uses = <MaterialInstanceUse>[];
+    final reported = <(ThermionEntity, int)>{};
+
+    // Pass 1: native scan over every live scene. Finds every primitive
+    // currently drawn with an instance of [material], however the instance
+    // was created — including instances handed out by asset loaders, which
+    // have no Dart wrapper until now.
+    for (final scene in List<FFIScene>.of(_scenes)) {
+      final scenePtr = scene.getNativeHandle();
+      final renderableManagerPtr = renderableManager.renderableManager;
+      final count = Scene_scanForMaterial(
+          scenePtr, renderableManagerPtr, ffiMaterial.pointer, nullptr.cast(), nullptr.cast(), nullptr.cast(), 0);
+      if (count == 0) {
+        continue;
+      }
+      final entities = makeInt32List(count);
+      final primitives = makeUint32List(count);
+      late Pointer stackPtr;
+      if (FILAMENT_WASM) {
+        stackPtr = stackSave();
+      }
+      try {
+        Scene_scanForMaterial(
+            scenePtr, renderableManagerPtr, ffiMaterial.pointer, entities.address, primitives.address,
+            nullptr.cast(), count);
+        for (var i = 0; i < count; i++) {
+          final entity = entities[i];
+          final primitiveIndex = primitives[i];
+          if (!reported.add((entity, primitiveIndex))) {
+            continue;
+          }
+          // The scan's outInstances output is left empty on purpose: reusing
+          // RenderableManager_getMaterialInstanceAt keeps this path on an
+          // existing binding and gives us the cached wrapper (with its shadow
+          // recording) when there is one.
+          final instance = await renderableManager.getMaterialInstanceAt(entity, primitiveIndex);
+          if (instance == null) {
+            // The renderable changed between the scan and this fetch.
+            continue;
+          }
+          uses.add(MaterialInstanceUse(entity, primitiveIndex, instance));
+        }
+      } finally {
+        if (FILAMENT_WASM) {
+          stackRestore(stackPtr);
+        }
+      }
+    }
+
+    // Pass 2: attachments recorded through this library that pass 1 cannot
+    // see because the renderable is not in a scene. Every record is
+    // re-validated against the renderable's *current* instance, so entries
+    // left over from earlier swaps are pruned instead of reported.
+    for (final entry in Map.of(_materialInstanceAttachments).entries) {
+      for (final attachment in Set.of(entry.value)) {
+        if (reported.contains(attachment)) {
+          continue;
+        }
+        final current = await renderableManager.getMaterialInstanceAt(attachment.$1, attachment.$2);
+        if (current == null ||
+            (current as FFIMaterialInstance).pointer.address != entry.key.address ||
+            MaterialInstance_getMaterial(current.pointer).address != ffiMaterial.pointer.address) {
+          entry.value.remove(attachment);
+          continue;
+        }
+        reported.add(attachment);
+        uses.add(MaterialInstanceUse(attachment.$1, attachment.$2, current));
+      }
+      if (entry.value.isEmpty) {
+        _materialInstanceAttachments.remove(entry.key);
+      }
+    }
+
+    return uses;
+  }
+
+  @override
+  Future<Material> reloadMaterialFromBytes(Material oldMaterial, Uint8List materialBytes, {bool destroyOld = true}) async {
+    final oldFFIMaterial = oldMaterial as FFIMaterial;
+
+    // Build the replacement first: if the bytes are invalid we want to fail
+    // before touching anything.
+    final newMaterial = await createMaterial(materialBytes);
+
+    // Every distinct old instance becomes exactly one new instance, so
+    // renderables that shared an instance keep sharing one.
+    final uses = await findRenderablesUsingMaterial(oldMaterial);
+    final replacements = <Pointer<TMaterialInstance>, FFIMaterialInstance>{};
+    final retired = <FFIMaterialInstance>{};
+    for (final use in uses) {
+      final oldInstance = use.materialInstance as FFIMaterialInstance;
+      retired.add(oldInstance);
+      var replacement = replacements[oldInstance.pointer];
+      if (replacement == null) {
+        replacement = await newMaterial.createInstance() as FFIMaterialInstance;
+        await oldInstance.shadow.applyTo(replacement);
+        replacements[oldInstance.pointer] = replacement;
+      }
+      // Re-point the primitive before the old instance is destroyed.
+      await setMaterialInstanceAt(use.entity, use.primitiveIndex, replacement);
+    }
+
+    if (destroyOld) {
+      // Filament requires every instance of a material to be destroyed
+      // before the material itself. Destroy the retired (replaced) instances
+      // plus any other instance created from this material, including ones
+      // never attached to a renderable — leaving those alive would make the
+      // material destroy hang. destroy() is idempotent, so overlap between
+      // the two sets is fine.
+      for (final instance in retired) {
+        await instance.destroy();
+      }
+      for (final instance in List.of(oldFFIMaterial.createdInstances)) {
+        await instance.destroy();
+      }
+      await oldFFIMaterial.destroy();
+    }
+    return newMaterial;
   }
 
   final _swapChains = <SwapChain>[];
@@ -1262,6 +1441,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   Future destroyScene(covariant FFIScene scene) async {
+    _scenes.remove(scene);
     await withVoidCallback((requestId, cb) => Engine_destroySceneRenderThread(engine, scene.scene, requestId, cb));
   }
 
