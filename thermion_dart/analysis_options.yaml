@@ -11,6 +11,11 @@ analyzer:
     # Linting generated code is noise (e.g. dozens of unnecessary_cast).
     - lib/src/bindings/src/thermion_dart_ffi.g.dart
     - lib/src/bindings/src/thermion_dart_js_interop.g.dart
+    # Third-party sources staged by scripts/build_reactphysics3d_web.sh for the
+    # Emscripten build. They are a gitignored build input (see .pubignore), not
+    # part of this package, and do not resolve as one -- their package: URIs
+    # have no package_config.
+    - native/web/lib/external/**
 
 formatter:
   page_width: 120
