@@ -13,7 +13,9 @@ cd dart/headless_runner
 dart run bin/run_example.dart <name> [width] [height]   # PNG lands in output/
 ```
 
-`physics_basics` (ReactPhysics3D simulation rendered with Thermion) is
-native/headless only -- it is not wired into the WASM web gallery. See the
-note at the top of `dart/examples_lib/lib/src/physics_basics.dart`.
+`physics_basics` (ReactPhysics3D simulation rendered with Thermion) also runs
+in the WASM web gallery as the `physics` scene (`?example=physics`):
+ReactPhysics3D is compiled into the same `thermion_dart.wasm` as Thermion
+itself -- see `scripts/build_reactphysics3d_web.sh` and
+`docs/research/web-physics-scope.md`.
 

@@ -17,8 +17,10 @@ dependencies:
 # Mirrors the override in examples_lib (pub only honours overrides from the
 # root package): reactphysics3d_dart (a transitive dep via examples_lib) pins
 # ffigen_js 0.0.5-pre, conflicting with thermion_dart's ^0.0.14-pre. Without
-# this override `dart pub get` fails here. The physics_basics example itself
-# stays native/headless-only (see examples_lib/lib/src/physics_basics.dart).
+# this override `dart pub get` fails here. The physics scene this gallery
+# serves needs reactphysics3d_dart's web bindings regenerated under 0.0.14 to
+# work at runtime; delete this override together with the others once that
+# lands and the git ref in examples_lib is bumped.
 dependency_overrides:
   ffigen_js: ^0.0.14-pre
 

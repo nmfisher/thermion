@@ -14,7 +14,9 @@ dependencies:
 
 # Mirrors the override in examples_lib (pub only honours overrides from the
 # root package): reactphysics3d_dart pins ffigen_js 0.0.5-pre, conflicting
-# with thermion_dart's ffigen_js ^0.0.14-pre. ffigen_js is only used by
-# reactphysics3d_dart's web bindings, so this is safe for the native runner.
+# with thermion_dart's ffigen_js ^0.0.14-pre. This runner is native-only, so
+# the web bindings the override affects are never exercised here. Delete
+# together with the examples_lib override once reactphysics3d_dart relaxes
+# its pin.
 dependency_overrides:
   ffigen_js: ^0.0.14-pre
