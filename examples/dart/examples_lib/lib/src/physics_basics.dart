@@ -9,12 +9,12 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// to its Thermion entity. That way the headless CLI runner can capture a
 /// single frame of the settled pile.
 ///
-/// NOTE (web path blocked): this example is native/headless only and is NOT
-/// wired into the web gallery. reactphysics3d_dart pins ffigen_js 0.0.5-pre,
-/// which conflicts with thermion_dart's ffigen_js ^0.0.14-pre -- the packages
-/// only resolve together through a dependency_overrides entry (see the
-/// pubspecs under examples/dart). Its WASM runtime path is unverified, so do
-/// not add it to [galleryScenes] until that pin is relaxed upstream.
+/// NOTE (web): ReactPhysics3D is compiled into the same thermion_dart WASM as
+/// thermion itself (linked through the EXTERNAL_PROJECTS hook in
+/// native/web/CMakeLists.txt), so the module that NativeLibrary.initBindings
+/// points at exports the _rp3d_* C API alongside the _Thermion_* one. This
+/// scene is registered as 'physics' in [galleryScenes]; see
+/// docs/research/web-physics-scope.md for the design.
 Future<void> setupPhysicsBasics(
   ThermionViewer viewer, {
   required String assetsDir,

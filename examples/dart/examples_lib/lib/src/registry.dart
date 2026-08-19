@@ -54,8 +54,8 @@ final Map<String, ExampleSetup> registry = {
   'load_via_assimp': setupLoadViaAssimp,
   'materials_pbr': setupMaterialsPbr,
   'morph_targets': setupMorphTargets,
-  // Native/headless only -- see the note in physics_basics.dart (web path
-  // blocked on the reactphysics3d_dart ffigen_js pin).
+  // Registered for the headless CLI runner and the web gallery (as the
+  // 'physics' gallery scene).
   'physics_basics': setupPhysicsBasics,
   'picking': setupPicking,
   'post_processing': setupPostProcessing,
@@ -76,4 +76,9 @@ final Map<String, ExampleSetup> galleryScenes = {
   'materials_and_lighting': setupMaterialsAndLighting,
   'animation': setupAnimation,
   'effects': setupEffects,
+  // ReactPhysics3D is compiled into the same thermion_dart WASM (linked via
+  // the EXTERNAL_PROJECTS hook in native/web/CMakeLists.txt), so the module
+  // that NativeLibrary.initBindings points at exports the _rp3d_* C API
+  // alongside the _Thermion_* one. See docs/research/web-physics-scope.md.
+  'physics': setupPhysicsBasics,
 };
