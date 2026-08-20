@@ -94,13 +94,14 @@ static void destroy_all_contexts(ThermionFlutterPlugin *self)
     delete self->vulkan_context;
     self->vulkan_context = nullptr;
   }
+  if (self->utility_egl_context != EGL_NO_CONTEXT &&
+      self->egl_display != EGL_NO_DISPLAY)
+  {
+    eglDestroyContext(self->egl_display, self->utility_egl_context);
+    self->utility_egl_context = EGL_NO_CONTEXT;
+  }
   if (self->use_direct_opengl)
   {
-    if (self->utility_egl_context != EGL_NO_CONTEXT)
-    {
-      eglDestroyContext(self->egl_display, self->utility_egl_context);
-      self->utility_egl_context = EGL_NO_CONTEXT;
-    }
     self->flutter_egl_context = EGL_NO_CONTEXT;
     self->egl_display = EGL_NO_DISPLAY;
     self->egl_config = nullptr;
@@ -143,40 +144,7 @@ static void ensure_opengl_context(ThermionFlutterPlugin *self)
     EGLContext flutterCtx = thermion_flutter_render_context;
     EGLDisplay flutterDpy = thermion_flutter_render_display;
 
-    if (flutterCtx == EGL_NO_CONTEXT) {
-      // No deferred populate yet. Try to get GDK's GL context deterministically
-      // rather than relying on whatever happens to be current on this thread.
-      GdkDisplay *gdkDisplay = gdk_display_get_default();
-      if (gdkDisplay) {
-        GdkGLContext *gdkCtx = gdk_gl_context_get_current();
-        if (!gdkCtx) {
-          // Create a temporary GDK GL context and make it current so we can
-          // query the underlying EGL state.
-          GdkWindow *gdkWindow = gdk_screen_get_root_window(
-              gdk_display_get_default_screen(gdkDisplay));
-          if (gdkWindow) {
-            GError *error = nullptr;
-            gdkCtx = gdk_window_create_gl_context(gdkWindow, &error);
-            if (gdkCtx && !error) {
-              gdk_gl_context_make_current(gdkCtx);
-              std::cerr << "[ThermionGL] Made GDK GL context current" << std::endl;
-            } else {
-              if (error) {
-                std::cerr << "[ThermionGL] GDK GL context creation failed: "
-                          << error->message << std::endl;
-                g_error_free(error);
-              }
-            }
-          }
-        }
-      }
-      flutterCtx = eglGetCurrentContext();
-      flutterDpy = eglGetCurrentDisplay();
-      if (flutterCtx != EGL_NO_CONTEXT) {
-        std::cerr << "[ThermionGL] Using GDK EGL context (no deferred populate yet)"
-                  << std::endl;
-      }
-    } else {
+    if (flutterCtx != EGL_NO_CONTEXT) {
       std::cerr << "[ThermionGL] Using Flutter render context="
                 << (void*)flutterCtx << std::endl;
     }
@@ -202,7 +170,9 @@ static void ensure_opengl_context(ThermionFlutterPlugin *self)
       EGLint configAttribs[] = { EGL_CONFIG_ID, configId, EGL_NONE };
       eglChooseConfig(flutterDpy, configAttribs, &config, 1, &numConfigs);
 
-      if (numConfigs > 0 && config != nullptr)
+      if (clientType == EGL_OPENGL_API &&
+          (glMajor > 4 || (glMajor == 4 && glMinor >= 1)) &&
+          numConfigs > 0 && config != nullptr)
       {
         // Bind the appropriate API (GL or GLES) to match Flutter
         eglBindAPI(clientType == EGL_OPENGL_ES_API ? EGL_OPENGL_ES_API : EGL_OPENGL_API);
@@ -250,10 +220,18 @@ static void ensure_opengl_context(ThermionFlutterPlugin *self)
     }
   }
 
-  // Fallback: use the standalone LinuxOpenGLContext (GBM/DMA-BUF path)
-  std::cerr << "[ThermionGL] Using LinuxOpenGLContext fallback (DMA-BUF)" << std::endl;
-  self->opengl_context = new thermion::opengl::linux_platform::LinuxOpenGLContext();
-  self->backend_type = BACKEND_OPENGL;
+  // Flutter normally uses GLES on Linux, while Filament requires desktop GL.
+  // Keep the existing DMA-BUF transport, but create Filament's desktop context
+  // on Flutter's already-initialized display instead of racing a second one.
+  if (thermion_flutter_render_display != EGL_NO_DISPLAY)
+  {
+    std::cerr << "[ThermionGL] Using Flutter EGLDisplay with DMA-BUF transport"
+              << std::endl;
+    self->opengl_context =
+        new thermion::opengl::linux_platform::LinuxOpenGLContext(
+            reinterpret_cast<void*>(thermion_flutter_render_display));
+    self->backend_type = BACKEND_OPENGL;
+  }
 }
 
 static FlMethodResponse *handle_get_driver_platform(ThermionFlutterPlugin *self, FlMethodCall *method_call)
@@ -267,6 +245,13 @@ static FlMethodResponse *handle_get_driver_platform(ThermionFlutterPlugin *self,
   if (backend == BACKEND_OPENGL)
   {
     ensure_opengl_context(self);
+    if (!self->use_direct_opengl && !self->opengl_context)
+    {
+      return FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "CONTEXT_NOT_READY",
+          "Display the Linux OpenGL bootstrap texture before initialization",
+          nullptr));
+    }
     if (self->use_direct_opengl)
     {
       platform = reinterpret_cast<int64_t>(self->thermion_platform);
@@ -297,6 +282,13 @@ static FlMethodResponse *handle_get_shared_context(ThermionFlutterPlugin *self, 
   if (backend == BACKEND_OPENGL)
   {
     ensure_opengl_context(self);
+    if (!self->use_direct_opengl && !self->opengl_context)
+    {
+      return FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "CONTEXT_NOT_READY",
+          "Display the Linux OpenGL bootstrap texture before initialization",
+          nullptr));
+    }
     if (self->use_direct_opengl)
     {
       // Direct sharing: return Flutter's context (Filament contexts share with it)
@@ -507,11 +499,44 @@ static FlMethodResponse *handle_create_texture_opengl(ThermionFlutterPlugin *sel
 {
   ensure_opengl_context(self);
 
+  if (!self->use_direct_opengl && !self->opengl_context)
+  {
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "CONTEXT_NOT_READY",
+        "Display the Linux OpenGL bootstrap texture before initialization",
+        nullptr));
+  }
+
   if (self->use_direct_opengl)
   {
     return handle_create_texture_opengl_direct(self, width, height);
   }
   return handle_create_texture_opengl_dmabuf(self, width, height);
+}
+
+static FlMethodResponse *handle_create_context_bootstrap(
+    ThermionFlutterPlugin *self, FlMethodCall *method_call)
+{
+  FlValue *args = fl_method_call_get_args(method_call);
+  int width = fl_value_get_int(fl_value_get_list_value(args, 0));
+  int height = fl_value_get_int(fl_value_get_list_value(args, 1));
+  ThermionTextureGL *textureGL =
+      thermion_texture_gl_create_context_bootstrap(
+          static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+          self->texture_registrar);
+  FlTexture *flTexture = FL_TEXTURE(textureGL);
+  if (!fl_texture_registrar_register_texture(self->texture_registrar, flTexture))
+  {
+    g_object_unref(textureGL);
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "REGISTER_FAILED", "Failed to register context bootstrap", nullptr));
+  }
+  self->textures->push_back(textureGL);
+  self->backend_type = BACKEND_OPENGL;
+  fl_texture_registrar_mark_texture_frame_available(
+      self->texture_registrar, flTexture);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(
+      fl_value_new_int(fl_texture_get_id(flTexture))));
 }
 
 
@@ -698,6 +723,10 @@ static void thermion_flutter_plugin_handle_method_call(
   if (strcmp(method, "getDriverPlatform") == 0)
   {
     response = handle_get_driver_platform(self, method_call);
+  }
+  else if (strcmp(method, "createContextBootstrap") == 0)
+  {
+    response = handle_create_context_bootstrap(self, method_call);
   }
   else if (strcmp(method, "getSharedContext") == 0)
   {

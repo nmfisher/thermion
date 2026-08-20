@@ -90,16 +90,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
   late final _logger = Logger(runtimeType.toString());
 
-  @override
-  void initState() {
-    super.initState();
-    _initialization = _createViewer();
-    unawaited(
-      _initialization!.catchError((Object error, StackTrace stack) {
-        _reportAsyncError('initialization', error, stack);
-      }),
-    );
-  }
+  Future<void> _initializeViewer() => _initialization ??= _createViewer();
 
   Future<void> _createViewer() async {
     // Override options if this widget needs highlights
@@ -123,6 +114,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       );
     }
 
+    if (_disposing) return;
     final viewer = await ThermionFlutterPlugin.createViewer();
     this.viewer = viewer;
     if (_disposing) {
@@ -418,6 +410,12 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return viewport != null ? SizedBox.expand(child: viewport) : widget.initial;
+    final child = viewport == null
+        ? widget.initial
+        : SizedBox.expand(child: viewport);
+    return ThermionFlutterPlugin.instance.buildInitializationScope(
+      initialize: _initializeViewer,
+      child: child,
+    );
   }
 }

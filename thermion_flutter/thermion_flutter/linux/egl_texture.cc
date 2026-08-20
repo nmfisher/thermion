@@ -338,6 +338,20 @@ ThermionTextureGL* thermion_texture_gl_create(
     return textureGL;
 }
 
+ThermionTextureGL* thermion_texture_gl_create_context_bootstrap(
+    uint32_t width,
+    uint32_t height,
+    FlTextureRegistrar* registrar)
+{
+    auto textureGL = THERMION_TEXTURE_GL(
+        g_object_new(thermion_texture_gl_get_type(), nullptr));
+    textureGL->width = width;
+    textureGL->height = height;
+    textureGL->registrar = registrar;
+    textureGL->use_direct_sharing = TRUE;
+    return textureGL;
+}
+
 ThermionTextureGL* thermion_texture_gl_create_shared(
     uint32_t width, uint32_t height,
     GLuint gl_texture_id,

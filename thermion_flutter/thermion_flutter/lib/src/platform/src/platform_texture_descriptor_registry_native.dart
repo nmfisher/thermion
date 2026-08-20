@@ -11,9 +11,8 @@ import 'method_channel_platform_texture_descriptor.dart';
 import 'platform_texture_descriptor.dart';
 import 'platform_texture_descriptor_registry.dart';
 
-typedef TextureMutationRunner = Future<T> Function<T>(
-  Future<T> Function() operation,
-);
+typedef TextureMutationRunner =
+    Future<T> Function<T>(Future<T> Function() operation);
 
 class FilamentRenderingContext {
   const FilamentRenderingContext({
@@ -92,6 +91,26 @@ class NativePlatformTextureDescriptorRegistry
       );
     }
     throw UnsupportedError('Platform textures are not supported on $Platform');
+  }
+
+  /// Registers the texture used to import Flutter's actual raster EGL context
+  /// before Filament initializes.
+  Future<PlatformTextureDescriptor> createContextBootstrap() {
+    if (!Platform.isLinux) {
+      throw UnsupportedError(
+        'Flutter context bootstrapping is only supported on Linux',
+      );
+    }
+    return createWith(
+      (width, height) =>
+          MethodChannelPlatformTextureDescriptor.allocateContextBootstrap(
+            channel,
+            width,
+            height,
+          ),
+      1,
+      1,
+    );
   }
 
   Future<FilamentRenderingContext> getFilamentRenderingContext(

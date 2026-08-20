@@ -69,6 +69,13 @@ FLUTTER_PLUGIN_EXPORT ThermionTextureGL* thermion_texture_gl_create(
     int64_t surface_id,
     FlTextureRegistrar* registrar);
 
+// A 1x1 texture populated on Flutter's raster thread solely to capture the
+// EGLDisplay/EGLContext before Filament initializes.
+FLUTTER_PLUGIN_EXPORT ThermionTextureGL* thermion_texture_gl_create_context_bootstrap(
+    uint32_t width,
+    uint32_t height,
+    FlTextureRegistrar* registrar);
+
 // EGLImage bridge path: wraps a GL texture + EGLImage.  On first populate,
 // the EGLImage is imported into a new texture on Flutter's own GL context.
 FLUTTER_PLUGIN_EXPORT ThermionTextureGL* thermion_texture_gl_create_shared(

@@ -35,10 +35,10 @@ public:
             _context = EGL_NO_CONTEXT;
         }
 
-        if (_display != EGL_NO_DISPLAY) {
+        if (_ownsDisplay && _display != EGL_NO_DISPLAY) {
             eglTerminate(_display);
-            _display = EGL_NO_DISPLAY;
         }
+        _display = EGL_NO_DISPLAY;
 
         if (_gbmDevice) {
             gbm_device_destroy(_gbmDevice);
@@ -51,7 +51,7 @@ public:
         }
     }
 
-    Impl() {
+    explicit Impl(void* borrowedDisplay) {
         std::cerr << "[ThermionGL:Context] Initializing EGL/GBM..." << std::endl;
 
         // Step 1: Open DRM render node
@@ -76,17 +76,24 @@ public:
         // Using eglGetPlatformDisplay(EGL_PLATFORM_GBM_KHR, ...) ties the
         // display to the GPU that owns the render node. On NVIDIA systems
         // this selects NVIDIA's EGL instead of Mesa's software fallback.
-        PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT =
-            (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
-        if (eglGetPlatformDisplayEXT) {
-            _display = eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_KHR,
-                    _gbmDevice, nullptr);
-        }
+        _display = static_cast<EGLDisplay>(borrowedDisplay);
         if (_display == EGL_NO_DISPLAY) {
-            // Fallback to default display
-            std::cerr << "[ThermionGL:Context] GBM platform display failed, "
-                      << "trying default" << std::endl;
-            _display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            _ownsDisplay = true;
+            PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT =
+                (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
+            if (eglGetPlatformDisplayEXT) {
+                _display = eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_KHR,
+                        _gbmDevice, nullptr);
+            }
+            if (_display == EGL_NO_DISPLAY) {
+                // Fallback to default display
+                std::cerr << "[ThermionGL:Context] GBM platform display failed, "
+                          << "trying default" << std::endl;
+                _display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            }
+        } else {
+            std::cerr << "[ThermionGL:Context] Reusing Flutter EGLDisplay"
+                      << std::endl;
         }
         if (_display == EGL_NO_DISPLAY) {
             LOG_ERROR("Failed to get EGL display");
@@ -226,6 +233,7 @@ public:
 
 private:
     EGLDisplay _display = EGL_NO_DISPLAY;
+    bool _ownsDisplay = false;
     EGLContext _context = EGL_NO_CONTEXT;
     struct gbm_device* _gbmDevice = nullptr;
     int _drmFd = -1;
@@ -237,7 +245,8 @@ private:
 
 // Public API delegates to Impl
 
-LinuxOpenGLContext::LinuxOpenGLContext() : pImpl(std::make_unique<LinuxOpenGLContext::Impl>()) {}
+LinuxOpenGLContext::LinuxOpenGLContext(void* eglDisplay)
+    : pImpl(std::make_unique<LinuxOpenGLContext::Impl>(eglDisplay)) {}
 
 LinuxOpenGLContext::~LinuxOpenGLContext() = default;
 

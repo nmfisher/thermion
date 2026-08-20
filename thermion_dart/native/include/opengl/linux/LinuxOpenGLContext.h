@@ -19,7 +19,9 @@ namespace thermion::opengl::linux_platform {
  */
 class LinuxOpenGLContext {
 public:
-    LinuxOpenGLContext();
+    // When provided, eglDisplay is borrowed from Flutter and is never
+    // terminated by this context.
+    explicit LinuxOpenGLContext(void* eglDisplay = nullptr);
     ~LinuxOpenGLContext();
 
     int64_t CreateRenderingSurface(uint32_t width, uint32_t height);
