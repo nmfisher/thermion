@@ -61,7 +61,29 @@ class SsctOptions {
   });
 }
 
+/// Ground Truth-based Ambient Occlusion (GTAO) options.
+class GtaoOptions {
+  final int sampleSliceCount;
+  final int sampleStepsPerSlice;
+  final double thicknessHeuristic;
+  final bool useVisibilityBitmasks;
+  final double constThickness;
+  final bool linearThickness;
+
+  const GtaoOptions({
+    this.sampleSliceCount = 4,
+    this.sampleStepsPerSlice = 3,
+    this.thicknessHeuristic = 0.004,
+    this.useVisibilityBitmasks = false,
+    this.constThickness = 0.5,
+    this.linearThickness = false,
+  });
+}
+
+enum AmbientOcclusionType { SAO, GTAO }
+
 class AmbientOcclusionOptions {
+  final AmbientOcclusionType aoType;
   final double radius;
   final double power;
   final double bias;
@@ -75,8 +97,10 @@ class AmbientOcclusionOptions {
   final bool bentNormals;
   final double minHorizonAngleRad;
   final SsctOptions ssct;
+  final GtaoOptions gtao;
 
   const AmbientOcclusionOptions({
+    this.aoType = AmbientOcclusionType.SAO,
     this.radius = 0.3,
     this.power = 1.0,
     this.bias = 0.0005,
@@ -90,6 +114,7 @@ class AmbientOcclusionOptions {
     this.bentNormals = false,
     this.minHorizonAngleRad = 0.0,
     this.ssct = const SsctOptions(),
+    this.gtao = const GtaoOptions(),
   });
 }
 

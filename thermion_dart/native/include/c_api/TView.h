@@ -202,8 +202,26 @@ struct TSsct {
     bool enabled = false;            //!< enables or disables SSCT
 };
 
+enum TAmbientOcclusionType {
+    SAO,
+    GTAO
+};
+typedef enum TAmbientOcclusionType TAmbientOcclusionType;
+
 /**
- * Options for screen space Ambient Occlusion (SSAO) and Screen Space Cone Tracing (SSCT)
+ * Ground Truth-based Ambient Occlusion (GTAO) options
+ */
+struct TGtao {
+    uint8_t sampleSliceCount = 4;        //!< number of slices; higher values reduce noise
+    uint8_t sampleStepsPerSlice = 3;     //!< integration steps per slice; higher values reduce bias
+    float thicknessHeuristic = 0.004f;   //!< ignored when visibility bitmasks are enabled
+    bool useVisibilityBitmasks = false;  //!< enables visibility bitmasks mode
+    float constThickness = 0.5f;         //!< world-space thickness used by visibility bitmasks
+    bool linearThickness = false;        //!< increases thickness with distance
+};
+
+/**
+ * Options for ambient occlusion, Screen Space Cone Tracing (SSCT), and GTAO
  */
 struct TAmbientOcclusionOptions {
     float radius = 0.3f;            //!< Ambient Occlusion radius in meters, between 0 and ~10
@@ -219,6 +237,8 @@ struct TAmbientOcclusionOptions {
     bool bentNormals = false;       //!< enables bent normals computation from AO, and specular AO
     float minHorizonAngleRad = 0.0f; //!< min angle in radian to consider
     TSsct ssct;
+    TGtao gtao;
+    TAmbientOcclusionType aoType = SAO; //!< ambient occlusion algorithm
 };
 
 typedef struct TAmbientOcclusionOptions TAmbientOcclusionOptions;

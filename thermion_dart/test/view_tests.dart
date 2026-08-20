@@ -948,6 +948,7 @@ void main() async {
       // Test default options
       final defaultOptions = result.viewer.view.getAmbientOcclusionOptions();
       expect(defaultOptions.enabled, isFalse);
+      expect(defaultOptions.aoType, equals(AmbientOcclusionType.SAO));
       expect(defaultOptions.radius, closeTo(0.3, 0.001));
       expect(defaultOptions.power, closeTo(1.0, 0.001));
       expect(defaultOptions.bias, closeTo(0.0005, 0.0001));
@@ -974,9 +975,18 @@ void main() async {
       expect(defaultOptions.ssct.sampleCount, equals(4));
       expect(defaultOptions.ssct.rayCount, equals(1));
 
+      // Test GTAO default options
+      expect(defaultOptions.gtao.sampleSliceCount, equals(4));
+      expect(defaultOptions.gtao.sampleStepsPerSlice, equals(3));
+      expect(defaultOptions.gtao.thicknessHeuristic, closeTo(0.004, 0.0001));
+      expect(defaultOptions.gtao.useVisibilityBitmasks, isFalse);
+      expect(defaultOptions.gtao.constThickness, closeTo(0.5, 0.001));
+      expect(defaultOptions.gtao.linearThickness, isFalse);
+
       // Test setting custom ambient occlusion options
       final customOptions = AmbientOcclusionOptions(
         enabled: true,
+        aoType: AmbientOcclusionType.GTAO,
         radius: 0.8,
         power: 1.5,
         bias: 0.001,
@@ -1000,6 +1010,14 @@ void main() async {
           sampleCount: 8,
           rayCount: 2,
         ),
+        gtao: GtaoOptions(
+          sampleSliceCount: 6,
+          sampleStepsPerSlice: 4,
+          thicknessHeuristic: 0.006,
+          useVisibilityBitmasks: true,
+          constThickness: 0.75,
+          linearThickness: true,
+        ),
       );
 
       await result.viewer.view.setAmbientOcclusionOptions(customOptions);
@@ -1007,6 +1025,7 @@ void main() async {
       // Verify the options were set correctly
       final retrievedOptions = result.viewer.view.getAmbientOcclusionOptions();
       expect(retrievedOptions.enabled, equals(customOptions.enabled));
+      expect(retrievedOptions.aoType, equals(customOptions.aoType));
       expect(retrievedOptions.radius, closeTo(customOptions.radius, 0.001));
       expect(retrievedOptions.power, closeTo(customOptions.power, 0.001));
       expect(retrievedOptions.bias, closeTo(customOptions.bias, 0.0001));
@@ -1032,6 +1051,14 @@ void main() async {
       expect(retrievedOptions.ssct.depthSlopeBias, closeTo(customOptions.ssct.depthSlopeBias, 0.001));
       expect(retrievedOptions.ssct.sampleCount, equals(customOptions.ssct.sampleCount));
       expect(retrievedOptions.ssct.rayCount, equals(customOptions.ssct.rayCount));
+
+      // Verify GTAO options
+      expect(retrievedOptions.gtao.sampleSliceCount, equals(customOptions.gtao.sampleSliceCount));
+      expect(retrievedOptions.gtao.sampleStepsPerSlice, equals(customOptions.gtao.sampleStepsPerSlice));
+      expect(retrievedOptions.gtao.thicknessHeuristic, closeTo(customOptions.gtao.thicknessHeuristic, 0.0001));
+      expect(retrievedOptions.gtao.useVisibilityBitmasks, equals(customOptions.gtao.useVisibilityBitmasks));
+      expect(retrievedOptions.gtao.constThickness, closeTo(customOptions.gtao.constThickness, 0.001));
+      expect(retrievedOptions.gtao.linearThickness, equals(customOptions.gtao.linearThickness));
     });
   });
 
@@ -1087,6 +1114,49 @@ void main() async {
         AmbientOcclusionOptions(enabled: true, radius: 1.0, intensity: 1.0, quality: QualityLevel.MEDIUM),
       );
       await testHelper.capture(result.viewer.view, "ambient_occlusion_large_radius");
+    });
+  });
+
+  test('AmbientOcclusionOptions SAO and GTAO visual comparison', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setBackgroundColor(kWhite)
+        .setCameraLookAt(Vector3(0, 4, 6), focus: Vector3(0, -0.2, 0))
+        .setPostProcessing(true)
+        .addCube(position: Vector3(-0.8, 0, 0), color: kRed)
+        .addCube(position: Vector3(0.8, -0.35, 0), scale: Vector3.all(0.65), color: kBlue)
+        .addPlane(position: Vector3(0, -1.05, 0), color: kWhite, createUbershader: true);
+
+    await builder.execute((result) async {
+      await result.viewer.loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
+
+      await result.viewer.view.setAmbientOcclusionOptions(
+        AmbientOcclusionOptions(
+          enabled: true,
+          aoType: AmbientOcclusionType.SAO,
+          radius: 0.8,
+          intensity: 1.0,
+          quality: QualityLevel.HIGH,
+          lowPassFilter: QualityLevel.HIGH,
+        ),
+      );
+      final saoImages = await testHelper.capture(result.viewer.view, "ambient_occlusion_sao");
+
+      await result.viewer.view.setAmbientOcclusionOptions(
+        AmbientOcclusionOptions(
+          enabled: true,
+          aoType: AmbientOcclusionType.GTAO,
+          radius: 0.8,
+          intensity: 1.0,
+          quality: QualityLevel.HIGH,
+          lowPassFilter: QualityLevel.HIGH,
+          gtao: GtaoOptions(sampleSliceCount: 4, sampleStepsPerSlice: 3),
+        ),
+      );
+      final gtaoImages = await testHelper.capture(result.viewer.view, "ambient_occlusion_gtao");
+
+      expect(saoImages[result.viewer.view], isNotEmpty);
+      expect(gtaoImages[result.viewer.view], isNotEmpty);
+      expect(gtaoImages[result.viewer.view], isNot(orderedEquals(saoImages[result.viewer.view]!)));
     });
   });
 

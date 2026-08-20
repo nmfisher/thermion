@@ -69,7 +69,7 @@ def main():
     # Find PNG files in both directories
     golden_files = find_png_files(golden_dir)
     output_files = find_png_files(output_dir)
-    
+
     print(f"Found {len(golden_files)} golden files and {len(output_files)} output files")
     
     # Track comparison results

@@ -85,9 +85,6 @@ namespace thermion
                 .sharedContext(tSharedContext)
                 .config(&config)
                 .build();
-
-            Log("BUILDING WITH CUSTOM BACKEND");
-
             
             return reinterpret_cast<TEngine *>(engine);
         }

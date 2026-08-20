@@ -9082,7 +9082,7 @@ final class TScene extends Struct {
   }
 }
 
-/// Options for screen space Ambient Occlusion (SSAO) and Screen Space Cone Tracing (SSCT)
+/// Options for ambient occlusion, Screen Space Cone Tracing (SSCT), and GTAO
 
 extension TAmbientOcclusionOptionsExt on Pointer<TAmbientOcclusionOptions> {
   TAmbientOcclusionOptions toDart() {
@@ -9243,10 +9243,31 @@ final class TAmbientOcclusionOptions extends Struct {
     NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 42), val.address.toJS, '*');
   }
 
+  TGtao get gtao {
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 81);
+    final value = NativeLibrary.instance.getValue(addr, '*');
+    return TGtao(Pointer<TGtao>(addr));
+  }
+
+  set gtao(TGtao val) {
+    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 81), val.address.toJS, '*');
+  }
+
+  /// !< ambient occlusion algorithm
+  int get aoType {
+    final addr = Pointer<TAmbientOcclusionOptions>(this.address.addr + 93);
+    final value = NativeLibrary.instance.getValue(addr, 'i32').toDartInt;
+    return value;
+  }
+
+  set aoType(int val) {
+    NativeLibrary.instance.setValue(Pointer<TAmbientOcclusionOptions>(this.address.addr + 93), val.toJS, 'i32');
+  }
+
   TAmbientOcclusionOptions(super.address);
 
   static Pointer<TAmbientOcclusionOptions> stackAlloc() {
-    return Pointer<TAmbientOcclusionOptions>(NativeLibrary.instance.stackAlloc<TAmbientOcclusionOptions>(81));
+    return Pointer<TAmbientOcclusionOptions>(NativeLibrary.instance.stackAlloc<TAmbientOcclusionOptions>(97));
   }
 }
 
@@ -9399,6 +9420,95 @@ final class TSsct extends Struct {
   static Pointer<TSsct> stackAlloc() {
     return Pointer<TSsct>(NativeLibrary.instance.stackAlloc<TSsct>(39));
   }
+}
+
+/// Ground Truth-based Ambient Occlusion (GTAO) options
+
+extension TGtaoExt on Pointer<TGtao> {
+  TGtao toDart() {
+    return TGtao(this);
+  }
+}
+
+final class TGtao extends Struct {
+  Pointer<TGtao> get address => super.address.cast();
+
+  /// !< number of slices; higher values reduce noise
+  int get sampleSliceCount {
+    final addr = Pointer<TGtao>(this.address.addr + 0);
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set sampleSliceCount(int val) {
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 0), val.toJS, 'i8');
+  }
+
+  /// !< integration steps per slice; higher values reduce bias
+  int get sampleStepsPerSlice {
+    final addr = Pointer<TGtao>(this.address.addr + 1);
+    final value = NativeLibrary.instance.getValue(addr, 'i8').toDartInt;
+    return value;
+  }
+
+  set sampleStepsPerSlice(int val) {
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 1), val.toJS, 'i8');
+  }
+
+  /// !< ignored when visibility bitmasks are enabled
+  double get thicknessHeuristic {
+    final addr = Pointer<TGtao>(this.address.addr + 2);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set thicknessHeuristic(double val) {
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 2), val.toJS, 'float');
+  }
+
+  /// !< enables visibility bitmasks mode
+  bool get useVisibilityBitmasks {
+    final addr = Pointer<TGtao>(this.address.addr + 6);
+    final value = NativeLibrary.instance.getValue(addr, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set useVisibilityBitmasks(bool val) {
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 6), (val ? 1 : 0).toJS, 'i8');
+  }
+
+  /// !< world-space thickness used by visibility bitmasks
+  double get constThickness {
+    final addr = Pointer<TGtao>(this.address.addr + 7);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set constThickness(double val) {
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 7), val.toJS, 'float');
+  }
+
+  /// !< increases thickness with distance
+  bool get linearThickness {
+    final addr = Pointer<TGtao>(this.address.addr + 11);
+    final value = NativeLibrary.instance.getValue(addr, 'i8');
+    return value.toDartInt == 1;
+  }
+
+  set linearThickness(bool val) {
+    NativeLibrary.instance.setValue(Pointer<TGtao>(this.address.addr + 11), (val ? 1 : 0).toJS, 'i8');
+  }
+
+  TGtao(super.address);
+
+  static Pointer<TGtao> stackAlloc() {
+    return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(12));
+  }
+}
+
+sealed class TAmbientOcclusionType {
+  static const SAO = 0;
+  static const GTAO = 1;
 }
 
 /// Copied from FogOptions in View.h
@@ -11043,6 +11153,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TSsct:
         final ptr = TSsct.stackAlloc();
+        return ptr.toDart() as T;
+      case TGtao:
+        final ptr = TGtao.stackAlloc();
         return ptr.toDart() as T;
       case TFogOptions:
         final ptr = TFogOptions.stackAlloc();
