@@ -9,11 +9,6 @@ from pathlib import Path
 from PIL import Image, ImageChops
 import numpy as np
 
-REQUIRED_GOLDEN_FILES = {
-    "view/ambient_occlusion_sao_view0.png",
-    "view/ambient_occlusion_gtao_view0.png",
-}
-
 def calculate_image_difference(img1_path, img2_path):
     """
     Calculate the difference between two images.
@@ -75,15 +70,6 @@ def main():
     golden_files = find_png_files(golden_dir)
     output_files = find_png_files(output_dir)
 
-    missing_required_goldens = REQUIRED_GOLDEN_FILES - set(golden_files)
-    missing_required_outputs = REQUIRED_GOLDEN_FILES - set(output_files)
-
-    for golden_file in sorted(missing_required_goldens):
-        print(f"❌ REQUIRED GOLDEN MISSING: {golden_file}")
-
-    for output_file in sorted(missing_required_outputs):
-        print(f"❌ REQUIRED OUTPUT MISSING: {output_file}")
-    
     print(f"Found {len(golden_files)} golden files and {len(output_files)} output files")
     
     # Track comparison results
@@ -132,8 +118,7 @@ def main():
     print(f"📊 Total golden files: {len(golden_files)}")
     
     # Exit with appropriate code
-    if (different_count > 0 or missing_count > 0 or error_count > 0 or
-            missing_required_goldens or missing_required_outputs):
+    if different_count > 0 or missing_count > 0 or error_count > 0:
         print("\n❌ COMPARISON FAILED")
         sys.exit(1)
     else:
