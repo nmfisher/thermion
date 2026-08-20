@@ -112,12 +112,20 @@ jobs:
           make materials
 
       - name: Generate bindings
+        # A metadata-only release reuses the bindings already committed and
+        # checked by branch CI. Regenerating them at tag time makes the result
+        # depend on the current runner toolchain even though no input changed.
+        if: ${{ !inputs.verify || steps.changes.outputs.native-changed == 'true' }}
         run: make dart-bindings
 
       # Previously format.yml. Folded in here so only this workflow pushes to
       # the branch (no concurrent-push race with the bindings commit). Runs
       # after `make dart-bindings` so generated bindings are also tidied.
       - name: Format
+        # Keep metadata-only verification read-only for the same reason as the
+        # binding generation step above. Source branches still format on every
+        # normal run, and native-changing releases verify the regenerated files.
+        if: ${{ !inputs.verify || steps.changes.outputs.native-changed == 'true' }}
         run: |
           dart format \
             thermion_dart/lib \
