@@ -1,5 +1,9 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## 0.5.0
+
+- Promote `0.5.0-pre.5` to stable with no code changes.
+
 ## 0.5.0-pre.5
 
 - Rework the CI release pipeline: releases are cut from `develop` via a manual
