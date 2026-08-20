@@ -20,19 +20,36 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
   "/usr/include/gtk-3.0"
   )
 
-# Filament C++ headers are sourced from the version-matched R2 artifact via
-# thermion_dart's build hook, which writes DART_PKG_HEADERS (the extracted
+# thermion_dart's build hook writes DART_PKG_HEADERS (the extracted Filament
 # artifact `include/` plus Thermion's own `native/include`) to
-# generated_headers.cmake. See thermion_flutter/hook/build.dart.
+# generated_headers.cmake. CMake configure and the Dart build hooks have no
+# guaranteed execution order (#132): the file may be missing on a first
+# build, or stale after a hook change. It is only a *fallback* — the
+# authoritative Filament include dirs are resolved deterministically below
+# from thermion_dart's root, and every entry taken from this file is
+# validated to exist before use.
 set(GENERATED_HEADERS_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../.dart_tool/generated_headers.cmake")
 if(EXISTS "${GENERATED_HEADERS_CMAKE}")
   include("${GENERATED_HEADERS_CMAKE}")
 else()
   message(STATUS
     "thermion_flutter: ${GENERATED_HEADERS_CMAKE} not yet present; "
-    "DART_PKG_HEADERS is empty. The dart_build step will produce it and the "
-    "next build will pick it up automatically.")
+    "resolving Filament headers deterministically instead.")
   set(DART_PKG_HEADERS "")
+endif()
+
+# Drop entries that no longer exist on disk — a stale file from an older
+# hook version lists pre-artifact paths (native/include/filament*) that
+# were removed from the tree.
+if(DART_PKG_HEADERS)
+  foreach(_dir IN LISTS DART_PKG_HEADERS)
+    if(NOT IS_DIRECTORY "${_dir}")
+      message(WARNING
+        "thermion_flutter: ignoring non-existent include dir from "
+        "generated_headers.cmake (stale hook output?): ${_dir}")
+      list(REMOVE_ITEM DART_PKG_HEADERS "${_dir}")
+    endif()
+  endforeach()
 endif()
 
 # thermion_dart native-assets output
@@ -104,6 +121,19 @@ if(_PKG_CONFIG)
   endif()
 endif()
 
+if(NOT _td_root)
+  # Monorepo fallback: resolve the real source dir (follows symlinks), then
+  # navigate to thermion_dart using the known repo layout.
+  get_filename_component(_REAL_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
+  get_filename_component(_td_root
+    "${_REAL_PLUGIN_DIR}/../../../thermion_dart" ABSOLUTE)
+  if(NOT EXISTS "${_td_root}/native/include")
+    set(_td_root "")
+  else()
+    message(STATUS "thermion_flutter: using monorepo fallback ${_td_root}")
+  endif()
+endif()
+
 if(_td_root)
   set(_TD_INCLUDE "${_td_root}/native/include")
   if(EXISTS "${_td_root}/native/include/vulkan/linux")
@@ -112,23 +142,65 @@ if(_td_root)
   if(EXISTS "${_td_root}/native/include/opengl/linux")
     set(_TD_OPENGL_LINUX "${_td_root}/native/include/opengl/linux")
   endif()
-else()
-  get_filename_component(_REAL_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
-  get_filename_component(_BASE
-    "${_REAL_PLUGIN_DIR}/../../../thermion_dart/native/include" ABSOLUTE)
-  if(EXISTS "${_BASE}")
-    set(_TD_INCLUDE "${_BASE}")
-    if(EXISTS "${_BASE}/vulkan/linux")
-      set(_TD_VULKAN_LINUX "${_BASE}/vulkan/linux")
-    endif()
-    if(EXISTS "${_BASE}/opengl/linux")
-      set(_TD_OPENGL_LINUX "${_BASE}/opengl/linux")
-    endif()
-    message(STATUS "thermion_flutter: using monorepo fallback ${_BASE}")
-  endif()
 endif()
 
+# --- Filament artifact headers (deterministic; #132) ------------------------
+# Filament's C++ headers ship inside the same version-matched artifact the
+# build hook downloads (thermion_dart/hook/build.dart -> getLibDir):
+#   <thermion_dart>/.dart_tool/thermion_dart/lib/<version>/linux/<mode>[/<arch>]/include
+# Derive them here from the same inputs the hook itself uses — thermion_dart's
+# root plus filament.version — so configure never depends on hook-written
+# state. Headers are build-mode-independent (the hook's own cache repair
+# relies on that), so any extracted release/debug dir serves any build mode.
+set(_ARTIFACT_INCLUDES "")
+if(_td_root)
+  set(_version_dir "*")
+  set(_version_file "${_td_root}/../filament.version")
+  if(EXISTS "${_version_file}")
+    file(READ "${_version_file}" _version_raw)
+    string(STRIP "${_version_raw}" _version_raw)
+    # Format "<repo-url> <version>"; the version is the last field (matches
+    # _getFilamentVersion in thermion_dart/hook/build.dart).
+    string(REGEX MATCH "[^ \t]+$" _version_dir "${_version_raw}")
+  endif()
+  file(GLOB _ARTIFACT_INCLUDES CONFIGURE_DEPENDS
+    "${_td_root}/.dart_tool/thermion_dart/lib/${_version_dir}/linux/*/include"
+    # arm64 cache nests an arch dir: .../linux/<mode>/arm64/include
+    "${_td_root}/.dart_tool/thermion_dart/lib/${_version_dir}/linux/*/*/include")
+endif()
+
+# A Filament include dir is usable when it actually carries the headers the
+# plugin needs; some published debug artifacts shipped an include/ tree
+# without bluevk (the hook repairs those caches — see build.dart).
+set(_FILAMENT_HEADERS "")
+foreach(_dir IN LISTS _ARTIFACT_INCLUDES DART_PKG_HEADERS)
+  if(IS_DIRECTORY "${_dir}" AND EXISTS "${_dir}/bluevk/BlueVK.h")
+    list(FIND _FILAMENT_HEADERS "${_dir}" _dup)
+    if(_dup EQUAL -1)
+      list(APPEND _FILAMENT_HEADERS "${_dir}")
+    endif()
+  endif()
+endforeach()
+
+if(NOT _FILAMENT_HEADERS)
+  if(NOT _td_root)
+    message(FATAL_ERROR
+      "thermion_flutter: could not resolve thermion_dart's root (neither "
+      "package_config.json nor the monorepo fallback); cannot locate "
+      "Filament headers.")
+  endif()
+  message(FATAL_ERROR
+    "thermion_flutter: no Filament headers found under "
+    "${_td_root}/.dart_tool/thermion_dart/lib/${_version_dir}/linux/*/include "
+    "(version pinned by ${_td_root}/../filament.version), and "
+    "generated_headers.cmake provided no usable entry either. The artifact is "
+    "downloaded by thermion_dart's build hook — on a clean machine the first "
+    "build fetches it; rerun once that has completed.")
+endif()
+message(STATUS "thermion_flutter: Filament headers: ${_FILAMENT_HEADERS}")
+
 target_include_directories(${PLUGIN_NAME} PRIVATE
+  ${_FILAMENT_HEADERS}
   ${DART_PKG_HEADERS}
   "${_TD_INCLUDE}"
   "${_TD_VULKAN_LINUX}"
