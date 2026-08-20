@@ -1117,6 +1117,49 @@ void main() async {
     });
   });
 
+  test('AmbientOcclusionOptions SAO and GTAO visual comparison', () async {
+    final builder = ViewerBuilder(testHelper)
+        .setBackgroundColor(kWhite)
+        .setCameraLookAt(Vector3(0, 4, 6), focus: Vector3(0, -0.2, 0))
+        .setPostProcessing(true)
+        .addCube(position: Vector3(-0.8, 0, 0), color: kRed)
+        .addCube(position: Vector3(0.8, -0.35, 0), scale: Vector3.all(0.65), color: kBlue)
+        .addPlane(position: Vector3(0, -1.05, 0), color: kWhite, createUbershader: true);
+
+    await builder.execute((result) async {
+      await result.viewer.loadIbl("file://${testHelper.assetsDir}/default_env_ibl.ktx");
+
+      await result.viewer.view.setAmbientOcclusionOptions(
+        AmbientOcclusionOptions(
+          enabled: true,
+          aoType: AmbientOcclusionType.SAO,
+          radius: 0.8,
+          intensity: 1.0,
+          quality: QualityLevel.HIGH,
+          lowPassFilter: QualityLevel.HIGH,
+        ),
+      );
+      final saoImages = await testHelper.capture(result.viewer.view, "ambient_occlusion_sao");
+
+      await result.viewer.view.setAmbientOcclusionOptions(
+        AmbientOcclusionOptions(
+          enabled: true,
+          aoType: AmbientOcclusionType.GTAO,
+          radius: 0.8,
+          intensity: 1.0,
+          quality: QualityLevel.HIGH,
+          lowPassFilter: QualityLevel.HIGH,
+          gtao: GtaoOptions(sampleSliceCount: 4, sampleStepsPerSlice: 3),
+        ),
+      );
+      final gtaoImages = await testHelper.capture(result.viewer.view, "ambient_occlusion_gtao");
+
+      expect(saoImages[result.viewer.view], isNotEmpty);
+      expect(gtaoImages[result.viewer.view], isNotEmpty);
+      expect(gtaoImages[result.viewer.view], isNot(orderedEquals(saoImages[result.viewer.view]!)));
+    });
+  });
+
   test('AmbientOcclusionOptions with SSCT enabled', () async {
     final builder = ViewerBuilder(testHelper)
         .setBackgroundColor(kWhite)
