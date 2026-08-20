@@ -80,6 +80,13 @@ jobs:
         shell: bash
         run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
 
+      - name: Run PCSS visual tests (Linux)
+        if: matrix.name == 'Linux'
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          xvfb-run dart test test/pcss_controls_render_test.dart
+
       - name: Run tests (Linux)
         if: matrix.name == 'Linux'
         working-directory: thermion_dart
@@ -92,7 +99,6 @@ jobs:
             test/entity_tests.dart \
             test/geometry_tests.dart \
             test/view_tests.dart \
-            test/pcss_controls_render_test.dart \
             test/postprocessing_tests.dart \
             test/scene_tests.dart \
             test/picking_tests.dart \
@@ -137,18 +143,18 @@ jobs:
             --concurrency=1
 
       - name: Zip output
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && always()
         run: zip -r output.zip ./thermion_dart/test/output
 
       - name: Upload test output
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && always()
         uses: actions/upload-artifact@v4
         with:
           name: golden-images-${{ github.sha }}
           path: output.zip
 
       - name: Download golden images from previous run
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -156,18 +162,18 @@ jobs:
             --name golden-images-b69b6d54fac83278f34e905aaede8ceffa060ae5  \
             --dir ./thermion_dart/test/golden-downloads
       - name: Unzip golden images
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && always()
         run: |
           cd thermion_dart/test/golden-downloads && unzip output.zip
 
       - name: Install Python dependencies
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && always()
         run: |
           python -m pip install --upgrade pip
           pip install Pillow numpy
 
       - name: Compare golden images
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && always()
         run: cd thermion_dart/test && python compare_goldens.py
 
       - name: Upload logs
