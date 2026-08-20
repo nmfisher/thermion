@@ -2725,7 +2725,8 @@ void View_setFrustumCullingEnabled(Pointer<TView> view, bool enabled) {
 }
 
 int View_getVisibleRenderableCount(Pointer<TView> view) {
-  return GeneratedBindings.instance._View_getVisibleRenderableCount(view.cast());
+  final result = GeneratedBindings.instance._View_getVisibleRenderableCount(view.cast());
+  return result;
 }
 
 Pointer<TRenderTarget> View_getRenderTarget(Pointer<TView> tView) {
