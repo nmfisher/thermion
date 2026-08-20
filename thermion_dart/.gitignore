@@ -2,6 +2,9 @@ native/build/
 native/web/lib/**/*
 pubspec.lock
 test/output/*
+# Transient scratch dir: run-dart-tests.yml downloads the pinned golden
+# artifact into test/golden-downloads at run time. Never commit goldens here.
+test/golden-downloads/
 test/generated/libThermionTextureSwift.dylib
 **/*.g.dart
 
