@@ -30,7 +30,7 @@ public:
     ~LinuxOpenGLTexture();
 
     static std::unique_ptr<LinuxOpenGLTexture> create(
-        EGLDisplay display, EGLContext context,
+        EGLDisplay display, EGLContext context, EGLSurface surface,
         struct gbm_device* gbm, uint32_t width, uint32_t height);
 
     GLuint GetGLTextureId() const { return _glTextureId; }
@@ -58,6 +58,8 @@ private:
 
     // Store display for cleanup
     EGLDisplay _display = EGL_NO_DISPLAY;
+    EGLContext _context = EGL_NO_CONTEXT;
+    EGLSurface _surface = EGL_NO_SURFACE;
 };
 
 } // namespace thermion::opengl::linux_platform

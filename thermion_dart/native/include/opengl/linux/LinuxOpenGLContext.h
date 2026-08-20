@@ -15,14 +15,20 @@ namespace thermion::opengl::linux_platform {
  * PlatformEGL can create its own context in the same share group — GL texture
  * IDs are then valid in both contexts.
  *
- * GetPlatform() returns nullptr so Filament auto-creates a default PlatformEGL.
+ * GetPlatform() returns Thermion's EGLHeadless platform bound to the same
+ * EGLDisplay as the producer context.
  */
 class LinuxOpenGLContext {
 public:
-    // When provided, eglDisplay is borrowed from Flutter and is never
-    // terminated by this context.
+    // If eglDisplay is non-null, it is borrowed and must already be
+    // initialized. This is the preferred Flutter path: Filament gets a
+    // desktop-GL context on Flutter's existing EGLDisplay without starting a
+    // second NVIDIA EGL display alongside the raster thread.
     explicit LinuxOpenGLContext(void* eglDisplay = nullptr);
     ~LinuxOpenGLContext();
+
+    bool IsValid() const;
+    const char* GetLastError() const;
 
     int64_t CreateRenderingSurface(uint32_t width, uint32_t height);
     void DestroyRenderingSurface(int64_t surfaceId);
@@ -31,7 +37,7 @@ public:
     SurfaceExportInfo GetSurfaceExportInfo(int64_t surfaceId);
 
     void* GetSharedContext();   // Returns our EGLContext for Filament sharing
-    void* GetPlatform();        // Returns nullptr (Filament creates default PlatformEGL)
+    void* GetPlatform();        // Returns ThermionPlatformEGLHeadless
 
 private:
     class Impl;
