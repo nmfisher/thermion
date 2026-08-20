@@ -133,6 +133,7 @@ EMSCRIPTEN_KEEPALIVE void View_setBlendMode(TView *view, TBlendMode blendMode);
 EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *view, uint32_t width, uint32_t height);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *view, TRenderTarget *renderTarget);
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView *view, bool enabled);
+EMSCRIPTEN_KEEPALIVE int32_t View_getVisibleRenderableCount(TView *view);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView* tView, TRenderTarget* tRenderTarget);
 EMSCRIPTEN_KEEPALIVE TRenderTarget *View_getRenderTarget(TView* tView);
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView* tView, bool enabled);
@@ -147,6 +148,8 @@ EMSCRIPTEN_KEEPALIVE int View_getShadowType(TView* tView);
 struct TSoftShadowOptions {
     float penumbraScale;
     float penumbraRatioScale;
+    float maxPenumbraRatio;
+    float maxSearchRadius;
 };
 typedef struct TSoftShadowOptions TSoftShadowOptions;
 

@@ -264,6 +264,9 @@ external void View_setRenderTarget(ffi.Pointer<TView> view, ffi.Pointer<TRenderT
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
 external void View_setFrustumCullingEnabled(ffi.Pointer<TView> view, bool enabled);
 
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TView>)>(isLeaf: true)
+external int View_getVisibleRenderableCount(ffi.Pointer<TView> view);
+
 @ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TView>)>(isLeaf: true)
 external ffi.Pointer<TRenderTarget> View_getRenderTarget(ffi.Pointer<TView> tView);
 
@@ -4959,6 +4962,12 @@ final class TSoftShadowOptions extends ffi.Struct {
 
   @ffi.Float()
   external double penumbraRatioScale;
+
+  @ffi.Float()
+  external double maxPenumbraRatio;
+
+  @ffi.Float()
+  external double maxSearchRadius;
 }
 
 /// Options for VSM Shadowing.
@@ -5601,6 +5610,18 @@ final class TShadowOptions extends ffi.Struct {
 
   @ffi.Float()
   external double shadowBulbRadius;
+
+  @ffi.Float()
+  external double penumbraScale;
+
+  @ffi.Float()
+  external double penumbraRatioScale;
+
+  @ffi.Float()
+  external double maxPenumbraRatio;
+
+  @ffi.Float()
+  external double maxSearchRadius;
 
   @ffi.Float()
   external double transformX;

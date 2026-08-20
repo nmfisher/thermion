@@ -349,6 +349,13 @@ abstract class View<T> extends NativeHandle<T> {
   SoftShadowOptions getSoftShadowOptions();
   Future setVsmShadowOptions(VsmShadowOptions options);
   VsmShadowOptions getVsmShadowOptions();
+
+  /// Returns the number of renderables visible during the most recent render.
+  ///
+  /// Returns -1 before the first render or while the visibility cache is
+  /// invalid.
+  int getVisibleRenderableCount();
+
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
 
   /// Creates a builder for configuring color grading.
