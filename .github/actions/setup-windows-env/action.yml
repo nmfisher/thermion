@@ -22,6 +22,7 @@ runs:
         install_runtime: true
         cache: true
         install_swiftshader: true
+        github_token: ${{ github.token }}
 
     - name: Verify SwiftShader installation
       shell: pwsh
