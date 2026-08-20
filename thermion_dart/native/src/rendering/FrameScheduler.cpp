@@ -1,6 +1,5 @@
 #include "rendering/FrameScheduler.hpp"
 #include "Log.hpp"
-#include "dart/dart_api_dl.h"
 #include <algorithm>
 #include <iostream>
 
@@ -25,10 +24,15 @@ namespace thermion {
 // ---------------------------------------------------------------------------
 
 void FrameScheduler::setTargetFps(int fps) {
-    _fpsLimit.store(fps > 0 ? fps : 0, std::memory_order_relaxed);
+    const int normalizedFps = fps > 0 ? fps : 0;
+    const int previousFps = _fpsLimit.exchange(
+        normalizedFps, std::memory_order_relaxed);
+    if (previousFps != normalizedFps) {
+        onTargetFpsChanged(normalizedFps);
+    }
 }
 
-void FrameScheduler::dispatchFrame(uint64_t nanos) {
+void FrameScheduler::handleSourceTick(uint64_t nanos) {
     // Framerate limiting: use an absolute deadline rather than measuring from
     // the last dispatched vsync. This preserves the requested average on
     // refresh rates that are not integer multiples of the target (for example,
@@ -36,12 +40,12 @@ void FrameScheduler::dispatchFrame(uint64_t nanos) {
     // of collapsing to 45 fps).
     int fps = _fpsLimit.load(std::memory_order_relaxed);
     if (fps > 0) {
-        const uint64_t interval = std::max<uint64_t>(
-            1, 1000000000ULL / static_cast<uint64_t>(fps));
         const uint64_t tolerance = 1000000ULL; // 1 ms
 
         if (_appliedFpsLimit != fps || _nextDispatchNs == 0) {
             _appliedFpsLimit = fps;
+            _dispatchIntervalNs = std::max<uint64_t>(
+                1, 1000000000ULL / static_cast<uint64_t>(fps));
             _nextDispatchNs = nanos;
         }
 
@@ -55,34 +59,28 @@ void FrameScheduler::dispatchFrame(uint64_t nanos) {
         // catch up.
         if (_nextDispatchNs <= nanos) {
             const uint64_t missedIntervals =
-                (nanos - _nextDispatchNs) / interval + 1;
-            _nextDispatchNs += missedIntervals * interval;
+                (nanos - _nextDispatchNs) / _dispatchIntervalNs + 1;
+            _nextDispatchNs += missedIntervals * _dispatchIntervalNs;
         } else {
             // Accepted up to [tolerance] before the deadline.
-            _nextDispatchNs += interval;
+            _nextDispatchNs += _dispatchIntervalNs;
         }
     } else {
         _appliedFpsLimit = 0;
+        _dispatchIntervalNs = 0;
         _nextDispatchNs = 0;
     }
 
-    if (_usePortMode) {
-        if (_dartPort != 0) {
-            Dart_CObject msg;
-            msg.type = Dart_CObject_kInt64;
-            msg.value.as_int64 = static_cast<int64_t>(nanos);
-            Dart_PostCObject_DL(_dartPort, &msg);
-        }
-    } else if (_callback) {
-        _callback(nanos);
+    if (_callback) {
+        _callback(nanos, _callbackUserData);
     }
 }
 
 void FrameScheduler::resetState() {
     _callback = nullptr;
-    _dartPort = 0;
-    _usePortMode = false;
+    _callbackUserData = nullptr;
     _appliedFpsLimit = 0;
+    _dispatchIntervalNs = 0;
     _nextDispatchNs = 0;
 }
 
@@ -105,67 +103,93 @@ FrameScheduler* FrameScheduler::create(int targetFps) {
 // TimerFrameScheduler
 // ---------------------------------------------------------------------------
 
-void TimerFrameScheduler::start(Callback callback) {
-    if (_running) return;
-    _callback = callback;
-    _usePortMode = false;
-    _running = true;
-    auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
-    _thread = new std::thread([this, interval]() {
-        uint64_t frameCount = 0;
-        auto lastActual = std::chrono::steady_clock::now();
-        while (_running) {
-            auto start = std::chrono::steady_clock::now();
-            uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                start.time_since_epoch()).count();
-
-            auto actualIntervalUs = std::chrono::duration_cast<std::chrono::microseconds>(
-                start - lastActual).count();
-            lastActual = start;
-
-            dispatchFrame(nanos);
-
-            auto elapsed = std::chrono::steady_clock::now() - start;
-            auto callbackUs = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-
-            if (elapsed < interval) {
-                std::this_thread::sleep_for(interval - elapsed);
-            }
-
-            frameCount++;
-            if (frameCount % 300 == 0) {
-                auto targetUs = std::chrono::duration_cast<std::chrono::microseconds>(interval).count();
-                std::cerr << "[ThermionVk:Sched] interval=" << actualIntervalUs
-                          << "us callback=" << callbackUs
-                          << "us target=" << targetUs << "us" << std::endl;
-            }
-        }
-    });
+void TimerFrameScheduler::onTargetFpsChanged(int) {
+    // Synchronize with condition_variable::wait_until so a rate change cannot
+    // land between its predicate check and the thread actually blocking.
+    std::lock_guard<std::mutex> lock(_wakeMutex);
+    _wakeCondition.notify_all();
 }
 
-void TimerFrameScheduler::startWithPort(int64_t port) {
-    if (_running) return;
-    _dartPort = port;
-    _usePortMode = true;
-    _callback = nullptr;
-    _running = true;
-    auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
-    _thread = new std::thread([this, interval]() {
-        while (_running) {
-            auto start = std::chrono::steady_clock::now();
-            uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                start.time_since_epoch()).count();
-            dispatchFrame(nanos);
-            auto elapsed = std::chrono::steady_clock::now() - start;
-            if (elapsed < interval) {
-                std::this_thread::sleep_for(interval - elapsed);
-            }
+void TimerFrameScheduler::run() {
+    using Clock = std::chrono::steady_clock;
+
+    int appliedSourceFps = 0;
+    std::chrono::nanoseconds sourceInterval{0};
+    auto nextWake = Clock::now();
+    auto lastActual = nextWake;
+    uint64_t frameCount = 0;
+
+    while (_running.load(std::memory_order_relaxed)) {
+        const int requestedFps = _fpsLimit.load(std::memory_order_relaxed);
+        const int sourceFps = requestedFps > 0
+            ? requestedFps
+            : std::max(1, _targetFps);
+        if (sourceFps != appliedSourceFps) {
+            appliedSourceFps = sourceFps;
+            sourceInterval = std::chrono::nanoseconds(
+                std::max<uint64_t>(
+                    1, 1000000000ULL / static_cast<uint64_t>(sourceFps)));
+            // Apply both increases and decreases immediately. handleSourceTick()
+            // resets its deadline on the same target-FPS change.
+            nextWake = Clock::now();
         }
-    });
+
+        const auto start = Clock::now();
+        const uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            start.time_since_epoch()).count();
+        const auto actualIntervalUs = std::chrono::duration_cast<std::chrono::microseconds>(
+            start - lastActual).count();
+        lastActual = start;
+
+        handleSourceTick(nanos);
+
+        const auto callbackElapsed = Clock::now() - start;
+        const auto callbackUs = std::chrono::duration_cast<std::chrono::microseconds>(
+            callbackElapsed).count();
+
+        ++frameCount;
+        if (frameCount % 300 == 0) {
+            const auto targetUs = std::chrono::duration_cast<std::chrono::microseconds>(
+                sourceInterval).count();
+            std::cerr << "[ThermionVk:Sched] interval=" << actualIntervalUs
+                      << "us callback=" << callbackUs
+                      << "us target=" << targetUs << "us" << std::endl;
+        }
+
+        nextWake += sourceInterval;
+        const auto now = Clock::now();
+        if (nextWake <= now) {
+            const auto missedIntervals =
+                (now - nextWake) / sourceInterval + 1;
+            nextWake += sourceInterval * missedIntervals;
+        }
+
+        std::unique_lock<std::mutex> lock(_wakeMutex);
+        _wakeCondition.wait_until(lock, nextWake, [this, appliedSourceFps]() {
+            const int requestedFps = _fpsLimit.load(std::memory_order_relaxed);
+            const int sourceFps = requestedFps > 0
+                ? requestedFps
+                : std::max(1, _targetFps);
+            return !_running.load(std::memory_order_relaxed) ||
+                sourceFps != appliedSourceFps;
+        });
+    }
+}
+
+void TimerFrameScheduler::start(Callback callback, void* userData) {
+    if (_running) return;
+    _callback = callback;
+    _callbackUserData = userData;
+    _running = true;
+    _thread = new std::thread([this]() { run(); });
 }
 
 void TimerFrameScheduler::stop() {
-    _running = false;
+    {
+        std::lock_guard<std::mutex> lock(_wakeMutex);
+        _running = false;
+    }
+    _wakeCondition.notify_all();
     if (_thread) {
         _thread->join();
         delete _thread;
@@ -182,24 +206,23 @@ void TimerFrameScheduler::stop() {
 
 void CADisplayLinkScheduler::displayLinkCallback(uint64_t frameTimeNanos, void* context) {
     auto* self = static_cast<CADisplayLinkScheduler*>(context);
-    self->dispatchFrame(frameTimeNanos);
+    self->handleSourceTick(frameTimeNanos);
 }
 
-void CADisplayLinkScheduler::start(Callback callback) {
+void CADisplayLinkScheduler::start(Callback callback, void* userData) {
     stop();
     _callback = callback;
-    _usePortMode = false;
+    _callbackUserData = userData;
     _wrapper = CADisplayLinkWrapper_create(displayLinkCallback, this);
+    CADisplayLinkWrapper_setTargetFps(
+        _wrapper, _fpsLimit.load(std::memory_order_relaxed));
     CADisplayLinkWrapper_start(_wrapper);
 }
 
-void CADisplayLinkScheduler::startWithPort(int64_t port) {
-    stop();
-    _dartPort = port;
-    _usePortMode = true;
-    _callback = nullptr;
-    _wrapper = CADisplayLinkWrapper_create(displayLinkCallback, this);
-    CADisplayLinkWrapper_start(_wrapper);
+void CADisplayLinkScheduler::onTargetFpsChanged(int fps) {
+    if (_wrapper) {
+        CADisplayLinkWrapper_setTargetFps(_wrapper, fps);
+    }
 }
 
 void CADisplayLinkScheduler::stop() {
@@ -218,22 +241,10 @@ void CADisplayLinkScheduler::stop() {
 
 #if __APPLE__ && TARGET_OS_OSX
 
-void CVDisplayLinkScheduler::start(Callback callback) {
+void CVDisplayLinkScheduler::start(Callback callback, void* userData) {
     stop();
     _callback = callback;
-    _usePortMode = false;
-    mach_timebase_info(&_timebase);
-
-    CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
-    CVDisplayLinkSetOutputCallback(_displayLink, displayLinkCallback, this);
-    CVDisplayLinkStart(_displayLink);
-}
-
-void CVDisplayLinkScheduler::startWithPort(int64_t port) {
-    stop();
-    _dartPort = port;
-    _usePortMode = true;
-    _callback = nullptr;
+    _callbackUserData = userData;
     mach_timebase_info(&_timebase);
 
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
@@ -255,12 +266,12 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
     CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* context) {
 
     auto* self = static_cast<CVDisplayLinkScheduler*>(context);
-    // hostTime is Mach absolute time; convert to nanoseconds so dispatchFrame's
+    // hostTime is Mach absolute time; convert to nanoseconds so the rate gate's
     // interval math is unit-correct on every Mac (Apple Silicon is 1:1, but
     // don't assume it).
     uint64_t hostTime = inOutputTime->hostTime;
     uint64_t nanos = hostTime * self->_timebase.numer / self->_timebase.denom;
-    self->dispatchFrame(nanos);
+    self->handleSourceTick(nanos);
     return kCVReturnSuccess;
 }
 
@@ -272,10 +283,10 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
 
 #ifdef _WIN32
 
-void DXGIFrameScheduler::start(Callback callback) {
+void DXGIFrameScheduler::start(Callback callback, void* userData) {
     stop();
     _callback = callback;
-    _usePortMode = false;
+    _callbackUserData = userData;
     _running = true;
 
     _thread = new std::thread([this]() {
@@ -306,52 +317,7 @@ void DXGIFrameScheduler::start(Callback callback) {
                 auto now = std::chrono::steady_clock::now();
                 uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     now.time_since_epoch()).count();
-                dispatchFrame(nanos);
-            }
-        }
-
-        if (output) output->Release();
-        if (adapter) adapter->Release();
-        if (factory) factory->Release();
-    });
-}
-
-void DXGIFrameScheduler::startWithPort(int64_t port) {
-    stop();
-    _dartPort = port;
-    _usePortMode = true;
-    _callback = nullptr;
-    _running = true;
-
-    _thread = new std::thread([this]() {
-        IDXGIFactory1* factory = nullptr;
-        IDXGIAdapter* adapter = nullptr;
-        IDXGIOutput* output = nullptr;
-
-        HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory);
-        if (SUCCEEDED(hr) && factory) {
-            hr = factory->EnumAdapters(0, &adapter);
-            if (SUCCEEDED(hr) && adapter) {
-                hr = adapter->EnumOutputs(0, &output);
-                if (FAILED(hr)) {
-                    output = nullptr;
-                    Log("DXGIFrameScheduler: Failed to get DXGI output for WaitForVBlank, falling back to timer");
-                }
-            }
-        }
-
-        auto interval = std::chrono::nanoseconds(1000000000 / _targetFps);
-        while (_running) {
-            if (output) {
-                output->WaitForVBlank();
-            } else {
-                std::this_thread::sleep_for(interval);
-            }
-            if (_running) {
-                auto now = std::chrono::steady_clock::now();
-                uint64_t nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    now.time_since_epoch()).count();
-                dispatchFrame(nanos);
+                handleSourceTick(nanos);
             }
         }
 
@@ -384,32 +350,67 @@ void AChoreographerFrameScheduler::frameCallback(long frameTimeNanos, void* data
     if (!self->_running) return;
 
     uint64_t nanos = static_cast<uint64_t>(frameTimeNanos);
-    self->dispatchFrame(nanos);
+    self->handleSourceTick(nanos);
 
     // Re-schedule for next frame (Choreographer callbacks are one-shot)
-    self->scheduleNextFrame();
+    self->scheduleNextFrame(nanos);
 }
 
-void AChoreographerFrameScheduler::scheduleNextFrame() {
+void AChoreographerFrameScheduler::scheduleNextFrame(uint64_t lastFrameTimeNanos) {
     if (!_running || !_choreographer) return;
-    // AChoreographer_postFrameCallback is available from API 24 (deprecated in 29 but still works)
-    AChoreographer_postFrameCallback(
-        static_cast<AChoreographer*>(_choreographer),
-        frameCallback,
-        this
-    );
+
+    long delayMillis = 0;
+    const int fps = _fpsLimit.load(std::memory_order_relaxed);
+    if (fps > 0 && lastFrameTimeNanos != 0) {
+        const uint64_t interval = std::max<uint64_t>(
+            1, 1000000000ULL / static_cast<uint64_t>(fps));
+        if (_sourceFps != fps || _nextSourceFrameNs == 0) {
+            _sourceFps = fps;
+            _nextSourceFrameNs = lastFrameTimeNanos + interval;
+        } else if (_nextSourceFrameNs <= lastFrameTimeNanos) {
+            const uint64_t missedIntervals =
+                (lastFrameTimeNanos - _nextSourceFrameNs) / interval + 1;
+            _nextSourceFrameNs += missedIntervals * interval;
+        }
+
+        const auto now = std::chrono::steady_clock::now();
+        const uint64_t nowNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            now.time_since_epoch()).count();
+        if (_nextSourceFrameNs > nowNanos) {
+            // Round down so the callback is eligible for the first vsync at
+            // the target deadline rather than accidentally slipping one.
+            delayMillis = static_cast<long>(
+                (_nextSourceFrameNs - nowNanos) / 1000000ULL);
+        }
+    } else {
+        _sourceFps = 0;
+        _nextSourceFrameNs = 0;
+    }
+
+    if (delayMillis > 0) {
+        AChoreographer_postFrameCallbackDelayed(
+            static_cast<AChoreographer*>(_choreographer),
+            frameCallback,
+            this,
+            delayMillis);
+    } else {
+        AChoreographer_postFrameCallback(
+            static_cast<AChoreographer*>(_choreographer),
+            frameCallback,
+            this);
+    }
 }
 
-void AChoreographerFrameScheduler::start(Callback callback) {
+void AChoreographerFrameScheduler::start(Callback callback, void* userData) {
     stop();
     _callback = callback;
-    _usePortMode = false;
+    _callbackUserData = userData;
     _running = true;
 
     _thread = new std::thread([this]() {
         // Prepare looper for this thread
         ALooper* looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
-        _looper = looper;
+        _looper.store(looper, std::memory_order_release);
 
         // Get choreographer instance for this thread
         AChoreographer* choreographer = AChoreographer_getInstance();
@@ -433,45 +434,7 @@ void AChoreographerFrameScheduler::start(Callback callback) {
         }
 
         _choreographer = nullptr;
-        _looper = nullptr;
-    });
-}
-
-void AChoreographerFrameScheduler::startWithPort(int64_t port) {
-    stop();
-    _dartPort = port;
-    _usePortMode = true;
-    _callback = nullptr;
-    _running = true;
-
-    _thread = new std::thread([this]() {
-        // Prepare looper for this thread
-        ALooper* looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
-        _looper = looper;
-
-        // Get choreographer instance for this thread
-        AChoreographer* choreographer = AChoreographer_getInstance();
-        if (!choreographer) {
-            Log("AChoreographerFrameScheduler: Failed to get AChoreographer instance");
-            _running = false;
-            return;
-        }
-        _choreographer = choreographer;
-
-        // Post first frame callback
-        scheduleNextFrame();
-
-        // Run the looper - this blocks and processes choreographer callbacks
-        while (_running) {
-            int result = ALooper_pollOnce(-1, nullptr, nullptr, nullptr);
-            if (result == ALOOPER_POLL_ERROR) {
-                Log("AChoreographerFrameScheduler: Looper error");
-                break;
-            }
-        }
-
-        _choreographer = nullptr;
-        _looper = nullptr;
+        _looper.store(nullptr, std::memory_order_release);
     });
 }
 
@@ -479,8 +442,8 @@ void AChoreographerFrameScheduler::stop() {
     _running = false;
 
     // Wake up the looper so it can exit
-    if (_looper) {
-        ALooper_wake(static_cast<ALooper*>(_looper));
+    if (void* looper = _looper.load(std::memory_order_acquire)) {
+        ALooper_wake(static_cast<ALooper*>(looper));
     }
 
     if (_thread) {
@@ -489,8 +452,10 @@ void AChoreographerFrameScheduler::stop() {
         _thread = nullptr;
     }
     resetState();
+    _sourceFps = 0;
+    _nextSourceFrameNs = 0;
     _choreographer = nullptr;
-    _looper = nullptr;
+    _looper.store(nullptr, std::memory_order_release);
 }
 
 #endif // __ANDROID__

@@ -10,9 +10,8 @@
 #include "rendering/RenderManager.hpp"
 #include "rendering/FrameScheduler.hpp"
 
-// Dart API for port-based frame scheduling (hot restart safe)
 #ifndef __EMSCRIPTEN__
-#include "dart/dart_api_dl.h" // needed for FrameScheduler_initDartApi
+#include "dart/dart_api_dl.h"
 #endif
 
 using namespace thermion;
@@ -21,27 +20,44 @@ extern "C"
 {
 
   static thermion::FrameScheduler* _frameScheduler = nullptr;
+  static FrameCallback _scheduledCallback = nullptr;
+  static int64_t _dartPort = 0;
 
-  // Native render loop state
   static TRenderManager* _nativeRenderManager = nullptr;
-  static RenderThread* _renderThread = nullptr;  // non-owning; owned by ThermionDartRenderThreadApi
+  static RenderThread* _renderThread = nullptr;
   static std::atomic<bool> _nativeRenderInProgress{false};
   static PostRenderCallback _postRenderCallback = nullptr;
   static void* _postRenderUserData = nullptr;
 
-  // Process-wide desired cap. It survives scheduler stop/start so lifecycle
-  // transitions do not silently discard the user's setting. 0 = unlimited.
   static std::atomic<int> _targetFpsLimit{0};
 
-  // Pacing state for the Linux Flutter-synced request-render path, which
-  // bypasses FrameScheduler::dispatchFrame. These fields are only touched on
-  // Flutter's UI thread.
   static int _requestAppliedFpsLimit = 0;
   static uint64_t _nextRequestRenderNs = 0;
 
   static void applyTargetFps(FrameScheduler* scheduler) {
     scheduler->setTargetFps(_targetFpsLimit.load(std::memory_order_relaxed));
   }
+
+  static void forwardScheduledFrame(
+      uint64_t frameTimeNanos, void* userData) {
+    auto callback = *static_cast<FrameCallback*>(userData);
+    if (callback) {
+      callback(frameTimeNanos);
+    }
+  }
+
+#ifndef __EMSCRIPTEN__
+  static void postScheduledFrameToDart(
+      uint64_t frameTimeNanos, void* userData) {
+    const int64_t port = *static_cast<int64_t*>(userData);
+    if (port == 0) return;
+
+    Dart_CObject message;
+    message.type = Dart_CObject_kInt64;
+    message.value.as_int64 = static_cast<int64_t>(frameTimeNanos);
+    Dart_PostCObject_DL(port, &message);
+  }
+#endif
 
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_start(FrameCallback callback, int targetFps) {
 #ifndef __EMSCRIPTEN__
@@ -52,7 +68,8 @@ extern "C"
     }
     _frameScheduler = thermion::FrameScheduler::create(targetFps);
     applyTargetFps(_frameScheduler);
-    _frameScheduler->start(callback);
+    _scheduledCallback = callback;
+    _frameScheduler->start(forwardScheduledFrame, &_scheduledCallback);
 #endif
   }
 
@@ -63,9 +80,9 @@ extern "C"
       delete _frameScheduler;
       _frameScheduler = nullptr;
     }
+    _scheduledCallback = nullptr;
+    _dartPort = 0;
 
-    // No scheduler callback can be admitted after stop() returns. Wait for
-    // the final accepted render before invalidating any pointer it captured.
     while (_nativeRenderInProgress.load(std::memory_order_acquire)) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -76,15 +93,10 @@ extern "C"
 #endif
   }
 
-  // Port-based frame scheduler (hot restart safe)
-  // When the Dart isolate dies (hot restart), Dart_PostCObject_DL silently
-  // drops messages instead of crashing.
-
 #ifndef __EMSCRIPTEN__
   static bool _dartApiInitialized = false;
 #endif
 
-  // Returns steady_clock microseconds — call from Dart to measure port transit time
   EMSCRIPTEN_KEEPALIVE int64_t FrameScheduler_steadyClockUs() {
     return std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -112,7 +124,8 @@ extern "C"
     }
     _frameScheduler = thermion::FrameScheduler::create(targetFps);
     applyTargetFps(_frameScheduler);
-    _frameScheduler->startWithPort(port);
+    _dartPort = port;
+    _frameScheduler->start(postScheduledFrameToDart, &_dartPort);
 #endif
   }
 
@@ -125,8 +138,6 @@ extern "C"
     }
 #endif
   }
-
-  // === Native render loop (bypasses Dart event loop) ===
 
   EMSCRIPTEN_KEEPALIVE void FrameScheduler_setRenderThread(void* renderThread) {
 #ifndef __EMSCRIPTEN__
@@ -143,7 +154,6 @@ extern "C"
     _postRenderUserData = userData;
   }
 
-  // Frame callback for native render loop — runs on scheduler thread
   static bool _nativeFrameCallback(uint64_t frameTimeNanos) {
     auto* renderManager = _nativeRenderManager;
     auto* renderThread = _renderThread;
@@ -151,7 +161,7 @@ extern "C"
     auto* postRenderUserData = _postRenderUserData;
     if (!renderManager || !renderThread) return false;
     if (_nativeRenderInProgress.exchange(true, std::memory_order_acq_rel)) {
-      return false; // skip if still rendering
+      return false;
     }
 
     renderThread->addDetachedTask([
@@ -171,23 +181,17 @@ extern "C"
     return true;
   }
 
-  // Adapter for FrameScheduler::Callback, whose return type is void.
-  static void _nativeScheduledFrameCallback(uint64_t frameTimeNanos) {
+  static void _nativeScheduledFrameCallback(
+      uint64_t frameTimeNanos, void*) {
     _nativeFrameCallback(frameTimeNanos);
   }
 
-  // Request a single render frame (called from Dart's frame callback).
-  // Non-blocking: queues the render to the render thread and returns.
-  // Throttled here (not in _nativeFrameCallback) so the Linux Flutter-synced
-  // path — which bypasses the FrameScheduler/dispatchFrame throttle — still
-  // honors the target fps. display-link/timer/DXGI paths pace themselves in
-  // dispatchFrame and don't go through requestRender.
   EMSCRIPTEN_KEEPALIVE bool FrameScheduler_requestRender(uint64_t frameTimeNanos) {
     int fps = _targetFpsLimit.load(std::memory_order_relaxed);
     if (fps > 0) {
       const uint64_t interval = std::max<uint64_t>(
           1, 1000000000ULL / static_cast<uint64_t>(fps));
-      const uint64_t tolerance = 1000000ULL; // 1 ms
+      const uint64_t tolerance = 1000000ULL;
 
       if (_requestAppliedFpsLimit != fps || _nextRequestRenderNs == 0) {
         _requestAppliedFpsLimit = fps;
