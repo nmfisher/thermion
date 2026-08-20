@@ -802,6 +802,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   @override
   Future render() async {
+    await runRequestFrameHooks();
+
+    await renderManager.render();
+  }
+
+  /// Runs every registered request-frame hook once, in registration order.
+  ///
+  /// [render] calls this before dispatching the render. The Flutter-synced
+  /// Linux render loop calls it directly, once per native-admitted frame: its
+  /// renders are dispatched natively, so Dart only contributes the hooks
+  /// (per-frame camera controllers, procedural updates, and similar).
+  ///
+  /// Registering or unregistering a hook waits for the running pass to
+  /// finish (see [registerRequestFrameHook]).
+  Future<void> runRequestFrameHooks() async {
     _processingRenderHooks = true;
     try {
       for (final hook in _hooks) {
@@ -811,8 +826,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       _logger.severe(err);
     }
     _processingRenderHooks = false;
-
-    await renderManager.render();
   }
 
   int _targetFramerate = 0;

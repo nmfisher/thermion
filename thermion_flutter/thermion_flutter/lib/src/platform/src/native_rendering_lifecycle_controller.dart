@@ -42,15 +42,21 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
 
   /// Starts the appropriate frame scheduling mode for the current platform.
   Future<void> start() async {
-    FrameScheduler.instance.setOnFrame(_renderFrame);
-
     // Android must keep render admission on the Dart callback/port path.
     // SurfaceProducer consumes ImageReader frames from Android's main looper;
     // a producer loop decoupled from Flutter can fill that pipeline and block
     // acquireLatestImage() on the main thread for seconds.
     if (Platform.isLinux) {
+      // On Linux the native render loop owns rendering and post-render
+      // texture marking, so the Dart per-frame hook must NOT go through
+      // [_renderFrame] — that would dispatch a second, blocking Dart-side
+      // render on top of the native one. It runs only the request-frame
+      // hooks (per-frame camera controllers, procedural updates, and
+      // similar), which the native loop cannot run on Dart's behalf.
+      FrameScheduler.instance.setOnFrame(_runRequestFrameHooks);
       await _startFlutterSynced();
     } else {
+      FrameScheduler.instance.setOnFrame(_renderFrame);
       await FrameScheduler.instance.start();
     }
 
@@ -142,6 +148,21 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
 
     await app.render();
     await _onFrameRendered();
+  }
+
+  /// Per-frame Dart work for the Flutter-synced (Linux) render loop.
+  ///
+  /// Unlike [_renderFrame], this never dispatches a render or marks textures:
+  /// both are owned by the native loop (the post-render callback configured
+  /// in [_startFlutterSynced] marks textures). Only the registered
+  /// request-frame hooks run here — without this, per-frame Dart updates
+  /// registered via [FilamentApp.registerRequestFrameHook] would never fire
+  /// on Linux, because the native loop never calls [FilamentApp.render].
+  Future<void> _runRequestFrameHooks() async {
+    final app = FilamentApp.instance;
+    if (app is FFIFilamentApp) {
+      await app.runRequestFrameHooks();
+    }
   }
 
   bool _suspendForLifecycle() {
