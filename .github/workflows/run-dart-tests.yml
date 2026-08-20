@@ -92,6 +92,7 @@ jobs:
             test/entity_tests.dart \
             test/geometry_tests.dart \
             test/view_tests.dart \
+            test/pcss_controls_render_test.dart \
             test/postprocessing_tests.dart \
             test/scene_tests.dart \
             test/picking_tests.dart \
@@ -123,6 +124,7 @@ jobs:
             test/entity_tests.dart `
             test/geometry_tests.dart `
             test/view_tests.dart `
+            test/pcss_controls_render_test.dart `
             test/postprocessing_tests.dart `
             test/scene_tests.dart `
             test/picking_tests.dart `

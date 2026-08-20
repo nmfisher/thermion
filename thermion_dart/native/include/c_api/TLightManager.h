@@ -38,6 +38,10 @@ extern "C"
 		bool vsmElvsm;
 		float vsmBlurWidth;
 		float shadowBulbRadius;
+		float penumbraScale;
+		float penumbraRatioScale;
+		float maxPenumbraRatio;
+		float maxSearchRadius;
 		float transformX;
 		float transformY;
 		float transformZ;

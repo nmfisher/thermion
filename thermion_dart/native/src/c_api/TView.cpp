@@ -64,6 +64,12 @@ namespace thermion
             view->setFrustumCullingEnabled(enabled);
         }
 
+        EMSCRIPTEN_KEEPALIVE int32_t View_getVisibleRenderableCount(TView *tView)
+        {
+            auto view = reinterpret_cast<View *>(tView);
+            return view->getVisibleRenderableCount();
+        }
+
         EMSCRIPTEN_KEEPALIVE void View_setPostProcessing(TView *tView, bool enabled)
         {
             auto view = reinterpret_cast<View *>(tView);
@@ -95,6 +101,8 @@ namespace thermion
             SoftShadowOptions opts;
             opts.penumbraRatioScale = options.penumbraRatioScale;
             opts.penumbraScale = options.penumbraScale;
+            opts.maxPenumbraRatio = options.maxPenumbraRatio;
+            opts.maxSearchRadius = options.maxSearchRadius;
             view->setSoftShadowOptions(opts);
         }
 
@@ -105,6 +113,8 @@ namespace thermion
             TSoftShadowOptions tOptions;
             tOptions.penumbraRatioScale = options.penumbraRatioScale;
             tOptions.penumbraScale = options.penumbraScale;
+            tOptions.maxPenumbraRatio = options.maxPenumbraRatio;
+            tOptions.maxSearchRadius = options.maxSearchRadius;
             return tOptions;
         }
 

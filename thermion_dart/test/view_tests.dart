@@ -896,9 +896,16 @@ void main() async {
       final defaultOptions = result.viewer.view.getSoftShadowOptions();
       expect(defaultOptions.penumbraScale, closeTo(1.0, 0.001));
       expect(defaultOptions.penumbraRatioScale, closeTo(1.0, 0.001));
+      expect(defaultOptions.maxPenumbraRatio, closeTo(10.0, 0.001));
+      expect(defaultOptions.maxSearchRadius, closeTo(1.0, 0.001));
 
       // Test custom soft shadow options
-      const customOptions = SoftShadowOptions(penumbraScale: 2.5, penumbraRatioScale: 3.0);
+      const customOptions = SoftShadowOptions(
+        penumbraScale: 2.5,
+        penumbraRatioScale: 3.0,
+        maxPenumbraRatio: 4.0,
+        maxSearchRadius: 0.25,
+      );
 
       await result.viewer.view.setSoftShadowOptions(customOptions);
 
@@ -906,6 +913,8 @@ void main() async {
       final retrievedOptions = result.viewer.view.getSoftShadowOptions();
       expect(retrievedOptions.penumbraScale, closeTo(2.5, 0.001));
       expect(retrievedOptions.penumbraRatioScale, closeTo(3.0, 0.001));
+      expect(retrievedOptions.maxPenumbraRatio, closeTo(4.0, 0.001));
+      expect(retrievedOptions.maxSearchRadius, closeTo(0.25, 0.001));
 
       // Test with DPCF shadow type (supports soft shadows)
       await result.viewer.view.setShadowType(ShadowType.DPCF);
@@ -940,6 +949,13 @@ void main() async {
       final precisionOptions = result.viewer.view.getSoftShadowOptions();
       expect(precisionOptions.penumbraScale, closeTo(0.1, 0.001));
       expect(precisionOptions.penumbraRatioScale, closeTo(1.33, 0.001));
+    });
+  });
+
+  test('visible renderable diagnostics', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).addCube().addPlane().execute((result) async {
+      await testHelper.capture(result.viewer.view, null);
+      expect(result.viewer.view.getVisibleRenderableCount(), greaterThanOrEqualTo(2));
     });
   });
 

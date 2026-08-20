@@ -338,6 +338,10 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setShadowOptions(TLightManager *tLightMan
     shadowOpts.vsm.elvsm = options.vsmElvsm;
     shadowOpts.vsm.blurWidth = options.vsmBlurWidth;
     shadowOpts.shadowBulbRadius = options.shadowBulbRadius;
+    shadowOpts.penumbraScale = options.penumbraScale;
+    shadowOpts.penumbraRatioScale = options.penumbraRatioScale;
+    shadowOpts.maxPenumbraRatio = options.maxPenumbraRatio;
+    shadowOpts.maxSearchRadius = options.maxSearchRadius;
     shadowOpts.transform = filament::math::quatf{
         options.transformW,
         options.transformX,
@@ -378,6 +382,10 @@ EMSCRIPTEN_KEEPALIVE TShadowOptions LightManager_getShadowOptions(TLightManager 
     outOptions.vsmElvsm = shadowOpts.vsm.elvsm;
     outOptions.vsmBlurWidth = shadowOpts.vsm.blurWidth;
     outOptions.shadowBulbRadius = shadowOpts.shadowBulbRadius;
+    outOptions.penumbraScale = shadowOpts.penumbraScale;
+    outOptions.penumbraRatioScale = shadowOpts.penumbraRatioScale;
+    outOptions.maxPenumbraRatio = shadowOpts.maxPenumbraRatio;
+    outOptions.maxSearchRadius = shadowOpts.maxSearchRadius;
     outOptions.transformW = shadowOpts.transform.w;
     outOptions.transformX = shadowOpts.transform.x;
     outOptions.transformY = shadowOpts.transform.y;
