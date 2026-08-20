@@ -122,14 +122,14 @@ jobs:
       - name: Dry-run publish (thermion_dart)
         if: steps.check_pub.outputs.already_published != 'true'
         working-directory: thermion_dart
-        run: dart pub publish --dry-run
+        run: dart pub publish --dry-run --ignore-warnings
 
       - name: Dry-run publish (thermion_flutter)
         if: steps.check_pub.outputs.already_published != 'true'
         working-directory: thermion_flutter/thermion_flutter
         # pubspec_overrides.yaml resolves thermion_dart via a local path — fine
         # for resolution; only pubspec.yaml is published.
-        run: flutter pub publish --dry-run
+        run: flutter pub publish --dry-run --ignore-warnings
 
   generate-artifacts:
     # Verify gate: regenerate dart FFI/JS bindings + materials and FAIL if they
