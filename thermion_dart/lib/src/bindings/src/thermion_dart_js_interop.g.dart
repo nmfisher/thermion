@@ -9271,11 +9271,6 @@ final class TAmbientOcclusionOptions extends Struct {
   }
 }
 
-sealed class TAmbientOcclusionType {
-  static const SAO = 0;
-  static const GTAO = 1;
-}
-
 /// Screen Space Cone Tracing (SSCT) options
 /// Ambient shadows from dominant light
 
@@ -9509,6 +9504,11 @@ final class TGtao extends Struct {
   static Pointer<TGtao> stackAlloc() {
     return Pointer<TGtao>(NativeLibrary.instance.stackAlloc<TGtao>(12));
   }
+}
+
+sealed class TAmbientOcclusionType {
+  static const SAO = 0;
+  static const GTAO = 1;
 }
 
 /// Copied from FogOptions in View.h
