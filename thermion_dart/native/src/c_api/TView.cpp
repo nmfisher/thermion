@@ -581,6 +581,7 @@ namespace thermion
             auto view = reinterpret_cast<View *>(tView);
             AmbientOcclusionOptions aoOptions;
 
+            aoOptions.aoType = static_cast<AmbientOcclusionOptions::AmbientOcclusionType>(options.aoType);
             aoOptions.radius = options.radius;
             aoOptions.power = options.power;
             aoOptions.bias = options.bias;
@@ -606,6 +607,14 @@ namespace thermion
             aoOptions.ssct.rayCount = options.ssct.rayCount;
             aoOptions.ssct.enabled = options.ssct.enabled;
 
+            // Copy GTAO options
+            aoOptions.gtao.sampleSliceCount = options.gtao.sampleSliceCount;
+            aoOptions.gtao.sampleStepsPerSlice = options.gtao.sampleStepsPerSlice;
+            aoOptions.gtao.thicknessHeuristic = options.gtao.thicknessHeuristic;
+            aoOptions.gtao.useVisibilityBitmasks = options.gtao.useVisibilityBitmasks;
+            aoOptions.gtao.constThickness = options.gtao.constThickness;
+            aoOptions.gtao.linearThickness = options.gtao.linearThickness;
+
             view->setAmbientOcclusionOptions(aoOptions);
         }
 
@@ -615,6 +624,7 @@ namespace thermion
             auto options = view->getAmbientOcclusionOptions();
 
             TAmbientOcclusionOptions tOptions;
+            tOptions.aoType = static_cast<TAmbientOcclusionType>(options.aoType);
             tOptions.radius = options.radius;
             tOptions.power = options.power;
             tOptions.bias = options.bias;
@@ -641,6 +651,14 @@ namespace thermion
             tOptions.ssct.sampleCount = options.ssct.sampleCount;
             tOptions.ssct.rayCount = options.ssct.rayCount;
             tOptions.ssct.enabled = options.ssct.enabled;
+
+            // Copy GTAO options
+            tOptions.gtao.sampleSliceCount = options.gtao.sampleSliceCount;
+            tOptions.gtao.sampleStepsPerSlice = options.gtao.sampleStepsPerSlice;
+            tOptions.gtao.thicknessHeuristic = options.gtao.thicknessHeuristic;
+            tOptions.gtao.useVisibilityBitmasks = options.gtao.useVisibilityBitmasks;
+            tOptions.gtao.constThickness = options.gtao.constThickness;
+            tOptions.gtao.linearThickness = options.gtao.linearThickness;
 
             return tOptions;
         }

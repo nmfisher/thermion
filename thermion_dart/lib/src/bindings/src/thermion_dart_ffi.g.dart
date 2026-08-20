@@ -5034,7 +5034,39 @@ final class TSsct extends ffi.Struct {
   external bool enabled;
 }
 
-/// Options for screen space Ambient Occlusion (SSAO) and Screen Space Cone Tracing (SSCT)
+sealed class TAmbientOcclusionType {
+  static const SAO = 0;
+  static const GTAO = 1;
+}
+
+/// Ground Truth-based Ambient Occlusion (GTAO) options
+final class TGtao extends ffi.Struct {
+  /// !< number of slices; higher values reduce noise
+  @ffi.Uint8()
+  external int sampleSliceCount;
+
+  /// !< integration steps per slice; higher values reduce bias
+  @ffi.Uint8()
+  external int sampleStepsPerSlice;
+
+  /// !< ignored when visibility bitmasks are enabled
+  @ffi.Float()
+  external double thicknessHeuristic;
+
+  /// !< enables visibility bitmasks mode
+  @ffi.Bool()
+  external bool useVisibilityBitmasks;
+
+  /// !< world-space thickness used by visibility bitmasks
+  @ffi.Float()
+  external double constThickness;
+
+  /// !< increases thickness with distance
+  @ffi.Bool()
+  external bool linearThickness;
+}
+
+/// Options for ambient occlusion, Screen Space Cone Tracing (SSCT), and GTAO
 final class TAmbientOcclusionOptions extends ffi.Struct {
   /// !< Ambient Occlusion radius in meters, between 0 and ~10
   @ffi.Float()
@@ -5085,6 +5117,12 @@ final class TAmbientOcclusionOptions extends ffi.Struct {
   external double minHorizonAngleRad;
 
   external TSsct ssct;
+
+  external TGtao gtao;
+
+  /// !< ambient occlusion algorithm
+  @ffi.UnsignedInt()
+  external int aoType;
 }
 
 typedef PickCallbackFunction =

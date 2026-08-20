@@ -341,6 +341,7 @@ class FFIView extends View<Pointer<TView>> {
   Future setAmbientOcclusionOptions(AmbientOcclusionOptions options) async {
     final tAmbientOcclusionOptions = StructAllocator.create<TAmbientOcclusionOptions>();
 
+    tAmbientOcclusionOptions.aoType = options.aoType.index;
     tAmbientOcclusionOptions.radius = options.radius;
     tAmbientOcclusionOptions.power = options.power;
     tAmbientOcclusionOptions.bias = options.bias;
@@ -368,6 +369,14 @@ class FFIView extends View<Pointer<TView>> {
     tAmbientOcclusionOptions.ssct.rayCount = options.ssct.rayCount;
     tAmbientOcclusionOptions.ssct.enabled = options.ssct.enabled;
 
+    // Copy GTAO options
+    tAmbientOcclusionOptions.gtao.sampleSliceCount = options.gtao.sampleSliceCount;
+    tAmbientOcclusionOptions.gtao.sampleStepsPerSlice = options.gtao.sampleStepsPerSlice;
+    tAmbientOcclusionOptions.gtao.thicknessHeuristic = options.gtao.thicknessHeuristic;
+    tAmbientOcclusionOptions.gtao.useVisibilityBitmasks = options.gtao.useVisibilityBitmasks;
+    tAmbientOcclusionOptions.gtao.constThickness = options.gtao.constThickness;
+    tAmbientOcclusionOptions.gtao.linearThickness = options.gtao.linearThickness;
+
     await withVoidCallback(
       (requestId, cb) => View_setAmbientOcclusionOptionsRenderThread(view, tAmbientOcclusionOptions, requestId, cb),
     );
@@ -378,6 +387,7 @@ class FFIView extends View<Pointer<TView>> {
     final tOptions = View_getAmbientOcclusionOptions(view);
 
     return AmbientOcclusionOptions(
+      aoType: AmbientOcclusionType.values[tOptions.aoType],
       radius: tOptions.radius,
       power: tOptions.power,
       bias: tOptions.bias,
@@ -401,6 +411,14 @@ class FFIView extends View<Pointer<TView>> {
         sampleCount: tOptions.ssct.sampleCount,
         rayCount: tOptions.ssct.rayCount,
         enabled: tOptions.ssct.enabled,
+      ),
+      gtao: GtaoOptions(
+        sampleSliceCount: tOptions.gtao.sampleSliceCount,
+        sampleStepsPerSlice: tOptions.gtao.sampleStepsPerSlice,
+        thicknessHeuristic: tOptions.gtao.thicknessHeuristic,
+        useVisibilityBitmasks: tOptions.gtao.useVisibilityBitmasks,
+        constThickness: tOptions.gtao.constThickness,
+        linearThickness: tOptions.gtao.linearThickness,
       ),
     );
   }
