@@ -43,6 +43,9 @@ struct _ThermionTextureGL {
     // EGLImage bridge path: texture bridged from Filament's context to
     // Flutter's render context via EGLImage.
     gboolean use_egl_image;
+    // The isolated LinuxOpenGLContext owns the source texture and EGLImage.
+    // Flutter still owns flutter_gl_texture_id.
+    gboolean producer_owned_by_context;
     // Flutter-side GL texture (created on Flutter's context, backed by egl_image)
     GLuint flutter_gl_texture_id;
     // Direct sharing path: same EGL share group as Flutter, no EGLImage needed

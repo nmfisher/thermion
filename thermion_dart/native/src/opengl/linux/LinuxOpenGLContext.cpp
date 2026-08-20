@@ -27,6 +27,11 @@
 
 namespace thermion::opengl::linux_platform {
 
+enum class TextureTransport {
+    DMA_BUF,
+    EGL_IMAGE,
+};
+
 class ScopedEglThreadState {
 public:
     ScopedEglThreadState()
@@ -116,29 +121,9 @@ public:
     }
 
     explicit Impl(void* borrowedDisplay) {
-        std::cerr << "[ThermionGL:Context] Initializing EGL/GBM..." << std::endl;
+        std::cerr << "[ThermionGL:Context] Initializing EGL..." << std::endl;
 
-        // Step 1: Open DRM render node
-        _drmFd = open("/dev/dri/renderD128", O_RDWR);
-        if (_drmFd < 0) {
-            _lastError = "Failed to open /dev/dri/renderD128";
-            LOG_ERROR("Failed to open /dev/dri/renderD128");
-            return;
-        }
-        std::cerr << "[ThermionGL:Context] DRM fd=" << _drmFd << std::endl;
-
-        // Step 2: Create GBM device
-        _gbmDevice = gbm_create_device(_drmFd);
-        if (!_gbmDevice) {
-            _lastError = "Failed to create GBM device";
-            LOG_ERROR("Failed to create GBM device");
-            close(_drmFd);
-            _drmFd = -1;
-            return;
-        }
-        std::cerr << "[ThermionGL:Context] GBM device created OK" << std::endl;
-
-        // Step 3: Reuse Flutter's initialized display when available. NVIDIA's
+        // Step 1: Reuse Flutter's initialized display when available. NVIDIA's
         // EGL implementation can corrupt the concurrently rendering Flutter
         // context if another platform display is initialized in-process.
         _display = static_cast<EGLDisplay>(borrowedDisplay);
@@ -162,6 +147,9 @@ public:
                       << std::endl;
         } else {
             // Non-Flutter fallback: obtain a display tied to the GBM device.
+            if (!EnsureGbmDevice()) {
+                return;
+            }
             PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT =
                 (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress(
                     "eglGetPlatformDisplayEXT");
@@ -198,7 +186,7 @@ public:
         // EGL_BAD_ACCESS when a second client API is activated there.
         StartEglThread();
         RunOnEglThread([this]() {
-            // Step 4: Choose EGL config
+            // Step 2: Choose EGL config
             // Must bind EGL_OPENGL_API (not ES) to match Filament's
             // PlatformEGLHeadless which uses full OpenGL 4.1 on Linux desktop.
             ScopedEglThreadState eglThreadState;
@@ -228,7 +216,7 @@ public:
                 return;
             }
 
-            // Step 5: Create EGL context (OpenGL 4.1 to match Filament's
+            // Step 3: Create EGL context (OpenGL 4.1 to match Filament's
             // PlatformEGLHeadless).
             EGLint contextAttribs[] = {
                 EGL_CONTEXT_MAJOR_VERSION, 4,
@@ -301,20 +289,139 @@ public:
 
     bool IsValid() const {
         return _display != EGL_NO_DISPLAY &&
-               _context != EGL_NO_CONTEXT &&
-               _gbmDevice != nullptr;
+               _context != EGL_NO_CONTEXT;
     }
 
     const char* GetLastError() const {
         return _lastError.c_str();
     }
 
+    bool ConfigureTextureTransport(
+        void* consumerContext, uint32_t consumerApi) {
+        if (!IsValid() || consumerContext == nullptr) {
+            _lastError =
+                "Cannot configure texture transport without valid producer "
+                "and consumer EGL contexts";
+            return false;
+        }
+
+        // First verify that the desktop producer can export a regular
+        // GL_TEXTURE_2D as an EGLImage.
+        std::unique_ptr<LinuxOpenGLTexture> probeTexture;
+        RunOnEglThread([&]() {
+            probeTexture = LinuxOpenGLTexture::createEglImage(
+                _display, _context, _producerSurface, 1, 1);
+        });
+        if (!probeTexture) {
+            std::cerr
+                << "[ThermionGL:Context] Same-display EGLImage export probe "
+                   "failed; using DMA-BUF"
+                << std::endl;
+            if (!EnsureGbmDevice()) {
+                return false;
+            }
+            _textureTransport = TextureTransport::DMA_BUF;
+            return true;
+        }
+
+        // Import through the utility context that shares with Flutter's real
+        // raster context. This runs only after bootstrap populate() has
+        // returned, so it never changes EGL state inside Flutter's callback.
+        // Keep the probe on the isolated EGL worker: NVIDIA can return
+        // EGL_BAD_ACCESS when a second client API is made current on Flutter's
+        // GTK platform thread.
+        bool imported = false;
+        RunOnEglThread([&]() {
+            auto imageTargetTexture =
+                reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(
+                    eglGetProcAddress("glEGLImageTargetTexture2DOES"));
+            if (imageTargetTexture) {
+                ScopedEglThreadState eglThreadState;
+                if (!eglBindAPI(static_cast<EGLenum>(consumerApi))) {
+                    std::cerr
+                        << "[ThermionGL:Context] EGLImage import probe could "
+                           "not bind Flutter's EGL API: 0x"
+                        << std::hex << eglGetError() << std::dec << std::endl;
+                } else if (!eglMakeCurrent(
+                               _display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                               static_cast<EGLContext>(consumerContext))) {
+                    std::cerr
+                        << "[ThermionGL:Context] EGLImage import probe could "
+                           "not make the Flutter utility context current: 0x"
+                        << std::hex << eglGetError() << std::dec << std::endl;
+                } else {
+                    while (glGetError() != GL_NO_ERROR) {}
+                    GLuint consumerTexture = 0;
+                    glGenTextures(1, &consumerTexture);
+                    glBindTexture(GL_TEXTURE_2D, consumerTexture);
+                    glTexParameteri(
+                        GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(
+                        GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glTexParameteri(
+                        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                    glTexParameteri(
+                        GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                    imageTargetTexture(
+                        GL_TEXTURE_2D, probeTexture->GetEGLImage());
+                    GLenum importError = glGetError();
+                    imported =
+                        consumerTexture != 0 && importError == GL_NO_ERROR;
+                    if (!imported) {
+                        std::cerr
+                            << "[ThermionGL:Context] EGLImage import probe "
+                               "failed, GL error: 0x"
+                            << std::hex << importError << std::dec
+                            << std::endl;
+                    }
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                    if (consumerTexture != 0) {
+                        glDeleteTextures(1, &consumerTexture);
+                    }
+                }
+            } else {
+                std::cerr
+                    << "[ThermionGL:Context] "
+                       "glEGLImageTargetTexture2DOES is unavailable"
+                    << std::endl;
+            }
+        });
+
+        // The source texture and its EGLImage belong to the producer context.
+        RunOnEglThread([&]() {
+            probeTexture.reset();
+        });
+
+        if (!imported && !EnsureGbmDevice()) {
+            return false;
+        }
+        _textureTransport = imported ? TextureTransport::EGL_IMAGE
+                                     : TextureTransport::DMA_BUF;
+        std::cerr
+            << "[ThermionGL:Context] Selected "
+            << (imported ? "same-display EGLImage" : "GBM/DMA-BUF")
+            << " texture transport" << std::endl;
+        return true;
+    }
+
+    bool UsesEglImageTextureTransport() const {
+        return _textureTransport == TextureTransport::EGL_IMAGE;
+    }
+
     int64_t CreateRenderingSurface(uint32_t width, uint32_t height) {
         std::unique_ptr<LinuxOpenGLTexture> texture;
         RunOnEglThread([&]() {
-            texture = LinuxOpenGLTexture::create(
-                _display, _context, _producerSurface, _gbmDevice, width,
-                height);
+            if (_textureTransport == TextureTransport::EGL_IMAGE) {
+                texture = LinuxOpenGLTexture::createEglImage(
+                    _display, _context, _producerSurface, width, height);
+            } else {
+                if (!EnsureGbmDevice()) {
+                    return;
+                }
+                texture = LinuxOpenGLTexture::createDmaBuf(
+                    _display, _context, _producerSurface, _gbmDevice, width,
+                    height);
+            }
         });
         if (!texture) {
             LOG_ERROR("Failed to create OpenGL rendering surface");
@@ -340,6 +447,14 @@ public:
     uint32_t GetGLTextureId(int64_t surfaceId) {
         auto it = _surfaces.find(surfaceId);
         return it != _surfaces.end() ? it->second->GetGLTextureId() : 0;
+    }
+
+    void* GetEGLImage(int64_t surfaceId) {
+        auto it = _surfaces.find(surfaceId);
+        if (it == _surfaces.end()) {
+            return nullptr;
+        }
+        return static_cast<void*>(it->second->GetEGLImage());
     }
 
     SurfaceExportInfo GetSurfaceExportInfo(int64_t surfaceId) {
@@ -371,6 +486,34 @@ public:
     }
 
 private:
+    bool EnsureGbmDevice() {
+        if (_gbmDevice) {
+            return true;
+        }
+        if (_drmFd < 0) {
+            _drmFd = open("/dev/dri/renderD128", O_RDWR);
+            if (_drmFd < 0) {
+                _lastError = "Failed to open /dev/dri/renderD128 for DMA-BUF";
+                LOG_ERROR("Failed to open /dev/dri/renderD128");
+                return false;
+            }
+            std::cerr << "[ThermionGL:Context] DMA-BUF DRM fd=" << _drmFd
+                      << std::endl;
+        }
+
+        _gbmDevice = gbm_create_device(_drmFd);
+        if (!_gbmDevice) {
+            _lastError = "Failed to create GBM device for DMA-BUF";
+            LOG_ERROR("Failed to create GBM device");
+            close(_drmFd);
+            _drmFd = -1;
+            return false;
+        }
+        std::cerr << "[ThermionGL:Context] DMA-BUF GBM device created"
+                  << std::endl;
+        return true;
+    }
+
     void StartEglThread() {
         _eglThread = std::thread([this]() {
             while (true) {
@@ -433,6 +576,7 @@ private:
     std::condition_variable _taskReady;
     std::deque<std::function<void()>> _tasks;
     bool _stopEglThread = false;
+    TextureTransport _textureTransport = TextureTransport::DMA_BUF;
 
     std::unordered_map<int64_t, std::unique_ptr<LinuxOpenGLTexture>> _surfaces;
     int64_t _nextSurfaceId = 1;
@@ -453,6 +597,15 @@ const char* LinuxOpenGLContext::GetLastError() const {
     return pImpl->GetLastError();
 }
 
+bool LinuxOpenGLContext::ConfigureTextureTransport(
+    void* consumerContext, uint32_t consumerApi) {
+    return pImpl->ConfigureTextureTransport(consumerContext, consumerApi);
+}
+
+bool LinuxOpenGLContext::UsesEglImageTextureTransport() const {
+    return pImpl->UsesEglImageTextureTransport();
+}
+
 int64_t LinuxOpenGLContext::CreateRenderingSurface(uint32_t width, uint32_t height) {
     return pImpl->CreateRenderingSurface(width, height);
 }
@@ -463,6 +616,10 @@ void LinuxOpenGLContext::DestroyRenderingSurface(int64_t surfaceId) {
 
 uint32_t LinuxOpenGLContext::GetGLTextureId(int64_t surfaceId) {
     return pImpl->GetGLTextureId(surfaceId);
+}
+
+void* LinuxOpenGLContext::GetEGLImage(int64_t surfaceId) {
+    return pImpl->GetEGLImage(surfaceId);
 }
 
 SurfaceExportInfo LinuxOpenGLContext::GetSurfaceExportInfo(int64_t surfaceId) {

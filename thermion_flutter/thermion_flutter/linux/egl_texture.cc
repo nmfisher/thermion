@@ -177,24 +177,33 @@ thermion_texture_populate(FlTextureGL *texture,
             }
 
             // Create a new texture on Flutter's context and bind the EGLImage
+            while (glGetError() != GL_NO_ERROR) {}
             glGenTextures(1, &self->flutter_gl_texture_id);
             glBindTexture(GL_TEXTURE_2D, self->flutter_gl_texture_id);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-            while (glGetError() != GL_NO_ERROR) {}
-
             s_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, self->egl_image);
 
             GLenum glErr = glGetError();
-            if (glErr != GL_NO_ERROR) {
+            glBindTexture(GL_TEXTURE_2D, 0);
+            if (self->flutter_gl_texture_id == 0 ||
+                glErr != GL_NO_ERROR) {
                 std::cerr << "[ThermionEGL] GL error after EGLImage import: 0x"
                           << std::hex << glErr << std::dec << std::endl;
+                if (self->flutter_gl_texture_id != 0) {
+                    glDeleteTextures(1, &self->flutter_gl_texture_id);
+                    self->flutter_gl_texture_id = 0;
+                }
+                g_set_error(
+                    error, g_quark_from_static_string("thermion"), 3,
+                    "Failed to import EGLImage into Flutter's context "
+                    "(GL error 0x%x)",
+                    glErr);
+                return FALSE;
             }
 
-            glBindTexture(GL_TEXTURE_2D, 0);
             self->initialized = TRUE;
         }
 
@@ -350,6 +359,7 @@ void thermion_texture_gl_init(ThermionTextureGL* self) {
     self->initialized = FALSE;
     self->surface_id = -1;
     self->use_egl_image = FALSE;
+    self->producer_owned_by_context = FALSE;
     self->use_direct_sharing = FALSE;
     self->is_context_bootstrap = FALSE;
     self->pending_ready_call = nullptr;

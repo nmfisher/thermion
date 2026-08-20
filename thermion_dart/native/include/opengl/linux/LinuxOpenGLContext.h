@@ -8,8 +8,8 @@
 namespace thermion::opengl::linux_platform {
 
 /**
- * Manages an EGL display/context, GBM device, and rendering surfaces for the
- * OpenGL backend on Linux. Analogous to LinuxVulkanContext.
+ * Manages an EGL display/context and rendering surfaces for the OpenGL backend
+ * on Linux. Analogous to LinuxVulkanContext.
  *
  * The EGL context created here is returned via GetSharedContext() so Filament's
  * PlatformEGL can create its own context in the same share group — GL texture
@@ -30,10 +30,19 @@ public:
     bool IsValid() const;
     const char* GetLastError() const;
 
+    // Select the preferred cross-context texture transport. A disposable 1x1
+    // desktop-GL texture is imported through consumerContext. If that succeeds,
+    // subsequent surfaces use direct same-display EGLImages; otherwise they
+    // retain the GBM/DMA-BUF compatibility transport.
+    bool ConfigureTextureTransport(
+        void* consumerContext, uint32_t consumerApi);
+    bool UsesEglImageTextureTransport() const;
+
     int64_t CreateRenderingSurface(uint32_t width, uint32_t height);
     void DestroyRenderingSurface(int64_t surfaceId);
 
     uint32_t GetGLTextureId(int64_t surfaceId);
+    void* GetEGLImage(int64_t surfaceId);
     SurfaceExportInfo GetSurfaceExportInfo(int64_t surfaceId);
 
     void* GetSharedContext();   // Returns our EGLContext for Filament sharing

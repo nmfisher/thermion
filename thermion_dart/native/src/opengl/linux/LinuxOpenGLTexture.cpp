@@ -77,6 +77,12 @@ private:
 };
 
 LinuxOpenGLTexture::~LinuxOpenGLTexture() {
+    if (_eglImage != EGL_NO_IMAGE && s_eglDestroyImageKHR &&
+        _display != EGL_NO_DISPLAY) {
+        s_eglDestroyImageKHR(_display, _eglImage);
+        _eglImage = EGL_NO_IMAGE;
+    }
+
     if (_glTextureId != 0) {
         ScopedEglContext context(_display, _context, _surface);
         if (context.current()) {
@@ -91,11 +97,6 @@ LinuxOpenGLTexture::~LinuxOpenGLTexture() {
         _glTextureId = 0;
     }
 
-    if (_eglImage != EGL_NO_IMAGE && s_eglDestroyImageKHR && _display != EGL_NO_DISPLAY) {
-        s_eglDestroyImageKHR(_display, _eglImage);
-        _eglImage = EGL_NO_IMAGE;
-    }
-
     if (_dmaBufFd >= 0) {
         close(_dmaBufFd);
         _dmaBufFd = -1;
@@ -107,7 +108,92 @@ LinuxOpenGLTexture::~LinuxOpenGLTexture() {
     }
 }
 
-std::unique_ptr<LinuxOpenGLTexture> LinuxOpenGLTexture::create(
+std::unique_ptr<LinuxOpenGLTexture> LinuxOpenGLTexture::createEglImage(
+    EGLDisplay display, EGLContext context, EGLSurface surface,
+    uint32_t width, uint32_t height)
+{
+    ensureExtensionFunctions();
+    if (!s_eglCreateImageKHR || !s_eglDestroyImageKHR) {
+        std::cerr
+            << "[ThermionGL:Texture] EGLImage texture functions unavailable"
+            << std::endl;
+        return nullptr;
+    }
+
+    ScopedEglContext scopedContext(display, context, surface);
+    if (!scopedContext.current()) {
+        std::cerr
+            << "[ThermionGL:Texture] Failed to make producer context current "
+               "for EGLImage texture, EGL error: 0x"
+            << std::hex << eglGetError() << std::dec << std::endl;
+        return nullptr;
+    }
+
+    while (glGetError() != GL_NO_ERROR) {}
+
+    GLuint glTextureId = 0;
+    glGenTextures(1, &glTextureId);
+    glBindTexture(GL_TEXTURE_2D, glTextureId);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
+        GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    GLenum textureError = glGetError();
+    if (glTextureId == 0 || textureError != GL_NO_ERROR) {
+        std::cerr
+            << "[ThermionGL:Texture] Failed to allocate EGLImage source "
+               "texture, GL error: 0x"
+            << std::hex << textureError << std::dec << std::endl;
+        if (glTextureId != 0) {
+            glDeleteTextures(1, &glTextureId);
+        }
+        return nullptr;
+    }
+
+    EGLint imageAttribs[] = {
+        EGL_GL_TEXTURE_LEVEL_KHR, 0,
+        EGL_NONE
+    };
+    EGLImage eglImage = s_eglCreateImageKHR(
+        display, context, EGL_GL_TEXTURE_2D_KHR,
+        reinterpret_cast<EGLClientBuffer>(
+            static_cast<uintptr_t>(glTextureId)),
+        imageAttribs);
+    if (eglImage == EGL_NO_IMAGE) {
+        EGLint imageError = eglGetError();
+        std::cerr
+            << "[ThermionGL:Texture] Failed to export GL texture as "
+               "EGLImage, EGL error: 0x"
+            << std::hex << imageError << std::dec << std::endl;
+        glDeleteTextures(1, &glTextureId);
+        return nullptr;
+    }
+
+    // Publish producer commands before another client API imports the image.
+    glFlush();
+
+    auto texture =
+        std::unique_ptr<LinuxOpenGLTexture>(new LinuxOpenGLTexture());
+    texture->_glTextureId = glTextureId;
+    texture->_eglImage = eglImage;
+    texture->_width = width;
+    texture->_height = height;
+    texture->_display = display;
+    texture->_context = context;
+    texture->_surface = surface;
+
+    std::cerr << "[ThermionGL:Texture] EGLImage texture created: id="
+              << glTextureId << " image=" << eglImage << " " << width << "x"
+              << height << std::endl;
+    return texture;
+}
+
+std::unique_ptr<LinuxOpenGLTexture> LinuxOpenGLTexture::createDmaBuf(
     EGLDisplay display, EGLContext context, EGLSurface surface,
     struct gbm_device* gbm, uint32_t width, uint32_t height)
 {

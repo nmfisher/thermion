@@ -14,26 +14,28 @@ struct gbm_bo;
 namespace thermion::opengl::linux_platform {
 
 /**
- * GL texture backed by a GBM buffer object with DMA-BUF export.
+ * GL texture owned by the isolated desktop-OpenGL producer context.
  *
- * Creation flow:
- * 1. gbm_bo_create(gbm, w, h, GBM_FORMAT_ABGR8888, GBM_BO_USE_RENDERING)
- * 2. Export DMA-BUF fd, stride, offset from the GBM buffer
- * 3. Build EGLImage from DMA-BUF params
- * 4. glGenTextures -> glBindTexture(GL_TEXTURE_2D) -> glEGLImageTargetTexture2DOES
+ * The preferred transport exposes a regular GL_TEXTURE_2D as an EGLImage.
+ * Flutter imports that image into its GLES/GL share group. The compatibility
+ * transport backs the texture with a GBM buffer and exports DMA-BUF metadata.
  *
- * The resulting GL texture ID is valid in any EGL context that shares with the
- * one used during creation (same share group).
+ * In both cases the GL texture ID is valid in Filament's producer share group.
  */
 class LinuxOpenGLTexture {
 public:
     ~LinuxOpenGLTexture();
 
-    static std::unique_ptr<LinuxOpenGLTexture> create(
+    static std::unique_ptr<LinuxOpenGLTexture> createEglImage(
+        EGLDisplay display, EGLContext context, EGLSurface surface,
+        uint32_t width, uint32_t height);
+
+    static std::unique_ptr<LinuxOpenGLTexture> createDmaBuf(
         EGLDisplay display, EGLContext context, EGLSurface surface,
         struct gbm_device* gbm, uint32_t width, uint32_t height);
 
     GLuint GetGLTextureId() const { return _glTextureId; }
+    EGLImage GetEGLImage() const { return _eglImage; }
     int GetDmaBufFd() const { return _dmaBufFd; }
     uint32_t GetStride() const { return _stride; }
     uint32_t GetOffset() const { return _offset; }
