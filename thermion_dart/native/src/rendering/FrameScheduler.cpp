@@ -8,6 +8,9 @@
 #endif
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <dxgi.h>
 #pragma comment(lib, "dxgi.lib")
 #endif
