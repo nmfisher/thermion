@@ -217,6 +217,10 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
     tShadowOptions.vsmElvsm = options.vsmElvsm;
     tShadowOptions.vsmBlurWidth = options.vsmBlurWidth;
     tShadowOptions.shadowBulbRadius = options.shadowBulbRadius;
+    tShadowOptions.penumbraScale = options.penumbraScale;
+    tShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
+    tShadowOptions.maxPenumbraRatio = options.maxPenumbraRatio;
+    tShadowOptions.maxSearchRadius = options.maxSearchRadius;
     tShadowOptions.transformW = options.transform.w;
     tShadowOptions.transformX = options.transform.x;
     tShadowOptions.transformY = options.transform.y;
@@ -257,6 +261,10 @@ class FFILightManager extends LightManager<Pointer<TLightManager>> {
       vsmElvsm: tShadowOptions.vsmElvsm,
       vsmBlurWidth: tShadowOptions.vsmBlurWidth,
       shadowBulbRadius: tShadowOptions.shadowBulbRadius,
+      penumbraScale: tShadowOptions.penumbraScale,
+      penumbraRatioScale: tShadowOptions.penumbraRatioScale,
+      maxPenumbraRatio: tShadowOptions.maxPenumbraRatio,
+      maxSearchRadius: tShadowOptions.maxSearchRadius,
       transform: Quaternion(
         tShadowOptions.transformX,
         tShadowOptions.transformY,

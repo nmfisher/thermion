@@ -8,6 +8,8 @@ Update to Filament v1.75.0!
 - `allocate` FFI shim now takes `byteCount` instead of `count`
 - Add SAO/GTAO algorithm selection and GTAO sampling, thickness, and
   visibility-bitmask controls to `AmbientOcclusionOptions`.
+- Expose global and per-light PCSS penumbra and blocker-search controls.
+- Expose visible-renderable diagnostics on views.
 
 ### Breaking changes
 - `LightManager.setShadowCaster`/`setShadowOptions` and

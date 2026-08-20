@@ -450,6 +450,8 @@ class FFIView extends View<Pointer<TView>> {
     final tSoftShadowOptions = StructAllocator.create<TSoftShadowOptions>();
     tSoftShadowOptions.penumbraScale = options.penumbraScale;
     tSoftShadowOptions.penumbraRatioScale = options.penumbraRatioScale;
+    tSoftShadowOptions.maxPenumbraRatio = options.maxPenumbraRatio;
+    tSoftShadowOptions.maxSearchRadius = options.maxSearchRadius;
     await withVoidCallback(
       (requestId, cb) => View_setSoftShadowOptionsRenderThread(view, tSoftShadowOptions, requestId, cb),
     );
@@ -461,8 +463,13 @@ class FFIView extends View<Pointer<TView>> {
     return SoftShadowOptions(
       penumbraScale: tSoftShadowOptions.penumbraScale,
       penumbraRatioScale: tSoftShadowOptions.penumbraRatioScale,
+      maxPenumbraRatio: tSoftShadowOptions.maxPenumbraRatio,
+      maxSearchRadius: tSoftShadowOptions.maxSearchRadius,
     );
   }
+
+  @override
+  int getVisibleRenderableCount() => View_getVisibleRenderableCount(view);
 
   @override
   Future setVsmShadowOptions(VsmShadowOptions options) async {

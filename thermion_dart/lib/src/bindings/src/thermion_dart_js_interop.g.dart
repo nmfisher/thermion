@@ -129,6 +129,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _View_setViewport(Pointer<TView> view, int width, int height);
   external void _View_setRenderTarget(Pointer<TView> view, Pointer<TRenderTarget> renderTarget);
   external void _View_setFrustumCullingEnabled(Pointer<TView> view, bool enabled);
+  external int _View_getVisibleRenderableCount(Pointer<TView> view);
   external Pointer<TRenderTarget> _View_getRenderTarget(Pointer<TView> tView);
   external void _View_setPostProcessing(Pointer<TView> tView, bool enabled);
   external void _View_setShadowsEnabled(Pointer<TView> tView, bool enabled);
@@ -2720,6 +2721,11 @@ void View_setRenderTarget(Pointer<TView> view, Pointer<TRenderTarget> renderTarg
 
 void View_setFrustumCullingEnabled(Pointer<TView> view, bool enabled) {
   final result = GeneratedBindings.instance._View_setFrustumCullingEnabled(view.cast(), enabled);
+  return result;
+}
+
+int View_getVisibleRenderableCount(Pointer<TView> view) {
+  final result = GeneratedBindings.instance._View_getVisibleRenderableCount(view.cast());
   return result;
 }
 
@@ -8968,10 +8974,30 @@ final class TSoftShadowOptions extends Struct {
     NativeLibrary.instance.setValue(Pointer<TSoftShadowOptions>(this.address.addr + 4), val.toJS, 'float');
   }
 
+  double get maxPenumbraRatio {
+    final addr = Pointer<TSoftShadowOptions>(this.address.addr + 8);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set maxPenumbraRatio(double val) {
+    NativeLibrary.instance.setValue(Pointer<TSoftShadowOptions>(this.address.addr + 8), val.toJS, 'float');
+  }
+
+  double get maxSearchRadius {
+    final addr = Pointer<TSoftShadowOptions>(this.address.addr + 12);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set maxSearchRadius(double val) {
+    NativeLibrary.instance.setValue(Pointer<TSoftShadowOptions>(this.address.addr + 12), val.toJS, 'float');
+  }
+
   TSoftShadowOptions(super.address);
 
   static Pointer<TSoftShadowOptions> stackAlloc() {
-    return Pointer<TSoftShadowOptions>(NativeLibrary.instance.stackAlloc<TSoftShadowOptions>(8));
+    return Pointer<TSoftShadowOptions>(NativeLibrary.instance.stackAlloc<TSoftShadowOptions>(16));
   }
 }
 
@@ -10939,50 +10965,90 @@ final class TShadowOptions extends Struct {
     NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 58), val.toJS, 'float');
   }
 
-  double get transformX {
+  double get penumbraScale {
     final addr = Pointer<TShadowOptions>(this.address.addr + 62);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
-  set transformX(double val) {
+  set penumbraScale(double val) {
     NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 62), val.toJS, 'float');
   }
 
-  double get transformY {
+  double get penumbraRatioScale {
     final addr = Pointer<TShadowOptions>(this.address.addr + 66);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
-  set transformY(double val) {
+  set penumbraRatioScale(double val) {
     NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 66), val.toJS, 'float');
   }
 
-  double get transformZ {
+  double get maxPenumbraRatio {
     final addr = Pointer<TShadowOptions>(this.address.addr + 70);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
-  set transformZ(double val) {
+  set maxPenumbraRatio(double val) {
     NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 70), val.toJS, 'float');
   }
 
-  double get transformW {
+  double get maxSearchRadius {
     final addr = Pointer<TShadowOptions>(this.address.addr + 74);
     final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
     return value;
   }
 
-  set transformW(double val) {
+  set maxSearchRadius(double val) {
     NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 74), val.toJS, 'float');
+  }
+
+  double get transformX {
+    final addr = Pointer<TShadowOptions>(this.address.addr + 78);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformX(double val) {
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 78), val.toJS, 'float');
+  }
+
+  double get transformY {
+    final addr = Pointer<TShadowOptions>(this.address.addr + 82);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformY(double val) {
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 82), val.toJS, 'float');
+  }
+
+  double get transformZ {
+    final addr = Pointer<TShadowOptions>(this.address.addr + 86);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformZ(double val) {
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 86), val.toJS, 'float');
+  }
+
+  double get transformW {
+    final addr = Pointer<TShadowOptions>(this.address.addr + 90);
+    final value = NativeLibrary.instance.getValue(addr, 'float').toDartDouble;
+    return value;
+  }
+
+  set transformW(double val) {
+    NativeLibrary.instance.setValue(Pointer<TShadowOptions>(this.address.addr + 90), val.toJS, 'float');
   }
 
   TShadowOptions(super.address);
 
   static Pointer<TShadowOptions> stackAlloc() {
-    return Pointer<TShadowOptions>(NativeLibrary.instance.stackAlloc<TShadowOptions>(78));
+    return Pointer<TShadowOptions>(NativeLibrary.instance.stackAlloc<TShadowOptions>(94));
   }
 }
 

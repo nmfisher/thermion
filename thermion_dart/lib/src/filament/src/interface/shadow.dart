@@ -63,6 +63,22 @@ class ShadowOptions {
   /// Light bulb radius for soft shadows (used with DPCF/PCSS).
   final double shadowBulbRadius;
 
+  /// Light-specific multiplier applied to the final PCSS penumbra size.
+  final double penumbraScale;
+
+  /// Light-specific multiplier applied to the PCSS geometric penumbra ratio.
+  final double penumbraRatioScale;
+
+  /// Light-specific maximum PCSS penumbra ratio.
+  ///
+  /// Values less than or equal to zero use the view-level default.
+  final double maxPenumbraRatio;
+
+  /// Light-specific maximum PCSS blocker-search radius in world units.
+  ///
+  /// Values less than or equal to zero use the view-level default.
+  final double maxSearchRadius;
+
   /// Shadow direction transform (quaternion: w, x, y, z).
   final Quaternion transform;
 
@@ -85,6 +101,10 @@ class ShadowOptions {
     this.vsmElvsm = false,
     this.vsmBlurWidth = 0.0,
     this.shadowBulbRadius = 0.02,
+    this.penumbraScale = 1.0,
+    this.penumbraRatioScale = 1.0,
+    this.maxPenumbraRatio = 0.0,
+    this.maxSearchRadius = 0.0,
     Quaternion? transform,
   }) : transform = transform ?? Quaternion.identity();
 
@@ -108,6 +128,10 @@ class ShadowOptions {
     bool? vsmElvsm,
     double? vsmBlurWidth,
     double? shadowBulbRadius,
+    double? penumbraScale,
+    double? penumbraRatioScale,
+    double? maxPenumbraRatio,
+    double? maxSearchRadius,
     Quaternion? transform,
   }) {
     return ShadowOptions(
@@ -129,6 +153,10 @@ class ShadowOptions {
       vsmElvsm: vsmElvsm ?? this.vsmElvsm,
       vsmBlurWidth: vsmBlurWidth ?? this.vsmBlurWidth,
       shadowBulbRadius: shadowBulbRadius ?? this.shadowBulbRadius,
+      penumbraScale: penumbraScale ?? this.penumbraScale,
+      penumbraRatioScale: penumbraRatioScale ?? this.penumbraRatioScale,
+      maxPenumbraRatio: maxPenumbraRatio ?? this.maxPenumbraRatio,
+      maxSearchRadius: maxSearchRadius ?? this.maxSearchRadius,
       transform: transform ?? this.transform,
     );
   }
@@ -183,5 +211,20 @@ class SoftShadowOptions {
   /// Acceptable values are equal to or greater than 1.
   final double penumbraRatioScale;
 
-  const SoftShadowOptions({this.penumbraScale = 1.0, this.penumbraRatioScale = 1.0});
+  /// Maximum geometric ratio used to calculate PCSS penumbra size.
+  ///
+  /// Lower values suppress oversized ghost shadows from layered occluders.
+  final double maxPenumbraRatio;
+
+  /// Maximum PCSS blocker-search radius in world-space units.
+  ///
+  /// Lower values keep shadows anchored near complex contact geometry.
+  final double maxSearchRadius;
+
+  const SoftShadowOptions({
+    this.penumbraScale = 1.0,
+    this.penumbraRatioScale = 1.0,
+    this.maxPenumbraRatio = 10.0,
+    this.maxSearchRadius = 1.0,
+  });
 }

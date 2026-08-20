@@ -241,6 +241,10 @@ void main() async {
         constantBias: 0.002,
         normalBias: 2.0,
         stable: true,
+        penumbraScale: 1.5,
+        penumbraRatioScale: 2.5,
+        maxPenumbraRatio: 4.0,
+        maxSearchRadius: 0.2,
       );
       await lightManager.setShadowOptions(sunLight, shadowOptions);
       await testHelper.capture(result.viewer.view, "shadow_options_configured");
@@ -252,6 +256,10 @@ void main() async {
       expect(retrievedOptions.constantBias, closeTo(0.002, 0.0001));
       expect(retrievedOptions.normalBias, closeTo(2.0, 0.0001));
       expect(retrievedOptions.stable, isTrue);
+      expect(retrievedOptions.penumbraScale, closeTo(1.5, 0.0001));
+      expect(retrievedOptions.penumbraRatioScale, closeTo(2.5, 0.0001));
+      expect(retrievedOptions.maxPenumbraRatio, closeTo(4.0, 0.0001));
+      expect(retrievedOptions.maxSearchRadius, closeTo(0.2, 0.0001));
 
       await scene.removeEntity(sunLight);
       lightManager.destroyLight(sunLight);

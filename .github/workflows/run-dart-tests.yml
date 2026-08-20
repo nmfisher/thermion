@@ -92,6 +92,7 @@ jobs:
             test/entity_tests.dart \
             test/geometry_tests.dart \
             test/view_tests.dart \
+            test/pcss_controls_render_test.dart \
             test/postprocessing_tests.dart \
             test/scene_tests.dart \
             test/picking_tests.dart \
@@ -123,6 +124,7 @@ jobs:
             test/entity_tests.dart `
             test/geometry_tests.dart `
             test/view_tests.dart `
+            test/pcss_controls_render_test.dart `
             test/postprocessing_tests.dart `
             test/scene_tests.dart `
             test/picking_tests.dart `
@@ -150,8 +152,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run download 32349488816 \
-            --name golden-images-b69b6d54fac83278f34e905aaede8ceffa060ae5  \
+          gh run download 32354532845 \
+            --name golden-images-3e644c631853e14cb40934961793def802e3b0b0 \
             --dir ./thermion_dart/test/golden-downloads
       - name: Unzip golden images
         if: matrix.name == 'Linux'
