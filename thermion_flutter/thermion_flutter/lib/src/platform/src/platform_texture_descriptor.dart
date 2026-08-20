@@ -44,6 +44,13 @@ abstract class PlatformTextureDescriptor {
   /// updated.
   void markTextureFrameAvailable();
 
+  /// Awaitable form used when presentation must not race platform work such
+  /// as Linux's Vulkan export blit. Synchronous implementations can use this
+  /// default wrapper.
+  Future<void> markTextureFrameAvailableAndWait() async {
+    markTextureFrameAvailable();
+  }
+
   /// Schedules this texture for destruction.
   ///
   /// Package code should normally call

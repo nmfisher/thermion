@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:thermion_flutter/src/platform/src/android_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/platform/src/method_channel_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/options.dart';
 
@@ -105,6 +108,40 @@ void main() {
     expect(methodCallCount, 0);
   });
 
+  test('awaitable frame publication waits for platform work', () async {
+    const channel = MethodChannel('thermion.test.texture.presentation');
+    final platformGate = Completer<void>();
+    var completed = false;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          expect(call.method, 'markTextureFrameAvailable');
+          await platformGate.future;
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final descriptor = MethodChannelPlatformTextureDescriptor(
+      channel,
+      flutterTextureId: 1,
+      hardwareId: 2,
+      windowHandle: 3,
+      width: 4,
+      height: 5,
+    );
+    final publication = descriptor.markTextureFrameAvailableAndWait().then(
+      (_) => completed = true,
+    );
+
+    await Future<void>.delayed(Duration.zero);
+    expect(completed, isFalse);
+    platformGate.complete();
+    await publication;
+    expect(completed, isTrue);
+  });
+
   for (final (textureSource, expectedSurfaceProducer) in [
     (AndroidTextureSource.surfaceTexture, false),
     (AndroidTextureSource.surfaceProducer, true),
@@ -144,15 +181,13 @@ void main() {
 }
 
 class _TestDescriptor extends PlatformTextureDescriptor {
-  _TestDescriptor({
-    required int flutterTextureId,
-    int hardwareId = 0,
-  }) : super(
-          flutterTextureId: flutterTextureId,
-          hardwareId: hardwareId,
-          width: 1,
-          height: 1,
-        );
+  _TestDescriptor({required int flutterTextureId, int hardwareId = 0})
+    : super(
+        flutterTextureId: flutterTextureId,
+        hardwareId: hardwareId,
+        width: 1,
+        height: 1,
+      );
 
   @override
   void markTextureFrameAvailable() {}

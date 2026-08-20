@@ -131,6 +131,28 @@ abstract class ThermionFlutterPlugin {
     int height,
   );
 
+  /// Whether resize can keep the previous Flutter texture visible while a
+  /// replacement is mounted and primed.
+  bool get supportsStagedTextureResize => false;
+
+  /// Renders a frame into a staged replacement before it is made visible.
+  Future<void> prepareTextureForPresentation(
+    PlatformTextureDescriptor texture,
+  ) async {}
+
+  /// Releases a superseded descriptor after Flutter has composited its
+  /// replacement.
+  Future<void> retireTextureAfterResize(
+    PlatformTextureDescriptor texture,
+  ) async {}
+
+  /// Restores [previous] if preparing [replacement] fails.
+  Future<void> cancelStagedTextureResize(
+    PlatformTextureDescriptor replacement,
+    PlatformTextureDescriptor previous,
+    View view,
+  ) async {}
+
   /// Releases every texture resource bound to [view].
   ///
   /// Implementations must detach descriptor-managed surfaces, destroy

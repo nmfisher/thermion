@@ -85,6 +85,11 @@ class NativeTextureSurfaceManager {
   // blits into a pending replacement image.
   final _deferredRenderTargets = <(RenderTarget, int)>[];
 
+  // A Linux descriptor may need to enter the widget tree before populate()
+  // can publish its hardware texture. Staged resize waits on this future
+  // before rendering the replacement's first visible frame.
+  final _replacementBindings = <PlatformTextureDescriptor, Future<void>>{};
+
   bool get hasUnavailableSurfaces => registry.hasUnavailableSurfaces;
 
   Future<FilamentRenderingContext> getFilamentRenderingContext(
@@ -102,6 +107,7 @@ class NativeTextureSurfaceManager {
     registry.clear();
     _viewRenderTargets.clear();
     _deferredRenderTargets.clear();
+    _replacementBindings.clear();
   }
 
   /// Notifies live descriptors and reaps render targets deferred by Windows
@@ -167,6 +173,8 @@ class NativeTextureSurfaceManager {
     int width,
     int height, {
     PlatformTextureDescriptor? destroyAfterDeferredBinding,
+    bool preserveExistingBindings = false,
+    Completer<void>? bindingReady,
   }) async {
     if (width == 0 || height == 0) {
       throw ArgumentError(
@@ -191,7 +199,8 @@ class NativeTextureSurfaceManager {
         // Keep the previous descriptor associated with this view until the
         // deferred replacement has a Filament target. Teardown can then find
         // and destroy both descriptors if the widget unmounts while waiting.
-        releaseExistingBindings: !mayRequireDeferredBinding,
+        releaseExistingBindings:
+            !mayRequireDeferredBinding && !preserveExistingBindings,
       );
 
       // Prefer a hardware handle returned by native allocation. In particular,
@@ -199,6 +208,7 @@ class NativeTextureSurfaceManager {
       // with awaitTextureReady's Flutter-side GL texture ID is invalid.
       if (!managesFilamentSurface && descriptor.hardwareId != 0) {
         await _createFilamentResources(descriptor, view, width, height);
+        if (!(bindingReady?.isCompleted ?? true)) bindingReady!.complete();
       } else if (shouldDeferNativeTextureBinding(
         managesFilamentSurface: managesFilamentSurface,
         hardwareId: descriptor.hardwareId,
@@ -213,6 +223,7 @@ class NativeTextureSurfaceManager {
             width,
             height,
             destroyAfterBinding: destroyAfterDeferredBinding,
+            bindingReady: bindingReady,
           ),
         );
       } else if (!managesFilamentSurface) {
@@ -222,8 +233,15 @@ class NativeTextureSurfaceManager {
         );
       }
 
+      if (managesFilamentSurface && !(bindingReady?.isCompleted ?? true)) {
+        bindingReady!.complete();
+      }
+
       return descriptor;
     } catch (error, stackTrace) {
+      if (!(bindingReady?.isCompleted ?? true)) {
+        bindingReady!.completeError(error, stackTrace);
+      }
       if (error is _FilamentResourceRollbackFailure) {
         // The descriptor's platform memory must outlive the Filament objects
         // that could not be destroyed. Detach it from the view but deliberately
@@ -244,6 +262,7 @@ class NativeTextureSurfaceManager {
     int width,
     int height, {
     PlatformTextureDescriptor? destroyAfterBinding,
+    Completer<void>? bindingReady,
   }) async {
     try {
       final hardwareId = await descriptor.awaitTextureReady();
@@ -261,9 +280,13 @@ class NativeTextureSurfaceManager {
               registry.contains(destroyAfterBinding)) {
             await registry.destroy(destroyAfterBinding);
           }
+          if (!(bindingReady?.isCompleted ?? true)) bindingReady!.complete();
         });
       });
     } catch (error, stackTrace) {
+      if (!(bindingReady?.isCompleted ?? true)) {
+        bindingReady!.completeError(error, stackTrace);
+      }
       _logger.warning('Deferred texture binding failed', error, stackTrace);
       if (error is _FilamentResourceRollbackFailure) {
         // Keep the platform allocation alive for any Filament object whose
@@ -427,20 +450,91 @@ class NativeTextureSurfaceManager {
       return _resizeWindows(texture, view, width, height);
     }
 
+    if (!Platform.isMacOS && !Platform.isLinux) {
+      final newTexture = await _createAndBind(
+        view,
+        width,
+        height,
+        destroyAfterDeferredBinding: texture,
+      );
+      if (!shouldDeferNativeTextureBinding(
+        managesFilamentSurface: false,
+        hardwareId: newTexture.hardwareId,
+        supportsDeferredBinding: newTexture.deferred,
+      )) {
+        await registry.destroy(texture);
+      }
+      return newTexture;
+    }
+
+    final bindingReady = Completer<void>();
     final newTexture = await _createAndBind(
       view,
       width,
       height,
-      destroyAfterDeferredBinding: texture,
+      preserveExistingBindings: true,
+      bindingReady: bindingReady,
     );
-    if (!shouldDeferNativeTextureBinding(
-      managesFilamentSurface: false,
-      hardwareId: newTexture.hardwareId,
-      supportsDeferredBinding: newTexture.deferred,
-    )) {
-      await registry.destroy(texture);
-    }
+    _replacementBindings[newTexture] = bindingReady.future;
     return newTexture;
+  }
+
+  /// Waits for deferred platform binding, then renders the replacement once
+  /// while the scheduler is paused. The widget continues to cover this
+  /// texture with the previous descriptor until this future completes.
+  Future<void> prepareForPresentation(PlatformTextureDescriptor texture) async {
+    final binding = _replacementBindings[texture];
+    if (binding == null) return;
+    await binding;
+
+    await registry.serialized(
+      () => _lifecycle.duringTextureMutation(() async {
+        if (!registry.contains(texture) || texture.destroyed) return;
+        final app = FilamentApp.instance;
+        if (app == null) {
+          throw StateError('Cannot prime a texture after Filament shutdown');
+        }
+        await app.render();
+        await texture.markTextureFrameAvailableAndWait();
+      }),
+    );
+  }
+
+  /// The old descriptor remains registered until the first Flutter frame
+  /// containing its replacement has completed.
+  Future<void> retireAfterResize(PlatformTextureDescriptor texture) {
+    return registry.serialized(() async {
+      _replacementBindings.remove(texture);
+      if (registry.contains(texture)) {
+        await registry.destroy(texture);
+      }
+    });
+  }
+
+  /// Rebinds the last visible descriptor if preparing its replacement fails.
+  Future<void> cancelStagedResize(
+    PlatformTextureDescriptor replacement,
+    PlatformTextureDescriptor previous,
+    View view,
+  ) {
+    return registry.serialized(
+      () => _lifecycle.duringTextureMutation(() async {
+        _replacementBindings.remove(replacement);
+        if (!registry.contains(previous) || previous.destroyed) return;
+
+        await registry.bindToView(previous, view);
+        await view.setViewport(previous.width, previous.height);
+        await _createFilamentResources(
+          previous,
+          view,
+          previous.width,
+          previous.height,
+        );
+        if (registry.contains(replacement)) {
+          await registry.destroy(replacement);
+        }
+      }),
+    );
   }
 
   Future<PlatformTextureDescriptor> _resizeWindows(
@@ -538,6 +632,10 @@ class NativeTextureSurfaceManager {
         await registry.destroyBindingsForView(
           view,
           beforeDescriptorDestroy: () => _destroyRenderTargetForView(view),
+        );
+        _replacementBindings.removeWhere(
+          (descriptor, _) =>
+              descriptor.boundView == view || descriptor.destroyed,
         );
       }),
     );

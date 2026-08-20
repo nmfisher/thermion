@@ -220,6 +220,30 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   }
 
   @override
+  bool get supportsStagedTextureResize => Platform.isMacOS || Platform.isLinux;
+
+  @override
+  Future<void> prepareTextureForPresentation(
+    PlatformTextureDescriptor texture,
+  ) {
+    return _textureSurfaces.prepareForPresentation(texture);
+  }
+
+  @override
+  Future<void> retireTextureAfterResize(PlatformTextureDescriptor texture) {
+    return _textureSurfaces.retireAfterResize(texture);
+  }
+
+  @override
+  Future<void> cancelStagedTextureResize(
+    PlatformTextureDescriptor replacement,
+    PlatformTextureDescriptor previous,
+    View view,
+  ) {
+    return _textureSurfaces.cancelStagedResize(replacement, previous, view);
+  }
+
+  @override
   Future<void> destroyTextureForView(View view) {
     return _textureSurfaces.destroyForView(view);
   }

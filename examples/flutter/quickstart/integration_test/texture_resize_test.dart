@@ -10,6 +10,7 @@
 // Windows updates its descriptor in place while other platforms replace it;
 // teardown must serialize correctly with either resize strategy.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart' hide View;
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +18,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 // ignore: implementation_imports
 import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
+// ignore: implementation_imports
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +30,10 @@ void main() {
       final viewer = await ThermionFlutterPlugin.createViewer();
       final size = ValueNotifier<Size>(const Size(160, 120));
       var textureUpdateCount = 0;
+      var texturePreparationCount = 0;
+      final publishedDescriptors = <PlatformTextureDescriptor>[];
+      final stagedPreparationGate = Completer<void>();
+      final usesStagedResize = Platform.isMacOS || Platform.isLinux;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -51,6 +58,13 @@ void main() {
                     onTextureUpdated: (descriptor) {
                       if (descriptor != null) {
                         textureUpdateCount++;
+                        publishedDescriptors.add(descriptor);
+                      }
+                    },
+                    onTexturePreparing: (descriptor) async {
+                      texturePreparationCount++;
+                      if (usesStagedResize && texturePreparationCount == 2) {
+                        await stagedPreparationGate.future;
                       }
                     },
                   ),
@@ -69,11 +83,36 @@ void main() {
 
       size.value = const Size(240, 180);
       await tester.pump();
+
+      if (usesStagedResize) {
+        await _pumpUntil(
+          tester,
+          () => texturePreparationCount == 2,
+          'the staged replacement to enter the widget tree',
+        );
+        expect(
+          find.byType(Texture),
+          findsNWidgets(2),
+          reason: 'the old texture must cover the mounted replacement',
+        );
+        expect(publishedDescriptors.single.destroyed, isFalse);
+        stagedPreparationGate.complete();
+      }
+
       await _pumpUntil(
         tester,
         () => textureUpdateCount == 2,
         'the resized texture allocation',
       );
+
+      if (usesStagedResize) {
+        await _pumpUntil(
+          tester,
+          () => publishedDescriptors.first.destroyed,
+          'the superseded descriptor to retire after presentation',
+        );
+        expect(find.byType(Texture), findsOneWidget);
+      }
 
       // Let errors from unawaited descriptor cleanup reach the test binding.
       // Before the fix, Darwin throws here because resizeTexture() has already
