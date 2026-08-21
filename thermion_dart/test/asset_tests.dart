@@ -9,11 +9,10 @@ import 'helpers.dart';
 // Rendered frames captured by this suite are diffed against golden reference
 // images by test/compare_goldens.py (run in CI, see
 // .github/workflows/run-dart-tests.yml). The goldens are NOT in this repo:
-// the workflow downloads a pinned golden-images artifact from a previous
-// known-good run into test/golden-downloads/ (a transient dir, gitignored)
-// and diffs it against test/output/. A capture must be pixel-identical to
-// its golden or the comparison fails. Captures with no golden yet are
-// reported as EXTRA and do not fail the comparison.
+// the workflow downloads the platform's pinned dart-test-output artifact from
+// a previous known-good run into test/golden-downloads/ (a transient dir,
+// gitignored) and diffs it against test/output/. Every capture must have a
+// pixel-identical golden; missing, changed, and new captures all fail.
 
 void main() async {
   final testHelper = TestHelper("assets");

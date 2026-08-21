@@ -133,7 +133,7 @@ def main():
     print(f"Total golden files: {len(golden_files)}")
     
     # Exit with appropriate code
-    if different_count > 0 or missing_count > 0 or error_count > 0:
+    if different_count > 0 or missing_count > 0 or error_count > 0 or extra_files:
         print("\nCOMPARISON FAILED")
         sys.exit(1)
     else:
