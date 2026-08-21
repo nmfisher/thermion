@@ -15,6 +15,12 @@ on:
         required: false
         type: string
 
+env:
+  # Known-good, visually inspected skybox captures. Keep the run and merge SHA
+  # together when refreshing these platform-specific baselines.
+  SKYBOX_GOLDEN_RUN_ID: 32467894381
+  SKYBOX_GOLDEN_SHA: 0aa7b47aeccfca8040bd3405a49e1e4596a9e3dd
+
 jobs:
   dart-tests:
     name: Dart Tests (${{ matrix.name }})
@@ -358,6 +364,25 @@ jobs:
         with:
           name: skybox-images-${{ matrix.name }}-${{ github.sha }}
           path: thermion_dart/test/output/skybox
+
+      - name: Download skybox golden baseline
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SKYBOX_GOLDEN_RUN_ID }}
+          name: skybox-images-${{ matrix.name }}-${{ env.SKYBOX_GOLDEN_SHA }}
+          path: thermion_dart/test/golden-downloads/skybox-${{ matrix.name }}
+
+      - name: Install golden comparison dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install Pillow numpy
+
+      - name: Compare skybox goldens
+        run: >-
+          python thermion_dart/test/compare_goldens.py
+          --golden-dir thermion_dart/test/golden-downloads/skybox-${{ matrix.name }}
+          --output-dir thermion_dart/test/output/skybox
 
       - name: Upload logs
         if: failure()
