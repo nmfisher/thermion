@@ -99,45 +99,45 @@ def main():
         output_path = output_dir / golden_file
         
         if not output_path.exists():
-            print(f"❌ MISSING: {golden_file} (exists in golden but not in output)")
+            print(f"MISSING: {golden_file} (exists in golden but not in output)")
             missing_count += 1
             continue
         
         mse, max_diff, are_identical = calculate_image_difference(golden_path, output_path)
         
         if mse is None:
-            print(f"❌ ERROR: {golden_file} (failed to compare)")
+            print(f"ERROR: {golden_file} (failed to compare)")
             error_count += 1
             continue
         
         if are_identical:
-            print(f"✅ IDENTICAL: {golden_file}")
+            print(f"IDENTICAL: {golden_file}")
             identical_count += 1
         else:
-            print(f"⚠️  DIFFERENT: {golden_file} (MSE: {mse:.2f}, Max diff: {max_diff})")
+            print(f"DIFFERENT: {golden_file} (MSE: {mse:.2f}, Max diff: {max_diff})")
             different_count += 1
     
     # Check for files that exist in output but not in golden
     extra_files = set(output_files) - set(golden_files)
     for extra_file in extra_files:
-        print(f"ℹ️  EXTRA: {extra_file} (exists in output but not in golden)")
+        print(f"EXTRA: {extra_file} (exists in output but not in golden)")
     
     # Print summary
     print("\n" + "="*50)
     print("COMPARISON SUMMARY:")
-    print(f"✅ Identical files: {identical_count}")
-    print(f"⚠️  Different files: {different_count}")
-    print(f"❌ Missing files: {missing_count}")
-    print(f"❌ Error files: {error_count}")
-    print(f"ℹ️  Extra files: {len(extra_files)}")
-    print(f"📊 Total golden files: {len(golden_files)}")
+    print(f"Identical files: {identical_count}")
+    print(f"Different files: {different_count}")
+    print(f"Missing files: {missing_count}")
+    print(f"Error files: {error_count}")
+    print(f"Extra files: {len(extra_files)}")
+    print(f"Total golden files: {len(golden_files)}")
     
     # Exit with appropriate code
     if different_count > 0 or missing_count > 0 or error_count > 0:
-        print("\n❌ COMPARISON FAILED")
+        print("\nCOMPARISON FAILED")
         sys.exit(1)
     else:
-        print("\n✅ ALL COMPARISONS PASSED")
+        print("\nALL COMPARISONS PASSED")
         sys.exit(0)
 
 if __name__ == "__main__":
