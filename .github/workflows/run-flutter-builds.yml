@@ -134,6 +134,7 @@ jobs:
         run: |
           set -o pipefail
           GDK_BACKEND=x11 LIBGL_ALWAYS_SOFTWARE=1 \
+            MESA_GL_VERSION_OVERRIDE=4.5 \
             timeout 8m xvfb-run -a \
               -e "${RUNNER_TEMP}/xvfb.log" \
               -s '-screen 0 1280x720x24' \
@@ -149,6 +150,7 @@ jobs:
           export XDG_RUNTIME_DIR="${RUNNER_TEMP}/wayland-runtime"
           export WAYLAND_DISPLAY=wayland-ci
           export LIBGL_ALWAYS_SOFTWARE=1
+          export MESA_GL_VERSION_OVERRIDE=4.5
           mkdir -p "${XDG_RUNTIME_DIR}"
           chmod 700 "${XDG_RUNTIME_DIR}"
 
