@@ -444,6 +444,14 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroySkybox(TEngine *tEngine, TSkybox *tSkybox) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
+            // Callers can destroy a caller-attached skybox themselves before
+            // the scene (or a viewer teardown that derives from the scene)
+            // releases it. Treat a later explicit release as idempotent, as
+            // Engine_destroyTexture does.
+            if (!engine->isValid(skybox))
+            {
+                return;
+            }
             if(skybox->getTexture()) {
                 engine->destroy(skybox->getTexture());
             }

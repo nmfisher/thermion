@@ -63,12 +63,13 @@ class _MyHomePageState extends State<MyHomePage> {
     // instead, use file:// URIs.
     // Setting preserveGeometry: true rebuilds vertex buffers with a superset
     // of attributes, enabling free material swapping (wireframe, solid, etc).
-    var asset = await _thermionViewer!.loadGltf(
-        "assets/FlightHelmet/FlightHelmet.gltf");
+    var asset = await _thermionViewer!
+        .loadGltf("assets/FlightHelmet/FlightHelmet.gltf");
 
     await _thermionViewer!.addToScene(asset);
 
-    var wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
+    var wireframe =
+        await FilamentApp.instance!.createWireframeMaterialInstance();
     await wireframe.setEdgeColor(0.3, 0.3, 0.3, 1.0);
     await wireframe.setFaceColor(0.1, 0.1, 0.1, 1.0);
     await wireframe.setEdgeWidth(0.5);
@@ -125,8 +126,9 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ElevatedButton(
             onPressed: () async {
               final rnd = Random();
-              await _thermionViewer!.removeSkybox();
-              await _thermionViewer!.setBackgroundColor(
+              // Mutate the existing skybox in place - no teardown needed.
+              final skybox = await _thermionViewer!.getSkybox();
+              await skybox?.setColor(
                   rnd.nextDouble(), rnd.nextDouble(), rnd.nextDouble(), 1.0);
             },
             child: const Text("Randomize background color")));

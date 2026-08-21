@@ -15,7 +15,10 @@ Future<void> setupMaterialsAndLighting(
   final camera = await viewer.getActiveCamera();
   await camera.lookAt(Vector3(0, 4.0, 11), focus: Vector3(0, 0, 0));
 
-  await viewer.setBackgroundColor(0.18, 0.18, 0.18, 1.0);
+  await (await viewer.view.getScene()).setSkybox(
+    await FilamentApp.instance!
+        .createColoredSkybox(r: 0.18, g: 0.18, b: 0.18, a: 1.0),
+  );
   // Dimmed IBL so the three coloured point lights read clearly against the
   // ambient fill — at higher intensities the image-based lighting washes out
   // their orbiting contribution.

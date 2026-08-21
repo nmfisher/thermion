@@ -247,17 +247,13 @@ class ThermionViewerFFI extends ThermionViewer {
     return (_backgroundImage!.width!, _backgroundImage!.height!);
   }
 
-  //
+  ///
+  /// Returns the skybox currently attached to this viewer's scene, or null.
+  /// The viewer does not cache the skybox; this always reflects the scene.
+  ///
   @override
-  Future<Skybox> setBackgroundColor(double r, double g, double b, double a) {
-    _throwIfDisposed();
-    return _serializeSceneResourceOperation(() async {
-      await _removeSkybox();
-      _skybox = await _app.buildSkybox() as FFISkybox;
-      await scene.setSkybox(_skybox!);
-      await _skybox!.setColor(r, g, b, a);
-      return _skybox!;
-    });
+  Future<Skybox?> getSkybox() {
+    return scene.getSkybox();
   }
 
   Future<Skybox> _loadSkybox(String skyboxPath) async {
@@ -267,6 +263,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
     final completer = Completer<void>();
     FFIKtx1Bundle? bundle;
+    late FFISkybox skybox;
 
     final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
       bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
@@ -278,9 +275,9 @@ class ThermionViewerFFI extends ThermionViewer {
               )
               as FFITexture;
 
-      _skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
+      skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
 
-      await scene.setSkybox(_skybox!);
+      await scene.setSkybox(skybox);
 
       completer.complete();
     });
@@ -294,7 +291,7 @@ class ThermionViewerFFI extends ThermionViewer {
     });
     _skyboxTextureUploadComplete = trackedUploadFuture;
     await completer.future;
-    return _skybox!;
+    return skybox;
   }
 
   //
@@ -374,15 +371,18 @@ class ThermionViewerFFI extends ThermionViewer {
       await upload;
     }
 
+    // The skybox is whatever is attached to the scene - the viewer does not
+    // cache it, so a skybox attached by the caller is removed and destroyed
+    // just like one loaded via [loadSkybox].
+    final skybox = await scene.getSkybox();
     await scene.setSkybox(null);
-    await _skybox?.destroy();
-    if (_skybox != null && _skyboxTexture != null) {
+    await skybox?.destroy();
+    if (skybox != null && _skyboxTexture != null) {
       // Engine::destroy queues the skybox destruction. Ensure the skybox has
       // released its environment texture before destroying that texture.
       await _app.flush();
     }
     await _skyboxTexture?.destroy();
-    _skybox = null;
     _skyboxTexture = null;
   }
 
@@ -394,7 +394,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future? _skyboxTextureUploadComplete;
   FFITexture? _skyboxTexture;
-  FFISkybox? _skybox;
 
   Future? _iblTextureUploadComplete;
 

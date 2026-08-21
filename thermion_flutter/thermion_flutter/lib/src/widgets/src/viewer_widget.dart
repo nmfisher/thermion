@@ -171,12 +171,23 @@ class _ViewerWidgetState extends State<ViewerWidget> {
         viewer!.loadIbl(widget.iblPath!);
       }
     } else if (oldWidget.background != widget.background) {
-      viewer!.setBackgroundColor(
-        widget.background?.r ?? 0,
-        widget.background?.g ?? 0,
-        widget.background?.b ?? 0,
-        widget.background?.a ?? 0,
-      );
+      final background = widget.background;
+      if (background == null) {
+        viewer!.removeSkybox();
+      } else {
+        () async {
+          await viewer!.removeSkybox();
+          final scene = await viewer!.view.getScene();
+          await scene.setSkybox(
+            await FilamentApp.instance!.createColoredSkybox(
+              r: background.r,
+              g: background.g,
+              b: background.b,
+              a: background.a,
+            ),
+          );
+        }();
+      }
     } else if (oldWidget.initialCameraPosition !=
         widget.initialCameraPosition) {
       throw UnsupportedError(
@@ -286,11 +297,14 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       if (widget.skyboxPath != null) {
         _logger.severe("Specify skyboxPath or background, not both");
       } else {
-        await viewer!.setBackgroundColor(
-          widget.background!.r,
-          widget.background!.g,
-          widget.background!.b,
-          widget.background!.a,
+        final scene = await viewer!.view.getScene();
+        await scene.setSkybox(
+          await FilamentApp.instance!.createColoredSkybox(
+            r: widget.background!.r,
+            g: widget.background!.g,
+            b: widget.background!.b,
+            a: widget.background!.a,
+          ),
         );
       }
     }

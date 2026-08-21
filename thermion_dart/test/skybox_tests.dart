@@ -100,12 +100,21 @@ void main() async {
     });
   });
 
-  test('setBackgroundColor returns the created skybox', () async {
+  test('viewer does not cache skybox; getSkybox reflects the scene', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
-      final skybox = await result.viewer.setBackgroundColor(0.0, 0.0, 0.0, 1.0);
-      expect(skybox, isNotNull);
-      expect(skybox.getTexture(), isNull);
+      expect(await result.viewer.getSkybox(), isNull);
+
+      final skybox = await FilamentApp.instance!.createColoredSkybox(r: 0.0, g: 0.0, b: 0.0, a: 1.0);
+      await (result.viewer as ThermionViewerFFI).scene.setSkybox(skybox);
+
+      // Attached directly via the scene, still visible through the viewer.
+      final attached = await result.viewer.getSkybox();
+      expect(attached, isNotNull);
+      expect(attached!.getTexture(), isNull);
+
+      // removeSkybox tears down caller-attached skyboxes too.
       await result.viewer.removeSkybox();
+      expect(await result.viewer.getSkybox(), isNull);
     });
   });
 

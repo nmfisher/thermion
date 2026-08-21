@@ -313,7 +313,13 @@ class TestHelper {
     }
 
     if (bg != null) {
-      await viewer.setBackgroundColor(bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
+      final skybox = await FilamentApp.instance!.createColoredSkybox(
+        r: bg.r.toDouble(),
+        g: bg.g.toDouble(),
+        b: bg.b.toDouble(),
+        a: bg.a.toDouble(),
+      );
+      await viewer.scene.setSkybox(skybox);
     }
 
     final camera = await viewer.getActiveCamera();
