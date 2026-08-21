@@ -217,61 +217,59 @@ void main() async {
   });
 
   test('ColorGrading shared between views', () async {
-    await ViewerBuilder(testHelper)
-        .setPostProcessing(true)
-        .addCube(color: kWhite, createUbershader: true)
-        .execute((result) async {
-          final app = FilamentApp.instance!;
-          final view1 = result.viewer.view;
-          final view2 = await app.createView();
-          await view2.setViewport(512, 512);
-          try {
-            final builder = await view1.createColorGradingBuilder();
-            final toneMapper = await ToneMapper.aces(FilamentApp.instance!);
-            final shared = await builder.toneMapper(toneMapper).saturation(2.0).build();
-            await builder.dispose();
-            await toneMapper.dispose();
+    await ViewerBuilder(testHelper).setPostProcessing(true).addCube(color: kWhite, createUbershader: true).execute((
+      result,
+    ) async {
+      final app = FilamentApp.instance!;
+      final view1 = result.viewer.view;
+      final view2 = await app.createView();
+      await view2.setViewport(512, 512);
+      try {
+        final builder = await view1.createColorGradingBuilder();
+        final toneMapper = await ToneMapper.aces(FilamentApp.instance!);
+        final shared = await builder.toneMapper(toneMapper).saturation(2.0).build();
+        await builder.dispose();
+        await toneMapper.dispose();
 
-            // One grading, two views - Filament allows this and so do we
-            await view1.setColorGrading(shared);
-            await view2.setColorGrading(shared);
+        // One grading, two views - Filament allows this and so do we
+        await view1.setColorGrading(shared);
+        await view2.setColorGrading(shared);
 
-            // view1 detaching must NOT destroy the grading (view2 still
-            // references it) - if it did, the capture below would crash or
-            // render garbage
-            await view1.setColorGrading(null);
-            await testHelper.capture(view2, "color_grading_shared_view2");
+        // view1 detaching must NOT destroy the grading (view2 still
+        // references it) - if it did, the capture below would crash or
+        // render garbage
+        await view1.setColorGrading(null);
+        await testHelper.capture(view2, "color_grading_shared_view2");
 
-            // the last detach destroys it
-            await view2.setColorGrading(null);
-          } finally {
-            await app.destroyView(view2);
-          }
-        });
+        // the last detach destroys it
+        await view2.setColorGrading(null);
+      } finally {
+        await app.destroyView(view2);
+      }
+    });
   });
 
   test('ColorGrading dispose defers while attached', () async {
-    await ViewerBuilder(testHelper)
-        .setPostProcessing(true)
-        .addCube(color: kWhite, createUbershader: true)
-        .execute((result) async {
-          final view = result.viewer.view;
-          final builder = await view.createColorGradingBuilder();
-          final toneMapper = await ToneMapper.aces(FilamentApp.instance!);
-          final colorGrading = await builder.toneMapper(toneMapper).build();
-          await builder.dispose();
-          await toneMapper.dispose();
+    await ViewerBuilder(testHelper).setPostProcessing(true).addCube(color: kWhite, createUbershader: true).execute((
+      result,
+    ) async {
+      final view = result.viewer.view;
+      final builder = await view.createColorGradingBuilder();
+      final toneMapper = await ToneMapper.aces(FilamentApp.instance!);
+      final colorGrading = await builder.toneMapper(toneMapper).build();
+      await builder.dispose();
+      await toneMapper.dispose();
 
-          await view.setColorGrading(colorGrading);
+      await view.setColorGrading(colorGrading);
 
-          // Disposing while attached defers destruction - the view must keep
-          // rendering correctly...
-          await colorGrading.dispose();
-          await testHelper.capture(view, "color_grading_dispose_deferred");
+      // Disposing while attached defers destruction - the view must keep
+      // rendering correctly...
+      await colorGrading.dispose();
+      await testHelper.capture(view, "color_grading_dispose_deferred");
 
-          // ...until the last view detaches, which destroys it
-          await view.setColorGrading(null);
-        });
+      // ...until the last view detaches, which destroys it
+      await view.setColorGrading(null);
+    });
   });
 
   test('ColorGrading builder can be disposed without building', () async {
