@@ -1,10 +1,6 @@
 name: Linux Display Smoke
 
 on:
-  # TEMPORARY: auto-run on pushes to this branch while it is under test on the
-  # self-hosted GPU runner. Remove before merging.
-  push:
-    branches: [fix/linux-egl-context-bootstrap]
   workflow_dispatch:
     inputs:
       ref:
@@ -23,8 +19,8 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     timeout-minutes: 30
     env:
-      # Push events have no inputs context; fall back to :0 so the runner's
-      # desktop session display is used.
+      # Fall back to :0 (the runner's desktop session display) when the input
+      # is not provided.
       DISPLAY: ${{ inputs.x11-display || ':0' }}
     defaults:
       run:
