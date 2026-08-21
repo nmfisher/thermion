@@ -1,0 +1,66 @@
+---
+title: Filament API
+description: Drop down from ThermionViewer to the underlying Filament engine.
+---
+
+Most applications will only need the high-level `ThermionViewer` API (see
+[Viewer](/viewer/) and [Quick Start](/quickstart/)). `ThermionViewer` is itself
+a thin wrapper over Filament's lower-level engine, scene, view, and renderer
+objects.
+
+When you need finer control — multiple scenes, headless render targets,
+off-screen texture rendering, or direct access to Filament entities — drop down
+to the `FilamentApp` facade. A running `ThermionViewer` always has a
+`FilamentApp.instance` you can access.
+
+## The FilamentApp facade
+
+`FilamentApp` owns the engine, the render thread, and the swap chain. Key
+methods:
+
+```dart
+final app = FilamentApp.instance!;
+
+// Engine / swap chain / view / scene lifecycle
+final swapChain = await app.createSwapChain(handle);
+final view  = await app.createView(createScene: true);
+final scene = await app.createScene();
+
+// Cameras
+final camera = await app.createCamera();
+
+// Textures & images
+final texture = await app.createTexture(width, height);
+final sampler = await app.createTextureSampler(...);
+final image   = await app.decodeImage(byteData);
+
+// Materials
+final unlit = await app.createUnlitMaterialInstance();
+
+// Cleanup — Filament objects are not GC'd; destroy them explicitly
+await app.destroyView(view);
+await app.destroyScene(scene);
+await app.destroySwapChain(swapChain);
+await app.destroy();
+```
+
+## Headless rendering
+
+For off-screen / server-side rendering (no window), `createHeadlessSwapChain`
+and `createRenderTarget` let you render to a texture and read pixels back,
+without a platform surface. This is how the `examples/dart/cli_headless`
+example renders to a bitmap.
+
+## When to use which layer
+
+| Need                                            | Use                        |
+| ----------------------------------------------- | -------------------------- |
+| Show a 3D model in a Flutter app                | `ViewerWidget` (Quickstart) |
+| Load assets, animate, swap materials            | `ThermionViewer` (Viewer)   |
+| Multiple scenes, headless render targets, raw Filament entities | `FilamentApp` (this page) |
+
+:::caution
+Filament objects (textures, views, scenes, materials) are **not
+garbage-collected** — you must call `destroy()` / `dispose()` on them when
+finished, or you will leak GPU memory.
+:::

@@ -28,6 +28,9 @@ export default defineConfig({
             { label: 'Getting Started', slug: 'getting_started' },
             { label: 'Quick Start', slug: 'quickstart' },
             { label: 'Viewer', slug: 'viewer' },
+            { label: 'Camera Manipulation', slug: 'camera_manipulation' },
+            { label: 'Animations', slug: 'animations' },
+            { label: 'Materials & Textures', slug: 'materials' },
           ],
         },
         {
@@ -36,6 +39,7 @@ export default defineConfig({
             { label: 'Android', slug: 'android' },
             { label: 'iOS', slug: 'ios' },
             { label: 'Web', slug: 'web' },
+            { label: 'Windows', slug: 'windows' },
             { label: 'Linux', slug: 'linux' },
           ],
         },
@@ -43,6 +47,8 @@ export default defineConfig({
           label: 'More',
           items: [
             { label: 'Filament', slug: 'filament' },
+            { label: 'Filament API', slug: 'filament_api' },
+            { label: 'Showcase', slug: 'showcase' },
             { label: 'Build Configuration', slug: 'build_configuration' },
             { label: 'Debugging', slug: 'debugging' },
             { label: 'Contributing', slug: 'contributing' },

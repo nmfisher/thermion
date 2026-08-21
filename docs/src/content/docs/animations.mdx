@@ -1,0 +1,113 @@
+---
+title: Animations
+description: glTF, morph target, and skeletal animation in Thermion.
+---
+
+Thermion supports three kinds of animation, all driven through the `ThermionAsset`
+returned by `viewer.loadGltf(...)`:
+
+1. **glTF animations** — skeletal/morph animations baked into the glTF file.
+2. **Morph targets** — manually driving individual morph target weights.
+3. **Bone animation** — manually constructing per-bone animation frame data.
+
+## glTF animations
+
+A glTF asset can embed one or more named animations. List them, then play by
+index or name:
+
+```dart
+final asset = await viewer.loadGltf("assets/character.glb");
+
+final names = await asset.getGltfAnimationNames();
+// e.g. ["Walk", "Run", "Idle"]
+
+final duration = await asset.getGltfAnimationDuration(0); // seconds
+
+await asset.playGltfAnimation(0,
+  crossfade: 0.2,      // seconds to blend in
+  replaceActive: true, // stop other animations
+  loop: true,
+);
+
+// later
+await asset.stopGltfAnimation(0);
+// or by name:
+await asset.stopGltfAnimationByName("Walk");
+```
+
+To advance playback, call `FilamentApp.instance!.animationManager.update(dt)`
+each frame — this advances all active animations on the render thread.
+
+You can also scrub to a specific time with `setGltfAnimationTime(index, seconds)`.
+
+:::note
+Prefer `playGltfAnimation` + `animationManager.update(dt)` for animations that
+contain morph targets. `setGltfAnimationTime` applies morph weights
+synchronously off the render thread, which can trip Filament's backend thread
+assertion. See `examples/dart/cli_headless` for a runnable example that uses
+`animationManager.update(dt)` for exactly this reason.
+:::
+
+## Morph targets
+
+Morph targets let you blend between vertex states (e.g. facial expressions).
+First discover the targets on a renderable entity, then set all weights at once:
+
+```dart
+final asset = await viewer.loadGltf("assets/cube_with_morph_targets.glb");
+
+// Names for the asset's root entity:
+final targetNames = await asset.getMorphTargetNames();
+// e.g. ["Open", "Close"]
+
+// setMorphTargetWeights takes weights for ALL morph targets on the entity.
+// To activate only one, set the rest to 0.
+await asset.setMorphTargetWeights(entity, [1.0, 0.0]);
+```
+
+> **Important:** `setMorphTargetWeights` accepts the *child mesh entity* that
+> owns the morph targets, not the asset root. Use `getChildEntity` /
+> `getChildEntityNames` to find the right entity. `getMorphTargetNames`, by
+> contrast, takes the parent entity and a mesh name.
+
+For keyframed morph animation, build a `MorphAnimationData` and pass it to
+`setMorphAnimationData`. Clear it later with `clearMorphAnimationData(entity)`.
+
+## Bones / skeletal animation
+
+You can inspect and directly animate a skeleton:
+
+```dart
+final bones = await asset.getBones();          // List<ThermionEntity>
+final boneNames = await asset.getBoneNames();  // List<String>
+final count = await asset.getBoneCount();
+```
+
+To play a custom bone animation, **reset bones to their rest pose first**, then
+enqueue the animation:
+
+```dart
+await asset.resetBones();
+await asset.addBoneAnimation(animation);  // BoneAnimationData
+```
+
+By default, bone animation frame data is interpreted in **bone space**
+(`Space.Bone`): each bone's transform is anchored at its rest-position root,
+with Y pointing towards the bone's "tail", so "rotate around X" means "rotate
+this bone around its local X axis in its rest position". `BoneAnimationData`
+also accepts `space: Space.ParentWorldRotation` — a rotation around the bone's
+parent's origin, but around world-space axes (this is how BVH data describes
+each bone's rotation) — plus `Space.World` and `Space.Model`.
+
+You can also set a bone's transform directly with
+`setBoneTransform(boneEntity, Matrix4 transform)`.
+
+## Notes
+
+- Call `asset.addAnimationComponent()` to attach an animation component if one
+  isn't present, and `removeAnimationComponent()` to detach it.
+- Don't call animation methods while the app is backgrounded — see the
+  [Animations when backgrounded](/filament/#animations-when-backgrounded)
+  footgun.
+- A runnable example mixing glTF animations and morph targets is in
+  `examples/flutter/animations`.

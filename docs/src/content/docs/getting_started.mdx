@@ -5,6 +5,23 @@ description: Install Thermion and configure a Flutter project.
 
 Thermion requires the Flutter `stable` channel with native assets enabled.
 
+## Prerequisites
+
+Thermion compiles native C/C++ (Filament + the Thermion plugin) via a Dart
+build hook, so you need a C/C++ toolchain on your machine. The prebuilt
+Filament binaries are downloaded automatically on first build.
+
+| Platform  | Requirements                                                                                                                       |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **macOS** | Xcode 15+ (provides Clang, CMake, Metal SDK). Minimum deployment target macOS 13.0.                                                |
+| **iOS**   | Xcode 15+. Minimum deployment target iOS 13.0.                                                                                      |
+| **Android** | Android SDK, minSdk 22. NDK is fetched automatically by the Flutter build.                                                        |
+| **Windows** | Visual Studio 2022 with the *Desktop development with C++* workload (includes CMake + Windows SDK). Windows 10+.                  |
+| **Linux** | GCC/Clang, CMake 3.14+, and the system libraries listed on the [Linux](/linux/) page (`libgtk-3-dev`, `liblzma-dev`, `libdrm-dev`). |
+| **Web**   | No extra toolchain — the build hook fetches prebuilt WASM artifacts. Emscripten/CMake/GNU Make are only needed to build the WASM locally (see [Web](/web/)). |
+
+## Setup
+
 1. Switch to the Flutter stable channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
 
 ```bash
@@ -42,3 +59,24 @@ and change the minimum deployment target to 13.0:
 ![Xcode deployment target settings](/images/macos_min_deployment.png)
 
 </details>
+
+3. Run the project
+
+```bash
+$ flutter run -d macos   # or windows, chrome, ios, <device-id>
+```
+
+:::note
+The first build downloads the prebuilt Filament binaries from Cloudflare,
+which can take a while (especially on Windows). They're cached under
+`.dart_tool/`, so subsequent builds are much faster — `flutter clean` forces a
+re-download.
+:::
+
+## Next steps
+
+- For the simplest path to a single 3D model, see [Quick Start](/quickstart/).
+- For fine-grained control over the viewer, see [Viewer](/viewer/).
+- For camera controls, see [Camera Manipulation](/camera_manipulation/).
+- For glTF/morph/bone animation, see [Animations](/animations/).
+- For materials and textures, see [Materials & Textures](/materials/).
