@@ -15,22 +15,16 @@
 - `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
   public interface (previously FFI-only / missing). 
 - `Skybox` is now exported from the public API with methods for layer mask, intensity, etc.  
-- `ThermionViewer.loadSkybox` now returns the created `Skybox`, and
+- `ThermionViewer.setBackgroundColor` and `ThermionViewer.loadSkybox` now
+  return the created `Skybox`, and
   `ThermionViewer.getSkybox` returns whatever skybox is currently attached
   to the viewer's scene. The viewer no longer caches the skybox internally:
-  `removeSkybox` derives it from the scene, so skyboxes attached directly
-  via `Scene.setSkybox` are removed and destroyed the same way as loaded
-  ones.
+  `removeSkybox` derives it from the scene, detaches it, and returns it without
+  destroying caller-owned resources.
   Native library rebuild required (C API signatures for
   the skybox builders changed).
 
 ### Breaking changes
-- remove `ThermionViewer.setBackgroundColor`. For a solid background, build
-  a color skybox and attach it to the scene:
-  `await (await viewer.view.getScene()).setSkybox(await
-  FilamentApp.instance!.createColoredSkybox(r: ..., g: ..., b: ..., a: ...))`.
-  To change the color afterwards, mutate the skybox in place
-  (`(await viewer.getSkybox())!.setColor(...)`) instead of recreating it.
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw
   pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
   instead.

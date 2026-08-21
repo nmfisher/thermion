@@ -162,7 +162,7 @@ class ThermionViewerFFI extends ThermionViewer {
     // Finish any load/remove operation that was accepted before dispose, then
     // detach and destroy every scene-level resource while the scene is valid.
     await _sceneResourceOperations;
-    await _removeSkybox();
+    await _removeSkybox(destroy: true);
     await _removeIbl(destroy: true);
     await clearBackgroundImage(destroy: true);
 
@@ -256,8 +256,19 @@ class ThermionViewerFFI extends ThermionViewer {
     return scene.getSkybox();
   }
 
+  @override
+  Future<Skybox> setBackgroundColor(double r, double g, double b, double alpha) {
+    _throwIfDisposed();
+    return _serializeSceneResourceOperation(() async {
+      await _removeSkybox(destroy: true);
+      final skybox = await _app.createColoredSkybox(r: r, g: g, b: b, a: alpha);
+      await scene.setSkybox(skybox);
+      return skybox;
+    });
+  }
+
   Future<Skybox> _loadSkybox(String skyboxPath) async {
-    await _removeSkybox();
+    await _removeSkybox(destroy: true);
 
     var data = await _app.loadResource(skyboxPath);
 
@@ -364,26 +375,30 @@ class ThermionViewerFFI extends ThermionViewer {
     await scene.setIndirectLight(ibl);
   }
 
-  Future<void> _removeSkybox() async {
+  Future<Skybox?> _removeSkybox({bool destroy = false}) async {
     final upload = _skyboxTextureUploadComplete;
     if (upload != null) {
       await _app.flush();
       await upload;
     }
 
-    // The skybox is whatever is attached to the scene - the viewer does not
-    // cache it, so a skybox attached by the caller is removed and destroyed
-    // just like one loaded via [loadSkybox].
     final skybox = await scene.getSkybox();
     await scene.setSkybox(null);
-    await skybox?.destroy();
-    if (skybox != null && _skyboxTexture != null) {
-      // Engine::destroy queues the skybox destruction. Ensure the skybox has
-      // released its environment texture before destroying that texture.
-      await _app.flush();
-    }
-    await _skyboxTexture?.destroy();
+
+    final texture = _skyboxTexture;
     _skyboxTexture = null;
+
+    if (destroy) {
+      await skybox?.destroy();
+      if (skybox != null && texture != null) {
+        // Engine::destroy queues the skybox destruction. Ensure the skybox has
+        // released its environment texture before destroying that texture.
+        await _app.flush();
+      }
+      await texture?.destroy();
+    }
+
+    return skybox;
   }
 
   //
@@ -435,7 +450,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future removeSkybox() {
+  Future<Skybox?> removeSkybox() {
     _throwIfDisposed();
     return _serializeSceneResourceOperation(_removeSkybox);
   }

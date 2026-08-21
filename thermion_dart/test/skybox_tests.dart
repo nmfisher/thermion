@@ -94,9 +94,29 @@ void main() async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
       final skybox = await result.viewer.loadSkybox("file://${testHelper.assetsDir}/default_env_skybox.ktx");
       expect(skybox, isNotNull);
-      expect(skybox.getTexture(), isNotNull);
+      final texture = skybox.getTexture();
+      expect(texture, isNotNull);
       expect(skybox.getLayerMask(), 0x1);
-      await result.viewer.removeSkybox();
+      expect(await result.viewer.removeSkybox(), isNotNull);
+      await skybox.destroy();
+      await result.viewer.app.flush();
+      await texture!.destroy();
+    });
+  });
+
+  test('setBackgroundColor returns the attached skybox without caching it', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
+      final skybox = await result.viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+      expect(skybox.getTexture(), isNull);
+
+      final attached = await result.viewer.getSkybox();
+      expect(attached, isNotNull);
+      expect(attached!.getTexture(), isNull);
+
+      final removed = await result.viewer.removeSkybox();
+      expect(removed, isNotNull);
+      expect(await result.viewer.getSkybox(), isNull);
+      await skybox.destroy();
     });
   });
 
@@ -112,9 +132,10 @@ void main() async {
       expect(attached, isNotNull);
       expect(attached!.getTexture(), isNull);
 
-      // removeSkybox tears down caller-attached skyboxes too.
-      await result.viewer.removeSkybox();
+      // removeSkybox detaches caller-owned skyboxes without destroying them.
+      expect(await result.viewer.removeSkybox(), isNotNull);
       expect(await result.viewer.getSkybox(), isNull);
+      await skybox.destroy();
     });
   });
 
