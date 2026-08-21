@@ -63,9 +63,10 @@ EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstance(TEngine *tEngine, TMate
 EMSCRIPTEN_KEEPALIVE TScene *Engine_createScene(TEngine *tEngine);
 // Builds a skybox from an environment cubemap. A negative [intensity] leaves
 // the filament default (30000) in place. [showSun] requires a SUN light in the
-// scene to have any effect.
-EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, TTexture* tTexture, bool showSun, float intensity);
-EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildColoredSkybox(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity);
+// scene to have any effect. [priority] is clamped by filament to [0..7];
+// 7 (lowest priority, rendered last) is the default.
+EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, TTexture* tTexture, bool showSun, float intensity, uint8_t priority);
+EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildColoredSkybox(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, uint8_t priority);
 EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLightFromIrradianceTexture(TEngine *tEngine, TTexture *tReflectionsTexture, TTexture* tIrradianceTexture, float intensity);
 EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLightFromIrradianceHarmonics(TEngine *tEngine, TTexture *tReflectionsTexture, float *irradianceHarmonics, float intensity);
 EMSCRIPTEN_KEEPALIVE void Engine_destroySkybox(TEngine *tEngine, TSkybox *tSkybox);

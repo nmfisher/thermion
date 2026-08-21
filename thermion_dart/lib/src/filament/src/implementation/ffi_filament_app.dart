@@ -1576,13 +1576,19 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // Builds an (empty) [Skybox] instance. This will not be attached to any scene until
   // [setSkybox] is called.
   //
-  Future<Skybox> buildSkybox({Texture? texture = null, bool showSun = false, double? intensity}) async {
+  Future<Skybox> buildSkybox({
+    Texture? texture = null,
+    bool showSun = false,
+    double? intensity,
+    int priority = 7,
+  }) async {
     final ptr = await withPointerCallback<TSkybox>((cb) {
       Engine_buildSkyboxRenderThread(
         engine,
         (texture as FFITexture?)?.pointer ?? nullptr,
         showSun,
         intensity ?? -1.0,
+        priority,
         cb,
       );
     });
@@ -1601,9 +1607,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     required double a,
     bool showSun = false,
     double? intensity,
+    int priority = 7,
   }) async {
     final ptr = await withPointerCallback<TSkybox>((cb) {
-      Engine_buildColoredSkyboxRenderThread(engine, r, g, b, a, showSun, intensity ?? -1.0, cb);
+      Engine_buildColoredSkyboxRenderThread(engine, r, g, b, a, showSun, intensity ?? -1.0, priority, cb);
     });
     return FFISkybox(ptr, this);
   }

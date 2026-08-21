@@ -18,8 +18,9 @@
   `Skybox` more closely: `setLayerMask`/`getLayerMask`, `getIntensity`, and
   `getTexture` (null for color-only skyboxes) join `setColor`.
 - `FilamentApp.buildSkybox` and `FilamentApp.createColoredSkybox` accept
-  `showSun` and `intensity` builder options (Filament defaults apply when
-  unset).
+  `showSun`, `intensity`, and `priority` builder options (Filament defaults
+  apply when unset).
+- `Scene.getSkybox` mirrors Filament's `Scene::getSkybox`.
 - `ThermionViewer.loadSkybox` and `ThermionViewer.setBackgroundColor` now
   return the created `Skybox`, so callers can mutate it (e.g.
   `Skybox.setColor`, `Skybox.setLayerMask`) without going through

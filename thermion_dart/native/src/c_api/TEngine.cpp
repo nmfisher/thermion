@@ -360,7 +360,7 @@ namespace thermion
             return reinterpret_cast<TScene *>(scene);
         }
 
-        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity)
+        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity, uint8_t priority)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *texture = reinterpret_cast<Texture *>(tTexture);
@@ -376,18 +376,20 @@ namespace thermion
             {
                 skyboxBuilder.intensity(intensity);
             }
+            skyboxBuilder.priority(priority);
 
             auto *skybox = skyboxBuilder.build(*engine);
 
             return reinterpret_cast<TSkybox *>(skybox);
         }
 
-        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildColoredSkybox(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity)
+        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildColoredSkybox(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, uint8_t priority)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto skyboxBuilder = filament::Skybox::Builder()
                 .color({r, g, b, a})
-                .showSun(showSun);
+                .showSun(showSun)
+                .priority(priority);
             if (intensity >= 0.0f)
             {
                 skyboxBuilder.intensity(intensity);

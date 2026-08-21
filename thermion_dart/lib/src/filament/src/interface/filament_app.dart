@@ -404,9 +404,11 @@ abstract class FilamentApp<T> {
   //
   // [showSun] renders the sun (requires a SUN light in the scene; off by
   // default). [intensity] scales the skybox texel values to lux/lumen-m^2
-  // (Filament's default of 30000 is used when null).
+  // (Filament's default of 30000 is used when null). [priority] is the
+  // rendering priority, clamped by Filament to [0..7] (7 = lowest priority,
+  // rendered last; the default).
   //
-  Future<Skybox> buildSkybox({Texture? texture = null, bool showSun = false, double? intensity});
+  Future<Skybox> buildSkybox({Texture? texture = null, bool showSun = false, double? intensity, int priority = 7});
 
   // Creates a [Skybox] with a solid color. This will not be attached to any
   // scene until [setSkybox] is called.
@@ -416,7 +418,9 @@ abstract class FilamentApp<T> {
   //
   // [showSun] renders the sun (requires a SUN light in the scene; off by
   // default). [intensity] scales the skybox color to lux/lumen-m^2
-  // (Filament's default of 30000 is used when null).
+  // (Filament's default of 30000 is used when null). [priority] is the
+  // rendering priority, clamped by Filament to [0..7] (7 = lowest priority,
+  // rendered last; the default).
   Future<Skybox> createColoredSkybox({
     required double r,
     required double g,
@@ -424,6 +428,7 @@ abstract class FilamentApp<T> {
     required double a,
     bool showSun = false,
     double? intensity,
+    int priority = 7,
   });
 
   //

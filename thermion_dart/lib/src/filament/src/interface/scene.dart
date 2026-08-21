@@ -42,4 +42,11 @@ abstract class Scene<T> extends NativeHandle<T> {
   Future setSkybox(Skybox? skybox) {
     throw UnimplementedError();
   }
+
+  ///
+  /// Returns the skybox currently attached to this scene, or null.
+  ///
+  Future<Skybox?> getSkybox() {
+    throw UnimplementedError();
+  }
 }

@@ -75,6 +75,17 @@ class FFIScene extends Scene<Pointer<TScene>> {
   }
 
   ///
+  ///
+  ///
+  Future<Skybox?> getSkybox() async {
+    final ptr = Scene_getSkybox(scene);
+    if (ptr == nullptr) {
+      return null;
+    }
+    return FFISkybox(ptr, _app);
+  }
+
+  ///
   /// Destroys this scene and releases its resources.
   ///
   Future destroy() async {
