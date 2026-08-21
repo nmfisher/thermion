@@ -426,6 +426,12 @@ abstract class View<T> extends NativeHandle<T> {
   /// is replaced, cleared, or when the view is destroyed. Do not call
   /// dispose() on a ColorGrading that is currently attached to a view.
   ///
+  /// A ColorGrading may only be attached to ONE view at a time: each view
+  /// destroys what it owns, so sharing an instance across views leads to a
+  /// dangling pointer. To apply the same look to several views, build one
+  /// grading per view - the builder is reusable, so a single builder can
+  /// produce them all before being disposed.
+  ///
   /// Pass null to clear any existing color grading from this view (the
   /// previously-set grading, if any, is destroyed).
   Future setColorGrading(ColorGrading? colorGrading);
