@@ -55,31 +55,6 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
     );
   }
 
-  /// Registers a Flutter texture whose GL name is allocated by Flutter's
-  /// raster context during the first populate callback.
-  ///
-  /// This allocation deliberately bypasses the normal native texture creation
-  /// path because Filament's OpenGL context does not exist yet.
-  static Future<MethodChannelPlatformTextureDescriptor>
-  allocateContextBootstrap(MethodChannel channel, int width, int height) async {
-    final flutterTextureId = await channel.invokeMethod<int>(
-      'createContextBootstrap',
-      [width, height],
-    );
-    if (flutterTextureId == null || flutterTextureId < 0) {
-      throw StateError('Failed to create Flutter context bootstrap texture');
-    }
-    return MethodChannelPlatformTextureDescriptor(
-      channel,
-      flutterTextureId: flutterTextureId,
-      hardwareId: 0,
-      windowHandle: 0,
-      width: width,
-      height: height,
-      deferred: true,
-    );
-  }
-
   /// Waits for populate() to create the GL texture (deferred path).
   /// Returns the hardware texture ID once ready.
   @override

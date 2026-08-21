@@ -34,22 +34,8 @@ class PlatformTextureDescriptorRegistry {
   bool contains(PlatformTextureDescriptor descriptor) =>
       _descriptors.any((candidate) => identical(candidate, descriptor));
 
-  Future<PlatformTextureDescriptor> create(int width, int height) {
-    return createWith(_allocator, width, height);
-  }
-
-  /// Allocates and tracks a descriptor using a specialized allocator.
-  ///
-  /// Most descriptors use the registry's default allocator. Initialization
-  /// textures are the exception: Linux OpenGL must register a deferred Flutter
-  /// texture before the Filament context exists, so it cannot use the normal
-  /// platform-surface allocation path.
-  Future<PlatformTextureDescriptor> createWith(
-    PlatformTextureDescriptorAllocator allocator,
-    int width,
-    int height,
-  ) async {
-    final descriptor = await allocator(width, height);
+  Future<PlatformTextureDescriptor> create(int width, int height) async {
+    final descriptor = await _allocator(width, height);
     _descriptors.add(descriptor);
     return descriptor;
   }

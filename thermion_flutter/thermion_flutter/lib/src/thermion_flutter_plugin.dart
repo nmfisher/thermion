@@ -91,14 +91,17 @@ abstract class ThermionFlutterPlugin {
   ///
   /// Consumed by ThermionTextureBootstrap; not part of the public API.
   @internal
-  Future<PlatformTextureDescriptor?> createContextBootstrap() async => null;
+  Future<int?> createContextBootstrap() async => null;
 
-  /// Releases a descriptor returned by [createContextBootstrap]; only ever
-  /// called with a non-null descriptor. Not part of the public API.
+  /// Waits until Flutter has populated a texture returned by
+  /// [createContextBootstrap]. Not part of the public API.
   @internal
-  Future<void> destroyContextBootstrap(PlatformTextureDescriptor descriptor) {
-    return descriptor.destroy();
-  }
+  Future<void> awaitContextBootstrap(int textureId) async {}
+
+  /// Releases a texture returned by [createContextBootstrap]. Not part of the
+  /// public API.
+  @internal
+  Future<void> destroyContextBootstrap(int textureId) async {}
 
   /// Creates a rendering surface and binds to the given [View].
   /// This is an internal method, don't call this yourself unless you are a

@@ -8,6 +8,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'native_rendering_lifecycle_controller.dart';
 import 'native_texture_surface_manager.dart';
 import 'platform_texture_descriptor.dart';
+import 'platform_texture_descriptor_registry_native.dart';
 import '../../../thermion_flutter.dart';
 
 /// Initializes the native Filament application and delegates frame lifecycle
@@ -162,19 +163,36 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @internal
   @override
-  Future<PlatformTextureDescriptor?> createContextBootstrap() async {
+  Future<int?> createContextBootstrap() async {
     if (!Platform.isLinux ||
         _resolveBackend() != Backend.OPENGL ||
         FilamentApp.instance != null) {
       return null;
     }
-    return _textureSurfaces.createContextBootstrap();
+    final textureId = await NativePlatformTextureDescriptorRegistry.channel
+        .invokeMethod<int>('createContextBootstrap', const [1, 1]);
+    if (textureId == null || textureId < 0) {
+      throw StateError('Failed to create Flutter context bootstrap texture');
+    }
+    return textureId;
   }
 
   @internal
   @override
-  Future<void> destroyContextBootstrap(PlatformTextureDescriptor descriptor) {
-    return _textureSurfaces.destroyContextBootstrap(descriptor);
+  Future<void> awaitContextBootstrap(int textureId) async {
+    await NativePlatformTextureDescriptorRegistry.channel.invokeMethod<int>(
+      'awaitTextureReady',
+      textureId,
+    );
+  }
+
+  @internal
+  @override
+  Future<void> destroyContextBootstrap(int textureId) async {
+    await NativePlatformTextureDescriptorRegistry.channel.invokeMethod<void>(
+      'destroyTexture',
+      textureId,
+    );
   }
 
   @override

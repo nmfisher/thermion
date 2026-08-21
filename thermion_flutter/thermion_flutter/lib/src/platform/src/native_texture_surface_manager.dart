@@ -79,17 +79,6 @@ class NativeTextureSurfaceManager {
 
   bool get hasUnavailableSurfaces => registry.hasUnavailableSurfaces;
 
-  /// Creates the pre-engine texture that Flutter populates on its raster
-  /// thread, allowing native code to capture the EGL context that Filament
-  /// must share with.
-  Future<PlatformTextureDescriptor> createContextBootstrap() {
-    return registry.serialized(registry.createContextBootstrap);
-  }
-
-  Future<void> destroyContextBootstrap(PlatformTextureDescriptor descriptor) {
-    return registry.serialized(() => registry.destroy(descriptor));
-  }
-
   Future<FilamentRenderingContext> getFilamentRenderingContext(
     Backend backend,
   ) {

@@ -76,13 +76,12 @@ public:
             });
         }
 
-        if (_platform) {
-            ThermionPlatformEGLHeadless_Destroy(_platform);
-            _platform = nullptr;
-        }
-
         if (_eglThread.joinable()) {
             RunOnEglThread([this]() {
+                if (_platform) {
+                    ThermionPlatformEGLHeadless_Destroy(_platform);
+                    _platform = nullptr;
+                }
                 if (_context != EGL_NO_CONTEXT &&
                     _display != EGL_NO_DISPLAY) {
                     eglBindAPI(EGL_OPENGL_API);
@@ -144,22 +143,6 @@ public:
         _display = static_cast<EGLDisplay>(borrowedDisplay);
         if (_display != EGL_NO_DISPLAY) {
             _ownsDisplay = false;
-            // eglInitialize is idempotent for an initialized EGLDisplay. Do
-            // this only after populate() has captured Flutter's real display:
-            // on NVIDIA it also makes the desktop-GL client API usable on the
-            // display that Flutter initialized for GLES.
-            EGLint major = 0;
-            EGLint minor = 0;
-            if (!eglInitialize(_display, &major, &minor)) {
-                _lastError =
-                    "Failed to initialize Flutter's captured EGLDisplay";
-                LOG_ERROR("Failed to initialize Flutter EGL display");
-                _display = EGL_NO_DISPLAY;
-                return;
-            }
-            std::cerr << "[ThermionGL:Context] Using Flutter EGL display="
-                      << _display << " (" << major << "." << minor << ")"
-                      << std::endl;
         } else {
             // Non-Flutter fallback: obtain a display tied to the GBM device.
             PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT =
@@ -182,15 +165,6 @@ public:
                 return;
             }
             _ownsDisplay = true;
-            EGLint major, minor;
-            if (!eglInitialize(_display, &major, &minor)) {
-                _lastError = "Failed to initialize EGLDisplay";
-                LOG_ERROR("Failed to initialize EGL display");
-                _display = EGL_NO_DISPLAY;
-                return;
-            }
-            std::cerr << "[ThermionGL:Context] EGL initialized: "
-                      << major << "." << minor << std::endl;
         }
 
         // Initialize desktop EGL on an isolated thread. Flutter's platform
@@ -198,6 +172,21 @@ public:
         // EGL_BAD_ACCESS when a second client API is activated there.
         StartEglThread();
         RunOnEglThread([this]() {
+            EGLint major = 0;
+            EGLint minor = 0;
+            if (!eglInitialize(_display, &major, &minor)) {
+                _lastError = _ownsDisplay
+                    ? "Failed to initialize EGLDisplay"
+                    : "Failed to initialize Flutter's captured EGLDisplay";
+                LOG_ERROR("Failed to initialize EGL display");
+                _display = EGL_NO_DISPLAY;
+                return;
+            }
+            std::cerr << "[ThermionGL:Context] Using "
+                      << (_ownsDisplay ? "GBM" : "Flutter")
+                      << " EGL display=" << _display << " (" << major << "."
+                      << minor << ")" << std::endl;
+
             // Step 4: Choose EGL config
             // Must bind EGL_OPENGL_API (not ES) to match Filament's
             // PlatformEGLHeadless which uses full OpenGL 4.1 on Linux desktop.
@@ -364,9 +353,11 @@ public:
     }
 
     void* GetPlatform() {
-        if (!_platform) {
-            _platform = ThermionPlatformEGLHeadless_Create(_display);
-        }
+        RunOnEglThread([this]() {
+            if (!_platform) {
+                _platform = ThermionPlatformEGLHeadless_Create(_display);
+            }
+        });
         return _platform;
     }
 

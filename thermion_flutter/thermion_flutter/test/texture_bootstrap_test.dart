@@ -2,26 +2,32 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/widgets/src/texture_bootstrap.dart';
 
 void main() {
   testWidgets(
     'initializes only after the bootstrap texture is ready and then destroys it',
     (tester) async {
-      final descriptor = _BootstrapDescriptor();
+      const textureId = 7;
       final events = <String>[];
-      descriptor.events = events;
+      final ready = Completer<void>();
+      var destroyCount = 0;
 
       await tester.pumpWidget(
         ThermionTextureBootstrap(
           createContextBootstrap: () async {
             events.add('create');
-            return descriptor;
+            return textureId;
           },
-          destroyContextBootstrap: (descriptor) async {
+          awaitContextBootstrap: (id) async {
+            expect(id, textureId);
+            events.add('await');
+            await ready.future;
+          },
+          destroyContextBootstrap: (id) async {
+            expect(id, textureId);
             events.add('destroy');
-            await descriptor.destroy();
+            destroyCount++;
           },
           initialize: () async {
             events.add('initialize');
@@ -34,26 +40,33 @@ void main() {
       expect(find.byType(Texture), findsOneWidget);
       expect(events, ['create', 'await']);
 
-      descriptor.completeReady(42);
+      ready.complete();
       await tester.pump();
       await tester.pump();
 
-      expect(descriptor.hardwareId, 42);
       expect(find.byType(Texture), findsNothing);
       expect(events, ['create', 'await', 'initialize', 'destroy']);
-      expect(descriptor.destroyCount, 1);
+      expect(destroyCount, 1);
     },
   );
 
   testWidgets('disposing cancels a pending bootstrap exactly once', (
     tester,
   ) async {
-    final descriptor = _BootstrapDescriptor();
+    final ready = Completer<void>();
     var initializeCount = 0;
+    var destroyCount = 0;
 
     await tester.pumpWidget(
       ThermionTextureBootstrap(
-        createContextBootstrap: () async => descriptor,
+        createContextBootstrap: () async => 7,
+        awaitContextBootstrap: (_) => ready.future,
+        destroyContextBootstrap: (_) async {
+          destroyCount++;
+          if (!ready.isCompleted) {
+            ready.completeError(StateError('destroyed'));
+          }
+        },
         initialize: () async {
           initializeCount++;
         },
@@ -66,49 +79,8 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
 
-    expect(descriptor.destroyCount, 1);
+    expect(destroyCount, 1);
     expect(initializeCount, 0);
     expect(tester.takeException(), isNull);
   });
-}
-
-class _BootstrapDescriptor extends PlatformTextureDescriptor {
-  _BootstrapDescriptor()
-    : super(flutterTextureId: 7, hardwareId: 0, width: 1, height: 1);
-
-  final _ready = Completer<int>();
-  int destroyCount = 0;
-  bool _destroyed = false;
-  List<String>? events;
-
-  @override
-  bool get deferred => true;
-
-  @override
-  bool get destroyed => _destroyed;
-
-  @override
-  Future<int> awaitTextureReady() {
-    events?.add('await');
-    return _ready.future;
-  }
-
-  void completeReady(int textureId) {
-    if (!_ready.isCompleted) {
-      _ready.complete(textureId);
-    }
-  }
-
-  @override
-  Future<void> destroy() async {
-    if (_destroyed) return;
-    _destroyed = true;
-    destroyCount++;
-    if (!_ready.isCompleted) {
-      _ready.completeError(StateError('destroyed'));
-    }
-  }
-
-  @override
-  void markTextureFrameAvailable() {}
 }
