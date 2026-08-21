@@ -1578,7 +1578,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   //
   Future<Skybox> buildSkybox({Texture? texture = null, bool showSun = false, double? intensity}) async {
     final ptr = await withPointerCallback<TSkybox>((cb) {
-      Engine_buildSkyboxRenderThread(engine, (texture as FFITexture?)?.pointer ?? nullptr, showSun, intensity ?? -1.0, cb);
+      Engine_buildSkyboxRenderThread(
+        engine,
+        (texture as FFITexture?)?.pointer ?? nullptr,
+        showSun,
+        intensity ?? -1.0,
+        cb,
+      );
     });
     return FFISkybox(ptr, this);
   }

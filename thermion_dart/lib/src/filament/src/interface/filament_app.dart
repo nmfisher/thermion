@@ -417,7 +417,14 @@ abstract class FilamentApp<T> {
   // [showSun] renders the sun (requires a SUN light in the scene; off by
   // default). [intensity] scales the skybox color to lux/lumen-m^2
   // (Filament's default of 30000 is used when null).
-  Future<Skybox> createColoredSkybox({required double r, required double g, required double b, required double a, bool showSun = false, double? intensity});
+  Future<Skybox> createColoredSkybox({
+    required double r,
+    required double g,
+    required double b,
+    required double a,
+    bool showSun = false,
+    double? intensity,
+  });
 
   //
   Future<bool> isRenderable(ThermionEntity entity);

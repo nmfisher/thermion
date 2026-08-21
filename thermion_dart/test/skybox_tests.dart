@@ -63,7 +63,11 @@ void main() async {
       expect(defaultSkybox.getIntensity(), 30000.0);
 
       final dimSkybox = await FilamentApp.instance!.createColoredSkybox(
-        r: 0.0, g: 0.0, b: 0.0, a: 1.0, intensity: 100.0,
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
+        intensity: 100.0,
       );
       expect(dimSkybox.getIntensity(), 100.0);
 
