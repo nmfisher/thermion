@@ -17,6 +17,7 @@ void main() async {
       await scene.setSkybox(skybox);
       await testHelper.capture(result.viewer.view, "colored_skybox_black");
 
+      await scene.setSkybox(null);
       await skybox.destroy();
     });
   });
@@ -31,6 +32,7 @@ void main() async {
       await scene.setSkybox(skybox);
       await testHelper.capture(result.viewer.view, "colored_skybox_transparent");
 
+      await scene.setSkybox(null);
       await skybox.destroy();
     });
   });
@@ -45,6 +47,7 @@ void main() async {
       await scene.setSkybox(skybox);
       await testHelper.capture(result.viewer.view, "colored_skybox_red");
 
+      await scene.setSkybox(null);
       await skybox.destroy();
     });
   });
@@ -174,6 +177,7 @@ void main() async {
       );
       expect(skybox.getIntensity(), 2500.0);
       await scene.setSkybox(skybox);
+      await scene.setSkybox(null);
       await skybox.destroy();
     });
   });
@@ -226,6 +230,7 @@ void main() async {
 
       await scene.removeEntity(sunLight);
       lightManager.destroyLight(sunLight);
+      await scene.setSkybox(null);
       await withSunSkybox.destroy();
       await plain.destroy();
     });
