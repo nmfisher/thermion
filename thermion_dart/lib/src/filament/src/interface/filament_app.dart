@@ -27,7 +27,8 @@ class FilamentConfig<T, U> {
 abstract class FilamentApp<T> {
   static FilamentApp? instance;
 
-  T get engine;
+  /// A handle to the native Filament Engine instance attached to this application.
+  Pointer<TEngine> get engine;
   T get gltfAssetLoader;
   T get renderer;
   AnimationManager<T> get animationManager;
