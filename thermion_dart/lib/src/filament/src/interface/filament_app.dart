@@ -1,7 +1,6 @@
 import 'package:thermion_dart/src/filament/src/interface/animation_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
-import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FilamentConfig<T, U> {
@@ -403,14 +402,22 @@ abstract class FilamentApp<T> {
   // Builds a [Skybox] instance. This will not be attached to any scene until
   // [setSkybox] is called.
   //
-  Future<Skybox> buildSkybox({Texture? texture = null});
+  // [showSun] renders the sun (requires a SUN light in the scene; off by
+  // default). [intensity] scales the skybox texel values to lux/lumen-m^2
+  // (Filament's default of 30000 is used when null).
+  //
+  Future<Skybox> buildSkybox({Texture? texture = null, bool showSun = false, double? intensity});
 
   // Creates a [Skybox] with a solid color. This will not be attached to any
   // scene until [setSkybox] is called.
   //
   // This is useful for clearing render targets with a specific color
   // (including fully transparent for overlay passes).
-  Future<Skybox> createColoredSkybox({required double r, required double g, required double b, required double a});
+  //
+  // [showSun] renders the sun (requires a SUN light in the scene; off by
+  // default). [intensity] scales the skybox color to lux/lumen-m^2
+  // (Filament's default of 30000 is used when null).
+  Future<Skybox> createColoredSkybox({required double r, required double g, required double b, required double a, bool showSun = false, double? intensity});
 
   //
   Future<bool> isRenderable(ThermionEntity entity);

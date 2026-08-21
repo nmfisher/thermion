@@ -84,8 +84,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThread(TEngine *tEngine, uint32_t requestId,  VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void Engine_executeRenderThread(TEngine *tEngine, uint32_t requestId,  VoidCallback onComplete);
-        EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, TTexture *tTexture, void (*onComplete)(TSkybox *));
-        EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxRenderThread(TEngine *tEngine, float r, float g, float b, float a, void (*onComplete)(TSkybox *));
+        EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity, void (*onComplete)(TSkybox *));
+        EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxRenderThread(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, void (*onComplete)(TSkybox *));
         EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceTextureRenderThread(TEngine *tEngine, TTexture *tReflectionsTexture, TTexture* tIrradianceTexture, float intensity, void (*onComplete)(TIndirectLight *));
         EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightFromIrradianceHarmonicsRenderThread(TEngine *tEngine, TTexture *tReflectionsTexture, float *harmonics, float intensity, void (*onComplete)(TIndirectLight *));
 

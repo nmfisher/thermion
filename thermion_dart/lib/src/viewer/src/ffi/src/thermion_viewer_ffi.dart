@@ -249,17 +249,18 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future setBackgroundColor(double r, double g, double b, double a) {
+  Future<Skybox> setBackgroundColor(double r, double g, double b, double a) {
     _throwIfDisposed();
     return _serializeSceneResourceOperation(() async {
       await _removeSkybox();
       _skybox = await _app.buildSkybox() as FFISkybox;
       await scene.setSkybox(_skybox!);
       await _skybox!.setColor(r, g, b, a);
+      return _skybox!;
     });
   }
 
-  Future<void> _loadSkybox(String skyboxPath) async {
+  Future<Skybox> _loadSkybox(String skyboxPath) async {
     await _removeSkybox();
 
     var data = await _app.loadResource(skyboxPath);
@@ -293,11 +294,12 @@ class ThermionViewerFFI extends ThermionViewer {
     });
     _skyboxTextureUploadComplete = trackedUploadFuture;
     await completer.future;
+    return _skybox!;
   }
 
   //
   @override
-  Future loadSkybox(String skyboxPath) {
+  Future<Skybox> loadSkybox(String skyboxPath) {
     _throwIfDisposed();
     return _serializeSceneResourceOperation(() => _loadSkybox(skyboxPath));
   }
