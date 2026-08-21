@@ -25,7 +25,10 @@ void main(List<String> arguments) async {
   await camera.setLensProjection();
   await FilamentApp.instance!.renderManager.attach(view, swapChain);
 
-  await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+  await (await viewer.view.getScene()).setSkybox(
+    await FilamentApp.instance!
+        .createColoredSkybox(r: 1.0, g: 0.0, b: 0.0, a: 1.0),
+  );
 
   var skyboxPath = File("../../assets/default_env_skybox.ktx").absolute;
   await viewer.loadSkybox(

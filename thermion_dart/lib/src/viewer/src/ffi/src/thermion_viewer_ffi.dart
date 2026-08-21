@@ -162,7 +162,7 @@ class ThermionViewerFFI extends ThermionViewer {
     // Finish any load/remove operation that was accepted before dispose, then
     // detach and destroy every scene-level resource while the scene is valid.
     await _sceneResourceOperations;
-    await _removeSkybox();
+    await _removeSkybox(destroy: true);
     await _removeIbl(destroy: true);
     await clearBackgroundImage(destroy: true);
 
@@ -247,25 +247,34 @@ class ThermionViewerFFI extends ThermionViewer {
     return (_backgroundImage!.width!, _backgroundImage!.height!);
   }
 
-  //
+  ///
+  /// Returns the skybox currently attached to this viewer's scene, or null.
+  /// The viewer does not cache the skybox; this always reflects the scene.
+  ///
   @override
-  Future setBackgroundColor(double r, double g, double b, double a) {
+  Future<Skybox?> getSkybox() {
+    return scene.getSkybox();
+  }
+
+  @override
+  Future<Skybox> setBackgroundColor(double r, double g, double b, double alpha) {
     _throwIfDisposed();
     return _serializeSceneResourceOperation(() async {
-      await _removeSkybox();
-      _skybox = await _app.buildSkybox() as FFISkybox;
-      await scene.setSkybox(_skybox!);
-      await _skybox!.setColor(r, g, b, a);
+      await _removeSkybox(destroy: true);
+      final skybox = await _app.createColoredSkybox(r: r, g: g, b: b, a: alpha);
+      await scene.setSkybox(skybox);
+      return skybox;
     });
   }
 
-  Future<void> _loadSkybox(String skyboxPath) async {
-    await _removeSkybox();
+  Future<Skybox> _loadSkybox(String skyboxPath) async {
+    await _removeSkybox(destroy: true);
 
     var data = await _app.loadResource(skyboxPath);
 
     final completer = Completer<void>();
     FFIKtx1Bundle? bundle;
+    late FFISkybox skybox;
 
     final uploadFuture = withVoidCallback((requestId, onTextureUploadComplete) async {
       bundle = await FFIKtx1Bundle.create(_app, data) as FFIKtx1Bundle;
@@ -277,9 +286,9 @@ class ThermionViewerFFI extends ThermionViewer {
               )
               as FFITexture;
 
-      _skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
+      skybox = await _app.buildSkybox(texture: _skyboxTexture) as FFISkybox;
 
-      await scene.setSkybox(_skybox!);
+      await scene.setSkybox(skybox);
 
       completer.complete();
     });
@@ -293,11 +302,12 @@ class ThermionViewerFFI extends ThermionViewer {
     });
     _skyboxTextureUploadComplete = trackedUploadFuture;
     await completer.future;
+    return skybox;
   }
 
   //
   @override
-  Future loadSkybox(String skyboxPath) {
+  Future<Skybox> loadSkybox(String skyboxPath) {
     _throwIfDisposed();
     return _serializeSceneResourceOperation(() => _loadSkybox(skyboxPath));
   }
@@ -365,23 +375,30 @@ class ThermionViewerFFI extends ThermionViewer {
     await scene.setIndirectLight(ibl);
   }
 
-  Future<void> _removeSkybox() async {
+  Future<Skybox?> _removeSkybox({bool destroy = false}) async {
     final upload = _skyboxTextureUploadComplete;
     if (upload != null) {
       await _app.flush();
       await upload;
     }
 
+    final skybox = await scene.getSkybox();
     await scene.setSkybox(null);
-    await _skybox?.destroy();
-    if (_skybox != null && _skyboxTexture != null) {
-      // Engine::destroy queues the skybox destruction. Ensure the skybox has
-      // released its environment texture before destroying that texture.
-      await _app.flush();
-    }
-    await _skyboxTexture?.destroy();
-    _skybox = null;
+
+    final texture = _skyboxTexture;
     _skyboxTexture = null;
+
+    if (destroy) {
+      await skybox?.destroy();
+      if (skybox != null && texture != null) {
+        // Engine::destroy queues the skybox destruction. Ensure the skybox has
+        // released its environment texture before destroying that texture.
+        await _app.flush();
+      }
+      await texture?.destroy();
+    }
+
+    return skybox;
   }
 
   //
@@ -392,7 +409,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future? _skyboxTextureUploadComplete;
   FFITexture? _skyboxTexture;
-  FFISkybox? _skybox;
 
   Future? _iblTextureUploadComplete;
 
@@ -434,7 +450,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future removeSkybox() {
+  Future<Skybox?> removeSkybox() {
     _throwIfDisposed();
     return _serializeSceneResourceOperation(_removeSkybox);
   }

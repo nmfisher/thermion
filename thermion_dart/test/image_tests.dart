@@ -22,9 +22,11 @@ void main() async {
 
   test('set background color', () async {
     await ViewerBuilder(testHelper).execute((result) async {
-      await result.viewer.setBackgroundColor(0, 1, 0, 1);
+      final scene = await result.viewer.view.getScene();
+      final skybox = await FilamentApp.instance!.createColoredSkybox(r: 0, g: 1, b: 0, a: 1);
+      await scene.setSkybox(skybox);
       await testHelper.capture(result.viewer.view, "background_green");
-      await result.viewer.setBackgroundColor(1, 0, 0, 1);
+      await skybox.setColor(1, 0, 0, 1);
       await testHelper.capture(result.viewer.view, "background_red");
     });
   });

@@ -3,6 +3,7 @@
 Compare PNG files between golden reference images and test output images.
 """
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -30,7 +31,9 @@ def calculate_image_difference(img1_path, img2_path):
             diff = ImageChops.difference(img1, img2)
             
             # Convert to numpy for calculations
-            diff_array = np.array(diff)
+            # Promote before squaring; uint8 arithmetic wraps at 255 and can
+            # otherwise report non-identical pixels as an MSE of zero.
+            diff_array = np.asarray(diff, dtype=np.float32)
             
             # Calculate metrics
             mse = np.mean(diff_array ** 2)
@@ -53,9 +56,33 @@ def find_png_files(directory):
     return sorted(png_files)
 
 def main():
-    # Define paths
-    golden_dir = Path("golden-downloads/thermion_dart/test/output")
-    output_dir = Path("output")
+    parser = argparse.ArgumentParser(description="Compare rendered PNGs with golden images")
+    parser.add_argument(
+        "--golden-dir",
+        default="golden-downloads/thermion_dart/test/output",
+        help="directory containing golden PNG files",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="output",
+        help="directory containing rendered PNG files",
+    )
+    parser.add_argument(
+        "--max-mse",
+        type=float,
+        default=0.01,
+        help="maximum accepted mean squared channel error (default: 0.01)",
+    )
+    parser.add_argument(
+        "--max-difference",
+        type=float,
+        default=2.0,
+        help="maximum accepted per-channel difference (default: 2)",
+    )
+    args = parser.parse_args()
+
+    golden_dir = Path(args.golden_dir)
+    output_dir = Path(args.output_dir)
     
     # Check if directories exist
     if not golden_dir.exists():
@@ -84,45 +111,49 @@ def main():
         output_path = output_dir / golden_file
         
         if not output_path.exists():
-            print(f"❌ MISSING: {golden_file} (exists in golden but not in output)")
+            print(f"MISSING: {golden_file} (exists in golden but not in output)")
             missing_count += 1
             continue
         
         mse, max_diff, are_identical = calculate_image_difference(golden_path, output_path)
         
         if mse is None:
-            print(f"❌ ERROR: {golden_file} (failed to compare)")
+            print(f"ERROR: {golden_file} (failed to compare)")
             error_count += 1
             continue
         
-        if are_identical:
-            print(f"✅ IDENTICAL: {golden_file}")
+        within_tolerance = mse <= args.max_mse and max_diff <= args.max_difference
+        if within_tolerance:
+            if are_identical:
+                print(f"IDENTICAL: {golden_file}")
+            else:
+                print(f"WITHIN TOLERANCE: {golden_file} (MSE: {mse:.4f}, Max diff: {max_diff})")
             identical_count += 1
         else:
-            print(f"⚠️  DIFFERENT: {golden_file} (MSE: {mse:.2f}, Max diff: {max_diff})")
+            print(f"DIFFERENT: {golden_file} (MSE: {mse:.2f}, Max diff: {max_diff})")
             different_count += 1
     
     # Check for files that exist in output but not in golden
     extra_files = set(output_files) - set(golden_files)
     for extra_file in extra_files:
-        print(f"ℹ️  EXTRA: {extra_file} (exists in output but not in golden)")
+        print(f"EXTRA: {extra_file} (exists in output but not in golden)")
     
     # Print summary
     print("\n" + "="*50)
     print("COMPARISON SUMMARY:")
-    print(f"✅ Identical files: {identical_count}")
-    print(f"⚠️  Different files: {different_count}")
-    print(f"❌ Missing files: {missing_count}")
-    print(f"❌ Error files: {error_count}")
-    print(f"ℹ️  Extra files: {len(extra_files)}")
-    print(f"📊 Total golden files: {len(golden_files)}")
+    print(f"Identical files: {identical_count}")
+    print(f"Different files: {different_count}")
+    print(f"Missing files: {missing_count}")
+    print(f"Error files: {error_count}")
+    print(f"Extra files: {len(extra_files)}")
+    print(f"Total golden files: {len(golden_files)}")
     
     # Exit with appropriate code
-    if different_count > 0 or missing_count > 0 or error_count > 0:
-        print("\n❌ COMPARISON FAILED")
+    if different_count > 0 or missing_count > 0 or error_count > 0 or extra_files:
+        print("\nCOMPARISON FAILED")
         sys.exit(1)
     else:
-        print("\n✅ ALL COMPARISONS PASSED")
+        print("\nALL COMPARISONS PASSED")
         sys.exit(0)
 
 if __name__ == "__main__":

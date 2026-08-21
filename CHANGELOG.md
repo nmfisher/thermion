@@ -14,6 +14,15 @@
   remains supported, but its lifetime is entirely yours. 
 - `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
   public interface (previously FFI-only / missing). 
+- `Skybox` is now exported from the public API with methods for layer mask, intensity, etc.  
+- `ThermionViewer.setBackgroundColor` and `ThermionViewer.loadSkybox` now
+  return the created `Skybox`, and
+  `ThermionViewer.getSkybox` returns whatever skybox is currently attached
+  to the viewer's scene. The viewer no longer caches the skybox internally:
+  `removeSkybox` derives it from the scene, detaches it, and returns it without
+  destroying caller-owned resources.
+  Native library rebuild required (C API signatures for
+  the skybox builders changed).
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw

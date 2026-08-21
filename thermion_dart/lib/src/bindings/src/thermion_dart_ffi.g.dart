@@ -1185,18 +1185,38 @@ external void Engine_destroyMaterialInstance(
 @ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TScene> Engine_createScene(ffi.Pointer<TEngine> tEngine);
 
-@ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>)>(isLeaf: true)
-external ffi.Pointer<TSkybox> Engine_buildSkybox(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TTexture> tTexture);
-
-@ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TEngine>, ffi.Float, ffi.Float, ffi.Float, ffi.Float)>(
+@ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>, ffi.Bool, ffi.Float, ffi.Uint8)>(
   isLeaf: true,
 )
+external ffi.Pointer<TSkybox> Engine_buildSkybox(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  bool showSun,
+  double intensity,
+  int priority,
+);
+
+@ffi.Native<
+  ffi.Pointer<TSkybox> Function(
+    ffi.Pointer<TEngine>,
+    ffi.Float,
+    ffi.Float,
+    ffi.Float,
+    ffi.Float,
+    ffi.Bool,
+    ffi.Float,
+    ffi.Uint8,
+  )
+>(isLeaf: true)
 external ffi.Pointer<TSkybox> Engine_buildColoredSkybox(
   ffi.Pointer<TEngine> tEngine,
   double r,
   double g,
   double b,
   double a,
+  bool showSun,
+  double intensity,
+  int priority,
 );
 
 @ffi.Native<
@@ -2088,12 +2108,18 @@ external void Engine_executeRenderThread(ffi.Pointer<TEngine> tEngine, int reque
   ffi.Void Function(
     ffi.Pointer<TEngine>,
     ffi.Pointer<TTexture>,
+    ffi.Bool,
+    ffi.Float,
+    ffi.Uint8,
     ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>,
   )
 >(isLeaf: true)
 external void Engine_buildSkyboxRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TTexture> tTexture,
+  bool showSun,
+  double intensity,
+  int priority,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>> onComplete,
 );
 
@@ -2104,6 +2130,9 @@ external void Engine_buildSkyboxRenderThread(
     ffi.Float,
     ffi.Float,
     ffi.Float,
+    ffi.Bool,
+    ffi.Float,
+    ffi.Uint8,
     ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>>,
   )
 >(isLeaf: true)
@@ -2113,6 +2142,9 @@ external void Engine_buildColoredSkyboxRenderThread(
   double g,
   double b,
   double a,
+  bool showSun,
+  double intensity,
+  int priority,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSkybox>)>> onComplete,
 );
 
@@ -3691,6 +3723,22 @@ external void RenderTarget_destroy(ffi.Pointer<TEngine> tEngine, ffi.Pointer<TRe
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
 external void Skybox_setColor(ffi.Pointer<TSkybox> tSkybox, double r, double g, double b, double a);
 
+/// Sets bits in a visibility mask (see filament::Skybox::setLayerMask).
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSkybox>, ffi.Uint8, ffi.Uint8)>(isLeaf: true)
+external void Skybox_setLayerMask(ffi.Pointer<TSkybox> tSkybox, int select, int values);
+
+/// Returns the visibility mask bits.
+@ffi.Native<ffi.Uint8 Function(ffi.Pointer<TSkybox>)>(isLeaf: true)
+external int Skybox_getLayerMask(ffi.Pointer<TSkybox> tSkybox);
+
+/// Returns the skybox intensity in lux.
+@ffi.Native<ffi.Float Function(ffi.Pointer<TSkybox>)>(isLeaf: true)
+external double Skybox_getIntensity(ffi.Pointer<TSkybox> tSkybox);
+
+/// Returns the environment texture, or nullptr for a color-only skybox.
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TSkybox>)>(isLeaf: true)
+external ffi.Pointer<TTexture> Skybox_getTexture(ffi.Pointer<TSkybox> tSkybox);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
 external void RenderableManager_destroyEntity(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
@@ -4484,6 +4532,9 @@ external void Scene_removeEntity(ffi.Pointer<TScene> tScene, int entityId);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TSkybox>)>(isLeaf: true)
 external void Scene_setSkybox(ffi.Pointer<TScene> tScene, ffi.Pointer<TSkybox> skybox);
+
+@ffi.Native<ffi.Pointer<TSkybox> Function(ffi.Pointer<TScene>)>(isLeaf: true)
+external ffi.Pointer<TSkybox> Scene_getSkybox(ffi.Pointer<TScene> tScene);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TIndirectLight>)>(isLeaf: true)
 external void Scene_setIndirectLight(ffi.Pointer<TScene> tScene, ffi.Pointer<TIndirectLight> tIndirectLight);

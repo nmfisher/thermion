@@ -1,5 +1,4 @@
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
-import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 abstract class Scene<T> extends NativeHandle<T> {
@@ -41,6 +40,13 @@ abstract class Scene<T> extends NativeHandle<T> {
   ///
   ///
   Future setSkybox(Skybox? skybox) {
+    throw UnimplementedError();
+  }
+
+  ///
+  /// Returns the skybox currently attached to this scene, or null.
+  ///
+  Future<Skybox?> getSkybox() {
     throw UnimplementedError();
   }
 }

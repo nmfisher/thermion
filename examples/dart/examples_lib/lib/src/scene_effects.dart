@@ -14,7 +14,10 @@ Future<void> setupEffects(
   final camera = await viewer.getActiveCamera();
   await camera.lookAt(Vector3(0, 2.5, 7), focus: Vector3(0, 0.5, 0));
 
-  await viewer.setBackgroundColor(0.025, 0.03, 0.04, 1.0);
+  await (await viewer.view.getScene()).setSkybox(
+    await FilamentApp.instance!
+        .createColoredSkybox(r: 0.025, g: 0.03, b: 0.04, a: 1.0),
+  );
   await viewer.loadIbl("$assetsDir/default_env_ibl.ktx");
   await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0, -1, -0.5)));
   await viewer.addDirectLight(

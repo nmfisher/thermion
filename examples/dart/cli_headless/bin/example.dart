@@ -14,7 +14,9 @@ void main() async {
   await FilamentApp.instance!.register(sc, viewer.view);
 
   await viewer.view.setFrustumCullingEnabled(false);
-  await viewer.setBackgroundColor(1, 0, 1, 1);
+  await (await viewer.view.getScene()).setSkybox(
+    await FilamentApp.instance!.createColoredSkybox(r: 1, g: 0, b: 1, a: 1),
+  );
   await viewer.setViewport(width, height);
   final result = await FilamentApp.instance!.capture(
     sc,

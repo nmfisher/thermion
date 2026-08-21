@@ -26,7 +26,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
-import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/src/filament/src/interface/surface_orientation.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
@@ -1577,9 +1576,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   // Builds an (empty) [Skybox] instance. This will not be attached to any scene until
   // [setSkybox] is called.
   //
-  Future<Skybox> buildSkybox({Texture? texture = null}) async {
+  Future<Skybox> buildSkybox({
+    Texture? texture = null,
+    bool showSun = false,
+    double? intensity,
+    int priority = 7,
+  }) async {
     final ptr = await withPointerCallback<TSkybox>((cb) {
-      Engine_buildSkyboxRenderThread(engine, (texture as FFITexture?)?.pointer ?? nullptr, cb);
+      Engine_buildSkyboxRenderThread(
+        engine,
+        (texture as FFITexture?)?.pointer ?? nullptr,
+        showSun,
+        intensity ?? -1.0,
+        priority,
+        cb,
+      );
     });
     return FFISkybox(ptr, this);
   }
@@ -1594,9 +1605,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     required double g,
     required double b,
     required double a,
+    bool showSun = false,
+    double? intensity,
+    int priority = 7,
   }) async {
     final ptr = await withPointerCallback<TSkybox>((cb) {
-      Engine_buildColoredSkyboxRenderThread(engine, r, g, b, a, cb);
+      Engine_buildColoredSkyboxRenderThread(engine, r, g, b, a, showSun, intensity ?? -1.0, priority, cb);
     });
     return FFISkybox(ptr, this);
   }

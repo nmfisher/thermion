@@ -521,13 +521,22 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Engine_destroyMaterial(Pointer<TEngine> tEngine, Pointer<TMaterial> tMaterial);
   external void _Engine_destroyMaterialInstance(Pointer<TEngine> tEngine, Pointer<TMaterialInstance> tMaterialInstance);
   external Pointer<TScene> _Engine_createScene(Pointer<TEngine> tEngine);
-  external Pointer<TSkybox> _Engine_buildSkybox(Pointer<TEngine> tEngine, Pointer<TTexture> tTexture);
+  external Pointer<TSkybox> _Engine_buildSkybox(
+    Pointer<TEngine> tEngine,
+    Pointer<TTexture> tTexture,
+    bool showSun,
+    double intensity,
+    int priority,
+  );
   external Pointer<TSkybox> _Engine_buildColoredSkybox(
     Pointer<TEngine> tEngine,
     double r,
     double g,
     double b,
     double a,
+    bool showSun,
+    double intensity,
+    int priority,
   );
   external Pointer<TIndirectLight> _Engine_buildIndirectLightFromIrradianceTexture(
     Pointer<TEngine> tEngine,
@@ -1021,6 +1030,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Engine_buildSkyboxRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<TTexture> tTexture,
+    bool showSun,
+    double intensity,
+    int priority,
     Pointer<NativeFunction<void Function(PointerClass<TSkybox>)>> onComplete,
   );
   external void _Engine_buildColoredSkyboxRenderThread(
@@ -1029,6 +1041,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double g,
     double b,
     double a,
+    bool showSun,
+    double intensity,
+    int priority,
     Pointer<NativeFunction<void Function(PointerClass<TSkybox>)>> onComplete,
   );
   external void _Engine_buildIndirectLightFromIrradianceTextureRenderThread(
@@ -1874,6 +1889,18 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _RenderTarget_destroy(Pointer<TEngine> tEngine, Pointer<TRenderTarget> tRenderTarget);
   external void _Skybox_setColor(Pointer<TSkybox> tSkybox, double r, double g, double b, double a);
+
+  /// Sets bits in a visibility mask (see filament::Skybox::setLayerMask).
+  external void _Skybox_setLayerMask(Pointer<TSkybox> tSkybox, int select, int values);
+
+  /// Returns the visibility mask bits.
+  external int _Skybox_getLayerMask(Pointer<TSkybox> tSkybox);
+
+  /// Returns the skybox intensity in lux.
+  external double _Skybox_getIntensity(Pointer<TSkybox> tSkybox);
+
+  /// Returns the environment texture, or nullptr for a color-only skybox.
+  external Pointer<TTexture> _Skybox_getTexture(Pointer<TSkybox> tSkybox);
   external void _RenderableManager_destroyEntity(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external int _RenderableManager_hasComponent(Pointer<TRenderableManager> tRenderableManager, EntityId entityId);
   external int _RenderableManager_empty(Pointer<TRenderableManager> tRenderableManager);
@@ -2319,6 +2346,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Scene_addEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_removeEntity(Pointer<TScene> tScene, EntityId entityId);
   external void _Scene_setSkybox(Pointer<TScene> tScene, Pointer<TSkybox> skybox);
+  external Pointer<TSkybox> _Scene_getSkybox(Pointer<TScene> tScene);
   external void _Scene_setIndirectLight(Pointer<TScene> tScene, Pointer<TIndirectLight> tIndirectLight);
   external void _Scene_addFilamentAsset(Pointer<TScene> tScene, Pointer<TFilamentAsset> asset);
   external void _FrameScheduler_start(FrameCallback callback, int targetFps);
@@ -4040,13 +4068,43 @@ Pointer<TScene> Engine_createScene(Pointer<TEngine> tEngine) {
   return Pointer<TScene>(result);
 }
 
-Pointer<TSkybox> Engine_buildSkybox(Pointer<TEngine> tEngine, Pointer<TTexture> tTexture) {
-  final result = GeneratedBindings.instance._Engine_buildSkybox(tEngine.cast(), tTexture.cast());
+Pointer<TSkybox> Engine_buildSkybox(
+  Pointer<TEngine> tEngine,
+  Pointer<TTexture> tTexture,
+  bool showSun,
+  double intensity,
+  int priority,
+) {
+  final result = GeneratedBindings.instance._Engine_buildSkybox(
+    tEngine.cast(),
+    tTexture.cast(),
+    showSun,
+    intensity,
+    priority,
+  );
   return Pointer<TSkybox>(result);
 }
 
-Pointer<TSkybox> Engine_buildColoredSkybox(Pointer<TEngine> tEngine, double r, double g, double b, double a) {
-  final result = GeneratedBindings.instance._Engine_buildColoredSkybox(tEngine.cast(), r, g, b, a);
+Pointer<TSkybox> Engine_buildColoredSkybox(
+  Pointer<TEngine> tEngine,
+  double r,
+  double g,
+  double b,
+  double a,
+  bool showSun,
+  double intensity,
+  int priority,
+) {
+  final result = GeneratedBindings.instance._Engine_buildColoredSkybox(
+    tEngine.cast(),
+    r,
+    g,
+    b,
+    a,
+    showSun,
+    intensity,
+    priority,
+  );
   return Pointer<TSkybox>(result);
 }
 
@@ -5289,11 +5347,17 @@ void Engine_executeRenderThread(Pointer<TEngine> tEngine, int requestId, DartVoi
 void Engine_buildSkyboxRenderThread(
   Pointer<TEngine> tEngine,
   Pointer<TTexture> tTexture,
+  bool showSun,
+  double intensity,
+  int priority,
   Pointer<NativeFunction<void Function(Pointer<TSkybox>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildSkyboxRenderThread(
     tEngine.cast(),
     tTexture.cast(),
+    showSun,
+    intensity,
+    priority,
     onComplete.cast(),
   );
   return result;
@@ -5305,6 +5369,9 @@ void Engine_buildColoredSkyboxRenderThread(
   double g,
   double b,
   double a,
+  bool showSun,
+  double intensity,
+  int priority,
   Pointer<NativeFunction<void Function(Pointer<TSkybox>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._Engine_buildColoredSkyboxRenderThread(
@@ -5313,6 +5380,9 @@ void Engine_buildColoredSkyboxRenderThread(
     g,
     b,
     a,
+    showSun,
+    intensity,
+    priority,
     onComplete.cast(),
   );
   return result;
@@ -7344,6 +7414,30 @@ void Skybox_setColor(Pointer<TSkybox> tSkybox, double r, double g, double b, dou
   return result;
 }
 
+/// Sets bits in a visibility mask (see filament::Skybox::setLayerMask).
+void Skybox_setLayerMask(Pointer<TSkybox> tSkybox, int select, int values) {
+  final result = GeneratedBindings.instance._Skybox_setLayerMask(tSkybox.cast(), select, values);
+  return result;
+}
+
+/// Returns the visibility mask bits.
+int Skybox_getLayerMask(Pointer<TSkybox> tSkybox) {
+  final result = GeneratedBindings.instance._Skybox_getLayerMask(tSkybox.cast());
+  return result;
+}
+
+/// Returns the skybox intensity in lux.
+double Skybox_getIntensity(Pointer<TSkybox> tSkybox) {
+  final result = GeneratedBindings.instance._Skybox_getIntensity(tSkybox.cast());
+  return result;
+}
+
+/// Returns the environment texture, or nullptr for a color-only skybox.
+Pointer<TTexture> Skybox_getTexture(Pointer<TSkybox> tSkybox) {
+  final result = GeneratedBindings.instance._Skybox_getTexture(tSkybox.cast());
+  return Pointer<TTexture>(result);
+}
+
 void RenderableManager_destroyEntity(Pointer<TRenderableManager> tRenderableManager, DartEntityId entityId) {
   final result = GeneratedBindings.instance._RenderableManager_destroyEntity(tRenderableManager.cast(), entityId);
   return result;
@@ -8563,6 +8657,11 @@ void Scene_removeEntity(Pointer<TScene> tScene, DartEntityId entityId) {
 void Scene_setSkybox(Pointer<TScene> tScene, Pointer<TSkybox> skybox) {
   final result = GeneratedBindings.instance._Scene_setSkybox(tScene.cast(), skybox.cast());
   return result;
+}
+
+Pointer<TSkybox> Scene_getSkybox(Pointer<TScene> tScene) {
+  final result = GeneratedBindings.instance._Scene_getSkybox(tScene.cast());
+  return Pointer<TSkybox>(result);
 }
 
 void Scene_setIndirectLight(Pointer<TScene> tScene, Pointer<TIndirectLight> tIndirectLight) {

@@ -12,7 +12,8 @@ void main() async {
     test('enable/disable postprocessing', () async {
       await testHelper.withViewer(
         (viewer) async {
-          await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+          final scene = await viewer.view.getScene();
+          await scene.setSkybox(await FilamentApp.instance!.createColoredSkybox(r: 1.0, g: 0.0, b: 0.0, a: 1.0));
           await testHelper.capture(viewer.view, "empty_scene_no_postprocessing");
           await viewer.setPostProcessing(true);
           await testHelper.capture(viewer.view, "empty_scene_postprocessing");
