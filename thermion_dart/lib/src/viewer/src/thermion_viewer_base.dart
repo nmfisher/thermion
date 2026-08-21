@@ -68,11 +68,15 @@ abstract class ThermionViewer {
   Future clearBackgroundImage({bool destroy = false});
 
   // Sets the color for the background plane (positioned at the maximum depth,
-  // i.e. behind all other objects including the skybox).
-  Future setBackgroundColor(double r, double g, double b, double alpha);
+  // i.e. behind all other objects including the skybox). Returns the created
+  // [Skybox], which may be mutated (e.g. [Skybox.setColor]) or replaced via
+  // [loadSkybox].
+  Future<Skybox> setBackgroundColor(double r, double g, double b, double alpha);
 
-  // Load a skybox from [skyboxPath] (which must be a .ktx file)
-  Future loadSkybox(String skyboxPath);
+  // Load a skybox from [skyboxPath] (which must be a .ktx file). Returns the
+  // created [Skybox], which may be mutated (e.g. [Skybox.setColor],
+  // [Skybox.setLayerMask]) or destroyed via [removeSkybox].
+  Future<Skybox> loadSkybox(String skyboxPath);
 
   // Removes the skybox from the scene and destroys all associated resources.
   Future removeSkybox();

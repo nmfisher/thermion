@@ -14,6 +14,18 @@
   remains supported, but its lifetime is entirely yours. 
 - `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
   public interface (previously FFI-only / missing). 
+- `Skybox` is now exported from the public API and mirrors Filament's
+  `Skybox` more closely: `setLayerMask`/`getLayerMask`, `getIntensity`, and
+  `getTexture` (null for color-only skyboxes) join `setColor`.
+- `FilamentApp.buildSkybox` and `FilamentApp.createColoredSkybox` accept
+  `showSun`, `intensity`, and `priority` builder options (Filament defaults
+  apply when unset).
+- `Scene.getSkybox` mirrors Filament's `Scene::getSkybox`.
+- `ThermionViewer.loadSkybox` and `ThermionViewer.setBackgroundColor` now
+  return the created `Skybox`, so callers can mutate it (e.g.
+  `Skybox.setColor`, `Skybox.setLayerMask`) without going through
+  viewer-level verbs. Native library rebuild required (C API signatures for
+  the skybox builders changed).
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw

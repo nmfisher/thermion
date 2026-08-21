@@ -701,25 +701,25 @@ extern "C"
 #endif
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, TTexture *tTexture, void (*onComplete)(TSkybox *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, TTexture *tTexture, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *skybox = Engine_buildSkybox(tEngine, tTexture);
+          auto *skybox = Engine_buildSkybox(tEngine, tTexture, showSun, intensity, priority);
           PROXY(onComplete(skybox));
         });
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxRenderThread(TEngine *tEngine, float r, float g, float b, float a, void (*onComplete)(TSkybox *))
+  EMSCRIPTEN_KEEPALIVE void Engine_buildColoredSkyboxRenderThread(TEngine *tEngine, float r, float g, float b, float a, bool showSun, float intensity, uint8_t priority, void (*onComplete)(TSkybox *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *skybox = Engine_buildColoredSkybox(tEngine, r, g, b, a);
+          auto *skybox = Engine_buildColoredSkybox(tEngine, r, g, b, a, showSun, intensity, priority);
           PROXY(onComplete(skybox));
         });
     auto fut = rt->addTask(lambda);

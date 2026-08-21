@@ -44,6 +44,11 @@ namespace thermion
             TRACE("Set skybox");
         }
 
+        EMSCRIPTEN_KEEPALIVE TSkybox* Scene_getSkybox(TScene* tScene) {
+            auto *scene = reinterpret_cast<Scene *>(tScene);
+            return reinterpret_cast<TSkybox*>(scene->getSkybox());
+        }
+
         EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLight(TScene* tScene, TIndirectLight *tIndirectLight) {
             auto *scene = reinterpret_cast<Scene *>(tScene);
             auto *light = reinterpret_cast<IndirectLight *>(tIndirectLight);
