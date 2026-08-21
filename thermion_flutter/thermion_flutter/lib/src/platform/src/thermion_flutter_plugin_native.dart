@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
@@ -157,6 +158,23 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
   @override
   void resumeFrameScheduler() {
     _lifecycle.resumeExplicitly();
+  }
+
+  @internal
+  @override
+  Future<PlatformTextureDescriptor?> createContextBootstrap() async {
+    if (!Platform.isLinux ||
+        _resolveBackend() != Backend.OPENGL ||
+        FilamentApp.instance != null) {
+      return null;
+    }
+    return _textureSurfaces.createContextBootstrap();
+  }
+
+  @internal
+  @override
+  Future<void> destroyContextBootstrap(PlatformTextureDescriptor descriptor) {
+    return _textureSurfaces.destroyContextBootstrap(descriptor);
   }
 
   @override

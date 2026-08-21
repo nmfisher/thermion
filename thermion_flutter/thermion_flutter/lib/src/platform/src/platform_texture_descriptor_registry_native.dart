@@ -94,6 +94,26 @@ class NativePlatformTextureDescriptorRegistry
     throw UnsupportedError('Platform textures are not supported on $Platform');
   }
 
+  /// Registers the texture used to import Flutter's actual raster EGL context
+  /// before Filament initializes.
+  Future<PlatformTextureDescriptor> createContextBootstrap() {
+    if (!Platform.isLinux) {
+      throw UnsupportedError(
+        'Flutter context bootstrapping is only supported on Linux',
+      );
+    }
+    return createWith(
+      (width, height) =>
+          MethodChannelPlatformTextureDescriptor.allocateContextBootstrap(
+            channel,
+            width,
+            height,
+          ),
+      1,
+      1,
+    );
+  }
+
   Future<FilamentRenderingContext> getFilamentRenderingContext(
     Backend backend,
   ) async {

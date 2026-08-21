@@ -2,6 +2,7 @@
 #include "Log.hpp"
 
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -13,11 +14,30 @@
 // Flutter's render context, captured during the first deferred populate().
 EGLContext thermion_flutter_render_context = EGL_NO_CONTEXT;
 EGLDisplay thermion_flutter_render_display = EGL_NO_DISPLAY;
+EGLenum thermion_flutter_render_api = EGL_NONE;
+EGLint thermion_flutter_render_gl_major = 0;
+EGLint thermion_flutter_render_gl_minor = 0;
 
 // EGL function pointers (resolved at runtime)
 static PFNEGLCREATEIMAGEKHRPROC s_eglCreateImageKHR = nullptr;
 static PFNEGLDESTROYIMAGEKHRPROC s_eglDestroyImageKHR = nullptr;
 static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC s_glEGLImageTargetTexture2DOES = nullptr;
+
+struct DeferredReadyResponse {
+    FlMethodCall* method_call;
+    int64_t texture_id;
+};
+
+static gboolean respond_texture_ready(gpointer user_data) {
+    auto* response = static_cast<DeferredReadyResponse*>(user_data);
+    g_autoptr(FlValue) result = fl_value_new_int(response->texture_id);
+    fl_method_call_respond(
+        response->method_call,
+        FL_METHOD_RESPONSE(fl_method_success_response_new(result)), nullptr);
+    g_object_unref(response->method_call);
+    delete response;
+    return G_SOURCE_REMOVE;
+}
 
 static void ensure_egl_procs() {
     if (!s_eglCreateImageKHR) {
@@ -69,49 +89,85 @@ thermion_texture_populate(FlTextureGL *texture,
     // Flutter's render context (which is guaranteed current during populate).
     if (self->use_direct_sharing) {
         if (self->gl_texture_id == 0) {
-            // First populate — create GL texture on Flutter's render context
-            // Fill with solid green for visual verification
-            size_t pixelCount = self->width * self->height;
-            std::vector<uint8_t> greenPixels(pixelCount * 4);
-            for (size_t i = 0; i < pixelCount; i++) {
-                greenPixels[i * 4 + 0] = 0;     // R
-                greenPixels[i * 4 + 1] = 255;   // G
-                greenPixels[i * 4 + 2] = 0;     // B
-                greenPixels[i * 4 + 3] = 255;   // A
+            EGLContext flutterContext = eglGetCurrentContext();
+            EGLDisplay flutterDisplay = eglGetCurrentDisplay();
+            if (flutterContext == EGL_NO_CONTEXT ||
+                flutterDisplay == EGL_NO_DISPLAY) {
+                g_set_error(error, g_quark_from_static_string("thermion"), 1,
+                            "Flutter did not make an EGL context current");
+                return FALSE;
             }
+
+            // First populate — create a transparent GL texture on Flutter's
+            // raster context. Its purpose is to import the actual context, not
+            // to display application content.
+            std::vector<uint8_t> pixels(self->width * self->height * 4, 0);
+            while (glGetError() != GL_NO_ERROR) {}
             glGenTextures(1, &self->gl_texture_id);
             glBindTexture(GL_TEXTURE_2D, self->gl_texture_id);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, self->width, self->height, 0,
-                         GL_RGBA, GL_UNSIGNED_BYTE, greenPixels.data());
+                         GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glBindTexture(GL_TEXTURE_2D, 0);
+            GLenum glError = glGetError();
+            if (self->gl_texture_id == 0 || glError != GL_NO_ERROR) {
+                if (self->gl_texture_id != 0) {
+                    glDeleteTextures(1, &self->gl_texture_id);
+                    self->gl_texture_id = 0;
+                }
+                g_set_error(
+                    error, g_quark_from_static_string("thermion"), 2,
+                    "Failed to create Flutter context bootstrap texture "
+                    "(GL error 0x%x)",
+                    glError);
+                return FALSE;
+            }
             self->surface_id = static_cast<int64_t>(self->gl_texture_id);
 
-            TRACE( "[DirectPop] Created deferred GL texture %u (%ux%u) on ctx=%p\n",
+            TRACE( "[DirectPop] Created bootstrap GL texture %u (%ux%u) on ctx=%p\n",
                     self->gl_texture_id, self->width, self->height,
-                    (void*)eglGetCurrentContext());
+                    (void*)flutterContext);
 
             // Capture Flutter's render context for Filament initialization.
             // This is the ONLY place where Flutter's render context is current.
-            if (thermion_flutter_render_context == EGL_NO_CONTEXT) {
-                thermion_flutter_render_context = eglGetCurrentContext();
-                thermion_flutter_render_display = eglGetCurrentDisplay();
-                TRACE( "[DirectPop] Captured Flutter render context=%p display=%p\n",
-                        (void*)thermion_flutter_render_context,
-                        (void*)thermion_flutter_render_display);
-            }
+            thermion_flutter_render_context = flutterContext;
+            thermion_flutter_render_display = flutterDisplay;
+            thermion_flutter_render_api = eglQueryAPI();
 
-            // Resolve pending awaitTextureReady method call
+            const char* version = reinterpret_cast<const char*>(
+                glGetString(GL_VERSION));
+            if (version) {
+                if (std::sscanf(version, "OpenGL ES %d.%d",
+                                &thermion_flutter_render_gl_major,
+                                &thermion_flutter_render_gl_minor) != 2) {
+                    std::sscanf(version, "%d.%d",
+                                &thermion_flutter_render_gl_major,
+                                &thermion_flutter_render_gl_minor);
+                }
+            }
+            TRACE( "[DirectPop] Captured Flutter render context=%p display=%p API=0x%x version=%d.%d\n",
+                    (void*)thermion_flutter_render_context,
+                    (void*)thermion_flutter_render_display,
+                    thermion_flutter_render_api,
+                    thermion_flutter_render_gl_major,
+                    thermion_flutter_render_gl_minor);
+
+            // Do not resolve awaitTextureReady from inside populate(). Dart
+            // may immediately initialize another EGL client API when the
+            // Future completes. Queue the response on Flutter's platform loop
+            // so this raster callback has fully returned first.
             if (self->pending_ready_call) {
-                g_autoptr(FlValue) result = fl_value_new_int(
-                    static_cast<int64_t>(self->gl_texture_id));
-                fl_method_call_respond(self->pending_ready_call,
-                    FL_METHOD_RESPONSE(fl_method_success_response_new(result)), nullptr);
-                g_object_unref(self->pending_ready_call);
+                auto* response = new DeferredReadyResponse{
+                    self->pending_ready_call,
+                    static_cast<int64_t>(self->gl_texture_id),
+                };
                 self->pending_ready_call = nullptr;
+                g_idle_add_full(
+                    G_PRIORITY_DEFAULT_IDLE, respond_texture_ready, response,
+                    nullptr);
             }
         }
 
@@ -122,10 +178,9 @@ thermion_texture_populate(FlTextureGL *texture,
         return TRUE;
     }
 
-    // EGLImage bridge path: the source texture lives on Filament's context,
-    // but Flutter's rendering context is in a different share group.
-    // Bridge via EGLImage: on first populate, import the EGLImage into a new
-    // GL texture on Flutter's current context.
+    // EGLImage bridge path: the source texture lives on Filament's desktop
+    // context. On first populate, bind its EGLImage to a Flutter-owned texture
+    // name on Flutter's current context.
     if (self->use_egl_image) {
         if (!self->initialized) {
             ensure_egl_procs();
@@ -316,6 +371,7 @@ void thermion_texture_gl_init(ThermionTextureGL* self) {
     self->surface_id = -1;
     self->use_egl_image = FALSE;
     self->use_direct_sharing = FALSE;
+    self->is_context_bootstrap = FALSE;
     self->pending_ready_call = nullptr;
 }
 
@@ -354,6 +410,24 @@ ThermionTextureGL* thermion_texture_gl_create_shared(
     textureGL->registrar = registrar;
     textureGL->use_egl_image = TRUE;
     // initialized = FALSE so populate() will import the EGLImage on first call
+
+    return textureGL;
+}
+
+ThermionTextureGL* thermion_texture_gl_create_context_bootstrap(
+    uint32_t width, uint32_t height,
+    FlTextureRegistrar* registrar)
+{
+    auto textureGL = THERMION_TEXTURE_GL(
+        g_object_new(thermion_texture_gl_get_type(), nullptr));
+    textureGL->width = width;
+    textureGL->height = height;
+    textureGL->registrar = registrar;
+    textureGL->use_direct_sharing = TRUE;
+    textureGL->is_context_bootstrap = TRUE;
+    // populate() creates gl_texture_id while Flutter's raster context is
+    // current and resolves the pending awaitTextureReady call.
+    textureGL->gl_texture_id = 0;
 
     return textureGL;
 }

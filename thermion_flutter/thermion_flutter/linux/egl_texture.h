@@ -47,6 +47,8 @@ struct _ThermionTextureGL {
     GLuint flutter_gl_texture_id;
     // Direct sharing path: same EGL share group as Flutter, no EGLImage needed
     gboolean use_direct_sharing;
+    // Pre-engine texture used only to capture Flutter's raster EGL context.
+    gboolean is_context_bootstrap;
     // Deferred "awaitTextureReady" response (stored until populate creates the GL texture)
     FlMethodCall* pending_ready_call;
 };
@@ -78,12 +80,22 @@ FLUTTER_PLUGIN_EXPORT ThermionTextureGL* thermion_texture_gl_create_shared(
     int64_t surface_id,
     FlTextureRegistrar* registrar);
 
+// Pre-engine initialization path. The GL texture is created lazily from
+// populate(), while Flutter's raster EGL context is current.
+FLUTTER_PLUGIN_EXPORT ThermionTextureGL*
+thermion_texture_gl_create_context_bootstrap(
+    uint32_t width, uint32_t height,
+    FlTextureRegistrar* registrar);
+
 FLUTTER_PLUGIN_EXPORT void thermion_texture_gl_destroy(ThermionTextureGL* texture);
 
 // Flutter's render context, captured during the first deferred populate().
-// Used by ensure_opengl_context() to create Filament contexts in the correct
-// EGL share group (Flutter's Group A, not GDK's Group B).
+// Used by ensure_opengl_context() to select the compatible direct or DMA-BUF
+// pathway on Flutter's actual EGLDisplay.
 extern EGLContext thermion_flutter_render_context;
 extern EGLDisplay thermion_flutter_render_display;
+extern EGLenum thermion_flutter_render_api;
+extern EGLint thermion_flutter_render_gl_major;
+extern EGLint thermion_flutter_render_gl_minor;
 
 #endif

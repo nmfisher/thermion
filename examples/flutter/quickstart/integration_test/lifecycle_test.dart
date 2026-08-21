@@ -38,6 +38,23 @@ import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  Future<void> pumpUntilCompleted(
+    WidgetTester tester,
+    Completer<void> completion, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    while (!completion.isCompleted && stopwatch.elapsed < timeout) {
+      // Linux OpenGL initialization needs a frame containing the deferred
+      // bootstrap Texture before Filament can import Flutter's EGL context.
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    if (!completion.isCompleted) {
+      throw TimeoutException('Future not completed', timeout);
+    }
+    await completion.future;
+  }
+
   Future<void> pumpViewer(WidgetTester tester) async {
     final sun = DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
     await tester.pumpWidget(
@@ -247,11 +264,11 @@ void main() {
         ),
       );
 
-      await available.future.timeout(const Duration(seconds: 30));
+      await pumpUntilCompleted(tester, available);
       await tester.pump();
 
       await tester.pumpWidget(const SizedBox.shrink());
-      await disposalStarted.future.timeout(const Duration(seconds: 30));
+      await pumpUntilCompleted(tester, disposalStarted);
 
       // Viewer disposal continues with scene/view/camera destruction after
       // onDispose callbacks. Give that render-thread work time to drain before
