@@ -388,7 +388,7 @@ jobs:
           github-token: ${{ github.token }}
           # To refresh every baseline, first push a capture-only commit,
           # inspect its dart-*-output-* artifacts, then update this run ID.
-          run-id: 32474790527
+          run-id: 32477413084
           name: ${{ matrix.artifact }}
           path: thermion_dart/test/golden-baseline
 
