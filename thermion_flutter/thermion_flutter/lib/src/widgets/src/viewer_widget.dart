@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
+import 'texture_bootstrap.dart';
+
 enum ManipulatorType { NONE, ORBIT, FREE_FLIGHT }
 
 class ViewerWidget extends StatefulWidget {
@@ -413,7 +415,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     final child = viewport == null
         ? widget.initial
         : SizedBox.expand(child: viewport);
-    return ThermionFlutterPlugin.instance.buildInitializationScope(
+    return ThermionTextureBootstrap(
       initialize: _initializeViewer,
       child: child,
     );

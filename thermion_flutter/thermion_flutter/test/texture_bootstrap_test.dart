@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
-import 'package:thermion_flutter/src/platform/src/thermion_flutter_plugin_initializer.dart';
+import 'package:thermion_flutter/src/widgets/src/texture_bootstrap.dart';
 
 void main() {
   testWidgets(
@@ -14,7 +14,7 @@ void main() {
       descriptor.events = events;
 
       await tester.pumpWidget(
-        ThermionFlutterPluginInitializer(
+        ThermionTextureBootstrap(
           createContextBootstrap: () async {
             events.add('create');
             return descriptor;
@@ -52,7 +52,7 @@ void main() {
     var initializeCount = 0;
 
     await tester.pumpWidget(
-      ThermionFlutterPluginInitializer(
+      ThermionTextureBootstrap(
         createContextBootstrap: () async => descriptor,
         initialize: () async {
           initializeCount++;

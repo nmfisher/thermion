@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-
-import 'platform_texture_descriptor.dart';
+// ignore: implementation_imports
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
+// ignore: implementation_imports
+import 'package:thermion_flutter/src/thermion_flutter_plugin.dart';
 
 typedef ContextBootstrapAllocator =
     Future<PlatformTextureDescriptor?> Function();
@@ -10,15 +12,27 @@ typedef ContextBootstrapDestroyer = Future<void> Function(
   PlatformTextureDescriptor descriptor,
 );
 
-/// Hosts the Flutter-side prerequisites for initializing the native plugin,
-/// then runs [initialize].
+/// Sequences [initialize] after the texture handshake some platforms require
+/// before the native viewer can be created.
 ///
-/// Linux OpenGL needs a real [Texture] layer before Filament can initialize.
-/// Other platforms skip that handshake and invoke [initialize] immediately.
-/// Keeping the layer and descriptor lifecycle here prevents viewer widgets
-/// from depending on EGL or deferred texture details.
-class ThermionFlutterPluginInitializer extends StatefulWidget {
-  const ThermionFlutterPluginInitializer({
+/// Linux OpenGL cannot create Filament's shared GL context until Flutter has
+/// composited an external texture at least once. Until then there is nothing
+/// on the Flutter side for Filament's context to share with. So this widget
+/// renders a 1x1 [Texture] backed by a bootstrap descriptor, waits for the
+/// engine to populate it ([PlatformTextureDescriptor.awaitTextureReady]),
+/// runs [initialize], and only then removes the layer and destroys the
+/// descriptor.
+///
+/// When the allocator returns null (every platform without the prerequisite,
+/// and any viewer created after the first one), the handshake is skipped and
+/// [initialize] runs immediately.
+///
+/// The allocator pair comes from [ThermionFlutterPlugin] by default; tests
+/// may inject their own. If a create hook is injected, destruction stays
+/// within the injected pair (falling back to the descriptor itself) and the
+/// plugin is never consulted.
+class ThermionTextureBootstrap extends StatefulWidget {
+  const ThermionTextureBootstrap({
     super.key,
     required this.initialize,
     required this.child,
@@ -32,15 +46,16 @@ class ThermionFlutterPluginInitializer extends StatefulWidget {
   final ContextBootstrapDestroyer? destroyContextBootstrap;
 
   @override
-  State<ThermionFlutterPluginInitializer> createState() =>
-      _ThermionFlutterPluginInitializerState();
+  State<ThermionTextureBootstrap> createState() =>
+      _ThermionTextureBootstrapState();
 }
 
-class _ThermionFlutterPluginInitializerState
-    extends State<ThermionFlutterPluginInitializer> {
+class _ThermionTextureBootstrapState extends State<ThermionTextureBootstrap> {
   PlatformTextureDescriptor? _descriptor;
   Future<void>? _destroyFuture;
   bool _disposing = false;
+
+  bool get _injected => widget.createContextBootstrap != null;
 
   @override
   void initState() {
@@ -63,7 +78,7 @@ class _ThermionFlutterPluginInitializerState
   }
 
   Future<void> _bootstrap() async {
-    final descriptor = await widget.createContextBootstrap?.call();
+    final descriptor = await _allocate();
     _descriptor = descriptor;
 
     try {
@@ -100,10 +115,27 @@ class _ThermionFlutterPluginInitializerState
     }
   }
 
+  Future<PlatformTextureDescriptor?> _allocate() {
+    final create = widget.createContextBootstrap;
+    if (create != null) {
+      return create();
+    }
+    return ThermionFlutterPlugin.instance.createContextBootstrap();
+  }
+
   Future<void> _destroy(PlatformTextureDescriptor descriptor) {
-    return _destroyFuture ??=
-        widget.destroyContextBootstrap?.call(descriptor) ??
-        descriptor.destroy();
+    return _destroyFuture ??= () {
+      final destroy = widget.destroyContextBootstrap;
+      if (destroy != null) {
+        return destroy(descriptor);
+      }
+      if (_injected) {
+        return descriptor.destroy();
+      }
+      return ThermionFlutterPlugin.instance.destroyContextBootstrap(
+        descriptor,
+      );
+    }();
   }
 
   @override

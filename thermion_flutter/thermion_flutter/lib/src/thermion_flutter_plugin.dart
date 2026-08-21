@@ -1,13 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart' hide View;
 import 'package:thermion_dart/thermion_dart.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_flutter/src/options.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
-import 'package:thermion_flutter/src/platform/src/thermion_flutter_plugin_initializer.dart';
 
 import 'platform/platform.dart';
 
@@ -86,16 +84,20 @@ abstract class ThermionFlutterPlugin {
     FilamentApp.instance?.setTargetFramerate(fps);
   }
 
-  /// Hosts any Flutter-side prerequisites while [initialize] creates a viewer.
+  /// Allocates the throwaway external texture that must be composited by
+  /// Flutter before the native viewer can be created. Returns null when the
+  /// running platform has no such prerequisite and the caller may initialize
+  /// immediately.
+  ///
+  /// Consumed by ThermionTextureBootstrap; not part of the public API.
   @internal
-  Widget buildInitializationScope({
-    required Future<void> Function() initialize,
-    required Widget child,
-  }) {
-    return ThermionFlutterPluginInitializer(
-      initialize: initialize,
-      child: child,
-    );
+  Future<PlatformTextureDescriptor?> createContextBootstrap() async => null;
+
+  /// Releases a descriptor returned by [createContextBootstrap]; only ever
+  /// called with a non-null descriptor. Not part of the public API.
+  @internal
+  Future<void> destroyContextBootstrap(PlatformTextureDescriptor descriptor) {
+    return descriptor.destroy();
   }
 
   /// Creates a rendering surface and binds to the given [View].

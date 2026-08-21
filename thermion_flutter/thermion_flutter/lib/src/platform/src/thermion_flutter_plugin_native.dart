@@ -2,14 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' hide View;
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 
 import 'native_rendering_lifecycle_controller.dart';
 import 'native_texture_surface_manager.dart';
 import 'platform_texture_descriptor.dart';
-import 'thermion_flutter_plugin_initializer.dart';
 import '../../../thermion_flutter.dart';
 
 /// Initializes the native Filament application and delegates frame lifecycle
@@ -162,7 +160,9 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     _lifecycle.resumeExplicitly();
   }
 
-  Future<PlatformTextureDescriptor?> _createContextBootstrap() async {
+  @internal
+  @override
+  Future<PlatformTextureDescriptor?> createContextBootstrap() async {
     if (!Platform.isLinux ||
         _resolveBackend() != Backend.OPENGL ||
         FilamentApp.instance != null) {
@@ -171,22 +171,10 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
     return _textureSurfaces.createContextBootstrap();
   }
 
-  Future<void> _destroyContextBootstrap(PlatformTextureDescriptor descriptor) {
-    return _textureSurfaces.destroyContextBootstrap(descriptor);
-  }
-
   @internal
   @override
-  Widget buildInitializationScope({
-    required Future<void> Function() initialize,
-    required Widget child,
-  }) {
-    return ThermionFlutterPluginInitializer(
-      initialize: initialize,
-      child: child,
-      createContextBootstrap: _createContextBootstrap,
-      destroyContextBootstrap: _destroyContextBootstrap,
-    );
+  Future<void> destroyContextBootstrap(PlatformTextureDescriptor descriptor) {
+    return _textureSurfaces.destroyContextBootstrap(descriptor);
   }
 
   @override
