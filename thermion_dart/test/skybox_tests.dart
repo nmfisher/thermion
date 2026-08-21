@@ -132,7 +132,10 @@ void main() async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
       final scene = (result.viewer as ThermionViewerFFI).scene;
       final skybox = await FilamentApp.instance!.createColoredSkybox(
-        r: 0.0, g: 0.0, b: 0.0, a: 1.0,
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
         showSun: false,
         intensity: 2500.0,
         priority: 3,
@@ -144,10 +147,9 @@ void main() async {
   });
 
   test('showSun renders the sun disc when a SUN light is in the scene', () async {
-    await ViewerBuilder(testHelper)
-        .setRenderTargetEnabled(true)
-        .setCameraLookAt(Vector3(0, 0, 1), focus: Vector3.zero())
-        .execute((result) async {
+    await ViewerBuilder(
+      testHelper,
+    ).setRenderTargetEnabled(true).setCameraLookAt(Vector3(0, 0, 1), focus: Vector3.zero()).execute((result) async {
       final scene = (result.viewer as ThermionViewerFFI).scene;
       final lightManager = FilamentApp.instance!.lightManager;
 
@@ -167,7 +169,11 @@ void main() async {
 
       // showSun: the sun disc must appear as non-black pixels.
       final withSunSkybox = await FilamentApp.instance!.createColoredSkybox(
-        r: 0.0, g: 0.0, b: 0.0, a: 1.0, showSun: true,
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
+        showSun: true,
       );
       await scene.setSkybox(withSunSkybox);
       final withSun = await testHelper.capture(result.viewer.view, "skybox_show_sun");
