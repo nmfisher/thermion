@@ -1266,12 +1266,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback((requestId, cb) => Engine_destroySceneRenderThread(engine, scene.scene, requestId, cb));
   }
 
-  Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
-    return withPointerCallback<TColorGrading>(
-      (cb) => ColorGrading_createRenderThread(engine, mapper.getNativeHandle(), cb),
-    );
-  }
-
   //
   Future<GizmoAsset> createGizmo(View view, GizmoType gizmoType) async {
     return FFIGizmo.create(this, view, gizmoType);

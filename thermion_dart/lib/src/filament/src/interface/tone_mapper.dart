@@ -103,6 +103,12 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
     return FFIToneMapper.displayRange(app);
   }
 
-  /// Destroy the tone mapper and free its resources
+  /// Destroys the tone mapper and frees its native resources. Idempotent.
+  ///
+  /// A ColorGradingBuilder that references this mapper re-reads it on every
+  /// build, so only dispose the mapper after disposing the builder (or after
+  /// its final build, if you are certain no more builds will run). Every
+  /// built ColorGrading holds a copy of this mapper's state, so disposing
+  /// never affects an applied grading.
   Future dispose();
 }

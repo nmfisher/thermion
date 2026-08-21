@@ -3,15 +3,37 @@
 ## Unreleased
 
 ### Changes
-- `FilamentApp` exposes the native engine handle as a public
+- `View` now owns the `ColorGrading` currently applied to it: replacing or
+  clearing it via `setColorGrading` destroys the previous grading, and the
+  owned grading is destroyed on view teardown. Previously, gradings created
+  via `createColorGradingBuilder` and set via `setColorGrading` were never
+  freed, and replacing a grading leaked the old one.
+- `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
+  public interface (previously FFI-only / missing). `ColorGrading.dispose` is
+  only for gradings never attached to a view; `ColorGradingBuilder.dispose`
+  frees the builder, which is REUSABLE per Filament's pattern - `build()` may
+  be called any number of times and does not consume the builder. `dispose()`
+  is idempotent on ToneMapper, ColorGrading, and ColorGradingBuilder; using
+  a disposed builder throws.
+- `ToneMapper` factory methods take the abstract `FilamentApp` instead of
+  `FFIFilamentApp`, so callers no longer need to downcast
+  (`ToneMapper.aces(FilamentApp.instance!)` just works). To support this,
+  `FilamentApp` exposes the native engine handle as a public
   `Pointer<TEngine> get engine` (thermion_dart is FFI-backed on every
-  supported target, including web/WASM). `ToneMapper` factory methods take
-  the abstract `FilamentApp` instead of `FFIFilamentApp`, so callers no
-  longer need to downcast (`ToneMapper.aces(FilamentApp.instance!)` just
-  works).
+  supported target, including web/WASM).
 - `TranslationAxisMaterial.createMaterialInstance` takes the abstract
   `FilamentApp` too, and `FFIMaterial`/`FFIMaterialInstance` hold the
   abstract type internally (they only ever needed the engine handle).
+
+### Breaking changes
+- remove the unused `FilamentApp.createColorGrading` — it returned a raw
+  pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
+  instead.
+- remove `View.setToneMapper` and `ThermionViewer.setToneMapper` (both
+  deprecated) along with the native `ColorGrading_create` /
+  `ColorGrading_createRenderThread` C entry points — use
+  `view.createColorGradingBuilder().toneMapper(...).build()` followed by
+  `view.setColorGrading()` instead.
 
 ## 0.6.0
 

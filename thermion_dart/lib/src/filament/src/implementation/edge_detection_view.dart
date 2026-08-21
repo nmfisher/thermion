@@ -214,6 +214,7 @@ class EdgeDetectionView extends FFIView {
     );
     colorGradingBuilder.toneMapper(linearToneMapper);
     final linearColorGrading = await colorGradingBuilder.build();
+    await colorGradingBuilder.dispose();
 
     // Create the EdgeDetectionView with all resources
     final edgeDetectionView = EdgeDetectionView._(

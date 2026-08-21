@@ -36,5 +36,6 @@ Future<void> setupPostProcessing(
       .saturation(1.1)
       .vibrance(1.2)
       .build();
+  await builder.dispose();
   await viewer.view.setColorGrading(grading);
 }

@@ -74,9 +74,6 @@ EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createGeneric(TEngine* tEngine, flo
 EMSCRIPTEN_KEEPALIVE TToneMapper *ToneMapper_createDisplayRange(TEngine* tEngine);
 EMSCRIPTEN_KEEPALIVE void ToneMapper_destroy(TToneMapper *toneMapper);
 
-// Legacy ColorGrading API (deprecated - use ColorGradingBuilder instead)
-EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine* tEngine, TToneMapper *toneMapper);
-
 // ColorGrading Builder API
 typedef struct TColorGradingBuilder TColorGradingBuilder;
 

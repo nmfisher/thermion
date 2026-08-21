@@ -3,6 +3,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// FFI implementation of ToneMapper
 class FFIToneMapper extends ToneMapper {
   final Pointer<TToneMapper> _pointer;
+  bool _disposed = false;
 
   FFIToneMapper._(this._pointer);
 
@@ -95,6 +96,10 @@ class FFIToneMapper extends ToneMapper {
 
   @override
   Future dispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     await withVoidCallback((requestId, cb) {
       ToneMapper_destroyRenderThread(_pointer, requestId, cb);
     });

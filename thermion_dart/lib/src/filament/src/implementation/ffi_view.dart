@@ -38,12 +38,9 @@ class FFIView extends View<Pointer<TView>> {
   Future destroy() async {
     _onPickResultHolder.dispose();
 
-    await withVoidCallback((requestId, cb) => View_setColorGradingRenderThread(view, nullptr, requestId, cb));
-    if (_colorGrading != null && _colorGrading != nullptr) {
-      await withVoidCallback(
-        (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, _colorGrading!, requestId, cb),
-      );
-    }
+    // Dissociates and destroys the grading owned by this view, if any
+    // (Filament requires dissociation before view destruction)
+    await _setColorGradingOwned(null);
     await withVoidCallback((requestId, cb) => Engine_destroyViewRenderThread(_app.engine, view, requestId, cb));
   }
 
@@ -130,20 +127,22 @@ class FFIView extends View<Pointer<TView>> {
     });
   }
 
+  /// The ColorGrading currently owned by this view.
+  ///
+  /// Filament's View does not take ownership of a ColorGrading and performs
+  /// no reference counting; a grading must be dissociated from all views
+  /// before it is destroyed. This view therefore owns whichever grading is
+  /// currently set: [setColorGrading] destroys the previously-owned grading,
+  /// as does [destroy].
   Pointer<TColorGrading>? _colorGrading;
 
-  @override
-  Future setToneMapper(ToneMapper mapper) async {
-    final colorGrading = await withPointerCallback<TColorGrading>(
-      (cb) => ColorGrading_createRenderThread(_app.engine, mapper.getNativeHandle(), cb),
+  /// Dissociates the currently-owned ColorGrading from this view, destroys
+  /// it, then sets (and takes ownership of) [colorGrading].
+  Future _setColorGradingOwned(Pointer<TColorGrading>? colorGrading) async {
+    await withVoidCallback(
+      (requestId, cb) => View_setColorGradingRenderThread(view, colorGrading ?? nullptr, requestId, cb),
     );
-    if (colorGrading == nullptr) {
-      throw Exception("Failed to create color grading");
-    }
-
-    await withVoidCallback((requestId, cb) => View_setColorGradingRenderThread(view, colorGrading, requestId, cb));
-
-    if (_colorGrading != null) {
+    if (_colorGrading != null && _colorGrading != nullptr) {
       await withVoidCallback(
         (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, _colorGrading!, requestId, cb),
       );
@@ -164,15 +163,8 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setColorGrading(ColorGrading? colorGrading) async {
-    if (colorGrading == null) {
-      // Clear color grading by setting nullptr
-      await withVoidCallback((requestId, cb) => View_setColorGradingRenderThread(view, nullptr, requestId, cb));
-    } else {
-      // Set color grading with provided object
-      await withVoidCallback(
-        (requestId, cb) => View_setColorGradingRenderThread(view, colorGrading.getNativeHandle(), requestId, cb),
-      );
-    }
+    // The view takes ownership: the previously-owned grading is destroyed here
+    await _setColorGradingOwned(colorGrading?.getNativeHandle());
   }
 
   @override

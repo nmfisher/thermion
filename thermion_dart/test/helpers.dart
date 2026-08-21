@@ -325,7 +325,7 @@ class TestHelper {
 
     await viewer.setPostProcessing(postProcessing);
 
-    await viewer.setToneMapper(await ToneMapper.aces(FilamentApp.instance!));
+    await applyToneMapper(viewer.view, await ToneMapper.aces(FilamentApp.instance!));
     return (viewer, swapChain);
   }
 
@@ -397,6 +397,18 @@ class _PlaneConfig {
     this.createUbershader = false,
     this.unlit = false,
   });
+}
+
+/// Applies [mapper] as the tone mapper on [view] via the color grading
+/// builder API. Disposes the builder and [mapper] (each build reads the
+/// mapper, so the builder goes first), and the view takes ownership of the
+/// grading.
+Future applyToneMapper(View view, ToneMapper mapper) async {
+  final builder = await view.createColorGradingBuilder();
+  final colorGrading = await builder.toneMapper(mapper).build();
+  await builder.dispose();
+  await mapper.dispose();
+  await view.setColorGrading(colorGrading);
 }
 
 /// Result class containing all components created by ViewerBuilder
@@ -629,7 +641,7 @@ class ViewerBuilder {
 
     // Apply tone mapping if specified
     if (_toneMapper != null) {
-      viewer.setToneMapper(_toneMapper!);
+      await applyToneMapper(viewer.view, _toneMapper!);
     }
 
     // Add direct lights and store their entities
