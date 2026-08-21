@@ -3,40 +3,23 @@
 ## Unreleased
 
 ### Changes
-- `ColorGrading` now follows Filament's ownership model exactly: the CALLER
-  manages the lifecycle. `View.setColorGrading` performs no ownership
-  transfer and no reference counting - the view holds a non-owning
-  reference, and a grading must be dissociated from every view
+- `FilamentApp` exposes the native engine handle as a public
+- `TranslationAxisMaterial.createMaterialInstance` and `ToneMapper` factory methods
+  now take the abstract `FilamentApp` instead of
+  `FFIFilamentApp`
+- `ColorGrading` follows Filament's ownership model (caller
+  manages lifecycle). A `ColorGrading` must be dissociated from every view
   (`setColorGrading` with a replacement or null) BEFORE calling
   `ColorGrading.dispose()`. Attaching one grading to multiple views
-  remains supported, but its lifetime is entirely yours. Previously,
-  gradings created via `createColorGradingBuilder` and set via
-  `setColorGrading` were never freed, and replacing a grading leaked the
-  old one.
+  remains supported, but its lifetime is entirely yours. 
 - `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
-  public interface (previously FFI-only / missing). `ColorGrading.dispose`
-  destroys the native grading immediately - dissociate it from all views
-  first; `ColorGradingBuilder.dispose` frees the builder, which is REUSABLE
-  per Filament's pattern - `build()` may be called any number of times and
-  does not consume the builder. `dispose()` is idempotent on ToneMapper,
-  ColorGrading, and ColorGradingBuilder; using a disposed builder throws.
-- `ToneMapper` factory methods take the abstract `FilamentApp` instead of
-  `FFIFilamentApp`, so callers no longer need to downcast
-  (`ToneMapper.aces(FilamentApp.instance!)` just works). To support this,
-  `FilamentApp` exposes the native engine handle as a public
-  `Pointer<TEngine> get engine` (thermion_dart is FFI-backed on every
-  supported target, including web/WASM).
-- `TranslationAxisMaterial.createMaterialInstance` takes the abstract
-  `FilamentApp` too, and `FFIMaterial`/`FFIMaterialInstance` hold the
-  abstract type internally (they only ever needed the engine handle).
+  public interface (previously FFI-only / missing). 
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw
   pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
   instead.
-- remove `View.setToneMapper` and `ThermionViewer.setToneMapper` (both
-  deprecated) along with the native `ColorGrading_create` /
-  `ColorGrading_createRenderThread` C entry points — use
+- remove `View.setToneMapper` and `ThermionViewer.setToneMapper` - use
   `view.createColorGradingBuilder().toneMapper(...).build()` followed by
   `view.setColorGrading()` instead.
 
