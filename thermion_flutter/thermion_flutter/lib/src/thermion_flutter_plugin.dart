@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' hide View;
 import 'package:thermion_dart/thermion_dart.dart';
@@ -7,6 +8,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import 'package:thermion_flutter/src/options.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/thermion_flutter_plugin_initializer.dart';
+
 import 'platform/platform.dart';
 
 import 'package:logging/logging.dart';

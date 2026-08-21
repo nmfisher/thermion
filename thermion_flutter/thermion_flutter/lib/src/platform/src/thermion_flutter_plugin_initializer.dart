@@ -6,8 +6,9 @@ import 'platform_texture_descriptor.dart';
 
 typedef ContextBootstrapAllocator =
     Future<PlatformTextureDescriptor?> Function();
-typedef ContextBootstrapDestroyer =
-    Future<void> Function(PlatformTextureDescriptor descriptor);
+typedef ContextBootstrapDestroyer = Future<void> Function(
+  PlatformTextureDescriptor descriptor,
+);
 
 /// Hosts the Flutter-side prerequisites for initializing the native plugin,
 /// then runs [initialize].
