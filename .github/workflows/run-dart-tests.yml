@@ -349,3 +349,56 @@ jobs:
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
+
+  compare-dart-test-output:
+    name: Compare Dart Test Output (${{ matrix.name }})
+    needs:
+      - dart-tests
+      - dart-tests-macos
+      - dart-tests-material-variants
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            artifact: dart-test-output-Linux
+          - name: Windows
+            artifact: dart-test-output-Windows
+          - name: macOS
+            artifact: dart-test-output-macOS
+          - name: Linux opengl-only
+            artifact: dart-material-output-Linux opengl-only
+          - name: Windows vulkan-only
+            artifact: dart-material-output-Windows vulkan-only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Download current test output
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: thermion_dart/test/golden-candidate
+
+      - name: Download reviewed platform baseline
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          # To refresh every baseline, first push a capture-only commit,
+          # inspect its dart-*-output-* artifacts, then update this run ID.
+          run-id: 32474790527
+          name: ${{ matrix.artifact }}
+          path: thermion_dart/test/golden-baseline
+
+      - name: Install golden comparison dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install Pillow numpy
+
+      - name: Compare all captured test output
+        run: >-
+          python thermion_dart/test/compare_goldens.py
+          --golden-dir thermion_dart/test/golden-baseline
+          --output-dir thermion_dart/test/golden-candidate
