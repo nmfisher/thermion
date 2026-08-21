@@ -1,6 +1,10 @@
 name: Linux Display Smoke
 
 on:
+  # TEMPORARY: auto-run on pushes to this branch while it is under test on the
+  # self-hosted GPU runner. Remove before merging.
+  push:
+    branches: [fix/linux-egl-context-bootstrap]
   workflow_dispatch:
     inputs:
       ref:
@@ -19,7 +23,9 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     timeout-minutes: 30
     env:
-      DISPLAY: ${{ inputs.x11-display }}
+      # Push events have no inputs context; fall back to :0 so the runner's
+      # desktop session display is used.
+      DISPLAY: ${{ inputs.x11-display || ':0' }}
     defaults:
       run:
         working-directory: examples/flutter/quickstart
@@ -41,12 +47,28 @@ jobs:
       - name: Install Linux dependencies
         working-directory: .
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            clang cmake ninja-build pkg-config \
-            libgtk-3-dev liblzma-dev libdrm-dev \
-            libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev \
-            weston x11-utils
+          if command -v apt-get >/dev/null; then
+            sudo apt-get update -y
+            sudo apt-get install -y \
+              clang cmake ninja-build pkg-config \
+              libgtk-3-dev liblzma-dev libdrm-dev \
+              libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev \
+              weston x11-utils
+          elif command -v dnf >/dev/null; then
+            # Fedora self-hosted runner. Dependencies are preinstalled on the
+            # image; only fetch missing ones, and only with passwordless sudo.
+            if ! sudo -n true 2>/dev/null; then
+              echo '::notice::No passwordless sudo; assuming dependencies are preinstalled'
+              exit 0
+            fi
+            sudo dnf install -y \
+              clang cmake ninja-build pkgconf-pkg-config \
+              gtk3-devel libdrm-devel mesa-libEGL-devel xz-devel \
+              libcxx-devel libcxxabi-devel \
+              weston xdpyinfo
+          else
+            echo '::warning::No apt-get or dnf found; assuming dependencies are preinstalled'
+          fi
 
       # Prime generated headers before the example's CMake configure step.
       - name: Run thermion_flutter unit tests
