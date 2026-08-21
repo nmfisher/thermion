@@ -112,10 +112,12 @@ void main() async {
       final attached = await result.viewer.getSkybox();
       expect(attached, isNotNull);
       expect(attached!.getTexture(), isNull);
+      await testHelper.capture(result.viewer.view, "set_background_color");
 
       final removed = await result.viewer.removeSkybox();
       expect(removed, isNotNull);
       expect(await result.viewer.getSkybox(), isNull);
+      await testHelper.capture(result.viewer.view, "remove_background_color");
       await skybox.destroy();
     });
   });

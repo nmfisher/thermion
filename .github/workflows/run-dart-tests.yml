@@ -108,6 +108,7 @@ jobs:
             test/all_axes_test.dart \
             test/bone_picking_tests.dart \
             test/all_materials_smoke_test.dart \
+            test/skybox_tests.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
@@ -134,7 +135,16 @@ jobs:
             test/gizmo_tests_new.dart `
             test/all_axes_test.dart `
             test/all_materials_smoke_test.dart `
+            test/skybox_tests.dart `
             --concurrency=1
+
+      # Keep these platform-specific: OpenGL, SwiftShader Vulkan, and Metal
+      # are not expected to produce byte-identical images across backends.
+      - name: Upload skybox golden candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: skybox-images-${{ matrix.name }}-${{ github.sha }}
+          path: thermion_dart/test/output/skybox
 
       - name: Zip output
         if: matrix.name == 'Linux'
@@ -243,7 +253,14 @@ jobs:
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
             test/gizmo_tests_new.dart \
+            test/skybox_tests.dart \
             --concurrency=1
+
+      - name: Upload skybox golden candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: skybox-images-macOS-${{ github.sha }}
+          path: thermion_dart/test/output/skybox
 
       - name: Upload logs
         if: failure()
