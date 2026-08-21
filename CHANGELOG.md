@@ -3,11 +3,14 @@
 ## Unreleased
 
 ### Changes
-- `View` now owns the `ColorGrading` currently applied to it: replacing or
-  clearing it via `setColorGrading` destroys the previous grading, and the
-  owned grading is destroyed on view teardown. Previously, gradings created
-  via `createColorGradingBuilder` and set via `setColorGrading` were never
-  freed, and replacing a grading leaked the old one.
+- `ColorGrading` lifetime is now managed automatically with shared
+  ownership, matching Filament's ability to attach one grading to multiple
+  views: a grading is destroyed once the last attached view replaces,
+  clears, or destroys it, and `dispose()` destroys an unattached grading
+  immediately (deferred until the last detach while attached). Previously,
+  gradings created via `createColorGradingBuilder` and set via
+  `setColorGrading` were never freed, and replacing a grading leaked the
+  old one.
 - `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
   public interface (previously FFI-only / missing). `ColorGrading.dispose` is
   only for gradings never attached to a view; `ColorGradingBuilder.dispose`

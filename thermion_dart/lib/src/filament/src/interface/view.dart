@@ -140,17 +140,18 @@ enum LutFormat { INTEGER, FLOAT }
 
 /// Immutable color grading configuration.
 ///
-/// Created via `View.createColorGradingBuilder().build()` and applied to a
-/// view with `View.setColorGrading()`. Ownership transfers to the view when
-/// set: the view destroys the ColorGrading when it is replaced, cleared
-/// (null), or when the view itself is destroyed. Do not dispose an attached
-/// ColorGrading - [dispose] is only for gradings that were never attached.
+/// Created via `View.createColorGradingBuilder().build()` and applied to one
+/// or more views with `View.setColorGrading()`. Like Filament, a single
+/// ColorGrading may be attached to multiple views simultaneously; it is
+/// destroyed once no view references it any more (the last view to replace,
+/// clear, or destroy it) - or earlier via [dispose] when unattached.
 abstract class ColorGrading extends NativeHandle<dynamic> {
   /// Destroys the underlying native ColorGrading. Idempotent.
   ///
-  /// Only call this for a grading that was never attached to a view - a view
-  /// owns whatever grading was last passed to setColorGrading and destroys it
-  /// itself when it is replaced, cleared, or when the view is destroyed.
+  /// If the grading is currently attached to one or more views, destruction
+  /// is deferred until the last view detaches (destroying it now would leave
+  /// those views with a dangling pointer). If it is not attached to any view,
+  /// it is destroyed immediately.
   Future dispose();
 }
 
@@ -421,26 +422,19 @@ abstract class View<T> extends NativeHandle<T> {
   /// Sets the color grading for this view.
   ///
   /// The ColorGrading object must be created via createColorGradingBuilder().
-  /// The view takes ownership of the ColorGrading: any grading previously set
-  /// on this view is destroyed, and the new one is destroyed in turn when it
-  /// is replaced, cleared, or when the view is destroyed. Do not call
-  /// dispose() on a ColorGrading that is currently attached to a view.
+  /// A grading may be attached to several views at once (as in Filament) and
+  /// is destroyed once the last attached view replaces, clears, or destroys
+  /// it - this view releasing a grading it previously had set never affects
+  /// other views still using it.
   ///
-  /// A ColorGrading may only be attached to ONE view at a time: each view
-  /// destroys what it owns, so sharing an instance across views leads to a
-  /// dangling pointer. To apply the same look to several views, build one
-  /// grading per view - the builder is reusable, so a single builder can
-  /// produce them all before being disposed.
-  ///
-  /// Pass null to clear any existing color grading from this view (the
-  /// previously-set grading, if any, is destroyed).
+  /// Pass null to clear any existing color grading from this view.
   Future setColorGrading(ColorGrading? colorGrading);
 
   /// Gets the current color grading from this view.
   ///
   /// Returns null if no color grading is currently set. The returned object is
-  /// a non-owning wrapper around the grading owned by this view - do not
-  /// dispose it.
+  /// a non-owning wrapper - the grading's lifetime is managed by its attached
+  /// views (see [setColorGrading]).
   Future<ColorGrading?> getColorGrading();
 
   Future setTransparentPickingEnabled(bool enabled);

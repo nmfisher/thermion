@@ -38,9 +38,9 @@ class FFIView extends View<Pointer<TView>> {
   Future destroy() async {
     _onPickResultHolder.dispose();
 
-    // Dissociates and destroys the grading owned by this view, if any
-    // (Filament requires dissociation before view destruction)
-    await _setColorGradingOwned(null);
+    // Dissociates and releases this view's grading reference (destroying the
+    // native grading if this was the last attached view)
+    await _setColorGradingShared(null);
     await withVoidCallback((requestId, cb) => Engine_destroyViewRenderThread(_app.engine, view, requestId, cb));
   }
 
@@ -136,16 +136,25 @@ class FFIView extends View<Pointer<TView>> {
   /// as does [destroy].
   Pointer<TColorGrading>? _colorGrading;
 
-  /// Dissociates the currently-owned ColorGrading from this view, destroys
-  /// it, then sets (and takes ownership of) [colorGrading].
-  Future _setColorGradingOwned(Pointer<TColorGrading>? colorGrading) async {
+  /// Dissociates the currently-attached ColorGrading from this view (setting
+  /// [colorGrading], or clearing when null), then releases this view's
+  /// reference: the native grading is destroyed only when the LAST attached
+  /// view detaches, so a grading shared between views stays alive while any
+  /// of them still use it (Filament permits one grading on many views, but
+  /// requires dissociation before destruction - the set/clear above is that
+  /// dissociation).
+  Future _setColorGradingShared(Pointer<TColorGrading>? colorGrading) async {
     await withVoidCallback(
       (requestId, cb) => View_setColorGradingRenderThread(view, colorGrading ?? nullptr, requestId, cb),
     );
-    if (_colorGrading != null && _colorGrading != nullptr) {
+    final previous = _colorGrading;
+    if (previous != null && previous != nullptr && FFIColorGrading.viewDetached(previous)) {
       await withVoidCallback(
-        (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, _colorGrading!, requestId, cb),
+        (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, previous, requestId, cb),
       );
+    }
+    if (colorGrading != null && colorGrading != nullptr) {
+      FFIColorGrading.viewAttached(colorGrading);
     }
     _colorGrading = colorGrading;
   }
@@ -163,8 +172,9 @@ class FFIView extends View<Pointer<TView>> {
 
   @override
   Future setColorGrading(ColorGrading? colorGrading) async {
-    // The view takes ownership: the previously-owned grading is destroyed here
-    await _setColorGradingOwned(colorGrading?.getNativeHandle());
+    // Attaches the grading (shared with any other views it is attached to)
+    // and releases this view's reference to the previously-attached grading
+    await _setColorGradingShared(colorGrading?.getNativeHandle());
   }
 
   @override

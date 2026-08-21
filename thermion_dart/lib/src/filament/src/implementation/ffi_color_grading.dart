@@ -11,6 +11,34 @@ class FFIColorGrading extends ColorGrading {
 
   FFIColorGrading(this.pointer, this._app);
 
+  // Shared-ownership bookkeeping (Filament allows one ColorGrading to be
+  // attached to multiple views). The native grading is destroyed when the
+  // last attached view detaches; a dispose() that happens while views are
+  // still attached is deferred until then.
+  static final Map<Pointer<TColorGrading>, int> _viewCounts = {};
+  static final Set<Pointer<TColorGrading>> _disposeDeferred = {};
+
+  /// Internal. Records that a view attached [pointer]; the first attach
+  /// registers it for shared ownership.
+  static void viewAttached(Pointer<TColorGrading> pointer) {
+    _viewCounts[pointer] = (_viewCounts[pointer] ?? 0) + 1;
+  }
+
+  /// Internal. Records that a view detached from [pointer]. Returns true
+  /// when that was the last attached view and the caller must destroy the
+  /// native grading (Filament requires the dissociating set/clear/destroy
+  /// to have happened first).
+  static bool viewDetached(Pointer<TColorGrading> pointer) {
+    final count = (_viewCounts[pointer] ?? 0) - 1;
+    if (count > 0) {
+      _viewCounts[pointer] = count;
+      return false;
+    }
+    _viewCounts.remove(pointer);
+    _disposeDeferred.remove(pointer);
+    return true;
+  }
+
   @override
   Pointer<TColorGrading> getNativeHandle() => pointer;
 
@@ -20,6 +48,15 @@ class FFIColorGrading extends ColorGrading {
       return;
     }
     _disposed = true;
+    if ((_viewCounts[pointer] ?? 0) > 0) {
+      // Still attached to at least one view: destroying now would leave
+      // those views with a dangling pointer. Defer - the last view to
+      // detach destroys it.
+      _disposeDeferred.add(pointer);
+      return;
+    }
+    _viewCounts.remove(pointer);
+    _disposeDeferred.remove(pointer);
     await withVoidCallback(
       (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, pointer, requestId, cb),
     );
