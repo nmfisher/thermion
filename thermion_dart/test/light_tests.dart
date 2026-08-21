@@ -41,8 +41,10 @@ void main() async {
         textureSamplerType: TextureSamplerType.SAMPLER_CUBEMAP,
         flags: {TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT, TextureUsage.TEXTURE_USAGE_UPLOADABLE},
       );
-      var data = Float32List.fromList(List<double>.filled(1 * 1 * 4, 1.0)).asUint8List();
-      await texture.setImage(0, data, 1, 1, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+      // A cubemap has six layers. Leaving five faces uninitialized made this
+      // capture alternate between the expected red reflection and black.
+      var data = Float32List.fromList(List<double>.filled(6 * 1 * 1 * 4, 1.0)).asUint8List();
+      await texture.setImage(0, data, 1, 1, PixelDataFormat.RGBA, PixelDataType.FLOAT, depth: 6);
 
       var indirectLight = await FFIIndirectLight.fromIrradianceTexture(
         FilamentApp.instance! as FFIFilamentApp,

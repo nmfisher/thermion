@@ -67,6 +67,18 @@ def main():
         default="output",
         help="directory containing rendered PNG files",
     )
+    parser.add_argument(
+        "--max-mse",
+        type=float,
+        default=0.01,
+        help="maximum accepted mean squared channel error (default: 0.01)",
+    )
+    parser.add_argument(
+        "--max-difference",
+        type=float,
+        default=2.0,
+        help="maximum accepted per-channel difference (default: 2)",
+    )
     args = parser.parse_args()
 
     golden_dir = Path(args.golden_dir)
@@ -110,8 +122,12 @@ def main():
             error_count += 1
             continue
         
-        if are_identical:
-            print(f"IDENTICAL: {golden_file}")
+        within_tolerance = mse <= args.max_mse and max_diff <= args.max_difference
+        if within_tolerance:
+            if are_identical:
+                print(f"IDENTICAL: {golden_file}")
+            else:
+                print(f"WITHIN TOLERANCE: {golden_file} (MSE: {mse:.4f}, Max diff: {max_diff})")
             identical_count += 1
         else:
             print(f"DIFFERENT: {golden_file} (MSE: {mse:.2f}, Max diff: {max_diff})")

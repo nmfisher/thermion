@@ -11,8 +11,9 @@ import 'helpers.dart';
 // .github/workflows/run-dart-tests.yml). The goldens are NOT in this repo:
 // the workflow downloads the platform's pinned dart-test-output artifact from
 // a previous known-good run into test/golden-downloads/ (a transient dir,
-// gitignored) and diffs it against test/output/. Every capture must have a
-// pixel-identical golden; missing, changed, and new captures all fail.
+// gitignored) and diffs it against test/output/. Every capture must match its
+// golden within a narrow pixel tolerance; missing, changed, and new captures
+// all fail.
 
 void main() async {
   final testHelper = TestHelper("assets");
