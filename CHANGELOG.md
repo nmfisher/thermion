@@ -3,21 +3,23 @@
 ## Unreleased
 
 ### Changes
-- `ColorGrading` lifetime is now managed automatically with shared
-  ownership, matching Filament's ability to attach one grading to multiple
-  views: a grading is destroyed once the last attached view replaces,
-  clears, or destroys it, and `dispose()` destroys an unattached grading
-  immediately (deferred until the last detach while attached). Previously,
+- `ColorGrading` now follows Filament's ownership model exactly: the CALLER
+  manages the lifecycle. `View.setColorGrading` performs no ownership
+  transfer and no reference counting - the view holds a non-owning
+  reference, and a grading must be dissociated from every view
+  (`setColorGrading` with a replacement or null) BEFORE calling
+  `ColorGrading.dispose()`. Attaching one grading to multiple views
+  remains supported, but its lifetime is entirely yours. Previously,
   gradings created via `createColorGradingBuilder` and set via
   `setColorGrading` were never freed, and replacing a grading leaked the
   old one.
 - `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
-  public interface (previously FFI-only / missing). `ColorGrading.dispose` is
-  only for gradings never attached to a view; `ColorGradingBuilder.dispose`
-  frees the builder, which is REUSABLE per Filament's pattern - `build()` may
-  be called any number of times and does not consume the builder. `dispose()`
-  is idempotent on ToneMapper, ColorGrading, and ColorGradingBuilder; using
-  a disposed builder throws.
+  public interface (previously FFI-only / missing). `ColorGrading.dispose`
+  destroys the native grading immediately - dissociate it from all views
+  first; `ColorGradingBuilder.dispose` frees the builder, which is REUSABLE
+  per Filament's pattern - `build()` may be called any number of times and
+  does not consume the builder. `dispose()` is idempotent on ToneMapper,
+  ColorGrading, and ColorGradingBuilder; using a disposed builder throws.
 - `ToneMapper` factory methods take the abstract `FilamentApp` instead of
   `FFIFilamentApp`, so callers no longer need to downcast
   (`ToneMapper.aces(FilamentApp.instance!)` just works). To support this,

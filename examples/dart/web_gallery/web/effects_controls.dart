@@ -44,6 +44,11 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
   Timer? gradingDebounce;
   Future<void> gradingQueue = Future.value();
 
+  // The grading currently attached to the view. The caller owns its
+  // lifecycle (as in Filament - the view holds only a non-owning
+  // reference), so it is disposed here whenever it is replaced or cleared.
+  ColorGrading? attachedGrading;
+
   Future<void> rebuildColorGrading() async {
     try {
       final builder = await viewer.view.createColorGradingBuilder();
@@ -57,11 +62,13 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
           .build();
       await builder.dispose();
       if (colorGrading.checked) {
-        // The view takes ownership of the new grading and destroys the
-        // previously-set one - no manual disposal of the old grading here.
+        // Attaching the new grading dissociates the old one, which can then
+        // be disposed.
         await viewer.view.setColorGrading(next);
+        await attachedGrading?.dispose();
+        attachedGrading = next;
       } else {
-        // Built but never attached: the caller owns it, so dispose it.
+        // Built but never attached: dispose it immediately.
         await next.dispose();
       }
     } catch (error, stackTrace) {
@@ -103,7 +110,11 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
           if (colorGrading.checked) {
             await rebuildColorGrading();
           } else {
+            // Dissociate from the view, then dispose the caller-owned
+            // grading.
             await viewer.view.setColorGrading(null);
+            await attachedGrading?.dispose();
+            attachedGrading = null;
           }
         });
       }).toJS);

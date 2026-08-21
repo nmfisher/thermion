@@ -65,6 +65,10 @@ class TestHelper {
   late String testDir;
   late String assetsDir;
 
+  /// ColorGradings attached by [createViewer]; caller-owned (like Filament),
+  /// so [disposeColorGradings] must run once the viewers are destroyed.
+  final List<ColorGrading> _colorGradings = [];
+
   TestHelper(String? subDir) {
     final packageUri = findPackageRoot('thermion_dart').toFilePath();
     assetsDir = p.normalize(p.join(packageUri, '..', 'examples', 'assets'));
@@ -325,8 +329,18 @@ class TestHelper {
 
     await viewer.setPostProcessing(postProcessing);
 
-    await applyToneMapper(viewer.view, await ToneMapper.aces(FilamentApp.instance!));
+    _colorGradings.add(await applyToneMapper(viewer.view, await ToneMapper.aces(FilamentApp.instance!)));
     return (viewer, swapChain);
+  }
+
+  /// Disposes the ColorGradings attached by [createViewer]. Call after the
+  /// viewer is destroyed - destroying the view dissociates them, and a
+  /// grading must not be disposed while still attached to a view.
+  Future disposeColorGradings() async {
+    for (final grading in _colorGradings) {
+      await grading.dispose();
+    }
+    _colorGradings.clear();
   }
 
   Future withViewer(
@@ -351,6 +365,7 @@ class TestHelper {
 
     await fn.call(viewer.$1);
     await viewer.$1.dispose();
+    await disposeColorGradings();
     await FilamentApp.instance!.destroySwapChain(viewer.$2);
   }
 }
@@ -400,15 +415,17 @@ class _PlaneConfig {
 }
 
 /// Applies [mapper] as the tone mapper on [view] via the color grading
-/// builder API. Disposes the builder and [mapper] (each build reads the
-/// mapper, so the builder goes first), and the view takes ownership of the
-/// grading.
-Future applyToneMapper(View view, ToneMapper mapper) async {
+/// builder API and returns the attached ColorGrading. Disposes the builder
+/// and [mapper] (each build reads the mapper, so the builder goes first).
+/// The grading is caller-owned (like Filament): dissociate it from the view
+/// (`setColorGrading(null)`) and dispose it when done.
+Future<ColorGrading> applyToneMapper(View view, ToneMapper mapper) async {
   final builder = await view.createColorGradingBuilder();
   final colorGrading = await builder.toneMapper(mapper).build();
   await builder.dispose();
   await mapper.dispose();
   await view.setColorGrading(colorGrading);
+  return colorGrading;
 }
 
 /// Result class containing all components created by ViewerBuilder
@@ -435,6 +452,10 @@ class ViewerBuilder {
   ShadowType? _shadowType;
   final List<DirectLight> _directLights = [];
   ToneMapper? _toneMapper;
+
+  /// ColorGradings attached during [buildWithAssets]; caller-owned (like
+  /// Filament), disposed in [execute] after the viewer is destroyed.
+  final List<ColorGrading> _colorGradings = [];
   late TestHelper _testHelper;
 
   // Store cube and plane configurations
@@ -641,7 +662,7 @@ class ViewerBuilder {
 
     // Apply tone mapping if specified
     if (_toneMapper != null) {
-      await applyToneMapper(viewer.view, _toneMapper!);
+      _colorGradings.add(await applyToneMapper(viewer.view, _toneMapper!));
     }
 
     // Add direct lights and store their entities
@@ -770,6 +791,10 @@ class ViewerBuilder {
       await fn.call(viewerBuildResult);
     } finally {
       await buildResult.viewer.dispose();
+      for (final grading in _colorGradings) {
+        await grading.dispose();
+      }
+      _colorGradings.clear();
       await FilamentApp.instance!.destroySwapChain(buildResult.swapChain);
     }
   }

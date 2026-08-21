@@ -72,6 +72,10 @@ void main() async {
 
             // Capture the viewport after changing tone mapper
             await testHelper.capture(result.viewer.view, "tone_mapper_$name");
+
+            // The grading is caller-owned: dissociate, then dispose
+            await result.viewer.view.setColorGrading(null);
+            await colorGrading.dispose();
           }
         });
   });
@@ -125,13 +129,16 @@ void main() async {
 
           // Capture the viewport after applying color grading
           await testHelper.capture(result.viewer.view, "color_grading_builder_applied");
-          // No manual dispose: the view owns the grading and destroys it on
-          // replacement/clear/teardown
 
-          // Replacing it with the second grading destroys the first
-          // (view-owned)
+          // Attaching the second grading dissociates the first, so the first
+          // can now be disposed (caller-owned lifecycle)
           await result.viewer.view.setColorGrading(brighterColorGrading);
+          await colorGrading.dispose();
           await testHelper.capture(result.viewer.view, "color_grading_builder_rebuilt_brighter");
+
+          // Dissociate, then dispose the second grading
+          await result.viewer.view.setColorGrading(null);
+          await brighterColorGrading.dispose();
         });
   });
 
@@ -172,9 +179,12 @@ void main() async {
             await toneMapper.dispose();
 
             expect(colorGrading, isNotNull);
-            // Setting the new grading destroys the previous one (view-owned)
             await result.viewer.view.setColorGrading(colorGrading);
             await testHelper.capture(result.viewer.view, "color_grading_lut_$name");
+
+            // The grading is caller-owned: dissociate, then dispose
+            await result.viewer.view.setColorGrading(null);
+            await colorGrading.dispose();
           }
         });
   });
@@ -209,9 +219,12 @@ void main() async {
             await toneMapper.dispose();
 
             expect(colorGrading, isNotNull);
-            // Setting the new grading destroys the previous one (view-owned)
             await result.viewer.view.setColorGrading(colorGrading);
             await testHelper.capture(result.viewer.view, "color_grading_channel_mixer_$name");
+
+            // The grading is caller-owned: dissociate, then dispose
+            await result.viewer.view.setColorGrading(null);
+            await colorGrading.dispose();
           }
         });
   });
@@ -231,25 +244,27 @@ void main() async {
         await builder.dispose();
         await toneMapper.dispose();
 
-        // One grading, two views - Filament allows this and so do we
+        // One grading, two views - Filament allows this. Lifetime is the
+        // caller's responsibility: neither view destroys or releases it.
         await view1.setColorGrading(shared);
         await view2.setColorGrading(shared);
-
-        // view1 detaching must NOT destroy the grading (view2 still
-        // references it) - if it did, the capture below would crash or
-        // render garbage
-        await view1.setColorGrading(null);
         await testHelper.capture(view2, "color_grading_shared_view2");
 
-        // the last detach destroys it
+        // Detaching view1 leaves the grading untouched (view2 still uses
+        // it) - the caller, not the view, decides when it is destroyed
+        await view1.setColorGrading(null);
+        await testHelper.capture(view2, "color_grading_shared_view2_after_detach");
+
+        // Dissociate from the last view, then dispose
         await view2.setColorGrading(null);
+        await shared.dispose();
       } finally {
         await app.destroyView(view2);
       }
     });
   });
 
-  test('ColorGrading dispose defers while attached', () async {
+  test('ColorGrading dispose is idempotent', () async {
     await ViewerBuilder(testHelper).setPostProcessing(true).addCube(color: kWhite, createUbershader: true).execute((
       result,
     ) async {
@@ -260,15 +275,10 @@ void main() async {
       await builder.dispose();
       await toneMapper.dispose();
 
-      await view.setColorGrading(colorGrading);
-
-      // Disposing while attached defers destruction - the view must keep
-      // rendering correctly...
-      await colorGrading.dispose();
-      await testHelper.capture(view, "color_grading_dispose_deferred");
-
-      // ...until the last view detaches, which destroys it
+      // Dissociate, then dispose - twice; the second is a no-op
       await view.setColorGrading(null);
+      await colorGrading.dispose();
+      await colorGrading.dispose();
     });
   });
 
@@ -310,7 +320,8 @@ void main() async {
           // Setting the color grading to null will clear the color grading
           await result.viewer.view.setColorGrading(null);
           // but internally, View resets this to a "default" color grading,
-          // so this will be non-null
+          // so this will be non-null. This is a non-owning wrapper around
+          // Filament's internal default - never dispose it.
           var initialColorGrading = await result.viewer.view.getColorGrading();
           expect(initialColorGrading, isNotNull);
 
@@ -330,7 +341,9 @@ void main() async {
           // Apply the color grading to the view
           await result.viewer.view.setColorGrading(colorGrading);
 
-          // Retrieve the color grading from the view
+          // Retrieve the color grading from the view. This wraps the same
+          // native grading as [colorGrading] - a non-owning view of it, not a
+          // separate object to dispose.
           var retrievedColorGrading = await result.viewer.view.getColorGrading();
           expect(retrievedColorGrading, isNotNull);
           expect(retrievedColorGrading, isA<ColorGrading>());
@@ -338,9 +351,10 @@ void main() async {
           // Capture the viewport with color grading applied
           await testHelper.capture(result.viewer.view, "color_grading_get_test");
 
-          // Clear the color grading by passing null (this destroys the
-          // view-owned grading)
+          // Clear the color grading by passing null. This only dissociates -
+          // it does NOT destroy the grading, so dispose it explicitly.
           await result.viewer.view.setColorGrading(null);
+          await colorGrading.dispose();
 
           // Capture the viewport with color grading cleared
           await testHelper.capture(result.viewer.view, "color_grading_cleared");
