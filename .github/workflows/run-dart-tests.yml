@@ -102,6 +102,7 @@ jobs:
             test/bone_animation_tests.dart \
             test/morph_animation_tests.dart \
             test/renderable_manager_tests.dart \
+            test/procedural_renderable_test.dart \
             test/gltf_parser_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
