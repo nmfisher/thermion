@@ -359,6 +359,27 @@ jobs:
           name: skybox-goldens-${{ matrix.name }}
           path: thermion_dart/test/output/skybox
 
+      - name: Download skybox golden baseline
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          # To refresh this baseline, first push a capture-only commit, inspect
+          # its skybox-goldens-* artifacts, then update this run ID.
+          run-id: 32472793013
+          name: skybox-goldens-${{ matrix.name }}
+          path: thermion_dart/test/golden-downloads/skybox-${{ matrix.name }}
+
+      - name: Install golden comparison dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install Pillow numpy
+
+      - name: Compare skybox goldens
+        run: >-
+          python thermion_dart/test/compare_goldens.py
+          --golden-dir thermion_dart/test/golden-downloads/skybox-${{ matrix.name }}
+          --output-dir thermion_dart/test/output/skybox
+
       - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@v4
