@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'ffi_filament_app.dart';
 
 class FFIMaterial extends Material<Pointer<TMaterial>> {
   final Pointer<TMaterial> pointer;
 
-  final FFIFilamentApp _app;
+  final FilamentApp _app;
 
   FFIMaterial(this.pointer, this._app);
 
@@ -43,7 +42,7 @@ class FFIMaterial extends Material<Pointer<TMaterial>> {
 class FFIMaterialInstance extends MaterialInstance<Pointer<TMaterialInstance>> {
   final Pointer<TMaterialInstance> pointer;
 
-  final FFIFilamentApp _app;
+  final FilamentApp _app;
 
   FFIMaterialInstance(this.pointer, this._app) {
     if (pointer == nullptr) {

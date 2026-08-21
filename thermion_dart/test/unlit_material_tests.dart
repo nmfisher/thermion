@@ -40,7 +40,7 @@ void main() async {
   test('unlit + baseColorFactor', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
+      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance!));
 
       var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
@@ -192,7 +192,7 @@ void main() async {
   test('unlit material with color + alpha', () async {
     await testHelper.withViewer((viewer) async {
       await viewer.setPostProcessing(true);
-      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
+      await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance!));
 
       var materialInstance = await FilamentApp.instance!.createUnlitMaterialInstance();
       var cube = await viewer.createGeometry(
@@ -217,7 +217,7 @@ void main() async {
     await viewer.setCameraPosition(0, 0, 6);
     await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
     await viewer.setPostProcessing(true);
-    await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance! as FFIFilamentApp));
+    await viewer.setToneMapper(await ToneMapper.linear(FilamentApp.instance!));
 
     var materialInstance = await viewer.createUnlitFixedSizeMaterialInstance();
     var cube = await viewer.createGeometry(

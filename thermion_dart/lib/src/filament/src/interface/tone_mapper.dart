@@ -1,5 +1,5 @@
+import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
-import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_tone_mapper.dart';
 
 /// Look options for AgX tone mapper
@@ -21,31 +21,31 @@ enum AgxLook {
 abstract class ToneMapper extends NativeHandle<dynamic> {
   /// Create a LinearToneMapper - returns input color clamped to 0..1 range
   /// Useful for debugging
-  static Future<ToneMapper> linear(FFIFilamentApp app) async {
+  static Future<ToneMapper> linear(FilamentApp app) async {
     return FFIToneMapper.linear(app);
   }
 
   /// Create an ACESToneMapper - ACES Reference Rendering Transform (RRT)
   /// combined with the Output Device Transform (ODT) for sRGB monitors
-  static Future<ToneMapper> aces(FFIFilamentApp app) async {
+  static Future<ToneMapper> aces(FilamentApp app) async {
     return FFIToneMapper.aces(app);
   }
 
   /// Create an ACESLegacyToneMapper - ACES tone mapper modified to match
   /// the perceived brightness of FilmicToneMapper (applies ~1.6x brightness)
-  static Future<ToneMapper> acesLegacy(FFIFilamentApp app) async {
+  static Future<ToneMapper> acesLegacy(FilamentApp app) async {
     return FFIToneMapper.acesLegacy(app);
   }
 
   /// Create a FilmicToneMapper - designed to approximate ACES RRT + ODT
   /// for Rec.709. Exists for backward compatibility.
-  static Future<ToneMapper> filmic(FFIFilamentApp app) async {
+  static Future<ToneMapper> filmic(FilamentApp app) async {
     return FFIToneMapper.filmic(app);
   }
 
   /// Create a PBRNeutralToneMapper - Khronos PBR Neutral tone mapper
   /// designed to preserve material appearance across lighting conditions
-  static Future<ToneMapper> pbrNeutral(FFIFilamentApp app) async {
+  static Future<ToneMapper> pbrNeutral(FilamentApp app) async {
     return FFIToneMapper.pbrNeutral(app);
   }
 
@@ -55,7 +55,7 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
   ///   - AgxLook.none: Base contrast with no look applied
   ///   - AgxLook.punchy: More chroma laden look for sRGB displays
   ///   - AgxLook.golden: Golden tinted look for BT.1886 displays
-  static Future<ToneMapper> agx(FFIFilamentApp app, {AgxLook look = AgxLook.none}) async {
+  static Future<ToneMapper> agx(FilamentApp app, {AgxLook look = AgxLook.none}) async {
     return FFIToneMapper.agx(app, look: look);
   }
 
@@ -70,7 +70,7 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
   /// [midGrayOut] - Output middle gray value (0.0..1.0, default: 0.215)
   /// [hdrMax] - Maximum input value mapped to output white (>= 1.0, default: 10.0)
   static Future<ToneMapper> generic(
-    FFIFilamentApp app, {
+    FilamentApp app, {
     double contrast = 1.55,
     double midGrayIn = 0.18,
     double midGrayOut = 0.215,
@@ -99,7 +99,7 @@ abstract class ToneMapper extends NativeHandle<dynamic> {
   /// - +8EV: magenta
   /// - +9EV: purple
   /// - +10EV: white
-  static Future<ToneMapper> displayRange(FFIFilamentApp app) async {
+  static Future<ToneMapper> displayRange(FilamentApp app) async {
     return FFIToneMapper.displayRange(app);
   }
 

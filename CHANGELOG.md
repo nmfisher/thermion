@@ -1,5 +1,18 @@
 > Shared changelog for `thermion_dart` and `thermion_flutter` (released in lockstep).
 
+## Unreleased
+
+### Changes
+- `FilamentApp` exposes the native engine handle as a public
+  `Pointer<TEngine> get engine` (thermion_dart is FFI-backed on every
+  supported target, including web/WASM). `ToneMapper` factory methods take
+  the abstract `FilamentApp` instead of `FFIFilamentApp`, so callers no
+  longer need to downcast (`ToneMapper.aces(FilamentApp.instance!)` just
+  works).
+- `TranslationAxisMaterial.createMaterialInstance` takes the abstract
+  `FilamentApp` too, and `FFIMaterial`/`FFIMaterialInstance` hold the
+  abstract type internally (they only ever needed the engine handle).
+
 ## 0.6.0
 
 Update to Filament v1.75.0!

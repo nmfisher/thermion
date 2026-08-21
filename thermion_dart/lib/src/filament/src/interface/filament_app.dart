@@ -27,7 +27,13 @@ class FilamentConfig<T, U> {
 abstract class FilamentApp<T> {
   static FilamentApp? instance;
 
-  T get engine;
+  /// The native Filament engine handle.
+  ///
+  /// thermion_dart is FFI-backed on every supported target (native and
+  /// web/WASM), so the raw engine pointer is part of the public interface -
+  /// engine-scoped factories (e.g. ToneMapper) accept any [FilamentApp]
+  /// without callers having to downcast to a concrete implementation.
+  Pointer<TEngine> get engine;
   T get gltfAssetLoader;
   T get renderer;
   AnimationManager<T> get animationManager;
