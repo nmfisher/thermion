@@ -8,6 +8,7 @@
 #include <cstring>
 #include <vector>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <iostream>
 #include <chrono>
@@ -25,6 +26,34 @@
 #define EGL_GL_TEXTURE_LEVEL_KHR 0x30BC
 #endif
 
+// Calling Epoxy's eglDestroyImageKHR wrapper without a current EGL context
+// makes provider selection depend on thread-local state. Teardown deliberately
+// runs after Flutter releases its texture, so resolve the EGL entry point
+// directly and let EGL dispatch from the explicit display argument.
+static bool destroy_egl_image(EGLDisplay display, EGLImage image)
+{
+  if (display == EGL_NO_DISPLAY || image == EGL_NO_IMAGE_KHR)
+  {
+    return true;
+  }
+
+  static PFNEGLDESTROYIMAGEKHRPROC destroyImage =
+      reinterpret_cast<PFNEGLDESTROYIMAGEKHRPROC>(
+          eglGetProcAddress("eglDestroyImageKHR"));
+  if (!destroyImage)
+  {
+    std::cerr << "[ThermionGL] eglDestroyImageKHR is unavailable" << std::endl;
+    return false;
+  }
+  if (!destroyImage(display, image))
+  {
+    std::cerr << "[ThermionGL] eglDestroyImageKHR failed: 0x"
+              << std::hex << eglGetError() << std::dec << std::endl;
+    return false;
+  }
+  return true;
+}
+
 #include "vulkan/linux/LinuxVulkanContext.h"
 #include "LinuxOpenGLContext.h"
 #include "ThermionPlatformEGLHeadlessAPI.h"
@@ -39,16 +68,33 @@ struct EglContextGuard {
   EGLContext prevCtx;
   EGLSurface prevDraw;
   EGLSurface prevRead;
-  EGLDisplay display;
+  EGLenum prevApi;
+  EGLDisplay prevDisplay;
+  EGLDisplay targetDisplay;
 
   EglContextGuard(EGLDisplay dpy)
       : prevCtx(eglGetCurrentContext()),
         prevDraw(eglGetCurrentSurface(EGL_DRAW)),
         prevRead(eglGetCurrentSurface(EGL_READ)),
-        display(dpy) {}
+        prevApi(eglQueryAPI()),
+        prevDisplay(eglGetCurrentDisplay()),
+        targetDisplay(dpy) {
+    // EGL does not allow switching client APIs while any context is current on
+    // the thread. Flutter's platform thread can have a GLES context current,
+    // so release it before binding desktop GL for plugin operations.
+    if (prevCtx != EGL_NO_CONTEXT && prevDisplay != EGL_NO_DISPLAY) {
+      eglMakeCurrent(
+          prevDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    }
+  }
 
   ~EglContextGuard() {
-    eglMakeCurrent(display, prevDraw, prevRead, prevCtx);
+    eglMakeCurrent(
+        targetDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglBindAPI(prevApi);
+    if (prevCtx != EGL_NO_CONTEXT && prevDisplay != EGL_NO_DISPLAY) {
+      eglMakeCurrent(prevDisplay, prevDraw, prevRead, prevCtx);
+    }
   }
 
   EglContextGuard(const EglContextGuard&) = delete;
@@ -70,16 +116,22 @@ struct _ThermionFlutterPlugin
   thermion::vulkan::linux_platform::LinuxVulkanContext *vulkan_context;
   std::unordered_map<int64_t, thermion::vulkan::ExternalVulkanImage *> *external_images;
 
-  // OpenGL path — direct sharing with Flutter's EGL context (preferred)
+  // OpenGL path — imports Flutter's EGL context before Filament starts.
   EGLContext flutter_egl_context;   // Flutter's own context (captured, not owned)
-  EGLContext utility_egl_context;   // our context in Flutter's share group (for GL ops)
-  EGLDisplay egl_display;           // shared EGL display
+  EGLenum flutter_egl_api;
+  // Used for plugin GL operations when Flutter exposes desktop OpenGL.
+  EGLContext utility_egl_context;
+  // Used to release Flutter-owned texture names when Flutter exposes GLES and
+  // Filament must run through the cross-API DMA-BUF pathway.
+  EGLContext flutter_utility_egl_context;
+  EGLDisplay egl_display;           // Flutter's EGL display
   EGLConfig  egl_config;            // config matching Flutter's context
-  gboolean use_direct_opengl;       // TRUE if direct sharing path succeeded
+  gboolean use_direct_opengl;       // TRUE only for compatible desktop GL
   void* thermion_platform;          // standalone OpenGLPlatform (EGLHeadless)
 
   // OpenGL path — fallback (LinuxOpenGLContext with GBM/DMA-BUF)
   thermion::opengl::linux_platform::LinuxOpenGLContext *opengl_context;
+  std::string opengl_initialization_error;
 
   // Shared
   std::vector<ThermionTextureGL *> *textures;
@@ -94,28 +146,36 @@ static void destroy_all_contexts(ThermionFlutterPlugin *self)
     delete self->vulkan_context;
     self->vulkan_context = nullptr;
   }
-  if (self->use_direct_opengl)
+  if (self->thermion_platform)
   {
-    if (self->utility_egl_context != EGL_NO_CONTEXT)
-    {
-      eglDestroyContext(self->egl_display, self->utility_egl_context);
-      self->utility_egl_context = EGL_NO_CONTEXT;
-    }
-    self->flutter_egl_context = EGL_NO_CONTEXT;
-    self->egl_display = EGL_NO_DISPLAY;
-    self->egl_config = nullptr;
-    self->use_direct_opengl = FALSE;
-    if (self->thermion_platform)
-    {
-      ThermionPlatformEGLHeadless_Destroy(self->thermion_platform);
-      self->thermion_platform = nullptr;
-    }
+    ThermionPlatformEGLHeadless_Destroy(self->thermion_platform);
+    self->thermion_platform = nullptr;
+  }
+  if (self->flutter_utility_egl_context != EGL_NO_CONTEXT &&
+      self->egl_display != EGL_NO_DISPLAY)
+  {
+    eglDestroyContext(
+        self->egl_display, self->flutter_utility_egl_context);
+    self->flutter_utility_egl_context = EGL_NO_CONTEXT;
+  }
+  if (self->utility_egl_context != EGL_NO_CONTEXT &&
+      self->egl_display != EGL_NO_DISPLAY)
+  {
+    eglDestroyContext(self->egl_display, self->utility_egl_context);
+    self->utility_egl_context = EGL_NO_CONTEXT;
   }
   if (self->opengl_context)
   {
     delete self->opengl_context;
     self->opengl_context = nullptr;
   }
+  self->flutter_egl_context = EGL_NO_CONTEXT;
+  self->flutter_egl_api = EGL_NONE;
+  self->egl_display = EGL_NO_DISPLAY;
+  self->egl_config = nullptr;
+  self->use_direct_opengl = FALSE;
+  thermion_flutter_render_context = EGL_NO_CONTEXT;
+  thermion_flutter_render_display = EGL_NO_DISPLAY;
   self->backend_type = 0;
 }
 
@@ -128,132 +188,221 @@ static void ensure_vulkan_context(ThermionFlutterPlugin *self)
   }
 }
 
-static void ensure_opengl_context(ThermionFlutterPlugin *self)
+static bool ensure_opengl_context(ThermionFlutterPlugin *self)
 {
   if (self->use_direct_opengl || self->opengl_context)
   {
-    return; // already initialized
+    return true; // already initialized
   }
+  self->opengl_initialization_error.clear();
 
-  // === Use Flutter's render context ===
-  // The deferred texture path captures Flutter's render context during the
-  // first populate() call. Fall back to the current context (GDK) if no
-  // deferred texture has been populated yet.
+  // Flutter's raster context is only guaranteed to be current inside an
+  // FlTextureGL populate callback. Dart must display and await the deferred
+  // context-bootstrap texture before requesting Filament's driver platform.
+  EGLContext flutterCtx = thermion_flutter_render_context;
+  EGLDisplay flutterDpy = thermion_flutter_render_display;
+  if (flutterCtx == EGL_NO_CONTEXT || flutterDpy == EGL_NO_DISPLAY)
   {
-    EGLContext flutterCtx = thermion_flutter_render_context;
-    EGLDisplay flutterDpy = thermion_flutter_render_display;
-
-    if (flutterCtx == EGL_NO_CONTEXT) {
-      // No deferred populate yet. Try to get GDK's GL context deterministically
-      // rather than relying on whatever happens to be current on this thread.
-      GdkDisplay *gdkDisplay = gdk_display_get_default();
-      if (gdkDisplay) {
-        GdkGLContext *gdkCtx = gdk_gl_context_get_current();
-        if (!gdkCtx) {
-          // Create a temporary GDK GL context and make it current so we can
-          // query the underlying EGL state.
-          GdkWindow *gdkWindow = gdk_screen_get_root_window(
-              gdk_display_get_default_screen(gdkDisplay));
-          if (gdkWindow) {
-            GError *error = nullptr;
-            gdkCtx = gdk_window_create_gl_context(gdkWindow, &error);
-            if (gdkCtx && !error) {
-              gdk_gl_context_make_current(gdkCtx);
-              std::cerr << "[ThermionGL] Made GDK GL context current" << std::endl;
-            } else {
-              if (error) {
-                std::cerr << "[ThermionGL] GDK GL context creation failed: "
-                          << error->message << std::endl;
-                g_error_free(error);
-              }
-            }
-          }
-        }
-      }
-      flutterCtx = eglGetCurrentContext();
-      flutterDpy = eglGetCurrentDisplay();
-      if (flutterCtx != EGL_NO_CONTEXT) {
-        std::cerr << "[ThermionGL] Using GDK EGL context (no deferred populate yet)"
-                  << std::endl;
-      }
-    } else {
-      std::cerr << "[ThermionGL] Using Flutter render context="
-                << (void*)flutterCtx << std::endl;
-    }
-
-    if (flutterCtx != EGL_NO_CONTEXT && flutterDpy != EGL_NO_DISPLAY)
-    {
-      EGLint clientType = 0, glMajor = 0, glMinor = 0, configId = 0;
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONTEXT_CLIENT_TYPE, &clientType);
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONTEXT_MAJOR_VERSION_KHR, &glMajor);
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONTEXT_MINOR_VERSION_KHR, &glMinor);
-      eglQueryContext(flutterDpy, flutterCtx, EGL_CONFIG_ID, &configId);
-
-      std::cerr << "[ThermionGL] Captured Flutter context=" << (void *)flutterCtx
-                << " display=" << (void *)flutterDpy
-                << " type=0x" << std::hex << clientType << std::dec
-                << " (" << (clientType == EGL_OPENGL_ES_API ? "GLES" : "GL") << ")"
-                << " version=" << glMajor << "." << glMinor
-                << " config_id=" << configId << std::endl;
-
-      // Get the matching EGL config
-      EGLConfig config = nullptr;
-      EGLint numConfigs = 0;
-      EGLint configAttribs[] = { EGL_CONFIG_ID, configId, EGL_NONE };
-      eglChooseConfig(flutterDpy, configAttribs, &config, 1, &numConfigs);
-
-      if (numConfigs > 0 && config != nullptr)
-      {
-        // Bind the appropriate API (GL or GLES) to match Flutter
-        eglBindAPI(clientType == EGL_OPENGL_ES_API ? EGL_OPENGL_ES_API : EGL_OPENGL_API);
-
-        // Create utility context sharing with Flutter
-        EGLint ctxAttribs[] = {
-            EGL_CONTEXT_MAJOR_VERSION, glMajor > 0 ? glMajor : 3,
-            EGL_CONTEXT_MINOR_VERSION, glMinor > 0 ? glMinor : 0,
-            EGL_NONE
-        };
-        EGLContext utilityCtx = eglCreateContext(flutterDpy, config, flutterCtx, ctxAttribs);
-
-        if (utilityCtx != EGL_NO_CONTEXT)
-        {
-          self->flutter_egl_context = flutterCtx;
-          self->utility_egl_context = utilityCtx;
-          self->egl_display = flutterDpy;
-          self->egl_config = config;
-          self->use_direct_opengl = TRUE;
-          self->backend_type = BACKEND_OPENGL;
-          self->thermion_platform =
-              ThermionPlatformEGLHeadless_Create(flutterDpy);
-
-          std::cerr << "[ThermionGL] Created utility context=" << (void *)utilityCtx
-                    << " (shared with Flutter)" << std::endl;
-          return;
-        }
-        else
-        {
-          std::cerr << "[ThermionGL] eglCreateContext(shared) failed: 0x"
-                    << std::hex << eglGetError() << std::dec
-                    << ", falling back" << std::endl;
-        }
-      }
-      else
-      {
-        std::cerr << "[ThermionGL] Could not find EGL config for config_id="
-                  << configId << ", falling back" << std::endl;
-      }
-    }
-    else
-    {
-      std::cerr << "[ThermionGL] No EGL context current on this thread,"
-                << " falling back to LinuxOpenGLContext" << std::endl;
-    }
+    std::cerr
+        << "[ThermionGL] Flutter raster context is not ready; "
+           "create and await the context bootstrap texture before "
+           "initializing Filament"
+        << std::endl;
+    self->opengl_initialization_error =
+        "Flutter's raster EGL context has not been imported";
+    return false;
   }
 
-  // Fallback: use the standalone LinuxOpenGLContext (GBM/DMA-BUF path)
-  std::cerr << "[ThermionGL] Using LinuxOpenGLContext fallback (DMA-BUF)" << std::endl;
-  self->opengl_context = new thermion::opengl::linux_platform::LinuxOpenGLContext();
+  EGLint clientType = 0;
+  EGLint glMajor = 0;
+  EGLint glMinor = 0;
+  EGLint configId = 0;
+  if (!eglQueryContext(
+          flutterDpy, flutterCtx, EGL_CONTEXT_CLIENT_TYPE, &clientType) ||
+      !eglQueryContext(
+          flutterDpy, flutterCtx, EGL_CONTEXT_MAJOR_VERSION_KHR, &glMajor) ||
+      !eglQueryContext(
+          flutterDpy, flutterCtx, EGL_CONTEXT_MINOR_VERSION_KHR, &glMinor) ||
+      !eglQueryContext(flutterDpy, flutterCtx, EGL_CONFIG_ID, &configId))
+  {
+    std::cerr << "[ThermionGL] Could not query Flutter's EGL context: 0x"
+              << std::hex << eglGetError() << std::dec << std::endl;
+    self->opengl_initialization_error =
+        "Could not query Flutter's raster EGL context";
+    return false;
+  }
+
+  std::cerr << "[ThermionGL] Imported Flutter raster context="
+            << (void *)flutterCtx
+            << " display=" << (void *)flutterDpy
+            << " type=0x" << std::hex << clientType << std::dec
+            << " (" << (clientType == EGL_OPENGL_ES_API ? "GLES" : "GL") << ")"
+            << " version=" << glMajor << "." << glMinor
+            << " config_id=" << configId << std::endl;
+
+  EGLConfig flutterConfig = nullptr;
+  EGLint numConfigs = 0;
+  EGLint configAttribs[] = { EGL_CONFIG_ID, configId, EGL_NONE };
+  if (!eglChooseConfig(
+          flutterDpy, configAttribs, &flutterConfig, 1, &numConfigs) ||
+      numConfigs == 0 || flutterConfig == nullptr)
+  {
+    std::cerr << "[ThermionGL] Could not find Flutter's EGL config "
+              << configId << ": 0x" << std::hex << eglGetError()
+              << std::dec << std::endl;
+    self->opengl_initialization_error =
+        "Could not resolve Flutter's EGLConfig";
+    return false;
+  }
+
+  if (clientType != EGL_OPENGL_API &&
+      clientType != EGL_OPENGL_ES_API)
+  {
+    std::cerr << "[ThermionGL] Unsupported Flutter EGL client API: 0x"
+              << std::hex << clientType << std::dec << std::endl;
+    self->opengl_initialization_error =
+        "Flutter uses an unsupported EGL client API";
+    return false;
+  }
+
+  EGLint ctxAttribs[] = {
+      EGL_CONTEXT_MAJOR_VERSION, glMajor > 0 ? glMajor : 3,
+      EGL_CONTEXT_MINOR_VERSION, glMinor > 0 ? glMinor : 0,
+      EGL_NONE
+  };
+  EGLenum api = static_cast<EGLenum>(clientType);
+  auto createFlutterUtilityContext = [&]() -> EGLContext
+  {
+    if (!eglBindAPI(api))
+    {
+      std::cerr << "[ThermionGL] Could not bind Flutter's EGL API: 0x"
+                << std::hex << eglGetError() << std::dec << std::endl;
+      self->opengl_initialization_error =
+          "Could not bind Flutter's EGL client API";
+      return EGL_NO_CONTEXT;
+    }
+    EGLContext context =
+        eglCreateContext(flutterDpy, flutterConfig, flutterCtx, ctxAttribs);
+    if (context == EGL_NO_CONTEXT)
+    {
+      std::cerr << "[ThermionGL] Could not create a context shared with "
+                   "Flutter: 0x"
+                << std::hex << eglGetError() << std::dec << std::endl;
+      self->opengl_initialization_error =
+          "Could not create a utility context shared with Flutter";
+    }
+    return context;
+  };
+
+  if (api == EGL_OPENGL_ES_API)
+  {
+    // Filament's Linux backend is compiled for desktop OpenGL. EGL object
+    // sharing cannot cross the GLES / desktop-GL API boundary. This is the
+    // case handled by PR #136's DMA-BUF bridge. Keep both APIs on Flutter's
+    // captured EGLDisplay; a second GBM EGLDisplay can corrupt NVIDIA's
+    // concurrently rendering Flutter context.
+    self->opengl_context =
+        new thermion::opengl::linux_platform::LinuxOpenGLContext(
+            reinterpret_cast<void*>(flutterDpy));
+    if (!self->opengl_context->IsValid())
+    {
+      self->opengl_initialization_error =
+          self->opengl_context->GetLastError();
+      delete self->opengl_context;
+      self->opengl_context = nullptr;
+      self->backend_type = 0;
+      return false;
+    }
+    EGLContext flutterUtilityCtx = createFlutterUtilityContext();
+    if (flutterUtilityCtx == EGL_NO_CONTEXT)
+    {
+      delete self->opengl_context;
+      self->opengl_context = nullptr;
+      self->backend_type = 0;
+      return false;
+    }
+    self->flutter_egl_context = flutterCtx;
+    self->flutter_egl_api = api;
+    self->flutter_utility_egl_context = flutterUtilityCtx;
+    self->egl_display = flutterDpy;
+    self->egl_config = flutterConfig;
+    self->backend_type = BACKEND_OPENGL;
+    std::cerr
+        << "[ThermionGL] Flutter uses GLES; selected same-display "
+           "GBM/DMA-BUF OpenGL fallback"
+        << std::endl;
+    return true;
+  }
+
+  if (glMajor < 4 || (glMajor == 4 && glMinor < 1))
+  {
+    std::cerr << "[ThermionGL] Flutter desktop OpenGL " << glMajor << "."
+              << glMinor << " is below Filament's 4.1 requirement; "
+                 "selected same-display GBM/DMA-BUF fallback"
+              << std::endl;
+    self->opengl_context =
+        new thermion::opengl::linux_platform::LinuxOpenGLContext(
+            reinterpret_cast<void*>(flutterDpy));
+    if (!self->opengl_context->IsValid())
+    {
+      self->opengl_initialization_error =
+          self->opengl_context->GetLastError();
+      delete self->opengl_context;
+      self->opengl_context = nullptr;
+      self->backend_type = 0;
+      return false;
+    }
+    EGLContext flutterUtilityCtx = createFlutterUtilityContext();
+    if (flutterUtilityCtx == EGL_NO_CONTEXT)
+    {
+      delete self->opengl_context;
+      self->opengl_context = nullptr;
+      self->backend_type = 0;
+      return false;
+    }
+    self->flutter_egl_context = flutterCtx;
+    self->flutter_egl_api = api;
+    self->flutter_utility_egl_context = flutterUtilityCtx;
+    self->egl_display = flutterDpy;
+    self->egl_config = flutterConfig;
+    self->backend_type = BACKEND_OPENGL;
+    return true;
+  }
+
+  EGLContext flutterUtilityCtx = createFlutterUtilityContext();
+  if (flutterUtilityCtx == EGL_NO_CONTEXT)
+  {
+    return false;
+  }
+  self->flutter_egl_context = flutterCtx;
+  self->flutter_egl_api = api;
+  self->utility_egl_context = flutterUtilityCtx;
+  self->egl_display = flutterDpy;
+  self->egl_config = flutterConfig;
+  self->use_direct_opengl = TRUE;
   self->backend_type = BACKEND_OPENGL;
+  self->thermion_platform = ThermionPlatformEGLHeadless_Create(flutterDpy);
+  if (!self->thermion_platform)
+  {
+    eglDestroyContext(flutterDpy, flutterUtilityCtx);
+    self->flutter_egl_context = EGL_NO_CONTEXT;
+    self->flutter_egl_api = EGL_NONE;
+    self->utility_egl_context = EGL_NO_CONTEXT;
+    self->egl_display = EGL_NO_DISPLAY;
+    self->egl_config = nullptr;
+    self->use_direct_opengl = FALSE;
+    self->backend_type = 0;
+    std::cerr << "[ThermionGL] Could not create the Filament EGL platform"
+              << std::endl;
+    self->opengl_initialization_error =
+        "Could not create Filament's EGL platform";
+    return false;
+  }
+
+  std::cerr << "[ThermionGL] Created desktop OpenGL utility context="
+            << (void *)flutterUtilityCtx << " (shared with Flutter)"
+            << std::endl;
+  return true;
 }
 
 static FlMethodResponse *handle_get_driver_platform(ThermionFlutterPlugin *self, FlMethodCall *method_call)
@@ -266,7 +415,20 @@ static FlMethodResponse *handle_get_driver_platform(ThermionFlutterPlugin *self,
   int64_t platform = 0;
   if (backend == BACKEND_OPENGL)
   {
-    ensure_opengl_context(self);
+    gboolean rasterContextReady =
+        thermion_flutter_render_context != EGL_NO_CONTEXT &&
+        thermion_flutter_render_display != EGL_NO_DISPLAY;
+    if (!ensure_opengl_context(self))
+    {
+      return FL_METHOD_RESPONSE(fl_method_error_response_new(
+          rasterContextReady ? "OPENGL_INITIALIZATION_FAILED"
+                             : "CONTEXT_NOT_READY",
+          rasterContextReady
+              ? self->opengl_initialization_error.c_str()
+              : "Flutter's raster EGL context must be imported before "
+                "Filament OpenGL initialization",
+          nullptr));
+    }
     if (self->use_direct_opengl)
     {
       platform = reinterpret_cast<int64_t>(self->thermion_platform);
@@ -296,10 +458,23 @@ static FlMethodResponse *handle_get_shared_context(ThermionFlutterPlugin *self, 
   int64_t sharedCtx = 0;
   if (backend == BACKEND_OPENGL)
   {
-    ensure_opengl_context(self);
+    gboolean rasterContextReady =
+        thermion_flutter_render_context != EGL_NO_CONTEXT &&
+        thermion_flutter_render_display != EGL_NO_DISPLAY;
+    if (!ensure_opengl_context(self))
+    {
+      return FL_METHOD_RESPONSE(fl_method_error_response_new(
+          rasterContextReady ? "OPENGL_INITIALIZATION_FAILED"
+                             : "CONTEXT_NOT_READY",
+          rasterContextReady
+              ? self->opengl_initialization_error.c_str()
+              : "Flutter's raster EGL context must be imported before "
+                "Filament OpenGL initialization",
+          nullptr));
+    }
     if (self->use_direct_opengl)
     {
-      // Direct sharing: return Flutter's context (Filament contexts share with it)
+      // Filament creates its own driver context in Flutter's object group.
       sharedCtx = reinterpret_cast<int64_t>(self->flutter_egl_context);
     }
     else
@@ -372,10 +547,11 @@ static FlMethodResponse *handle_create_texture_vulkan(ThermionFlutterPlugin *sel
 
 static FlMethodResponse *handle_create_texture_opengl_direct(ThermionFlutterPlugin *self, int width, int height)
 {
-  // EGLImage bridge: create GL texture on utility context (Group B, same as
-  // Filament), then bridge to Flutter's render context (Group A) via EGLImage.
+  // EGLImage bridge: create the source texture on the desktop-GL utility
+  // context shared by Filament, then let populate() bind the image to a
+  // Flutter-owned texture name.
   // - Filament imports the GL texture directly (same share group)
-  // - Flutter imports the EGLImage in populate() (cross share group)
+  // - Flutter binds the EGLImage in populate()
 
   EGLDisplay display = self->egl_display;
   GLuint glTexId = 0;
@@ -384,13 +560,28 @@ static FlMethodResponse *handle_create_texture_opengl_direct(ThermionFlutterPlug
   {
     EglContextGuard guard(display);
 
-    // Make utility context current (Group B)
-    if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, self->utility_egl_context))
+    // Make the desktop-GL utility context current.
+    if (!eglBindAPI(EGL_OPENGL_API))
     {
-      std::cerr << "[ThermionGL] Failed to make utility context current: 0x"
-                << std::hex << eglGetError() << std::dec << std::endl;
+      EGLint error = eglGetError();
+      std::cerr << "[ThermionGL] Failed to bind desktop OpenGL: 0x"
+                << std::hex << error << std::dec << std::endl;
       return FL_METHOD_RESPONSE(fl_method_error_response_new(
-          "EGL_ERROR", "Failed to make utility context current", nullptr));
+          "EGL_BIND_ERROR", "Failed to bind desktop OpenGL", nullptr));
+    }
+    if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                        self->utility_egl_context))
+    {
+      EGLint error = eglGetError();
+      std::cerr << "[ThermionGL] Failed to make plugin texture context "
+                   "current: 0x"
+                << std::hex << error << std::dec
+                << " context=" << (void*)self->utility_egl_context
+                << std::endl;
+      g_autofree gchar *message = g_strdup_printf(
+          "Failed to make plugin texture context current (EGL 0x%x)", error);
+      return FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "EGL_MAKE_CURRENT_ERROR", message, nullptr));
     }
 
     // Create GL texture on utility context
@@ -404,7 +595,7 @@ static FlMethodResponse *handle_create_texture_opengl_direct(ThermionFlutterPlug
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // Create EGLImage from the GL texture (bridges Group B → Group A)
+    // Create an EGLImage from the GL texture.
     // Must be called while the owning context is current
     EGLint imageAttribs[] = { EGL_GL_TEXTURE_LEVEL_KHR, 0, EGL_NONE };
     eglImage = eglCreateImageKHR(
@@ -421,6 +612,7 @@ static FlMethodResponse *handle_create_texture_opengl_direct(ThermionFlutterPlug
               << std::hex << err << std::dec << std::endl;
     {
       EglContextGuard guard(display);
+      eglBindAPI(EGL_OPENGL_API);
       eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, self->utility_egl_context);
       glDeleteTextures(1, &glTexId);
     }
@@ -439,9 +631,10 @@ static FlMethodResponse *handle_create_texture_opengl_direct(ThermionFlutterPlug
   FlTexture *flTexture = FL_TEXTURE(textureGL);
   if (!fl_texture_registrar_register_texture(self->texture_registrar, flTexture))
   {
-    eglDestroyImageKHR(display, eglImage);
+    destroy_egl_image(display, eglImage);
     {
       EglContextGuard guard(display);
+      eglBindAPI(EGL_OPENGL_API);
       eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, self->utility_egl_context);
       glDeleteTextures(1, &glTexId);
     }
@@ -505,13 +698,73 @@ static FlMethodResponse *handle_create_texture_opengl_dmabuf(ThermionFlutterPlug
 
 static FlMethodResponse *handle_create_texture_opengl(ThermionFlutterPlugin *self, int width, int height)
 {
-  ensure_opengl_context(self);
+  gboolean rasterContextReady =
+      thermion_flutter_render_context != EGL_NO_CONTEXT &&
+      thermion_flutter_render_display != EGL_NO_DISPLAY;
+  if (!ensure_opengl_context(self))
+  {
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
+        rasterContextReady ? "OPENGL_INITIALIZATION_FAILED"
+                           : "CONTEXT_NOT_READY",
+        rasterContextReady
+            ? self->opengl_initialization_error.c_str()
+            : "Cannot create an OpenGL texture before Flutter's raster "
+              "context is ready",
+        nullptr));
+  }
 
   if (self->use_direct_opengl)
   {
     return handle_create_texture_opengl_direct(self, width, height);
   }
   return handle_create_texture_opengl_dmabuf(self, width, height);
+}
+
+static FlMethodResponse *handle_create_context_bootstrap(
+    ThermionFlutterPlugin *self, FlMethodCall *method_call)
+{
+  FlValue *args = fl_method_call_get_args(method_call);
+  if (args == nullptr || fl_value_get_type(args) != FL_VALUE_TYPE_LIST ||
+      fl_value_get_length(args) < 2)
+  {
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "INVALID_ARGUMENTS", "Expected bootstrap texture width and height",
+        nullptr));
+  }
+
+  int width = fl_value_get_int(fl_value_get_list_value(args, 0));
+  int height = fl_value_get_int(fl_value_get_list_value(args, 1));
+  if (width <= 0 || height <= 0)
+  {
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "INVALID_ARGUMENTS", "Bootstrap texture dimensions must be positive",
+        nullptr));
+  }
+
+  ThermionTextureGL *textureGL =
+      thermion_texture_gl_create_context_bootstrap(
+          static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+          self->texture_registrar);
+  FlTexture *flTexture = FL_TEXTURE(textureGL);
+  if (!fl_texture_registrar_register_texture(
+          self->texture_registrar, flTexture))
+  {
+    g_object_unref(textureGL);
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
+        "REGISTER_FAILED",
+        "Failed to register Flutter context bootstrap texture", nullptr));
+  }
+
+  self->textures->push_back(textureGL);
+  self->backend_type = BACKEND_OPENGL;
+  fl_texture_registrar_mark_texture_frame_available(
+      self->texture_registrar, flTexture);
+
+  int64_t flutterTextureId = fl_texture_get_id(flTexture);
+  std::cerr << "[ThermionGL] Registered context bootstrap texture, flutterId="
+            << flutterTextureId << std::endl;
+  g_autoptr(FlValue) result = fl_value_new_int(flutterTextureId);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
 
@@ -542,25 +795,104 @@ static FlMethodResponse *handle_destroy_texture(ThermionFlutterPlugin *self, FlM
     if (fl_texture_get_id(FL_TEXTURE(tex)) == flutterTextureId)
     {
       int64_t surfaceId = tex->surface_id;
+      gboolean useDirectSharing = tex->use_direct_sharing;
+      gboolean useEglImage = tex->use_egl_image;
+      gboolean isContextBootstrap = tex->is_context_bootstrap;
+      GLuint glTextureId = tex->gl_texture_id;
+      GLuint flutterGlTextureId = tex->flutter_gl_texture_id;
+      EGLImage eglImage = tex->egl_image;
+      FlMethodCall *pendingReadyCall = tex->pending_ready_call;
+      tex->pending_ready_call = nullptr;
+
+      if (pendingReadyCall)
+      {
+        fl_method_call_respond(
+            pendingReadyCall,
+            FL_METHOD_RESPONSE(fl_method_error_response_new(
+                "DESTROYED",
+                "Texture destroyed before Flutter populated it", nullptr)),
+            nullptr);
+        g_object_unref(pendingReadyCall);
+      }
 
       fl_texture_registrar_unregister_texture(self->texture_registrar, FL_TEXTURE(tex));
 
+      gboolean initializedOnlyForBootstrapCleanup = FALSE;
       if (self->backend_type == BACKEND_OPENGL)
       {
-        if (tex->use_direct_sharing || tex->use_egl_image)
+        if (useDirectSharing || useEglImage)
         {
-          // Direct sharing / EGLImage bridge: delete the source GL texture on utility context
-          GLuint texId = tex->gl_texture_id;
-          if (texId != 0 && self->utility_egl_context != EGL_NO_CONTEXT)
+          // EGLImage bridge: source names belong to Filament's utility group.
+          // Bootstrap names belong to Flutter's group.
+          if (glTextureId != 0 &&
+              self->utility_egl_context == EGL_NO_CONTEXT &&
+              self->flutter_utility_egl_context == EGL_NO_CONTEXT &&
+              useDirectSharing)
+          {
+            // A bootstrap may be cancelled after populate() but before Dart
+            // requests the driver platform. Import the captured context now so
+            // its GL object can still be deleted from the correct share group.
+            initializedOnlyForBootstrapCleanup =
+                isContextBootstrap && ensure_opengl_context(self);
+          }
+          EGLContext sourceContext = useDirectSharing &&
+                  self->flutter_utility_egl_context != EGL_NO_CONTEXT
+              ? self->flutter_utility_egl_context
+              : self->utility_egl_context;
+          if (glTextureId != 0 && sourceContext != EGL_NO_CONTEXT)
           {
             EglContextGuard guard(self->egl_display);
+            eglBindAPI(useDirectSharing
+                           ? self->flutter_egl_api
+                           : EGL_OPENGL_API);
             eglMakeCurrent(self->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                           self->utility_egl_context);
-            glDeleteTextures(1, &texId);
+                           sourceContext);
+            glDeleteTextures(1, &glTextureId);
+          }
+
+          if (useEglImage)
+          {
+            EGLContext flutterContext =
+                self->flutter_utility_egl_context != EGL_NO_CONTEXT
+                    ? self->flutter_utility_egl_context
+                    : self->utility_egl_context;
+            if (flutterGlTextureId != 0 &&
+                flutterContext != EGL_NO_CONTEXT)
+            {
+              EglContextGuard guard(self->egl_display);
+              eglBindAPI(self->flutter_egl_api);
+              eglMakeCurrent(self->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                             flutterContext);
+              glDeleteTextures(1, &flutterGlTextureId);
+            }
+            if (eglImage != EGL_NO_IMAGE_KHR)
+            {
+              destroy_egl_image(self->egl_display, eglImage);
+            }
           }
         }
         else if (self->opengl_context)
         {
+          // DMA-BUF fallback: populate() created the consumer texture and
+          // EGLImage in Flutter's GLES share group. Release those before the
+          // producer destroys the backing GBM buffer.
+          if (glTextureId != 0 &&
+              self->flutter_utility_egl_context != EGL_NO_CONTEXT)
+          {
+            EglContextGuard guard(self->egl_display);
+            eglBindAPI(self->flutter_egl_api);
+            if (eglMakeCurrent(
+                    self->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                    self->flutter_utility_egl_context))
+            {
+              glDeleteTextures(1, &glTextureId);
+            }
+          }
+          if (eglImage != EGL_NO_IMAGE_KHR &&
+              self->egl_display != EGL_NO_DISPLAY)
+          {
+            destroy_egl_image(self->egl_display, eglImage);
+          }
           self->opengl_context->DestroyRenderingSurface(surfaceId);
         }
       }
@@ -582,6 +914,20 @@ static FlMethodResponse *handle_destroy_texture(ThermionFlutterPlugin *self, FlM
       }
 
       self->textures->erase(it);
+      if (self->backend_type == BACKEND_OPENGL)
+      {
+        // The plugin retains each factory's construction reference in
+        // addition to the registrar's reference. All OpenGL/EGL objects have
+        // now been deleted from their owning contexts.
+        tex->gl_texture_id = 0;
+        tex->flutter_gl_texture_id = 0;
+        tex->egl_image = EGL_NO_IMAGE_KHR;
+        g_object_unref(tex);
+      }
+      if (initializedOnlyForBootstrapCleanup)
+      {
+        destroy_all_contexts(self);
+      }
       break;
     }
   }
@@ -699,6 +1045,10 @@ static void thermion_flutter_plugin_handle_method_call(
   {
     response = handle_get_driver_platform(self, method_call);
   }
+  else if (strcmp(method, "createContextBootstrap") == 0)
+  {
+    response = handle_create_context_bootstrap(self, method_call);
+  }
   else if (strcmp(method, "getSharedContext") == 0)
   {
     response = handle_get_shared_context(self, method_call);
@@ -757,7 +1107,9 @@ static void thermion_flutter_plugin_init(ThermionFlutterPlugin *self)
   self->view = nullptr;
   self->vulkan_context = nullptr;
   self->flutter_egl_context = EGL_NO_CONTEXT;
+  self->flutter_egl_api = EGL_NONE;
   self->utility_egl_context = EGL_NO_CONTEXT;
+  self->flutter_utility_egl_context = EGL_NO_CONTEXT;
   self->egl_display = EGL_NO_DISPLAY;
   self->egl_config = nullptr;
   self->use_direct_opengl = FALSE;

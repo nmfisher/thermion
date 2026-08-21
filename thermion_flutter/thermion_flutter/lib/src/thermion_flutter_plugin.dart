@@ -1,11 +1,12 @@
 import 'dart:async';
-
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' hide View;
 import 'package:thermion_dart/thermion_dart.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_flutter/src/options.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
-
+import 'package:thermion_flutter/src/platform/src/thermion_flutter_plugin_initializer.dart';
 import 'platform/platform.dart';
 
 import 'package:logging/logging.dart';
@@ -81,6 +82,18 @@ abstract class ThermionFlutterPlugin {
   /// viewer).
   void setTargetFramerate(int fps) {
     FilamentApp.instance?.setTargetFramerate(fps);
+  }
+
+  /// Hosts any Flutter-side prerequisites while [initialize] creates a viewer.
+  @internal
+  Widget buildInitializationScope({
+    required Future<void> Function() initialize,
+    required Widget child,
+  }) {
+    return ThermionFlutterPluginInitializer(
+      initialize: initialize,
+      child: child,
+    );
   }
 
   /// Creates a rendering surface and binds to the given [View].
