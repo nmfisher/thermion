@@ -16,9 +16,12 @@
   public interface (previously FFI-only / missing). 
 - `Skybox` is now exported from the public API with methods for layer mask, intensity, etc.  
 - `ThermionViewer.loadSkybox` and `ThermionViewer.setBackgroundColor` now
-  return the created `Skybox`, so callers can mutate it (e.g.
-  `Skybox.setColor`, `Skybox.setLayerMask`) without going through
-  viewer-level verbs. 
+  return the created `Skybox`. Previously these returned nothing, so callers
+  had no handle on the viewer's skybox and any change meant destroying and
+  recreating it through another viewer call; the returned instance can now
+  be mutated in place (e.g. `Skybox.setColor`, `Skybox.setLayerMask`).
+  Native library rebuild required (C API signatures for
+  the skybox builders changed).
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw
