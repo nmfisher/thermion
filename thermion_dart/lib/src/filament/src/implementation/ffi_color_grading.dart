@@ -14,12 +14,7 @@ class FFIColorGrading extends ColorGrading {
   @override
   Pointer<TColorGrading> getNativeHandle() => pointer;
 
-  /// Destroys the underlying native ColorGrading.
-  ///
-  /// Only safe for a grading that is NOT currently attached to a view - a view
-  /// owns whatever grading was last passed to setColorGrading and destroys it
-  /// itself when it is replaced, cleared, or when the view is destroyed.
-  /// Idempotent: a second dispose is a no-op.
+  @override
   Future dispose() async {
     if (_disposed) {
       return;
@@ -39,9 +34,6 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   FFIColorGradingBuilder(this._builder, this._app);
 
-  /// Matches Filament: the builder is reusable - build() may be called any
-  /// number of times, and settings may be changed between builds. Only
-  /// disposal ends its life.
   void _checkNotDisposed() {
     if (_disposed) {
       throw StateError('Builder has been disposed');
@@ -216,9 +208,6 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
   @override
   Future<ColorGrading> build() async {
     _checkNotDisposed();
-    // Matches Filament: build() does not consume the builder - it may be
-    // called repeatedly, and settings may be changed between builds. Each
-    // call creates an independent ColorGrading.
     final ptr = await withPointerCallback<TColorGrading>(
       (cb) => ColorGradingBuilder_buildRenderThread(_builder, _app.engine, cb),
     );
