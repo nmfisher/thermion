@@ -1,7 +1,6 @@
 import 'package:thermion_dart/src/filament/src/implementation/ffi_indirect_light.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_skybox.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
-import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 

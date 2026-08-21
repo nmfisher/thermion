@@ -4,7 +4,6 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.
 import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
-import 'package:thermion_dart/src/filament/src/interface/skybox.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 
