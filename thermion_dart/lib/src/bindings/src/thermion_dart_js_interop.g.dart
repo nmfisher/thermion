@@ -44,7 +44,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external Pointer<TToneMapper> _ToneMapper_createDisplayRange(Pointer<TEngine> tEngine);
   external void _ToneMapper_destroy(Pointer<TToneMapper> toneMapper);
-  external Pointer<TColorGrading> _ColorGrading_create(Pointer<TEngine> tEngine, Pointer<TToneMapper> toneMapper);
   external Pointer<TColorGradingBuilder> _ColorGradingBuilder_create();
   external Pointer<TColorGrading> _ColorGradingBuilder_build(
     Pointer<TColorGradingBuilder> builder,
@@ -1130,11 +1129,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Material_createTranslationAxisMaterialRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<NativeFunction<void Function(PointerClass<TMaterial>)>> onComplete,
-  );
-  external void _ColorGrading_createRenderThread(
-    Pointer<TEngine> tEngine,
-    Pointer<TToneMapper> toneMapper,
-    Pointer<NativeFunction<void Function(PointerClass<TColorGrading>)>> callback,
   );
   external void _ColorGradingBuilder_createRenderThread(
     Pointer<NativeFunction<void Function(PointerClass<TColorGradingBuilder>)>> onComplete,
@@ -2485,11 +2479,6 @@ Pointer<TToneMapper> ToneMapper_createDisplayRange(Pointer<TEngine> tEngine) {
 void ToneMapper_destroy(Pointer<TToneMapper> toneMapper) {
   final result = GeneratedBindings.instance._ToneMapper_destroy(toneMapper.cast());
   return result;
-}
-
-Pointer<TColorGrading> ColorGrading_create(Pointer<TEngine> tEngine, Pointer<TToneMapper> toneMapper) {
-  final result = GeneratedBindings.instance._ColorGrading_create(tEngine.cast(), toneMapper.cast());
-  return Pointer<TColorGrading>(result);
 }
 
 Pointer<TColorGradingBuilder> ColorGradingBuilder_create() {
@@ -5575,19 +5564,6 @@ void Material_createTranslationAxisMaterialRenderThread(
   final result = GeneratedBindings.instance._Material_createTranslationAxisMaterialRenderThread(
     tEngine.cast(),
     onComplete.cast(),
-  );
-  return result;
-}
-
-void ColorGrading_createRenderThread(
-  Pointer<TEngine> tEngine,
-  Pointer<TToneMapper> toneMapper,
-  Pointer<NativeFunction<void Function(Pointer<TColorGrading>)>> callback,
-) {
-  final result = GeneratedBindings.instance._ColorGrading_createRenderThread(
-    tEngine.cast(),
-    toneMapper.cast(),
-    callback.cast(),
   );
   return result;
 }
@@ -8882,21 +8858,6 @@ final class TEngine extends Struct {
   }
 }
 
-extension TColorGradingExt on Pointer<TColorGrading> {
-  TColorGrading toDart() {
-    return TColorGrading(this);
-  }
-}
-
-final class TColorGrading extends Struct {
-  Pointer<TColorGrading> get address => super.address.cast();
-  TColorGrading(super.address);
-
-  static Pointer<TColorGrading> stackAlloc() {
-    return Pointer<TColorGrading>(NativeLibrary.instance.stackAlloc<TColorGrading>(0));
-  }
-}
-
 extension TColorGradingBuilderExt on Pointer<TColorGradingBuilder> {
   TColorGradingBuilder toDart() {
     return TColorGradingBuilder(this);
@@ -8909,6 +8870,21 @@ final class TColorGradingBuilder extends Struct {
 
   static Pointer<TColorGradingBuilder> stackAlloc() {
     return Pointer<TColorGradingBuilder>(NativeLibrary.instance.stackAlloc<TColorGradingBuilder>(0));
+  }
+}
+
+extension TColorGradingExt on Pointer<TColorGrading> {
+  TColorGrading toDart() {
+    return TColorGrading(this);
+  }
+}
+
+final class TColorGrading extends Struct {
+  Pointer<TColorGrading> get address => super.address.cast();
+  TColorGrading(super.address);
+
+  static Pointer<TColorGrading> stackAlloc() {
+    return Pointer<TColorGrading>(NativeLibrary.instance.stackAlloc<TColorGrading>(0));
   }
 }
 
@@ -11193,11 +11169,11 @@ extension StructAllocator on Struct {
       case TEngine:
         final ptr = TEngine.stackAlloc();
         return ptr.toDart() as T;
-      case TColorGrading:
-        final ptr = TColorGrading.stackAlloc();
-        return ptr.toDart() as T;
       case TColorGradingBuilder:
         final ptr = TColorGradingBuilder.stackAlloc();
+        return ptr.toDart() as T;
+      case TColorGrading:
+        final ptr = TColorGrading.stackAlloc();
         return ptr.toDart() as T;
       case TRenderTarget:
         final ptr = TRenderTarget.stackAlloc();
@@ -11372,7 +11348,7 @@ extension NativeFunctionPointer17<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer48<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer47<T extends NativeType> on void Function(int) {
   Pointer<NativeFunction<void Function(int)>> addFunction() {
     return Pointer<NativeFunction<void Function(int)>>(
       NativeLibrary.instance.addFunction<void Function(int)>(this.toJS, 'vi'),
@@ -11380,7 +11356,7 @@ extension NativeFunctionPointer48<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer62<T extends NativeType> on void Function(double) {
+extension NativeFunctionPointer61<T extends NativeType> on void Function(double) {
   Pointer<NativeFunction<void Function(double)>> addFunction() {
     return Pointer<NativeFunction<void Function(double)>>(
       NativeLibrary.instance.addFunction<void Function(double)>(this.toJS, 'vf'),

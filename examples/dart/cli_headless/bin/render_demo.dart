@@ -180,7 +180,12 @@ Future<void> main(List<String> argv) async {
   await viewer.view.setFrustumCullingEnabled(false);
   await viewer.setViewport(width, height);
   // ACES tone mapping for filmic, non-blow-out highlights.
-  await viewer.setToneMapper(await ToneMapper.aces(app));
+  final builder = await viewer.view.createColorGradingBuilder();
+  final toneMapper = await ToneMapper.aces(app);
+  final colorGrading = await builder.toneMapper(toneMapper).build();
+  await builder.dispose();
+  await toneMapper.dispose(); // builder disposed; grading holds a copy
+  await viewer.view.setColorGrading(colorGrading);
 
   // Environment: HDRI skybox + image-based lighting. `--env=<name>` selects one.
   // `--no-skybox` skips the visible skybox (background goes black) but keeps the

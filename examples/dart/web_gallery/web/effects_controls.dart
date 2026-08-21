@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:web/web.dart';
 
@@ -42,9 +41,13 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
     document.getElementById('${input.id}-value')!.textContent = input.value;
   }
 
-  FFIColorGrading? currentGrading;
   Timer? gradingDebounce;
   Future<void> gradingQueue = Future.value();
+
+  // The grading currently attached to the view. The caller owns its
+  // lifecycle (as in Filament - the view holds only a non-owning
+  // reference), so it is disposed here whenever it is replaced or cleared.
+  ColorGrading? attachedGrading;
 
   Future<void> rebuildColorGrading() async {
     try {
@@ -56,13 +59,18 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
           .contrast(valueOf(contrast))
           .saturation(valueOf(saturation))
           .vibrance(valueOf(vibrance))
-          .build() as FFIColorGrading;
+          .build();
+      await builder.dispose();
       if (colorGrading.checked) {
+        // Attaching the new grading dissociates the old one, which can then
+        // be disposed.
         await viewer.view.setColorGrading(next);
+        await attachedGrading?.dispose();
+        attachedGrading = next;
+      } else {
+        // Built but never attached: dispose it immediately.
+        await next.dispose();
       }
-      final previous = currentGrading;
-      currentGrading = next;
-      await previous?.dispose();
     } catch (error, stackTrace) {
       print('Failed to update color grading: $error\n$stackTrace');
     }
@@ -102,7 +110,11 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
           if (colorGrading.checked) {
             await rebuildColorGrading();
           } else {
+            // Dissociate from the view, then dispose the caller-owned
+            // grading.
             await viewer.view.setColorGrading(null);
+            await attachedGrading?.dispose();
+            attachedGrading = null;
           }
         });
       }).toJS);

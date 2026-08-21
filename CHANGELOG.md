@@ -4,14 +4,24 @@
 
 ### Changes
 - `FilamentApp` exposes the native engine handle as a public
-  `Pointer<TEngine> get engine` (thermion_dart is FFI-backed on every
-  supported target, including web/WASM). `ToneMapper` factory methods take
-  the abstract `FilamentApp` instead of `FFIFilamentApp`, so callers no
-  longer need to downcast (`ToneMapper.aces(FilamentApp.instance!)` just
-  works).
-- `TranslationAxisMaterial.createMaterialInstance` takes the abstract
-  `FilamentApp` too, and `FFIMaterial`/`FFIMaterialInstance` hold the
-  abstract type internally (they only ever needed the engine handle).
+- `TranslationAxisMaterial.createMaterialInstance` and `ToneMapper` factory methods
+  now take the abstract `FilamentApp` instead of
+  `FFIFilamentApp`
+- `ColorGrading` follows Filament's ownership model (caller
+  manages lifecycle). A `ColorGrading` must be dissociated from every view
+  (`setColorGrading` with a replacement or null) BEFORE calling
+  `ColorGrading.dispose()`. Attaching one grading to multiple views
+  remains supported, but its lifetime is entirely yours. 
+- `ColorGrading` and `ColorGradingBuilder` expose `dispose()` through the
+  public interface (previously FFI-only / missing). 
+
+### Breaking changes
+- remove the unused `FilamentApp.createColorGrading` — it returned a raw
+  pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
+  instead.
+- remove `View.setToneMapper` and `ThermionViewer.setToneMapper` - use
+  `view.createColorGradingBuilder().toneMapper(...).build()` followed by
+  `view.setColorGrading()` instead.
 
 ## 0.6.0
 

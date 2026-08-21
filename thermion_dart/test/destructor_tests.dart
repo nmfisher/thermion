@@ -10,6 +10,7 @@ void main() async {
     await testHelper.setup();
     final viewer = (await testHelper.createViewer()).$1;
     await viewer.dispose();
+    await testHelper.disposeColorGradings();
     await FilamentApp.instance!.destroy();
     await testHelper.setup();
   });

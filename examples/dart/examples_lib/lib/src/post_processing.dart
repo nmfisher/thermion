@@ -27,6 +27,11 @@ Future<void> setupPostProcessing(
 
   // Warm colour grading (skips toneMapper -- the builder defaults to
   // ACESLegacy when toneMapper is not explicitly set).
+  //
+  // The grading is caller-owned (as in Filament): it stays attached for the
+  // viewer's lifetime here. A caller tearing the view down earlier must
+  // dissociate (`setColorGrading(null)`) and dispose it - see
+  // web_gallery/web/effects_controls.dart for the full pattern.
   final builder = await viewer.view.createColorGradingBuilder();
   final grading = await builder
       .quality(QualityLevel.HIGH)
@@ -36,5 +41,6 @@ Future<void> setupPostProcessing(
       .saturation(1.1)
       .vibrance(1.2)
       .build();
+  await builder.dispose();
   await viewer.view.setColorGrading(grading);
 }

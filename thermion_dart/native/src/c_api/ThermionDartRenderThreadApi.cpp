@@ -1153,19 +1153,6 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapper *toneMapper, void (*callback)(TColorGrading *))
-  {
-    auto *rt = RT(tEngine);
-    std::packaged_task<void()> lambda(
-        [=]
-        {
-          auto cg = ColorGrading_create(tEngine, toneMapper);
-
-          setOwner(cg, rt);          PROXY(callback(cg));
-        });
-    auto fut = rt->addTask(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void ColorGradingBuilder_createRenderThread(void (*onComplete)(TColorGradingBuilder *))
   {
     auto *rt = RT(nullptr);

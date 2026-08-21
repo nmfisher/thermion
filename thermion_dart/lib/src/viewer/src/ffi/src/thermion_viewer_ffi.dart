@@ -587,12 +587,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
   //
   @override
-  Future setToneMapper(ToneMapper mapper) async {
-    await view.setToneMapper(mapper);
-  }
-
-  //
-  @override
   Future setPostProcessing(bool enabled) async {
     await view.setPostProcessing(enabled);
   }

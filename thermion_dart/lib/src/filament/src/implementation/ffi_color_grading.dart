@@ -5,6 +5,7 @@ import 'ffi_filament_app.dart';
 /// FFI implementation of ColorGrading
 class FFIColorGrading extends ColorGrading {
   final Pointer<TColorGrading> pointer;
+  bool _disposed = false;
 
   final FFIFilamentApp _app;
 
@@ -13,7 +14,12 @@ class FFIColorGrading extends ColorGrading {
   @override
   Pointer<TColorGrading> getNativeHandle() => pointer;
 
+  @override
   Future dispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     await withVoidCallback(
       (requestId, cb) => Engine_destroyColorGradingRenderThread(_app.engine, pointer, requestId, cb),
     );
@@ -23,42 +29,41 @@ class FFIColorGrading extends ColorGrading {
 /// FFI implementation of ColorGradingBuilder
 class FFIColorGradingBuilder extends ColorGradingBuilder {
   final Pointer<TColorGradingBuilder> _builder;
-  bool _built = false;
-
   final FFIFilamentApp _app;
+  bool _disposed = false;
 
   FFIColorGradingBuilder(this._builder, this._app);
 
-  void _checkNotBuilt() {
-    if (_built) {
-      throw StateError('Builder has already been built and cannot be reused');
+  void _checkNotDisposed() {
+    if (_disposed) {
+      throw StateError('Builder has been disposed');
     }
   }
 
   @override
   ColorGradingBuilder quality(QualityLevel level) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_quality(_builder, level.index);
     return this;
   }
 
   @override
   ColorGradingBuilder format(LutFormat format) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_format(_builder, format.index);
     return this;
   }
 
   @override
   ColorGradingBuilder dimensions(int dim) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_dimensions(_builder, dim);
     return this;
   }
 
   @override
   ColorGradingBuilder toneMapper(ToneMapper mapper) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     // Extract the native pointer from the ToneMapper object
     final Pointer<TToneMapper> toneMapperPtr = mapper.getNativeHandle();
     ColorGradingBuilder_toneMapper(_builder, toneMapperPtr);
@@ -67,49 +72,49 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder exposure(double exposure) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_exposure(_builder, exposure);
     return this;
   }
 
   @override
   ColorGradingBuilder nightAdaptation(double adaptation) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_nightAdaptation(_builder, adaptation);
     return this;
   }
 
   @override
   ColorGradingBuilder whiteBalance(double temperature, double tint) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_whiteBalance(_builder, temperature, tint);
     return this;
   }
 
   @override
   ColorGradingBuilder contrast(double contrast) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_contrast(_builder, contrast);
     return this;
   }
 
   @override
   ColorGradingBuilder vibrance(double vibrance) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_vibrance(_builder, vibrance);
     return this;
   }
 
   @override
   ColorGradingBuilder saturation(double saturation) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_saturation(_builder, saturation);
     return this;
   }
 
   @override
   ColorGradingBuilder channelMixer(Vector3 outRed, Vector3 outGreen, Vector3 outBlue) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_channelMixer(
       _builder,
       outRed.x,
@@ -127,7 +132,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder shadowsMidtonesHighlights(Vector4 shadows, Vector4 midtones, Vector4 highlights, Vector4 ranges) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_shadowsMidtonesHighlights(
       _builder,
       shadows.x,
@@ -152,7 +157,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder slopeOffsetPower(Vector3 slope, Vector3 offset, Vector3 power) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_slopeOffsetPower(
       _builder,
       slope.x,
@@ -170,7 +175,7 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder curves(Vector3 shadowGamma, Vector3 midPoint, Vector3 highlightScale) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_curves(
       _builder,
       shadowGamma.x,
@@ -188,29 +193,36 @@ class FFIColorGradingBuilder extends ColorGradingBuilder {
 
   @override
   ColorGradingBuilder luminanceScaling(bool enabled) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_luminanceScaling(_builder, enabled);
     return this;
   }
 
   @override
   ColorGradingBuilder gamutMapping(bool enabled) {
-    _checkNotBuilt();
+    _checkNotDisposed();
     ColorGradingBuilder_gamutMapping(_builder, enabled);
     return this;
   }
 
   @override
   Future<ColorGrading> build() async {
-    _checkNotBuilt();
-    _built = true;
+    _checkNotDisposed();
     final ptr = await withPointerCallback<TColorGrading>(
       (cb) => ColorGradingBuilder_buildRenderThread(_builder, _app.engine, cb),
     );
-    await withVoidCallback((requestId, cb) => ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb));
     if (ptr == nullptr) {
       throw Exception('Failed to build ColorGrading');
     }
     return FFIColorGrading(ptr, _app);
+  }
+
+  @override
+  Future dispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
+    await withVoidCallback((requestId, cb) => ColorGradingBuilder_destroyRenderThread(_builder, requestId, cb));
   }
 }

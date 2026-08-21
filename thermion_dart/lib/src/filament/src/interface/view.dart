@@ -138,28 +138,56 @@ enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
 enum LutFormat { INTEGER, FLOAT }
 
-// ColorGrading object that holds color grading configuration.
-// ColorGrading is treated as const
-// Created via View.createColorGradingBuilder().build() and applied to a view.
-// Will be disposed when View.setColorGrading is called.
-abstract class ColorGrading extends NativeHandle<dynamic> {}
+/// Immutable color grading configuration.
+///
+/// Created via `View.createColorGradingBuilder().build()` and applied to one
+/// or more views with `View.setColorGrading()`.
+///
+/// Like Filament, ownership is entirely the CALLER's responsibility:
+/// `View.setColorGrading` performs no ownership transfer and no reference
+/// counting - the view merely holds a non-owning reference. A single
+/// ColorGrading may be attached to multiple views simultaneously, but you
+/// must dissociate it from every view (via `setColorGrading` with a
+/// replacement or null) BEFORE calling [dispose]. Disposing a grading that
+/// is still attached to a view leaves that view with a dangling pointer
+/// (undefined behaviour on the next render).
+abstract class ColorGrading extends NativeHandle<dynamic> {
+  /// Destroys the underlying native ColorGrading. Idempotent.
+  ///
+  /// The caller is responsible for the grading's lifetime: dissociate it
+  /// from every view first (see [ColorGrading]) - destroying a grading that
+  /// is still attached to a view is undefined behaviour.
+  Future dispose();
+}
 
 ///
 /// Builder for creating ColorGrading objects with the full Filament color pipeline.
 ///
 /// Usage:
 /// ```dart
-/// final colorGrading = await view.createColorGradingBuilder()
-///   .toneMapper(ToneMapper.ACES)
+/// final builder = await view.createColorGradingBuilder();
+/// final toneMapper = await ToneMapper.aces(FilamentApp.instance!);
+/// final colorGrading = await builder
+///   .toneMapper(toneMapper)
 ///   .exposure(1.0)
 ///   .contrast(1.1)
 ///   .saturation(1.05)
 ///   .build();
+/// await builder.dispose();
+/// // safe once the builder is disposed (no further builds will read it):
+/// await toneMapper.dispose();
 /// await view.setColorGrading(colorGrading);
+/// // ...later, once no view uses it:
+/// await view.setColorGrading(null);
+/// await colorGrading.dispose();
 /// ```
 ///
 /// All methods return this builder for method chaining.
-/// The builder is consumed after build() and cannot be reused.
+///
+/// Like Filament's ColorGrading::Builder, this builder is REUSABLE: [build]
+/// may be called any number of times (settings may also be changed between
+/// builds), and each call creates an independent ColorGrading. Free the
+/// builder itself with [dispose] when you are done building.
 ///
 abstract class ColorGradingBuilder {
   // ============================================================================
@@ -186,8 +214,13 @@ abstract class ColorGradingBuilder {
 
   /// Sets the tone mapping operator.
   ///
-  /// Default is ACESLegacy. The tone mapper must have a lifecycle that
-  /// exceeds this method call.
+  /// Default is ACESLegacy. The builder stores a reference to [mapper] and
+  /// copies its state each time [build] executes on the render thread, so the
+  /// mapper must NOT be disposed while this builder is still usable - dispose
+  /// it only after [dispose]ding the builder (or after your final build if
+  /// you are certain no more builds will run). Each built ColorGrading holds
+  /// a copy, never a reference, so an applied grading is never affected by
+  /// disposing the mapper.
   ColorGradingBuilder toneMapper(ToneMapper mapper);
 
   // ============================================================================
@@ -305,9 +338,23 @@ abstract class ColorGradingBuilder {
 
   /// Builds the ColorGrading object.
   ///
-  /// The builder is consumed after this call and cannot be reused.
-  /// The returned ColorGrading must be disposed when no longer needed.
+  /// Like Filament's ColorGrading::Builder, this does NOT consume the
+  /// builder: it may be called any number of times, and each call creates an
+  /// independent ColorGrading owned by the caller (see [ColorGrading] for
+  /// the caller-managed lifetime). Each build reads the builder's current
+  /// settings and the current state of its tone mapper.
+  ///
+  /// Throws if the build fails on the render thread or the builder has been
+  /// disposed.
   Future<ColorGrading> build();
+
+  /// Destroys the native builder.
+  ///
+  /// Required once you are done building - a builder that is never disposed
+  /// leaks its native resources. Idempotent; using a disposed builder
+  /// (building or setting values) throws. Dispose the builder before
+  /// disposing any tone mapper it references (each build reads the mapper).
+  Future dispose();
 }
 
 abstract class View<T> extends NativeHandle<T> {
@@ -366,36 +413,45 @@ abstract class View<T> extends NativeHandle<T> {
   ///
   /// Example:
   /// ```dart
-  /// final colorGrading = await view.createColorGradingBuilder()
-  ///   .toneMapper(ToneMapper.ACES)
+  /// final builder = await view.createColorGradingBuilder();
+  /// final toneMapper = await ToneMapper.aces(FilamentApp.instance!);
+  /// final colorGrading = await builder
+  ///   .toneMapper(toneMapper)
   ///   .exposure(1.0)
   ///   .contrast(1.1)
   ///   .build();
+  /// await builder.dispose();
+  /// await toneMapper.dispose(); // safe: builder disposed, grading holds a copy
   /// await view.setColorGrading(colorGrading);
+  /// // ...later, once no view uses it:
+  /// await view.setColorGrading(null);
+  /// await colorGrading.dispose();
   /// ```
   Future<ColorGradingBuilder> createColorGradingBuilder();
 
   /// Sets the color grading for this view.
   ///
   /// The ColorGrading object must be created via createColorGradingBuilder().
-  /// The view does not take ownership - you must dispose the ColorGrading
-  /// when no longer needed.
+  /// Like Filament's `View::setColorGrading`, this performs NO ownership
+  /// transfer and NO reference counting - the view holds a non-owning
+  /// reference and the caller remains responsible for the grading's lifetime
+  /// (see [ColorGrading]). A grading may be attached to several views at
+  /// once, but it must be dissociated from every view before being disposed.
   ///
-  /// Pass null to clear any existing color grading from this view.
+  /// Pass null to clear any existing color grading from this view (this does
+  /// NOT destroy the grading - dispose it yourself once no view uses it).
   Future setColorGrading(ColorGrading? colorGrading);
 
   /// Gets the current color grading from this view.
   ///
-  /// Returns null if no color grading is currently set.
+  /// Returns null if no color grading is currently set. The returned object
+  /// is a non-owning wrapper; the grading's lifetime is the caller's
+  /// responsibility (see [setColorGrading]). Do not dispose the returned
+  /// wrapper - dispose the ColorGrading instance you created instead (both
+  /// wrap the same native object; disposing both would destroy it twice).
+  /// Note that a view with no grading set still reports Filament's internal
+  /// default grading here - never dispose that either.
   Future<ColorGrading?> getColorGrading();
-
-  /// Sets the tone mapper for this view (deprecated).
-  ///
-  /// @deprecated Use createColorGradingBuilder().toneMapper(...).build()
-  /// followed by setColorGrading() instead. This provides access to the
-  /// full color grading pipeline.
-  @Deprecated('Use createColorGradingBuilder() instead')
-  Future setToneMapper(ToneMapper mapper);
 
   Future setTransparentPickingEnabled(bool enabled);
   Future<bool> isTransparentPickingEnabled();
