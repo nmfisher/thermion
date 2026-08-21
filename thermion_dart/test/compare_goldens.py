@@ -3,6 +3,7 @@
 Compare PNG files between golden reference images and test output images.
 """
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -30,7 +31,9 @@ def calculate_image_difference(img1_path, img2_path):
             diff = ImageChops.difference(img1, img2)
             
             # Convert to numpy for calculations
-            diff_array = np.array(diff)
+            # Promote before squaring; uint8 arithmetic wraps at 255 and can
+            # otherwise report non-identical pixels as an MSE of zero.
+            diff_array = np.asarray(diff, dtype=np.float32)
             
             # Calculate metrics
             mse = np.mean(diff_array ** 2)
@@ -53,9 +56,21 @@ def find_png_files(directory):
     return sorted(png_files)
 
 def main():
-    # Define paths
-    golden_dir = Path("golden-downloads/thermion_dart/test/output")
-    output_dir = Path("output")
+    parser = argparse.ArgumentParser(description="Compare rendered PNGs with golden images")
+    parser.add_argument(
+        "--golden-dir",
+        default="golden-downloads/thermion_dart/test/output",
+        help="directory containing golden PNG files",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="output",
+        help="directory containing rendered PNG files",
+    )
+    args = parser.parse_args()
+
+    golden_dir = Path(args.golden_dir)
+    output_dir = Path(args.output_dir)
     
     # Check if directories exist
     if not golden_dir.exists():

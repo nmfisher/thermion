@@ -7,6 +7,7 @@ on:
         description: Git ref (SHA or branch) to check out
         required: false
         type: string
+
   workflow_dispatch:
     inputs:
       ref:
@@ -108,12 +109,12 @@ jobs:
             test/all_axes_test.dart \
             test/bone_picking_tests.dart \
             test/all_materials_smoke_test.dart \
-            test/skybox_tests.dart \
             --concurrency=1
 
       - name: Run tests (Windows)
         if: matrix.name == 'Windows'
         working-directory: thermion_dart
+        shell: pwsh
         env:
           VK_ICD_FILENAMES: C:\swiftshader\vk_swiftshader_icd.json
         run: |
@@ -135,16 +136,7 @@ jobs:
             test/gizmo_tests_new.dart `
             test/all_axes_test.dart `
             test/all_materials_smoke_test.dart `
-            test/skybox_tests.dart `
             --concurrency=1
-
-      # Keep these platform-specific: OpenGL, SwiftShader Vulkan, and Metal
-      # are not expected to produce byte-identical images across backends.
-      - name: Upload skybox golden candidate
-        uses: actions/upload-artifact@v4
-        with:
-          name: skybox-images-${{ matrix.name }}-${{ github.sha }}
-          path: thermion_dart/test/output/skybox
 
       - name: Zip output
         if: matrix.name == 'Linux'
@@ -253,14 +245,7 @@ jobs:
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
             test/gizmo_tests_new.dart \
-            test/skybox_tests.dart \
             --concurrency=1
-
-      - name: Upload skybox golden candidate
-        uses: actions/upload-artifact@v4
-        with:
-          name: skybox-images-macOS-${{ github.sha }}
-          path: thermion_dart/test/output/skybox
 
       - name: Upload logs
         if: failure()
@@ -269,6 +254,117 @@ jobs:
           name: build-logs-dart-macOS
           path: |
             ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
+          retention-days: 5
+
+  # Render and retain a focused skybox baseline per backend. These images are
+  # deliberately not compared across operating systems: Linux uses OpenGL,
+  # Windows uses SwiftShader Vulkan, and macOS uses Metal.
+  skybox-goldens:
+    name: Skybox Goldens (${{ matrix.name }})
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-22.04
+            os-key: linux
+          - name: Windows
+            os: windows-2022
+            os-key: windows
+          - name: macOS
+            os: macos-15
+            os-key: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~\AppData\Local\Pub\Cache
+          key: pub-${{ runner.os }}-${{ hashFiles('thermion_dart/pubspec.lock', 'thermion_dart/pubspec.yaml') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Setup build environment (Linux)
+        if: matrix.os-key == 'linux'
+        uses: ./.github/actions/setup-build-env
+
+      - name: Install EGL libraries (Linux)
+        if: matrix.os-key == 'linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libegl1 libegl1-mesa-dev libc++-dev libc++abi-dev
+
+      - name: Setup build environment (Windows)
+        if: matrix.os-key == 'windows'
+        uses: ./.github/actions/setup-windows-env
+
+      - name: Set up Dart (macOS)
+        if: matrix.os-key == 'macos'
+        uses: dart-lang/setup-dart@v1
+
+      - name: Enable debug mode for tests
+        shell: bash
+        run: |
+          awk '
+            /^hooks:/ { skip=1; next }
+            skip && /^[^[:space:]#]/ { skip=0 }
+            !skip { print }
+          ' thermion_dart/pubspec.yaml > thermion_dart/pubspec.yaml.tmp
+          mv thermion_dart/pubspec.yaml.tmp thermion_dart/pubspec.yaml
+          cat >> thermion_dart/pubspec.yaml <<'EOF'
+          hooks:
+            user_defines:
+              thermion_dart:
+                mode: debug
+          EOF
+
+      - name: Clean cached Filament libraries
+        shell: bash
+        run: rm -rf thermion_dart/.dart_tool/thermion_dart/lib
+
+      - name: Run skybox tests (Linux)
+        if: matrix.os-key == 'linux'
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          xvfb-run dart test test/skybox_tests.dart
+
+      - name: Run skybox tests (Windows)
+        if: matrix.os-key == 'windows'
+        working-directory: thermion_dart
+        shell: pwsh
+        env:
+          VK_ICD_FILENAMES: C:\swiftshader\vk_swiftshader_icd.json
+        run: |
+          dart pub get
+          dart test test/skybox_tests.dart
+
+      - name: Run skybox tests (macOS)
+        if: matrix.os-key == 'macos'
+        working-directory: thermion_dart
+        run: |
+          dart pub get
+          dart test test/skybox_tests.dart
+
+      - name: Upload skybox golden candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: skybox-images-${{ matrix.name }}-${{ github.sha }}
+          path: thermion_dart/test/output/skybox
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-skybox-${{ matrix.name }}
+          path: ${{ github.workspace }}/thermion_dart/.dart_tool/thermion_dart/log/build.log
           retention-days: 5
 
   # Exercises the single-backend material variants (_opengl/_vulkan) that
