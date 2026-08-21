@@ -132,9 +132,7 @@ class _ThermionTextureBootstrapState extends State<ThermionTextureBootstrap> {
       if (_injected) {
         return descriptor.destroy();
       }
-      return ThermionFlutterPlugin.instance.destroyContextBootstrap(
-        descriptor,
-      );
+      return ThermionFlutterPlugin.instance.destroyContextBootstrap(descriptor);
     }();
   }
 
