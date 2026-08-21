@@ -199,9 +199,6 @@ abstract class ThermionViewer {
   // this method is complete.
   Future destroyAssets();
 
-  // Sets the tone mapping (requires postprocessing).
-  Future setToneMapper(ToneMapper mapper);
-
   // Enable/disable bloom.
   Future setBloom(bool enabled, double strength);
 

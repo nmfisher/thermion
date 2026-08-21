@@ -354,9 +354,6 @@ abstract class FilamentApp<T> {
   });
 
   //
-  Future<T> createColorGrading(ToneMapper mapper);
-
-  //
   Future<GizmoAsset> createGizmo(View view, GizmoType type);
 
   //

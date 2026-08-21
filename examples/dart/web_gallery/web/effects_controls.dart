@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:thermion_dart/src/filament/src/implementation/ffi_color_grading.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:web/web.dart';
 
@@ -42,7 +41,6 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
     document.getElementById('${input.id}-value')!.textContent = input.value;
   }
 
-  FFIColorGrading? currentGrading;
   Timer? gradingDebounce;
   Future<void> gradingQueue = Future.value();
 
@@ -56,13 +54,16 @@ Future<void> installEffectsControls(ThermionViewer viewer) async {
           .contrast(valueOf(contrast))
           .saturation(valueOf(saturation))
           .vibrance(valueOf(vibrance))
-          .build() as FFIColorGrading;
+          .build();
+      await builder.dispose();
       if (colorGrading.checked) {
+        // The view takes ownership of the new grading and destroys the
+        // previously-set one - no manual disposal of the old grading here.
         await viewer.view.setColorGrading(next);
+      } else {
+        // Built but never attached: the caller owns it, so dispose it.
+        await next.dispose();
       }
-      final previous = currentGrading;
-      currentGrading = next;
-      await previous?.dispose();
     } catch (error, stackTrace) {
       print('Failed to update color grading: $error\n$stackTrace');
     }

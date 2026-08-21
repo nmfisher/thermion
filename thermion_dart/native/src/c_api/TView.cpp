@@ -235,17 +235,6 @@ namespace thermion
             TRACE("Destroyed ToneMapper");
         }
 
-        EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine *tEngine, TToneMapper *toneMapper)
-        {
-            auto engine = reinterpret_cast<Engine *>(tEngine);
-            auto tm = reinterpret_cast<ToneMapper *>(toneMapper);
-
-            TRACE("Creating ColorGrading with ToneMapper");
-            auto colorGrading = ColorGrading::Builder().toneMapper(tm).build(*engine);
-
-            return reinterpret_cast<TColorGrading *>(colorGrading);
-        }
-
         // ============================================================================
         // ColorGrading Builder API
         // ============================================================================
