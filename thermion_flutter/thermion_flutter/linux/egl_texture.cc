@@ -2,6 +2,7 @@
 #include "Log.hpp"
 
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -13,6 +14,9 @@
 // Flutter's render context, captured during the first deferred populate().
 EGLContext thermion_flutter_render_context = EGL_NO_CONTEXT;
 EGLDisplay thermion_flutter_render_display = EGL_NO_DISPLAY;
+EGLenum thermion_flutter_render_api = EGL_NONE;
+EGLint thermion_flutter_render_gl_major = 0;
+EGLint thermion_flutter_render_gl_minor = 0;
 
 // EGL function pointers (resolved at runtime)
 static PFNEGLCREATEIMAGEKHRPROC s_eglCreateImageKHR = nullptr;
@@ -131,9 +135,25 @@ thermion_texture_populate(FlTextureGL *texture,
             // This is the ONLY place where Flutter's render context is current.
             thermion_flutter_render_context = flutterContext;
             thermion_flutter_render_display = flutterDisplay;
-            TRACE( "[DirectPop] Captured Flutter render context=%p display=%p\n",
+            thermion_flutter_render_api = eglQueryAPI();
+
+            const char* version = reinterpret_cast<const char*>(
+                glGetString(GL_VERSION));
+            if (version) {
+                if (std::sscanf(version, "OpenGL ES %d.%d",
+                                &thermion_flutter_render_gl_major,
+                                &thermion_flutter_render_gl_minor) != 2) {
+                    std::sscanf(version, "%d.%d",
+                                &thermion_flutter_render_gl_major,
+                                &thermion_flutter_render_gl_minor);
+                }
+            }
+            TRACE( "[DirectPop] Captured Flutter render context=%p display=%p API=0x%x version=%d.%d\n",
                     (void*)thermion_flutter_render_context,
-                    (void*)thermion_flutter_render_display);
+                    (void*)thermion_flutter_render_display,
+                    thermion_flutter_render_api,
+                    thermion_flutter_render_gl_major,
+                    thermion_flutter_render_gl_minor);
 
             // Do not resolve awaitTextureReady from inside populate(). Dart
             // may immediately initialize another EGL client API when the

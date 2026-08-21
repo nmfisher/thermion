@@ -94,5 +94,8 @@ FLUTTER_PLUGIN_EXPORT void thermion_texture_gl_destroy(ThermionTextureGL* textur
 // pathway on Flutter's actual EGLDisplay.
 extern EGLContext thermion_flutter_render_context;
 extern EGLDisplay thermion_flutter_render_display;
+extern EGLenum thermion_flutter_render_api;
+extern EGLint thermion_flutter_render_gl_major;
+extern EGLint thermion_flutter_render_gl_minor;
 
 #endif

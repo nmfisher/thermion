@@ -176,6 +176,9 @@ static void destroy_all_contexts(ThermionFlutterPlugin *self)
   self->use_direct_opengl = FALSE;
   thermion_flutter_render_context = EGL_NO_CONTEXT;
   thermion_flutter_render_display = EGL_NO_DISPLAY;
+  thermion_flutter_render_api = EGL_NONE;
+  thermion_flutter_render_gl_major = 0;
+  thermion_flutter_render_gl_minor = 0;
   self->backend_type = 0;
 }
 
@@ -213,16 +216,13 @@ static bool ensure_opengl_context(ThermionFlutterPlugin *self)
     return false;
   }
 
-  EGLint clientType = 0;
-  EGLint glMajor = 0;
-  EGLint glMinor = 0;
+  EGLenum clientType = thermion_flutter_render_api;
+  EGLint glMajor = thermion_flutter_render_gl_major;
+  EGLint glMinor = thermion_flutter_render_gl_minor;
   EGLint configId = 0;
-  if (!eglQueryContext(
-          flutterDpy, flutterCtx, EGL_CONTEXT_CLIENT_TYPE, &clientType) ||
-      !eglQueryContext(
-          flutterDpy, flutterCtx, EGL_CONTEXT_MAJOR_VERSION_KHR, &glMajor) ||
-      !eglQueryContext(
-          flutterDpy, flutterCtx, EGL_CONTEXT_MINOR_VERSION_KHR, &glMinor) ||
+  if ((clientType != EGL_OPENGL_API &&
+       clientType != EGL_OPENGL_ES_API) ||
+      glMajor <= 0 ||
       !eglQueryContext(flutterDpy, flutterCtx, EGL_CONFIG_ID, &configId))
   {
     std::cerr << "[ThermionGL] Could not query Flutter's EGL context: 0x"
