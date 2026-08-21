@@ -1,0 +1,98 @@
+---
+title: Camera Manipulation
+description: Orbit and free-flight camera controls, and building custom input handling.
+---
+
+The [Quickstart](/quickstart/) covers the simplest path to camera controls:
+setting `manipulatorType` on a `ViewerWidget`. This page covers the lower-level
+API that `ViewerWidget` uses under the hood, which you'll need if you want to
+customise input behaviour or build your own controls on top of a bare
+`ThermionViewer`.
+
+## Camera basics
+
+A scene always has one active camera. You retrieve it with `getActiveCamera()`
+and position it with `lookAt`:
+
+```dart
+final camera = await viewer.getActiveCamera();
+await camera.lookAt(Vector3(0, 1, 10));  // place camera at (0,1,10), looking at origin
+```
+
+`lookAt` also accepts a `focus` point (defaults to the origin) and an `up`
+vector (defaults to `+Y`).
+
+You can create additional cameras with `viewer.createCamera()` and switch
+between them with `viewer.setActiveCamera(camera)`.
+
+## Input handlers
+
+Camera controls are driven by an `InputHandler`. Thermion ships
+`DelegateInputHandler`, which routes pointer/touch/scroll/key events to a
+delegate. Two delegates are provided:
+
+- **`DelegateInputHandler.fixedOrbit`** — orbit controls. Pinch/scroll to zoom,
+  drag to rotate around the model at a fixed distance. This is what
+  `ManipulatorType.ORBIT` uses.
+- **`DelegateInputHandler.flight`** — free-flight controls. Drag to look around,
+  move freely through the scene. This is what `ManipulatorType.FREE_FLIGHT`
+  uses.
+
+```dart
+final inputHandler = DelegateInputHandler.fixedOrbit(
+  viewer,
+  minimumDistance: 0.1,
+);
+```
+
+## Wiring input to a widget
+
+A `ThermionWidget` only displays the render surface — it does not capture input
+on its own. To feed pointer events into an `InputHandler`, wrap it in a
+`ThermionListenerWidget`:
+
+```dart
+ThermionListenerWidget(
+  inputHandler: inputHandler,
+  child: ThermionWidget(viewer: viewer),
+)
+```
+
+`ThermionListenerWidget` captures mouse, touch, scroll, and keyboard events
+from Flutter and forwards them to the handler.
+
+## Sensitivity
+
+Both delegates accept an `InputSensitivityOptions` so you can tune
+responsiveness per input modality:
+
+```dart
+DelegateInputHandler.flight(
+  viewer,
+  sensitivity: InputSensitivityOptions(
+    mouseSensitivity: 0.002,
+    scrollWheelSensitivity: 0.02,
+    keySensitivity: 0.1,
+  ),
+)
+```
+
+| Field                    | Default | Controls                     |
+| ------------------------ | ------- | ---------------------------- |
+| `touchSensitivity`       | `0.001` | Touch drag rotation          |
+| `touchScaleSensitivity`  | `2.0`   | Pinch-to-zoom                |
+| `mouseSensitivity`       | `0.001` | Mouse drag rotation          |
+| `mousePanSensitivity`    | `0.01`  | Mouse panning                |
+| `scrollWheelSensitivity` | `0.01`  | Scroll-wheel zoom            |
+| `keySensitivity`         | `0.1`   | Keyboard movement (flight)   |
+
+## Custom controls
+
+For behaviour beyond orbit/flight, implement `InputHandlerDelegate`. Your
+`handle(List<InputEvent> events)` method receives typed events (`MouseEvent`,
+`TouchEvent`, `ScaleStartEvent`, etc.) and can drive the camera via
+`viewer.getActiveCamera()` / `camera.lookAt` directly. Pass your delegate to a
+`DelegateInputHandler(viewer: viewer, delegate: myDelegate)`.
+
+> A runnable version of orbit + free-flight controls lives in
+> `examples/flutter/animations`.

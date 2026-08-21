@@ -1,0 +1,103 @@
+---
+title: Materials & Textures
+description: Material instances, parameters, textures, and procedural geometry.
+---
+
+Thermion uses Filament's material system. A **material** is a shader program
+compiled from a `.mat` file; a **material instance** is a runtime binding of
+parameters to that material. Every renderable entity has one or more material
+instances.
+
+## Built-in materials
+
+`FilamentApp.instance` (the shared engine facade) can create a couple of
+ready-to-use material instances without compiling anything:
+
+```dart
+final unlit = await FilamentApp.instance!.createUnlitMaterialInstance();
+final lit   = await FilamentApp.instance!.createUbershaderMaterialInstance();
+```
+
+- **Unlit** — flat-shaded, ignores lighting. Good for UI overlays and debug
+  geometry.
+- **Ubershader** — the full PBR lit material (the default glTF material).
+
+## Setting parameters
+
+Material instances expose typed setters for shader parameters:
+
+```dart
+await material.setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0); // RGBA green
+await material.setParameterInt("baseColorIndex", -1);   // -1 = use baseColorFactor, not a texture
+await material.setParameterFloat("metallic", 0.8);
+await material.setParameterBool("doubleSided", true);
+```
+
+## Swapping materials on an asset
+
+A loaded glTF asset exposes its material instances, and you can replace them:
+
+```dart
+// Read the current instance at primitive 0
+final current = await asset.getMaterialInstanceAt();
+
+// Replace the material on every primitive
+await asset.setMaterialInstanceForAll(unlit);
+
+// Or replace at a specific primitive index
+await asset.setMaterialInstanceAt(unlit);
+```
+
+## Textures
+
+Load an image, create a sampler, and bind both to a material parameter:
+
+```dart
+final image = await FilamentApp.instance!.decodeImage(byteData);
+final texture = await FilamentApp.instance!.createTexture(...);
+
+final sampler = TextureSampler(
+  minFilter: SamplerFilterParams.linear(),
+  magFilter: SamplerFilterParams.linear(),
+);
+
+await material.setParameterInt("baseColorIndex", 0); // use the texture
+await material.setParameterTexture("baseColorMap", texture, sampler);
+```
+
+Remember to `dispose()` textures, samplers, and `LinearImage`s when you're done
+with them to avoid GPU memory leaks.
+
+## Procedural geometry
+
+You don't need a glTF file to render something. `viewer.createGeometry` builds
+a renderable from a `Geometry` and a list of material instances:
+
+```dart
+final asset = await viewer.createGeometry(
+  CubeGeometry.cube(),
+  materialInstances: [unlit],
+);
+```
+
+Built-in geometries include `CubeGeometry`, `SphereGeometry`,
+`CylinderGeometry`, `ConeGeometry`, `CapsuleGeometry`, `PyramidGeometry`,
+`QuadGeometry`, and `PlaneGeometry`.
+
+## Building custom materials
+
+For custom shaders, write a Filament `.mat` file and compile it with the
+Filament material compiler (`matc`/`uberz`). From the project root:
+
+```
+make materials
+```
+
+This requires the `FILAMENT_PATH` environment variable to point at a local
+Filament build's `out/release/bin` (see the [Filament](/filament/) page). The
+compiled `.uberz` archives are bundled into the app via the build hook.
+Existing material sources live in `materials/` (e.g. `image.mat`, `grid.mat`,
+`silhouette.mat`).
+
+> A runnable example covering material swapping, parameter setting, and texture
+> binding is in `examples/flutter/materials_and_textures`.
