@@ -43,6 +43,28 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [materialInstance] The material instance to bind
   Future<bool> setMaterialInstanceAt(ThermionEntity entity, int primitiveIndex, MaterialInstance materialInstance);
 
+  /// Replaces the geometry of a primitive at runtime without an index buffer
+  /// (Filament's attribute-less/procedural rendering path).
+  ///
+  /// [vertices] must be a vertex buffer built with `bufferCount(0)` and no
+  /// declared attributes; vertex positions are computed from
+  /// `getVertexIndex()` in the material's vertex block.
+  ///
+  /// [entity] The entity containing the renderable
+  /// [primitiveIndex] Zero-based index of the primitive
+  /// [type] Topology of the primitive (e.g., PrimitiveType.TRIANGLES)
+  /// [vertices] Attribute-less vertex buffer
+  /// [offset] Where to start reading in the vertex buffer (in vertices)
+  /// [count] Number of vertices to read
+  Future<bool> setGeometryAtNonIndexed(
+    ThermionEntity entity,
+    int primitiveIndex,
+    PrimitiveType type,
+    VertexBuffer vertices,
+    int offset,
+    int count,
+  );
+
   /// Gets the material instance bound to the specified primitive.
   ///
   /// [entity] The entity containing the renderable
@@ -318,6 +340,28 @@ abstract class RenderableBuilder {
     PrimitiveType type,
     VertexBuffer vertices,
     IndexBuffer indices,
+    int offset,
+    int count,
+  );
+
+  /// Specifies non-indexed geometry data for a primitive (Filament's
+  /// attribute-less/procedural rendering path).
+  ///
+  /// The vertex buffer must have been built with `bufferCount(0)` and no
+  /// declared attributes, and the material must compute its positions from
+  /// `getVertexIndex()` in the vertex block (see Filament's "Procedural and
+  /// attribute-less rendering" documentation). Skinning and morphing are not
+  /// supported on attribute-less primitives.
+  ///
+  /// [primitiveIndex] Zero-based index of the primitive
+  /// [type] Topology of the primitive (e.g., PrimitiveType.TRIANGLES)
+  /// [vertices] Attribute-less vertex buffer (bufferCount(0))
+  /// [offset] Where to start reading in the vertex buffer (in vertices)
+  /// [count] Number of vertices to read
+  void geometryNonIndexed(
+    int primitiveIndex,
+    PrimitiveType type,
+    VertexBuffer vertices,
     int offset,
     int count,
   );

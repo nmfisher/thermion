@@ -61,6 +61,27 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   }
 
   @override
+  Future<bool> setGeometryAtNonIndexed(
+    ThermionEntity entity,
+    int primitiveIndex,
+    PrimitiveType type,
+    VertexBuffer vertices,
+    int offset,
+    int count,
+  ) async {
+    final typeValue = _primitiveTypeToValue(type);
+    return RenderableManager_setGeometryAtNonIndexed(
+      renderableManager,
+      entity,
+      primitiveIndex,
+      typeValue,
+      (vertices as FFIVertexBuffer).getNativeHandle(),
+      offset,
+      count,
+    );
+  }
+
+  @override
   Future<MaterialInstance?> getMaterialInstanceAt(ThermionEntity entity, int primitiveIndex) async {
     final instancePtr = RenderableManager_getMaterialInstanceAt(renderableManager, entity, primitiveIndex);
 
@@ -403,14 +424,7 @@ class FFIRenderableBuilder implements RenderableBuilder {
     final verticesPtr = (vertices as FFIVertexBuffer).getNativeHandle();
     final indicesPtr = (indices as FFIIndexBuffer).getNativeHandle();
 
-    final typeValue = switch (type) {
-      PrimitiveType.POINTS => 0,
-      PrimitiveType.LINES => 1,
-      PrimitiveType.UNUSED1 => 2,
-      PrimitiveType.LINE_STRIP => 3,
-      PrimitiveType.TRIANGLES => 4,
-      PrimitiveType.TRIANGLE_STRIP => 5,
-    };
+    final typeValue = _primitiveTypeToValue(type);
 
     bindings.RenderableBuilder_geometry(
       _builderPtr!,
@@ -418,6 +432,31 @@ class FFIRenderableBuilder implements RenderableBuilder {
       typeValue,
       verticesPtr,
       indicesPtr,
+      offset,
+      count,
+    );
+  }
+
+  @override
+  void geometryNonIndexed(
+    int primitiveIndex,
+    PrimitiveType type,
+    VertexBuffer vertices,
+    int offset,
+    int count,
+  ) {
+    _checkNotBuilt();
+
+    // Extract native handle from the buffer object
+    final verticesPtr = (vertices as FFIVertexBuffer).getNativeHandle();
+
+    final typeValue = _primitiveTypeToValue(type);
+
+    bindings.RenderableBuilder_geometryNonIndexed(
+      _builderPtr!,
+      primitiveIndex,
+      typeValue,
+      verticesPtr,
       offset,
       count,
     );
@@ -580,3 +619,14 @@ class FFIRenderableBuilder implements RenderableBuilder {
     return result == 0;
   }
 }
+
+/// Maps a PrimitiveType to the filament::RenderableManager::PrimitiveType
+/// ordinal expected by the C API.
+int _primitiveTypeToValue(PrimitiveType type) => switch (type) {
+  PrimitiveType.POINTS => 0,
+  PrimitiveType.LINES => 1,
+  PrimitiveType.UNUSED1 => 2,
+  PrimitiveType.LINE_STRIP => 3,
+  PrimitiveType.TRIANGLES => 4,
+  PrimitiveType.TRIANGLE_STRIP => 5,
+};
