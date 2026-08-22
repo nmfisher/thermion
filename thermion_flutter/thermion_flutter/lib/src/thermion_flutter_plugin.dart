@@ -84,6 +84,12 @@ abstract class ThermionFlutterPlugin {
     FilamentApp.instance?.setTargetFramerate(fps);
   }
 
+  /// Whether viewer initialization must wait for Flutter to composite a
+  /// bootstrap texture. False on every platform except Linux OpenGL before
+  /// the first engine is created.
+  @internal
+  bool get requiresContextBootstrap => false;
+
   /// Allocates the throwaway external texture that must be composited by
   /// Flutter before the native viewer can be created. Returns null when the
   /// running platform has no such prerequisite and the caller may initialize

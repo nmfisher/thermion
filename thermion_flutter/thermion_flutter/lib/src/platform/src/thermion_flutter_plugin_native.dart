@@ -163,10 +163,15 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
 
   @internal
   @override
+  bool get requiresContextBootstrap =>
+      Platform.isLinux &&
+      _resolveBackend() == Backend.OPENGL &&
+      FilamentApp.instance == null;
+
+  @internal
+  @override
   Future<int?> createContextBootstrap() async {
-    if (!Platform.isLinux ||
-        _resolveBackend() != Backend.OPENGL ||
-        FilamentApp.instance != null) {
+    if (!requiresContextBootstrap) {
       return null;
     }
     final textureId = await NativePlatformTextureDescriptorRegistry.channel

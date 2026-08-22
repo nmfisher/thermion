@@ -89,8 +89,24 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   Future<void>? _tearDownFuture;
   Future<void>? _inputHandlerUpdate;
   bool _disposing = false;
+  late final bool _requiresContextBootstrap;
 
   late final _logger = Logger(runtimeType.toString());
+
+  @override
+  void initState() {
+    super.initState();
+    _requiresContextBootstrap =
+        ThermionFlutterPlugin.instance.requiresContextBootstrap;
+    if (!_requiresContextBootstrap) {
+      _initialization = _createViewer();
+      unawaited(
+        _initialization!.catchError((Object error, StackTrace stack) {
+          _reportAsyncError('initialization', error, stack);
+        }),
+      );
+    }
+  }
 
   Future<void> _initializeViewer() => _initialization ??= _createViewer();
 
@@ -429,6 +445,9 @@ class _ViewerWidgetState extends State<ViewerWidget> {
     final child = viewport == null
         ? widget.initial
         : SizedBox.expand(child: viewport);
+    if (!_requiresContextBootstrap) {
+      return child;
+    }
     return ThermionTextureBootstrap(
       initialize: _initializeViewer,
       child: child,
