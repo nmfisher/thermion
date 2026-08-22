@@ -3778,6 +3778,50 @@ external void RenderableManager_clearMaterialInstanceAt(
   int primitiveIndex,
 );
 
+@ffi.Native<
+  ffi.Bool Function(
+    ffi.Pointer<TRenderableManager>,
+    EntityId,
+    ffi.Int,
+    ffi.Uint8,
+    ffi.Pointer<TVertexBuffer>,
+    ffi.Size,
+    ffi.Size,
+  )
+>(isLeaf: true)
+external bool RenderableManager_setGeometryAtNonIndexed(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int primitiveIndex,
+  int type,
+  ffi.Pointer<TVertexBuffer> vertices,
+  int offset,
+  int count,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TRenderableManager>,
+    EntityId,
+    ffi.Int,
+    ffi.Uint8,
+    ffi.Pointer<TVertexBuffer>,
+    ffi.Size,
+    ffi.Size,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>,
+  )
+>(isLeaf: true)
+external void RenderableManager_setGeometryAtNonIndexedRenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int primitiveIndex,
+  int type,
+  ffi.Pointer<TVertexBuffer> tVertices,
+  int offset,
+  int count,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
+);
+
 @ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
 external int RenderableManager_getPrimitiveCount(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 
@@ -3982,6 +4026,25 @@ external void RenderableBuilder_geometry(
   int type,
   ffi.Pointer<TVertexBuffer> vertices,
   ffi.Pointer<TIndexBuffer> indices,
+  int offset,
+  int count,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TRenderableBuilder>,
+    ffi.Size,
+    ffi.Uint8,
+    ffi.Pointer<TVertexBuffer>,
+    ffi.Size,
+    ffi.Size,
+  )
+>(isLeaf: true)
+external void RenderableBuilder_geometryNonIndexed(
+  ffi.Pointer<TRenderableBuilder> builder,
+  int primitiveIndex,
+  int type,
+  ffi.Pointer<TVertexBuffer> vertices,
   int offset,
   int count,
 );
