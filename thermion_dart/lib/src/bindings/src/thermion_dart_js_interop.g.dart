@@ -1817,6 +1817,16 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _RenderableManager_setGeometryAtNonIndexedRenderThread(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    int primitiveIndex,
+    int type,
+    Pointer<TVertexBuffer> tVertices,
+    size_t offset,
+    size_t count,
+    Pointer<NativeFunction<void Function(bool)>> callback,
+  );
   external void _RenderableManager_setCastShadowsRenderThread(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
@@ -1930,16 +1940,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TVertexBuffer> vertices,
     size_t offset,
     size_t count,
-  );
-  external void _RenderableManager_setGeometryAtNonIndexedRenderThread(
-    Pointer<TRenderableManager> tRenderableManager,
-    EntityId entityId,
-    int primitiveIndex,
-    int type,
-    Pointer<TVertexBuffer> tVertices,
-    size_t offset,
-    size_t count,
-    Pointer<NativeFunction<void Function(bool)>> callback,
   );
   external size_t _RenderableManager_getPrimitiveCount(
     Pointer<TRenderableManager> tRenderableManager,
@@ -7266,6 +7266,29 @@ void RenderableManager_setBonesFromBoneRenderThread(
   return result;
 }
 
+void RenderableManager_setGeometryAtNonIndexedRenderThread(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  int primitiveIndex,
+  int type,
+  Pointer<TVertexBuffer> tVertices,
+  Dartsize_t offset,
+  Dartsize_t count,
+  Pointer<NativeFunction<void Function(bool)>> callback,
+) {
+  final result = GeneratedBindings.instance._RenderableManager_setGeometryAtNonIndexedRenderThread(
+    tRenderableManager.cast(),
+    entityId,
+    primitiveIndex,
+    type,
+    tVertices.cast(),
+    offset,
+    count,
+    callback.cast(),
+  );
+  return result;
+}
+
 void RenderableManager_setCastShadowsRenderThread(
   Pointer<TRenderableManager> tRenderableManager,
   DartEntityId entityId,
@@ -7550,28 +7573,6 @@ bool RenderableManager_setGeometryAtNonIndexed(
     count,
   );
   return result == 1;
-}
-
-void RenderableManager_setGeometryAtNonIndexedRenderThread(
-  Pointer<TRenderableManager> tRenderableManager,
-  DartEntityId entityId,
-  int primitiveIndex,
-  int type,
-  Pointer<TVertexBuffer> tVertices,
-  Dartsize_t offset,
-  Dartsize_t count,
-  Pointer<NativeFunction<void Function(bool)>> callback,
-) {
-  GeneratedBindings.instance._RenderableManager_setGeometryAtNonIndexedRenderThread(
-    tRenderableManager.cast(),
-    entityId,
-    primitiveIndex,
-    type,
-    tVertices.cast(),
-    offset,
-    count,
-    callback.cast(),
-  );
 }
 
 Dartsize_t RenderableManager_getPrimitiveCount(Pointer<TRenderableManager> tRenderableManager, DartEntityId entityId) {
