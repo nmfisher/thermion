@@ -47,6 +47,23 @@ namespace thermion
             return reinterpret_cast<TMaterialInstance*>(materialInstance);
         }
 
+        // Non-indexed runtime geometry swap (Filament's attribute-less/
+        // procedural rendering path): no IndexBuffer, [offset, count) select a
+        // vertex range of an attribute-less VertexBuffer.
+        EMSCRIPTEN_KEEPALIVE bool RenderableManager_setGeometryAtNonIndexed(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex, uint8_t type, TVertexBuffer *tVertices, size_t offset, size_t count) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if(!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return false;
+            }
+            auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tVertices);
+            auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(type);
+            renderableManager->setGeometryAt(renderableInstance, primitiveIndex, primitiveType, vertexBuffer, offset, count);
+            return true;
+        }
+
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_isRenderable(TRenderableManager *tRenderableManager, EntityId entityId) {
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
@@ -417,6 +434,18 @@ namespace thermion
             auto *indexBuffer = reinterpret_cast<filament::IndexBuffer*>(tIndices);
             auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(type);
             builder->geometry(primitiveIndex, primitiveType, vertexBuffer, indexBuffer, offset, count);
+        }
+
+        // Non-indexed geometry overload (Filament's attribute-less/procedural
+        // rendering path): no IndexBuffer is supplied, and [offset, count)
+        // select a vertex range. The VertexBuffer must have been built with
+        // bufferCount(0) and no declared attributes; positions are computed
+        // from getVertexIndex() in the material's vertex block.
+        EMSCRIPTEN_KEEPALIVE void RenderableBuilder_geometryNonIndexed(TRenderableBuilder *tBuilder, size_t primitiveIndex, uint8_t type, TVertexBuffer *tVertices, size_t offset, size_t count) {
+            auto *builder = reinterpret_cast<filament::RenderableManager::Builder*>(tBuilder);
+            auto *vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tVertices);
+            auto primitiveType = static_cast<filament::RenderableManager::PrimitiveType>(type);
+            builder->geometry(primitiveIndex, primitiveType, vertexBuffer, offset, count);
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableBuilder_priority(TRenderableBuilder *tBuilder, uint8_t priority) {

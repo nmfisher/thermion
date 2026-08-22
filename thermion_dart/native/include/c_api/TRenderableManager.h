@@ -22,6 +22,11 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE TMaterialInstance *RenderableManager_getMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex);
     EMSCRIPTEN_KEEPALIVE void RenderableManager_clearMaterialInstanceAt(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex);
 
+    // Non-indexed runtime geometry swap (attribute-less/procedural rendering):
+    // no IndexBuffer, [offset, count) select a vertex range of an
+    // attribute-less VertexBuffer (bufferCount(0), no declared attributes).
+    EMSCRIPTEN_KEEPALIVE bool RenderableManager_setGeometryAtNonIndexed(TRenderableManager *tRenderableManager, EntityId entityId, int primitiveIndex, uint8_t type, TVertexBuffer *vertices, size_t offset, size_t count);
+
     // Primitive management
     EMSCRIPTEN_KEEPALIVE size_t RenderableManager_getPrimitiveCount(TRenderableManager *tRenderableManager, EntityId entityId);
 
@@ -86,6 +91,10 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_boundingBox(TRenderableBuilder *builder, Aabb3 aabb);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_material(TRenderableBuilder *builder, size_t primitiveIndex, TMaterialInstance *materialInstance);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_geometry(TRenderableBuilder *builder, size_t primitiveIndex, uint8_t type, TVertexBuffer *vertices, TIndexBuffer *indices, size_t offset, size_t count);
+    // Non-indexed geometry (attribute-less/procedural rendering): no
+    // IndexBuffer; the VertexBuffer must have bufferCount(0) and no declared
+    // attributes, and positions come from getVertexIndex() in the material.
+    EMSCRIPTEN_KEEPALIVE void RenderableBuilder_geometryNonIndexed(TRenderableBuilder *builder, size_t primitiveIndex, uint8_t type, TVertexBuffer *vertices, size_t offset, size_t count);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_priority(TRenderableBuilder *builder, uint8_t priority);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_channel(TRenderableBuilder *builder, uint8_t channel);
     EMSCRIPTEN_KEEPALIVE void RenderableBuilder_culling(TRenderableBuilder *builder, bool enabled);

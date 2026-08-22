@@ -1,0 +1,35 @@
+material {
+    name : ProceduralQuad,
+    shadingModel : unlit,
+    culling : none,
+    featureLevel : 1,
+    variables : [
+        quadUV
+    ],
+    variantFilter : [ skinning, shadowReceiver, vsm ],
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        int vid = getVertexIndex();
+        const vec2 positions[6] = vec2[6](
+            vec2(-0.5, -0.5), vec2( 0.5, -0.5), vec2(-0.5,  0.5),
+            vec2( 0.5, -0.5), vec2( 0.5,  0.5), vec2(-0.5,  0.5)
+        );
+        const vec2 uvs[6] = vec2[6](
+            vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0),
+            vec2(1.0, 0.0), vec2(1.0, 1.0), vec2(0.0, 1.0)
+        );
+        // With bufferCount(0) the POSITION attribute is unbound and reads back
+        // as zero, so this add contributes nothing. It does keep POSITION an
+        // active attribute in the compiled program, which is required for the
+        // draw to produce fragments (see the notes in this PR / test).
+        material.worldPosition = vec4(material.worldPosition.xyz + vec3(positions[vid], 0.0), 1.0);
+        material.quadUV = vec4(uvs[vid], 0.0, 0.0);
+    }
+}
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(variable_quadUV.xy, 0.0, 1.0);
+    }
+}

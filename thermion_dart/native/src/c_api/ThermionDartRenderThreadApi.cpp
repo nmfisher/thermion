@@ -2757,6 +2757,31 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // The lambda captures only scalars and pointers to filament-owned objects,
+  // so no heap payload is needed: the VertexBuffer handle stays valid because
+  // Dart only destroys it through VertexBuffer_destroyRenderThread, which is
+  // queued behind this task on the same render thread.
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setGeometryAtNonIndexedRenderThread(
+      TRenderableManager *tRenderableManager,
+      EntityId entityId,
+      int primitiveIndex,
+      uint8_t type,
+      TVertexBuffer *tVertices,
+      size_t offset,
+      size_t count,
+      void (*callback)(bool))
+  {
+    auto *rt = RT(tRenderableManager);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          bool result = RenderableManager_setGeometryAtNonIndexed(
+              tRenderableManager, entityId, primitiveIndex, type, tVertices, offset, count);
+          PROXY(callback(result));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   // Shadow flags MUST be applied on the render thread — Filament's
   // RenderableManager/LightManager are not concurrency-safe, so the
   // non-render-thread setters race the renderer and the flags don't take
