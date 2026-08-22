@@ -70,14 +70,20 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
     int count,
   ) async {
     final typeValue = _primitiveTypeToValue(type);
-    return RenderableManager_setGeometryAtNonIndexed(
-      renderableManager,
-      entity,
-      primitiveIndex,
-      typeValue,
-      (vertices as FFIVertexBuffer).getNativeHandle(),
-      offset,
-      count,
+    // Runtime geometry swaps must run on the render thread (Filament asserts
+    // on off-thread RenderableManager mutation), so marshal through the
+    // *RenderThread variant and read the result from the callback.
+    return withBoolCallback(
+      (cb) => RenderableManager_setGeometryAtNonIndexedRenderThread(
+        renderableManager,
+        entity,
+        primitiveIndex,
+        typeValue,
+        (vertices as FFIVertexBuffer).getNativeHandle(),
+        offset,
+        count,
+        cb,
+      ),
     );
   }
 

@@ -3799,6 +3799,29 @@ external bool RenderableManager_setGeometryAtNonIndexed(
   int count,
 );
 
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TRenderableManager>,
+    EntityId,
+    ffi.Int,
+    ffi.Uint8,
+    ffi.Pointer<TVertexBuffer>,
+    ffi.Size,
+    ffi.Size,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>,
+  )
+>(isLeaf: true)
+external void RenderableManager_setGeometryAtNonIndexedRenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int primitiveIndex,
+  int type,
+  ffi.Pointer<TVertexBuffer> tVertices,
+  int offset,
+  int count,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
+);
+
 @ffi.Native<ffi.Size Function(ffi.Pointer<TRenderableManager>, EntityId)>(isLeaf: true)
 external int RenderableManager_getPrimitiveCount(ffi.Pointer<TRenderableManager> tRenderableManager, int entityId);
 

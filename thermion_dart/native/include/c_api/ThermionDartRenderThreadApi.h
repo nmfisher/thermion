@@ -500,6 +500,22 @@ namespace thermion
             VoidCallback onComplete
         );
 
+        // Runtime geometry swaps must run on the render thread: Filament
+        // asserts that RenderableManager mutation happens there (the
+        // CommandStream thread check). Non-indexed/attribute-less variant —
+        // no IndexBuffer, [offset, count) select a vertex range. The result
+        // of the underlying setGeometryAt is delivered to the callback.
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setGeometryAtNonIndexedRenderThread(
+            TRenderableManager *tRenderableManager,
+            EntityId entityId,
+            int primitiveIndex,
+            uint8_t type,
+            TVertexBuffer *tVertices,
+            size_t offset,
+            size_t count,
+            void (*callback)(bool)
+        );
+
         // Shadow flags MUST be applied on the render thread — Filament's
         // RenderableManager/LightManager are not concurrency-safe, so the
         // non-render-thread setters race the renderer and the flags don't take
