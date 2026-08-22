@@ -26,9 +26,68 @@ static void ensureExtensionFunctions() {
 
 namespace thermion::opengl::linux_platform {
 
+class ScopedEglContext {
+public:
+    ScopedEglContext(
+        EGLDisplay display, EGLContext context, EGLSurface surface)
+        : _targetDisplay(display),
+          _targetSurface(surface),
+          _previousDisplay(eglGetCurrentDisplay()),
+          _previousContext(eglGetCurrentContext()),
+          _previousDraw(eglGetCurrentSurface(EGL_DRAW)),
+          _previousRead(eglGetCurrentSurface(EGL_READ)),
+          _previousApi(eglQueryAPI()) {
+        if (_previousContext != EGL_NO_CONTEXT &&
+            _previousDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(_previousDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                           EGL_NO_CONTEXT);
+        }
+        eglBindAPI(EGL_OPENGL_API);
+        _current = eglMakeCurrent(
+            _targetDisplay, _targetSurface, _targetSurface, context);
+    }
+
+    ~ScopedEglContext() {
+        if (_targetDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(_targetDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                           EGL_NO_CONTEXT);
+        }
+        eglBindAPI(_previousApi);
+        if (_previousContext != EGL_NO_CONTEXT &&
+            _previousDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(_previousDisplay, _previousDraw, _previousRead,
+                           _previousContext);
+        }
+    }
+
+    bool current() const { return _current == EGL_TRUE; }
+
+    ScopedEglContext(const ScopedEglContext&) = delete;
+    ScopedEglContext& operator=(const ScopedEglContext&) = delete;
+
+private:
+    EGLDisplay _targetDisplay;
+    EGLSurface _targetSurface;
+    EGLDisplay _previousDisplay;
+    EGLContext _previousContext;
+    EGLSurface _previousDraw;
+    EGLSurface _previousRead;
+    EGLenum _previousApi;
+    EGLBoolean _current = EGL_FALSE;
+};
+
 LinuxOpenGLTexture::~LinuxOpenGLTexture() {
     if (_glTextureId != 0) {
-        glDeleteTextures(1, &_glTextureId);
+        ScopedEglContext context(_display, _context, _surface);
+        if (context.current()) {
+            glDeleteTextures(1, &_glTextureId);
+        } else {
+            std::cerr
+                << "[ThermionGL:Texture] Failed to make owner context current "
+                   "while deleting texture "
+                << _glTextureId << ", EGL error: 0x" << std::hex
+                << eglGetError() << std::dec << std::endl;
+        }
         _glTextureId = 0;
     }
 
@@ -49,7 +108,7 @@ LinuxOpenGLTexture::~LinuxOpenGLTexture() {
 }
 
 std::unique_ptr<LinuxOpenGLTexture> LinuxOpenGLTexture::create(
-    EGLDisplay display, EGLContext context,
+    EGLDisplay display, EGLContext context, EGLSurface surface,
     struct gbm_device* gbm, uint32_t width, uint32_t height)
 {
     ensureExtensionFunctions();
@@ -128,13 +187,16 @@ std::unique_ptr<LinuxOpenGLTexture> LinuxOpenGLTexture::create(
         return nullptr;
     }
 
-    // Step 4: Make our context current so we can create GL objects
-    EGLSurface prevDrawSurface = eglGetCurrentSurface(EGL_DRAW);
-    EGLSurface prevReadSurface = eglGetCurrentSurface(EGL_READ);
-    EGLContext prevContext = eglGetCurrentContext();
-
-    if (eglGetCurrentContext() != context) {
-        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context);
+    // Step 4: Make our context current so we can create GL objects.
+    ScopedEglContext scopedContext(display, context, surface);
+    if (!scopedContext.current()) {
+        std::cerr << "[ThermionGL:Texture] Failed to make owner context "
+                     "current, EGL error: 0x"
+                  << std::hex << eglGetError() << std::dec << std::endl;
+        s_eglDestroyImageKHR(display, eglImage);
+        close(dmaBufFd);
+        gbm_bo_destroy(bo);
+        return nullptr;
     }
 
     // Step 5: Create GL texture and bind EGLImage to it
@@ -159,17 +221,10 @@ std::unique_ptr<LinuxOpenGLTexture> LinuxOpenGLTexture::create(
         s_eglDestroyImageKHR(display, eglImage);
         close(dmaBufFd);
         gbm_bo_destroy(bo);
-        // Restore previous context
-        eglMakeCurrent(display, prevDrawSurface, prevReadSurface, prevContext);
         return nullptr;
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Restore previous context
-    if (prevContext != context) {
-        eglMakeCurrent(display, prevDrawSurface, prevReadSurface, prevContext);
-    }
 
     std::cerr << "[ThermionGL:Texture] GL texture created: id=" << glTextureId
               << " " << width << "x" << height << std::endl;
@@ -187,6 +242,8 @@ std::unique_ptr<LinuxOpenGLTexture> LinuxOpenGLTexture::create(
     texture->_drmFormat = drmFormat;
     texture->_drmModifier = drmModifier;
     texture->_display = display;
+    texture->_context = context;
+    texture->_surface = surface;
 
     return texture;
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 // ignore: implementation_imports
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
@@ -82,6 +83,31 @@ abstract class ThermionFlutterPlugin {
   void setTargetFramerate(int fps) {
     FilamentApp.instance?.setTargetFramerate(fps);
   }
+
+  /// Whether viewer initialization must wait for Flutter to composite a
+  /// bootstrap texture. False on every platform except Linux OpenGL before
+  /// the first engine is created.
+  @internal
+  bool get requiresContextBootstrap => false;
+
+  /// Allocates the throwaway external texture that must be composited by
+  /// Flutter before the native viewer can be created. Returns null when the
+  /// running platform has no such prerequisite and the caller may initialize
+  /// immediately.
+  ///
+  /// Consumed by ThermionTextureBootstrap; not part of the public API.
+  @internal
+  Future<int?> createContextBootstrap() async => null;
+
+  /// Waits until Flutter has populated a texture returned by
+  /// [createContextBootstrap]. Not part of the public API.
+  @internal
+  Future<void> awaitContextBootstrap(int textureId) async {}
+
+  /// Releases a texture returned by [createContextBootstrap]. Not part of the
+  /// public API.
+  @internal
+  Future<void> destroyContextBootstrap(int textureId) async {}
 
   /// Creates a rendering surface and binds to the given [View].
   /// This is an internal method, don't call this yourself unless you are a

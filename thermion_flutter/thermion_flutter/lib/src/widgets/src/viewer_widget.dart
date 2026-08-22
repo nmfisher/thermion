@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
+import 'texture_bootstrap.dart';
+
 enum ManipulatorType { NONE, ORBIT, FREE_FLIGHT }
 
 class ViewerWidget extends StatefulWidget {
@@ -87,19 +89,26 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   Future<void>? _tearDownFuture;
   Future<void>? _inputHandlerUpdate;
   bool _disposing = false;
+  late final bool _requiresContextBootstrap;
 
   late final _logger = Logger(runtimeType.toString());
 
   @override
   void initState() {
     super.initState();
-    _initialization = _createViewer();
-    unawaited(
-      _initialization!.catchError((Object error, StackTrace stack) {
-        _reportAsyncError('initialization', error, stack);
-      }),
-    );
+    _requiresContextBootstrap =
+        ThermionFlutterPlugin.instance.requiresContextBootstrap;
+    if (!_requiresContextBootstrap) {
+      _initialization = _createViewer();
+      unawaited(
+        _initialization!.catchError((Object error, StackTrace stack) {
+          _reportAsyncError('initialization', error, stack);
+        }),
+      );
+    }
   }
+
+  Future<void> _initializeViewer() => _initialization ??= _createViewer();
 
   Future<void> _createViewer() async {
     // Override options if this widget needs highlights
@@ -123,6 +132,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
       );
     }
 
+    if (_disposing) return;
     final viewer = await ThermionFlutterPlugin.createViewer();
     this.viewer = viewer;
     if (_disposing) {
@@ -432,6 +442,15 @@ class _ViewerWidgetState extends State<ViewerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return viewport != null ? SizedBox.expand(child: viewport) : widget.initial;
+    final child = viewport == null
+        ? widget.initial
+        : SizedBox.expand(child: viewport);
+    if (!_requiresContextBootstrap) {
+      return child;
+    }
+    return ThermionTextureBootstrap(
+      initialize: _initializeViewer,
+      child: child,
+    );
   }
 }

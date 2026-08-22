@@ -706,6 +706,13 @@ class _ViewerTileState extends State<_ViewerTile> {
                   ),
                 ),
               ),
+              // Exposes completion of the real ViewerWidget initialization to
+              // native integration tests without changing the visible UI.
+              if (_viewer != null)
+                KeyedSubtree(
+                  key: ValueKey('viewer-ready-${widget.index}'),
+                  child: const SizedBox.shrink(),
+                ),
               // Top scrim so overlay controls stay legible on bright skyboxes.
               const Positioned(
                 left: 0,
