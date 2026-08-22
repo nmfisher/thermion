@@ -23,6 +23,11 @@
   destroying caller-owned resources.
   Native library rebuild required (C API signatures for
   the skybox builders changed).
+- `RenderableBuilder.geometryNonIndexed` and
+  `ThermionRenderableManager.setGeometryAtNonIndexed` expose Filament's
+  non-indexed geometry, so procedural geometry (e.g. particles) can render
+  without an `IndexBuffer`, including attribute-less vertex buffers built
+  with `bufferCount(0)`. Native library rebuild required.
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw
