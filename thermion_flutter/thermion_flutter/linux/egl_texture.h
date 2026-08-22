@@ -46,8 +46,12 @@ struct _ThermionTextureGL {
     gboolean initialized;
     int64_t surface_id;  // for Blit() and destruction
     ThermionTextureKind kind;
-    // Deferred "awaitTextureReady" response (stored until populate creates the GL texture)
-    FlMethodCall* pending_ready_call;
+    // Deferred awaitTextureReady responses stored until populate creates the
+    // bootstrap GL texture. Each entry owns a FlMethodCall reference.
+    GPtrArray* pending_ready_calls;
+    // Set before native resources are released. Queued idle responses use this
+    // to avoid publishing a texture ID after cancellation.
+    gboolean destroyed;
 };
 
 typedef struct _ThermionTextureGL ThermionTextureGL;
