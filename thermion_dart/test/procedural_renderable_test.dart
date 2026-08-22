@@ -65,10 +65,9 @@ void main() async {
   }
 
   test('attribute-less quad renders from getVertexIndex()', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kBlue)
-        .setCameraLookAt(Vector3(0, 0, 2), focus: Vector3.zero())
-        .execute((result) async {
+    await ViewerBuilder(
+      testHelper,
+    ).setBackgroundColor(kBlue).setCameraLookAt(Vector3(0, 0, 2), focus: Vector3.zero()).execute((result) async {
       final app = FilamentApp.instance!;
       final renderableManager = app.renderableManager;
 
@@ -118,10 +117,9 @@ void main() async {
   });
 
   test('setGeometryAtNonIndexed changes the vertex range at runtime', () async {
-    await ViewerBuilder(testHelper)
-        .setBackgroundColor(kBlue)
-        .setCameraLookAt(Vector3(0, 0, 2), focus: Vector3.zero())
-        .execute((result) async {
+    await ViewerBuilder(
+      testHelper,
+    ).setBackgroundColor(kBlue).setCameraLookAt(Vector3(0, 0, 2), focus: Vector3.zero()).execute((result) async {
       final app = FilamentApp.instance!;
       final renderableManager = app.renderableManager;
 
@@ -141,8 +139,9 @@ void main() async {
       await scene.addEntity(entity);
 
       // Only the first triangle is drawn: one diagonal half of the quad.
-      final halfPixels =
-          asFloats((await testHelper.capture(result.viewer.view, "procedural_triangle"))[result.viewer.view]!);
+      final halfPixels = asFloats(
+        (await testHelper.capture(result.viewer.view, "procedural_triangle"))[result.viewer.view]!,
+      );
       final (hx0, hy0, hx1, hy1) = quadBounds(halfPixels);
       expect(hx1 - hx0, greaterThan(viewportSize * 0.2));
 
@@ -166,8 +165,9 @@ void main() async {
       );
       expect(swapped, true);
 
-      final fullPixels =
-          asFloats((await testHelper.capture(result.viewer.view, "procedural_triangle_to_quad"))[result.viewer.view]!);
+      final fullPixels = asFloats(
+        (await testHelper.capture(result.viewer.view, "procedural_triangle_to_quad"))[result.viewer.view]!,
+      );
       expect(isQuadPixel(fullPixels, leftX, midY), true);
       expect(isQuadPixel(fullPixels, rightX, midY), true);
 

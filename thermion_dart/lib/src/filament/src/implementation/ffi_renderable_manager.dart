@@ -438,13 +438,7 @@ class FFIRenderableBuilder implements RenderableBuilder {
   }
 
   @override
-  void geometryNonIndexed(
-    int primitiveIndex,
-    PrimitiveType type,
-    VertexBuffer vertices,
-    int offset,
-    int count,
-  ) {
+  void geometryNonIndexed(int primitiveIndex, PrimitiveType type, VertexBuffer vertices, int offset, int count) {
     _checkNotBuilt();
 
     // Extract native handle from the buffer object
@@ -452,14 +446,7 @@ class FFIRenderableBuilder implements RenderableBuilder {
 
     final typeValue = _primitiveTypeToValue(type);
 
-    bindings.RenderableBuilder_geometryNonIndexed(
-      _builderPtr!,
-      primitiveIndex,
-      typeValue,
-      verticesPtr,
-      offset,
-      count,
-    );
+    bindings.RenderableBuilder_geometryNonIndexed(_builderPtr!, primitiveIndex, typeValue, verticesPtr, offset, count);
   }
 
   @override

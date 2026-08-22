@@ -358,13 +358,7 @@ abstract class RenderableBuilder {
   /// [vertices] Attribute-less vertex buffer (bufferCount(0))
   /// [offset] Where to start reading in the vertex buffer (in vertices)
   /// [count] Number of vertices to read
-  void geometryNonIndexed(
-    int primitiveIndex,
-    PrimitiveType type,
-    VertexBuffer vertices,
-    int offset,
-    int count,
-  );
+  void geometryNonIndexed(int primitiveIndex, PrimitiveType type, VertexBuffer vertices, int offset, int count);
 
   /// Sets the rendering priority (0-7, where 7 is lowest/rendered last).
   ///
