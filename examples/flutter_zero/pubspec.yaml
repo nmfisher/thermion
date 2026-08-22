@@ -1,0 +1,24 @@
+name: flutter_zero_basic
+description: "Flutter Zero example: Thermion rendered into a raw SDL3 window, with no Flutter engine."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.0
+
+# Release-mode Filament is what almost everyone wants (see the notes in
+# thermion_dart/hook/build.dart); switch `mode` to `debug` only when
+# debugging Thermion internals.
+hooks:
+  user_defines:
+    thermion_dart:
+      mode: release
+
+dependencies:
+  thermion_dart:
+    path: ../../thermion_dart
+  sdl3: ^2.8.5
+  vector_math: ^2.1.4
+
+dev_dependencies:
+  lints: ^5.0.0
