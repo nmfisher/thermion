@@ -102,8 +102,7 @@ void main() {
       height: 5,
     );
 
-    descriptor.markTextureFrameAvailable();
-    await Future<void>.delayed(Duration.zero);
+    await descriptor.markTextureFrameAvailable();
 
     expect(methodCallCount, 0);
   });
@@ -131,7 +130,7 @@ void main() {
       width: 4,
       height: 5,
     );
-    final publication = descriptor.markTextureFrameAvailableAndWait().then(
+    final publication = descriptor.markTextureFrameAvailable().then(
       (_) => completed = true,
     );
 
@@ -190,7 +189,7 @@ class _TestDescriptor extends PlatformTextureDescriptor {
       );
 
   @override
-  void markTextureFrameAvailable() {}
+  Future<void> markTextureFrameAvailable() async {}
 
   @override
   Future destroy() async {}

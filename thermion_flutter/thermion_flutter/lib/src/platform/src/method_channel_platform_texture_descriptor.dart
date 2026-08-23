@@ -23,18 +23,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
   }
 
   @override
-  void markTextureFrameAvailable() async {
-    if (destroyed) {
-      throw Exception(
-        "markTextureFrameAvailable cannot be called on a "
-        "destroyed texture descriptor.",
-      );
-    }
-    await channel.invokeMethod("markTextureFrameAvailable", flutterTextureId);
-  }
-
-  @override
-  Future<void> markTextureFrameAvailableAndWait() async {
+  Future<void> markTextureFrameAvailable() async {
     if (destroyed) {
       throw Exception(
         "markTextureFrameAvailable cannot be called on a "

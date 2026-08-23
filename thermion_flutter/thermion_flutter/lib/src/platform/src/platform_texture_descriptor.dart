@@ -40,16 +40,11 @@ abstract class PlatformTextureDescriptor {
   @override
   int get hashCode => flutterTextureId.hashCode;
 
-  /// Instruct the Flutter framework that the content of the texture has been
-  /// updated.
-  void markTextureFrameAvailable();
-
-  /// Awaitable form used when presentation must not race platform work such
-  /// as Linux's Vulkan export blit. Synchronous implementations can use this
-  /// default wrapper.
-  Future<void> markTextureFrameAvailableAndWait() async {
-    markTextureFrameAvailable();
-  }
+  /// Instructs Flutter that the texture content has been updated.
+  ///
+  /// The returned future completes after any platform-side publication work,
+  /// such as Linux's Vulkan export blit, has finished.
+  Future<void> markTextureFrameAvailable();
 
   /// Schedules this texture for destruction.
   ///

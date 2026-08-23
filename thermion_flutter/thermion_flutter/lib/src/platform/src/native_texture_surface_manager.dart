@@ -495,7 +495,7 @@ class NativeTextureSurfaceManager {
           throw StateError('Cannot prime a texture after Filament shutdown');
         }
         await app.render();
-        await texture.markTextureFrameAvailableAndWait();
+        await texture.markTextureFrameAvailable();
       }),
     );
   }
