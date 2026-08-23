@@ -29,6 +29,16 @@ namespace thermion
     {
 #endif
 
+        EMSCRIPTEN_KEEPALIVE TMaterial *MaterialInstance_getMaterial(TMaterialInstance *tMaterialInstance)
+        {
+            auto *materialInstance = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
+            // getMaterial returns const Material*; callers only compare the
+            // pointer against other material pointers, so dropping the
+            // qualifier is safe here.
+            auto *material = const_cast<filament::Material *>(materialInstance->getMaterial());
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial)
         {
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);

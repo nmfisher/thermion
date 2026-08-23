@@ -626,6 +626,49 @@ extern "C"
     auto fut = rt->addTask(lambda);
   }
 
+  // Runs the .mat -> .filamat compile on the engine's render thread (the
+  // build uses the engine's JobSystem, so it is serialized with other engine
+  // work). Follows the readPixels pattern: the task fills [outData]/[outSize]
+  // (the buffer stays allocated until the caller releases it with
+  // Engine_freeCompiledMaterial) and then notifies [onComplete] with
+  // [requestId]. On failure *outData is set to nullptr and the message is in
+  // [outError].
+  EMSCRIPTEN_KEEPALIVE void Engine_compileMaterialRenderThread(
+      TEngine *tEngine,
+      const char *matSource,
+      size_t length,
+      TMaterialPlatform platform,
+      TMaterialTargetApi targetApi,
+      TMaterialOptimization optimization,
+      const char *definesJson,
+      uint8_t embedSource,
+      char *outError,
+      size_t outErrorCap,
+      const uint8_t **outData,
+      size_t *outSize,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = RT(tEngine);
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          size_t size = 0;
+          const uint8_t *data = Engine_compileMaterial(
+              tEngine, matSource, length, platform, targetApi, optimization, definesJson, embedSource, outError, outErrorCap, &size);
+          if (outData != nullptr)
+          {
+            *outData = data;
+          }
+          if (outSize != nullptr)
+          {
+            *outSize = size;
+          }
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence *))
   {
     auto *rt = RT(tEngine);

@@ -1,0 +1,37 @@
+material {
+    name : "Editor Starter",
+    requires : [ position, uv0 ],
+    parameters : [
+        {
+            type : float4,
+            name : baseTint
+        },
+        {
+            type : float,
+            name : roughness
+        },
+        {
+            type : float,
+            name : metallic
+        }
+    ],
+    shadingModel : lit,
+    blending : opaque,
+    culling : back,
+    depthWrite : true,
+    depthCulling : true
+}
+
+// The fragment shader runs for every pixel of the sphere. Everything set on
+// `material` here becomes the surface's appearance: baseColor, roughness and
+// metallic drive the standard lit model (see Filament's Materials doc for the
+// full set of inputs). `materialParams` exposes the parameters declared above;
+// the app sets their values on the material instance.
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = materialParams.baseTint;
+        material.roughness = materialParams.roughness;
+        material.metallic = materialParams.metallic;
+    }
+}

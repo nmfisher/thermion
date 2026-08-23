@@ -52,12 +52,17 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
     int primitiveIndex,
     MaterialInstance materialInstance,
   ) async {
-    return RenderableManager_setMaterialInstanceAt(
+    final ffiInstance = materialInstance as FFIMaterialInstance;
+    final result = RenderableManager_setMaterialInstanceAt(
       renderableManager,
       entity,
       primitiveIndex,
-      (materialInstance as FFIMaterialInstance).pointer,
+      ffiInstance.pointer,
     );
+    // Record the attachment so material reloads can still find renderables
+    // that are not in a scene (the scene scan can't see those).
+    app.recordMaterialInstanceAttachment(entity, primitiveIndex, ffiInstance);
+    return result;
   }
 
   @override
@@ -95,12 +100,19 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
       return null;
     }
 
-    return FFIMaterialInstance(instancePtr, app);
+    // Cached wrapper: repeated lookups of one native instance must return
+    // the same wrapper, or the shadow recording used for material reload
+    // would be split across wrappers and silently lose values.
+    return app.getOrCreateMaterialInstanceWrapper(instancePtr);
   }
 
   @override
   Future clearMaterialInstanceAt(ThermionEntity entity, int primitiveIndex) async {
+    final previous = await getMaterialInstanceAt(entity, primitiveIndex);
     RenderableManager_clearMaterialInstanceAt(renderableManager, entity, primitiveIndex);
+    if (previous != null) {
+      app.forgetMaterialInstanceAttachment(entity, primitiveIndex, previous as FFIMaterialInstance);
+    }
   }
 
   // ============================================================================

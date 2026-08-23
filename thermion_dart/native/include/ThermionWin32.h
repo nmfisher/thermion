@@ -12,6 +12,19 @@
 #pragma comment(lib, "bluegl.lib")
 #pragma comment(lib, "backend.lib")
 #pragma comment(lib, "filamat.lib")
+// The .mat parser for runtime material compilation (Engine_compileMaterial).
+// matp must precede utils.lib in link order (it references utils symbols);
+// unlike the Linux/macOS archives, the Windows filamat/matp do not bundle
+// glslang/SPIRV, so the shader-compiler libraries they reference are linked
+// here explicitly.
+#pragma comment(lib, "matp.lib")
+#pragma comment(lib, "glslang.lib")
+#pragma comment(lib, "SPIRV.lib")
+#pragma comment(lib, "SPIRV-Tools.lib")
+#pragma comment(lib, "SPIRV-Tools-opt.lib")
+#pragma comment(lib, "spirv-cross-core.lib")
+#pragma comment(lib, "spirv-cross-glsl.lib")
+#pragma comment(lib, "spirv-cross-msl.lib")
 #pragma comment(lib, "geometry.lib")
 #pragma comment(lib, "utils.lib")
 #pragma comment(lib, "filabridge.lib")

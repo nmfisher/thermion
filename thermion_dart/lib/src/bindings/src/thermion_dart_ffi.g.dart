@@ -423,6 +423,9 @@ external bool Material_hasParameter(ffi.Pointer<TMaterial> tMaterial, ffi.Pointe
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external bool MaterialInstance_isStencilWriteEnabled(ffi.Pointer<TMaterialInstance> materialInstance);
 
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> MaterialInstance_getMaterial(ffi.Pointer<TMaterialInstance> materialInstance);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(isLeaf: true)
 external void MaterialInstance_setStencilWrite(ffi.Pointer<TMaterialInstance> materialInstance, bool enabled);
 
@@ -1171,6 +1174,99 @@ external ffi.Pointer<TMaterial> Engine_buildMaterial(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<ffi.Uint8> materialData,
   int length,
+);
+
+/// Compiles .mat [matSource] ([length] bytes, not necessarily
+/// NUL-terminated) into a filamat package, synchronously on the calling
+/// thread. #include directives must already be resolved by the caller (the
+/// Dart layer flattens them).
+///
+/// [platform]/[targetApi]/[optimization] select the compilation targets;
+/// pass T_MATERIAL_TARGET_API_FROM_ENGINE to derive targetApi from the
+/// engine's backend.
+///
+/// [definesJson] is either nullptr or a flat JSON object of preprocessor
+/// defines, e.g. `{"OCCLUSION": "1"}`. Only string keys/values and basic
+/// backslash escapes are supported.
+///
+/// [embedSource] controls whether the .mat source is embedded in the
+/// package (matc's no-embed-source flag).
+///
+/// On success returns a malloc'd buffer of *outSize bytes that the caller
+/// must release with [Engine_freeCompiledMaterial]. On failure returns
+/// nullptr and writes a NUL-terminated message into [outError] (capacity
+/// [outErrorCap]).
+@ffi.Native<
+  ffi.Pointer<ffi.Uint8> Function(
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.Pointer<ffi.Char>,
+    ffi.Uint8,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.Pointer<ffi.Size>,
+  )
+>(isLeaf: true)
+external ffi.Pointer<ffi.Uint8> Engine_compileMaterial(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> matSource,
+  int length,
+  int platform,
+  int targetApi,
+  int optimization,
+  ffi.Pointer<ffi.Char> definesJson,
+  int embedSource,
+  ffi.Pointer<ffi.Char> outError,
+  int outErrorCap,
+  ffi.Pointer<ffi.Size> outSize,
+);
+
+/// Releases a buffer returned by [Engine_compileMaterial].
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Uint8>)>(isLeaf: true)
+external void Engine_freeCompiledMaterial(ffi.Pointer<ffi.Uint8> data);
+
+/// As [Engine_compileMaterial], but the work runs on the engine's render
+/// thread. The task writes the malloc'd package to *[outData] and its size to
+/// *[outSize] (release it with [Engine_freeCompiledMaterial]), or nullptr on
+/// failure with the message in [outError], then invokes [onComplete] with
+/// [requestId].
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TEngine>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.UnsignedInt,
+    ffi.Pointer<ffi.Char>,
+    ffi.Uint8,
+    ffi.Pointer<ffi.Char>,
+    ffi.Size,
+    ffi.Pointer<ffi.Pointer<ffi.Uint8>>,
+    ffi.Pointer<ffi.Size>,
+    ffi.Uint32,
+    ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32 requestId)>>,
+  )
+>(isLeaf: true)
+external void Engine_compileMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> matSource,
+  int length,
+  int platform,
+  int targetApi,
+  int optimization,
+  ffi.Pointer<ffi.Char> definesJson,
+  int embedSource,
+  ffi.Pointer<ffi.Char> outError,
+  int outErrorCap,
+  ffi.Pointer<ffi.Pointer<ffi.Uint8>> outData,
+  ffi.Pointer<ffi.Size> outSize,
+  int requestId,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32 requestId)>> onComplete,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(isLeaf: true)
@@ -4605,6 +4701,34 @@ external void Scene_setIndirectLight(ffi.Pointer<TScene> tScene, ffi.Pointer<TIn
 @ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
 external void Scene_addFilamentAsset(ffi.Pointer<TScene> tScene, ffi.Pointer<TFilamentAsset> asset);
 
+/// Walks every renderable primitive in the scene and records the ones whose
+/// current MaterialInstance belongs to [tMaterial].
+///
+/// Returns the TOTAL number of matches (which may exceed [capacity]). When
+/// [outEntities]/[outPrimitives]/[outInstances] are non-null, up to
+/// [capacity] matches are written to them. Call once with null buffers to
+/// size the output, then again to fetch it.
+@ffi.Native<
+  ffi.Size Function(
+    ffi.Pointer<TScene>,
+    ffi.Pointer<TRenderableManager>,
+    ffi.Pointer<TMaterial>,
+    ffi.Pointer<EntityId>,
+    ffi.Pointer<ffi.Uint32>,
+    ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
+    ffi.Size,
+  )
+>(isLeaf: true)
+external int Scene_scanForMaterial(
+  ffi.Pointer<TScene> tScene,
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  ffi.Pointer<TMaterial> tMaterial,
+  ffi.Pointer<EntityId> outEntities,
+  ffi.Pointer<ffi.Uint32> outPrimitives,
+  ffi.Pointer<ffi.Pointer<TMaterialInstance>> outInstances,
+  int capacity,
+);
+
 @ffi.Native<ffi.Void Function(FrameTickCallback, ffi.Int)>(isLeaf: true)
 external void FrameScheduler_startWithCallback(FrameTickCallback tickCallback, int targetFps);
 
@@ -5626,6 +5750,28 @@ sealed class TBackend {
 
   /// !< Selects the no-op driver for testing purposes.
   static const BACKEND_NOOP = 4;
+}
+
+sealed class TMaterialPlatform {
+  static const T_MATERIAL_PLATFORM_DESKTOP = 0;
+  static const T_MATERIAL_PLATFORM_MOBILE = 1;
+  static const T_MATERIAL_PLATFORM_ALL = 2;
+}
+
+sealed class TMaterialTargetApi {
+  static const T_MATERIAL_TARGET_API_OPENGL = 1;
+  static const T_MATERIAL_TARGET_API_VULKAN = 2;
+  static const T_MATERIAL_TARGET_API_METAL = 4;
+  static const T_MATERIAL_TARGET_API_WEBGPU = 8;
+  static const T_MATERIAL_TARGET_API_ALL = 15;
+  static const T_MATERIAL_TARGET_API_FROM_ENGINE = 256;
+}
+
+sealed class TMaterialOptimization {
+  static const T_MATERIAL_OPTIMIZATION_NONE = 0;
+  static const T_MATERIAL_OPTIMIZATION_PREPROCESSOR = 1;
+  static const T_MATERIAL_OPTIMIZATION_SIZE = 2;
+  static const T_MATERIAL_OPTIMIZATION_PERFORMANCE = 3;
 }
 
 sealed class TLightType {
