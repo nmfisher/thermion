@@ -1,3 +1,15 @@
+# ReactPhysics3D is compiled into the single thermion_dart WASM through the
+# EXTERNAL_PROJECTS hook in thermion_dart/native/web/CMakeLists.txt: thermion
+# itself never references the rp3d C API, so its objects are only kept alive by
+# the -Wl,--whole-archive group and its _rp3d_* functions are exported from the
+# same Module object as the _Thermion_* ones. That is what lets one
+# NativeLibrary.initBindings("thermion_dart") serve both packages on the web.
+# scripts/download_reactphysics3d.sh stages the reactphysics3d_dart checkout
+# and the published libreactphysics3d.a that the hook links in.
+# Set EXTERNAL_PROJECTS_CMAKE= (empty) to build a WASM without physics.
+RP3D_EXTERNAL_DIR := thermion_dart/native/web/lib/external
+EXTERNAL_PROJECTS_CMAKE ?= $(RP3D_EXTERNAL_DIR)/reactphysics3d_dart/native/web/reactphysics3d_dart.cmake
+
 wasm:
 	@if [ ! -f thermion_dart/native/web/lib/release/filament-v1.75.0-web-release.zip ]; then \
 		echo "Downloading filament-v1.75.0-web-release.zip..."; \
@@ -9,13 +21,17 @@ wasm:
 	cd thermion_dart/native/web/lib/release && \
 	rm -rf include lib && \
 	unzip -o filament-v1.75.0-web-release.zip
+ifneq ($(strip $(EXTERNAL_PROJECTS_CMAKE)),)
+	scripts/download_reactphysics3d.sh
+endif
 	cd thermion_dart/native/web && \
 	mkdir -p build && \
 	cd build && \
-	emcmake cmake .. && \
+	emcmake cmake $(if $(strip $(EXTERNAL_PROJECTS_CMAKE)),-DEXTERNAL_PROJECTS=$(abspath $(EXTERNAL_PROJECTS_CMAKE)),) .. && \
 	emmake make
 wasm-clean:
 	cd thermion_dart/native/web && rm -rf build
+	@echo "Note: $(RP3D_EXTERNAL_DIR) is kept (cached ReactPhysics3D checkout/artifact)."
 wasm-example-web: 
 	cd examples/dart/js_wasm
 	mkdir -p build

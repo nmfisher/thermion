@@ -14,6 +14,16 @@ dependencies:
   logging: ^1.3.0
   web: ^1.0.0
 
+# Mirrors the override in examples_lib (pub only honours overrides from the
+# root package): reactphysics3d_dart (a transitive dep via examples_lib) pins
+# ffigen_js 0.0.5-pre, conflicting with thermion_dart's ^0.0.14-pre. Without
+# this override `dart pub get` fails here. The physics scene this gallery
+# serves needs reactphysics3d_dart's web bindings regenerated under 0.0.14 to
+# work at runtime; delete this override together with the others once that
+# lands and the git ref in examples_lib is bumped.
+dependency_overrides:
+  ffigen_js: ^0.0.14-pre
+
 # This package only ever builds for the web (compiled to WASM), so it never
 # needs a host native build. Setting skip_native_build lets us run Thermion's
 # pure-Dart tooling here — notably `dart run thermion_dart:download_web`, which
