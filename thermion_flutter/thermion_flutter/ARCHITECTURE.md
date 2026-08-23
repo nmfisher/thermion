@@ -47,14 +47,14 @@ On macOS, iOS, Windows, Android, Thermion use the platform vsync signal to synch
 - `DXGIFrameScheduler` (DXGI `WaitForVBlank`)  (Windows)
 - `AChoreographerFrameScheduler` (Android)
 
-On Linux, vsync is not reliably available, so Thermion uses Flutter's own `SchedulerBinding`. Its persistent frame callback feeds the same Dart `FrameScheduler` callback pipeline used by the other platforms. This keeps Thermion in lockstep with Flutter's Skia compositor without introducing a separate Linux render loop: request-frame hooks, `FilamentApp.render()`, and post-render texture notification run in the same order everywhere.
+On Linux, vsync is not reliably available, so Thermion uses Flutter's own `SchedulerBinding`. Its persistent frame callback feeds the same Dart `FrameScheduler` frame-handler pipeline used by the other platforms. This keeps Thermion in lockstep with Flutter's Skia compositor without introducing a separate Linux render loop: request-frame hooks, `FilamentApp.render()`, and post-render texture notification run in the same order everywhere.
 
-The `FrameScheduler` dispatches its callback to Dart in one of two ways:
+The native `FrameScheduler` only produces rate-limited timing ticks. It delivers accepted ticks to Dart in one of two ways:
 
 - **Release**: a raw C function pointer (`ffi.NativeCallable`) — minimum latency.
 - **Debug** (hot-restart safe): `Dart_PostCObject_DL` onto a `ReceivePort`. `Dart_PostCObject` silently drops messages to dead ports, so stale native schedulers created in a previous isolate can't crash the new one.
 
-Linux does not need either native-to-Dart transport because Flutter invokes the persistent frame callback in Dart directly. It still uses the same active, pause, in-flight, diagnostics, and render callback logic after that platform-specific entry point.
+Linux does not need either native-to-Dart transport because Flutter invokes the persistent frame callback in Dart directly. It still uses the same active, pause, in-flight, diagnostics, and frame-handler logic after that platform-specific entry point.
 
 Android intentionally keeps render admission on these Dart callback paths.
 Flutter's `ImageReaderSurfaceProducer` receives images through a listener on
@@ -69,7 +69,7 @@ By default the viewer renders on **every vsync** — i.e. at the display's nativ
 
 `FilamentApp.instance.setTargetFramerate(fps)` caps the rate *below* the display refresh by skipping vsyncs at the source, so dropped native frames never wake Dart. It's an engine-level API — the same native scheduler paces the headless CLI path — and it cannot raise the rate above the refresh. An absolute target deadline preserves the requested average on displays whose refresh is not an integer multiple of the target. For example, 60 fps on a 90 Hz display alternates one- and two-vsync presentation intervals rather than falling to 45 fps. That cadence necessarily has some judder; exact, evenly spaced 60 fps is physically impossible on a fixed 90 Hz presentation clock.
 
-The native display-link sources apply the cap in `FrameScheduler::dispatchFrame`, fed by `FrameScheduler_setTargetFps`. Linux applies the same absolute-deadline algorithm to Flutter's frame timestamps before entering the common callback pipeline. Web applies it directly in its `requestAnimationFrame` loop.
+The native display-link sources apply the cap in `FrameScheduler::handleSourceTick`, fed by `FrameScheduler_setTargetFps`. Linux applies the same absolute-deadline algorithm to Flutter's frame timestamps before entering the common frame-handler pipeline. Web applies it directly in its `requestAnimationFrame` loop.
 
 Framerate is a property of the **shared render loop**, not of any one viewer. All viewers on the same engine are pace-locked to the same rate (one scheduler drives a single `renderManager.render()` that renders every attached view each tick), so there is no per-view pacing — the last `setTargetFramerate` call wins for all viewers.
 
@@ -97,7 +97,7 @@ On each vsync tick, the following runs:
 7. Back in `_renderFrame`, for each `PlatformTextureDescriptor` we call **`markTextureFrameAvailable()`**.
 8. The Texture widget schedules a repaint; Flutter's compositor samples the updated hardware texture on its next frame.
 
-Steps 3–6 are a single Dart `await`: the Flutter frame callback does not return until `endFrame` has completed on the render thread. The render does **not** run on the platform thread — it runs on the dedicated `RenderThread` — so the UI isolate isn't blocked on GPU work beyond the round-trip wait.
+Steps 3–6 are represented by a single Dart `Future`. The timing callback starts that work without awaiting it; the `_rendering` guard skips later ticks until the future completes. Rendering runs on the dedicated `RenderThread`, not the platform thread or Dart isolate.
 
 ### `markTextureFrameAvailable`
 
@@ -121,7 +121,7 @@ Compositing itself is Flutter's responsibility — the Texture widget participat
 
 **The invariant (both platforms): pause stops rendering only. The task queue keeps draining.**
 
-`pauseFrameScheduler()` / `resumeFrameScheduler()` gate the **render pipeline** — on native, Dart's `_onFrame` short-circuits (so no `RenderManager_render` task is queued); on web, `RenderManager::tick()` skips `updateAnimationsAndPlugins` + the swapchain loop. Neither path touches `RenderThread::_tasks`, so every `*_RenderThread` FFI call (`setTransform`, `addEntity`, material/camera updates, etc.) continues to queue and execute exactly as it does when running. `await`-ing an FFI call during pause will not hang; state accumulated during pause is visible on the first render after resume.
+`pauseFrameScheduler()` / `resumeFrameScheduler()` gate the **render pipeline** — on native, Dart declines to dispatch the frame handler (so no `RenderManager_render` task is queued); on web, `RenderManager::tick()` skips `updateAnimationsAndPlugins` + the swapchain loop. Neither path touches `RenderThread::_tasks`, so every `*_RenderThread` FFI call (`setTransform`, `addEntity`, material/camera updates, etc.) continues to queue and execute exactly as it does when running. `await`-ing an FFI call during pause will not hang; state accumulated during pause is visible on the first render after resume.
 
 App lifecycle suspension is separate from an explicit caller pause. `hidden`,
 `paused`, and `detached` suspend rendering; `inactive` does not, because the app

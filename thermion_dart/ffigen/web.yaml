@@ -10,6 +10,7 @@ headers:
     - '../native/include/c_api/**/*.h'
 compiler-opts:
   - '-D__EMSCRIPTEN__'
+  - '-DTHERMION_FFIGEN'
 structs:
   dependency-only: opaque
   exclude: 

@@ -41,7 +41,7 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
 
   /// Starts the appropriate frame scheduling mode for the current platform.
   Future<void> start() async {
-    FrameScheduler.instance.setOnFrame(_renderFrame);
+    FrameScheduler.instance.setFrameHandler(_renderFrame);
 
     // Android must keep render admission on the Dart callback/port path.
     // SurfaceProducer consumes ImageReader frames from Android's main looper;

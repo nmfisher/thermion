@@ -4605,26 +4605,11 @@ external void Scene_setIndirectLight(ffi.Pointer<TScene> tScene, ffi.Pointer<TIn
 @ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
 external void Scene_addFilamentAsset(ffi.Pointer<TScene> tScene, ffi.Pointer<TFilamentAsset> asset);
 
-@ffi.Native<ffi.Void Function(FrameCallback, ffi.Int)>(isLeaf: true)
-external void FrameScheduler_start(FrameCallback callback, int targetFps);
+@ffi.Native<ffi.Void Function(FrameTickCallback, ffi.Int)>(isLeaf: true)
+external void FrameScheduler_startWithCallback(FrameTickCallback tickCallback, int targetFps);
 
 @ffi.Native<ffi.Void Function()>()
 external void FrameScheduler_stop();
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external void FrameScheduler_setRenderThread(ffi.Pointer<ffi.Void> renderThread);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderManager>)>(isLeaf: true)
-external void FrameScheduler_setRenderManager(ffi.Pointer<TRenderManager> rm);
-
-@ffi.Native<ffi.Void Function(PostRenderCallback, ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external void FrameScheduler_setPostRenderCallback(PostRenderCallback callback, ffi.Pointer<ffi.Void> userData);
-
-@ffi.Native<ffi.Bool Function(ffi.Uint64)>(isLeaf: true)
-external bool FrameScheduler_requestRender(int frameTimeNanos);
-
-@ffi.Native<ffi.Void Function(ffi.Int)>(isLeaf: true)
-external void FrameScheduler_startNativeRenderLoop(int targetFps);
 
 @ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external int FrameScheduler_initDartApi(ffi.Pointer<ffi.Void> data);
@@ -5734,12 +5719,9 @@ final class TShadowOptions extends ffi.Struct {
 typedef FilamentRenderCallbackFunction = ffi.Void Function(ffi.Pointer<ffi.Void> owner);
 typedef DartFilamentRenderCallbackFunction = void Function(ffi.Pointer<ffi.Void> owner);
 typedef FilamentRenderCallback = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
-typedef FrameCallbackFunction = ffi.Void Function(ffi.Uint64 frameTimeNanos);
-typedef DartFrameCallbackFunction = void Function(int frameTimeNanos);
-typedef FrameCallback = ffi.Pointer<ffi.NativeFunction<FrameCallbackFunction>>;
-typedef PostRenderCallbackFunction = ffi.Void Function(ffi.Pointer<ffi.Void> userData);
-typedef DartPostRenderCallbackFunction = void Function(ffi.Pointer<ffi.Void> userData);
-typedef PostRenderCallback = ffi.Pointer<ffi.NativeFunction<PostRenderCallbackFunction>>;
+typedef FrameTickCallbackFunction = ffi.Void Function(ffi.Uint64 frameTimeNanos);
+typedef DartFrameTickCallbackFunction = void Function(int frameTimeNanos);
+typedef FrameTickCallback = ffi.Pointer<ffi.NativeFunction<FrameTickCallbackFunction>>;
 
 final class TMovementIntentCalculator extends ffi.Opaque {}
 

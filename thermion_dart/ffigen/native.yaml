@@ -6,6 +6,8 @@ headers:
   include-directives:
     - '../native/include/c_api/*.h'
     - '../native/include/c_api/**/*.h'
+compiler-opts:
+  - '-DTHERMION_FFIGEN'
 ffi-native:
   asset-id: package:thermion_dart/thermion_dart.dart
 ignore-source-errors: true
@@ -14,9 +16,9 @@ functions:
     include:
       - '.*'
     exclude:
-      # FrameScheduler_stop joins the scheduler thread and waits for the final
-      # render task to drain. Blocking functions must not be Dart FFI leaf
-      # calls. This excludes it only from isLeaf:true, not from the bindings.
+      # FrameScheduler_stop joins the scheduler callback thread. Blocking
+      # functions must not be Dart FFI leaf calls. This excludes it only from
+      # isLeaf:true, not from the bindings.
       - 'FrameScheduler_stop'
 enums:
   as-int:

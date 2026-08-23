@@ -53,16 +53,17 @@ namespace thermion {
 class FrameScheduler {
 public:
     /// Receives a monotonic frame timestamp and the pointer supplied to start().
-    using Callback = void (*)(uint64_t frameTimeNanos, void* userData);
+    using TickCallback = void (*)(uint64_t frameTimeNanos, void* userData);
 
     virtual ~FrameScheduler() = default;
 
     /// Starts the frame source. Each source tick that passes rate gating invokes
-    /// `callback` with its timestamp and `userData`.
+    /// `tickCallback` with its timestamp and `userData`.
     ///
-    /// The scheduler does not own `userData`. The callback and `userData` must
-    /// remain valid until stop() returns. Call stop() before a second start().
-    virtual void start(Callback callback, void* userData = nullptr) = 0;
+    /// The scheduler does not own `userData`. The tick callback and `userData`
+    /// must remain valid until stop() returns. Call stop() before a second
+    /// start().
+    virtual void start(TickCallback tickCallback, void* userData = nullptr) = 0;
 
     /// Stops the frame source and waits for its callback context to stop.
     /// Work that the callback already posted can continue after this returns.
@@ -84,8 +85,8 @@ public:
     void setTargetFps(int fps);
 
 protected:
-    Callback _callback = nullptr;
-    void* _callbackUserData = nullptr;
+    TickCallback _tickCallback = nullptr;
+    void* _tickUserData = nullptr;
 
     // setTargetFps() can change _fpsLimit from another thread. The source
     // callback owns the other timing fields while the scheduler runs.
@@ -109,7 +110,7 @@ class TimerFrameScheduler : public FrameScheduler {
 public:
     explicit TimerFrameScheduler(int targetFps) : _targetFps(targetFps) {}
     ~TimerFrameScheduler() override { stop(); }
-    void start(Callback callback, void* userData = nullptr) override;
+    void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
 private:
     void run();
@@ -122,7 +123,7 @@ class CADisplayLinkScheduler : public FrameScheduler {
     void* _wrapper = nullptr;
 public:
     ~CADisplayLinkScheduler() override { stop(); }
-    void start(Callback callback, void* userData = nullptr) override;
+    void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
 private:
     static void displayLinkCallback(uint64_t frameTimeNanos, void* context);
@@ -137,7 +138,7 @@ class CVDisplayLinkScheduler : public FrameScheduler {
     mach_timebase_info_data_t _timebase{};
 public:
     ~CVDisplayLinkScheduler() override { stop(); }
-    void start(Callback callback, void* userData = nullptr) override;
+    void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
 private:
     static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink,
@@ -155,7 +156,7 @@ class DXGIFrameScheduler : public FrameScheduler {
 public:
     explicit DXGIFrameScheduler(int targetFps) : _targetFps(targetFps) {}
     ~DXGIFrameScheduler() override { stop(); }
-    void start(Callback callback, void* userData = nullptr) override;
+    void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
 };
 #endif
@@ -172,7 +173,7 @@ class AChoreographerFrameScheduler : public FrameScheduler {
     uint64_t _nextSourceFrameNs = 0;
 public:
     ~AChoreographerFrameScheduler() override { stop(); }
-    void start(Callback callback, void* userData = nullptr) override;
+    void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
 private:
     void scheduleNextFrame(uint64_t lastFrameTimeNanos = 0);
