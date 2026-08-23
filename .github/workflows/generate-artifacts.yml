@@ -70,8 +70,7 @@ jobs:
               # target and the scripts it calls decide what goes into the
               # shipped thermion_dart.wasm.
               - 'Makefile'
-              - 'scripts/build_reactphysics3d_web.sh'
-              - 'scripts/verify_web_wasm_exports.sh'
+              - 'scripts/download_reactphysics3d.sh'
             materials-changed:
               - 'materials/**'
               - 'examples/assets/*.mat'
@@ -203,19 +202,20 @@ jobs:
           restore-keys: |
             filament-web-
 
-      # ReactPhysics3D sources + the Emscripten build of libreactphysics3d.a
-      # that gets linked into thermion_dart.wasm. Keyed on the staging script
-      # so a ref bump in it rebuilds.
-      - name: Cache ReactPhysics3D web build
+      # ReactPhysics3D checkout + the published libreactphysics3d.a that gets
+      # linked into thermion_dart.wasm. Keyed on the download script so a tag
+      # bump in it re-fetches.
+      - name: Cache ReactPhysics3D web artifact
         if: steps.changes.outputs.native-changed == 'true'
         uses: actions/cache@v4
         with:
           path: thermion_dart/native/web/lib/external
-          key: rp3d-web-${{ hashFiles('scripts/build_reactphysics3d_web.sh') }}
+          key: rp3d-web-${{ hashFiles('scripts/download_reactphysics3d.sh') }}
 
       # Builds the single thermion_dart WASM with ReactPhysics3D linked in via
-      # the EXTERNAL_PROJECTS hook, then verifies the _rp3d_* exports made it
-      # (the link would otherwise fail silently -- see the verify script).
+      # the EXTERNAL_PROJECTS hook. The engine library comes from the
+      # reactphysics3d_dart release that the download script pins; that
+      # repository's own build-artifacts workflow verifies its exports.
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'
         run: make wasm
