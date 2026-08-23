@@ -808,7 +808,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final scenePtr = scene.getNativeHandle();
       final renderableManagerPtr = renderableManager.renderableManager;
       final count = Scene_scanForMaterial(
-          scenePtr, renderableManagerPtr, ffiMaterial.pointer, nullptr.cast(), nullptr.cast(), nullptr.cast(), 0);
+        scenePtr,
+        renderableManagerPtr,
+        ffiMaterial.pointer,
+        nullptr.cast(),
+        nullptr.cast(),
+        nullptr.cast(),
+        0,
+      );
       if (count == 0) {
         continue;
       }
@@ -820,8 +827,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       try {
         Scene_scanForMaterial(
-            scenePtr, renderableManagerPtr, ffiMaterial.pointer, entities.address, primitives.address,
-            nullptr.cast(), count);
+          scenePtr,
+          renderableManagerPtr,
+          ffiMaterial.pointer,
+          entities.address,
+          primitives.address,
+          nullptr.cast(),
+          count,
+        );
         for (var i = 0; i < count; i++) {
           final entity = entities[i];
           final primitiveIndex = primitives[i];
@@ -874,7 +887,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   @override
-  Future<Material> reloadMaterialFromBytes(Material oldMaterial, Uint8List materialBytes, {bool destroyOld = true}) async {
+  Future<Material> reloadMaterialFromBytes(
+    Material oldMaterial,
+    Uint8List materialBytes, {
+    bool destroyOld = true,
+  }) async {
     final oldFFIMaterial = oldMaterial as FFIMaterial;
 
     // Build the replacement first: if the bytes are invalid we want to fail
@@ -947,11 +964,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         final name = match.group(1)!;
         if (active.contains(name)) {
           throw MaterialCompileException(
-              "#include \"$name\" from $referencing is circular (${active.join(" -> ")} -> $name)");
+            "#include \"$name\" from $referencing is circular (${active.join(" -> ")} -> $name)",
+          );
         }
         if (active.length >= 64) {
-          throw MaterialCompileException(
-              "#include nesting exceeded 64 levels at \"$name\" from $referencing");
+          throw MaterialCompileException("#include nesting exceeded 64 levels at \"$name\" from $referencing");
         }
         String? included;
         String? resolvedAs;
@@ -965,8 +982,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           }
         }
         if (included == null) {
-          throw MaterialCompileException("Could not resolve #include \"$name\" "
-              "from $referencing (searched: ${includePaths.isEmpty ? "<loader>" : includePaths.join(", ")})");
+          throw MaterialCompileException(
+            "Could not resolve #include \"$name\" "
+            "from $referencing (searched: ${includePaths.isEmpty ? "<loader>" : includePaths.join(", ")})",
+          );
         }
         // Splice the file in place of the directive. Nested includes in the
         // included file are resolved the same way.
@@ -990,9 +1009,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }) async {
     if (FILAMENT_WASM) {
       throw UnsupportedError(
-          "compileMaterial is not supported on web: the WASM engine does not link the "
-          "material compiler. Pre-compile .mat sources to .filamat with matc and load "
-          "them with createMaterial instead.");
+        "compileMaterial is not supported on web: the WASM engine does not link the "
+        "material compiler. Pre-compile .mat sources to .filamat with matc and load "
+        "them with createMaterial instead.",
+      );
     }
 
     final platformFlag = switch (platform) {
@@ -1025,9 +1045,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final sourceByteLength = utf8.encode(flattened).length;
 
     final sourcePtr = flattened.toNativeUtf8().cast<Char>();
-    final definesPtr = defines.isEmpty
-        ? nullptr.cast<Char>()
-        : jsonEncode(defines).toNativeUtf8().cast<Char>();
+    final definesPtr = defines.isEmpty ? nullptr.cast<Char>() : jsonEncode(defines).toNativeUtf8().cast<Char>();
     final outError = allocate<Char>(1024);
     outError[0] = 0;
     // Written by the render-thread task before the completion callback fires.

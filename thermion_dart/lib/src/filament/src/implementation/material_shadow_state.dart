@@ -69,14 +69,11 @@ class MaterialInstanceShadowState {
           case 2:
             await target.setParameterFloat2(entry.key, value[0], value[1]);
           case 3:
-            await target.setParameterFloat3(
-                entry.key, value[0], value[1], value[2]);
+            await target.setParameterFloat3(entry.key, value[0], value[1], value[2]);
           case 4:
-            await target.setParameterFloat4(
-                entry.key, value[0], value[1], value[2], value[3]);
+            await target.setParameterFloat4(entry.key, value[0], value[1], value[2], value[3]);
           default:
-            throw StateError(
-                "Cannot replay float parameter ${entry.key} of ${value.length} components");
+            throw StateError("Cannot replay float parameter ${entry.key} of ${value.length} components");
         }
       } else if (value is List<Vector3>) {
         await target.setParameterFloat3Array(entry.key, value);
@@ -89,11 +86,9 @@ class MaterialInstanceShadowState {
       } else if (value is Matrix4) {
         await target.setParameterMat4(entry.key, value);
       } else if (value is MaterialInstanceTextureBinding) {
-        await target.setParameterTexture(
-            entry.key, value.texture, value.sampler);
+        await target.setParameterTexture(entry.key, value.texture, value.sampler);
       } else {
-        throw StateError(
-            "Cannot replay parameter ${entry.key} of type ${value.runtimeType}");
+        throw StateError("Cannot replay parameter ${entry.key} of type ${value.runtimeType}");
       }
     }
 

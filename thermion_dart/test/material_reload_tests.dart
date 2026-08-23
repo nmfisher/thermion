@@ -31,8 +31,11 @@ void main() async {
       expect(uses.length, 1, reason: "exactly one primitive uses the material");
       expect(uses.single.entity, cube.entity);
       expect(uses.single.primitiveIndex, 0);
-      expect(uses.single.materialInstance, same(instance),
-          reason: "looked-up instances must reuse the wrapper that recorded their state");
+      expect(
+        uses.single.materialInstance,
+        same(instance),
+        reason: "looked-up instances must reuse the wrapper that recorded their state",
+      );
 
       await viewer.destroyAsset(cube);
     }, bg: kWhite);
@@ -50,8 +53,7 @@ void main() async {
 
       const width = 512;
       const height = 512;
-      final beforePixels =
-          (await testHelper.capture(viewer.view, "reload_before"))[viewer.view]!;
+      final beforePixels = (await testHelper.capture(viewer.view, "reload_before"))[viewer.view]!;
       final beforeCenter = pixelAt(beforePixels.buffer.asFloat32List(), width, height, width ~/ 2, height ~/ 2);
       expect(beforeCenter[2], greaterThan(0.4), reason: "cube renders blue before reload");
       expect(beforeCenter[0], lessThan(0.1));
@@ -74,8 +76,7 @@ void main() async {
       expect(newInstance.shadow.parameters["color"], equals([0.0, 0.0, 1.0, 1.0]));
 
       // Rendering is unchanged by the swap.
-      final afterPixels =
-          (await testHelper.capture(viewer.view, "reload_after"))[viewer.view]!;
+      final afterPixels = (await testHelper.capture(viewer.view, "reload_after"))[viewer.view]!;
       final afterCenter = pixelAt(afterPixels.buffer.asFloat32List(), width, height, width ~/ 2, height ~/ 2);
       expect(afterCenter[2], greaterThan(0.4), reason: "cube still renders blue after reload");
       expect(afterCenter[0], lessThan(0.1));
@@ -132,10 +133,16 @@ void main() async {
         materialInstances: [instance],
       );
 
-      final reloaded =
-          await FilamentApp.instance!.reloadMaterialFromBytes(material, solidColorBytes, destroyOld: false);
-      expect(await (material as FFIMaterial).hasParameter("color"), isTrue,
-          reason: "old material must still be alive when destroyOld is false");
+      final reloaded = await FilamentApp.instance!.reloadMaterialFromBytes(
+        material,
+        solidColorBytes,
+        destroyOld: false,
+      );
+      expect(
+        await (material as FFIMaterial).hasParameter("color"),
+        isTrue,
+        reason: "old material must still be alive when destroyOld is false",
+      );
 
       // Caller owns both materials and every instance now. Order matters:
       // instances must not be destroyed while still attached to a renderable

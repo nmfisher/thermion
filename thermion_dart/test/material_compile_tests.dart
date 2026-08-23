@@ -20,17 +20,14 @@ Set<String> parameterNames(String source) {
     return {};
   }
   final blockEnd = source.indexOf("]", blockStart);
-  final block =
-      source.substring(blockStart, blockEnd < 0 ? source.length : blockEnd);
-  return RegExp(r"name\s*:\s*([A-Za-z_][A-Za-z0-9_]*)")
-      .allMatches(block)
-      .map((m) => m.group(1)!)
-      .toSet();
+  final block = source.substring(blockStart, blockEnd < 0 ? source.length : blockEnd);
+  return RegExp(r"name\s*:\s*([A-Za-z_][A-Za-z0-9_]*)").allMatches(block).map((m) => m.group(1)!).toSet();
 }
 
 /// A minimal parameterised unlit material, with [fragmentExtra] spliced into
 /// the fragment shader so tests can vary the compiled output.
-String colorMaterial(String fragmentExtra) => """
+String colorMaterial(String fragmentExtra) =>
+    """
 material {
     name : RuntimeCompileColor,
     requires : [ position ],
@@ -63,8 +60,7 @@ void main() async {
   // (materials/ also holds unlit/depth_sampler/vdtm sources that the build
   // does not ship; vdtm.mat is outright broken — `z` declared inside an if
   // block and used outside — and would fail under matc too.)
-  final workspaceMaterials =
-      p.normalize(p.join(testHelper.assetsDir, "..", "..", "materials"));
+  final workspaceMaterials = p.normalize(p.join(testHelper.assetsDir, "..", "..", "materials"));
   final shippedNames = [
     "bone_overlay",
     "capture_uv",
@@ -83,10 +79,7 @@ void main() async {
     "solidcolor.mat",
     "viewspace.mat",
   ].map((name) => p.join(testHelper.assetsDir, name)).toList();
-  final allShipped = [
-    ...shippedNames.map((name) => p.join(workspaceMaterials, "$name.mat")),
-    ...exampleMaterials,
-  ];
+  final allShipped = [...shippedNames.map((name) => p.join(workspaceMaterials, "$name.mat")), ...exampleMaterials];
 
   test("golden: runtime compile accepts every shipped .mat", () async {
     await testHelper.withViewer((viewer) async {
@@ -94,10 +87,7 @@ void main() async {
       for (final path in allShipped) {
         final source = File(path).readAsStringSync();
         try {
-          final compiled = await app.compileMaterial(
-            source,
-            includePaths: [workspaceMaterials],
-          );
+          final compiled = await app.compileMaterial(source, includePaths: [workspaceMaterials]);
           if (compiled.isEmpty) {
             failures.add("$path compiled to an empty package");
             continue;
@@ -123,11 +113,7 @@ void main() async {
     await testHelper.withViewer((viewer) async {
       await expectLater(
         app.compileMaterial("material { this is not a valid material }"),
-        throwsA(isA<MaterialCompileException>().having(
-          (e) => e.message,
-          "message",
-          isNotEmpty,
-        )),
+        throwsA(isA<MaterialCompileException>().having((e) => e.message, "message", isNotEmpty)),
       );
     });
   });
@@ -176,8 +162,7 @@ fragment {
 }
 """;
       final withoutDefine = await app.compileMaterial(source);
-      final withDefine =
-          await app.compileMaterial(source, defines: {"TINT_RED": "1"});
+      final withDefine = await app.compileMaterial(source, defines: {"TINT_RED": "1"});
       expect(withoutDefine, isNotEmpty);
       expect(withDefine, isNotEmpty);
       // Both variants load; they are different packages (different shaders).
@@ -205,10 +190,10 @@ fragment {
         // Includes live inside shader blocks (matp's grammar only accepts
         // the material document at the top level — same restriction matc's
         // own include preprocessing has).
-        File(p.join(tmp.path, "outer.h")).writeAsStringSync(
-            "#include \"inner.h\"\nfloat tweak(float v) { return v * HALF; }\n");
-        File(p.join(tmp.path, "inner.h")).writeAsStringSync(
-            "#define HALF (0.5)\n#define DOUBLE_IT(v) ((v) * 2.0)\n");
+        File(
+          p.join(tmp.path, "outer.h"),
+        ).writeAsStringSync("#include \"inner.h\"\nfloat tweak(float v) { return v * HALF; }\n");
+        File(p.join(tmp.path, "inner.h")).writeAsStringSync("#define HALF (0.5)\n#define DOUBLE_IT(v) ((v) * 2.0)\n");
         final source = """
 material {
     name : IncludeMaterial,
@@ -225,8 +210,7 @@ fragment {
     }
 }
 """;
-        final compiled =
-            await app.compileMaterial(source, includePaths: [tmp.path]);
+        final compiled = await app.compileMaterial(source, includePaths: [tmp.path]);
         expect(compiled, isNotEmpty);
         final material = await app.createMaterial(compiled);
         await material.destroy();
@@ -236,10 +220,8 @@ fragment {
     test("missing includes throw with the offending name", () async {
       await testHelper.withViewer((viewer) async {
         await expectLater(
-          app.compileMaterial(
-              '#include "does_not_exist.h"\nmaterial { }', includePaths: [tmp.path]),
-          throwsA(isA<MaterialCompileException>().having(
-              (e) => e.message, "message", contains("does_not_exist.h"))),
+          app.compileMaterial('#include "does_not_exist.h"\nmaterial { }', includePaths: [tmp.path]),
+          throwsA(isA<MaterialCompileException>().having((e) => e.message, "message", contains("does_not_exist.h"))),
         );
       });
     });
@@ -248,10 +230,8 @@ fragment {
       await testHelper.withViewer((viewer) async {
         File(p.join(tmp.path, "loop.h")).writeAsStringSync('#include "loop.h"\n');
         await expectLater(
-          app.compileMaterial('#include "loop.h"\nmaterial { }',
-              includePaths: [tmp.path]),
-          throwsA(isA<MaterialCompileException>().having(
-              (e) => e.message, "message", contains("circular"))),
+          app.compileMaterial('#include "loop.h"\nmaterial { }', includePaths: [tmp.path]),
+          throwsA(isA<MaterialCompileException>().having((e) => e.message, "message", contains("circular"))),
         );
       });
     });
@@ -262,8 +242,7 @@ fragment {
       const width = 512;
       const height = 512;
 
-      final material =
-          await app.createMaterial(await app.compileMaterial(colorMaterial("")));
+      final material = await app.createMaterial(await app.compileMaterial(colorMaterial("")));
       final instance = await material.createInstance();
       await instance.setParameterFloat4("color", 0.0, 0.0, 1.0, 1.0);
       final cube = await viewer.createGeometry(
@@ -273,8 +252,7 @@ fragment {
 
       Future<List<double>> center() async {
         final pixels = (await testHelper.capture(viewer.view, "compile_e2e"))[viewer.view]!;
-        return pixelAt(
-            pixels.buffer.asFloat32List(), width, height, width ~/ 2, height ~/ 2);
+        return pixelAt(pixels.buffer.asFloat32List(), width, height, width ~/ 2, height ~/ 2);
       }
 
       final before = await center();
@@ -282,8 +260,7 @@ fragment {
       expect(before[0], lessThan(0.1));
 
       // Recompile with the fragment forcing red, then hot-swap the package.
-      final recompiled = await app.compileMaterial(
-          colorMaterial("material.baseColor = float4(1.0, 0.0, 0.0, 1.0);"));
+      final recompiled = await app.compileMaterial(colorMaterial("material.baseColor = float4(1.0, 0.0, 0.0, 1.0);"));
       final reloaded = await app.reloadMaterialFromBytes(material, recompiled);
 
       final after = await center();

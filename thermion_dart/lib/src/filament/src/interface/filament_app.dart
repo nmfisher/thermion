@@ -341,8 +341,6 @@ abstract class FilamentApp<T> {
   /// example to re-run per-entity material setup after a reload).
   Future<List<MaterialInstanceUse>> findRenderablesUsingMaterial(Material material);
 
-
-
   // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
 
