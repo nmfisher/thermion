@@ -117,6 +117,21 @@ The Flutter side is a standard `Texture(textureId: descriptor.flutterTextureId, 
 
 Compositing itself is Flutter's responsibility — the Texture widget participates in the normal widget tree, so transforms/opacity/clipping all work. The trade-off is one extra texture sample per frame versus drawing directly into the Flutter surface (which Thermion does not do).
 
+### Desktop resize handoff
+
+macOS and Linux resize with a staged texture handoff. The replacement texture
+is first mounted underneath the previous texture (Linux may need this mount for
+its deferred `populate()` callback), then the camera/viewport state is updated
+and one frame is rendered into the replacement while the scheduler is paused.
+Only after platform publication work completes does the widget reveal the new
+texture. The previous descriptor remains registered until Flutter's post-frame
+callback confirms that the replacement has entered the composited widget tree.
+
+Windows keeps its existing native in-place descriptor swap: Flutter continues
+to reference the same texture ID while the plugin blits the old surface, primes
+the replacement, and swaps the underlying D3D handle. Android and web retain
+their platform-specific resize behavior.
+
 ### Pause/resume
 
 **The invariant (both platforms): pause stops rendering only. The task queue keeps draining.**

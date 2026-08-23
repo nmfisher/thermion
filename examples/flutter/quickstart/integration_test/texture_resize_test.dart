@@ -10,6 +10,7 @@
 // Windows updates its descriptor in place while other platforms replace it;
 // teardown must serialize correctly with either resize strategy.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart' hide View;
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +18,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 // ignore: implementation_imports
 import 'package:thermion_flutter/src/platform/src/frame_scheduler.dart';
+// ignore: implementation_imports
+import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +29,10 @@ void main() {
     (tester) async {
       final viewer = await ThermionFlutterPlugin.createViewer();
       final size = ValueNotifier<Size>(const Size(160, 120));
-      var textureUpdateCount = 0;
+      var texturePreparationCount = 0;
+      final preparedDescriptors = <PlatformTextureDescriptor>[];
+      final stagedPreparationGate = Completer<void>();
+      final usesStagedResize = Platform.isMacOS || Platform.isLinux;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -48,9 +54,11 @@ void main() {
                         textureId: descriptor.flutterTextureId,
                       );
                     },
-                    onTextureUpdated: (descriptor) {
-                      if (descriptor != null) {
-                        textureUpdateCount++;
+                    onTexturePreparing: (descriptor) async {
+                      texturePreparationCount++;
+                      preparedDescriptors.add(descriptor);
+                      if (usesStagedResize && texturePreparationCount == 2) {
+                        await stagedPreparationGate.future;
                       }
                     },
                   ),
@@ -63,17 +71,46 @@ void main() {
 
       await _pumpUntil(
         tester,
-        () => textureUpdateCount == 1,
+        () =>
+            texturePreparationCount == 1 &&
+            _showsOnlyTexture(tester, preparedDescriptors.single),
         'the initial texture allocation',
       );
 
       size.value = const Size(240, 180);
       await tester.pump();
+
+      if (usesStagedResize) {
+        await _pumpUntil(
+          tester,
+          () => texturePreparationCount == 2,
+          'the staged replacement to enter the widget tree',
+        );
+        expect(
+          find.byType(Texture),
+          findsNWidgets(2),
+          reason: 'the old texture must cover the mounted replacement',
+        );
+        expect(preparedDescriptors.first.destroyed, isFalse);
+        stagedPreparationGate.complete();
+      }
+
       await _pumpUntil(
         tester,
-        () => textureUpdateCount == 2,
+        () =>
+            texturePreparationCount == 2 &&
+            _showsOnlyTexture(tester, preparedDescriptors.last),
         'the resized texture allocation',
       );
+
+      if (usesStagedResize) {
+        await _pumpUntil(
+          tester,
+          () => preparedDescriptors.first.destroyed,
+          'the superseded descriptor to retire after presentation',
+        );
+        expect(find.byType(Texture), findsOneWidget);
+      }
 
       // Let errors from unawaited descriptor cleanup reach the test binding.
       // Before the fix, Darwin throws here because resizeTexture() has already
@@ -113,9 +150,9 @@ void main() {
         () => scheduler.isPaused,
         'resizeTexture to pause behind the controlled frame',
       );
-      final updatesAtUnmount = textureUpdateCount;
+      final preparationsAtUnmount = texturePreparationCount;
       expect(
-        updatesAtUnmount,
+        preparationsAtUnmount,
         2,
         reason: 'the native resize must still be in flight at unmount',
       );
@@ -132,9 +169,9 @@ void main() {
       await tester.pump();
 
       expect(
-        textureUpdateCount,
-        updatesAtUnmount,
-        reason: 'an allocation completing after dispose must not notify',
+        texturePreparationCount,
+        preparationsAtUnmount,
+        reason: 'an allocation completing after dispose must not prepare',
       );
       expect(tester.takeException(), isNull);
 
@@ -143,6 +180,16 @@ void main() {
       size.dispose();
     },
   );
+}
+
+bool _showsOnlyTexture(
+  WidgetTester tester,
+  PlatformTextureDescriptor descriptor,
+) {
+  final textures = find.byType(Texture);
+  if (textures.evaluate().length != 1) return false;
+  return tester.widget<Texture>(textures).textureId ==
+      descriptor.flutterTextureId;
 }
 
 Future<void> _pumpUntil(
