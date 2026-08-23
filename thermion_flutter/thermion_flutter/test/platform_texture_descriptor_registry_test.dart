@@ -286,7 +286,7 @@ class _TestDescriptor extends PlatformTextureDescriptor {
   bool get isSurfaceAvailable => _surfaceAvailable;
 
   @override
-  void markTextureFrameAvailable() {
+  Future<void> markTextureFrameAvailable() async {
     markFrameAvailableCount++;
   }
 

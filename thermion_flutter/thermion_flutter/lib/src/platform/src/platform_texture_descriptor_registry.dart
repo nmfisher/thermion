@@ -158,7 +158,7 @@ class PlatformTextureDescriptorRegistry {
     }
 
     for (final descriptor in List<PlatformTextureDescriptor>.of(_descriptors)) {
-      descriptor.markTextureFrameAvailable();
+      unawaited(descriptor.markTextureFrameAvailable());
     }
   }
 

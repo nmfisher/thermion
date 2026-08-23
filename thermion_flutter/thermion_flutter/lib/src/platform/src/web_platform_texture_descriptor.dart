@@ -20,7 +20,8 @@ class WebPlatformTextureDescriptor extends PlatformTextureDescriptor {
   }
 
   @override
-  void markTextureFrameAvailable() {
+  Future<void> markTextureFrameAvailable() {
     // No-op on web - canvas updates handled by _ImageCopyingWidget
+    return Future<void>.value();
   }
 }

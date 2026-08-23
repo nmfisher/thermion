@@ -40,9 +40,11 @@ abstract class PlatformTextureDescriptor {
   @override
   int get hashCode => flutterTextureId.hashCode;
 
-  /// Instruct the Flutter framework that the content of the texture has been
-  /// updated.
-  void markTextureFrameAvailable();
+  /// Instructs Flutter that the texture content has been updated.
+  ///
+  /// The returned future completes after any platform-side publication work,
+  /// such as Linux's Vulkan export blit, has finished.
+  Future<void> markTextureFrameAvailable();
 
   /// Schedules this texture for destruction.
   ///

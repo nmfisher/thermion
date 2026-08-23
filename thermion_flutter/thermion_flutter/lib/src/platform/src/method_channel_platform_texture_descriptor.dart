@@ -23,7 +23,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
   }
 
   @override
-  void markTextureFrameAvailable() async {
+  Future<void> markTextureFrameAvailable() async {
     if (destroyed) {
       throw Exception(
         "markTextureFrameAvailable cannot be called on a "

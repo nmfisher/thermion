@@ -34,7 +34,7 @@ class AndroidPlatformTextureDescriptor
   /// texture ID, adding one platform message per frame without changing
   /// presentation state.
   @override
-  void markTextureFrameAvailable() {}
+  Future<void> markTextureFrameAvailable() => Future<void>.value();
 
   static Future<AndroidPlatformTextureDescriptor> allocate(
     MethodChannel channel,

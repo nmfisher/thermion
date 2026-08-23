@@ -84,7 +84,7 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
   }
 
   @override
-  void markTextureFrameAvailable() {
+  Future<void> markTextureFrameAvailable() {
     if (_destroyed) {
       throw Exception(
         "markTextureFrameAvailable cannot be called on a "
@@ -92,6 +92,7 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
       );
     }
     _textureRegistry.textureFrameAvailable_(flutterTextureId);
+    return Future<void>.value();
   }
 
   static DarwinPlatformTextureDescriptorImpl allocate(int width, int height) {
