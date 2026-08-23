@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/scheduler.dart';
 import 'package:logging/logging.dart';
 // ignore: implementation_imports
@@ -14,13 +15,7 @@ import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
         FrameCallbackFunction,
         FrameScheduler_initDartApi,
         FrameScheduler_startWithPort,
-        FrameScheduler_setRenderThread,
-        FrameScheduler_setRenderManager,
-        FrameScheduler_setPostRenderCallback,
-        FrameScheduler_requestRender,
-        FrameScheduler_steadyClockUs,
-        PostRenderCallback,
-        TRenderManager;
+        FrameScheduler_steadyClockUs;
 
 /// Drives per-frame callbacks off the native FrameScheduler (CVDisplayLink /
 /// DXGI / AChoreographer / timer) via one of three modes:
@@ -29,10 +24,8 @@ import 'package:thermion_dart/src/bindings/src/thermion_dart_ffi.g.dart'
 ///   pointer via [ffi.NativeCallable.listener].
 /// - **Port mode** (debug builds): native posts messages to a [ReceivePort].
 ///   Hot-restart safe — messages to dead ports are silently dropped.
-/// - **Flutter-synced** (Linux native render loop): Flutter's persistent
-///   frame callback drives a non-blocking native render request. The Dart
-///   per-frame hook runs once per frame the native scheduler admits, so it
-///   stays 1:1 with rendered frames.
+/// - **Flutter-synced** (Linux): Flutter's persistent frame callback drives
+///   the same Dart callback pipeline as the native display-link sources.
 class FrameScheduler {
   FrameScheduler._();
 
@@ -41,9 +34,7 @@ class FrameScheduler {
   /// Returns the process-wide singleton.
   static FrameScheduler get instance => _instance;
 
-  /// Called once per admitted frame in every mode: per native-dispatched
-  /// frame in direct/port mode, and per native-admitted render request in
-  /// Flutter-synced mode.
+  /// Called once per admitted frame in every mode.
   Future<void> Function()? _onFrameCallback;
 
   /// Bind the per-frame callback. Must be called before [start] or
@@ -70,14 +61,9 @@ class FrameScheduler {
   ffi.NativeCallable<FrameCallbackFunction>? _frameCallable;
   ReceivePort? _framePort;
 
-  /// Performs the native render request for the Flutter-synced path and
-  /// returns whether the frame was admitted by the native throttle and
-  /// in-flight guard. Indirection exists so tests can stub admission
-  /// without driving a real render; production always uses
-  /// [FrameScheduler_requestRender].
-  @visibleForTesting
-  bool Function(int frameTimeNanos) requestRender =
-      FrameScheduler_requestRender;
+  int Function()? _flutterTargetFps;
+  int _flutterAppliedFpsLimit = 0;
+  int _nextFlutterFrameUs = 0;
 
   int _diagFrameCount = 0;
   int _diagDropCount = 0;
@@ -131,29 +117,18 @@ class FrameScheduler {
     }
   }
 
-  /// Configure the native scheduler to run the render loop entirely in
-  /// native code, synchronized to Flutter's frame clock via a persistent
-  /// frame callback.
+  /// Drive the normal frame callback pipeline from Flutter's frame clock.
   ///
-  /// The Dart per-frame callback ([setOnFrame]) runs once per frame the native
-  /// scheduler admits — the same 1:1 callback-to-render coupling as the other
-  /// modes.
-  Future<void> startFlutterSynced({
-    required ffi.Pointer<ffi.Void> renderThreadHandle,
-    required ffi.Pointer<TRenderManager> renderManagerHandle,
-    required PostRenderCallback postRenderCallback,
-    required ffi.Pointer<ffi.Void> postRenderUserData,
-  }) async {
+  /// Linux uses this because it has no reliable native display-link source
+  /// synchronized with Flutter's compositor. Rendering itself is still owned
+  /// by the callback installed with [setOnFrame], just like every other mode.
+  Future<void> startFlutterSynced({required int Function() targetFps}) async {
     if (_active) return;
     _active = true;
     _flutterSynced = true;
-
-    FrameScheduler_setRenderThread(renderThreadHandle);
-    FrameScheduler_setRenderManager(renderManagerHandle);
-    FrameScheduler_setPostRenderCallback(
-      postRenderCallback,
-      postRenderUserData,
-    );
+    _flutterTargetFps = targetFps;
+    _flutterAppliedFpsLimit = 0;
+    _nextFlutterFrameUs = 0;
 
     // Persistent callbacks cannot be unregistered. Register exactly once for
     // this isolate; stop/reset only deactivate it, and a later start reuses it.
@@ -174,6 +149,9 @@ class FrameScheduler {
   void stop() {
     _active = false;
     _flutterSynced = false;
+    _flutterTargetFps = null;
+    _flutterAppliedFpsLimit = 0;
+    _nextFlutterFrameUs = 0;
 
     // Always stop native state even when Dart has just hot-restarted and no
     // longer remembers that the previous isolate started a scheduler.
@@ -256,7 +234,7 @@ class FrameScheduler {
     // Dart-side gate here — only the callback in-flight guard below.
     final callback = _admitFrameCallback();
     if (callback != null) {
-      _runFrameCallback(callback, countAsScheduled: true);
+      _runFrameCallback(callback);
     }
   }
 
@@ -265,9 +243,8 @@ class FrameScheduler {
   Future<void> Function()? _admitFrameCallback() {
     if (!_active || _paused) return null;
     if (_rendering) {
-      // Do not admit a native Linux render without its corresponding Dart
-      // callback. This keeps callbacks and renders 1:1 even when Dart work
-      // takes longer than a Flutter frame.
+      // Keep only one callback/render in flight. Frames arriving while Dart
+      // or the render thread is still busy are dropped rather than queued.
       _diagDropCount++;
       return null;
     }
@@ -278,17 +255,10 @@ class FrameScheduler {
     return callback;
   }
 
-  /// Runs an admitted callback and records diagnostics. Direct/port mode
-  /// counts this admission here; Flutter-synced mode counts only after the
-  /// native scheduler accepts its render request.
-  void _runFrameCallback(
-    Future<void> Function() callback, {
-    required bool countAsScheduled,
-  }) {
+  /// Runs an admitted callback and records diagnostics.
+  void _runFrameCallback(Future<void> Function() callback) {
     _rendering = true;
-    if (countAsScheduled) {
-      _scheduledFrameCount++;
-    }
+    _scheduledFrameCount++;
     _diagStopwatch
       ..reset()
       ..start();
@@ -328,16 +298,44 @@ class FrameScheduler {
   void _onFlutterFrame(Duration timeStamp) {
     if (!_active || !_flutterSynced || _paused) return;
     final callback = _admitFrameCallback();
-    if (callback != null) {
-      // Native code owns Linux pacing, throttling, render-thread admission,
-      // and rendering. The Dart callback is admitted first so a slow callback
-      // cannot produce native renders with no corresponding Dart update.
-      final scheduled = requestRender(timeStamp.inMicroseconds * 1000);
-      if (scheduled) {
-        _scheduledFrameCount++;
-        _runFrameCallback(callback, countAsScheduled: false);
-      }
+    if (callback != null && _admitFlutterFrameAtTargetFps(timeStamp)) {
+      _runFrameCallback(callback);
     }
     SchedulerBinding.instance.scheduleFrame();
+  }
+
+  /// Applies the same absolute-deadline pacing used by the native frame
+  /// sources. The deadline advances only when a frame can actually run, so a
+  /// slow render does not consume future frame slots while it is in flight.
+  bool _admitFlutterFrameAtTargetFps(Duration timeStamp) {
+    final fps = _flutterTargetFps?.call() ?? 0;
+    if (fps <= 0) {
+      _flutterAppliedFpsLimit = 0;
+      _nextFlutterFrameUs = 0;
+      return true;
+    }
+
+    final frameTimeUs = timeStamp.inMicroseconds;
+    final intervalUs = math.max(1, 1000000 ~/ fps);
+    const toleranceUs = 1000;
+
+    if (_flutterAppliedFpsLimit != fps || _nextFlutterFrameUs == 0) {
+      _flutterAppliedFpsLimit = fps;
+      _nextFlutterFrameUs = frameTimeUs;
+    }
+
+    if (_nextFlutterFrameUs > frameTimeUs &&
+        _nextFlutterFrameUs - frameTimeUs > toleranceUs) {
+      return false;
+    }
+
+    if (_nextFlutterFrameUs <= frameTimeUs) {
+      final missedIntervals =
+          (frameTimeUs - _nextFlutterFrameUs) ~/ intervalUs + 1;
+      _nextFlutterFrameUs += missedIntervals * intervalUs;
+    } else {
+      _nextFlutterFrameUs += intervalUs;
+    }
+    return true;
   }
 }

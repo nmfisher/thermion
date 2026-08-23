@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi' as ffi;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -69,6 +70,13 @@ class NativeTextureSurfaceManager {
   final NativeOptions Function() _options;
   final NativePlatformTextureDescriptorRegistry registry;
 
+  /// Linux can notify every registered external texture with one direct FFI
+  /// call. Keep this presentation detail here, after the common Dart render
+  /// future completes, rather than coupling it to frame scheduling.
+  late final void Function()? _markLinuxTextures = Platform.isLinux
+      ? _createLinuxTextureMarker()
+      : null;
+
   // The view can be redirected to an internal target in composite highlight
   // mode, so track the Flutter-facing render target independently.
   final _viewRenderTargets = <View, RenderTarget>{};
@@ -99,7 +107,12 @@ class NativeTextureSurfaceManager {
   /// Notifies live descriptors and reaps render targets deferred by Windows
   /// resize operations.
   Future<void> onFrameRendered() async {
-    registry.markFrameAvailable();
+    final markLinuxTextures = _markLinuxTextures;
+    if (markLinuxTextures != null) {
+      markLinuxTextures();
+    } else {
+      registry.markFrameAvailable();
+    }
 
     if (_deferredRenderTargets.isEmpty) return;
 
@@ -119,6 +132,22 @@ class NativeTextureSurfaceManager {
     for (final renderTarget in ready) {
       await _destroyRenderTarget(renderTarget);
     }
+  }
+
+  static void Function() _createLinuxTextureMarker() {
+    final dylib = ffi.DynamicLibrary.process();
+    final getPluginHandle = dylib
+        .lookupFunction<
+          ffi.Pointer<ffi.Void> Function(),
+          ffi.Pointer<ffi.Void> Function()
+        >('thermion_flutter_get_plugin_handle');
+    final markTextures = dylib
+        .lookupFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>),
+          void Function(ffi.Pointer<ffi.Void>)
+        >('thermion_flutter_mark_textures');
+
+    return () => markTextures(getPluginHandle());
   }
 
   Future<PlatformTextureDescriptor> createAndBind(

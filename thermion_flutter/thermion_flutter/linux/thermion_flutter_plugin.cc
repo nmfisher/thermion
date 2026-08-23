@@ -881,7 +881,7 @@ static void method_call_cb(FlMethodChannel *channel, FlMethodCall *method_call,
   thermion_flutter_plugin_handle_method_call(plugin, method_call);
 }
 
-// Global plugin instance for cross-library access (native render loop)
+// Global plugin instance used by Dart's direct post-render texture notifier.
 static ThermionFlutterPlugin* g_plugin_instance = nullptr;
 
 void thermion_flutter_plugin_register_with_registrar(FlPluginRegistrar *registrar)
@@ -907,16 +907,16 @@ void thermion_flutter_plugin_register_with_registrar(FlPluginRegistrar *registra
   g_object_unref(plugin);
 }
 
-// === Exported symbols for cross-library native render loop ===
+// === Exported symbols for Dart post-render texture notification ===
 
 extern "C" __attribute__((visibility("default")))
 void* thermion_flutter_get_plugin_handle() {
   return g_plugin_instance;
 }
 
-// Called from thermion_dart's native render loop (post-render callback)
-// after each frame. Marks all textures as frame-available so Flutter
-// picks up the new content on its next raster pass.
+// Called from Dart after the common render future completes. Marks all
+// textures as frame-available so Flutter picks up the new content on its next
+// raster pass.
 extern "C" __attribute__((visibility("default")))
 void thermion_flutter_mark_textures(void* pluginPtr) {
   auto* self = FLUTTER_FILAMENT_PLUGIN(pluginPtr);
