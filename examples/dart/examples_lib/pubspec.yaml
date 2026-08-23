@@ -22,7 +22,7 @@ dependencies:
 # 0.0.5-pre, which conflicts with thermion_dart's ffigen_js ^0.0.14-pre, so
 # version solving fails without this override. The web path no longer depends
 # on it -- ReactPhysics3D is linked into the single thermion_dart WASM (see
-# scripts/build_reactphysics3d_web.sh) -- but the *generated* web bindings in
+# scripts/download_reactphysics3d.sh) -- but the *generated* web bindings in
 # reactphysics3d_dart are still 0.0.5-era, so struct field access would throw
 # at runtime until that package regenerates them under 0.0.14. When it does:
 # bump the git ref above and delete this override (and the mirrors in
