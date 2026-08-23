@@ -389,9 +389,6 @@ jobs:
           github-token: ${{ github.token }}
           # To refresh every baseline, first push a capture-only commit,
           # inspect its dart-*-output-* artifacts, then update this run ID.
-          # 32575493711: adds the three procedural_renderable captures from
-          # the attribute-less rendering test; every other file matched the
-          # previous baseline (32477413084) within tolerance.
           run-id: 32575493711
           name: ${{ matrix.artifact }}
           path: thermion_dart/test/golden-baseline
