@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:thermion_flutter/src/platform/src/android_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/darwin_platform_texture_descriptor.dart';
+import 'package:thermion_flutter/src/platform/src/method_channel_platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/platform/src/platform_texture_descriptor.dart';
 import 'package:thermion_flutter/src/options.dart';
 
@@ -99,10 +102,43 @@ void main() {
       height: 5,
     );
 
-    descriptor.markTextureFrameAvailable();
-    await Future<void>.delayed(Duration.zero);
+    await descriptor.markTextureFrameAvailable();
 
     expect(methodCallCount, 0);
+  });
+
+  test('awaitable frame publication waits for platform work', () async {
+    const channel = MethodChannel('thermion.test.texture.presentation');
+    final platformGate = Completer<void>();
+    var completed = false;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          expect(call.method, 'markTextureFrameAvailable');
+          await platformGate.future;
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final descriptor = MethodChannelPlatformTextureDescriptor(
+      channel,
+      flutterTextureId: 1,
+      hardwareId: 2,
+      windowHandle: 3,
+      width: 4,
+      height: 5,
+    );
+    final publication = descriptor.markTextureFrameAvailable().then(
+      (_) => completed = true,
+    );
+
+    await Future<void>.delayed(Duration.zero);
+    expect(completed, isFalse);
+    platformGate.complete();
+    await publication;
+    expect(completed, isTrue);
   });
 
   for (final (textureSource, expectedSurfaceProducer) in [
@@ -155,7 +191,7 @@ class _TestDescriptor extends PlatformTextureDescriptor {
         );
 
   @override
-  void markTextureFrameAvailable() {}
+  Future<void> markTextureFrameAvailable() async {}
 
   @override
   Future destroy() async {}
