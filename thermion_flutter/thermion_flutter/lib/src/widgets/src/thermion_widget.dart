@@ -23,10 +23,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
     return ThermionWidgetInternal(
       view: widget.viewer.view,
       surfaceWidgetBuilder: surfaceWidgetBuilder,
-      onTextureUpdated: (descriptor) async {
-        if (descriptor == null) {
-          return;
-        }
+      onTexturePreparing: (descriptor) async {
         final view = widget.viewer.view;
         var camera = await view.getCamera();
         var near = await camera.getNear();
@@ -52,24 +49,40 @@ class _ThermionWidgetState extends State<ThermionWidget> {
 // the actual platform; see [ThermionFlutterPluginImpl] for details.
 class ThermionWidgetInternal extends StatefulWidget {
   final View view;
-  final void Function(PlatformTextureDescriptor? descriptor)? onTextureUpdated;
   final Widget Function(PlatformTextureDescriptor?, View) surfaceWidgetBuilder;
+  final Future<void> Function(PlatformTextureDescriptor descriptor)?
+  onTexturePreparing;
 
   const ThermionWidgetInternal({
     super.key,
     required this.view,
     required this.surfaceWidgetBuilder,
-    this.onTextureUpdated,
+    this.onTexturePreparing,
   });
 
   @override
   State<ThermionWidgetInternal> createState() => _ThermionWidgetInternalState();
 }
 
+@visibleForTesting
+Widget buildStagedTextureSurface({
+  required Widget current,
+  Widget? replacement,
+}) {
+  if (replacement == null) return current;
+  return Stack(
+    fit: StackFit.expand,
+    // The replacement must be mounted so deferred Linux textures receive a
+    // populate callback, but the last valid frame stays painted above it.
+    children: [replacement, current],
+  );
+}
+
 class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
   static const _debounceDuration = Duration(milliseconds: 100);
 
   PlatformTextureDescriptor? _texture;
+  PlatformTextureDescriptor? _pendingTexture;
   Timer? _debounceTimer;
   Future<void> _textureOperations = Future<void>.value();
   bool _disposing = false;
@@ -94,6 +107,7 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
       // also guarantees the final descriptor is destroyed exactly once.
       await ThermionFlutterPlugin.instance.destroyTextureForView(view);
       _texture = null;
+      _pendingTexture = null;
     }, 'disposing a Thermion widget texture');
     super.dispose();
   }
@@ -117,15 +131,27 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
             // Initial case - no texture yet
             _scheduleTextureAllocation(width, height);
           }
-          return widget.surfaceWidgetBuilder(_texture, widget.view);
+          return _buildSurface();
         }
 
         // Size changed - schedule a debounced allocation
         _scheduleTextureAllocation(width, height);
 
         // Keep showing the old texture during debounce
-        return widget.surfaceWidgetBuilder(_texture, widget.view);
+        return _buildSurface();
       },
+    );
+  }
+
+  Widget _buildSurface() {
+    final pending = _pendingTexture;
+    final current = _texture;
+    if (pending == null || current == null) {
+      return widget.surfaceWidgetBuilder(current ?? pending, widget.view);
+    }
+    return buildStagedTextureSurface(
+      current: widget.surfaceWidgetBuilder(current, widget.view),
+      replacement: widget.surfaceWidgetBuilder(pending, widget.view),
     );
   }
 
@@ -155,11 +181,16 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
     PlatformTextureDescriptor? texture;
 
-    if (_texture != null) {
+    final previousTexture = _texture;
+    final plugin = ThermionFlutterPlugin.instance;
+    final staged =
+        previousTexture != null && plugin.supportsStagedTextureResize;
+
+    if (previousTexture != null) {
       // Resize existing texture (on Windows this reuses the Flutter
       // texture ID to avoid a black frame flash).
       texture = await ThermionFlutterPlugin.instance.resizeTexture(
-        _texture!,
+        previousTexture,
         widget.view,
         width,
         height,
@@ -174,25 +205,62 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
 
     if (texture == null) return;
 
+    if (staged && !identical(texture, previousTexture)) {
+      if (_disposing || !mounted) return;
+      setState(() => _pendingTexture = texture);
+
+      // Linux can only create its GL texture from populate(), so ensure the
+      // hidden replacement has entered the tree before awaiting native bind.
+      await WidgetsBinding.instance.endOfFrame;
+      if (_disposing || !mounted) return;
+
+      try {
+        await widget.onTexturePreparing?.call(texture);
+        await plugin.prepareTextureForPresentation(texture);
+      } catch (error, stackTrace) {
+        await plugin.cancelStagedTextureResize(
+          texture,
+          previousTexture,
+          widget.view,
+        );
+        if (!_disposing && mounted) {
+          setState(() => _pendingTexture = null);
+        }
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      if (_disposing || !mounted) return;
+    } else {
+      await widget.onTexturePreparing?.call(texture);
+    }
+
     if (_disposing || !mounted) {
       // Publish the result even if dispose() ran while the platform operation
       // was awaiting. The queued teardown operation owns releasing this final
       // descriptor and its per-view binding.
       _texture = texture;
+      _pendingTexture = null;
       _currentWidth = width;
       _currentHeight = height;
       return;
     }
 
     setState(() {
-      // resizeTexture owns disposal of the superseded descriptor. On Windows
-      // it returns the existing descriptor after updating it in place.
+      // Windows updates the descriptor in place. Staged desktop resize swaps
+      // to an already-primed descriptor and retires the old one below.
       _texture = texture;
+      _pendingTexture = null;
       _currentWidth = width;
       _currentHeight = height;
     });
 
-    widget.onTextureUpdated?.call(texture);
+    if (staged && !identical(previousTexture, texture)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _enqueueTextureOperation(
+          () => plugin.retireTextureAfterResize(previousTexture),
+          'retiring a resized Thermion widget texture',
+        );
+      });
+    }
   }
 
   void _enqueueTextureOperation(

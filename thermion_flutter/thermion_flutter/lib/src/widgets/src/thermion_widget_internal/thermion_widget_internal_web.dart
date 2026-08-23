@@ -16,7 +16,6 @@
 //             .instance.options.webOptions.importCanvasAsWidget
 //         ? _ImageCopyingWidget(
 //             view: widget.view,
-//             onTextureUpdated: widget.onTextureUpdated,
 //           )
 //         : SizedBox.expand(child: CustomPaint(painter: TransparencyPainter()));
 //   }
@@ -72,12 +71,10 @@
 
 // class _ImageCopyingWidget extends StatefulWidget {
 //   final View view;
-//   final void Function(PlatformTextureDescriptor? descriptor)? onTextureUpdated;
 
 //   const _ImageCopyingWidget({
 //     super.key,
 //     required this.view,
-//     this.onTextureUpdated,
 //   });
 //   @override
 //   State<StatefulWidget> createState() {
@@ -191,14 +188,6 @@
 //       _currentWidth = width;
 //       _currentHeight = height;
 
-//       // Invoke callback with dimensions
-//       if (widget.onTextureUpdated != null) {
-//         final descriptor = WebPlatformTextureDescriptor(
-//           width: width,
-//           height: height,
-//         );
-//         widget.onTextureUpdated!(descriptor);
-//       }
 //     } catch (err) {
 //       _logger.severe("Failed to resize: $err");
 //     }
