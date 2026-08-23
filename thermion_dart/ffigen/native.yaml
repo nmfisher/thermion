@@ -6,8 +6,6 @@ headers:
   include-directives:
     - '../native/include/c_api/*.h'
     - '../native/include/c_api/**/*.h'
-compiler-opts:
-  - '-DTHERMION_FFIGEN'
 ffi-native:
   asset-id: package:thermion_dart/thermion_dart.dart
 ignore-source-errors: true

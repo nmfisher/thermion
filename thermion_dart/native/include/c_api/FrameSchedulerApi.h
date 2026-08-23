@@ -2,12 +2,6 @@
 
 #include "APIBoundaryTypes.h"
 
-// Preserve the historical generated-binding declaration order without making
-// the production timing API depend on rendering types.
-#ifdef THERMION_FFIGEN
-#include "TRenderManager.h"
-#endif
-
 #ifdef __cplusplus
 namespace thermion
 {
