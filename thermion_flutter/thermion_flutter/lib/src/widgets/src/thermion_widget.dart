@@ -49,7 +49,6 @@ class _ThermionWidgetState extends State<ThermionWidget> {
 // the actual platform; see [ThermionFlutterPluginImpl] for details.
 class ThermionWidgetInternal extends StatefulWidget {
   final View view;
-  final void Function(PlatformTextureDescriptor? descriptor)? onTextureUpdated;
   final Widget Function(PlatformTextureDescriptor?, View) surfaceWidgetBuilder;
   final Future<void> Function(PlatformTextureDescriptor descriptor)?
   onTexturePreparing;
@@ -58,7 +57,6 @@ class ThermionWidgetInternal extends StatefulWidget {
     super.key,
     required this.view,
     required this.surfaceWidgetBuilder,
-    this.onTextureUpdated,
     this.onTexturePreparing,
   });
 
@@ -254,8 +252,6 @@ class _ThermionWidgetInternalState extends State<ThermionWidgetInternal> {
       _currentWidth = width;
       _currentHeight = height;
     });
-
-    widget.onTextureUpdated?.call(texture);
 
     if (staged && !identical(previousTexture, texture)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

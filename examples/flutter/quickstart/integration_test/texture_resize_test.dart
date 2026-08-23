@@ -29,9 +29,8 @@ void main() {
     (tester) async {
       final viewer = await ThermionFlutterPlugin.createViewer();
       final size = ValueNotifier<Size>(const Size(160, 120));
-      var textureUpdateCount = 0;
       var texturePreparationCount = 0;
-      final publishedDescriptors = <PlatformTextureDescriptor>[];
+      final preparedDescriptors = <PlatformTextureDescriptor>[];
       final stagedPreparationGate = Completer<void>();
       final usesStagedResize = Platform.isMacOS || Platform.isLinux;
 
@@ -55,14 +54,9 @@ void main() {
                         textureId: descriptor.flutterTextureId,
                       );
                     },
-                    onTextureUpdated: (descriptor) {
-                      if (descriptor != null) {
-                        textureUpdateCount++;
-                        publishedDescriptors.add(descriptor);
-                      }
-                    },
                     onTexturePreparing: (descriptor) async {
                       texturePreparationCount++;
+                      preparedDescriptors.add(descriptor);
                       if (usesStagedResize && texturePreparationCount == 2) {
                         await stagedPreparationGate.future;
                       }
@@ -77,7 +71,9 @@ void main() {
 
       await _pumpUntil(
         tester,
-        () => textureUpdateCount == 1,
+        () =>
+            texturePreparationCount == 1 &&
+            _showsOnlyTexture(tester, preparedDescriptors.single),
         'the initial texture allocation',
       );
 
@@ -95,20 +91,22 @@ void main() {
           findsNWidgets(2),
           reason: 'the old texture must cover the mounted replacement',
         );
-        expect(publishedDescriptors.single.destroyed, isFalse);
+        expect(preparedDescriptors.first.destroyed, isFalse);
         stagedPreparationGate.complete();
       }
 
       await _pumpUntil(
         tester,
-        () => textureUpdateCount == 2,
+        () =>
+            texturePreparationCount == 2 &&
+            _showsOnlyTexture(tester, preparedDescriptors.last),
         'the resized texture allocation',
       );
 
       if (usesStagedResize) {
         await _pumpUntil(
           tester,
-          () => publishedDescriptors.first.destroyed,
+          () => preparedDescriptors.first.destroyed,
           'the superseded descriptor to retire after presentation',
         );
         expect(find.byType(Texture), findsOneWidget);
@@ -152,9 +150,9 @@ void main() {
         () => scheduler.isPaused,
         'resizeTexture to pause behind the controlled frame',
       );
-      final updatesAtUnmount = textureUpdateCount;
+      final preparationsAtUnmount = texturePreparationCount;
       expect(
-        updatesAtUnmount,
+        preparationsAtUnmount,
         2,
         reason: 'the native resize must still be in flight at unmount',
       );
@@ -171,9 +169,9 @@ void main() {
       await tester.pump();
 
       expect(
-        textureUpdateCount,
-        updatesAtUnmount,
-        reason: 'an allocation completing after dispose must not notify',
+        texturePreparationCount,
+        preparationsAtUnmount,
+        reason: 'an allocation completing after dispose must not prepare',
       );
       expect(tester.takeException(), isNull);
 
@@ -182,6 +180,16 @@ void main() {
       size.dispose();
     },
   );
+}
+
+bool _showsOnlyTexture(
+  WidgetTester tester,
+  PlatformTextureDescriptor descriptor,
+) {
+  final textures = find.byType(Texture);
+  if (textures.evaluate().length != 1) return false;
+  return tester.widget<Texture>(textures).textureId ==
+      descriptor.flutterTextureId;
 }
 
 Future<void> _pumpUntil(
