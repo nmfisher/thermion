@@ -91,7 +91,7 @@ void main() {
         () => !scheduler.isRendering,
         'the current frame to finish',
       );
-      scheduler.setOnFrame(() async {
+      scheduler.setFrameHandler(() async {
         await renderGate.future;
         await FilamentApp.instance?.render();
       });

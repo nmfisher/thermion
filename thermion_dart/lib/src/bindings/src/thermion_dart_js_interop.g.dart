@@ -2376,13 +2376,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TSkybox> _Scene_getSkybox(Pointer<TScene> tScene);
   external void _Scene_setIndirectLight(Pointer<TScene> tScene, Pointer<TIndirectLight> tIndirectLight);
   external void _Scene_addFilamentAsset(Pointer<TScene> tScene, Pointer<TFilamentAsset> asset);
-  external void _FrameScheduler_start(FrameCallback callback, int targetFps);
+  external void _FrameScheduler_startWithCallback(FrameTickCallback tickCallback, int targetFps);
   external void _FrameScheduler_stop();
-  external void _FrameScheduler_setRenderThread(Pointer<Void> renderThread);
-  external void _FrameScheduler_setRenderManager(Pointer<TRenderManager> rm);
-  external void _FrameScheduler_setPostRenderCallback(PostRenderCallback callback, Pointer<Void> userData);
-  external int _FrameScheduler_requestRender(JSBigInt frameTimeNanos);
-  external void _FrameScheduler_startNativeRenderLoop(int targetFps);
   external int _FrameScheduler_initDartApi(Pointer<Void> data);
   external void _FrameScheduler_startWithPort(JSBigInt port, int targetFps);
   external void _FrameScheduler_setTargetFps(int fps);
@@ -8764,9 +8759,9 @@ void Scene_addFilamentAsset(Pointer<TScene> tScene, Pointer<TFilamentAsset> asse
   return result;
 }
 
-void FrameScheduler_start(DartFrameCallback callback, int targetFps) {
-  final result = GeneratedBindings.instance._FrameScheduler_start(
-    callback as Pointer<NativeFunction<FrameCallbackFunction>>,
+void FrameScheduler_startWithCallback(DartFrameTickCallback tickCallback, int targetFps) {
+  final result = GeneratedBindings.instance._FrameScheduler_startWithCallback(
+    tickCallback as Pointer<NativeFunction<FrameTickCallbackFunction>>,
     targetFps,
   );
   return result;
@@ -8774,34 +8769,6 @@ void FrameScheduler_start(DartFrameCallback callback, int targetFps) {
 
 void FrameScheduler_stop() {
   final result = GeneratedBindings.instance._FrameScheduler_stop();
-  return result;
-}
-
-void FrameScheduler_setRenderThread(Pointer<Void> renderThread) {
-  final result = GeneratedBindings.instance._FrameScheduler_setRenderThread(renderThread);
-  return result;
-}
-
-void FrameScheduler_setRenderManager(Pointer<TRenderManager> rm) {
-  final result = GeneratedBindings.instance._FrameScheduler_setRenderManager(rm.cast());
-  return result;
-}
-
-void FrameScheduler_setPostRenderCallback(DartPostRenderCallback callback, Pointer<Void> userData) {
-  final result = GeneratedBindings.instance._FrameScheduler_setPostRenderCallback(
-    callback as Pointer<NativeFunction<PostRenderCallbackFunction>>,
-    userData,
-  );
-  return result;
-}
-
-bool FrameScheduler_requestRender(BigInt frameTimeNanos) {
-  final result = GeneratedBindings.instance._FrameScheduler_requestRender(frameTimeNanos.toJSBigInt);
-  return result == 1;
-}
-
-void FrameScheduler_startNativeRenderLoop(int targetFps) {
-  final result = GeneratedBindings.instance._FrameScheduler_startNativeRenderLoop(targetFps);
   return result;
 }
 
@@ -11292,14 +11259,10 @@ final class TSurfaceOrientation extends Struct {
   }
 }
 
-typedef FrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
-typedef DartFrameCallback = Pointer<NativeFunction<FrameCallbackFunction>>;
-typedef FrameCallbackFunction = void Function(JSBigInt frameTimeNanos);
-typedef DartFrameCallbackFunction = void Function(BigInt frameTimeNanos);
-typedef PostRenderCallback = Pointer<NativeFunction<PostRenderCallbackFunction>>;
-typedef DartPostRenderCallback = Pointer<NativeFunction<PostRenderCallbackFunction>>;
-typedef PostRenderCallbackFunction = void Function(Pointer<Void> userData);
-typedef DartPostRenderCallbackFunction = void Function(Pointer<Void> userData);
+typedef FrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
+typedef DartFrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction>>;
+typedef FrameTickCallbackFunction = void Function(JSBigInt frameTimeNanos);
+typedef DartFrameTickCallbackFunction = void Function(BigInt frameTimeNanos);
 
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
   TMovementIntentExecutor toDart() {

@@ -74,14 +74,14 @@ void FrameScheduler::handleSourceTick(uint64_t nanos) {
         _nextDispatchNs = 0;
     }
 
-    if (_callback) {
-        _callback(nanos, _callbackUserData);
+    if (_tickCallback) {
+        _tickCallback(nanos, _tickUserData);
     }
 }
 
 void FrameScheduler::resetState() {
-    _callback = nullptr;
-    _callbackUserData = nullptr;
+    _tickCallback = nullptr;
+    _tickUserData = nullptr;
     _appliedFpsLimit = 0;
     _dispatchIntervalNs = 0;
     _nextDispatchNs = 0;
@@ -179,10 +179,10 @@ void TimerFrameScheduler::run() {
     }
 }
 
-void TimerFrameScheduler::start(Callback callback, void* userData) {
+void TimerFrameScheduler::start(TickCallback tickCallback, void* userData) {
     if (_running) return;
-    _callback = callback;
-    _callbackUserData = userData;
+    _tickCallback = tickCallback;
+    _tickUserData = userData;
     _running = true;
     _thread = new std::thread([this]() { run(); });
 }
@@ -212,10 +212,10 @@ void CADisplayLinkScheduler::displayLinkCallback(uint64_t frameTimeNanos, void* 
     self->handleSourceTick(frameTimeNanos);
 }
 
-void CADisplayLinkScheduler::start(Callback callback, void* userData) {
+void CADisplayLinkScheduler::start(TickCallback tickCallback, void* userData) {
     stop();
-    _callback = callback;
-    _callbackUserData = userData;
+    _tickCallback = tickCallback;
+    _tickUserData = userData;
     _wrapper = CADisplayLinkWrapper_create(displayLinkCallback, this);
     CADisplayLinkWrapper_setTargetFps(
         _wrapper, _fpsLimit.load(std::memory_order_relaxed));
@@ -244,10 +244,10 @@ void CADisplayLinkScheduler::stop() {
 
 #if __APPLE__ && TARGET_OS_OSX
 
-void CVDisplayLinkScheduler::start(Callback callback, void* userData) {
+void CVDisplayLinkScheduler::start(TickCallback tickCallback, void* userData) {
     stop();
-    _callback = callback;
-    _callbackUserData = userData;
+    _tickCallback = tickCallback;
+    _tickUserData = userData;
     mach_timebase_info(&_timebase);
 
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
@@ -286,10 +286,10 @@ CVReturn CVDisplayLinkScheduler::displayLinkCallback(CVDisplayLinkRef displayLin
 
 #ifdef _WIN32
 
-void DXGIFrameScheduler::start(Callback callback, void* userData) {
+void DXGIFrameScheduler::start(TickCallback tickCallback, void* userData) {
     stop();
-    _callback = callback;
-    _callbackUserData = userData;
+    _tickCallback = tickCallback;
+    _tickUserData = userData;
     _running = true;
 
     _thread = new std::thread([this]() {
@@ -404,10 +404,10 @@ void AChoreographerFrameScheduler::scheduleNextFrame(uint64_t lastFrameTimeNanos
     }
 }
 
-void AChoreographerFrameScheduler::start(Callback callback, void* userData) {
+void AChoreographerFrameScheduler::start(TickCallback tickCallback, void* userData) {
     stop();
-    _callback = callback;
-    _callbackUserData = userData;
+    _tickCallback = tickCallback;
+    _tickUserData = userData;
     _running = true;
 
     _thread = new std::thread([this]() {

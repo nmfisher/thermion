@@ -1,8 +1,8 @@
 // Integration test that verifies setTargetFramerate changes the rate at which
 // render work is accepted — not just an internal interval value.
 //
-// It counts frames admitted past the FrameScheduler's native throttle and
-// in-flight guard (via scheduledFrameCount) over wall-clock windows before and
+// It counts handlers dispatched past the FrameScheduler's native throttle and
+// in-flight guard (via dispatchedFrameCount) over wall-clock windows before and
 // after a setTargetFramerate call. The native
 // scheduler (CVDisplayLink / CADisplayLink / AChoreographer / DXGI) drives
 // the loop, so the numbers reflect work the device actually accepts.
@@ -29,20 +29,20 @@ void main() {
   /// Frames-per-second accepted over a [window] of real wall-clock time,
   /// measured with a [Stopwatch] (system clock, unaffected by any test
   /// clock). Lets the native vsync-driven scheduler tick at its own cadence.
-  Future<double> measureScheduledFps(Duration window) async {
+  Future<double> measureDispatchedFps(Duration window) async {
     final sw = Stopwatch()..start();
-    final start = FrameScheduler.instance.scheduledFrameCount;
+    final start = FrameScheduler.instance.dispatchedFrameCount;
     // Yield to the event loop in small increments so the native scheduler
     // callbacks are delivered while real time elapses.
     while (sw.elapsed < window) {
       await Future<void>.delayed(const Duration(milliseconds: 20));
     }
-    final frames = FrameScheduler.instance.scheduledFrameCount - start;
+    final frames = FrameScheduler.instance.dispatchedFrameCount - start;
     final realSeconds = sw.elapsed.inMicroseconds / 1e6;
     return frames / realSeconds;
   }
 
-  testWidgets('setTargetFramerate lowers scheduled frames-per-second',
+  testWidgets('setTargetFramerate lowers dispatched frames-per-second',
       (tester) async {
     ThermionViewer? viewer;
     final sun = DirectLight.sun(direction: Vector3(0.7, -1, -0.8).normalized());
@@ -94,9 +94,9 @@ void main() {
 
     // Let the loop settle, then measure the 60 FPS rate.
     await Future<void>.delayed(const Duration(seconds: 1));
-    final defaultFps = await measureScheduledFps(const Duration(seconds: 2));
+    final defaultFps = await measureDispatchedFps(const Duration(seconds: 2));
     debugPrint(
-      'Thermion scheduled FPS: default=${defaultFps.toStringAsFixed(1)}',
+      'Thermion dispatched FPS: default=${defaultFps.toStringAsFixed(1)}',
     );
 
     // Sanity: the loop is rendering continuously (not stalled). The absolute
@@ -105,13 +105,13 @@ void main() {
     expect(defaultFps, greaterThanOrEqualTo(15),
         reason: 'loop should render continuously; got $defaultFps');
 
-    // Cap well below the render-limited default and confirm the scheduled rate
+    // Cap well below the render-limited default and confirm the dispatched rate
     // drops to the cap. 5 FPS is unambiguously below any reasonable default.
     FilamentApp.instance!.setTargetFramerate(5);
     // Give the new interval a moment to take effect.
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    final lowFps = await measureScheduledFps(const Duration(seconds: 2));
-    debugPrint('Thermion scheduled FPS: limited=${lowFps.toStringAsFixed(1)}');
+    final lowFps = await measureDispatchedFps(const Duration(seconds: 2));
+    debugPrint('Thermion dispatched FPS: limited=${lowFps.toStringAsFixed(1)}');
 
     expect(lowFps, lessThan(defaultFps / 2),
         reason: '5 FPS cap should schedule far fewer frames than the default '
@@ -126,9 +126,9 @@ void main() {
       await FrameScheduler.instance.start();
       await Future<void>.delayed(const Duration(milliseconds: 500));
       final afterRestartFps =
-          await measureScheduledFps(const Duration(seconds: 2));
+          await measureDispatchedFps(const Duration(seconds: 2));
       debugPrint(
-        'Thermion scheduled FPS: after restart='
+        'Thermion dispatched FPS: after restart='
         '${afterRestartFps.toStringAsFixed(1)}',
       );
       expect(afterRestartFps, closeTo(5, 3),
@@ -139,9 +139,9 @@ void main() {
     // Restore and confirm the rate climbs back near the default.
     FilamentApp.instance!.setTargetFramerate(60);
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    final restoredFps = await measureScheduledFps(const Duration(seconds: 2));
+    final restoredFps = await measureDispatchedFps(const Duration(seconds: 2));
     debugPrint(
-      'Thermion scheduled FPS: restored=${restoredFps.toStringAsFixed(1)}',
+      'Thermion dispatched FPS: restored=${restoredFps.toStringAsFixed(1)}',
     );
     expect(restoredFps, greaterThan(lowFps * 2),
         reason: 'restoring 60 FPS should raise the rate well above the 5 FPS '

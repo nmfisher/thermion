@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi' as ffi;
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
@@ -42,7 +41,7 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
 
   /// Starts the appropriate frame scheduling mode for the current platform.
   Future<void> start() async {
-    FrameScheduler.instance.setOnFrame(_renderFrame);
+    FrameScheduler.instance.setFrameHandler(_renderFrame);
 
     // Android must keep render admission on the Dart callback/port path.
     // SurfaceProducer consumes ImageReader frames from Android's main looper;
@@ -115,24 +114,9 @@ class NativeRenderingLifecycleController with WidgetsBindingObserver {
   }
 
   Future<void> _startFlutterSynced() async {
-    final dylib = ffi.DynamicLibrary.process();
-    final getHandleFn = dylib
-        .lookupFunction<
-          ffi.Pointer<ffi.Void> Function(),
-          ffi.Pointer<ffi.Void> Function()
-        >('thermion_flutter_get_plugin_handle');
-    final pluginHandle = getHandleFn();
-    final markTexturesFnPtr = dylib
-        .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-          'thermion_flutter_mark_textures',
-        );
-
     final app = FilamentApp.instance as FFIFilamentApp;
     await FrameScheduler.instance.startFlutterSynced(
-      renderThreadHandle: app.renderThreadHandle,
-      renderManagerHandle: app.renderManager.getNativeHandle(),
-      postRenderCallback: markTexturesFnPtr,
-      postRenderUserData: pluginHandle,
+      targetFps: () => app.targetFramerate,
     );
   }
 
