@@ -6,14 +6,6 @@ version: 0.1.0
 environment:
   sdk: ^3.10.0
 
-# Release-mode Filament is what almost everyone wants (see the notes in
-# thermion_dart/hook/build.dart); switch `mode` to `debug` only when
-# debugging Thermion internals.
-hooks:
-  user_defines:
-    thermion_dart:
-      mode: release
-
 dependencies:
   thermion_dart:
     path: ../../thermion_dart
