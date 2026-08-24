@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <unistd.h>
 
 #ifndef GL_TEXTURE_EXTERNAL_OES
 #define GL_TEXTURE_EXTERNAL_OES 0x8D65
@@ -63,6 +64,21 @@ static void ensure_egl_procs() {
     }
 }
 
+// Serializes populate() (Flutter's raster thread) against the plugin's
+// release_texture() (platform thread). Every populate() return path unlocks.
+struct TextureLockGuard {
+    explicit TextureLockGuard(GMutex& mutex) : mutex(mutex) {
+        g_mutex_lock(&mutex);
+    }
+    ~TextureLockGuard() {
+        g_mutex_unlock(&mutex);
+    }
+    TextureLockGuard(const TextureLockGuard&) = delete;
+    TextureLockGuard& operator=(const TextureLockGuard&) = delete;
+
+    GMutex& mutex;
+};
+
 G_DEFINE_TYPE(ThermionTextureGL,
               thermion_texture_gl,
               fl_texture_gl_get_type())
@@ -99,6 +115,19 @@ thermion_texture_populate(FlTextureGL *texture,
     }
 
     ThermionTextureGL *self = THERMION_TEXTURE_GL(texture);
+
+    // Serialize against release_texture() on the platform thread. Either it
+    // completes first (and the destroyed check below makes populate a no-op)
+    // or this populate finishes first and the release observes the consumer
+    // resources it must clean up. Without this lock, a destroy issued while
+    // populate is importing the DMA-BUF can close the producer's fd mid-import.
+    TextureLockGuard lockGuard(self->lock);
+
+    if (self->destroyed) {
+        g_set_error(error, g_quark_from_static_string("thermion"), 4,
+                    "Texture destroyed before populate");
+        return FALSE;
+    }
 
     // This callback is the only place Flutter guarantees its raster context
     // is current. Capture it for owner-aware cleanup for every transport,
@@ -291,7 +320,12 @@ static void thermion_texture_gl_dispose(GObject* object) {
 
     // Native GL/EGL resources are released explicitly by the plugin while
     // their owning contexts are available. GObject disposal only resolves
-    // outstanding method calls and releases their references.
+    // outstanding method calls and releases their references. Disposal runs
+    // on the platform thread for textures that failed to register (never
+    // visible to the raster thread), so the mutex is not needed here; the
+    // plugin retains successfully-registered shells instead of unref'ing
+    // them (see release_texture) precisely so a late populate cannot touch
+    // a finalized object.
     if (self->pending_ready_calls) {
         for (guint i = 0; i < self->pending_ready_calls->len; i++) {
             auto* methodCall = static_cast<FlMethodCall*>(
@@ -309,6 +343,12 @@ static void thermion_texture_gl_dispose(GObject* object) {
         self->pending_ready_calls = nullptr;
     }
 
+    if (self->owns_dmabuf_fd && self->dmabuf_fd >= 0) {
+        close(self->dmabuf_fd);
+    }
+    self->dmabuf_fd = -1;
+    self->owns_dmabuf_fd = FALSE;
+
     if (self->gl_texture_id != 0 ||
         self->egl_image != EGL_NO_IMAGE_KHR) {
         std::cerr
@@ -319,8 +359,15 @@ static void thermion_texture_gl_dispose(GObject* object) {
     G_OBJECT_CLASS(thermion_texture_gl_parent_class)->dispose(object);
 }
 
+static void thermion_texture_gl_finalize(GObject* object) {
+    ThermionTextureGL *self = THERMION_TEXTURE_GL(object);
+    g_mutex_clear(&self->lock);
+    G_OBJECT_CLASS(thermion_texture_gl_parent_class)->finalize(object);
+}
+
 void thermion_texture_gl_class_init(ThermionTextureGLClass* klass) {
     G_OBJECT_CLASS(klass)->dispose = thermion_texture_gl_dispose;
+    G_OBJECT_CLASS(klass)->finalize = thermion_texture_gl_finalize;
     FL_TEXTURE_GL_CLASS(klass)->populate = thermion_texture_populate;
 }
 
@@ -330,6 +377,7 @@ void thermion_texture_gl_init(ThermionTextureGL* self) {
     self->height = 0;
     self->registrar = nullptr;
     self->dmabuf_fd = -1;
+    self->owns_dmabuf_fd = FALSE;
     self->stride = 0;
     self->offset = 0;
     self->drm_format = 0;
@@ -340,6 +388,7 @@ void thermion_texture_gl_init(ThermionTextureGL* self) {
     self->kind = THERMION_TEXTURE_KIND_DMA_BUF;
     self->pending_ready_calls = g_ptr_array_new();
     self->destroyed = FALSE;
+    g_mutex_init(&self->lock);
 }
 
 ThermionTextureGL* thermion_texture_gl_create(
@@ -351,7 +400,24 @@ ThermionTextureGL* thermion_texture_gl_create(
     textureGL->width = info.width;
     textureGL->height = info.height;
     textureGL->registrar = registrar;
-    textureGL->dmabuf_fd = info.dmabuf_fd;
+    // Own a separate descriptor for the consumer-side EGLImage import so the
+    // producer closing its fd at teardown can never invalidate a concurrent
+    // or subsequent import. The DMA-BUF memory itself stays alive until every
+    // descriptor referencing it is closed.
+    const int consumerFd = dup(info.dmabuf_fd);
+    if (consumerFd >= 0) {
+        textureGL->dmabuf_fd = consumerFd;
+        textureGL->owns_dmabuf_fd = TRUE;
+    } else {
+        // Extremely unlikely (fd exhaustion); borrow the producer's
+        // descriptor instead. It is never closed on the consumer side — the
+        // producer's surface teardown owns it — and the populate/destroy
+        // mutex already prevents an import from racing that teardown.
+        std::cerr << "[ThermionEGL] dup() of dmabuf fd failed; borrowing producer fd"
+                  << std::endl;
+        textureGL->dmabuf_fd = info.dmabuf_fd;
+        textureGL->owns_dmabuf_fd = FALSE;
+    }
     textureGL->stride = info.stride;
     textureGL->offset = info.offset;
     textureGL->drm_format = info.drm_format;

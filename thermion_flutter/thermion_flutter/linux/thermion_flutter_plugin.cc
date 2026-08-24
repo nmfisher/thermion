@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <chrono>
+#include <unistd.h>
 
 #include <epoxy/egl.h>
 #include <epoxy/gl.h>
@@ -118,6 +119,9 @@ struct _ThermionFlutterPlugin
 
   // Shared
   std::vector<ThermionTextureGL *> *textures;
+  // Shells of destroyed textures, retained until plugin teardown. See
+  // release_texture() for why they cannot be unreffed eagerly.
+  std::vector<ThermionTextureGL *> *retired_textures;
 };
 
 G_DEFINE_TYPE(ThermionFlutterPlugin, thermion_flutter_plugin, g_object_get_type())
@@ -148,11 +152,15 @@ static void destroy_all_contexts(ThermionFlutterPlugin *self)
   }
   self->flutter_egl_api = EGL_NONE;
   self->egl_display = EGL_NO_DISPLAY;
-  thermion_flutter_render_context = EGL_NO_CONTEXT;
-  thermion_flutter_render_display = EGL_NO_DISPLAY;
-  thermion_flutter_render_api = EGL_NONE;
-  thermion_flutter_render_gl_major = 0;
-  thermion_flutter_render_gl_minor = 0;
+  // The thermion_flutter_render_* globals are deliberately NOT reset here.
+  // They describe Flutter's raster context/display, which outlives every
+  // plugin-owned context, and destroying our contexts (bootstrap
+  // cancellation, destroyContext, re-init) must not invalidate them:
+  // resetting them mid-session leaks bootstrap GL names and breaks a
+  // sibling viewer's pending getDriverPlatform (CONTEXT_NOT_READY). They
+  // are cleared in thermion_flutter_plugin_dispose, when the engine itself
+  // is going away, and re-captured by populate() whenever Flutter's context
+  // differs from the captured one.
   self->backend_type = 0;
 }
 
@@ -602,6 +610,9 @@ static FlMethodResponse *handle_create_texture(ThermionFlutterPlugin *self, FlMe
   }
 }
 
+// Caller must hold texture->lock. Responses complete Dart futures on the
+// platform event loop, not synchronously, so responding under the lock is
+// safe from re-entrancy.
 static void reject_pending_ready_calls(ThermionTextureGL *texture)
 {
   if (!texture->pending_ready_calls)
@@ -657,12 +668,19 @@ static void release_texture(
     ThermionTextureGL *texture,
     gboolean unregisterTexture)
 {
+  // Serialize with populate() on the raster thread: either populate
+  // completes first and the snapshot below includes the consumer resources
+  // to clean up, or release wins and populate observes `destroyed` and
+  // bails without touching the producer's DMA-BUF.
+  g_mutex_lock(&texture->lock);
   const int64_t surfaceId = texture->surface_id;
   const GLuint glTextureId = texture->gl_texture_id;
   const EGLImage eglImage = texture->egl_image;
+  const ThermionTextureKind kind = texture->kind;
 
   texture->destroyed = TRUE;
   reject_pending_ready_calls(texture);
+  g_mutex_unlock(&texture->lock);
 
   if (unregisterTexture && self->texture_registrar)
   {
@@ -674,37 +692,58 @@ static void release_texture(
   // raster share group, regardless of whether Filament uses OpenGL or Vulkan.
   delete_flutter_gl_texture(
       self, glTextureId,
-      texture->kind == THERMION_TEXTURE_KIND_CONTEXT_BOOTSTRAP
+      kind == THERMION_TEXTURE_KIND_CONTEXT_BOOTSTRAP
           ? "Flutter bootstrap texture"
           : "Flutter DMA-BUF texture");
 
-  if (texture->kind == THERMION_TEXTURE_KIND_DMA_BUF)
+  if (kind == THERMION_TEXTURE_KIND_DMA_BUF)
   {
     destroy_egl_image(thermion_flutter_render_display, eglImage);
 
-    if (self->opengl_context)
+    // Dispatch producer teardown by ownership rather than by which producer
+    // context happens to exist: surface ids are per-context counters, so a
+    // misroute can destroy an unrelated live surface in the other context.
+    const bool vulkanOwned =
+        self->external_images->find(surfaceId) != self->external_images->end();
+    if (vulkanOwned)
     {
-      self->opengl_context->DestroyRenderingSurface(surfaceId);
-    }
-    else
-    {
-      auto extIt = self->external_images->find(surfaceId);
-      if (extIt != self->external_images->end())
-      {
-        // Filament owns the ExternalImage after import. Drop only our raw
-        // pointer before destroying the producer surface.
-        self->external_images->erase(extIt);
-      }
+      // Filament owns the ExternalImage after import. Drop only our raw
+      // pointer before destroying the producer surface.
+      self->external_images->erase(surfaceId);
       if (self->vulkan_context)
       {
         self->vulkan_context->DestroyRenderingSurface(surfaceId);
       }
     }
+    else if (self->opengl_context)
+    {
+      self->opengl_context->DestroyRenderingSurface(surfaceId);
+    }
+    else if (self->vulkan_context)
+    {
+      self->vulkan_context->DestroyRenderingSurface(surfaceId);
+    }
   }
 
+  g_mutex_lock(&texture->lock);
   texture->gl_texture_id = 0;
   texture->egl_image = EGL_NO_IMAGE_KHR;
-  g_object_unref(texture);
+  if (texture->owns_dmabuf_fd && texture->dmabuf_fd >= 0)
+  {
+    close(texture->dmabuf_fd);
+  }
+  texture->dmabuf_fd = -1;
+  texture->owns_dmabuf_fd = FALSE;
+  g_mutex_unlock(&texture->lock);
+
+  // The GObject shell is retained, not unreffed: Flutter's raster thread
+  // reaches populate() through a raw registrar lookup that holds no
+  // reference and is not synchronized with unregistration, so dropping the
+  // last reference here could finalize the object — and its mutex — while
+  // an already-started populate is still running. All heavyweight native
+  // resources were released above; only this small shell survives until
+  // plugin teardown.
+  self->retired_textures->push_back(texture);
 }
 
 static void destroy_all_textures(ThermionFlutterPlugin *self)
@@ -802,19 +841,28 @@ static void handle_await_texture_ready(ThermionFlutterPlugin *self, FlMethodCall
   {
     if (fl_texture_get_id(FL_TEXTURE(tex)) == flutterTextureId)
     {
-      if (tex->gl_texture_id != 0)
+      // The check-then-defer must be atomic against populate() draining the
+      // array on the raster thread.
+      g_mutex_lock(&tex->lock);
+      const GLuint glTextureId = tex->gl_texture_id;
+      if (glTextureId == 0)
+      {
+        g_object_ref(method_call);
+        g_ptr_array_add(tex->pending_ready_calls, method_call);
+      }
+      g_mutex_unlock(&tex->lock);
+
+      if (glTextureId != 0)
       {
         // Already ready (populate already ran)
         g_autoptr(FlValue) result = fl_value_new_int(
-            static_cast<int64_t>(tex->gl_texture_id));
+            static_cast<int64_t>(glTextureId));
         fl_method_call_respond(method_call,
                                FL_METHOD_RESPONSE(fl_method_success_response_new(result)), nullptr);
       }
       else
       {
         // Defer — retain every caller and respond after populate().
-        g_object_ref(method_call);
-        g_ptr_array_add(tex->pending_ready_calls, method_call);
         std::cerr << "[ThermionGL] awaitTextureReady: deferred for flutterId=" << flutterTextureId << std::endl;
       }
       return;
@@ -894,10 +942,27 @@ static void thermion_flutter_plugin_dispose(GObject *object)
   destroy_all_textures(self);
   destroy_all_contexts(self);
 
+  // The engine is going away: the captured raster context/display are dead.
+  // destroy_all_contexts deliberately keeps these during the session (see
+  // the comment there).
+  thermion_flutter_render_context = EGL_NO_CONTEXT;
+  thermion_flutter_render_display = EGL_NO_DISPLAY;
+  thermion_flutter_render_api = EGL_NONE;
+  thermion_flutter_render_gl_major = 0;
+  thermion_flutter_render_gl_minor = 0;
+
   if (self->textures)
   {
     delete self->textures;
     self->textures = nullptr;
+  }
+  if (self->retired_textures)
+  {
+    // Shells are deleted without unreffing: plugin disposal races engine
+    // teardown, and a late populate() on the raster thread must never see a
+    // finalized texture object. The memory is reclaimed at process exit.
+    delete self->retired_textures;
+    self->retired_textures = nullptr;
   }
   if (self->external_images)
   {
@@ -922,6 +987,7 @@ static void thermion_flutter_plugin_init(ThermionFlutterPlugin *self)
   self->egl_display = EGL_NO_DISPLAY;
   self->opengl_context = nullptr;
   self->textures = new std::vector<ThermionTextureGL *>();
+  self->retired_textures = new std::vector<ThermionTextureGL *>();
   self->external_images = new std::unordered_map<int64_t, thermion::vulkan::ExternalVulkanImage *>();
 }
 
