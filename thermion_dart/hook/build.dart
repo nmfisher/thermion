@@ -227,7 +227,6 @@ outputDirectory : ${outputDirectory.path}
     var libs = [
       "filament",
       "backend",
-      "filameshio",
       if (targetOS != OS.iOS) "filamat",
       if (targetOS == OS.linux) "shaders",
       "utils",
@@ -245,8 +244,6 @@ outputDirectory : ${outputDirectory.path}
       if (targetOS != OS.android && targetOS != OS.iOS) "gltfio",
       "filament-iblprefilter",
       "image",
-      "imageio",
-      "tinyexr",
       "filaflat",
       "dracodec",
       "ibl",

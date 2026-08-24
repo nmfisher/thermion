@@ -18,8 +18,6 @@
 #pragma comment(lib, "gltfio_core.lib")
 #pragma comment(lib, "filament-iblprefilter.lib")
 #pragma comment(lib, "image.lib")
-#pragma comment(lib, "imageio.lib")
-#pragma comment(lib, "tinyexr.lib")
 #pragma comment(lib, "filaflat.lib")
 #pragma comment(lib, "dracodec.lib")
 #pragma comment(lib, "ibl.lib")
