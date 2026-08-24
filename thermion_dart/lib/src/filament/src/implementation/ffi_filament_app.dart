@@ -905,11 +905,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       swapChain = _swapChains.first;
     }
 
-    // Capture uses one immutable plan for both its primary render/readback
-    // loop and the WebGL completion frame. Attachment state can change while
-    // this method awaits render-thread work; querying it per view would mix
-    // two different frame configurations.
-    final renderPlan = renderManager.getRenderPlan(swapChain);
+    // Capture uses one immutable attachment list for both its primary
+    // render/readback loop and the WebGL completion frame. Attachment state
+    // can change while this method awaits render-thread work; querying it per
+    // view would mix two different frame configurations.
+    final viewAttachments = renderManager.getViewAttachments(swapChain);
 
     var beginFrame = false;
     const MAX_BEGIN_FRAME_RETRIES = 3;
@@ -932,15 +932,22 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final pixelBuffers = <(View, Uint8List)>[];
 
-    final capturePasses = <RenderPass>[];
+    final captureAttachments = <ViewAttachment>[];
     if (view != null) {
-      capturePasses.add(renderPlan.passFor(view) ?? RenderPass(view: view, order: 0, active: true));
+      ViewAttachment? requestedAttachment;
+      for (final attachment in viewAttachments) {
+        if (attachment.view == view) {
+          requestedAttachment = attachment;
+          break;
+        }
+      }
+      captureAttachments.add(requestedAttachment ?? ViewAttachment(view: view, order: 0, renderable: true));
       _logger.finest("Using provided view");
     } else {
-      capturePasses.addAll(renderPlan.passes);
+      captureAttachments.addAll(viewAttachments);
     }
 
-    final views = capturePasses.map((pass) => pass.view).toList(growable: false);
+    final views = captureAttachments.map((attachment) => attachment.view).toList(growable: false);
 
     for (final view in views) {
       final vp = await view.getViewport();
@@ -967,7 +974,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
       final view = views[viewIndex];
-      final pass = capturePasses[viewIndex];
+      final attachment = captureAttachments[viewIndex];
       final renderTarget = await view.getRenderTarget();
       bool hasRenderTarget = renderTarget != null;
       _logger.finest(
@@ -1018,7 +1025,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final numBytes = viewport.width * viewport.height * numChannels * channelSizeInBytes;
       final pixelBuffer = makeUint8List(numBytes);
 
-      if (render && pass.active) {
+      if (render && attachment.renderable) {
         await withVoidCallback((requestId, cb) {
           Renderer_renderRenderThread(renderer, view.getNativeHandle(), requestId, cb);
         });
@@ -1067,9 +1074,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await withBoolCallback(
         (cb) => Renderer_beginFrameRenderThread(renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
       );
-      for (final pass in capturePasses.where((pass) => pass.active)) {
+      for (final attachment in captureAttachments.where((attachment) => attachment.renderable)) {
         await withVoidCallback((requestId, cb) {
-          Renderer_renderRenderThread(renderer, pass.view.getNativeHandle(), requestId, cb);
+          Renderer_renderRenderThread(renderer, attachment.view.getNativeHandle(), requestId, cb);
         });
       }
       await withVoidCallback((requestId, cb) {

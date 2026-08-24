@@ -46,19 +46,19 @@ class RenderAttachmentState {
     _attachments.remove(swapChain);
   }
 
-  Map<Pointer<TSwapChain>, List<(int, View)>> activeSnapshot() {
+  Map<Pointer<TSwapChain>, List<(int, View)>> renderableSnapshot() {
     return {
       for (final entry in _attachments.entries)
         entry.key: entry.value.where((attachment) => _renderable[attachment.$2] ?? true).toList(),
     };
   }
 
-  RenderPlan getRenderPlan(Pointer<TSwapChain> swapChain) {
+  List<ViewAttachment> getViewAttachments(Pointer<TSwapChain> swapChain) {
     final attachments = _attachments[swapChain] ?? const <(int, View)>[];
-    return RenderPlan(
+    return List.unmodifiable(
       attachments.map(
         (attachment) =>
-            RenderPass(view: attachment.$2, order: attachment.$1, active: _renderable[attachment.$2] ?? true),
+            ViewAttachment(view: attachment.$2, order: attachment.$1, renderable: _renderable[attachment.$2] ?? true),
       ),
     );
   }
@@ -192,7 +192,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     // Snapshotting also tolerates removal: if an entry was deleted
     // by the time we get back to it, the views list will be null
     // and we skip it.
-    final snapshot = _attachmentState.activeSnapshot();
+    final snapshot = _attachmentState.renderableSnapshot();
 
     for (final swapChainHandle in snapshot.keys) {
       final views = snapshot[swapChainHandle];
@@ -252,12 +252,12 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   @override
   Iterable<View> getAttachedViews(SwapChain swapChain) {
-    return getRenderPlan(swapChain).attachedViews;
+    return getViewAttachments(swapChain).map((attachment) => attachment.view);
   }
 
   @override
-  RenderPlan getRenderPlan(SwapChain swapChain) {
-    return _attachmentState.getRenderPlan(swapChain.getNativeHandle());
+  List<ViewAttachment> getViewAttachments(SwapChain swapChain) {
+    return _attachmentState.getViewAttachments(swapChain.getNativeHandle());
   }
 
   @override
