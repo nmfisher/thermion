@@ -1132,6 +1132,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       swapChain = _swapChains.first;
     }
+
+    // Capture uses one immutable plan for both its primary render/readback
+    // loop and the WebGL completion frame. Attachment state can change while
+    // this method awaits render-thread work; querying it per view would mix
+    // two different frame configurations.
+    final renderPlan = renderManager.getRenderPlan(swapChain);
+
     var beginFrame = false;
     const MAX_BEGIN_FRAME_RETRIES = 3;
 
@@ -1153,13 +1160,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final pixelBuffers = <(View, Uint8List)>[];
 
-    final views = <View>[];
+    final capturePasses = <RenderPass>[];
     if (view != null) {
-      views.add(view);
+      capturePasses.add(renderPlan.passFor(view) ?? RenderPass(view: view, order: 0, active: true));
       _logger.finest("Using provided view");
     } else {
-      views.addAll(await renderManager.getAttachedViews(swapChain));
+      capturePasses.addAll(renderPlan.passes);
     }
+
+    final views = capturePasses.map((pass) => pass.view).toList(growable: false);
 
     for (final view in views) {
       final vp = await view.getViewport();
@@ -1186,6 +1195,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
       final view = views[viewIndex];
+      final pass = capturePasses[viewIndex];
       final renderTarget = await view.getRenderTarget();
       bool hasRenderTarget = renderTarget != null;
       _logger.finest(
@@ -1209,7 +1219,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final readType = readAsUByteForFloat ? PixelDataType.UBYTE : pixelDataType;
       inflateFromUByte.add(readAsUByteForFloat);
 
-      beforeRender?.call(view);
+      await beforeRender?.call(view);
 
       final viewport = await view.getViewport();
 
@@ -1236,7 +1246,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final numBytes = viewport.width * viewport.height * numChannels * channelSizeInBytes;
       final pixelBuffer = makeUint8List(numBytes);
 
-      if (render) {
+      if (render && pass.active) {
         await withVoidCallback((requestId, cb) {
           Renderer_renderJobThread(jobThreadHandle, renderer, view.getNativeHandle(), requestId, cb);
         });
@@ -1286,9 +1296,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await withBoolCallback(
         (cb) => Renderer_beginFrameJobThread(jobThreadHandle, renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
       );
-      for (final view in views) {
+      for (final pass in capturePasses.where((pass) => pass.active)) {
         await withVoidCallback((requestId, cb) {
-          Renderer_renderJobThread(jobThreadHandle, renderer, view.getNativeHandle(), requestId, cb);
+          Renderer_renderJobThread(jobThreadHandle, renderer, pass.view.getNativeHandle(), requestId, cb);
         });
       }
       await withVoidCallback((requestId, cb) {
@@ -1323,6 +1333,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       if (FILAMENT_WASM) {
         stackRestore(stackPtr);
       }
+      RenderManager_setPaused(renderManager.getNativeHandle(), false);
       return result;
     }
 

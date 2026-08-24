@@ -84,5 +84,35 @@ void main() {
 
       expect(state.activeSnapshot()[newSwapChain], [(0, view)]);
     });
+
+    test('render plan preserves order and inactive attachments', () {
+      final state = RenderAttachmentState();
+      final mainView = _TestView(1);
+      final overlayView = _TestView(2);
+      final swapChain = _swapChain(1);
+
+      state.attach(overlayView, swapChain, renderOrder: 2);
+      state.attach(mainView, swapChain, renderOrder: 1);
+      state.setRenderable(overlayView, false);
+
+      final plan = state.getRenderPlan(swapChain);
+      expect(plan.passes.map((pass) => pass.view), [mainView, overlayView]);
+      expect(plan.passes.map((pass) => pass.order), [1, 2]);
+      expect(plan.passes.map((pass) => pass.active), [true, false]);
+      expect(plan.activeViews, [mainView]);
+    });
+
+    test('updates grouped pass state before producing a snapshot', () {
+      final state = RenderAttachmentState();
+      final silhouetteView = _TestView(1);
+      final overlayView = _TestView(2);
+      final swapChain = _swapChain(1);
+
+      state.attach(silhouetteView, swapChain, renderOrder: 0);
+      state.attach(overlayView, swapChain, renderOrder: 2);
+      state.setRenderables({silhouetteView: false, overlayView: false});
+
+      expect(state.getRenderPlan(swapChain).activeViews, isEmpty);
+    });
   });
 }
