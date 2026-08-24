@@ -208,11 +208,14 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
 )
 target_link_directories(${PLUGIN_NAME} PRIVATE "${NATIVE_ASSETS_DIR}")
 
-# thermion_dart.so has unresolved basisu/draco encoder symbols (pulled in by
-# --whole-archive on filamat). These code paths are never called at runtime.
-# Propagate --allow-shlib-undefined to the executable that links against this plugin.
-set_property(TARGET ${PLUGIN_NAME} APPEND PROPERTY
-  INTERFACE_LINK_OPTIONS "-Wl,--allow-shlib-undefined")
+# Historically thermion_dart.so carried unresolved basisu/draco encoder
+# symbols (pulled in by --whole-archive on filamat in the build hook), so
+# this plugin propagated --allow-shlib-undefined to the executable. The
+# hook no longer uses --whole-archive (see docs/optional-libs-proposal.md)
+# and ldd -r reports zero unresolved symbols, so the workaround is gone.
+# If a future change reintroduces unresolved symbols, restore:
+#   set_property(TARGET ${PLUGIN_NAME} APPEND PROPERTY
+#     INTERFACE_LINK_OPTIONS "-Wl,--allow-shlib-undefined")
 
 target_compile_options(${PLUGIN_NAME} PRIVATE -stdlib=libc++)
 target_link_options(${PLUGIN_NAME} PRIVATE -nostdlib++ -l:libc++.a -l:libc++abi.a)
