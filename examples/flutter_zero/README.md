@@ -62,8 +62,7 @@ a lit cube, and one `frame N` line per second on stdout (`frame 60`,
 
 Verified headless on Linux x86_64 (Ubuntu 24.04, Xvfb + llvmpipe software
 Vulkan, SDL 3.4.14 built from source, `sdl3` 2.11.0): the app boots,
-renders at ~60 fps, and shuts down cleanly —
-see [screenshots/linux_xvfb_lit_cube.png](screenshots/linux_xvfb_lit_cube.png).
+renders at ~60 fps, and shuts down cleanly.
 The macOS/Metal path follows the reference pattern but needs a real
 macOS machine to confirm.
 
