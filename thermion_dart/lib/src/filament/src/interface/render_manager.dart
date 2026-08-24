@@ -1,35 +1,13 @@
 import 'package:thermion_dart/src/filament/src/interface/native_handle.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-/// One ordered view attachment in a swapchain's render plan.
-class RenderPass {
+/// One ordered view attachment in a swapchain.
+class ViewAttachment {
   final View view;
   final int order;
-  final bool active;
+  final bool renderable;
 
-  const RenderPass({required this.view, required this.order, required this.active});
-}
-
-/// Immutable snapshot of every ordered view attached to a swapchain.
-///
-/// A snapshot keeps capture and other frame-like operations consistent when
-/// attachment state changes asynchronously. Inactive passes remain present so
-/// their render targets can still be inspected without submitting them.
-class RenderPlan {
-  final List<RenderPass> passes;
-
-  RenderPlan(Iterable<RenderPass> passes) : passes = List.unmodifiable(passes);
-
-  Iterable<View> get attachedViews => passes.map((pass) => pass.view);
-
-  Iterable<View> get activeViews => passes.where((pass) => pass.active).map((pass) => pass.view);
-
-  RenderPass? passFor(View view) {
-    for (final pass in passes) {
-      if (pass.view == view) return pass;
-    }
-    return null;
-  }
+  const ViewAttachment({required this.view, required this.order, required this.renderable});
 }
 
 abstract class RenderManager<T> extends NativeHandle<T> {
@@ -44,15 +22,16 @@ abstract class RenderManager<T> extends NativeHandle<T> {
 
   /// Applies several renderability changes in one attachment-state update.
   ///
-  /// This avoids exposing intermediate render plans when a group of passes is
+  /// This avoids exposing intermediate state when a group of views is
   /// enabled or disabled together.
   Future setRenderables(Map<View, bool> renderability);
 
   Future detach(View view, {SwapChain? swapChain});
   Future detachAll(SwapChain swapChain);
 
-  /// Returns one stable snapshot containing both active and inactive passes.
-  RenderPlan getRenderPlan(SwapChain swapChain);
+  /// Returns a stable, ordered list of all attachments, including views that
+  /// are currently not renderable.
+  List<ViewAttachment> getViewAttachments(SwapChain swapChain);
 
   Iterable<View> getAttachedViews(SwapChain swapChain);
   Iterable<SwapChain> getAttachedSwapChains(View view);
