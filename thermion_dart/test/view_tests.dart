@@ -522,7 +522,13 @@ void main() async {
       expect(overlay.suspended, isTrue);
 
       final swapChain = app.renderManager.getAttachedSwapChains(view).single;
-      expect(app.renderManager.getRenderPlan(swapChain).activeViews, [view]);
+      expect(
+        app.renderManager
+            .getViewAttachments(swapChain)
+            .where((attachment) => attachment.renderable)
+            .map((attachment) => attachment.view),
+        [view],
+      );
 
       // Resizing recreates the internal composite target. An idle overlay must
       // nevertheless leave the main view bound to the presentation target.
@@ -555,7 +561,13 @@ void main() async {
         await view.setPresentationRenderTarget(replacementTarget);
         expect(await view.getRenderTarget(), same(replacementTarget));
         expect(overlay.suspended, isTrue);
-        expect(app.renderManager.getRenderPlan(swapChain).activeViews, [view]);
+        expect(
+          app.renderManager
+              .getViewAttachments(swapChain)
+              .where((attachment) => attachment.renderable)
+              .map((attachment) => attachment.view),
+          [view],
+        );
       } finally {
         await view.setPresentationRenderTarget(originalTarget);
         await view.setViewport(512, 512);

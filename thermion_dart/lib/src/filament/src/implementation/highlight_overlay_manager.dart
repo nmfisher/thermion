@@ -125,7 +125,8 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   /// frame even when they draw nothing, so they are marked non-renderable
   /// whenever the highlight set is empty. The initial value matches the
   /// attached-and-renderable state the views get when the overlay is enabled;
-  /// [_reconcileRenderPlan] applies the desired state after every input change.
+  /// [_reconcilePresentationState] applies the desired state after every input
+  /// change.
   bool _suspended = false;
 
   @override
@@ -168,7 +169,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     await overlayView.setRenderTarget(presentationRenderTarget);
     _logger.info("Presentation render target updated");
 
-    await _reconcileRenderPlan();
+    await _reconcilePresentationState();
   }
 
   /// Set the swapchain for overlay mode (web/Android).
@@ -187,22 +188,23 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     await overlayView.setOverlayOnly(true);
     _logger.info("EdgeDetectionView registered with swapchain (overlay-only mode)");
 
-    await _reconcileRenderPlan();
+    await _reconcilePresentationState();
   }
 
-  /// Reconciles target routing and active passes from current desired state.
+  /// Reconciles target routing and view renderability from current desired
+  /// state.
   ///
   /// This is deliberately idempotent: viewport and presentation-target
   /// changes must re-apply routing even when the highlight set is unchanged.
   /// Reconciliations are serialized so overlapping lifecycle calls cannot
-  /// publish an older plan after a newer one.
-  Future<void> _reconcileRenderPlan() {
+  /// publish older state after newer state.
+  Future<void> _reconcilePresentationState() {
     final completer = Completer<void>();
     final previous = _reconcileChain;
     _reconcileChain = completer.future.then((_) {}, onError: (_) {});
     return previous.then((_) async {
       try {
-        await _applyRenderPlan();
+        await _applyPresentationState();
         completer.complete();
       } catch (error, stackTrace) {
         completer.completeError(error, stackTrace);
@@ -211,23 +213,23 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     });
   }
 
-  Future<void> _applyRenderPlan() async {
+  Future<void> _applyPresentationState() async {
     final hasOutput = _mainView == null || _presentationRenderTarget != null;
     final shouldSuspend = _highlightedEntities.isEmpty || !hasOutput;
     final stateChanged = _suspended != shouldSuspend;
     final rm = _app.renderManager;
 
     if (shouldSuspend) {
-      // Remove both overlay passes in one plan update before routing the main
-      // view directly to its output. No frame can run an edge pass against a
-      // directly-rendered main view.
+      // Disable both overlay views in one state update before routing the main
+      // view directly to its output. No frame can run edge detection against
+      // a directly-rendered main view.
       await rm.setRenderables({silhouetteView: false, overlayView: false});
       if (_mainView != null) {
         await _mainView!.setRenderTarget(_presentationRenderTarget);
       }
     } else {
-      // Route the main pass to its sampleable target before publishing the
-      // overlay passes together.
+      // Route the main view to its sampleable target before enabling the
+      // overlay views together.
       if (_mainView != null && _mainViewRenderTarget != null) {
         await _mainView!.setRenderTarget(_mainViewRenderTarget);
       }
@@ -347,7 +349,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // Update all references and re-apply the current route before destroying
     // resources that may still be bound by the active plan.
     await overlayView.setMainSceneTexture(_mainViewColorTexture!);
-    await _reconcileRenderPlan();
+    await _reconcilePresentationState();
 
     // Flush render thread to ensure new textures are bound before destroying old ones
     // This prevents "Invalid texture still bound to MaterialInstance" errors
@@ -411,7 +413,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     if (created) {
       _highlightedEntities.add(target);
-      await _reconcileRenderPlan();
+      await _reconcilePresentationState();
     }
   }
 
@@ -424,7 +426,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     await silhouetteView.removeHighlight(target);
     _highlightedEntities.remove(target);
-    await _reconcileRenderPlan();
+    await _reconcilePresentationState();
   }
 
   /// Remove all highlights.
