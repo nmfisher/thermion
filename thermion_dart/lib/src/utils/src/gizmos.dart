@@ -107,19 +107,23 @@ class TransformationGizmo {
 
     // 1. Create Unlit Materials (No depth write for "always on top" effect)
     _redMat = await _createGizmoMaterial(1.0, 0.0, 0.0);
-    if (_isDisposed) return;
+    if (_redMat == null) return;
     _greenMat = await _createGizmoMaterial(0.0, 1.0, 0.0);
-    if (_isDisposed) return;
+    if (_greenMat == null) return;
     _blueMat = await _createGizmoMaterial(0.0, 0.0, 1.0);
-    if (_isDisposed) return;
+    if (_blueMat == null) return;
     _whiteMat = await _createGizmoMaterial(1.0, 1.0, 1.0, alpha: 1.0);
-    if (_isDisposed) return;
+    if (_whiteMat == null) return;
     _yellowMat = await _createGizmoMaterial(1.0, 1.0, 0.0, alpha: 1.0);
-    if (_isDisposed) return;
+    if (_yellowMat == null) return;
 
     // 2. Create Root entity (no geometry needed - just a transform parent)
-    _rootEntity = await viewer.app.createEntity();
-    if (_isDisposed) return;
+    final rootEntity = await viewer.app.createEntity();
+    if (_isDisposed) {
+      await viewer.app.destroyEntity(rootEntity);
+      return;
+    }
+    _rootEntity = rootEntity;
 
     if (type == TransformationGizmoType.translation) {
       await _buildTranslationAxes();
@@ -174,14 +178,9 @@ class TransformationGizmo {
   Future<ThermionEntity> _createRing(Geometry ring, MaterialInstance mat, Vector3 axis) async {
     final ringAsset = await viewer.app.createGeometry(ring, materialInstances: [mat]);
 
-    // Safety check before using the asset
-    if (_isDisposed) {
-      await viewer.removeFromScene(ringAsset);
+    if (!await _takeAssetOwnership(ringAsset)) {
       return ringAsset.entity; // Return but won't be used
     }
-
-    await viewer.addToScene(ringAsset);
-    _assets.add(ringAsset);
 
     // Parent to root entity so it moves with the gizmo
     if (_rootEntity != null) {
@@ -200,6 +199,7 @@ class TransformationGizmo {
 
     final ringMatrix = Matrix4.compose(Vector3.zero(), rotation, Vector3.all(1.0));
     await viewer.app.setTransform(ringAsset.entity, ringMatrix);
+    if (_isDisposed) return ringAsset.entity;
     await viewer.app.setPriority(ringAsset.entity, 7);
     return ringAsset.entity;
   }
@@ -214,26 +214,17 @@ class TransformationGizmo {
     // Create Shaft
     final shaftAsset = await viewer.app.createGeometry(shaft, materialInstances: [mat]);
 
-    if (_isDisposed) {
-      // cleanup immediately if disposed during creation
-      await viewer.removeFromScene(shaftAsset);
+    if (!await _takeAssetOwnership(shaftAsset)) {
       // return dummy, loop will catch disposed flag
       return (shaftAsset.entity, shaftAsset.entity);
     }
 
-    await viewer.addToScene(shaftAsset);
-    _assets.add(shaftAsset);
-
     // Create Head
     final headAsset = await viewer.app.createGeometry(head, materialInstances: [mat]);
 
-    if (_isDisposed) {
-      await viewer.removeFromScene(headAsset);
+    if (!await _takeAssetOwnership(headAsset)) {
       return (shaftAsset.entity, headAsset.entity);
     }
-
-    await viewer.addToScene(headAsset);
-    _assets.add(headAsset);
 
     // Parent to root entity so they move with the gizmo
     if (_rootEntity != null) {
@@ -251,6 +242,7 @@ class TransformationGizmo {
 
     // Set local transforms
     await viewer.app.setTransform(shaftAsset.entity, shaftMatrix);
+    if (_isDisposed) return (shaftAsset.entity, headAsset.entity);
     await viewer.app.setTransform(headAsset.entity, headMatrix);
 
     return (shaftAsset.entity, headAsset.entity);
@@ -415,12 +407,36 @@ class TransformationGizmo {
     );
   }
 
-  Future<MaterialInstance> _createGizmoMaterial(double r, double g, double b, {double alpha = 0.5}) async {
-    if (_isDisposed) throw Exception("Gizmo disposed");
+  Future<MaterialInstance?> _createGizmoMaterial(double r, double g, double b, {double alpha = 0.5}) async {
+    if (_isDisposed) return null;
     final material = await viewer.app.createGizmoMaterial();
+    if (_isDisposed) return null;
+
     final mat = await material.createInstance();
+    if (_isDisposed) {
+      await mat.destroy();
+      return null;
+    }
+
     await mat.setParameterFloat4("baseColorFactor", r, g, b, alpha);
+    if (_isDisposed) {
+      await mat.destroy();
+      return null;
+    }
     return mat;
+  }
+
+  /// Registers [asset] before awaiting scene insertion so disposal owns every
+  /// resource throughout the entire asynchronous creation sequence.
+  Future<bool> _takeAssetOwnership(ThermionAsset asset) async {
+    if (_isDisposed) {
+      await viewer.destroyAsset(asset);
+      return false;
+    }
+
+    _assets.add(asset);
+    await viewer.addToScene(asset);
+    return !_isDisposed;
   }
 
   Future<void> attachTo(ThermionEntity entity) async {
@@ -948,23 +964,13 @@ class TransformationGizmo {
 
     // Start marker (white)
     _startMarkerAsset = await viewer.app.createGeometry(markerGeom, materialInstances: [_whiteMat!]);
-    if (_isDisposed) {
-      await viewer.removeFromScene(_startMarkerAsset!);
-      return;
-    }
-    await viewer.addToScene(_startMarkerAsset!);
+    if (!await _takeAssetOwnership(_startMarkerAsset!)) return;
     _startMarker = _startMarkerAsset!.entity;
-    _assets.add(_startMarkerAsset!);
 
     // Current marker (yellow)
     _currentMarkerAsset = await viewer.app.createGeometry(markerGeom, materialInstances: [_yellowMat!]);
-    if (_isDisposed) {
-      await viewer.removeFromScene(_currentMarkerAsset!);
-      return;
-    }
-    await viewer.addToScene(_currentMarkerAsset!);
+    if (!await _takeAssetOwnership(_currentMarkerAsset!)) return;
     _currentMarker = _currentMarkerAsset!.entity;
-    _assets.add(_currentMarkerAsset!);
 
     // Parent to root entity
     if (_rootEntity != null) {
@@ -975,6 +981,7 @@ class TransformationGizmo {
     // Draw on top of the rings (set once here; the priority never changes,
     // so it must not be re-set on every marker move).
     await viewer.app.setPriority(_startMarker!, 7);
+    if (_isDisposed) return;
     await viewer.app.setPriority(_currentMarker!, 7);
 
     // Initially hide markers

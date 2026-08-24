@@ -510,6 +510,63 @@ void main() async {
         });
   });
 
+  test('empty highlight overlay reconciles resize and replacement targets', () async {
+    await ViewerBuilder(testHelper).setRenderTargetEnabled(true).execute((result) async {
+      final app = FilamentApp.instance!;
+      final view = result.viewer.view;
+      final originalTarget = await view.getRenderTarget();
+      expect(originalTarget, isNotNull);
+
+      await view.setHighlightOverlayEnabled(true);
+      final overlay = view.getHighlightOverlay()!;
+      expect(overlay.suspended, isTrue);
+
+      final swapChain = app.renderManager.getAttachedSwapChains(view).single;
+      expect(app.renderManager.getRenderPlan(swapChain).activeViews, [view]);
+
+      // Resizing recreates the internal composite target. An idle overlay must
+      // nevertheless leave the main view bound to the presentation target.
+      await view.setViewport(256, 256);
+      expect(await view.getRenderTarget(), same(originalTarget));
+
+      final replacementColor = await app.createTexture(
+        256,
+        256,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+        },
+      );
+      final replacementDepth = await app.createTexture(
+        256,
+        256,
+        flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
+        textureFormat: TextureFormat.DEPTH32F,
+      );
+      final replacementTarget = await app.createRenderTarget(
+        256,
+        256,
+        color: replacementColor,
+        depth: replacementDepth,
+      );
+
+      try {
+        await view.setPresentationRenderTarget(replacementTarget);
+        expect(await view.getRenderTarget(), same(replacementTarget));
+        expect(overlay.suspended, isTrue);
+        expect(app.renderManager.getRenderPlan(swapChain).activeViews, [view]);
+      } finally {
+        await view.setPresentationRenderTarget(originalTarget);
+        await view.setViewport(512, 512);
+        await replacementTarget.destroy();
+        await replacementColor.destroy();
+        await replacementDepth.destroy();
+        await view.setHighlightOverlayEnabled(false);
+      }
+    });
+  });
+
   test('show/hide stencil highlight', () async {
     await ViewerBuilder(testHelper).setRenderTargetEnabled(true).setStencilBufferEnabled(true).execute((result) async {
       await result.viewer.view.setHighlightOverlayEnabled(true);
