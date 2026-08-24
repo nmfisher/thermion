@@ -37,4 +37,8 @@ Future<void> setupHologram(
   await hologram.setParameterFloat("glitchAmount", 0.015);
 
   await asset.setMaterialInstanceForAll(hologram);
+
+  effectAnimators.add((t) async {
+    await hologram.setParameterFloat("time", t);
+  });
 }

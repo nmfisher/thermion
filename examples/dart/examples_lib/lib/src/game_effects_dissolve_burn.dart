@@ -37,4 +37,11 @@ Future<void> setupDissolveBurn(
   await dissolve.setParameterFloat("time", 1.0);
 
   await asset.setMaterialInstanceForAll(dissolve);
+
+  // One full burn per 3.5s cycle, repeating.
+  effectAnimators.add((t) async {
+    final cycle = t % 3.5;
+    await dissolve.setParameterFloat("threshold", cycle / 3.5 * 0.95);
+    await dissolve.setParameterFloat("time", t);
+  });
 }

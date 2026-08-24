@@ -85,6 +85,12 @@ class EffectClock {
   }
 }
 
+/// Time-driven animators registered by the game-effect setups. The headless
+/// runner's `--video` mode passes wall-clock seconds; each closure maps t to
+/// uniform updates on its own instances. (capture() bypasses requestFrame
+/// hooks, so animation for video/stills is driven through these instead.)
+final List<Future<void> Function(double t)> effectAnimators = [];
+
 /// Loads one of the game-effect materials from `examples/assets` and returns
 /// a ready-to-use [MaterialInstance].
 Future<MaterialInstance> loadEffectMaterial(

@@ -42,4 +42,8 @@ Future<void> setupWater(
     materialInstances: [water],
   );
   await surface.setTransform(Matrix4.translation(Vector3(0, 0, 0)));
+
+  effectAnimators.add((t) async {
+    await water.setParameterFloat("time", t);
+  });
 }

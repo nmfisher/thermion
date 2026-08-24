@@ -33,10 +33,12 @@ Future<void> setupHitFlash(
   );
   await camera.lookAt(Vector3(0, 0.1, 1.6), focus: Vector3(0, 0, 0));
 
-  // The flash replaces every material on the asset, so there are no lit
-  // surfaces left - skip lights/IBL and keep the background dark so the
-  // additive blend pops. (If you do want an IBL, load it BEFORE setting the
-  // skybox: loadIbl installs its own skybox.)
+  // The flash swaps out every material on the asset, but between flashes
+  // the normal PBR look should show - so light the scene and keep the
+  // background dark for the additive blend. (loadIbl installs its own
+  // skybox, so it must run BEFORE setDarkSkybox.)
+  await viewer.loadIbl("$assetsDir/default_env_ibl.ktx");
+  await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0, -1, -0.4)));
   await setDarkSkybox(viewer);
 
   final asset = await viewer.loadGltf("$assetsDir/FlightHelmet/FlightHelmet.gltf");
@@ -50,8 +52,25 @@ Future<void> setupHitFlash(
   await flash.setParameterFloat4("flashColor", 1.0, 0.3, 0.1, 1.0);
   await flash.setParameterFloat("progress", 0.45);
 
-  // Swap the flash on. A live timeline would snapshot the originals first
-  // (getMaterialInstancesAsMap), animate progress 0 -> 1, then restore them
-  // with setMaterialInstancesFromMap.
+  // A hit every 2.4s: swap the flash on, animate progress 0 -> 1 over
+  // 0.55s, then restore the original PBR materials until the next hit.
+  // (Still captures use the mid-flash state left by setup.)
+  final originals = await asset.getMaterialInstancesAsMap();
+  const flashDuration = 0.55;
+  const hitPeriod = 2.4;
+  var flashed = false;
+  effectAnimators.add((t) async {
+    final cycle = t % hitPeriod;
+    if (cycle < flashDuration) {
+      if (!flashed) {
+        await asset.setMaterialInstanceForAll(flash);
+        flashed = true;
+      }
+      await flash.setParameterFloat("progress", cycle / flashDuration);
+    } else if (flashed) {
+      await asset.setMaterialInstancesFromMap(originals);
+      flashed = false;
+    }
+  });
   await asset.setMaterialInstanceForAll(flash);
 }

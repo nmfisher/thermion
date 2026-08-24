@@ -45,4 +45,8 @@ Future<void> setupForceField(
   // GeometryUtils.sphere has radius 1.0; scale to a radius-1.2 bubble.
   await bubble
       .setTransform(Matrix4.identity()..scaleByVector3(Vector3.all(1.2)));
+
+  effectAnimators.add((t) async {
+    await field.setParameterFloat("time", t);
+  });
 }

@@ -42,4 +42,8 @@ Future<void> setupSmoke(
     dummyBillboardQuads(puffCount),
     materialInstances: [smoke],
   );
+
+  effectAnimators.add((t) async {
+    await smoke.setParameterFloat("time", t);
+  });
 }
