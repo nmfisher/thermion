@@ -490,23 +490,22 @@ outputDirectory : ${outputDirectory.path}
         if (objcObjectFiles.isNotEmpty) ...['-lthermion_objc', '-L${Directory.systemTemp.path}'],
         ...flags,
         ...frameworks,
-        if (targetOS == OS.linux) ...["-Wl,--whole-archive"],
-        if (targetOS != OS.windows) ...[
+        // Keep every non-Linux link command unchanged. GNU ld processes
+        // static archives from left to right, and CBuilder emits flags before
+        // the source files, so Linux archives use `libraries` below instead.
+        if (targetOS != OS.windows && targetOS != OS.linux) ...[
           ...libs.map((lib) => "-l$lib"),
-          if (targetOS == OS.linux) ...[
-            "-Wl,--no-whole-archive",
-            ...linuxDebugLibs.map((lib) => "-l$lib"),
-            '-lGL',
-            '-lEGL',
-          ] else if (targetOS != OS.android) ...[
-            "-lc++",
-            "",
-          ],
+          if (targetOS != OS.android) ...["-lc++", ""],
           "-L$libDir",
         ],
-        if (targetOS == OS.linux)
-          '-Wl,--no-as-needed'
-        else if (targetOS != OS.windows && targetOS != OS.android)
+        if (targetOS == OS.linux) "-L$libDir",
+        if (targetOS == OS.linux) ...[
+          '-Wl,--no-as-needed',
+          // Shared-library links normally permit unresolved symbols. Make
+          // Linux fail at link time instead of deferring the error to
+          // dlopen, where missing archive dependencies are harder to trace.
+          '-Wl,-z,defs',
+        ] else if (targetOS != OS.windows && targetOS != OS.android)
           '-lc++',
         if (platform == "windows") ...[
           ...includeDirs.map((d) => "/I${path.join(pkgRootFilePath, d)}"),
@@ -525,6 +524,15 @@ outputDirectory : ${outputDirectory.path}
         ],
       ],
       libraryDirectories: [libDir],
+      // CBuilder emits libraries after the source files. This lets GNU ld
+      // extract only referenced archive members instead of forcing every
+      // member into libthermion_dart.so with --whole-archive. Keep the full
+      // existing library set; the second pass resolves Filament's circular
+      // archive references. GL and EGL also belong after the objects so
+      // --as-needed cannot discard them prematurely.
+      libraries: targetOS == OS.linux
+          ? [...libs, ...linuxDebugLibs, 'GL', 'EGL', ...libs, ...linuxDebugLibs]
+          : const [],
     );
 
     await cbuilder.run(input: input, output: output, logger: logger);
