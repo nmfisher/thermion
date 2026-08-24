@@ -280,14 +280,11 @@ outputDirectory : ${outputDirectory.path}
       if ({OS.macOS, OS.android}.contains(targetOS) && buildMode == BuildMode.debug) ...["matdbg", "fgviewer"],
     ];
 
-    // On Linux the same matdbg/fgviewer archives must be linked, but OUTSIDE
-    // the -Wl,--whole-archive group below: both archives bundle civetweb
-    // (libcivetweb_civetweb.c.o defines mg_*), and whole-archive pulls every
-    // member of both, producing "multiple definition of `mg_*`" link errors.
-    // With normal archive semantics the linker only pulls the members needed
-    // to satisfy libfilament.a's matdbg/fgviewer references (libfilament.a
-    // itself is whole-archived), so civetweb is included exactly once.
-    // See the-c8d3.
+    // Keep Linux's matdbg/fgviewer archives separate from the main list. This
+    // was originally required to keep them outside a whole-archive group:
+    // both archives bundle civetweb, and force-loading both produces duplicate
+    // mg_* definitions. They now use normal archive semantics in `libraries`
+    // below, which extracts only the members needed by Filament. See the-c8d3.
     final linuxDebugLibs = (targetOS == OS.linux && buildMode == BuildMode.debug) ? ["matdbg", "fgviewer"] : <String>[];
 
     if (targetOS == OS.windows) {
@@ -301,7 +298,13 @@ outputDirectory : ${outputDirectory.path}
       defines["ENABLE_TRACING"] = "1";
     }
 
-    // Check for plugin configuration
+    // Check for plugin configuration. Plugin sources are compiled directly
+    // into libthermion_dart and can call RegisterPlugin during initialization.
+    // Prebuilt libraries currently use ordinary linker semantics; static
+    // archives whose only effect is an automatic RegisterPlugin initializer
+    // are not supported yet. Supporting those in future may require a scoped
+    // --whole-archive group (or an explicit referenced registration symbol),
+    // rather than force-loading every Thermion/Filament dependency.
     final pluginConfigs = input.userDefines["plugins"] as List<dynamic>?;
 
     logger.info("Defines : ${defines}");
@@ -989,7 +992,10 @@ Future<void> _processDeclarativePlugins(
       }
     }
 
-    // Process link libraries (as -l flags)
+    // Process link libraries (as -l flags). These are ordinary dependencies,
+    // not force-loaded static plugins. If static self-registering plugins are
+    // supported in future, their archives may need a narrowly scoped
+    // --whole-archive/--no-whole-archive pair so their initializers are kept.
     final pluginLinkLibraries = pluginConfig['link_libraries'] as List<dynamic>?;
     if (pluginLinkLibraries != null) {
       for (final library in pluginLinkLibraries) {
