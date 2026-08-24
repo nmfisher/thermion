@@ -104,11 +104,10 @@ const double iblIntensity = 30000.0;
 
 // glTF animation playback. The BusterDrone's only animation ("CINEMA_4D_Basis",
 // index 0) drives the rotors/rig. We activate it (looping) and advance it on the
-// render thread each frame. Note: setGltfAnimationTime() applies morph weights
-// synchronously off the render thread and trips Filament's backend thread
-// assertion on this asset — so we use animationManager.update(dt) instead,
-// which advances active animations on the render thread. dt = 1/fps plays the
-// animation at its authored (1x) speed.
+// render thread each frame via animationManager.update(dt), which advances all
+// active animations — the right tool for continuous playback. (Scrubbing with
+// setGltfAnimationTime is also safe for morph animations; it is dispatched on
+// the render thread.) dt = 1/fps plays the animation at its authored (1x) speed.
 const int gltfAnimIndex = 0;
 const double animSpeed = 1.0; // animation playback speed multiplier
 
