@@ -28,8 +28,6 @@
 #include <gltfio/math.h>
 #include <gltfio/materials/uberarchive.h>
 
-#include <imageio/ImageDecoder.h>
-#include <imageio/ImageEncoder.h>
 #include <image/ColorTransform.h>
 
 #include <utils/EntityManager.h>
