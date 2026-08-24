@@ -221,4 +221,23 @@ void main() async {
       await testHelper.capture(viewer.view, "translation_axis_switch_to_z");
     }, postProcessing: true);
   });
+
+  test('setStencilHighlight and setFlatShading throw without rebuildVertices', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
+
+      // Outlining and flat shading both need the preserved (rebuilt) vertex
+      // buffers — without rebuildVertices these used to silently do nothing;
+      // they must now throw with an actionable message.
+      await viewer.view.setHighlightOverlayEnabled(true);
+      expect(
+        () => viewer.view.setStencilHighlight(cube),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('rebuildVertices: true'))),
+      );
+      expect(
+        () => cube.setFlatShading(true),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('rebuildVertices: true'))),
+      );
+    });
+  });
 }

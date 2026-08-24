@@ -279,6 +279,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   @override
   Future setFlatShading(bool flatShading) async {
+    // Flat shading swaps TANGENTS on the preserved (rebuilt) vertex buffers;
+    // without them it would silently do nothing — throw instead.
+    if (getVertexBuffer() == null) {
+      throw Exception(
+        "setFlatShading: asset has no preserved geometry. "
+        "Load it with loadGltf(..., rebuildVertices: true).",
+      );
+    }
     await withVoidCallback((requestId, cb) => SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
   }
 
