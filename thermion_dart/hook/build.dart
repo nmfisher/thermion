@@ -528,10 +528,10 @@ outputDirectory : ${outputDirectory.path}
       // extract only referenced archive members instead of forcing every
       // member into libthermion_dart.so with --whole-archive. Keep the full
       // existing library set; the second pass resolves Filament's circular
-      // archive references. GL and EGL also belong after the objects so
-      // --as-needed cannot discard them prematurely.
+      // archive references. GL, EGL, and libm also belong after the objects
+      // so --as-needed cannot discard them prematurely.
       libraries: targetOS == OS.linux
-          ? [...libs, ...linuxDebugLibs, 'GL', 'EGL', ...libs, ...linuxDebugLibs]
+          ? [...libs, ...linuxDebugLibs, 'GL', 'EGL', ...libs, ...linuxDebugLibs, 'm']
           : const [],
     );
 
