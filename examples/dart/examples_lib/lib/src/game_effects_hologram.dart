@@ -3,8 +3,9 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'game_effects_shared.dart';
 
 /// Hologram projection: the whole mesh renders as a translucent cyan shell
-/// with a fresnel rim, upward-sweeping scanlines, flicker, and occasional
-/// horizontal glitch bands. Unlit + transparent, so no lights are needed.
+/// with a fresnel rim, fine upward-sweeping scanlines, a bright scanning
+/// band, gated glitch shear with chromatic splitting, and flicker.
+/// Unlit + transparent, so no lights are needed.
 Future<void> setupHologram(
   ThermionViewer viewer, {
   required String assetsDir,
@@ -16,7 +17,7 @@ Future<void> setupHologram(
     aspect: 1.0,
     focalLength: 28.0,
   );
-  await camera.lookAt(Vector3(1.6, 1.2, 1.6), focus: Vector3(0, 0, 0));
+  await camera.lookAt(Vector3(1.6, 1.0, 1.6), focus: Vector3(0, 0, 0));
 
   await setDarkSkybox(viewer);
 
@@ -28,13 +29,13 @@ Future<void> setupHologram(
     assetsDir: assetsDir,
     name: "hologram",
   );
-  await hologram.setParameterFloat4("tintColor", 0.2, 0.85, 1.0, 1.0);
-  await hologram.setParameterFloat("time", 1.5);
+  await hologram.setParameterFloat4("tintColor", 0.20, 0.85, 1.0, 1.0);
+  await hologram.setParameterFloat("time", 2.0);
   await hologram.setParameterFloat("fresnelPower", 2.5);
-  await hologram.setParameterFloat("fresnelStrength", 0.9);
-  await hologram.setParameterFloat("scanlineCount", 40.0);
-  await hologram.setParameterFloat("scanlineSpeed", 3.0);
-  await hologram.setParameterFloat("glitchAmount", 0.015);
+  await hologram.setParameterFloat("fresnelStrength", 1.1);
+  await hologram.setParameterFloat("scanlineCount", 70.0);
+  await hologram.setParameterFloat("scanlineSpeed", 4.0);
+  await hologram.setParameterFloat("glitchAmount", 0.05);
 
   await asset.setMaterialInstanceForAll(hologram);
 

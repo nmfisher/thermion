@@ -50,14 +50,44 @@ Geometry subdividedPlane({
 }
 
 /// Degenerate geometry for [quadCount] billboards fully generated in the
-/// vertex shader (see smoke.mat): 6 zeroed vertices per puff keep the
-/// POSITION attribute bound and indexed, while the shader derives real
-/// positions from getVertexIndex(). Index type must stay UINT even though
-/// indices are sequential - they address the vertex buffer directly.
+/// vertex shader (see smoke.mat): 6 vertices per puff keep the POSITION
+/// attribute bound and indexed, while the shader derives real positions
+/// from getVertexIndex(). Index type must stay UINT even though indices
+/// are sequential - they address the vertex buffer directly.
+///
+/// The vertices are NOT all-zero: a fully degenerate vertex buffer yields a
+/// zero-size bounding box, which makes frustum culling of the renderable
+/// unreliable. Each puff's 6 vertices therefore sit at a deterministic
+/// point inside a small box around the origin - large enough for a valid
+/// bounding volume, small enough that the vertex shader can treat its
+/// displacement as purely additive (see the NOTE in smoke.mat: only
+/// additive worldPosition displacements survive the pipeline).
 Geometry dummyBillboardQuads(int quadCount) {
   final vertCount = quadCount * 6;
+  final vertices = Float32List(vertCount * 3);
+
+  double fract(double x) => x - x.floorToDouble();
+  double hash(int n) {
+    var v = 0.0;
+    for (var i = 0; i < 8; i++) {
+      v = fract(v * 61.7 + n * 0.1031);
+    }
+    return v;
+  }
+
+  for (var q = 0; q < quadCount; q++) {
+    final x = (hash(q * 3 + 1) - 0.5) * 0.7;
+    final y = hash(q * 3 + 2) * 0.5;
+    final z = (hash(q * 3 + 3) - 0.5) * 0.7;
+    for (var v = 0; v < 6; v++) {
+      final i = (q * 6 + v) * 3;
+      vertices[i] = x;
+      vertices[i + 1] = y;
+      vertices[i + 2] = z;
+    }
+  }
   return Geometry(
-    Float32List(vertCount * 3),
+    vertices,
     List<int>.generate(vertCount, (i) => i),
   );
 }

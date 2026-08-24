@@ -3,8 +3,11 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'game_effects_shared.dart';
 
 /// Dissolve/burn: a noise threshold eats the mesh away while the receding
-/// front glows like embers. `threshold` 0 = intact, 1 = fully dissolved.
-/// Opaque blending with `discard` keeps depth-writing correct.
+/// front burns - white-hot at the very edge through orange to deep red,
+/// flickering like combustion, with ember sparks and a charring gradient
+/// ahead of the front. `threshold` 0 = intact, 1 = fully dissolved. Opaque
+/// blending with `discard` keeps depth-writing correct, and the noise is
+/// sampled in object space so the burn is pinned to the mesh.
 Future<void> setupDissolveBurn(
   ThermionViewer viewer, {
   required String assetsDir,
@@ -28,13 +31,13 @@ Future<void> setupDissolveBurn(
     assetsDir: assetsDir,
     name: "dissolve_burn",
   );
-  await dissolve.setParameterFloat4("baseColor", 0.35, 0.3, 0.28, 1.0);
+  await dissolve.setParameterFloat4("baseColor", 0.16, 0.13, 0.12, 1.0);
   await dissolve.setParameterFloat4("edgeColor", 1.0, 0.45, 0.1, 1.0);
-  await dissolve.setParameterFloat("threshold", 0.45);
-  await dissolve.setParameterFloat("edgeWidth", 0.08);
-  await dissolve.setParameterFloat("edgeIntensity", 2.5);
-  await dissolve.setParameterFloat("noiseScale", 4.0);
-  await dissolve.setParameterFloat("time", 1.0);
+  await dissolve.setParameterFloat("threshold", 0.5);
+  await dissolve.setParameterFloat("edgeWidth", 0.13);
+  await dissolve.setParameterFloat("edgeIntensity", 3.0);
+  await dissolve.setParameterFloat("noiseScale", 3.4);
+  await dissolve.setParameterFloat("time", 1.2);
 
   await asset.setMaterialInstanceForAll(dissolve);
 

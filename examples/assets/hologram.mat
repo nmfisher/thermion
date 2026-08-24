@@ -22,45 +22,81 @@ material {
 }
 
 vertex {
+    float hash1(float n) {
+        return fract(sin(n * 91.17) * 43758.5453);
+    }
+
     void materialVertex(inout MaterialVertexInputs material) {
         material.surfaceNormal.xyz = material.worldNormal;
-        // Occasional horizontal glitch displacement: a narrow band of Y
-        // slices shifts sideways. Bands move with time.
-        float band = step(0.97, fract(material.worldPosition.y * 6.0 +
-                                     materialParams.time * 0.7));
-        material.worldPosition.x +=
-            band * materialParams.glitchAmount *
-            sin(materialParams.time * 23.0 + material.worldPosition.y * 50.0);
+
+        // Glitch gating, shared verbatim with the fragment stage: roughly
+        // a third of the time slices (2.5/s) shear a horizontal band.
+        float t = materialParams.time;
+        float gate = hash1(floor(t * 2.5));
+        float bandY = (hash1(floor(t * 2.5) + 7.0) - 0.5) * 1.1;
+        float glitchOn = step(0.62, gate);
+        float band = glitchOn *
+            (1.0 - smoothstep(0.0, 0.09, abs(material.worldPosition.y - bandY)));
+        material.worldPosition.x += band * materialParams.glitchAmount *
+            (hash1(floor(t * 2.5) + 13.0) - 0.5) * 2.0;
     }
 }
 
 fragment {
+    float hash1(float n) {
+        return fract(sin(n * 91.17) * 43758.5453);
+    }
+
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
         vec3 pos = getWorldPosition().xyz;
         vec3 normal = normalize(variable_surfaceNormal.xyz);
         vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        float t = materialParams.time;
 
-        // Fresnel rim: edges read brighter, giving the shell-like hologram look.
+        // Fresnel rim: edges read brighter, giving the shell-like hologram
+        // look. Kept saturated - brighten via alpha, not by mixing to white.
         float fresnel = pow(1.0 - abs(dot(normal, viewDir)),
                             materialParams.fresnelPower);
         fresnel *= materialParams.fresnelStrength;
 
-        // Horizontal scanlines sweeping upward.
+        // Fine horizontal scanlines (thin bright lines), sweeping upward.
         float scan = sin(pos.y * materialParams.scanlineCount -
-                         materialParams.time * materialParams.scanlineSpeed);
-        scan = smoothstep(0.25, 1.0, scan) * 0.45;
+                         t * materialParams.scanlineSpeed);
+        float scanline = smoothstep(0.30, 0.95, scan) * 0.26;
+
+        // A bright scanning band sweeps up the projection every ~4.5s -
+        // the classic "re-projector" cue, and the strongest still-frame
+        // hologram signal.
+        float bandPos = fract(t * 0.22) * 1.6 - 0.8;
+        float sweep = exp(-pow((pos.y - bandPos) * 11.0, 2.0));
+
+        // Glitch (same gating as the vertex shear): brightness pop plus a
+        // chromatic channel split inside the sheared band.
+        float gate = hash1(floor(t * 2.5));
+        float bandY = (hash1(floor(t * 2.5) + 7.0) - 0.5) * 1.1;
+        float glitchOn = step(0.62, gate);
+        float glitchBand = glitchOn *
+            (1.0 - smoothstep(0.0, 0.09, abs(pos.y - bandY)));
 
         // Subtle flicker so the projection feels unstable.
-        float flicker = 0.9 + 0.1 * sin(materialParams.time * 31.0);
+        float flicker = 0.92 + 0.05 * sin(t * 43.0) + 0.03 * sin(t * 7.7);
 
-        float alpha = clamp((fresnel + scan + 0.12) * flicker, 0.0, 1.0) *
-                      materialParams.tintColor.a;
+        // Interior floor, slightly brighter toward the top so the body
+        // reads as projected light rather than empty space.
+        float shell = 0.16 + 0.10 * smoothstep(-0.5, 0.5, pos.y);
 
-        // Keep the tint saturated; brighten the rim without bleaching to
-        // white (tonemapping desaturates brights, so resist mixing in white).
-        vec3 color = materialParams.tintColor.rgb * (0.7 + 0.6 * fresnel);
+        float alpha = shell + fresnel * 0.9 + scanline +
+                      sweep * 0.75 + glitchBand * 0.8;
+        alpha = clamp(alpha, 0.0, 1.0) * flicker *
+                materialParams.tintColor.a;
+
+        vec3 color = materialParams.tintColor.rgb *
+                     (0.55 + 0.65 * fresnel + 0.55 * sweep);
+        color += vec3(0.35) * sweep * 0.5;
+        // Chromatic split inside glitch bands.
+        color = mix(color, color * vec3(0.55, 0.85, 1.45), glitchBand);
 
         material.baseColor = vec4(color * alpha, alpha);
     }

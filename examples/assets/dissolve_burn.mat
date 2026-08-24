@@ -1,5 +1,8 @@
 material {
     name : DissolveBurn,
+    variables : [
+        objectPos
+    ],
     parameters : [
         { type : float4, name : baseColor },
         { type : float4, name : edgeColor },
@@ -15,6 +18,15 @@ material {
     blending : opaque,
     culling : none,
     variantFilter : [ shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Object-space position for the noise field: pinning the noise to
+        // the mesh means a moving model slides through the burn instead of
+        // the burn sliding across the model.
+        material.objectPos.xyz = getPosition().xyz;
+    }
 }
 
 fragment {
@@ -40,14 +52,15 @@ fragment {
         float v = 0.0;
         v += 0.5 * noise3(p);  p *= 2.01;
         v += 0.25 * noise3(p); p *= 2.02;
-        v += 0.125 * noise3(p);
-        return v / 0.875;
+        v += 0.125 * noise3(p); p *= 2.00;
+        v += 0.0625 * noise3(p);
+        return v / 0.9375;
     }
 
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec3 pos = getWorldPosition().xyz;
+        vec3 pos = variable_objectPos.xyz;
         float n = fbm(pos * materialParams.noiseScale +
                       vec3(0.0, 0.0, materialParams.time * 0.15));
 
@@ -56,12 +69,39 @@ fragment {
             discard;
         }
 
-        // Fragments within edgeWidth of the threshold glow as burning edges.
-        float edge = smoothstep(t, t + materialParams.edgeWidth, n);
-        float glow = (1.0 - edge) * materialParams.edgeIntensity;
+        // Distance from the burn front, normalized over the edge band:
+        // 0 right at the front, 1 once past it.
+        float e = clamp((n - t) / materialParams.edgeWidth, 0.0, 1.0);
+        float front = 1.0 - e;
 
-        vec3 color = materialParams.baseColor.rgb * (0.4 + 0.6 * n);
-        color += materialParams.edgeColor.rgb * glow;
+        // --- burning edge: white-hot core -> orange -> deep red ----------
+        vec3 hot = vec3(1.0, 0.96, 0.82);
+        vec3 mid = materialParams.edgeColor.rgb;
+        vec3 cool = vec3(0.55, 0.05, 0.0);
+        vec3 edgeCol = mix(hot, mid, smoothstep(0.0, 0.45, e));
+        edgeCol = mix(edgeCol, cool, smoothstep(0.45, 1.0, e));
+
+        // The front flickers like real combustion.
+        float flicker = 0.8 + 0.4 *
+            noise3(pos * 7.0 + vec3(0.0, 0.0, materialParams.time * 3.0));
+        float glow = pow(front, 1.4) * materialParams.edgeIntensity * flicker;
+
+        // --- ember sparks right at the front ------------------------------
+        float spark = step(0.992, hash(floor(pos * 47.0) +
+                                       floor(materialParams.time * 9.0))) *
+                      pow(front, 3.0);
+
+        // --- charred surface ----------------------------------------------
+        // Near the front the material is fully charred and faintly glowing;
+        // further ahead it is merely scorched, then untouched.
+        float charr = smoothstep(t + materialParams.edgeWidth * 2.5,
+                                 t + materialParams.edgeWidth * 0.5, n);
+        float detail = fbm(pos * materialParams.noiseScale * 2.7 + 31.0);
+        vec3 color = materialParams.baseColor.rgb * (0.45 + 0.75 * detail);
+        color *= 1.0 - 0.72 * charr;
+        color += cool * pow(charr, 3.0) * 0.45;
+
+        color += edgeCol * glow + hot * spark * 3.5;
 
         material.baseColor = vec4(color, 1.0);
     }

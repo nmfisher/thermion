@@ -36,6 +36,7 @@ vertex {
         float rng1 = fract(sin(seed * 127.1) * 43758.5453);
         float rng2 = fract(sin(seed * 269.5) * 43758.5453);
         float rng3 = fract(sin(seed * 419.2) * 43758.5453);
+        float rng4 = fract(sin(seed * 113.5) * 43758.5453);
 
         vec2 positions[6] = vec2[6](
             vec2(-0.5, -0.5), vec2( 0.5, -0.5), vec2(-0.5,  0.5),
@@ -51,19 +52,32 @@ vertex {
                       materialParams.lifetime);
         float age = t / materialParams.lifetime;
 
-        // Rise, expand, and swirl; every rate varies a little per puff.
-        float y = t * materialParams.riseSpeed * (0.8 + rng2 * 0.4);
+        // Rise with per-puff rate variation.
+        float y = t * materialParams.riseSpeed * (0.85 + rng2 * 0.3);
+
+        // Puffs start small and stretch vertically as they climb, like
+        // buoyant smoke; every rate varies a little per puff.
         float scale = (materialParams.baseSize +
-                       t * materialParams.expandSpeed) * (0.7 + rng3 * 0.6);
-        float angle = t * materialParams.swirlAmount * (rng1 - 0.5) * 2.0 +
+                       t * materialParams.expandSpeed) * (0.75 + rng3 * 0.5);
+        vec2 quadScale = vec2(scale, scale * (1.0 + age * 1.1));
+
+        // Slow per-puff spin - visible through the noise sampling.
+        float angle = t * materialParams.swirlAmount * (rng1 - 0.5) * 0.8 +
                       seed * 2.4;
         float ca = cos(angle);
         float sa = sin(angle);
-        vec2 p = positions[vertInQuad];
-        p = vec2(p.x * ca - p.y * sa, p.x * sa + p.y * ca) * scale;
+        vec2 p = positions[vertInQuad] * quadScale;
+        p = vec2(p.x * ca - p.y * sa, p.x * sa + p.y * ca);
 
-        // World-space puff center on the smoke column.
-        vec3 center = vec3((rng1 - 0.5) * 0.6, y, (rng2 - 0.5) * 0.6);
+        // Column structure: emit from a small disc, then spiral outward with
+        // age while wind bends the plume sideways. This cone + bend is what
+        // makes it read as a plume rather than a vertical line of blobs.
+        float spiralAngle = seed * 6.2832 + t * 1.1;
+        float spiralRadius = age * 0.34;
+        vec3 center = vec3(
+            cos(spiralAngle) * spiralRadius + rng2 * 0.08 + age * age * 0.45,
+            y,
+            sin(spiralAngle) * spiralRadius + rng3 * 0.08);
 
         // Camera-facing: offset by the view axes (rows of the view matrix)
         // expressed in world space, so no double transform occurs.
@@ -71,11 +85,18 @@ vertex {
         vec3 camRight = vec3(view[0].x, view[1].x, view[2].x);
         vec3 camUp = vec3(view[0].y, view[1].y, view[2].y);
 
-        material.worldPosition =
-            vec4(center + camRight * p.x + camUp * p.y, 1.0);
+        // NOTE: additive displacement only. Replacing worldPosition (or
+        // cancelling it out via += target - worldPosition) is lost through
+        // this Filament/Metal pipeline - only pure += offsets survive.
+        // The CPU-side positions are therefore kept small (near the
+        // origin, but non-degenerate so the bounding volume stays valid)
+        // and merely add a little per-puff jitter.
+        material.worldPosition.xyz += center + camRight * p.x + camUp * p.y;
 
-        // uv + per-puff age fade (fragment-stage getUV0 is only vec2).
-        material.quadData = vec4(uvs[vertInQuad], 1.0 - age, 0.0);
+        // uv + age fade + per-puff brightness in the variable's zw channels
+        // (fragment-stage getUV0 is only vec2).
+        material.quadData = vec4(uvs[vertInQuad], 1.0 - age,
+                                 0.65 + 0.7 * rng4);
     }
 }
 
@@ -104,25 +125,40 @@ fragment {
         prepareMaterial(material);
 
         vec2 uv = variable_quadData.xy;
-        float fade = variable_quadData.z;
+        float fade = variable_quadData.z;    // 1 at birth, 0 at death
+        float brightness = variable_quadData.w;
+        float age = 1.0 - fade;
+        float t = materialParams.time;
 
-        // Soft radial falloff (billboard alpha), squared for a puffier edge.
-        vec2 d = uv - 0.5;
-        float radial = 1.0 - smoothstep(0.05, 0.5, length(d));
+        // Soft radial falloff (billboard alpha), shaped with the domain.
+        vec2 d = (uv - 0.5) * vec2(1.0, 0.82);
+        float r = length(d) * 2.0;
+        float radial = 1.0 - smoothstep(0.05, 0.95, r);
         radial *= radial;
 
-        // Turbulence: drifting fbm in billboard space.
-        float n = fbm(uv * materialParams.noiseScale -
-                      vec2(0.0, materialParams.time * 0.35));
-        float body = radial * smoothstep(0.25, 0.9, n * radial + 0.25);
+        // Domain-warped fbm in billboard space: warping removes the cottony
+        // single-octave look and gives torn, whispy internal structure.
+        vec2 q = uv * materialParams.noiseScale + vec2(0.0, -t * 0.22);
+        float warp = fbm(q + vec2(t * 0.05, 0.0));
+        float f = fbm(q + warp * 1.7);
+        float body = radial *
+            smoothstep(0.30, 0.62, f * 0.85 + radial * 0.30);
 
-        // Ease in/out over the puff's lifetime.
-        float lifeFade = smoothstep(0.0, 0.15, fade) *
-                         smoothstep(0.0, 0.45, fade);
+        // Dense and bright at birth, thinning as the puff climbs.
+        float density = pow(fade, 0.65);
+        body *= 0.45 + 0.85 * density;
 
-        float amount = body * lifeFade;
-        vec3 color = materialParams.baseColor.rgb * amount;
+        // Ease in quickly, fade out over the last stretch of life.
+        float lifeFade = smoothstep(0.0, 0.10, fade) *
+                         smoothstep(0.0, 0.50, fade);
 
-        material.baseColor = vec4(color, amount);
+        float amount = body * lifeFade * brightness;
+
+        // Top-lit tint with a faint warm cast on young puffs, as if lit from
+        // the fire they came from.
+        vec3 color = materialParams.baseColor.rgb * (0.78 + 0.45 * uv.y);
+        color += vec3(0.10, 0.035, 0.0) * density * density;
+
+        material.baseColor = vec4(color * amount, amount);
     }
 }

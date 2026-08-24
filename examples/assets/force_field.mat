@@ -8,10 +8,10 @@ material {
         { type : float4, name : baseColor },
         { type : float,  name : time },
         { type : float,  name : fresnelPower },
-        { type : float,  name : rippleCount },
-        { type : float,  name : rippleSpeed },
         { type : float,  name : hexScale },
-        { type : float,  name : hexStrength }
+        { type : float,  name : hexStrength },
+        { type : float3, name : hitDirection },
+        { type : float,  name : hitAge }
     ],
     depthWrite : false,
     depthCulling : false,
@@ -28,40 +28,73 @@ vertex {
 }
 
 fragment {
+    float hash1(float n) {
+        return fract(sin(n * 91.17) * 43758.5453);
+    }
+
+    float hash2(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
         vec3 pos = getWorldPosition().xyz;
         vec3 normal = normalize(variable_surfaceNormal.xyz);
         vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        float t = materialParams.time;
 
-        // Fresnel rim dominates at grazing angles - the bubble silhouette.
+        // Fresnel rim dominates at grazing angles - the bubble silhouette -
+        // with a hotter thin lip right at the edge.
         float fresnel = pow(1.0 - abs(dot(normal, viewDir)),
                             materialParams.fresnelPower);
+        float rimLip = pow(1.0 - abs(dot(normal, viewDir)), 8.0);
 
-        // Hex-cell pattern on the sphere surface (approximated by a skewed
-        // grid over longitude/latitude), pulsing outward from the pole.
+        // --- hexagonal lattice -------------------------------------------
+        // Proper hex distance over a longitude/latitude parametrization:
+        // columns offset by half a cell, then a max() of the two edge
+        // planes. A per-cell wobble de-regularizes the grid so it does not
+        // moire, and the lattice fades toward the poles where the
+        // parametrization stretches.
         float lon = atan(pos.z, pos.x);
         float lat = asin(clamp(pos.y, -1.0, 1.0));
-        vec2 hexUv = vec2(lon * 1.9098, lat * 3.0) * materialParams.hexScale;
-        // Two overlapping triangular grids produce a hex lattice.
-        vec2 g1 = abs(fract(hexUv) - 0.5);
-        vec2 g2 = abs(fract(hexUv + 0.5) - 0.5);
-        float cell = min(min(g1.x, g1.y), min(g2.x, g2.y));
-        float hex = smoothstep(0.02, 0.08, cell); // 0 on the lattice lines
+        vec2 hp = vec2(lon * 1.9098, lat * 3.0) * materialParams.hexScale;
+        hp.x *= 1.1547;
+        hp.y += mod(floor(hp.x), 2.0) * 0.5;
+        vec2 cellId = floor(hp);
+        hp += (vec2(hash2(cellId), hash2(cellId + 19.0)) - 0.5) * 0.12;
 
-        // Energy ripple sweeping from top to bottom.
-        float ripple = sin(lat * materialParams.rippleCount -
-                           materialParams.time * materialParams.rippleSpeed);
-        ripple = 0.5 + 0.5 * ripple;
+        vec2 f = abs(fract(hp) - 0.5);
+        float d = max(dot(f, vec2(0.5, 0.8660254)), f.x);
+        float line = smoothstep(0.40, 0.49, d);
 
-        float amount = 1.8 * (fresnel * (0.3 +
-                     materialParams.hexStrength * (1.0 - hex)) +
-                     ripple * 0.18 * fresnel);
+        // Energy shimmer flowing along the lattice plus per-cell twinkle.
+        float shimmer = 0.7 + 0.3 * sin(hp.y * 12.0 - t * 2.2);
+        float twinkle = 0.5 + 0.5 * sin(t * 2.4 + hash2(cellId + 7.0) * 6.2832);
 
-        material.baseColor = vec4(
-            materialParams.baseColor.rgb * amount,
-            amount
-        );
+        float poleFade = smoothstep(0.98, 0.80, abs(pos.y));
+        float hex = line * shimmer * poleFade;
+        float cells = (1.0 - line) * twinkle * 0.35 * poleFade;
+
+        // --- impact ripple ------------------------------------------------
+        // An expanding ring propagates from the last hit direction over the
+        // sphere surface (angular distance), decaying with age.
+        float ang = acos(clamp(dot(normalize(pos),
+                                   normalize(materialParams.hitDirection)),
+                               -1.0, 1.0));
+        float ringR = materialParams.hitAge * 2.6;
+        float ring = exp(-pow((ang - ringR) * 7.0, 2.0)) *
+                     exp(-materialParams.hitAge * 1.4);
+
+        float lattice = materialParams.hexStrength * (hex + cells);
+        float amount = 0.10 + 0.05 * (normal.y * 0.5 + 0.5) +
+                       fresnel * (1.35 + lattice) + rimLip * 1.2 +
+                       ring * 1.7;
+
+        vec3 color = materialParams.baseColor.rgb;
+        color = mix(color, vec3(0.9, 0.97, 1.0), ring * 0.55);
+        color *= 0.9 + 0.25 * fresnel;
+
+        material.baseColor = vec4(color * amount, clamp(amount, 0.0, 1.0));
     }
 }

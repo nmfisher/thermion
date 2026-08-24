@@ -6,9 +6,13 @@ import 'package:thermion_examples_lib/examples_lib.dart';
 
 /// Renders a registered example headlessly and writes a PNG to output/.
 ///
-///   dart run bin/run_example.dart <name> [width] [height] [--video [seconds] [fps]]
+///   dart run bin/run_example.dart <name> [width] [height] [--time <seconds>] [--video [seconds] [fps]]
 ///
 /// <name> must be a key in [registry]. Defaults to `load_gltf` at 512x512.
+///
+/// Stills render at the animators' t=0 state by default; pass `--time` to
+/// capture a specific point in the animation instead (the setups' golden
+/// times are otherwise stomped by the animator call).
 ///
 /// With `--video`, advances the example's registered [effectAnimators] by
 /// wall-clock seconds per frame, captures each frame to
@@ -20,6 +24,9 @@ Future<void> main(List<String> args) async {
   final height = args.length > 2 ? int.parse(args[2]) : 512;
   final videoIndex = args.indexOf('--video');
   final video = videoIndex >= 0;
+  final timeIndex = args.indexOf('--time');
+  final stillTime =
+      timeIndex >= 0 && args.length > timeIndex + 1 ? double.parse(args[timeIndex + 1]) : 0.0;
   final seconds = video && args.length > videoIndex + 1
       ? double.parse(args[videoIndex + 1])
       : 4.0;
@@ -82,7 +89,7 @@ Future<void> main(List<String> args) async {
 
   if (!video) {
     // Capture a single rendered frame and save it.
-    final png = await frameAt(0);
+    final png = await frameAt(stillTime);
     final outPath = 'output/$name.png';
     File(outPath).writeAsBytesSync(png);
     stdout.writeln('Saved $outPath');

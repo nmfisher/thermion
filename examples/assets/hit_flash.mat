@@ -6,6 +6,7 @@ material {
     ],
     parameters : [
         { type : float4, name : flashColor },
+        { type : float3, name : hitPoint },
         { type : float,  name : progress }
     ],
     depthWrite : false,
@@ -25,20 +26,33 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        // Quadratic ease-out: full flash at progress=0, gone at progress=1.
+        // Cubic ease-out: full flash at progress=0, gone at progress=1.
         float t = 1.0 - clamp(materialParams.progress, 0.0, 1.0);
-        float intensity = t * t;
+        float intensity = t * t * t;
 
         // Rim boost: grazing-angle surfaces flash brightest, which reads
         // as a shockwave wrapping the silhouette.
         vec3 normal = normalize(variable_surfaceNormal.xyz);
-        vec3 viewDir = normalize(getWorldCameraPosition() - getWorldPosition().xyz);
+        vec3 pos = getWorldPosition().xyz;
+        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
         float rim = pow(1.0 - abs(dot(normal, viewDir)), 2.0);
 
-        float amount = intensity * (0.35 + 0.65 * rim);
-        material.baseColor = vec4(
-            materialParams.flashColor.rgb * amount,
-            amount
-        );
+        // Expanding shockwave ring from the impact point: an accelerating
+        // radius with a tight gaussian profile, so the flash travels
+        // outward from where the hit landed instead of pulsing uniformly.
+        float r = distance(pos, materialParams.hitPoint);
+        float ringR = pow(clamp(materialParams.progress, 0.0, 1.0), 0.7) * 1.3;
+        float ring = exp(-pow((r - ringR) * 16.0, 2.0)) *
+                     (1.0 - clamp(materialParams.progress, 0.0, 1.0) * 0.45);
+
+        // White-hot at the instant of impact, settling into the flash
+        // color as the shockwave expands.
+        vec3 flash = mix(vec3(1.0, 0.98, 0.92), materialParams.flashColor.rgb,
+                         smoothstep(0.0, 0.55, materialParams.progress));
+
+        float amount = intensity * (0.16 + 0.62 * rim) + ring * 1.55;
+        amount = clamp(amount, 0.0, 1.25);
+
+        material.baseColor = vec4(flash * amount, min(amount, 1.0));
     }
 }
