@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
@@ -12,10 +14,19 @@ abstract class HighlightOverlayManager {
   Future setSwapChain(SwapChain swapChain);
   Future setCamera(Camera? camera);
   Future setViewport(int width, int height);
-  Future setRenderTarget(View mainView, RenderTarget renderTarget);
+  Future setRenderTarget(View mainView, RenderTarget? renderTarget);
   Future destroy();
-  bool isInternalRenderTarget(RenderTarget renderTarget);
   Set<ThermionEntity> get highlightedEntities;
+
+  /// Updates the outline appearance on the edge-detection material.
+  ///
+  /// Callers that add several highlights in a row (e.g. once per primitive of
+  /// an entity) should set these once per user-facing operation rather than
+  /// once per [addHighlight] call.
+  Future<void> setOutlineParams({double? width, double? r, double? g, double? b});
+
+  /// Whether the overlay passes are currently skipped.
+  bool get suspended;
 
   Future<void> addHighlight({
     required ThermionEntity target,
@@ -26,6 +37,7 @@ abstract class HighlightOverlayManager {
     double r = 1.0,
     double g = 0.0,
     double b = 0.0,
+    int? primitiveKey,
   });
   Future<void> removeHighlight(ThermionEntity target);
 
@@ -107,11 +119,25 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   @override
   Set<ThermionEntity> get highlightedEntities => Set.unmodifiable(_highlightedEntities);
 
+  /// Whether the silhouette/edge passes are currently skipped.
+  ///
+  /// Rendering the two overlay views costs two extra full-screen passes per
+  /// frame even when they draw nothing, so they are marked non-renderable
+  /// whenever the highlight set is empty. The initial value matches the
+  /// attached-and-renderable state the views get when the overlay is enabled;
+  /// [_reconcilePresentationState] applies the desired state after every input
+  /// change.
+  bool _suspended = false;
+
+  @override
+  bool get suspended => _suspended;
+
   // State
   View? _mainView;
-  RenderTarget? _originalMainViewRenderTarget;
   SwapChain? _swapChain;
-  RenderTarget? _flutterRenderTarget;
+  RenderTarget? _presentationRenderTarget;
+
+  Future<void> _reconcileChain = Future.value();
 
   // Internal render target for main view (composite mode only)
   Texture? _mainViewColorTexture;
@@ -126,26 +152,24 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
   ///
   /// Can be called multiple times (e.g. on resize) — will update the
   /// Flutter render target that EdgeDetectionView outputs to.
-  Future<void> setRenderTarget(View mainView, RenderTarget flutterRenderTarget) async {
+  Future<void> setRenderTarget(View mainView, RenderTarget? presentationRenderTarget) async {
     _mainView = mainView;
 
-    if (_flutterRenderTarget == null) {
-      // First time — set up the internal RT and redirect main view
-      _originalMainViewRenderTarget = await mainView.getRenderTarget();
-
+    if (_mainViewRenderTarget == null && presentationRenderTarget != null) {
       final vp = await mainView.getViewport();
       final width = vp.width > 0 ? vp.width : 1;
       final height = vp.height > 0 ? vp.height : 1;
 
       await _createMainViewRenderTarget(width, height);
-      await mainView.setRenderTarget(_mainViewRenderTarget);
       await overlayView.setMainSceneTexture(_mainViewColorTexture!);
-      _logger.info("Main view redirected to internal render target (composite mode)");
+      _logger.info("Main-view composite target initialized");
     }
 
-    _flutterRenderTarget = flutterRenderTarget;
-    await overlayView.setRenderTarget(flutterRenderTarget);
-    _logger.info("EdgeDetectionView configured for render target output");
+    _presentationRenderTarget = presentationRenderTarget;
+    await overlayView.setRenderTarget(presentationRenderTarget);
+    _logger.info("Presentation render target updated");
+
+    await _reconcilePresentationState();
   }
 
   /// Set the swapchain for overlay mode (web/Android).
@@ -163,13 +187,63 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     _swapChain = swapChain;
     await overlayView.setOverlayOnly(true);
     _logger.info("EdgeDetectionView registered with swapchain (overlay-only mode)");
+
+    await _reconcilePresentationState();
   }
 
-  /// Check if the given render target is the internal one used for main view
-  /// (as opposed to a Flutter-provided render target).
-  /// Used by FFIView.setRenderTarget() to determine if it should intercept.
-  bool isInternalRenderTarget(RenderTarget rt) {
-    return rt == _mainViewRenderTarget;
+  /// Reconciles target routing and view renderability from current desired
+  /// state.
+  ///
+  /// This is deliberately idempotent: viewport and presentation-target
+  /// changes must re-apply routing even when the highlight set is unchanged.
+  /// Reconciliations are serialized so overlapping lifecycle calls cannot
+  /// publish older state after newer state.
+  Future<void> _reconcilePresentationState() {
+    final completer = Completer<void>();
+    final previous = _reconcileChain;
+    _reconcileChain = completer.future.then((_) {}, onError: (_) {});
+    return previous.then((_) async {
+      try {
+        await _applyPresentationState();
+        completer.complete();
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+        rethrow;
+      }
+    });
+  }
+
+  Future<void> _applyPresentationState() async {
+    final hasOutput = _mainView == null || _presentationRenderTarget != null;
+    final shouldSuspend = _highlightedEntities.isEmpty || !hasOutput;
+    final stateChanged = _suspended != shouldSuspend;
+    final rm = _app.renderManager;
+
+    if (shouldSuspend) {
+      // Disable both overlay views in one state update before routing the main
+      // view directly to its output. No frame can run edge detection against
+      // a directly-rendered main view.
+      await rm.setRenderables({silhouetteView: false, overlayView: false});
+      if (_mainView != null) {
+        await _mainView!.setRenderTarget(_presentationRenderTarget);
+      }
+    } else {
+      // Route the main view to its sampleable target before enabling the
+      // overlay views together.
+      if (_mainView != null && _mainViewRenderTarget != null) {
+        await _mainView!.setRenderTarget(_mainViewRenderTarget);
+      }
+      await rm.setRenderables({silhouetteView: true, overlayView: true});
+    }
+
+    _suspended = shouldSuspend;
+    if (stateChanged) {
+      _logger.info(
+        shouldSuspend
+            ? "Overlay passes suspended"
+            : "Overlay passes resumed (${_highlightedEntities.length} highlights)",
+      );
+    }
   }
 
   final FFIFilamentApp _app;
@@ -272,11 +346,10 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // Create new resources FIRST
     await _createMainViewRenderTarget(width, height);
 
-    // Update all references before destroying old resources
-    if (_mainView != null) {
-      await _mainView!.setRenderTarget(_mainViewRenderTarget);
-    }
+    // Update all references and re-apply the current route before destroying
+    // resources that may still be bound by the active plan.
     await overlayView.setMainSceneTexture(_mainViewColorTexture!);
+    await _reconcilePresentationState();
 
     // Flush render thread to ensure new textures are bound before destroying old ones
     // This prevents "Invalid texture still bound to MaterialInstance" errors
@@ -305,7 +378,20 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     }
   }
 
+  /// Updates the outline appearance on the edge-detection material.
+  @override
+  Future<void> setOutlineParams({double? width, double? r, double? g, double? b}) async {
+    await overlayView.setOutlineParams(width: width, r: r, g: g, b: b);
+  }
+
   /// Add a highlight for an entity with the specified geometry.
+  ///
+  /// [primitiveKey] deduplicates silhouettes per primitive when this is
+  /// called once per primitive of the same entity. Outline appearance is
+  /// NOT set here — callers set it once per user-facing operation via
+  /// [setOutlineParams] (per-primitive calls would re-upload the same
+  /// material parameters N times).
+  @override
   Future<void> addHighlight({
     required ThermionEntity target,
     required VertexBuffer vertexBuffer,
@@ -315,27 +401,24 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     double r = 1.0,
     double g = 0.0,
     double b = 0.0,
+    int? primitiveKey,
   }) async {
-    // ALWAYS update outline params (even if already highlighted)
-    await overlayView.setOutlineParams(width: outlineWidth, r: r, g: g, b: b);
-
-    // Only add silhouette if not already tracked
-    if (_highlightedEntities.contains(target)) {
-      return;
-    }
-
-    // Add silhouette to first pass
-    await silhouetteView.addHighlight(
+    final created = await silhouetteView.addHighlight(
       target: target,
       vertexBuffer: vertexBuffer,
       indexBuffer: indexBuffer,
       indexCount: indexCount,
+      primitiveKey: primitiveKey,
     );
 
-    _highlightedEntities.add(target);
+    if (created) {
+      _highlightedEntities.add(target);
+      await _reconcilePresentationState();
+    }
   }
 
   /// Remove highlight from an entity.
+  @override
   Future<void> removeHighlight(ThermionEntity target) async {
     if (!_highlightedEntities.contains(target)) {
       return;
@@ -343,6 +426,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
 
     await silhouetteView.removeHighlight(target);
     _highlightedEntities.remove(target);
+    await _reconcilePresentationState();
   }
 
   /// Remove all highlights.
@@ -369,10 +453,11 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     // NOW safe to destroy SilhouetteView (which destroys the silhouette texture)
     await silhouetteView.destroy();
 
-    // Tear down render targets and restore original state
-    // Restore main view's original render target (only if it was redirected)
-    if (_mainView != null && _mainViewRenderTarget != null) {
-      await _mainView!.setRenderTarget(_originalMainViewRenderTarget as FFIRenderTarget?);
+    // Release the internal main-view target before destroying it. The current
+    // presentation target, not the first target seen during initialization,
+    // is authoritative after resize/replacement.
+    if (_mainView != null) {
+      await _mainView!.setRenderTarget(_presentationRenderTarget);
     }
 
     if (_swapChain != null) {
@@ -384,8 +469,7 @@ class FFIHighlightOverlayManager extends HighlightOverlayManager {
     await _destroyMainViewRenderTarget();
 
     _mainView = null;
-    _originalMainViewRenderTarget = null;
-    _flutterRenderTarget = null; // Don't destroy - Flutter layer owns this
+    _presentationRenderTarget = null; // Don't destroy - Flutter layer owns this
 
     _logger.info("Highlight overlay torn down");
 

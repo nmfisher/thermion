@@ -7,12 +7,27 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 
-/// Component data for highlighted entities
-class _SilhouetteComponent {
+/// One silhouette renderable (one per highlighted primitive).
+class _SilhouetteEntry {
   final MaterialInstance silhouetteMaterialInstance;
   final ThermionEntity silhouetteEntity;
 
-  _SilhouetteComponent({required this.silhouetteMaterialInstance, required this.silhouetteEntity});
+  _SilhouetteEntry({required this.silhouetteMaterialInstance, required this.silhouetteEntity});
+}
+
+/// All silhouette renderables created for one highlighted entity.
+///
+/// Silhouettes are keyed per primitive when a [SilhouetteView.addHighlight]
+/// supplies a [primitiveKey]; entities with multiple primitives then get one
+/// silhouette renderable each instead of only the first primitive being
+/// outlined.
+class _SilhouetteComponent {
+  final Map<int, _SilhouetteEntry> entries = {};
+  int _autoKeyCounter = 0;
+
+  /// Key for callers that don't provide an explicit primitive key (legacy
+  /// single-silhouette-per-entity behavior).
+  int nextAutoKey() => _autoKeyCounter++;
 }
 
 /// Manages the first (silhouette) rendering pass for highlighted entities.
@@ -90,7 +105,9 @@ class SilhouetteView extends FFIView {
               width,
               height,
               flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
-              textureFormat: TextureFormat.DEPTH32F,
+              // DEPTH24 is plenty for an unlit opaque silhouette pass and
+              // halves depth bandwidth compared to DEPTH32F.
+              textureFormat: TextureFormat.DEPTH24,
             )
             as FFITexture;
     final renderTarget =
@@ -163,7 +180,7 @@ class SilhouetteView extends FFIView {
               width,
               height,
               flags: {TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT},
-              textureFormat: TextureFormat.DEPTH32F,
+              textureFormat: TextureFormat.DEPTH24,
             )
             as FFITexture;
 
@@ -220,17 +237,30 @@ class SilhouetteView extends FFIView {
   }
 
   /// Add a highlight for the given entity.
-  Future<void> addHighlight({
+  ///
+  /// When [primitiveKey] is provided, silhouettes are deduplicated per
+  /// (entity, primitiveKey), so calling this once per primitive of an entity
+  /// creates one silhouette renderable per primitive. Without a key, only the
+  /// first call for an entity creates a silhouette (legacy behavior).
+  ///
+  /// Returns whether a new silhouette was created.
+  Future<bool> addHighlight({
     required ThermionEntity target,
     required VertexBuffer vertexBuffer,
     required IndexBuffer indexBuffer,
     required int indexCount,
+    int? primitiveKey,
   }) async {
-    if (_components.containsKey(target)) return;
+    var component = _components[target];
+    if (component != null) {
+      if (primitiveKey == null || component.entries.containsKey(primitiveKey)) {
+        return false;
+      }
+    }
 
     if (!_app.renderableManager.hasComponent(target)) {
       _logger.warning('Entity $target is not renderable');
-      return;
+      return false;
     }
 
     // Create silhouette material instance
@@ -259,12 +289,15 @@ class SilhouetteView extends FFIView {
     await _silhouetteScene.addEntity(silhouetteEntity);
 
     // Store component
-    _components[target] = _SilhouetteComponent(
+    component ??= _SilhouetteComponent();
+    component.entries[primitiveKey ?? component.nextAutoKey()] = _SilhouetteEntry(
       silhouetteMaterialInstance: silhouetteMi,
       silhouetteEntity: silhouetteEntity,
     );
+    _components[target] = component;
 
-    _logger.info('Added silhouette for entity $target');
+    _logger.info('Added silhouette for entity $target (primitive ${primitiveKey ?? 'default'})');
+    return true;
   }
 
   /// Remove highlight from an entity.
@@ -272,14 +305,16 @@ class SilhouetteView extends FFIView {
     final component = _components.remove(target);
     if (component == null) return;
 
-    // Remove from scene
-    await _silhouetteScene.removeEntity(component.silhouetteEntity);
+    for (final entry in component.entries.values) {
+      // Remove from scene
+      await _silhouetteScene.removeEntity(entry.silhouetteEntity);
 
-    // Destroy entity
-    await _app.destroyEntity(component.silhouetteEntity);
+      // Destroy entity
+      await _app.destroyEntity(entry.silhouetteEntity);
 
-    // Destroy material instance
-    await component.silhouetteMaterialInstance.destroy();
+      // Destroy material instance
+      await entry.silhouetteMaterialInstance.destroy();
+    }
 
     _logger.info('Removed silhouette for entity $target');
   }
