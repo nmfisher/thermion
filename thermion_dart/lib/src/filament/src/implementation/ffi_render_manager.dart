@@ -27,6 +27,10 @@ class RenderAttachmentState {
     _renderable[view] = renderable;
   }
 
+  void setRenderables(Map<View, bool> renderability) {
+    _renderable.addAll(renderability);
+  }
+
   void detach(View view, {Pointer<TSwapChain>? swapChain}) {
     if (swapChain == null) {
       for (final views in _attachments.values) {
@@ -47,6 +51,16 @@ class RenderAttachmentState {
       for (final entry in _attachments.entries)
         entry.key: entry.value.where((attachment) => _renderable[attachment.$2] ?? true).toList(),
     };
+  }
+
+  RenderPlan getRenderPlan(Pointer<TSwapChain> swapChain) {
+    final attachments = _attachments[swapChain] ?? const <(int, View)>[];
+    return RenderPlan(
+      attachments.map(
+        (attachment) =>
+            RenderPass(view: attachment.$2, order: attachment.$1, active: _renderable[attachment.$2] ?? true),
+      ),
+    );
   }
 
   Iterable<View> getAttachedViews(Pointer<TSwapChain> swapChain) =>
@@ -142,8 +156,13 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   @override
   Future setRenderable(View view, bool renderable) {
+    return setRenderables({view: renderable});
+  }
+
+  @override
+  Future setRenderables(Map<View, bool> renderability) {
     return _serialize(() async {
-      _attachmentState.setRenderable(view, renderable);
+      _attachmentState.setRenderables(renderability);
       await _syncViews();
     });
   }
@@ -233,7 +252,12 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   @override
   Iterable<View> getAttachedViews(SwapChain swapChain) {
-    return _attachmentState.getAttachedViews(swapChain.getNativeHandle());
+    return getRenderPlan(swapChain).attachedViews;
+  }
+
+  @override
+  RenderPlan getRenderPlan(SwapChain swapChain) {
+    return _attachmentState.getRenderPlan(swapChain.getNativeHandle());
   }
 
   @override

@@ -405,7 +405,7 @@ class NativeTextureSurfaceManager {
       // it in _viewRenderTargets or destroying the previous target.
       final swapChains = await app.getSwapChains();
       await app.renderManager.attach(view, swapChains.first);
-      await view.setRenderTarget(renderTarget);
+      await view.setPresentationRenderTarget(renderTarget);
     } catch (error, stackTrace) {
       final rolledBack = await _destroyCreatedRenderTarget(
         renderTarget: renderTarget,
@@ -596,7 +596,7 @@ class NativeTextureSurfaceManager {
       final swapChains = await app.getSwapChains();
       await app.renderManager.attach(view, swapChains.first);
       await view.setViewport(width, height);
-      await view.setRenderTarget(renderTarget);
+      await view.setPresentationRenderTarget(renderTarget);
     } catch (error, stackTrace) {
       await _destroyCreatedRenderTarget(
         renderTarget: renderTarget,
@@ -652,12 +652,7 @@ class NativeTextureSurfaceManager {
       return;
     }
 
-    final overlay = view.getHighlightOverlay();
-    if (overlay == null) {
-      await view.setRenderTarget(null);
-    } else {
-      await overlay.overlayView.setRenderTarget(null);
-    }
+    await view.setPresentationRenderTarget(null);
     await _destroyRenderTarget(renderTarget);
     if (identical(_viewRenderTargets[view], renderTarget)) {
       _viewRenderTargets.remove(view);
