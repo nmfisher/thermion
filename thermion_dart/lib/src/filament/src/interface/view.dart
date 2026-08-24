@@ -482,6 +482,9 @@ abstract class View<T> extends NativeHandle<T> {
   /// Uses a stencil-based two-pass rendering approach for clean, flicker-free
   /// outlines.
   ///
+  /// Throws if the asset (or [geometrySource]) has no preserved geometry —
+  /// glTF assets must be loaded with `rebuildVertices: true` for outlining.
+  ///
   /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
   Future setStencilHighlight(
     ThermionAsset asset, {

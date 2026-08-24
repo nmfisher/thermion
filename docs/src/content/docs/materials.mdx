@@ -48,6 +48,15 @@ await asset.setMaterialInstanceForAll(unlit);
 await asset.setMaterialInstanceAt(unlit);
 ```
 
+:::note
+Materials that need extra vertex attributes — **wireframe** (barycentric
+coordinates), **stencil highlight outlines**, and **flat shading** — only
+work on assets loaded with `loadGltf(..., rebuildVertices: true)`, which
+rebuilds vertex buffers with a superset of attributes at the cost of ~3x
+vertex memory. `setFlatShading` and `setStencilHighlight` **throw** if the
+asset wasn't loaded this way.
+:::
+
 ## Textures
 
 Load an image, create a sampler, and bind both to a material parameter:

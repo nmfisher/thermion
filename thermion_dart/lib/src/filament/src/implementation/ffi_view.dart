@@ -578,14 +578,24 @@ class FFIView extends View<Pointer<TView>> {
     final geoAsset = geometrySource ?? asset;
     final ffiGeoAsset = geoAsset as FFIAsset;
 
+    // Misuse check: highlighting needs the preserved (rebuilt) vertex
+    // buffers, which only exist when the glTF was loaded with
+    // rebuildVertices: true. Throw rather than silently doing nothing.
+    if (ffiGeoAsset.getVertexBuffer() == null) {
+      throw Exception(
+        "setStencilHighlight: asset has no preserved geometry. "
+        "Load it with loadGltf(..., rebuildVertices: true).",
+      );
+    }
+
     // Get the starting primitive offset for this entity
     final offset = await ffiGeoAsset.getPrimitiveOffsetForEntity(entity);
     if (offset < 0) {
+      // The asset has preserved geometry, but this particular entity has no
+      // rebuilt buffers (e.g. its primitives are all lines/points).
       _logger.warning(
-        "Stencil highlight: no preserved geometry for entity $entity. "
-        "Either the asset wasn't loaded with rebuildVertices: true, or this "
-        "entity's primitives are all non-triangles (lines/points) and have "
-        "no rebuilt buffers.",
+        "Stencil highlight: no preserved geometry for entity $entity "
+        "(its primitives are all non-triangles and have no rebuilt buffers).",
       );
       return;
     }
