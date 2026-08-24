@@ -35,13 +35,40 @@ if [ -z "${FILAMENT_PATH:-}" ]; then
     exit 1
 fi
 
+# FILAMENT_PATH must contain matc and resgen. Release/bin-style layouts
+# have them as files; Ninja out/<config>/tools layouts have them as
+# directories containing the binary (tools/matc/matc). Resolve both, and
+# keep everything quoted - paths with spaces otherwise word-split.
 MATC="${FILAMENT_PATH}/matc"
+if [ -d "${MATC}" ]; then
+    MATC="${MATC}/matc"
+fi
 RESGEN="${FILAMENT_PATH}/resgen"
+if [ -d "${RESGEN}" ]; then
+    RESGEN="${RESGEN}/resgen"
+fi
 MATERIAL_DIR="thermion_dart/native/include/material"
 MATERIALS=(image unlit_fixed_size grid linear_depth silhouette edge_outline wireframe translation_axis bone_overlay capture_uv)
 # capture_uv is now in the main list; gizmo handled separately below
 GIZMO_NAME="gizmo"
-EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad)
+EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad hit_flash hologram force_field dissolve_burn water smoke)
+
+# Probe WebGPU support once: a matc built without FILAMENT_SUPPORTS_WEBGPU=ON
+# cannot emit WGSL, so the _webgpu/_web_combined variants (and the webgpu
+# backend in example .filamats) must be skipped rather than fail the build.
+# Existing committed webgpu blobs are left untouched in that case.
+WEBGPU_SUPPORTED=1
+if ! printf 'material { name : Probe, shadingModel : unlit, blending : opaque }\nfragment { void material(inout MaterialInputs m) { prepareMaterial(m); m.baseColor = vec4(1.0); } }\n' \
+        > "${TMPDIR:-/tmp}/thermion_webgpu_probe.mat" \
+   || ! "${MATC}" -a webgpu -o "${TMPDIR:-/tmp}/thermion_webgpu_probe.filamat" \
+        "${TMPDIR:-/tmp}/thermion_webgpu_probe.mat" > /dev/null 2>&1; then
+    WEBGPU_SUPPORTED=0
+    echo "WARNING: matc lacks WebGPU support (build Filament with"
+    echo "FILAMENT_SUPPORTS_WEBGPU=ON to enable it). Skipping _webgpu and"
+    echo "_web_combined variants; committed webgpu blobs are left as-is."
+fi
+rm -f "${TMPDIR:-/tmp}/thermion_webgpu_probe.mat" \
+      "${TMPDIR:-/tmp}/thermion_webgpu_probe.filamat"
 
 # -------------------------------------------------------------------
 # build_variant <material> <variant_suffix> <matc_arch_flags...>
@@ -59,24 +86,27 @@ build_variant() {
 
     local upper
     upper=$(echo "${material}" | tr '[:lower:]' '[:upper:]')
-    local guard_name="${upper}_${suffix^^}_H_"
+    local upper_suffix
+    upper_suffix=$(echo "${suffix}" | tr '[:lower:]' '[:upper:]')
+    local guard_name="${upper}_${upper_suffix}_H_"
 
     echo "  ${suffix}: matc ${arch_flags[*]}"
 
-    ${MATC} "${arch_flags[@]}" \
+    "${MATC}" "${arch_flags[@]}" \
         -o "materials/${material}.filamat" "materials/${material}.mat" || return 1
-    ${RESGEN} -c -p "${material}" -x "${MATERIAL_DIR}/" "materials/${material}.filamat" || return 1
+    "${RESGEN}" -c -p "${material}" -x "${MATERIAL_DIR}/" "materials/${material}.filamat" || return 1
 
     # Rename to suffixed files
     mv "${MATERIAL_DIR}/${material}.c" "${MATERIAL_DIR}/${material}_${suffix}.c"
     mv "${MATERIAL_DIR}/${material}.h" "${MATERIAL_DIR}/${material}_${suffix}.h"
 
     # Fix #include in .c to point to suffixed .h
-    sed -i "s/#include \"${material}\\.h\"/#include \"${material}_${suffix}.h\"/" \
+    # (perl rather than sed: BSD sed has no GNU-style in-place editing)
+    perl -i -pe "s/#include \"${material}\\.h\"/#include \"${material}_${suffix}.h\"/" \
         "${MATERIAL_DIR}/${material}_${suffix}.c"
 
     # Fix header guard
-    sed -i "s/${upper}_H_/${guard_name}/" "${MATERIAL_DIR}/${material}_${suffix}.h"
+    perl -i -pe "s/${upper}_H_/${guard_name}/" "${MATERIAL_DIR}/${material}_${suffix}.h"
 
     # Prepend #include at top of .c
     echo "#include \"${material}_${suffix}.h\"" | cat - "${MATERIAL_DIR}/${material}_${suffix}.c" > \
@@ -149,9 +179,11 @@ for material in "${MATERIALS[@]}"; do
     build_variant "$material" desktop   -a vulkan -a opengl
     build_variant "$material" opengl    -a opengl
     build_variant "$material" vulkan    -a vulkan
-    build_variant "$material" webgpu   -a webgpu
+    if [ "${WEBGPU_SUPPORTED}" -eq 1 ]; then
+        build_variant "$material" webgpu   -a webgpu
+        build_variant "$material" web_combined -a opengl -a webgpu
+    fi
     build_variant "$material" web_webgl -a opengl
-    build_variant "$material" web_combined -a opengl -a webgpu
 
     create_forwarding_header "$material" "$upper"
 
@@ -167,7 +199,11 @@ done
 echo "=== gizmo rename special case ==="
 
 # Build gizmo as a regular material first
-for suffix in apple android desktop opengl vulkan webgpu web_webgl web_combined; do
+GIZMO_SUFFIXES="apple android desktop opengl vulkan webgpu web_webgl web_combined"
+if [ "${WEBGPU_SUPPORTED}" -eq 0 ]; then
+    GIZMO_SUFFIXES="apple android desktop opengl vulkan web_webgl"
+fi
+for suffix in ${GIZMO_SUFFIXES}; do
     case "$suffix" in
         apple)        matc_flags="-a metal" ;;
         android)      matc_flags="-a vulkan -a opengl" ;;
@@ -181,21 +217,22 @@ for suffix in apple android desktop opengl vulkan webgpu web_webgl web_combined;
 
     echo "  ${suffix}: matc ${matc_flags}"
 
-    ${MATC} ${matc_flags} \
+    "${MATC}" ${matc_flags} \
         -o "materials/gizmo.filamat" "materials/gizmo.mat" || exit 1
-    ${RESGEN} -c -p "gizmo" -x "${MATERIAL_DIR}/" "materials/gizmo.filamat" || exit 1
+    "${RESGEN}" -c -p "gizmo" -x "${MATERIAL_DIR}/" "materials/gizmo.filamat" || exit 1
 
     # Rename .c/.h to gizmo_material_<suffix>
     mv "${MATERIAL_DIR}/gizmo.c" "${MATERIAL_DIR}/gizmo_material_${suffix}.c"
     mv "${MATERIAL_DIR}/gizmo.h" "${MATERIAL_DIR}/gizmo_material_${suffix}.h"
 
-    # Fix #include
-    sed -i "s/#include \"gizmo\\.h\"/#include \"gizmo_material_${suffix}.h\"/" \
+    # Fix #include (perl rather than sed: BSD sed has no GNU-style in-place
+    # editing)
+    perl -i -pe "s/#include \"gizmo\\.h\"/#include \"gizmo_material_${suffix}.h\"/" \
         "${MATERIAL_DIR}/gizmo_material_${suffix}.c"
 
     # Fix header guard
     upper_suffix=$(echo "${suffix}" | tr '[:lower:]' '[:upper:]')
-    sed -i "s/GIZMO_H_/GIZMO_MATERIAL_${upper_suffix}_H_/" \
+    perl -i -pe "s/GIZMO_H_/GIZMO_MATERIAL_${upper_suffix}_H_/" \
         "${MATERIAL_DIR}/gizmo_material_${suffix}.h"
 
     # Prepend #include
@@ -226,9 +263,13 @@ echo ""
 # -------------------------------------------------------------------
 # Compile example asset materials (standalone .filamat, not embedded)
 # -------------------------------------------------------------------
+EXAMPLE_BACKENDS="-a opengl -a metal -a vulkan -a webgpu"
+if [ "${WEBGPU_SUPPORTED}" -eq 0 ]; then
+    EXAMPLE_BACKENDS="-a opengl -a metal -a vulkan"
+fi
 for material in "${EXAMPLE_MATERIALS[@]}"; do
-    echo "=== examples/assets/$material (all platforms) ==="
-    ${MATC} -a opengl -a metal -a vulkan -a webgpu \
+    echo "=== examples/assets/$material (${EXAMPLE_BACKENDS}) ==="
+    "${MATC}" ${EXAMPLE_BACKENDS} \
         -o "examples/assets/${material}.filamat" "examples/assets/${material}.mat" || exit 1
 done
 
