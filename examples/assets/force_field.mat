@@ -1,0 +1,67 @@
+material {
+    name : ForceField,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal
+    ],
+    parameters : [
+        { type : float4, name : baseColor },
+        { type : float,  name : time },
+        { type : float,  name : fresnelPower },
+        { type : float,  name : rippleCount },
+        { type : float,  name : rippleSpeed },
+        { type : float,  name : hexScale },
+        { type : float,  name : hexStrength }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.surfaceNormal.xyz = material.worldNormal;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = getWorldPosition().xyz;
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+
+        // Fresnel rim dominates at grazing angles - the bubble silhouette.
+        float fresnel = pow(1.0 - abs(dot(normal, viewDir)),
+                            materialParams.fresnelPower);
+
+        // Hex-cell pattern on the sphere surface (approximated by a skewed
+        // grid over longitude/latitude), pulsing outward from the pole.
+        float lon = atan(pos.z, pos.x);
+        float lat = asin(clamp(pos.y, -1.0, 1.0));
+        vec2 hexUv = vec2(lon * 1.9098, lat * 3.0) * materialParams.hexScale;
+        // Two overlapping triangular grids produce a hex lattice.
+        vec2 g1 = abs(fract(hexUv) - 0.5);
+        vec2 g2 = abs(fract(hexUv + 0.5) - 0.5);
+        float cell = min(min(g1.x, g1.y), min(g2.x, g2.y));
+        float hex = smoothstep(0.02, 0.08, cell); // 0 on the lattice lines
+
+        // Energy ripple sweeping from top to bottom.
+        float ripple = sin(lat * materialParams.rippleCount -
+                           materialParams.time * materialParams.rippleSpeed);
+        ripple = 0.5 + 0.5 * ripple;
+
+        float amount = 1.8 * (fresnel * (0.3 +
+                     materialParams.hexStrength * (1.0 - hex)) +
+                     ripple * 0.18 * fresnel);
+
+        material.baseColor = vec4(
+            materialParams.baseColor.rgb * amount,
+            amount
+        );
+    }
+}

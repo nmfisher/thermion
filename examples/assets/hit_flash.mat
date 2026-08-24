@@ -1,0 +1,44 @@
+material {
+    name : HitFlash,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal
+    ],
+    parameters : [
+        { type : float4, name : flashColor },
+        { type : float,  name : progress }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : none
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.surfaceNormal.xyz = material.worldNormal;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        // Quadratic ease-out: full flash at progress=0, gone at progress=1.
+        float t = 1.0 - clamp(materialParams.progress, 0.0, 1.0);
+        float intensity = t * t;
+
+        // Rim boost: grazing-angle surfaces flash brightest, which reads
+        // as a shockwave wrapping the silhouette.
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+        vec3 viewDir = normalize(getWorldCameraPosition() - getWorldPosition().xyz);
+        float rim = pow(1.0 - abs(dot(normal, viewDir)), 2.0);
+
+        float amount = intensity * (0.35 + 0.65 * rim);
+        material.baseColor = vec4(
+            materialParams.flashColor.rgb * amount,
+            amount
+        );
+    }
+}

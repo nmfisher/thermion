@@ -28,6 +28,12 @@ import 'load_gltf.dart';
 import 'load_via_assimp.dart';
 import 'shadows.dart';
 import 'skybox_and_background.dart';
+import 'game_effects_hit_flash.dart';
+import 'game_effects_hologram.dart';
+import 'game_effects_force_field.dart';
+import 'game_effects_dissolve_burn.dart';
+import 'game_effects_water.dart';
+import 'game_effects_smoke.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
 typedef ExampleSetup = Future<void> Function(
@@ -41,6 +47,12 @@ final Map<String, ExampleSetup> registry = {
   'bone_animation': setupBoneAnimation,
   'camera_basics': setupCameraBasics,
   'custom_geometry': setupCustomGeometry,
+  'game_effects_hit_flash': setupHitFlash,
+  'game_effects_hologram': setupHologram,
+  'game_effects_force_field': setupForceField,
+  'game_effects_dissolve_burn': setupDissolveBurn,
+  'game_effects_water': setupWater,
+  'game_effects_smoke': setupSmoke,
   'geometry_primitives': setupGeometryPrimitives,
   'gizmo_basics': setupGizmoBasics,
   'gltf_animation': setupGltfAnimation,

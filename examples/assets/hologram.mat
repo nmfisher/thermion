@@ -1,0 +1,67 @@
+material {
+    name : Hologram,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal
+    ],
+    parameters : [
+        { type : float4, name : tintColor },
+        { type : float,  name : time },
+        { type : float,  name : fresnelPower },
+        { type : float,  name : fresnelStrength },
+        { type : float,  name : scanlineCount },
+        { type : float,  name : scanlineSpeed },
+        { type : float,  name : glitchAmount }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : none,
+    variantFilter : [ shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.surfaceNormal.xyz = material.worldNormal;
+        // Occasional horizontal glitch displacement: a narrow band of Y
+        // slices shifts sideways. Bands move with time.
+        float band = step(0.97, fract(material.worldPosition.y * 6.0 +
+                                     materialParams.time * 0.7));
+        material.worldPosition.x +=
+            band * materialParams.glitchAmount *
+            sin(materialParams.time * 23.0 + material.worldPosition.y * 50.0);
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = getWorldPosition().xyz;
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+
+        // Fresnel rim: edges read brighter, giving the shell-like hologram look.
+        float fresnel = pow(1.0 - abs(dot(normal, viewDir)),
+                            materialParams.fresnelPower);
+        fresnel *= materialParams.fresnelStrength;
+
+        // Horizontal scanlines sweeping upward.
+        float scan = sin(pos.y * materialParams.scanlineCount -
+                         materialParams.time * materialParams.scanlineSpeed);
+        scan = smoothstep(0.25, 1.0, scan) * 0.45;
+
+        // Subtle flicker so the projection feels unstable.
+        float flicker = 0.9 + 0.1 * sin(materialParams.time * 31.0);
+
+        float alpha = clamp((fresnel + scan + 0.12) * flicker, 0.0, 1.0) *
+                      materialParams.tintColor.a;
+
+        // Keep the tint saturated; brighten the rim without bleaching to
+        // white (tonemapping desaturates brights, so resist mixing in white).
+        vec3 color = materialParams.tintColor.rgb * (0.7 + 0.6 * fresnel);
+
+        material.baseColor = vec4(color * alpha, alpha);
+    }
+}
