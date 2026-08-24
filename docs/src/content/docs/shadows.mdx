@@ -1,0 +1,97 @@
+---
+title: Shadows
+description: Shadow mapping, shadow types, and per-light shadow options.
+---
+
+Shadows need **three things switched on** — miss any one and nothing casts:
+
+1. shadows enabled on the view,
+2. a light that **casts** shadows,
+3. a surface that **receives** shadows.
+
+```dart
+// 1) A receiver: a ground plane. There is no dedicated "ground shadow" API —
+//    shadows land on receiving geometry like any other surface.
+final ground = await viewer.createGeometry(GeometryUtils.plane(width: 10, height: 10));
+await ground.setReceiveShadows(true);
+
+// 2) A caster: a cube floating above the plane.
+final cube = await viewer.loadGltf('assets/cube.glb');
+await cube.setTransform(Matrix4.translation(Vector3(0, 0.5, 0)));
+
+// 3) A shadow-casting sun...
+await viewer.addDirectLight(
+  DirectLight.sun(castShadows: true, direction: Vector3(-1, -2, -1)),
+);
+
+// ...and the view-level switches.
+await viewer.setShadowsEnabled(true);
+await viewer.setShadowType(ShadowType.PCF);
+```
+
+The three switches live at different levels:
+
+| Level | API | Default |
+|---|---|---|
+| View | `viewer.setShadowsEnabled(true)` / `setShadowType(...)` | disabled |
+| Light | `DirectLight(castShadows:)` (sun constructor defaults to `true`) | `false` |
+| Renderable | `asset.setCastShadows(...)` / `asset.setReceiveShadows(...)` | cast on, receive on |
+
+## Shadow types
+
+```dart
+await viewer.setShadowType(ShadowType.PCF);  // percentage-closer filtering — the default choice
+await viewer.setShadowType(ShadowType.VSM);  // variance shadow maps — softer, may leak light
+await viewer.setShadowType(ShadowType.DPCF); // soft shadows, cheaper than PCSS
+await viewer.setShadowType(ShadowType.PCSS); // physically-based soft shadows
+```
+
+For DPCF/PCSS, penumbra tuning lives on the view:
+
+```dart
+await viewer.view.setSoftShadowOptions(
+  SoftShadowOptions(penumbraScale: 0.5, penumbraRatioScale: 0.5),
+);
+```
+
+## Per-light shadow options
+
+Directional (sun) lights support cascaded shadow maps, configured through
+the light manager using the entity returned by `addDirectLight`:
+
+```dart
+await FilamentApp.instance!.lightManager.setShadowOptions(
+  sunEntity,
+  ShadowOptions(
+    mapSize: 1024,
+    shadowCascades: 4,
+    cascadeSplitPositions: [0.125, 0.25, 0.50], // N-1 splits for N cascades
+    constantBias: 0.001,
+    normalBias: 0.01,
+    screenSpaceContactShadows: true,
+  ),
+);
+```
+
+Helper functions compute split positions as fractions of the shadow distance:
+
+```dart
+final lm = FilamentApp.instance!.lightManager;
+lm.computeUniformSplits(4);
+lm.computeLogSplits(4, near, far);
+lm.computePracticalSplits(4, near, far, 0.5);
+```
+
+## Troubleshooting
+
+- **Shadow acne** (striped self-shadowing): raise `constantBias`/`normalBias`
+  or increase `mapSize`.
+- **Peter-panning** (shadows detached from their casters): the biases are too
+  high — lower them.
+- **Pixelated edges**: higher `mapSize`, more cascades, or switch
+  PCF → DPCF/PCSS.
+- **Softer edges**: increase the sun's angular radius
+  (`lightManager.setSunAngularRadius`, degrees).
+
+See [Lighting](/lighting/) for creating and positioning lights, and
+[Entities](/entities/) for the ground-plane geometry used above.

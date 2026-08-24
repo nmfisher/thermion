@@ -76,7 +76,9 @@ final asset = await viewer.loadGltf('assets/cube.glb');
 A **skybox** is the background image rendered behind everything else in the scene.
 **Image-based lighting (IBL)** uses an image to determine the direction and intensity
 of ambient light. Anything added to the scene — models, lights, cameras — is an
-**entity**, and entities are placed at position `(0, 0, 0)`.
+**entity**, and entities are placed at position `(0, 0, 0)`. See
+[Entities](/entities/) for the entity model, transforms, and instancing, and
+[Lighting](/lighting/) for the full lighting API.
 
 The default camera sits at the origin looking down `-Z`, so a model placed at the
 origin starts *inside* the camera. Move the camera back to see it.
@@ -106,6 +108,10 @@ await viewer.addDirectLight(
   DirectLight.sun(direction: v.Vector3(0, -1, -1)),
 );
 ```
+
+Point lights, spot lights, color/temperature, and the light manager are
+covered in [Lighting](/lighting/); shadow-casting lights in
+[Shadows](/shadows/).
 
 ## 7. Run it
 

@@ -1,0 +1,134 @@
+---
+title: Entities
+description: The entity model, loading glTF assets, transforms, hierarchy, and instancing.
+---
+
+Everything in a Thermion scene is an **entity**: models, meshes, lights,
+cameras. A loaded glTF becomes a `ThermionAsset` whose root entity owns a
+subtree of child entities (meshes, bones, embedded lights). This page covers
+loading assets, positioning them, building hierarchies, and cleanup.
+
+## Loading glTF
+
+```dart
+final asset = await viewer.loadGltf('assets/scene.glb');
+```
+
+Useful parameters:
+
+- `addToScene` (default `true`) — add renderables to the scene immediately.
+- `initialInstances` — pre-allocate GPU instances (see
+  [instancing](#gpu-instancing) below).
+- `rebuildVertices` — rebuild vertex buffers with a superset of attributes
+  (barycentrics, unwelded vertices). Required for wireframe, flat shading,
+  and stencil highlights; costs ~3x vertex memory.
+  See [Materials & Textures](/materials/).
+- `releaseSourceData` — free the CPU-side glTF copy after loading (disables
+  creating further instances).
+
+Paths are asset-bundle paths in Flutter; use `file://` URIs to load from the
+filesystem (also the scheme used by pure-Dart applications). `.gltf` files
+resolve their resources relative to their own URI unless you pass
+`resourceUri`.
+
+## Positions and movement
+
+There is **no `setPosition`/`setRotation`/`setScale`** — every transform is a
+`Matrix4` from `package:vector_math`:
+
+```dart
+// Pure translation:
+await asset.setTransform(Matrix4.translation(Vector3(0, 1, 2)));
+
+// Position + rotation + scale composed:
+await asset.setTransform(Matrix4.compose(
+  Vector3(0, 1, 2),
+  Quaternion.fromEulerAngles(0, pi / 4, 0),
+  Vector3(1, 1, 1),
+));
+
+// Continuous spin (e.g. from a Timer or ticker):
+await asset.setTransform(Matrix4.rotationY(elapsedSeconds));
+```
+
+`setTransform` **replaces** the transform rather than accumulating — compose
+the complete matrix you want. To move relative to the current pose, read,
+mutate, and write back:
+
+```dart
+final current = await asset.getLocalTransform();
+current.translate(Vector3(0, 0.5, 0));
+await asset.setTransform(current);
+```
+
+Setting a child entity's transform (rather than the asset root) is supported
+via the `entity:` parameter. The camera is positioned separately with
+`camera.lookAt` — see [Camera Manipulation](/camera-manipulation/).
+
+## Hierarchy
+
+Parent a child entity to a parent entity and the child follows the parent:
+
+```dart
+await viewer.app.setParent(childEntity, parentEntity);
+
+// Moving the parent now carries the child:
+await parentAsset.setTransform(Matrix4.translation(Vector3(-1, 0, 0)));
+```
+
+`viewer.app.transformManager` exposes the same operations on any entity
+(`setParent`, `getParent`, `getChildren`), plus local-vs-world transforms
+(`getLocalTransform`, `getWorldTransform`) and batched edits
+(`openLocalTransformTransaction` / `commitLocalTransformTransaction`).
+
+## Querying an asset
+
+```dart
+final root = asset.entity;
+final names = await asset.getChildEntityNames();  // child entities by name
+final child = await asset.getChildEntity('Wheel'); // by name (nullable)
+final children = await asset.getChildEntities();
+final bounds = await asset.getBoundingBox();       // Aabb3
+
+await asset.transformToUnitCube(); // normalize to a 1x1x1 cube at the origin
+```
+
+:::note
+`transformToUnitCube()` reads the root entity's bounding box, which can be
+bogus when the root has no renderable component. If you know the object-space
+box, normalize through the transform manager instead:
+
+```dart
+viewer.app.transformManager.transformToUnitCube(asset.entity, knownBox);
+```
+:::
+
+## GPU instancing
+
+Efficient copies of one asset, positioned per instance:
+
+```dart
+final asset = await viewer.loadGltf('assets/rock.glb', initialInstances: 100);
+for (var i = 0; i < 100; i++) {
+  final instance = await asset.getInstance(i);
+  await instance.setTransform(Matrix4.translation(Vector3(i * 2.0, 0, 0)));
+}
+```
+
+Allocating `initialInstances` at load time is more efficient than creating
+instances later (`asset.createInstance()`), which also requires that the
+asset was not loaded with `releaseSourceData: true`.
+
+## Cleanup
+
+```dart
+await viewer.destroyAsset(asset); // destroys the asset and its instances
+await viewer.destroyAssets();     // destroys ALL renderable entities
+```
+
+`destroyAsset` does not destroy material instances you created manually —
+destroy those yourself. After `destroyAssets()`, every entity handle is
+invalid; discard all references immediately.
+
+Next: [Lighting](/lighting/), [Shadows](/shadows/), or
+[Animations](/animations/) for animating what you loaded.

@@ -1,0 +1,125 @@
+---
+title: Lighting
+description: Direct lights, image-based lighting, and backgrounds.
+---
+
+Without a light source, a Thermion scene renders black. There are two sources
+of light: **direct lights** (sun, point, spot) and **image-based lighting**
+(IBL). Most scenes combine an IBL with a skybox generated from the same
+environment plus a sun:
+
+```dart
+await viewer.loadIbl('assets/default_env_ibl.ktx');
+await viewer.loadSkybox('assets/default_env_skybox.ktx');
+await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0, -1, -1)));
+```
+
+## Direct lights
+
+Construct a [`DirectLight`](https://pub.dev/documentation/thermion_dart/latest/)
+and add it to the scene. `addDirectLight` returns the light's entity handle,
+which you need for removing or modifying it later.
+
+```dart
+// Sun / directional light. `direction` is a direction (not a position).
+final sun = await viewer.addDirectLight(
+  DirectLight.sun(
+    direction: Vector3(-0.5, -1, -0.3),
+    intensity: 100000,        // lux
+    castShadows: true,        // see the Shadows page
+  ),
+);
+
+// Point light — a world-space position with distance falloff.
+await viewer.addDirectLight(DirectLight.point(
+  position: Vector3(3.5, 2.5, 2.0),
+  intensity: 90000,           // lumens
+  falloffRadius: 8.0,
+  color: LinearColor(1.0, 0.82, 0.55), // warm key light
+));
+
+// Spot light — position, direction, and cone angles (radians).
+await viewer.addDirectLight(DirectLight.spot(
+  position: Vector3(0, 4, 0),
+  direction: Vector3(0, -1, 0),
+  spotLightConeInner: pi / 8,
+  spotLightConeOuter: pi / 4,
+));
+```
+
+Remove lights with `viewer.removeLight(entity)` (one) or
+`viewer.destroyLights()` (all).
+
+Intensity uses different physical units per light type:
+
+| Type | Unit | Constructor default |
+|---|---|---|
+| Sun / directional | lux | 100000 |
+| Point | lumens | 100000 |
+| Spot | candela | 100000 |
+
+## Modifying lights
+
+The viewer moves lights asynchronously:
+
+```dart
+await viewer.setLightPosition(lightEntity, 1.0, 2.0, 3.0);
+await viewer.setLightDirection(lightEntity, Vector3(0, -1, 0));
+```
+
+Everything else — color, intensity, falloff, cone angles — goes through the
+light manager, whose setters are synchronous:
+
+```dart
+final lm = FilamentApp.instance!.lightManager;
+
+lm.setColor(lightEntity, 1.0, 0.9, 0.8);          // linear RGB in [0, 1]
+lm.setColorTemperature(lightEntity, 6500);         // Kelvin
+lm.setIntensity(lightEntity, 120000);
+lm.setFalloff(lightEntity, 8.0);                   // point/spot
+lm.setSpotLightCone(lightEntity, pi / 8, pi / 4);
+lm.setSunAngularRadius(lightEntity, 0.545);        // degrees
+```
+
+:::note
+`color` and `colorTemperature` are alternatives — set one, not both.
+`sunAngularRadius` is in **degrees** while `spotLightConeInner/Outer` are in
+**radians**.
+:::
+
+## Image-based lighting (IBL)
+
+An IBL provides ambient and reflection lighting precomputed from a HDRI,
+usually with Filament's `cmgen` tool (which produces a matching
+`*_ibl.ktx` / `*_skybox.ktx` pair):
+
+```dart
+await viewer.loadIbl('assets/env_ibl.ktx', intensity: 30000); // default 30000
+await viewer.rotateIbl(Matrix3.rotationY(pi / 4)); // rotate the environment
+await viewer.removeIbl();
+```
+
+Only one IBL is active at a time — loading another replaces it.
+
+## Skybox and backgrounds
+
+The **skybox** is the image rendered behind everything else, and pairs
+naturally with an IBL from the same environment:
+
+```dart
+await viewer.loadSkybox('assets/env_skybox.ktx'); // .ktx cubemap
+
+// Or a solid color instead:
+final skybox = await viewer.setBackgroundColor(0.1, 0.2, 0.4, 1.0);
+await skybox.setColor(1.0, 0.0, 0.0, 1.0); // mutable afterwards
+
+// A flat image behind everything (renders behind the skybox too):
+await viewer.setBackgroundImage('assets/bg.png', fillHeight: true);
+```
+
+:::note
+`removeSkybox()` detaches the skybox but does not destroy it — the caller
+owns the returned `Skybox` (and its texture) from that point on.
+:::
+
+See the [Shadows](/shadows/) page for shadow-casting lights.

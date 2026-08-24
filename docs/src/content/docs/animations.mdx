@@ -41,11 +41,13 @@ each frame — this advances all active animations on the render thread.
 You can also scrub to a specific time with `setGltfAnimationTime(index, seconds)`.
 
 :::note
-Prefer `playGltfAnimation` + `animationManager.update(dt)` for animations that
-contain morph targets. `setGltfAnimationTime` applies morph weights
-synchronously off the render thread, which can trip Filament's backend thread
-assertion. See `examples/dart/cli_headless` for a runnable example that uses
-`animationManager.update(dt)` for exactly this reason.
+`setGltfAnimationTime` is dispatched on the render thread and is safe to use
+with morph-target animations (earlier versions applied morph weights
+synchronously off the render thread and could trip Filament's backend thread
+assertion; this was fixed when the call moved to the render thread).
+`playGltfAnimation` + `animationManager.update(dt)` remains the natural tool
+for continuous playback; use `setGltfAnimationTime` when you need to jump to
+an exact time.
 :::
 
 ## Morph targets

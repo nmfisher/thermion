@@ -1,0 +1,7 @@
+analyzer:
+  exclude:
+    # Skill reference examples are standalone programs meant to be copied into
+    # user projects (see skills/README.md) — they import thermion_dart /
+    # thermion_flutter, which are not dependencies of the repo root. They are
+    # verified separately against those packages.
+    - skills/**
