@@ -80,6 +80,10 @@ namespace thermion
         {
             _engine->destroy(bo);
         }
+        for (auto *mtb : _ownedMorphTargetBuffers)
+        {
+            _engine->destroy(mtb);
+        }
         releaseSourceData();
         _assetLoader->destroyAsset(_asset);
     }
@@ -178,6 +182,19 @@ namespace thermion
                 if (!instRi.isValid())
                     continue;
                 size_t primCount = rm.getPrimitiveCount(instRi);
+
+                // Morph-bearing entities need a full renderable rebuild rather
+                // than setGeometryAt (see rebuildVertexBuffers).
+                if (rebuildRenderableWithMorphs(instEntities[ei], bufferIndex))
+                {
+                    bufferIndex += primCount;
+                    appliedCount += primCount;
+                    // The rebuild resets the bones UBO to identity; refresh
+                    // this instance's skinning before it is next rendered.
+                    instance->getAnimator()->updateBoneMatrices();
+                    continue;
+                }
+
                 for (size_t pi = 0; pi < primCount && bufferIndex < totalBuffers; pi++)
                 {
                     // Placeholder slots (non-triangle prims, or entities
@@ -224,6 +241,7 @@ namespace thermion
     {
         const char *name;     // node name (may be null)
         const char *meshName; // mesh name (may be null)
+        const cgltf_node *node;
         const cgltf_mesh *mesh;
     };
 
@@ -234,13 +252,13 @@ namespace thermion
             const cgltf_node &node = data->nodes[i];
             if (node.mesh)
             {
-                entries.push_back({node.name, node.mesh->name, node.mesh});
+                entries.push_back({node.name, node.mesh->name, &node, node.mesh});
             }
         }
     }
 
-    // Find the cgltf_mesh for a given renderable entity by matching names.
-    static const cgltf_mesh *findMeshForEntity(
+    // Find the cgltf_node for a given renderable entity by matching names.
+    static const cgltf_node *findNodeForEntity(
         utils::Entity entity,
         utils::NameComponentManager *ncm,
         const std::vector<MeshEntry> &meshEntries)
@@ -258,14 +276,126 @@ namespace thermion
         {
             if (entry.name && strcmp(entry.name, entityName) == 0)
             {
-                return entry.mesh;
+                return entry.node;
             }
             if (entry.meshName && strcmp(entry.meshName, entityName) == 0)
             {
-                return entry.mesh;
+                return entry.node;
             }
         }
         return nullptr;
+    }
+
+    // Computes the tangent-frame quaternions for a single morph target,
+    // replicating gltfio's TangentsJob (libs/gltfio/src/TangentsJob.cpp at
+    // Filament v1.75.0): the SurfaceOrientation builder is fed the WELDED base
+    // attributes with the target's deltas added, which is exactly what gltfio
+    // uploads into its own MorphTargetBuffer. Computing on the welded data
+    // (instead of the unwelded copies) means the resulting quaternions are
+    // bit-identical to the pre-rebuild ones; the caller then duplicates them
+    // into unwelded render vertices with the same index remap used for the
+    // base attributes.
+    //
+    // Missing delta accessors are treated as zero deltas (gltfio's TangentsJob
+    // simply skips the addition in that case).
+    static void computeMorphTangentQuats(
+        const cgltf_accessor *posAccessor, const std::vector<float> &srcPositions,
+        const cgltf_accessor *nrmAccessor, const std::vector<float> &srcNormals, size_t nrmComponents,
+        const cgltf_accessor *tanAccessor, const std::vector<float> &srcTangents, size_t tanComponents,
+        const cgltf_accessor *uvAccessor, const std::vector<float> &srcUVs, size_t uvComponents,
+        const cgltf_accessor *posDeltaAccessor,
+        const cgltf_accessor *nrmDeltaAccessor,
+        const cgltf_accessor *tanDeltaAccessor,
+        const std::vector<uint32_t> &indices,
+        std::vector<filament::math::short4> &outQuats)
+    {
+        using namespace filament::math;
+        const cgltf_size vertexCount = posAccessor->count;
+        if (vertexCount == 0)
+        {
+            return;
+        }
+
+        // Add a vec3 delta accessor to a float array, element-wise.
+        auto addDeltas = [&vertexCount](std::vector<float> &values, size_t components,
+                                        const cgltf_accessor *deltaAccessor)
+        {
+            if (!deltaAccessor)
+            {
+                return;
+            }
+            const size_t deltaComponents = cgltf_num_components(deltaAccessor->type);
+            std::vector<float> deltas(deltaAccessor->count * deltaComponents);
+            cgltf_accessor_unpack_floats(deltaAccessor, deltas.data(), deltas.size());
+            const size_t count = std::min((size_t)vertexCount, (size_t)deltaAccessor->count);
+            for (size_t i = 0; i < count; i++)
+            {
+                for (size_t c = 0; c < 3 && c < components && c < deltaComponents; c++)
+                {
+                    values[i * components + c] += deltas[i * deltaComponents + c];
+                }
+            }
+        };
+
+        // Positions (always present for triangle primitives reaching here).
+        std::vector<float> morphedPositions(srcPositions);
+
+        geometry::SurfaceOrientation::Builder sob;
+        sob.vertexCount(vertexCount);
+
+        // Normals + normal deltas (only when the base mesh has normals).
+        if (nrmAccessor && nrmAccessor->type == cgltf_type_vec3)
+        {
+            std::vector<float> morphedNormals(srcNormals);
+            addDeltas(morphedNormals, nrmComponents, nrmDeltaAccessor);
+            sob.normals((float3 *)morphedNormals.data());
+        }
+
+        // Tangents (float4: xyz = tangent, w = handedness) + tangent deltas.
+        if (tanAccessor && tanComponents >= 3)
+        {
+            std::vector<float> morphedTangents(vertexCount * 4);
+            for (cgltf_size i = 0; i < vertexCount; i++)
+            {
+                morphedTangents[i * 4 + 0] = srcTangents[i * tanComponents + 0];
+                morphedTangents[i * 4 + 1] = srcTangents[i * tanComponents + 1];
+                morphedTangents[i * 4 + 2] = srcTangents[i * tanComponents + 2];
+                morphedTangents[i * 4 + 3] = (tanComponents >= 4)
+                                                 ? srcTangents[i * tanComponents + 3]
+                                                 : 1.0f;
+            }
+            addDeltas(morphedTangents, 4, tanDeltaAccessor);
+            sob.tangents((float4 *)morphedTangents.data());
+        }
+
+        // Positions + position deltas.
+        if (posAccessor->type == cgltf_type_vec3)
+        {
+            addDeltas(morphedPositions, 3, posDeltaAccessor);
+        }
+        sob.positions((float3 *)morphedPositions.data());
+
+        // Triangles from the (welded) index buffer, as in TangentsJob.
+        const size_t triangleCount = indices.size() / 3;
+        std::vector<filament::math::uint3> tris(triangleCount);
+        for (size_t t = 0; t < triangleCount; t++)
+        {
+            tris[t] = {indices[t * 3 + 0], indices[t * 3 + 1], indices[t * 3 + 2]};
+        }
+        sob.triangleCount(triangleCount);
+        sob.triangles(tris.data());
+
+        // UVs (TangentsJob only supplies them when the accessor is a matching vec2).
+        if (uvAccessor && uvAccessor->count == vertexCount &&
+            uvAccessor->type == cgltf_type_vec2 && uvComponents >= 2)
+        {
+            sob.uvs((const float2 *)srcUVs.data());
+        }
+
+        outQuats.resize(vertexCount);
+        auto *helper = sob.build();
+        helper->getQuats(outQuats.data(), vertexCount);
+        delete helper;
     }
 
     void GltfSceneAsset::rebuildVertexBuffers()
@@ -311,13 +441,14 @@ namespace thermion
             // BEFORE processing this entity's primitives
             _entityToPrimitiveOffset[utils::Entity::smuggle(entity)] = _preservedVertexBuffers.size();
 
-            const cgltf_mesh *mesh = findMeshForEntity(entity, _ncm, meshEntries);
-            if (!mesh)
+            const cgltf_node *node = findNodeForEntity(entity, _ncm, meshEntries);
+            const cgltf_mesh *mesh = nullptr;
+            if (!node)
             {
                 // Name-based matching failed — use sequential fallback.
                 if (fallbackMeshIndex < meshEntries.size())
                 {
-                    mesh = meshEntries[fallbackMeshIndex].mesh;
+                    node = meshEntries[fallbackMeshIndex].node;
                     TRACE("rebuildVertexBuffers: fallback mesh %zu for entity %zu", fallbackMeshIndex, ei);
                     fallbackMeshIndex++;
                 }
@@ -338,10 +469,27 @@ namespace thermion
                         _preservedIndexCounts.push_back(0);
                         _smoothTangentBOs.push_back(nullptr);
                         _flatTangentBOs.push_back(nullptr);
+                        _preservedMorphInfos.push_back({});
                     }
                     continue;
                 }
             }
+            mesh = node->mesh;
+
+            // Morph-target bookkeeping for this entity. glTF requires all
+            // primitives of a mesh to declare the same number of targets.
+            const cgltf_size numMorphTargets =
+                (mesh->primitives_count > 0) ? mesh->primitives[0].targets_count : 0;
+            const size_t entitySlotStart = _preservedVertexBuffers.size();
+            size_t morphingVertexCount = 0;
+            struct PrimMorphUpload
+            {
+                std::vector<float> positionDeltas;          // unwelded, comps per vertex
+                size_t positionComponents = 3;              // 3 (vec3) or 4 (vec4)
+                std::vector<filament::math::short4> tangentQuats; // unwelded, empty when not computed
+            };
+            std::vector<std::vector<PrimMorphUpload>> morphUploads;
+            std::vector<size_t> primMorphOffsets;
 
             for (cgltf_size pi = 0; pi < mesh->primitives_count; pi++)
             {
@@ -361,6 +509,7 @@ namespace thermion
                     _preservedIndexCounts.push_back(0);
                     _smoothTangentBOs.push_back(nullptr);
                     _flatTangentBOs.push_back(nullptr);
+                    _preservedMorphInfos.push_back({});
                     continue;
                 }
 
@@ -761,6 +910,108 @@ namespace thermion
                 ib->setBuffer(*_engine,
                               IndexBuffer::BufferDescriptor(newIndices, indexDataSize, FREE_CB));
 
+                // --- Unweld morph target deltas ---
+                // The unwelded renderable no longer matches the gltfio-created
+                // MorphTargetBuffer (which is sized for the welded vertex
+                // count). Collect per-target unwelded deltas here; the entity
+                // level code below uploads them into a replacement
+                // MorphTargetBuffer and rebuilds the renderable against it.
+                if (numMorphTargets > 0)
+                {
+                    primMorphOffsets.push_back(morphingVertexCount);
+                    morphingVertexCount += newVertexCount;
+
+                    std::vector<PrimMorphUpload> targetUploads;
+                    for (cgltf_size ti = 0; ti < numMorphTargets; ti++)
+                    {
+                        const cgltf_morph_target &target = prim.targets[ti];
+                        const cgltf_accessor *posDeltaAccessor = nullptr;
+                        const cgltf_accessor *nrmDeltaAccessor = nullptr;
+                        const cgltf_accessor *tanDeltaAccessor = nullptr;
+                        for (cgltf_size ai = 0; ai < target.attributes_count; ai++)
+                        {
+                            switch (target.attributes[ai].type)
+                            {
+                            case cgltf_attribute_type_position:
+                                posDeltaAccessor = target.attributes[ai].data;
+                                break;
+                            case cgltf_attribute_type_normal:
+                                nrmDeltaAccessor = target.attributes[ai].data;
+                                break;
+                            case cgltf_attribute_type_tangent:
+                                tanDeltaAccessor = target.attributes[ai].data;
+                                break;
+                            default:
+                                break;
+                            }
+                        }
+
+                        PrimMorphUpload upload;
+
+                        // POSITION deltas: duplicate each source delta into the
+                        // unwelded render vertex that references it. Missing
+                        // delta accessors are zero deltas per the glTF spec.
+                        upload.positionComponents = posDeltaAccessor
+                                                        ? cgltf_num_components(posDeltaAccessor->type)
+                                                        : 3;
+                        upload.positionDeltas.assign(newVertexCount * upload.positionComponents, 0.0f);
+                        if (posDeltaAccessor)
+                        {
+                            std::vector<float> srcDeltas(posDeltaAccessor->count *
+                                                         upload.positionComponents);
+                            cgltf_accessor_unpack_floats(posDeltaAccessor, srcDeltas.data(),
+                                                         srcDeltas.size());
+                            for (uint32_t r = 0; r < newVertexCount; r++)
+                            {
+                                const uint32_t srcIdx = indices[r];
+                                if (srcIdx >= posDeltaAccessor->count)
+                                {
+                                    continue;
+                                }
+                                for (size_t c = 0; c < upload.positionComponents; c++)
+                                {
+                                    upload.positionDeltas[r * upload.positionComponents + c] =
+                                        srcDeltas[srcIdx * upload.positionComponents + c];
+                                }
+                            }
+                        }
+
+                        // Tangent frames: replicate gltfio's gate (tangent jobs
+                        // are only created for meshes with default weights,
+                        // and per-target only when the target carries a
+                        // TANGENT delta or the material is lit), then compute
+                        // on the welded data exactly like TangentsJob before
+                        // duplicating into unwelded vertices.
+                        const bool hasTangentDelta = tanDeltaAccessor != nullptr;
+                        const bool litMaterial = prim.material && !prim.material->unlit;
+                        if (mesh->weights_count != 0 && (hasTangentDelta || litMaterial))
+                        {
+                            std::vector<filament::math::short4> srcQuats;
+                            computeMorphTangentQuats(
+                                posAccessor, srcPositions,
+                                nrmAccessor, srcNormals, nrmComponents,
+                                tanAccessor, srcTangents, tanComponents,
+                                uvAccessor, srcUVs, uvComponents,
+                                posDeltaAccessor, nrmDeltaAccessor, tanDeltaAccessor,
+                                indices, srcQuats);
+                            if (!srcQuats.empty())
+                            {
+                                upload.tangentQuats.resize(newVertexCount);
+                                for (uint32_t r = 0; r < newVertexCount; r++)
+                                {
+                                    const uint32_t srcIdx = indices[r];
+                                    upload.tangentQuats[r] =
+                                        (srcIdx < srcQuats.size()) ? srcQuats[srcIdx]
+                                                                   : filament::math::short4{0, 0, 0, 32767};
+                                }
+                            }
+                        }
+
+                        targetUploads.push_back(std::move(upload));
+                    }
+                    morphUploads.push_back(std::move(targetUploads));
+                }
+
                 // --- Replace geometry on the renderable ---
                 rm.setGeometryAt(ri, pi,
                                  RenderableManager::PrimitiveType::TRIANGLES,
@@ -769,9 +1020,76 @@ namespace thermion
                 _preservedVertexBuffers.push_back(vb);
                 _preservedIndexBuffers.push_back(ib);
                 _preservedIndexCounts.push_back(newVertexCount);
+                _preservedMorphInfos.push_back({});
 
                 TRACE("rebuildVertexBuffers: primitive %zu unwelded %zu -> %u vertices (skinned=%d)",
                       pi, indices.size(), newVertexCount, hasSkinning);
+            }
+
+            // --- Morph target replacement for this entity ---
+            if (numMorphTargets > 0)
+            {
+                // A renderable rebuild requires rebuilt geometry on every
+                // primitive (including placeholders for skipped ones), since
+                // Builder::build re-specifies the whole component. Fall back
+                // to the gltfio-built renderable (stale morph buffer) when
+                // any primitive was not rebuilt.
+                const size_t primsPushed = _preservedVertexBuffers.size() - entitySlotStart;
+                bool fullyRebuilt = primsPushed == (size_t)mesh->primitives_count;
+                for (size_t s = entitySlotStart;
+                     fullyRebuilt && s < _preservedVertexBuffers.size(); s++)
+                {
+                    fullyRebuilt = _preservedVertexBuffers[s] != nullptr;
+                }
+
+                if (fullyRebuilt)
+                {
+                    MorphTargetBuffer *mtb = MorphTargetBuffer::Builder()
+                                                 .count(numMorphTargets)
+                                                 .vertexCount(morphingVertexCount)
+                                                 .build(*_engine);
+                    _ownedMorphTargetBuffers.push_back(mtb);
+
+                    for (size_t pi = 0; pi < (size_t)mesh->primitives_count; pi++)
+                    {
+                        const size_t slot = entitySlotStart + pi;
+                        const size_t primVertexCount = _preservedIndexCounts[slot];
+                        _preservedMorphInfos[slot] = {mtb, primMorphOffsets[pi],
+                                                      (size_t)numMorphTargets, node};
+                        for (cgltf_size ti = 0; ti < numMorphTargets; ti++)
+                        {
+                            const PrimMorphUpload &upload = morphUploads[pi][ti];
+                            if (upload.positionComponents == 3)
+                            {
+                                mtb->setPositionsAt(*_engine, ti,
+                                                    (const filament::math::float3 *)upload.positionDeltas.data(),
+                                                    primVertexCount, primMorphOffsets[pi]);
+                            }
+                            else
+                            {
+                                mtb->setPositionsAt(*_engine, ti,
+                                                    (const filament::math::float4 *)upload.positionDeltas.data(),
+                                                    primVertexCount, primMorphOffsets[pi]);
+                            }
+                            if (!upload.tangentQuats.empty())
+                            {
+                                mtb->setTangentsAt(*_engine, ti,
+                                                   upload.tangentQuats.data(),
+                                                   primVertexCount, primMorphOffsets[pi]);
+                            }
+                        }
+                    }
+
+                    // Replaces the renderable component (geometry, morphing,
+                    // materials, shadows, skinning, glTF default weights).
+                    rebuildRenderableWithMorphs(entity, entitySlotStart);
+                }
+                else
+                {
+                    TRACE("rebuildVertexBuffers: entity %zu has morph targets but not all primitives "
+                          "were rebuilt — leaving gltfio renderable/morph buffer in place",
+                          ei);
+                }
             }
         }
 
@@ -795,6 +1113,18 @@ namespace thermion
                     continue;
 
                 size_t primCount = rm.getPrimitiveCount(instRi);
+
+                // Entities with a replacement morph buffer need a full
+                // renderable rebuild (Filament only attaches a
+                // MorphTargetBuffer at build time); this also re-applies the
+                // rebuilt geometry. Falls back to per-primitive
+                // setGeometryAt otherwise.
+                if (rebuildRenderableWithMorphs(instEntities[ei], bufferIndex))
+                {
+                    bufferIndex += primCount;
+                    continue;
+                }
+
                 for (size_t pi = 0; pi < primCount && bufferIndex < totalBuffers; pi++)
                 {
                     // Placeholder slots: skip — the gltfio-built geometry
@@ -815,6 +1145,118 @@ namespace thermion
         }
 
         _geometryPreserved = true;
+    }
+
+    bool GltfSceneAsset::rebuildRenderableWithMorphs(utils::Entity entity, size_t slotStart)
+    {
+        auto &rm = _engine->getRenderableManager();
+        auto ri = rm.getInstance(entity);
+        if (!ri.isValid())
+        {
+            return false;
+        }
+        const size_t primCount = rm.getPrimitiveCount(ri);
+        if (primCount == 0)
+        {
+            return false;
+        }
+        if (slotStart + primCount > _preservedVertexBuffers.size() ||
+            slotStart + primCount > _preservedMorphInfos.size())
+        {
+            return false;
+        }
+
+        // Every primitive must have both rebuilt geometry and a slot in a
+        // replacement morph buffer; a single gap means we cannot re-specify
+        // the renderable without losing the gltfio-built geometry on that
+        // primitive, so the caller falls back to setGeometryAt.
+        for (size_t pi = 0; pi < primCount; pi++)
+        {
+            const size_t slot = slotStart + pi;
+            if (!_preservedVertexBuffers[slot] || !_preservedIndexBuffers[slot])
+            {
+                return false;
+            }
+            if (!_preservedMorphInfos[slot].mtb)
+            {
+                return false;
+            }
+        }
+
+        const PreservedMorphInfo &morphInfo = _preservedMorphInfos[slotStart];
+        MorphTargetBuffer *mtb = morphInfo.mtb;
+        const cgltf_node *node = morphInfo.node;
+
+        // Capture the renderable's current state; Builder::build destroys and
+        // replaces the component, so everything gltfio set must be re-applied.
+        const Box boundingBox = rm.getAxisAlignedBoundingBox(ri);
+        const bool culling = rm.isCullingEnabled(ri);
+        const bool castShadows = rm.isShadowCaster(ri);
+        const bool receiveShadows = rm.isShadowReceiver(ri);
+        const bool screenSpaceContactShadows = rm.isScreenSpaceContactShadowsEnabled(ri);
+        const uint8_t layerMask = rm.getLayerMask(ri);
+        const uint8_t priority = rm.getPriority(ri);
+
+        RenderableManager::Builder builder(primCount);
+        for (size_t pi = 0; pi < primCount; pi++)
+        {
+            const size_t slot = slotStart + pi;
+            builder.geometry(pi,
+                             RenderableManager::PrimitiveType::TRIANGLES,
+                             _preservedVertexBuffers[slot],
+                             _preservedIndexBuffers[slot],
+                             0, _preservedIndexCounts[slot]);
+            builder.material(pi, rm.getMaterialInstanceAt(ri, pi));
+            builder.blendOrder(pi, rm.getBlendOrderAt(ri, pi));
+            builder.morphing(0, pi, _preservedMorphInfos[slot].vertexOffset);
+        }
+        for (unsigned int channel = 0; channel < 4; channel++)
+        {
+            builder.lightChannel(channel, rm.getLightChannel(ri, channel));
+        }
+        builder.boundingBox(boundingBox)
+            .culling(culling)
+            .castShadows(castShadows)
+            .receiveShadows(receiveShadows)
+            .screenSpaceContactShadows(screenSpaceContactShadows)
+            .layerMask(0xFF, layerMask)
+            .priority(priority);
+        if (node && node->skin)
+        {
+            builder.skinning(node->skin->joints_count);
+        }
+        builder.morphing(mtb);
+        builder.build(*_engine, entity);
+
+        // gltfio seeds the renderable with the glTF default weights (mesh
+        // weights overridden by node weights); the rebuild resets them to
+        // zero, so re-apply. Mirrors AssetLoader's cap at 256 weights.
+        auto newRi = rm.getInstance(entity);
+        const cgltf_mesh *mesh = node ? node->mesh : nullptr;
+        const size_t weightCount = std::min<size_t>(256, morphInfo.targetCount);
+        std::vector<float> weights(weightCount, 0.0f);
+        if (mesh)
+        {
+            const size_t c = std::min(weightCount, (size_t)mesh->weights_count);
+            for (size_t i = 0; i < c; i++)
+            {
+                weights[i] = mesh->weights[i];
+            }
+        }
+        if (node)
+        {
+            const size_t c = std::min(weightCount, (size_t)node->weights_count);
+            for (size_t i = 0; i < c; i++)
+            {
+                weights[i] = node->weights[i];
+            }
+        }
+        rm.setMorphWeights(newRi, weights.data(), weightCount);
+
+        TRACE("rebuildRenderableWithMorphs: rebuilt renderable with %zu prims, "
+              "%zu morph targets, morph vertex count from offset %zu",
+              primCount, morphInfo.targetCount, morphInfo.vertexOffset);
+        return true;
     }
 
     int GltfSceneAsset::getPrimitiveOffsetForEntity(utils::Entity entity) const
