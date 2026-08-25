@@ -1,0 +1,203 @@
+material {
+    name : ShoreWaves,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal,
+        surfacePos
+    ],
+    parameters : [
+        { type : float4, name : deepColor },
+        { type : float4, name : shallowColor },
+        { type : float4, name : skyColor },
+        { type : float4, name : foamColor },
+        { type : float3, name : sunDirection },
+        { type : float,  name : time },
+        { type : float,  name : waveHeight },
+        { type : float,  name : waveFrequency },
+        { type : float,  name : waveSpeed },
+        { type : float,  name : foamAmount },
+        { type : float,  name : detailStrength }
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending : transparent,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    // Analytic shoreline: the demo controls the scene geometry, so shore
+    // distance is a known function - no depth texture needed. `offshore`
+    // is positive on the water side and negative after crossing onto land.
+    float shoreZ(float x) {
+        return 1.2 + 0.35 * sin(x * 0.6 + 1.0) + 0.15 * sin(x * 1.7);
+    }
+
+    // Gerstner displacement with a per-vertex amplitude: swells shoal
+    // (grow) as they approach the shore, then collapse past the break.
+    vec3 swell(vec2 p, vec2 dir, float freq, float speed, float amp,
+               float steep, float t) {
+        float phase = dot(dir, p) * freq - t * speed;
+        float s = sin(phase);
+        float c = cos(phase);
+        return vec3(steep * amp * dir.x * c, amp * s, steep * amp * dir.y * c);
+    }
+
+    vec3 swellSum(vec2 p, float t, float ampScale) {
+        float h = materialParams.waveHeight * ampScale;
+        float f = materialParams.waveFrequency;
+        float sp = materialParams.waveSpeed;
+        vec3 w = swell(p, normalize(vec2( 0.12, 0.99)), f * 1.0, sp * 1.0, h * 1.00, 0.50, t);
+        w     += swell(p, normalize(vec2(-0.20, 0.98)), f * 2.3, sp * 1.35, h * 0.45, 0.40, t);
+        w     += swell(p, normalize(vec2( 0.30, 0.95)), f * 4.1, sp * 1.80, h * 0.20, 0.30, t);
+        return w;
+    }
+
+    void materialVertex(inout MaterialVertexInputs material) {
+        vec2 xz = material.worldPosition.xz;
+        float t = materialParams.time;
+        float offshore = shoreZ(xz.x) - xz.y;
+
+        // Shoaling: amplitude grows through the last few metres offshore,
+        // then collapses quickly after the waterline.
+        float shoal = 0.55 + 0.45 * (1.0 - smoothstep(0.7, 5.5, offshore));
+        float landCollapse = smoothstep(-0.75, 0.12, offshore);
+        float ampScale = shoal * landCollapse;
+
+        vec3 disp = swellSum(xz, t, ampScale);
+        // Additive displacement only - see the NOTE in smoke.mat.
+        material.worldPosition.xyz += disp;
+
+        float eps = 0.06;
+        vec3 sx = vec3(eps, 0.0, 0.0) + swellSum(xz + vec2(eps, 0.0), t, ampScale) - disp;
+        vec3 sz = vec3(0.0, 0.0, eps) + swellSum(xz + vec2(0.0, eps), t, ampScale) - disp;
+        material.surfaceNormal.xyz = normalize(cross(sz, sx));
+
+        material.surfacePos.xyz = material.worldPosition.xyz;
+        // .w channels: crest height and horizontal pinch (whitecap inputs).
+        material.surfacePos.w = clamp(disp.y / (1.65 * materialParams.waveHeight + 0.001), -1.0, 1.0);
+        material.surfaceNormal.w = clamp(1.0 - min(length(sx), length(sz)) / eps, 0.0, 1.0);
+    }
+}
+
+fragment {
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+
+    float fbm(vec2 p) {
+        float v = 0.0;
+        v += 0.5 * noise2(p);  p *= 2.03;
+        v += 0.25 * noise2(p); p *= 2.01;
+        v += 0.125 * noise2(p);
+        return v / 0.875;
+    }
+
+    vec2 fbmGrad(vec2 p, float eps) {
+        float n0 = fbm(p);
+        return vec2(fbm(p + vec2(eps, 0.0)) - n0,
+                    fbm(p + vec2(0.0, eps)) - n0) / eps;
+    }
+
+    float shoreZ(float x) {
+        return 1.2 + 0.35 * sin(x * 0.6 + 1.0) + 0.15 * sin(x * 1.7);
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = variable_surfacePos.xyz;
+        vec3 n = normalize(variable_surfaceNormal.xyz);
+        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        vec3 sun = normalize(-materialParams.sunDirection);
+        float t = materialParams.time;
+        float offshore = shoreZ(pos.x) - pos.z;
+
+        // --- detail normals for shimmer -------------------------------
+        float dist = length(getWorldCameraPosition() - pos);
+        float detailAtt = exp(-dist * 0.10) * materialParams.detailStrength;
+        vec2 g1 = fbmGrad(pos.xz * 1.1 + vec2(t * 0.10, t * 0.16), 0.30);
+        vec2 g2 = fbmGrad(pos.xz * 4.2 - vec2(t * 0.22, t * 0.31), 0.15);
+        vec3 nD = normalize(
+            n + vec3(g1.x, 0.0, g1.y) * 0.45 * detailAtt
+              + vec3(g2.x, 0.0, g2.y) * 0.40 * detailAtt);
+
+        // --- body color: deep offshore, turquoise shallows -------------
+        float shallowMix = 1.0 - smoothstep(0.2, 2.8, offshore);
+        float ndv = max(dot(nD, viewDir), 0.0);
+        float fresnel = 0.03 + 0.97 * pow(1.0 - ndv, 3.5);
+        vec3 color = mix(materialParams.deepColor.rgb,
+                         materialParams.shallowColor.rgb, shallowMix);
+        color = mix(color, materialParams.skyColor.rgb, fresnel * (1.0 - shallowMix * 0.35));
+        color *= 0.80 + 0.28 * clamp(dot(nD, sun), 0.0, 1.0);
+
+        // Sun glitter toward the shore.
+        vec3 halfDir = normalize(viewDir + sun);
+        float ndh = max(dot(nD, halfDir), 0.0);
+        float sparkle = pow(ndh, 480.0) * (0.35 + 0.65 * clamp(2.0 * fresnel, 0.0, 1.0));
+        color += vec3(1.0, 0.9, 0.7) * (pow(ndh, 90.0) * 0.20 + sparkle) * 2.0;
+
+        // --- foam --------------------------------------------------------
+        // (a) whitecaps on shoaling crests (pinch + height)
+        float crest = clamp(variable_surfacePos.w, 0.0, 1.0);
+        float chop = clamp(variable_surfaceNormal.w, 0.0, 1.0);
+        float foamNoise = fbm(pos.xz * 2.6 + vec2(t * 0.14, t * 0.20));
+        float crestFoam = smoothstep(0.40, 0.76,
+            clamp(crest * 1.15 + chop * 2.25 - 0.28, 0.0, 1.0) *
+            (0.24 + 0.95 * foamNoise * foamNoise));
+        crestFoam *= 1.0 - smoothstep(1.2, 3.8, offshore);
+
+        // (b) the breaking line: a band around the shoreline, pulsing
+        // with swell arrival, textured anisotropically ALONG the shore.
+        float dr_4588 = offshore / 0.38;
+        float breakBand = exp(-dr_4588 * dr_4588);
+        // Pulse crest travels TOWARD the shore (depth decreasing) with an
+        // along-shore phase wobble so the break line advances unevenly.
+        float pulse = 0.5 + 0.5 * sin(t * 3.0 + offshore * 2.8 +
+                                       0.8 * sin(pos.x * 0.45));
+        float shoreN = fbm(vec2(pos.x * 1.1, pos.z * 5.5) +
+                           vec2(t * 0.15, t * 0.5));
+        float breaker = breakBand *
+            (0.08 + 0.92 * smoothstep(0.42, 0.82, pulse)) *
+            (0.22 + 1.05 * shoreN) *
+            (0.48 + 0.72 * noise2(vec2(pos.x * 4.5, pos.z * 16.0) +
+                                  vec2(0.0, t * 1.4)));
+
+        // A second, lower breaker approaches behind the main swash. The
+        // offset varies along shore so it forms fingers and curls rather
+        // than a parallel procedural stripe.
+        float incomingC = 0.92 + 0.18 * sin(t * 1.25 + pos.x * 0.38);
+        float drIncoming = (offshore - incomingC) / 0.24;
+        float incoming = exp(-drIncoming * drIncoming) *
+                         (0.2 + 0.8 * shoreN) *
+                         (0.35 + 0.65 * smoothstep(0.1, 0.9, pulse)) * 0.52;
+
+        // (c) faint wash residue further up the sand.
+        float dr_1914 = ((offshore + 0.55) / 0.32);
+        float wash = exp(-dr_1914 * dr_1914) *
+                     0.18 * (0.4 + 0.6 * shoreN);
+
+        float foam = clamp(max(max(crestFoam, breaker), incoming) + wash,
+                           0.0, 1.0) *
+                     materialParams.foamAmount;
+        vec3 nShaded = normalize(mix(nD, vec3(0.0, 1.0, 0.0), foam * 0.8));
+        color = mix(color, materialParams.foamColor.rgb, foam * 0.92);
+
+        // Water melts into the sand past the shoreline.
+        float shoreFade = smoothstep(-0.75, 0.15,
+                                     offshore + 0.22 * (shoreN - 0.5));
+        float alpha = 0.92 * materialParams.deepColor.a;
+        alpha = max(alpha, foam) * shoreFade;
+
+        material.baseColor = vec4(color, alpha);
+    }
+}

@@ -1,0 +1,49 @@
+material {
+    name : DamageDecals,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time } ],
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+vertex { void materialVertex(inout MaterialVertexInputs material) { material.objectPos.xyz=getPosition().xyz; } }
+fragment {
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float impact(vec2 p, vec2 c, float born, inout vec3 color) {
+        vec2 q=p-c; float r=length(q), a=atan(q.y,q.x);
+        float age=clamp((materialParams.time-born)*2.4,0.0,1.0);
+        float shape=r*(1.0+.045*sin(a*7.0+hash(c)*6.0)+.025*sin(a*13.0));
+        float hole=1.0-smoothstep(.035,.105,shape);
+        float bevel=smoothstep(.055,.09,shape)*(1.0-smoothstep(.105,.15,shape));
+        float scorch=(1.0-smoothstep(.10,.34,shape))*smoothstep(.065,.13,shape);
+        float cracks=0.0;
+        for(int i=0;i<9;i++){
+            float fi=float(i); float ang=fi*.698+hash(c+fi)*.42;
+            float line=abs(sin(a-ang));
+            float broken=step(.42,hash(vec2(floor(r*28.0),fi)+c*9.0));
+            cracks=max(cracks,(1.0-smoothstep(.0,.011,line))*smoothstep(.09,.14,r)*(1.0-smoothstep(.16,.44,r+hash(c+fi)*.14))*broken);
+        }
+        float fresh=exp(-max(materialParams.time-born,0.0)*2.3);
+        float sideLight=.25+.75*max(dot(normalize(q+vec2(.0001)),normalize(vec2(-.55,.83))),0.0);
+        color=mix(color,vec3(.001,.0005,.0003),max(hole,scorch*.62)*age);
+        color+=vec3(.36,.075,.006)*bevel*fresh*age*sideLight;
+        color=mix(color,vec3(.003,.0015,.001),cracks*age);
+        color+=vec3(.42,.07,.004)*bevel*fresh*age*.42;
+        return max(max(hole,scorch),cracks)*age;
+    }
+    void material(inout MaterialInputs material){
+        prepareMaterial(material);
+        vec2 p=variable_objectPos.xz;
+        float grain=hash(floor(p*75.0));
+        vec3 color=mix(vec3(.012,.014,.017),vec3(.026,.021,.016),grain*.3);
+        float d=0.0;
+        d=max(d,impact(p,vec2(-.78,.38),.1,color));
+        d=max(d,impact(p,vec2(.22,.52),.72,color));
+        d=max(d,impact(p,vec2(.68,-.16),1.34,color));
+        d=max(d,impact(p,vec2(-.28,-.48),1.96,color));
+        float vignette=smoothstep(2.1,.4,length(p));
+        color*=.62+.38*vignette;
+        material.baseColor=vec4(color,1.0);
+    }
+}

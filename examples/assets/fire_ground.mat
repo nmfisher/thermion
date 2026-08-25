@@ -1,0 +1,44 @@
+material {
+    name : FireGround,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time } ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPos.xyz = getPosition().xyz;
+    }
+}
+
+fragment {
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec2 p = variable_objectPos.xz * 2.0;
+        float r = length(p);
+        if (r > 1.0) {
+            discard;
+        }
+        float a = atan(p.y, p.x);
+        float pulse = 0.82 + 0.18 * sin(materialParams.time * 4.3);
+        float radial = pow(max(1.0 - r, 0.0), 2.2);
+        float coal = step(0.77, hash(floor(p * 13.0))) *
+                     smoothstep(0.95, 0.15, r);
+        float cracks = pow(abs(sin(a * 7.0 + r * 18.0)), 22.0) *
+                       smoothstep(0.95, 0.12, r);
+        vec3 color = mix(vec3(0.95, 0.025, 0.0),
+                         vec3(1.0, 0.32, 0.015), radial);
+        float amount = (radial * 0.72 + coal * 0.55 + cracks * 0.24) * pulse;
+        material.baseColor = vec4(color * amount * 0.032, 1.0);
+    }
+}
