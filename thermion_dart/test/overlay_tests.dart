@@ -222,21 +222,33 @@ void main() async {
     }, postProcessing: true);
   });
 
-  test('setStencilHighlight and setFlatShading throw without rebuildVertices', () async {
+  test('setStencilHighlight and setFlatShading throw without unwelded vertex buffers', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
 
       // Outlining and flat shading both need the preserved (rebuilt) vertex
-      // buffers — without rebuildVertices these used to silently do nothing;
+      // buffers — without unwelded mode these used to silently do nothing;
       // they must now throw with an actionable message.
       await viewer.view.setHighlightOverlayEnabled(true);
       expect(
         () => viewer.view.setStencilHighlight(cube),
-        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('rebuildVertices: true'))),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('vertexBufferMode: VertexBufferMode.unwelded'),
+          ),
+        ),
       );
       expect(
         () => cube.setFlatShading(true),
-        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('rebuildVertices: true'))),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('vertexBufferMode: VertexBufferMode.unwelded'),
+          ),
+        ),
       );
     });
   });

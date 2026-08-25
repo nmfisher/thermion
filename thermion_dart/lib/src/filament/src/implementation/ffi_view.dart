@@ -580,11 +580,11 @@ class FFIView extends View<Pointer<TView>> {
 
     // Misuse check: highlighting needs the preserved (rebuilt) vertex
     // buffers, which only exist when the glTF was loaded with
-    // rebuildVertices: true. Throw rather than silently doing nothing.
+    // vertexBufferMode: VertexBufferMode.unwelded. Throw rather than silently doing nothing.
     if (ffiGeoAsset.getVertexBuffer() == null) {
       throw Exception(
         "setStencilHighlight: asset has no preserved geometry. "
-        "Load it with loadGltf(..., rebuildVertices: true).",
+        "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
       );
     }
 

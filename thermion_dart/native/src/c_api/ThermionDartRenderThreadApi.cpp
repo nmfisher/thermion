@@ -985,14 +985,16 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
-      bool rebuildVertices,
+      TVertexBufferMode vertexBufferMode,
       void (*onComplete)(TSceneAsset *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(
+              tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset,
+              vertexBufferMode);
 
           setOwner(sceneAsset, rt);          PROXY(onComplete(sceneAsset));
         });

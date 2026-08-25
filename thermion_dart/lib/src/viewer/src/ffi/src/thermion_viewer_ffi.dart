@@ -516,7 +516,7 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    bool rebuildVertices = false,
+    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
     String? resourceUri,
     bool loadAsync = false,
   }) async {
@@ -536,7 +536,7 @@ class ThermionViewerFFI extends ThermionViewer {
       addToScene: addToScene,
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
-      rebuildVertices: rebuildVertices,
+      vertexBufferMode: vertexBufferMode,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );
@@ -549,7 +549,7 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    bool rebuildVertices = false,
+    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
@@ -557,7 +557,7 @@ class ThermionViewerFFI extends ThermionViewer {
       data,
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
-      rebuildVertices: rebuildVertices,
+      vertexBufferMode: vertexBufferMode,
       loadResourcesAsync: loadResourcesAsync,
       resourceUri: resourceUri,
     );

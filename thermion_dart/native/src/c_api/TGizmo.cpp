@@ -67,7 +67,7 @@ namespace thermion
                 tAssetLoader,
                 tNameComponentManager,
                 tFilamentAsset,
-                false);
+                VERTEX_BUFFER_MODE_ORIGINAL);
 
             auto *gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(sceneAsset);
 

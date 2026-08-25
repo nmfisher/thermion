@@ -23,7 +23,7 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        bool rebuildVertices
+        enum TVertexBufferMode vertexBufferMode
     );
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE enum TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset);
@@ -53,4 +53,3 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-

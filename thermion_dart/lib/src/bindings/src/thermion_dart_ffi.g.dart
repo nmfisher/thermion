@@ -633,7 +633,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
     ffi.Pointer<TGltfAssetLoader>,
     ffi.Pointer<TNameComponentManager>,
     ffi.Pointer<TFilamentAsset>,
-    ffi.Bool,
+    ffi.UnsignedInt,
   )
 >(isLeaf: true)
 external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
@@ -641,7 +641,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
+  int vertexBufferMode,
 );
 
 @ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
@@ -2695,7 +2695,7 @@ external void SceneAsset_destroyRenderThread(
     ffi.Pointer<TGltfAssetLoader>,
     ffi.Pointer<TNameComponentManager>,
     ffi.Pointer<TFilamentAsset>,
-    ffi.Bool,
+    ffi.UnsignedInt,
     ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>,
   )
 >(isLeaf: true)
@@ -2704,7 +2704,7 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
+  int vertexBufferMode,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>> onComplete,
 );
 
@@ -4899,6 +4899,12 @@ sealed class TSceneAssetType {
   static const SCENE_ASSET_TYPE_IBL = 4;
   static const SCENE_ASSET_TYPE_IMAGE = 5;
   static const SCENE_ASSET_TYPE_GIZMO = 6;
+}
+
+sealed class TVertexBufferMode {
+  static const VERTEX_BUFFER_MODE_ORIGINAL = 0;
+  static const VERTEX_BUFFER_MODE_UNWELDED = 1;
+  static const VERTEX_BUFFER_MODE_EDITABLE = 2;
 }
 
 sealed class TFeatureLevel {

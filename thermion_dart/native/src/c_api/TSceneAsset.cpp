@@ -70,7 +70,7 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        bool rebuildVertices
+        TVertexBufferMode vertexBufferMode
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -82,7 +82,7 @@ extern "C"
             assetLoader,
             engine,
             nameComponentManager,
-            rebuildVertices
+            vertexBufferMode
         );
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);

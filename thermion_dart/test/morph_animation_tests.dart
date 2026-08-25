@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
@@ -45,6 +47,44 @@ void main() async {
 
         await expectLater(morphTargets.setWeight("Missing", 1.0), throwsArgumentError);
         await expectLater(morphTargets.setAllWeights([]), throwsArgumentError);
+      },
+      bg: kRed,
+      cameraPosition: Vector3(3, 2, 6),
+    );
+  });
+
+  test('editable vertices preserve source topology and morph animation', () async {
+    await testHelper.withViewer(
+      (viewer) async {
+        final path = '${testHelper.assetsDir}/cube_with_morph_targets.glb';
+        final source = await FilamentApp.instance!.parseGltf(await File(path).readAsBytes());
+
+        Future<({Uint8List rest, Uint8List morphed})> capture(ThermionAsset asset) async {
+          final targets = (await asset.getMorphTargetSets()).single;
+          await targets.setAllWeights([0.0]);
+          final rest = (await testHelper.capture(viewer.view, null)).values.single;
+          await targets.setAllWeights([1.0]);
+          final morphed = (await testHelper.capture(viewer.view, null)).values.single;
+          return (rest: rest, morphed: morphed);
+        }
+
+        final original = await viewer.loadGltf(path);
+        final originalPose = await capture(original);
+        await viewer.destroyAsset(original);
+
+        final editable = await viewer.loadGltf(path, vertexBufferMode: VertexBufferMode.editable);
+        expect(editable.getVertexBuffer()!.getVertexCount(), source.vertices.length ~/ 3);
+        final editablePose = await capture(editable);
+
+        expect(
+          _meanAbsoluteDifference(editablePose.rest, editablePose.morphed),
+          greaterThan(0.005),
+          reason: 'morph weights must still deform editable geometry',
+        );
+        expect(_meanAbsoluteDifference(originalPose.rest, editablePose.rest), lessThan(0.02));
+        expect(_meanAbsoluteDifference(originalPose.morphed, editablePose.morphed), lessThan(0.02));
+
+        await viewer.destroyAsset(editable);
       },
       bg: kRed,
       cameraPosition: Vector3(3, 2, 6),
