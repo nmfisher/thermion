@@ -917,20 +917,39 @@ final class _FFIMorphTargetSet implements MorphTargetSet {
   final List<MorphTarget> targets;
 
   final RenderableManager _renderableManager;
+  late final Map<String, MorphTarget> _targetsByName;
+  late final Set<String> _duplicateNames;
 
   _FFIMorphTargetSet(this.entity, List<MorphTarget> targets, this._renderableManager)
-    : targets = List.unmodifiable(targets);
+    : targets = List.unmodifiable(targets) {
+    final targetsByName = <String, MorphTarget>{};
+    final duplicateNames = <String>{};
+    for (final target in targets) {
+      final name = target.name;
+      if (name == null) {
+        continue;
+      }
+      if (targetsByName.containsKey(name)) {
+        duplicateNames.add(name);
+      } else {
+        targetsByName[name] = target;
+      }
+    }
+    _targetsByName = Map.unmodifiable(targetsByName);
+    _duplicateNames = Set.unmodifiable(duplicateNames);
+  }
 
   @override
-  Future<void> setWeight(String name, double weight) => setWeights({name: weight});
+  Future<void> setWeight(String name, double weight) async {
+    _validateWeight(weight, 'weight');
+    await _renderableManager.setMorphWeightAt(entity, _targetNamed(name).index, weight);
+  }
 
   @override
   Future<void> setWeights(Map<String, double> weights) async {
     final updates = <(MorphTarget, double)>[];
     for (final entry in weights.entries) {
-      if (!entry.value.isFinite) {
-        throw ArgumentError.value(entry.value, entry.key, 'Morph weights must be finite');
-      }
+      _validateWeight(entry.value, 'weights["${entry.key}"]');
       updates.add((_targetNamed(entry.key), entry.value));
     }
 
@@ -950,13 +969,19 @@ final class _FFIMorphTargetSet implements MorphTargetSet {
   }
 
   MorphTarget _targetNamed(String name) {
-    final matches = targets.where((target) => target.name == name).toList();
-    if (matches.isEmpty) {
-      throw ArgumentError.value(name, 'name', 'No morph target has this name');
-    }
-    if (matches.length > 1) {
+    if (_duplicateNames.contains(name)) {
       throw StateError('Morph target name "$name" is not unique; use setWeightAt instead');
     }
-    return matches.single;
+    final target = _targetsByName[name];
+    if (target == null) {
+      throw ArgumentError.value(name, 'name', 'No morph target has this name');
+    }
+    return target;
+  }
+
+  void _validateWeight(double weight, String argumentName) {
+    if (!weight.isFinite) {
+      throw ArgumentError.value(weight, argumentName, 'Morph weights must be finite');
+    }
   }
 }
