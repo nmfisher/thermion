@@ -386,34 +386,44 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     await _app.renderableManager.setVisibilityLayer(entity, layer.value);
   }
 
-  //
   @override
-  Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) async {
-    if (weights.isEmpty) {
-      throw Exception("Weights must not be empty");
+  Future<MorphTargetSet> getMorphTargets(ThermionEntity entity) async {
+    if (entity != this.entity && !await containsChild(entity)) {
+      throw ArgumentError.value(entity, 'entity', 'Entity does not belong to this asset');
     }
-
-    final success = await _app.animationManager.setMorphTargetWeights(entity, weights);
-    if (!success) {
-      throw Exception("Failed to set morph target weights, check logs for details");
+    if (!_app.renderableManager.isRenderable(entity)) {
+      throw ArgumentError.value(entity, 'entity', 'Entity is not renderable');
     }
+    return _createMorphTargetSet(entity);
   }
 
-  //
   @override
-  Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) async {
-    entity ??= this.entity;
-
-    var names = <String>[];
-    var count = _app.animationManager.getMorphTargetNameCount(this, entity);
-
-    for (int i = 0; i < count; i++) {
-      final name = _app.animationManager.getMorphTargetName(this, entity, i);
-      if (name != null) {
-        names.add(name);
+  Future<List<MorphTargetSet>> getMorphTargetSets() async {
+    final result = <MorphTargetSet>[];
+    for (final candidate in [entity, ...await getChildEntities()]) {
+      if (_app.renderableManager.isRenderable(candidate) && _app.renderableManager.getMorphTargetCount(candidate) > 0) {
+        result.add(_createMorphTargetSet(candidate));
       }
     }
-    return names;
+    return result;
+  }
+
+  MorphTargetSet _createMorphTargetSet(ThermionEntity entity) {
+    final targetCount = _app.renderableManager.getMorphTargetCount(entity);
+    var nameCount = 0;
+    if (type == SceneAssetType.gltf) {
+      nameCount = _app.animationManager.getMorphTargetNameCount(this, entity);
+    }
+
+    final targets = <MorphTarget>[];
+    for (var i = 0; i < targetCount; i++) {
+      String? name;
+      if (i < nameCount) {
+        name = _app.animationManager.getMorphTargetName(this, entity, i);
+      }
+      targets.add(MorphTarget(index: i, name: name));
+    }
+    return _FFIMorphTargetSet(entity, targets, _app.renderableManager);
   }
 
   //
@@ -526,7 +536,18 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         continue;
       }
 
-      var meshMorphTargets = await getMorphTargetNames(entity: meshEntity);
+      final morphTargetSet = await getMorphTargets(meshEntity);
+      final targetsByName = <String, MorphTarget>{};
+      for (final target in morphTargetSet.targets) {
+        final name = target.name;
+        if (name != null) {
+          if (targetsByName.containsKey(name)) {
+            throw StateError('Morph target name "$name" is not unique on entity $meshEntity');
+          }
+          targetsByName[name] = target;
+        }
+      }
+      final meshMorphTargets = targetsByName.keys.toList();
 
       var intersection = animation.morphTargets.toSet().intersection(meshMorphTargets.toSet()).toList();
 
@@ -538,7 +559,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
             Child entities: ${childNames}""");
       }
 
-      var indices = Uint32List.fromList(intersection.map((m) => meshMorphTargets.indexOf(m)).toList());
+      var indices = Uint32List.fromList(intersection.map((name) => targetsByName[name]!.index).toList());
 
       // var frameData = animation.data;
       var frameData = animation.subset(intersection);
@@ -885,5 +906,82 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
       return null;
     }
     return FFIVertexBuffer(vbPtr, _app.engine);
+  }
+}
+
+final class _FFIMorphTargetSet implements MorphTargetSet {
+  @override
+  final ThermionEntity entity;
+
+  @override
+  final List<MorphTarget> targets;
+
+  final RenderableManager _renderableManager;
+  late final Map<String, MorphTarget> _targetsByName;
+  late final Set<String> _duplicateNames;
+
+  _FFIMorphTargetSet(this.entity, List<MorphTarget> targets, this._renderableManager)
+    : targets = List.unmodifiable(targets) {
+    final targetsByName = <String, MorphTarget>{};
+    final duplicateNames = <String>{};
+    for (final target in targets) {
+      final name = target.name;
+      if (name == null) {
+        continue;
+      }
+      if (targetsByName.containsKey(name)) {
+        duplicateNames.add(name);
+      } else {
+        targetsByName[name] = target;
+      }
+    }
+    _targetsByName = Map.unmodifiable(targetsByName);
+    _duplicateNames = Set.unmodifiable(duplicateNames);
+  }
+
+  @override
+  Future<void> setWeight(String name, double weight) async {
+    _validateWeight(weight, 'weight');
+    await _renderableManager.setMorphWeightAt(entity, _targetNamed(name).index, weight);
+  }
+
+  @override
+  Future<void> setWeights(Map<String, double> weights) async {
+    final updates = <(MorphTarget, double)>[];
+    for (final entry in weights.entries) {
+      _validateWeight(entry.value, 'weights["${entry.key}"]');
+      updates.add((_targetNamed(entry.key), entry.value));
+    }
+
+    for (final (target, weight) in updates) {
+      await _renderableManager.setMorphWeightAt(entity, target.index, weight);
+    }
+  }
+
+  @override
+  Future<void> setWeightAt(int index, double weight) {
+    return _renderableManager.setMorphWeightAt(entity, index, weight);
+  }
+
+  @override
+  Future<void> setAllWeights(List<double> weights) {
+    return _renderableManager.setMorphWeights(entity, weights);
+  }
+
+  MorphTarget _targetNamed(String name) {
+    if (_duplicateNames.contains(name)) {
+      throw StateError('Morph target name "$name" is not unique; use setWeightAt instead');
+    }
+    final target = _targetsByName[name];
+    if (target == null) {
+      throw ArgumentError.value(name, 'name', 'No morph target has this name');
+    }
+    return target;
+  }
+
+  void _validateWeight(double weight, String argumentName) {
+    if (!weight.isFinite) {
+      throw ArgumentError.value(weight, argumentName, 'Morph weights must be finite');
+    }
   }
 }

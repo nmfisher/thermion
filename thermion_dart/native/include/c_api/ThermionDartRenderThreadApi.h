@@ -480,6 +480,16 @@ namespace thermion
             VoidCallback onComplete
         );
 
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeightsRenderThread(
+            TRenderableManager *tRenderableManager,
+            EntityId entityId,
+            const float *weights,
+            size_t count,
+            size_t offset,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setBonesFromMat4RenderThread(
             TRenderableManager *tRenderableManager,
             EntityId entityId,

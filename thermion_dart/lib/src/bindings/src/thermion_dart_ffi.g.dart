@@ -3560,6 +3560,27 @@ external void RenderableManager_destroyEntityRenderThread(
     VoidCallback,
   )
 >(isLeaf: true)
+external void RenderableManager_setMorphWeightsRenderThread(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> weights,
+  int count,
+  int offset,
+  int requestId,
+  VoidCallback onComplete,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<TRenderableManager>,
+    EntityId,
+    ffi.Pointer<ffi.Float>,
+    ffi.Size,
+    ffi.Size,
+    ffi.Uint32,
+    VoidCallback,
+  )
+>(isLeaf: true)
 external void RenderableManager_setBonesFromMat4RenderThread(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,

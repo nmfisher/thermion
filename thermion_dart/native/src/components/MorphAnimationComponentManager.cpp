@@ -39,15 +39,18 @@ namespace thermion
 
             TRACE("Component has %d morph animations", animations.size());
 
-            for (int i = (int)animations.size() - 1; i >= 0; i--)
+            // Apply animations in insertion order. If multiple animations
+            // target the same morph, the most recently added animation is
+            // applied last and therefore has priority.
+            for (size_t animationIndex = 0; animationIndex < animations.size();)
             {
-
-                auto &animation = animationComponent.animations[i];
+                auto &animation = animations[animationIndex];
 
                 // Initialize start time on first use
                 if (animation.startTimeInNanos == 0)
                 {
                     animation.startTimeInNanos = frameTimeInNanos;
+                    animationIndex++;
                     continue;
                 }
 
@@ -57,8 +60,8 @@ namespace thermion
 
                 if (!animation.loop && animationTargetTime >= animation.durationInSecs)
                 {
-                    animations.erase(animations.begin() + i);
-                    TRACE("Animation %d completed", i);
+                    animations.erase(animations.begin() + animationIndex);
+                    TRACE("Animation %zu completed", animationIndex);
                     continue;
                 }
 
@@ -67,21 +70,22 @@ namespace thermion
                 // offset from the end if reverse
                 if (animation.reverse)
                 {
-                    frameNumber = animation.lengthInFrames - frameNumber;
+                    frameNumber = animation.lengthInFrames - 1 - frameNumber;
                 }
 
                 auto baseOffset = frameNumber * animation.morphIndices.size();
-                for (int i = 0; i < animation.morphIndices.size(); i++)
+                for (size_t targetIndex = 0; targetIndex < animation.morphIndices.size(); targetIndex++)
                 {
-                    auto morphIndex = animation.morphIndices[i];
+                    auto morphIndex = animation.morphIndices[targetIndex];
                     auto renderableInstance = mRenderableManager.getInstance(entity);
 
                     mRenderableManager.setMorphWeights(
                         renderableInstance,
-                        animation.frameData.data() + baseOffset + i,
+                        animation.frameData.data() + baseOffset + targetIndex,
                         1,
                         morphIndex);
                 }
+                animationIndex++;
             }
         }
     }

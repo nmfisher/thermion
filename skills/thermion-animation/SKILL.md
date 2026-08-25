@@ -94,31 +94,25 @@ call.
 ## Morph targets (blend shapes)
 
 ```dart
-// Morph targets live on child (renderable) entities, NOT the asset root.
-final children = await asset.getChildEntities();
+// Discover every renderable entity with morph targets. Each set exposes the
+// exact target order as well as optional glTF names.
+final morphs = (await asset.getMorphTargetSets()).single;
+// e.g. MorphTarget(index: 0, name: "Open")
 
-ThermionEntity morphEntity = children.first;
-for (final child in children) {
-  final names = await asset.getMorphTargetNames(entity: child);
-  if (names.isNotEmpty) {
-    morphEntity = child;
-    break;
-  }
-}
+await morphs.setWeight("Open", 1.0); // leaves other targets unchanged
+await morphs.setWeightAt(1, 0.5);    // works for unnamed targets
 
-final names = await asset.getMorphTargetNames(entity: morphEntity);
-// e.g. ["Open", "Close"]
-
-// setMorphTargetWeights takes ALL weights at once — inactive targets get 0.
-final weights = List<double>.filled(names.length, 0.0);
-weights[0] = 1.0; // fully apply "Open"
-await asset.setMorphTargetWeights(morphEntity, weights);
+// Full-pose updates require exactly one value per target, in target order.
+await morphs.setAllWeights(List.filled(morphs.targets.length, 0.0));
 ```
 
 Keyframed morph animation: build a `MorphAnimationData` and
 `await asset.setMorphAnimationData(data, targetMeshNames: [...])`;
-clear with `asset.clearMorphAnimationData(entity)`. Weight changes only show
-once animation frames tick (`update` as above).
+clear with `asset.clearMorphAnimationData(entity)`. Active animations overwrite
+manual weights on their next tick; clear the custom animation before taking
+persistent manual control. When custom animations overlap, the most recently
+added animation has priority. Weight changes only show once animation frames
+tick (`update` as above).
 
 ## Bones / skeletal
 

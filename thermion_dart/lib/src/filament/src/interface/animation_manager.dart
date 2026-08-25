@@ -99,13 +99,6 @@ abstract class AnimationManager<T> extends NativeHandle<T> {
   // Returns the animation name, or null if not found
   String? getGltfAnimationName(ThermionAsset asset, int index);
 
-  // Sets morph target weights for an entity.
-  //
-  // [entityId] The entity to set weights for
-  // [weights] List of morph target weights (0.0 to 1.0)
-  // Returns true if successful, false otherwise
-  Future<bool> setMorphTargetWeights(ThermionEntity entityId, List<double> weights);
-
   // Sets up a morph animation with keyframe data.
   //
   // [entityId] The entity to animate

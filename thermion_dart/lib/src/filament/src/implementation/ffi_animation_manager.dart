@@ -150,34 +150,6 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
   }
 
   @override
-  Future<bool> setMorphTargetWeights(ThermionEntity entityId, List<double> weights) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    final weightsPtr = makeFloat32List(weights.length);
-    weightsPtr.setRange(0, weights.length, weights);
-
-    try {
-      return await withBoolCallback(
-        (cb) => AnimationManager_setMorphTargetWeightsRenderThread(
-          animationManager,
-          entityId,
-          weightsPtr.address,
-          weights.length,
-          cb,
-        ),
-      );
-    } finally {
-      weightsPtr.free();
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
-      }
-    }
-  }
-
-  @override
   bool setMorphAnimation(
     ThermionEntity entityId,
     List<double> morphData,
@@ -186,6 +158,31 @@ class FFIAnimationManager extends AnimationManager<Pointer<TAnimationManager>> {
     int numFrames,
     double frameLengthInMs,
   ) {
+    if (numMorphTargets <= 0) {
+      throw RangeError.range(numMorphTargets, 1, null, 'numMorphTargets');
+    }
+    if (numFrames <= 0) {
+      throw RangeError.range(numFrames, 1, null, 'numFrames');
+    }
+    if (!frameLengthInMs.isFinite || frameLengthInMs <= 0) {
+      throw ArgumentError.value(frameLengthInMs, 'frameLengthInMs', 'Must be finite and greater than zero');
+    }
+    if (morphIndices.length != numMorphTargets) {
+      throw ArgumentError.value(
+        morphIndices.length,
+        'morphIndices.length',
+        'Must equal numMorphTargets ($numMorphTargets)',
+      );
+    }
+    final expectedValues = numFrames * numMorphTargets;
+    if (morphData.length != expectedValues) {
+      throw ArgumentError.value(
+        morphData.length,
+        'morphData.length',
+        'Must equal numFrames * numMorphTargets ($expectedValues)',
+      );
+    }
+
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();

@@ -456,9 +456,26 @@ void main() async {
         final morphCount = renderableManager.getMorphTargetCount(cube.entity);
         expect(morphCount, equals(0));
 
-        // Try setting morph weights (should handle gracefully with no morph
-        // targets)
-        await renderableManager.setMorphWeights(cube.entity, [0.5, 0.5], 2);
+        // A complete pose for a renderable with no targets is an empty list.
+        await renderableManager.setMorphWeights(cube.entity, []);
+
+        await expectLater(renderableManager.setMorphWeights(cube.entity, [0.5]), throwsArgumentError);
+        await expectLater(renderableManager.setMorphWeightAt(cube.entity, 0, 0.5), throwsRangeError);
+      });
+    });
+
+    test('setMorphWeights updates a morph target on the render thread', () async {
+      await testHelper.withViewer((viewer) async {
+        final asset = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
+        final renderableManager = FilamentApp.instance!.renderableManager;
+        final meshEntity = (await asset.getChildEntities()).firstWhere(renderableManager.isRenderable);
+
+        expect(renderableManager.getMorphTargetCount(meshEntity), equals(1));
+        await renderableManager.setMorphWeightAt(meshEntity, 0, 1.0);
+        await renderableManager.setMorphWeights(meshEntity, [0.5]);
+        await expectLater(renderableManager.setMorphWeightAt(meshEntity, 1, 0.5), throwsRangeError);
+        await expectLater(renderableManager.setMorphWeightAt(meshEntity, 0, double.nan), throwsArgumentError);
+        await testHelper.capture(viewer.view, "direct_morph_weight");
       });
     });
 
