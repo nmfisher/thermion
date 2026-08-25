@@ -4901,6 +4901,12 @@ sealed class TSceneAssetType {
   static const SCENE_ASSET_TYPE_GIZMO = 6;
 }
 
+sealed class TVertexBufferMode {
+  static const VERTEX_BUFFER_MODE_ORIGINAL = 0;
+  static const VERTEX_BUFFER_MODE_UNWELDED = 1;
+  static const VERTEX_BUFFER_MODE_EDITABLE = 2;
+}
+
 sealed class TFeatureLevel {
   static const FEATURE_LEVEL_0 = 0;
   static const FEATURE_LEVEL_1 = 1;

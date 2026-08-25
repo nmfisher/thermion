@@ -10243,6 +10243,12 @@ final class TFilamentAsset extends Struct {
   }
 }
 
+sealed class TVertexBufferMode {
+  static const VERTEX_BUFFER_MODE_ORIGINAL = 0;
+  static const VERTEX_BUFFER_MODE_UNWELDED = 1;
+  static const VERTEX_BUFFER_MODE_EDITABLE = 2;
+}
+
 sealed class TSceneAssetType {
   static const SCENE_ASSET_TYPE_GLTF = 0;
   static const SCENE_ASSET_TYPE_GEOMETRY = 1;
