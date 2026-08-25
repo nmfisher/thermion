@@ -1,7 +1,8 @@
 # Game-Effect Shaders — guide for contributors
 
-Six example-level Filament materials for common game VFX: **hit flash,
-hologram, force field, dissolve/burn, water, smoke**. Everything lives at
+Ten example-level Filament materials for common game VFX: **hit flash,
+hologram, force field, dissolve/burn, water, smoke, fire, lava, shockwave,
+shore waves**. Everything lives at
 example level — no engine changes, no new public API. This document explains
 what each effect is meant to read as, how it is built, how to render and
 iterate, and where the interesting improvement opportunities are.
@@ -371,6 +372,135 @@ geometry) — the proper fix is soft particles sampling the depth buffer
 (see the `render_targets` example for depth access). Fog and rain presets
 are parameter tweaks away.
 
+### 6.7 fire — `game_effects_fire.dart`, `fire.mat`
+
+**Intent.** A campfire-style flame: clustered tongues licking upward from a
+bright base, white-hot through yellow and orange to red tips, with ember
+sparks rising out of it.
+
+**Build.** One draw call on `dummyBillboardQuads(36)`: the first 16 quads
+are flame tongues, the remaining 20 are embers — the vertex shader branches
+on `quadIndex < flameCount`. Tongues stand on their base (the corner table
+maps y to [0,1]), each with its own height/flicker phase so tips never move
+in lockstep, clustered tightly at the origin and sheared by wind
+proportionally to height. The fragment shader scrolls domain-warped fbm
+**downward** in noise-space (so its features read as licking upward), tapers
+the width with height, lets the noise eat into the tip, and colors the
+resulting heat field through a blackbody ramp (deep red → orange → yellow →
+white). Embers rise from inside the flame with a sinusoidal wobble,
+shrinking and cooling white → red, as soft squared dots. Unlit + **additive**.
+
+**Uniforms.** `time`, `flameCount` 16, `emberCount` 20, `flameHeight` 1.15,
+`flameWidth` 0.40, `noiseScale` 3.0, `scrollSpeed` 2.4, `windLean` 0.18,
+`emberLifetime` 1.7. The counts must match the geometry passed to
+`dummyBillboardQuads`. Golden still time: `--time 4.6`.
+
+**Tuning.** Taller/lazier flames → raise `flameHeight`, lower
+`scrollSpeed`; windier → `windLean`; hotter core → stretch the ramp stops
+in the `.mat`.
+
+**Limitations / ideas.** Layer the existing smoke system on top with an
+upward preset for a smoky column; a flickering point light (driven from
+Dart with the same fbm phase) lighting a surrounding scene would sell it
+further.
+
+### 6.8 lava — `game_effects_lava.dart`, `lava.mat`
+
+**Intent.** A molten field: dark drifting crust with a network of glowing
+cracks, hottest (yellow-white) in the fast-flowing centers.
+
+**Build.** A vertex-displaced `subdividedPlane` (additive displacement
+only): three slow drifting sine lumps form the crust swell, with
+finite-difference normals. The fragment shader is an **inverted dissolve**:
+a slowly drifting, domain-warped fbm crust field, where it dips below
+threshold the molten interior shows through — modulated by a second,
+fast-flowing fbm so the crack interiors visibly course. Temperature ramp
+deep red → orange → yellow-white keyed on crack intensity; the crust is
+very dark red-brown (exposure + ACES lift darks heavily — see the skybox
+gotcha — so both crust and ramp stops are pushed darker/more saturated than
+the intended read) with noise grain, gentle top-light shading and a red
+reheat apron near cracks. Opaque, edge melts into the background.
+
+**Uniforms.** `time`, `glowIntensity` 1.5, `crustScale` 1.0, `flowSpeed`
+0.5, `swellHeight` 0.10. Golden still time: `--time 3.0`.
+
+**Tuning.** More/denser cracks → lower the two smoothstop constants in
+`crack`; faster crust drift → the `0.05/0.04` time factors; more violent
+swell → `swellHeight`.
+
+**Limitations / ideas.** Ember/smoke vents on the brightest cracks (reuse
+the fire/smoke rigs); heat-haze refraction needs post-processing this
+example level doesn't have.
+
+### 6.9 shockwave — `game_effects_shockwave.dart`, `shockwave_ground.mat` + `shockwave_dome.mat`
+
+**Intent.** An ultimate-style energy pulse: a sharp ring races out across
+the ground while an energy dome expands out of the epicenter — one
+coordinated event every 2.2s.
+
+**Build.** Two materials on two geometries. The **ground ring** (flat
+plane, additive): one wave per period, `waveR = age·speed`; a sharp
+leading-edge gaussian with a softer wake behind it plus a trailing
+secondary ring, broken into arcs by an angular fbm and roughened by churn
+noise advected outward, fading with age. The **dome** (unit sphere, scaled
+by the Dart animator to track the ring front): fresnel body + hot rim lip,
+upward-flowing shimmer noise, exponential age fade — its **lower hemisphere
+is discarded at y=0**, so the equator cut sits exactly on the ground plane
+and the dome reads as rising out of it.
+
+**Uniforms.** Ground: `time`, `period` 2.2, `waveSpeed` 3.6. Dome:
+`baseColor`, `time`, `age` (seconds since pulse). The dome's scale is set
+per-frame by the animator (`0.15 + age·waveSpeed·0.78`). Golden still
+time: `--time 0.9`.
+
+**Tuning.** Faster pulse → `waveSpeed`; sharper ring → the `3.4` gaussian
+width; longer-lived dome → the `1.3` fade rate.
+
+**Limitations / ideas.** Trigger the pulse from an actual game event (the
+animator is trivially rewirable); ground scorch would want an alpha-blended
+decal pass; multiple overlapping waves need a per-wave uniform array or a
+ring buffer of ages.
+
+### 6.10 shore_waves — `game_effects_shore_waves.dart`, `shore_waves.mat` + `sand.mat`
+
+**Intent.** Waves arriving at a beach: swells shoal (grow) as they reach
+the shallows, whitecap on the way in, then break into a foam line that
+pulses along the shoreline and washes up onto wet sand.
+
+**Build.** The trick that keeps this cheap: **the demo owns the scene
+geometry, so the shoreline is an analytic function** — `z_shore(x) =
+1.2 + 0.35·sin(0.6x + 1) + 0.15·sin(1.7x)` — and "shore distance" is just
+that minus world z (no depth texture). The vertex shader runs three
+Gerstner swells **traveling toward the shore** with a per-vertex amplitude:
+growing through the shoaling zone, collapsing past the break. The fragment
+shader mixes deep teal → turquoise by shore proximity, adds Schlick
+fresnel, sun-side shading, two detail-normal layers and a glitter path
+toward the beach. Foam has three sources: whitecaps (crest + pinch, as in
+water), the **breaking line** — a gaussian band around the shoreline,
+pulsing with swell arrival, textured with two anisotropic noise octaves
+stretched along the shore — and a faint wash residue further up. The water
+alpha-fades past the shoreline into a **sand plane** (`sand.mat`) that
+reuses the same shoreline function for its wet band, so waterline and beach
+stay in lockstep. Water: unlit + transparent, depthWrite on.
+
+**Uniforms (water).** `deepColor` (0.012, 0.10, 0.15), `shallowColor`
+(0.06, 0.50, 0.52), `skyColor` (0.40, 0.55, 0.68), `foamColor`
+(0.94, 0.98, 1.0), `sunDirection` (−0.45, −0.35, −0.8), `time`,
+`waveHeight` 0.30, `waveFrequency` 1.35, `waveSpeed` 1.5, `foamAmount` 1.0,
+`detailStrength` 1.0. Sand: `sandColor` (0.76, 0.66, 0.50), `time`.
+Camera at (0, 2.6, −5.6) looking shoreward. Golden still time:
+`--time 2.0`.
+
+**Tuning.** Bigger surf → `waveHeight`/`waveFrequency`; wider breaker →
+the `0.70` band width; slower sets → the `2.4` pulse rate; the shoreline
+curve itself is the `shoreZ` function (must stay identical in both `.mat`s).
+
+**Limitations / ideas.** The swells don't actually refract/curve toward
+the beach contour (real wave optics); wash-up is a fixed band rather than
+advancing/retreating with each set; a swash line that runs up the sand
+would need the sand material to animate its wet band with the same pulse
+phase.
+
 ---
 
 ## 7. Suggested roadmap
@@ -385,9 +515,17 @@ are parameter tweaks away.
 5. **dissolve_burn**: directional burn gradient; ember sparks via the
    smoke system.
 6. **hologram**: materialization wipe; projector cone/disc geometry.
-7. Cross-cutting: a `game_effects` composite galleryScene for the web
-   gallery; web verification (COOP/COEP, real Chrome) once a WebGPU matc is
-   available; interactive parameter playground.
+7. **fire**: smoke cap via the smoke rig; flickering scene light driven
+   from Dart.
+8. **shockwave**: event-triggered pulses; overlapping waves.
+9. **shore_waves**: wave refraction toward the beach contour; advancing
+   swash line on the sand.
+10. New effects from the same toolkit: lightning (ridged-noise bolt on a
+    tall quad), frost/ice creep (worley inverse-dissolve), cloth/flags,
+    grass, portal disc, heal circles.
+11. Cross-cutting: a `game_effects` composite galleryScene for the web
+    gallery; web verification (COOP/COEP, real Chrome) once a WebGPU matc is
+    available; interactive parameter playground.
 
 ## 8. Commit map (as of writing)
 

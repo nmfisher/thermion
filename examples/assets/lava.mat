@@ -1,0 +1,115 @@
+material {
+    name : Lava,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal,
+        surfacePos
+    ],
+    parameters : [
+        { type : float,  name : time },
+        { type : float,  name : glowIntensity },
+        { type : float,  name : crustScale },
+        { type : float,  name : flowSpeed },
+        { type : float,  name : swellHeight }
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending : opaque,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    // Slow crust lumps: three drifting sine terms at decreasing scale.
+    float crust(vec2 p, float t, float h) {
+        return h * (sin(p.x * 1.7 + t * 0.11) * cos(p.y * 1.3 - t * 0.09) +
+                    0.55 * sin(p.x * 3.1 - p.y * 2.3 + t * 0.20) +
+                    0.30 * sin(p.x * 5.3 + p.y * 4.1 - t * 0.30));
+    }
+
+    void materialVertex(inout MaterialVertexInputs material) {
+        vec2 xz = material.worldPosition.xz;
+        float t = materialParams.time;
+        float h = materialParams.swellHeight;
+        float y0 = crust(xz, t, h);
+
+        // Additive displacement only - see the NOTE in smoke.mat.
+        material.worldPosition.xyz += vec3(0.0, y0, 0.0);
+
+        float eps = 0.12;
+        float yx = crust(xz + vec2(eps, 0.0), t, h);
+        float yz = crust(xz + vec2(0.0, eps), t, h);
+        material.surfaceNormal.xyz =
+            normalize(vec3(-(yx - y0) / eps, 1.0, -(yz - y0) / eps));
+        material.surfacePos.xyz = material.worldPosition.xyz;
+    }
+}
+
+fragment {
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+
+    float fbm(vec2 p) {
+        float v = 0.0;
+        v += 0.5 * noise2(p);  p *= 2.03;
+        v += 0.25 * noise2(p); p *= 2.01;
+        v += 0.125 * noise2(p);
+        return v / 0.875;
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = variable_surfacePos.xyz;
+        vec3 n = normalize(variable_surfaceNormal.xyz);
+        float t = materialParams.time;
+
+        // Crust field: slowly drifting, domain-warped fbm. Where it dips
+        // low, the molten interior shows through - an inverted dissolve.
+        float s = materialParams.crustScale;
+        float warp = fbm(pos.xz * 0.6 + vec2(t * 0.03, -t * 0.02));
+        float c1 = fbm(pos.xz * s + vec2(t * 0.05, -t * 0.04) + warp * 1.4);
+
+        float crack = 1.0 - smoothstep(0.28, 0.46, c1);
+
+        // Fast-flowing texture inside the cracks sells the molten current.
+        float flowN = fbm(pos.xz * 3.5 +
+                          vec2(-t * materialParams.flowSpeed,
+                               t * materialParams.flowSpeed * 0.7));
+        float glow = pow(crack, 1.3) * (0.55 + 0.45 * flowN);
+
+        // Blackbody-ish ramp: deep red -> orange -> yellow-white. The
+        // scene's exposure + ACES lift and desaturate darks heavily, so
+        // both stops and crust color are pushed darker/more saturated than
+        // the target read.
+        vec3 glowCol = mix(vec3(0.75, 0.06, 0.0), vec3(1.0, 0.42, 0.05),
+                           smoothstep(0.25, 0.60, glow));
+        glowCol = mix(glowCol, vec3(1.0, 0.88, 0.55),
+                      smoothstep(0.75, 1.0, glow));
+
+        // Dark crust with noise variation and gentle top-light shading;
+        // it warms slightly near the cracks (reheat).
+        float crustTex = fbm(pos.xz * 2.2 + 17.0);
+        vec3 crustCol = vec3(0.020, 0.008, 0.007) * (0.7 + 0.6 * crustTex);
+        crustCol *= 0.75 + 0.5 * max(dot(n, normalize(vec3(0.3, 0.8, 0.4))), 0.0);
+        crustCol += vec3(0.50, 0.04, 0.0) * pow(crack, 3.0) * 0.35;
+
+        vec3 color = crustCol + glowCol * glow * materialParams.glowIntensity;
+
+        // Melt the plane edge into the dark background.
+        float horizon = smoothstep(5.0, 7.6, length(pos.xz));
+        color = mix(color, vec3(0.012, 0.006, 0.006), horizon);
+
+        material.baseColor = vec4(color, 1.0);
+    }
+}

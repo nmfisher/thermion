@@ -34,6 +34,10 @@ import 'game_effects_force_field.dart';
 import 'game_effects_dissolve_burn.dart';
 import 'game_effects_water.dart';
 import 'game_effects_smoke.dart';
+import 'game_effects_fire.dart';
+import 'game_effects_lava.dart';
+import 'game_effects_shockwave.dart';
+import 'game_effects_shore_waves.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
 typedef ExampleSetup = Future<void> Function(
@@ -53,6 +57,10 @@ final Map<String, ExampleSetup> registry = {
   'game_effects_dissolve_burn': setupDissolveBurn,
   'game_effects_water': setupWater,
   'game_effects_smoke': setupSmoke,
+  'game_effects_fire': setupFire,
+  'game_effects_lava': setupLava,
+  'game_effects_shockwave': setupShockwave,
+  'game_effects_shore_waves': setupShoreWaves,
   'geometry_primitives': setupGeometryPrimitives,
   'gizmo_basics': setupGizmoBasics,
   'gltf_animation': setupGltfAnimation,

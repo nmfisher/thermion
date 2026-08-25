@@ -1,0 +1,170 @@
+material {
+    name : Fire,
+    variables : [
+        quadData
+    ],
+    parameters : [
+        { type : float,  name : time },
+        { type : float,  name : flameCount },
+        { type : float,  name : emberCount },
+        { type : float,  name : flameHeight },
+        { type : float,  name : flameWidth },
+        { type : float,  name : noiseScale },
+        { type : float,  name : scrollSpeed },
+        { type : float,  name : windLean },
+        { type : float,  name : emberLifetime }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : none,
+    vertexDomain : object
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // One quad per 6 vertices, generated entirely in the vertex shader
+        // (see smoke.mat). Quads [0, flameCount) are flame tongues; the
+        // rest are ember sparks - a single draw call for the whole fire.
+        int vid = getVertexIndex();
+        int quadIndex = vid / 6;
+        int vertInQuad = vid - quadIndex * 6;
+
+        float seed = float(quadIndex);
+        float rng1 = fract(sin(seed * 127.1) * 43758.5453);
+        float rng2 = fract(sin(seed * 269.5) * 43758.5453);
+        float rng3 = fract(sin(seed * 419.2) * 43758.5453);
+        float rng4 = fract(sin(seed * 113.5) * 43758.5453);
+
+        // Corner table maps y to [0, 1] so the quad stands ON its center
+        // (flames rise from the base, not through it).
+        vec2 positions[6] = vec2[6](
+            vec2(-0.5, 0.0), vec2( 0.5, 0.0), vec2(-0.5, 1.0),
+            vec2( 0.5, 0.0), vec2( 0.5, 1.0), vec2(-0.5, 1.0)
+        );
+        vec2 uvs[6] = vec2[6](
+            vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0),
+            vec2(1.0, 0.0), vec2(1.0, 1.0), vec2(0.0, 1.0)
+        );
+        vec2 corner = positions[vertInQuad];
+        vec2 uv = uvs[vertInQuad];
+
+        mat4 view = getViewFromWorldMatrix();
+        vec3 camRight = vec3(view[0].x, view[1].x, view[2].x);
+        vec3 camUp = vec3(view[0].y, view[1].y, view[2].y);
+
+        float t = materialParams.time;
+        vec3 center;
+        vec2 p;
+        // quadData: (uv, flame: flicker brightness / ember: fade, 0 flame
+        // / 1 ember)
+        vec4 qd;
+
+        if (quadIndex < int(materialParams.flameCount)) {
+            // --- flame tongue --------------------------------------------
+            // Tight cluster at the base; each tongue has its own height and
+            // flicker phase so the tips never move in lockstep.
+            float h = materialParams.flameHeight * (0.75 + 0.5 * rng4) *
+                      (1.0 + 0.18 * sin(t * 7.0 + seed * 2.7) +
+                       0.10 * sin(t * 13.0 + seed));
+            float w = materialParams.flameWidth * (0.85 + 0.3 * rng2);
+
+            center = vec3((rng2 - 0.5) * 0.22, 0.0, (rng3 - 0.5) * 0.22);
+            p = vec2(corner.x * w, corner.y * h);
+            // Wind shear: the higher up the tongue, the more it leans.
+            p.x += p.y * materialParams.windLean *
+                   (0.7 + 0.3 * sin(t * 3.0 + seed));
+
+            qd = vec4(uv, 0.85 + 0.15 * sin(t * 11.0 + seed * 5.0), 0.0);
+        } else {
+            // --- ember spark ----------------------------------------------
+            float e = float(quadIndex - int(materialParams.flameCount));
+            float s2 = fract(sin(e * 173.3) * 43758.5453);
+            float s3 = fract(sin(e * 311.7) * 43758.5453);
+            float s4 = fract(sin(e * 101.9) * 43758.5453);
+            float et = mod(t - s2 * materialParams.emberLifetime,
+                           materialParams.emberLifetime);
+            float eage = et / materialParams.emberLifetime;
+
+            // Rise from inside the flame, wobbling, shrinking out.
+            center = vec3((s3 - 0.5) * 0.2 + sin(et * 9.0 + s2 * 6.28) * 0.09 * eage,
+                          0.25 + et * 1.35 * (0.7 + s4 * 0.6),
+                          (s4 - 0.5) * 0.2);
+            float sz = (0.045 + 0.05 * s3) * (1.0 - eage * 0.7);
+            p = vec2(corner.x * sz, corner.y * sz);
+
+            qd = vec4(uv, 1.0 - eage, 1.0);
+        }
+
+        // Additive displacement only - see the NOTE in smoke.mat.
+        material.worldPosition.xyz += center + camRight * p.x + camUp * p.y;
+        material.quadData = qd;
+    }
+}
+
+fragment {
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+
+    float fbm(vec2 p) {
+        float v = 0.0;
+        v += 0.5 * noise2(p);  p *= 2.03;
+        v += 0.25 * noise2(p); p *= 2.01;
+        v += 0.125 * noise2(p);
+        return v / 0.875;
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec2 uv = variable_quadData.xy;
+        float t = materialParams.time;
+
+        if (variable_quadData.w < 0.5) {
+            // --- flame: scrolling warped noise + blackbody ramp ----------
+            // The noise scrolls DOWN in noise-space, so its features read
+            // as licking upward on the billboard.
+            vec2 q = uv * materialParams.noiseScale +
+                     vec2(0.0, -t * materialParams.scrollSpeed);
+            float warp = fbm(q + vec2(t * 0.15, 0.0));
+            float f = fbm(q + warp * 1.6);
+
+            // Width tapers with height; noise eats into the tip.
+            float hx = 1.0 - abs(uv.x * 2.0 - 1.0);
+            float mask = pow(max(hx, 0.0), 1.2 + uv.y * 2.2) *
+                         (1.0 - smoothstep(0.30, 0.98,
+                                           uv.y + (f - 0.5) * 0.9));
+            float heat = mask * (1.15 - uv.y * 0.8) * variable_quadData.z;
+
+            // Blackbody-ish ramp: deep red -> orange -> yellow -> white.
+            vec3 col = mix(vec3(0.70, 0.03, 0.0), vec3(1.0, 0.32, 0.03),
+                           smoothstep(0.04, 0.30, heat));
+            col = mix(col, vec3(1.0, 0.75, 0.20),
+                      smoothstep(0.30, 0.62, heat));
+            col = mix(col, vec3(1.0, 0.97, 0.85),
+                      smoothstep(0.62, 0.95, heat));
+
+            float amount = clamp(heat * 1.25, 0.0, 1.0);
+            material.baseColor = vec4(col * amount, amount);
+        } else {
+            // --- ember spark: hot dot fading red ---------------------------
+            float fade = variable_quadData.z;
+            float d = length(uv - 0.5) * 2.0;
+            float dot_ = 1.0 - smoothstep(0.05, 0.55, d);
+            vec3 col = mix(vec3(1.0, 0.22, 0.02), vec3(1.0, 0.9, 0.65),
+                           smoothstep(0.3, 1.0, fade));
+            float amount = dot_ * dot_ * fade * 1.5;
+            material.baseColor = vec4(col * amount, clamp(amount, 0.0, 1.0));
+        }
+    }
+}
