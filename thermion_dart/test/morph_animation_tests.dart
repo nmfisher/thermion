@@ -6,27 +6,23 @@ void main() async {
   final testHelper = TestHelper("morph_animation");
   await testHelper.setup();
 
-  test('get morph target names', () async {
+  test('discover morph targets', () async {
     await testHelper.withViewer((viewer) async {
       var cube = await viewer.loadGltf("${testHelper.assetsDir}/cube.glb");
-      var morphTargets = await cube.getMorphTargetNames();
-      expect(morphTargets.length, 0);
+      expect(await cube.getMorphTargetSets(), isEmpty);
 
       var childEntities = await cube.getChildEntities();
       var childEntity = childEntities.first;
 
-      morphTargets = await cube.getMorphTargetNames(entity: childEntity);
-      expect(morphTargets.length, 0);
+      var morphTargets = await cube.getMorphTargets(childEntity);
+      expect(morphTargets.targets, isEmpty);
 
       cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
-      morphTargets = await cube.getMorphTargetNames();
-      expect(morphTargets.length, 0);
-
-      childEntities = await cube.getChildEntities();
-
-      morphTargets = await cube.getMorphTargetNames(entity: childEntities.first);
-      expect(morphTargets.length, 1);
-      expect(morphTargets.first, "Key 1");
+      final morphTargetSets = await cube.getMorphTargetSets();
+      expect(morphTargetSets, hasLength(1));
+      expect(morphTargetSets.single.targets, hasLength(1));
+      expect(morphTargetSets.single.targets.single.index, 0);
+      expect(morphTargetSets.single.targets.single.name, "Key 1");
     });
   });
 
@@ -39,8 +35,16 @@ void main() async {
 
         await testHelper.capture(viewer.view, "cube_no_morph");
 
-        await cube.setMorphTargetWeights((await cube.getChildEntities()).first, [1.0]);
+        final morphTargets = (await cube.getMorphTargetSets()).single;
+        await morphTargets.setWeight("Key 1", 1.0);
         await testHelper.capture(viewer.view, "cube_with_morph");
+
+        await morphTargets.setWeights({"Key 1": 0.5});
+        await morphTargets.setWeightAt(0, 0.25);
+        await morphTargets.setAllWeights([0.0]);
+
+        await expectLater(morphTargets.setWeight("Missing", 1.0), throwsArgumentError);
+        await expectLater(morphTargets.setAllWeights([]), throwsArgumentError);
       },
       bg: kRed,
       cameraPosition: Vector3(3, 2, 6),

@@ -268,13 +268,30 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   // ============================================================================
 
   @override
-  Future setMorphWeights(ThermionEntity entity, List<double> weights, int count, {int offset = 0}) async {
-    RangeError.checkNotNegative(count, 'count');
-    RangeError.checkNotNegative(offset, 'offset');
-    if (count > weights.length) {
-      throw RangeError.range(count, 0, weights.length, 'count', 'Cannot exceed weights.length');
+  Future<void> setMorphWeights(ThermionEntity entity, List<double> weights) async {
+    final targetCount = getMorphTargetCount(entity);
+    if (weights.length != targetCount) {
+      throw ArgumentError.value(weights.length, 'weights.length', 'Must equal the morph target count ($targetCount)');
     }
-    if (count == 0) {
+    _validateMorphWeights(weights);
+    await _setMorphWeights(entity, weights, 0);
+  }
+
+  @override
+  Future<void> setMorphWeightAt(ThermionEntity entity, int targetIndex, double weight) async {
+    final targetCount = getMorphTargetCount(entity);
+    if (targetIndex < 0 || targetIndex >= targetCount) {
+      if (targetCount == 0) {
+        throw RangeError.value(targetIndex, 'targetIndex', 'Renderable has no morph targets');
+      }
+      throw RangeError.range(targetIndex, 0, targetCount - 1, 'targetIndex');
+    }
+    _validateMorphWeights([weight]);
+    await _setMorphWeights(entity, [weight], targetIndex);
+  }
+
+  Future<void> _setMorphWeights(ThermionEntity entity, List<double> weights, int offset) async {
+    if (weights.isEmpty) {
       return;
     }
 
@@ -283,8 +300,8 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
       stackPtr = stackSave();
     }
 
-    final weightsPtr = makeFloat32List(count);
-    weightsPtr.setRange(0, count, weights);
+    final weightsPtr = makeFloat32List(weights.length);
+    weightsPtr.setRange(0, weights.length, weights);
 
     try {
       await withVoidCallback(
@@ -292,7 +309,7 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
           renderableManager,
           entity,
           weightsPtr.address,
-          count,
+          weights.length,
           offset,
           requestId,
           cb,
@@ -302,6 +319,14 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
       weightsPtr.free();
       if (FILAMENT_WASM) {
         stackRestore(stackPtr);
+      }
+    }
+  }
+
+  void _validateMorphWeights(List<double> weights) {
+    for (var i = 0; i < weights.length; i++) {
+      if (!weights[i].isFinite) {
+        throw ArgumentError.value(weights[i], 'weights[$i]', 'Must be finite');
       }
     }
   }

@@ -246,16 +246,17 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// [enabled] True for global blend ordering, false for local (default)
   Future setGlobalBlendOrderEnabledAt(ThermionEntity entity, int primitiveIndex, bool enabled);
 
-  /// Updates vertex morphing weights.
+  /// Replaces all vertex morphing weights.
   ///
   /// The renderable must have been built with morphing enabled.
   /// For legacy morphing, only the first 4 weights are used.
   ///
   /// [entity] The entity containing the renderable
-  /// [weights] Array of morph target weights
-  /// [count] Number of weights to set; must not exceed [weights].length
-  /// [offset] Non-negative index of the first weight to set (default 0)
-  Future setMorphWeights(ThermionEntity entity, List<double> weights, int count, {int offset = 0});
+  /// [weights] One value per morph target, in target-index order
+  Future<void> setMorphWeights(ThermionEntity entity, List<double> weights);
+
+  /// Updates one vertex morphing weight without changing the other targets.
+  Future<void> setMorphWeightAt(ThermionEntity entity, int targetIndex, double weight);
 
   /// Returns the number of morph targets.
   int getMorphTargetCount(ThermionEntity entity);

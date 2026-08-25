@@ -32,6 +32,10 @@
   source ranges, copying FFI payloads before asynchronous dispatch, and
   applying updates on the owning render thread. This also prevents temporary
   morph-weight buffers from leaking Emscripten stack space on web.
+- Add `MorphTarget` and asset-bound `MorphTargetSet` APIs for discovering the
+  entity, index, and optional name of every morph target. Named and indexed
+  updates no longer require callers to construct an opaque full weight array;
+  strict full-pose updates remain available through `setAllWeights`.
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw
@@ -40,6 +44,10 @@
 - remove `View.setToneMapper` and `ThermionViewer.setToneMapper` - use
   `view.createColorGradingBuilder().toneMapper(...).build()` followed by
   `view.setColorGrading()` instead.
+- Replace `ThermionAsset.getMorphTargetNames` and `setMorphTargetWeights` with
+  `getMorphTargets` / `getMorphTargetSets`. `RenderableManager.setMorphWeights`
+  now infers and enforces the complete target count; use `setMorphWeightAt` for
+  a single indexed update.
 
 ## 0.6.0
 

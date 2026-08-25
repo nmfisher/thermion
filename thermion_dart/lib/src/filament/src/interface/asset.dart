@@ -7,6 +7,49 @@ export 'geometry.dart';
 
 enum SceneAssetType { gltf, geometry, light, skybox, ibl, image, gizmo }
 
+/// Describes one morph target on a renderable entity.
+///
+/// [name] is null for targets that do not have a name, such as targets on
+/// procedurally-created renderables. [index] is always available and matches
+/// the order expected by [MorphTargetSet.setAllWeights].
+final class MorphTarget {
+  final int index;
+  final String? name;
+
+  const MorphTarget({required this.index, this.name});
+
+  @override
+  String toString() => name == null ? 'MorphTarget($index)' : 'MorphTarget($index, $name)';
+}
+
+/// Morph targets and mutation methods bound to a single renderable [entity].
+///
+/// A weight of `0.0` uses the base shape and `1.0` applies the complete target.
+/// Multiple targets can contribute simultaneously. Finite values outside that
+/// range are passed through to Filament for intentional extrapolation.
+abstract interface class MorphTargetSet {
+  ThermionEntity get entity;
+
+  /// Targets in the exact order expected by [setAllWeights].
+  List<MorphTarget> get targets;
+
+  /// Updates one uniquely named target without changing other targets.
+  Future<void> setWeight(String name, double weight);
+
+  /// Updates several uniquely named targets without changing other targets.
+  ///
+  /// Every name is validated before any update is applied.
+  Future<void> setWeights(Map<String, double> weights);
+
+  /// Updates one target by index without changing other targets.
+  Future<void> setWeightAt(int index, double weight);
+
+  /// Replaces the complete morph pose in [targets] order.
+  ///
+  /// The length of [weights] must equal [targets].length.
+  Future<void> setAllWeights(List<double> weights);
+}
+
 // filament::utils::Entity is the core C++ Filament "handle" type, used to
 // represent lights, renderables, cameras, etc. ThermionEntity is the equivalent
 // Dart type.
@@ -220,22 +263,17 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  // Set the weights for all morph targets in [entity] to [weights]. Note that
-  // [weights] must contain values for ALL morph targets, but no exception will
-  // be thrown if you don't do so (you'll just get incorrect results). If you
-  // only want to set one value, set all others to zero (check
-  // [getMorphTargetNames] if you need the get a list of all morph targets).
-  // IMPORTANT - this accepts the actual ThermionEntity with the relevant morph
-  // targets (unlike [getMorphTargetNames], which uses the parent entity and the
-  // child mesh name). Use [getChildEntityByName] if you are setting the weights
-  // for a child mesh.
-  Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) {
+  /// Returns the morph targets attached to the renderable [entity].
+  ///
+  /// The returned object is bound to [entity] and supports named, indexed, and
+  /// strict bulk updates. Throws if [entity] does not belong to this asset or
+  /// is not renderable.
+  Future<MorphTargetSet> getMorphTargets(ThermionEntity entity) {
     throw UnimplementedError();
   }
 
-  // Gets the names of all morph targets for [entity] (which must be a
-  // renderable entity)
-  Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) {
+  /// Discovers every renderable entity in this asset that has morph targets.
+  Future<List<MorphTargetSet>> getMorphTargetSets() {
     throw UnimplementedError();
   }
 

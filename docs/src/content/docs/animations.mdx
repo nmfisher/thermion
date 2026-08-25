@@ -53,24 +53,30 @@ an exact time.
 ## Morph targets
 
 Morph targets let you blend between vertex states (e.g. facial expressions).
-First discover the targets on a renderable entity, then set all weights at once:
+Discovering them returns both the renderable entity and an ordered list of
+targets, so you do not need to guess which entity owns them or how long a weight
+list should be:
 
 ```dart
 final asset = await viewer.loadGltf("assets/cube_with_morph_targets.glb");
 
-// Names for the asset's root entity:
-final targetNames = await asset.getMorphTargetNames();
-// e.g. ["Open", "Close"]
+final morphs = (await asset.getMorphTargetSets()).single;
+for (final target in morphs.targets) {
+  print('${target.index}: ${target.name ?? '(unnamed)'}');
+}
 
-// setMorphTargetWeights takes weights for ALL morph targets on the entity.
-// To activate only one, set the rest to 0.
-await asset.setMorphTargetWeights(entity, [1.0, 0.0]);
+// Named and indexed updates leave all other target weights unchanged.
+await morphs.setWeight('Open', 1.0);
+await morphs.setWeightAt(1, 0.25);
+
+// A complete pose must contain exactly one value per target, in target order.
+await morphs.setAllWeights(List.filled(morphs.targets.length, 0.0));
 ```
 
-> **Important:** `setMorphTargetWeights` accepts the *child mesh entity* that
-> owns the morph targets, not the asset root. Use `getChildEntity` /
-> `getChildEntityNames` to find the right entity. `getMorphTargetNames`, by
-> contrast, takes the parent entity and a mesh name.
+Use `asset.getMorphTargets(entity)` when you already know the renderable entity.
+Target names are optional, so indexed updates remain available for procedural or
+unnamed targets. Weights must be finite; `0.0` is the base shape and `1.0` fully
+applies a target.
 
 For keyframed morph animation, build a `MorphAnimationData` and pass it to
 `setMorphAnimationData`. Clear it later with `clearMorphAnimationData(entity)`.
