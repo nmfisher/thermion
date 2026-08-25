@@ -118,6 +118,13 @@ extern "C"
 	};
 	typedef enum TSceneAssetType TSceneAssetType;
 
+	enum TVertexBufferMode {
+		VERTEX_BUFFER_MODE_ORIGINAL = 0,
+		VERTEX_BUFFER_MODE_UNWELDED = 1,
+		VERTEX_BUFFER_MODE_EDITABLE = 2
+	};
+	typedef enum TVertexBufferMode TVertexBufferMode;
+
 	enum TFeatureLevel {
 		FEATURE_LEVEL_0 = 0,
 		FEATURE_LEVEL_1 = 1,

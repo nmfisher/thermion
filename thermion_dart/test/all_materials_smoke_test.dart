@@ -26,11 +26,11 @@ void main() async {
       expect(await app.createBoneOverlayMaterial(), isNotNull);
 
       // wireframe is applied to a mesh; cube.glb is loaded with
-      // rebuildVertices so it also has the preserved geometry that the
+      // unwelded vertex buffers so it also has the preserved geometry that the
       // stencil highlight path below needs.
       final cube = await viewer.loadGltf(
         "file://${testHelper.assetsDir}/cube.glb",
-        rebuildVertices: true,
+        vertexBufferMode: VertexBufferMode.unwelded,
         addToScene: true,
       );
       final wireframe = await app.createWireframeMaterialInstance();

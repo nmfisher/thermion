@@ -301,8 +301,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    bool rebuildVertices,
-    bool preserveTopology,
+    int vertexBufferMode,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(Pointer<TSceneAsset> tSceneAsset);
   external int _SceneAsset_getType(Pointer<TSceneAsset> tSceneAsset);
@@ -1363,8 +1362,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    bool rebuildVertices,
-    bool preserveTopology,
+    int vertexBufferMode,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> onComplete,
   );
   external void _SceneAsset_createFromBuffersRenderThread(
@@ -3344,16 +3342,14 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
-  bool preserveTopology,
+  int vertexBufferMode,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAsset(
     tEngine.cast(),
     tAssetLoader.cast(),
     tNameComponentManager.cast(),
     tFilamentAsset.cast(),
-    rebuildVertices,
-    preserveTopology,
+    vertexBufferMode,
   );
   return Pointer<TSceneAsset>(result);
 }
@@ -6180,8 +6176,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  bool rebuildVertices,
-  bool preserveTopology,
+  int vertexBufferMode,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAssetRenderThread(
@@ -6189,8 +6184,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
     tAssetLoader.cast(),
     tNameComponentManager.cast(),
     tFilamentAsset.cast(),
-    rebuildVertices,
-    preserveTopology,
+    vertexBufferMode,
     onComplete.cast(),
   );
   return result;

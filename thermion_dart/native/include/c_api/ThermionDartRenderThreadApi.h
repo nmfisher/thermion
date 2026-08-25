@@ -161,8 +161,7 @@ namespace thermion
             TGltfAssetLoader *tAssetLoader,
             TNameComponentManager *tNameComponentManager,
             TFilamentAsset *tFilamentAsset,
-            bool rebuildVertices,
-            bool preserveTopology,
+            enum TVertexBufferMode vertexBufferMode,
             void (*onComplete)(TSceneAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(

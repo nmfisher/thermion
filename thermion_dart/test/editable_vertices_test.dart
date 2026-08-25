@@ -28,7 +28,7 @@ void main() async {
         final plainPose = await capture(plain);
         await viewer.destroyAsset(plain);
 
-        final editable = await viewer.loadGltf(path, editableVertices: true);
+        final editable = await viewer.loadGltf(path, vertexBufferMode: VertexBufferMode.editable);
         expect(editable.getVertexBuffer()!.getVertexCount(), source.vertices.length ~/ 3);
         final editablePose = await capture(editable);
 
@@ -45,19 +45,6 @@ void main() async {
       bg: kRed,
       cameraPosition: Vector3(3, 2, 6),
     );
-  });
-
-  test('editable and unwelded modes are mutually exclusive', () async {
-    await testHelper.withViewer((viewer) async {
-      expect(
-        () => viewer.loadGltf(
-          '${testHelper.assetsDir}/cube_with_morph_targets.glb',
-          editableVertices: true,
-          rebuildVertices: true,
-        ),
-        throwsArgumentError,
-      );
-    });
   });
 }
 

@@ -37,8 +37,7 @@ namespace thermion
         gltfio::AssetLoader *assetLoader,
         Engine *engine,
         utils::NameComponentManager *ncm,
-        bool rebuildVertices,
-        bool preserveTopology,
+        TVertexBufferMode vertexBufferMode,
         MaterialInstance **materialInstances,
         size_t materialInstanceCount) : _asset(asset),
                                         _assetLoader(assetLoader),
@@ -47,9 +46,9 @@ namespace thermion
                                         _materialInstances(materialInstances),
                                         _materialInstanceCount(materialInstanceCount)
     {
-        if (rebuildVertices)
+        if (vertexBufferMode != VERTEX_BUFFER_MODE_ORIGINAL)
         {
-            rebuildVertexBuffers(preserveTopology);
+            rebuildVertexBuffers(vertexBufferMode);
         }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
@@ -269,8 +268,9 @@ namespace thermion
         return nullptr;
     }
 
-    void GltfSceneAsset::rebuildVertexBuffers(bool preserveTopology)
+    void GltfSceneAsset::rebuildVertexBuffers(TVertexBufferMode vertexBufferMode)
     {
+        const bool editableTopology = vertexBufferMode == VERTEX_BUFFER_MODE_EDITABLE;
         auto *sourceData = (const cgltf_data *)_asset->getSourceAsset();
         if (!sourceData)
         {
@@ -429,7 +429,7 @@ namespace thermion
                     continue;
 
                 uint32_t triangleCount = (uint32_t)(indices.size() / 3);
-                uint32_t newVertexCount = preserveTopology
+                uint32_t newVertexCount = editableTopology
                                               ? (uint32_t)posAccessor->count
                                               : triangleCount * 3;
 
@@ -505,7 +505,7 @@ namespace thermion
 
                 for (uint32_t dstIdx = 0; dstIdx < newVertexCount; dstIdx++)
                 {
-                    uint32_t srcIdx = preserveTopology ? dstIdx : indices[dstIdx];
+                    uint32_t srcIdx = editableTopology ? dstIdx : indices[dstIdx];
 
                     // Position
                     newPositions[dstIdx * 3 + 0] = srcPositions[srcIdx * posComponents + 0];
@@ -550,7 +550,7 @@ namespace thermion
                     }
 
                     // Barycentric
-                    if (!preserveTopology)
+                    if (!editableTopology)
                     {
                         const int corner = dstIdx % 3;
                         newBarycentrics[dstIdx * 4 + 0] = bary[corner][0];
@@ -594,7 +594,7 @@ namespace thermion
                     tris.resize(triangleCount);
                     for (uint32_t i = 0; i < triangleCount; i++)
                     {
-                        tris[i] = preserveTopology
+                        tris[i] = editableTopology
                                       ? filament::math::uint3{indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]}
                                       : filament::math::uint3{i * 3, i * 3 + 1, i * 3 + 2};
                     }
@@ -613,7 +613,7 @@ namespace thermion
                 // preserves shared vertices, so its flat buffer intentionally
                 // matches the smooth buffer.
                 std::vector<filament::math::short4> flatTangentQuats;
-                if (preserveTopology)
+                if (editableTopology)
                 {
                     flatTangentQuats = smoothTangentQuats;
                 }
@@ -764,13 +764,13 @@ namespace thermion
 
                 // Editable geometry retains source indices. Unwelded geometry
                 // uses a sequential index buffer.
-                const size_t newIndexCount = preserveTopology ? indices.size() : newVertexCount;
+                const size_t newIndexCount = editableTopology ? indices.size() : newVertexCount;
                 size_t indexDataSize = newIndexCount * sizeof(uint32_t);
                 auto *newIndices = new uint8_t[indexDataSize];
                 auto *indexPtr = reinterpret_cast<uint32_t *>(newIndices);
                 for (uint32_t i = 0; i < newIndexCount; i++)
                 {
-                    indexPtr[i] = preserveTopology ? indices[i] : i;
+                    indexPtr[i] = editableTopology ? indices[i] : i;
                 }
 
                 IndexBuffer *ib = IndexBuffer::Builder()
@@ -790,7 +790,7 @@ namespace thermion
                 _preservedIndexCounts.push_back(newIndexCount);
 
                 TRACE("rebuildVertexBuffers: primitive %zu %s with %u vertices and %zu indices (skinned=%d)",
-                      pi, preserveTopology ? "preserved topology" : "unwelded",
+                      pi, editableTopology ? "editable topology" : "unwelded",
                       newVertexCount, newIndexCount, hasSkinning);
             }
         }
