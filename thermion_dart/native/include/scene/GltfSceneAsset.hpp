@@ -35,7 +35,7 @@ namespace thermion
             gltfio::AssetLoader *assetLoader,
             Engine *engine,
             utils::NameComponentManager* ncm,
-            bool rebuildVertices = false,
+            TVertexBufferMode vertexBufferMode = VERTEX_BUFFER_MODE_ORIGINAL,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 
@@ -143,10 +143,11 @@ namespace thermion
 
         /// Rebuild all mesh primitives with a superset vertex buffer layout
         /// (POSITION + TANGENTS + UV0 + CUSTOM0 + optional BONE_INDICES/WEIGHTS).
-        /// Unwelds vertices so each triangle has unique vertices for barycentric
-        /// wireframe rendering. After this, materials can be freely swapped via
-        /// setMaterialInstanceAt. Requires source data to still be available.
-        void rebuildVertexBuffers();
+        /// [VERTEX_BUFFER_MODE_UNWELDED] gives each triangle unique vertices
+        /// for barycentric wireframe rendering. [VERTEX_BUFFER_MODE_EDITABLE]
+        /// retains source vertex order and indices so glTF morph target buffers
+        /// remain compatible with the rebuilt geometry.
+        void rebuildVertexBuffers(TVertexBufferMode vertexBufferMode);
 
         /// Toggle between flat (per-face) and smooth (per-vertex) shading.
         /// Only valid after rebuildVertexBuffers() has been called.

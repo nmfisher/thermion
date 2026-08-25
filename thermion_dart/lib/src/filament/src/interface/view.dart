@@ -483,7 +483,7 @@ abstract class View<T> extends NativeHandle<T> {
   /// outlines.
   ///
   /// Throws if the asset (or [geometrySource]) has no preserved geometry —
-  /// glTF assets must be loaded with `rebuildVertices: true` for outlining.
+  /// glTF assets must be loaded with `vertexBufferMode: VertexBufferMode.unwelded` for outlining.
   ///
   /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
   Future setStencilHighlight(

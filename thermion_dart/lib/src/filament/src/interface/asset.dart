@@ -122,7 +122,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   // Toggle between flat (per-face) and smooth (per-vertex) shading.
-  // Throws unless the asset was loaded with rebuildVertices: true (flat
+  // Throws unless the asset was loaded with vertexBufferMode: VertexBufferMode.unwelded (flat
   // shading swaps TANGENTS on the rebuilt vertex buffers).
   Future setFlatShading(bool flatShading) {
     throw UnimplementedError();

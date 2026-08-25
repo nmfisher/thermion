@@ -652,7 +652,7 @@ void main() async {
       // Load FlightHelmet, a multi-mesh glTF asset
       final asset = await result.viewer.loadGltf(
         p.join(testHelper.assetsDir, "FlightHelmet", "FlightHelmet.gltf"),
-        rebuildVertices: true,
+        vertexBufferMode: VertexBufferMode.unwelded,
       );
       expect(asset, isNotNull);
 

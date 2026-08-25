@@ -37,7 +37,7 @@ namespace thermion
         gltfio::AssetLoader *assetLoader,
         Engine *engine,
         utils::NameComponentManager *ncm,
-        bool rebuildVertices,
+        TVertexBufferMode vertexBufferMode,
         MaterialInstance **materialInstances,
         size_t materialInstanceCount) : _asset(asset),
                                         _assetLoader(assetLoader),
@@ -46,9 +46,9 @@ namespace thermion
                                         _materialInstances(materialInstances),
                                         _materialInstanceCount(materialInstanceCount)
     {
-        if (rebuildVertices)
+        if (vertexBufferMode != VERTEX_BUFFER_MODE_ORIGINAL)
         {
-            rebuildVertexBuffers();
+            rebuildVertexBuffers(vertexBufferMode);
         }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
@@ -268,8 +268,9 @@ namespace thermion
         return nullptr;
     }
 
-    void GltfSceneAsset::rebuildVertexBuffers()
+    void GltfSceneAsset::rebuildVertexBuffers(TVertexBufferMode vertexBufferMode)
     {
+        const bool editableTopology = vertexBufferMode == VERTEX_BUFFER_MODE_EDITABLE;
         auto *sourceData = (const cgltf_data *)_asset->getSourceAsset();
         if (!sourceData)
         {
@@ -428,7 +429,9 @@ namespace thermion
                     continue;
 
                 uint32_t triangleCount = (uint32_t)(indices.size() / 3);
-                uint32_t newVertexCount = triangleCount * 3;
+                uint32_t newVertexCount = editableTopology
+                                              ? (uint32_t)posAccessor->count
+                                              : triangleCount * 3;
 
                 // --- Unpack source attributes ---
                 size_t posComponents = cgltf_num_components(posAccessor->type);
@@ -476,7 +479,8 @@ namespace thermion
                     cgltf_accessor_unpack_floats(weightsAccessor, srcWeights.data(), srcWeights.size());
                 }
 
-                // --- Unweld: duplicate vertices per triangle ---
+                // Copy source vertices directly for editable geometry, or
+                // duplicate them per triangle for barycentric wireframes.
                 std::vector<float> newPositions(newVertexCount * 3);
                 std::vector<float> newNormals(newVertexCount * 3);
                 std::vector<float> newTangents; // float4 (xyz=tangent, w=sign)
@@ -499,75 +503,75 @@ namespace thermion
                     {0.0f, 1.0f, 0.0f, 0.0f},
                     {0.0f, 0.0f, 1.0f, 0.0f}};
 
-                for (uint32_t t = 0; t < triangleCount; t++)
+                for (uint32_t dstIdx = 0; dstIdx < newVertexCount; dstIdx++)
                 {
-                    for (int v = 0; v < 3; v++)
+                    uint32_t srcIdx = editableTopology ? dstIdx : indices[dstIdx];
+
+                    // Position
+                    newPositions[dstIdx * 3 + 0] = srcPositions[srcIdx * posComponents + 0];
+                    newPositions[dstIdx * 3 + 1] = srcPositions[srcIdx * posComponents + 1];
+                    newPositions[dstIdx * 3 + 2] = srcPositions[srcIdx * posComponents + 2];
+
+                    // Normal
+                    if (nrmAccessor && srcIdx < nrmAccessor->count)
                     {
-                        uint32_t srcIdx = indices[t * 3 + v];
-                        uint32_t dstIdx = t * 3 + v;
+                        newNormals[dstIdx * 3 + 0] = srcNormals[srcIdx * nrmComponents + 0];
+                        newNormals[dstIdx * 3 + 1] = srcNormals[srcIdx * nrmComponents + 1];
+                        newNormals[dstIdx * 3 + 2] = srcNormals[srcIdx * nrmComponents + 2];
+                    }
+                    else
+                    {
+                        newNormals[dstIdx * 3 + 0] = 0.0f;
+                        newNormals[dstIdx * 3 + 1] = 1.0f;
+                        newNormals[dstIdx * 3 + 2] = 0.0f;
+                    }
 
-                        // Position
-                        newPositions[dstIdx * 3 + 0] = srcPositions[srcIdx * posComponents + 0];
-                        newPositions[dstIdx * 3 + 1] = srcPositions[srcIdx * posComponents + 1];
-                        newPositions[dstIdx * 3 + 2] = srcPositions[srcIdx * posComponents + 2];
+                    // UV
+                    if (uvAccessor && srcIdx < uvAccessor->count)
+                    {
+                        newUVs[dstIdx * 2 + 0] = srcUVs[srcIdx * uvComponents + 0];
+                        newUVs[dstIdx * 2 + 1] = srcUVs[srcIdx * uvComponents + 1];
+                    }
+                    else
+                    {
+                        newUVs[dstIdx * 2 + 0] = 0.0f;
+                        newUVs[dstIdx * 2 + 1] = 0.0f;
+                    }
 
-                        // Normal
-                        if (nrmAccessor && srcIdx < nrmAccessor->count)
-                        {
-                            newNormals[dstIdx * 3 + 0] = srcNormals[srcIdx * nrmComponents + 0];
-                            newNormals[dstIdx * 3 + 1] = srcNormals[srcIdx * nrmComponents + 1];
-                            newNormals[dstIdx * 3 + 2] = srcNormals[srcIdx * nrmComponents + 2];
-                        }
-                        else
-                        {
-                            newNormals[dstIdx * 3 + 0] = 0.0f;
-                            newNormals[dstIdx * 3 + 1] = 1.0f;
-                            newNormals[dstIdx * 3 + 2] = 0.0f;
-                        }
+                    // Tangent (float4: xyz=tangent, w=handedness)
+                    if (tanAccessor && srcIdx < tanAccessor->count)
+                    {
+                        newTangents[dstIdx * 4 + 0] = srcTangents[srcIdx * tanComponents + 0];
+                        newTangents[dstIdx * 4 + 1] = srcTangents[srcIdx * tanComponents + 1];
+                        newTangents[dstIdx * 4 + 2] = srcTangents[srcIdx * tanComponents + 2];
+                        newTangents[dstIdx * 4 + 3] = (tanComponents >= 4)
+                                                          ? srcTangents[srcIdx * tanComponents + 3]
+                                                          : 1.0f;
+                    }
 
-                        // UV
-                        if (uvAccessor && srcIdx < uvAccessor->count)
-                        {
-                            newUVs[dstIdx * 2 + 0] = srcUVs[srcIdx * uvComponents + 0];
-                            newUVs[dstIdx * 2 + 1] = srcUVs[srcIdx * uvComponents + 1];
-                        }
-                        else
-                        {
-                            newUVs[dstIdx * 2 + 0] = 0.0f;
-                            newUVs[dstIdx * 2 + 1] = 0.0f;
-                        }
+                    // Barycentric
+                    if (!editableTopology)
+                    {
+                        const int corner = dstIdx % 3;
+                        newBarycentrics[dstIdx * 4 + 0] = bary[corner][0];
+                        newBarycentrics[dstIdx * 4 + 1] = bary[corner][1];
+                        newBarycentrics[dstIdx * 4 + 2] = bary[corner][2];
+                        newBarycentrics[dstIdx * 4 + 3] = bary[corner][3];
+                    }
 
-                        // Tangent (float4: xyz=tangent, w=handedness)
-                        if (tanAccessor && srcIdx < tanAccessor->count)
+                    // Bone indices/weights
+                    if (hasSkinning)
+                    {
+                        size_t jc = cgltf_num_components(jointsAccessor->type);
+                        size_t wc = cgltf_num_components(weightsAccessor->type);
+                        for (int k = 0; k < 4; k++)
                         {
-                            newTangents[dstIdx * 4 + 0] = srcTangents[srcIdx * tanComponents + 0];
-                            newTangents[dstIdx * 4 + 1] = srcTangents[srcIdx * tanComponents + 1];
-                            newTangents[dstIdx * 4 + 2] = srcTangents[srcIdx * tanComponents + 2];
-                            newTangents[dstIdx * 4 + 3] = (tanComponents >= 4)
-                                                              ? srcTangents[srcIdx * tanComponents + 3]
-                                                              : 1.0f;
-                        }
-
-                        // Barycentric
-                        newBarycentrics[dstIdx * 4 + 0] = bary[v][0];
-                        newBarycentrics[dstIdx * 4 + 1] = bary[v][1];
-                        newBarycentrics[dstIdx * 4 + 2] = bary[v][2];
-                        newBarycentrics[dstIdx * 4 + 3] = bary[v][3];
-
-                        // Bone indices/weights
-                        if (hasSkinning)
-                        {
-                            size_t jc = cgltf_num_components(jointsAccessor->type);
-                            size_t wc = cgltf_num_components(weightsAccessor->type);
-                            for (int k = 0; k < 4; k++)
-                            {
-                                newJoints[dstIdx * 4 + k] = (k < (int)jc && srcIdx < jointsAccessor->count)
-                                                                ? (uint8_t)srcJoints[srcIdx * jc + k]
-                                                                : 0;
-                                newWeights[dstIdx * 4 + k] = (k < (int)wc && srcIdx < weightsAccessor->count)
-                                                                 ? srcWeights[srcIdx * wc + k]
-                                                                 : 0.0f;
-                            }
+                            newJoints[dstIdx * 4 + k] = (k < (int)jc && srcIdx < jointsAccessor->count)
+                                                            ? (uint8_t)srcJoints[srcIdx * jc + k]
+                                                            : 0;
+                            newWeights[dstIdx * 4 + k] = (k < (int)wc && srcIdx < weightsAccessor->count)
+                                                             ? srcWeights[srcIdx * wc + k]
+                                                             : 0.0f;
                         }
                     }
                 }
@@ -588,9 +592,11 @@ namespace thermion
                 else
                 {
                     tris.resize(triangleCount);
-                    for (uint32_t i = 0; i < newVertexCount; i += 3)
+                    for (uint32_t i = 0; i < triangleCount; i++)
                     {
-                        tris[i / 3] = {i, i + 1, i + 2};
+                        tris[i] = editableTopology
+                                      ? filament::math::uint3{indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]}
+                                      : filament::math::uint3{i * 3, i * 3 + 1, i * 3 + 2};
                     }
                     smoothOrientBuilder.uvs((filament::math::float2 *)newUVs.data())
                         .triangleCount(tris.size())
@@ -603,42 +609,53 @@ namespace thermion
                 delete smoothOrientation;
 
                 // --- Build flat tangent quaternions (face normals) ---
-                std::vector<float> flatNormals(newVertexCount * 3);
-                for (uint32_t t = 0; t < triangleCount; t++)
+                // Flat shading requires per-face vertices. Editable geometry
+                // preserves shared vertices, so its flat buffer intentionally
+                // matches the smooth buffer.
+                std::vector<filament::math::short4> flatTangentQuats;
+                if (editableTopology)
                 {
-                    uint32_t i0 = t * 3 + 0, i1 = t * 3 + 1, i2 = t * 3 + 2;
-                    filament::math::float3 p0 = {newPositions[i0 * 3], newPositions[i0 * 3 + 1], newPositions[i0 * 3 + 2]};
-                    filament::math::float3 p1 = {newPositions[i1 * 3], newPositions[i1 * 3 + 1], newPositions[i1 * 3 + 2]};
-                    filament::math::float3 p2 = {newPositions[i2 * 3], newPositions[i2 * 3 + 1], newPositions[i2 * 3 + 2]};
-                    filament::math::float3 fn = normalize(cross(p1 - p0, p2 - p0));
-                    for (int v = 0; v < 3; v++)
+                    flatTangentQuats = smoothTangentQuats;
+                }
+                else
+                {
+                    std::vector<float> flatNormals(newVertexCount * 3);
+                    for (uint32_t t = 0; t < triangleCount; t++)
                     {
-                        uint32_t di = t * 3 + v;
-                        flatNormals[di * 3 + 0] = fn.x;
-                        flatNormals[di * 3 + 1] = fn.y;
-                        flatNormals[di * 3 + 2] = fn.z;
+                        uint32_t i0 = t * 3 + 0, i1 = t * 3 + 1, i2 = t * 3 + 2;
+                        filament::math::float3 p0 = {newPositions[i0 * 3], newPositions[i0 * 3 + 1], newPositions[i0 * 3 + 2]};
+                        filament::math::float3 p1 = {newPositions[i1 * 3], newPositions[i1 * 3 + 1], newPositions[i1 * 3 + 2]};
+                        filament::math::float3 p2 = {newPositions[i2 * 3], newPositions[i2 * 3 + 1], newPositions[i2 * 3 + 2]};
+                        filament::math::float3 fn = normalize(cross(p1 - p0, p2 - p0));
+                        for (int v = 0; v < 3; v++)
+                        {
+                            uint32_t di = t * 3 + v;
+                            flatNormals[di * 3 + 0] = fn.x;
+                            flatNormals[di * 3 + 1] = fn.y;
+                            flatNormals[di * 3 + 2] = fn.z;
+                        }
                     }
+
+                    // For flat normals, no tangent data from glTF is meaningful, so always recompute from geometry
+                    std::vector<filament::math::uint3> flatTris(triangleCount);
+                    for (uint32_t i = 0; i < newVertexCount; i += 3)
+                    {
+                        flatTris[i / 3] = {i, i + 1, i + 2};
+                    }
+
+                    geometry::SurfaceOrientation::Builder flatOrientBuilder;
+                    flatOrientBuilder.vertexCount(newVertexCount)
+                        .normals((filament::math::float3 *)flatNormals.data())
+                        .positions((filament::math::float3 *)newPositions.data())
+                        .uvs((filament::math::float2 *)newUVs.data())
+                        .triangleCount(flatTris.size())
+                        .triangles(flatTris.data());
+
+                    auto *flatOrientation = flatOrientBuilder.build();
+                    flatTangentQuats.resize(newVertexCount);
+                    flatOrientation->getQuats(flatTangentQuats.data(), newVertexCount);
+                    delete flatOrientation;
                 }
-
-                // For flat normals, no tangent data from glTF is meaningful, so always recompute from geometry
-                std::vector<filament::math::uint3> flatTris(triangleCount);
-                for (uint32_t i = 0; i < newVertexCount; i += 3)
-                {
-                    flatTris[i / 3] = {i, i + 1, i + 2};
-                }
-
-                geometry::SurfaceOrientation::Builder flatOrientBuilder;
-                flatOrientBuilder.vertexCount(newVertexCount)
-                    .normals((filament::math::float3 *)flatNormals.data())
-                    .positions((filament::math::float3 *)newPositions.data())
-                    .uvs((filament::math::float2 *)newUVs.data())
-                    .triangleCount(flatTris.size())
-                    .triangles(flatTris.data());
-
-                auto *flatOrientation = flatOrientBuilder.build();
-                std::vector<filament::math::short4> flatTangentQuats(newVertexCount);
-                flatOrientation->getQuats(flatTangentQuats.data(), newVertexCount);
-                delete flatOrientation;
 
                 // --- Build VertexBuffer ---
                 // Buffer layout: POSITION(0), TANGENTS(1), UV0(2), CUSTOM0(3), COLOR(4), [BONE_INDICES(5), BONE_WEIGHTS(6)]
@@ -745,17 +762,19 @@ namespace thermion
                     _preservedBufferObjects.push_back(weightBO);
                 }
 
-                // --- Build sequential IndexBuffer ---
-                size_t indexDataSize = newVertexCount * sizeof(uint32_t);
+                // Editable geometry retains source indices. Unwelded geometry
+                // uses a sequential index buffer.
+                const size_t newIndexCount = editableTopology ? indices.size() : newVertexCount;
+                size_t indexDataSize = newIndexCount * sizeof(uint32_t);
                 auto *newIndices = new uint8_t[indexDataSize];
                 auto *indexPtr = reinterpret_cast<uint32_t *>(newIndices);
-                for (uint32_t i = 0; i < newVertexCount; i++)
+                for (uint32_t i = 0; i < newIndexCount; i++)
                 {
-                    indexPtr[i] = i;
+                    indexPtr[i] = editableTopology ? indices[i] : i;
                 }
 
                 IndexBuffer *ib = IndexBuffer::Builder()
-                                      .indexCount(newVertexCount)
+                                      .indexCount(newIndexCount)
                                       .bufferType(IndexBuffer::IndexType::UINT)
                                       .build(*_engine);
                 ib->setBuffer(*_engine,
@@ -764,14 +783,15 @@ namespace thermion
                 // --- Replace geometry on the renderable ---
                 rm.setGeometryAt(ri, pi,
                                  RenderableManager::PrimitiveType::TRIANGLES,
-                                 vb, ib, 0, newVertexCount);
+                                 vb, ib, 0, newIndexCount);
 
                 _preservedVertexBuffers.push_back(vb);
                 _preservedIndexBuffers.push_back(ib);
-                _preservedIndexCounts.push_back(newVertexCount);
+                _preservedIndexCounts.push_back(newIndexCount);
 
-                TRACE("rebuildVertexBuffers: primitive %zu unwelded %zu -> %u vertices (skinned=%d)",
-                      pi, indices.size(), newVertexCount, hasSkinning);
+                TRACE("rebuildVertexBuffers: primitive %zu %s with %u vertices and %zu indices (skinned=%d)",
+                      pi, editableTopology ? "editable topology" : "unwelded",
+                      newVertexCount, newIndexCount, hasSkinning);
             }
         }
 

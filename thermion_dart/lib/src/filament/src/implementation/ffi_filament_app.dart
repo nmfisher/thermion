@@ -1123,7 +1123,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     int initialInstances = 1,
     bool releaseSourceData = false,
     bool loadResourcesAsync = false,
-    bool rebuildVertices = false,
+    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
     String? resourceUri,
   }) async {
     if (initialInstances <= 0) {
@@ -1227,7 +1227,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           gltfAssetLoader,
           nameComponentManager,
           filamentAsset,
-          rebuildVertices,
+          vertexBufferMode.index,
           cb,
         ),
       );

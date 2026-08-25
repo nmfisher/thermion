@@ -284,7 +284,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (getVertexBuffer() == null) {
       throw Exception(
         "setFlatShading: asset has no preserved geometry. "
-        "Load it with loadGltf(..., rebuildVertices: true).",
+        "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
       );
     }
     await withVoidCallback((requestId, cb) => SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
