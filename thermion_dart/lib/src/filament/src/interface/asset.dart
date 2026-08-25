@@ -27,6 +27,12 @@ final class MorphTarget {
 /// A weight of `0.0` uses the base shape and `1.0` applies the complete target.
 /// Multiple targets can contribute simultaneously. Finite values outside that
 /// range are passed through to Filament for intentional extrapolation.
+///
+/// Active glTF or custom morph animations can write the same weights on every
+/// animation update. A manual update to an animated target is therefore
+/// temporary and is replaced by the next animation tick. Call
+/// [ThermionAsset.clearMorphAnimationData] before setting a persistent manual
+/// value for a target driven by a custom morph animation.
 abstract interface class MorphTargetSet {
   ThermionEntity get entity;
 
@@ -302,22 +308,23 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  // Construct animation(s) for every entity under [asset]. If [targetMeshNames]
-  // is provided, only entities with matching names will be animated.
-  // [MorphTargetAnimation] for an explanation as to how to construct the
-  // animation frame data. This method will check the morph target names
-  // specified in [animation] against the morph target names that actually exist
-  // exist under [meshName] in [entity], throwing an exception if any cannot be
-  // found. It is permissible for [animation] to omit any targets that do exist
-  // under [meshName]; these simply won't be animated.
-  //
+  /// Adds a custom morph animation to matching renderable entities.
+  ///
+  /// If [targetMeshNames] is provided, only entities with matching names are
+  /// animated. The names in [animation] are matched to each entity's targets;
+  /// targets omitted from [animation] are not changed.
+  ///
+  /// Active animations overwrite manual [MorphTargetSet] updates on their next
+  /// tick. If several custom animations drive the same target, the most
+  /// recently added animation has priority. Use [clearMorphAnimationData] to
+  /// return the entity to persistent manual control.
   Future setMorphAnimationData(MorphAnimationData animation, {List<String>? targetMeshNames}) {
     throw UnimplementedError();
   }
 
-  //
-  // Clear all current morph animations for [entity].
-  //
+  /// Stops all custom morph animations on [entity].
+  ///
+  /// This does not stop morph channels belonging to an active glTF animation.
   Future clearMorphAnimationData(ThermionEntity entity) {
     throw UnimplementedError();
   }

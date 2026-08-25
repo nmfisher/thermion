@@ -36,6 +36,9 @@
   entity, index, and optional name of every morph target. Named and indexed
   updates no longer require callers to construct an opaque full weight array;
   strict full-pose updates remain available through `setAllWeights`.
+- Apply overlapping custom morph animations oldest-first so the most recently
+  added animation has final priority for shared targets. Active animations
+  continue to overwrite manual weights on their next update.
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw

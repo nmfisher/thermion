@@ -79,7 +79,20 @@ unnamed targets. Weights must be finite; `0.0` is the base shape and `1.0` fully
 applies a target.
 
 For keyframed morph animation, build a `MorphAnimationData` and pass it to
-`setMorphAnimationData`. Clear it later with `clearMorphAnimationData(entity)`.
+`setMorphAnimationData`. An active animation writes its target weights on every
+animation tick, so a manual `setWeight`, `setWeightAt`, or `setAllWeights` call
+is temporary for any target that animation controls. Stop custom morph
+animations before taking persistent manual control:
+
+```dart
+await asset.clearMorphAnimationData(morphs.entity);
+await morphs.setWeight('Open', 0.8);
+```
+
+When multiple custom morph animations control the same target, the most
+recently added animation has priority. `clearMorphAnimationData` clears all
+custom morph animations for the entity; it does not stop morph channels in an
+active glTF animation.
 
 ## Bones / skeletal animation
 

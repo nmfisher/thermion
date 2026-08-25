@@ -73,6 +73,42 @@ void main() async {
     );
   });
 
+  test('newer overlapping morph animation has priority', () async {
+    await testHelper.withViewer(
+      (viewer) async {
+        final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb", addToScene: true);
+        final morphs = (await cube.getMorphTargetSets()).single;
+
+        await morphs.setAllWeights([0.0]);
+        final zeroPose = (await testHelper.capture(viewer.view, null)).values.single;
+        await morphs.setAllWeights([1.0]);
+        final onePose = (await testHelper.capture(viewer.view, null)).values.single;
+        await morphs.setAllWeights([0.0]);
+
+        await cube.setMorphAnimationData(
+          MorphAnimationData(Float32List.fromList([0.0]), ["Key 1"], frameLengthInMs: 1000.0),
+          targetMeshNames: ["Cube"],
+        );
+        await cube.setMorphAnimationData(
+          MorphAnimationData(Float32List.fromList([1.0]), ["Key 1"], frameLengthInMs: 1000.0),
+          targetMeshNames: ["Cube"],
+        );
+
+        final animationManager = FilamentApp.instance!.animationManager;
+        await animationManager.update(1);
+        await animationManager.update(2);
+        final animatedPose = (await testHelper.capture(viewer.view, null)).values.single;
+
+        expect(
+          _meanAbsoluteDifference(animatedPose, onePose),
+          lessThan(_meanAbsoluteDifference(animatedPose, zeroPose)),
+        );
+      },
+      bg: kRed,
+      cameraPosition: Vector3(3, 2, -6),
+    );
+  });
+
   test('reject malformed morph animation buffers', () async {
     await testHelper.withViewer((viewer) async {
       final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
@@ -85,4 +121,16 @@ void main() async {
       expect(() => animationManager.setMorphAnimation(entity, [0.0], [0], 1, 1, 0.0), throwsArgumentError);
     });
   });
+}
+
+double _meanAbsoluteDifference(Uint8List left, Uint8List right) {
+  final leftValues = Float32List.view(left.buffer, left.offsetInBytes, left.lengthInBytes ~/ 4);
+  final rightValues = Float32List.view(right.buffer, right.offsetInBytes, right.lengthInBytes ~/ 4);
+  expect(leftValues.length, rightValues.length);
+
+  var total = 0.0;
+  for (var i = 0; i < leftValues.length; i++) {
+    total += (leftValues[i] - rightValues[i]).abs();
+  }
+  return total / leftValues.length;
 }

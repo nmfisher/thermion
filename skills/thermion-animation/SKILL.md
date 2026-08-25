@@ -108,8 +108,11 @@ await morphs.setAllWeights(List.filled(morphs.targets.length, 0.0));
 
 Keyframed morph animation: build a `MorphAnimationData` and
 `await asset.setMorphAnimationData(data, targetMeshNames: [...])`;
-clear with `asset.clearMorphAnimationData(entity)`. Weight changes only show
-once animation frames tick (`update` as above).
+clear with `asset.clearMorphAnimationData(entity)`. Active animations overwrite
+manual weights on their next tick; clear the custom animation before taking
+persistent manual control. When custom animations overlap, the most recently
+added animation has priority. Weight changes only show once animation frames
+tick (`update` as above).
 
 ## Bones / skeletal
 
