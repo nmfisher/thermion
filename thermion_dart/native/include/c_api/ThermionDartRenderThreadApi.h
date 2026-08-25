@@ -162,6 +162,7 @@ namespace thermion
             TNameComponentManager *tNameComponentManager,
             TFilamentAsset *tFilamentAsset,
             bool rebuildVertices,
+            bool preserveTopology,
             void (*onComplete)(TSceneAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(

@@ -1124,8 +1124,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     bool releaseSourceData = false,
     bool loadResourcesAsync = false,
     bool rebuildVertices = false,
+    bool editableVertices = false,
     String? resourceUri,
   }) async {
+    if (rebuildVertices && editableVertices) {
+      throw ArgumentError('rebuildVertices and editableVertices are mutually exclusive');
+    }
     if (initialInstances <= 0) {
       throw Exception("initialInstances must be at least 1");
     }
@@ -1227,7 +1231,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           gltfAssetLoader,
           nameComponentManager,
           filamentAsset,
-          rebuildVertices,
+          rebuildVertices || editableVertices,
+          editableVertices,
           cb,
         ),
       );

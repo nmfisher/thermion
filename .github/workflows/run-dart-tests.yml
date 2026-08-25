@@ -101,12 +101,13 @@ jobs:
             test/gltf_animation_tests.dart \
             test/bone_animation_tests.dart \
             test/morph_animation_tests.dart \
-            test/rebuild_vertices_morph_tests.dart \
+            test/editable_vertices_test.dart \
             test/renderable_manager_tests.dart \
             test/procedural_renderable_test.dart \
             test/gltf_parser_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
+            test/editable_vertices_test.dart \
             test/gizmo_tests_new.dart \
             test/all_axes_test.dart \
             test/bone_picking_tests.dart \
@@ -220,7 +221,6 @@ jobs:
             test/image_tests.dart \
             test/overlay_tests.dart \
             test/wireframe_renderable_test.dart \
-            test/rebuild_vertices_morph_tests.dart \
             test/gizmo_tests_new.dart \
             test/skybox_tests.dart \
             --concurrency=1

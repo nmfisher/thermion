@@ -8,15 +8,12 @@
 
 #include <filament/BufferObject.h>
 #include <filament/Engine.h>
-#include <filament/MorphTargetBuffer.h>
 #include <filament/RenderableManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/IndexBuffer.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/MaterialProvider.h>
-
-#include <cgltf.h>
 
 #include <utils/NameComponentManager.h>
 
@@ -39,6 +36,7 @@ namespace thermion
             Engine *engine,
             utils::NameComponentManager* ncm,
             bool rebuildVertices = false,
+            bool preserveTopology = false,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 
@@ -146,10 +144,11 @@ namespace thermion
 
         /// Rebuild all mesh primitives with a superset vertex buffer layout
         /// (POSITION + TANGENTS + UV0 + CUSTOM0 + optional BONE_INDICES/WEIGHTS).
-        /// Unwelds vertices so each triangle has unique vertices for barycentric
-        /// wireframe rendering. After this, materials can be freely swapped via
-        /// setMaterialInstanceAt. Requires source data to still be available.
-        void rebuildVertexBuffers();
+        /// By default vertices are unwelded so each triangle has unique vertices
+        /// for barycentric wireframe rendering. When @param preserveTopology is
+        /// true, source vertex order and indices are retained so glTF morph
+        /// target buffers remain compatible with the rebuilt geometry.
+        void rebuildVertexBuffers(bool preserveTopology = false);
 
         /// Toggle between flat (per-face) and smooth (per-vertex) shading.
         /// Only valid after rebuildVertexBuffers() has been called.
@@ -188,16 +187,6 @@ namespace thermion
         /// or no mesh match during rebuild).
         int getPrimitiveOffsetForEntity(utils::Entity entity) const;
 
-        /// Returns the replacement MorphTargetBuffer for the given preserved
-        /// slot, or nullptr when the slot has no morph replacement (no morph
-        /// targets, or the entity was not eligible for a morph rebuild).
-        MorphTargetBuffer *getPreservedMorphBuffer(size_t index) const {
-            if (index < _preservedMorphInfos.size()) {
-                return _preservedMorphInfos[index].mtb;
-            }
-            return nullptr;
-        }
-
         size_t getBoneCount(size_t skinIndex) const override;
         const utils::Entity *getBones(size_t skinIndex) const override;
         const char *getBoneName(size_t skinIndex, size_t boneIndex) const override;
@@ -222,35 +211,6 @@ namespace thermion
         std::vector<BufferObject*> _preservedBufferObjects;
         std::vector<BufferObject*> _smoothTangentBOs;
         std::vector<BufferObject*> _flatTangentBOs;
-
-        // Morph-target replacement state, parallel to _preservedVertexBuffers.
-        // rebuildVertexBuffers replaces indexed geometry with unwelded
-        // geometry, so the gltfio-created MorphTargetBuffer (sized for the
-        // original welded vertex count) no longer matches. Filament only
-        // allows a MorphTargetBuffer to be attached at RenderableManager
-        // build time, so affected renderables are rebuilt against a
-        // replacement buffer holding the unwelded morph deltas.
-        struct PreservedMorphInfo
-        {
-            MorphTargetBuffer *mtb = nullptr; // shared by all instances of this mesh
-            size_t vertexOffset = 0;          // this primitive's offset within mtb
-            size_t targetCount = 0;           // morph target count for this entity
-            const cgltf_node *node = nullptr; // source node (skin + default weights)
-        };
-        std::vector<PreservedMorphInfo> _preservedMorphInfos;
-
-        // Replacement MorphTargetBuffers created by rebuildVertexBuffers,
-        // owned by this asset (one per rebuilt renderable entity).
-        std::vector<MorphTargetBuffer *> _ownedMorphTargetBuffers;
-
-        /// Rebuild the renderable component on @param entity against the
-        /// preserved geometry slots starting at @param slotStart, preserving
-        /// all renderable state (materials, shadows, bounding box, skinning,
-        /// layer/priority) and attaching the replacement morph target buffer.
-        /// Returns false (and does nothing) when any primitive in the entity's
-        /// slot range lacks a morph replacement — callers then fall back to
-        /// per-primitive setGeometryAt.
-        bool rebuildRenderableWithMorphs(utils::Entity entity, size_t slotStart);
 
         // Map from entity ID to starting offset in _preservedVertexBuffers.
         // Built during rebuildVertexBuffers to enable O(1) lookup.

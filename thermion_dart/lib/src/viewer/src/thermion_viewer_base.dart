@@ -175,6 +175,11 @@ abstract class ThermionViewer {
   // Increases vertex memory usage (~3x vertex count) but preserves the full
   // glTF feature set (animations, skeleton, instancing).
   //
+  // If [editableVertices] is true, vertex buffers are rebuilt without
+  // unwelding: source vertex order and triangle indices are preserved. This
+  // exposes mutable buffers while retaining compatibility with glTF morph
+  // targets. It is mutually exclusive with [rebuildVertices].
+  //
   // If [loadResourcesAsync] is true, resources (textures, materials, etc) will
   // be loaded asynchronously. Some material/texture pop-in is expected.
   //
@@ -184,6 +189,7 @@ abstract class ThermionViewer {
     int initialInstances = 1,
     bool releaseSourceData = false,
     bool rebuildVertices = false,
+    bool editableVertices = false,
     String? resourceUri,
     bool loadAsync = false,
   });
@@ -198,6 +204,7 @@ abstract class ThermionViewer {
     int initialInstances = 1,
     bool releaseSourceData = false,
     bool rebuildVertices = false,
+    bool editableVertices = false,
     bool loadResourcesAsync = false,
     bool addToScene = true,
   });

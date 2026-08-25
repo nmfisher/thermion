@@ -70,7 +70,8 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        bool rebuildVertices
+        bool rebuildVertices,
+        bool preserveTopology
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
@@ -82,7 +83,8 @@ extern "C"
             assetLoader,
             engine,
             nameComponentManager,
-            rebuildVertices
+            rebuildVertices,
+            preserveTopology
         );
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);

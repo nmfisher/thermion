@@ -634,6 +634,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
     ffi.Pointer<TNameComponentManager>,
     ffi.Pointer<TFilamentAsset>,
     ffi.Bool,
+    ffi.Bool,
   )
 >(isLeaf: true)
 external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
@@ -642,6 +643,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
   bool rebuildVertices,
+  bool preserveTopology,
 );
 
 @ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
@@ -2696,6 +2698,7 @@ external void SceneAsset_destroyRenderThread(
     ffi.Pointer<TNameComponentManager>,
     ffi.Pointer<TFilamentAsset>,
     ffi.Bool,
+    ffi.Bool,
     ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>,
   )
 >(isLeaf: true)
@@ -2705,6 +2708,7 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
   bool rebuildVertices,
+  bool preserveTopology,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>> onComplete,
 );
 

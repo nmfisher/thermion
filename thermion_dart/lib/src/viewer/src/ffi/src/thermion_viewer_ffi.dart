@@ -517,6 +517,7 @@ class ThermionViewerFFI extends ThermionViewer {
     int initialInstances = 1,
     bool releaseSourceData = false,
     bool rebuildVertices = false,
+    bool editableVertices = false,
     String? resourceUri,
     bool loadAsync = false,
   }) async {
@@ -537,6 +538,7 @@ class ThermionViewerFFI extends ThermionViewer {
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
       rebuildVertices: rebuildVertices,
+      editableVertices: editableVertices,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );
@@ -550,6 +552,7 @@ class ThermionViewerFFI extends ThermionViewer {
     int initialInstances = 1,
     bool releaseSourceData = false,
     bool rebuildVertices = false,
+    bool editableVertices = false,
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
@@ -558,6 +561,7 @@ class ThermionViewerFFI extends ThermionViewer {
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
       rebuildVertices: rebuildVertices,
+      editableVertices: editableVertices,
       loadResourcesAsync: loadResourcesAsync,
       resourceUri: resourceUri,
     );

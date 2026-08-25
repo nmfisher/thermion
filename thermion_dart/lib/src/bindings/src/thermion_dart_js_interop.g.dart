@@ -302,6 +302,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
     bool rebuildVertices,
+    bool preserveTopology,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(Pointer<TSceneAsset> tSceneAsset);
   external int _SceneAsset_getType(Pointer<TSceneAsset> tSceneAsset);
@@ -1363,6 +1364,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
     bool rebuildVertices,
+    bool preserveTopology,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> onComplete,
   );
   external void _SceneAsset_createFromBuffersRenderThread(
@@ -3343,6 +3345,7 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
   bool rebuildVertices,
+  bool preserveTopology,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAsset(
     tEngine.cast(),
@@ -3350,6 +3353,7 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
     tNameComponentManager.cast(),
     tFilamentAsset.cast(),
     rebuildVertices,
+    preserveTopology,
   );
   return Pointer<TSceneAsset>(result);
 }
@@ -6177,6 +6181,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
   bool rebuildVertices,
+  bool preserveTopology,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAssetRenderThread(
@@ -6185,6 +6190,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
     tNameComponentManager.cast(),
     tFilamentAsset.cast(),
     rebuildVertices,
+    preserveTopology,
     onComplete.cast(),
   );
   return result;

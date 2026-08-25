@@ -986,13 +986,16 @@ extern "C"
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
       bool rebuildVertices,
+      bool preserveTopology,
       void (*onComplete)(TSceneAsset *))
   {
     auto *rt = RT(tEngine);
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset, rebuildVertices);
+          auto sceneAsset = SceneAsset_createFromFilamentAsset(
+              tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset,
+              rebuildVertices, preserveTopology);
 
           setOwner(sceneAsset, rt);          PROXY(onComplete(sceneAsset));
         });
