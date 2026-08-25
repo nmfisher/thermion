@@ -18,21 +18,16 @@ material {
     depthCulling : false,
     shadingModel : unlit,
     blending : add,
-    culling : none,
+    culling : back,
     variantFilter : [ skinning, shadowReceiver, vsm ]
 }
 
 fragment {
-    float hash2(vec2 p) {
-        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-    }
-
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec3 nrm = normalize(variable_worldPos.xyz);
         vec3 normal = normalize(variable_surfaceNormal.xyz);
-        vec3 viewDir = normalize(getWorldCameraPosition() - getWorldPosition().xyz);
+        vec3 viewDir = normalize(getWorldCameraPosition() - variable_worldPos.xyz);
         float t = materialParams.time;
 
         // Fresnel rim gives the bubble its silhouette, with a hotter thin
@@ -41,53 +36,52 @@ fragment {
         float fresnel = pow(1.0 - ndv, materialParams.fresnelPower);
         float rimLip = pow(1.0 - ndv, 8.0);
 
-        // --- hexagonal lattice -------------------------------------------
-        // hexScale counts cells around the equator (~20): big enough that
-        // individual cells resolve on screen instead of collapsing into
-        // moire mush. Longitude and latitude are scaled so cells stay
-        // roughly square in world space.
-        float lon = atan(nrm.z, nrm.x);
-        float lat = asin(clamp(nrm.y, -1.0, 1.0));
-        vec2 hp = vec2(lon * 1.1547, lat) * (materialParams.hexScale * 0.159155);
-        hp.y += mod(floor(hp.x), 2.0) * 0.5;
-        vec2 cellId = floor(hp);
-        // Small per-cell wobble de-regularizes the grid without breaking it.
-        hp += (vec2(hash2(cellId), hash2(cellId + 19.0)) - 0.5) * 0.08;
+        // --- curved energy lattice ---------------------------------------
+        // Two families of thin, gently warped spherical arcs read as an
+        // engineered field without revealing the source mesh's triangles.
+        float lon = atan(normal.z, normal.x);
+        float lat = asin(clamp(normal.y, -1.0, 1.0));
+        float cells = materialParams.hexScale * 0.5;
+        float warpA = sin(lat * 5.0 + t * 0.35) * 0.24;
+        float warpB = sin(lon * 3.0 - t * 0.28) * 0.16;
+        float arcA = pow(abs(sin(lon * cells + warpA)), 24.0);
+        float arcB = pow(abs(sin(lat * cells * 1.72 + warpB)), 28.0);
+        float poleFade = smoothstep(0.995, 0.87, abs(normal.y));
+        float line = max(arcA * poleFade, arcB);
+        float node = arcA * arcB * poleFade;
 
-        vec2 f = abs(fract(hp) - 0.5);
-        float d = max(dot(f, vec2(0.5, 0.8660254)), f.x);
-        float line = smoothstep(0.42, 0.50, d);
-
-        // Energy pulses running along the lattice lines; cells themselves
-        // stay dark so the web structure dominates.
-        float flow = 0.65 + 0.35 * sin((hp.x + hp.y * 0.6) * 2.2 - t * 3.0);
-        float twinkle = 0.5 + 0.5 * sin(t * 2.4 + hash2(cellId + 7.0) * 6.2832);
-
-        float poleFade = smoothstep(0.99, 0.86, abs(nrm.y));
-        float lattice = line * flow * poleFade * materialParams.hexStrength;
-        lattice += (1.0 - line) * twinkle * 0.08 * poleFade *
-                   materialParams.hexStrength;
+        // Directional power flow travels through the web while intersections
+        // ignite as small nodes.
+        float phase = lon * 5.0 + lat * 9.0 - t * 3.8;
+        float flow = 0.58 + 0.42 * sin(phase);
+        float secondary = 0.72 + 0.28 * sin(phase * 0.47 + t * 1.7);
+        float lattice = (line * flow * secondary + node * 0.7) *
+                        materialParams.hexStrength;
 
         // --- impact response ----------------------------------------------
         // A bright splash at the impact site, then a sharp ring expanding
         // over the sphere's angular distance with a trailing echo. The ring
         // flares the lattice as it crosses it.
-        float ang = acos(clamp(dot(nrm, normalize(materialParams.hitDirection)),
+        float ang = acos(clamp(dot(normal, normalize(materialParams.hitDirection)),
                                -1.0, 1.0));
         float age = materialParams.hitAge;
-        float splash = pow(max(dot(nrm, normalize(materialParams.hitDirection)),
-                               0.0), 6.0) * exp(-age * 8.0);
-        float ringR = age * 2.2;
-        float dr_8171 = ((ang - ringR) * 6.0);
-        float ring = exp(-dr_8171 * dr_8171) * exp(-age * 1.1);
-        float dr_1736 = ((ang - ringR * 0.78) * 5.0);
-        float echo = 0.5 * exp(-dr_1736 * dr_1736) *
-                     exp(-age * 0.9);
-        float ripple = splash + ring + echo;
+        float da = ang * 7.5;
+        float splash = exp(-da * da) * exp(-age * 8.5) * 2.2;
+        float ringR = age * 2.05;
+        float dr_8171 = ((ang - ringR) * 12.5);
+        float ring = exp(-dr_8171 * dr_8171) * exp(-age * 0.75);
+        float dr_1736 = ((ang - ringR * 0.73) * 9.0);
+        float echo = 0.42 * exp(-dr_1736 * dr_1736) * exp(-age * 0.9);
+        vec3 hitDir = normalize(materialParams.hitDirection);
+        vec3 ringU = normalize(cross(hitDir, vec3(0.0, 1.0, 0.0)));
+        vec3 ringV = cross(hitDir, ringU);
+        float ringAngle = atan(dot(normal, ringV), dot(normal, ringU));
+        float arcSparks = ring * pow(max(sin(ringAngle * 9.0 - t * 7.0),
+                                         0.0), 12.0) * 2.4;
+        float ripple = splash + ring + echo + arcSparks;
 
-        float amount = 0.06 + fresnel * 1.1 + rimLip * 1.0 +
-                       lattice * (0.55 + ripple * 2.2) +
-                       ripple * 1.6;
+        float amount = 0.012 + fresnel * 0.56 + rimLip * 1.35 +
+                       lattice * (0.92 + ripple * 4.2) + ripple * 5.2;
 
         vec3 color = materialParams.baseColor.rgb;
         color = mix(color, vec3(0.85, 0.95, 1.0),
@@ -97,7 +91,7 @@ fragment {
         // Additive materials pass through the engine's HDR exposure before
         // tonemapping (~300x on this pipeline), so artistic 0..4 values are
         // scaled down here: 0.5 reads as a mid glow, 2+ as near-white.
-        material.baseColor = vec4(color * amount * 0.004, 1.0);
+        material.baseColor = vec4(color * amount * 0.0052, 1.0);
     }
 }
 

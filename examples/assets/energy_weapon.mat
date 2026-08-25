@@ -1,0 +1,67 @@
+material {
+    name : EnergyWeapon,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [
+        { type : float, name : time },
+        { type : float, name : mode },
+        { type : float, name : phase }
+    ],
+    blending : add,
+    depthWrite : false,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+vertex { void materialVertex(inout MaterialVertexInputs material){material.objectPos.xyz=getPosition().xyz;} }
+fragment {
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+    void material(inout MaterialInputs material){
+        prepareMaterial(material);
+        vec2 p=variable_objectPos.xz; float mode=materialParams.mode,t=materialParams.time;
+        vec3 color=vec3(0.0); float amount=0.0;
+        if(mode<.5){
+            float x=p.x/4.7+.5, y=abs(p.y)/.22;
+            float envelope=smoothstep(0.0,.08,x)*(1.0-smoothstep(.84,1.0,x));
+            float core=exp(-y*y*19.0), halo=exp(-y*y*2.2);
+            float plasma=.6+.4*noise2(vec2(x*35.0-t*9.0,p.y*22.0));
+            float pulse=pow(.5+.5*sin(x*70.0-t*18.0),8.0);
+            float beamAmount=envelope*(core*1.15+halo*.44*plasma+pulse*core*.65)*materialParams.phase;
+            vec3 beamColor=mix(vec3(.015,.1,.82),vec3(.38,.82,1.0),core);
+
+            float cycle=mod(t,2.6);
+            float charge=clamp(cycle/.65,0.0,1.0);
+            float hit=clamp((cycle-.92)/.95,0.0,1.0);
+            float hitEnvelope=sin(hit*3.14159265);
+            vec2 muzzleP=p-vec2(-1.55,0.0);
+            float muzzleR=length(muzzleP);
+            float muzzle=exp(-muzzleR*muzzleR*24.0)*(0.12+charge*.95)*(1.0-materialParams.phase*.55);
+            muzzle+=exp(-abs(muzzleR-(.08+charge*.2))*40.0)*charge*.65;
+
+            vec2 impactP=p-vec2(1.55,0.0);
+            float impactR=length(impactP), impactA=atan(impactP.y,impactP.x);
+            float impact=exp(-impactR*impactR*19.0)*hitEnvelope*1.8;
+            impact+=exp(-abs(impactR-hit*.48)*32.0)*hitEnvelope*1.5;
+            impact+=pow(max(sin(impactA*10.0+t*7.0),0.0),18.0)*
+                    smoothstep(.56,.05,impactR)*hitEnvelope*.9;
+
+            color=beamColor*beamAmount+
+                  vec3(.08,.48,1.0)*muzzle+
+                  vec3(.42,.08,1.0)*impact;
+            color+=vec3(.62,.9,1.0)*(core*beamAmount*.45+
+                  exp(-muzzleR*muzzleR*85.0)*charge*.8+
+                  exp(-impactR*impactR*70.0)*hitEnvelope);
+            amount=1.0;
+        } else {
+            vec2 q=p*2.0; float r=length(q),a=atan(q.y,q.x);
+            if(r>.94) discard;
+            float ring=exp(-abs(r-materialParams.phase*.72)*22.0);
+            float rays=pow(max(0.0,sin(a*11.0+t*8.0)),16.0)*smoothstep(.85,.04,r);
+            float orb=pow(max(1.0-r,0.0),2.2);
+            amount=(orb*4.5+ring*4.0+rays*2.4)*smoothstep(0.0,.04,materialParams.phase)*(1.0-smoothstep(.88,1.0,materialParams.phase));
+            color=mix(vec3(.055,.008,.62),vec3(.28,.72,1.0),clamp(orb+ring,0.0,1.0));
+        }
+        material.baseColor=vec4(color*amount*.055,1.0);
+    }
+}

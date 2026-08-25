@@ -8,18 +8,24 @@ material {
     parameters : [
         { type : float4, name : flashColor },
         { type : float3, name : hitPoint },
-        { type : float,  name : progress }
+        { type : float,  name : progress },
+        { type : float,  name : normalOffset }
     ],
     depthWrite : false,
-    depthCulling : false,
+    depthCulling : true,
     shadingModel : unlit,
     blending : add,
-    culling : none
+    transparency : twoPassesOneSide,
+    culling : back
 }
 
 vertex {
     void materialVertex(inout MaterialVertexInputs material) {
         material.surfaceNormal.xyz = material.worldNormal;
+        // Lift the effect skin a few millimeters along the source surface so
+        // it depth-tests cleanly over the original PBR mesh.
+        material.worldPosition.xyz += material.worldNormal *
+                                      materialParams.normalOffset;
         // getWorldPosition() in the fragment stage returns view-relative
         // coordinates on this pipeline - pipe true world position through a
         // variable instead (as water/lava do).

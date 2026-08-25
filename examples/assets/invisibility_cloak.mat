@@ -1,0 +1,36 @@
+material {
+    name : InvisibilityCloak,
+    shadingModel : unlit,
+    requires : [ position, tangents ],
+    variables : [ objectPos, surfaceNormal, worldPos ],
+    parameters : [ { type : float, name : time }, { type : float, name : disruption } ],
+    blending : transparent,
+    depthWrite : false,
+    culling : none,
+    variantFilter : [ shadowReceiver, vsm ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material){
+        material.objectPos.xyz=getPosition().xyz; material.surfaceNormal.xyz=material.worldNormal; material.worldPos.xyz=material.worldPosition.xyz;
+        float shimmer=sin(getPosition().y*23.0+materialParams.time*5.0)*.006*materialParams.disruption;
+        material.worldPosition.xyz+=material.worldNormal*shimmer;
+    }
+}
+fragment {
+    float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+    float noise3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+    void material(inout MaterialInputs material){
+        prepareMaterial(material);
+        vec3 n=normalize(variable_surfaceNormal.xyz),v=normalize(getWorldCameraPosition()-variable_worldPos.xyz),p=variable_objectPos.xyz;
+        float fres=pow(1.0-abs(dot(n,v)),2.15);
+        float band=pow(max(.0,1.0-abs(fract(p.y*3.2-materialParams.time*.75)-.5)*7.0),3.0);
+        float cells=smoothstep(.68,.88,noise3(p*18.0+materialParams.time*.3));
+        float pulse=.5+.5*sin(materialParams.time*2.7+p.y*8.0);
+        float fault=(band*.8+cells*.42)*materialParams.disruption;
+        vec3 cyan=vec3(.03,.62,1.0),violet=vec3(.62,.08,1.0);
+        vec3 color=mix(cyan,violet,.5+.5*dot(n,vec3(.7,.2,.68)))*(fres*.46+fault*.38);
+        color+=vec3(.75,.92,1.0)*pow(fres,6.0)*.52;
+        float alpha=clamp(.006+fres*.18+fault*.13+pulse*.006,0.0,.32);
+        material.baseColor=vec4(color*alpha,alpha);
+    }
+}

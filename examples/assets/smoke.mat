@@ -12,7 +12,9 @@ material {
         { type : float,  name : swirlAmount },
         { type : float,  name : baseSize },
         { type : float,  name : noiseScale },
-        { type : float,  name : lifetime }
+        { type : float,  name : lifetime },
+        { type : float,  name : originHeight },
+        { type : float,  name : opacity }
     ],
     depthWrite : false,
     depthCulling : false,
@@ -57,11 +59,13 @@ vertex {
         float y = t * materialParams.riseSpeed * (0.85 + rng2 * 0.3) *
                   (0.75 + 0.5 * age);
 
-        // Puffs start small and stretch vertically as they climb, like
-        // buoyant smoke; every rate varies a little per puff.
+        // Puffs start compact, broaden gradually, and only stretch modestly.
+        // Oversized late-life billboards merge into a flat white wall, so
+        // most of the plume volume comes from overlap between many wisps.
         float scale = (materialParams.baseSize +
                        t * materialParams.expandSpeed) * (0.75 + rng3 * 0.5);
-        vec2 quadScale = vec2(scale, scale * (1.0 + age * 1.4));
+        vec2 quadScale = vec2(scale * (0.78 + 0.30 * rng2),
+                              scale * (1.0 + age * 0.72));
 
         // Slow per-puff spin - visible through the noise sampling.
         float angle = t * materialParams.swirlAmount * (rng1 - 0.5) * 0.8 +
@@ -75,11 +79,12 @@ vertex {
         // age while wind bends the plume sideways. This cone + bend is what
         // makes it read as a plume rather than a vertical line of blobs.
         float spiralAngle = seed * 6.2832 + t * 1.1;
-        float spiralRadius = age * 0.36;
+        float spiralRadius = age * (0.22 + 0.20 * rng4);
         vec3 center = vec3(
-            cos(spiralAngle) * spiralRadius + rng2 * 0.08 + age * age * 0.62,
-            y,
-            sin(spiralAngle) * spiralRadius + rng3 * 0.08);
+            cos(spiralAngle) * spiralRadius + (rng2 - 0.5) * 0.10 +
+                age * age * 0.34,
+            materialParams.originHeight + y,
+            sin(spiralAngle) * spiralRadius + (rng3 - 0.5) * 0.12);
 
         // Camera-facing: offset by the view axes (rows of the view matrix)
         // expressed in world space, so no double transform occurs.
@@ -132,11 +137,9 @@ fragment {
         float age = 1.0 - fade;
         float t = materialParams.time;
 
-        // Soft radial falloff (billboard alpha), shaped with the domain.
-        vec2 d = (uv - 0.5) * vec2(1.0, 0.85);
-        float dr = length(d) * 2.0;
-        float radial = 1.0 - smoothstep(0.0, 0.98, dr);
-        radial = pow(radial, 1.5);
+        // Soft asymmetric falloff. A warped ellipse removes the circular
+        // cotton-ball silhouette before the texture noise is applied.
+        vec2 d = (uv - 0.5) * vec2(1.0, 0.82);
 
         // Domain-warped fbm in billboard space. The noise is squashed
         // vertically so its features stretch into rising wisps, and the
@@ -145,27 +148,34 @@ fragment {
                            materialParams.noiseScale * 0.55) +
                  vec2(0.0, -t * 0.22);
         float warp = fbm(q + vec2(t * 0.05, 0.0));
-        float f = fbm(q + warp * 1.7 + fbm(q * 1.7) * 0.6);
-        float body = radial *
-            smoothstep(0.34, 0.60, f * 0.9 + radial * 0.28);
+        vec2 warpedD = d + vec2(warp - 0.5,
+                                fbm(q.yx * 1.7 - t * 0.08) - 0.5) * 0.20;
+        float dr = length(warpedD) * 2.0;
+        float radial = 1.0 - smoothstep(0.34, 1.0, dr);
+        radial = pow(max(radial, 0.0), 1.35);
+        float f = fbm(q + warp * 1.9 + fbm(q * 1.7) * 0.65);
+        float erosion = smoothstep(0.30, 0.68,
+                                   f + radial * 0.42 - age * 0.08);
+        float body = radial * erosion;
 
         // Dense and bright at birth, thinning as the puff climbs.
-        float density = pow(fade, 0.7);
-        body *= 0.4 + 0.75 * density;
+        float density = pow(fade, 0.62);
+        body *= 0.32 + 0.60 * density;
 
         // Ease in quickly, fade out over the last stretch of life.
-        float lifeFade = smoothstep(0.0, 0.10, fade) *
-                         smoothstep(0.0, 0.50, fade);
+        float lifeFade = smoothstep(0.0, 0.10, age) *
+                         smoothstep(0.0, 0.28, fade);
 
-        float amount = body * lifeFade * brightness * 0.5;
+        float amount = body * lifeFade * brightness * 0.22 *
+                       materialParams.opacity;
 
         // Gray smoke with volume: lit from above (younger, denser puffs
         // scatter more), a warm cast near the fire below, and a cooler,
         // more translucent tone as it ages into wisps.
-        float lit = 0.42 + 0.58 * uv.y;
+        float lit = 0.40 + 0.52 * uv.y + 0.10 * f;
         vec3 color = materialParams.baseColor.rgb * lit;
-        color += vec3(0.16, 0.05, 0.0) * density * density;
-        color = mix(color, color * vec3(0.55, 0.62, 0.75), age * 0.55);
+        color += vec3(0.09, 0.025, 0.0) * density * density;
+        color = mix(color, color * vec3(0.54, 0.62, 0.78), age * 0.48);
 
         material.baseColor = vec4(color * amount, amount);
     }

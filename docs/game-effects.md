@@ -1,8 +1,9 @@
 # Game-Effect Shaders — guide for contributors
 
-Ten example-level Filament materials for common game VFX: **hit flash,
+Eighteen example-level Filament effects for common game VFX: **hit flash,
 hologram, force field, dissolve/burn, water, smoke, fire, lava, shockwave,
-shore waves**. Everything lives at
+shore waves, wetness, crystal/ice, snow accumulation, damage decals, portal,
+electricity, invisibility cloak, and an energy-weapon suite**. Everything lives at
 example level — no engine changes, no new public API. This document explains
 what each effect is meant to read as, how it is built, how to render and
 iterate, and where the interesting improvement opportunities are.
@@ -156,7 +157,10 @@ runner's still mode applies the animators at `--time` (default 0) before
 capturing, and its `--video` mode steps `t` per frame before each capture.
 Blending modes are baked into the `.mat` (`add`, `transparent`,
 `opaque`); everything else is a uniform you can retune from Dart without
-recompiling.
+recompiling. Each setup enables the post-processing stack through
+`enableVfxPost`, with effect-specific bloom strength: emissive fire/lava/
+shockwave get a stronger halo, while water, smoke, and shore use restrained
+bloom so highlights soften without flattening the image.
 
 ## 5. Shared helpers (`game_effects_shared.dart`)
 
@@ -166,6 +170,7 @@ recompiling.
 | `effectAnimators` | per-setup time→uniform closures consumed by the runner's still (`--time`) and video modes |
 | `loadEffectMaterial(viewer, assetsDir, name)` | `.filamat` bytes → `MaterialInstance` |
 | `setDarkSkybox(viewer)` | near-black navy skybox for additive scenes |
+| `enableVfxPost(viewer, bloomStrength)` | enables AA/tonemapping/bloom with a per-effect glow strength |
 | `subdividedPlane(w, d, subX, subZ)` | flat XZ grid with normals/UVs (`GeometryUtils.plane` is only 4 verts) |
 | `dummyBillboardQuads(n)` | near-degenerate mesh: 6 verts per puff placed at a small deterministic scatter (valid bounding volume, treatable as zero by the shader — see the worldPosition gotcha) |
 
@@ -181,7 +186,8 @@ rim-weighted body flash decays — the classic "I got hit" read. In the video
 a hit lands every 2.4s (0.55s flash, rotating through three impact points on
 the camera-facing side, then the normal PBR look until the next hit).
 
-**Build.** Unlit + **additive** blend, depthWrite off. The vertex stage
+**Build.** Unlit + **additive** blend, depthWrite off, back-face culled,
+using Filament's two-pass one-sided transparency. The vertex stage
 passes the world normal and true world position (model matrix × object
 position — see the view-space gotcha) via `variables`. The fragment
 computes a fast cubic-decay body flash weighted to the silhouette, a
@@ -192,25 +198,26 @@ flash, with a sharp leading edge and a tight warm wake behind it. The ring
 color is an *oversaturated* version of `flashColor` — bright additive
 values get desaturated toward white by the tonemapper, so the sweep needs
 excess input to read as colored. Output is scaled ~0.05 for the additive
-HDR exposure path (see the gotcha). The flash is a **material-instance
-swap**: snapshot originals (`getMaterialInstancesAsMap`), swap in the
-flash, animate `progress` 0→1, restore (`setMaterialInstancesFromMap`).
-The scene is lit by a dim directional light only (no IBL) so the additive
-flash keeps contrast.
+HDR exposure path (see the gotcha). The original PBR helmet remains in the
+scene; a coincident second copy carries the flash as a true overlay. Its
+vertices are lifted by `normalOffset`, while the two-pass depth path keeps
+the complex glTF's internal submeshes from showing through as an X-ray.
+The scene uses a warm key and cool point fill so the resting helmet stays
+readable between hits.
 
 **Uniforms.** `flashColor` float4 (default orange 1.0/0.36/0.1), `hitPoint`
-float3 (world), `progress` float (0 = impact instant, 1 = finished). Flash
-duration, hit period and the impact-point list are Dart constants.
+float3 (world), `progress` float (0 = impact instant, 1 = finished), and
+`normalOffset` (0.006). Flash duration, hit period and the impact-point list
+are Dart constants.
 
 **Tuning.** Snappier ring → raise the `15.0` width base or `1.15` travel in
 the `.mat`; stronger directionality → move `hitPoint`; colored per-damage
 type → change `flashColor` at runtime. Golden still time: `--time 0.22`
 (ring mid-sweep across the face).
 
-**Limitations / ideas.** The swap replaces the PBR look during the flash —
-an *overlay* pass (duplicate renderable sharing the mesh, additive on top)
-would keep the original visible. A screen-space chromatic pulse on impact
-and a decal-style scorch mark are natural follow-ons.
+**Limitations / ideas.** The example duplicates the glTF because the viewer
+does not yet expose a shared-geometry overlay renderable. A screen-space
+chromatic pulse and a decal-style scorch mark are natural follow-ons.
 
 ### 6.2 hologram — `game_effects_hologram.dart`, `hologram.mat`
 
@@ -231,7 +238,10 @@ way, red-fringed the other); and a two-frequency flicker with rare
 single-frame dropouts. The gate hash is duplicated verbatim in both stages
 so the vertex shear and fragment flare stay in sync. A slight hue journey
 runs up the projection: deeper blue at the base, near-white cyan at the
-crown. Applied to the skinned BusterDrone via material swap.
+crown. Applied to the skinned BusterDrone via material swap. A separate
+additive `hologram_projector.mat` disc beneath the drone supplies concentric
+rings, radial spokes, a rotating acquisition sweep, and a physical visual
+source; the camera drifts on a subtle orbit during video.
 
 **Uniforms.** `tintColor` (0.2, 0.85, 1.0), `time`, `fresnelPower` 2.5,
 `fresnelStrength` 1.35, `scanlineCount` 70, `scanlineSpeed` 4.0,
@@ -243,45 +253,41 @@ band mid-model).
 on small meshes); the sweep speed is the `0.21` factor on `t`.
 
 **Limitations / ideas.** A materialization wipe (discard below a
-noise-edged Y threshold that rises with time) would give a "projector
-boot-up"; a faint projector cone or ground disc as extra geometry.
+noise-edged Y threshold that rises with time) would give a projector boot-up;
+a translucent volumetric cone between the new emitter and drone is the next
+scene-layer improvement.
 
 ### 6.3 force_field — `game_effects_force_field.dart`, `force_field.mat`
 
 **Intent.** A shield bubble around a generator core: dark see-through
-interior, bright fresnel silhouette with a hot rim lip, a hexagonal energy
+interior, bright fresnel silhouette with a hot rim lip, a curved energy
 lattice with pulses running along its lines, and an impact response — a
 splash at the hit site, then a sharp expanding ring (with a trailing echo)
 that flares the lattice as it crosses.
 
 **Build.** Unlit + **additive**, depthWrite off, on a 48×64 sphere scaled
-to radius 1.2. `hexScale` now counts **cells around the equator (~20)** —
-big enough that individual cells resolve on screen (the old ~124-column
-grid was sub-pixel moiré mush). The lattice is a hex distance function
-over longitude/latitude (columns offset half a cell, `max` of the two edge
-planes) with a small per-cell wobble; energy pulses travel along the lines
-while cell interiors stay dark so the web structure dominates. The impact
-response: a bright directional splash (hemisphere-facing, dies in ~0.3s),
-then a gaussian ring expanding over angular distance with a 0.5× echo,
-both mixing toward white and multiplying the lattice brightness as they
-pass. A plain white 0.4-scale cube sits inside as the core. Output is
-scaled ~0.004×amplitude for the additive HDR path.
+to radius 1.2, front-face shell only so the back grid cannot muddy the read.
+The lattice is two warped families of thin spherical arcs with directional
+power flow and brighter intersections; unlike the original spherical hex
+mapping it neither pinches into giant polar cells nor reveals the source
+triangulation. The impact response adds a directional splash, a sharp
+angular ring, a trailing echo, and nine rotating arc sparks around the ring,
+all flaring the lattice as they pass. A dedicated `force_core.mat` shades a
+rotating low-poly crystal with animated energy scans instead of relying on a
+featureless default white cube.
 
 **Uniforms.** `baseColor` (0.30, 0.55, 1.0), `time`, `fresnelPower` 2.2,
-`hexScale` 20 (cells around the equator), `hexStrength` 1.15,
+`hexScale` 16 (arc density), `hexStrength` 1.25,
 `hitDirection` float3 (unit), `hitAge` float (seconds since hit). Golden
 still time: `--time 2.25` (ripple mid-expansion).
 
-**Tuning.** Crisper cells → higher `hexScale` or tighten the `0.42–0.50`
-smoothstep; stronger shield presence → the `1.1` rim gain or `0.06`
-interior floor; ripple speed/decay → the `2.2` and `1.1` factors on
-`hitAge`.
+**Tuning.** Denser arcs → higher `hexScale`; stronger shield presence →
+the rim gains or final additive scale; ripple speed/decay → the `2.05` and
+`0.75` factors on `hitAge`.
 
-**Limitations / ideas.** The lattice still stretches near the poles — a
-cube-map-projected or Voronoi lattice would be uniform;
-`TransparencyMode.TWO_PASSES_TWO_SIDES` could give the back shell proper
-presence; multiple simultaneous ripples (a small ring buffer of hit
-directions/ages) for sustained fire.
+**Limitations / ideas.** Multiple simultaneous ripples (a small ring buffer
+of hit directions/ages) would support sustained fire; a real protected PBR
+subject inside the shell would give the shield stronger gameplay context.
 
 ### 6.4 dissolve_burn — `game_effects_dissolve_burn.dart`, `dissolve_burn.mat`
 
@@ -302,8 +308,8 @@ through a `charr` gradient concentrated in a band about 3× the edge width,
 and rare twinkling ember sparks sit right at the front. The video ramps
 `threshold` 0→0.95 over a 3.5s loop.
 
-**Uniforms.** `baseColor` (0.16, 0.13, 0.12 — char), `edgeColor`
-(1.0, 0.45, 0.1), `threshold` 0.5, `edgeWidth` 0.10, `edgeIntensity` 3.6,
+**Uniforms.** `baseColor` (0.10, 0.075, 0.06 — char), `edgeColor`
+(1.0, 0.45, 0.1), `threshold` 0.5, `edgeWidth` 0.065, `edgeIntensity` 1.35,
 `noiseScale` 3.4, `time`. Golden still time: `--time 1.2`.
 
 **Tuning.** Chunkier dissolution → lower `noiseScale`; hotter edge → raise
@@ -345,9 +351,9 @@ on, double-sided.
 
 **Uniforms.** `deepColor` (0.008, 0.058, 0.090, 0.94), `skyColor`
 (0.36, 0.52, 0.72), `foamColor` (0.94, 0.98, 1.0), `sunDirection`
-(−0.55, −0.35, −0.75), `time`, `waveHeight` 0.34, `waveFrequency` 1.25,
-`waveSpeed` 1.6, `foamAmount` 1.0, `specularPower` 520 (tight-lobe),
-`specularIntensity` 3.4, `detailStrength` 1.0, `sssStrength` 0.9. Camera
+(−0.55, −0.35, −0.75), `time`, `waveHeight` 0.27, `waveFrequency` 1.12,
+`waveSpeed` 1.6, `foamAmount` 0.72, `specularPower` 520 (tight-lobe),
+`specularIntensity` 2.5, `detailStrength` 0.82, `sssStrength` 0.9. Camera
 at (0, 1.8, 5). Golden still time: `--time 1.7`.
 
 **Tuning.** Stormier → raise `waveHeight`/`waveFrequency` (watch grid
@@ -371,7 +377,7 @@ the wind while thinning to wisps — one draw call, no particle system (the
 vendored Filament has none).
 
 **Build.** Fully **GPU-generated geometry**: the CPU mesh is
-`dummyBillboardQuads(48)` — near-zero (but non-degenerate) vertices whose
+`dummyBillboardQuads(64)` — near-zero (but non-degenerate) vertices whose
 displacement the shader treats as purely additive (see the worldPosition
 gotcha). The vertex shader reconstructs everything from `getVertexIndex()`:
 `vid / 6` is the puff, `vid % 6` picks from constant quad corner/UV tables;
@@ -390,10 +396,11 @@ old puffs cool toward blue-gray translucency. **Unlit + transparent**
 (premultiplied): overlapping puffs build to denser gray instead of
 additively washing to white (the additive version was a white blob).
 
-**Uniforms.** `baseColor` (0.42, 0.44, 0.50 — gray), `time`, `puffCount` 48
+**Uniforms.** `baseColor` (0.23, 0.25, 0.30 — blue-gray), `time`, `puffCount` 64
 (informational — must match the Dart constant you pass to
-`dummyBillboardQuads`), `riseSpeed` 0.5, `expandSpeed` 0.26,
-`swirlAmount` 1.1, `baseSize` 0.30, `noiseScale` 2.6, `lifetime` 4.5.
+`dummyBillboardQuads`), `riseSpeed` 0.42, `expandSpeed` 0.105,
+`swirlAmount` 1.35, `baseSize` 0.18, `noiseScale` 3.4, `lifetime` 5.2,
+`originHeight` 0, `opacity` 1.
 Camera at (0.35, 1.3, 3.6) focused slightly above the column base. Golden
 still time: `--time 4.6` (fully populated column).
 
@@ -415,9 +422,10 @@ and a looser skirt) licking upward from a granular white-hot ember bed,
 through yellow and orange to saturated red tips, with ember sparks (a few
 big ones) rising out of it.
 
-**Build.** One draw call on `dummyBillboardQuads(48)`: the first 20 quads
-are flame tongues, the remaining 28 are embers — the vertex shader branches
-on `quadIndex < flameCount`. Tongues stand on their base, each with its own
+**Build.** One draw call on `dummyBillboardQuads(48)`: the first 12 quads
+are flame tongues, the remaining 36 are embers — the vertex shader branches
+on `quadIndex < flameCount`. The first, broad quad is a coherent
+noise-eroded flame body; narrower licks layer over it. Tongues stand on their base, each with its own
 height/flicker phase and a slowly wandering cluster center so the fire
 breathes rather than flickering in place; the cluster is sheared by wind
 proportionally to height. The fragment shader scrolls domain-warped fbm
@@ -428,11 +436,13 @@ at the base, and colors the heat field through a blackbody ramp (deep red →
 orange → yellow → white) with saturated red at the dying tips and a whisper
 of blue where cold fuel enters at the very base. Embers rise from inside
 the flame with a sinusoidal wobble, stretching into little streaks,
-flickering, and cooling white → red; a few (1 in 10) run big. Unlit +
-**additive** with the HDR-path output scale.
+flickering, and cooling white → red; a few (1 in 10) run big. A second draw
+reuses `smoke.mat` as a raised, lower-opacity combustion plume, while
+`fire_ground.mat` adds a pulsing coal/crack bed under the flame. Unlit +
+**additive** with the HDR-path output scale for flame, embers, and ground.
 
-**Uniforms.** `time`, `flameCount` 20, `emberCount` 28, `flameHeight` 1.45,
-`flameWidth` 0.34, `noiseScale` 2.7, `scrollSpeed` 3.0, `windLean` 0.30,
+**Uniforms.** `time`, `flameCount` 12, `emberCount` 36, `flameHeight` 1.12,
+`flameWidth` 0.27, `noiseScale` 3.4, `scrollSpeed` 2.5, `windLean` 0.22,
 `emberLifetime` 1.9. The counts must match the geometry passed to
 `dummyBillboardQuads`. Golden still time: `--time 4.6`.
 
@@ -440,10 +450,9 @@ flickering, and cooling white → red; a few (1 in 10) run big. Unlit +
 `scrollSpeed`; windier → `windLean`; hotter core → stretch the ramp stops
 in the `.mat`.
 
-**Limitations / ideas.** Layer the existing smoke system on top with an
-upward preset for a smoky column; a flickering point light (driven from
-Dart with the same fbm phase) lighting a surrounding scene would sell it
-further.
+**Limitations / ideas.** A flickering point light driven from the same phase
+and nearby receiving geometry would sell the heat in a gameplay scene;
+soft-particle depth intersection remains the main smoke limitation.
 
 ### 6.8 lava — `game_effects_lava.dart`, `lava.mat`
 
@@ -466,7 +475,7 @@ pushed darker/more saturated than the intended read) with two octaves of
 grain, gentle top-light shading, and a slow regional convection pulse.
 Opaque, edge melts into the background.
 
-**Uniforms.** `time`, `glowIntensity` 1.5, `crustScale` 1.0, `flowSpeed`
+**Uniforms.** `time`, `glowIntensity` 1.12, `crustScale` 1.0, `flowSpeed`
 0.5, `swellHeight` 0.14. Golden still time: `--time 3.0`.
 
 **Tuning.** More/denser cracks → raise the `0.80/0.84` ridge thresholds;
@@ -533,30 +542,124 @@ whitecaps (crest + pinch, as in water), the **breaking line** — a gaussian
 band around the shoreline whose pulse crest travels **toward the shore**
 (`sin(t·3 + depth·2.8 + along-shore wobble)`, so the break line advances
 unevenly rather than blinking in place), textured with two anisotropic
-noise octaves stretched along the shore — and a wash residue further up.
+noise octaves stretched along the shore — a second, lower irregular breaker
+approaching behind it, and a wash residue further up.
 The waterline itself is noise-fingered (jagged, not straight) and
-alpha-fades past the shoreline into a **sand plane** (`sand.mat`) that
-reuses the same shoreline function: a swash band whose center oscillates
+alpha-fades past the shoreline into a **land-side sand plane** (`sand.mat`)
+that is clipped by the same analytic contour, preventing displaced troughs
+from exposing false sand islands. Its swash band center oscillates
 with the *same phase* as the breaker pulse runs up the sand, trailed by a
 damp apron and foam speckle at its leading edge, so waterline, breaker and
 swash all stay in lockstep. Water: unlit + transparent, depthWrite on.
 
 **Uniforms (water).** `deepColor` (0.008, 0.07, 0.12), `shallowColor`
-(0.05, 0.55, 0.55), `skyColor` (0.40, 0.55, 0.68), `foamColor`
-(0.94, 0.98, 1.0), `sunDirection` (−0.45, −0.35, −0.8), `time`,
-`waveHeight` 0.30, `waveFrequency` 1.35, `waveSpeed` 1.5, `foamAmount` 1.0,
-`detailStrength` 1.0. Sand: `sandColor` (0.72, 0.62, 0.46), `time` (driven
-by the same animator, phase-locked). Camera at (0, 2.6, −5.6) looking
+(0.025, 0.30, 0.34), `skyColor` (0.075, 0.14, 0.22), `foamColor`
+(0.40, 0.52, 0.58), `sunDirection` (−0.45, −0.35, −0.8), `time`,
+`waveHeight` 0.24, `waveFrequency` 1.35, `waveSpeed` 1.5, `foamAmount` 0.72,
+`detailStrength` 0.78. Sand: `sandColor` (0.085, 0.050, 0.022), `time`
+(driven by the same animator, phase-locked). Camera at (0, 4.5, −4.8) looking
 shoreward. Golden still time: `--time 2.0`.
 
 **Tuning.** Bigger surf → `waveHeight`/`waveFrequency`; wider breaker →
-the `0.85` band width; slower sets → the `3.0` pulse rate; the shoreline
+the `0.38` band width; slower sets → the `3.0` pulse rate; the shoreline
 curve itself is the `shoreZ` function (must stay identical in both
 `.mat`s).
 
 **Limitations / ideas.** The swells don't actually refract/curve toward
 the beach contour (real wave optics); foam advection (flow-map style)
 would give trailing streaks behind the break line.
+
+### 6.11 wetness — `game_effects_wetness.dart`, `wetness.mat`
+
+**Intent.** Rain-soaked aggregate with irregular pooled water rather than a
+uniformly glossy surface. The wet areas have a second clear-coat lobe, tight
+grazing reflections, multiple independently timed ripple fields, and rough
+grit visible beneath the water.
+
+**Build.** Manually lit unlit material on a dense ground grid. Four-octave fbm
+defines puddles; two aggregate scales break up the substrate; three hashed cell
+grids spawn rings without CPU particles. Puddle coverage drives base-color
+darkening, grazing reflection, specular streaks, and micro-glitter together.
+This manual path is intentional: custom lit variants fail to load on the
+current feature-level-1 Metal runtime. Golden still: `--time 2.35`.
+
+### 6.12 crystal_ice — `game_effects_crystal_ice.dart`, `crystal_ice.mat`
+
+**Intent.** A faceted hero ice crystal with a cool inner volume, spectral
+edge separation, and energized fissures that travel through the silhouette.
+
+**Build.** A deliberately coarse 12×18 sphere makes the macro facets read;
+3D Voronoi provides inner crystalline breakup, two intersecting analytic
+fracture families form the cracks, and a view-dependent cyan/violet fresnel
+creates the refractive read without requiring a screen-color texture. Golden
+still: `--time 1.8`.
+
+### 6.13 snow_accumulation — `game_effects_snow_accumulation.dart`, `snow_accumulation.mat`
+
+**Intent.** Snow that gathers from above on a complex asset instead of a
+white material cross-fade.
+
+**Build.** A manually lit material combines world-normal slope, object-space
+height, wind-scale noise, and a moving accumulation line. Covered areas get a
+broad diffuse snow response; exposed areas remain a dark metal/oxide substrate.
+Fine frost cells add sparse cool sparkle. The manual light model avoids the
+same custom-lit Metal variant limitation noted for wetness. Golden still:
+`--time 1.5`.
+
+### 6.14 damage_decals — `game_effects_damage_decals.dart`, `damage_decals.mat`
+
+**Intent.** A readable sequence of projectile impacts with permanent damage
+and short-lived thermal response.
+
+**Build.** Four independently timed analytic decals combine asymmetric holes,
+beveled rims, soot gradients, and nine seeded fracture rays per impact. The
+fresh hit blooms white-orange and cools while the crater and scorch remain.
+The showcase bakes the receiver and decals into one procedural material; a
+game integration would feed the same masks through its decal/DBuffer pass.
+Golden still: `--time 2.05`.
+
+### 6.15 portal_rift — `game_effects_portal_rift.dart`, `portal_rift.mat`
+
+**Intent.** A portal that reads as depth, flow, and dangerous boundary energy,
+not a flat rotating texture.
+
+**Build.** Polar fbm warps counter-rotating tunnel rings and spiral filaments;
+hashed star motes reinforce parallax; separate rim and corona profiles create
+the high-energy lip. `openAmount` collapses the horizontal axis for a staged
+slit-to-disc opening and closing. Golden still: `--time 2.2`.
+
+### 6.16 electricity — `game_effects_electricity.dart`, `electricity.mat`
+
+**Intent.** A coherent lightning discharge with a stepped trunk, visible side
+forks, a hard HDR core, and softer ionized air.
+
+**Build.** Sixty-four degenerate CPU quads become oriented bolt segments in the
+vertex shader. A stable multi-frequency path is perturbed at an 18 Hz cadence;
+the remaining segments form three-link branches on alternating sides. Fragment
+distance shapes the core and halo in one additive draw. Golden still:
+`--time 1.7`.
+
+### 6.17 invisibility_cloak — `game_effects_invisibility_cloak.dart`, `invisibility_cloak.mat`
+
+**Intent.** Restrained active camouflage that almost disappears at rest but
+gives gameplay-readable chromatic edges and intermittent hardware faults.
+
+**Build.** Transparent, depth-write-off shading keeps only a faint body while
+fresnel supplies the silhouette. Scan faults, cellular breakup, a traveling
+interference band, and small normal-direction vertex shimmer spike during a
+periodic disruption envelope. Golden still: `--time 2.15`.
+
+### 6.18 energy_weapon — `game_effects_energy_weapon.dart`, `energy_weapon.mat`
+
+**Intent.** A complete shot lifecycle: pre-charge, muzzle bloom, plasma beam,
+traveling core structure, impact orb, and expanding shock shell.
+
+**Build.** One wide additive pass shares a single coordinate system for muzzle,
+beam, and impact. Dart drives the fire envelope over a 2.6 s cycle; the shader
+derives pre-charge and impact timing from the same clock, adding a turbulent
+envelope around a tight blue core, traveling packets, an expanding muzzle ring,
+and polar impact rays. The single pass avoids cross-mesh transform drift and is
+straightforward to connect to weapon events. Golden still: `--time 1.2`.
 
 ---
 
@@ -577,9 +680,8 @@ would give trailing streaks behind the break line.
 8. **shockwave**: event-triggered pulses; overlapping waves.
 9. **shore_waves**: wave refraction toward the beach contour; foam
    advection behind the break line.
-10. New effects from the same toolkit: lightning (ridged-noise bolt on a
-    tall quad), frost/ice creep (worley inverse-dissolve), cloth/flags,
-    grass, portal disc, heal circles.
+10. New effects from the same toolkit: cloth/flags, grass, heal circles,
+    volumetric fog shafts, stylized clouds, and caustic projectors.
 11. Cross-cutting: a `game_effects` composite galleryScene for the web
     gallery; web verification (COOP/COEP, real Chrome) once a WebGPU matc is
     available; interactive parameter playground.

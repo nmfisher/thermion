@@ -32,13 +32,32 @@ Future<void> setupHitFlash(
   // ring drown in an already-bright surface.
   await viewer.addDirectLight(DirectLight.sun(
     direction: Vector3(0, -1, -0.4),
-    intensity: 1600,
+    intensity: 4200,
     castShadows: false,
   ));
+  await viewer.addDirectLight(
+    DirectLight.point(
+      color: const LinearColor(0.45, 0.62, 1.0),
+      intensity: 90000,
+      falloffRadius: 4.0,
+      position: Vector3(-1.4, 1.1, 2.2),
+      castShadows: false,
+    ),
+  );
   await setDarkSkybox(viewer);
+  await enableVfxPost(viewer, bloomStrength: 0.32);
 
-  final asset = await viewer.loadGltf("$assetsDir/FlightHelmet/FlightHelmet.gltf");
+  // Keep the original PBR asset present throughout the hit. A second,
+  // coincident renderable carries the additive effect as a true overlay;
+  // replacing the base materials made the resting model disappear and the
+  // flash read like an x-ray material swap.
+  final asset =
+      await viewer.loadGltf("$assetsDir/FlightHelmet/FlightHelmet.gltf");
   await asset.transformToUnitCube();
+  final flashOverlay = await viewer.loadGltf(
+    "$assetsDir/FlightHelmet/FlightHelmet.gltf",
+  );
+  await flashOverlay.transformToUnitCube();
 
   final flash = await loadEffectMaterial(
     viewer,
@@ -48,11 +67,13 @@ Future<void> setupHitFlash(
   await flash.setParameterFloat4("flashColor", 1.0, 0.36, 0.1, 1.0);
   await flash.setParameterFloat3("hitPoint", 0.05, 0.28, 0.42);
   await flash.setParameterFloat("progress", 0.33);
+  await flash.setParameterFloat("normalOffset", 0.006);
 
-  // A hit every 2.4s: swap the flash on, animate progress 0 -> 1 over
-  // 0.55s (with the impact point rotating through a few spots on the
-  // camera-facing side), then restore the original PBR materials.
-  final originals = await asset.getMaterialInstancesAsMap();
+  await flashOverlay.setMaterialInstanceForAll(flash);
+
+  // A hit every 2.4s: animate the additive overlay 0 -> 1 over 0.55s,
+  // rotating through impact points on the camera-facing side. Deriving all
+  // state from t keeps stills, video frames, and live playback identical.
   final hitPoints = [
     Vector3(0.05, 0.28, 0.42),
     Vector3(-0.18, 0.05, 0.38),
@@ -60,23 +81,15 @@ Future<void> setupHitFlash(
   ];
   const flashDuration = 0.55;
   const hitPeriod = 2.4;
-  var flashed = false;
-  var hitIndex = 0;
   effectAnimators.add((t) async {
     final cycle = t % hitPeriod;
+    final hitIndex = (t / hitPeriod).floor() % hitPoints.length;
+    final p = hitPoints[hitIndex];
+    await flash.setParameterFloat3("hitPoint", p.x, p.y, p.z);
     if (cycle < flashDuration) {
-      if (!flashed) {
-        flashed = true;
-        hitIndex = (hitIndex + 1) % hitPoints.length;
-        final p = hitPoints[hitIndex];
-        await flash.setParameterFloat3("hitPoint", p.x, p.y, p.z);
-        await asset.setMaterialInstanceForAll(flash);
-      }
       await flash.setParameterFloat("progress", cycle / flashDuration);
-    } else if (flashed) {
-      await asset.setMaterialInstancesFromMap(originals);
-      flashed = false;
+    } else {
+      await flash.setParameterFloat("progress", 1.0);
     }
   });
-  await asset.setMaterialInstanceForAll(flash);
 }

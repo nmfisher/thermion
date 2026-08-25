@@ -38,6 +38,14 @@ import 'game_effects_fire.dart';
 import 'game_effects_lava.dart';
 import 'game_effects_shockwave.dart';
 import 'game_effects_shore_waves.dart';
+import 'game_effects_wetness.dart';
+import 'game_effects_crystal_ice.dart';
+import 'game_effects_snow_accumulation.dart';
+import 'game_effects_damage_decals.dart';
+import 'game_effects_portal_rift.dart';
+import 'game_effects_electricity.dart';
+import 'game_effects_invisibility_cloak.dart';
+import 'game_effects_energy_weapon.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
 typedef ExampleSetup = Future<void> Function(
@@ -61,6 +69,14 @@ final Map<String, ExampleSetup> registry = {
   'game_effects_lava': setupLava,
   'game_effects_shockwave': setupShockwave,
   'game_effects_shore_waves': setupShoreWaves,
+  'game_effects_wetness': setupWetness,
+  'game_effects_crystal_ice': setupCrystalIce,
+  'game_effects_snow_accumulation': setupSnowAccumulation,
+  'game_effects_damage_decals': setupDamageDecals,
+  'game_effects_portal_rift': setupPortalRift,
+  'game_effects_electricity': setupElectricity,
+  'game_effects_invisibility_cloak': setupInvisibilityCloak,
+  'game_effects_energy_weapon': setupEnergyWeapon,
   'geometry_primitives': setupGeometryPrimitives,
   'gizmo_basics': setupGizmoBasics,
   'gltf_animation': setupGltfAnimation,

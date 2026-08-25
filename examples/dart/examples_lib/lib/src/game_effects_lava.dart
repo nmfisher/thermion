@@ -20,6 +20,7 @@ Future<void> setupLava(
   await camera.lookAt(Vector3(0, 2.0, 4.6), focus: Vector3(0, -0.3, 0));
 
   await setDarkSkybox(viewer);
+  await enableVfxPost(viewer, bloomStrength: 0.38);
 
   final lava = await loadEffectMaterial(
     viewer,
@@ -27,13 +28,14 @@ Future<void> setupLava(
     name: "lava",
   );
   await lava.setParameterFloat("time", 3.0);
-  await lava.setParameterFloat("glowIntensity", 1.5);
+  await lava.setParameterFloat("glowIntensity", 1.12);
   await lava.setParameterFloat("crustScale", 1.0);
   await lava.setParameterFloat("flowSpeed", 0.5);
   await lava.setParameterFloat("swellHeight", 0.14);
 
   final surface = await viewer.createGeometry(
-    subdividedPlane(width: 16.0, depth: 16.0, subdivisionsX: 176, subdivisionsZ: 176),
+    subdividedPlane(
+        width: 16.0, depth: 16.0, subdivisionsX: 176, subdivisionsZ: 176),
     materialInstances: [lava],
   );
   await surface.setTransform(Matrix4.translation(Vector3(0, 0, 0)));

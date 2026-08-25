@@ -77,9 +77,9 @@ fragment {
         // Two layers of fine horizontal scanlines sweeping upward: a dense
         // fine set plus a slower coarse set, so the surface shimmers rather
         // than showing one static frequency.
-        float scanA = smoothstep(0.25, 0.95,
+        float scanA = smoothstep(0.42, 0.96,
             sin(pos.y * materialParams.scanlineCount -
-                t * materialParams.scanlineSpeed)) * 0.34;
+                t * materialParams.scanlineSpeed)) * 0.22;
         float scanB = smoothstep(0.55, 1.0,
             sin(pos.y * materialParams.scanlineCount * 0.37 -
                 t * materialParams.scanlineSpeed * 0.53)) * 0.14;
@@ -113,11 +113,11 @@ fragment {
 
         // Interior floor, brighter toward the top so the body reads as
         // projected light rather than empty space.
-        float shell = 0.11 + 0.13 * smoothstep(-0.6, 0.6, pos.y);
+        float shell = 0.045 + 0.055 * smoothstep(-0.6, 0.6, pos.y);
 
-        float alpha = shell + fresnel * 0.95 + scanline +
-                      sweep * 0.85 + (glitch1 + glitch2) * 0.8;
-        alpha = clamp(alpha, 0.0, 1.0) * max(flicker, 0.0) *
+        float alpha = shell + fresnel * 0.54 + scanline +
+                      sweep * 0.58 + (glitch1 + glitch2) * 0.58;
+        alpha = clamp(alpha, 0.0, 0.82) * max(flicker, 0.0) *
                 materialParams.tintColor.a;
 
         // Slight hue journey up the projection: deeper blue at the base,
@@ -126,7 +126,7 @@ fragment {
                      (0.55 + 0.65 * fresnel + 0.6 * sweep);
         color = mix(color, color * vec3(0.8, 0.95, 1.25),
                     smoothstep(0.2, -0.6, pos.y) * 0.5);
-        color += vec3(0.4) * sweep * 0.5;
+        color += vec3(0.18, 0.34, 0.42) * sweep * 0.45;
         color = mix(color, color * vec3(0.55, 0.85, 1.5), glitch1);
         color = mix(color, color * vec3(1.5, 0.85, 0.55), glitch2);
 

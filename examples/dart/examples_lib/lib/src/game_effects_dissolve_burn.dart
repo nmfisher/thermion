@@ -22,8 +22,10 @@ Future<void> setupDissolveBurn(
   await camera.lookAt(Vector3(1.4, 0.9, 1.4), focus: Vector3(0, 0, 0));
 
   await setDarkSkybox(viewer);
+  await enableVfxPost(viewer, bloomStrength: 0.32);
 
-  final asset = await viewer.loadGltf("$assetsDir/FlightHelmet/FlightHelmet.gltf");
+  final asset =
+      await viewer.loadGltf("$assetsDir/FlightHelmet/FlightHelmet.gltf");
   await asset.transformToUnitCube();
 
   final dissolve = await loadEffectMaterial(
@@ -31,11 +33,11 @@ Future<void> setupDissolveBurn(
     assetsDir: assetsDir,
     name: "dissolve_burn",
   );
-  await dissolve.setParameterFloat4("baseColor", 0.16, 0.13, 0.12, 1.0);
+  await dissolve.setParameterFloat4("baseColor", 0.10, 0.075, 0.06, 1.0);
   await dissolve.setParameterFloat4("edgeColor", 1.0, 0.45, 0.1, 1.0);
   await dissolve.setParameterFloat("threshold", 0.5);
-  await dissolve.setParameterFloat("edgeWidth", 0.10);
-  await dissolve.setParameterFloat("edgeIntensity", 3.6);
+  await dissolve.setParameterFloat("edgeWidth", 0.065);
+  await dissolve.setParameterFloat("edgeIntensity", 1.35);
   await dissolve.setParameterFloat("noiseScale", 3.4);
   await dissolve.setParameterFloat("time", 1.2);
 

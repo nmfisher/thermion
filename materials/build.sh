@@ -51,7 +51,7 @@ MATERIAL_DIR="thermion_dart/native/include/material"
 MATERIALS=(image unlit_fixed_size grid linear_depth silhouette edge_outline wireframe translation_axis bone_overlay capture_uv)
 # capture_uv is now in the main list; gizmo handled separately below
 GIZMO_NAME="gizmo"
-EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad hit_flash hologram force_field dissolve_burn water smoke fire lava shockwave_ground shockwave_dome shore_waves sand)
+EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad hit_flash hologram hologram_projector force_field force_core dissolve_burn water smoke fire fire_ground lava shockwave_ground shockwave_dome shore_waves sand wetness crystal_ice snow_accumulation damage_decals portal_rift electricity invisibility_cloak energy_weapon)
 
 # Probe WebGPU support once: a matc built without FILAMENT_SUPPORTS_WEBGPU=ON
 # cannot emit WGSL, so the _webgpu/_web_combined variants (and the webgpu

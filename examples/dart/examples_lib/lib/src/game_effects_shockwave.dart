@@ -20,6 +20,7 @@ Future<void> setupShockwave(
   await camera.lookAt(Vector3(0, 2.6, 5.2), focus: Vector3(0, 0.3, 0));
 
   await setDarkSkybox(viewer);
+  await enableVfxPost(viewer, bloomStrength: 0.45);
 
   const period = 2.2;
   const waveSpeed = 3.6;
@@ -34,7 +35,8 @@ Future<void> setupShockwave(
   await ground.setParameterFloat("waveSpeed", waveSpeed);
 
   final groundPlane = await viewer.createGeometry(
-    subdividedPlane(width: 18.0, depth: 18.0, subdivisionsX: 4, subdivisionsZ: 4),
+    subdividedPlane(
+        width: 18.0, depth: 18.0, subdivisionsX: 4, subdivisionsZ: 4),
     materialInstances: [ground],
   );
   await groundPlane.setTransform(Matrix4.translation(Vector3(0, 0, 0)));

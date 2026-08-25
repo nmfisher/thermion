@@ -1,7 +1,9 @@
 material {
     name : DissolveBurn,
+    requires : [ position, tangents ],
     variables : [
-        objectPos
+        objectPos,
+        surfaceNormal
     ],
     parameters : [
         { type : float4, name : baseColor },
@@ -26,6 +28,7 @@ vertex {
         // the mesh means a moving model slides through the burn instead of
         // the burn sliding across the model.
         material.objectPos.xyz = getPosition().xyz;
+        material.surfaceNormal.xyz = material.worldNormal;
     }
 }
 
@@ -86,12 +89,12 @@ fragment {
             noise3(pos * 7.0 + vec3(0.0, 0.0, materialParams.time * 5.0)) +
             0.16 * noise3(pos * 15.0 +
                           vec3(0.0, 0.0, materialParams.time * 9.0));
-        float glow = pow(front, 1.2) * materialParams.edgeIntensity * flicker;
+        float glow = pow(front, 2.2) * materialParams.edgeIntensity * flicker;
 
         // --- ember sparks right at the front ------------------------------
         float spark = step(0.988, hash(floor(pos * 47.0) +
                                        floor(materialParams.time * 9.0))) *
-                      pow(front, 3.0);
+                      pow(front, 4.0);
 
         // --- charred surface ----------------------------------------------
         // Near the front the material is fully charred and faintly glowing;
@@ -99,11 +102,17 @@ fragment {
         float charr = smoothstep(t + materialParams.edgeWidth * 3.0,
                                  t + materialParams.edgeWidth * 0.6, n);
         float detail = fbm(pos * materialParams.noiseScale * 2.7 + 31.0);
-        vec3 color = materialParams.baseColor.rgb * (0.62 + 0.55 * detail);
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+        vec3 key = normalize(vec3(-0.35, 0.75, 0.55));
+        float diffuse = 0.28 + 0.72 * max(dot(normal, key), 0.0);
+        float grazing = pow(1.0 - abs(normal.z), 3.0);
+        vec3 color = materialParams.baseColor.rgb *
+                     (0.54 + 0.50 * detail) * diffuse;
+        color += materialParams.baseColor.rgb * grazing * 0.18;
         color *= 1.0 - 0.72 * charr;
         color += cool * pow(charr, 3.0) * 0.45;
 
-        color += edgeCol * glow + vec3(1.0, 0.9, 0.6) * spark * 5.0;
+        color += edgeCol * glow + vec3(1.0, 0.65, 0.22) * spark * 1.8;
 
         material.baseColor = vec4(color, 1.0);
     }

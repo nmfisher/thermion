@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// Flat XZ grid with (subdivisionsX+1)*(subdivisionsZ+1) vertices, normals
@@ -46,6 +48,64 @@ Geometry subdividedPlane({
     indices,
     normals: normals,
     uvs: uvs,
+  );
+}
+
+/// Flat-shaded six-sided crystal with a long prismatic body and a pointed
+/// crown. Vertices are duplicated per face so the facets stay hard under any
+/// material, unlike a smooth cone whose silhouette reads as a stalagmite.
+Geometry crystalShard({
+  double radius = 0.32,
+  double length = 1.0,
+  double shoulder = 0.72,
+}) {
+  final vertices = <double>[];
+  final normals = <double>[];
+  final indices = <int>[];
+
+  void face(List<Vector3> points) {
+    final base = vertices.length ~/ 3;
+    final edgeA = points[1] - points[0];
+    final edgeB = points[2] - points[0];
+    final normal = edgeA.cross(edgeB)..normalize();
+    for (final point in points) {
+      vertices.addAll([point.x, point.y, point.z]);
+      normals.addAll([normal.x, normal.y, normal.z]);
+    }
+    if (points.length == 3) {
+      indices.addAll([base, base + 1, base + 2]);
+    } else {
+      indices.addAll([base, base + 1, base + 2, base, base + 2, base + 3]);
+    }
+  }
+
+  final bottom = <Vector3>[];
+  final top = <Vector3>[];
+  for (var i = 0; i < 6; i++) {
+    final angle = i * 1.0471975511965976;
+    bottom.add(Vector3(radius * cos(angle), 0, radius * sin(angle)));
+    top.add(
+      Vector3(
+        radius * 0.82 * cos(angle),
+        length * shoulder,
+        radius * 0.82 * sin(angle),
+      ),
+    );
+  }
+  final tip = Vector3(0, length, 0);
+  for (var i = 0; i < 6; i++) {
+    final next = (i + 1) % 6;
+    face([bottom[i], bottom[next], top[next], top[i]]);
+    face([top[i], top[next], tip]);
+  }
+  face([bottom[0], bottom[2], bottom[1]]);
+  face([bottom[0], bottom[3], bottom[2]]);
+  face([bottom[0], bottom[4], bottom[3]]);
+  face([bottom[0], bottom[5], bottom[4]]);
+  return Geometry(
+    Float32List.fromList(vertices),
+    indices,
+    normals: Float32List.fromList(normals),
   );
 }
 
@@ -139,7 +199,18 @@ Future<MaterialInstance> loadEffectMaterial(
 /// lifts small linear values considerably, so these are deliberately tiny.
 Future<void> setDarkSkybox(ThermionViewer viewer) async {
   await (await viewer.view.getScene()).setSkybox(
-        await FilamentApp.instance!
-            .createColoredSkybox(r: 0.004, g: 0.005, b: 0.012, a: 1.0),
-      );
+    await FilamentApp.instance!
+        .createColoredSkybox(r: 0.004, g: 0.005, b: 0.012, a: 1.0),
+  );
+}
+
+/// Enables the post stack used by the presentation renders. In particular,
+/// emissive game VFX need bloom to turn shader radiance into a perceptual
+/// glow; without it even correct HDR values read like flat cutouts.
+Future<void> enableVfxPost(
+  ThermionViewer viewer, {
+  double bloomStrength = 0.3,
+}) async {
+  await viewer.setPostProcessing(true);
+  await viewer.setBloom(true, bloomStrength);
 }
