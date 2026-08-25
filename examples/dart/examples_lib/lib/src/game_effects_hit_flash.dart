@@ -27,12 +27,12 @@ Future<void> setupHitFlash(
   // The flash swaps out every material on the asset, but between flashes
   // the normal PBR look should show - so light the scene and keep the
   // background dark for the additive blend. A dim directional light only
-  // (no IBL): the default-env IBL is bright enough to blow the helmet out
-  // to pure white, which leaves no headroom for the additive flash and
-  // hides the shockwave ring entirely.
+  // (no IBL), tuned so the resting PBR helmet sits well below saturation:
+  // the additive flash needs that headroom, or the hotspot and shockwave
+  // ring drown in an already-bright surface.
   await viewer.addDirectLight(DirectLight.sun(
     direction: Vector3(0, -1, -0.4),
-    intensity: 9000,
+    intensity: 1600,
     castShadows: false,
   ));
   await setDarkSkybox(viewer);

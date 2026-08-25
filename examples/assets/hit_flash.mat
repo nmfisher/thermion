@@ -2,7 +2,8 @@ material {
     name : HitFlash,
     requires : [ position, tangents ],
     variables : [
-        surfaceNormal
+        surfaceNormal,
+        worldPos
     ],
     parameters : [
         { type : float4, name : flashColor },
@@ -19,6 +20,13 @@ material {
 vertex {
     void materialVertex(inout MaterialVertexInputs material) {
         material.surfaceNormal.xyz = material.worldNormal;
+        // getWorldPosition() in the fragment stage returns view-relative
+        // coordinates on this pipeline - pipe true world position through a
+        // variable instead (as water/lava do).
+        // material.worldPosition is pre-transform on this pipeline; build
+        // true world position from the model matrix.
+        material.worldPos.xyz = (getWorldFromModelMatrix() *
+                                 vec4(getPosition().xyz, 1.0)).xyz;
     }
 }
 
@@ -26,33 +34,60 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        // Cubic ease-out: full flash at progress=0, gone at progress=1.
-        float t = 1.0 - clamp(materialParams.progress, 0.0, 1.0);
-        float intensity = t * t * t;
+        float p = clamp(materialParams.progress, 0.0, 1.0);
+        // Fast-decaying envelope: full flash at the instant of impact.
+        float t = 1.0 - p;
+        float intensity = pow(t, 3.0);
 
-        // Rim boost: grazing-angle surfaces flash brightest, which reads
-        // as a shockwave wrapping the silhouette.
         vec3 normal = normalize(variable_surfaceNormal.xyz);
-        vec3 pos = getWorldPosition().xyz;
+        vec3 pos = variable_worldPos.xyz;
         vec3 viewDir = normalize(getWorldCameraPosition() - pos);
         float rim = pow(1.0 - abs(dot(normal, viewDir)), 2.0);
-
-        // Expanding shockwave ring from the impact point: an accelerating
-        // radius with a tight gaussian profile, so the flash travels
-        // outward from where the hit landed instead of pulsing uniformly.
         float r = distance(pos, materialParams.hitPoint);
-        float ringR = pow(clamp(materialParams.progress, 0.0, 1.0), 0.7) * 1.3;
-        float ring = exp(-pow((r - ringR) * 16.0, 2.0)) *
-                     (1.0 - clamp(materialParams.progress, 0.0, 1.0) * 0.45);
 
-        // White-hot at the instant of impact, settling into the flash
-        // color as the shockwave expands.
+        // Localized white-hot spot at the impact point: dies fast, so the
+        // first frames read unmistakably as "hit HERE".
+        float dr_1939 = (r * 1.9);
+        float hotspot = exp(-dr_1939 * dr_1939) * pow(t, 1.2) * 2.6;
+
+        // Body flash: mostly silhouette-weighted, only a whisper of fill so
+        // the mesh stays readable through it.
+        float body = intensity * (0.06 + 0.72 * pow(rim, 1.6)) +
+                     hotspot * (0.3 + 0.6 * rim);
+
+        // Shockwave ring crossing the mesh surface: a sharp leading edge
+        // with a tight warm wake just behind it. The radius tops out around
+        // the mesh's own extent so the ring spends the whole flash sweep
+        // ON the surface instead of leaving it early.
+        // The impact point sits just inside the surface, so distances to
+        // the mesh span roughly 0.25 (near side) to 1.8 (far side); the
+        // ring sweeps that whole range.
+        float ringR = 0.25 + pow(p, 0.75) * 1.15;
+        float w = 15.0 / (1.0 + (ringR - 0.25) * 1.4);
+        float dr_8550 = ((r - ringR) * w);
+        float ring = exp(-dr_8550 * dr_8550);
+        float dr_5535 = ((r - ringR * 0.8) * w * 0.7);
+        float wake = exp(-dr_5535 * dr_5535);
+        float env = (0.45 + 0.85 * min(p * 3.0, 1.0)) *
+                    (1.0 - smoothstep(0.72, 1.0, p));
+        float ringTotal = (ring * 0.8 + wake * 0.3) * env;
+
+        // White-hot at the impact instant settling into the flash color.
+        // The ring runs a more saturated version of the flash color so the
+        // sweep reads two-tone against the white-hot core.
         vec3 flash = mix(vec3(1.0, 0.98, 0.92), materialParams.flashColor.rgb,
-                         smoothstep(0.0, 0.55, materialParams.progress));
+                         smoothstep(0.0, 0.55, p));
+        vec3 ringCol = mix(vec3(1.0, 0.99, 0.95),
+                           materialParams.flashColor.rgb *
+                               vec3(2.4, 0.75, 0.3),
+                           smoothstep(0.0, 0.35, p));
 
-        float amount = intensity * (0.16 + 0.62 * rim) + ring * 1.55;
-        amount = clamp(amount, 0.0, 1.25);
+        vec3 color = flash * body + ringCol * ringTotal;
 
-        material.baseColor = vec4(flash * amount, min(amount, 1.0));
+        // Additive materials pass through the engine's HDR exposure before
+        // tonemapping (~300x on this pipeline), so artistic 0..4 values are
+        // scaled down here: 0.5 reads as a mid glow, 2+ as white-hot
+        // (calibrated against the headless capture pipeline).
+        material.baseColor = vec4(color * 0.12, 1.0);
     }
 }

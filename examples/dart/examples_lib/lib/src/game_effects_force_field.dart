@@ -32,12 +32,12 @@ Future<void> setupForceField(
     name: "force_field",
   );
   await field.setParameterFloat4("baseColor", 0.30, 0.55, 1.0, 1.0);
-  await field.setParameterFloat("time", 2.0);
+  await field.setParameterFloat("time", 2.25);
   await field.setParameterFloat("fresnelPower", 2.2);
-  await field.setParameterFloat("hexScale", 9.0);
-  await field.setParameterFloat("hexStrength", 1.1);
+  await field.setParameterFloat("hexScale", 20.0);
+  await field.setParameterFloat("hexStrength", 1.15);
   await field.setParameterFloat3("hitDirection", 0.4, 0.25, 0.88);
-  await field.setParameterFloat("hitAge", 0.45);
+  await field.setParameterFloat("hitAge", 0.35);
 
   final bubble = await viewer.createGeometry(
     GeometryUtils.sphere(latitudeBands: 48, longitudeBands: 64),

@@ -43,10 +43,11 @@ vertex {
         float h = materialParams.waveHeight;
         float f = materialParams.waveFrequency;
         float sp = materialParams.waveSpeed;
-        vec3 w = gerstner(p, normalize(vec2( 1.00,  0.25)), f * 1.0, sp * 1.0, h * 1.00, 0.55);
-        w     += gerstner(p, normalize(vec2(-0.62,  0.78)), f * 2.0, sp * 1.35, h * 0.48, 0.45);
-        w     += gerstner(p, normalize(vec2( 0.34, -0.94)), f * 3.9, sp * 1.90, h * 0.22, 0.35);
-        w     += gerstner(p, normalize(vec2(-0.85, -0.53)), f * 6.9, sp * 2.60, h * 0.12, 0.25);
+        vec3 w = gerstner(p, normalize(vec2( 1.00,  0.25)), f * 1.0, sp * 1.0, h * 1.00, 0.85);
+        w     += gerstner(p, normalize(vec2(-0.62,  0.78)), f * 2.0, sp * 1.35, h * 0.48, 0.60);
+        w     += gerstner(p, normalize(vec2( 0.34, -0.94)), f * 3.9, sp * 1.90, h * 0.22, 0.42);
+        w     += gerstner(p, normalize(vec2(-0.85, -0.53)), f * 6.9, sp * 2.60, h * 0.12, 0.30);
+        w     += gerstner(p, normalize(vec2( 0.90, -0.44)), f * 10.8, sp * 3.30, h * 0.07, 0.22);
         return w;
     }
 
@@ -73,7 +74,7 @@ vertex {
         //    is exactly where whitecaps live.
         material.surfacePos.xyz = material.worldPosition.xyz;
         material.surfacePos.w =
-            clamp(disp.y / (1.82 * materialParams.waveHeight + 0.001), -1.0, 1.0);
+            clamp(disp.y / (1.89 * materialParams.waveHeight + 0.001), -1.0, 1.0);
         material.surfaceNormal.w =
             clamp(1.0 - min(length(sx), length(sz)) / eps, 0.0, 1.0);
     }
@@ -137,10 +138,10 @@ fragment {
         float foamNoise = fbm(pos.xz * 2.6 + vec2(t * 0.14, -t * 0.09));
         float foamFine = noise2(pos.xz * 9.0 + vec2(-t * 0.5, t * 0.3));
         float foamMask = clamp(crest * 1.3 + chop * 3.0 - 0.15, 0.0, 1.0);
-        float foam = smoothstep(0.15, 0.55,
-                                foamMask * (0.35 + 0.9 * foamNoise));
+        float foam = smoothstep(0.38, 0.78,
+                                foamMask * (0.3 + 1.15 * foamNoise * foamNoise));
         foam = clamp(foam * materialParams.foamAmount *
-                     (0.6 + 0.55 * foamFine), 0.0, 1.0);
+                     (0.55 + 0.6 * foamFine), 0.0, 1.0);
         // Foam is diffuse: flatten the normal where it covers.
         vec3 nShaded = normalize(mix(nDetailed, vec3(0.0, 1.0, 0.0), foam * 0.8));
 
@@ -150,7 +151,10 @@ fragment {
         float ndv = max(dot(nShaded, viewDir), 0.0);
         float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 3.5);
 
-        vec3 color = mix(materialParams.deepColor.rgb,
+        // Large-scale current variation breaks up the single-tone body.
+        float cur = fbm(pos.xz * 0.35 + vec2(t * 0.015, -t * 0.01));
+        vec3 deep = materialParams.deepColor.rgb * (0.72 + 0.56 * cur);
+        vec3 color = mix(deep,
                          materialParams.skyColor.rgb, fresnel);
 
         // Sun-side shading: wave flanks facing the sun read brighter, troughs
@@ -171,23 +175,36 @@ fragment {
         float ndh = max(dot(nShaded, halfDir), 0.0);
         float sheen = pow(ndh, 90.0) * 0.22;
         // Sparkle concentrates near grazing angles, like real water glints.
+        float glint = hash(floor(pos.xz * 16.0) + floor(vec2(t * 6.0)));
+        // Concentrate the glints into a wedge pointing at the sun so they
+        // read as a glitter path rather than uniform speckle.
+        vec2 camXZ = getWorldCameraPosition().xz;
+        vec2 toPoint = pos.xz - camXZ;
+        float sunSide = max(dot(normalize(toPoint), normalize(sun.xz)), 0.0);
+        float pathGate = 0.25 + 0.75 * pow(sunSide, 3.0);
         float sparkle = pow(ndh, materialParams.specularPower) *
-                        (0.35 + 0.65 * clamp(2.0 * fresnel, 0.0, 1.0));
+                        (0.3 + 0.7 * clamp(2.0 * fresnel, 0.0, 1.0)) *
+                        (0.45 + 0.9 * glint) * pathGate;
         color += vec3(1.0, 0.87, 0.65) *
                  (sheen + sparkle) * materialParams.specularIntensity;
 
         // --- foam on top ------------------------------------------------
-        color = mix(color, materialParams.foamColor.rgb, foam * 0.92);
+                vec3 foamCol = materialParams.foamColor.rgb *
+                       (0.8 + 0.25 * foamFine);
+        color = mix(color, foamCol, foam * 0.95);
 
         // --- distance haze: melt the plane edge into the horizon ---------
-        float horizon = smoothstep(4.2, 7.6, length(pos.xz));
+        float horizon = smoothstep(5.5, 11.0, length(pos.xz));
         vec3 hazeColor = mix(materialParams.skyColor.rgb,
-                             materialParams.deepColor.rgb, 0.45) * 0.45;
+                             materialParams.deepColor.rgb * 2.0, 0.35) * 0.4;
         color = mix(color, hazeColor, horizon);
 
         float alpha = clamp(0.78 + 0.22 * fresnel, 0.0, 1.0) *
                       materialParams.deepColor.a;
-        alpha = mix(alpha, 1.0, max(foam, horizon));
+        alpha = max(alpha, foam);
+        // Fade alpha out at the rim so the plane's edge never reads as a
+        // hard disc against the skybox.
+        alpha *= 1.0 - horizon;
 
         material.baseColor = vec4(color, alpha);
     }

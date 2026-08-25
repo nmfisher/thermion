@@ -34,8 +34,8 @@ Future<void> setupDissolveBurn(
   await dissolve.setParameterFloat4("baseColor", 0.16, 0.13, 0.12, 1.0);
   await dissolve.setParameterFloat4("edgeColor", 1.0, 0.45, 0.1, 1.0);
   await dissolve.setParameterFloat("threshold", 0.5);
-  await dissolve.setParameterFloat("edgeWidth", 0.13);
-  await dissolve.setParameterFloat("edgeIntensity", 3.0);
+  await dissolve.setParameterFloat("edgeWidth", 0.10);
+  await dissolve.setParameterFloat("edgeIntensity", 3.6);
   await dissolve.setParameterFloat("noiseScale", 3.4);
   await dissolve.setParameterFloat("time", 1.2);
 

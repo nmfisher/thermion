@@ -29,8 +29,8 @@ Future<void> setupShoreWaves(
     assetsDir: assetsDir,
     name: "sand",
   );
-  await sand.setParameterFloat4("sandColor", 0.76, 0.66, 0.50, 1.0);
-  await sand.setParameterFloat("time", 0.0);
+  await sand.setParameterFloat4("sandColor", 0.72, 0.62, 0.46, 1.0);
+  await sand.setParameterFloat("time", 2.0);
   final beach = await viewer.createGeometry(
     subdividedPlane(width: 20.0, depth: 8.0, subdivisionsX: 8, subdivisionsZ: 8),
     materialInstances: [sand],
@@ -42,8 +42,8 @@ Future<void> setupShoreWaves(
     assetsDir: assetsDir,
     name: "shore_waves",
   );
-  await water.setParameterFloat4("deepColor", 0.012, 0.10, 0.15, 1.0);
-  await water.setParameterFloat4("shallowColor", 0.06, 0.50, 0.52, 1.0);
+  await water.setParameterFloat4("deepColor", 0.008, 0.07, 0.12, 1.0);
+  await water.setParameterFloat4("shallowColor", 0.05, 0.55, 0.55, 1.0);
   await water.setParameterFloat4("skyColor", 0.40, 0.55, 0.68, 1.0);
   await water.setParameterFloat4("foamColor", 0.94, 0.98, 1.0, 1.0);
   await water.setParameterFloat3("sunDirection", -0.45, -0.35, -0.8);
@@ -62,5 +62,7 @@ Future<void> setupShoreWaves(
 
   effectAnimators.add((t) async {
     await water.setParameterFloat("time", t);
+    // The sand's swash line is phase-locked to the water's breaker pulse.
+    await sand.setParameterFloat("time", t);
   });
 }

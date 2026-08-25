@@ -30,12 +30,12 @@ Future<void> setupHologram(
     name: "hologram",
   );
   await hologram.setParameterFloat4("tintColor", 0.20, 0.85, 1.0, 1.0);
-  await hologram.setParameterFloat("time", 2.0);
+  await hologram.setParameterFloat("time", 2.2);
   await hologram.setParameterFloat("fresnelPower", 2.5);
-  await hologram.setParameterFloat("fresnelStrength", 1.1);
+  await hologram.setParameterFloat("fresnelStrength", 1.35);
   await hologram.setParameterFloat("scanlineCount", 70.0);
   await hologram.setParameterFloat("scanlineSpeed", 4.0);
-  await hologram.setParameterFloat("glitchAmount", 0.05);
+  await hologram.setParameterFloat("glitchAmount", 0.09);
 
   await asset.setMaterialInstanceForAll(hologram);
 

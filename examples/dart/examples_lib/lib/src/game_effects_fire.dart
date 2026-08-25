@@ -23,8 +23,8 @@ Future<void> setupFire(
 
   await setDarkSkybox(viewer);
 
-  const flameCount = 16;
-  const emberCount = 20;
+  const flameCount = 20;
+  const emberCount = 28;
 
   final fire = await loadEffectMaterial(
     viewer,
@@ -34,12 +34,12 @@ Future<void> setupFire(
   await fire.setParameterFloat("time", 4.6);
   await fire.setParameterFloat("flameCount", flameCount.toDouble());
   await fire.setParameterFloat("emberCount", emberCount.toDouble());
-  await fire.setParameterFloat("flameHeight", 1.15);
-  await fire.setParameterFloat("flameWidth", 0.40);
-  await fire.setParameterFloat("noiseScale", 3.0);
-  await fire.setParameterFloat("scrollSpeed", 2.4);
-  await fire.setParameterFloat("windLean", 0.18);
-  await fire.setParameterFloat("emberLifetime", 1.7);
+  await fire.setParameterFloat("flameHeight", 1.45);
+  await fire.setParameterFloat("flameWidth", 0.34);
+  await fire.setParameterFloat("noiseScale", 2.7);
+  await fire.setParameterFloat("scrollSpeed", 3.0);
+  await fire.setParameterFloat("windLean", 0.30);
+  await fire.setParameterFloat("emberLifetime", 1.9);
 
   await viewer.createGeometry(
     dummyBillboardQuads(flameCount + emberCount),

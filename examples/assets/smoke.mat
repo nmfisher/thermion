@@ -17,7 +17,7 @@ material {
     depthWrite : false,
     depthCulling : false,
     shadingModel : unlit,
-    blending : add,
+    blending : transparent,
     culling : none,
     featureLevel : 1,
     vertexDomain : object
@@ -52,14 +52,16 @@ vertex {
                       materialParams.lifetime);
         float age = t / materialParams.lifetime;
 
-        // Rise with per-puff rate variation.
-        float y = t * materialParams.riseSpeed * (0.85 + rng2 * 0.3);
+        // Rise with per-puff rate variation; puffs accelerate slightly as
+        // they heat up, then ride the plume.
+        float y = t * materialParams.riseSpeed * (0.85 + rng2 * 0.3) *
+                  (0.75 + 0.5 * age);
 
         // Puffs start small and stretch vertically as they climb, like
         // buoyant smoke; every rate varies a little per puff.
         float scale = (materialParams.baseSize +
                        t * materialParams.expandSpeed) * (0.75 + rng3 * 0.5);
-        vec2 quadScale = vec2(scale, scale * (1.0 + age * 1.1));
+        vec2 quadScale = vec2(scale, scale * (1.0 + age * 1.4));
 
         // Slow per-puff spin - visible through the noise sampling.
         float angle = t * materialParams.swirlAmount * (rng1 - 0.5) * 0.8 +
@@ -73,9 +75,9 @@ vertex {
         // age while wind bends the plume sideways. This cone + bend is what
         // makes it read as a plume rather than a vertical line of blobs.
         float spiralAngle = seed * 6.2832 + t * 1.1;
-        float spiralRadius = age * 0.34;
+        float spiralRadius = age * 0.36;
         vec3 center = vec3(
-            cos(spiralAngle) * spiralRadius + rng2 * 0.08 + age * age * 0.45,
+            cos(spiralAngle) * spiralRadius + rng2 * 0.08 + age * age * 0.62,
             y,
             sin(spiralAngle) * spiralRadius + rng3 * 0.08);
 
@@ -96,7 +98,7 @@ vertex {
         // uv + age fade + per-puff brightness in the variable's zw channels
         // (fragment-stage getUV0 is only vec2).
         material.quadData = vec4(uvs[vertInQuad], 1.0 - age,
-                                 0.65 + 0.7 * rng4);
+                                 0.55 + 0.6 * rng4);
     }
 }
 
@@ -131,33 +133,39 @@ fragment {
         float t = materialParams.time;
 
         // Soft radial falloff (billboard alpha), shaped with the domain.
-        vec2 d = (uv - 0.5) * vec2(1.0, 0.82);
-        float r = length(d) * 2.0;
-        float radial = 1.0 - smoothstep(0.05, 0.95, r);
-        radial *= radial;
+        vec2 d = (uv - 0.5) * vec2(1.0, 0.85);
+        float dr = length(d) * 2.0;
+        float radial = 1.0 - smoothstep(0.0, 0.98, dr);
+        radial = pow(radial, 1.5);
 
-        // Domain-warped fbm in billboard space: warping removes the cottony
-        // single-octave look and gives torn, whispy internal structure.
-        vec2 q = uv * materialParams.noiseScale + vec2(0.0, -t * 0.22);
+        // Domain-warped fbm in billboard space. The noise is squashed
+        // vertically so its features stretch into rising wisps, and the
+        // double warp tears the edges instead of leaving cottony blobs.
+        vec2 q = uv * vec2(materialParams.noiseScale,
+                           materialParams.noiseScale * 0.55) +
+                 vec2(0.0, -t * 0.22);
         float warp = fbm(q + vec2(t * 0.05, 0.0));
-        float f = fbm(q + warp * 1.7);
+        float f = fbm(q + warp * 1.7 + fbm(q * 1.7) * 0.6);
         float body = radial *
-            smoothstep(0.30, 0.62, f * 0.85 + radial * 0.30);
+            smoothstep(0.34, 0.60, f * 0.9 + radial * 0.28);
 
         // Dense and bright at birth, thinning as the puff climbs.
-        float density = pow(fade, 0.65);
-        body *= 0.45 + 0.85 * density;
+        float density = pow(fade, 0.7);
+        body *= 0.4 + 0.75 * density;
 
         // Ease in quickly, fade out over the last stretch of life.
         float lifeFade = smoothstep(0.0, 0.10, fade) *
                          smoothstep(0.0, 0.50, fade);
 
-        float amount = body * lifeFade * brightness;
+        float amount = body * lifeFade * brightness * 0.5;
 
-        // Top-lit tint with a faint warm cast on young puffs, as if lit from
-        // the fire they came from.
-        vec3 color = materialParams.baseColor.rgb * (0.78 + 0.45 * uv.y);
-        color += vec3(0.10, 0.035, 0.0) * density * density;
+        // Gray smoke with volume: lit from above (younger, denser puffs
+        // scatter more), a warm cast near the fire below, and a cooler,
+        // more translucent tone as it ages into wisps.
+        float lit = 0.42 + 0.58 * uv.y;
+        vec3 color = materialParams.baseColor.rgb * lit;
+        color += vec3(0.16, 0.05, 0.0) * density * density;
+        color = mix(color, color * vec3(0.55, 0.62, 0.75), age * 0.55);
 
         material.baseColor = vec4(color * amount, amount);
     }

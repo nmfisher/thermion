@@ -1,6 +1,9 @@
 material {
     name : ShockwaveGround,
     requires : [ position ],
+    variables : [
+        worldPos
+    ],
     parameters : [
         { type : float, name : time },
         { type : float, name : period },
@@ -12,6 +15,16 @@ material {
     blending : add,
     culling : none,
     variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // getWorldPosition() in the fragment stage is view-relative on
+        // this pipeline, and getWorldFromModelMatrix() returns garbage for
+        // created geometry - but this plane sits at the identity
+        // transform, so object position IS world position.
+        material.worldPos.xyz = getPosition().xyz;
+    }
 }
 
 fragment {
@@ -37,7 +50,7 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec3 pos = getWorldPosition().xyz;
+        vec3 pos = variable_worldPos.xyz;
         float t = materialParams.time;
         float r = length(pos.xz);
 
@@ -46,10 +59,20 @@ fragment {
         float waveR = age * materialParams.period * materialParams.waveSpeed;
 
         // Main energy ring plus a trailing secondary ring. The leading
-        // edge is sharp; the falloff behind it is softer.
-        float band = exp(-pow((r - waveR) * 3.4, 2.0)) +
-                     0.35 * exp(-pow((r - waveR + 0.25) * 1.4, 2.0));
-        float trail = exp(-pow((r - waveR * 0.78) * 5.0, 2.0)) * 0.45;
+        // edge is sharp; the falloff behind it is softer. Width relaxes
+        // with radius so the ring stays readable as it expands.
+        float wgt = 4.6 / (0.30 + age * 1.0);
+        float dr_8797 = (r - waveR) * wgt;
+        float dr_5976 = (r - waveR + 0.25) * wgt * 0.45;
+        float band = exp(-dr_8797 * dr_8797) +
+                     0.35 * exp(-dr_5976 * dr_5976);
+        float dr_5293 = (r - waveR * 0.78) * wgt * 1.5;
+        float trail = exp(-dr_5293 * dr_5293) * 0.45;
+
+        // Lingering energy fill behind the front, and a hot flash at the
+        // epicenter at the instant of the pulse.
+        float fill = exp(-r * 0.9) * (1.0 - age) * 0.5;
+        float epi = exp(-r * 2.5) * exp(-age * 7.0) * 2.2;
 
         // Break the ring into arcs so it reads as energy, not a perfect
         // circle, with fine churn riding the front.
@@ -58,11 +81,13 @@ fragment {
         float churn = 0.7 + 0.5 * noise2(pos.xz * 6.0 - t * 3.0);
 
         float fade = pow(1.0 - age, 1.2);
-        float amount = (band * 1.9 + trail) *
-                       (0.55 + 0.45 * arc) * churn * fade;
+        float amount = (band * 2.2 + trail + fill + epi) *
+                       (0.25 + 0.85 * arc) * churn * fade;
 
         vec3 color = mix(vec3(0.30, 0.85, 1.0), vec3(0.85, 0.98, 1.0), band);
-        material.baseColor = vec4(color * amount,
-                                  clamp(amount, 0.0, 1.0));
+        color = mix(color, vec3(0.95, 0.98, 1.0), clamp(epi * 0.4, 0.0, 0.6));
+        // Additive materials pass through the engine's HDR exposure before
+        // tonemapping on this pipeline - see hit_flash.mat.
+        material.baseColor = vec4(color * amount * 0.075, 1.0);
     }
 }

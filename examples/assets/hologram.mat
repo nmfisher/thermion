@@ -2,7 +2,8 @@ material {
     name : Hologram,
     requires : [ position, tangents ],
     variables : [
-        surfaceNormal
+        surfaceNormal,
+        worldPos
     ],
     parameters : [
         { type : float4, name : tintColor },
@@ -28,17 +29,29 @@ vertex {
 
     void materialVertex(inout MaterialVertexInputs material) {
         material.surfaceNormal.xyz = material.worldNormal;
+        // material.worldPosition is pre-transform on this pipeline; build
+        // true world position from the model matrix.
+        material.worldPos.xyz = (getWorldFromModelMatrix() *
+                                 vec4(getPosition().xyz, 1.0)).xyz;
 
-        // Glitch gating, shared verbatim with the fragment stage: roughly
-        // a third of the time slices (2.5/s) shear a horizontal band.
+        // Glitch gating, shared verbatim with the fragment stage: roughly a
+        // third of the time slices (2.5/s) shear horizontal bands. Two
+        // bands tear in different directions for a busier interference
+        // read.
         float t = materialParams.time;
-        float gate = hash1(floor(t * 2.5));
-        float bandY = (hash1(floor(t * 2.5) + 7.0) - 0.5) * 1.1;
-        float glitchOn = step(0.62, gate);
-        float band = glitchOn *
-            (1.0 - smoothstep(0.0, 0.09, abs(material.worldPosition.y - bandY)));
-        material.worldPosition.x += band * materialParams.glitchAmount *
-            (hash1(floor(t * 2.5) + 13.0) - 0.5) * 2.0;
+        float k = floor(t * 2.5);
+        float gate = hash1(k);
+        float glitchOn = step(0.72, gate);
+        float band1 = glitchOn *
+            (1.0 - smoothstep(0.0, 0.07, abs(material.worldPosition.y -
+                 (hash1(k + 7.0) - 0.5) * 1.1)));
+        float band2 = glitchOn *
+            (1.0 - smoothstep(0.0, 0.05, abs(material.worldPosition.y -
+                 (hash1(k + 29.0) - 0.5) * 1.1)));
+        material.worldPosition.x +=
+            band1 * materialParams.glitchAmount * hash1(k + 13.0) * 2.0;
+        material.worldPosition.x -=
+            band2 * materialParams.glitchAmount * 0.6 * hash1(k + 41.0) * 2.0;
     }
 }
 
@@ -50,7 +63,7 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec3 pos = getWorldPosition().xyz;
+        vec3 pos = variable_worldPos.xyz;
         vec3 normal = normalize(variable_surfaceNormal.xyz);
         vec3 viewDir = normalize(getWorldCameraPosition() - pos);
         float t = materialParams.time;
@@ -61,42 +74,61 @@ fragment {
                             materialParams.fresnelPower);
         fresnel *= materialParams.fresnelStrength;
 
-        // Fine horizontal scanlines (thin bright lines), sweeping upward.
-        float scan = sin(pos.y * materialParams.scanlineCount -
-                         t * materialParams.scanlineSpeed);
-        float scanline = smoothstep(0.30, 0.95, scan) * 0.26;
+        // Two layers of fine horizontal scanlines sweeping upward: a dense
+        // fine set plus a slower coarse set, so the surface shimmers rather
+        // than showing one static frequency.
+        float scanA = smoothstep(0.25, 0.95,
+            sin(pos.y * materialParams.scanlineCount -
+                t * materialParams.scanlineSpeed)) * 0.34;
+        float scanB = smoothstep(0.55, 1.0,
+            sin(pos.y * materialParams.scanlineCount * 0.37 -
+                t * materialParams.scanlineSpeed * 0.53)) * 0.14;
+        float scanline = scanA + scanB;
 
-        // A bright scanning band sweeps up the projection every ~4.5s -
-        // the classic "re-projector" cue, and the strongest still-frame
-        // hologram signal.
-        float bandPos = fract(t * 0.22) * 1.6 - 0.8;
-        float sweep = exp(-pow((pos.y - bandPos) * 11.0, 2.0));
+        // The scanning band: a bright core with a soft haze around it and a
+        // sharp trailing edge, sweeping up the projection every ~4.8s.
+        float bandPos = fract(t * 0.21) * 1.7 - 0.85;
+        float dr_2845 = ((pos.y - bandPos) * 13.0);
+        float sweepCore = exp(-dr_2845 * dr_2845);
+        float dr_260 = ((pos.y - bandPos) * 3.2);
+        float sweepHaze = exp(-dr_260 * dr_260) * 0.22;
+        float dr_3266 = ((pos.y - bandPos - 0.055) * 42.0);
+        float sweepBar = exp(-dr_3266 * dr_3266) * 0.5;
+        float sweep = sweepCore + sweepHaze + sweepBar;
 
-        // Glitch (same gating as the vertex shear): brightness pop plus a
-        // chromatic channel split inside the sheared band.
-        float gate = hash1(floor(t * 2.5));
-        float bandY = (hash1(floor(t * 2.5) + 7.0) - 0.5) * 1.1;
-        float glitchOn = step(0.62, gate);
-        float glitchBand = glitchOn *
-            (1.0 - smoothstep(0.0, 0.09, abs(pos.y - bandY)));
+        // Glitch (same gating as the vertex shear): brightness pop plus
+        // complementary chromatic splits inside the two sheared bands.
+        float k = floor(t * 2.5);
+        float gate = hash1(k);
+        float glitchOn = step(0.72, gate);
+        float glitch1 = glitchOn *
+            (1.0 - smoothstep(0.0, 0.07, abs(pos.y - (hash1(k + 7.0) - 0.5) * 1.1)));
+        float glitch2 = glitchOn *
+            (1.0 - smoothstep(0.0, 0.05, abs(pos.y - (hash1(k + 29.0) - 0.5) * 1.1)));
 
-        // Subtle flicker so the projection feels unstable.
-        float flicker = 0.92 + 0.05 * sin(t * 43.0) + 0.03 * sin(t * 7.7);
+        // Instability: fast shimmer, a slow brownout drift, and rare
+        // single-frame dropouts.
+        float flicker = 0.90 + 0.06 * sin(t * 47.0) + 0.04 * sin(t * 8.3);
+        flicker -= 0.5 * step(0.986, hash1(floor(t * 24.0)));
 
-        // Interior floor, slightly brighter toward the top so the body
-        // reads as projected light rather than empty space.
-        float shell = 0.16 + 0.10 * smoothstep(-0.5, 0.5, pos.y);
+        // Interior floor, brighter toward the top so the body reads as
+        // projected light rather than empty space.
+        float shell = 0.11 + 0.13 * smoothstep(-0.6, 0.6, pos.y);
 
-        float alpha = shell + fresnel * 0.9 + scanline +
-                      sweep * 0.75 + glitchBand * 0.8;
-        alpha = clamp(alpha, 0.0, 1.0) * flicker *
+        float alpha = shell + fresnel * 0.95 + scanline +
+                      sweep * 0.85 + (glitch1 + glitch2) * 0.8;
+        alpha = clamp(alpha, 0.0, 1.0) * max(flicker, 0.0) *
                 materialParams.tintColor.a;
 
+        // Slight hue journey up the projection: deeper blue at the base,
+        // near-white cyan at the crown.
         vec3 color = materialParams.tintColor.rgb *
-                     (0.55 + 0.65 * fresnel + 0.55 * sweep);
-        color += vec3(0.35) * sweep * 0.5;
-        // Chromatic split inside glitch bands.
-        color = mix(color, color * vec3(0.55, 0.85, 1.45), glitchBand);
+                     (0.55 + 0.65 * fresnel + 0.6 * sweep);
+        color = mix(color, color * vec3(0.8, 0.95, 1.25),
+                    smoothstep(0.2, -0.6, pos.y) * 0.5);
+        color += vec3(0.4) * sweep * 0.5;
+        color = mix(color, color * vec3(0.55, 0.85, 1.5), glitch1);
+        color = mix(color, color * vec3(1.5, 0.85, 0.55), glitch2);
 
         material.baseColor = vec4(color * alpha, alpha);
     }

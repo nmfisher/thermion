@@ -22,21 +22,21 @@ Future<void> setupSmoke(
 
   await setDarkSkybox(viewer);
 
-  const puffCount = 40;
+  const puffCount = 48;
 
   final smoke = await loadEffectMaterial(
     viewer,
     assetsDir: assetsDir,
     name: "smoke",
   );
-  await smoke.setParameterFloat4("baseColor", 0.34, 0.36, 0.42, 1.0);
+  await smoke.setParameterFloat4("baseColor", 0.42, 0.44, 0.50, 1.0);
   await smoke.setParameterFloat("time", 4.6);
   await smoke.setParameterFloat("puffCount", puffCount.toDouble());
   await smoke.setParameterFloat("riseSpeed", 0.5);
-  await smoke.setParameterFloat("expandSpeed", 0.22);
+  await smoke.setParameterFloat("expandSpeed", 0.26);
   await smoke.setParameterFloat("swirlAmount", 1.1);
-  await smoke.setParameterFloat("baseSize", 0.35);
-  await smoke.setParameterFloat("noiseScale", 3.2);
+  await smoke.setParameterFloat("baseSize", 0.30);
+  await smoke.setParameterFloat("noiseScale", 2.6);
   await smoke.setParameterFloat("lifetime", 4.5);
 
   await viewer.createGeometry(

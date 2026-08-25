@@ -1,6 +1,9 @@
 material {
     name : Sand,
     requires : [ position ],
+    variables : [
+        worldPos
+    ],
     parameters : [
         { type : float4, name : sandColor },
         { type : float,  name : time }
@@ -9,6 +12,15 @@ material {
     blending : opaque,
     culling : none,
     variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // See shockwave_ground.mat: fragment getWorldPosition() is
+        // view-relative here; this plane sits at the identity transform,
+        // so object position IS world position.
+        material.worldPos.xyz = getPosition().xyz;
+    }
 }
 
 fragment {
@@ -31,18 +43,29 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec3 pos = getWorldPosition().xyz;
-        float grain = noise2(pos.xz * 14.0) * 0.5 + noise2(pos.xz * 47.0) * 0.5;
+        vec3 pos = variable_worldPos.xyz;
+        float grain = noise2(pos.xz * 9.0) * 0.4 + noise2(pos.xz * 31.0) * 0.6;
         vec3 color = materialParams.sandColor.rgb * (0.88 + 0.20 * grain);
 
         // Wet band hugging the same analytic shoreline the water uses:
         // darker and slightly cool where the wash reaches.
         float d = pos.z - shoreZ(pos.x);
-        float wet = exp(-pow(d / 0.85, 2.0));
-        color = mix(color, color * vec3(0.45, 0.42, 0.40) + vec3(0.0, 0.01, 0.015), wet * 0.8);
+        // The swash line runs up the sand and retreats, phase-locked to the
+        // water's breaker pulse (t * 3.0 + depth * 2.8).
+        float swashC = 0.55 + 0.5 * sin(materialParams.time * 3.0 + 1.2);
+        float dr_7439 = (d - swashC) / 0.55;
+        float wet = exp(-dr_7439 * dr_7439);
+        // A trailing damp apron behind the leading swash edge.
+        float damp = smoothstep(swashC + 0.9, swashC - 0.2, d) *
+                     smoothstep(-2.5, -0.5, d);
+        color = mix(color, color * vec3(0.42, 0.39, 0.37) + vec3(0.0, 0.008, 0.012),
+                    clamp(wet + damp, 0.0, 1.0) * 0.85);
+        // Fine foam speckle right at the swash edge.
+        float speck = wet * step(0.72, noise2(pos.xz * 34.0)) * 0.5;
+        color += vec3(0.25) * speck;
 
         // Melt into the dark background far from the water.
-        float far = smoothstep(2.0, 6.5, d);
+        float far = smoothstep(1.8, 5.5, d);
         color = mix(color, vec3(0.03, 0.028, 0.03), far);
 
         material.baseColor = vec4(color, 1.0);

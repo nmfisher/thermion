@@ -2,7 +2,8 @@ material {
     name : ForceField,
     requires : [ position, tangents ],
     variables : [
-        surfaceNormal
+        surfaceNormal,
+        worldPos
     ],
     parameters : [
         { type : float4, name : baseColor },
@@ -21,17 +22,7 @@ material {
     variantFilter : [ skinning, shadowReceiver, vsm ]
 }
 
-vertex {
-    void materialVertex(inout MaterialVertexInputs material) {
-        material.surfaceNormal.xyz = material.worldNormal;
-    }
-}
-
 fragment {
-    float hash1(float n) {
-        return fract(sin(n * 91.17) * 43758.5453);
-    }
-
     float hash2(vec2 p) {
         return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
     }
@@ -39,62 +30,83 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        vec3 pos = getWorldPosition().xyz;
+        vec3 nrm = normalize(variable_worldPos.xyz);
         vec3 normal = normalize(variable_surfaceNormal.xyz);
-        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        vec3 viewDir = normalize(getWorldCameraPosition() - getWorldPosition().xyz);
         float t = materialParams.time;
 
-        // Fresnel rim dominates at grazing angles - the bubble silhouette -
-        // with a hotter thin lip right at the edge.
-        float fresnel = pow(1.0 - abs(dot(normal, viewDir)),
-                            materialParams.fresnelPower);
-        float rimLip = pow(1.0 - abs(dot(normal, viewDir)), 8.0);
+        // Fresnel rim gives the bubble its silhouette, with a hotter thin
+        // lip right at the edge.
+        float ndv = abs(dot(normal, viewDir));
+        float fresnel = pow(1.0 - ndv, materialParams.fresnelPower);
+        float rimLip = pow(1.0 - ndv, 8.0);
 
         // --- hexagonal lattice -------------------------------------------
-        // Proper hex distance over a longitude/latitude parametrization:
-        // columns offset by half a cell, then a max() of the two edge
-        // planes. A per-cell wobble de-regularizes the grid so it does not
-        // moire, and the lattice fades toward the poles where the
-        // parametrization stretches.
-        float lon = atan(pos.z, pos.x);
-        float lat = asin(clamp(pos.y, -1.0, 1.0));
-        vec2 hp = vec2(lon * 1.9098, lat * 3.0) * materialParams.hexScale;
-        hp.x *= 1.1547;
+        // hexScale counts cells around the equator (~20): big enough that
+        // individual cells resolve on screen instead of collapsing into
+        // moire mush. Longitude and latitude are scaled so cells stay
+        // roughly square in world space.
+        float lon = atan(nrm.z, nrm.x);
+        float lat = asin(clamp(nrm.y, -1.0, 1.0));
+        vec2 hp = vec2(lon * 1.1547, lat) * (materialParams.hexScale * 0.159155);
         hp.y += mod(floor(hp.x), 2.0) * 0.5;
         vec2 cellId = floor(hp);
-        hp += (vec2(hash2(cellId), hash2(cellId + 19.0)) - 0.5) * 0.12;
+        // Small per-cell wobble de-regularizes the grid without breaking it.
+        hp += (vec2(hash2(cellId), hash2(cellId + 19.0)) - 0.5) * 0.08;
 
         vec2 f = abs(fract(hp) - 0.5);
         float d = max(dot(f, vec2(0.5, 0.8660254)), f.x);
-        float line = smoothstep(0.40, 0.49, d);
+        float line = smoothstep(0.42, 0.50, d);
 
-        // Energy shimmer flowing along the lattice plus per-cell twinkle.
-        float shimmer = 0.7 + 0.3 * sin(hp.y * 12.0 - t * 2.2);
+        // Energy pulses running along the lattice lines; cells themselves
+        // stay dark so the web structure dominates.
+        float flow = 0.65 + 0.35 * sin((hp.x + hp.y * 0.6) * 2.2 - t * 3.0);
         float twinkle = 0.5 + 0.5 * sin(t * 2.4 + hash2(cellId + 7.0) * 6.2832);
 
-        float poleFade = smoothstep(0.98, 0.80, abs(pos.y));
-        float hex = line * shimmer * poleFade;
-        float cells = (1.0 - line) * twinkle * 0.35 * poleFade;
+        float poleFade = smoothstep(0.99, 0.86, abs(nrm.y));
+        float lattice = line * flow * poleFade * materialParams.hexStrength;
+        lattice += (1.0 - line) * twinkle * 0.08 * poleFade *
+                   materialParams.hexStrength;
 
-        // --- impact ripple ------------------------------------------------
-        // An expanding ring propagates from the last hit direction over the
-        // sphere surface (angular distance), decaying with age.
-        float ang = acos(clamp(dot(normalize(pos),
-                                   normalize(materialParams.hitDirection)),
+        // --- impact response ----------------------------------------------
+        // A bright splash at the impact site, then a sharp ring expanding
+        // over the sphere's angular distance with a trailing echo. The ring
+        // flares the lattice as it crosses it.
+        float ang = acos(clamp(dot(nrm, normalize(materialParams.hitDirection)),
                                -1.0, 1.0));
-        float ringR = materialParams.hitAge * 2.6;
-        float ring = exp(-pow((ang - ringR) * 7.0, 2.0)) *
-                     exp(-materialParams.hitAge * 1.4);
+        float age = materialParams.hitAge;
+        float splash = pow(max(dot(nrm, normalize(materialParams.hitDirection)),
+                               0.0), 6.0) * exp(-age * 8.0);
+        float ringR = age * 2.2;
+        float dr_8171 = ((ang - ringR) * 6.0);
+        float ring = exp(-dr_8171 * dr_8171) * exp(-age * 1.1);
+        float dr_1736 = ((ang - ringR * 0.78) * 5.0);
+        float echo = 0.5 * exp(-dr_1736 * dr_1736) *
+                     exp(-age * 0.9);
+        float ripple = splash + ring + echo;
 
-        float lattice = materialParams.hexStrength * (hex + cells);
-        float amount = 0.10 + 0.05 * (normal.y * 0.5 + 0.5) +
-                       fresnel * (1.35 + lattice) + rimLip * 1.2 +
-                       ring * 1.7;
+        float amount = 0.06 + fresnel * 1.1 + rimLip * 1.0 +
+                       lattice * (0.55 + ripple * 2.2) +
+                       ripple * 1.6;
 
         vec3 color = materialParams.baseColor.rgb;
-        color = mix(color, vec3(0.9, 0.97, 1.0), ring * 0.55);
-        color *= 0.9 + 0.25 * fresnel;
+        color = mix(color, vec3(0.85, 0.95, 1.0),
+                    clamp(ripple * 0.8, 0.0, 0.8));
+        color *= 0.85 + 0.3 * fresnel;
 
-        material.baseColor = vec4(color * amount, clamp(amount, 0.0, 1.0));
+        // Additive materials pass through the engine's HDR exposure before
+        // tonemapping (~300x on this pipeline), so artistic 0..4 values are
+        // scaled down here: 0.5 reads as a mid glow, 2+ as near-white.
+        material.baseColor = vec4(color * amount * 0.004, 1.0);
+    }
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.surfaceNormal.xyz = material.worldNormal;
+        // material.worldPosition is pre-transform on this pipeline; build
+        // true world position from the model matrix.
+        material.worldPos.xyz = (getWorldFromModelMatrix() *
+                                 vec4(getPosition().xyz, 1.0)).xyz;
     }
 }

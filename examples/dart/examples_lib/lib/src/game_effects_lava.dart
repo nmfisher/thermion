@@ -30,7 +30,7 @@ Future<void> setupLava(
   await lava.setParameterFloat("glowIntensity", 1.5);
   await lava.setParameterFloat("crustScale", 1.0);
   await lava.setParameterFloat("flowSpeed", 0.5);
-  await lava.setParameterFloat("swellHeight", 0.10);
+  await lava.setParameterFloat("swellHeight", 0.14);
 
   final surface = await viewer.createGeometry(
     subdividedPlane(width: 16.0, depth: 16.0, subdivisionsX: 176, subdivisionsZ: 176),

@@ -32,17 +32,17 @@ Future<void> setupWater(
   await water.setParameterFloat4("foamColor", 0.94, 0.98, 1.0, 1.0);
   await water.setParameterFloat3("sunDirection", -0.55, -0.35, -0.75);
   await water.setParameterFloat("time", 1.7);
-  await water.setParameterFloat("waveHeight", 0.36);
+  await water.setParameterFloat("waveHeight", 0.34);
   await water.setParameterFloat("waveFrequency", 1.25);
   await water.setParameterFloat("waveSpeed", 1.6);
   await water.setParameterFloat("foamAmount", 1.0);
   await water.setParameterFloat("specularPower", 520.0);
-  await water.setParameterFloat("specularIntensity", 4.2);
+  await water.setParameterFloat("specularIntensity", 3.4);
   await water.setParameterFloat("detailStrength", 1.0);
   await water.setParameterFloat("sssStrength", 0.9);
 
   final surface = await viewer.createGeometry(
-    subdividedPlane(width: 16.0, depth: 16.0, subdivisionsX: 200, subdivisionsZ: 200),
+    subdividedPlane(width: 24.0, depth: 24.0, subdivisionsX: 240, subdivisionsZ: 240),
     materialInstances: [water],
   );
   await surface.setTransform(Matrix4.translation(Vector3(0, 0, 0)));
