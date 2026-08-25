@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Changes
+- Add `VertexBufferMode` to `ThermionViewer.loadGltf`,
+  `ThermionViewer.loadGltfFromBuffer`, and `FilamentApp.loadGltfFromBuffer`.
+  `original` leaves gltfio geometry untouched, `unwelded` creates per-triangle
+  vertices with barycentric coordinates, and `editable` exposes mutable vertex
+  buffers while preserving source vertex order, indices, and morph-target
+  compatibility. Native library rebuild required.
 - `FilamentApp` exposes the native engine handle as a public
 - `TranslationAxisMaterial.createMaterialInstance` and `ToneMapper` factory methods
   now take the abstract `FilamentApp` instead of
@@ -41,6 +47,9 @@
   continue to overwrite manual weights on their next update.
 
 ### Breaking changes
+- Replace the `rebuildVertices` boolean with
+  `vertexBufferMode: VertexBufferMode.unwelded`. Use
+  `VertexBufferMode.editable` when mutable indexed topology is required.
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw
   pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
   instead.
