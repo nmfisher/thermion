@@ -1719,10 +1719,17 @@ extern "C"
       void (*callback)(bool))
   {
     auto *rt = RT(tAnimationManager);
+    const bool valid = numWeights >= 0 && (numWeights == 0 || morphData != nullptr);
+    std::vector<float> weights;
+    if (valid && numWeights > 0) {
+      weights.assign(morphData, morphData + numWeights);
+    }
     std::packaged_task<void()> lambda(
-        [=]() mutable
+        [=, weights = std::move(weights)]() mutable
         {
-          bool result = AnimationManager_setMorphTargetWeights(tAnimationManager, entityId, morphData, numWeights);
+          const bool result = valid && (weights.empty() ||
+              AnimationManager_setMorphTargetWeights(
+                  tAnimationManager, entityId, weights.data(), static_cast<int>(weights.size())));
           PROXY(callback(result));
         });
     auto fut = rt->addTask(lambda);
@@ -2714,6 +2721,35 @@ extern "C"
         [=]() mutable
         {
           RenderableManager_destroyEntity(tRenderableManager, entityId);
+          PROXY(onComplete(requestId));
+        });
+    auto fut = rt->addTask(lambda);
+  }
+
+  // Copy the caller-owned payload before returning across the FFI boundary.
+  // Native Dart typed data is pinned only for the duration of the leaf call,
+  // and ffigen_js uses Emscripten stack storage for makeFloat32List().
+  EMSCRIPTEN_KEEPALIVE void RenderableManager_setMorphWeightsRenderThread(
+      TRenderableManager *tRenderableManager,
+      EntityId entityId,
+      const float *weights,
+      size_t count,
+      size_t offset,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto *rt = RT(tRenderableManager);
+    std::vector<float> ownedWeights;
+    if (count > 0) {
+      ownedWeights.assign(weights, weights + count);
+    }
+    std::packaged_task<void()> lambda(
+        [=, ownedWeights = std::move(ownedWeights)]() mutable
+        {
+          if (!ownedWeights.empty()) {
+            RenderableManager_setMorphWeights(
+                tRenderableManager, entityId, ownedWeights.data(), ownedWeights.size(), offset);
+          }
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);

@@ -253,8 +253,8 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   ///
   /// [entity] The entity containing the renderable
   /// [weights] Array of morph target weights
-  /// [count] Number of weights to set
-  /// [offset] Index of the first weight to set (default 0)
+  /// [count] Number of weights to set; must not exceed [weights].length
+  /// [offset] Non-negative index of the first weight to set (default 0)
   Future setMorphWeights(ThermionEntity entity, List<double> weights, int count, {int offset = 0});
 
   /// Returns the number of morph targets.

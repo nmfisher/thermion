@@ -67,7 +67,7 @@ namespace thermion
                 // offset from the end if reverse
                 if (animation.reverse)
                 {
-                    frameNumber = animation.lengthInFrames - frameNumber;
+                    frameNumber = animation.lengthInFrames - 1 - frameNumber;
                 }
 
                 auto baseOffset = frameNumber * animation.morphIndices.size();

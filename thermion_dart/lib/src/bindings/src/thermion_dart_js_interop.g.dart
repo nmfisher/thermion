@@ -1799,6 +1799,15 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int requestId,
     VoidCallback onComplete,
   );
+  external void _RenderableManager_setMorphWeightsRenderThread(
+    Pointer<TRenderableManager> tRenderableManager,
+    EntityId entityId,
+    Pointer<Float32> weights,
+    size_t count,
+    size_t offset,
+    int requestId,
+    VoidCallback onComplete,
+  );
   external void _RenderableManager_setBonesFromMat4RenderThread(
     Pointer<TRenderableManager> tRenderableManager,
     EntityId entityId,
@@ -7213,6 +7222,27 @@ void RenderableManager_destroyEntityRenderThread(
   final result = GeneratedBindings.instance._RenderableManager_destroyEntityRenderThread(
     tRenderableManager.cast(),
     entityId,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void RenderableManager_setMorphWeightsRenderThread(
+  Pointer<TRenderableManager> tRenderableManager,
+  DartEntityId entityId,
+  Pointer<Float32> weights,
+  Dartsize_t count,
+  Dartsize_t offset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._RenderableManager_setMorphWeightsRenderThread(
+    tRenderableManager.cast(),
+    entityId,
+    weights,
+    count,
+    offset,
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );

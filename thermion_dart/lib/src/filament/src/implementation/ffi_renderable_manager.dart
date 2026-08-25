@@ -269,15 +269,40 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
 
   @override
   Future setMorphWeights(ThermionEntity entity, List<double> weights, int count, {int offset = 0}) async {
-    final weightsPtr = makeFloat32List(weights.length);
-    for (int i = 0; i < weights.length; i++) {
-      weightsPtr[i] = weights[i];
+    RangeError.checkNotNegative(count, 'count');
+    RangeError.checkNotNegative(offset, 'offset');
+    if (count > weights.length) {
+      throw RangeError.range(count, 0, weights.length, 'count', 'Cannot exceed weights.length');
+    }
+    if (count == 0) {
+      return;
     }
 
-    RenderableManager_setMorphWeights(renderableManager, entity, weightsPtr.address, count, offset);
-
+    late Pointer stackPtr;
     if (FILAMENT_WASM) {
+      stackPtr = stackSave();
+    }
+
+    final weightsPtr = makeFloat32List(count);
+    weightsPtr.setRange(0, count, weights);
+
+    try {
+      await withVoidCallback(
+        (requestId, cb) => RenderableManager_setMorphWeightsRenderThread(
+          renderableManager,
+          entity,
+          weightsPtr.address,
+          count,
+          offset,
+          requestId,
+          cb,
+        ),
+      );
+    } finally {
       weightsPtr.free();
+      if (FILAMENT_WASM) {
+        stackRestore(stackPtr);
+      }
     }
   }
 

@@ -28,6 +28,10 @@
   non-indexed geometry, so procedural geometry (e.g. particles) can render
   without an `IndexBuffer`, including attribute-less vertex buffers built
   with `bufferCount(0)`. Native library rebuild required.
+- Fix intermittent `RenderableManager.setMorphWeights` crashes by validating
+  source ranges, copying FFI payloads before asynchronous dispatch, and
+  applying updates on the owning render thread. This also prevents temporary
+  morph-weight buffers from leaking Emscripten stack space on web.
 
 ### Breaking changes
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw

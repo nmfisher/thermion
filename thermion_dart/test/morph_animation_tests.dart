@@ -68,4 +68,17 @@ void main() async {
       cameraPosition: Vector3(3, 2, -6),
     );
   });
+
+  test('reject malformed morph animation buffers', () async {
+    await testHelper.withViewer((viewer) async {
+      final cube = await viewer.loadGltf("${testHelper.assetsDir}/cube_with_morph_targets.glb");
+      final renderableManager = FilamentApp.instance!.renderableManager;
+      final entity = (await cube.getChildEntities()).firstWhere(renderableManager.isRenderable);
+      final animationManager = FilamentApp.instance!.animationManager;
+
+      expect(() => animationManager.setMorphAnimation(entity, [0.0], [0], 1, 2, 16.0), throwsArgumentError);
+      expect(() => animationManager.setMorphAnimation(entity, [0.0], [], 1, 1, 16.0), throwsArgumentError);
+      expect(() => animationManager.setMorphAnimation(entity, [0.0], [0], 1, 1, 0.0), throwsArgumentError);
+    });
+  });
 }
