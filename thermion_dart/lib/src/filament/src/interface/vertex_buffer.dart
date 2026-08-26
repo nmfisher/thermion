@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// Vertex attribute types that can be stored in a VertexBuffer.
@@ -136,6 +135,9 @@ enum VertexAttributeType {
   HALF4,
 }
 
+/// Storage used by a [VertexBuffer]'s attribute streams.
+enum VertexBufferStorageMode { unknown, direct, bufferObjects }
+
 /// Holds a set of buffers that define the geometry of a Renderable.
 ///
 /// The geometry is defined by vertex attributes such as position, color,
@@ -150,11 +152,12 @@ abstract class VertexBuffer {
   /// Returns the number of vertices in this buffer.
   int getVertexCount();
 
-  /// Whether [setBufferAt] can update this buffer's streams.
-  ///
-  /// Buffers created with Filament's BufferObject storage mode are not
-  /// writable through [setBufferAt].
-  bool get supportsSetBufferAt;
+  VertexBufferStorageMode get storageMode;
+
+  bool get supportsSetBufferAt => storageMode == VertexBufferStorageMode.direct;
+
+  /// Whether this wrapper owns the native resource and may destroy it.
+  bool get ownsResource;
 
   /// Asynchronously copy-initializes the specified buffer from the given data.
   ///
@@ -165,9 +168,17 @@ abstract class VertexBuffer {
   /// Throws [StateError] when [supportsSetBufferAt] is false.
   Future setBufferAt(int bufferIndex, TypedData data, {int byteOffset = 0});
 
+  /// Attaches a [BufferObject] to a stream.
+  ///
+  /// Throws [StateError] unless [storageMode] is
+  /// [VertexBufferStorageMode.bufferObjects].
+  Future<void> setBufferObjectAt(int bufferIndex, BufferObject bufferObject);
+
   /// Destroys this vertex buffer and releases GPU resources.
   ///
-  /// The buffer must not be used after calling this method.
+  /// The buffer must not be used after calling this method. Throws
+  /// [StateError] when this is a borrowed buffer returned by a
+  /// [ThermionAsset]. Destroy the owning asset instead.
   Future destroy();
 }
 
@@ -198,6 +209,9 @@ abstract class VertexBufferBuilder {
   ///
   /// [count] Number of vertices in each buffer in this set
   void vertexCount(int count);
+
+  /// Enables BufferObject-backed streams. Direct storage is used by default.
+  void enableBufferObjects({bool enabled = true});
 
   /// Sets up an attribute for this vertex buffer.
   ///

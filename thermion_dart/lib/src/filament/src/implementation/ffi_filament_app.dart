@@ -1240,7 +1240,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         (requestId, cb) => GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, requestId, cb),
       );
 
-      final ffiAsset = FFIAsset(asset, app: this, vertexBufferMode: vertexBufferMode);
+      final ffiAsset = FFIAsset(asset, app: this);
       if (releaseSourceData) {
         await ffiAsset.releaseSourceData();
       }

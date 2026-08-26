@@ -577,7 +577,7 @@ class FFIView extends View<Pointer<TView>> {
     // Stencil highlighting needs the barycentric coordinates generated only
     // for unwelded geometry. Editable geometry also has preserved buffers but
     // its CUSTOM0 stream does not contain those coordinates.
-    if (ffiGeoAsset.vertexBufferMode != VertexBufferMode.unwelded) {
+    if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.barycentrics)) {
       throw StateError(
         "setStencilHighlight requires unwelded geometry. "
         "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",

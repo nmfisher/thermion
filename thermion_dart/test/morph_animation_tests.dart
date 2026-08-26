@@ -75,7 +75,13 @@ void main() async {
         final editable = await viewer.loadGltf(path, vertexBufferMode: VertexBufferMode.editable);
         final editableVertexBuffer = editable.getVertexBuffer()!;
         expect(editableVertexBuffer.supportsSetBufferAt, isTrue);
+        expect(editableVertexBuffer.storageMode, VertexBufferStorageMode.direct);
+        expect(editableVertexBuffer.ownsResource, isFalse);
         expect(editableVertexBuffer.getVertexCount(), source.vertices.length ~/ 3);
+
+        final instanceVertexBuffer = (await editable.getInstance(0)).getVertexBuffer()!;
+        expect(instanceVertexBuffer.storageMode, VertexBufferStorageMode.direct);
+        expect(instanceVertexBuffer.ownsResource, isFalse);
         final editablePose = await capture(editable);
 
         expect(

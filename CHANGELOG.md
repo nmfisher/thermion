@@ -45,6 +45,10 @@
   the `BufferObject` backing reserved for unwelded smooth/flat shading swaps.
   Buffer updates, flat shading, and stencil highlighting now throw actionable
   errors when used with an incompatible vertex-buffer mode.
+- Expose native `VertexBuffer.storageMode` metadata and first-class
+  `BufferObject` creation, upload, and attachment APIs. `supportsSetBufferAt`
+  is now derived from native buffer storage instead of duplicated glTF load
+  state in Dart, and asset-owned vertex buffers are explicitly borrowed.
 
 ### Breaking changes
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,

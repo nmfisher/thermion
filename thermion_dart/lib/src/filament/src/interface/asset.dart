@@ -5,6 +5,8 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 
+enum SceneAssetGeometryCapability { flatShading, barycentrics, editableTopology }
+
 enum SceneAssetType { gltf, geometry, light, skybox, ibl, image, gizmo }
 
 /// Describes one morph target on a renderable entity.
@@ -69,6 +71,10 @@ abstract interface class MorphTargetSet {
 // entities.
 //
 abstract class ThermionAsset<T> extends NativeHandle<T> {
+  Set<SceneAssetGeometryCapability> get geometryCapabilities {
+    return const {};
+  }
+
   // The top-most entity in the hierarchy (if this is a glTF asset, this
   // entity will have a transform that sits at the top of the transform
   // hierarchy but is not itself renderable.

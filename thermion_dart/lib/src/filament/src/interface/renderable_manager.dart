@@ -296,6 +296,8 @@ abstract class RenderableManager<T> extends NativeHandle<T> {
   /// Creates a builder for constructing vertex buffers.
   VertexBufferBuilder createVertexBufferBuilder();
 
+  BufferObjectBuilder createBufferObjectBuilder();
+
   /// Creates a builder for constructing index buffers.
   IndexBufferBuilder createIndexBufferBuilder();
 }

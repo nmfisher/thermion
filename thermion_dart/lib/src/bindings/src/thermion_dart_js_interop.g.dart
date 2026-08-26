@@ -323,6 +323,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int materialInstanceCount,
   );
   external void _SceneAsset_getBoundingBox(Pointer<Aabb3> Aabb3_out, Pointer<TSceneAsset> asset);
+  external int _SceneAsset_getGeometryCapabilities(Pointer<TSceneAsset> asset);
   external Pointer<TVertexBuffer> _SceneAsset_getVertexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
   external Pointer<TIndexBuffer> _SceneAsset_getIndexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
   external int _SceneAsset_getPrimitiveOffsetForEntity(Pointer<TSceneAsset> tSceneAsset, EntityId entity);
@@ -623,6 +624,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external Pointer<TVertexBufferBuilder> _VertexBufferBuilder_create();
   external void _VertexBufferBuilder_bufferCount(Pointer<TVertexBufferBuilder> builder, int count);
   external void _VertexBufferBuilder_vertexCount(Pointer<TVertexBufferBuilder> builder, int count);
+  external void _VertexBufferBuilder_enableBufferObjects(Pointer<TVertexBufferBuilder> builder, bool enabled);
   external void _VertexBufferBuilder_attribute(
     Pointer<TVertexBufferBuilder> builder,
     int attribute,
@@ -638,6 +640,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _VertexBufferBuilder_destroy(Pointer<TVertexBufferBuilder> builder);
   external size_t _VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer);
+  external int _VertexBuffer_getStorageMode(Pointer<TVertexBuffer> buffer);
   external void _VertexBuffer_setBufferAt(
     Pointer<TEngine> engine,
     Pointer<TVertexBuffer> buffer,
@@ -646,7 +649,28 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     size_t sizeInBytes,
     int byteOffset,
   );
+  external void _VertexBuffer_setBufferObjectAt(
+    Pointer<TEngine> engine,
+    Pointer<TVertexBuffer> buffer,
+    int bufferIndex,
+    Pointer<TBufferObject> bufferObject,
+  );
   external void _VertexBuffer_destroy(Pointer<TEngine> engine, Pointer<TVertexBuffer> buffer);
+  external Pointer<TBufferObjectBuilder> _BufferObjectBuilder_create();
+  external void _BufferObjectBuilder_size(Pointer<TBufferObjectBuilder> builder, int sizeInBytes);
+  external Pointer<TBufferObject> _BufferObjectBuilder_build(
+    Pointer<TBufferObjectBuilder> builder,
+    Pointer<TEngine> engine,
+  );
+  external void _BufferObjectBuilder_destroy(Pointer<TBufferObjectBuilder> builder);
+  external void _BufferObject_setBuffer(
+    Pointer<TEngine> engine,
+    Pointer<TBufferObject> buffer,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+  );
+  external void _BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer);
   external Pointer<TIndexBufferBuilder> _IndexBufferBuilder_create();
   external void _IndexBufferBuilder_indexCount(Pointer<TIndexBufferBuilder> builder, int count);
   external void _IndexBufferBuilder_bufferType(Pointer<TIndexBufferBuilder> builder, int indexType);
@@ -1727,6 +1751,34 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<Void> data,
     size_t sizeInBytes,
     int byteOffset,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _VertexBuffer_setBufferObjectAtRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TVertexBuffer> tBuffer,
+    int bufferIndex,
+    Pointer<TBufferObject> tBufferObject,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _BufferObjectBuilder_buildRenderThread(
+    Pointer<TBufferObjectBuilder> tBuilder,
+    Pointer<TEngine> tEngine,
+    Pointer<NativeFunction<void Function(PointerClass<TBufferObject>)>> onComplete,
+  );
+  external void _BufferObject_setBufferRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TBufferObject> tBuffer,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _BufferObject_destroyRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<TBufferObject> tBuffer,
     int requestId,
     VoidCallback onComplete,
   );
@@ -3443,6 +3495,11 @@ Aabb3 SceneAsset_getBoundingBox(Pointer<TSceneAsset> asset) {
   return Aabb3_out.toDart();
 }
 
+int SceneAsset_getGeometryCapabilities(Pointer<TSceneAsset> asset) {
+  final result = GeneratedBindings.instance._SceneAsset_getGeometryCapabilities(asset.cast());
+  return result;
+}
+
 Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex) {
   final result = GeneratedBindings.instance._SceneAsset_getVertexBuffer(tSceneAsset.cast(), primitiveIndex);
   return Pointer<TVertexBuffer>(result);
@@ -4346,6 +4403,11 @@ void VertexBufferBuilder_vertexCount(Pointer<TVertexBufferBuilder> builder, int 
   return result;
 }
 
+void VertexBufferBuilder_enableBufferObjects(Pointer<TVertexBufferBuilder> builder, bool enabled) {
+  final result = GeneratedBindings.instance._VertexBufferBuilder_enableBufferObjects(builder.cast(), enabled);
+  return result;
+}
+
 void VertexBufferBuilder_attribute(
   Pointer<TVertexBufferBuilder> builder,
   int attribute,
@@ -4385,6 +4447,11 @@ Dartsize_t VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer) {
   return result;
 }
 
+int VertexBuffer_getStorageMode(Pointer<TVertexBuffer> buffer) {
+  final result = GeneratedBindings.instance._VertexBuffer_getStorageMode(buffer.cast());
+  return result;
+}
+
 void VertexBuffer_setBufferAt(
   Pointer<TEngine> engine,
   Pointer<TVertexBuffer> buffer,
@@ -4404,8 +4471,68 @@ void VertexBuffer_setBufferAt(
   return result;
 }
 
+void VertexBuffer_setBufferObjectAt(
+  Pointer<TEngine> engine,
+  Pointer<TVertexBuffer> buffer,
+  int bufferIndex,
+  Pointer<TBufferObject> bufferObject,
+) {
+  final result = GeneratedBindings.instance._VertexBuffer_setBufferObjectAt(
+    engine.cast(),
+    buffer.cast(),
+    bufferIndex,
+    bufferObject.cast(),
+  );
+  return result;
+}
+
 void VertexBuffer_destroy(Pointer<TEngine> engine, Pointer<TVertexBuffer> buffer) {
   final result = GeneratedBindings.instance._VertexBuffer_destroy(engine.cast(), buffer.cast());
+  return result;
+}
+
+Pointer<TBufferObjectBuilder> BufferObjectBuilder_create() {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_create();
+  return Pointer<TBufferObjectBuilder>(result);
+}
+
+void BufferObjectBuilder_size(Pointer<TBufferObjectBuilder> builder, int sizeInBytes) {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_size(builder.cast(), sizeInBytes);
+  return result;
+}
+
+Pointer<TBufferObject> BufferObjectBuilder_build(
+  Pointer<TBufferObjectBuilder> builder,
+  Pointer<TEngine> engine,
+) {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_build(builder.cast(), engine.cast());
+  return Pointer<TBufferObject>(result);
+}
+
+void BufferObjectBuilder_destroy(Pointer<TBufferObjectBuilder> builder) {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_destroy(builder.cast());
+  return result;
+}
+
+void BufferObject_setBuffer(
+  Pointer<TEngine> engine,
+  Pointer<TBufferObject> buffer,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+) {
+  final result = GeneratedBindings.instance._BufferObject_setBuffer(
+    engine.cast(),
+    buffer.cast(),
+    data,
+    sizeInBytes,
+    byteOffset,
+  );
+  return result;
+}
+
+void BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer) {
+  final result = GeneratedBindings.instance._BufferObject_destroy(engine.cast(), buffer.cast());
   return result;
 }
 
@@ -7050,6 +7177,74 @@ void VertexBuffer_setBufferAtRenderThread(
     data,
     sizeInBytes,
     byteOffset,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void VertexBuffer_setBufferObjectAtRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TVertexBuffer> tBuffer,
+  int bufferIndex,
+  Pointer<TBufferObject> tBufferObject,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._VertexBuffer_setBufferObjectAtRenderThread(
+    tEngine.cast(),
+    tBuffer.cast(),
+    bufferIndex,
+    tBufferObject.cast(),
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void BufferObjectBuilder_buildRenderThread(
+  Pointer<TBufferObjectBuilder> tBuilder,
+  Pointer<TEngine> tEngine,
+  Pointer<NativeFunction<void Function(Pointer<TBufferObject>)>> onComplete,
+) {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_buildRenderThread(
+    tBuilder.cast(),
+    tEngine.cast(),
+    onComplete.cast(),
+  );
+  return result;
+}
+
+void BufferObject_setBufferRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TBufferObject> tBuffer,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._BufferObject_setBufferRenderThread(
+    tEngine.cast(),
+    tBuffer.cast(),
+    data,
+    sizeInBytes,
+    byteOffset,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void BufferObject_destroyRenderThread(
+  Pointer<TEngine> tEngine,
+  Pointer<TBufferObject> tBuffer,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._BufferObject_destroyRenderThread(
+    tEngine.cast(),
+    tBuffer.cast(),
     requestId,
     onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
@@ -10121,6 +10316,21 @@ final class TVertexBuffer extends Struct {
   }
 }
 
+extension TBufferObjectExt on Pointer<TBufferObject> {
+  TBufferObject toDart() {
+    return TBufferObject(this);
+  }
+}
+
+final class TBufferObject extends Struct {
+  Pointer<TBufferObject> get address => super.address.cast();
+  TBufferObject(super.address);
+
+  static Pointer<TBufferObject> stackAlloc() {
+    return Pointer<TBufferObject>(NativeLibrary.instance.stackAlloc<TBufferObject>(0));
+  }
+}
+
 extension TIndexBufferExt on Pointer<TIndexBuffer> {
   TIndexBuffer toDart() {
     return TIndexBuffer(this);
@@ -10870,6 +11080,34 @@ final class TVertexBufferBuilder extends Struct {
   }
 }
 
+extension TBufferObjectBuilderExt on Pointer<TBufferObjectBuilder> {
+  TBufferObjectBuilder toDart() {
+    return TBufferObjectBuilder(this);
+  }
+}
+
+final class TBufferObjectBuilder extends Struct {
+  Pointer<TBufferObjectBuilder> get address => super.address.cast();
+  TBufferObjectBuilder(super.address);
+
+  static Pointer<TBufferObjectBuilder> stackAlloc() {
+    return Pointer<TBufferObjectBuilder>(NativeLibrary.instance.stackAlloc<TBufferObjectBuilder>(0));
+  }
+}
+
+sealed class TVertexBufferStorageMode {
+  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
+  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
+  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
+}
+
+sealed class TSceneAssetGeometryCapability {
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING = 1;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 2;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY = 4;
+}
+
 sealed class TVertexAttribute {
   static const TVERTEX_ATTRIBUTE_POSITION = 0;
   static const TVERTEX_ATTRIBUTE_TANGENTS = 1;
@@ -11420,6 +11658,9 @@ extension StructAllocator on Struct {
       case TVertexBuffer:
         final ptr = TVertexBuffer.stackAlloc();
         return ptr.toDart() as T;
+      case TBufferObject:
+        final ptr = TBufferObject.stackAlloc();
+        return ptr.toDart() as T;
       case TIndexBuffer:
         final ptr = TIndexBuffer.stackAlloc();
         return ptr.toDart() as T;
@@ -11479,6 +11720,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TVertexBufferBuilder:
         final ptr = TVertexBufferBuilder.stackAlloc();
+        return ptr.toDart() as T;
+      case TBufferObjectBuilder:
+        final ptr = TBufferObjectBuilder.stackAlloc();
         return ptr.toDart() as T;
       case TIndexBufferBuilder:
         final ptr = TIndexBufferBuilder.stackAlloc();

@@ -20,12 +20,6 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final FFIAsset? instanceOwner;
 
-  final VertexBufferMode? _vertexBufferMode;
-
-  /// The mode used to load this glTF asset, inherited by asset instances.
-  /// Null for non-glTF assets.
-  VertexBufferMode? get vertexBufferMode => instanceOwner?.vertexBufferMode ?? _vertexBufferMode;
-
   late final ThermionEntity entity;
 
   // Mutable only on the owning asset. Instance wrappers read the owner's value
@@ -39,10 +33,21 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final FFIFilamentApp _app;
 
-  FFIAsset(this.asset, {this.instanceOwner = null, VertexBufferMode? vertexBufferMode, required FFIFilamentApp app})
-    : _vertexBufferMode = vertexBufferMode,
-      _app = app {
+  FFIAsset(this.asset, {this.instanceOwner = null, required FFIFilamentApp app}) : _app = app {
     entity = SceneAsset_getEntity(asset);
+  }
+
+  @override
+  Set<SceneAssetGeometryCapability> get geometryCapabilities {
+    final bits = SceneAsset_getGeometryCapabilities(asset);
+    return {
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING != 0)
+        SceneAssetGeometryCapability.flatShading,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS != 0)
+        SceneAssetGeometryCapability.barycentrics,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY != 0)
+        SceneAssetGeometryCapability.editableTopology,
+    };
   }
 
   @override
@@ -291,7 +296,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     // unwelded geometry. Editable geometry also has preserved buffers, but it
     // deliberately uses ordinary writable streams and cannot perform this
     // swap.
-    if (vertexBufferMode != VertexBufferMode.unwelded) {
+    if (!geometryCapabilities.contains(SceneAssetGeometryCapability.flatShading)) {
       throw StateError(
         "setFlatShading requires unwelded geometry. "
         "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
@@ -915,11 +920,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (vbPtr == nullptr) {
       return null;
     }
-    return FFIVertexBuffer(
-      vbPtr,
-      _app.engine,
-      supportsSetBufferAt: type == SceneAssetType.geometry || vertexBufferMode == VertexBufferMode.editable,
-    );
+    return FFIVertexBuffer(vbPtr, _app.engine, ownsResource: false);
   }
 }
 

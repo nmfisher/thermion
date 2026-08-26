@@ -18,6 +18,7 @@ extern "C"
     // Configure the builder
     EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_bufferCount(TVertexBufferBuilder* builder, uint8_t count);
     EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_vertexCount(TVertexBufferBuilder* builder, uint32_t count);
+    EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_enableBufferObjects(TVertexBufferBuilder* builder, bool enabled);
     EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_attribute(
         TVertexBufferBuilder* builder,
         TVertexAttribute attribute,
@@ -38,6 +39,7 @@ extern "C"
 
     // Get vertex count
     EMSCRIPTEN_KEEPALIVE size_t VertexBuffer_getVertexCount(TVertexBuffer* buffer);
+    EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode VertexBuffer_getStorageMode(TVertexBuffer* buffer);
 
     // Set buffer data
     EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAt(
@@ -47,6 +49,12 @@ extern "C"
         void* data,
         size_t sizeInBytes,
         uint32_t byteOffset
+    );
+    EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAt(
+        TEngine* engine,
+        TVertexBuffer* buffer,
+        uint8_t bufferIndex,
+        TBufferObject* bufferObject
     );
 
     // Destroy
