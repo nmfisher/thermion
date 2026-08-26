@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -18,8 +17,7 @@ Future<void> main(List<String> args) async {
   if (setup == null) {
     stderr.writeln('Unknown example: $name');
     stderr.writeln('Available: ${registry.keys.join(', ')}');
-    Isolate.current.kill();
-    return;
+    exit(1);
   }
 
   // Native file-based resource loader. assetsDir is repo-relative; the examples
@@ -64,8 +62,11 @@ Future<void> main(List<String> args) async {
   File(outPath).writeAsBytesSync(png);
   stdout.writeln('Saved $outPath');
 
-  await viewer.dispose();
-  await FilamentApp.instance!.destroySwapChain(swapChain);
-  await FilamentApp.instance!.destroy();
-  Isolate.current.kill();
+  // Exit immediately after the capture. Full engine teardown is unreliable
+  // here: destroying a material instance still assigned to a renderable
+  // deadlocks, and Filament panics when a material is destroyed while
+  // instances remain alive. The PNG is already on disk and the process is
+  // finished, so reclaiming engine resources buys nothing.
+  await stdout.flush();
+  exit(0);
 }
