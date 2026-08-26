@@ -14,6 +14,11 @@ namespace thermion
         return static_cast<SceneAsset *>(_instanceOwner);
     }
 
+    uint32_t GltfSceneAssetInstance::getGeometryCapabilities() const
+    {
+        return _instanceOwner->getGeometryCapabilities();
+    }
+
     size_t GltfSceneAssetInstance::getBoneCount(size_t skinIndex) const
     {
         return _instance->getJointCountAt(skinIndex);

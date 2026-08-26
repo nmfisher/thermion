@@ -140,6 +140,8 @@ namespace thermion
             return _instance->getBoundingBox();
         }
 
+        uint32_t getGeometryCapabilities() const override;
+
         size_t getBoneCount(size_t skinIndex) const override;
         const utils::Entity *getBones(size_t skinIndex) const override;
         const char *getBoneName(size_t skinIndex, size_t boneIndex) const override;

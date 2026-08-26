@@ -53,7 +53,7 @@ void main() async {
     );
   });
 
-  test('editable vertices preserve source topology and morph animation', () async {
+  test('editable vertices support mutation and morph animation', () async {
     await testHelper.withViewer(
       (viewer) async {
         final path = '${testHelper.assetsDir}/cube_with_morph_targets.glb';
@@ -73,7 +73,15 @@ void main() async {
         await viewer.destroyAsset(original);
 
         final editable = await viewer.loadGltf(path, vertexBufferMode: VertexBufferMode.editable);
-        expect(editable.getVertexBuffer()!.getVertexCount(), source.vertices.length ~/ 3);
+        final editableVertexBuffer = editable.getVertexBuffer()!;
+        expect(editableVertexBuffer.supportsSetBufferAt, isTrue);
+        expect(editableVertexBuffer.storageMode, VertexBufferStorageMode.direct);
+        expect(editableVertexBuffer.ownsResource, isFalse);
+        expect(editableVertexBuffer.getVertexCount(), source.vertices.length ~/ 3);
+
+        final instanceVertexBuffer = (await editable.getInstance(0)).getVertexBuffer()!;
+        expect(instanceVertexBuffer.storageMode, VertexBufferStorageMode.direct);
+        expect(instanceVertexBuffer.ownsResource, isFalse);
         final editablePose = await capture(editable);
 
         expect(
@@ -83,6 +91,31 @@ void main() async {
         );
         expect(_meanAbsoluteDifference(originalPose.rest, editablePose.rest), lessThan(0.02));
         expect(_meanAbsoluteDifference(originalPose.morphed, editablePose.morphed), lessThan(0.02));
+
+        final targets = (await editable.getMorphTargetSets()).single;
+        await targets.setAllWeights([0.0]);
+
+        final editedPositions = Float32List.fromList(source.vertices);
+        for (var i = 0; i < editedPositions.length; i += 3) {
+          editedPositions[i] += 0.5;
+        }
+
+        await editableVertexBuffer.setBufferAt(0, editedPositions).timeout(const Duration(seconds: 5));
+        final editedRest = (await testHelper.capture(viewer.view, null)).values.single;
+
+        expect(
+          _meanAbsoluteDifference(editablePose.rest, editedRest),
+          greaterThan(0.005),
+          reason: 'updating the editable position stream must change the rendered geometry',
+        );
+
+        await targets.setAllWeights([1.0]);
+        final editedMorphed = (await testHelper.capture(viewer.view, null)).values.single;
+        expect(
+          _meanAbsoluteDifference(editedRest, editedMorphed),
+          greaterThan(0.005),
+          reason: 'morph weights must still deform geometry after editing its base positions',
+        );
 
         await viewer.destroyAsset(editable);
       },

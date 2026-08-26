@@ -11,6 +11,7 @@
 
 #include "Log.hpp"
 #include "scene/GeometrySceneAsset.hpp"
+#include "scene/VertexBufferMetadata.hpp"
 
 namespace thermion
 {
@@ -71,8 +72,10 @@ namespace thermion
 
         utils::EntityManager::get().destroy(_entity);
 
-        if (_vertexBuffer && !isInstance())
+        if (_vertexBuffer && !isInstance()) {
+            unregisterVertexBufferStorageMode(_vertexBuffer);
             _engine->destroy(_vertexBuffer);
+        }
         if (_indexBuffer && !isInstance())
             _engine->destroy(_indexBuffer);
         

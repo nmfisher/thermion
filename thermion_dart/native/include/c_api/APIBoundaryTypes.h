@@ -52,6 +52,8 @@ extern "C"
 	typedef struct TIndexBuffer TIndexBuffer;
 	typedef struct TVertexBufferBuilder TVertexBufferBuilder;
 	typedef struct TIndexBufferBuilder TIndexBufferBuilder;
+	typedef struct TBufferObject TBufferObject;
+	typedef struct TBufferObjectBuilder TBufferObjectBuilder;
 	typedef struct TSurfaceOrientation TSurfaceOrientation;
 	typedef struct TSurfaceOrientationBuilder TSurfaceOrientationBuilder;
 	
@@ -124,6 +126,21 @@ extern "C"
 		VERTEX_BUFFER_MODE_EDITABLE = 2
 	};
 	typedef enum TVertexBufferMode TVertexBufferMode;
+
+	enum TVertexBufferStorageMode {
+		VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0,
+		VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1,
+		VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2
+	};
+	typedef enum TVertexBufferStorageMode TVertexBufferStorageMode;
+
+	enum TSceneAssetGeometryCapability {
+		SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0,
+		SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING = 1 << 0,
+		SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 1 << 1,
+		SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY = 1 << 2
+	};
+	typedef enum TSceneAssetGeometryCapability TSceneAssetGeometryCapability;
 
 	enum TFeatureLevel {
 		FEATURE_LEVEL_0 = 0,

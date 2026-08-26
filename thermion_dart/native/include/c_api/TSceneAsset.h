@@ -41,6 +41,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getInstanceCount(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE TSceneAsset * SceneAsset_createInstance(TSceneAsset *asset, TMaterialInstance **materialInstances, int materialInstanceCount);
     EMSCRIPTEN_KEEPALIVE Aabb3 SceneAsset_getBoundingBox(TSceneAsset *asset);
+    EMSCRIPTEN_KEEPALIVE uint32_t SceneAsset_getGeometryCapabilities(TSceneAsset *asset);
     EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex);
     EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex);
     EMSCRIPTEN_KEEPALIVE int SceneAsset_getPrimitiveOffsetForEntity(TSceneAsset *tSceneAsset, EntityId entity);

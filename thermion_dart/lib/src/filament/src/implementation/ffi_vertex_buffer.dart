@@ -1,12 +1,16 @@
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
+import 'ffi_buffer_object.dart';
 
 /// FFI implementation of VertexBuffer for native platforms.
 class FFIVertexBuffer extends VertexBuffer {
   final bindings.Pointer<bindings.TVertexBuffer> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
 
-  FFIVertexBuffer(this._ptr, this._engine);
+  @override
+  final bool ownsResource;
+
+  FFIVertexBuffer(this._ptr, this._engine, {this.ownsResource = true});
 
   /// Returns the native handle for FFI calls.
   bindings.Pointer<bindings.TVertexBuffer> getNativeHandle() => _ptr;
@@ -17,7 +21,22 @@ class FFIVertexBuffer extends VertexBuffer {
   }
 
   @override
+  VertexBufferStorageMode get storageMode => switch (bindings.VertexBuffer_getStorageMode(_ptr)) {
+    bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_DIRECT => VertexBufferStorageMode.direct,
+    bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS =>
+      VertexBufferStorageMode.bufferObjects,
+    _ => VertexBufferStorageMode.unknown,
+  };
+
+  @override
   Future setBufferAt(int bufferIndex, TypedData data, {int byteOffset = 0}) async {
+    if (storageMode != VertexBufferStorageMode.direct) {
+      throw StateError(
+        'VertexBuffer.setBufferAt requires direct storage. Build the buffer '
+        'without enableBufferObjects(), or load glTF assets with '
+        'vertexBufferMode: VertexBufferMode.editable.',
+      );
+    }
     final byteData = data.asUint8List();
     await withVoidCallback((requestId, cb) {
       bindings.VertexBuffer_setBufferAtRenderThread(
@@ -34,7 +53,36 @@ class FFIVertexBuffer extends VertexBuffer {
   }
 
   @override
+  Future<void> setBufferObjectAt(int bufferIndex, BufferObject bufferObject) async {
+    if (storageMode != VertexBufferStorageMode.bufferObjects) {
+      throw StateError(
+        'VertexBuffer.setBufferObjectAt requires BufferObject-backed storage. '
+        'Call VertexBufferBuilder.enableBufferObjects() before build().',
+      );
+    }
+    if (bufferObject is! FFIBufferObject) {
+      throw ArgumentError.value(bufferObject, 'bufferObject', 'must be created by this Filament backend');
+    }
+    if (!bufferObject.isOwnedBy(_engine)) {
+      throw ArgumentError.value(bufferObject, 'bufferObject', 'must belong to the same Filament engine');
+    }
+    await withVoidCallback((requestId, cb) {
+      bindings.VertexBuffer_setBufferObjectAtRenderThread(
+        _engine,
+        _ptr,
+        bufferIndex,
+        bufferObject.getNativeHandle(),
+        requestId,
+        cb,
+      );
+    });
+  }
+
+  @override
   Future destroy() async {
+    if (!ownsResource) {
+      throw StateError('Cannot destroy a VertexBuffer borrowed from a ThermionAsset');
+    }
     await withVoidCallback((requestId, cb) {
       bindings.VertexBuffer_destroyRenderThread(_engine, _ptr, requestId, cb);
     });
@@ -70,6 +118,12 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
   void vertexCount(int count) {
     _checkNotBuilt();
     bindings.VertexBufferBuilder_vertexCount(_builderPtr!, count);
+  }
+
+  @override
+  void enableBufferObjects({bool enabled = true}) {
+    _checkNotBuilt();
+    bindings.VertexBufferBuilder_enableBufferObjects(_builderPtr!, enabled);
   }
 
   @override
