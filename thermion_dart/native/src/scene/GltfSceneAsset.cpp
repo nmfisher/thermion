@@ -37,7 +37,7 @@ namespace thermion
         gltfio::AssetLoader *assetLoader,
         Engine *engine,
         utils::NameComponentManager *ncm,
-        TVertexBufferMode vertexBufferMode,
+        uint32_t requiredGeometryCapabilities,
         MaterialInstance **materialInstances,
         size_t materialInstanceCount) : _asset(asset),
                                         _assetLoader(assetLoader),
@@ -46,15 +46,65 @@ namespace thermion
                                         _materialInstances(materialInstances),
                                         _materialInstanceCount(materialInstanceCount)
     {
-        if (vertexBufferMode != VERTEX_BUFFER_MODE_ORIGINAL)
+        const bool requiresUnwelded =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS)) != 0;
+        const bool requiresPreserved =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY)) != 0;
+
+        if (requiresUnwelded)
         {
-            rebuildVertexBuffers(vertexBufferMode);
+            _geometryCapabilities =
+                SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS;
+            rebuildVertexBuffers(false);
+        }
+        else if (requiresPreserved)
+        {
+            _geometryCapabilities =
+                SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY;
+            rebuildVertexBuffers(true);
         }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
             createInstance();
         }
         TRACE("Created GltfSceneAsset from FilamentAsset %d with %d reserved instances", asset, asset->getAssetInstanceCount());
+    }
+
+    bool GltfSceneAsset::supportsRequiredGeometryCapabilities(uint32_t requiredGeometryCapabilities)
+    {
+        constexpr uint32_t supported =
+            SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS;
+        if ((requiredGeometryCapabilities & ~supported) != 0)
+        {
+            return false;
+        }
+
+        const bool requiresUnwelded =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS)) != 0;
+        const bool requiresPreservedTopology =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY)) != 0;
+        return !(requiresUnwelded && requiresPreservedTopology);
     }
 
     GltfSceneAsset::~GltfSceneAsset()
@@ -268,9 +318,9 @@ namespace thermion
         return nullptr;
     }
 
-    void GltfSceneAsset::rebuildVertexBuffers(TVertexBufferMode vertexBufferMode)
+    void GltfSceneAsset::rebuildVertexBuffers(bool preserveTopology)
     {
-        const bool editableTopology = vertexBufferMode == VERTEX_BUFFER_MODE_EDITABLE;
+        const bool preserveSourceTopology = preserveTopology;
         auto *sourceData = (const cgltf_data *)_asset->getSourceAsset();
         if (!sourceData)
         {
@@ -429,7 +479,7 @@ namespace thermion
                     continue;
 
                 uint32_t triangleCount = (uint32_t)(indices.size() / 3);
-                uint32_t newVertexCount = editableTopology
+                uint32_t newVertexCount = preserveSourceTopology
                                               ? (uint32_t)posAccessor->count
                                               : triangleCount * 3;
 
@@ -505,7 +555,7 @@ namespace thermion
 
                 for (uint32_t dstIdx = 0; dstIdx < newVertexCount; dstIdx++)
                 {
-                    uint32_t srcIdx = editableTopology ? dstIdx : indices[dstIdx];
+                    uint32_t srcIdx = preserveSourceTopology ? dstIdx : indices[dstIdx];
 
                     // Position
                     newPositions[dstIdx * 3 + 0] = srcPositions[srcIdx * posComponents + 0];
@@ -550,7 +600,7 @@ namespace thermion
                     }
 
                     // Barycentric
-                    if (!editableTopology)
+                    if (!preserveSourceTopology)
                     {
                         const int corner = dstIdx % 3;
                         newBarycentrics[dstIdx * 4 + 0] = bary[corner][0];
@@ -594,7 +644,7 @@ namespace thermion
                     tris.resize(triangleCount);
                     for (uint32_t i = 0; i < triangleCount; i++)
                     {
-                        tris[i] = editableTopology
+                        tris[i] = preserveSourceTopology
                                       ? filament::math::uint3{indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]}
                                       : filament::math::uint3{i * 3, i * 3 + 1, i * 3 + 2};
                     }
@@ -613,7 +663,7 @@ namespace thermion
                 // preserves shared vertices, so its flat buffer intentionally
                 // matches the smooth buffer.
                 std::vector<filament::math::short4> flatTangentQuats;
-                if (editableTopology)
+                if (preserveSourceTopology)
                 {
                     flatTangentQuats = smoothTangentQuats;
                 }
@@ -663,14 +713,25 @@ namespace thermion
 
                 auto vbBuilder = VertexBuffer::Builder()
                                      .vertexCount(newVertexCount)
-                                     .bufferCount(bufferCount)
-                                     .enableBufferObjects()
-                                     .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-                                     .attribute(VertexAttribute::TANGENTS, 1, VertexBuffer::AttributeType::SHORT4)
-                                     .normalized(VertexAttribute::TANGENTS)
-                                     .attribute(VertexAttribute::UV0, 2, VertexBuffer::AttributeType::FLOAT2)
-                                     .attribute(VertexAttribute::CUSTOM0, 3, VertexBuffer::AttributeType::FLOAT4)
-                                     .attribute(VertexAttribute::COLOR, 4, VertexBuffer::AttributeType::FLOAT4);
+                                     .bufferCount(bufferCount);
+
+                // Unwelded geometry swaps BufferObjects at runtime to toggle
+                // between smooth and flat tangent frames. Editable geometry,
+                // on the other hand, must remain writable through the public
+                // VertexBuffer::setBufferAt API, which is incompatible with
+                // BufferObject-backed streams.
+                if (!preserveSourceTopology)
+                {
+                    vbBuilder.enableBufferObjects();
+                }
+
+                vbBuilder
+                    .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+                    .attribute(VertexAttribute::TANGENTS, 1, VertexBuffer::AttributeType::SHORT4)
+                    .normalized(VertexAttribute::TANGENTS)
+                    .attribute(VertexAttribute::UV0, 2, VertexBuffer::AttributeType::FLOAT2)
+                    .attribute(VertexAttribute::CUSTOM0, 3, VertexBuffer::AttributeType::FLOAT4)
+                    .attribute(VertexAttribute::COLOR, 4, VertexBuffer::AttributeType::FLOAT4);
 
                 if (hasSkinning)
                 {
@@ -680,97 +741,98 @@ namespace thermion
                 }
 
                 VertexBuffer *vb = vbBuilder.build(*_engine);
+                auto uploadDirect = [&](uint8_t bufferIndex, const void *source, size_t size)
+                {
+                    auto *data = new uint8_t[size];
+                    memcpy(data, source, size);
+                    vb->setBufferAt(*_engine, bufferIndex,
+                                    VertexBuffer::BufferDescriptor(data, size, FREE_CB));
+                };
+
+                auto uploadStream = [&](uint8_t bufferIndex, const void *source, size_t size)
+                {
+                    if (preserveSourceTopology)
+                    {
+                        uploadDirect(bufferIndex, source, size);
+                        return;
+                    }
+
+                    auto *data = new uint8_t[size];
+                    memcpy(data, source, size);
+                    BufferObject *bo = BufferObject::Builder().size(size).build(*_engine);
+                    bo->setBuffer(*_engine, BufferObject::BufferDescriptor(data, size, FREE_CB));
+                    vb->setBufferObjectAt(*_engine, bufferIndex, bo);
+                    _preservedBufferObjects.push_back(bo);
+                };
 
                 // Buffer 0: POSITION
                 size_t posDataSize = newVertexCount * 3 * sizeof(float);
-                auto *posData = new uint8_t[posDataSize];
-                memcpy(posData, newPositions.data(), posDataSize);
-                BufferObject *posBO = BufferObject::Builder().size(posDataSize).build(*_engine);
-                posBO->setBuffer(*_engine, BufferObject::BufferDescriptor(posData, posDataSize, FREE_CB));
-                vb->setBufferObjectAt(*_engine, 0, posBO);
+                uploadStream(0, newPositions.data(), posDataSize);
 
                 // Buffer 1: TANGENTS (SHORT4 quantized quaternions, matching gltfio's format)
                 // Create both smooth and flat tangent BOs for runtime toggling.
                 size_t tangDataSize = newVertexCount * sizeof(filament::math::short4);
 
-                auto *smoothTangData = new uint8_t[tangDataSize];
-                memcpy(smoothTangData, smoothTangentQuats.data(), tangDataSize);
-                BufferObject *smoothTangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
-                smoothTangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(smoothTangData, tangDataSize, FREE_CB));
+                if (preserveSourceTopology)
+                {
+                    uploadDirect(1, smoothTangentQuats.data(), tangDataSize);
+                    _smoothTangentBOs.push_back(nullptr);
+                    _flatTangentBOs.push_back(nullptr);
+                }
+                else
+                {
+                    auto *smoothTangData = new uint8_t[tangDataSize];
+                    memcpy(smoothTangData, smoothTangentQuats.data(), tangDataSize);
+                    BufferObject *smoothTangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
+                    smoothTangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(smoothTangData, tangDataSize, FREE_CB));
 
-                auto *flatTangData = new uint8_t[tangDataSize];
-                memcpy(flatTangData, flatTangentQuats.data(), tangDataSize);
-                BufferObject *flatTangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
-                flatTangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(flatTangData, tangDataSize, FREE_CB));
+                    auto *flatTangData = new uint8_t[tangDataSize];
+                    memcpy(flatTangData, flatTangentQuats.data(), tangDataSize);
+                    BufferObject *flatTangBO = BufferObject::Builder().size(tangDataSize).build(*_engine);
+                    flatTangBO->setBuffer(*_engine, BufferObject::BufferDescriptor(flatTangData, tangDataSize, FREE_CB));
 
-                // Bind smooth by default
-                vb->setBufferObjectAt(*_engine, 1, smoothTangBO);
-                _smoothTangentBOs.push_back(smoothTangBO);
-                _flatTangentBOs.push_back(flatTangBO);
+                    // Bind smooth by default.
+                    vb->setBufferObjectAt(*_engine, 1, smoothTangBO);
+                    _smoothTangentBOs.push_back(smoothTangBO);
+                    _flatTangentBOs.push_back(flatTangBO);
+                }
 
                 // Buffer 2: UV0
                 size_t uvDataSize = newVertexCount * 2 * sizeof(float);
-                auto *uvData = new uint8_t[uvDataSize];
-                memcpy(uvData, newUVs.data(), uvDataSize);
-                BufferObject *uvBO = BufferObject::Builder().size(uvDataSize).build(*_engine);
-                uvBO->setBuffer(*_engine, BufferObject::BufferDescriptor(uvData, uvDataSize, FREE_CB));
-                vb->setBufferObjectAt(*_engine, 2, uvBO);
+                uploadStream(2, newUVs.data(), uvDataSize);
 
                 // Buffer 3: CUSTOM0 (barycentrics)
                 size_t baryDataSize = newVertexCount * 4 * sizeof(float);
-                auto *baryData = new uint8_t[baryDataSize];
-                memcpy(baryData, newBarycentrics.data(), baryDataSize);
-                BufferObject *baryBO = BufferObject::Builder().size(baryDataSize).build(*_engine);
-                baryBO->setBuffer(*_engine, BufferObject::BufferDescriptor(baryData, baryDataSize, FREE_CB));
-                vb->setBufferObjectAt(*_engine, 3, baryBO);
+                uploadStream(3, newBarycentrics.data(), baryDataSize);
 
                 // Buffer 4: COLOR (dummy, all white = 1.0)
                 size_t colorDataSize = newVertexCount * 4 * sizeof(float);
-                auto *colorData = new uint8_t[colorDataSize];
-                auto *colorFloats = reinterpret_cast<float *>(colorData);
+                std::vector<float> colorFloats(newVertexCount * 4);
                 for (uint32_t i = 0; i < newVertexCount * 4; i++) {
                     colorFloats[i] = 1.0f;
                 }
-                BufferObject *colorBO = BufferObject::Builder().size(colorDataSize).build(*_engine);
-                colorBO->setBuffer(*_engine, BufferObject::BufferDescriptor(colorData, colorDataSize, FREE_CB));
-                vb->setBufferObjectAt(*_engine, 4, colorBO);
-
-                _preservedBufferObjects.push_back(posBO);
-                _preservedBufferObjects.push_back(uvBO);
-                _preservedBufferObjects.push_back(baryBO);
-                _preservedBufferObjects.push_back(colorBO);
+                uploadStream(4, colorFloats.data(), colorDataSize);
 
                 if (hasSkinning)
                 {
                     // Buffer 5: BONE_INDICES
                     size_t jointDataSize = newVertexCount * 4 * sizeof(uint8_t);
-                    auto *jointData = new uint8_t[jointDataSize];
-                    memcpy(jointData, newJoints.data(), jointDataSize);
-                    BufferObject *jointBO = BufferObject::Builder().size(jointDataSize).build(*_engine);
-                    jointBO->setBuffer(*_engine, BufferObject::BufferDescriptor(jointData, jointDataSize, FREE_CB));
-                    vb->setBufferObjectAt(*_engine, 5, jointBO);
+                    uploadStream(5, newJoints.data(), jointDataSize);
 
                     // Buffer 6: BONE_WEIGHTS
                     size_t weightDataSize = newVertexCount * 4 * sizeof(float);
-                    auto *weightData = new uint8_t[weightDataSize];
-                    memcpy(weightData, newWeights.data(), weightDataSize);
-                    BufferObject *weightBO = BufferObject::Builder().size(weightDataSize).build(*_engine);
-                    weightBO->setBuffer(*_engine, BufferObject::BufferDescriptor(weightData, weightDataSize, FREE_CB));
-                    vb->setBufferObjectAt(*_engine, 6, weightBO);
-
-                    _preservedBufferObjects.push_back(jointBO);
-                    _preservedBufferObjects.push_back(weightBO);
+                    uploadStream(6, newWeights.data(), weightDataSize);
                 }
 
                 // Editable geometry retains source indices. Unwelded geometry
                 // uses a sequential index buffer.
-                const size_t newIndexCount = editableTopology ? indices.size() : newVertexCount;
+                const size_t newIndexCount = preserveSourceTopology ? indices.size() : newVertexCount;
                 size_t indexDataSize = newIndexCount * sizeof(uint32_t);
                 auto *newIndices = new uint8_t[indexDataSize];
                 auto *indexPtr = reinterpret_cast<uint32_t *>(newIndices);
                 for (uint32_t i = 0; i < newIndexCount; i++)
                 {
-                    indexPtr[i] = editableTopology ? indices[i] : i;
+                    indexPtr[i] = preserveSourceTopology ? indices[i] : i;
                 }
 
                 IndexBuffer *ib = IndexBuffer::Builder()
@@ -790,7 +852,7 @@ namespace thermion
                 _preservedIndexCounts.push_back(newIndexCount);
 
                 TRACE("rebuildVertexBuffers: primitive %zu %s with %u vertices and %zu indices (skinned=%d)",
-                      pi, editableTopology ? "editable topology" : "unwelded",
+                      pi, preserveSourceTopology ? "preserved topology" : "unwelded",
                       newVertexCount, newIndexCount, hasSkinning);
             }
         }
@@ -863,6 +925,8 @@ namespace thermion
             if (!_preservedVertexBuffers[i])
                 continue;
             auto *bo = flatShading ? _flatTangentBOs[i] : _smoothTangentBOs[i];
+            if (!bo)
+                continue;
             _preservedVertexBuffers[i]->setBufferObjectAt(*_engine, 1, bo);
         }
     }

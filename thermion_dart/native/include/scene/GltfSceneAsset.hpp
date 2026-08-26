@@ -35,7 +35,7 @@ namespace thermion
             gltfio::AssetLoader *assetLoader,
             Engine *engine,
             utils::NameComponentManager* ncm,
-            TVertexBufferMode vertexBufferMode = VERTEX_BUFFER_MODE_ORIGINAL,
+            uint32_t requiredGeometryCapabilities = SCENE_ASSET_GEOMETRY_CAPABILITY_NONE,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0);
 
@@ -141,13 +141,31 @@ namespace thermion
             return _asset->getBoundingBox();
         }
 
+        uint32_t getGeometryCapabilities() const override { return _geometryCapabilities; }
+
+        TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const override {
+            if (primitiveIndex >= _preservedVertexBuffers.size()) {
+                return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+            }
+            if ((_geometryCapabilities & SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES) != 0) {
+                return VERTEX_BUFFER_STORAGE_MODE_DIRECT;
+            }
+            if ((_geometryCapabilities & SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS) != 0) {
+                return VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS;
+            }
+            return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+        }
+
         /// Rebuild all mesh primitives with a superset vertex buffer layout
         /// (POSITION + TANGENTS + UV0 + CUSTOM0 + optional BONE_INDICES/WEIGHTS).
-        /// [VERTEX_BUFFER_MODE_UNWELDED] gives each triangle unique vertices
-        /// for barycentric wireframe rendering. [VERTEX_BUFFER_MODE_EDITABLE]
-        /// retains source vertex order and indices so glTF morph target buffers
-        /// remain compatible with the rebuilt geometry.
-        void rebuildVertexBuffers(TVertexBufferMode vertexBufferMode);
+        /// When [preserveTopology] is false, each triangle receives unique
+        /// vertices for barycentric wireframe rendering. When true, source
+        /// vertex order and indices remain compatible with glTF morph targets.
+        void rebuildVertexBuffers(bool preserveTopology);
+
+        /// Returns false when the requested capability combination cannot be
+        /// provided by a single rebuilt geometry representation.
+        static bool supportsRequiredGeometryCapabilities(uint32_t requiredGeometryCapabilities);
 
         /// Toggle between flat (per-face) and smooth (per-vertex) shading.
         /// Only valid after rebuildVertexBuffers() has been called.
@@ -202,6 +220,7 @@ namespace thermion
         bool _sourceDataReleased = false;
         bool _geometryPreserved = false;
         bool _flatShading = false;
+        uint32_t _geometryCapabilities = SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
 
         // Buffers created by rebuildVertexBuffers, owned by this asset.
         std::vector<VertexBuffer*> _preservedVertexBuffers;

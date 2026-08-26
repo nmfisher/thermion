@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -222,34 +221,50 @@ void main() async {
     }, postProcessing: true);
   });
 
-  test('setStencilHighlight and setFlatShading throw without unwelded vertex buffers', () async {
+  test('highlighting requires preserved geometry while flat shading requires unwelded geometry', () async {
     await testHelper.withViewer((viewer) async {
-      final cube = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
+      final preservedGeometryMatcher = throwsA(
+        isA<StateError>().having((e) => e.toString(), 'message', contains('requires preserved geometry')),
+      );
+      final unweldedMatcher = throwsA(
+        isA<StateError>().having(
+          (e) => e.toString(),
+          'message',
+          contains('requiredGeometryCapabilities containing flatShading'),
+        ),
+      );
 
-      // Outlining and flat shading both need the preserved (rebuilt) vertex
-      // buffers — without unwelded mode these used to silently do nothing;
-      // they must now throw with an actionable message.
-      await viewer.view.setHighlightOverlayEnabled(true);
-      expect(
-        () => viewer.view.setStencilHighlight(cube),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('vertexBufferMode: VertexBufferMode.unwelded'),
-          ),
+      final original = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
+      await expectLater(viewer.view.setStencilHighlight(original), preservedGeometryMatcher);
+      await expectLater(original.setFlatShading(true), unweldedMatcher);
+
+      await expectLater(
+        viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          requiredGeometryCapabilities: const {
+            SceneAssetGeometryCapability.preservedTopology,
+            SceneAssetGeometryCapability.flatShading,
+          },
         ),
+        throwsArgumentError,
       );
-      expect(
-        () => cube.setFlatShading(true),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('vertexBufferMode: VertexBufferMode.unwelded'),
-          ),
-        ),
+
+      // Editable assets preserve reusable vertex/index buffers, so the
+      // POSITION-only silhouette pass works without barycentrics. They still
+      // cannot swap the tangent BufferObjects required by flat shading.
+      final editable = await viewer.loadGltf(
+        "file://${testHelper.assetsDir}/cube.glb",
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.preservedGeometry},
+        addToScene: true,
       );
+      expect(editable.getVertexBuffer(), isNotNull);
+      expect(editable.getVertexBuffer()!.supportsSetBufferAt, isTrue);
+      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.preservedGeometry));
+      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.writableVertices));
+      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.preservedTopology));
+      await viewer.view.setStencilHighlight(editable);
+      await viewer.view.removeStencilHighlight(editable);
+      await expectLater(editable.setFlatShading(true), unweldedMatcher);
     });
   });
 }

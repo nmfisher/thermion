@@ -5,6 +5,32 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 
+/// A geometry operation guaranteed to be supported by a scene asset.
+///
+/// The same values can be supplied to asset loaders as requirements. Loaders
+/// may provide additional capabilities when they share the same geometry
+/// representation.
+enum SceneAssetGeometryCapability {
+  /// Smooth and per-face tangent frames can be selected at runtime.
+  flatShading,
+
+  /// Triangle-corner barycentric coordinates are available to materials.
+  barycentrics,
+
+  /// Vertex attributes can be updated through [VertexBuffer.setBufferAt].
+  writableVertices,
+
+  /// Thermion retains reusable vertex and index buffers for operations such as
+  /// stencil highlighting.
+  preservedGeometry,
+
+  /// Source vertex order and triangle indices are preserved.
+  preservedTopology,
+
+  /// Every triangle corner has its own vertex.
+  uniqueTriangleCorners,
+}
+
 enum SceneAssetType { gltf, geometry, light, skybox, ibl, image, gizmo }
 
 /// Describes one morph target on a renderable entity.
@@ -69,6 +95,10 @@ abstract interface class MorphTargetSet {
 // entities.
 //
 abstract class ThermionAsset<T> extends NativeHandle<T> {
+  Set<SceneAssetGeometryCapability> get geometryCapabilities {
+    return const {};
+  }
+
   // The top-most entity in the hierarchy (if this is a glTF asset, this
   // entity will have a transform that sits at the top of the transform
   // hierarchy but is not itself renderable.
@@ -122,8 +152,8 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   // Toggle between flat (per-face) and smooth (per-vertex) shading.
-  // Throws unless the asset was loaded with vertexBufferMode: VertexBufferMode.unwelded (flat
-  // shading swaps TANGENTS on the rebuilt vertex buffers).
+  // Throws unless [geometryCapabilities] contains
+  // [SceneAssetGeometryCapability.flatShading].
   Future setFlatShading(bool flatShading) {
     throw UnimplementedError();
   }
@@ -423,12 +453,12 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     throw UnimplementedError();
   }
 
-  // Unweld all mesh primitives so each triangle has unique vertices,
-  // then assign barycentric coordinates to CUSTOM0 for wireframe rendering.
   // Returns the underlying [VertexBuffer] for this asset, if available.
   //
   // For geometry assets this exposes the backing Filament vertex buffer so you
-  // can update data via [VertexBuffer.setBufferAt].
+  // can update data via [VertexBuffer.setBufferAt]. Assets with
+  // [SceneAssetGeometryCapability.writableVertices] expose directly writable
+  // buffers; barycentric/flat-shading geometry uses Filament BufferObjects.
   //
   // [primitiveIndex] is reserved for future use. Geometry assets currently
   // only support a single primitive, so it is ignored.

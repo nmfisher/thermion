@@ -7,6 +7,7 @@
 
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
+#include "Log.hpp"
 
 #include "scene/GeometrySceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
@@ -27,6 +28,7 @@ extern "C"
         TMaterialInstance **materialInstances,
         int materialInstanceCount,
         TPrimitiveType tPrimitiveType,
+        TVertexBufferStorageMode vertexBufferStorageMode,
         Aabb3 boundingBox
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -59,6 +61,7 @@ extern "C"
             materialInstanceCount,
             primitiveType,
             box,
+            vertexBufferStorageMode,
             nullptr  // instanceOwner - this is not an instance
         );
 
@@ -70,19 +73,24 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        TVertexBufferMode vertexBufferMode
+        uint32_t requiredGeometryCapabilities
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
         auto *filamentAsset = reinterpret_cast<filament::gltfio::FilamentAsset *>(tFilamentAsset);
 
         auto *assetLoader = reinterpret_cast<filament::gltfio::AssetLoader *>(tAssetLoader);
+        if (!GltfSceneAsset::supportsRequiredGeometryCapabilities(requiredGeometryCapabilities)) {
+            Log("Unsupported or incompatible required geometry capabilities: 0x%x",
+                requiredGeometryCapabilities);
+            return nullptr;
+        }
         auto *sceneAsset = new GltfSceneAsset(
             filamentAsset,
             assetLoader,
             engine,
             nameComponentManager,
-            vertexBufferMode
+            requiredGeometryCapabilities
         );
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
@@ -227,6 +235,10 @@ extern "C"
         return Aabb3{box.center().x, box.center().y, box.center().z, box.extent().x, box.extent().y, box.extent().z};
     }
 
+    EMSCRIPTEN_KEEPALIVE uint32_t SceneAsset_getGeometryCapabilities(TSceneAsset *tSceneAsset) {
+        return reinterpret_cast<SceneAsset*>(tSceneAsset)->getGeometryCapabilities();
+    }
+
     EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
@@ -235,11 +247,22 @@ extern "C"
             return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
         }
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
-            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(
+                asset->isInstance() ? asset->getInstanceOwner() : asset);
             auto *vertexBuffer = gltfSceneAsset->getPreservedVertexBuffer(primitiveIndex);
             return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
         }
         return nullptr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode SceneAsset_getVertexBufferStorageMode(
+        TSceneAsset *tSceneAsset,
+        int primitiveIndex) {
+        if (primitiveIndex < 0) {
+            return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+        }
+        return reinterpret_cast<SceneAsset*>(tSceneAsset)->getVertexBufferStorageMode(
+            static_cast<size_t>(primitiveIndex));
     }
 
     EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
@@ -250,7 +273,8 @@ extern "C"
             return reinterpret_cast<TIndexBuffer *>(indexBuffer);
         }
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf) {
-            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+            auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(
+                asset->isInstance() ? asset->getInstanceOwner() : asset);
             auto *indexBuffer = gltfSceneAsset->getPreservedIndexBuffer(primitiveIndex);
             return reinterpret_cast<TIndexBuffer *>(indexBuffer);
         }
@@ -262,7 +286,8 @@ extern "C"
         if (asset->getType() != SceneAsset::SceneAssetType::Gltf) {
             return -1;
         }
-        auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
+        auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(
+            asset->isInstance() ? asset->getInstanceOwner() : asset);
         // Convert EntityId to utils::Entity for the internal method
         return gltfSceneAsset->getPrimitiveOffsetForEntity(utils::Entity::import(entity));
     }

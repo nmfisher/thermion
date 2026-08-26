@@ -10,19 +10,38 @@ void main() async {
     await ViewerBuilder(testHelper).addSun().setCameraPosition(Vector3(0, 1, 1.5)).execute((result) async {
       final original = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-        vertexBufferMode: VertexBufferMode.original,
         addToScene: true,
       );
-      await testHelper.capture(result.viewer.view, "vertex_buffer_original");
+      // Golden artifact names are stable IDs; keep the legacy names even when
+      // the public API terminology changes.
+      await testHelper.capture(result.viewer.view, "rebuildVertices_false");
+      expect(original.geometryCapabilities, isEmpty);
       await result.viewer.removeFromScene(original);
 
       final rebuilt = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-        vertexBufferMode: VertexBufferMode.unwelded,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.barycentrics},
         addToScene: true,
       );
+      expect(
+        rebuilt.geometryCapabilities,
+        containsAll(const {
+          SceneAssetGeometryCapability.flatShading,
+          SceneAssetGeometryCapability.barycentrics,
+          SceneAssetGeometryCapability.preservedGeometry,
+        }),
+      );
+      expect(rebuilt.geometryCapabilities, isNot(contains(SceneAssetGeometryCapability.writableVertices)));
+      expect(rebuilt.geometryCapabilities, contains(SceneAssetGeometryCapability.uniqueTriangleCorners));
 
-      await testHelper.capture(result.viewer.view, "vertex_buffer_unwelded");
+      final unweldedVertexBuffer = rebuilt.getVertexBuffer()!;
+      expect(unweldedVertexBuffer.supportsSetBufferAt, isFalse);
+      await expectLater(
+        unweldedVertexBuffer.setBufferAt(0, Float32List(0)),
+        throwsA(isA<StateError>().having((error) => error.toString(), 'message', contains('writableVertices'))),
+      );
+
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true");
 
       // Use typed wireframe wrapper
       final wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
@@ -32,7 +51,7 @@ void main() async {
       await wireframe.setDoubleSided(true);
 
       await rebuilt.setMaterialInstanceForAll(wireframe.materialInstance);
-      await testHelper.capture(result.viewer.view, "vertex_buffer_unwelded_wireframe");
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true_wireframe");
 
       final ubershader = await FilamentApp.instance!.createUbershaderMaterial(doubleSided: true);
 
@@ -41,13 +60,13 @@ void main() async {
       await ubershader.setRoughnessFactor(1.0);
 
       await rebuilt.setMaterialInstanceForAll(ubershader.materialInstance);
-      await testHelper.capture(result.viewer.view, "vertex_buffer_unwelded_ubershader");
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true_ubershader");
 
       await result.viewer.removeFromScene(rebuilt);
 
       final flatAsset = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-        vertexBufferMode: VertexBufferMode.unwelded,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.flatShading},
         addToScene: true,
       );
 
@@ -70,7 +89,7 @@ void main() async {
         "file://${testHelper.assetsDir}/cube.glb",
         addToScene: true,
         initialInstances: 2,
-        vertexBufferMode: VertexBufferMode.unwelded,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.barycentrics},
       );
 
       final instance2 = await asset.createInstance();

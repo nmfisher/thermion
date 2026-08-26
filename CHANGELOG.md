@@ -40,16 +40,30 @@
 - Apply overlapping custom morph animations oldest-first so the most recently
   added animation has final priority for shared targets. Active animations
   continue to overwrite manual weights on their next update.
+- Fix topology-preserving glTF assets so their vertex streams can be updated
+  through `VertexBuffer.setBufferAt`; editable buffers no longer use
+  the `BufferObject` backing reserved for unwelded smooth/flat shading swaps.
+  Buffer updates, flat shading, and stencil highlighting now throw actionable
+  errors when used with incompatible buffer storage or asset capabilities.
+  Stencil highlighting accepts both editable and unwelded glTF geometry, plus
+  procedural geometry, because its silhouette pass only requires preserved
+  vertex/index buffers; flat shading remains unwelded-only.
+- Expose native `VertexBuffer.storageMode` metadata and first-class
+  `BufferObject` creation, upload, and attachment APIs. `supportsSetBufferAt`
+  is now derived from immutable metadata supplied by the native builder or
+  owning asset, without a global pointer registry or duplicated glTF load
+  state in Dart. Asset-owned vertex buffers are explicitly borrowed.
 
 ### Breaking changes
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,
   `ThermionViewer.loadGltfFromBuffer`, and `FilamentApp.loadGltfFromBuffer` with
-  `vertexBufferMode: VertexBufferMode.unwelded`. Use
-  `VertexBufferMode.editable` when mutable indexed topology is required.
-  `original` leaves gltfio geometry untouched, `unwelded` creates per-triangle
-  vertices with barycentric coordinates, and `editable` exposes mutable vertex
-  buffers while preserving source vertex order, indices, and morph-target
-  compatibility. 
+  `requiredGeometryCapabilities`. An empty set leaves gltfio geometry untouched;
+  requesting `barycentrics` or `flatShading` creates per-triangle vertices, while
+  requesting `writableVertices`, `preservedTopology`, or `preservedGeometry`
+  preserves source vertex order, indices, and morph-target compatibility in
+  directly writable buffers.
+  Assets report the complete capability set actually provided through
+  `ThermionAsset.geometryCapabilities`.
 - remove the unused `FilamentApp.createColorGrading` — it returned a raw
   pointer nobody could destroy; use `View.createColorGradingBuilder().build()`
   instead.

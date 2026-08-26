@@ -38,6 +38,25 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
   }
 
   @override
+  Set<SceneAssetGeometryCapability> get geometryCapabilities {
+    final bits = SceneAsset_getGeometryCapabilities(asset);
+    return {
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING != 0)
+        SceneAssetGeometryCapability.flatShading,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS != 0)
+        SceneAssetGeometryCapability.barycentrics,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES != 0)
+        SceneAssetGeometryCapability.writableVertices,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY != 0)
+        SceneAssetGeometryCapability.preservedGeometry,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY != 0)
+        SceneAssetGeometryCapability.preservedTopology,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS != 0)
+        SceneAssetGeometryCapability.uniqueTriangleCorners,
+    };
+  }
+
+  @override
   SceneAssetType get type {
     final t = SceneAsset_getType(asset);
     switch (t) {
@@ -279,12 +298,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   @override
   Future setFlatShading(bool flatShading) async {
-    // Flat shading swaps TANGENTS on the preserved (rebuilt) vertex buffers;
-    // without them it would silently do nothing — throw instead.
-    if (getVertexBuffer() == null) {
-      throw Exception(
-        "setFlatShading: asset has no preserved geometry. "
-        "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
+    // Flat shading swaps between the BufferObjects created specifically for
+    // unwelded geometry. Editable geometry also has preserved buffers, but it
+    // deliberately uses ordinary writable streams and cannot perform this
+    // swap.
+    if (!geometryCapabilities.contains(SceneAssetGeometryCapability.flatShading)) {
+      throw StateError(
+        "setFlatShading requires unwelded geometry. "
+        "Load it with requiredGeometryCapabilities containing flatShading.",
       );
     }
     await withVoidCallback((requestId, cb) => SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));
@@ -905,7 +926,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (vbPtr == nullptr) {
       return null;
     }
-    return FFIVertexBuffer(vbPtr, _app.engine);
+    final storageMode = vertexBufferStorageModeFromNative(SceneAsset_getVertexBufferStorageMode(asset, primitiveIndex));
+    return FFIVertexBuffer.assetOwned(vbPtr, _app.engine, storageMode: storageMode);
   }
 }
 
