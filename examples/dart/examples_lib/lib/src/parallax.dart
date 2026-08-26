@@ -4,12 +4,13 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 /// Parallax occlusion mapping: three brick walls rendered with the same
 /// material (`examples/assets/parallax.filamat`) at increasing effect
-/// strength. The camera looks from +X, so the LEFT wall is the most oblique
-/// and shows the strongest parallax:
+/// strength. The camera orbits from +X and the walls all face +Z, so the
+/// RIGHT wall is the most legible at grazing angles (same incidence as the
+/// others, but nearest and largest on screen):
 ///
-///   left   - full POM + normal map (heightScale > 0)
+///   left   - flat baseline         (no height, no normal)
 ///   middle - normal map only       (heightScale = 0)
-///   right  - flat baseline         (no height, no normal)
+///   right  - full POM + normal map (heightScale > 0)
 ///
 /// All three textures (albedo/height/normal) are generated procedurally in
 /// Dart - no binary assets, deterministic goldens. Set `debugView` on an
@@ -43,10 +44,16 @@ Future<void> setupParallax(
   );
   await camera.lookAt(Vector3(2.6, 0.75, 1.8), focus: Vector3(0.0, 0.5, 0.0));
 
-  await viewer.loadIbl("$assetsDir/default_env_ibl.ktx");
+  // Sun-dominant lighting: a strongly raking sun from the upper right (so
+  // the normal-mapped brick bevels catch light asymmetrically) plus IBL as
+  // a dim fill, instead of the washed-out look of the 30000-default IBL.
+  await viewer.loadIbl("$assetsDir/default_env_ibl.ktx", intensity: 5000);
   await viewer.loadSkybox("$assetsDir/default_env_skybox.ktx");
   await viewer.addDirectLight(
-    DirectLight.sun(direction: Vector3(-0.35, -0.6, -0.75)),
+    DirectLight.sun(
+      direction: Vector3(-0.7, -0.55, -0.45),
+      castShadows: false,
+    ),
   );
 
   final brick = _BrickTextures(size: 512);
@@ -56,6 +63,9 @@ Future<void> setupParallax(
     magFilter: TextureMagFilter.LINEAR,
     wrapS: TextureWrapMode.REPEAT,
     wrapT: TextureWrapMode.REPEAT,
+    // The demo camera reaches grazing angles where isotropic minification
+    // aliases hard on the brick pattern.
+    anisotropy: 8.0,
   );
 
   Future<Texture> upload(Uint8List rgba) async {
@@ -103,7 +113,7 @@ Future<void> setupParallax(
     await instance.setParameterFloat('maxSteps', 64.0);
     await instance.setParameterFloat('normalStrength', normalStrength);
     await instance.setParameterFloat4('tintColor', 1.0, 1.0, 1.0, 1.0);
-    await instance.setParameterFloat('roughnessFactor', 0.8);
+    await instance.setParameterFloat('roughnessFactor', 0.75);
     await instance.setParameterFloat('metallicFactor', 0.0);
     await instance.setParameterInt('debugView', 0);
     await viewer.createGeometry(
@@ -112,9 +122,13 @@ Future<void> setupParallax(
     );
   }
 
-  await wall(-1.05, heightScale: 0.07, normalStrength: 1.0);
-  await wall(0.0, heightScale: 0.0, normalStrength: 1.0);
-  await wall(1.05, heightScale: 0.0, normalStrength: 0.0);
+  // The camera orbits from +X, so the RIGHT wall is nearest at grazing
+  // angles - same incidence as the far wall (all walls face +Z) but much
+  // larger on screen. Effect strength increases left -> right so the
+  // strongest effect is the most visible one:
+  await wall(-1.05, heightScale: 0.0, normalStrength: 0.0); // flat baseline
+  await wall(0.0, heightScale: 0.0, normalStrength: 1.0); // normal map only
+  await wall(1.05, heightScale: 0.10, normalStrength: 1.0); // full POM
 }
 
 /// A subdivided quad in the XY plane (facing +Z), bottom edge at y=0,
@@ -311,10 +325,10 @@ class _BrickTextures {
     final cell = _cellAt(x, y);
     final n = _noise(x / 31.0 + 7.0, y / 31.0 + 3.0);
     if (cell.joint) {
-      final g = 0.22 + 0.02 * n;
+      final g = 0.20 + 0.02 * n;
       return [g, g * 0.99, g * 0.97];
     }
     final shade = 0.75 + 0.5 * cell.brickHash + 0.06 * (n - 0.5);
-    return [0.40 * shade, 0.05 * shade, 0.03 * shade];
+    return [0.30 * shade, 0.036 * shade, 0.024 * shade];
   }
 }
