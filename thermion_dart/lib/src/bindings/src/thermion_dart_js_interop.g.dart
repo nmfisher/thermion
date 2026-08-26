@@ -3508,7 +3508,7 @@ int SceneAsset_getGeometryCapabilities(Pointer<TSceneAsset> asset) {
 
 bool SceneAsset_supportsFlatShading(Pointer<TSceneAsset> asset) {
   final result = GeneratedBindings.instance._SceneAsset_supportsFlatShading(asset.cast());
-  return result != 0;
+  return result == 1;
 }
 
 Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex) {
@@ -10367,15 +10367,6 @@ sealed class TVertexBufferStorageMode {
   static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
   static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
   static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
-}
-
-sealed class TSceneAssetGeometryCapability {
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 1;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES = 2;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS = 4;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY = 8;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS = 16;
 }
 
 extension Aabb3Ext on Pointer<Aabb3> {
