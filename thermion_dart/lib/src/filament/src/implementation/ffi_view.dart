@@ -567,10 +567,6 @@ class FFIView extends View<Pointer<TView>> {
   }) async {
     // primitiveIndex parameter is deprecated and ignored
     // The offset is now computed automatically from the entity
-    if (_highlightOverlayManager == null) {
-      await setHighlightOverlayEnabled(true);
-    }
-
     entity ??= asset.entity;
 
     // Use geometrySource for vertex/index buffers when provided (e.g. for
@@ -578,14 +574,19 @@ class FFIView extends View<Pointer<TView>> {
     final geoAsset = geometrySource ?? asset;
     final ffiGeoAsset = geoAsset as FFIAsset;
 
-    // Misuse check: highlighting needs the preserved (rebuilt) vertex
-    // buffers, which only exist when the glTF was loaded with
-    // vertexBufferMode: VertexBufferMode.unwelded. Throw rather than silently doing nothing.
-    if (ffiGeoAsset.getVertexBuffer() == null) {
-      throw Exception(
-        "setStencilHighlight: asset has no preserved geometry. "
-        "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
+    // The silhouette pass reuses the asset's vertex and index buffers but only
+    // consumes POSITION. It therefore needs accessible geometry buffers, not the
+    // barycentric coordinates used by wireframe and flat-shading features.
+    if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.accessibleGeometryBuffers)) {
+      throw StateError(
+        "setStencilHighlight requires accessible geometry buffers. "
+        "Load the asset with requiredGeometryCapabilities containing "
+        "accessibleGeometryBuffers.",
       );
+    }
+
+    if (_highlightOverlayManager == null) {
+      await setHighlightOverlayEnabled(true);
     }
 
     // Get the starting primitive offset for this entity
@@ -594,7 +595,7 @@ class FFIView extends View<Pointer<TView>> {
       // The asset has preserved geometry, but this particular entity has no
       // rebuilt buffers (e.g. its primitives are all lines/points).
       _logger.warning(
-        "Stencil highlight: no preserved geometry for entity $entity "
+        "Stencil highlight: no accessible geometry buffers for entity $entity "
         "(its primitives are all non-triangles and have no rebuilt buffers).",
       );
       return;

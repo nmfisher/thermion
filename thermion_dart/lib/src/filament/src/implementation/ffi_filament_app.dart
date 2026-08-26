@@ -32,6 +32,42 @@ import 'package:logging/logging.dart';
 import 'ffi_gltf_mesh_data.dart';
 import 'resource_loader.dart';
 
+int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities) {
+  var bits = TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
+  for (final capability in capabilities) {
+    bits |= switch (capability) {
+      SceneAssetGeometryCapability.barycentrics =>
+        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS,
+      SceneAssetGeometryCapability.writableVertices =>
+        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES,
+      SceneAssetGeometryCapability.accessibleGeometryBuffers =>
+        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS,
+      SceneAssetGeometryCapability.preservedTopology =>
+        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY,
+      SceneAssetGeometryCapability.uniqueTriangleCorners =>
+        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS,
+    };
+  }
+  return bits;
+}
+
+void _validateRequiredGeometryCapabilities(Set<SceneAssetGeometryCapability> capabilities) {
+  final requiresUnwelded =
+      capabilities.contains(SceneAssetGeometryCapability.barycentrics) ||
+      capabilities.contains(SceneAssetGeometryCapability.uniqueTriangleCorners);
+  final requiresPreservedTopology =
+      capabilities.contains(SceneAssetGeometryCapability.writableVertices) ||
+      capabilities.contains(SceneAssetGeometryCapability.preservedTopology);
+  if (requiresUnwelded && requiresPreservedTopology) {
+    throw ArgumentError.value(
+      capabilities,
+      'requiredGeometryCapabilities',
+      'writableVertices or preservedTopology cannot be combined with '
+          'barycentrics or uniqueTriangleCorners',
+    );
+  }
+}
+
 class FFIFilamentConfig extends FilamentConfig {
   FFIFilamentConfig({
     super.loadResource = null,
@@ -1123,12 +1159,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     int initialInstances = 1,
     bool releaseSourceData = false,
     bool loadResourcesAsync = false,
-    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
+    Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     String? resourceUri,
   }) async {
+    final geometryRequirements = Set<SceneAssetGeometryCapability>.unmodifiable(requiredGeometryCapabilities);
     if (initialInstances <= 0) {
       throw Exception("initialInstances must be at least 1");
     }
+    _validateRequiredGeometryCapabilities(geometryRequirements);
     _logger.info(
       "Loading glTF from buffer (${data.lengthInBytes} bytes)"
       " with resourceUri ${resourceUri}",
@@ -1227,20 +1265,31 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           gltfAssetLoader,
           nameComponentManager,
           filamentAsset,
-          vertexBufferMode.index,
+          _geometryCapabilitiesToNative(geometryRequirements),
           cb,
         ),
       );
-
-      if (asset == nullptr) {
-        throw Exception("Unknown error loading glTF asset. See logs for details.");
-      }
 
       await withVoidCallback(
         (requestId, cb) => GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, requestId, cb),
       );
 
+      if (asset == nullptr) {
+        throw StateError(
+          'Failed to load a glTF asset satisfying the required geometry '
+          'capabilities: $geometryRequirements. See native logs for details.',
+        );
+      }
+
       final ffiAsset = FFIAsset(asset, app: this);
+      if (!ffiAsset.geometryCapabilities.containsAll(geometryRequirements)) {
+        await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(asset, requestId, cb));
+        throw StateError(
+          'The loaded asset does not provide all required geometry '
+          'capabilities. Required: $geometryRequirements; provided: '
+          '${ffiAsset.geometryCapabilities}.',
+        );
+      }
       if (releaseSourceData) {
         await ffiAsset.releaseSourceData();
       }
@@ -1461,6 +1510,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         ptrList.address.cast(),
         ptrList.length,
         geometry.primitiveType.index,
+        vertexBufferStorageModeToNative(vertexBuffer.storageMode),
         cAabb,
         callback,
       );

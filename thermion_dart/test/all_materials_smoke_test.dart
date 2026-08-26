@@ -30,7 +30,7 @@ void main() async {
       // stencil highlight path below needs.
       final cube = await viewer.loadGltf(
         "file://${testHelper.assetsDir}/cube.glb",
-        vertexBufferMode: VertexBufferMode.unwelded,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.barycentrics},
         addToScene: true,
       );
       final wireframe = await app.createWireframeMaterialInstance();
