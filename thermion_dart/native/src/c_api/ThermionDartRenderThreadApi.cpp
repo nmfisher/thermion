@@ -11,6 +11,7 @@
 #endif
 
 #include <filament/LightManager.h>
+#include <filament/BufferObject.h>
 
 #include "c_api/APIBoundaryTypes.h"
 #include "c_api/TAnimationManager.h"
@@ -30,6 +31,7 @@
 #include "c_api/TView.h"
 #include "c_api/TVertexBuffer.h"
 #include "c_api/TIndexBuffer.h"
+#include "c_api/TBufferObject.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
 #include "rendering/RenderThread.hpp"
@@ -985,7 +987,7 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
-      TVertexBufferMode vertexBufferMode,
+      uint32_t requiredGeometryCapabilities,
       void (*onComplete)(TSceneAsset *))
   {
     auto *rt = RT(tEngine);
@@ -994,7 +996,7 @@ extern "C"
         {
           auto sceneAsset = SceneAsset_createFromFilamentAsset(
               tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset,
-              vertexBufferMode);
+              requiredGeometryCapabilities);
 
           setOwner(sceneAsset, rt);          PROXY(onComplete(sceneAsset));
         });
@@ -1008,6 +1010,7 @@ extern "C"
       TMaterialInstance **materialInstances,
       int materialInstanceCount,
       TPrimitiveType tPrimitiveType,
+      TVertexBufferStorageMode vertexBufferStorageMode,
       Aabb3 boundingBox,
       void (*callback)(TSceneAsset *))
   {
@@ -1015,7 +1018,15 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromBuffers(tEngine, tVertexBuffer, tIndexBuffer, materialInstances, materialInstanceCount, tPrimitiveType, boundingBox);
+          auto sceneAsset = SceneAsset_createFromBuffers(
+              tEngine,
+              tVertexBuffer,
+              tIndexBuffer,
+              materialInstances,
+              materialInstanceCount,
+              tPrimitiveType,
+              vertexBufferStorageMode,
+              boundingBox);
 
           setOwner(sceneAsset, rt);          PROXY(callback(sceneAsset));
         });
@@ -2529,6 +2540,80 @@ extern "C"
 
           PROXY(onComplete(requestId));
         });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAtRenderThread(
+      TEngine* tEngine,
+      TVertexBuffer* tBuffer,
+      uint8_t bufferIndex,
+      TBufferObject* tBufferObject,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto* rt = RT(tEngine);
+    std::packaged_task<void()> lambda([=]() mutable {
+      VertexBuffer_setBufferObjectAt(tEngine, tBuffer, bufferIndex, tBufferObject);
+      PROXY(onComplete(requestId));
+    });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void BufferObjectBuilder_buildRenderThread(
+      TBufferObjectBuilder* tBuilder,
+      TEngine* tEngine,
+      void (*onComplete)(TBufferObject*))
+  {
+    auto* rt = RT(tEngine);
+    std::packaged_task<void()> lambda([=]() mutable {
+      auto* buffer = BufferObjectBuilder_build(tBuilder, tEngine);
+      setOwner(buffer, rt);
+      PROXY(onComplete(buffer));
+    });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void BufferObject_setBufferRenderThread(
+      TEngine* tEngine,
+      TBufferObject* tBuffer,
+      void* data,
+      size_t sizeInBytes,
+      uint32_t byteOffset,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto* rt = RT(tEngine);
+    auto* copy = new std::vector<uint8_t>(sizeInBytes);
+    std::copy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + sizeInBytes, copy->begin());
+    std::packaged_task<void()> lambda([=]() mutable {
+      auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
+      auto* buffer = reinterpret_cast<filament::BufferObject*>(tBuffer);
+      buffer->setBuffer(
+          *engine,
+          filament::BufferObject::BufferDescriptor(
+              copy->data(),
+              copy->size(),
+              [](void*, size_t, void* user) {
+                delete reinterpret_cast<std::vector<uint8_t>*>(user);
+              },
+              copy),
+          byteOffset);
+      PROXY(onComplete(requestId));
+    });
+    auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void BufferObject_destroyRenderThread(
+      TEngine* tEngine,
+      TBufferObject* tBuffer,
+      uint32_t requestId,
+      VoidCallback onComplete)
+  {
+    auto* rt = RT(tEngine);
+    std::packaged_task<void()> lambda([=]() mutable {
+      BufferObject_destroy(tEngine, tBuffer);
+      PROXY(onComplete(requestId));
+    });
     auto fut = rt->addTask(lambda);
   }
 

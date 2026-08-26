@@ -27,6 +27,15 @@ void main() async {
       await testHelper.capture(result.viewer.view, "update_vertex_buffer_1");
       final vb = await asset.getVertexBuffer();
       expect(vb, isNotNull);
+      expect(vb!.storageMode, VertexBufferStorageMode.direct);
+      expect(
+        asset.geometryCapabilities,
+        containsAll(const {
+          SceneAssetGeometryCapability.accessibleGeometryBuffers,
+          SceneAssetGeometryCapability.writableVertices,
+        }),
+      );
+      await expectLater(vb.destroy(), throwsStateError);
       final vertices = Float32List.fromList([
         // Front face
         -1, -1, 1, // 0
@@ -59,7 +68,7 @@ void main() async {
         -1, 1, 1, // 3 (22)
         -1, 1, -1, // 7 (23)
       ]);
-      await vb!.setBufferAt(0, vertices);
+      await vb.setBufferAt(0, vertices);
       await testHelper.capture(result.viewer.view, "update_vertex_buffer_2");
     });
   });

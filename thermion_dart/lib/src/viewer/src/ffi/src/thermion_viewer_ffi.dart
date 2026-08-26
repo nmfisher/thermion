@@ -516,10 +516,11 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
+    Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     String? resourceUri,
     bool loadAsync = false,
   }) async {
+    final geometryRequirements = Set<SceneAssetGeometryCapability>.unmodifiable(requiredGeometryCapabilities);
     final data = await _app.loadResource(path);
     if (resourceUri == null) {
       var normalised = path.replaceAll("\\", "/");
@@ -536,7 +537,7 @@ class ThermionViewerFFI extends ThermionViewer {
       addToScene: addToScene,
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
-      vertexBufferMode: vertexBufferMode,
+      requiredGeometryCapabilities: geometryRequirements,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );
@@ -549,7 +550,7 @@ class ThermionViewerFFI extends ThermionViewer {
     bool addToScene = true,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
+    Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     bool loadResourcesAsync = false,
     String? resourceUri,
   }) async {
@@ -557,7 +558,7 @@ class ThermionViewerFFI extends ThermionViewer {
       data,
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
-      vertexBufferMode: vertexBufferMode,
+      requiredGeometryCapabilities: requiredGeometryCapabilities,
       loadResourcesAsync: loadResourcesAsync,
       resourceUri: resourceUri,
     );

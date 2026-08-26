@@ -1,8 +1,18 @@
 #include <filament/Engine.h>
+#include <filament/BufferObject.h>
 #include <filament/VertexBuffer.h>
 
 #include "Log.hpp"
 #include "c_api/TVertexBuffer.h"
+
+namespace
+{
+    struct VertexBufferBuilderState
+    {
+        filament::VertexBuffer::Builder builder;
+        TVertexBufferStorageMode storageMode = VERTEX_BUFFER_STORAGE_MODE_DIRECT;
+    };
+}
 
 namespace thermion
 {
@@ -15,18 +25,30 @@ namespace thermion
         // ============================================================================
 
         EMSCRIPTEN_KEEPALIVE TVertexBufferBuilder* VertexBufferBuilder_create() {
-            auto* builder = new filament::VertexBuffer::Builder();
+            auto* builder = new VertexBufferBuilderState();
             return reinterpret_cast<TVertexBufferBuilder*>(builder);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_bufferCount(TVertexBufferBuilder* tBuilder, uint8_t count) {
-            auto* builder = reinterpret_cast<filament::VertexBuffer::Builder*>(tBuilder);
-            builder->bufferCount(count);
+            auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
+            builder->builder.bufferCount(count);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_vertexCount(TVertexBufferBuilder* tBuilder, uint32_t count) {
-            auto* builder = reinterpret_cast<filament::VertexBuffer::Builder*>(tBuilder);
-            builder->vertexCount(count);
+            auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
+            builder->builder.vertexCount(count);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_enableBufferObjects(TVertexBufferBuilder* tBuilder, bool enabled) {
+            auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
+            builder->builder.enableBufferObjects(enabled);
+            builder->storageMode = enabled
+                                       ? VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS
+                                       : VERTEX_BUFFER_STORAGE_MODE_DIRECT;
+        }
+
+        EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode VertexBufferBuilder_getStorageMode(TVertexBufferBuilder* tBuilder) {
+            return reinterpret_cast<VertexBufferBuilderState*>(tBuilder)->storageMode;
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_attribute(
@@ -37,7 +59,7 @@ namespace thermion
             uint32_t byteOffset,
             uint8_t byteStride
         ) {
-            auto* builder = reinterpret_cast<filament::VertexBuffer::Builder*>(tBuilder);
+            auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
 
             // Map TVertexAttribute to filament::VertexAttribute explicitly
             VertexAttribute vertexAttribute;
@@ -97,11 +119,11 @@ namespace thermion
                     return;
             }
 
-            builder->attribute(vertexAttribute, bufferIndex, elementType, byteOffset, byteStride);
+            builder->builder.attribute(vertexAttribute, bufferIndex, elementType, byteOffset, byteStride);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_normalized(TVertexBufferBuilder* tBuilder, TVertexAttribute attribute, bool normalize) {
-            auto* builder = reinterpret_cast<filament::VertexBuffer::Builder*>(tBuilder);
+            auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
 
             // Map TVertexAttribute to filament::VertexAttribute explicitly
             VertexAttribute vertexAttribute;
@@ -126,18 +148,18 @@ namespace thermion
                     return;
             }
 
-            builder->normalized(vertexAttribute, normalize);
+            builder->builder.normalized(vertexAttribute, normalize);
         }
 
         EMSCRIPTEN_KEEPALIVE TVertexBuffer* VertexBufferBuilder_build(TVertexBufferBuilder* tBuilder, TEngine* tEngine) {
-            auto* builder = reinterpret_cast<filament::VertexBuffer::Builder*>(tBuilder);
+            auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
-            auto* vertexBuffer = builder->build(*engine);
+            auto* vertexBuffer = builder->builder.build(*engine);
             return reinterpret_cast<TVertexBuffer*>(vertexBuffer);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_destroy(TVertexBufferBuilder* tBuilder) {
-            auto* builder = reinterpret_cast<filament::VertexBuffer::Builder*>(tBuilder);
+            auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             delete builder;
         }
 
@@ -179,6 +201,18 @@ namespace thermion
             );
 
             vertexBuffer->setBufferAt(*engine, bufferIndex, std::move(bufferDescriptor), byteOffset);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAt(
+            TEngine* tEngine,
+            TVertexBuffer* tBuffer,
+            uint8_t bufferIndex,
+            TBufferObject* tBufferObject
+        ) {
+            auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
+            auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
+            auto* bufferObject = reinterpret_cast<filament::BufferObject*>(tBufferObject);
+            vertexBuffer->setBufferObjectAt(*engine, bufferIndex, bufferObject);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroy(TEngine* tEngine, TVertexBuffer* tBuffer) {

@@ -8,6 +8,7 @@
 #include "TMaterialProvider.h"
 #include "TVertexBuffer.h"
 #include "TIndexBuffer.h"
+#include "TBufferObject.h"
 #include "TTransformManager.h"
 #include "TLightManager.h"
 
@@ -161,7 +162,7 @@ namespace thermion
             TGltfAssetLoader *tAssetLoader,
             TNameComponentManager *tNameComponentManager,
             TFilamentAsset *tFilamentAsset,
-            enum TVertexBufferMode vertexBufferMode,
+            uint32_t requiredGeometryCapabilities,
             void (*onComplete)(TSceneAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromBuffersRenderThread(
@@ -171,6 +172,7 @@ namespace thermion
             TMaterialInstance **materialInstances,
             int materialInstanceCount,
             TPrimitiveType tPrimitiveType,
+            TVertexBufferStorageMode vertexBufferStorageMode,
             Aabb3 boundingBox,
             void (*callback)(TSceneAsset *)
         );
@@ -405,6 +407,35 @@ namespace thermion
             void* data,
             size_t sizeInBytes,
             uint32_t byteOffset,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferObjectAtRenderThread(
+            TEngine* tEngine,
+            TVertexBuffer* tBuffer,
+            uint8_t bufferIndex,
+            TBufferObject* tBufferObject,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+
+        EMSCRIPTEN_KEEPALIVE void BufferObjectBuilder_buildRenderThread(
+            TBufferObjectBuilder* tBuilder,
+            TEngine* tEngine,
+            void (*onComplete)(TBufferObject*)
+        );
+        EMSCRIPTEN_KEEPALIVE void BufferObject_setBufferRenderThread(
+            TEngine* tEngine,
+            TBufferObject* tBuffer,
+            void* data,
+            size_t sizeInBytes,
+            uint32_t byteOffset,
+            uint32_t requestId,
+            VoidCallback onComplete
+        );
+        EMSCRIPTEN_KEEPALIVE void BufferObject_destroyRenderThread(
+            TEngine* tEngine,
+            TBufferObject* tBuffer,
             uint32_t requestId,
             VoidCallback onComplete
         );
