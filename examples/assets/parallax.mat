@@ -49,6 +49,10 @@ material {
         {
             type : int,
             name : debugView
+        },
+        {
+            type : bool,
+            name : flipTangentV
         }
     ],
     depthWrite : true,
@@ -64,6 +68,15 @@ fragment {
         mat3 tangentFrame = getWorldTangentFrame();
         vec3 tsView = normalize(transpose(tangentFrame) * getWorldViewVector());
 
+        // Tangents generated for createGeometry meshes have a bitangent
+        // anti-aligned with the texture +v direction (verified empirically:
+        // the march's v slide and normal-map G both read inverted). Set
+        // flipTangentV for such geometry; glTF-loaded tangents should not
+        // need it.
+        if (materialParams.flipTangentV) {
+            tsView.y = -tsView.y;
+        }
+
         // ------------------------------------------------------------------
         // Parallax occlusion mapping: march the view ray through the height
         // field (1.0 = surface top, 0.0 = deepest), then binary-search the
@@ -75,7 +88,9 @@ fragment {
         vec2 pomUV = uv;
         float uvOffset = 0.0;
 
-        if (materialParams.debugView == 0 || materialParams.debugView == 2) {
+        if (materialParams.debugView == 0 ||
+            materialParams.debugView == 2 ||
+            materialParams.debugView == 5) {
             float numLayers = mix(materialParams.maxSteps, materialParams.minSteps,
                                   clamp(abs(tsView.z), 0.0, 1.0));
             numLayers = max(numLayers, 4.0);
@@ -126,6 +141,9 @@ fragment {
         // sample and the march share one frame by construction.
         // normalStrength 0 collapses to the geometric normal (0, 0, 1).
         vec3 nTS = texture(materialParams_normalMap, pomUV).xyz * 2.0 - 1.0;
+        if (materialParams.flipTangentV) {
+            nTS.y = -nTS.y;
+        }
         nTS = mix(vec3(0.0, 0.0, 1.0), nTS, clamp(materialParams.normalStrength, 0.0, 1.0));
         material.normal = normalize(nTS);
         prepareMaterial(material);
@@ -146,6 +164,14 @@ fragment {
             // Tangent-space view vector: R/G = |x|/|y| (slide axes),
             // B = z (facing term; near 1 head-on, near 0 at grazing).
             material.baseColor = vec4(abs(tsView.x), abs(tsView.y), clamp(tsView.z, 0.0, 1.0), 1.0);
+        } else if (materialParams.debugView == 5) {
+            // Signed uv slide for direction debugging: du in R, dv in G,
+            // neutral 0.5. For a correct march the mean du sign must match
+            // -(view.u/view.z) in the texture's uv frame.
+            vec2 d = (pomUV - uv) / max(materialParams.heightScale, 1e-4);
+            material.baseColor = vec4(clamp(0.5 + d.x * 0.5, 0.0, 1.0),
+                                      clamp(0.5 + d.y * 0.5, 0.0, 1.0),
+                                      0.5, 1.0);
         } else {
             vec4 albedo = texture(materialParams_albedoMap, pomUV);
             material.baseColor = vec4(albedo.rgb * materialParams.tintColor.rgb, 1.0);

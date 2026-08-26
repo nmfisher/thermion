@@ -115,6 +115,9 @@ Future<void> setupParallax(
     await instance.setParameterFloat4('tintColor', 1.0, 1.0, 1.0, 1.0);
     await instance.setParameterFloat('roughnessFactor', 0.75);
     await instance.setParameterFloat('metallicFactor', 0.0);
+    // createGeometry tangents have an inverted bitangent axis - see the
+    // flipTangentV comment in parallax.mat.
+    await instance.setParameterBool('flipTangentV', true);
     await instance.setParameterInt('debugView', 0);
     await viewer.createGeometry(
       _wallGeometry(centerX),
