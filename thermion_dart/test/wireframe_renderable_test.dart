@@ -13,7 +13,9 @@ void main() async {
         vertexBufferMode: VertexBufferMode.original,
         addToScene: true,
       );
-      await testHelper.capture(result.viewer.view, "vertex_buffer_original");
+      // Golden artifact names are stable IDs; keep the legacy names even when
+      // the public API terminology changes.
+      await testHelper.capture(result.viewer.view, "rebuildVertices_false");
       await result.viewer.removeFromScene(original);
 
       final rebuilt = await result.viewer.loadGltf(
@@ -31,7 +33,7 @@ void main() async {
         ),
       );
 
-      await testHelper.capture(result.viewer.view, "vertex_buffer_unwelded");
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true");
 
       // Use typed wireframe wrapper
       final wireframe = await FilamentApp.instance!.createWireframeMaterialInstance();
@@ -41,7 +43,7 @@ void main() async {
       await wireframe.setDoubleSided(true);
 
       await rebuilt.setMaterialInstanceForAll(wireframe.materialInstance);
-      await testHelper.capture(result.viewer.view, "vertex_buffer_unwelded_wireframe");
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true_wireframe");
 
       final ubershader = await FilamentApp.instance!.createUbershaderMaterial(doubleSided: true);
 
@@ -50,7 +52,7 @@ void main() async {
       await ubershader.setRoughnessFactor(1.0);
 
       await rebuilt.setMaterialInstanceForAll(ubershader.materialInstance);
-      await testHelper.capture(result.viewer.view, "vertex_buffer_unwelded_ubershader");
+      await testHelper.capture(result.viewer.view, "rebuildVertices_true_ubershader");
 
       await result.viewer.removeFromScene(rebuilt);
 
