@@ -49,10 +49,6 @@ material {
         {
             type : int,
             name : debugView
-        },
-        {
-            type : bool,
-            name : flipTangentV
         }
     ],
     depthWrite : true,
@@ -68,71 +64,83 @@ fragment {
         mat3 tangentFrame = getWorldTangentFrame();
         vec3 tsView = normalize(transpose(tangentFrame) * getWorldViewVector());
 
-        // Tangents generated for createGeometry meshes have a bitangent
-        // anti-aligned with the texture +v direction (verified empirically:
-        // the march's v slide and normal-map G both read inverted). Set
-        // flipTangentV for such geometry; glTF-loaded tangents should not
-        // need it.
-        if (materialParams.flipTangentV) {
-            tsView.y = -tsView.y;
-        }
-
         // ------------------------------------------------------------------
         // Parallax occlusion mapping: march the view ray through the height
         // field (1.0 = surface top, 0.0 = deepest), then binary-search the
         // height crossing between the last two samples.
         //
-        // All in-loop fetches use textureLod(., ., 0.0) - implicit
-        // derivatives inside the divergent march loop are undefined.
+        // Capture derivatives before the divergent march and use textureGrad
+        // throughout. This keeps mip selection stable and preserves the
+        // sampler's anisotropic filtering at grazing angles.
         // ------------------------------------------------------------------
         vec2 pomUV = uv;
         float uvOffset = 0.0;
+        float heightScale = max(materialParams.heightScale, 0.0);
+        vec2 uvDx = dFdx(uv);
+        vec2 uvDy = dFdy(uv);
 
-        if (materialParams.debugView == 0 ||
+        if (heightScale > 1e-6 &&
+           (materialParams.debugView == 0 ||
+            materialParams.debugView == 1 ||
             materialParams.debugView == 2 ||
-            materialParams.debugView == 5) {
-            float numLayers = mix(materialParams.maxSteps, materialParams.minSteps,
+            materialParams.debugView == 5)) {
+            float minLayers = clamp(min(materialParams.minSteps, materialParams.maxSteps), 4.0, 96.0);
+            float maxLayers = clamp(max(materialParams.minSteps, materialParams.maxSteps), minLayers, 96.0);
+            float numLayers = mix(maxLayers, minLayers,
                                   clamp(abs(tsView.z), 0.0, 1.0));
-            numLayers = max(numLayers, 4.0);
 
             // The march follows the ray INTO the surface: opposite to the
             // eye-directed view vector. Clamp grazing angles so the slide
             // distance stays bounded.
             vec2 slideDir = -tsView.xy / max(abs(tsView.z), 0.08);
-            vec2 deltaUV = slideDir * materialParams.heightScale / numLayers;
+            vec2 deltaUV = slideDir * heightScale / numLayers;
             float layerDepth = 1.0 / numLayers;
 
             vec2 curUV = uv;
+            vec2 prevUV = uv;
             float curLayer = 0.0;
-            float curHeight = textureLod(materialParams_heightMap, curUV, 0.0).r;
+            float prevLayer = 0.0;
+            // The ray starts at the top of the displacement volume. Convert
+            // height (1 = top) to depth below that plane (0 = top).
+            float curSurfaceDepth = 1.0 - textureGrad(materialParams_heightMap, curUV, uvDx, uvDy).r;
+            bool hasPrevious = false;
+            bool crossed = false;
             for (int i = 0; i < 96; i++) {
-                if (curLayer >= curHeight) {
+                if (curLayer >= curSurfaceDepth) {
+                    crossed = true;
                     break;
                 }
+                prevUV = curUV;
+                prevLayer = curLayer;
+                hasPrevious = true;
                 curUV += deltaUV;
                 curLayer += layerDepth;
-                curHeight = textureLod(materialParams_heightMap, curUV, 0.0).r;
+                curSurfaceDepth = 1.0 - textureGrad(materialParams_heightMap, curUV, uvDx, uvDy).r;
             }
+            // When numLayers is exactly 96, the crossing at the bottom is
+            // reached by the final iteration and must be checked explicitly.
+            crossed = crossed || curLayer >= curSurfaceDepth;
 
-            // Binary search: lo is past the crossing (layer >= height),
-            // hi is before it (layer < height).
-            vec2 lo = curUV;
-            vec2 hi = curUV - deltaUV;
-            float dLo = curLayer;
-            float dHi = curLayer - layerDepth;
-            for (int j = 0; j < 4; j++) {
-                vec2 mid = 0.5 * (lo + hi);
-                float dMid = 0.5 * (dLo + dHi);
-                float hMid = textureLod(materialParams_heightMap, mid, 0.0).r;
-                if (dMid >= hMid) {
-                    lo = mid;
-                    dLo = dMid;
-                } else {
-                    hi = mid;
-                    dHi = dMid;
+            if (crossed && hasPrevious) {
+                // Binary search: lo is past the crossing, hi is before it.
+                vec2 lo = curUV;
+                vec2 hi = prevUV;
+                float dLo = curLayer;
+                float dHi = prevLayer;
+                for (int j = 0; j < 4; j++) {
+                    vec2 mid = 0.5 * (lo + hi);
+                    float dMid = 0.5 * (dLo + dHi);
+                    float surfaceMid = 1.0 - textureGrad(materialParams_heightMap, mid, uvDx, uvDy).r;
+                    if (dMid >= surfaceMid) {
+                        lo = mid;
+                        dLo = dMid;
+                    } else {
+                        hi = mid;
+                        dHi = dMid;
+                    }
                 }
+                pomUV = 0.5 * (lo + hi);
             }
-            pomUV = 0.5 * (lo + hi);
             uvOffset = length(pomUV - uv);
         }
 
@@ -140,10 +148,7 @@ fragment {
         // the same tangent frame returned above, so the parallaxed normal
         // sample and the march share one frame by construction.
         // normalStrength 0 collapses to the geometric normal (0, 0, 1).
-        vec3 nTS = texture(materialParams_normalMap, pomUV).xyz * 2.0 - 1.0;
-        if (materialParams.flipTangentV) {
-            nTS.y = -nTS.y;
-        }
+        vec3 nTS = textureGrad(materialParams_normalMap, pomUV, uvDx, uvDy).xyz * 2.0 - 1.0;
         nTS = mix(vec3(0.0, 0.0, 1.0), nTS, clamp(materialParams.normalStrength, 0.0, 1.0));
         material.normal = normalize(nTS);
         prepareMaterial(material);
@@ -154,11 +159,11 @@ fragment {
         if (materialParams.debugView == 1) {
             // Height map at the parallaxed uv (display-remapped: the opaque
             // path lifts near-black values hard toward mid-gray).
-            float h = textureLod(materialParams_heightMap, pomUV, 0.0).r;
+            float h = textureGrad(materialParams_heightMap, pomUV, uvDx, uvDy).r;
             material.baseColor = vec4(vec3(clamp(h * 0.7 + 0.15, 0.0, 1.0)), 1.0);
         } else if (materialParams.debugView == 2) {
             // Slide magnitude relative to the maximum (heightScale).
-            float d = clamp(uvOffset / max(materialParams.heightScale, 1e-4), 0.0, 1.0);
+            float d = clamp(uvOffset / max(heightScale, 1e-4), 0.0, 1.0);
             material.baseColor = vec4(vec3(clamp(d * 0.7 + 0.15, 0.0, 1.0)), 1.0);
         } else if (materialParams.debugView == 3) {
             // Tangent-space view vector: R/G = |x|/|y| (slide axes),
@@ -168,12 +173,12 @@ fragment {
             // Signed uv slide for direction debugging: du in R, dv in G,
             // neutral 0.5. For a correct march the mean du sign must match
             // -(view.u/view.z) in the texture's uv frame.
-            vec2 d = (pomUV - uv) / max(materialParams.heightScale, 1e-4);
+            vec2 d = (pomUV - uv) / max(heightScale, 1e-4);
             material.baseColor = vec4(clamp(0.5 + d.x * 0.5, 0.0, 1.0),
                                       clamp(0.5 + d.y * 0.5, 0.0, 1.0),
                                       0.5, 1.0);
         } else {
-            vec4 albedo = texture(materialParams_albedoMap, pomUV);
+            vec4 albedo = textureGrad(materialParams_albedoMap, pomUV, uvDx, uvDy);
             material.baseColor = vec4(albedo.rgb * materialParams.tintColor.rgb, 1.0);
         }
     }

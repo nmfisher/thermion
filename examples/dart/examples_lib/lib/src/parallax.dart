@@ -14,7 +14,8 @@ import 'package:thermion_dart/thermion_dart.dart';
 ///
 /// All three textures (albedo/height/normal) are generated procedurally in
 /// Dart - no binary assets, deterministic goldens. Set `debugView` on an
-/// instance for shader introspection (1=height, 2=|uv offset|, 3=ts view).
+/// instance for shader introspection (1=height, 2=|uv offset|, 3=ts view,
+/// 5=signed UV slide).
 Future<void> setupParallax(
   ThermionViewer viewer, {
   required String assetsDir,
@@ -115,9 +116,6 @@ Future<void> setupParallax(
     await instance.setParameterFloat4('tintColor', 1.0, 1.0, 1.0, 1.0);
     await instance.setParameterFloat('roughnessFactor', 0.75);
     await instance.setParameterFloat('metallicFactor', 0.0);
-    // createGeometry tangents have an inverted bitangent axis - see the
-    // flipTangentV comment in parallax.mat.
-    await instance.setParameterBool('flipTangentV', true);
     await instance.setParameterInt('debugView', 0);
     await viewer.createGeometry(
       _wallGeometry(centerX),
