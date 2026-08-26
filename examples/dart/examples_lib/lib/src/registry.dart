@@ -46,6 +46,7 @@ import 'game_effects_portal_rift.dart';
 import 'game_effects_electricity.dart';
 import 'game_effects_invisibility_cloak.dart';
 import 'game_effects_energy_weapon.dart';
+import 'noise_showcase.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
 typedef ExampleSetup = Future<void> Function(
@@ -77,6 +78,7 @@ final Map<String, ExampleSetup> registry = {
   'game_effects_electricity': setupElectricity,
   'game_effects_invisibility_cloak': setupInvisibilityCloak,
   'game_effects_energy_weapon': setupEnergyWeapon,
+  'noise_showcase': setupNoiseShowcase,
   'geometry_primitives': setupGeometryPrimitives,
   'gizmo_basics': setupGizmoBasics,
   'gltf_animation': setupGltfAnimation,

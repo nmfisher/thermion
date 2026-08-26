@@ -19,7 +19,7 @@ Original design rationale: [`game_effects_plan.md`](../game_effects_plan.md)
 |---|---|
 | Material sources (Filament `.mat` DSL) | `examples/assets/<name>.mat` |
 | Compiled materials (committed) | `examples/assets/<name>.filamat` |
-| Scene setups (one per effect) | `examples/dart/examples_lib/lib/src/game_effects_<name>.dart` |
+| Scene setups (one per effect) | `examples/dart/examples_lib/lib/src/game_effects_<name>.dart` (noise zoo: `noise_showcase.dart`) |
 | Shared helpers + animators | `examples/dart/examples_lib/lib/src/game_effects_shared.dart` |
 | Registry entries (`game_effects_*`) | `examples/dart/examples_lib/lib/src/registry.dart` |
 | Headless renderer (stills + video) | `examples/dart/headless_runner/bin/run_example.dart` |
@@ -661,6 +661,47 @@ envelope around a tight blue core, traveling packets, an expanding muzzle ring,
 and polar impact rays. The single pass avoids cross-mesh transform drift and is
 straightforward to connect to weapon events. Golden still: `--time 1.2`.
 
+### 6.19 noise_showcase — `noise_showcase.dart`, `noise_showcase.mat`
+
+**Intent.** A reference wall of twelve procedural noise texture generators —
+both a demo and a library: every generator in the material is standalone
+(modulo the two `nzHash21`/`nzHash22` primitives), so an effect material can
+lift the one it needs verbatim instead of re-deriving hashes by hand (the
+inline noise in the other `.mat`s predates this and can be migrated
+incrementally).
+
+**Build.** One compiled material; each tile is a material *instance* whose
+`noiseType` uniform picks the generator, so the whole wall costs a single
+matc artifact. The wall is 4×3 tiles and renders as a 1152×768 poster
+(aspect 1.5) — a square canvas with this grid clips the outer columns,
+because Filament derives a square FOV from `focalLength` at aspect 1.
+The bottom-left binary index dots (LSB first: lit = 1, ring = 0) are the
+on-image legend. Generators, in index order:
+
+| # | Generator | Notes |
+|---|---|---|
+| 0 | white noise | pixel-lattice hash, re-hashed at ~18 fps |
+| 1 | value noise | smoothstep-interpolated lattice |
+| 2 | Perlin | quintic fade, hashed unit gradients |
+| 3 | simplex | Ashima/Gustavson 2D |
+| 4 | fbm | 5 octaves of Perlin, drift-animated |
+| 5 | billow | `abs()` per octave; re-centered on display (values cluster at the mean) |
+| 6 | ridged multifractal | squared ridges + weight feedback |
+| 7 | domain warp | IQ's `fbm(p + 4·fbm(p + 4·fbm(p)))` palette |
+| 8 | Voronoi F1 | cell-ID colors, drifting points, white F2−F1 edges |
+| 9 | Worley crackle | bright F2−F1 edges on black |
+| 10 | curl noise | 4-step self-advection through an fbm curl field (streamlines) |
+| 11 | smooth Voronoi | IQ exponential smooth-min; display windowed to the smooth-min's ~[0.05, 0.45] span |
+
+Static by design: 1–3 (basis functions). Animated: grain, fractal drift, warp,
+cell drift, curl flow. Golden still: `--time 2.6` at 1152×768.
+
+**Gotcha (display range).** The opaque pipeline still tonemaps: values below
+~0.02 lift hard toward mid-gray, so a generator that outputs a narrow band
+reads as a flat tile — billow (abs-clustering) and smooth Voronoi
+(smooth-min spans ~0.25) both needed explicit display remaps. When adding a
+generator, measure the tile's min/max/std, not just eyeball it.
+
 ---
 
 ## 7. Suggested roadmap
@@ -685,6 +726,10 @@ straightforward to connect to weapon events. Golden still: `--time 1.2`.
 11. Cross-cutting: a `game_effects` composite galleryScene for the web
     gallery; web verification (COOP/COEP, real Chrome) once a WebGPU matc is
     available; interactive parameter playground.
+12. Noise library: migrate the hand-rolled inline noise in the older
+    `.mat`s (§6.19) to the standalone `noise_showcase` generators; add
+    tileable/periodic variants and 3D (volumetric) hashes when an effect
+    needs them.
 
 ## 8. Commit map (as of writing)
 
