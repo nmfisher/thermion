@@ -6,11 +6,29 @@ import 'ffi_buffer_object.dart';
 class FFIVertexBuffer extends VertexBuffer {
   final bindings.Pointer<bindings.TVertexBuffer> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
+  final bool _ownedByCaller;
 
   @override
-  final bool ownsResource;
+  final VertexBufferStorageMode storageMode;
 
-  FFIVertexBuffer(this._ptr, this._engine, {this.ownsResource = true});
+  FFIVertexBuffer._(this._ptr, this._engine, {required this.storageMode, required bool ownedByCaller})
+    : _ownedByCaller = ownedByCaller;
+
+  factory FFIVertexBuffer.callerOwned(
+    bindings.Pointer<bindings.TVertexBuffer> ptr,
+    bindings.Pointer<bindings.TEngine> engine, {
+    required VertexBufferStorageMode storageMode,
+  }) {
+    return FFIVertexBuffer._(ptr, engine, storageMode: storageMode, ownedByCaller: true);
+  }
+
+  factory FFIVertexBuffer.assetOwned(
+    bindings.Pointer<bindings.TVertexBuffer> ptr,
+    bindings.Pointer<bindings.TEngine> engine, {
+    required VertexBufferStorageMode storageMode,
+  }) {
+    return FFIVertexBuffer._(ptr, engine, storageMode: storageMode, ownedByCaller: false);
+  }
 
   /// Returns the native handle for FFI calls.
   bindings.Pointer<bindings.TVertexBuffer> getNativeHandle() => _ptr;
@@ -19,14 +37,6 @@ class FFIVertexBuffer extends VertexBuffer {
   int getVertexCount() {
     return bindings.VertexBuffer_getVertexCount(_ptr);
   }
-
-  @override
-  VertexBufferStorageMode get storageMode => switch (bindings.VertexBuffer_getStorageMode(_ptr)) {
-    bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_DIRECT => VertexBufferStorageMode.direct,
-    bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS =>
-      VertexBufferStorageMode.bufferObjects,
-    _ => VertexBufferStorageMode.unknown,
-  };
 
   @override
   Future setBufferAt(int bufferIndex, TypedData data, {int byteOffset = 0}) async {
@@ -80,7 +90,7 @@ class FFIVertexBuffer extends VertexBuffer {
 
   @override
   Future destroy() async {
-    if (!ownsResource) {
+    if (!_ownedByCaller) {
       throw StateError('Cannot destroy a VertexBuffer borrowed from a ThermionAsset');
     }
     await withVoidCallback((requestId, cb) {
@@ -160,6 +170,8 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
   Future<VertexBuffer> build() async {
     _checkNotBuilt();
 
+    final storageMode = vertexBufferStorageModeFromNative(bindings.VertexBufferBuilder_getStorageMode(_builderPtr!));
+
     final vertexBufferPtr = await withPointerCallback<bindings.TVertexBuffer>(
       (cb) => bindings.VertexBufferBuilder_buildRenderThread(_builderPtr!, _engine, cb),
     );
@@ -172,7 +184,7 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
       throw Exception('Failed to build VertexBuffer');
     }
 
-    return FFIVertexBuffer(vertexBufferPtr, _engine);
+    return FFIVertexBuffer.callerOwned(vertexBufferPtr, _engine, storageMode: storageMode);
   }
 
   int _vertexAttributeToInt(VertexAttribute attribute) {
@@ -225,4 +237,22 @@ class FFIVertexBufferBuilder implements VertexBufferBuilder {
       VertexAttributeType.HALF4 => 25, // TVERTEXATTRIBUTE_TYPE_HALF4
     };
   }
+}
+
+VertexBufferStorageMode vertexBufferStorageModeFromNative(int storageMode) {
+  return switch (storageMode) {
+    bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_DIRECT => VertexBufferStorageMode.direct,
+    bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS =>
+      VertexBufferStorageMode.bufferObjects,
+    _ => VertexBufferStorageMode.unknown,
+  };
+}
+
+int vertexBufferStorageModeToNative(VertexBufferStorageMode storageMode) {
+  return switch (storageMode) {
+    VertexBufferStorageMode.direct => bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_DIRECT,
+    VertexBufferStorageMode.bufferObjects =>
+      bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS,
+    VertexBufferStorageMode.unknown => bindings.TVertexBufferStorageMode.VERTEX_BUFFER_STORAGE_MODE_UNKNOWN,
+  };
 }

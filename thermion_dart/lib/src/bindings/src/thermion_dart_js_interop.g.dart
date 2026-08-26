@@ -294,6 +294,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<PointerClass<TMaterialInstance>> materialInstances,
     int materialInstanceCount,
     int tPrimitiveType,
+    int vertexBufferStorageMode,
     Pointer<Aabb3> boundingBoxPtr,
   );
   external Pointer<TSceneAsset> _SceneAsset_createFromFilamentAsset(
@@ -325,6 +326,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _SceneAsset_getBoundingBox(Pointer<Aabb3> Aabb3_out, Pointer<TSceneAsset> asset);
   external int _SceneAsset_getGeometryCapabilities(Pointer<TSceneAsset> asset);
   external Pointer<TVertexBuffer> _SceneAsset_getVertexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
+  external int _SceneAsset_getVertexBufferStorageMode(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
   external Pointer<TIndexBuffer> _SceneAsset_getIndexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
   external int _SceneAsset_getPrimitiveOffsetForEntity(Pointer<TSceneAsset> tSceneAsset, EntityId entity);
   external void _SceneAsset_releaseSourceData(Pointer<TSceneAsset> tSceneAsset);
@@ -625,6 +627,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _VertexBufferBuilder_bufferCount(Pointer<TVertexBufferBuilder> builder, int count);
   external void _VertexBufferBuilder_vertexCount(Pointer<TVertexBufferBuilder> builder, int count);
   external void _VertexBufferBuilder_enableBufferObjects(Pointer<TVertexBufferBuilder> builder, bool enabled);
+  external int _VertexBufferBuilder_getStorageMode(Pointer<TVertexBufferBuilder> builder);
   external void _VertexBufferBuilder_attribute(
     Pointer<TVertexBufferBuilder> builder,
     int attribute,
@@ -640,7 +643,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   );
   external void _VertexBufferBuilder_destroy(Pointer<TVertexBufferBuilder> builder);
   external size_t _VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer);
-  external int _VertexBuffer_getStorageMode(Pointer<TVertexBuffer> buffer);
   external void _VertexBuffer_setBufferAt(
     Pointer<TEngine> engine,
     Pointer<TVertexBuffer> buffer,
@@ -1396,6 +1398,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<PointerClass<TMaterialInstance>> materialInstances,
     int materialInstanceCount,
     int tPrimitiveType,
+    int vertexBufferStorageMode,
     Pointer<Aabb3> boundingBoxPtr,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> callback,
   );
@@ -3374,6 +3377,7 @@ Pointer<TSceneAsset> SceneAsset_createFromBuffers(
   Pointer<PointerClass<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
   int tPrimitiveType,
+  int vertexBufferStorageMode,
   Aabb3 boundingBox,
 ) {
   final boundingBoxPtr = boundingBox.address;
@@ -3384,6 +3388,7 @@ Pointer<TSceneAsset> SceneAsset_createFromBuffers(
     materialInstances.cast(),
     materialInstanceCount,
     tPrimitiveType,
+    vertexBufferStorageMode,
     boundingBoxPtr.cast(),
   );
   return Pointer<TSceneAsset>(result);
@@ -3503,6 +3508,14 @@ int SceneAsset_getGeometryCapabilities(Pointer<TSceneAsset> asset) {
 Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex) {
   final result = GeneratedBindings.instance._SceneAsset_getVertexBuffer(tSceneAsset.cast(), primitiveIndex);
   return Pointer<TVertexBuffer>(result);
+}
+
+int SceneAsset_getVertexBufferStorageMode(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex) {
+  final result = GeneratedBindings.instance._SceneAsset_getVertexBufferStorageMode(
+    tSceneAsset.cast(),
+    primitiveIndex,
+  );
+  return result;
 }
 
 Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex) {
@@ -4408,6 +4421,11 @@ void VertexBufferBuilder_enableBufferObjects(Pointer<TVertexBufferBuilder> build
   return result;
 }
 
+int VertexBufferBuilder_getStorageMode(Pointer<TVertexBufferBuilder> builder) {
+  final result = GeneratedBindings.instance._VertexBufferBuilder_getStorageMode(builder.cast());
+  return result;
+}
+
 void VertexBufferBuilder_attribute(
   Pointer<TVertexBufferBuilder> builder,
   int attribute,
@@ -4444,11 +4462,6 @@ void VertexBufferBuilder_destroy(Pointer<TVertexBufferBuilder> builder) {
 
 Dartsize_t VertexBuffer_getVertexCount(Pointer<TVertexBuffer> buffer) {
   final result = GeneratedBindings.instance._VertexBuffer_getVertexCount(buffer.cast());
-  return result;
-}
-
-int VertexBuffer_getStorageMode(Pointer<TVertexBuffer> buffer) {
-  final result = GeneratedBindings.instance._VertexBuffer_getStorageMode(buffer.cast());
   return result;
 }
 
@@ -6321,6 +6334,7 @@ void SceneAsset_createFromBuffersRenderThread(
   Pointer<PointerClass<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
   int tPrimitiveType,
+  int vertexBufferStorageMode,
   Aabb3 boundingBox,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> callback,
 ) {
@@ -6332,6 +6346,7 @@ void SceneAsset_createFromBuffersRenderThread(
     materialInstances.cast(),
     materialInstanceCount,
     tPrimitiveType,
+    vertexBufferStorageMode,
     boundingBoxPtr.cast(),
     callback.cast(),
   );

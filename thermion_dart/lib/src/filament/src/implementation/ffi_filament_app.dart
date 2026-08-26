@@ -1461,6 +1461,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         ptrList.address.cast(),
         ptrList.length,
         geometry.primitiveType.index,
+        vertexBufferStorageModeToNative(vertexBuffer.storageMode),
         cAabb,
         callback,
       );

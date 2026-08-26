@@ -28,7 +28,6 @@ void main() async {
       final vb = await asset.getVertexBuffer();
       expect(vb, isNotNull);
       expect(vb!.storageMode, VertexBufferStorageMode.direct);
-      expect(vb.ownsResource, isFalse);
       await expectLater(vb.destroy(), throwsStateError);
       final vertices = Float32List.fromList([
         // Front face

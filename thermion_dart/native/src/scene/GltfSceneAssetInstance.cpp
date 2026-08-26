@@ -19,6 +19,11 @@ namespace thermion
         return _instanceOwner->getGeometryCapabilities();
     }
 
+    TVertexBufferStorageMode GltfSceneAssetInstance::getVertexBufferStorageMode(size_t primitiveIndex) const
+    {
+        return _instanceOwner->getVertexBufferStorageMode(primitiveIndex);
+    }
+
     size_t GltfSceneAssetInstance::getBoneCount(size_t skinIndex) const
     {
         return _instance->getJointCountAt(skinIndex);

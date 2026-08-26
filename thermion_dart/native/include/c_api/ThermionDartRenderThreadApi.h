@@ -172,6 +172,7 @@ namespace thermion
             TMaterialInstance **materialInstances,
             int materialInstanceCount,
             TPrimitiveType tPrimitiveType,
+            TVertexBufferStorageMode vertexBufferStorageMode,
             Aabb3 boundingBox,
             void (*callback)(TSceneAsset *)
         );

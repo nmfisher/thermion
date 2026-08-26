@@ -23,6 +23,7 @@ namespace thermion
                            size_t materialInstanceCount,
                            RenderableManager::PrimitiveType primitiveType,
                            Box boundingBox,
+                           TVertexBufferStorageMode vertexBufferStorageMode,
                            GeometrySceneAsset *instanceParent = std::nullptr_t());
         ~GeometrySceneAsset();
 
@@ -61,6 +62,11 @@ namespace thermion
 
         VertexBuffer *getVertexBuffer() const { return _vertexBuffer; }
         IndexBuffer *getIndexBuffer() const { return _indexBuffer; }
+        TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const override {
+            return primitiveIndex == 0
+                ? _vertexBufferStorageMode
+                : VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+        }
 
         void addAllEntities(Scene *scene) override
         {
@@ -132,6 +138,7 @@ namespace thermion
         GeometrySceneAsset *_instanceOwner = std::nullptr_t();
         utils::Entity _entity;
         RenderableManager::PrimitiveType _primitiveType;
+        TVertexBufferStorageMode _vertexBufferStorageMode = VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
         std::vector<std::unique_ptr<GeometrySceneAsset>> _instances;
     };
 

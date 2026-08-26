@@ -47,8 +47,9 @@
   errors when used with incompatible buffer storage or asset capabilities.
 - Expose native `VertexBuffer.storageMode` metadata and first-class
   `BufferObject` creation, upload, and attachment APIs. `supportsSetBufferAt`
-  is now derived from native buffer storage instead of duplicated glTF load
-  state in Dart, and asset-owned vertex buffers are explicitly borrowed.
+  is now derived from immutable metadata supplied by the native builder or
+  owning asset, without a global pointer registry or duplicated glTF load
+  state in Dart. Asset-owned vertex buffers are explicitly borrowed.
 
 ### Breaking changes
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,

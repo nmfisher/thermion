@@ -920,7 +920,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (vbPtr == nullptr) {
       return null;
     }
-    return FFIVertexBuffer(vbPtr, _app.engine, ownsResource: false);
+    final storageMode = vertexBufferStorageModeFromNative(SceneAsset_getVertexBufferStorageMode(asset, primitiveIndex));
+    return FFIVertexBuffer.assetOwned(vbPtr, _app.engine, storageMode: storageMode);
   }
 }
 

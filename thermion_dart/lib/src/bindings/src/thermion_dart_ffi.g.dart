@@ -614,6 +614,7 @@ external ffi.Pointer<ffi.Char> NameComponentManager_getName(
     ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
     ffi.Int,
     ffi.UnsignedInt,
+    ffi.UnsignedInt,
     Aabb3,
   )
 >(isLeaf: true)
@@ -624,6 +625,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
   ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
   int tPrimitiveType,
+  int vertexBufferStorageMode,
   Aabb3 boundingBox,
 );
 
@@ -703,6 +705,12 @@ external int SceneAsset_getGeometryCapabilities(ffi.Pointer<TSceneAsset> asset);
 
 @ffi.Native<ffi.Pointer<TVertexBuffer> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
 external ffi.Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  int primitiveIndex,
+);
+
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
+external int SceneAsset_getVertexBufferStorageMode(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int primitiveIndex,
 );
@@ -1402,6 +1410,9 @@ external void VertexBufferBuilder_vertexCount(ffi.Pointer<TVertexBufferBuilder> 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TVertexBufferBuilder>, ffi.Bool)>(isLeaf: true)
 external void VertexBufferBuilder_enableBufferObjects(ffi.Pointer<TVertexBufferBuilder> builder, bool enabled);
 
+@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TVertexBufferBuilder>)>(isLeaf: true)
+external int VertexBufferBuilder_getStorageMode(ffi.Pointer<TVertexBufferBuilder> builder);
+
 @ffi.Native<
   ffi.Void Function(
     ffi.Pointer<TVertexBufferBuilder>,
@@ -1435,9 +1446,6 @@ external void VertexBufferBuilder_destroy(ffi.Pointer<TVertexBufferBuilder> buil
 
 @ffi.Native<ffi.Size Function(ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
 external int VertexBuffer_getVertexCount(ffi.Pointer<TVertexBuffer> buffer);
-
-@ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
-external int VertexBuffer_getStorageMode(ffi.Pointer<TVertexBuffer> buffer);
 
 @ffi.Native<
   ffi.Void Function(
@@ -2764,6 +2772,7 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
     ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
     ffi.Int,
     ffi.UnsignedInt,
+    ffi.UnsignedInt,
     Aabb3,
     ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>,
   )
@@ -2775,6 +2784,7 @@ external void SceneAsset_createFromBuffersRenderThread(
   ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
   int tPrimitiveType,
+  int vertexBufferStorageMode,
   Aabb3 boundingBox,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>> callback,
 );

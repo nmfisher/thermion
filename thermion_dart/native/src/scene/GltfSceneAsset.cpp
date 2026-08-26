@@ -1,6 +1,5 @@
 
 #include "scene/GltfSceneAsset.hpp"
-#include "scene/VertexBufferMetadata.hpp"
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
@@ -64,7 +63,6 @@ namespace thermion
         _instances.clear();
         for (auto *vb : _preservedVertexBuffers)
         {
-            unregisterVertexBufferStorageMode(vb);
             _engine->destroy(vb);
         }
         for (auto *ib : _preservedIndexBuffers)
@@ -694,12 +692,6 @@ namespace thermion
                 }
 
                 VertexBuffer *vb = vbBuilder.build(*_engine);
-                registerVertexBufferStorageMode(
-                    vb,
-                    editableTopology
-                        ? VERTEX_BUFFER_STORAGE_MODE_DIRECT
-                        : VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS);
-
                 auto uploadDirect = [&](uint8_t bufferIndex, const void *source, size_t size)
                 {
                     auto *data = new uint8_t[size];

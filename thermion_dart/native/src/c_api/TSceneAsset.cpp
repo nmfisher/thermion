@@ -27,6 +27,7 @@ extern "C"
         TMaterialInstance **materialInstances,
         int materialInstanceCount,
         TPrimitiveType tPrimitiveType,
+        TVertexBufferStorageMode vertexBufferStorageMode,
         Aabb3 boundingBox
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -59,6 +60,7 @@ extern "C"
             materialInstanceCount,
             primitiveType,
             box,
+            vertexBufferStorageMode,
             nullptr  // instanceOwner - this is not an instance
         );
 
@@ -245,6 +247,16 @@ extern "C"
             return reinterpret_cast<TVertexBuffer *>(vertexBuffer);
         }
         return nullptr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode SceneAsset_getVertexBufferStorageMode(
+        TSceneAsset *tSceneAsset,
+        int primitiveIndex) {
+        if (primitiveIndex < 0) {
+            return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+        }
+        return reinterpret_cast<SceneAsset*>(tSceneAsset)->getVertexBufferStorageMode(
+            static_cast<size_t>(primitiveIndex));
     }
 
     EMSCRIPTEN_KEEPALIVE TIndexBuffer *SceneAsset_getIndexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {

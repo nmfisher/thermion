@@ -61,6 +61,10 @@ class SceneAsset {
             return SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
         }
 
+        virtual TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const {
+            return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+        }
+
         virtual size_t getBoneCount(size_t skinIndex) const {
             return 0;
         }

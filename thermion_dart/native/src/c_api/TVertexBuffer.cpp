@@ -2,12 +2,8 @@
 #include <filament/BufferObject.h>
 #include <filament/VertexBuffer.h>
 
-#include <mutex>
-#include <unordered_map>
-
 #include "Log.hpp"
 #include "c_api/TVertexBuffer.h"
-#include "scene/VertexBufferMetadata.hpp"
 
 namespace
 {
@@ -16,41 +12,10 @@ namespace
         filament::VertexBuffer::Builder builder;
         TVertexBufferStorageMode storageMode = VERTEX_BUFFER_STORAGE_MODE_DIRECT;
     };
-
-    std::mutex gVertexBufferMetadataMutex;
-    std::unordered_map<const filament::VertexBuffer *, TVertexBufferStorageMode> gVertexBufferStorageModes;
 }
 
 namespace thermion
 {
-    void registerVertexBufferStorageMode(
-        filament::VertexBuffer *buffer,
-        TVertexBufferStorageMode storageMode)
-    {
-        if (!buffer)
-            return;
-        std::lock_guard<std::mutex> lock(gVertexBufferMetadataMutex);
-        gVertexBufferStorageModes[buffer] = storageMode;
-    }
-
-    void unregisterVertexBufferStorageMode(filament::VertexBuffer *buffer)
-    {
-        if (!buffer)
-            return;
-        std::lock_guard<std::mutex> lock(gVertexBufferMetadataMutex);
-        gVertexBufferStorageModes.erase(buffer);
-    }
-
-    TVertexBufferStorageMode getVertexBufferStorageMode(
-        const filament::VertexBuffer *buffer)
-    {
-        std::lock_guard<std::mutex> lock(gVertexBufferMetadataMutex);
-        const auto entry = gVertexBufferStorageModes.find(buffer);
-        return entry == gVertexBufferStorageModes.end()
-                   ? VERTEX_BUFFER_STORAGE_MODE_UNKNOWN
-                   : entry->second;
-    }
-
     extern "C"
     {
         using namespace filament;
@@ -80,6 +45,10 @@ namespace thermion
             builder->storageMode = enabled
                                        ? VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS
                                        : VERTEX_BUFFER_STORAGE_MODE_DIRECT;
+        }
+
+        EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode VertexBufferBuilder_getStorageMode(TVertexBufferBuilder* tBuilder) {
+            return reinterpret_cast<VertexBufferBuilderState*>(tBuilder)->storageMode;
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBufferBuilder_attribute(
@@ -186,7 +155,6 @@ namespace thermion
             auto* builder = reinterpret_cast<VertexBufferBuilderState*>(tBuilder);
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* vertexBuffer = builder->builder.build(*engine);
-            registerVertexBufferStorageMode(vertexBuffer, builder->storageMode);
             return reinterpret_cast<TVertexBuffer*>(vertexBuffer);
         }
 
@@ -202,11 +170,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE size_t VertexBuffer_getVertexCount(TVertexBuffer* tBuffer) {
             auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
             return vertexBuffer->getVertexCount();
-        }
-
-        EMSCRIPTEN_KEEPALIVE TVertexBufferStorageMode VertexBuffer_getStorageMode(TVertexBuffer* tBuffer) {
-            auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
-            return getVertexBufferStorageMode(vertexBuffer);
         }
 
         EMSCRIPTEN_KEEPALIVE void VertexBuffer_setBufferAt(
@@ -255,7 +218,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void VertexBuffer_destroy(TEngine* tEngine, TVertexBuffer* tBuffer) {
             auto* engine = reinterpret_cast<filament::Engine*>(tEngine);
             auto* vertexBuffer = reinterpret_cast<filament::VertexBuffer*>(tBuffer);
-            unregisterVertexBufferStorageMode(vertexBuffer);
             engine->destroy(vertexBuffer);
         }
 

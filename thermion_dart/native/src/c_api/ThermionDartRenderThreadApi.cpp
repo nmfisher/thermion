@@ -1010,6 +1010,7 @@ extern "C"
       TMaterialInstance **materialInstances,
       int materialInstanceCount,
       TPrimitiveType tPrimitiveType,
+      TVertexBufferStorageMode vertexBufferStorageMode,
       Aabb3 boundingBox,
       void (*callback)(TSceneAsset *))
   {
@@ -1017,7 +1018,15 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]
         {
-          auto sceneAsset = SceneAsset_createFromBuffers(tEngine, tVertexBuffer, tIndexBuffer, materialInstances, materialInstanceCount, tPrimitiveType, boundingBox);
+          auto sceneAsset = SceneAsset_createFromBuffers(
+              tEngine,
+              tVertexBuffer,
+              tIndexBuffer,
+              materialInstances,
+              materialInstanceCount,
+              tPrimitiveType,
+              vertexBufferStorageMode,
+              boundingBox);
 
           setOwner(sceneAsset, rt);          PROXY(callback(sceneAsset));
         });

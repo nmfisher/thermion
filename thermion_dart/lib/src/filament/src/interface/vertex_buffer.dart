@@ -156,9 +156,6 @@ abstract class VertexBuffer {
 
   bool get supportsSetBufferAt => storageMode == VertexBufferStorageMode.direct;
 
-  /// Whether this wrapper owns the native resource and may destroy it.
-  bool get ownsResource;
-
   /// Asynchronously copy-initializes the specified buffer from the given data.
   ///
   /// [bufferIndex] Index of the buffer to initialize (0 to bufferCount-1)
