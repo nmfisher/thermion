@@ -40,6 +40,9 @@
 - Apply overlapping custom morph animations oldest-first so the most recently
   added animation has final priority for shared targets. Active animations
   continue to overwrite manual weights on their next update.
+- Fix `VertexBufferMode.editable` glTF assets so their vertex streams can be
+  updated through `VertexBuffer.setBufferAt`; editable buffers no longer use
+  the `BufferObject` backing reserved for unwelded smooth/flat shading swaps.
 
 ### Breaking changes
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,
