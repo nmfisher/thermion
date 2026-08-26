@@ -3511,10 +3511,7 @@ Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(Pointer<TSceneAsset> tSceneAss
 }
 
 int SceneAsset_getVertexBufferStorageMode(Pointer<TSceneAsset> tSceneAsset, int primitiveIndex) {
-  final result = GeneratedBindings.instance._SceneAsset_getVertexBufferStorageMode(
-    tSceneAsset.cast(),
-    primitiveIndex,
-  );
+  final result = GeneratedBindings.instance._SceneAsset_getVertexBufferStorageMode(tSceneAsset.cast(), primitiveIndex);
   return result;
 }
 
@@ -10360,6 +10357,12 @@ sealed class TPrimitiveType {
   static const PRIMITIVETYPE_TRIANGLE_STRIP = 5;
 }
 
+sealed class TVertexBufferStorageMode {
+  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
+  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
+  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
+}
+
 extension Aabb3Ext on Pointer<Aabb3> {
   Aabb3 toDart() {
     return Aabb3(this);
@@ -11122,12 +11125,6 @@ sealed class TVertexAttributeType {
   static const TVERTEXATTRIBUTE_TYPE_HALF2 = 23;
   static const TVERTEXATTRIBUTE_TYPE_HALF3 = 24;
   static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
-}
-
-sealed class TVertexBufferStorageMode {
-  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
-  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
-  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
 }
 
 extension TBufferObjectExt on Pointer<TBufferObject> {

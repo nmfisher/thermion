@@ -710,10 +710,7 @@ external ffi.Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
 );
 
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
-external int SceneAsset_getVertexBufferStorageMode(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-  int primitiveIndex,
-);
+external int SceneAsset_getVertexBufferStorageMode(ffi.Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
 
 @ffi.Native<ffi.Pointer<TIndexBuffer> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
 external ffi.Pointer<TIndexBuffer> SceneAsset_getIndexBuffer(ffi.Pointer<TSceneAsset> tSceneAsset, int primitiveIndex);
