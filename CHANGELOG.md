@@ -58,8 +58,8 @@
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,
   `ThermionViewer.loadGltfFromBuffer`, and `FilamentApp.loadGltfFromBuffer` with
   `requiredGeometryCapabilities`. An empty set leaves gltfio geometry untouched;
-  requesting `barycentrics` or `flatShading` creates per-triangle vertices, while
-  requesting `writableVertices`, `preservedTopology`, or `preservedGeometry`
+  requesting `barycentrics` or `uniqueTriangleCorners` creates per-triangle vertices, while
+  requesting `writableVertices`, `preservedTopology`, or `accessibleGeometryBuffers`
   preserves source vertex order, indices, and morph-target compatibility in
   directly writable buffers.
   Assets report the complete capability set actually provided through

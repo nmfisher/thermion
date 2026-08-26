@@ -483,7 +483,7 @@ abstract class View<T> extends NativeHandle<T> {
   /// outlines.
   ///
   /// Throws if the asset (or [geometrySource]) does not provide
-  /// [SceneAssetGeometryCapability.preservedGeometry].
+  /// [SceneAssetGeometryCapability.accessibleGeometryBuffers].
   ///
   /// The [scale] parameter is deprecated and ignored; use [outlineWidth] instead.
   Future setStencilHighlight(

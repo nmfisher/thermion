@@ -19,6 +19,11 @@ namespace thermion
         return _instanceOwner->getGeometryCapabilities();
     }
 
+    bool GltfSceneAssetInstance::supportsFlatShading() const
+    {
+        return _instanceOwner->supportsFlatShading();
+    }
+
     TVertexBufferStorageMode GltfSceneAssetInstance::getVertexBufferStorageMode(size_t primitiveIndex) const
     {
         return _instanceOwner->getVertexBufferStorageMode(primitiveIndex);

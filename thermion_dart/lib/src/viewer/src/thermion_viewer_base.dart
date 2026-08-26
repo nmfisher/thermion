@@ -167,7 +167,7 @@ abstract class ThermionViewer {
   // generally more efficient than dynamically instantating at a later time.
   //
   // If [requiredGeometryCapabilities] contains [SceneAssetGeometryCapability.barycentrics]
-  // or [SceneAssetGeometryCapability.flatShading], vertex buffers are rebuilt
+  // or [SceneAssetGeometryCapability.uniqueTriangleCorners], vertex buffers are rebuilt
   // after loading with a superset of attributes (POSITION, TANGENTS,
   // UV0, CUSTOM0, and
   // optionally BONE_INDICES/BONE_WEIGHTS). Vertices are unwelded so each
@@ -186,7 +186,7 @@ abstract class ThermionViewer {
   // [SceneAssetGeometryCapability.writableVertices] and
   // [SceneAssetGeometryCapability.preservedTopology] cannot be combined with
   // [SceneAssetGeometryCapability.barycentrics] or
-  // [SceneAssetGeometryCapability.flatShading]. The returned asset reports the
+  // [SceneAssetGeometryCapability.uniqueTriangleCorners]. The returned asset reports the
   // complete set actually provided through [ThermionAsset.geometryCapabilities].
   //
   // If [loadResourcesAsync] is true, resources (textures, materials, etc) will

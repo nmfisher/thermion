@@ -520,6 +520,7 @@ class ThermionViewerFFI extends ThermionViewer {
     String? resourceUri,
     bool loadAsync = false,
   }) async {
+    final geometryRequirements = Set<SceneAssetGeometryCapability>.unmodifiable(requiredGeometryCapabilities);
     final data = await _app.loadResource(path);
     if (resourceUri == null) {
       var normalised = path.replaceAll("\\", "/");
@@ -536,7 +537,7 @@ class ThermionViewerFFI extends ThermionViewer {
       addToScene: addToScene,
       initialInstances: initialInstances,
       releaseSourceData: releaseSourceData,
-      requiredGeometryCapabilities: requiredGeometryCapabilities,
+      requiredGeometryCapabilities: geometryRequirements,
       resourceUri: resourceUri,
       loadResourcesAsync: loadAsync,
     );

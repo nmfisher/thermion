@@ -63,7 +63,11 @@ namespace thermion
         VertexBuffer *getVertexBuffer() const { return _vertexBuffer; }
         IndexBuffer *getIndexBuffer() const { return _indexBuffer; }
         uint32_t getGeometryCapabilities() const override {
-            return SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY;
+            uint32_t capabilities = SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS;
+            if (_vertexBufferStorageMode == VERTEX_BUFFER_STORAGE_MODE_DIRECT) {
+                capabilities |= SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES;
+            }
+            return capabilities;
         }
         TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const override {
             return primitiveIndex == 0

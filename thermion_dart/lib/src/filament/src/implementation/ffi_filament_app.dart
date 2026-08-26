@@ -36,14 +36,12 @@ int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities
   var bits = TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
   for (final capability in capabilities) {
     bits |= switch (capability) {
-      SceneAssetGeometryCapability.flatShading =>
-        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING,
       SceneAssetGeometryCapability.barycentrics =>
         TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS,
       SceneAssetGeometryCapability.writableVertices =>
         TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES,
-      SceneAssetGeometryCapability.preservedGeometry =>
-        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY,
+      SceneAssetGeometryCapability.accessibleGeometryBuffers =>
+        TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS,
       SceneAssetGeometryCapability.preservedTopology =>
         TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY,
       SceneAssetGeometryCapability.uniqueTriangleCorners =>
@@ -55,7 +53,6 @@ int _geometryCapabilitiesToNative(Set<SceneAssetGeometryCapability> capabilities
 
 void _validateRequiredGeometryCapabilities(Set<SceneAssetGeometryCapability> capabilities) {
   final requiresUnwelded =
-      capabilities.contains(SceneAssetGeometryCapability.flatShading) ||
       capabilities.contains(SceneAssetGeometryCapability.barycentrics) ||
       capabilities.contains(SceneAssetGeometryCapability.uniqueTriangleCorners);
   final requiresPreservedTopology =
@@ -66,7 +63,7 @@ void _validateRequiredGeometryCapabilities(Set<SceneAssetGeometryCapability> cap
       capabilities,
       'requiredGeometryCapabilities',
       'writableVertices or preservedTopology cannot be combined with '
-          'flatShading, barycentrics, or uniqueTriangleCorners',
+          'barycentrics or uniqueTriangleCorners',
     );
   }
 }
@@ -1165,10 +1162,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     String? resourceUri,
   }) async {
+    final geometryRequirements = Set<SceneAssetGeometryCapability>.unmodifiable(requiredGeometryCapabilities);
     if (initialInstances <= 0) {
       throw Exception("initialInstances must be at least 1");
     }
-    _validateRequiredGeometryCapabilities(requiredGeometryCapabilities);
+    _validateRequiredGeometryCapabilities(geometryRequirements);
     _logger.info(
       "Loading glTF from buffer (${data.lengthInBytes} bytes)"
       " with resourceUri ${resourceUri}",
@@ -1267,25 +1265,28 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           gltfAssetLoader,
           nameComponentManager,
           filamentAsset,
-          _geometryCapabilitiesToNative(requiredGeometryCapabilities),
+          _geometryCapabilitiesToNative(geometryRequirements),
           cb,
         ),
       );
-
-      if (asset == nullptr) {
-        throw Exception("Unknown error loading glTF asset. See logs for details.");
-      }
 
       await withVoidCallback(
         (requestId, cb) => GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, requestId, cb),
       );
 
+      if (asset == nullptr) {
+        throw StateError(
+          'Failed to load a glTF asset satisfying the required geometry '
+          'capabilities: $geometryRequirements. See native logs for details.',
+        );
+      }
+
       final ffiAsset = FFIAsset(asset, app: this);
-      if (!ffiAsset.geometryCapabilities.containsAll(requiredGeometryCapabilities)) {
+      if (!ffiAsset.geometryCapabilities.containsAll(geometryRequirements)) {
         await withVoidCallback((requestId, cb) => SceneAsset_destroyRenderThread(asset, requestId, cb));
         throw StateError(
           'The loaded asset does not provide all required geometry '
-          'capabilities. Required: $requiredGeometryCapabilities; provided: '
+          'capabilities. Required: $geometryRequirements; provided: '
           '${ffiAsset.geometryCapabilities}.',
         );
       }

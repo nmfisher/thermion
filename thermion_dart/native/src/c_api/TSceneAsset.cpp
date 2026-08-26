@@ -93,6 +93,14 @@ extern "C"
             requiredGeometryCapabilities
         );
 
+        if ((sceneAsset->getGeometryCapabilities() & requiredGeometryCapabilities) !=
+            requiredGeometryCapabilities) {
+            Log("Failed to provide required geometry capabilities: requested 0x%x, provided 0x%x",
+                requiredGeometryCapabilities, sceneAsset->getGeometryCapabilities());
+            delete sceneAsset;
+            return nullptr;
+        }
+
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
     }
     
@@ -239,6 +247,10 @@ extern "C"
         return reinterpret_cast<SceneAsset*>(tSceneAsset)->getGeometryCapabilities();
     }
 
+    EMSCRIPTEN_KEEPALIVE bool SceneAsset_supportsFlatShading(TSceneAsset *tSceneAsset) {
+        return reinterpret_cast<SceneAsset*>(tSceneAsset)->supportsFlatShading();
+    }
+
     EMSCRIPTEN_KEEPALIVE TVertexBuffer *SceneAsset_getVertexBuffer(TSceneAsset *tSceneAsset, int primitiveIndex) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Geometry) {
@@ -313,7 +325,8 @@ extern "C"
             Log("setFlatShading only supported on glTF assets");
             return;
         }
-        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(tSceneAsset);
+        auto *gltfAsset = reinterpret_cast<GltfSceneAsset*>(
+            asset->isInstance() ? asset->getInstanceOwner() : asset);
         gltfAsset->setFlatShading(flatShading);
     }
 

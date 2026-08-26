@@ -141,6 +141,7 @@ namespace thermion
         }
 
         uint32_t getGeometryCapabilities() const override;
+        bool supportsFlatShading() const override;
         TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const override;
 
         size_t getBoneCount(size_t skinIndex) const override;

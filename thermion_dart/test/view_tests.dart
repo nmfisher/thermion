@@ -652,7 +652,7 @@ void main() async {
       // Load FlightHelmet, a multi-mesh glTF asset
       final asset = await result.viewer.loadGltf(
         p.join(testHelper.assetsDir, "FlightHelmet", "FlightHelmet.gltf"),
-        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.preservedGeometry},
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
       );
       expect(asset, isNotNull);
 

@@ -344,7 +344,7 @@ abstract class FilamentApp<T> {
 
   /// Loads a glTF asset from a raw memory buffer.
   ///
-  /// [requiredGeometryCapabilities] describes the operations that the loaded
+  /// [requiredGeometryCapabilities] describes the geometry properties that the loaded
   /// asset must support. The loader may provide a compatible superset, which
   /// is reported by [ThermionAsset.geometryCapabilities]. Incompatible
   /// requirements throw [ArgumentError].

@@ -5,24 +5,21 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 
-/// A geometry operation guaranteed to be supported by a scene asset.
+/// A geometry property guaranteed to be available on a scene asset.
 ///
 /// The same values can be supplied to asset loaders as requirements. Loaders
 /// may provide additional capabilities when they share the same geometry
 /// representation.
 enum SceneAssetGeometryCapability {
-  /// Smooth and per-face tangent frames can be selected at runtime.
-  flatShading,
-
   /// Triangle-corner barycentric coordinates are available to materials.
   barycentrics,
 
   /// Vertex attributes can be updated through [VertexBuffer.setBufferAt].
   writableVertices,
 
-  /// Thermion retains reusable vertex and index buffers for operations such as
+  /// Thermion exposes reusable vertex and index buffers for operations such as
   /// stencil highlighting.
-  preservedGeometry,
+  accessibleGeometryBuffers,
 
   /// Source vertex order and triangle indices are preserved.
   preservedTopology,
@@ -99,6 +96,10 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
     return const {};
   }
 
+  /// Whether [setFlatShading] can switch this asset between smooth and
+  /// per-face tangent frames at runtime.
+  bool get supportsFlatShading => false;
+
   // The top-most entity in the hierarchy (if this is a glTF asset, this
   // entity will have a transform that sits at the top of the transform
   // hierarchy but is not itself renderable.
@@ -152,8 +153,7 @@ abstract class ThermionAsset<T> extends NativeHandle<T> {
   }
 
   // Toggle between flat (per-face) and smooth (per-vertex) shading.
-  // Throws unless [geometryCapabilities] contains
-  // [SceneAssetGeometryCapability.flatShading].
+  // Throws unless [supportsFlatShading] is true.
   Future setFlatShading(bool flatShading) {
     throw UnimplementedError();
   }

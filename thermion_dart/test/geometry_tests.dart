@@ -28,6 +28,13 @@ void main() async {
       final vb = await asset.getVertexBuffer();
       expect(vb, isNotNull);
       expect(vb!.storageMode, VertexBufferStorageMode.direct);
+      expect(
+        asset.geometryCapabilities,
+        containsAll(const {
+          SceneAssetGeometryCapability.accessibleGeometryBuffers,
+          SceneAssetGeometryCapability.writableVertices,
+        }),
+      );
       await expectLater(vb.destroy(), throwsStateError);
       final vertices = Float32List.fromList([
         // Front face

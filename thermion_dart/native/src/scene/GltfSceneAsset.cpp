@@ -48,31 +48,32 @@ namespace thermion
     {
         const bool requiresUnwelded =
             (requiredGeometryCapabilities &
-             (SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
-              SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
               SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS)) != 0;
         const bool requiresPreserved =
             (requiredGeometryCapabilities &
              (SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
               SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY |
-              SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY)) != 0;
+              SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS)) != 0;
 
         if (requiresUnwelded)
         {
-            _geometryCapabilities =
-                SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
-                SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
-                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
-                SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS;
-            rebuildVertexBuffers(false);
+            if (rebuildVertexBuffers(false)) {
+                _geometryCapabilities =
+                    SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+                    SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS |
+                    SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS;
+                _supportsFlatShading = true;
+            }
         }
         else if (requiresPreserved)
         {
-            _geometryCapabilities =
-                SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
-                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
-                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY;
-            rebuildVertexBuffers(true);
+            if (rebuildVertexBuffers(true)) {
+                _geometryCapabilities =
+                    SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+                    SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS |
+                    SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY;
+            }
         }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
@@ -84,10 +85,9 @@ namespace thermion
     bool GltfSceneAsset::supportsRequiredGeometryCapabilities(uint32_t requiredGeometryCapabilities)
     {
         constexpr uint32_t supported =
-            SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
             SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
             SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
-            SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS |
             SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY |
             SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS;
         if ((requiredGeometryCapabilities & ~supported) != 0)
@@ -97,8 +97,7 @@ namespace thermion
 
         const bool requiresUnwelded =
             (requiredGeometryCapabilities &
-             (SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
-              SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
               SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS)) != 0;
         const bool requiresPreservedTopology =
             (requiredGeometryCapabilities &
@@ -112,23 +111,23 @@ namespace thermion
         _instances.clear();
         for (auto *vb : _preservedVertexBuffers)
         {
-            _engine->destroy(vb);
+            if (vb) _engine->destroy(vb);
         }
         for (auto *ib : _preservedIndexBuffers)
         {
-            _engine->destroy(ib);
+            if (ib) _engine->destroy(ib);
         }
         for (auto *bo : _preservedBufferObjects)
         {
-            _engine->destroy(bo);
+            if (bo) _engine->destroy(bo);
         }
         for (auto *bo : _smoothTangentBOs)
         {
-            _engine->destroy(bo);
+            if (bo) _engine->destroy(bo);
         }
         for (auto *bo : _flatTangentBOs)
         {
-            _engine->destroy(bo);
+            if (bo) _engine->destroy(bo);
         }
         releaseSourceData();
         _assetLoader->destroyAsset(_asset);
@@ -318,20 +317,20 @@ namespace thermion
         return nullptr;
     }
 
-    void GltfSceneAsset::rebuildVertexBuffers(bool preserveTopology)
+    bool GltfSceneAsset::rebuildVertexBuffers(bool preserveTopology)
     {
         const bool preserveSourceTopology = preserveTopology;
         auto *sourceData = (const cgltf_data *)_asset->getSourceAsset();
         if (!sourceData)
         {
             Log("rebuildVertexBuffers: source data already released");
-            return;
+            return false;
         }
 
         if (_geometryPreserved)
         {
             Log("rebuildVertexBuffers: already called");
-            return;
+            return false;
         }
 
         std::vector<MeshEntry> meshEntries;
@@ -343,6 +342,18 @@ namespace thermion
         auto *allEntities = _asset->getEntities();
         size_t allEntityCount = _asset->getEntityCount();
         auto &rm = _engine->getRenderableManager();
+        bool allPrimitivesRebuilt = true;
+        size_t rebuiltPrimitiveCount = 0;
+
+        auto appendPlaceholder = [&]() {
+            _preservedVertexBuffers.push_back(nullptr);
+            _preservedVertexBufferStorageModes.push_back(VERTEX_BUFFER_STORAGE_MODE_UNKNOWN);
+            _preservedIndexBuffers.push_back(nullptr);
+            _preservedIndexCounts.push_back(0);
+            _smoothTangentBOs.push_back(nullptr);
+            _flatTangentBOs.push_back(nullptr);
+            allPrimitivesRebuilt = false;
+        };
 
         TRACE("rebuildVertexBuffers: meshEntries=%zu entityCount=%zu nodes=%zu",
               meshEntries.size(), allEntityCount, sourceData->nodes_count);
@@ -384,18 +395,26 @@ namespace thermion
                     TRACE("rebuildVertexBuffers: no mesh (named or fallback) for entity %zu — padding %zu placeholder slots", ei, skippedPrimCount);
                     for (size_t pi = 0; pi < skippedPrimCount; pi++)
                     {
-                        _preservedVertexBuffers.push_back(nullptr);
-                        _preservedIndexBuffers.push_back(nullptr);
-                        _preservedIndexCounts.push_back(0);
-                        _smoothTangentBOs.push_back(nullptr);
-                        _flatTangentBOs.push_back(nullptr);
+                        appendPlaceholder();
                     }
                     continue;
                 }
             }
 
-            for (cgltf_size pi = 0; pi < mesh->primitives_count; pi++)
+            const size_t renderablePrimitiveCount = rm.getPrimitiveCount(ri);
+            if (mesh->primitives_count != renderablePrimitiveCount)
             {
+                allPrimitivesRebuilt = false;
+                TRACE("rebuildVertexBuffers: mesh/renderable primitive count mismatch at entity %zu (%zu vs %zu)",
+                      ei, static_cast<size_t>(mesh->primitives_count), renderablePrimitiveCount);
+            }
+            for (size_t pi = 0; pi < renderablePrimitiveCount; pi++)
+            {
+                if (pi >= mesh->primitives_count)
+                {
+                    appendPlaceholder();
+                    continue;
+                }
                 const cgltf_primitive &prim = mesh->primitives[pi];
 
                 if (prim.type != cgltf_primitive_type_triangles)
@@ -407,11 +426,7 @@ namespace thermion
                     // this primitive. Callers (e.g. setStencilHighlight)
                     // null-check getPreservedVertexBuffer.
                     TRACE("rebuildVertexBuffers: placeholder for non-triangle primitive at entity %zu prim %zu", ei, pi);
-                    _preservedVertexBuffers.push_back(nullptr);
-                    _preservedIndexBuffers.push_back(nullptr);
-                    _preservedIndexCounts.push_back(0);
-                    _smoothTangentBOs.push_back(nullptr);
-                    _flatTangentBOs.push_back(nullptr);
+                    appendPlaceholder();
                     continue;
                 }
 
@@ -420,6 +435,8 @@ namespace thermion
                 const cgltf_accessor *nrmAccessor = nullptr;
                 const cgltf_accessor *tanAccessor = nullptr;
                 const cgltf_accessor *uvAccessor = nullptr;
+                const cgltf_accessor *uv1Accessor = nullptr;
+                const cgltf_accessor *colorAccessor = nullptr;
                 const cgltf_accessor *jointsAccessor = nullptr;
                 const cgltf_accessor *weightsAccessor = nullptr;
 
@@ -437,8 +454,14 @@ namespace thermion
                         tanAccessor = prim.attributes[ai].data;
                         break;
                     case cgltf_attribute_type_texcoord:
-                        if (!uvAccessor)
+                        if (prim.attributes[ai].index == 0)
                             uvAccessor = prim.attributes[ai].data;
+                        else if (prim.attributes[ai].index == 1)
+                            uv1Accessor = prim.attributes[ai].data;
+                        break;
+                    case cgltf_attribute_type_color:
+                        if (prim.attributes[ai].index == 0)
+                            colorAccessor = prim.attributes[ai].data;
                         break;
                     case cgltf_attribute_type_joints:
                         if (!jointsAccessor)
@@ -452,8 +475,10 @@ namespace thermion
                         break;
                     }
                 }
-                if (!posAccessor)
+                if (!posAccessor) {
+                    appendPlaceholder();
                     continue;
+                }
 
                 // --- Read indices ---
                 std::vector<uint32_t> indices;
@@ -475,8 +500,21 @@ namespace thermion
                     }
                 }
 
-                if (indices.size() < 3 || indices.size() % 3 != 0)
+                if (indices.size() < 3 || indices.size() % 3 != 0) {
+                    appendPlaceholder();
                     continue;
+                }
+                bool indicesInRange = true;
+                for (const auto index : indices) {
+                    if (index >= posAccessor->count) {
+                        indicesInRange = false;
+                        break;
+                    }
+                }
+                if (!indicesInRange) {
+                    appendPlaceholder();
+                    continue;
+                }
 
                 uint32_t triangleCount = (uint32_t)(indices.size() / 3);
                 uint32_t newVertexCount = preserveSourceTopology
@@ -504,6 +542,24 @@ namespace thermion
                     uvComponents = cgltf_num_components(uvAccessor->type);
                     srcUVs.resize(uvAccessor->count * uvComponents);
                     cgltf_accessor_unpack_floats(uvAccessor, srcUVs.data(), srcUVs.size());
+                }
+
+                std::vector<float> srcUV1s;
+                size_t uv1Components = 0;
+                if (uv1Accessor)
+                {
+                    uv1Components = cgltf_num_components(uv1Accessor->type);
+                    srcUV1s.resize(uv1Accessor->count * uv1Components);
+                    cgltf_accessor_unpack_floats(uv1Accessor, srcUV1s.data(), srcUV1s.size());
+                }
+
+                std::vector<float> srcColors;
+                size_t colorComponents = 0;
+                if (colorAccessor)
+                {
+                    colorComponents = cgltf_num_components(colorAccessor->type);
+                    srcColors.resize(colorAccessor->count * colorComponents);
+                    cgltf_accessor_unpack_floats(colorAccessor, srcColors.data(), srcColors.size());
                 }
 
                 std::vector<float> srcTangents;
@@ -539,6 +595,12 @@ namespace thermion
                     newTangents.resize(newVertexCount * 4);
                 }
                 std::vector<float> newUVs(newVertexCount * 2);
+                std::vector<float> newUV1s;
+                if (uv1Accessor)
+                {
+                    newUV1s.resize(newVertexCount * 2);
+                }
+                std::vector<float> newColors(newVertexCount * 4, 1.0f);
                 std::vector<float> newBarycentrics(newVertexCount * 4);
                 std::vector<uint8_t> newJoints;
                 std::vector<float> newWeights;
@@ -576,6 +638,24 @@ namespace thermion
                         newNormals[dstIdx * 3 + 2] = 0.0f;
                     }
 
+                    // Secondary UV
+                    if (uv1Accessor && srcIdx < uv1Accessor->count)
+                    {
+                        newUV1s[dstIdx * 2 + 0] = srcUV1s[srcIdx * uv1Components + 0];
+                        newUV1s[dstIdx * 2 + 1] = srcUV1s[srcIdx * uv1Components + 1];
+                    }
+
+                    // Vertex color
+                    if (colorAccessor && srcIdx < colorAccessor->count)
+                    {
+                        const size_t sourceOffset = srcIdx * colorComponents;
+                        newColors[dstIdx * 4 + 0] = srcColors[sourceOffset + 0];
+                        newColors[dstIdx * 4 + 1] = srcColors[sourceOffset + 1];
+                        newColors[dstIdx * 4 + 2] = srcColors[sourceOffset + 2];
+                        newColors[dstIdx * 4 + 3] = colorComponents >= 4
+                            ? srcColors[sourceOffset + 3]
+                            : 1.0f;
+                    }
                     // UV
                     if (uvAccessor && srcIdx < uvAccessor->count)
                     {
@@ -708,8 +788,12 @@ namespace thermion
                 }
 
                 // --- Build VertexBuffer ---
-                // Buffer layout: POSITION(0), TANGENTS(1), UV0(2), CUSTOM0(3), COLOR(4), [BONE_INDICES(5), BONE_WEIGHTS(6)]
-                uint8_t bufferCount = hasSkinning ? 7 : 5;
+                // Buffer layout: POSITION(0), TANGENTS(1), UV0(2), CUSTOM0(3),
+                // COLOR(4), [UV1], [BONE_INDICES, BONE_WEIGHTS].
+                const uint8_t uv1BufferIndex = 5;
+                const uint8_t boneIndicesBufferIndex = uv1Accessor ? 6 : 5;
+                const uint8_t boneWeightsBufferIndex = boneIndicesBufferIndex + 1;
+                uint8_t bufferCount = 5 + (uv1Accessor ? 1 : 0) + (hasSkinning ? 2 : 0);
 
                 auto vbBuilder = VertexBuffer::Builder()
                                      .vertexCount(newVertexCount)
@@ -733,11 +817,17 @@ namespace thermion
                     .attribute(VertexAttribute::CUSTOM0, 3, VertexBuffer::AttributeType::FLOAT4)
                     .attribute(VertexAttribute::COLOR, 4, VertexBuffer::AttributeType::FLOAT4);
 
+                if (uv1Accessor)
+                {
+                    vbBuilder.attribute(VertexAttribute::UV1, uv1BufferIndex,
+                                        VertexBuffer::AttributeType::FLOAT2);
+                }
+
                 if (hasSkinning)
                 {
                     vbBuilder
-                        .attribute(VertexAttribute::BONE_INDICES, 5, VertexBuffer::AttributeType::UBYTE4)
-                        .attribute(VertexAttribute::BONE_WEIGHTS, 6, VertexBuffer::AttributeType::FLOAT4);
+                        .attribute(VertexAttribute::BONE_INDICES, boneIndicesBufferIndex, VertexBuffer::AttributeType::UBYTE4)
+                        .attribute(VertexAttribute::BONE_WEIGHTS, boneWeightsBufferIndex, VertexBuffer::AttributeType::FLOAT4);
                 }
 
                 VertexBuffer *vb = vbBuilder.build(*_engine);
@@ -805,23 +895,25 @@ namespace thermion
                 size_t baryDataSize = newVertexCount * 4 * sizeof(float);
                 uploadStream(3, newBarycentrics.data(), baryDataSize);
 
-                // Buffer 4: COLOR (dummy, all white = 1.0)
+                // Buffer 4: COLOR (source COLOR_0 or white when absent)
                 size_t colorDataSize = newVertexCount * 4 * sizeof(float);
-                std::vector<float> colorFloats(newVertexCount * 4);
-                for (uint32_t i = 0; i < newVertexCount * 4; i++) {
-                    colorFloats[i] = 1.0f;
+                uploadStream(4, newColors.data(), colorDataSize);
+
+                if (uv1Accessor)
+                {
+                    const size_t uv1DataSize = newVertexCount * 2 * sizeof(float);
+                    uploadStream(uv1BufferIndex, newUV1s.data(), uv1DataSize);
                 }
-                uploadStream(4, colorFloats.data(), colorDataSize);
 
                 if (hasSkinning)
                 {
                     // Buffer 5: BONE_INDICES
                     size_t jointDataSize = newVertexCount * 4 * sizeof(uint8_t);
-                    uploadStream(5, newJoints.data(), jointDataSize);
+                    uploadStream(boneIndicesBufferIndex, newJoints.data(), jointDataSize);
 
                     // Buffer 6: BONE_WEIGHTS
                     size_t weightDataSize = newVertexCount * 4 * sizeof(float);
-                    uploadStream(6, newWeights.data(), weightDataSize);
+                    uploadStream(boneWeightsBufferIndex, newWeights.data(), weightDataSize);
                 }
 
                 // Editable geometry retains source indices. Unwelded geometry
@@ -848,8 +940,13 @@ namespace thermion
                                  vb, ib, 0, newIndexCount);
 
                 _preservedVertexBuffers.push_back(vb);
+                _preservedVertexBufferStorageModes.push_back(
+                    preserveSourceTopology
+                        ? VERTEX_BUFFER_STORAGE_MODE_DIRECT
+                        : VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS);
                 _preservedIndexBuffers.push_back(ib);
                 _preservedIndexCounts.push_back(newIndexCount);
+                rebuiltPrimitiveCount++;
 
                 TRACE("rebuildVertexBuffers: primitive %zu %s with %u vertices and %zu indices (skinned=%d)",
                       pi, preserveSourceTopology ? "preserved topology" : "unwelded",
@@ -896,7 +993,8 @@ namespace thermion
             }
         }
 
-        _geometryPreserved = true;
+        _geometryPreserved = rebuiltPrimitiveCount > 0;
+        return allPrimitivesRebuilt && rebuiltPrimitiveCount > 0;
     }
 
     int GltfSceneAsset::getPrimitiveOffsetForEntity(utils::Entity entity) const
@@ -911,6 +1009,11 @@ namespace thermion
 
     void GltfSceneAsset::setFlatShading(bool flatShading)
     {
+        if (!_supportsFlatShading)
+        {
+            Log("setFlatShading called on an asset without flat-shading support");
+            return;
+        }
         if (flatShading == _flatShading)
             return;
         _flatShading = flatShading;

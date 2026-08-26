@@ -575,13 +575,13 @@ class FFIView extends View<Pointer<TView>> {
     final ffiGeoAsset = geoAsset as FFIAsset;
 
     // The silhouette pass reuses the asset's vertex and index buffers but only
-    // consumes POSITION. It therefore needs preserved geometry, not the
+    // consumes POSITION. It therefore needs accessible geometry buffers, not the
     // barycentric coordinates used by wireframe and flat-shading features.
-    if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.preservedGeometry)) {
+    if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.accessibleGeometryBuffers)) {
       throw StateError(
-        "setStencilHighlight requires preserved geometry. "
+        "setStencilHighlight requires accessible geometry buffers. "
         "Load the asset with requiredGeometryCapabilities containing "
-        "preservedGeometry.",
+        "accessibleGeometryBuffers.",
       );
     }
 
@@ -595,7 +595,7 @@ class FFIView extends View<Pointer<TView>> {
       // The asset has preserved geometry, but this particular entity has no
       // rebuilt buffers (e.g. its primitives are all lines/points).
       _logger.warning(
-        "Stencil highlight: no preserved geometry for entity $entity "
+        "Stencil highlight: no accessible geometry buffers for entity $entity "
         "(its primitives are all non-triangles and have no rebuilt buffers).",
       );
       return;

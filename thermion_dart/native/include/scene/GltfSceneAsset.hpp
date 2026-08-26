@@ -143,17 +143,13 @@ namespace thermion
 
         uint32_t getGeometryCapabilities() const override { return _geometryCapabilities; }
 
+        bool supportsFlatShading() const override { return _supportsFlatShading; }
+
         TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const override {
-            if (primitiveIndex >= _preservedVertexBuffers.size()) {
+            if (primitiveIndex >= _preservedVertexBufferStorageModes.size()) {
                 return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
             }
-            if ((_geometryCapabilities & SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES) != 0) {
-                return VERTEX_BUFFER_STORAGE_MODE_DIRECT;
-            }
-            if ((_geometryCapabilities & SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS) != 0) {
-                return VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS;
-            }
-            return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+            return _preservedVertexBufferStorageModes[primitiveIndex];
         }
 
         /// Rebuild all mesh primitives with a superset vertex buffer layout
@@ -161,7 +157,7 @@ namespace thermion
         /// When [preserveTopology] is false, each triangle receives unique
         /// vertices for barycentric wireframe rendering. When true, source
         /// vertex order and indices remain compatible with glTF morph targets.
-        void rebuildVertexBuffers(bool preserveTopology);
+        bool rebuildVertexBuffers(bool preserveTopology);
 
         /// Returns false when the requested capability combination cannot be
         /// provided by a single rebuilt geometry representation.
@@ -220,10 +216,12 @@ namespace thermion
         bool _sourceDataReleased = false;
         bool _geometryPreserved = false;
         bool _flatShading = false;
+        bool _supportsFlatShading = false;
         uint32_t _geometryCapabilities = SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
 
         // Buffers created by rebuildVertexBuffers, owned by this asset.
         std::vector<VertexBuffer*> _preservedVertexBuffers;
+        std::vector<TVertexBufferStorageMode> _preservedVertexBufferStorageModes;
         std::vector<IndexBuffer*> _preservedIndexBuffers;
         std::vector<size_t> _preservedIndexCounts;
         std::vector<BufferObject*> _preservedBufferObjects;

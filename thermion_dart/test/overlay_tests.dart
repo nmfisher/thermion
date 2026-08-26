@@ -221,21 +221,21 @@ void main() async {
     }, postProcessing: true);
   });
 
-  test('highlighting requires preserved geometry while flat shading requires unwelded geometry', () async {
+  test('highlighting requires accessible buffers while flat shading requires unwelded geometry', () async {
     await testHelper.withViewer((viewer) async {
-      final preservedGeometryMatcher = throwsA(
-        isA<StateError>().having((e) => e.toString(), 'message', contains('requires preserved geometry')),
+      final accessibleGeometryMatcher = throwsA(
+        isA<StateError>().having((e) => e.toString(), 'message', contains('requires accessible geometry buffers')),
       );
       final unweldedMatcher = throwsA(
         isA<StateError>().having(
           (e) => e.toString(),
           'message',
-          contains('requiredGeometryCapabilities containing flatShading'),
+          contains('requiredGeometryCapabilities containing uniqueTriangleCorners'),
         ),
       );
 
       final original = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
-      await expectLater(viewer.view.setStencilHighlight(original), preservedGeometryMatcher);
+      await expectLater(viewer.view.setStencilHighlight(original), accessibleGeometryMatcher);
       await expectLater(original.setFlatShading(true), unweldedMatcher);
 
       await expectLater(
@@ -243,7 +243,7 @@ void main() async {
           "file://${testHelper.assetsDir}/cube.glb",
           requiredGeometryCapabilities: const {
             SceneAssetGeometryCapability.preservedTopology,
-            SceneAssetGeometryCapability.flatShading,
+            SceneAssetGeometryCapability.uniqueTriangleCorners,
           },
         ),
         throwsArgumentError,
@@ -254,12 +254,12 @@ void main() async {
       // cannot swap the tangent BufferObjects required by flat shading.
       final editable = await viewer.loadGltf(
         "file://${testHelper.assetsDir}/cube.glb",
-        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.preservedGeometry},
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.accessibleGeometryBuffers},
         addToScene: true,
       );
       expect(editable.getVertexBuffer(), isNotNull);
       expect(editable.getVertexBuffer()!.supportsSetBufferAt, isTrue);
-      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.preservedGeometry));
+      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.accessibleGeometryBuffers));
       expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.writableVertices));
       expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.preservedTopology));
       await viewer.view.setStencilHighlight(editable);

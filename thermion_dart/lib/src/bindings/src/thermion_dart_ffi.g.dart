@@ -703,6 +703,9 @@ external Aabb3 SceneAsset_getBoundingBox(ffi.Pointer<TSceneAsset> asset);
 @ffi.Native<ffi.Uint32 Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external int SceneAsset_getGeometryCapabilities(ffi.Pointer<TSceneAsset> asset);
 
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external bool SceneAsset_supportsFlatShading(ffi.Pointer<TSceneAsset> asset);
+
 @ffi.Native<ffi.Pointer<TVertexBuffer> Function(ffi.Pointer<TSceneAsset>, ffi.Int)>(isLeaf: true)
 external ffi.Pointer<TVertexBuffer> SceneAsset_getVertexBuffer(
   ffi.Pointer<TSceneAsset> tSceneAsset,
@@ -5029,12 +5032,11 @@ sealed class TVertexBufferStorageMode {
 
 sealed class TSceneAssetGeometryCapability {
   static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING = 1;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 2;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES = 4;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY = 8;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY = 16;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS = 32;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 1;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES = 2;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS = 4;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY = 8;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS = 16;
 }
 
 sealed class TFeatureLevel {
