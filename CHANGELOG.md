@@ -40,6 +40,16 @@
 - Apply overlapping custom morph animations oldest-first so the most recently
   added animation has final priority for shared targets. Active animations
   continue to overwrite manual weights on their next update.
+- Fix `VertexBufferMode.editable` glTF assets so their vertex streams can be
+  updated through `VertexBuffer.setBufferAt`; editable buffers no longer use
+  the `BufferObject` backing reserved for unwelded smooth/flat shading swaps.
+  Buffer updates, flat shading, and stencil highlighting now throw actionable
+  errors when used with incompatible buffer storage or asset capabilities.
+- Expose native `VertexBuffer.storageMode` metadata and first-class
+  `BufferObject` creation, upload, and attachment APIs. `supportsSetBufferAt`
+  is now derived from immutable metadata supplied by the native builder or
+  owning asset, without a global pointer registry or duplicated glTF load
+  state in Dart. Asset-owned vertex buffers are explicitly borrowed.
 
 ### Breaking changes
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,

@@ -2,6 +2,7 @@ import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.d
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_vertex_buffer.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_buffer_object.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_index_buffer.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -413,6 +414,11 @@ class FFIRenderableManager extends RenderableManager<Pointer<TRenderableManager>
   @override
   VertexBufferBuilder createVertexBufferBuilder() {
     return FFIVertexBufferBuilder(app.engine);
+  }
+
+  @override
+  BufferObjectBuilder createBufferObjectBuilder() {
+    return FFIBufferObjectBuilder(app.engine);
   }
 
   @override

@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// Vertex attribute types that can be stored in a VertexBuffer.
@@ -136,6 +135,9 @@ enum VertexAttributeType {
   HALF4,
 }
 
+/// Storage used by a [VertexBuffer]'s attribute streams.
+enum VertexBufferStorageMode { unknown, direct, bufferObjects }
+
 /// Holds a set of buffers that define the geometry of a Renderable.
 ///
 /// The geometry is defined by vertex attributes such as position, color,
@@ -150,16 +152,30 @@ abstract class VertexBuffer {
   /// Returns the number of vertices in this buffer.
   int getVertexCount();
 
+  VertexBufferStorageMode get storageMode;
+
+  bool get supportsSetBufferAt => storageMode == VertexBufferStorageMode.direct;
+
   /// Asynchronously copy-initializes the specified buffer from the given data.
   ///
   /// [bufferIndex] Index of the buffer to initialize (0 to bufferCount-1)
   /// [data] Raw vertex data to copy into the buffer
   /// [byteOffset] Offset in bytes into the buffer (default 0)
+  ///
+  /// Throws [StateError] when [supportsSetBufferAt] is false.
   Future setBufferAt(int bufferIndex, TypedData data, {int byteOffset = 0});
+
+  /// Attaches a [BufferObject] to a stream.
+  ///
+  /// Throws [StateError] unless [storageMode] is
+  /// [VertexBufferStorageMode.bufferObjects].
+  Future<void> setBufferObjectAt(int bufferIndex, BufferObject bufferObject);
 
   /// Destroys this vertex buffer and releases GPU resources.
   ///
-  /// The buffer must not be used after calling this method.
+  /// The buffer must not be used after calling this method. Throws
+  /// [StateError] when this is a borrowed buffer returned by a
+  /// [ThermionAsset]. Destroy the owning asset instead.
   Future destroy();
 }
 
@@ -190,6 +206,9 @@ abstract class VertexBufferBuilder {
   ///
   /// [count] Number of vertices in each buffer in this set
   void vertexCount(int count);
+
+  /// Enables BufferObject-backed streams. Direct storage is used by default.
+  void enableBufferObjects({bool enabled = true});
 
   /// Sets up an attribute for this vertex buffer.
   ///

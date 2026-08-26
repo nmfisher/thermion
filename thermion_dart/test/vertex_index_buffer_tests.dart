@@ -8,6 +8,40 @@ void main() async {
   final testHelper = TestHelper("vertex_index_buffer");
   await testHelper.setup();
   group("VertexBufferBuilder tests", () {
+    test('direct and BufferObject storage enforce their update APIs', () async {
+      await ViewerBuilder(testHelper).execute((result) async {
+        final manager = FilamentApp.instance!.renderableManager;
+
+        final directBuilder = manager.createVertexBufferBuilder()
+          ..bufferCount(1)
+          ..vertexCount(3)
+          ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
+        final direct = await directBuilder.build();
+        expect(direct.storageMode, VertexBufferStorageMode.direct);
+
+        final bufferObjectBuilder = manager.createBufferObjectBuilder()..size(3 * 3 * Float32List.bytesPerElement);
+        final bufferObject = await bufferObjectBuilder.build();
+        await bufferObject.setBuffer(Float32List.fromList([-1, -1, 0, 1, -1, 0, 0, 1, 0]));
+
+        await expectLater(direct.setBufferObjectAt(0, bufferObject), throwsStateError);
+
+        final bufferObjectVertexBuilder = manager.createVertexBufferBuilder()
+          ..bufferCount(1)
+          ..vertexCount(3)
+          ..enableBufferObjects()
+          ..attribute(VertexAttribute.POSITION, 0, VertexAttributeType.FLOAT3);
+        final bufferObjectVertexBuffer = await bufferObjectVertexBuilder.build();
+        expect(bufferObjectVertexBuffer.storageMode, VertexBufferStorageMode.bufferObjects);
+        expect(bufferObjectVertexBuffer.supportsSetBufferAt, isFalse);
+        await expectLater(bufferObjectVertexBuffer.setBufferAt(0, Float32List(9)), throwsStateError);
+        await bufferObjectVertexBuffer.setBufferObjectAt(0, bufferObject);
+
+        await bufferObjectVertexBuffer.destroy();
+        await bufferObject.destroy();
+        await direct.destroy();
+      });
+    });
+
     test('create and build simple vertex buffer', () async {
       await ViewerBuilder(testHelper).setBackgroundColor(kBlue).execute((result) async {
         final app = FilamentApp.instance!;

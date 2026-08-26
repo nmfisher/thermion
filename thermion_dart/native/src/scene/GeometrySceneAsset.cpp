@@ -25,12 +25,14 @@ namespace thermion
         size_t materialInstanceCount,
         RenderableManager::PrimitiveType primitiveType,
         Box boundingBox,
+        TVertexBufferStorageMode vertexBufferStorageMode,
         GeometrySceneAsset *instanceOwner)
         : _engine(engine), 
         _vertexBuffer(vertexBuffer),
         _indexBuffer(indexBuffer),
+        _instanceOwner(instanceOwner),
         _primitiveType(primitiveType),
-        _instanceOwner(instanceOwner)
+        _vertexBufferStorageMode(vertexBufferStorageMode)
     {
         _materialInstances.insert(_materialInstances.begin(), materialInstances, materialInstances + materialInstanceCount);
 
@@ -71,8 +73,9 @@ namespace thermion
 
         utils::EntityManager::get().destroy(_entity);
 
-        if (_vertexBuffer && !isInstance())
+        if (_vertexBuffer && !isInstance()) {
             _engine->destroy(_vertexBuffer);
+        }
         if (_indexBuffer && !isInstance())
             _engine->destroy(_indexBuffer);
         
@@ -100,6 +103,7 @@ namespace thermion
             materialInstanceCount,
             _primitiveType,
             filament::Box().set(_boundingBox.min, _boundingBox.max),
+            _vertexBufferStorageMode,
             this);
         auto *raw = instance.get();
         _instances.push_back(std::move(instance));

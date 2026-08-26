@@ -141,6 +141,34 @@ namespace thermion
             return _asset->getBoundingBox();
         }
 
+        uint32_t getGeometryCapabilities() const override {
+            switch (_vertexBufferMode) {
+            case VERTEX_BUFFER_MODE_EDITABLE:
+                return SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY;
+            case VERTEX_BUFFER_MODE_UNWELDED:
+                return SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+                       SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS;
+            case VERTEX_BUFFER_MODE_ORIGINAL:
+            default:
+                return SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;
+            }
+        }
+
+        TVertexBufferStorageMode getVertexBufferStorageMode(size_t primitiveIndex) const override {
+            if (primitiveIndex >= _preservedVertexBuffers.size()) {
+                return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+            }
+            switch (_vertexBufferMode) {
+            case VERTEX_BUFFER_MODE_EDITABLE:
+                return VERTEX_BUFFER_STORAGE_MODE_DIRECT;
+            case VERTEX_BUFFER_MODE_UNWELDED:
+                return VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS;
+            case VERTEX_BUFFER_MODE_ORIGINAL:
+            default:
+                return VERTEX_BUFFER_STORAGE_MODE_UNKNOWN;
+            }
+        }
+
         /// Rebuild all mesh primitives with a superset vertex buffer layout
         /// (POSITION + TANGENTS + UV0 + CUSTOM0 + optional BONE_INDICES/WEIGHTS).
         /// [VERTEX_BUFFER_MODE_UNWELDED] gives each triangle unique vertices
@@ -202,6 +230,7 @@ namespace thermion
         bool _sourceDataReleased = false;
         bool _geometryPreserved = false;
         bool _flatShading = false;
+        TVertexBufferMode _vertexBufferMode = VERTEX_BUFFER_MODE_ORIGINAL;
 
         // Buffers created by rebuildVertexBuffers, owned by this asset.
         std::vector<VertexBuffer*> _preservedVertexBuffers;
