@@ -10,27 +10,35 @@ void main() async {
     await ViewerBuilder(testHelper).addSun().setCameraPosition(Vector3(0, 1, 1.5)).execute((result) async {
       final original = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-        vertexBufferMode: VertexBufferMode.original,
         addToScene: true,
       );
       // Golden artifact names are stable IDs; keep the legacy names even when
       // the public API terminology changes.
       await testHelper.capture(result.viewer.view, "rebuildVertices_false");
+      expect(original.geometryCapabilities, isEmpty);
       await result.viewer.removeFromScene(original);
 
       final rebuilt = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-        vertexBufferMode: VertexBufferMode.unwelded,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.barycentrics},
         addToScene: true,
       );
+      expect(
+        rebuilt.geometryCapabilities,
+        containsAll(const {
+          SceneAssetGeometryCapability.flatShading,
+          SceneAssetGeometryCapability.barycentrics,
+          SceneAssetGeometryCapability.preservedGeometry,
+        }),
+      );
+      expect(rebuilt.geometryCapabilities, isNot(contains(SceneAssetGeometryCapability.writableVertices)));
+      expect(rebuilt.geometryCapabilities, contains(SceneAssetGeometryCapability.uniqueTriangleCorners));
 
       final unweldedVertexBuffer = rebuilt.getVertexBuffer()!;
       expect(unweldedVertexBuffer.supportsSetBufferAt, isFalse);
       await expectLater(
         unweldedVertexBuffer.setBufferAt(0, Float32List(0)),
-        throwsA(
-          isA<StateError>().having((error) => error.toString(), 'message', contains('VertexBufferMode.editable')),
-        ),
+        throwsA(isA<StateError>().having((error) => error.toString(), 'message', contains('writableVertices'))),
       );
 
       await testHelper.capture(result.viewer.view, "rebuildVertices_true");
@@ -58,7 +66,7 @@ void main() async {
 
       final flatAsset = await result.viewer.loadGltf(
         "file://${testHelper.assetsDir}/FlightHelmet/FlightHelmet.gltf",
-        vertexBufferMode: VertexBufferMode.unwelded,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.flatShading},
         addToScene: true,
       );
 
@@ -81,7 +89,7 @@ void main() async {
         "file://${testHelper.assetsDir}/cube.glb",
         addToScene: true,
         initialInstances: 2,
-        vertexBufferMode: VertexBufferMode.unwelded,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.barycentrics},
       );
 
       final instance2 = await asset.createInstance();

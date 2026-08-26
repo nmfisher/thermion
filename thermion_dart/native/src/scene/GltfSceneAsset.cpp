@@ -37,25 +37,74 @@ namespace thermion
         gltfio::AssetLoader *assetLoader,
         Engine *engine,
         utils::NameComponentManager *ncm,
-        TVertexBufferMode vertexBufferMode,
+        uint32_t requiredGeometryCapabilities,
         MaterialInstance **materialInstances,
         size_t materialInstanceCount) : _asset(asset),
                                         _assetLoader(assetLoader),
                                         _engine(engine),
                                         _ncm(ncm),
                                         _materialInstances(materialInstances),
-                                        _materialInstanceCount(materialInstanceCount),
-                                        _vertexBufferMode(vertexBufferMode)
+                                        _materialInstanceCount(materialInstanceCount)
     {
-        if (vertexBufferMode != VERTEX_BUFFER_MODE_ORIGINAL)
+        const bool requiresUnwelded =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS)) != 0;
+        const bool requiresPreserved =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY)) != 0;
+
+        if (requiresUnwelded)
         {
-            rebuildVertexBuffers(vertexBufferMode);
+            _geometryCapabilities =
+                SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS;
+            rebuildVertexBuffers(false);
+        }
+        else if (requiresPreserved)
+        {
+            _geometryCapabilities =
+                SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
+                SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY;
+            rebuildVertexBuffers(true);
         }
         for (int i = 0; i < asset->getAssetInstanceCount(); i++)
         {
             createInstance();
         }
         TRACE("Created GltfSceneAsset from FilamentAsset %d with %d reserved instances", asset, asset->getAssetInstanceCount());
+    }
+
+    bool GltfSceneAsset::supportsRequiredGeometryCapabilities(uint32_t requiredGeometryCapabilities)
+    {
+        constexpr uint32_t supported =
+            SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY |
+            SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS;
+        if ((requiredGeometryCapabilities & ~supported) != 0)
+        {
+            return false;
+        }
+
+        const bool requiresUnwelded =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS)) != 0;
+        const bool requiresPreservedTopology =
+            (requiredGeometryCapabilities &
+             (SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES |
+              SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY)) != 0;
+        return !(requiresUnwelded && requiresPreservedTopology);
     }
 
     GltfSceneAsset::~GltfSceneAsset()
@@ -269,9 +318,9 @@ namespace thermion
         return nullptr;
     }
 
-    void GltfSceneAsset::rebuildVertexBuffers(TVertexBufferMode vertexBufferMode)
+    void GltfSceneAsset::rebuildVertexBuffers(bool preserveTopology)
     {
-        const bool editableTopology = vertexBufferMode == VERTEX_BUFFER_MODE_EDITABLE;
+        const bool preserveSourceTopology = preserveTopology;
         auto *sourceData = (const cgltf_data *)_asset->getSourceAsset();
         if (!sourceData)
         {
@@ -430,7 +479,7 @@ namespace thermion
                     continue;
 
                 uint32_t triangleCount = (uint32_t)(indices.size() / 3);
-                uint32_t newVertexCount = editableTopology
+                uint32_t newVertexCount = preserveSourceTopology
                                               ? (uint32_t)posAccessor->count
                                               : triangleCount * 3;
 
@@ -506,7 +555,7 @@ namespace thermion
 
                 for (uint32_t dstIdx = 0; dstIdx < newVertexCount; dstIdx++)
                 {
-                    uint32_t srcIdx = editableTopology ? dstIdx : indices[dstIdx];
+                    uint32_t srcIdx = preserveSourceTopology ? dstIdx : indices[dstIdx];
 
                     // Position
                     newPositions[dstIdx * 3 + 0] = srcPositions[srcIdx * posComponents + 0];
@@ -551,7 +600,7 @@ namespace thermion
                     }
 
                     // Barycentric
-                    if (!editableTopology)
+                    if (!preserveSourceTopology)
                     {
                         const int corner = dstIdx % 3;
                         newBarycentrics[dstIdx * 4 + 0] = bary[corner][0];
@@ -595,7 +644,7 @@ namespace thermion
                     tris.resize(triangleCount);
                     for (uint32_t i = 0; i < triangleCount; i++)
                     {
-                        tris[i] = editableTopology
+                        tris[i] = preserveSourceTopology
                                       ? filament::math::uint3{indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]}
                                       : filament::math::uint3{i * 3, i * 3 + 1, i * 3 + 2};
                     }
@@ -614,7 +663,7 @@ namespace thermion
                 // preserves shared vertices, so its flat buffer intentionally
                 // matches the smooth buffer.
                 std::vector<filament::math::short4> flatTangentQuats;
-                if (editableTopology)
+                if (preserveSourceTopology)
                 {
                     flatTangentQuats = smoothTangentQuats;
                 }
@@ -671,7 +720,7 @@ namespace thermion
                 // on the other hand, must remain writable through the public
                 // VertexBuffer::setBufferAt API, which is incompatible with
                 // BufferObject-backed streams.
-                if (!editableTopology)
+                if (!preserveSourceTopology)
                 {
                     vbBuilder.enableBufferObjects();
                 }
@@ -702,7 +751,7 @@ namespace thermion
 
                 auto uploadStream = [&](uint8_t bufferIndex, const void *source, size_t size)
                 {
-                    if (editableTopology)
+                    if (preserveSourceTopology)
                     {
                         uploadDirect(bufferIndex, source, size);
                         return;
@@ -724,7 +773,7 @@ namespace thermion
                 // Create both smooth and flat tangent BOs for runtime toggling.
                 size_t tangDataSize = newVertexCount * sizeof(filament::math::short4);
 
-                if (editableTopology)
+                if (preserveSourceTopology)
                 {
                     uploadDirect(1, smoothTangentQuats.data(), tangDataSize);
                     _smoothTangentBOs.push_back(nullptr);
@@ -777,13 +826,13 @@ namespace thermion
 
                 // Editable geometry retains source indices. Unwelded geometry
                 // uses a sequential index buffer.
-                const size_t newIndexCount = editableTopology ? indices.size() : newVertexCount;
+                const size_t newIndexCount = preserveSourceTopology ? indices.size() : newVertexCount;
                 size_t indexDataSize = newIndexCount * sizeof(uint32_t);
                 auto *newIndices = new uint8_t[indexDataSize];
                 auto *indexPtr = reinterpret_cast<uint32_t *>(newIndices);
                 for (uint32_t i = 0; i < newIndexCount; i++)
                 {
-                    indexPtr[i] = editableTopology ? indices[i] : i;
+                    indexPtr[i] = preserveSourceTopology ? indices[i] : i;
                 }
 
                 IndexBuffer *ib = IndexBuffer::Builder()
@@ -803,7 +852,7 @@ namespace thermion
                 _preservedIndexCounts.push_back(newIndexCount);
 
                 TRACE("rebuildVertexBuffers: primitive %zu %s with %u vertices and %zu indices (skinned=%d)",
-                      pi, editableTopology ? "editable topology" : "unwelded",
+                      pi, preserveSourceTopology ? "preserved topology" : "unwelded",
                       newVertexCount, newIndexCount, hasSkinning);
             }
         }

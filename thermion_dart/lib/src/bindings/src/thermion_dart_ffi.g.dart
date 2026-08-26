@@ -643,7 +643,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
-  int vertexBufferMode,
+  int requiredGeometryCapabilities,
 );
 
 @ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
@@ -2757,7 +2757,7 @@ external void SceneAsset_createFromFilamentAssetRenderThread(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
-  int vertexBufferMode,
+  int requiredGeometryCapabilities,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>> onComplete,
 );
 
@@ -5021,12 +5021,6 @@ sealed class TSceneAssetType {
   static const SCENE_ASSET_TYPE_GIZMO = 6;
 }
 
-sealed class TVertexBufferMode {
-  static const VERTEX_BUFFER_MODE_ORIGINAL = 0;
-  static const VERTEX_BUFFER_MODE_UNWELDED = 1;
-  static const VERTEX_BUFFER_MODE_EDITABLE = 2;
-}
-
 sealed class TVertexBufferStorageMode {
   static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
   static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
@@ -5037,8 +5031,10 @@ sealed class TSceneAssetGeometryCapability {
   static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
   static const SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING = 1;
   static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 2;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY = 4;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES = 4;
   static const SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY = 8;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY = 16;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS = 32;
 }
 
 sealed class TFeatureLevel {

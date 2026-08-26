@@ -72,7 +72,13 @@ void main() async {
         final originalPose = await capture(original);
         await viewer.destroyAsset(original);
 
-        final editable = await viewer.loadGltf(path, vertexBufferMode: VertexBufferMode.editable);
+        final editable = await viewer.loadGltf(
+          path,
+          requiredGeometryCapabilities: const {
+            SceneAssetGeometryCapability.writableVertices,
+            SceneAssetGeometryCapability.preservedTopology,
+          },
+        );
         final editableVertexBuffer = editable.getVertexBuffer()!;
         expect(editableVertexBuffer.supportsSetBufferAt, isTrue);
         expect(editableVertexBuffer.storageMode, VertexBufferStorageMode.direct);

@@ -166,8 +166,9 @@ abstract class ThermionViewer {
   // Creating instances by specifying [initialInstances] at asset load time is
   // generally more efficient than dynamically instantating at a later time.
   //
-  // If [vertexBufferMode] is [VertexBufferMode.unwelded], vertex buffers are
-  // rebuilt after loading with a superset of attributes (POSITION, TANGENTS,
+  // If [requiredGeometryCapabilities] contains [SceneAssetGeometryCapability.barycentrics]
+  // or [SceneAssetGeometryCapability.flatShading], vertex buffers are rebuilt
+  // after loading with a superset of attributes (POSITION, TANGENTS,
   // UV0, CUSTOM0, and
   // optionally BONE_INDICES/BONE_WEIGHTS). Vertices are unwelded so each
   // triangle has unique vertices with barycentric coordinates in CUSTOM0.
@@ -176,11 +177,17 @@ abstract class ThermionViewer {
   // Increases vertex memory usage (~3x vertex count) but preserves the full
   // glTF feature set (animations, skeleton, instancing).
   //
-  // If [vertexBufferMode] is [VertexBufferMode.editable], vertex buffers are
+  // If [requiredGeometryCapabilities] contains
+  // [SceneAssetGeometryCapability.writableVertices] or
+  // [SceneAssetGeometryCapability.preservedTopology], vertex buffers are
   // rebuilt without unwelding: source vertex order and triangle indices are
-  // preserved. This
-  // exposes mutable buffers while retaining compatibility with glTF morph
-  // targets.
+  // preserved in mutable buffers compatible with glTF morph targets.
+  //
+  // [SceneAssetGeometryCapability.writableVertices] and
+  // [SceneAssetGeometryCapability.preservedTopology] cannot be combined with
+  // [SceneAssetGeometryCapability.barycentrics] or
+  // [SceneAssetGeometryCapability.flatShading]. The returned asset reports the
+  // complete set actually provided through [ThermionAsset.geometryCapabilities].
   //
   // If [loadResourcesAsync] is true, resources (textures, materials, etc) will
   // be loaded asynchronously. Some material/texture pop-in is expected.
@@ -190,7 +197,7 @@ abstract class ThermionViewer {
     bool addToScene = true,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
+    Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     String? resourceUri,
     bool loadAsync = false,
   });
@@ -204,7 +211,7 @@ abstract class ThermionViewer {
     String? resourceUri,
     int initialInstances = 1,
     bool releaseSourceData = false,
-    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
+    Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     bool loadResourcesAsync = false,
     bool addToScene = true,
   });

@@ -987,7 +987,7 @@ extern "C"
       TGltfAssetLoader *tAssetLoader,
       TNameComponentManager *tNameComponentManager,
       TFilamentAsset *tFilamentAsset,
-      TVertexBufferMode vertexBufferMode,
+      uint32_t requiredGeometryCapabilities,
       void (*onComplete)(TSceneAsset *))
   {
     auto *rt = RT(tEngine);
@@ -996,7 +996,7 @@ extern "C"
         {
           auto sceneAsset = SceneAsset_createFromFilamentAsset(
               tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset,
-              vertexBufferMode);
+              requiredGeometryCapabilities);
 
           setOwner(sceneAsset, rt);          PROXY(onComplete(sceneAsset));
         });

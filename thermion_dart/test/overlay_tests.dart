@@ -230,7 +230,7 @@ void main() async {
         isA<StateError>().having(
           (e) => e.toString(),
           'message',
-          contains('vertexBufferMode: VertexBufferMode.unwelded'),
+          contains('requiredGeometryCapabilities containing flatShading'),
         ),
       );
 
@@ -238,16 +238,30 @@ void main() async {
       await expectLater(viewer.view.setStencilHighlight(original), preservedGeometryMatcher);
       await expectLater(original.setFlatShading(true), unweldedMatcher);
 
+      await expectLater(
+        viewer.loadGltf(
+          "file://${testHelper.assetsDir}/cube.glb",
+          requiredGeometryCapabilities: const {
+            SceneAssetGeometryCapability.preservedTopology,
+            SceneAssetGeometryCapability.flatShading,
+          },
+        ),
+        throwsArgumentError,
+      );
+
       // Editable assets preserve reusable vertex/index buffers, so the
       // POSITION-only silhouette pass works without barycentrics. They still
       // cannot swap the tangent BufferObjects required by flat shading.
       final editable = await viewer.loadGltf(
         "file://${testHelper.assetsDir}/cube.glb",
-        vertexBufferMode: VertexBufferMode.editable,
+        requiredGeometryCapabilities: const {SceneAssetGeometryCapability.preservedGeometry},
         addToScene: true,
       );
       expect(editable.getVertexBuffer(), isNotNull);
+      expect(editable.getVertexBuffer()!.supportsSetBufferAt, isTrue);
       expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.preservedGeometry));
+      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.writableVertices));
+      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.preservedTopology));
       await viewer.view.setStencilHighlight(editable);
       await viewer.view.removeStencilHighlight(editable);
       await expectLater(editable.setFlatShading(true), unweldedMatcher);

@@ -580,8 +580,8 @@ class FFIView extends View<Pointer<TView>> {
     if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.preservedGeometry)) {
       throw StateError(
         "setStencilHighlight requires preserved geometry. "
-        "Load glTF assets with vertexBufferMode: VertexBufferMode.unwelded "
-        "or VertexBufferMode.editable.",
+        "Load the asset with requiredGeometryCapabilities containing "
+        "preservedGeometry.",
       );
     }
 

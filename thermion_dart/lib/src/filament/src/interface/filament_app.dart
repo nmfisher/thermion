@@ -3,19 +3,6 @@ import 'package:thermion_dart/src/filament/src/interface/render_manager.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-/// Controls whether glTF vertex buffers are left untouched or rebuilt for a
-/// specific editing workflow.
-enum VertexBufferMode {
-  /// Keep gltfio's original vertex and index buffers.
-  original,
-
-  /// Duplicate vertices per triangle corner and add barycentric coordinates.
-  unwelded,
-
-  /// Preserve source vertex order and indices in mutable vertex buffers.
-  editable,
-}
-
 class FilamentConfig<T, U> {
   final Backend backend;
   Future<Uint8List> Function(String)? loadResource;
@@ -271,7 +258,7 @@ abstract class FilamentApp<T> {
   Future<MaterialInstance> createUnlitMaterialInstance();
 
   /// Creates a wireframe material instance for use with assets loaded
-  /// with `vertexBufferMode: VertexBufferMode.unwelded`. Set parameters (edgeColor, faceColor,
+  /// with the required barycentric geometry capability. Set parameters (edgeColor, faceColor,
   /// edgeWidth) on the returned [WireframeMaterialInstance], then apply with
   /// [ThermionAsset.setMaterialInstanceForAll].
   Future<WireframeMaterialInstance> createWireframeMaterialInstance();
@@ -355,12 +342,17 @@ abstract class FilamentApp<T> {
     bool clear = true,
   });
 
-  // Loads a glTF asset from a raw memory buffer.
+  /// Loads a glTF asset from a raw memory buffer.
+  ///
+  /// [requiredGeometryCapabilities] describes the operations that the loaded
+  /// asset must support. The loader may provide a compatible superset, which
+  /// is reported by [ThermionAsset.geometryCapabilities]. Incompatible
+  /// requirements throw [ArgumentError].
   Future<ThermionAsset> loadGltfFromBuffer(
     Uint8List data, {
     int initialInstances = 1,
     bool releaseSourceData = false,
-    VertexBufferMode vertexBufferMode = VertexBufferMode.original,
+    Set<SceneAssetGeometryCapability> requiredGeometryCapabilities = const {},
     bool loadResourcesAsync = false,
     String? resourceUri,
   });

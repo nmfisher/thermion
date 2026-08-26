@@ -45,10 +45,14 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         SceneAssetGeometryCapability.flatShading,
       if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS != 0)
         SceneAssetGeometryCapability.barycentrics,
-      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY != 0)
-        SceneAssetGeometryCapability.editableTopology,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES != 0)
+        SceneAssetGeometryCapability.writableVertices,
       if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY != 0)
         SceneAssetGeometryCapability.preservedGeometry,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY != 0)
+        SceneAssetGeometryCapability.preservedTopology,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS != 0)
+        SceneAssetGeometryCapability.uniqueTriangleCorners,
     };
   }
 
@@ -301,7 +305,7 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (!geometryCapabilities.contains(SceneAssetGeometryCapability.flatShading)) {
       throw StateError(
         "setFlatShading requires unwelded geometry. "
-        "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
+        "Load it with requiredGeometryCapabilities containing flatShading.",
       );
     }
     await withVoidCallback((requestId, cb) => SceneAsset_setFlatShadingRenderThread(asset, flatShading, requestId, cb));

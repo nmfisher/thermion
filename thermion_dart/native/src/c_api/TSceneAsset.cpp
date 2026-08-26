@@ -7,6 +7,7 @@
 
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
+#include "Log.hpp"
 
 #include "scene/GeometrySceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
@@ -72,19 +73,24 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        TVertexBufferMode vertexBufferMode
+        uint32_t requiredGeometryCapabilities
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
         auto *filamentAsset = reinterpret_cast<filament::gltfio::FilamentAsset *>(tFilamentAsset);
 
         auto *assetLoader = reinterpret_cast<filament::gltfio::AssetLoader *>(tAssetLoader);
+        if (!GltfSceneAsset::supportsRequiredGeometryCapabilities(requiredGeometryCapabilities)) {
+            Log("Unsupported or incompatible required geometry capabilities: 0x%x",
+                requiredGeometryCapabilities);
+            return nullptr;
+        }
         auto *sceneAsset = new GltfSceneAsset(
             filamentAsset,
             assetLoader,
             engine,
             nameComponentManager,
-            vertexBufferMode
+            requiredGeometryCapabilities
         );
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);

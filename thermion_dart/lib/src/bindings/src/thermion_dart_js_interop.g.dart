@@ -302,7 +302,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    int vertexBufferMode,
+    int requiredGeometryCapabilities,
   );
   external Pointer<TFilamentAsset> _SceneAsset_getFilamentAsset(Pointer<TSceneAsset> tSceneAsset);
   external int _SceneAsset_getType(Pointer<TSceneAsset> tSceneAsset);
@@ -1388,7 +1388,7 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TGltfAssetLoader> tAssetLoader,
     Pointer<TNameComponentManager> tNameComponentManager,
     Pointer<TFilamentAsset> tFilamentAsset,
-    int vertexBufferMode,
+    int requiredGeometryCapabilities,
     Pointer<NativeFunction<void Function(PointerClass<TSceneAsset>)>> onComplete,
   );
   external void _SceneAsset_createFromBuffersRenderThread(
@@ -3399,14 +3399,14 @@ Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  int vertexBufferMode,
+  int requiredGeometryCapabilities,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAsset(
     tEngine.cast(),
     tAssetLoader.cast(),
     tNameComponentManager.cast(),
     tFilamentAsset.cast(),
-    vertexBufferMode,
+    requiredGeometryCapabilities,
   );
   return Pointer<TSceneAsset>(result);
 }
@@ -6310,7 +6310,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
   Pointer<TGltfAssetLoader> tAssetLoader,
   Pointer<TNameComponentManager> tNameComponentManager,
   Pointer<TFilamentAsset> tFilamentAsset,
-  int vertexBufferMode,
+  int requiredGeometryCapabilities,
   Pointer<NativeFunction<void Function(Pointer<TSceneAsset>)>> onComplete,
 ) {
   final result = GeneratedBindings.instance._SceneAsset_createFromFilamentAssetRenderThread(
@@ -6318,7 +6318,7 @@ void SceneAsset_createFromFilamentAssetRenderThread(
     tAssetLoader.cast(),
     tNameComponentManager.cast(),
     tFilamentAsset.cast(),
-    vertexBufferMode,
+    requiredGeometryCapabilities,
     onComplete.cast(),
   );
   return result;
@@ -10451,12 +10451,6 @@ final class TFilamentAsset extends Struct {
   static Pointer<TFilamentAsset> stackAlloc() {
     return Pointer<TFilamentAsset>(NativeLibrary.instance.stackAlloc<TFilamentAsset>(0));
   }
-}
-
-sealed class TVertexBufferMode {
-  static const VERTEX_BUFFER_MODE_ORIGINAL = 0;
-  static const VERTEX_BUFFER_MODE_UNWELDED = 1;
-  static const VERTEX_BUFFER_MODE_EDITABLE = 2;
 }
 
 sealed class TSceneAssetType {

@@ -44,7 +44,7 @@ class FFIVertexBuffer extends VertexBuffer {
       throw StateError(
         'VertexBuffer.setBufferAt requires direct storage. Build the buffer '
         'without enableBufferObjects(), or load glTF assets with '
-        'vertexBufferMode: VertexBufferMode.editable.',
+        'requiredGeometryCapabilities containing writableVertices.',
       );
     }
     final byteData = data.asUint8List();

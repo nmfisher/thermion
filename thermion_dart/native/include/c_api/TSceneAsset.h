@@ -24,7 +24,7 @@ extern "C"
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         TFilamentAsset *tFilamentAsset,
-        enum TVertexBufferMode vertexBufferMode
+        uint32_t requiredGeometryCapabilities
     );
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE enum TSceneAssetType SceneAsset_getType(TSceneAsset *tSceneAsset);
