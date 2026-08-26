@@ -567,10 +567,6 @@ class FFIView extends View<Pointer<TView>> {
   }) async {
     // primitiveIndex parameter is deprecated and ignored
     // The offset is now computed automatically from the entity
-    if (_highlightOverlayManager == null) {
-      await setHighlightOverlayEnabled(true);
-    }
-
     entity ??= asset.entity;
 
     // Use geometrySource for vertex/index buffers when provided (e.g. for
@@ -578,14 +574,18 @@ class FFIView extends View<Pointer<TView>> {
     final geoAsset = geometrySource ?? asset;
     final ffiGeoAsset = geoAsset as FFIAsset;
 
-    // Misuse check: highlighting needs the preserved (rebuilt) vertex
-    // buffers, which only exist when the glTF was loaded with
-    // vertexBufferMode: VertexBufferMode.unwelded. Throw rather than silently doing nothing.
-    if (ffiGeoAsset.getVertexBuffer() == null) {
-      throw Exception(
-        "setStencilHighlight: asset has no preserved geometry. "
+    // Stencil highlighting needs the barycentric coordinates generated only
+    // for unwelded geometry. Editable geometry also has preserved buffers but
+    // its CUSTOM0 stream does not contain those coordinates.
+    if (ffiGeoAsset.vertexBufferMode != VertexBufferMode.unwelded) {
+      throw StateError(
+        "setStencilHighlight requires unwelded geometry. "
         "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
       );
+    }
+
+    if (_highlightOverlayManager == null) {
+      await setHighlightOverlayEnabled(true);
     }
 
     // Get the starting primitive offset for this entity

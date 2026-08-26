@@ -22,6 +22,15 @@ void main() async {
         addToScene: true,
       );
 
+      final unweldedVertexBuffer = rebuilt.getVertexBuffer()!;
+      expect(unweldedVertexBuffer.supportsSetBufferAt, isFalse);
+      await expectLater(
+        unweldedVertexBuffer.setBufferAt(0, Float32List(0)),
+        throwsA(
+          isA<StateError>().having((error) => error.toString(), 'message', contains('VertexBufferMode.editable')),
+        ),
+      );
+
       await testHelper.capture(result.viewer.view, "vertex_buffer_unwelded");
 
       // Use typed wireframe wrapper

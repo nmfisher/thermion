@@ -73,7 +73,9 @@ void main() async {
         await viewer.destroyAsset(original);
 
         final editable = await viewer.loadGltf(path, vertexBufferMode: VertexBufferMode.editable);
-        expect(editable.getVertexBuffer()!.getVertexCount(), source.vertices.length ~/ 3);
+        final editableVertexBuffer = editable.getVertexBuffer()!;
+        expect(editableVertexBuffer.supportsSetBufferAt, isTrue);
+        expect(editableVertexBuffer.getVertexCount(), source.vertices.length ~/ 3);
         final editablePose = await capture(editable);
 
         expect(
@@ -92,7 +94,7 @@ void main() async {
           editedPositions[i] += 0.5;
         }
 
-        await editable.getVertexBuffer()!.setBufferAt(0, editedPositions).timeout(const Duration(seconds: 5));
+        await editableVertexBuffer.setBufferAt(0, editedPositions).timeout(const Duration(seconds: 5));
         final editedRest = (await testHelper.capture(viewer.view, null)).values.single;
 
         expect(

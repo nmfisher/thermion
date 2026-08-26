@@ -6,7 +6,10 @@ class FFIVertexBuffer extends VertexBuffer {
   final bindings.Pointer<bindings.TVertexBuffer> _ptr;
   final bindings.Pointer<bindings.TEngine> _engine;
 
-  FFIVertexBuffer(this._ptr, this._engine);
+  @override
+  final bool supportsSetBufferAt;
+
+  FFIVertexBuffer(this._ptr, this._engine, {this.supportsSetBufferAt = true});
 
   /// Returns the native handle for FFI calls.
   bindings.Pointer<bindings.TVertexBuffer> getNativeHandle() => _ptr;
@@ -18,6 +21,13 @@ class FFIVertexBuffer extends VertexBuffer {
 
   @override
   Future setBufferAt(int bufferIndex, TypedData data, {int byteOffset = 0}) async {
+    if (!supportsSetBufferAt) {
+      throw StateError(
+        'VertexBuffer.setBufferAt cannot update a BufferObject-backed buffer. '
+        'Load glTF assets with vertexBufferMode: VertexBufferMode.editable '
+        'when mutable vertex streams are required.',
+      );
+    }
     final byteData = data.asUint8List();
     await withVoidCallback((requestId, cb) {
       bindings.VertexBuffer_setBufferAtRenderThread(

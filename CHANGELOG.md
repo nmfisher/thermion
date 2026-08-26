@@ -43,6 +43,8 @@
 - Fix `VertexBufferMode.editable` glTF assets so their vertex streams can be
   updated through `VertexBuffer.setBufferAt`; editable buffers no longer use
   the `BufferObject` backing reserved for unwelded smooth/flat shading swaps.
+  Buffer updates, flat shading, and stencil highlighting now throw actionable
+  errors when used with an incompatible vertex-buffer mode.
 
 ### Breaking changes
 - Replace the `rebuildVertices` in `ThermionViewer.loadGltf`,

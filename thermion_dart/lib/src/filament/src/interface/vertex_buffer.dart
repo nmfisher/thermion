@@ -150,11 +150,19 @@ abstract class VertexBuffer {
   /// Returns the number of vertices in this buffer.
   int getVertexCount();
 
+  /// Whether [setBufferAt] can update this buffer's streams.
+  ///
+  /// Buffers created with Filament's BufferObject storage mode are not
+  /// writable through [setBufferAt].
+  bool get supportsSetBufferAt;
+
   /// Asynchronously copy-initializes the specified buffer from the given data.
   ///
   /// [bufferIndex] Index of the buffer to initialize (0 to bufferCount-1)
   /// [data] Raw vertex data to copy into the buffer
   /// [byteOffset] Offset in bytes into the buffer (default 0)
+  ///
+  /// Throws [StateError] when [supportsSetBufferAt] is false.
   Future setBufferAt(int bufferIndex, TypedData data, {int byteOffset = 0});
 
   /// Destroys this vertex buffer and releases GPU resources.

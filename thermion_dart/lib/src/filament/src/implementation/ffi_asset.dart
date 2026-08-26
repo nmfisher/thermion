@@ -20,6 +20,12 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final FFIAsset? instanceOwner;
 
+  final VertexBufferMode? _vertexBufferMode;
+
+  /// The mode used to load this glTF asset, inherited by asset instances.
+  /// Null for non-glTF assets.
+  VertexBufferMode? get vertexBufferMode => instanceOwner?.vertexBufferMode ?? _vertexBufferMode;
+
   late final ThermionEntity entity;
 
   // Mutable only on the owning asset. Instance wrappers read the owner's value
@@ -33,7 +39,9 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   final FFIFilamentApp _app;
 
-  FFIAsset(this.asset, {this.instanceOwner = null, required FFIFilamentApp app}) : _app = app {
+  FFIAsset(this.asset, {this.instanceOwner = null, VertexBufferMode? vertexBufferMode, required FFIFilamentApp app})
+    : _vertexBufferMode = vertexBufferMode,
+      _app = app {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -279,11 +287,13 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   @override
   Future setFlatShading(bool flatShading) async {
-    // Flat shading swaps TANGENTS on the preserved (rebuilt) vertex buffers;
-    // without them it would silently do nothing — throw instead.
-    if (getVertexBuffer() == null) {
-      throw Exception(
-        "setFlatShading: asset has no preserved geometry. "
+    // Flat shading swaps between the BufferObjects created specifically for
+    // unwelded geometry. Editable geometry also has preserved buffers, but it
+    // deliberately uses ordinary writable streams and cannot perform this
+    // swap.
+    if (vertexBufferMode != VertexBufferMode.unwelded) {
+      throw StateError(
+        "setFlatShading requires unwelded geometry. "
         "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
       );
     }
@@ -905,7 +915,11 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
     if (vbPtr == nullptr) {
       return null;
     }
-    return FFIVertexBuffer(vbPtr, _app.engine);
+    return FFIVertexBuffer(
+      vbPtr,
+      _app.engine,
+      supportsSetBufferAt: type == SceneAssetType.geometry || vertexBufferMode == VertexBufferMode.editable,
+    );
   }
 }
 

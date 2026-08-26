@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -224,32 +223,31 @@ void main() async {
 
   test('setStencilHighlight and setFlatShading throw without unwelded vertex buffers', () async {
     await testHelper.withViewer((viewer) async {
-      final cube = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
+      Future<void> expectUnweldedOperationsToThrow(ThermionAsset cube) async {
+        final matcher = throwsA(
+          isA<StateError>().having(
+            (e) => e.toString(),
+            'message',
+            contains('vertexBufferMode: VertexBufferMode.unwelded'),
+          ),
+        );
+        await expectLater(viewer.view.setStencilHighlight(cube), matcher);
+        await expectLater(cube.setFlatShading(true), matcher);
+      }
 
-      // Outlining and flat shading both need the preserved (rebuilt) vertex
-      // buffers — without unwelded mode these used to silently do nothing;
-      // they must now throw with an actionable message.
-      await viewer.view.setHighlightOverlayEnabled(true);
-      expect(
-        () => viewer.view.setStencilHighlight(cube),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('vertexBufferMode: VertexBufferMode.unwelded'),
-          ),
-        ),
+      final original = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
+      await expectUnweldedOperationsToThrow(original);
+
+      // Editable assets have preserved geometry too, but no barycentric data
+      // or swappable tangent BufferObjects. They must not pass a mere
+      // getVertexBuffer() != null check.
+      final editable = await viewer.loadGltf(
+        "file://${testHelper.assetsDir}/cube.glb",
+        vertexBufferMode: VertexBufferMode.editable,
+        addToScene: true,
       );
-      expect(
-        () => cube.setFlatShading(true),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('vertexBufferMode: VertexBufferMode.unwelded'),
-          ),
-        ),
-      );
+      expect(editable.getVertexBuffer(), isNotNull);
+      await expectUnweldedOperationsToThrow(editable);
     });
   });
 }
