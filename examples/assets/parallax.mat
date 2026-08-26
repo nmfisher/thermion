@@ -1,0 +1,154 @@
+material {
+    name : ParallaxOcclusion,
+    shadingModel : lit,
+    requires : [
+        uv0,
+        tangents
+    ],
+    parameters : [
+        {
+            type : sampler2d,
+            name : albedoMap
+        },
+        {
+            type : sampler2d,
+            name : heightMap
+        },
+        {
+            type : sampler2d,
+            name : normalMap
+        },
+        {
+            type : float,
+            name : heightScale
+        },
+        {
+            type : float,
+            name : minSteps
+        },
+        {
+            type : float,
+            name : maxSteps
+        },
+        {
+            type : float,
+            name : normalStrength
+        },
+        {
+            type : float4,
+            name : tintColor
+        },
+        {
+            type : float,
+            name : roughnessFactor
+        },
+        {
+            type : float,
+            name : metallicFactor
+        },
+        {
+            type : int,
+            name : debugView
+        }
+    ],
+    depthWrite : true,
+    culling : back
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        vec2 uv = getUV0();
+
+        // The engine's own tangent frame (same TBN applied to material.normal)
+        // and view vector. shading_view points from the surface toward the eye.
+        mat3 tangentFrame = getWorldTangentFrame();
+        vec3 tsView = normalize(transpose(tangentFrame) * getWorldViewVector());
+
+        // ------------------------------------------------------------------
+        // Parallax occlusion mapping: march the view ray through the height
+        // field (1.0 = surface top, 0.0 = deepest), then binary-search the
+        // height crossing between the last two samples.
+        //
+        // All in-loop fetches use textureLod(., ., 0.0) - implicit
+        // derivatives inside the divergent march loop are undefined.
+        // ------------------------------------------------------------------
+        vec2 pomUV = uv;
+        float uvOffset = 0.0;
+
+        if (materialParams.debugView == 0 || materialParams.debugView == 2) {
+            float numLayers = mix(materialParams.maxSteps, materialParams.minSteps,
+                                  clamp(abs(tsView.z), 0.0, 1.0));
+            numLayers = max(numLayers, 4.0);
+
+            // The march follows the ray INTO the surface: opposite to the
+            // eye-directed view vector. Clamp grazing angles so the slide
+            // distance stays bounded.
+            vec2 slideDir = -tsView.xy / max(abs(tsView.z), 0.08);
+            vec2 deltaUV = slideDir * materialParams.heightScale / numLayers;
+            float layerDepth = 1.0 / numLayers;
+
+            vec2 curUV = uv;
+            float curLayer = 0.0;
+            float curHeight = textureLod(materialParams_heightMap, curUV, 0.0).r;
+            for (int i = 0; i < 96; i++) {
+                if (curLayer >= curHeight) {
+                    break;
+                }
+                curUV += deltaUV;
+                curLayer += layerDepth;
+                curHeight = textureLod(materialParams_heightMap, curUV, 0.0).r;
+            }
+
+            // Binary search: lo is past the crossing (layer >= height),
+            // hi is before it (layer < height).
+            vec2 lo = curUV;
+            vec2 hi = curUV - deltaUV;
+            float dLo = curLayer;
+            float dHi = curLayer - layerDepth;
+            for (int j = 0; j < 4; j++) {
+                vec2 mid = 0.5 * (lo + hi);
+                float dMid = 0.5 * (dLo + dHi);
+                float hMid = textureLod(materialParams_heightMap, mid, 0.0).r;
+                if (dMid >= hMid) {
+                    lo = mid;
+                    dLo = dMid;
+                } else {
+                    hi = mid;
+                    dHi = dMid;
+                }
+            }
+            pomUV = 0.5 * (lo + hi);
+            uvOffset = length(pomUV - uv);
+        }
+
+        // Normal mapping in tangent space. The engine transforms this with
+        // the same tangent frame returned above, so the parallaxed normal
+        // sample and the march share one frame by construction.
+        // normalStrength 0 collapses to the geometric normal (0, 0, 1).
+        vec3 nTS = texture(materialParams_normalMap, pomUV).xyz * 2.0 - 1.0;
+        nTS = mix(vec3(0.0, 0.0, 1.0), nTS, clamp(materialParams.normalStrength, 0.0, 1.0));
+        material.normal = normalize(nTS);
+        prepareMaterial(material);
+
+        material.roughness = materialParams.roughnessFactor;
+        material.metallic = materialParams.metallicFactor;
+
+        if (materialParams.debugView == 1) {
+            // Height map at the parallaxed uv (display-remapped: the opaque
+            // path lifts near-black values hard toward mid-gray).
+            float h = textureLod(materialParams_heightMap, pomUV, 0.0).r;
+            material.baseColor = vec4(vec3(clamp(h * 0.7 + 0.15, 0.0, 1.0)), 1.0);
+        } else if (materialParams.debugView == 2) {
+            // Slide magnitude relative to the maximum (heightScale).
+            float d = clamp(uvOffset / max(materialParams.heightScale, 1e-4), 0.0, 1.0);
+            material.baseColor = vec4(vec3(clamp(d * 0.7 + 0.15, 0.0, 1.0)), 1.0);
+        } else if (materialParams.debugView == 3) {
+            // Tangent-space view vector: R/G = |x|/|y| (slide axes),
+            // B = z (facing term; near 1 head-on, near 0 at grazing).
+            material.baseColor = vec4(abs(tsView.x), abs(tsView.y), clamp(tsView.z, 0.0, 1.0), 1.0);
+        } else {
+            vec4 albedo = texture(materialParams_albedoMap, pomUV);
+            material.baseColor = vec4(albedo.rgb * materialParams.tintColor.rgb, 1.0);
+        }
+    }
+}

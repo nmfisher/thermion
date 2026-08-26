@@ -22,6 +22,7 @@ export 'src/lighting_setup.dart';
 export 'src/load_gltf.dart';
 export 'src/materials_pbr.dart';
 export 'src/morph_targets.dart';
+export 'src/parallax.dart';
 export 'src/picking.dart';
 export 'src/post_processing.dart';
 export 'src/render_targets.dart';

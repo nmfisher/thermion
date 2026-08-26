@@ -11,6 +11,7 @@ import 'instancing.dart';
 import 'materials_and_lighting.dart';
 import 'materials_pbr.dart';
 import 'morph_targets.dart';
+import 'parallax.dart';
 import 'picking.dart';
 import 'post_processing.dart';
 import 'render_targets.dart';
@@ -53,6 +54,7 @@ final Map<String, ExampleSetup> registry = {
   'load_via_assimp': setupLoadViaAssimp,
   'materials_pbr': setupMaterialsPbr,
   'morph_targets': setupMorphTargets,
+  'parallax': setupParallax,
   'picking': setupPicking,
   'post_processing': setupPostProcessing,
   'render_targets': setupRenderTargets,

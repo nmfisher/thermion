@@ -41,7 +41,7 @@ MATERIAL_DIR="thermion_dart/native/include/material"
 MATERIALS=(image unlit_fixed_size grid linear_depth silhouette edge_outline wireframe translation_axis bone_overlay capture_uv)
 # capture_uv is now in the main list; gizmo handled separately below
 GIZMO_NAME="gizmo"
-EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad)
+EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad parallax)
 
 # -------------------------------------------------------------------
 # build_variant <material> <variant_suffix> <matc_arch_flags...>
@@ -225,10 +225,25 @@ echo ""
 
 # -------------------------------------------------------------------
 # Compile example asset materials (standalone .filamat, not embedded)
+#
+# Example .filamat bundles every backend, but matc builds without
+# FILAMENT_SUPPORTS_WEBGPU=ON cannot emit WGSL. Probe for support and drop
+# the webgpu backend rather than failing the whole build; a toolchain matc
+# regenerates the committed .filamat with all backends.
 # -------------------------------------------------------------------
+EXAMPLE_ARCHS=(-a opengl -a metal -a vulkan)
+PROBE_MAT="${TMPDIR:-/tmp}/thermion_webgpu_probe.mat"
+echo 'material { name : probe, shadingModel : unlit } fragment { void material(inout MaterialInputs material) { prepareMaterial(material); } }' > "${PROBE_MAT}"
+if "${MATC}" -a webgpu -o "${PROBE_MAT%.mat}.filamat" "${PROBE_MAT}" > /dev/null 2>&1; then
+    EXAMPLE_ARCHS+=(-a webgpu)
+else
+    echo "NOTE: ${MATC} has no WebGPU support; building example materials without webgpu."
+fi
+rm -f "${PROBE_MAT}" "${PROBE_MAT%.mat}.filamat"
+
 for material in "${EXAMPLE_MATERIALS[@]}"; do
     echo "=== examples/assets/$material (all platforms) ==="
-    ${MATC} -a opengl -a metal -a vulkan -a webgpu \
+    ${MATC} "${EXAMPLE_ARCHS[@]}" \
         -o "examples/assets/${material}.filamat" "examples/assets/${material}.mat" || exit 1
 done
 
