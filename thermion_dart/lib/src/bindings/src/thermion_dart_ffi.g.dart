@@ -635,7 +635,7 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createFromBuffers(
     ffi.Pointer<TGltfAssetLoader>,
     ffi.Pointer<TNameComponentManager>,
     ffi.Pointer<TFilamentAsset>,
-    ffi.UnsignedInt,
+    ffi.Uint32,
   )
 >(isLeaf: true)
 external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
@@ -2748,7 +2748,7 @@ external void SceneAsset_destroyRenderThread(
     ffi.Pointer<TGltfAssetLoader>,
     ffi.Pointer<TNameComponentManager>,
     ffi.Pointer<TFilamentAsset>,
-    ffi.UnsignedInt,
+    ffi.Uint32,
     ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>,
   )
 >(isLeaf: true)
