@@ -1471,41 +1471,6 @@ external void VertexBuffer_setBufferObjectAt(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TVertexBuffer>)>(isLeaf: true)
 external void VertexBuffer_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TVertexBuffer> buffer);
 
-@ffi.Native<ffi.Pointer<TBufferObjectBuilder> Function()>(isLeaf: true)
-external ffi.Pointer<TBufferObjectBuilder> BufferObjectBuilder_create();
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Uint32)>(isLeaf: true)
-external void BufferObjectBuilder_size(ffi.Pointer<TBufferObjectBuilder> builder, int sizeInBytes);
-
-@ffi.Native<ffi.Pointer<TBufferObject> Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TBufferObject> BufferObjectBuilder_build(
-  ffi.Pointer<TBufferObjectBuilder> builder,
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>)>(isLeaf: true)
-external void BufferObjectBuilder_destroy(ffi.Pointer<TBufferObjectBuilder> builder);
-
-@ffi.Native<
-  ffi.Void Function(
-    ffi.Pointer<TEngine>,
-    ffi.Pointer<TBufferObject>,
-    ffi.Pointer<ffi.Void>,
-    ffi.Size,
-    ffi.Uint32,
-  )
->(isLeaf: true)
-external void BufferObject_setBuffer(
-  ffi.Pointer<TEngine> engine,
-  ffi.Pointer<TBufferObject> buffer,
-  ffi.Pointer<ffi.Void> data,
-  int sizeInBytes,
-  int byteOffset,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>)>(isLeaf: true)
-external void BufferObject_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TBufferObject> buffer);
-
 @ffi.Native<ffi.Pointer<TIndexBufferBuilder> Function()>(isLeaf: true)
 external ffi.Pointer<TIndexBufferBuilder> IndexBufferBuilder_create();
 
@@ -1540,6 +1505,35 @@ external void IndexBuffer_setBuffer(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TIndexBuffer>)>(isLeaf: true)
 external void IndexBuffer_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TIndexBuffer> buffer);
+
+@ffi.Native<ffi.Pointer<TBufferObjectBuilder> Function()>(isLeaf: true)
+external ffi.Pointer<TBufferObjectBuilder> BufferObjectBuilder_create();
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Uint32)>(isLeaf: true)
+external void BufferObjectBuilder_size(ffi.Pointer<TBufferObjectBuilder> builder, int sizeInBytes);
+
+@ffi.Native<ffi.Pointer<TBufferObject> Function(ffi.Pointer<TBufferObjectBuilder>, ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TBufferObject> BufferObjectBuilder_build(
+  ffi.Pointer<TBufferObjectBuilder> builder,
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TBufferObjectBuilder>)>(isLeaf: true)
+external void BufferObjectBuilder_destroy(ffi.Pointer<TBufferObjectBuilder> builder);
+
+@ffi.Native<
+  ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Uint32)
+>(isLeaf: true)
+external void BufferObject_setBuffer(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TBufferObject> buffer,
+  ffi.Pointer<ffi.Void> data,
+  int sizeInBytes,
+  int byteOffset,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>)>(isLeaf: true)
+external void BufferObject_destroy(ffi.Pointer<TEngine> engine, ffi.Pointer<TBufferObject> buffer);
 
 @ffi.Native<double4x4 Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
 external double4x4 TransformManager_getLocalTransform(ffi.Pointer<TTransformManager> tTransformManager, int entityId);
@@ -3536,9 +3530,7 @@ external void BufferObject_setBufferRenderThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>, ffi.Uint32, VoidCallback)>(
-  isLeaf: true,
-)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TBufferObject>, ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void BufferObject_destroyRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TBufferObject> tBuffer,
@@ -4922,19 +4914,6 @@ final class TBufferObject extends ffi.Opaque {}
 
 final class TBufferObjectBuilder extends ffi.Opaque {}
 
-sealed class TVertexBufferStorageMode {
-  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
-  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
-  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
-}
-
-sealed class TSceneAssetGeometryCapability {
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING = 1;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 2;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY = 4;
-}
-
 final class TSurfaceOrientation extends ffi.Opaque {}
 
 final class TSurfaceOrientationBuilder extends ffi.Opaque {}
@@ -5039,6 +5018,19 @@ sealed class TVertexBufferMode {
   static const VERTEX_BUFFER_MODE_ORIGINAL = 0;
   static const VERTEX_BUFFER_MODE_UNWELDED = 1;
   static const VERTEX_BUFFER_MODE_EDITABLE = 2;
+}
+
+sealed class TVertexBufferStorageMode {
+  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
+  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
+  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
+}
+
+sealed class TSceneAssetGeometryCapability {
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING = 1;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 2;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY = 4;
 }
 
 sealed class TFeatureLevel {

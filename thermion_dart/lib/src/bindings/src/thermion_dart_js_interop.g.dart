@@ -656,21 +656,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TBufferObject> bufferObject,
   );
   external void _VertexBuffer_destroy(Pointer<TEngine> engine, Pointer<TVertexBuffer> buffer);
-  external Pointer<TBufferObjectBuilder> _BufferObjectBuilder_create();
-  external void _BufferObjectBuilder_size(Pointer<TBufferObjectBuilder> builder, int sizeInBytes);
-  external Pointer<TBufferObject> _BufferObjectBuilder_build(
-    Pointer<TBufferObjectBuilder> builder,
-    Pointer<TEngine> engine,
-  );
-  external void _BufferObjectBuilder_destroy(Pointer<TBufferObjectBuilder> builder);
-  external void _BufferObject_setBuffer(
-    Pointer<TEngine> engine,
-    Pointer<TBufferObject> buffer,
-    Pointer<Void> data,
-    size_t sizeInBytes,
-    int byteOffset,
-  );
-  external void _BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer);
   external Pointer<TIndexBufferBuilder> _IndexBufferBuilder_create();
   external void _IndexBufferBuilder_indexCount(Pointer<TIndexBufferBuilder> builder, int count);
   external void _IndexBufferBuilder_bufferType(Pointer<TIndexBufferBuilder> builder, int indexType);
@@ -688,6 +673,21 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     int byteOffset,
   );
   external void _IndexBuffer_destroy(Pointer<TEngine> engine, Pointer<TIndexBuffer> buffer);
+  external Pointer<TBufferObjectBuilder> _BufferObjectBuilder_create();
+  external void _BufferObjectBuilder_size(Pointer<TBufferObjectBuilder> builder, int sizeInBytes);
+  external Pointer<TBufferObject> _BufferObjectBuilder_build(
+    Pointer<TBufferObjectBuilder> builder,
+    Pointer<TEngine> engine,
+  );
+  external void _BufferObjectBuilder_destroy(Pointer<TBufferObjectBuilder> builder);
+  external void _BufferObject_setBuffer(
+    Pointer<TEngine> engine,
+    Pointer<TBufferObject> buffer,
+    Pointer<Void> data,
+    size_t sizeInBytes,
+    int byteOffset,
+  );
+  external void _BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer);
   external void _TransformManager_getLocalTransform(
     Pointer<double4x4> double4x4_out,
     Pointer<TTransformManager> tTransformManager,
@@ -4491,51 +4491,6 @@ void VertexBuffer_destroy(Pointer<TEngine> engine, Pointer<TVertexBuffer> buffer
   return result;
 }
 
-Pointer<TBufferObjectBuilder> BufferObjectBuilder_create() {
-  final result = GeneratedBindings.instance._BufferObjectBuilder_create();
-  return Pointer<TBufferObjectBuilder>(result);
-}
-
-void BufferObjectBuilder_size(Pointer<TBufferObjectBuilder> builder, int sizeInBytes) {
-  final result = GeneratedBindings.instance._BufferObjectBuilder_size(builder.cast(), sizeInBytes);
-  return result;
-}
-
-Pointer<TBufferObject> BufferObjectBuilder_build(
-  Pointer<TBufferObjectBuilder> builder,
-  Pointer<TEngine> engine,
-) {
-  final result = GeneratedBindings.instance._BufferObjectBuilder_build(builder.cast(), engine.cast());
-  return Pointer<TBufferObject>(result);
-}
-
-void BufferObjectBuilder_destroy(Pointer<TBufferObjectBuilder> builder) {
-  final result = GeneratedBindings.instance._BufferObjectBuilder_destroy(builder.cast());
-  return result;
-}
-
-void BufferObject_setBuffer(
-  Pointer<TEngine> engine,
-  Pointer<TBufferObject> buffer,
-  Pointer<Void> data,
-  Dartsize_t sizeInBytes,
-  int byteOffset,
-) {
-  final result = GeneratedBindings.instance._BufferObject_setBuffer(
-    engine.cast(),
-    buffer.cast(),
-    data,
-    sizeInBytes,
-    byteOffset,
-  );
-  return result;
-}
-
-void BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer) {
-  final result = GeneratedBindings.instance._BufferObject_destroy(engine.cast(), buffer.cast());
-  return result;
-}
-
 Pointer<TIndexBufferBuilder> IndexBufferBuilder_create() {
   final result = GeneratedBindings.instance._IndexBufferBuilder_create();
   return Pointer<TIndexBufferBuilder>(result);
@@ -4585,6 +4540,48 @@ void IndexBuffer_setBuffer(
 
 void IndexBuffer_destroy(Pointer<TEngine> engine, Pointer<TIndexBuffer> buffer) {
   final result = GeneratedBindings.instance._IndexBuffer_destroy(engine.cast(), buffer.cast());
+  return result;
+}
+
+Pointer<TBufferObjectBuilder> BufferObjectBuilder_create() {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_create();
+  return Pointer<TBufferObjectBuilder>(result);
+}
+
+void BufferObjectBuilder_size(Pointer<TBufferObjectBuilder> builder, int sizeInBytes) {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_size(builder.cast(), sizeInBytes);
+  return result;
+}
+
+Pointer<TBufferObject> BufferObjectBuilder_build(Pointer<TBufferObjectBuilder> builder, Pointer<TEngine> engine) {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_build(builder.cast(), engine.cast());
+  return Pointer<TBufferObject>(result);
+}
+
+void BufferObjectBuilder_destroy(Pointer<TBufferObjectBuilder> builder) {
+  final result = GeneratedBindings.instance._BufferObjectBuilder_destroy(builder.cast());
+  return result;
+}
+
+void BufferObject_setBuffer(
+  Pointer<TEngine> engine,
+  Pointer<TBufferObject> buffer,
+  Pointer<Void> data,
+  Dartsize_t sizeInBytes,
+  int byteOffset,
+) {
+  final result = GeneratedBindings.instance._BufferObject_setBuffer(
+    engine.cast(),
+    buffer.cast(),
+    data,
+    sizeInBytes,
+    byteOffset,
+  );
+  return result;
+}
+
+void BufferObject_destroy(Pointer<TEngine> engine, Pointer<TBufferObject> buffer) {
+  final result = GeneratedBindings.instance._BufferObject_destroy(engine.cast(), buffer.cast());
   return result;
 }
 
@@ -10316,21 +10313,6 @@ final class TVertexBuffer extends Struct {
   }
 }
 
-extension TBufferObjectExt on Pointer<TBufferObject> {
-  TBufferObject toDart() {
-    return TBufferObject(this);
-  }
-}
-
-final class TBufferObject extends Struct {
-  Pointer<TBufferObject> get address => super.address.cast();
-  TBufferObject(super.address);
-
-  static Pointer<TBufferObject> stackAlloc() {
-    return Pointer<TBufferObject>(NativeLibrary.instance.stackAlloc<TBufferObject>(0));
-  }
-}
-
 extension TIndexBufferExt on Pointer<TIndexBuffer> {
   TIndexBuffer toDart() {
     return TIndexBuffer(this);
@@ -11080,34 +11062,6 @@ final class TVertexBufferBuilder extends Struct {
   }
 }
 
-extension TBufferObjectBuilderExt on Pointer<TBufferObjectBuilder> {
-  TBufferObjectBuilder toDart() {
-    return TBufferObjectBuilder(this);
-  }
-}
-
-final class TBufferObjectBuilder extends Struct {
-  Pointer<TBufferObjectBuilder> get address => super.address.cast();
-  TBufferObjectBuilder(super.address);
-
-  static Pointer<TBufferObjectBuilder> stackAlloc() {
-    return Pointer<TBufferObjectBuilder>(NativeLibrary.instance.stackAlloc<TBufferObjectBuilder>(0));
-  }
-}
-
-sealed class TVertexBufferStorageMode {
-  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
-  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
-  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
-}
-
-sealed class TSceneAssetGeometryCapability {
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING = 1;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 2;
-  static const SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY = 4;
-}
-
 sealed class TVertexAttribute {
   static const TVERTEX_ATTRIBUTE_POSITION = 0;
   static const TVERTEX_ATTRIBUTE_TANGENTS = 1;
@@ -11155,6 +11109,27 @@ sealed class TVertexAttributeType {
   static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
 }
 
+sealed class TVertexBufferStorageMode {
+  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
+  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
+  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
+}
+
+extension TBufferObjectExt on Pointer<TBufferObject> {
+  TBufferObject toDart() {
+    return TBufferObject(this);
+  }
+}
+
+final class TBufferObject extends Struct {
+  Pointer<TBufferObject> get address => super.address.cast();
+  TBufferObject(super.address);
+
+  static Pointer<TBufferObject> stackAlloc() {
+    return Pointer<TBufferObject>(NativeLibrary.instance.stackAlloc<TBufferObject>(0));
+  }
+}
+
 extension TIndexBufferBuilderExt on Pointer<TIndexBufferBuilder> {
   TIndexBufferBuilder toDart() {
     return TIndexBufferBuilder(this);
@@ -11173,6 +11148,21 @@ final class TIndexBufferBuilder extends Struct {
 sealed class TIndexType {
   static const TINDEX_TYPE_USHORT = 0;
   static const TINDEX_TYPE_UINT = 1;
+}
+
+extension TBufferObjectBuilderExt on Pointer<TBufferObjectBuilder> {
+  TBufferObjectBuilder toDart() {
+    return TBufferObjectBuilder(this);
+  }
+}
+
+final class TBufferObjectBuilder extends Struct {
+  Pointer<TBufferObjectBuilder> get address => super.address.cast();
+  TBufferObjectBuilder(super.address);
+
+  static Pointer<TBufferObjectBuilder> stackAlloc() {
+    return Pointer<TBufferObjectBuilder>(NativeLibrary.instance.stackAlloc<TBufferObjectBuilder>(0));
+  }
 }
 
 sealed class TLightType {
@@ -11658,9 +11648,6 @@ extension StructAllocator on Struct {
       case TVertexBuffer:
         final ptr = TVertexBuffer.stackAlloc();
         return ptr.toDart() as T;
-      case TBufferObject:
-        final ptr = TBufferObject.stackAlloc();
-        return ptr.toDart() as T;
       case TIndexBuffer:
         final ptr = TIndexBuffer.stackAlloc();
         return ptr.toDart() as T;
@@ -11721,11 +11708,14 @@ extension StructAllocator on Struct {
       case TVertexBufferBuilder:
         final ptr = TVertexBufferBuilder.stackAlloc();
         return ptr.toDart() as T;
-      case TBufferObjectBuilder:
-        final ptr = TBufferObjectBuilder.stackAlloc();
+      case TBufferObject:
+        final ptr = TBufferObject.stackAlloc();
         return ptr.toDart() as T;
       case TIndexBufferBuilder:
         final ptr = TIndexBufferBuilder.stackAlloc();
+        return ptr.toDart() as T;
+      case TBufferObjectBuilder:
+        final ptr = TBufferObjectBuilder.stackAlloc();
         return ptr.toDart() as T;
       case TShadowOptions:
         final ptr = TShadowOptions.stackAlloc();
