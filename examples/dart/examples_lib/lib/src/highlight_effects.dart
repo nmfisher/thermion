@@ -8,7 +8,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 /// `setPolychromaticEnabled`, `setInternalEdgeParams`) are not available on the
 /// current branch and have been omitted.
 ///
-/// The asset is loaded with [rebuildVertices: true] so the stencil highlight
+/// The asset is loaded with [vertexBufferMode: VertexBufferMode.unwelded] so the stencil highlight
 /// can render correctly with barycentric-aware vertex buffers.
 Future<void> setupHighlightEffects(
   ThermionViewer viewer, {
@@ -29,7 +29,7 @@ Future<void> setupHighlightEffects(
 
   final asset = await viewer.loadGltf(
     "$assetsDir/BusterDrone/scene.gltf",
-    rebuildVertices: true,
+    vertexBufferMode: VertexBufferMode.unwelded,
   );
   await asset.transformToUnitCube();
 
