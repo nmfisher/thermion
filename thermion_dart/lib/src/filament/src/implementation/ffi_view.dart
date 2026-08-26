@@ -574,13 +574,14 @@ class FFIView extends View<Pointer<TView>> {
     final geoAsset = geometrySource ?? asset;
     final ffiGeoAsset = geoAsset as FFIAsset;
 
-    // Stencil highlighting needs the barycentric coordinates generated only
-    // for unwelded geometry. Editable geometry also has preserved buffers but
-    // its CUSTOM0 stream does not contain those coordinates.
-    if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.barycentrics)) {
+    // The silhouette pass reuses the asset's vertex and index buffers but only
+    // consumes POSITION. It therefore needs preserved geometry, not the
+    // barycentric coordinates used by wireframe and flat-shading features.
+    if (!ffiGeoAsset.geometryCapabilities.contains(SceneAssetGeometryCapability.preservedGeometry)) {
       throw StateError(
-        "setStencilHighlight requires unwelded geometry. "
-        "Load it with loadGltf(..., vertexBufferMode: VertexBufferMode.unwelded).",
+        "setStencilHighlight requires preserved geometry. "
+        "Load glTF assets with vertexBufferMode: VertexBufferMode.unwelded "
+        "or VertexBufferMode.editable.",
       );
     }
 

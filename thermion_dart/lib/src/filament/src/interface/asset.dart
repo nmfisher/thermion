@@ -5,7 +5,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';
 
-enum SceneAssetGeometryCapability { flatShading, barycentrics, editableTopology }
+enum SceneAssetGeometryCapability { flatShading, barycentrics, editableTopology, preservedGeometry }
 
 enum SceneAssetType { gltf, geometry, light, skybox, ibl, image, gizmo }
 

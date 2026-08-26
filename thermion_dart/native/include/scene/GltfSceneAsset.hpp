@@ -144,10 +144,12 @@ namespace thermion
         uint32_t getGeometryCapabilities() const override {
             switch (_vertexBufferMode) {
             case VERTEX_BUFFER_MODE_EDITABLE:
-                return SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY;
+                return SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY |
+                       SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY;
             case VERTEX_BUFFER_MODE_UNWELDED:
                 return SCENE_ASSET_GEOMETRY_CAPABILITY_FLAT_SHADING |
-                       SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS;
+                       SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS |
+                       SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY;
             case VERTEX_BUFFER_MODE_ORIGINAL:
             default:
                 return SCENE_ASSET_GEOMETRY_CAPABILITY_NONE;

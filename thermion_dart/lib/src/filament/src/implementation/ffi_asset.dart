@@ -47,6 +47,8 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
         SceneAssetGeometryCapability.barycentrics,
       if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_EDITABLE_TOPOLOGY != 0)
         SceneAssetGeometryCapability.editableTopology,
+      if (bits & TSceneAssetGeometryCapability.SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_GEOMETRY != 0)
+        SceneAssetGeometryCapability.preservedGeometry,
     };
   }
 

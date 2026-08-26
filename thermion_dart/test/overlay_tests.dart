@@ -221,33 +221,36 @@ void main() async {
     }, postProcessing: true);
   });
 
-  test('setStencilHighlight and setFlatShading throw without unwelded vertex buffers', () async {
+  test('highlighting requires preserved geometry while flat shading requires unwelded geometry', () async {
     await testHelper.withViewer((viewer) async {
-      Future<void> expectUnweldedOperationsToThrow(ThermionAsset cube) async {
-        final matcher = throwsA(
-          isA<StateError>().having(
-            (e) => e.toString(),
-            'message',
-            contains('vertexBufferMode: VertexBufferMode.unwelded'),
-          ),
-        );
-        await expectLater(viewer.view.setStencilHighlight(cube), matcher);
-        await expectLater(cube.setFlatShading(true), matcher);
-      }
+      final preservedGeometryMatcher = throwsA(
+        isA<StateError>().having((e) => e.toString(), 'message', contains('requires preserved geometry')),
+      );
+      final unweldedMatcher = throwsA(
+        isA<StateError>().having(
+          (e) => e.toString(),
+          'message',
+          contains('vertexBufferMode: VertexBufferMode.unwelded'),
+        ),
+      );
 
       final original = await viewer.loadGltf("file://${testHelper.assetsDir}/cube.glb", addToScene: true);
-      await expectUnweldedOperationsToThrow(original);
+      await expectLater(viewer.view.setStencilHighlight(original), preservedGeometryMatcher);
+      await expectLater(original.setFlatShading(true), unweldedMatcher);
 
-      // Editable assets have preserved geometry too, but no barycentric data
-      // or swappable tangent BufferObjects. They must not pass a mere
-      // getVertexBuffer() != null check.
+      // Editable assets preserve reusable vertex/index buffers, so the
+      // POSITION-only silhouette pass works without barycentrics. They still
+      // cannot swap the tangent BufferObjects required by flat shading.
       final editable = await viewer.loadGltf(
         "file://${testHelper.assetsDir}/cube.glb",
         vertexBufferMode: VertexBufferMode.editable,
         addToScene: true,
       );
       expect(editable.getVertexBuffer(), isNotNull);
-      await expectUnweldedOperationsToThrow(editable);
+      expect(editable.geometryCapabilities, contains(SceneAssetGeometryCapability.preservedGeometry));
+      await viewer.view.setStencilHighlight(editable);
+      await viewer.view.removeStencilHighlight(editable);
+      await expectLater(editable.setFlatShading(true), unweldedMatcher);
     });
   });
 }

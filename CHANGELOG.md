@@ -45,6 +45,9 @@
   the `BufferObject` backing reserved for unwelded smooth/flat shading swaps.
   Buffer updates, flat shading, and stencil highlighting now throw actionable
   errors when used with incompatible buffer storage or asset capabilities.
+  Stencil highlighting accepts both editable and unwelded glTF geometry, plus
+  procedural geometry, because its silhouette pass only requires preserved
+  vertex/index buffers; flat shading remains unwelded-only.
 - Expose native `VertexBuffer.storageMode` metadata and first-class
   `BufferObject` creation, upload, and attachment APIs. `supportsSetBufferAt`
   is now derived from immutable metadata supplied by the native builder or
