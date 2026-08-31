@@ -27,6 +27,10 @@ class RenderAttachmentState {
     _renderable[view] = renderable;
   }
 
+  void setRenderables(Map<View, bool> renderability) {
+    _renderable.addAll(renderability);
+  }
+
   void detach(View view, {Pointer<TSwapChain>? swapChain}) {
     if (swapChain == null) {
       for (final views in _attachments.values) {
@@ -42,11 +46,21 @@ class RenderAttachmentState {
     _attachments.remove(swapChain);
   }
 
-  Map<Pointer<TSwapChain>, List<(int, View)>> activeSnapshot() {
+  Map<Pointer<TSwapChain>, List<(int, View)>> renderableSnapshot() {
     return {
       for (final entry in _attachments.entries)
         entry.key: entry.value.where((attachment) => _renderable[attachment.$2] ?? true).toList(),
     };
+  }
+
+  List<ViewAttachment> getViewAttachments(Pointer<TSwapChain> swapChain) {
+    final attachments = _attachments[swapChain] ?? const <(int, View)>[];
+    return List.unmodifiable(
+      attachments.map(
+        (attachment) =>
+            ViewAttachment(view: attachment.$2, order: attachment.$1, renderable: _renderable[attachment.$2] ?? true),
+      ),
+    );
   }
 
   Iterable<View> getAttachedViews(Pointer<TSwapChain> swapChain) =>
@@ -142,8 +156,13 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   @override
   Future setRenderable(View view, bool renderable) {
+    return setRenderables({view: renderable});
+  }
+
+  @override
+  Future setRenderables(Map<View, bool> renderability) {
     return _serialize(() async {
-      _attachmentState.setRenderable(view, renderable);
+      _attachmentState.setRenderables(renderability);
       await _syncViews();
     });
   }
@@ -173,7 +192,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     // Snapshotting also tolerates removal: if an entry was deleted
     // by the time we get back to it, the views list will be null
     // and we skip it.
-    final snapshot = _attachmentState.activeSnapshot();
+    final snapshot = _attachmentState.renderableSnapshot();
 
     for (final swapChainHandle in snapshot.keys) {
       final views = snapshot[swapChainHandle];
@@ -233,7 +252,12 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
 
   @override
   Iterable<View> getAttachedViews(SwapChain swapChain) {
-    return _attachmentState.getAttachedViews(swapChain.getNativeHandle());
+    return getViewAttachments(swapChain).map((attachment) => attachment.view);
+  }
+
+  @override
+  List<ViewAttachment> getViewAttachments(SwapChain swapChain) {
+    return _attachmentState.getViewAttachments(swapChain.getNativeHandle());
   }
 
   @override

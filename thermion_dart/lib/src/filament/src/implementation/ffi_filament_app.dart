@@ -940,6 +940,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       swapChain = _swapChains.first;
     }
+
+    // Capture uses one immutable attachment list for both its primary
+    // render/readback loop and the WebGL completion frame. Attachment state
+    // can change while this method awaits render-thread work; querying it per
+    // view would mix two different frame configurations.
+    final viewAttachments = renderManager.getViewAttachments(swapChain);
+
     var beginFrame = false;
     const MAX_BEGIN_FRAME_RETRIES = 3;
 
@@ -961,13 +968,22 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final pixelBuffers = <(View, Uint8List)>[];
 
-    final views = <View>[];
+    final captureAttachments = <ViewAttachment>[];
     if (view != null) {
-      views.add(view);
+      ViewAttachment? requestedAttachment;
+      for (final attachment in viewAttachments) {
+        if (attachment.view == view) {
+          requestedAttachment = attachment;
+          break;
+        }
+      }
+      captureAttachments.add(requestedAttachment ?? ViewAttachment(view: view, order: 0, renderable: true));
       _logger.finest("Using provided view");
     } else {
-      views.addAll(await renderManager.getAttachedViews(swapChain));
+      captureAttachments.addAll(viewAttachments);
     }
+
+    final views = captureAttachments.map((attachment) => attachment.view).toList(growable: false);
 
     for (final view in views) {
       final vp = await view.getViewport();
@@ -994,6 +1010,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
       final view = views[viewIndex];
+      final attachment = captureAttachments[viewIndex];
       final renderTarget = await view.getRenderTarget();
       bool hasRenderTarget = renderTarget != null;
       _logger.finest(
@@ -1017,7 +1034,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final readType = readAsUByteForFloat ? PixelDataType.UBYTE : pixelDataType;
       inflateFromUByte.add(readAsUByteForFloat);
 
-      beforeRender?.call(view);
+      await beforeRender?.call(view);
 
       final viewport = await view.getViewport();
 
@@ -1044,7 +1061,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final numBytes = viewport.width * viewport.height * numChannels * channelSizeInBytes;
       final pixelBuffer = makeUint8List(numBytes);
 
-      if (render) {
+      if (render && attachment.renderable) {
         await withVoidCallback((requestId, cb) {
           Renderer_renderRenderThread(renderer, view.getNativeHandle(), requestId, cb);
         });
@@ -1093,9 +1110,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await withBoolCallback(
         (cb) => Renderer_beginFrameRenderThread(renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
       );
-      for (final view in views) {
+      for (final attachment in captureAttachments.where((attachment) => attachment.renderable)) {
         await withVoidCallback((requestId, cb) {
-          Renderer_renderRenderThread(renderer, view.getNativeHandle(), requestId, cb);
+          Renderer_renderRenderThread(renderer, attachment.view.getNativeHandle(), requestId, cb);
         });
       }
       await withVoidCallback((requestId, cb) {
@@ -1130,6 +1147,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       if (FILAMENT_WASM) {
         stackRestore(stackPtr);
       }
+      RenderManager_setPaused(renderManager.getNativeHandle(), false);
       return result;
     }
 

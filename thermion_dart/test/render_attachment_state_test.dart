@@ -26,10 +26,10 @@ void main() {
       state.setRenderable(view, true);
 
       expect(state.getAttachedSwapChains(view), isEmpty);
-      expect(state.activeSnapshot(), isEmpty);
+      expect(state.renderableSnapshot(), isEmpty);
 
       state.attach(view, swapChain);
-      expect(state.activeSnapshot()[swapChain], [(0, view)]);
+      expect(state.renderableSnapshot()[swapChain], [(0, view)]);
     });
 
     test('remembers a paused view before its first attachment', () {
@@ -41,7 +41,7 @@ void main() {
       state.attach(view, swapChain);
 
       expect(state.getAttachedSwapChains(view), [swapChain]);
-      expect(state.activeSnapshot()[swapChain], isEmpty);
+      expect(state.renderableSnapshot()[swapChain], isEmpty);
     });
 
     test('resumes the view on its existing swapchain', () {
@@ -53,7 +53,7 @@ void main() {
       state.setRenderable(view, false);
       state.setRenderable(view, true);
 
-      expect(state.activeSnapshot()[swapChain], [(0, view)]);
+      expect(state.renderableSnapshot()[swapChain], [(0, view)]);
     });
 
     test('preserves pause state while replacing a swapchain', () {
@@ -68,7 +68,7 @@ void main() {
       state.detachAll(oldSwapChain);
 
       expect(state.getAttachedSwapChains(view), [replacementSwapChain]);
-      expect(state.activeSnapshot()[replacementSwapChain], isEmpty);
+      expect(state.renderableSnapshot()[replacementSwapChain], isEmpty);
     });
 
     test('a fully detached view defaults to rendering when reused', () {
@@ -82,7 +82,38 @@ void main() {
       state.detach(view);
       state.attach(view, newSwapChain);
 
-      expect(state.activeSnapshot()[newSwapChain], [(0, view)]);
+      expect(state.renderableSnapshot()[newSwapChain], [(0, view)]);
+    });
+
+    test('view attachments preserve order and non-renderable entries', () {
+      final state = RenderAttachmentState();
+      final mainView = _TestView(1);
+      final overlayView = _TestView(2);
+      final swapChain = _swapChain(1);
+
+      state.attach(overlayView, swapChain, renderOrder: 2);
+      state.attach(mainView, swapChain, renderOrder: 1);
+      state.setRenderable(overlayView, false);
+
+      final attachments = state.getViewAttachments(swapChain);
+      expect(attachments.map((attachment) => attachment.view), [mainView, overlayView]);
+      expect(attachments.map((attachment) => attachment.order), [1, 2]);
+      expect(attachments.map((attachment) => attachment.renderable), [true, false]);
+      expect(attachments.where((attachment) => attachment.renderable).map((attachment) => attachment.view), [mainView]);
+      expect(() => attachments.add(attachments.first), throwsUnsupportedError);
+    });
+
+    test('updates grouped view state before returning attachments', () {
+      final state = RenderAttachmentState();
+      final silhouetteView = _TestView(1);
+      final overlayView = _TestView(2);
+      final swapChain = _swapChain(1);
+
+      state.attach(silhouetteView, swapChain, renderOrder: 0);
+      state.attach(overlayView, swapChain, renderOrder: 2);
+      state.setRenderables({silhouetteView: false, overlayView: false});
+
+      expect(state.getViewAttachments(swapChain).where((attachment) => attachment.renderable), isEmpty);
     });
   });
 }
