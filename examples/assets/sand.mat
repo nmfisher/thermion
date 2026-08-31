@@ -1,0 +1,84 @@
+material {
+    name : Sand,
+    requires : [ position ],
+    variables : [
+        worldPos
+    ],
+    parameters : [
+        { type : float4, name : sandColor },
+        { type : float,  name : time }
+    ],
+    shadingModel : unlit,
+    blending : opaque,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // See shockwave_ground.mat: fragment getWorldPosition() is
+        // view-relative here; this plane sits at the identity transform,
+        // so object position IS world position.
+        // The beach geometry is translated +8.2 in Z and +0.08 in Y by the
+        // example. Pipe the matching analytic world coordinate explicitly so
+        // this material and shore_waves.mat evaluate the same contour.
+        material.worldPos.xyz = getPosition().xyz + vec3(0.0, 0.08, 8.2);
+    }
+}
+
+fragment {
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+
+    float shoreZ(float x) {
+        return 1.2 + 0.35 * sin(x * 0.6 + 1.0) + 0.15 * sin(x * 1.7);
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = variable_worldPos.xyz;
+        float grain = noise2(pos.xz * 9.0) * 0.4 + noise2(pos.xz * 31.0) * 0.6;
+        vec3 color = materialParams.sandColor.rgb * (0.88 + 0.20 * grain);
+
+        // Wet band hugging the same analytic shoreline the water uses:
+        // darker and slightly cool where the wash reaches.
+        float d = pos.z - shoreZ(pos.x);
+        // This plane overlaps the water geometry just enough to cover the
+        // land side. Clip its seaward half analytically so the same curved
+        // contour, not a rectangular mesh edge, defines the visible beach.
+        if (d < -0.12) {
+            discard;
+        }
+        float ripple = sin(pos.z * 18.0 + sin(pos.x * 1.8) * 1.6);
+        color *= 0.96 + 0.04 * ripple * smoothstep(3.5, 0.2, d);
+        // The swash line runs up the sand and retreats, phase-locked to the
+        // water's breaker pulse (t * 3.0 + depth * 2.8).
+        float swashC = 0.55 + 0.5 * sin(materialParams.time * 3.0 + 1.2);
+        float dr_7439 = (d - swashC) / 0.55;
+        float wet = exp(-dr_7439 * dr_7439);
+        // A trailing damp apron behind the leading swash edge.
+        float damp = smoothstep(swashC + 0.9, swashC - 0.2, d) *
+                     smoothstep(-2.5, -0.5, d);
+        color = mix(color, color * vec3(0.42, 0.39, 0.37) + vec3(0.0, 0.008, 0.012),
+                    clamp(wet + damp, 0.0, 1.0) * 0.85);
+        // Fine foam speckle right at the swash edge.
+        float speck = wet * (0.12 + 0.18 * noise2(pos.xz * 12.0));
+        color += vec3(0.035) * speck;
+
+        // Melt into the dark background far from the water.
+        float far = smoothstep(1.8, 5.5, d);
+        color = mix(color, vec3(0.03, 0.028, 0.03), far);
+
+        material.baseColor = vec4(color, 1.0);
+    }
+}

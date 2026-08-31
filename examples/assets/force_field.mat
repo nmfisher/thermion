@@ -1,0 +1,106 @@
+material {
+    name : ForceField,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal,
+        worldPos
+    ],
+    parameters : [
+        { type : float4, name : baseColor },
+        { type : float,  name : time },
+        { type : float,  name : fresnelPower },
+        { type : float,  name : hexScale },
+        { type : float,  name : hexStrength },
+        { type : float3, name : hitDirection },
+        { type : float,  name : hitAge }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : back,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+        vec3 viewDir = normalize(getWorldCameraPosition() - variable_worldPos.xyz);
+        float t = materialParams.time;
+
+        // Fresnel rim gives the bubble its silhouette, with a hotter thin
+        // lip right at the edge.
+        float ndv = abs(dot(normal, viewDir));
+        float fresnel = pow(1.0 - ndv, materialParams.fresnelPower);
+        float rimLip = pow(1.0 - ndv, 8.0);
+
+        // --- curved energy lattice ---------------------------------------
+        // Two families of thin, gently warped spherical arcs read as an
+        // engineered field without revealing the source mesh's triangles.
+        float lon = atan(normal.z, normal.x);
+        float lat = asin(clamp(normal.y, -1.0, 1.0));
+        float cells = materialParams.hexScale * 0.5;
+        float warpA = sin(lat * 5.0 + t * 0.35) * 0.24;
+        float warpB = sin(lon * 3.0 - t * 0.28) * 0.16;
+        float arcA = pow(abs(sin(lon * cells + warpA)), 24.0);
+        float arcB = pow(abs(sin(lat * cells * 1.72 + warpB)), 28.0);
+        float poleFade = smoothstep(0.995, 0.87, abs(normal.y));
+        float line = max(arcA * poleFade, arcB);
+        float node = arcA * arcB * poleFade;
+
+        // Directional power flow travels through the web while intersections
+        // ignite as small nodes.
+        float phase = lon * 5.0 + lat * 9.0 - t * 3.8;
+        float flow = 0.58 + 0.42 * sin(phase);
+        float secondary = 0.72 + 0.28 * sin(phase * 0.47 + t * 1.7);
+        float lattice = (line * flow * secondary + node * 0.7) *
+                        materialParams.hexStrength;
+
+        // --- impact response ----------------------------------------------
+        // A bright splash at the impact site, then a sharp ring expanding
+        // over the sphere's angular distance with a trailing echo. The ring
+        // flares the lattice as it crosses it.
+        float ang = acos(clamp(dot(normal, normalize(materialParams.hitDirection)),
+                               -1.0, 1.0));
+        float age = materialParams.hitAge;
+        float da = ang * 7.5;
+        float splash = exp(-da * da) * exp(-age * 8.5) * 2.2;
+        float ringR = age * 2.05;
+        float dr_8171 = ((ang - ringR) * 12.5);
+        float ring = exp(-dr_8171 * dr_8171) * exp(-age * 0.75);
+        float dr_1736 = ((ang - ringR * 0.73) * 9.0);
+        float echo = 0.42 * exp(-dr_1736 * dr_1736) * exp(-age * 0.9);
+        vec3 hitDir = normalize(materialParams.hitDirection);
+        vec3 ringU = normalize(cross(hitDir, vec3(0.0, 1.0, 0.0)));
+        vec3 ringV = cross(hitDir, ringU);
+        float ringAngle = atan(dot(normal, ringV), dot(normal, ringU));
+        float arcSparks = ring * pow(max(sin(ringAngle * 9.0 - t * 7.0),
+                                         0.0), 12.0) * 2.4;
+        float ripple = splash + ring + echo + arcSparks;
+
+        float amount = 0.012 + fresnel * 0.56 + rimLip * 1.35 +
+                       lattice * (0.92 + ripple * 4.2) + ripple * 5.2;
+
+        vec3 color = materialParams.baseColor.rgb;
+        color = mix(color, vec3(0.85, 0.95, 1.0),
+                    clamp(ripple * 0.8, 0.0, 0.8));
+        color *= 0.85 + 0.3 * fresnel;
+
+        // Additive materials pass through the engine's HDR exposure before
+        // tonemapping (~300x on this pipeline), so artistic 0..4 values are
+        // scaled down here: 0.5 reads as a mid glow, 2+ as near-white.
+        material.baseColor = vec4(color * amount * 0.0052, 1.0);
+    }
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.surfaceNormal.xyz = material.worldNormal;
+        // material.worldPosition is pre-transform on this pipeline; build
+        // true world position from the model matrix.
+        material.worldPos.xyz = (getWorldFromModelMatrix() *
+                                 vec4(getPosition().xyz, 1.0)).xyz;
+    }
+}

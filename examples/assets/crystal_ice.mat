@@ -1,0 +1,56 @@
+material {
+    name : CrystalIce,
+    shadingModel : unlit,
+    requires : [ position, tangents ],
+    variables : [ objectPos, surfaceNormal, worldPos ],
+    parameters : [
+        { type : float, name : time },
+        { type : float4, name : tint }
+    ],
+    blending : transparent,
+    depthWrite : true,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPos.xyz = getPosition().xyz;
+        material.surfaceNormal.xyz = material.worldNormal;
+        material.worldPos.xyz = material.worldPosition.xyz;
+    }
+}
+fragment {
+    float hash(vec3 p) { p = fract(p * .1031); p += dot(p, p.yzx + 33.33); return fract((p.x+p.y)*p.z); }
+    float voronoi(vec3 x) {
+        vec3 n = floor(x), f = fract(x); float md = 8.0;
+        for (int k=-1;k<=1;k++) for (int j=-1;j<=1;j++) for (int i=-1;i<=1;i++) {
+            vec3 g=vec3(float(i),float(j),float(k));
+            vec3 o=vec3(hash(n+g),hash(n+g+17.0),hash(n+g+41.0));
+            md=min(md,length(g+o-f));
+        }
+        return md;
+    }
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 p = variable_objectPos.xyz;
+        vec3 n = normalize(variable_surfaceNormal.xyz);
+        vec3 v = normalize(getWorldCameraPosition() - variable_worldPos.xyz);
+        float fres = pow(1.0 - abs(dot(n, v)), 2.6);
+        float cells = voronoi(p * 4.2);
+        float facets = smoothstep(.12, .72, cells);
+        float fractureA = 1.0 - smoothstep(.012, .038, abs(p.x*.72+p.y*.31-p.z*.28-.18));
+        float fractureB = 1.0 - smoothstep(.01, .032, abs(p.x*.22-p.y*.37+p.z*.81+.26));
+        float branchGate = smoothstep(.35,.8,sin(p.y*17.0+p.z*8.0)*.5+.5);
+        float crack = clamp((fractureA*branchGate + fractureB*(1.0-branchGate)) * smoothstep(.28, .72, length(p)), 0.0, 1.0);
+        float inner = .5 + .5 * sin(dot(p, vec3(8.0, 13.0, 17.0)) - materialParams.time * .9);
+        vec3 deep = materialParams.tint.rgb * (.05 + .09 * facets);
+        vec3 spectral = mix(vec3(.03,.35,.75), vec3(.48,.08,.85), .5 + .5 * dot(n, vec3(.57,.0,.82)));
+        vec3 color = deep + spectral * fres * .42;
+        color += vec3(.48,.85,1.0) * crack * (.38 + .12 * sin(materialParams.time * 4.0 + p.y * 20.0));
+        color += materialParams.tint.rgb * inner * .035;
+        float inclusion=step(.992,hash(floor(p*37.0)))*(.3+.7*fres);
+        color+=vec3(.55,.8,1.0)*inclusion*.38;
+        float alpha = clamp(.22 + fres * .5 + crack * .18, 0.0, .82) * materialParams.tint.a;
+        material.baseColor = vec4(color * alpha, alpha);
+    }
+}

@@ -1,0 +1,36 @@
+material {
+    name : PortalRift,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time }, { type : float, name : openAmount } ],
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+vertex { void materialVertex(inout MaterialVertexInputs material){material.objectPos.xyz=getPosition().xyz;} }
+fragment {
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+    float fbm(vec2 p){float v=.0;v+=.5*noise2(p);p=p*2.03+3.1;v+=.25*noise2(p);p=p*2.01+7.7;v+=.125*noise2(p);return v/.875;}
+    void material(inout MaterialInputs material){
+        prepareMaterial(material);
+        vec2 p=variable_objectPos.xz*2.0;
+        p.x/=max(materialParams.openAmount,.035);
+        float r=length(p); if(r>1.0) discard;
+        float a=atan(p.y,p.x), t=materialParams.time;
+        float warp=fbm(vec2(a*1.7-r*2.2,r*4.0-t*.75));
+        float tunnel=.5+.5*cos(r*55.0-a*5.0+t*7.0+warp*11.0);
+        tunnel=pow(tunnel,5.0)*smoothstep(.95,.08,r);
+        float spiral=pow(.5+.5*sin(a*8.0-r*34.0+t*4.2+warp*8.0),8.0);
+        float stars=step(.982,hash(floor((p+vec2(t*.04,-t*.025))*52.0)))*smoothstep(.82,.15,r);
+        float rim=smoothstep(.82,.905,r)*(1.0-smoothstep(.94,1.0,r));
+        float rimCore=exp(-abs(r-.91)*70.0);
+        float corona=pow(max(1.0-r,0.0),.3)*smoothstep(.84,.985,r)*(noise2(vec2(a*19.0,t*3.0))*.55+.45);
+        vec3 abyss=mix(vec3(.002,.004,.022),vec3(.055,.002,.13),r+warp*.18);
+        vec3 color=abyss+vec3(.08,.18,.85)*tunnel*.75+vec3(.62,.03,1.0)*spiral*.34;
+        color+=mix(vec3(.025,.16,.72),vec3(.42,.018,.78),warp)*rim*.92;
+        color+=vec3(.25,.5,1.0)*rimCore*.45;
+        color+=vec3(.08,.28,.78)*corona*.35+vec3(.7,.85,1.0)*stars*1.1;
+        material.baseColor=vec4(color,1.0);
+    }
+}

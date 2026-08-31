@@ -1,0 +1,43 @@
+material {
+    name : HologramProjector,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [
+        { type : float4, name : tintColor },
+        { type : float, name : time }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPos.xyz = getPosition().xyz;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec2 p = variable_objectPos.xz * 2.0;
+        float r = length(p);
+        if (r > 1.0) {
+            discard;
+        }
+        float a = atan(p.y, p.x);
+        float rings = pow(abs(sin(r * 28.0 - materialParams.time * 2.6)), 18.0);
+        float spokes = pow(abs(sin(a * 12.0 + r * 7.0)), 28.0);
+        float sweep = pow(max(cos(a - materialParams.time * 1.3), 0.0), 32.0);
+        float rim = smoothstep(0.78, 0.98, r) * smoothstep(1.0, 0.94, r);
+        float falloff = smoothstep(1.0, 0.05, r);
+        float amount = (rings * 0.42 + spokes * 0.18 + sweep * 0.85 +
+                        rim * 1.3 + 0.025) * falloff;
+        vec3 color = mix(materialParams.tintColor.rgb,
+                         vec3(0.72, 0.95, 1.0), sweep * 0.75);
+        material.baseColor = vec4(color * amount * 0.0065, 1.0);
+    }
+}

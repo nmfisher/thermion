@@ -1,0 +1,90 @@
+material {
+    name : ShockwaveDome,
+    requires : [ position, tangents ],
+    variables : [
+        surfaceNormal,
+        objPos
+    ],
+    parameters : [
+        { type : float4, name : baseColor },
+        { type : float,  name : time },
+        { type : float,  name : age }
+    ],
+    depthWrite : false,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending : add,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Object-space position of the unit sphere (the Dart animator
+        // scales the renderable uniformly, so object space stays
+        // proportional and the equator/hemisphere logic below is
+        // scale-invariant).
+        material.objPos.xyz = getPosition().xyz;
+
+        // Fresnel needs the view direction, but fragment-stage positions
+        // are unreliable on this pipeline (see shockwave_ground.mat).
+        // Compute the rim in the vertex stage from the view-space normal
+        // instead: the angle to the view axis (0, 0, 1) needs no position.
+        vec3 viewN = normalize((getViewFromWorldMatrix() *
+                                vec4(material.worldNormal, 0.0)).xyz);
+        float ndv = abs(viewN.z);
+        // .w channels carry the rim terms for the fragment stage.
+        material.objPos.w = 1.0 - ndv;                       // fresnel base
+        material.surfaceNormal.w = pow(1.0 - ndv, 4.0);      // hot lip
+    }
+}
+
+fragment {
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise2(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = variable_objPos.xyz;
+        float rimBase = variable_objPos.w;
+        float lip = variable_surfaceNormal.w;
+        float t = materialParams.time;
+
+        // Only the upper hemisphere: the dome rises out of the ground
+        // plane, and the equator cut sits exactly at that plane.
+        if (pos.y < 0.0) {
+            discard;
+        }
+
+        float fresnel = pow(rimBase, 2.5);
+
+        // Energy shimmer flowing up the dome: noise stretched vertically
+        // into rising streaks, plus a hot lip around the equator where the
+        // dome meets the ground.
+        float streaks = 0.55 + 0.45 * noise2(vec2(pos.x * 2.0 + pos.z * 1.3,
+                                                  pos.y * 6.0) -
+                                             vec2(0.0, t * 2.5));
+        float dr_eq = pos.y * 4.5;
+        float equator = exp(-dr_eq * dr_eq);
+
+        float fade = exp(-materialParams.age * 1.3);
+        float amount = (fresnel * 2.4 + lip * 1.5 + equator * 1.2) *
+                       streaks * fade;
+
+        vec3 color = mix(materialParams.baseColor.rgb, vec3(0.9, 0.98, 1.0),
+                         max(lip, equator) * 0.6);
+        // Additive materials pass through the engine's HDR exposure before
+        // tonemapping on this pipeline - see hit_flash.mat.
+        material.baseColor = vec4(color * amount * 0.07, 1.0);
+    }
+}

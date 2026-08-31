@@ -1,0 +1,119 @@
+material {
+    name : DissolveBurn,
+    requires : [ position, tangents ],
+    variables : [
+        objectPos,
+        surfaceNormal
+    ],
+    parameters : [
+        { type : float4, name : baseColor },
+        { type : float4, name : edgeColor },
+        { type : float,  name : threshold },
+        { type : float,  name : edgeWidth },
+        { type : float,  name : edgeIntensity },
+        { type : float,  name : noiseScale },
+        { type : float,  name : time }
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending : opaque,
+    culling : none,
+    variantFilter : [ shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        // Object-space position for the noise field: pinning the noise to
+        // the mesh means a moving model slides through the burn instead of
+        // the burn sliding across the model.
+        material.objectPos.xyz = getPosition().xyz;
+        material.surfaceNormal.xyz = material.worldNormal;
+    }
+}
+
+fragment {
+    float hash(vec3 p) {
+        p = fract(p * vec3(443.897, 441.423, 437.195));
+        p += dot(p, p.yzx + 19.19);
+        return fract((p.x + p.y) * p.z);
+    }
+
+    float noise3(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(
+            mix(mix(hash(i),                 hash(i + vec3(1, 0, 0)), f.x),
+                mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+            mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x),
+                mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y),
+            f.z);
+    }
+
+    float fbm(vec3 p) {
+        float v = 0.0;
+        v += 0.5 * noise3(p);  p *= 2.01;
+        v += 0.25 * noise3(p); p *= 2.02;
+        v += 0.125 * noise3(p); p *= 2.00;
+        v += 0.0625 * noise3(p);
+        return v / 0.9375;
+    }
+
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 pos = variable_objectPos.xyz;
+        float n = fbm(pos * materialParams.noiseScale +
+                      vec3(0.0, 0.0, materialParams.time * 0.15));
+
+        float t = clamp(materialParams.threshold, 0.0, 1.0);
+        if (n < t) {
+            discard;
+        }
+
+        // Distance from the burn front, normalized over the edge band:
+        // 0 right at the front, 1 once past it.
+        float e = clamp((n - t) / materialParams.edgeWidth, 0.0, 1.0);
+        float front = 1.0 - e;
+
+        // --- burning edge: white-hot core -> orange -> deep red ----------
+        vec3 hot = vec3(1.0, 0.96, 0.82);
+        vec3 mid = materialParams.edgeColor.rgb;
+        vec3 cool = vec3(0.55, 0.05, 0.0);
+        vec3 edgeCol = mix(hot, mid, smoothstep(0.06, 0.4, e));
+        edgeCol = mix(edgeCol, cool, smoothstep(0.4, 1.0, e));
+
+        // The front flickers like real combustion.
+        float flicker = 0.78 + 0.3 *
+            noise3(pos * 7.0 + vec3(0.0, 0.0, materialParams.time * 5.0)) +
+            0.16 * noise3(pos * 15.0 +
+                          vec3(0.0, 0.0, materialParams.time * 9.0));
+        float glow = pow(front, 2.2) * materialParams.edgeIntensity * flicker;
+
+        // --- ember sparks right at the front ------------------------------
+        float spark = step(0.988, hash(floor(pos * 47.0) +
+                                       floor(materialParams.time * 9.0))) *
+                      pow(front, 4.0);
+
+        // --- charred surface ----------------------------------------------
+        // Near the front the material is fully charred and faintly glowing;
+        // further ahead it is merely scorched, then untouched.
+        float charr = smoothstep(t + materialParams.edgeWidth * 3.0,
+                                 t + materialParams.edgeWidth * 0.6, n);
+        float detail = fbm(pos * materialParams.noiseScale * 2.7 + 31.0);
+        vec3 normal = normalize(variable_surfaceNormal.xyz);
+        vec3 key = normalize(vec3(-0.35, 0.75, 0.55));
+        float diffuse = 0.28 + 0.72 * max(dot(normal, key), 0.0);
+        float grazing = pow(1.0 - abs(normal.z), 3.0);
+        vec3 color = materialParams.baseColor.rgb *
+                     (0.54 + 0.50 * detail) * diffuse;
+        color += materialParams.baseColor.rgb * grazing * 0.18;
+        color *= 1.0 - 0.72 * charr;
+        color += cool * pow(charr, 3.0) * 0.45;
+
+        color += edgeCol * glow + vec3(1.0, 0.65, 0.22) * spark * 1.8;
+
+        material.baseColor = vec4(color, 1.0);
+    }
+}

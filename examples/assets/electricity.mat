@@ -1,0 +1,52 @@
+material {
+    name : Electricity,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ quadUv, boltData ],
+    parameters : [ { type : float, name : time }, { type : float, name : segmentCount } ],
+    blending : add,
+    depthWrite : false,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+vertex {
+    float hash(float n){return fract(sin(n)*43758.5453);}
+    vec2 path(float u,float seed,float t){
+        float x=sin(u*11.0+seed)*.18+sin(u*27.0-seed*2.0)*.075;
+        x+=(hash(floor(u*28.0)+seed+floor(t*18.0))-.5)*.22;
+        return vec2(x,(u-.5)*2.55);
+    }
+    void materialVertex(inout MaterialVertexInputs material){
+        int vi=getVertexIndex(); int corner=vi%6; int qi=vi/6;
+        vec2 uv=vec2(corner==1||corner==2||corner==4?1.0:0.0,corner==2||corner==3||corner==4?1.0:0.0);
+        float count=materialParams.segmentCount; float mainCount=floor(count*.62);
+        float id=float(qi); float branch=step(mainCount-.5,id); float sid=mix(id,id-mainCount,branch);
+        float u0=(sid+floor(branch*mod(sid,3.0)))/mainCount;
+        float u1=u0+1.0/mainCount;
+        vec2 a=path(u0,3.7,materialParams.time), b=path(u1,3.7,materialParams.time);
+        if(branch>.5){
+            float group=floor(sid/3.0); float root=fract((group*7.0+5.0)/mainCount)*.76+.12;
+            float seg=mod(sid,3.0); float side=mix(-1.0,1.0,step(.5,hash(group+9.0)));
+            a=path(root+seg/mainCount,3.7,materialParams.time)+vec2(side*seg*.055,0.0);
+            b=path(root+(seg+1.0)/mainCount,3.7,materialParams.time)+vec2(side*(seg+1.0)*.09,.02);
+        }
+        vec2 d=b-a; float len=length(d); vec2 tangent=d/max(len,.001), side=vec2(-tangent.y,tangent.x);
+        float width=mix(.072,.042,branch);
+        vec2 pt=mix(a,b,uv.y)+side*(uv.x-.5)*width;
+        material.worldPosition.xyz+=vec3(pt.x,pt.y,0.0)-getPosition().xyz;
+        material.quadUv.xy=uv; material.boltData.xy=vec2(branch,id);
+    }
+}
+fragment {
+    float hash(float n){return fract(sin(n)*43758.5453);}
+    void material(inout MaterialInputs material){
+        prepareMaterial(material);
+        vec2 uv=variable_quadUv.xy; float d=abs(uv.x-.5)*2.0;
+        float core=pow(max(1.0-d,0.0),11.0), glow=pow(max(1.0-d,0.0),2.0);
+        float pulse=.72+.28*sin(materialParams.time*32.0+variable_boltData.y*1.7);
+        float branch=variable_boltData.x;
+        vec3 color=mix(vec3(.08,.18,1.0),vec3(.42,.05,1.0),branch);
+        color=color*glow*.65+vec3(.65,.88,1.0)*core*4.4;
+        material.baseColor=vec4(color*pulse*(1.0-branch*.22),1.0);
+    }
+}

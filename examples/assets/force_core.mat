@@ -1,0 +1,40 @@
+material {
+    name : ForceCore,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [
+        { type : float4, name : baseColor },
+        { type : float, name : time }
+    ],
+    depthWrite : true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending : opaque,
+    culling : none,
+    variantFilter : [ skinning, shadowReceiver, vsm ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPos.xyz = getPosition().xyz;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 p = variable_objectPos.xyz;
+        float edge = max(max(abs(p.x), abs(p.y)), abs(p.z)) * 2.0;
+        float shell = smoothstep(0.38, 0.98, edge);
+        float scan = 0.5 + 0.5 * sin((p.y + p.x * 0.34) * 34.0 -
+                                     materialParams.time * 6.0);
+        float pulse = 0.72 + 0.28 * sin(materialParams.time * 3.2);
+        vec3 deep = materialParams.baseColor.rgb * 0.055;
+        vec3 energy = materialParams.baseColor.rgb * (0.45 + scan * 0.48);
+        vec3 color = mix(deep, energy, shell) * pulse;
+        color += vec3(0.32, 0.72, 1.0) * pow(scan, 9.0) * shell * 0.22;
+        // Calibrated for the headless HDR exposure; without this reduction
+        // the core clips to a featureless white block.
+        material.baseColor = vec4(color * 0.052, 1.0);
+    }
+}
