@@ -12,6 +12,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
     required super.windowHandle,
     required super.width,
     required super.height,
+    super.flipVertically,
     bool deferred = false,
   }) : _deferred = deferred;
 
@@ -38,6 +39,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
     int width,
     int height, {
     bool deferred = false,
+    bool flipVertically = false,
   }) async {
     final allocation = await allocateMethodChannelTexture(
       channel,
@@ -52,6 +54,7 @@ class MethodChannelPlatformTextureDescriptor extends PlatformTextureDescriptor {
       width: width,
       height: height,
       deferred: deferred,
+      flipVertically: flipVertically,
     );
   }
 
