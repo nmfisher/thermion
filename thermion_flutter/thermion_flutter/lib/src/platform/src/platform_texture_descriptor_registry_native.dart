@@ -11,9 +11,8 @@ import 'method_channel_platform_texture_descriptor.dart';
 import 'platform_texture_descriptor.dart';
 import 'platform_texture_descriptor_registry.dart';
 
-typedef TextureMutationRunner = Future<T> Function<T>(
-  Future<T> Function() operation,
-);
+typedef TextureMutationRunner =
+    Future<T> Function<T>(Future<T> Function() operation);
 
 class FilamentRenderingContext {
   const FilamentRenderingContext({
@@ -39,12 +38,17 @@ class NativePlatformTextureDescriptorRegistry
     required void Function() resumeRenderingIfReady,
     required TextureMutationRunner runTextureMutation,
     required AndroidTextureSource Function() androidTextureSource,
+    required bool Function() flipLinuxTextureVertically,
   }) : _pauseRendering = pauseRendering,
        _resumeRenderingIfReady = resumeRenderingIfReady,
        _runTextureMutation = runTextureMutation,
        super(
-         allocator: (width, height) =>
-             _allocate(width, height, androidTextureSource()),
+         allocator: (width, height) => _allocate(
+           width,
+           height,
+           androidTextureSource(),
+           flipLinuxTextureVertically(),
+         ),
        ) {
     if (Platform.isAndroid) {
       channel.setMethodCallHandler(_handlePlatformMethodCall);
@@ -62,6 +66,7 @@ class NativePlatformTextureDescriptorRegistry
     int width,
     int height,
     AndroidTextureSource androidTextureSource,
+    bool flipLinuxTextureVertically,
   ) {
     if (Platform.isMacOS || Platform.isIOS) {
       return Future.value(
@@ -89,6 +94,7 @@ class NativePlatformTextureDescriptorRegistry
         width,
         height,
         deferred: true,
+        flipVertically: flipLinuxTextureVertically,
       );
     }
     throw UnsupportedError('Platform textures are not supported on $Platform');

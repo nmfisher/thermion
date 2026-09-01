@@ -106,11 +106,10 @@ if(_PKG_CONFIG)
       endforeach()
 
       if(_td_rootUri)
-        # rootUri may be a file:/// URI (e.g. file:///D:/path on Windows,
-        # file:///home on Linux) or a relative path like "../../thermion_dart".
-        # Strip file:/// (3 slashes) first, then file:// (2 slashes) as fallback.
-        string(REGEX REPLACE "^file:///" "" _td_root "${_td_rootUri}")
-        string(REGEX REPLACE "^file://" "" _td_root "${_td_root}")
+        # rootUri may be an absolute file:/// URI or a relative path such as
+        # "../../thermion_dart". Strip only the file:// scheme prefix: the
+        # remaining slash is the root of an absolute Linux path.
+        string(REGEX REPLACE "^file://" "" _td_root "${_td_rootUri}")
         if(NOT IS_ABSOLUTE "${_td_root}")
           get_filename_component(_pkg_dir "${_PKG_CONFIG}" DIRECTORY)
           get_filename_component(_td_root "${_pkg_dir}/${_td_root}" ABSOLUTE)
