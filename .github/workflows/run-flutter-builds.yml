@@ -124,6 +124,16 @@ jobs:
           flutter pub get
           flutter test
 
+      # The checked-in example overrides are relative monorepo paths. Real
+      # consumers of a Git or hosted package receive absolute file:/// root
+      # URIs in package_config.json, so exercise that resolution path too.
+      - name: Exercise absolute package URIs (Linux)
+        if: matrix.name == 'Linux'
+        shell: bash
+        run: |
+          sed -i "s|path: ../../../thermion_dart|path: ${GITHUB_WORKSPACE}/thermion_dart|" quickstart/pubspec.yaml
+          sed -i "s|path: ../../../thermion_dart|path: ${GITHUB_WORKSPACE}/thermion_dart|" picking/pubspec.yaml
+
       - name: Build quickstart (Linux)
         if: matrix.name == 'Linux'
         run: cd quickstart && flutter pub get && flutter build linux
