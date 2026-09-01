@@ -4,42 +4,180 @@ import 'package:flutter/material.dart' hide View;
 
 import '../../platform/src/platform_texture_descriptor.dart';
 import 'thermion_widget_internal/surface_widget_builder.dart';
+import 'texture_bootstrap.dart';
 
 import 'package:thermion_flutter/thermion_flutter.dart';
 
-class ThermionWidget extends StatefulWidget {
-  // The viewer whose content will be rendered into this widget.
-  final ThermionViewer viewer;
+typedef ThermionViewerFactory = Future<ThermionViewer> Function();
 
-  const ThermionWidget({Key? key, required this.viewer}) : super(key: key);
+class ThermionWidget extends StatefulWidget {
+  /// Renders an existing [viewer]. Its creation and disposal remain the
+  /// caller's responsibility.
+  const ThermionWidget({Key? key, required ThermionViewer viewer})
+    : this._(key: key, viewer: viewer);
+
+  /// Creates and owns a viewer when this widget enters the tree.
+  ///
+  /// On platforms such as Linux OpenGL, [viewerFactory] is invoked only after
+  /// Flutter has composited the context-bootstrap texture required by the
+  /// native renderer. Callers therefore do not need to coordinate platform
+  /// texture initialization themselves.
+  ///
+  /// The returned viewer is disposed when this widget is removed. Configuration
+  /// that must happen before the first rendered frame can be performed inside
+  /// [viewerFactory] before returning the viewer.
+  const ThermionWidget.create({
+    Key? key,
+    required ThermionViewerFactory viewerFactory,
+    Widget initial = const SizedBox.shrink(),
+  }) : this._(key: key, viewerFactory: viewerFactory, initial: initial);
+
+  const ThermionWidget._({
+    super.key,
+    this.viewer,
+    this.viewerFactory,
+    this.initial = const SizedBox.shrink(),
+  });
+
+  /// The viewer whose content will be rendered, when supplied by the caller.
+  final ThermionViewer? viewer;
+
+  /// Creates a viewer owned by this widget, when using [ThermionWidget.create].
+  final ThermionViewerFactory? viewerFactory;
+
+  /// Displayed until a viewer returned by [viewerFactory] is ready.
+  final Widget initial;
 
   @override
   State<ThermionWidget> createState() => _ThermionWidgetState();
 }
 
 class _ThermionWidgetState extends State<ThermionWidget> {
+  ThermionViewer? _ownedViewer;
+  Future<void>? _initialization;
+  Future<void>? _teardown;
+  bool _disposing = false;
+  late final bool _requiresContextBootstrap;
+
+  @override
+  void initState() {
+    super.initState();
+    _requiresContextBootstrap =
+        widget.viewerFactory != null &&
+        ThermionFlutterPlugin.instance.requiresContextBootstrap;
+    if (widget.viewerFactory != null && !_requiresContextBootstrap) {
+      _startInitialization();
+    }
+  }
+
+  Future<void> _initializeViewer() =>
+      _initialization ??= _createAndPublishViewer();
+
+  void _startInitialization() {
+    unawaited(
+      _initializeViewer().catchError((Object error, StackTrace stack) {
+        if (_disposing) return;
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stack,
+            library: 'thermion_flutter',
+            context: ErrorDescription('while creating a Thermion viewer'),
+          ),
+        );
+      }),
+    );
+  }
+
+  Future<void> _createAndPublishViewer() async {
+    final viewer = await widget.viewerFactory!();
+    if (_disposing) {
+      await _disposeViewer(viewer);
+      return;
+    }
+    _ownedViewer = viewer;
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _disposeViewer(ThermionViewer viewer) async {
+    try {
+      await ThermionFlutterPlugin.instance.destroyTextureForView(viewer.view);
+    } finally {
+      try {
+        await viewer.dispose();
+      } finally {
+        await ThermionFlutterPlugin.instance.onViewerDisposed(viewer.view);
+      }
+    }
+  }
+
+  Future<void> _disposeOwnedViewer() async {
+    try {
+      await _initialization;
+    } finally {
+      final viewer = _ownedViewer;
+      _ownedViewer = null;
+      if (viewer != null) await _disposeViewer(viewer);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposing = true;
+    if (widget.viewerFactory != null) {
+      _teardown ??= _disposeOwnedViewer();
+      unawaited(
+        _teardown!.catchError((Object error, StackTrace stack) {
+          FlutterError.reportError(
+            FlutterErrorDetails(
+              exception: error,
+              stack: stack,
+              library: 'thermion_flutter',
+              context: ErrorDescription('while disposing a Thermion viewer'),
+            ),
+          );
+        }),
+      );
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ThermionWidgetInternal(
-      view: widget.viewer.view,
-      surfaceWidgetBuilder: surfaceWidgetBuilder,
-      onTexturePreparing: (descriptor) async {
-        final view = widget.viewer.view;
-        var camera = await view.getCamera();
-        var near = await camera.getNear();
-        var far = await camera.getCullingFar();
-        var focalLength = await camera.getFocalLength();
-
-        await camera.setLensProjection(
-          near: near,
-          far: far,
-          focalLength: focalLength,
-          aspect: descriptor.width.toDouble() / descriptor.height.toDouble(),
-        );
-
-        await view.setViewport(descriptor.width, descriptor.height);
-      },
+    final viewer = widget.viewer ?? _ownedViewer;
+    final child = viewer == null
+        ? widget.initial
+        : ThermionWidgetInternal(
+            view: viewer.view,
+            surfaceWidgetBuilder: surfaceWidgetBuilder,
+            onTexturePreparing: (descriptor) =>
+                _prepareTexture(viewer, descriptor),
+          );
+    if (!_requiresContextBootstrap) return child;
+    return ThermionTextureBootstrap(
+      initialize: _initializeViewer,
+      child: child,
     );
+  }
+
+  Future<void> _prepareTexture(
+    ThermionViewer viewer,
+    PlatformTextureDescriptor descriptor,
+  ) async {
+    final view = viewer.view;
+    var camera = await view.getCamera();
+    var near = await camera.getNear();
+    var far = await camera.getCullingFar();
+    var focalLength = await camera.getFocalLength();
+
+    await camera.setLensProjection(
+      near: near,
+      far: far,
+      focalLength: focalLength,
+      aspect: descriptor.width.toDouble() / descriptor.height.toDouble(),
+    );
+
+    await view.setViewport(descriptor.width, descriptor.height);
   }
 }
 
