@@ -17,3 +17,5 @@ export 'src/interface/buffer_object.dart';
 export 'src/interface/translation_axis_material.dart';
 export 'src/interface/ubershader_material.dart';
 export 'src/interface/wireframe_material.dart';
+
+export 'src/implementation/custom_post_process.dart';
