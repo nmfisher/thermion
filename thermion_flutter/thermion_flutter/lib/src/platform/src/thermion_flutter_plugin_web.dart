@@ -241,7 +241,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin
       path = path.replaceAll("asset://", "");
     }
     var asset = await rootBundle.load(path);
-    return asset.buffer.asUint8List(asset.offsetInBytes);
+    return asset.buffer.asUint8List(asset.offsetInBytes, asset.lengthInBytes);
   }
 
   static void _tick(JSNumber timestamp) {

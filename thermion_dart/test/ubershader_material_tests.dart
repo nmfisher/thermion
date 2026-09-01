@@ -84,7 +84,7 @@ void main() async {
 
       await texture.setImage(
         0,
-        redF32.buffer.asUint8List(redF32.offsetInBytes),
+        redF32.buffer.asUint8List(redF32.offsetInBytes, redF32.lengthInBytes),
         24,
         24,
         // await red.getChannels(),
@@ -93,7 +93,7 @@ void main() async {
       );
       await texture.setImage(
         1,
-        greenF32.buffer.asUint8List(greenF32.offsetInBytes),
+        greenF32.buffer.asUint8List(greenF32.offsetInBytes, greenF32.lengthInBytes),
         12,
         12,
         // await green.getChannels(),

@@ -102,9 +102,13 @@ void main() async {
           await cube.setMaterialInstanceAt(ubershader);
 
           final data = await projectedImage.getData();
-          data.setRange(0, data.length, projected.buffer.asFloat32List());
+          final projectedFloats = projected.buffer.asFloat32List(
+            projected.offsetInBytes,
+            projected.lengthInBytes ~/ Float32List.bytesPerElement,
+          );
+          data.setRange(0, data.length, projectedFloats);
 
-          images.add(projected.buffer.asFloat32List());
+          images.add(projectedFloats);
 
           await projectedTexture.setLinearImage(
             projectedImage,
@@ -179,8 +183,14 @@ void main() async {
         final data = await projectedImage.getData();
         data.setRange(0, data.length, blendedImage);
 
-        await savePixelBufferToBmp(blendedImage.buffer.asUint8List(), width,
-            height, "${testHelper.outDirPath}/blended.bmp",
+        await savePixelBufferToBmp(
+            blendedImage.buffer.asUint8List(
+              blendedImage.offsetInBytes,
+              blendedImage.lengthInBytes,
+            ),
+            width,
+            height,
+            "${testHelper.outDirPath}/blended.bmp",
             hasAlpha: true, isFloat: true);
 
         // Update the texture with the blended image

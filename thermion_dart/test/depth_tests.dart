@@ -123,8 +123,12 @@ void main() async {
       swapChain: swapChain,
       pixelDataFormat: PixelDataFormat.R,
     );
+    final pixelBuffer = pixelBuffers[view]!;
     checkMinMaxPixelValues(
-      pixelBuffers[view]!.buffer.asFloat32List(),
+      pixelBuffer.buffer.asFloat32List(
+        pixelBuffer.offsetInBytes,
+        pixelBuffer.lengthInBytes ~/ Float32List.bytesPerElement,
+      ),
       viewportDimensions.width,
       viewportDimensions.height,
     );

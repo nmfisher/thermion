@@ -112,6 +112,7 @@ void main() async {
         ]);
         var byteBuffer = pixelBuffer.buffer.asUint8List(
           pixelBuffer.offsetInBytes,
+          pixelBuffer.lengthInBytes,
         );
         await texture.setImage3D(
           0,
@@ -173,7 +174,11 @@ void main() async {
 
       await cube.setMaterialInstanceAt(vdtmMi);
 
-      final pixelData = (await image.getData()).buffer.asUint8List();
+      final imageData = await image.getData();
+      final pixelData = imageData.buffer.asUint8List(
+        imageData.offsetInBytes,
+        imageData.lengthInBytes,
+      );
       for (int i = 0; i < cameraPositions.length; i++) {
         await camera.lookAt(cameraPositions[i]);
         await texture.setImage3D(
@@ -278,13 +283,22 @@ void main() async {
             height,
             4,
             1,
-            projectedPixelBuffer.buffer.asUint8List(),
+            projectedPixelBuffer.buffer.asUint8List(
+              projectedPixelBuffer.offsetInBytes,
+              projectedPixelBuffer.lengthInBytes,
+            ),
             PixelDataFormat.RGBA,
             PixelDataType.FLOAT);
 
         final data = await projectedImage.getData();
         data.setRange(
-            0, data.length, projectedPixelBuffer.buffer.asFloat32List());
+          0,
+          data.length,
+          projectedPixelBuffer.buffer.asFloat32List(
+            projectedPixelBuffer.offsetInBytes,
+            projectedPixelBuffer.lengthInBytes ~/ Float32List.bytesPerElement,
+          ),
+        );
         await projectedTexture.setLinearImage(
           projectedImage,
           PixelDataFormat.RGBA,

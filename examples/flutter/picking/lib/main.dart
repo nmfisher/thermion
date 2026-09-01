@@ -45,7 +45,8 @@ class _MyHomePageState extends State<MyHomePage> {
       _thermionViewer!.view.setTransparentPickingEnabled(true);
       // var matData = await rootBundle.load("assets/picking_index0.filamat");
       // var mat = await FilamentApp.instance!
-      //     .createMaterial(matData.buffer.asUint8List(matData.offsetInBytes));
+      //     .createMaterial(matData.buffer.asUint8List(
+      //         matData.offsetInBytes, matData.lengthInBytes));
       // var mi = await mat.createInstance();
       // await mi.setParameterFloat4("baseColorFactor", 1, 0, 0, 1);
       // await mi.setParameterInt("baseColorIndex", -1);

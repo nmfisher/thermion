@@ -1119,7 +1119,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           for (var j = 0; j < raw.length; j++) {
             floats[j] = raw[j] / 255.0;
           }
-          out = floats.buffer.asUint8List();
+          out = floats.asUint8List();
         } else {
           out = Uint8List.fromList(raw);
         }

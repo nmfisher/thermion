@@ -245,7 +245,7 @@ void main() async {
 
           await texture.setImage(
             0,
-            initialBuffer.buffer.asUint8List(),
+            initialBuffer.buffer.asUint8List(initialBuffer.offsetInBytes, initialBuffer.lengthInBytes),
             textureSize,
             textureSize,
             PixelDataFormat.RGBA,
@@ -274,7 +274,7 @@ void main() async {
           // Apply the paint to a sub-region of the texture
           await texture.setImage(
             0,
-            paintBuffer.buffer.asUint8List(),
+            paintBuffer.buffer.asUint8List(paintBuffer.offsetInBytes, paintBuffer.lengthInBytes),
             paintSize,
             paintSize,
             PixelDataFormat.RGBA,
