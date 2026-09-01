@@ -213,36 +213,36 @@ extension DartBigIntExtension on int {
 
 extension Float32ListExtension on Float32List {
   Uint8List asUint8List() {
-    return this.buffer.asUint8List(this.offsetInBytes);
+    return buffer.asUint8List(offsetInBytes, lengthInBytes);
   }
 }
 
-extension Int16ListExtension on Int32List {
+extension Int16ListExtension on Int16List {
   Uint8List asUint8List() {
-    return this.buffer.asUint8List(this.offsetInBytes);
+    return buffer.asUint8List(offsetInBytes, lengthInBytes);
   }
 }
 
 extension Int32ListExtension on Int32List {
   Uint8List asUint8List() {
-    return this.buffer.asUint8List(this.offsetInBytes);
+    return buffer.asUint8List(offsetInBytes, lengthInBytes);
   }
 }
 
 extension UInt16ListExtension on Uint16List {
   Uint8List asUint8List() {
-    return this.buffer.asUint8List(this.offsetInBytes);
+    return buffer.asUint8List(offsetInBytes, lengthInBytes);
   }
 }
 
 extension Uint32ListExtension on Uint32List {
   Uint8List asUint8List() {
-    return this.buffer.asUint8List(this.offsetInBytes);
+    return buffer.asUint8List(offsetInBytes, lengthInBytes);
   }
 }
 
 extension TypedDataListExtension on TypedData {
   Uint8List asUint8List() {
-    return this.buffer.asUint8List(this.offsetInBytes);
+    return buffer.asUint8List(offsetInBytes, lengthInBytes);
   }
 }
