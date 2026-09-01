@@ -11,6 +11,12 @@ abstract class PlatformTextureDescriptor {
 
   int height;
 
+  /// Whether Flutter must invert this texture vertically when presenting it.
+  ///
+  /// OpenGL render targets use a bottom-left origin, while Flutter's widget
+  /// coordinate system uses a top-left origin.
+  final bool flipVertically;
+
   View? _boundView;
 
   /// The (possibly null) view this descriptor is bound to
@@ -28,6 +34,7 @@ abstract class PlatformTextureDescriptor {
     required this.width,
     required this.height,
     this.windowHandle,
+    this.flipVertically = false,
   });
 
   /// Descriptors are identified by their Flutter texture id. This is stable

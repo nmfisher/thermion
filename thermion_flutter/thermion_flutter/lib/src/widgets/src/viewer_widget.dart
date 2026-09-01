@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
-import 'texture_bootstrap.dart';
-
 enum ManipulatorType { NONE, ORBIT, FREE_FLIGHT }
 
 class ViewerWidget extends StatefulWidget {

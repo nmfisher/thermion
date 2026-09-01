@@ -62,6 +62,7 @@ class NativeTextureSurfaceManager {
          resumeRenderingIfReady: lifecycle.resumeRenderingIfReady,
          runTextureMutation: lifecycle.duringTextureMutation,
          androidTextureSource: () => options().androidTextureSource,
+         flipLinuxTextureVertically: () => options().backend != Backend.VULKAN,
        );
 
   static final _logger = Logger('NativeTextureSurfaceManager');
