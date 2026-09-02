@@ -36,7 +36,7 @@ class ThermionFlutterPluginImpl extends ThermionFlutterPlugin {
       path = path.replaceAll('asset://', '');
     }
     final asset = await rootBundle.load(path);
-    return asset.buffer.asUint8List(asset.offsetInBytes);
+    return asset.buffer.asUint8List(asset.offsetInBytes, asset.lengthInBytes);
   }
 
   /// Serialises concurrent [initialize] calls.

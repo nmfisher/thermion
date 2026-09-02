@@ -64,14 +64,18 @@ void main() async {
         ..setUint32(8, totalLength, Endian.little)
         ..setUint32(12, paddedJsonLength, Endian.little)
         ..setUint32(16, 0x4e4f534a, Endian.little);
-      final glb = glbData.buffer.asUint8List();
+      final glb = glbData.buffer.asUint8List(glbData.offsetInBytes, glbData.lengthInBytes);
       glb.setRange(20, 20 + jsonBytes.length, jsonBytes);
       glb.fillRange(20 + jsonBytes.length, 20 + paddedJsonLength, 0x20);
       final binaryHeaderOffset = 20 + paddedJsonLength;
       glbData
         ..setUint32(binaryHeaderOffset, 28, Endian.little)
         ..setUint32(binaryHeaderOffset + 4, 0x004e4942, Endian.little);
-      glb.setRange(binaryHeaderOffset + 8, totalLength, binary.buffer.asUint8List());
+      glb.setRange(
+        binaryHeaderOffset + 8,
+        totalLength,
+        binary.buffer.asUint8List(binary.offsetInBytes, binary.lengthInBytes),
+      );
 
       await expectLater(
         viewer.loadGltfFromBuffer(

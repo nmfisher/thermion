@@ -317,5 +317,5 @@ Uint8List _buildMorphWeightAnimGlb() {
   out.setUint32(cursor, bin.length + binPad, Endian.little);
   out.setUint32(cursor + 4, 0x004E4942, Endian.little); // 'BIN\0'
   out.buffer.asUint8List(cursor + 8, bin.length).setAll(0, bin);
-  return out.buffer.asUint8List();
+  return out.buffer.asUint8List(out.offsetInBytes, out.lengthInBytes);
 }
