@@ -1,4 +1,5 @@
 output: '../lib/src/bindings/src/thermion_dart_ffi.g.dart'
+sort: true
 headers:
   entry-points:
     - '../native/include/c_api/*.h'
