@@ -49,7 +49,7 @@ EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(
     double near,
     double far
 );
-EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double *tModelMatrix);
+EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double4x4 tModelMatrix);
 EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *camera, double near, double far, double aspect, double focalLength);
 EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* camera);
 EMSCRIPTEN_KEEPALIVE void Camera_setProjection(TCamera *const tCamera, TProjection projection, double left, double right,
