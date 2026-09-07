@@ -22,12 +22,12 @@ Matrix4 double4x4ToMatrix4(double4x4 mat) {
   ]);
 }
 
-double4x4 matrix4ToDouble4x4(Matrix4 mat) {
-  final out = StructAllocator.create<double4x4>();
-  Array<Float64> col1 = out.col1;
-  Array<Float64> col2 = out.col2;
-  Array<Float64> col3 = out.col3;
-  Array<Float64> col4 = out.col4;
+double4x4 matrix4ToDouble4x4(Matrix4 mat, {double4x4? out}) {
+  final result = out ?? StructAllocator.create<double4x4>();
+  Array<Float64> col1 = result.col1;
+  Array<Float64> col2 = result.col2;
+  Array<Float64> col3 = result.col3;
+  Array<Float64> col4 = result.col4;
 
   for (int i = 0; i < 4; i++) {
     col1[i] = mat.storage[i];
@@ -36,5 +36,5 @@ double4x4 matrix4ToDouble4x4(Matrix4 mat) {
     col4[i] = mat.storage[i + 12];
   }
 
-  return out;
+  return result;
 }
