@@ -9155,34 +9155,34 @@ void TransformPipeline_setInvertMouseY(int invert) {
   return result;
 }
 
-extension TMaterialInstanceExt on Pointer<TMaterialInstance> {
-  TMaterialInstance toDart() {
-    return TMaterialInstance(this);
-  }
+sealed class TGizmoType {
+  static const GIZMO_TYPE_TRANSLATION = 0;
+  static const GIZMO_TYPE_ROTATION = 1;
 }
 
-final class TMaterialInstance extends Struct {
-  Pointer<TMaterialInstance> get address => super.address.cast();
-  TMaterialInstance(super.address);
-
-  static Pointer<TMaterialInstance> stackAlloc() {
-    return Pointer<TMaterialInstance>(NativeLibrary.instance.stackAlloc<TMaterialInstance>(0));
-  }
+sealed class TSceneAssetType {
+  static const SCENE_ASSET_TYPE_GLTF = 0;
+  static const SCENE_ASSET_TYPE_GEOMETRY = 1;
+  static const SCENE_ASSET_TYPE_LIGHT = 2;
+  static const SCENE_ASSET_TYPE_SKYBOX = 3;
+  static const SCENE_ASSET_TYPE_IBL = 4;
+  static const SCENE_ASSET_TYPE_IMAGE = 5;
+  static const SCENE_ASSET_TYPE_GIZMO = 6;
 }
 
-extension TMaterialExt on Pointer<TMaterial> {
-  TMaterial toDart() {
-    return TMaterial(this);
-  }
+sealed class TVertexBufferStorageMode {
+  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
+  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
+  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
 }
 
-final class TMaterial extends Struct {
-  Pointer<TMaterial> get address => super.address.cast();
-  TMaterial(super.address);
-
-  static Pointer<TMaterial> stackAlloc() {
-    return Pointer<TMaterial>(NativeLibrary.instance.stackAlloc<TMaterial>(0));
-  }
+sealed class TSceneAssetGeometryCapability {
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_NONE = 0;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_BARYCENTRICS = 1;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_WRITABLE_VERTICES = 2;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_ACCESSIBLE_GEOMETRY_BUFFERS = 4;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_PRESERVED_TOPOLOGY = 8;
+  static const SCENE_ASSET_GEOMETRY_CAPABILITY_UNIQUE_TRIANGLE_CORNERS = 16;
 }
 
 sealed class TFeatureLevel {
@@ -9192,56 +9192,73 @@ sealed class TFeatureLevel {
   static const FEATURE_LEVEL_3 = 3;
 }
 
-extension TEngineExt on Pointer<TEngine> {
-  TEngine toDart() {
-    return TEngine(this);
-  }
+sealed class TPrimitiveType {
+  /// !< points
+  static const PRIMITIVETYPE_POINTS = 0;
+
+  /// !< lines
+  static const PRIMITIVETYPE_LINES = 1;
+
+  /// !< line strip
+  static const PRIMITIVETYPE_LINE_STRIP = 3;
+
+  /// !< triangles
+  static const PRIMITIVETYPE_TRIANGLES = 4;
+
+  /// !< triangle strip
+  static const PRIMITIVETYPE_TRIANGLE_STRIP = 5;
 }
 
-final class TEngine extends Struct {
-  Pointer<TEngine> get address => super.address.cast();
-  TEngine(super.address);
-
-  static Pointer<TEngine> stackAlloc() {
-    return Pointer<TEngine>(NativeLibrary.instance.stackAlloc<TEngine>(0));
-  }
+sealed class TVertexAttribute {
+  static const TVERTEX_ATTRIBUTE_POSITION = 0;
+  static const TVERTEX_ATTRIBUTE_TANGENTS = 1;
+  static const TVERTEX_ATTRIBUTE_COLOR = 2;
+  static const TVERTEX_ATTRIBUTE_UV0 = 3;
+  static const TVERTEX_ATTRIBUTE_UV1 = 4;
+  static const TVERTEX_ATTRIBUTE_BONE_INDICES = 5;
+  static const TVERTEX_ATTRIBUTE_BONE_WEIGHTS = 6;
+  static const TVERTEX_ATTRIBUTE_CUSTOM0 = 8;
+  static const TVERTEX_ATTRIBUTE_CUSTOM1 = 9;
+  static const TVERTEX_ATTRIBUTE_CUSTOM2 = 10;
+  static const TVERTEX_ATTRIBUTE_CUSTOM3 = 11;
+  static const TVERTEX_ATTRIBUTE_CUSTOM4 = 12;
+  static const TVERTEX_ATTRIBUTE_CUSTOM5 = 13;
+  static const TVERTEX_ATTRIBUTE_CUSTOM6 = 14;
+  static const TVERTEX_ATTRIBUTE_CUSTOM7 = 15;
 }
 
-sealed class TCullingMode {
-  static const CULLING_MODE_NONE = 0;
-  static const CULLING_MODE_FRONT = 1;
-  static const CULLING_MODE_BACK = 2;
-  static const CULLING_MODE_FRONT_AND_BACK = 3;
+sealed class TVertexAttributeType {
+  static const TVERTEXATTRIBUTE_TYPE_BYTE = 0;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE2 = 1;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE3 = 2;
+  static const TVERTEXATTRIBUTE_TYPE_BYTE4 = 3;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE = 4;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE2 = 5;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE3 = 6;
+  static const TVERTEXATTRIBUTE_TYPE_UBYTE4 = 7;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT = 8;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT2 = 9;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT3 = 10;
+  static const TVERTEXATTRIBUTE_TYPE_SHORT4 = 11;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT = 12;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT2 = 13;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT3 = 14;
+  static const TVERTEXATTRIBUTE_TYPE_USHORT4 = 15;
+  static const TVERTEXATTRIBUTE_TYPE_INT = 16;
+  static const TVERTEXATTRIBUTE_TYPE_UINT = 17;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT = 18;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT2 = 19;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT3 = 20;
+  static const TVERTEXATTRIBUTE_TYPE_FLOAT4 = 21;
+  static const TVERTEXATTRIBUTE_TYPE_HALF = 22;
+  static const TVERTEXATTRIBUTE_TYPE_HALF2 = 23;
+  static const TVERTEXATTRIBUTE_TYPE_HALF3 = 24;
+  static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
 }
 
-extension TTextureExt on Pointer<TTexture> {
-  TTexture toDart() {
-    return TTexture(this);
-  }
-}
-
-final class TTexture extends Struct {
-  Pointer<TTexture> get address => super.address.cast();
-  TTexture(super.address);
-
-  static Pointer<TTexture> stackAlloc() {
-    return Pointer<TTexture>(NativeLibrary.instance.stackAlloc<TTexture>(0));
-  }
-}
-
-extension TTextureSamplerExt on Pointer<TTextureSampler> {
-  TTextureSampler toDart() {
-    return TTextureSampler(this);
-  }
-}
-
-final class TTextureSampler extends Struct {
-  Pointer<TTextureSampler> get address => super.address.cast();
-  TTextureSampler(super.address);
-
-  static Pointer<TTextureSampler> stackAlloc() {
-    return Pointer<TTextureSampler>(NativeLibrary.instance.stackAlloc<TTextureSampler>(0));
-  }
+sealed class TIndexType {
+  static const TINDEX_TYPE_USHORT = 0;
+  static const TINDEX_TYPE_UINT = 1;
 }
 
 sealed class TSamplerCompareFunc {
@@ -9287,6 +9304,13 @@ sealed class TStencilFace {
   static const STENCIL_FACE_FRONT_AND_BACK = 3;
 }
 
+sealed class TCullingMode {
+  static const CULLING_MODE_NONE = 0;
+  static const CULLING_MODE_FRONT = 1;
+  static const CULLING_MODE_BACK = 2;
+  static const CULLING_MODE_FRONT_AND_BACK = 3;
+}
+
 sealed class TTransparencyMode {
   /// ! the transparent object is drawn honoring the raster state
   static const DEFAULT = 0;
@@ -9310,6 +9334,81 @@ sealed class TBlendingMode {
   static const BLENDING_MODE_MULTIPLY = 5;
   static const BLENDING_MODE_SCREEN = 6;
   static const BLENDING_MODE_CUSTOM = 7;
+}
+
+extension TMaterialInstanceExt on Pointer<TMaterialInstance> {
+  TMaterialInstance toDart() {
+    return TMaterialInstance(this);
+  }
+}
+
+final class TMaterialInstance extends Struct {
+  Pointer<TMaterialInstance> get address => super.address.cast();
+  TMaterialInstance(super.address);
+
+  static Pointer<TMaterialInstance> stackAlloc() {
+    return Pointer<TMaterialInstance>(NativeLibrary.instance.stackAlloc<TMaterialInstance>(0));
+  }
+}
+
+extension TMaterialExt on Pointer<TMaterial> {
+  TMaterial toDart() {
+    return TMaterial(this);
+  }
+}
+
+final class TMaterial extends Struct {
+  Pointer<TMaterial> get address => super.address.cast();
+  TMaterial(super.address);
+
+  static Pointer<TMaterial> stackAlloc() {
+    return Pointer<TMaterial>(NativeLibrary.instance.stackAlloc<TMaterial>(0));
+  }
+}
+
+extension TEngineExt on Pointer<TEngine> {
+  TEngine toDart() {
+    return TEngine(this);
+  }
+}
+
+final class TEngine extends Struct {
+  Pointer<TEngine> get address => super.address.cast();
+  TEngine(super.address);
+
+  static Pointer<TEngine> stackAlloc() {
+    return Pointer<TEngine>(NativeLibrary.instance.stackAlloc<TEngine>(0));
+  }
+}
+
+extension TTextureExt on Pointer<TTexture> {
+  TTexture toDart() {
+    return TTexture(this);
+  }
+}
+
+final class TTexture extends Struct {
+  Pointer<TTexture> get address => super.address.cast();
+  TTexture(super.address);
+
+  static Pointer<TTexture> stackAlloc() {
+    return Pointer<TTexture>(NativeLibrary.instance.stackAlloc<TTexture>(0));
+  }
+}
+
+extension TTextureSamplerExt on Pointer<TTextureSampler> {
+  TTextureSampler toDart() {
+    return TTextureSampler(this);
+  }
+}
+
+final class TTextureSampler extends Struct {
+  Pointer<TTextureSampler> get address => super.address.cast();
+  TTextureSampler(super.address);
+
+  static Pointer<TTextureSampler> stackAlloc() {
+    return Pointer<TTextureSampler>(NativeLibrary.instance.stackAlloc<TTextureSampler>(0));
+  }
 }
 
 sealed class TTextureSamplerType {
@@ -9433,24 +9532,6 @@ sealed class TTextureFormat {
   static const TEXTUREFORMAT_SRGB_ALPHA_BPTC_UNORM = 108;
 }
 
-typedef size_t = int;
-typedef Dartsize_t = int;
-
-extension TLinearImageExt on Pointer<TLinearImage> {
-  TLinearImage toDart() {
-    return TLinearImage(this);
-  }
-}
-
-final class TLinearImage extends Struct {
-  Pointer<TLinearImage> get address => super.address.cast();
-  TLinearImage(super.address);
-
-  static Pointer<TLinearImage> stackAlloc() {
-    return Pointer<TLinearImage>(NativeLibrary.instance.stackAlloc<TLinearImage>(0));
-  }
-}
-
 /// ! Pixel Data Format
 sealed class TPixelDataFormat {
   /// !< One Red channel, float
@@ -9561,6 +9642,24 @@ sealed class TTextureUsage {
   static const TEXTURE_USAGE_DEFAULT = 24;
 }
 
+typedef size_t = int;
+typedef Dartsize_t = int;
+
+extension TLinearImageExt on Pointer<TLinearImage> {
+  TLinearImage toDart() {
+    return TLinearImage(this);
+  }
+}
+
+final class TLinearImage extends Struct {
+  Pointer<TLinearImage> get address => super.address.cast();
+  TLinearImage(super.address);
+
+  static Pointer<TLinearImage> stackAlloc() {
+    return Pointer<TLinearImage>(NativeLibrary.instance.stackAlloc<TLinearImage>(0));
+  }
+}
+
 extension TKtx1BundleExt on Pointer<TKtx1Bundle> {
   TKtx1Bundle toDart() {
     return TKtx1Bundle(this);
@@ -9596,6 +9695,12 @@ final class TRenderTarget extends Struct {
   }
 }
 
+sealed class TSamplerWrapMode {
+  static const WRAP_CLAMP_TO_EDGE = 0;
+  static const WRAP_REPEAT = 1;
+  static const WRAP_MIRRORED_REPEAT = 2;
+}
+
 sealed class TSamplerMinFilter {
   static const FILTER_NEAREST = 0;
   static const FILTER_LINEAR = 1;
@@ -9608,12 +9713,6 @@ sealed class TSamplerMinFilter {
 sealed class TSamplerMagFilter {
   static const MAG_FILTER_NEAREST = 0;
   static const MAG_FILTER_LINEAR = 1;
-}
-
-sealed class TSamplerWrapMode {
-  static const WRAP_CLAMP_TO_EDGE = 0;
-  static const WRAP_REPEAT = 1;
-  static const WRAP_MIRRORED_REPEAT = 2;
 }
 
 sealed class TSamplerCompareMode {
@@ -9851,6 +9950,23 @@ final class TDebugRegistry extends Struct {
   }
 }
 
+sealed class TQualityLevel {
+  static const LOW = 0;
+  static const MEDIUM = 1;
+  static const HIGH = 2;
+  static const ULTRA = 3;
+}
+
+sealed class TBlendMode {
+  static const OPAQUE = 0;
+  static const TRANSLUCENT = 1;
+}
+
+sealed class TLutFormat {
+  static const INTEGER = 0;
+  static const FLOAT = 1;
+}
+
 extension TViewportExt on Pointer<TViewport> {
   TViewport toDart() {
     return TViewport(this);
@@ -9934,23 +10050,6 @@ final class TColorGradingBuilder extends Struct {
   static Pointer<TColorGradingBuilder> stackAlloc() {
     return Pointer<TColorGradingBuilder>(NativeLibrary.instance.stackAlloc<TColorGradingBuilder>(0));
   }
-}
-
-sealed class TQualityLevel {
-  static const LOW = 0;
-  static const MEDIUM = 1;
-  static const HIGH = 2;
-  static const ULTRA = 3;
-}
-
-sealed class TLutFormat {
-  static const INTEGER = 0;
-  static const FLOAT = 1;
-}
-
-sealed class TBlendMode {
-  static const OPAQUE = 0;
-  static const TRANSLUCENT = 1;
 }
 
 /// Options for DPCF and PCSS Shadowing.
@@ -10085,6 +10184,11 @@ final class TVsmShadowOptions extends Struct {
   static Pointer<TVsmShadowOptions> stackAlloc() {
     return Pointer<TVsmShadowOptions>(NativeLibrary.instance.stackAlloc<TVsmShadowOptions>(12));
   }
+}
+
+sealed class TAmbientOcclusionType {
+  static const SAO = 0;
+  static const GTAO = 1;
 }
 
 /// Options for ambient occlusion, Screen Space Cone Tracing (SSCT), and GTAO
@@ -10511,11 +10615,6 @@ final class TGtao extends Struct {
   }
 }
 
-sealed class TAmbientOcclusionType {
-  static const SAO = 0;
-  static const GTAO = 1;
-}
-
 /// Copied from FogOptions in View.h
 
 extension TFogOptionsExt on Pointer<TFogOptions> {
@@ -10710,59 +10809,6 @@ final class TVertexBufferBuilder extends Struct {
   }
 }
 
-sealed class TVertexBufferStorageMode {
-  static const VERTEX_BUFFER_STORAGE_MODE_UNKNOWN = 0;
-  static const VERTEX_BUFFER_STORAGE_MODE_DIRECT = 1;
-  static const VERTEX_BUFFER_STORAGE_MODE_BUFFER_OBJECTS = 2;
-}
-
-sealed class TVertexAttribute {
-  static const TVERTEX_ATTRIBUTE_POSITION = 0;
-  static const TVERTEX_ATTRIBUTE_TANGENTS = 1;
-  static const TVERTEX_ATTRIBUTE_COLOR = 2;
-  static const TVERTEX_ATTRIBUTE_UV0 = 3;
-  static const TVERTEX_ATTRIBUTE_UV1 = 4;
-  static const TVERTEX_ATTRIBUTE_BONE_INDICES = 5;
-  static const TVERTEX_ATTRIBUTE_BONE_WEIGHTS = 6;
-  static const TVERTEX_ATTRIBUTE_CUSTOM0 = 8;
-  static const TVERTEX_ATTRIBUTE_CUSTOM1 = 9;
-  static const TVERTEX_ATTRIBUTE_CUSTOM2 = 10;
-  static const TVERTEX_ATTRIBUTE_CUSTOM3 = 11;
-  static const TVERTEX_ATTRIBUTE_CUSTOM4 = 12;
-  static const TVERTEX_ATTRIBUTE_CUSTOM5 = 13;
-  static const TVERTEX_ATTRIBUTE_CUSTOM6 = 14;
-  static const TVERTEX_ATTRIBUTE_CUSTOM7 = 15;
-}
-
-sealed class TVertexAttributeType {
-  static const TVERTEXATTRIBUTE_TYPE_BYTE = 0;
-  static const TVERTEXATTRIBUTE_TYPE_BYTE2 = 1;
-  static const TVERTEXATTRIBUTE_TYPE_BYTE3 = 2;
-  static const TVERTEXATTRIBUTE_TYPE_BYTE4 = 3;
-  static const TVERTEXATTRIBUTE_TYPE_UBYTE = 4;
-  static const TVERTEXATTRIBUTE_TYPE_UBYTE2 = 5;
-  static const TVERTEXATTRIBUTE_TYPE_UBYTE3 = 6;
-  static const TVERTEXATTRIBUTE_TYPE_UBYTE4 = 7;
-  static const TVERTEXATTRIBUTE_TYPE_SHORT = 8;
-  static const TVERTEXATTRIBUTE_TYPE_SHORT2 = 9;
-  static const TVERTEXATTRIBUTE_TYPE_SHORT3 = 10;
-  static const TVERTEXATTRIBUTE_TYPE_SHORT4 = 11;
-  static const TVERTEXATTRIBUTE_TYPE_USHORT = 12;
-  static const TVERTEXATTRIBUTE_TYPE_USHORT2 = 13;
-  static const TVERTEXATTRIBUTE_TYPE_USHORT3 = 14;
-  static const TVERTEXATTRIBUTE_TYPE_USHORT4 = 15;
-  static const TVERTEXATTRIBUTE_TYPE_INT = 16;
-  static const TVERTEXATTRIBUTE_TYPE_UINT = 17;
-  static const TVERTEXATTRIBUTE_TYPE_FLOAT = 18;
-  static const TVERTEXATTRIBUTE_TYPE_FLOAT2 = 19;
-  static const TVERTEXATTRIBUTE_TYPE_FLOAT3 = 20;
-  static const TVERTEXATTRIBUTE_TYPE_FLOAT4 = 21;
-  static const TVERTEXATTRIBUTE_TYPE_HALF = 22;
-  static const TVERTEXATTRIBUTE_TYPE_HALF2 = 23;
-  static const TVERTEXATTRIBUTE_TYPE_HALF3 = 24;
-  static const TVERTEXATTRIBUTE_TYPE_HALF4 = 25;
-}
-
 extension TVertexBufferExt on Pointer<TVertexBuffer> {
   TVertexBuffer toDart() {
     return TVertexBuffer(this);
@@ -10806,11 +10852,6 @@ final class TIndexBufferBuilder extends Struct {
   static Pointer<TIndexBufferBuilder> stackAlloc() {
     return Pointer<TIndexBufferBuilder>(NativeLibrary.instance.stackAlloc<TIndexBufferBuilder>(0));
   }
-}
-
-sealed class TIndexType {
-  static const TINDEX_TYPE_USHORT = 0;
-  static const TINDEX_TYPE_UINT = 1;
 }
 
 extension TIndexBufferExt on Pointer<TIndexBuffer> {
@@ -11391,23 +11432,6 @@ final class TFilamentAsset extends Struct {
   }
 }
 
-sealed class TPrimitiveType {
-  /// !< points
-  static const PRIMITIVETYPE_POINTS = 0;
-
-  /// !< lines
-  static const PRIMITIVETYPE_LINES = 1;
-
-  /// !< line strip
-  static const PRIMITIVETYPE_LINE_STRIP = 3;
-
-  /// !< triangles
-  static const PRIMITIVETYPE_TRIANGLES = 4;
-
-  /// !< triangle strip
-  static const PRIMITIVETYPE_TRIANGLE_STRIP = 5;
-}
-
 extension TGltfResourceLoaderExt on Pointer<TGltfResourceLoader> {
   TGltfResourceLoader toDart() {
     return TGltfResourceLoader(this);
@@ -11421,11 +11445,6 @@ final class TGltfResourceLoader extends Struct {
   static Pointer<TGltfResourceLoader> stackAlloc() {
     return Pointer<TGltfResourceLoader>(NativeLibrary.instance.stackAlloc<TGltfResourceLoader>(0));
   }
-}
-
-sealed class TGizmoType {
-  static const GIZMO_TYPE_TRANSLATION = 0;
-  static const GIZMO_TYPE_ROTATION = 1;
 }
 
 extension TGizmoExt on Pointer<TGizmo> {
@@ -11458,16 +11477,6 @@ final class TRenderableBuilder extends Struct {
   }
 }
 
-sealed class TSceneAssetType {
-  static const SCENE_ASSET_TYPE_GLTF = 0;
-  static const SCENE_ASSET_TYPE_GEOMETRY = 1;
-  static const SCENE_ASSET_TYPE_LIGHT = 2;
-  static const SCENE_ASSET_TYPE_SKYBOX = 3;
-  static const SCENE_ASSET_TYPE_IBL = 4;
-  static const SCENE_ASSET_TYPE_IMAGE = 5;
-  static const SCENE_ASSET_TYPE_GIZMO = 6;
-}
-
 extension TMeshDataExt on Pointer<TMeshData> {
   TMeshData toDart() {
     return TMeshData(this);
@@ -11488,6 +11497,12 @@ typedef DartFrameTickCallback = Pointer<NativeFunction<FrameTickCallbackFunction
 typedef FrameTickCallbackFunction = void Function(JSBigInt frameTimeNanos);
 typedef DartFrameTickCallbackFunction = void Function(BigInt frameTimeNanos);
 
+sealed class TGizmoAxis {
+  static const X = 0;
+  static const Y = 1;
+  static const Z = 2;
+}
+
 sealed class TGizmoPickResultType {
   static const AxisX = 0;
   static const AxisY = 1;
@@ -11500,12 +11515,6 @@ typedef GizmoPickCallback = Pointer<NativeFunction<GizmoPickCallbackFunction>>;
 typedef DartGizmoPickCallback = Pointer<NativeFunction<GizmoPickCallbackFunction>>;
 typedef GizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
 typedef DartGizmoPickCallbackFunction = void Function(int resultType, double x, double y, double z);
-
-sealed class TGizmoAxis {
-  static const X = 0;
-  static const Y = 1;
-  static const Z = 2;
-}
 
 sealed class TProjection {
   static const Perspective = 0;
@@ -11540,6 +11549,35 @@ final class TSurfaceOrientation extends Struct {
   static Pointer<TSurfaceOrientation> stackAlloc() {
     return Pointer<TSurfaceOrientation>(NativeLibrary.instance.stackAlloc<TSurfaceOrientation>(0));
   }
+}
+
+sealed class TIntentAction {
+  static const INTENT_ACTION_MOVE_FORWARD = 0;
+  static const INTENT_ACTION_MOVE_BACKWARD = 1;
+  static const INTENT_ACTION_MOVE_LEFT = 2;
+  static const INTENT_ACTION_MOVE_RIGHT = 3;
+  static const INTENT_ACTION_JUMP = 4;
+  static const INTENT_ACTION_SPRINT = 5;
+  static const INTENT_ACTION_CUSTOM1 = 6;
+  static const INTENT_ACTION_CUSTOM2 = 7;
+  static const INTENT_ACTION_CUSTOM3 = 8;
+  static const INTENT_ACTION_CUSTOM4 = 9;
+  static const INTENT_ACTION_CUSTOM5 = 10;
+  static const INTENT_ACTION_CUSTOM6 = 11;
+  static const INTENT_ACTION_CUSTOM7 = 12;
+  static const INTENT_ACTION_CUSTOM8 = 13;
+  static const INTENT_ACTION_CUSTOM9 = 14;
+  static const INTENT_ACTION_CUSTOM10 = 15;
+  static const INTENT_ACTION_CROUCH = 16;
+  static const INTENT_ACTION_INTERACT = 17;
+  static const INTENT_ACTION_USE_ITEM = 18;
+  static const INTENT_ACTION_RELOAD = 19;
+  static const INTENT_ACTION_ALT_FIRE = 20;
+}
+
+sealed class TMovementSpace {
+  static const MOVEMENT_SPACE_WORLD = 0;
+  static const MOVEMENT_SPACE_OBJECT = 1;
 }
 
 extension TMovementIntentExecutorExt on Pointer<TMovementIntentExecutor> {
