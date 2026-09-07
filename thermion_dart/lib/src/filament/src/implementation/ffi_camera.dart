@@ -180,8 +180,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   /// Reused native-path scratch so repeated camera updates do not allocate.
   /// Backed by Dart heap memory (GC-managed, no explicit free); never touched
   /// on web, which allocates each call transiently on the wasm stack.
-  late final double4x4 _modelMatrixScratch =
-      matrix4ToDouble4x4(Matrix4.identity());
+  late final double4x4 _modelMatrixScratch = matrix4ToDouble4x4(Matrix4.identity());
 
   @override
   Future setModelMatrix(Matrix4 matrix) async {
@@ -194,10 +193,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
       Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
       stackRestore(stackPtr);
     } else {
-      Camera_setModelMatrix(
-        camera,
-        matrix4ToDouble4x4(matrix, out: _modelMatrixScratch),
-      );
+      Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix, out: _modelMatrixScratch));
     }
   }
 
