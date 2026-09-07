@@ -18,7 +18,7 @@ Future<void> setupSmoke(
     aspect: 1.0,
     focalLength: 28.0,
   );
-  await camera.lookAt(Vector3(0.35, 1.3, 3.6), focus: Vector3(0.3, 1.0, 0));
+  await camera.lookAt(Vector3(0.35, 1.65, 5.0), focus: Vector3(0.3, 1.5, 0));
 
   await setDarkSkybox(viewer);
   await enableVfxPost(viewer, bloomStrength: 0.08);

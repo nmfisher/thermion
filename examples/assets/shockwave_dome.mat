@@ -14,7 +14,7 @@ material {
     depthCulling : false,
     shadingModel : unlit,
     blending : add,
-    culling : none,
+    culling : back,
     variantFilter : [ skinning, shadowReceiver, vsm ]
 }
 
@@ -25,6 +25,7 @@ vertex {
         // proportional and the equator/hemisphere logic below is
         // scale-invariant).
         material.objPos.xyz = getPosition().xyz;
+        material.surfaceNormal.xyz = material.worldNormal;
 
         // Fresnel needs the view direction, but fragment-stage positions
         // are unreliable on this pipeline (see shockwave_ground.mat).
@@ -56,8 +57,8 @@ fragment {
         prepareMaterial(material);
 
         vec3 pos = variable_objPos.xyz;
-        float rimBase = variable_objPos.w;
-        float lip = variable_surfaceNormal.w;
+        float rimBase = 1.0 - abs(dot(normalize(variable_surfaceNormal.xyz), getWorldViewVector()));
+        float lip = pow(rimBase, 8.0);
         float t = materialParams.time;
 
         // Only the upper hemisphere: the dome rises out of the ground
@@ -77,9 +78,12 @@ fragment {
         float dr_eq = pos.y * 4.5;
         float equator = exp(-dr_eq * dr_eq);
 
-        float fade = exp(-materialParams.age * 1.3);
-        float amount = (fresnel * 2.4 + lip * 1.5 + equator * 1.2) *
-                       streaks * fade;
+        float age = max(materialParams.age, 0.0);
+        float fade = exp(-age * 2.1);
+        float turbulence = noise2(pos.xz * 12.0 + pos.y * 7.0 - t * .5);
+        float fragments = smoothstep(age * .22, age * .22 + .18, turbulence);
+        float amount = (fresnel * .8 + lip * 1.5 + equator * .65) *
+                       streaks * fade * fragments;
 
         vec3 color = mix(materialParams.baseColor.rgb, vec3(0.9, 0.98, 1.0),
                          max(lip, equator) * 0.6);

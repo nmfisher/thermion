@@ -15,10 +15,10 @@ material {
         { type : float,  name : glitchAmount }
     ],
     depthWrite : false,
-    depthCulling : false,
+    depthCulling : true,
     shadingModel : unlit,
     blending : transparent,
-    culling : none,
+    culling : back,
     variantFilter : [ shadowReceiver, vsm ]
 }
 
@@ -65,7 +65,7 @@ fragment {
 
         vec3 pos = variable_worldPos.xyz;
         vec3 normal = normalize(variable_surfaceNormal.xyz);
-        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        vec3 viewDir = getWorldViewVector();
         float t = materialParams.time;
 
         // Fresnel rim: edges read brighter, giving the shell-like hologram
@@ -83,7 +83,8 @@ fragment {
         float scanB = smoothstep(0.55, 1.0,
             sin(pos.y * materialParams.scanlineCount * 0.37 -
                 t * materialParams.scanlineSpeed * 0.53)) * 0.14;
-        float scanline = scanA + scanB;
+        float footprint = fwidth(pos.y * materialParams.scanlineCount);
+        float scanline = (scanA + scanB) * (1.0 - smoothstep(1.0, 3.0, footprint));
 
         // The scanning band: a bright core with a soft haze around it and a
         // sharp trailing edge, sweeping up the projection every ~4.8s.
@@ -113,10 +114,10 @@ fragment {
 
         // Interior floor, brighter toward the top so the body reads as
         // projected light rather than empty space.
-        float shell = 0.045 + 0.055 * smoothstep(-0.6, 0.6, pos.y);
+        float shell = 0.015 + 0.025 * smoothstep(-0.6, 0.6, pos.y);
 
-        float alpha = shell + fresnel * 0.54 + scanline +
-                      sweep * 0.58 + (glitch1 + glitch2) * 0.58;
+        float alpha = shell + fresnel * 0.32 + scanline * 0.4 +
+                      sweep * 0.22 + (glitch1 + glitch2) * 0.3;
         alpha = clamp(alpha, 0.0, 0.82) * max(flicker, 0.0) *
                 materialParams.tintColor.a;
 
@@ -125,11 +126,11 @@ fragment {
         vec3 color = materialParams.tintColor.rgb *
                      (0.55 + 0.65 * fresnel + 0.6 * sweep);
         color = mix(color, color * vec3(0.8, 0.95, 1.25),
-                    smoothstep(0.2, -0.6, pos.y) * 0.5);
+                    (1.0 - smoothstep(-0.6, 0.2, pos.y)) * 0.5);
         color += vec3(0.18, 0.34, 0.42) * sweep * 0.45;
         color = mix(color, color * vec3(0.55, 0.85, 1.5), glitch1);
         color = mix(color, color * vec3(1.5, 0.85, 0.55), glitch2);
 
-        material.baseColor = vec4(color * alpha, alpha);
+        material.baseColor = vec4(color * alpha * 0.32, alpha);
     }
 }

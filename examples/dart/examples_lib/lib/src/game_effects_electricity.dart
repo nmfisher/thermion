@@ -2,8 +2,8 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 import 'game_effects_shared.dart';
 
-/// One-draw procedural lightning: coherent stepped trunk, seeded side forks,
-/// sub-frame path regeneration, HDR core, and a soft ionized envelope.
+/// Fractal electrical discharge with tapered forks, secondary leaders,
+/// rounded channel segments, and timed return strokes.
 Future<void> setupElectricity(
   ThermionViewer viewer, {
   required String assetsDir,
@@ -15,16 +15,17 @@ Future<void> setupElectricity(
     aspect: 1,
     focalLength: 38,
   );
-  await camera.lookAt(Vector3(0, 0, 4.65), focus: Vector3(0, 0, 0));
+  await camera.lookAt(Vector3(0, 0, 5.3), focus: Vector3(0, 0, 0));
   await setDarkSkybox(viewer);
-  await enableVfxPost(viewer, bloomStrength: 0.68);
-  const segments = 64;
+  await enableVfxPost(viewer, bloomStrength: 0.32);
+  await viewer.view.setFrustumCullingEnabled(false);
+  const segments = 192;
   final electricity = await loadEffectMaterial(
     viewer,
     assetsDir: assetsDir,
     name: 'electricity',
   );
-  await electricity.setParameterFloat('time', 1.7);
+  await electricity.setParameterFloat('time', 0.16);
   await electricity.setParameterFloat('segmentCount', segments.toDouble());
   await viewer.createGeometry(
     dummyBillboardQuads(segments),

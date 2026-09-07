@@ -19,12 +19,12 @@ Future<void> setupFire(
     aspect: 1.0,
     focalLength: 28.0,
   );
-  await camera.lookAt(Vector3(0, 0.75, 3.0), focus: Vector3(0, 0.55, 0));
+  await camera.lookAt(Vector3(0, 0.9, 3.3), focus: Vector3(0.05, 0.65, 0));
 
   await setDarkSkybox(viewer);
   await enableVfxPost(viewer, bloomStrength: 0.48);
 
-  const flameCount = 12;
+  const flameCount = 8;
   const emberCount = 36;
 
   final fire = await loadEffectMaterial(

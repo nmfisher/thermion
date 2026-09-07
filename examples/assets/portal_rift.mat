@@ -4,6 +4,8 @@ material {
     requires : [ position ],
     variables : [ objectPos ],
     parameters : [ { type : float, name : time }, { type : float, name : openAmount } ],
+    blending : transparent,
+    depthWrite : false,
     culling : none,
     variantFilter : [ skinning, shadowReceiver, vsm ]
 }
@@ -14,23 +16,47 @@ fragment {
     float fbm(vec2 p){float v=.0;v+=.5*noise2(p);p=p*2.03+3.1;v+=.25*noise2(p);p=p*2.01+7.7;v+=.125*noise2(p);return v/.875;}
     void material(inout MaterialInputs material){
         prepareMaterial(material);
-        vec2 p=variable_objectPos.xz*2.0;
-        p.x/=max(materialParams.openAmount,.035);
-        float r=length(p); if(r>1.0) discard;
-        float a=atan(p.y,p.x), t=materialParams.time;
-        float warp=fbm(vec2(a*1.7-r*2.2,r*4.0-t*.75));
-        float tunnel=.5+.5*cos(r*55.0-a*5.0+t*7.0+warp*11.0);
-        tunnel=pow(tunnel,5.0)*smoothstep(.95,.08,r);
-        float spiral=pow(.5+.5*sin(a*8.0-r*34.0+t*4.2+warp*8.0),8.0);
-        float stars=step(.982,hash(floor((p+vec2(t*.04,-t*.025))*52.0)))*smoothstep(.82,.15,r);
-        float rim=smoothstep(.82,.905,r)*(1.0-smoothstep(.94,1.0,r));
-        float rimCore=exp(-abs(r-.91)*70.0);
-        float corona=pow(max(1.0-r,0.0),.3)*smoothstep(.84,.985,r)*(noise2(vec2(a*19.0,t*3.0))*.55+.45);
-        vec3 abyss=mix(vec3(.002,.004,.022),vec3(.055,.002,.13),r+warp*.18);
-        vec3 color=abyss+vec3(.08,.18,.85)*tunnel*.75+vec3(.62,.03,1.0)*spiral*.34;
-        color+=mix(vec3(.025,.16,.72),vec3(.42,.018,.78),warp)*rim*.92;
-        color+=vec3(.25,.5,1.0)*rimCore*.45;
-        color+=vec3(.08,.28,.78)*corona*.35+vec3(.7,.85,1.0)*stars*1.1;
-        material.baseColor=vec4(color,1.0);
+        float opening = smoothstep(0.0, 1.0, clamp(materialParams.openAmount, 0.0, 1.0));
+        vec2 p = variable_objectPos.xz * 2.0;
+        p.x /= max(opening, 0.001);
+        float r = length(p), t = materialParams.time;
+        // Cartesian swirl is continuous across the polar seam. Its speed
+        // increases toward the throat, giving the flow a sense of depth.
+        float angle = t * 0.55 + 3.8 * exp(-r * 1.8);
+        mat2 turn = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+        // Radial advection draws matter inward rather than only rotating
+        // the texture in place. The circular opening remains stationary.
+        vec2 flow = turn * p * (1.0 + .08*sin(t*.65-r*4.0));
+        vec2 warp = vec2(fbm(flow * 3.8 + t * 0.12),
+                         fbm(flow * 3.8 + 19.0 - t * 0.09));
+        float cloud = fbm(flow * 7.0 + warp * 3.2);
+        float filament = pow(1.0 - abs(2.0 * cloud - 1.0), 12.0);
+        float throat = smoothstep(0.06, 0.65, r);
+        float interior = 1.0 - smoothstep(0.78, 0.94, r);
+        // An irregular narrow hot edge, with a separate soft corona, avoids
+        // the thick plastic torus produced by the old radial band.
+        float edgeNoise = fbm(p * 9.0 + warp * 1.8 - t * 0.18);
+        float edge = r - (0.88 + (edgeNoise - 0.5) * 0.075);
+        float aa = max(fwidth(edge), 0.001);
+        float hot = 1.0 - smoothstep(0.004, 0.013 + aa, abs(edge));
+        float halo = exp(-abs(edge) * 27.0);
+        vec3 nebula = mix(vec3(0.008, 0.025, 0.12), vec3(0.13, 0.012, 0.22), warp.x);
+        vec3 color = vec3(0.001, 0.002, 0.008) +
+                     nebula * (0.18 + cloud * 0.8 + filament * 1.5) * throat * interior;
+        vec3 rimColor = mix(vec3(0.035, 0.28, 0.95), vec3(0.42, 0.035, 0.8), warp.y);
+        color += rimColor * halo * (0.3 + edgeNoise * 0.8);
+        color += vec3(0.38, 0.72, 1.0) * hot * (0.45 + cloud * 0.55);
+        // Smooth point sprites: stable seeds, no square cells or crawling
+        // random thresholds. These orbit with the surrounding flow.
+        vec2 starUV = flow * 34.0;
+        vec2 cell = floor(starUV);
+        vec2 starCenter = vec2(hash(cell), hash(cell + 27.0)) * 0.6 + 0.2;
+        float starRadius = length(fract(starUV) - starCenter);
+        float starAA = length(fwidth(starUV));
+        float star = (1.0 - smoothstep(0.02, 0.10 + starAA, starRadius)) *
+                     step(0.975, hash(cell + 71.0)) / (1.0 + starAA*starAA*40.0);
+        color += vec3(0.5, 0.75, 1.0) * star * throat * interior * 0.35;
+        float alpha = (1.0 - smoothstep(0.96, 1.04, r)) * smoothstep(0.0, 0.06, opening);
+        material.baseColor = vec4(color * alpha, alpha);
     }
 }

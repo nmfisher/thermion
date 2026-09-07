@@ -39,7 +39,7 @@ Future<void> setupShoreWaves(
         width: 20.0, depth: 16.0, subdivisionsX: 8, subdivisionsZ: 12),
     materialInstances: [sand],
   );
-  await beach.setTransform(Matrix4.translation(Vector3(0, 0.08, 8.2)));
+  await beach.setTransform(Matrix4.translation(Vector3(0, -0.16, 8.2)));
 
   final water = await loadEffectMaterial(
     viewer,
@@ -47,7 +47,7 @@ Future<void> setupShoreWaves(
     name: "shore_waves",
   );
   await water.setParameterFloat4("deepColor", 0.008, 0.07, 0.12, 1.0);
-  await water.setParameterFloat4("shallowColor", 0.025, 0.30, 0.34, 1.0);
+  await water.setParameterFloat4("shallowColor", 0.016, 0.105, 0.14, 1.0);
   await water.setParameterFloat4("skyColor", 0.075, 0.14, 0.22, 1.0);
   await water.setParameterFloat4("foamColor", 0.40, 0.52, 0.58, 1.0);
   await water.setParameterFloat3("sunDirection", -0.45, -0.35, -0.8);

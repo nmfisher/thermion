@@ -7,10 +7,8 @@ import 'game_effects_shared.dart';
 /// Driven by `progress` (0 = impact instant, 1 = finished) and `hitPoint`
 /// (world space). Starts white-hot and settles into `flashColor`.
 ///
-/// The flash is a temporary material-instance swap: snapshot the asset's
-/// original instances, swap in the flash instance, animate `progress`
-/// 0 -> 1, then restore. For the headless still the swap is left at
-/// mid-flash with the ring mid-expansion.
+/// A duplicate mesh carries the additive flash over the original materials.
+/// The effect fades to zero while the original PBR surface stays visible.
 Future<void> setupHitFlash(
   ThermionViewer viewer, {
   required String assetsDir,
@@ -22,7 +20,7 @@ Future<void> setupHitFlash(
     aspect: 1.0,
     focalLength: 28.0,
   );
-  await camera.lookAt(Vector3(0, 0.1, 1.6), focus: Vector3(0, 0, 0));
+  await camera.lookAt(Vector3(0, 0.1, 2.05), focus: Vector3(0, 0, 0));
 
   // The flash swaps out every material on the asset, but between flashes
   // the normal PBR look should show - so light the scene and keep the
@@ -71,7 +69,7 @@ Future<void> setupHitFlash(
 
   await flashOverlay.setMaterialInstanceForAll(flash);
 
-  // A hit every 2.4s: animate the additive overlay 0 -> 1 over 0.55s,
+  // A hit every 2.4s: animate the additive overlay 0 -> 1 over 0.32s,
   // rotating through impact points on the camera-facing side. Deriving all
   // state from t keeps stills, video frames, and live playback identical.
   final hitPoints = [
@@ -79,7 +77,7 @@ Future<void> setupHitFlash(
     Vector3(-0.18, 0.05, 0.38),
     Vector3(0.12, -0.22, 0.30),
   ];
-  const flashDuration = 0.55;
+  const flashDuration = 0.32;
   const hitPeriod = 2.4;
   effectAnimators.add((t) async {
     final cycle = t % hitPeriod;

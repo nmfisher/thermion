@@ -92,13 +92,10 @@ vertex {
         vec3 camRight = vec3(view[0].x, view[1].x, view[2].x);
         vec3 camUp = vec3(view[0].y, view[1].y, view[2].y);
 
-        // NOTE: additive displacement only. Replacing worldPosition (or
-        // cancelling it out via += target - worldPosition) is lost through
-        // this Filament/Metal pipeline - only pure += offsets survive.
-        // The CPU-side positions are therefore kept small (near the
-        // origin, but non-degenerate so the bounding volume stays valid)
-        // and merely add a little per-puff jitter.
-        material.worldPosition.xyz += center + camRight * p.x + camUp * p.y;
+        // Cancel the dummy object position while retaining the shader's
+        // additive displacement form. Emission is now anchored to center;
+        // the dummy geometry contributes bounds, not random puff offsets.
+        material.worldPosition.xyz += center + camRight * p.x + camUp * p.y - getPosition().xyz;
 
         // uv + age fade + per-puff brightness in the variable's zw channels
         // (fragment-stage getUV0 is only vec2).
@@ -146,7 +143,7 @@ fragment {
         // double warp tears the edges instead of leaving cottony blobs.
         vec2 q = uv * vec2(materialParams.noiseScale,
                            materialParams.noiseScale * 0.55) +
-                 vec2(0.0, -t * 0.22);
+                 vec2(brightness * 37.0, -t * 0.22 + brightness * 19.0);
         float warp = fbm(q + vec2(t * 0.05, 0.0));
         vec2 warpedD = d + vec2(warp - 0.5,
                                 fbm(q.yx * 1.7 - t * 0.08) - 0.5) * 0.20;
@@ -156,7 +153,9 @@ fragment {
         float f = fbm(q + warp * 1.9 + fbm(q * 1.7) * 0.65);
         float erosion = smoothstep(0.30, 0.68,
                                    f + radial * 0.42 - age * 0.08);
-        float body = radial * erosion;
+        // Fade the quad border even when noise pushes the radial mask out.
+        float border = smoothstep(0.0, 0.12, min(min(uv.x, 1.0-uv.x), min(uv.y, 1.0-uv.y)));
+        float body = radial * erosion * border;
 
         // Dense and bright at birth, thinning as the puff climbs.
         float density = pow(fade, 0.62);
@@ -166,13 +165,17 @@ fragment {
         float lifeFade = smoothstep(0.0, 0.10, age) *
                          smoothstep(0.0, 0.28, fade);
 
-        float amount = body * lifeFade * brightness * 0.22 *
-                       materialParams.opacity;
+        // Optical depth gives dense folds weight while thin edges remain
+        // translucent, and stays bounded for higher user opacity values.
+        float amount = 1.0 - exp(-body * lifeFade * brightness * 0.28 *
+                                 max(materialParams.opacity, 0.0));
 
         // Gray smoke with volume: lit from above (younger, denser puffs
         // scatter more), a warm cast near the fire below, and a cooler,
         // more translucent tone as it ages into wisps.
-        float lit = 0.40 + 0.52 * uv.y + 0.10 * f;
+        float lightDensity = fbm(q + warp * 1.9 + fbm(q * 1.7) * 0.65 + vec2(-.18, .24));
+        float relief = clamp((f - lightDensity) * 2.2, -.3, .3);
+        float lit = (0.38 + 0.42 * uv.y + relief) * exp(-body * .45);
         vec3 color = materialParams.baseColor.rgb * lit;
         color += vec3(0.09, 0.025, 0.0) * density * density;
         color = mix(color, color * vec3(0.54, 0.62, 0.78), age * 0.48);

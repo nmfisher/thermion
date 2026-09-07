@@ -46,19 +46,19 @@ fragment {
         float intensity = pow(t, 3.0);
 
         vec3 normal = normalize(variable_surfaceNormal.xyz);
-        vec3 pos = variable_worldPos.xyz;
-        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        vec3 pos = getUserWorldPosition();
+        vec3 viewDir = getWorldViewVector();
         float rim = pow(1.0 - abs(dot(normal, viewDir)), 2.0);
         float r = distance(pos, materialParams.hitPoint);
 
         // Localized white-hot spot at the impact point: dies fast, so the
         // first frames read unmistakably as "hit HERE".
-        float dr_1939 = (r * 1.9);
+        float dr_1939 = (r * 8.0);
         float hotspot = exp(-dr_1939 * dr_1939) * pow(t, 1.2) * 2.6;
 
         // Body flash: mostly silhouette-weighted, only a whisper of fill so
         // the mesh stays readable through it.
-        float body = intensity * (0.06 + 0.72 * pow(rim, 1.6)) +
+        float body = intensity * (0.02 + 0.24 * pow(rim, 1.6)) +
                      hotspot * (0.3 + 0.6 * rim);
 
         // Shockwave ring crossing the mesh surface: a sharp leading edge
@@ -68,7 +68,7 @@ fragment {
         // The impact point sits just inside the surface, so distances to
         // the mesh span roughly 0.25 (near side) to 1.8 (far side); the
         // ring sweeps that whole range.
-        float ringR = 0.25 + pow(p, 0.75) * 1.15;
+        float ringR = 0.03 + pow(p, 0.75) * 0.9;
         float w = 15.0 / (1.0 + (ringR - 0.25) * 1.4);
         float dr_8550 = ((r - ringR) * w);
         float ring = exp(-dr_8550 * dr_8550);
@@ -94,6 +94,6 @@ fragment {
         // tonemapping (~300x on this pipeline), so artistic 0..4 values are
         // scaled down here: 0.5 reads as a mid glow, 2+ as white-hot
         // (calibrated against the headless capture pipeline).
-        material.baseColor = vec4(color * 0.12, 1.0);
+        material.baseColor = vec4(color * 0.06, 1.0);
     }
 }

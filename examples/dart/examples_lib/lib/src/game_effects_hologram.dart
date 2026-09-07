@@ -21,7 +21,7 @@ Future<void> setupHologram(
   );
   // The source glTF's hidden display floor still contributes to its bounds,
   // so frame the drone directly instead of inheriting that oversized stage.
-  await camera.lookAt(Vector3(0.82, 0.54, 0.82), focus: Vector3(0, 0, 0));
+  await camera.lookAt(Vector3(1.1, 0.7, 1.1), focus: Vector3(0, -0.12, 0));
 
   await setDarkSkybox(viewer);
   await enableVfxPost(viewer, bloomStrength: 0.28);
@@ -73,8 +73,8 @@ Future<void> setupHologram(
     await projector.setParameterFloat("time", t);
     final orbit = 0.08 * sin(t * 0.42);
     await camera.lookAt(
-      Vector3(0.82 + orbit, 0.54 + 0.025 * sin(t * 0.7), 0.82 - orbit),
-      focus: Vector3(0, -0.02, 0),
+      Vector3(1.1 + orbit, 0.7 + 0.025 * sin(t * 0.7), 1.1 - orbit),
+      focus: Vector3(0, -0.12, 0),
     );
   });
 }

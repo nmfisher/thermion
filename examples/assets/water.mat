@@ -52,7 +52,9 @@ vertex {
     }
 
     void materialVertex(inout MaterialVertexInputs material) {
-        vec3 world = material.worldPosition.xyz;
+        // The demo grid is at identity; anchor waves and the horizon fade
+        // to it instead of the renderer's camera-relative coordinates.
+        vec3 world = getPosition().xyz;
         vec3 disp = waveSum(world.xz);
         // Read-modify-write: replacing worldPosition outright
         // (worldPosition.xyz = <computed>) is lost through this
@@ -72,7 +74,7 @@ vertex {
         //  - surfaceNormal.w: horizontal compression (Gerstner pinch). Where
         //    the wave converges, the tangent vectors shrink below eps - that
         //    is exactly where whitecaps live.
-        material.surfacePos.xyz = material.worldPosition.xyz;
+        material.surfacePos.xyz = world + disp;
         material.surfacePos.w =
             clamp(disp.y / (1.89 * materialParams.waveHeight + 0.001), -1.0, 1.0);
         material.surfaceNormal.w =
@@ -114,14 +116,14 @@ fragment {
 
         vec3 pos = variable_surfacePos.xyz;
         vec3 n = normalize(variable_surfaceNormal.xyz);
-        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        vec3 viewDir = getWorldViewVector();
         vec3 sun = normalize(-materialParams.sunDirection);
         float t = materialParams.time;
 
         // --- detail normals: three scrolled fbm layers ------------------
         // Frequencies span swell-ripple (0.9) down to near-pixel (11) - the
         // fine layers are what make the sun glitter actually sparkle.
-        float dist = length(getWorldCameraPosition() - pos);
+        float dist = length(getWorldCameraPosition() - getWorldPosition());
         float detailAttenuation = exp(-dist * 0.08) *
                                   materialParams.detailStrength;
         vec2 g1 = fbmGrad(pos.xz * 0.90 + vec2(t * 0.11, t * 0.05), 0.35);
@@ -129,8 +131,9 @@ fragment {
         vec2 g3 = fbmGrad(pos.xz * 11.0 + vec2(-t * 0.41, t * 0.17), 0.08);
         vec3 nDetailed = normalize(
             n + vec3(g1.x, 0.0, g1.y) * 0.40 * detailAttenuation
-              + vec3(g2.x, 0.0, g2.y) * 0.55 * detailAttenuation
-              + vec3(g3.x, 0.0, g3.y) * 0.45 * detailAttenuation);
+              + vec3(g2.x, 0.0, g2.y) * 0.28 * detailAttenuation
+              + vec3(g3.x, 0.0, g3.y) * 0.16 * detailAttenuation *
+                (1.0-smoothstep(.12,.5,length(fwidth(pos.xz*11.0)))));
 
         // --- foam ------------------------------------------------------
         float crest = clamp(variable_surfacePos.w, 0.0, 1.0);
@@ -149,7 +152,7 @@ fragment {
         // Schlick fresnel: looking down sees deep water, grazing angles
         // reflect the sky.
         float ndv = max(dot(nShaded, viewDir), 0.0);
-        float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 3.5);
+        float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
 
         // Large-scale current variation breaks up the single-tone body.
         float cur = fbm(pos.xz * 0.35 + vec2(t * 0.015, -t * 0.01));
@@ -175,11 +178,12 @@ fragment {
         float ndh = max(dot(nShaded, halfDir), 0.0);
         float sheen = pow(ndh, 90.0) * 0.22;
         // Sparkle concentrates near grazing angles, like real water glints.
-        float glint = hash(floor(pos.xz * 16.0) + floor(vec2(t * 6.0)));
+        // Advected detail stays coherent between frames; a time-quantized
+        // random field made the entire glitter path pop six times a second.
+        float glint = noise2(pos.xz * 16.0 + vec2(t * 0.37, -t * 0.21));
         // Concentrate the glints into a wedge pointing at the sun so they
         // read as a glitter path rather than uniform speckle.
-        vec2 camXZ = getWorldCameraPosition().xz;
-        vec2 toPoint = pos.xz - camXZ;
+        vec2 toPoint = -viewDir.xz;
         float sunSide = max(dot(normalize(toPoint), normalize(sun.xz)), 0.0);
         float pathGate = 0.25 + 0.75 * pow(sunSide, 3.0);
         float sparkle = pow(ndh, materialParams.specularPower) *
@@ -206,6 +210,6 @@ fragment {
         // hard disc against the skybox.
         alpha *= 1.0 - horizon;
 
-        material.baseColor = vec4(color, alpha);
+        material.baseColor = vec4(color * alpha, alpha);
     }
 }

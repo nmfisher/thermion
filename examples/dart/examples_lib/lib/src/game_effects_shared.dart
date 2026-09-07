@@ -64,6 +64,8 @@ Geometry crystalShard({
   final indices = <int>[];
 
   void face(List<Vector3> points) {
+    // The original ordering faced inward on both the prism and caps.
+    points = points.reversed.toList();
     final base = vertices.length ~/ 3;
     final edgeA = points[1] - points[0];
     final edgeB = points[2] - points[0];

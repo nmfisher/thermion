@@ -76,15 +76,15 @@ fragment {
 
         // Break the ring into arcs so it reads as energy, not a perfect
         // circle, with fine churn riding the front.
-        float ang = atan(pos.z, pos.x);
-        float arc = fbm(vec2(ang * 2.5, r * 0.7) + t * 0.2);
+        // Cartesian noise has no angular seam at the back of the ring.
+        float arc = fbm(pos.xz * 1.6 + t * 0.2);
         float churn = 0.7 + 0.5 * noise2(pos.xz * 6.0 - t * 3.0);
 
-        float fade = pow(1.0 - age, 1.2);
+        float fade = pow(1.0 - age, 2.0);
         float amount = (band * 2.2 + trail + fill + epi) *
                        (0.25 + 0.85 * arc) * churn * fade;
 
-        vec3 color = mix(vec3(0.30, 0.85, 1.0), vec3(0.85, 0.98, 1.0), band);
+        vec3 color = mix(vec3(0.08, 0.42, 1.0), vec3(0.65, 0.88, 1.0), clamp(band,0.0,1.0));
         color = mix(color, vec3(0.95, 0.98, 1.0), clamp(epi * 0.4, 0.0, 0.6));
         // Additive materials pass through the engine's HDR exposure before
         // tonemapping on this pipeline - see hit_flash.mat.

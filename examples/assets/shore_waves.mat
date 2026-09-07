@@ -54,8 +54,17 @@ vertex {
         return w;
     }
 
+    float shoreAmplitude(vec2 p) {
+        float offshore = shoreZ(p.x) - p.y;
+        return (0.55 + 0.45 * (1.0 - smoothstep(0.7, 5.5, offshore))) *
+               smoothstep(-0.75, 0.12, offshore);
+    }
+
     void materialVertex(inout MaterialVertexInputs material) {
-        vec2 xz = material.worldPosition.xz;
+        // This showcase's water mesh has an identity transform. Keep the
+        // analytic shoreline in scene coordinates, not camera-relative
+        // worldPosition (which moves the coverage mask with the camera).
+        vec2 xz = getPosition().xz;
         float t = materialParams.time;
         float offshore = shoreZ(xz.x) - xz.y;
 
@@ -70,11 +79,12 @@ vertex {
         material.worldPosition.xyz += disp;
 
         float eps = 0.06;
-        vec3 sx = vec3(eps, 0.0, 0.0) + swellSum(xz + vec2(eps, 0.0), t, ampScale) - disp;
-        vec3 sz = vec3(0.0, 0.0, eps) + swellSum(xz + vec2(0.0, eps), t, ampScale) - disp;
+        vec2 px = xz + vec2(eps, 0.0), pz = xz + vec2(0.0, eps);
+        vec3 sx = vec3(eps, 0.0, 0.0) + swellSum(px, t, shoreAmplitude(px)) - disp;
+        vec3 sz = vec3(0.0, 0.0, eps) + swellSum(pz, t, shoreAmplitude(pz)) - disp;
         material.surfaceNormal.xyz = normalize(cross(sz, sx));
 
-        material.surfacePos.xyz = material.worldPosition.xyz;
+        material.surfacePos.xyz = getPosition().xyz + disp;
         // .w channels: crest height and horizontal pinch (whitecap inputs).
         material.surfacePos.w = clamp(disp.y / (1.65 * materialParams.waveHeight + 0.001), -1.0, 1.0);
         material.surfaceNormal.w = clamp(1.0 - min(length(sx), length(sz)) / eps, 0.0, 1.0);
@@ -117,13 +127,13 @@ fragment {
 
         vec3 pos = variable_surfacePos.xyz;
         vec3 n = normalize(variable_surfaceNormal.xyz);
-        vec3 viewDir = normalize(getWorldCameraPosition() - pos);
+        vec3 viewDir = getWorldViewVector();
         vec3 sun = normalize(-materialParams.sunDirection);
         float t = materialParams.time;
         float offshore = shoreZ(pos.x) - pos.z;
 
         // --- detail normals for shimmer -------------------------------
-        float dist = length(getWorldCameraPosition() - pos);
+        float dist = length(getWorldCameraPosition() - getWorldPosition());
         float detailAtt = exp(-dist * 0.10) * materialParams.detailStrength;
         vec2 g1 = fbmGrad(pos.xz * 1.1 + vec2(t * 0.10, t * 0.16), 0.30);
         vec2 g2 = fbmGrad(pos.xz * 4.2 - vec2(t * 0.22, t * 0.31), 0.15);
@@ -134,7 +144,7 @@ fragment {
         // --- body color: deep offshore, turquoise shallows -------------
         float shallowMix = 1.0 - smoothstep(0.2, 2.8, offshore);
         float ndv = max(dot(nD, viewDir), 0.0);
-        float fresnel = 0.03 + 0.97 * pow(1.0 - ndv, 3.5);
+        float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
         vec3 color = mix(materialParams.deepColor.rgb,
                          materialParams.shallowColor.rgb, shallowMix);
         color = mix(color, materialParams.skyColor.rgb, fresnel * (1.0 - shallowMix * 0.35));
@@ -186,10 +196,14 @@ fragment {
         float wash = exp(-dr_1914 * dr_1914) *
                      0.18 * (0.4 + 0.6 * shoreN);
 
-        float foam = clamp(max(max(crestFoam, breaker), incoming) + wash,
-                           0.0, 1.0) *
-                     materialParams.foamAmount;
-        vec3 nShaded = normalize(mix(nD, vec3(0.0, 1.0, 0.0), foam * 0.8));
+        float foam = clamp((max(max(crestFoam, breaker), incoming) + wash) *
+                           materialParams.foamAmount, 0.0, 1.0);
+        // Small stable voids break the wash into foam flecks; the noise
+        // drifts with the wash instead of blinking independently each frame.
+        float bubbleNoise = noise2(pos.xz*24.0+vec2(t*.3,t*.8));
+        float bubbles = smoothstep(.25,.58,bubbleNoise);
+        bubbles = mix(bubbles,.5,smoothstep(.15,.6,length(fwidth(pos.xz*24.0))));
+        foam *= .55 + .45 * bubbles;
         color = mix(color, materialParams.foamColor.rgb, foam * 0.92);
 
         // Water melts into the sand past the shoreline.
@@ -198,6 +212,6 @@ fragment {
         float alpha = 0.92 * materialParams.deepColor.a;
         alpha = max(alpha, foam) * shoreFade;
 
-        material.baseColor = vec4(color, alpha);
+        material.baseColor = vec4(color * alpha, alpha);
     }
 }
