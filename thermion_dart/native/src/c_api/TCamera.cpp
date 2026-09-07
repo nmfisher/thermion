@@ -69,10 +69,9 @@ namespace thermion
             return camera->getSensitivity();
         }
 
-        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double *tModelMatrix) {
+        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double4x4 tModelMatrix) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
-            auto modelMatrix = convert_double_to_mat4f(tModelMatrix);
-            camera->setModelMatrix(modelMatrix);
+            camera->setModelMatrix(convert_double4x4_to_mat4(tModelMatrix));
         }
 
 

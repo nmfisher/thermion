@@ -179,14 +179,17 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   @override
   Future setModelMatrix(Matrix4 matrix) async {
+    // By-value matrix binding, matching Camera_setCustomProjectionWithCulling
+    // and TransformManager_setTransform; a raw double* argument would require
+    // the typed-data .address trampoline, which is not available in all
+    // module builds.
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
       stackPtr = stackSave();
     }
-    Camera_setModelMatrix(camera, matrix.storage.address);
+    Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
     if (FILAMENT_WASM) {
       stackRestore(stackPtr);
-      matrix.storage.free();
     }
   }
 
