@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rendering/FrameRateGate.hpp"
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -48,8 +50,8 @@ namespace thermion {
 /// not send a burst of late callbacks. It can accept a tick up to 1 ms before a
 /// deadline. This tolerance accounts for timestamp variation.
 ///
-/// Each frame timestamp is a monotonic value in nanoseconds. The active platform
-/// source selects the clock domain. Do not use the timestamp as wall-clock time.
+/// Each frame timestamp is in nanoseconds in the std::chrono::steady_clock
+/// time base, suitable for Filament beginFrame and animation updates.
 class FrameScheduler {
 public:
     /// Receives a monotonic frame timestamp and the pointer supplied to start().
@@ -89,11 +91,9 @@ protected:
     void* _tickUserData = nullptr;
 
     // setTargetFps() can change _fpsLimit from another thread. The source
-    // callback owns the other timing fields while the scheduler runs.
+    // callback exclusively owns the rate gate while the scheduler runs.
     std::atomic<int> _fpsLimit{0};
-    int _appliedFpsLimit = 0;
-    uint64_t _dispatchIntervalNs = 0;
-    uint64_t _nextDispatchNs = 0;
+    FrameRateGate _rateGate;
 
     void handleSourceTick(uint64_t timestampNanos);
     void resetState();
@@ -153,11 +153,15 @@ class DXGIFrameScheduler : public FrameScheduler {
     std::thread* _thread = nullptr;
     std::atomic<bool> _running{false};
     int _targetFps;
+    std::mutex _wakeMutex;
+    std::condition_variable _wakeCondition;
 public:
     explicit DXGIFrameScheduler(int targetFps) : _targetFps(targetFps) {}
     ~DXGIFrameScheduler() override { stop(); }
     void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
+private:
+    void onTargetFpsChanged(int) override;
 };
 #endif
 
@@ -169,14 +173,12 @@ class AChoreographerFrameScheduler : public FrameScheduler {
     std::atomic<bool> _running{false};
     std::atomic<void*> _looper{nullptr};
     void* _choreographer = nullptr;
-    int _sourceFps = 0;
-    uint64_t _nextSourceFrameNs = 0;
 public:
     ~AChoreographerFrameScheduler() override { stop(); }
     void start(TickCallback tickCallback, void* userData = nullptr) override;
     void stop() override;
 private:
-    void scheduleNextFrame(uint64_t lastFrameTimeNanos = 0);
+    void scheduleNextFrame();
     static void frameCallback(long frameTimeNanos, void* data);
 };
 #endif

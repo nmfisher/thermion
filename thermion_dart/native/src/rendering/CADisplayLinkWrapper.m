@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CADisplayLink.h>
+#import <QuartzCore/CAMediaTiming.h>
 #import <dispatch/dispatch.h>
 #include "rendering/CADisplayLinkWrapper.h"
 
@@ -90,4 +91,8 @@ void CADisplayLinkWrapper_destroy(void* wrapper) {
     ThermionDisplayLinkHelper* helper = (__bridge_transfer ThermionDisplayLinkHelper*)wrapper;
     [helper stop];
     // ARC releases helper here
+}
+
+uint64_t CADisplayLinkWrapper_currentTimeNanos(void) {
+    return (uint64_t)(CACurrentMediaTime() * 1.0e9);
 }
