@@ -12,7 +12,8 @@ material {
         },
         {
             type : sampler2d,
-            name : heightMap
+            name : heightMap,
+            precision : high
         },
         {
             type : sampler2d,
@@ -20,15 +21,18 @@ material {
         },
         {
             type : float,
-            name : heightScale
+            name : heightScale,
+            precision : high
         },
         {
             type : float,
-            name : minSteps
+            name : minSteps,
+            precision : high
         },
         {
             type : float,
-            name : maxSteps
+            name : maxSteps,
+            precision : high
         },
         {
             type : float,
@@ -57,12 +61,14 @@ material {
 
 fragment {
     void material(inout MaterialInputs material) {
-        vec2 uv = getUV0();
+        // Filament defaults to mediump on mobile (half on Metal). Ray UVs
+        // and depths need highp so small steps and refinement do not vanish.
+        highp vec2 uv = getUV0();
 
         // The engine's own tangent frame (same TBN applied to material.normal)
         // and view vector. shading_view points from the surface toward the eye.
-        mat3 tangentFrame = getWorldTangentFrame();
-        vec3 tsView = normalize(transpose(tangentFrame) * getWorldViewVector());
+        highp mat3 tangentFrame = getWorldTangentFrame();
+        highp vec3 tsView = normalize(transpose(tangentFrame) * getWorldViewVector());
 
         // ------------------------------------------------------------------
         // Parallax occlusion mapping: march the view ray through the height
@@ -73,73 +79,80 @@ fragment {
         // throughout. This keeps mip selection stable and preserves the
         // sampler's anisotropic filtering at grazing angles.
         // ------------------------------------------------------------------
-        vec2 pomUV = uv;
-        float uvOffset = 0.0;
-        float heightScale = max(materialParams.heightScale, 0.0);
-        vec2 uvDx = dFdx(uv);
-        vec2 uvDy = dFdy(uv);
+        highp vec2 pomUV = uv;
+        highp float uvOffset = 0.0;
+        highp float heightScale = max(materialParams.heightScale, 0.0);
+        highp vec2 uvDx = dFdx(uv);
+        highp vec2 uvDy = dFdy(uv);
 
         if (heightScale > 1e-6 &&
            (materialParams.debugView == 0 ||
             materialParams.debugView == 1 ||
             materialParams.debugView == 2 ||
             materialParams.debugView == 5)) {
-            float minLayers = clamp(min(materialParams.minSteps, materialParams.maxSteps), 4.0, 96.0);
-            float maxLayers = clamp(max(materialParams.minSteps, materialParams.maxSteps), minLayers, 96.0);
-            float numLayers = mix(maxLayers, minLayers,
-                                  clamp(abs(tsView.z), 0.0, 1.0));
+            highp float minLayers = clamp(ceil(min(materialParams.minSteps, materialParams.maxSteps)), 4.0, 512.0);
+            highp float maxLayers = clamp(floor(max(materialParams.minSteps, materialParams.maxSteps)), minLayers, 512.0);
 
             // The march follows the ray INTO the surface: opposite to the
             // eye-directed view vector. Clamp grazing angles so the slide
             // distance stays bounded.
-            vec2 slideDir = -tsView.xy / max(abs(tsView.z), 0.08);
-            vec2 deltaUV = slideDir * heightScale / numLayers;
-            float layerDepth = 1.0 / numLayers;
+            highp vec2 rayOffset = -tsView.xy * heightScale / max(abs(tsView.z), 0.08);
 
-            vec2 curUV = uv;
-            vec2 prevUV = uv;
-            float curLayer = 0.0;
-            float prevLayer = 0.0;
+            // Aim for two samples per filtered texel along the whole ray.
+            // The minor axis of the UV footprint is a conservative estimate
+            // of mip texel size even with anisotropic filtering. Using the
+            // major axis would undersample the detail anisotropy preserves.
+            highp vec2 texSize = vec2(textureSize(materialParams_heightMap, 0));
+            highp vec2 dx = uvDx * texSize;
+            highp vec2 dy = uvDy * texSize;
+            highp float a = dot(dx, dx);
+            highp float b = dot(dx, dy);
+            highp float c = dot(dy, dy);
+            highp float majorSquared = 0.5 * (a + c + sqrt((a - c) * (a - c) + 4.0 * b * b));
+            highp float minor = abs(dx.x * dy.y - dx.y * dy.x) / sqrt(max(majorSquared, 1e-12));
+            highp float texelSteps = ceil(2.0 * length(rayOffset * texSize) / max(minor, 1.0));
+            // maxSteps is a hard work budget. Very thin features can still
+            // be missed when it is exhausted; refinement cannot recover them.
+            highp float numLayers = clamp(texelSteps, minLayers, maxLayers);
+
+            highp float curLayer = 0.0;
+            highp float prevLayer = 0.0;
             // The ray starts at the top of the displacement volume. Convert
             // height (1 = top) to depth below that plane (0 = top).
-            float curSurfaceDepth = 1.0 - textureGrad(materialParams_heightMap, curUV, uvDx, uvDy).r;
-            bool hasPrevious = false;
-            bool crossed = false;
-            for (int i = 0; i < 96; i++) {
-                if (curLayer >= curSurfaceDepth) {
-                    crossed = true;
+            highp float residual = textureGrad(materialParams_heightMap, uv, uvDx, uvDy).r - 1.0;
+            highp float prevResidual = residual;
+            for (int i = 0; i < 512; i++) {
+                if (residual >= 0.0 || float(i) >= numLayers) {
                     break;
                 }
-                prevUV = curUV;
                 prevLayer = curLayer;
-                hasPrevious = true;
-                curUV += deltaUV;
-                curLayer += layerDepth;
-                curSurfaceDepth = 1.0 - textureGrad(materialParams_heightMap, curUV, uvDx, uvDy).r;
+                prevResidual = residual;
+                // Compute from the index, not repeated additions: the last
+                // step lands exactly at depth 1, including for a black map.
+                curLayer = min(float(i + 1) / numLayers, 1.0);
+                highp vec2 curUV = uv + rayOffset * curLayer;
+                residual = curLayer - (1.0 - textureGrad(materialParams_heightMap, curUV, uvDx, uvDy).r);
             }
-            // When numLayers is exactly 96, the crossing at the bottom is
-            // reached by the final iteration and must be checked explicitly.
-            crossed = crossed || curLayer >= curSurfaceDepth;
 
-            if (crossed && hasPrevious) {
-                // Binary search: lo is past the crossing, hi is before it.
-                vec2 lo = curUV;
-                vec2 hi = prevUV;
-                float dLo = curLayer;
-                float dHi = prevLayer;
+            if (residual >= 0.0 && curLayer > 0.0) {
+                highp float beforeDepth = prevLayer;
+                highp float afterDepth = curLayer;
                 for (int j = 0; j < 4; j++) {
-                    vec2 mid = 0.5 * (lo + hi);
-                    float dMid = 0.5 * (dLo + dHi);
-                    float surfaceMid = 1.0 - textureGrad(materialParams_heightMap, mid, uvDx, uvDy).r;
-                    if (dMid >= surfaceMid) {
-                        lo = mid;
-                        dLo = dMid;
+                    highp float midDepth = 0.5 * (beforeDepth + afterDepth);
+                    highp vec2 midUV = uv + rayOffset * midDepth;
+                    highp float midResidual = midDepth - (1.0 - textureGrad(materialParams_heightMap, midUV, uvDx, uvDy).r);
+                    if (midResidual >= 0.0) {
+                        afterDepth = midDepth;
+                        residual = midResidual;
                     } else {
-                        hi = mid;
-                        dHi = dMid;
+                        beforeDepth = midDepth;
+                        prevResidual = midResidual;
                     }
                 }
-                pomUV = 0.5 * (lo + hi);
+                // Interpolate the final bracket to hit constant heights and
+                // locally linear profiles without a midpoint bias.
+                highp float weight = clamp(-prevResidual / max(residual - prevResidual, 1e-8), 0.0, 1.0);
+                pomUV = uv + rayOffset * mix(beforeDepth, afterDepth, weight);
             }
             uvOffset = length(pomUV - uv);
         }
@@ -162,8 +175,8 @@ fragment {
             float h = textureGrad(materialParams_heightMap, pomUV, uvDx, uvDy).r;
             material.baseColor = vec4(vec3(clamp(h * 0.7 + 0.15, 0.0, 1.0)), 1.0);
         } else if (materialParams.debugView == 2) {
-            // Slide magnitude relative to the maximum (heightScale).
-            float d = clamp(uvOffset / max(heightScale, 1e-4), 0.0, 1.0);
+            // Slide magnitude in units of heightScale (saturates at grazing).
+            highp float d = clamp(uvOffset / max(heightScale, 1e-4), 0.0, 1.0);
             material.baseColor = vec4(vec3(clamp(d * 0.7 + 0.15, 0.0, 1.0)), 1.0);
         } else if (materialParams.debugView == 3) {
             // Tangent-space view vector: R/G = |x|/|y| (slide axes),
@@ -173,7 +186,7 @@ fragment {
             // Signed uv slide for direction debugging: du in R, dv in G,
             // neutral 0.5. For a correct march the mean du sign must match
             // -(view.u/view.z) in the texture's uv frame.
-            vec2 d = (pomUV - uv) / max(heightScale, 1e-4);
+            highp vec2 d = (pomUV - uv) / max(heightScale, 1e-4);
             material.baseColor = vec4(clamp(0.5 + d.x * 0.5, 0.0, 1.0),
                                       clamp(0.5 + d.y * 0.5, 0.0, 1.0),
                                       0.5, 1.0);

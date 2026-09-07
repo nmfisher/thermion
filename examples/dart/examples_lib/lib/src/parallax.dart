@@ -2,6 +2,10 @@ import 'dart:math' as math;
 
 import 'package:thermion_dart/thermion_dart.dart';
 
+// Displacement depth in UV units for the unit-square walls. Normal-map slopes
+// and POM must use the same reference depth.
+const _brickHeightScale = 0.10;
+
 /// Parallax occlusion mapping: three brick walls rendered with the same
 /// material (`examples/assets/parallax.filamat`) at increasing effect
 /// strength. The camera orbits from +X and the walls all face +Z, so the
@@ -57,7 +61,7 @@ Future<void> setupParallax(
     ),
   );
 
-  final brick = _BrickTextures(size: 512);
+  final brick = _BrickTextures(size: 512, heightScale: _brickHeightScale);
 
   final sampler = await app.createTextureSampler(
     minFilter: TextureMinFilter.LINEAR_MIPMAP_LINEAR,
@@ -97,8 +101,8 @@ Future<void> setupParallax(
   final heightTex = await upload(brick.height);
   final normalTex = await upload(brick.normal);
 
-  final material =
-      await app.createMaterial(await app.loadResource("$assetsDir/parallax.filamat"));
+  final material = await app
+      .createMaterial(await app.loadResource("$assetsDir/parallax.filamat"));
 
   Future<void> wall(
     double centerX, {
@@ -111,7 +115,8 @@ Future<void> setupParallax(
     await instance.setParameterTexture('normalMap', normalTex, sampler);
     await instance.setParameterFloat('heightScale', heightScale);
     await instance.setParameterFloat('minSteps', 16.0);
-    await instance.setParameterFloat('maxSteps', 64.0);
+    // Hard cap; the shader selects fewer steps from ray length and texture LOD.
+    await instance.setParameterFloat('maxSteps', 512.0);
     await instance.setParameterFloat('normalStrength', normalStrength);
     await instance.setParameterFloat4('tintColor', 1.0, 1.0, 1.0, 1.0);
     await instance.setParameterFloat('roughnessFactor', 0.75);
@@ -129,7 +134,8 @@ Future<void> setupParallax(
   // strongest effect is the most visible one:
   await wall(-1.05, heightScale: 0.0, normalStrength: 0.0); // flat baseline
   await wall(0.0, heightScale: 0.0, normalStrength: 1.0); // normal map only
-  await wall(1.05, heightScale: 0.10, normalStrength: 1.0); // full POM
+  await wall(1.05,
+      heightScale: _brickHeightScale, normalStrength: 1.0); // full POM
 }
 
 /// A subdivided quad in the XY plane (facing +Z), bottom edge at y=0,
@@ -189,15 +195,16 @@ class _BrickTextures {
   static const int _brickH = 64;
   static const int _joint = 4; // joint half-width, in px (bricks share it)
   static const int _falloff = 20; // brick edge bevel, in px
-  static const double _kNormal = 60.0; // height-gradient -> normal slope
 
   late final Float32List _heights;
   late final Uint8List height;
   late final Uint8List albedo;
   late final Uint8List normal;
 
-  _BrickTextures({required this.size}) {
+  _BrickTextures({required this.size, required double heightScale}) {
     assert(size % _brickW == 0 && size % _brickH == 0);
+    // Central differences below are per pixel; convert to derivatives per UV.
+    final normalScale = size * heightScale;
     _heights = Float32List(size * size);
 
     for (var y = 0; y < size; y++) {
@@ -235,8 +242,8 @@ class _BrickTextures {
         final hU = _heights[((y + 1) % size) * size + x];
         final gx = (hR - hL) * 0.5;
         final gy = (hU - hD) * 0.5;
-        var nx = -gx * _kNormal;
-        var ny = -gy * _kNormal;
+        var nx = -gx * normalScale;
+        var ny = -gy * normalScale;
         const nz = 1.0;
         final len = math.sqrt(nx * nx + ny * ny + nz * nz);
         nx /= len;
@@ -308,16 +315,14 @@ class _BrickTextures {
     if (cell.joint) {
       return 0.04 + 0.02 * n;
     }
-    final fx = _smoothstep(((cell.bx < _brickW - cell.bx
-                ? cell.bx
-                : _brickW - 1 - cell.bx) -
-            _joint) /
-        _falloff);
-    final fy = _smoothstep(((cell.by < _brickH - cell.by
-                ? cell.by
-                : _brickH - 1 - cell.by) -
-            _joint) /
-        _falloff);
+    final fx = _smoothstep(
+        ((cell.bx < _brickW - cell.bx ? cell.bx : _brickW - 1 - cell.bx) -
+                _joint) /
+            _falloff);
+    final fy = _smoothstep(
+        ((cell.by < _brickH - cell.by ? cell.by : _brickH - 1 - cell.by) -
+                _joint) /
+            _falloff);
     final bow = fx * fy;
     return 0.40 + 0.50 * bow + 0.05 * cell.brickHash + 0.04 * n;
   }
