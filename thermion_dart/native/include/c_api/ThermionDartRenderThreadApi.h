@@ -28,6 +28,9 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderThread_destroy(void *renderThread);
         
         EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
+        // Copies all 16 column-major doubles before returning. The caller may
+        // immediately reuse/free matrix16 while the queued task is pending.
+        EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferRenderThread(TTransformManager *manager, EntityId entity, const double *matrix16, uint32_t requestId, VoidCallback onComplete);
         EMSCRIPTEN_KEEPALIVE void RenderManager_setRenderableRenderThread(TRenderManager *tRenderer, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews, uint32_t requestId, VoidCallback onComplete);
 
         EMSCRIPTEN_KEEPALIVE void RenderManager_renderRenderThread(TRenderManager *tRenderManager, uint64_t frameTimeInNanos, uint32_t requestId, VoidCallback onComplete);

@@ -88,6 +88,18 @@ abstract class Camera<T> extends NativeHandle {
   Future<Matrix4> getModelMatrix();
   Future<Matrix4> getProjectionMatrix();
   Future<Matrix4> getCullingProjectionMatrix();
+
+  /// Writes the model matrix into caller-owned [out], allowing storage reuse.
+  Future<void> getModelMatrixInto(Matrix4 out) async => out.setFrom(await getModelMatrix());
+
+  /// Writes the view matrix into caller-owned [out], allowing storage reuse.
+  Future<void> getViewMatrixInto(Matrix4 out) async => out.setFrom(await getViewMatrix());
+
+  /// Writes the projection matrix into caller-owned [out], allowing storage reuse.
+  Future<void> getProjectionMatrixInto(Matrix4 out) async => out.setFrom(await getProjectionMatrix());
+
+  /// Writes the culling projection into caller-owned [out], allowing storage reuse.
+  Future<void> getCullingProjectionMatrixInto(Matrix4 out) async => out.setFrom(await getCullingProjectionMatrix());
   Future setModelMatrix(Matrix4 matrix);
 
   /// Get the entity that has the underlying Camera component attached.

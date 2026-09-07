@@ -1,4 +1,6 @@
 #include <atomic>
+#include <array>
+#include <cstring>
 #include <functional>
 #include <mutex>
 #include <shared_mutex>
@@ -2745,6 +2747,20 @@ extern "C"
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferRenderThread(
+      TTransformManager *manager, EntityId entity, const double *matrix16,
+      uint32_t requestId, VoidCallback onComplete)
+  {
+    auto *rt = RT(manager);
+    std::array<double, 16> snapshot;
+    std::memcpy(snapshot.data(), matrix16, sizeof(snapshot));
+    std::packaged_task<void()> task([=] {
+      TransformManager_setTransformFromBuffer(manager, entity, snapshot.data());
+      PROXY(onComplete(requestId));
+    });
+    rt->addTask(task);
   }
 
   EMSCRIPTEN_KEEPALIVE void TransformManager_setParentRenderThread(

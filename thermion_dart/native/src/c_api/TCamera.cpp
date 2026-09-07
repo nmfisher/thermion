@@ -76,6 +76,30 @@ namespace thermion
         }
 
 
+        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixFromBuffer(TCamera *camera, const double *matrix16) {
+            reinterpret_cast<Camera *>(camera)->setModelMatrix(load_mat4(matrix16));
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingFromBuffer(TCamera *camera, const double *matrix16, double near, double far) {
+            reinterpret_cast<Camera *>(camera)->setCustomProjection(load_mat4(matrix16), near, far);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixInto(TCamera *camera, double *out16) {
+            store_mat4(reinterpret_cast<Camera *>(camera)->getModelMatrix(), out16);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixInto(TCamera *camera, double *out16) {
+            store_mat4(reinterpret_cast<Camera *>(camera)->getViewMatrix(), out16);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixInto(TCamera *camera, double *out16) {
+            store_mat4(reinterpret_cast<Camera *>(camera)->getProjectionMatrix(), out16);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixInto(TCamera *camera, double *out16) {
+            store_mat4(reinterpret_cast<Camera *>(camera)->getCullingProjectionMatrix(), out16);
+        }
+
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera *tCamera, double4x4 projectionMatrix, double near, double far)
         {
             auto *camera = reinterpret_cast<Camera *>(tCamera);

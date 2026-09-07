@@ -5,6 +5,7 @@
 #include <math/mat4.h>
 #include <gltfio/math.h>
 #include <vector>
+#include <algorithm>
 
 #include "c_api/APIExport.h"
 
@@ -59,6 +60,29 @@ extern "C"
             return;
         }
         transformManager->setTransform(transformInstance, convert_double4x4_to_mat4(transform));
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformInto(TTransformManager *manager, EntityId entity, double *out16)
+    {
+        auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+        auto instance = tm->getInstance(utils::Entity::import(entity));
+        if (!instance) { std::fill_n(out16, 16, 0.0); return; }
+        store_mat4(tm->getTransformAccurate(instance), out16);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getWorldTransformInto(TTransformManager *manager, EntityId entity, double *out16)
+    {
+        auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+        auto instance = tm->getInstance(utils::Entity::import(entity));
+        if (!instance) { std::fill_n(out16, 16, 0.0); return; }
+        store_mat4(tm->getWorldTransformAccurate(instance), out16);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBuffer(TTransformManager *manager, EntityId entity, const double *matrix16)
+    {
+        auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+        auto instance = tm->getInstance(utils::Entity::import(entity));
+        if (instance) tm->setTransform(instance, load_mat4(matrix16));
     }
 
     EMSCRIPTEN_KEEPALIVE bool TransformManager_transformToUnitCube(TTransformManager *tTransformManager, EntityId entityId, Aabb3 boundingBox)

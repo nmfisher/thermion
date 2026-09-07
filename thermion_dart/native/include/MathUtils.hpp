@@ -41,6 +41,18 @@ static_assert(offsetof(double4x4, col2) == 4 * sizeof(double));
 static_assert(offsetof(double4x4, col3) == 8 * sizeof(double));
 static_assert(offsetof(double4x4, col4) == 12 * sizeof(double));
 
+static filament::math::mat4 load_mat4(const double* values)
+{
+    filament::math::mat4 result(filament::math::mat4::NO_INIT);
+    std::memcpy(&result, values, sizeof(result));
+    return result;
+}
+
+static void store_mat4(const filament::math::mat4& matrix, double* values)
+{
+    std::memcpy(values, &matrix, sizeof(matrix));
+}
+
 static double4x4 convert_mat4_to_double4x4(const filament::math::mat4 &mat)
 {
     double4x4 result;

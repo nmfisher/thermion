@@ -1,7 +1,7 @@
 import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_filament_app.dart';
 
-import '../../../utils/src/matrix.dart';
+import '../../../bindings/matrix_buffers.dart' as matrixBuffers;
 
 class FFICamera extends Camera<Pointer<TCamera>> {
   final Pointer<TCamera> camera;
@@ -22,7 +22,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   @override
   Future setProjectionMatrixWithCulling(Matrix4 projectionMatrix, double near, double far) async {
-    Camera_setCustomProjectionWithCulling(camera, matrix4ToDouble4x4(projectionMatrix), near, far);
+    matrixBuffers.writeCameraProjection(camera, projectionMatrix.storage, near, far);
   }
 
   //
@@ -93,15 +93,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
 
   ///
   Future<Matrix4> getModelMatrix() async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-    final modelMatrix = double4x4ToMatrix4(Camera_getModelMatrix(camera));
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
-    return modelMatrix;
+    final result = Matrix4.zero();
+    matrixBuffers.readCameraModel(camera, result.storage);
+    return result;
   }
 
   ///
@@ -109,9 +103,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   @override
   Future<Matrix4> getProjectionMatrix() async {
-    var matrixStruct = Camera_getProjectionMatrix(camera);
-    final pMat = double4x4ToMatrix4(matrixStruct);
-    return pMat;
+    final result = Matrix4.zero();
+    matrixBuffers.readCameraProjection(camera, result.storage);
+    return result;
   }
 
   ///
@@ -119,10 +113,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   @override
   Future<Matrix4> getCullingProjectionMatrix() async {
-    var matrixStruct = Camera_getCullingProjectionMatrix(camera);
-    final cpMat = double4x4ToMatrix4(matrixStruct);
-
-    return cpMat;
+    final result = Matrix4.zero();
+    matrixBuffers.readCameraCullingProjection(camera, result.storage);
+    return result;
   }
 
   @override
@@ -178,16 +171,28 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   ///
   @override
+  Future<void> getModelMatrixInto(Matrix4 out) async {
+    matrixBuffers.readCameraModel(camera, out.storage);
+  }
+
+  @override
+  Future<void> getViewMatrixInto(Matrix4 out) async {
+    matrixBuffers.readCameraView(camera, out.storage);
+  }
+
+  @override
+  Future<void> getProjectionMatrixInto(Matrix4 out) async {
+    matrixBuffers.readCameraProjection(camera, out.storage);
+  }
+
+  @override
+  Future<void> getCullingProjectionMatrixInto(Matrix4 out) async {
+    matrixBuffers.readCameraCullingProjection(camera, out.storage);
+  }
+
+  @override
   Future setModelMatrix(Matrix4 matrix) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-    Camera_setModelMatrix(camera, matrix.storage.address);
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-      matrix.storage.free();
-    }
+    matrixBuffers.writeCameraModel(camera, matrix.storage);
   }
 
   @override
@@ -283,8 +288,9 @@ class FFICamera extends Camera<Pointer<TCamera>> {
 
   @override
   Future<Matrix4> getViewMatrix() async {
-    final matrix = double4x4ToMatrix4(Camera_getViewMatrix(camera));
-    return matrix;
+    final result = Matrix4.zero();
+    matrixBuffers.readCameraView(camera, result.storage);
+    return result;
   }
 
   @override

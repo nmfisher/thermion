@@ -55,11 +55,17 @@ abstract class TransformManager<T> extends NativeHandle<T> {
   /// Returns the local transform as a Matrix4
   Matrix4 getLocalTransform(ThermionEntity entity);
 
+  /// Writes the local transform into [out], allowing its storage to be reused.
+  void getLocalTransformInto(ThermionEntity entity, Matrix4 out) => out.setFrom(getLocalTransform(entity));
+
   /// Gets the world transform matrix of the entity (relative to world root).
   ///
   /// [entity] The entity containing the transform component
   /// Returns the world transform as a Matrix4
   Matrix4 getWorldTransform(ThermionEntity entity);
+
+  /// Writes the world transform into [out], allowing its storage to be reused.
+  void getWorldTransformInto(ThermionEntity entity, Matrix4 out) => out.setFrom(getWorldTransform(entity));
 
   /// Sets the local transform matrix of the entity.
   ///
@@ -68,6 +74,9 @@ abstract class TransformManager<T> extends NativeHandle<T> {
   void setTransform(ThermionEntity entity, Matrix4 transform);
 
   /// Sets the local transform matrix on the render thread.
+  ///
+  /// The values are copied before this method returns its Future, so [transform]
+  /// may be modified immediately after submission.
   ///
   /// Use this when setting transforms from outside the render pass
   /// (e.g. bone posing from a gizmo callback) to avoid race conditions.
