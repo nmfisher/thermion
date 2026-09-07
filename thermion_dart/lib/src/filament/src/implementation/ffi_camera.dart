@@ -179,15 +179,10 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   @override
   Future setModelMatrix(Matrix4 matrix) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-    Camera_setModelMatrix(camera, matrix.storage.address);
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-      matrix.storage.free();
-    }
+    // Filament's Camera::setModelMatrix delegates to its entity's transform.
+    // Use the existing by-value binding to avoid the typed-data .address
+    // trampoline, which can be missing when native test kernels are loaded.
+    _app.transformManager.setTransform(_entity, matrix);
   }
 
   @override
