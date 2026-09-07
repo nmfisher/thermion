@@ -177,16 +177,27 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   ///
   ///
+  /// Reused native-path scratch so repeated camera updates do not allocate.
+  /// Backed by Dart heap memory (GC-managed, no explicit free); never touched
+  /// on web, which allocates each call transiently on the wasm stack.
+  late final double4x4 _modelMatrixScratch =
+      matrix4ToDouble4x4(Matrix4.identity());
+
   @override
   Future setModelMatrix(Matrix4 matrix) async {
-    late Pointer stackPtr;
+    // By-value matrix binding, matching Camera_setCustomProjectionWithCulling
+    // and TransformManager_setTransform; a raw double* argument would require
+    // the typed-data .address trampoline, which is not available in all
+    // module builds.
     if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-    Camera_setModelMatrix(camera, matrix.storage.address);
-    if (FILAMENT_WASM) {
+      final stackPtr = stackSave();
+      Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
       stackRestore(stackPtr);
-      matrix.storage.free();
+    } else {
+      Camera_setModelMatrix(
+        camera,
+        matrix4ToDouble4x4(matrix, out: _modelMatrixScratch),
+      );
     }
   }
 
