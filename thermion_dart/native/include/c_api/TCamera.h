@@ -51,6 +51,12 @@ EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(
 );
 EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double *tModelMatrix);
 // All buffers contain 16 column-major doubles, borrowed only during the call.
+EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixNative(TCamera *camera, TNativeMatrix4 *matrix);
+EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingNative(TCamera *camera, TNativeMatrix4 *matrix, double near, double far);
+EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out);
+EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out);
+EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out);
+EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out);
 EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixFromBuffer(TCamera *camera, const double *matrix16);
 EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingFromBuffer(TCamera *camera, const double *matrix16, double near, double far);
 EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixInto(TCamera *camera, double *out16);

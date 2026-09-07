@@ -15,6 +15,7 @@ Future<void> main() async {
       ),
     );
     await checkMatrixBuffers();
+    await checkNativeMatrices();
     final benchmark = await benchmarkMatrixBuffers();
     await FilamentApp.instance!.destroy();
     globalContext['testResult'] = 'PASS: matrix buffer browser regressions\n$benchmark'.toJS;

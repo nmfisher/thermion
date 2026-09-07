@@ -191,6 +191,36 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   }
 
   @override
+  Future<void> setModelMatrixNative(NativeMatrix4 matrix) async {
+    Camera_setModelMatrixNative(camera, matrix.getNativeHandle());
+  }
+
+  @override
+  Future<void> setProjectionMatrixWithCullingNative(NativeMatrix4 matrix, double near, double far) async {
+    Camera_setCustomProjectionWithCullingNative(camera, matrix.getNativeHandle(), near, far);
+  }
+
+  @override
+  Future<void> getModelMatrixNativeInto(NativeMatrix4 out) async {
+    Camera_getModelMatrixNativeInto(camera, out.getNativeHandle());
+  }
+
+  @override
+  Future<void> getViewMatrixNativeInto(NativeMatrix4 out) async {
+    Camera_getViewMatrixNativeInto(camera, out.getNativeHandle());
+  }
+
+  @override
+  Future<void> getProjectionMatrixNativeInto(NativeMatrix4 out) async {
+    Camera_getProjectionMatrixNativeInto(camera, out.getNativeHandle());
+  }
+
+  @override
+  Future<void> getCullingProjectionMatrixNativeInto(NativeMatrix4 out) async {
+    Camera_getCullingProjectionMatrixNativeInto(camera, out.getNativeHandle());
+  }
+
+  @override
   Future setModelMatrix(Matrix4 matrix) async {
     matrixBuffers.writeCameraModel(camera, matrix.storage);
   }

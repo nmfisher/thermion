@@ -106,6 +106,122 @@ Future<void> checkMatrixBuffers() async {
   }
 }
 
+Future<void> checkNativeMatrices() async {
+  final app = FilamentApp.instance!;
+  final tm = app.transformManager;
+  final parent = await app.createEntity();
+  final child = await app.createEntity();
+  final missing = await app.createEntity(createTransformComponent: false);
+  final camera = await app.createCamera();
+  final input = NativeMatrix4.identity();
+  final out = NativeMatrix4.zero();
+  final parentMatrix = NativeMatrix4.copy(Matrix4.translation(Vector3(10, 20, 30)));
+  final entities = <ThermionEntity>[];
+  final pending = <Future<void>>[];
+  try {
+    final view = input.matrix;
+    sameMatrix(view, Matrix4.identity(), 'native identity');
+    sameMatrix(out.matrix, Matrix4.zero(), 'native zero');
+    final expected = Matrix4.translation(Vector3(3.25, -7.5, 9.75)) * Matrix4.rotationZ(0.47);
+    view.setFrom(expected);
+    tm.setTransformNative(child, input);
+    tm.getLocalTransformNativeInto(child, out);
+    sameMatrix(out.matrix, expected, 'Dart writes / native reads shared storage');
+    // The same previously returned Matrix4 view observes native output writes.
+    view.setZero();
+    tm.getLocalTransformNativeInto(child, input);
+    sameMatrix(view, expected, 'native writes / existing Dart view reads');
+    tm.setTransformNative(parent, parentMatrix);
+    await tm.setParent(child, parent);
+    tm.getWorldTransformNativeInto(child, out);
+    sameMatrix(out.matrix, parentMatrix.matrix * expected, 'native world matrix');
+    tm.getLocalTransformNativeInto(missing, out);
+    sameMatrix(out.matrix, Matrix4.zero(), 'missing native local matrix');
+    tm.getWorldTransformNativeInto(missing, out);
+    sameMatrix(out.matrix, Matrix4.zero(), 'missing native world matrix');
+    tm.setTransformNative(missing, input);
+
+    await camera.setModelMatrixNative(input);
+    await camera.getModelMatrixNativeInto(out);
+    sameMatrix(out.matrix, expected, 'native camera model');
+    await camera.getViewMatrixNativeInto(out);
+    sameMatrix(out.matrix, Matrix4.inverted(expected), 'native camera view');
+    final projection = Matrix4.identity();
+    for (var i = 0; i < 16; i++) {
+      projection.storage[i] = i + 0.123456789012345;
+    }
+    view.setFrom(projection);
+    await camera.setProjectionMatrixWithCullingNative(input, 0.1, 1000);
+    await camera.getProjectionMatrixNativeInto(out);
+    sameMatrix(out.matrix, projection, 'native exact projection', tolerance: 0);
+    await camera.getCullingProjectionMatrixNativeInto(out);
+    sameMatrix(out.matrix, projection, 'native exact culling projection', tolerance: 0);
+
+    for (var i = 0; i < 64; i++) {
+      entities.add(await app.createEntity());
+    }
+    // Each native submission retains its C++ matrix, including if the Dart
+    // owner is disposed immediately. No Dart/native buffer snapshot is needed.
+    for (var i = 0; i < entities.length; i++) {
+      final submitted = NativeMatrix4.copy(Matrix4.translation(Vector3(i + 0.25, 2, 3)));
+      pending.add(tm.setTransformNativeAsync(entities[i], submitted));
+      submitted.dispose();
+      submitted.dispose();
+      if (!submitted.isDisposed) throw StateError('Native matrix disposal failed');
+    }
+    await Future.wait(pending);
+    for (var i = 0; i < entities.length; i++) {
+      sameMatrix(
+        tm.getLocalTransform(entities[i]),
+        Matrix4.translation(Vector3(i + 0.25, 2, 3)),
+        'retained native queue $i',
+      );
+    }
+    // Ordinary queued setters still snapshot even when passed a native view.
+    view.setFrom(expected);
+    final copied = tm.setTransformAsync(child, view);
+    view.setZero();
+    await copied;
+    sameMatrix(tm.getLocalTransform(child), expected, 'native view through snapshot API');
+
+    out.dispose();
+    var rejected = 0;
+    try {
+      out.matrix;
+    } on StateError {
+      rejected++;
+    }
+    try {
+      tm.setTransformNative(child, out);
+    } on StateError {
+      rejected++;
+    }
+    try {
+      await tm.setTransformNativeAsync(child, out);
+    } on StateError {
+      rejected++;
+    }
+    try {
+      await camera.setModelMatrixNative(out);
+    } on StateError {
+      rejected++;
+    }
+    if (rejected != 4) throw StateError('Disposed native matrix was accepted');
+  } finally {
+    await Future.wait(pending);
+    input.dispose();
+    out.dispose();
+    parentMatrix.dispose();
+    await camera.destroy();
+    for (final entity in entities) {
+      await app.destroyEntity(entity);
+    }
+    await app.destroyEntity(child);
+    await app.destroyEntity(parent);
+    await app.destroyEntity(missing);
+  }
+}
+
 // Reports median microseconds per operation; it measures boundary overhead,
 // not frame times. Existing ABI calls provide the struct-packing baseline.
 Future<String> benchmarkMatrixBuffers() async {
@@ -115,15 +231,22 @@ Future<String> benchmarkMatrixBuffers() async {
   final handle = tm.getNativeHandle() as Pointer<TTransformManager>;
   final input = Matrix4.translation(Vector3(1, 2, 3));
   final out = Matrix4.zero();
+  final nativeInput = NativeMatrix4.copy(input);
+  final nativeOut = NativeMatrix4.zero();
   var sink = 0.0;
   final cases = <String, void Function()>{
     'struct setter': () => TransformManager_setTransform(handle, entity, matrix4ToDouble4x4(input)),
     'buffer setter': () => tm.setTransform(entity, input),
+    'native matrix setter': () => tm.setTransformNative(entity, nativeInput),
     'struct getter': () {
       sink += double4x4ToMatrix4(TransformManager_getLocalTransform(handle, entity)).storage[12];
     },
     'buffer snapshot getter': () {
       sink += tm.getLocalTransform(entity).storage[12];
+    },
+    'native matrix reuse getter': () {
+      tm.getLocalTransformNativeInto(entity, nativeOut);
+      sink += nativeOut.matrix.storage[12];
     },
     'buffer reuse getter': () {
       tm.getLocalTransformInto(entity, out);
@@ -159,6 +282,8 @@ Future<String> benchmarkMatrixBuffers() async {
     samples.sort();
     results.add('${entry.key}: ${samples[3].toStringAsFixed(3)} us/op');
   }
+  nativeInput.dispose();
+  nativeOut.dispose();
   await app.destroyEntity(entity);
   if (sink == 0) throw StateError('Benchmark produced no output');
   return results.join('\n');

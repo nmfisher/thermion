@@ -1,5 +1,6 @@
 #include <atomic>
 #include <array>
+#include "NativeMatrix.hpp"
 #include <cstring>
 #include <functional>
 #include <mutex>
@@ -2747,6 +2748,23 @@ extern "C"
           PROXY(onComplete(requestId));
         });
     auto fut = rt->addTask(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeRenderThread(
+      TTransformManager *manager, EntityId entity, TNativeMatrix4 *matrix,
+      uint32_t requestId, VoidCallback onComplete)
+  {
+    auto *rt = RT(manager);
+    // Retain synchronously, before Dart can dispose its handle. Only ownership
+    // is copied. shared_ptr releases the matrix even if a queued task is dropped.
+    auto retained = thermion::nativeMatrixOwner(matrix);
+    std::packaged_task<void()> task([=]() mutable {
+      auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+      auto instance = tm->getInstance(utils::Entity::import(entity));
+      if (instance) tm->setTransform(instance, *retained);
+      PROXY(onComplete(requestId));
+    });
+    rt->addTask(task);
   }
 
   EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferRenderThread(

@@ -49,6 +49,56 @@ dart run native/test/math/run_web_matrix_test.dart /tmp/thermion-matrix-web/buil
 The runner starts a local server with COOP/COEP and headless Chrome. Its optional
 second argument overrides the Chrome executable (the default is macOS Chrome).
 
+## Shared native matrices
+
+`NativeMatrix4` owns a constructed Filament `mat4` and exposes a `Matrix4` view
+of its component storage. Native Dart uses an external typed list; web uses a
+persistent view into WASM memory. Editing the view changes the same bytes that
+C++ reads, and native output getters update the same view. No boundary copy is
+needed by the `...Native` methods.
+
+```dart
+final pose = NativeMatrix4.identity();
+try {
+  pose.matrix.setTranslationRaw(1, 2, 3);
+  app.transformManager.setTransformNative(entity, pose);
+  await camera.setModelMatrixNative(pose);
+
+  // Do not edit pose.matrix or any aliases until this Future completes.
+  await app.transformManager.setTransformNativeAsync(entity, pose);
+  app.transformManager.getWorldTransformNativeInto(entity, pose);
+} finally {
+  pose.dispose();
+}
+```
+
+Allocation happens once when creating the owner. `NativeMatrix4.copy(other)`
+performs an explicit initial copy; subsequent edits through `.matrix` and native
+submissions share that storage. Camera has corresponding native projection
+setters and model/view/projection output getters.
+
+Ownership is explicit: call `dispose()` when all Dart views are finished
+(repeated disposal is harmless). Accessing an escaped Matrix4, its storage, or a
+derived view after disposal is invalid. The wrapper rejects subsequent API calls
+and requests for its view. There is no automatic finalizer that could free the
+allocation while an escaped view is still in use; forgetting to dispose leaks
+that allocation.
+
+A queued native setter retains shared C++ ownership before returning, so its
+Dart owner may be disposed immediately after submission. Do not modify shared
+values while a submission is pending. The ordinary `setTransformAsync` still
+snapshots its input, including when given `pose.matrix`. Use that path when
+immediate mutation is required.
+
+Filament continues to store/convert transforms internally and compute getter
+results. This eliminates the Dart/C++ boundary copy, not Filament's own state
+updates or work needed to produce a matrix.
+
+The shared native regressions run in the same native/browser fixtures above.
+They verify Dart writes observed by C++, C++ output observed through an existing
+Dart view, camera precision, missing components, disposal checks, queued ownership
+after immediate disposal, and the ordinary setter's preserved snapshot semantics.
+
 ## Boundary microbenchmark
 
 Example measurements on Apple M2 Pro (native Dart JIT and Chrome/dart2js `-O2`),
@@ -56,11 +106,13 @@ in microseconds per operation, median of seven 20,000-call samples after warmup:
 
 | Operation | Native | Browser |
 | --- | ---: | ---: |
-| Existing struct setter | 0.034 | 0.282 |
-| Buffer setter | 0.017 | 0.213 |
-| Existing struct getter | 0.082 | 0.515 |
-| Buffer getter returning a snapshot | 0.020 | 0.537 |
-| Buffer getter reusing output | 0.014 | 0.171 |
+| Existing struct setter | 0.039 | 0.241 |
+| Buffer setter | 0.018 | 0.221 |
+| Shared native matrix setter | 0.017 | 0.034 |
+| Existing struct getter | 0.095 | 0.585 |
+| Buffer getter returning a snapshot | 0.020 | 0.506 |
+| Buffer getter reusing output | 0.014 | 0.174 |
+| Shared native matrix output getter | 0.033 | 0.026 |
 
 These timings measure one entity's boundary overhead, not frame time, task
 queue throughput, or a guarantee of smoother rendering. Browser snapshot
@@ -69,3 +121,8 @@ allocating a new matrix and its backing storage. The buffer paths also remove
 the explicit struct packing and intermediate Dart list from the old helpers.
 Allocation counts were not profiled, and JIT optimizations can eliminate some
 source-level allocations in the old path.
+
+Shared native setters were approximately equal to buffer setters on the native
+VM in this run, and the shared native output getter was slower there. The web
+path benefited substantially from avoiding the per-call WASM buffer and bulk
+copy. Zero boundary copies do not guarantee a faster call on every platform.

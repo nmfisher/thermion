@@ -85,6 +85,25 @@ abstract class TransformManager<T> extends NativeHandle<T> {
   /// [transform] The local transform matrix (relative to parent)
   Future setTransformAsync(ThermionEntity entity, Matrix4 transform);
 
+  /// Passes the shared C++ matrix directly to Filament, without a boundary copy.
+  /// As with [setTransform], the caller must synchronize access to Filament.
+  void setTransformNative(ThermionEntity entity, NativeMatrix4 transform) => setTransform(entity, transform.matrix);
+
+  /// Queues a shared matrix without copying its values.
+  ///
+  /// Do not modify [transform.matrix] or any aliases until completion. The FFI
+  /// implementation retains native ownership during submission, so disposing
+  /// the Dart owner after submission is safe. Use [setTransformAsync] when an
+  /// independent snapshot is required instead.
+  Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) async =>
+      await setTransformAsync(entity, transform.matrix);
+
+  /// Fills shared storage directly; Filament still computes/stores its values.
+  void getLocalTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) =>
+      getLocalTransformInto(entity, out.matrix);
+  void getWorldTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) =>
+      getWorldTransformInto(entity, out.matrix);
+
   /// Scales the entity to fit within a unit cube while preserving aspect ratio.
   ///
   /// This is useful for normalizing assets to a consistent size.

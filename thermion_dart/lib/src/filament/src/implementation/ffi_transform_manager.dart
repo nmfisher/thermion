@@ -96,6 +96,30 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
   }
 
   @override
+  void setTransformNative(ThermionEntity entity, NativeMatrix4 transform) {
+    bindings.TransformManager_setTransformNative(transformManager, entity, transform.getNativeHandle());
+  }
+
+  @override
+  Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) {
+    // Validate before registering a callback, so disposed inputs cannot leak it.
+    final handle = transform.getNativeHandle();
+    return withVoidCallback((id, cb) {
+      bindings.TransformManager_setTransformNativeRenderThread(transformManager, entity, handle, id, cb);
+    });
+  }
+
+  @override
+  void getLocalTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) {
+    bindings.TransformManager_getLocalTransformNativeInto(transformManager, entity, out.getNativeHandle());
+  }
+
+  @override
+  void getWorldTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) {
+    bindings.TransformManager_getWorldTransformNativeInto(transformManager, entity, out.getNativeHandle());
+  }
+
+  @override
   bool transformToUnitCube(ThermionEntity entity, Aabb3 boundingBox) {
     // Convert Aabb3 to C struct format
     final cAabb = bindings.StructAllocator.create<bindings.Aabb3>();

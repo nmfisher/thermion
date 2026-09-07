@@ -13,6 +13,7 @@ extern "C"
 	typedef void (*VoidCallback)(int32_t requestId);
 	
 	typedef int32_t EntityId;
+	typedef struct TNativeMatrix4 TNativeMatrix4;
 	typedef struct TCamera TCamera;
 	typedef struct TEngine TEngine;
 	typedef struct TEntityManager TEntityManager;

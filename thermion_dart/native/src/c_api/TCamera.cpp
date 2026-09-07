@@ -12,6 +12,7 @@
 
 #include "Log.hpp"
 #include "MathUtils.hpp"
+#include "NativeMatrix.hpp"
 
 #ifdef __cplusplus
 namespace thermion
@@ -75,6 +76,25 @@ namespace thermion
             camera->setModelMatrix(modelMatrix);
         }
 
+
+        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixNative(TCamera *camera, TNativeMatrix4 *matrix) {
+            reinterpret_cast<Camera *>(camera)->setModelMatrix(nativeMatrix(matrix));
+        }
+        EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingNative(TCamera *camera, TNativeMatrix4 *matrix, double near, double far) {
+            reinterpret_cast<Camera *>(camera)->setCustomProjection(nativeMatrix(matrix), near, far);
+        }
+        EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getModelMatrix();
+        }
+        EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getViewMatrix();
+        }
+        EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getProjectionMatrix();
+        }
+        EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getCullingProjectionMatrix();
+        }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixFromBuffer(TCamera *camera, const double *matrix16) {
             reinterpret_cast<Camera *>(camera)->setModelMatrix(load_mat4(matrix16));

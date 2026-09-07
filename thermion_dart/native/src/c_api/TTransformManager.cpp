@@ -11,6 +11,7 @@
 
 #include "Log.hpp"
 #include "MathUtils.hpp"
+#include "NativeMatrix.hpp"
 
 using namespace thermion;
 
@@ -60,6 +61,27 @@ extern "C"
             return;
         }
         transformManager->setTransform(transformInstance, convert_double4x4_to_mat4(transform));
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNative(TTransformManager *manager, EntityId entity, TNativeMatrix4 *matrix)
+    {
+        auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+        auto instance = tm->getInstance(utils::Entity::import(entity));
+        if (instance) tm->setTransform(instance, nativeMatrix(matrix));
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformNativeInto(TTransformManager *manager, EntityId entity, TNativeMatrix4 *out)
+    {
+        auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+        auto instance = tm->getInstance(utils::Entity::import(entity));
+        nativeMatrix(out) = instance ? tm->getTransformAccurate(instance) : filament::math::mat4(0.0);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getWorldTransformNativeInto(TTransformManager *manager, EntityId entity, TNativeMatrix4 *out)
+    {
+        auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+        auto instance = tm->getInstance(utils::Entity::import(entity));
+        nativeMatrix(out) = instance ? tm->getWorldTransformAccurate(instance) : filament::math::mat4(0.0);
     }
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformInto(TTransformManager *manager, EntityId entity, double *out16)
