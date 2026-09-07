@@ -37,6 +37,35 @@ void main() async {
     });
   });
 
+  test('model matrix updates preserve every element and caller storage', () async {
+    final camera = await FilamentApp.instance!.createCamera();
+    try {
+      // Include nonzero storage offsets and non-translation elements. Camera
+      // updates use column-major matrices and must not free the caller's data.
+      final backing = Float64List(20);
+      backing[0] = 123;
+      backing[19] = 456;
+      final storage = Float64List.sublistView(backing, 2, 18);
+      final matrix = Matrix4.fromFloat64List(storage);
+      for (var update = 0; update < 8; update++) {
+        matrix.setIdentity();
+        matrix.setTranslation(Vector3(update + 0.25, -2.5, 3.75));
+        matrix.rotateY(0.2 * update);
+        final expected = matrix.storage.toList();
+        await camera.setModelMatrix(matrix);
+        final actual = await camera.getModelMatrix();
+        for (var i = 0; i < 16; i++) {
+          expect(actual.storage[i], closeTo(expected[i], 1e-6), reason: 'update $update, element $i');
+        }
+        expect(matrix.storage, orderedEquals(expected));
+        expect(backing[0], 123);
+        expect(backing[19], 456);
+      }
+    } finally {
+      await camera.destroy();
+    }
+  });
+
   test('get/set exposure (aperture, shutter speed, sensitivity)', () async {
     await testHelper.withViewer((viewer) async {
       final camera = await viewer.getActiveCamera();
