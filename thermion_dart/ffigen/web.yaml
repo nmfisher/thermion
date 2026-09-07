@@ -1,4 +1,5 @@
 output: '../lib/src/bindings/src/thermion_dart_js_interop.g.dart'
+sort: true
 headers:
   entry-points:
     - '../native/web/include/ThermionWebApi.h'
