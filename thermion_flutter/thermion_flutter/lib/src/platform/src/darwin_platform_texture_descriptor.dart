@@ -49,7 +49,7 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
   /// The FlutterTextureRegistry exposed by the plugin
   static ThermionTextureRegistry? _registry;
   static ThermionTextureRegistry get _textureRegistry =>
-      _registry ??= ThermionTextureRegistry.castFrom(
+      _registry ??= ThermionTextureRegistry.as(
         SwiftThermionFlutterPluginObjCAPI.textureRegistry(),
       );
 
@@ -61,7 +61,7 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
     // Set flag early to ensure markTextureFrameAvailable is not called with a
     // destroyed texture handle.
     _destroyed = true;
-    _textureRegistry.unregisterTexture_(flutterTextureId);
+    _textureRegistry.unregisterTexture(flutterTextureId);
 
     // Drop our Dart-owned NSObject retains explicitly and deterministically
     // — do NOT rely on Dart GC finalizers to release them. `ref.release()`
@@ -91,23 +91,22 @@ class DarwinPlatformTextureDescriptorImpl extends PlatformTextureDescriptor {
         "destroyed texture descriptor.",
       );
     }
-    _textureRegistry.textureFrameAvailable_(flutterTextureId);
+    _textureRegistry.textureFrameAvailable(flutterTextureId);
     return Future<void>.value();
   }
 
   static DarwinPlatformTextureDescriptorImpl allocate(int width, int height) {
-    final metalTexture =
-        MetalTextureWrapper.allocateWithWidth_height_isDepth_isStencil_(
-          width,
-          height,
-          false,
-          false,
-        );
+    final metalTexture = MetalTextureWrapper.allocateWithWidth(
+      width,
+      height: height,
+      isDepth: false,
+      isStencil: false,
+    );
 
-    final adapter = FlutterMetalTextureWrapper.alloc().initWithTexture_(
+    final adapter = FlutterMetalTextureWrapper.alloc().initWithTexture(
       metalTexture,
     );
-    final flutterTextureId = _textureRegistry.registerTexture_(adapter);
+    final flutterTextureId = _textureRegistry.registerTexture(adapter);
     if (didDarwinTextureRegistrationFail(
       isIOS: Platform.isIOS,
       textureId: flutterTextureId,
