@@ -97,13 +97,17 @@ Future<void> checkMatrixBuffers() async {
     sameMatrix(await camera.getModelMatrix(), expected, 'model snapshot');
     sameMatrix(await camera.getViewMatrix(), Matrix4.inverted(expected), 'view snapshot');
 
-    var rejected = false;
-    try {
-      buffers.TransformManager_setTransformFromBufferTypedData(internalTm.getNativeHandle(), child, Float64List(15));
-    } on ArgumentError {
-      rejected = true;
-    }
-    if (!rejected) throw StateError('Invalid buffer length accepted');
+    // Invalid native buffers must never be submitted when assertions are off.
+    assert(() {
+      var rejected = false;
+      try {
+        buffers.TransformManager_setTransformFromBufferTypedData(internalTm.getNativeHandle(), child, Float64List(15));
+      } on AssertionError {
+        rejected = true;
+      }
+      if (!rejected) throw StateError('Invalid buffer length accepted in debug mode');
+      return true;
+    }());
   } finally {
     await camera.destroy();
     await app.destroyEntity(child);

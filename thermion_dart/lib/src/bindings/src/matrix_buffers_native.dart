@@ -7,25 +7,25 @@ import 'thermion_dart_ffi.g.dart';
 
 /// Borrows 16 column-major doubles for the duration of the leaf call.
 void Camera_getCullingProjectionMatrixIntoTypedData(ffi.Pointer<TCamera> camera, typed_data.Float64List out16) {
-  if (out16.length != 16) throw ArgumentError.value(out16.length, 'out16', 'Expected 16 doubles');
+  assert(out16.length == 16, 'Expected 16 doubles');
   Camera_getCullingProjectionMatrixInto(camera, out16.address);
 }
 
 /// Borrows 16 column-major doubles for the duration of the leaf call.
 void Camera_getModelMatrixIntoTypedData(ffi.Pointer<TCamera> camera, typed_data.Float64List out16) {
-  if (out16.length != 16) throw ArgumentError.value(out16.length, 'out16', 'Expected 16 doubles');
+  assert(out16.length == 16, 'Expected 16 doubles');
   Camera_getModelMatrixInto(camera, out16.address);
 }
 
 /// Borrows 16 column-major doubles for the duration of the leaf call.
 void Camera_getProjectionMatrixIntoTypedData(ffi.Pointer<TCamera> camera, typed_data.Float64List out16) {
-  if (out16.length != 16) throw ArgumentError.value(out16.length, 'out16', 'Expected 16 doubles');
+  assert(out16.length == 16, 'Expected 16 doubles');
   Camera_getProjectionMatrixInto(camera, out16.address);
 }
 
 /// Borrows 16 column-major doubles for the duration of the leaf call.
 void Camera_getViewMatrixIntoTypedData(ffi.Pointer<TCamera> camera, typed_data.Float64List out16) {
-  if (out16.length != 16) throw ArgumentError.value(out16.length, 'out16', 'Expected 16 doubles');
+  assert(out16.length == 16, 'Expected 16 doubles');
   Camera_getViewMatrixInto(camera, out16.address);
 }
 
@@ -36,13 +36,13 @@ void Camera_setCustomProjectionWithCullingFromBufferTypedData(
   double near,
   double far,
 ) {
-  if (matrix16.length != 16) throw ArgumentError.value(matrix16.length, 'matrix16', 'Expected 16 doubles');
+  assert(matrix16.length == 16, 'Expected 16 doubles');
   Camera_setCustomProjectionWithCullingFromBuffer(camera, matrix16.address, near, far);
 }
 
 /// Borrows 16 column-major doubles for the duration of the leaf call.
 void Camera_setModelMatrixFromBufferTypedData(ffi.Pointer<TCamera> camera, typed_data.Float64List matrix16) {
-  if (matrix16.length != 16) throw ArgumentError.value(matrix16.length, 'matrix16', 'Expected 16 doubles');
+  assert(matrix16.length == 16, 'Expected 16 doubles');
   Camera_setModelMatrixFromBuffer(camera, matrix16.address);
 }
 
@@ -52,7 +52,7 @@ void TransformManager_getLocalTransformIntoTypedData(
   int entity,
   typed_data.Float64List out16,
 ) {
-  if (out16.length != 16) throw ArgumentError.value(out16.length, 'out16', 'Expected 16 doubles');
+  assert(out16.length == 16, 'Expected 16 doubles');
   TransformManager_getLocalTransformInto(manager, entity, out16.address);
 }
 
@@ -62,7 +62,7 @@ void TransformManager_getWorldTransformIntoTypedData(
   int entity,
   typed_data.Float64List out16,
 ) {
-  if (out16.length != 16) throw ArgumentError.value(out16.length, 'out16', 'Expected 16 doubles');
+  assert(out16.length == 16, 'Expected 16 doubles');
   TransformManager_getWorldTransformInto(manager, entity, out16.address);
 }
 
@@ -72,7 +72,7 @@ void TransformManager_setTransformFromBufferTypedData(
   int entity,
   typed_data.Float64List matrix16,
 ) {
-  if (matrix16.length != 16) throw ArgumentError.value(matrix16.length, 'matrix16', 'Expected 16 doubles');
+  assert(matrix16.length == 16, 'Expected 16 doubles');
   TransformManager_setTransformFromBuffer(manager, entity, matrix16.address);
 }
 
@@ -84,6 +84,6 @@ void TransformManager_setTransformFromBufferRenderThreadTypedData(
   int requestId,
   VoidCallback onComplete,
 ) {
-  if (matrix16.length != 16) throw ArgumentError.value(matrix16.length, 'matrix16', 'Expected 16 doubles');
+  assert(matrix16.length == 16, 'Expected 16 doubles');
   TransformManager_setTransformFromBufferRenderThread(manager, entity, matrix16.address, requestId, onComplete);
 }

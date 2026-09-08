@@ -22,7 +22,9 @@ synchronous access to Filament or change its internal transform precision.
 
 All native declarations come from ffigen through `make bindings` and live in
 `thermion_dart_ffi.g.dart`. Handwritten Dart adapters in `matrix_buffers_native.dart`
-check buffer lengths and pass `.address` directly to those generated leaf calls.
+assert buffer lengths in debug builds and pass `.address` directly to those
+generated leaf calls. Internal callers must supply exactly 16 doubles; the explicit
+length checks are omitted when assertions are disabled.
 No custom generator, handwritten native signatures, or duplicated asset/symbol
 annotations are needed. The adapters retain typed-data borrowing for ordinary
 `Matrix4` calls; shared `NativeMatrix4` storage is unchanged.

@@ -4,7 +4,7 @@ import 'js_interop.dart';
 // synchronously, including for queue submissions. Native queue entry points
 // snapshot the input before returning; no stack address survives an await.
 void _withMatrix(Float64List data, void Function(Pointer<Float64>) call, {bool output = false}) {
-  if (data.length != 16) throw ArgumentError.value(data.length, 'matrix length', 'Expected 16 doubles');
+  assert(data.length == 16, 'Expected 16 doubles');
   final marker = stackSave();
   try {
     final pointer = stackAlloc<Float64>(128);
