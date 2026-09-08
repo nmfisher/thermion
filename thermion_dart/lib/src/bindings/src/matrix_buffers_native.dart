@@ -2,6 +2,8 @@ import 'dart:ffi' as ffi;
 import 'dart:typed_data' as typed_data;
 import 'thermion_dart_ffi.g.dart';
 
+typed_data.Float64List nativeMatrixStorage(ffi.Pointer<TMat4> owner) => Mat4_getData(owner).asTypedList(16);
+
 // Ordinary Dart adapters borrow typed-data storage for generated leaf calls.
 // Native declarations and their signatures remain entirely owned by ffigen.
 

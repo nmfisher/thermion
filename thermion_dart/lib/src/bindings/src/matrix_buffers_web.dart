@@ -1,5 +1,11 @@
 import 'js_interop.dart';
 
+Float64List nativeMatrixStorage(Pointer<TMat4> owner) {
+  final data = Mat4_getData(owner);
+  final values = (Float64ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, data, 16) as JSFloat64Array).toDart;
+  return values;
+}
+
 // A scoped WASM buffer avoids per-element JS interop and restores the stack
 // synchronously, including for queue submissions. Native queue entry points
 // snapshot the input before returning; no stack address survives an await.

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:thermion_dart/src/bindings/bindings.dart';
-import 'package:thermion_dart/src/bindings/native_matrix_storage.dart';
+import 'package:thermion_dart/src/bindings/matrix_buffers.dart';
 import 'package:thermion_dart/src/filament/src/implementation/allocate_native_matrix.dart';
 import 'package:thermion_dart/src/filament/src/implementation/native_matrix4.dart';
 

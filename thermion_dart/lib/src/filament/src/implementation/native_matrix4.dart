@@ -1,6 +1,6 @@
 import 'package:vector_math/vector_math_64.dart';
 import '../../../bindings/bindings.dart';
-import '../../../bindings/native_matrix_storage.dart';
+import '../../../bindings/matrix_buffers.dart';
 import 'allocate_native_matrix.dart';
 
 /// Internal owner of a C++ `mat4` whose storage is shared with Dart (or WASM memory on web).
