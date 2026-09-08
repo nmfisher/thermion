@@ -1,0 +1,45 @@
+material {
+    name : MeteorFlare, shadingModel : unlit,
+    requires : [ position ], variables : [ objectPos ],
+    parameters : [ { type : float, name : time }, { type : float, name : strength }, { type : float, name : mode } ],
+    blending : add, depthWrite : false, culling : none
+}
+vertex { void materialVertex(inout MaterialVertexInputs m) { m.objectPos.xyz=getPosition().xyz; } }
+fragment {
+
+    float hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33);
+        return fract((q.x+q.y)*q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p=variable_objectPos.xz;
+        float t=materialParams.time;
+        vec3 color;
+        if(materialParams.mode<.5) {
+            float x=max(0.0,p.x),u=x/2.2;
+            float n=noise(vec2(x*3.0+t*8.0,p.y*17.0));
+            float width=(.2+(n-.5)*.1)*(1.0-smoothstep(.0,1.0,u));
+            float body=exp(-pow(abs(p.y)/max(width,.012),3.0));
+            float core=exp(-pow(p.y/max(width*.35,.006),2.0))*exp(-x*2.0);
+            float gate=smoothstep(-.1,.02,p.x)*(1.0-smoothstep(.65,1.0,u));
+            color=(vec3(.6,.07,.002)*body*(.3+.7*n)*.4+vec3(.8,.42,.12)*core*.5)*gate;
+        } else {
+            float r=length(p),a=atan(p.y,p.x+.00001);
+            float age=max(0.0,t);
+            float flare=exp(-r*r/(.04+age*.18))*exp(-age*5.2);
+            float rays=pow(max(0.0,sin(a*13.0+sin(a*7.0))),18.0);
+            rays*=exp(-r*2.2)*smoothstep(.05,.15,r)*exp(-age*5.8);
+            float ring=exp(-pow((r-age*3.0)/.045,2.0))*exp(-age*9.0);
+            color=vec3(.9,.5,.2)*(flare*.8+rays*.22+ring*.15);
+        }
+        // Add light without accumulating opacity in the post stack.
+        m.baseColor=vec4(color*materialParams.strength,0);
+    }
+}

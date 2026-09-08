@@ -49,6 +49,9 @@ import 'game_effects_energy_weapon.dart';
 import 'game_effects_thruster.dart';
 import 'game_effects_cryogenic_blast.dart';
 import 'game_effects_black_hole.dart';
+import 'game_effects_teleportation.dart';
+import 'game_effects_meteor_impact.dart';
+import 'game_effects_corrosive_acid.dart';
 import 'noise_showcase.dart';
 
 /// A scene-setup function: configures a scene on a ready [ThermionViewer].
@@ -84,6 +87,9 @@ final Map<String, ExampleSetup> registry = {
   'game_effects_thruster': setupThruster,
   'game_effects_cryogenic_blast': setupCryogenicBlast,
   'game_effects_black_hole': setupBlackHole,
+  'game_effects_teleportation': setupTeleportation,
+  'game_effects_meteor_impact': setupMeteorImpact,
+  'game_effects_corrosive_acid': setupCorrosiveAcid,
   'noise_showcase': setupNoiseShowcase,
   'geometry_primitives': setupGeometryPrimitives,
   'gizmo_basics': setupGizmoBasics,

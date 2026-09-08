@@ -1,0 +1,32 @@
+material {
+    name : InteractionVapor, shadingModel : unlit,
+    requires : [ position ], variables : [ objectPos ],
+    parameters : [ { type : float, name : time }, { type : float4, name : tint } ],
+    blending : transparent, depthWrite : false, culling : none
+}
+vertex { void materialVertex(inout MaterialVertexInputs m) { m.objectPos.xyz=getPosition().xyz; } }
+fragment {
+
+    float hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33);
+        return fract((q.x+q.y)*q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p=variable_objectPos.xz;
+        vec2 flow=p*3.2+vec2(materialParams.time*.3,materialParams.time*.22);
+        float n=noise(flow+noise(flow*1.7)*1.3);
+        n=.65*n+.35*noise(flow*2.4-materialParams.time*.3);
+        float shape=exp(-dot(p*vec2(.85,1.3),p*vec2(.85,1.3))*2.0);
+        shape*=(1.0-smoothstep(.85,1.24,abs(p.x)))*(1.0-smoothstep(.6,.99,abs(p.y)));
+        float alpha=shape*smoothstep(.18,.8,n)*materialParams.tint.a;
+        alpha*=smoothstep(.02,.3,getUserWorldPosition().y);
+        m.baseColor=vec4(materialParams.tint.rgb*alpha,alpha);
+    }
+}

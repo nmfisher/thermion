@@ -29,6 +29,15 @@ pubspec_overrides.yaml
 !examples/assets/cryogenic_ground.filamat
 !examples/assets/cryogenic_vapor.filamat
 !examples/assets/black_hole.filamat
+!examples/assets/teleport_surface.filamat
+!examples/assets/teleport_particles.filamat
+!examples/assets/teleport_field.filamat
+!examples/assets/interaction_vapor.filamat
+!examples/assets/meteor_rock.filamat
+!examples/assets/impact_ground.filamat
+!examples/assets/meteor_flare.filamat
+!examples/assets/corrosive_acid.filamat
+!examples/assets/acid_bubble.filamat
 **/*/*.g.dart
 **/*.BAK
 .wrangler

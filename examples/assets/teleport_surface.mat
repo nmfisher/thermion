@@ -1,0 +1,33 @@
+material {
+    name : TeleportSurface, shadingModel : lit,
+    requires : [ position, tangents ],
+    parameters : [ { type : float, name : dissolve }, { type : float, name : origin }, { type : float, name : reassemble } ],
+    blending : masked, maskThreshold : 0.5
+}
+fragment {
+
+    float hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33);
+        return fract((q.x+q.y)*q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec3 p=getUserWorldPosition()-vec3(materialParams.origin,0,0);
+        float field=p.y/2.3*.8+hash(floor(p.xy*24.0)+floor(p.z*24.0)*11.0)*.2;
+        field=mix(field,1.0-field,materialParams.reassemble);
+        float edge=field-materialParams.dissolve;
+        float rim=1.0-smoothstep(.0,.085,abs(edge));
+        float panel=1.0-smoothstep(.015,.045,abs(fract(p.y*6.0)-.5));
+        m.baseColor=vec4(mix(vec3(.13,.19,.23),vec3(.09,.2,.27),panel*.3),step(0.0,edge));
+        m.metallic=.35; m.roughness=.4;
+        // Gentle suit illumination keeps the intact silhouette readable
+        // before the transfer lights switch on.
+        m.emissive=vec4(vec3(.008,.017,.025)+vec3(.055,.4,.8)*rim*.5,0);
+    }
+}

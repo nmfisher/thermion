@@ -1,0 +1,29 @@
+material {
+    name : MeteorRock, shadingModel : lit,
+    requires : [ position, tangents ], variables : [ objectPos ],
+    parameters : [ { type : float, name : heat } ]
+}
+vertex { void materialVertex(inout MaterialVertexInputs m) { m.objectPos.xyz=getPosition().xyz; } }
+fragment {
+
+    float hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33);
+        return fract((q.x+q.y)*q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec3 p=variable_objectPos.xyz;
+        float n=noise(p.xy*2.6+noise(p.zy*2.8)*1.3);
+        float crack=1.0-smoothstep(.025,.065+fwidth(n)*.8,abs(n-.5));
+        float crust=noise(p.xz*7.0+p.y*3.0);
+        m.baseColor=vec4(vec3(.035,.024,.018)*(.5+crust),1);
+        m.roughness=.9; m.metallic=0.0;
+        m.emissive=vec4(mix(vec3(.65,.035,.002),vec3(.8,.3,.035),crack)*crack*materialParams.heat*.25,0);
+    }
+}

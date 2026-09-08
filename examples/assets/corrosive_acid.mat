@@ -1,0 +1,56 @@
+material {
+    name : CorrosiveAcid, shadingModel : lit,
+    requires : [ position, tangents ],
+    parameters : [ { type : float, name : time }, { type : float, name : mode } ],
+    blending : masked, maskThreshold : 0.5
+}
+fragment {
+
+    float hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33);
+        return fract((q.x+q.y)*q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec3 p=getUserWorldPosition();
+        float t=materialParams.time;
+        float grain=noise(p.xz*19.0+p.y*7.0);
+        if(materialParams.mode>.5) {
+            float corrosion=1.0-smoothstep(.23,.8,p.y+noise(p.xy*9.0)*.22-.1*sin(t*.6));
+            float holes=step(.28,grain+.35*(1.0-corrosion));
+            m.baseColor=vec4(mix(vec3(.11,.13,.14),vec3(.025,.04,.008),corrosion)*(.65+.35*grain),holes);
+            m.metallic=.8*(1.0-corrosion); m.roughness=.3+corrosion*.6;
+            m.emissive=vec4(vec3(.13,.22,.005)*corrosion*grain*.055,0);
+        } else {
+            vec2 q=p.xz;
+            float r=length(q),a=atan(q.y,q.x+.00001);
+            float radius=1.55+.15*sin(a*5.0)+.07*sin(a*11.0)+.035*sin(t*.7+a*3.0);
+            float edge=r-radius;
+            float pool=1.0-smoothstep(-.02,.035,edge);
+            float scar=1.0-smoothstep(.02,.24,edge+(grain-.5)*.14);
+            float n=noise(q*5.0+vec2(t*.13,-t*.1));
+            float swirl=noise(q*13.0+vec2(n*3.0,t*.3));
+            vec3 liquid=mix(vec3(.007,.035,.006),vec3(.085,.18,.009),n*.7+swirl*.3);
+            float foam=exp(-pow((edge+.045)/.025,2.0))*smoothstep(.25,.65,grain);
+            float rings=0.0;
+            for(int i=0;i<16;i++) {
+                float s=float(i),angle=s*2.39996;
+                vec2 center=vec2(cos(angle),sin(angle))*(.3+mod(s,7.0)*.14);
+                float age=fract(t*.65+s*.137);
+                float rip=abs(length(q-center)-(age-.72)*1.05);
+                rings+=(1.0-smoothstep(.007,.022,rip))*smoothstep(.72,.79,age)*(1.0-smoothstep(.9,1.0,age));
+            }
+            liquid+=vec3(.12,.2,.018)*rings*.5;
+            vec3 base=mix(vec3(.04,.047,.05),vec3(.014,.019,.01),scar);
+            m.baseColor=vec4(mix(base,liquid,pool),1);
+            m.metallic=.08; m.roughness=mix(.85,.16+.13*swirl,pool);
+            m.emissive=vec4(vec3(.08,.17,.004)*(foam*.4+pool*(.015+swirl*.025)),0);
+        }
+    }
+}

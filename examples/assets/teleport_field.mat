@@ -1,0 +1,20 @@
+material {
+    name : TeleportField, shadingModel : unlit,
+    requires : [ position ], variables : [ objectPos ],
+    parameters : [ { type : float, name : time }, { type : float, name : strength } ],
+    blending : add, depthWrite : false, culling : none
+}
+vertex { void materialVertex(inout MaterialVertexInputs m) { m.objectPos.xyz=getPosition().xyz; } }
+fragment {
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p=variable_objectPos.xz;
+        float r=length(p),a=atan(p.y,p.x+.00001),aa=max(length(fwidth(p)),.002);
+        float ring=1.0-smoothstep(.006,.013+aa,abs(r-.72));
+        float segments=smoothstep(-.3,.2,sin(a*12.0+materialParams.time*.7));
+        float inner=(1.0-smoothstep(.007,.015+aa,abs(r-.59)))*segments;
+        float spokes=pow(max(0.0,cos(a*24.0)),20.0)*smoothstep(.62,.67,r)*(1.0-smoothstep(.72,.76,r));
+        float haze=exp(-r*r*5.0)*.055;
+        m.baseColor=vec4(vec3(.06,.38,.75)*(ring*.18+inner*.12+spokes*.15+haze)*materialParams.strength,0);
+    }
+}
