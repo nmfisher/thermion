@@ -1,7 +1,6 @@
 import 'package:vector_math/vector_math_64.dart';
 import '../../../bindings/bindings.dart';
 import '../../../bindings/matrix_buffers.dart';
-import 'allocate_native_matrix.dart';
 
 /// Internal owner of a C++ `mat4` whose storage is shared with Dart (or WASM memory on web).
 ///
@@ -69,5 +68,22 @@ class NativeMatrix4 {
     if (_pendingUses != 0) throw StateError('Cannot dispose NativeMatrix4 with queued operations pending');
     _handle = null;
     Mat4_destroy(handle);
+  }
+}
+
+// Ownership transfers only after initialization succeeds. Injected allocation
+// functions let the failure paths be tested without exhausting native memory.
+T allocateNativeMatrix<T>(
+  T Function(Pointer<TMat4>) initialize, {
+  Pointer<TMat4> Function() create = Mat4_create,
+  void Function(Pointer<TMat4>) destroy = Mat4_destroy,
+}) {
+  final handle = create();
+  if (handle == nullptr) throw StateError('Failed to allocate native matrix');
+  try {
+    return initialize(handle);
+  } catch (_) {
+    destroy(handle);
+    rethrow;
   }
 }
