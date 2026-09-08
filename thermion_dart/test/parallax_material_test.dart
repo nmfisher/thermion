@@ -56,10 +56,97 @@ void main() async {
       await fixture.dispose();
     }, viewportDimensions: (width: 33, height: 33));
   });
+
+  test('POM shadows follow the light and preserve environment lighting', () async {
+    await helper.withViewer((viewer) async {
+      final fixture = await _ParallaxFixture.create(helper, viewer);
+      await fixture.setView(0);
+      final heights = List<int>.filled(512, 0)..fillRange(280, 305, 255);
+      await fixture.setHeights(heights);
+      final lights = FilamentApp.instance!.lightManager;
+      lights.setDirection(fixture.light, -1, 0, -1); // light above and to +U
+
+      await fixture.instance.setParameterFloat('shadowStrength', 0);
+      final unshadowed = await fixture.render(0.5, heightScale: 0.1);
+      await fixture.instance.setParameterFloat('shadowStrength', 1);
+      final shadowed = await fixture.render(0.5, heightScale: 0.1);
+      expect(unshadowed[0], greaterThan(0.01));
+      expect(shadowed[0], lessThan(unshadowed[0] * 0.05));
+
+      // Reversing the light removes the blocker; the view stays fixed.
+      lights.setDirection(fixture.light, 1, 0, -1);
+      final clear = await fixture.render(0.5, heightScale: 0.1);
+      await fixture.instance.setParameterFloat('shadowStrength', 0);
+      _expectSameColor(clear, await fixture.render(0.5, heightScale: 0.1), 'unblocked light');
+
+      // No height means no height-field shadows, even with a nonuniform map.
+      lights.setDirection(fixture.light, -1, 0, -1);
+      final flat = await fixture.render(0.5);
+      await fixture.instance.setParameterFloat('shadowStrength', 1);
+      _expectSameColor(await fixture.render(0.5), flat, 'zero displacement');
+
+      await viewer.loadIbl('file://${helper.assetsDir}/default_env_ibl.ktx', intensity: 30000);
+      lights.setIntensity(fixture.light, 0);
+      final ambientOnly = await fixture.render(0.5, heightScale: 0.1);
+      lights.setIntensity(fixture.light, 100000);
+      final ambientInShadow = await fixture.render(0.5, heightScale: 0.1);
+      _expectSameColor(ambientInShadow, ambientOnly, 'environment light survives direct shadow');
+      await fixture.dispose();
+    }, viewportDimensions: (width: 33, height: 33));
+  });
+
+  test('POM shadows attenuate each light independently', () async {
+    await helper.withViewer((viewer) async {
+      final fixture = await _ParallaxFixture.create(helper, viewer);
+      await fixture.setView(0);
+      await fixture.setHeights(List<int>.filled(512, 0)..fillRange(280, 305, 255));
+      final lights = FilamentApp.instance!.lightManager;
+      lights.setDirection(fixture.light, -1, 0, -1);
+      lights.setColor(fixture.light, 1, 0, 0);
+      await viewer.addDirectLight(
+        DirectLight.point(
+          color: const LinearColor(0, 1, 0),
+          position: Vector3(-1, 0, 1),
+          intensity: 1000000,
+          falloffRadius: 5,
+          castShadows: false,
+        ),
+      );
+      await fixture.instance.setParameterFloat('shadowStrength', 0);
+      final unshadowed = await fixture.render(0.5, heightScale: 0.1);
+      await fixture.instance.setParameterFloat('shadowStrength', 1);
+      final shadowed = await fixture.render(0.5, heightScale: 0.1);
+      expect(unshadowed[0], greaterThan(0.01));
+      expect(unshadowed[1], greaterThan(0.01));
+      expect(shadowed[0], lessThan(unshadowed[0] * 0.05), reason: 'red light blocked');
+      expect(shadowed[1], closeTo(unshadowed[1], 0.002), reason: 'green point light unblocked');
+      await fixture.dispose();
+    }, viewportDimensions: (width: 33, height: 33));
+  });
+
+  test('constant height fields do not shadow themselves at grazing light angles', () async {
+    await helper.withViewer((viewer) async {
+      final fixture = await _ParallaxFixture.create(helper, viewer);
+      await fixture.setView(0.4);
+      final lights = FilamentApp.instance!.lightManager;
+      for (final height in [0, 128, 255]) {
+        await fixture.setHeights(List.filled(512, height));
+        for (final slope in [-5.0, 5.0]) {
+          lights.setDirection(fixture.light, -slope, 0, -1);
+          await fixture.instance.setParameterFloat('shadowStrength', 0);
+          final clear = await fixture.render(0.5, heightScale: 0.1);
+          await fixture.instance.setParameterFloat('shadowStrength', 1);
+          final shadowed = await fixture.render(0.5, heightScale: 0.1);
+          _expectSameColor(shadowed, clear, 'height=$height, light slope=$slope');
+        }
+      }
+      await fixture.dispose();
+    }, viewportDimensions: (width: 33, height: 33));
+  });
 }
 
 void _expectSameColor(List<double> actual, List<double> expected, String reason) {
-  expect(expected[0], greaterThan(0.01), reason: 'surface must be visible');
+  expect(expected[0], greaterThan(0.01), reason: 'surface must be visible: $reason');
   for (var channel = 0; channel < 3; channel++) {
     expect(actual[channel], closeTo(expected[channel], 0.002), reason: reason);
   }
@@ -74,6 +161,7 @@ class _ParallaxFixture {
   final Texture height;
   final Texture normal;
   final TextureSampler sampler;
+  final ThermionEntity light;
 
   _ParallaxFixture(
     this.helper,
@@ -84,10 +172,14 @@ class _ParallaxFixture {
     this.height,
     this.normal,
     this.sampler,
+    this.light,
   );
 
   static Future<_ParallaxFixture> create(TestHelper helper, ThermionViewer viewer) async {
     final app = FilamentApp.instance!;
+    // Only explicit captures should drive this viewer. Background ticks share
+    // the renderer and can clear the swapchain between render and readPixels.
+    await app.renderManager.setRenderable(viewer.view, false);
     final material = await app.createMaterial(await loadResourceBytes('${helper.assetsDir}/parallax.filamat'));
     final instance = await material.createInstance();
     final sampler = await app.createTextureSampler(
@@ -113,12 +205,15 @@ class _ParallaxFixture {
     await instance.setParameterTexture('heightMap', height, sampler);
     await instance.setParameterTexture('normalMap', normal, sampler);
     await instance.setParameterFloat('normalStrength', 0);
+    await instance.setParameterFloat('shadowStrength', 1);
+    await instance.setParameterFloat('shadowSteps', 256);
+    await instance.setParameterFloat('shadowBias', 0.005);
     await instance.setParameterFloat('roughnessFactor', 1);
     await instance.setParameterFloat('metallicFactor', 0);
     await instance.setParameterFloat4('tintColor', 1, 1, 1, 1);
     await instance.setParameterInt('debugView', 0);
-    await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0, 0, -1), castShadows: false));
-    return _ParallaxFixture(helper, viewer, material, instance, albedo, height, normal, sampler);
+    final light = await viewer.addDirectLight(DirectLight.sun(direction: Vector3(0, 0, -1), castShadows: false));
+    return _ParallaxFixture(helper, viewer, material, instance, albedo, height, normal, sampler, light);
   }
 
   Future<void> setView(double slope) async {

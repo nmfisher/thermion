@@ -1,6 +1,7 @@
 material {
     name : ParallaxOcclusion,
     shadingModel : lit,
+    customSurfaceShading : true,
     requires : [
         uv0,
         tangents
@@ -39,6 +40,20 @@ material {
             name : normalStrength
         },
         {
+            type : float,
+            name : shadowStrength
+        },
+        {
+            type : float,
+            name : shadowSteps,
+            precision : high
+        },
+        {
+            type : float,
+            name : shadowBias,
+            precision : high
+        },
+        {
             type : float4,
             name : tintColor
         },
@@ -60,6 +75,89 @@ material {
 }
 
 fragment {
+    // Per-fragment intersection and derivatives, initialized by material()
+    // before Filament invokes surfaceShading() separately for each light.
+    highp vec2 pomShadowUV;
+    highp float pomShadowDepth;
+    highp vec2 pomShadowDx;
+    highp vec2 pomShadowDy;
+    highp vec2 pomTexelDensity;
+
+    highp float pomLightVisibility(highp vec3 worldLight) {
+        if (materialParams.heightScale <= 1e-6 ||
+            materialParams.shadowStrength <= 0.0 || materialParams.debugView != 0) {
+            return 1.0;
+        }
+
+        highp vec3 lightTS = normalize(transpose(getWorldTangentFrame()) * worldLight);
+        // A light below the geometric horizon cannot illuminate this opaque
+        // height field, even if the normal map tilts toward it.
+        if (lightTS.z <= 0.0) {
+            return 0.0;
+        }
+
+        // Bias is in normalized height units, independent of heightScale.
+        // Raise the ray origin slightly to avoid self-intersection from the
+        // finite precision of the height texture and the view-ray refinement.
+        highp float startDepth = max(pomShadowDepth - clamp(materialParams.shadowBias, 0.0, 0.1), 0.0);
+        if (startDepth <= 0.0) {
+            return 1.0;
+        }
+
+        // Follow the light-directed ray OUT of the volume, from the actual
+        // displaced hit to its top. Punctual lights are locally approximated
+        // by lightData.l and are assumed to lie outside the shallow volume.
+        highp vec2 rayOffset = lightTS.xy * (materialParams.heightScale * startDepth / max(lightTS.z, 1e-4));
+        highp float maxSteps = clamp(floor(materialParams.shadowSteps), 4.0, 512.0);
+        highp float steps = clamp(ceil(2.0 * length(rayOffset * pomTexelDensity)), 4.0, maxSteps);
+        for (int i = 0; i < 512; i++) {
+            if (float(i) >= steps) {
+                break;
+            }
+            highp float t = min(float(i + 1) / steps, 1.0);
+            highp float rayDepth = startDepth * (1.0 - t);
+            highp vec2 sampleUV = pomShadowUV + rayOffset * t;
+            highp float surfaceDepth = 1.0 - textureGrad(materialParams_heightMap, sampleUV, pomShadowDx, pomShadowDy).r;
+            if (rayDepth > surfaceDepth) {
+                return 0.0;
+            }
+        }
+        return 1.0;
+    }
+
+    highp vec3 surfaceShading(const MaterialInputs materialInputs,
+            const ShadingData shadingData, const LightData lightData) {
+        if (lightData.NdotL <= 0.0 || lightData.visibility <= 0.0 || lightData.attenuation <= 0.0) {
+            return vec3(0.0);
+        }
+        highp float shadow = mix(1.0, pomLightVisibility(lightData.l),
+                clamp(materialParams.shadowStrength, 0.0, 1.0));
+        if (shadow <= 0.0) {
+            return vec3(0.0);
+        }
+
+        // Isotropic GGX + correlated Smith visibility + Schlick Fresnel and
+        // Lambert diffuse, using only Filament's public custom-shading API.
+        // The hook replaces direct lighting; Filament still evaluates IBL.
+        highp vec3 n = getWorldNormalVector();
+        highp vec3 v = getWorldViewVector();
+        highp vec3 h = normalize(v + lightData.l);
+        highp float NoV = max(dot(n, v), 1e-4);
+        highp float NoL = lightData.NdotL;
+        highp float NoH = clamp(dot(n, h), 0.0, 1.0);
+        highp float LoH = clamp(dot(lightData.l, h), 0.0, 1.0);
+        highp float alpha2 = shadingData.roughness * shadingData.roughness;
+        highp float denominator = NoH * NoH * (alpha2 - 1.0) + 1.0;
+        highp float distribution = alpha2 / max(PI * denominator * denominator, 1e-12);
+        highp float smithV = NoL * sqrt(NoV * NoV * (1.0 - alpha2) + alpha2);
+        highp float smithL = NoV * sqrt(NoL * NoL * (1.0 - alpha2) + alpha2);
+        highp float visibility = 0.5 / max(smithV + smithL, 1e-6);
+        highp vec3 fresnel = shadingData.f0 + (1.0 - shadingData.f0) * pow5(1.0 - LoH);
+        highp vec3 brdf = shadingData.diffuseColor / PI + distribution * visibility * fresnel;
+        return brdf * lightData.colorIntensity.rgb *
+                (lightData.colorIntensity.w * lightData.attenuation * NoL * lightData.visibility * shadow);
+    }
+
     void material(inout MaterialInputs material) {
         // Filament defaults to mediump on mobile (half on Metal). Ray UVs
         // and depths need highp so small steps and refinement do not vanish.
@@ -84,6 +182,11 @@ fragment {
         highp float heightScale = max(materialParams.heightScale, 0.0);
         highp vec2 uvDx = dFdx(uv);
         highp vec2 uvDy = dFdy(uv);
+        pomShadowUV = uv;
+        pomShadowDepth = 0.0;
+        pomShadowDx = uvDx;
+        pomShadowDy = uvDy;
+        pomTexelDensity = vec2(0.0);
 
         if (heightScale > 1e-6 &&
            (materialParams.debugView == 0 ||
@@ -110,6 +213,7 @@ fragment {
             highp float c = dot(dy, dy);
             highp float majorSquared = 0.5 * (a + c + sqrt((a - c) * (a - c) + 4.0 * b * b));
             highp float minor = abs(dx.x * dy.y - dx.y * dy.x) / sqrt(max(majorSquared, 1e-12));
+            pomTexelDensity = texSize / max(minor, 1.0);
             highp float texelSteps = ceil(2.0 * length(rayOffset * texSize) / max(minor, 1.0));
             // maxSteps is a hard work budget. Very thin features can still
             // be missed when it is exhausted; refinement cannot recover them.
@@ -152,10 +256,12 @@ fragment {
                 // Interpolate the final bracket to hit constant heights and
                 // locally linear profiles without a midpoint bias.
                 highp float weight = clamp(-prevResidual / max(residual - prevResidual, 1e-8), 0.0, 1.0);
-                pomUV = uv + rayOffset * mix(beforeDepth, afterDepth, weight);
+                pomShadowDepth = mix(beforeDepth, afterDepth, weight);
+                pomUV = uv + rayOffset * pomShadowDepth;
             }
             uvOffset = length(pomUV - uv);
         }
+        pomShadowUV = pomUV;
 
         // Normal mapping in tangent space. The engine transforms this with
         // the same tangent frame returned above, so the parallaxed normal

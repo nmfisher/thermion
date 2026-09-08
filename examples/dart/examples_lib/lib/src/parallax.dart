@@ -14,7 +14,7 @@ const _brickHeightScale = 0.10;
 ///
 ///   left   - flat baseline         (no height, no normal)
 ///   middle - normal map only       (heightScale = 0)
-///   right  - full POM + normal map (heightScale > 0)
+///   right  - full POM + normal map + height-field self-shadowing
 ///
 /// All three textures (albedo/height/normal) are generated procedurally in
 /// Dart - no binary assets, deterministic goldens. Set `debugView` on an
@@ -118,6 +118,11 @@ Future<void> setupParallax(
     // Hard cap; the shader selects fewer steps from ray length and texture LOD.
     await instance.setParameterFloat('maxSteps', 512.0);
     await instance.setParameterFloat('normalStrength', normalStrength);
+    // Height-field visibility is evaluated for each direct light. The IBL
+    // remains as fill inside the grooves. Bias is in normalized height units.
+    await instance.setParameterFloat('shadowStrength', 1.0);
+    await instance.setParameterFloat('shadowSteps', 256.0);
+    await instance.setParameterFloat('shadowBias', 0.005);
     await instance.setParameterFloat4('tintColor', 1.0, 1.0, 1.0, 1.0);
     await instance.setParameterFloat('roughnessFactor', 0.75);
     await instance.setParameterFloat('metallicFactor', 0.0);
