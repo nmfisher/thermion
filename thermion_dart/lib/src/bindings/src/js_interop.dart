@@ -81,12 +81,7 @@ Future<void> withVoidCallback(Function(int, Pointer<NativeFunction<Void Function
 
   _completers[requestId] = completer;
 
-  try {
-    func.call(requestId, _voidCallbackPtr.cast());
-  } catch (_) {
-    _completers.remove(requestId);
-    rethrow;
-  }
+  func.call(requestId, _voidCallbackPtr.cast());
   while (!completer.isCompleted) {
     _NativeLibrary.instance._execute_queue();
     await Future.delayed(Duration(milliseconds: 1));
