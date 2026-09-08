@@ -31,6 +31,8 @@ swift-bindings:
 dart-bindings:
 	cd thermion_dart/ && dart pub get
 	cd thermion_dart/ && dart run ffigen --config ffigen/native.yaml
+	cd thermion_dart/ && dart tool/generate_matrix_typed_data.dart
+	cd thermion_dart/ && dart format lib/src/bindings/src/thermion_dart_ffi.g.dart
 	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml
 flutter-bindings:
 	cd thermion_flutter/thermion_flutter && flutter pub get && flutter pub run ffigen --config ffigen/swift.yaml

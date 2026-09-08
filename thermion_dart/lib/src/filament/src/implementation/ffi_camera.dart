@@ -22,7 +22,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   @override
   Future setProjectionMatrixWithCulling(Matrix4 projectionMatrix, double near, double far) async {
-    matrixBuffers.writeCameraProjection(camera, projectionMatrix.storage, near, far);
+    matrixBuffers.Camera_setCustomProjectionWithCullingFromBufferTypedData(camera, projectionMatrix.storage, near, far);
   }
 
   //
@@ -94,7 +94,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   Future<Matrix4> getModelMatrix() async {
     final result = Matrix4.zero();
-    matrixBuffers.readCameraModel(camera, result.storage);
+    matrixBuffers.Camera_getModelMatrixIntoTypedData(camera, result.storage);
     return result;
   }
 
@@ -104,7 +104,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   @override
   Future<Matrix4> getProjectionMatrix() async {
     final result = Matrix4.zero();
-    matrixBuffers.readCameraProjection(camera, result.storage);
+    matrixBuffers.Camera_getProjectionMatrixIntoTypedData(camera, result.storage);
     return result;
   }
 
@@ -114,7 +114,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   @override
   Future<Matrix4> getCullingProjectionMatrix() async {
     final result = Matrix4.zero();
-    matrixBuffers.readCameraCullingProjection(camera, result.storage);
+    matrixBuffers.Camera_getCullingProjectionMatrixIntoTypedData(camera, result.storage);
     return result;
   }
 
@@ -172,22 +172,22 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   @override
   Future<void> getModelMatrixInto(Matrix4 out) async {
-    matrixBuffers.readCameraModel(camera, out.storage);
+    matrixBuffers.Camera_getModelMatrixIntoTypedData(camera, out.storage);
   }
 
   @override
   Future<void> getViewMatrixInto(Matrix4 out) async {
-    matrixBuffers.readCameraView(camera, out.storage);
+    matrixBuffers.Camera_getViewMatrixIntoTypedData(camera, out.storage);
   }
 
   @override
   Future<void> getProjectionMatrixInto(Matrix4 out) async {
-    matrixBuffers.readCameraProjection(camera, out.storage);
+    matrixBuffers.Camera_getProjectionMatrixIntoTypedData(camera, out.storage);
   }
 
   @override
   Future<void> getCullingProjectionMatrixInto(Matrix4 out) async {
-    matrixBuffers.readCameraCullingProjection(camera, out.storage);
+    matrixBuffers.Camera_getCullingProjectionMatrixIntoTypedData(camera, out.storage);
   }
 
   @override
@@ -222,7 +222,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
 
   @override
   Future setModelMatrix(Matrix4 matrix) async {
-    matrixBuffers.writeCameraModel(camera, matrix.storage);
+    matrixBuffers.Camera_setModelMatrixFromBufferTypedData(camera, matrix.storage);
   }
 
   @override
@@ -319,7 +319,7 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   @override
   Future<Matrix4> getViewMatrix() async {
     final result = Matrix4.zero();
-    matrixBuffers.readCameraView(camera, result.storage);
+    matrixBuffers.Camera_getViewMatrixIntoTypedData(camera, result.storage);
     return result;
   }
 

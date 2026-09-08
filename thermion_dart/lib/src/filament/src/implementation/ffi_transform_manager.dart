@@ -75,23 +75,29 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
 
   @override
   void getLocalTransformInto(ThermionEntity entity, Matrix4 out) {
-    matrixBuffers.readLocalTransform(transformManager, entity, out.storage);
+    matrixBuffers.TransformManager_getLocalTransformIntoTypedData(transformManager, entity, out.storage);
   }
 
   @override
   void getWorldTransformInto(ThermionEntity entity, Matrix4 out) {
-    matrixBuffers.readWorldTransform(transformManager, entity, out.storage);
+    matrixBuffers.TransformManager_getWorldTransformIntoTypedData(transformManager, entity, out.storage);
   }
 
   @override
   void setTransform(ThermionEntity entity, Matrix4 transform) {
-    matrixBuffers.writeTransform(transformManager, entity, transform.storage);
+    matrixBuffers.TransformManager_setTransformFromBufferTypedData(transformManager, entity, transform.storage);
   }
 
   @override
   Future setTransformAsync(ThermionEntity entity, Matrix4 transform) async {
     await withVoidCallback((requestId, cb) {
-      matrixBuffers.queueTransform(transformManager, entity, transform.storage, requestId, cb);
+      matrixBuffers.TransformManager_setTransformFromBufferRenderThreadTypedData(
+        transformManager,
+        entity,
+        transform.storage,
+        requestId,
+        cb,
+      );
     });
   }
 

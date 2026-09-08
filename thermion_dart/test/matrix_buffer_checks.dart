@@ -93,7 +93,11 @@ Future<void> checkMatrixBuffers() async {
 
     var rejected = false;
     try {
-      buffers.writeTransform(tm.getNativeHandle() as Pointer<TTransformManager>, child, Float64List(15));
+      buffers.TransformManager_setTransformFromBufferTypedData(
+        tm.getNativeHandle() as Pointer<TTransformManager>,
+        child,
+        Float64List(15),
+      );
     } on ArgumentError {
       rejected = true;
     }

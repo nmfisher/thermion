@@ -17,14 +17,17 @@ snapshots. These methods keep the existing threading requirements; the buffer
 API does not serialize synchronous access to Filament or change its internal
 transform precision.
 
-The private native declarations and `.address` call sites deliberately live in
-one Dart library. Using `.address` with an imported generated declaration can
-leave its synthetic pointer trampoline unresolved under `package:test`.
+All native declarations come from ffigen. `make bindings` also runs
+`tool/generate_matrix_typed_data.dart`, which derives typed-data wrappers from
+those declarations for the C API's `matrix16` / `out16` buffer parameters.
+The generated wrappers keep `.address` calls in the native declarations' library
+to avoid unresolved pointer trampolines under `package:test`. There are no
+handwritten native signatures or duplicated asset/symbol annotations.
 
 From `thermion_dart`, run the native regressions and optional benchmark:
 
 ```sh
-dart test test/matrix_buffer_test.dart
+dart test test/matrix_typed_data_generator_test.dart test/matrix_buffer_test.dart
 dart run test/matrix_buffer_benchmark.dart
 flutter analyze lib test/matrix_buffer_checks.dart test/matrix_buffer_test.dart
 ```
