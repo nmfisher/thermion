@@ -111,25 +111,6 @@ transfer and injected initialization failures, exercise allocation failure and
 overlapping queued uses, verify dispatch/completion error cleanup, and repeat
 owner allocation/use/disposal 1,000 times. They run on native and web.
 
-The standalone C++ lifecycle test instruments allocations in the test executable,
-without production counters. It checks 100,000 create/view/edit/destroy cycles,
-allocation failure and null destruction. On macOS, with the downloaded Filament
-headers available, run from `thermion_dart`:
-
-```sh
-xcrun clang++ -std=c++17 -O1 -g -fsanitize=address,undefined \
-  -fno-omit-frame-pointer -Wall -Wextra -Werror -I native/include \
-  -I .dart_tool/thermion_dart/lib/v1.75.0/macos/release/include \
-  native/test/math/mat4_lifetime_test.cpp native/src/c_api/TMat4.cpp \
-  -o /tmp/mat4-lifetime-test
-/tmp/mat4-lifetime-test
-```
-
-This standalone test passed AddressSanitizer and UndefinedBehaviorSanitizer on
-macOS ARM64. The complete engine and Dart runtime were not sanitizer-instrumented,
-and these checks do not make escaped views safe after disposal or eliminate leaks
-from callers that never dispose their owners.
-
 ## Boundary microbenchmark
 
 Example measurements on Apple M2 Pro (native Dart JIT and Chrome/dart2js `-O2`),
