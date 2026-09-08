@@ -1,0 +1,35 @@
+output: 'lib/bindings.g.dart'
+name: MatrixBoundaryBenchmark
+description: Isolated matrix getter benchmark bindings.
+sort: true
+headers:
+  entry-points:
+    - 'matrix_getters.h'
+  include-directives:
+    - 'matrix_getters.h'
+ffi-native:
+  asset-id: package:matrix_ffi_boundary_benchmark/bindings.g.dart
+functions:
+  include:
+    - 'MatrixBenchmark_.*'
+  leaf:
+    include:
+      - '.*'
+structs:
+  include:
+    - 'double4x4'
+unions:
+  exclude:
+    - '.*'
+enums:
+  exclude:
+    - '.*'
+globals:
+  exclude:
+    - '.*'
+macros:
+  exclude:
+    - '.*'
+typedefs:
+  exclude:
+    - '.*'
