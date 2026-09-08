@@ -12,9 +12,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE double4x4 TransformManager_getWorldTransform(TTransformManager *tTransformManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void TransformManager_setTransform(TTransformManager *tTransformManager, EntityId entityId, double4x4 transform);
     // Native handles refer to constructed mat4 objects; no boundary copy.
-    EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNative(TTransformManager *manager, EntityId entity, TNativeMatrix4 *matrix);
-    EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformNativeInto(TTransformManager *manager, EntityId entity, TNativeMatrix4 *out);
-    EMSCRIPTEN_KEEPALIVE void TransformManager_getWorldTransformNativeInto(TTransformManager *manager, EntityId entity, TNativeMatrix4 *out);
+    EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNative(TTransformManager *manager, EntityId entity, TMat4 *matrix);
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformNativeInto(TTransformManager *manager, EntityId entity, TMat4 *out);
+    EMSCRIPTEN_KEEPALIVE void TransformManager_getWorldTransformNativeInto(TTransformManager *manager, EntityId entity, TMat4 *out);
     // Buffers contain 16 column-major doubles, borrowed only during the call.
     // Missing transform components produce a zero matrix, matching the value getters.
     EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformInto(TTransformManager *manager, EntityId entity, double *out16);

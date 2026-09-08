@@ -30,7 +30,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
         // Borrows the matrix pointer without copying its values.
         // The caller must keep it alive and unchanged until onComplete is called.
-        EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeRenderThread(TTransformManager *manager, EntityId entity, TNativeMatrix4 *matrix, uint32_t requestId, VoidCallback onComplete);
+        EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeRenderThread(TTransformManager *manager, EntityId entity, TMat4 *matrix, uint32_t requestId, VoidCallback onComplete);
         // Copies all 16 column-major doubles before returning. The caller may
         // immediately reuse/free matrix16 while the queued task is pending.
         EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferRenderThread(TTransformManager *manager, EntityId entity, const double *matrix16, uint32_t requestId, VoidCallback onComplete);

@@ -77,22 +77,22 @@ namespace thermion
         }
 
 
-        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixNative(TCamera *camera, TNativeMatrix4 *matrix) {
+        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixNative(TCamera *camera, TMat4 *matrix) {
             reinterpret_cast<Camera *>(camera)->setModelMatrix(*reinterpret_cast<const filament::math::mat4 *>(matrix));
         }
-        EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingNative(TCamera *camera, TNativeMatrix4 *matrix, double near, double far) {
+        EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingNative(TCamera *camera, TMat4 *matrix, double near, double far) {
             reinterpret_cast<Camera *>(camera)->setCustomProjection(*reinterpret_cast<const filament::math::mat4 *>(matrix), near, far);
         }
-        EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+        EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixNativeInto(TCamera *camera, TMat4 *out) {
             *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getModelMatrix();
         }
-        EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+        EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixNativeInto(TCamera *camera, TMat4 *out) {
             *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getViewMatrix();
         }
-        EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+        EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixNativeInto(TCamera *camera, TMat4 *out) {
             *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getProjectionMatrix();
         }
-        EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
+        EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixNativeInto(TCamera *camera, TMat4 *out) {
             *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getCullingProjectionMatrix();
         }
 

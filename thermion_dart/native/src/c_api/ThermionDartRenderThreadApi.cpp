@@ -2751,7 +2751,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeRenderThread(
-      TTransformManager *manager, EntityId entity, TNativeMatrix4 *matrix,
+      TTransformManager *manager, EntityId entity, TMat4 *matrix,
       uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(manager);

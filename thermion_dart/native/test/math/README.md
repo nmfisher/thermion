@@ -61,7 +61,7 @@ second argument overrides the Chrome executable (the default is macOS Chrome).
 of its component storage. Native Dart uses an external typed list; web uses a
 persistent view into WASM memory. Editing the view changes the same bytes that
 C++ reads, and native output getters update the same view. No boundary copy is
-needed by the `...Native` methods. The opaque C handle is the `mat4` pointer
+needed by the `...Native` methods. The opaque C handle `TMat4` is the `mat4` pointer
 itself, with no C++ wrapper object, smart pointer or reference count.
 
 This storage owner lives in `src/filament/src/implementation/native_matrix4.dart`.

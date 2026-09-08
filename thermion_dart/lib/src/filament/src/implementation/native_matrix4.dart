@@ -14,10 +14,10 @@ import '../../../bindings/native_matrix_storage.dart';
 /// owner wrapper was collected. Keep the owner until all views and queued uses
 /// are finished.
 class NativeMatrix4 {
-  Pointer<TNativeMatrix4>? _handle;
+  Pointer<TMat4>? _handle;
   final Matrix4 _matrix;
 
-  NativeMatrix4._(Pointer<TNativeMatrix4> handle, Float64List storage)
+  NativeMatrix4._(Pointer<TMat4> handle, Float64List storage)
     : _handle = handle,
       _matrix = Matrix4.fromFloat64List(storage);
 
@@ -43,7 +43,7 @@ class NativeMatrix4 {
     return _matrix;
   }
 
-  Pointer<TNativeMatrix4> getNativeHandle() => _handle ?? (throw StateError('NativeMatrix4 has been disposed'));
+  Pointer<TMat4> getNativeHandle() => _handle ?? (throw StateError('NativeMatrix4 has been disposed'));
 
   /// Deletes the native matrix. All queued uses must have completed first.
   /// All Dart views become invalid immediately. Repeated disposal is harmless.
@@ -51,6 +51,6 @@ class NativeMatrix4 {
     final handle = _handle;
     if (handle == null) return;
     _handle = null;
-    NativeMatrix4_destroy(handle);
+    Mat4_destroy(handle);
   }
 }

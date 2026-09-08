@@ -398,8 +398,8 @@ external double4x4 Camera_getCullingProjectionMatrix(ffi.Pointer<TCamera> camera
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
 external void Camera_getCullingProjectionMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
-external void Camera_getCullingProjectionMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TNativeMatrix4> out);
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>)>(isLeaf: true)
+external void Camera_getCullingProjectionMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TMat4> out);
 
 @ffi.Native<EntityId Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external int Camera_getEntity(ffi.Pointer<TCamera> camera);
@@ -422,8 +422,8 @@ external double4x4 Camera_getModelMatrix(ffi.Pointer<TCamera> camera);
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
 external void Camera_getModelMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
-external void Camera_getModelMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TNativeMatrix4> out);
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>)>(isLeaf: true)
+external void Camera_getModelMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TMat4> out);
 
 @ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double Camera_getNear(ffi.Pointer<TCamera> camera);
@@ -434,8 +434,8 @@ external double4x4 Camera_getProjectionMatrix(ffi.Pointer<TCamera> camera);
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
 external void Camera_getProjectionMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
-external void Camera_getProjectionMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TNativeMatrix4> out);
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>)>(isLeaf: true)
+external void Camera_getProjectionMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TMat4> out);
 
 @ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double Camera_getSensitivity(ffi.Pointer<TCamera> camera);
@@ -449,8 +449,8 @@ external double4x4 Camera_getViewMatrix(ffi.Pointer<TCamera> camera);
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
 external void Camera_getViewMatrixInto(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> out16);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
-external void Camera_getViewMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TNativeMatrix4> out);
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>)>(isLeaf: true)
+external void Camera_getViewMatrixNativeInto(ffi.Pointer<TCamera> camera, ffi.Pointer<TMat4> out);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double3, double3, double3)>(isLeaf: true)
 external void Camera_lookAt(ffi.Pointer<TCamera> camera, double3 eye, double3 focus, double3 up);
@@ -471,10 +471,10 @@ external void Camera_setCustomProjectionWithCullingFromBuffer(
   double far,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TNativeMatrix4>, ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>, ffi.Double, ffi.Double)>(isLeaf: true)
 external void Camera_setCustomProjectionWithCullingNative(
   ffi.Pointer<TCamera> camera,
-  ffi.Pointer<TNativeMatrix4> matrix,
+  ffi.Pointer<TMat4> matrix,
   double near,
   double far,
 );
@@ -500,8 +500,8 @@ external void Camera_setModelMatrix(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
 external void Camera_setModelMatrixFromBuffer(ffi.Pointer<TCamera> camera, ffi.Pointer<ffi.Double> matrix16);
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
-external void Camera_setModelMatrixNative(ffi.Pointer<TCamera> camera, ffi.Pointer<TNativeMatrix4> matrix);
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<TMat4>)>(isLeaf: true)
+external void Camera_setModelMatrixNative(ffi.Pointer<TCamera> camera, ffi.Pointer<TMat4> matrix);
 
 @ffi.Native<
   ffi.Void Function(
@@ -2032,6 +2032,15 @@ external void LightManager_setSunHaloFalloff(ffi.Pointer<TLightManager> tLightMa
 @ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(isLeaf: true)
 external void LightManager_setSunHaloSize(ffi.Pointer<TLightManager> tLightManager, int entity, double haloSize);
 
+@ffi.Native<ffi.Pointer<TMat4> Function()>(isLeaf: true)
+external ffi.Pointer<TMat4> Mat4_create();
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMat4>)>(isLeaf: true)
+external void Mat4_destroy(ffi.Pointer<TMat4> matrix);
+
+@ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<TMat4>)>(isLeaf: true)
+external ffi.Pointer<ffi.Double> Mat4_getData(ffi.Pointer<TMat4> matrix);
+
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external int MaterialInstance_getTransparencyMode(ffi.Pointer<TMaterialInstance> materialInstance);
 
@@ -2523,15 +2532,6 @@ external ffi.Pointer<ffi.Char> NameComponentManager_getName(
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   int entity,
 );
-
-@ffi.Native<ffi.Pointer<TNativeMatrix4> Function()>(isLeaf: true)
-external ffi.Pointer<TNativeMatrix4> NativeMatrix4_create();
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
-external void NativeMatrix4_destroy(ffi.Pointer<TNativeMatrix4> matrix);
-
-@ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
-external ffi.Pointer<ffi.Double> NativeMatrix4_getData(ffi.Pointer<TNativeMatrix4> matrix);
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMovementIntentExecutor>)>(isLeaf: true)
 external void Pipeline_registerMovementIntentExecutor(ffi.Pointer<TMovementIntentExecutor> executor);
@@ -4311,11 +4311,11 @@ external void TransformManager_getLocalTransformInto(
   ffi.Pointer<ffi.Double> out16,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TMat4>)>(isLeaf: true)
 external void TransformManager_getLocalTransformNativeInto(
   ffi.Pointer<TTransformManager> manager,
   int entity,
-  ffi.Pointer<TNativeMatrix4> out,
+  ffi.Pointer<TMat4> out,
 );
 
 @ffi.Native<EntityId Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
@@ -4331,11 +4331,11 @@ external void TransformManager_getWorldTransformInto(
   ffi.Pointer<ffi.Double> out16,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TMat4>)>(isLeaf: true)
 external void TransformManager_getWorldTransformNativeInto(
   ffi.Pointer<TTransformManager> manager,
   int entity,
-  ffi.Pointer<TNativeMatrix4> out,
+  ffi.Pointer<TMat4> out,
 );
 
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>, EntityId)>(isLeaf: true)
@@ -4400,20 +4400,20 @@ external void TransformManager_setTransformFromBufferRenderThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TNativeMatrix4>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TMat4>)>(isLeaf: true)
 external void TransformManager_setTransformNative(
   ffi.Pointer<TTransformManager> manager,
   int entity,
-  ffi.Pointer<TNativeMatrix4> matrix,
+  ffi.Pointer<TMat4> matrix,
 );
 
-@ffi.Native<
-  ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TNativeMatrix4>, ffi.Uint32, VoidCallback)
->(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, ffi.Pointer<TMat4>, ffi.Uint32, VoidCallback)>(
+  isLeaf: true,
+)
 external void TransformManager_setTransformNativeRenderThread(
   ffi.Pointer<TTransformManager> manager,
   int entity,
-  ffi.Pointer<TNativeMatrix4> matrix,
+  ffi.Pointer<TMat4> matrix,
   int requestId,
   VoidCallback onComplete,
 );
@@ -5310,6 +5310,8 @@ sealed class TLutFormat {
   static const FLOAT = 1;
 }
 
+final class TMat4 extends ffi.Opaque {}
+
 final class TMaterial extends ffi.Opaque {}
 
 final class TMaterialInstance extends ffi.Opaque {}
@@ -5390,8 +5392,6 @@ sealed class TMovementSpace {
 }
 
 final class TNameComponentManager extends ffi.Opaque {}
-
-final class TNativeMatrix4 extends ffi.Opaque {}
 
 /// ! Pixel Data Format
 sealed class TPixelDataFormat {
