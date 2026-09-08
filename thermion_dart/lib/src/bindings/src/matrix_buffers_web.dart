@@ -1,0 +1,60 @@
+import 'js_interop.dart';
+
+Float64List nativeMatrixStorage(Pointer<TMat4> owner) {
+  final data = Mat4_getData(owner);
+  final values = (Float64ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, data, 16) as JSFloat64Array).toDart;
+  return values;
+}
+
+// A scoped WASM buffer avoids per-element JS interop and restores the stack
+// synchronously, including for queue submissions. Native queue entry points
+// snapshot the input before returning; no stack address survives an await.
+void _withMatrix(Float64List data, void Function(Pointer<Float64>) call, {bool output = false}) {
+  assert(data.length == 16, 'Expected 16 doubles');
+  final marker = stackSave();
+  try {
+    final pointer = stackAlloc<Float64>(128);
+    final storage = (Float64ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, pointer, 16) as JSFloat64Array).toDart;
+    if (!output) storage.setRange(0, 16, data);
+    call(pointer);
+    if (output) data.setRange(0, 16, storage);
+  } finally {
+    stackRestore(marker);
+  }
+}
+
+void TransformManager_getLocalTransformIntoTypedData(Pointer<TTransformManager> manager, int entity, Float64List out) =>
+    _withMatrix(out, (ptr) => TransformManager_getLocalTransformInto(manager, entity, ptr), output: true);
+void TransformManager_getWorldTransformIntoTypedData(Pointer<TTransformManager> manager, int entity, Float64List out) =>
+    _withMatrix(out, (ptr) => TransformManager_getWorldTransformInto(manager, entity, ptr), output: true);
+void TransformManager_setTransformFromBufferTypedData(
+  Pointer<TTransformManager> manager,
+  int entity,
+  Float64List matrix,
+) => _withMatrix(matrix, (ptr) => TransformManager_setTransformFromBuffer(manager, entity, ptr));
+void TransformManager_setTransformFromBufferRenderThreadTypedData(
+  Pointer<TTransformManager> manager,
+  int entity,
+  Float64List matrix,
+  int requestId,
+  VoidCallback callback,
+) => _withMatrix(
+  matrix,
+  (ptr) => TransformManager_setTransformFromBufferRenderThread(manager, entity, ptr, requestId, callback),
+);
+void Camera_setModelMatrixFromBufferTypedData(Pointer<TCamera> camera, Float64List matrix) =>
+    _withMatrix(matrix, (ptr) => Camera_setModelMatrixFromBuffer(camera, ptr));
+void Camera_setCustomProjectionWithCullingFromBufferTypedData(
+  Pointer<TCamera> camera,
+  Float64List matrix,
+  double near,
+  double far,
+) => _withMatrix(matrix, (ptr) => Camera_setCustomProjectionWithCullingFromBuffer(camera, ptr, near, far));
+void Camera_getModelMatrixIntoTypedData(Pointer<TCamera> camera, Float64List out) =>
+    _withMatrix(out, (ptr) => Camera_getModelMatrixInto(camera, ptr), output: true);
+void Camera_getViewMatrixIntoTypedData(Pointer<TCamera> camera, Float64List out) =>
+    _withMatrix(out, (ptr) => Camera_getViewMatrixInto(camera, ptr), output: true);
+void Camera_getProjectionMatrixIntoTypedData(Pointer<TCamera> camera, Float64List out) =>
+    _withMatrix(out, (ptr) => Camera_getProjectionMatrixInto(camera, ptr), output: true);
+void Camera_getCullingProjectionMatrixIntoTypedData(Pointer<TCamera> camera, Float64List out) =>
+    _withMatrix(out, (ptr) => Camera_getCullingProjectionMatrixInto(camera, ptr), output: true);

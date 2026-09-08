@@ -225,17 +225,21 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external double _Camera_getAperture(Pointer<TCamera> camera);
   external double _Camera_getCullingFar(Pointer<TCamera> camera);
   external void _Camera_getCullingProjectionMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
+  external void _Camera_getCullingProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
   external EntityId _Camera_getEntity(Pointer<TCamera> camera);
   external double _Camera_getFocalLength(Pointer<TCamera> camera);
   external double _Camera_getFocusDistance(Pointer<TCamera> camera);
   external double _Camera_getFov(Pointer<TCamera> camera, bool horizontal);
   external void _Camera_getFrustum(Pointer<TCamera> camera, Pointer<Float64> out);
   external void _Camera_getModelMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
+  external void _Camera_getModelMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
   external double _Camera_getNear(Pointer<TCamera> camera);
   external void _Camera_getProjectionMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
+  external void _Camera_getProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
   external double _Camera_getSensitivity(Pointer<TCamera> camera);
   external double _Camera_getShutterSpeed(Pointer<TCamera> camera);
   external void _Camera_getViewMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
+  external void _Camera_getViewMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
   external void _Camera_lookAt(
     Pointer<TCamera> camera,
     Pointer<double3> eyePtr,
@@ -245,6 +249,18 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Camera_setCustomProjectionWithCulling(
     Pointer<TCamera> camera,
     Pointer<double4x4> projectionMatrixPtr,
+    double near,
+    double far,
+  );
+  external void _Camera_setCustomProjectionWithCullingFromBuffer(
+    Pointer<TCamera> camera,
+    Pointer<Float64> matrix16,
+    double near,
+    double far,
+  );
+  external void _Camera_setCustomProjectionWithCullingNative(
+    Pointer<TCamera> camera,
+    Pointer<TMat4> matrix,
     double near,
     double far,
   );
@@ -258,6 +274,8 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double focalLength,
   );
   external void _Camera_setModelMatrix(Pointer<TCamera> camera, Pointer<Float64> tModelMatrix);
+  external void _Camera_setModelMatrixFromBuffer(Pointer<TCamera> camera, Pointer<Float64> matrix16);
+  external void _Camera_setModelMatrixNative(Pointer<TCamera> camera, Pointer<TMat4> matrix);
   external void _Camera_setProjection(
     Pointer<TCamera> tCamera,
     int projection,
@@ -998,6 +1016,9 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     double haloFalloff,
   );
   external void _LightManager_setSunHaloSize(Pointer<TLightManager> tLightManager, EntityId entity, double haloSize);
+  external Pointer<TMat4> _Mat4_create();
+  external void _Mat4_destroy(Pointer<TMat4> matrix);
+  external Pointer<Float64> _Mat4_getData(Pointer<TMat4> matrix);
   external int _MaterialInstance_getTransparencyMode(Pointer<TMaterialInstance> materialInstance);
   external int _MaterialInstance_isStencilWriteEnabled(Pointer<TMaterialInstance> materialInstance);
   external void _MaterialInstance_setCullingMode(Pointer<TMaterialInstance> materialInstance, int culling);
@@ -2154,11 +2175,21 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
   );
+  external void _TransformManager_getLocalTransformInto(
+    Pointer<TTransformManager> manager,
+    EntityId entity,
+    Pointer<Float64> out16,
+  );
   external EntityId _TransformManager_getParent(Pointer<TTransformManager> tTransformManager, EntityId child);
   external void _TransformManager_getWorldTransform(
     Pointer<double4x4> double4x4_out,
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
+  );
+  external void _TransformManager_getWorldTransformInto(
+    Pointer<TTransformManager> manager,
+    EntityId entity,
+    Pointer<Float64> out16,
   );
   external int _TransformManager_hasComponent(Pointer<TTransformManager> tTransformManager, EntityId entityId);
   external void _TransformManager_openLocalTransformTransaction(Pointer<TTransformManager> tTransformManager);
@@ -2187,6 +2218,30 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
     Pointer<double4x4> transformPtr,
+  );
+  external void _TransformManager_setTransformFromBuffer(
+    Pointer<TTransformManager> manager,
+    EntityId entity,
+    Pointer<Float64> matrix16,
+  );
+  external void _TransformManager_setTransformFromBufferRenderThread(
+    Pointer<TTransformManager> manager,
+    EntityId entity,
+    Pointer<Float64> matrix16,
+    int requestId,
+    VoidCallback onComplete,
+  );
+  external void _TransformManager_setTransformNative(
+    Pointer<TTransformManager> manager,
+    EntityId entity,
+    Pointer<TMat4> matrix,
+  );
+  external void _TransformManager_setTransformNativeRenderThread(
+    Pointer<TTransformManager> manager,
+    EntityId entity,
+    Pointer<TMat4> matrix,
+    int requestId,
+    VoidCallback onComplete,
   );
   external void _TransformManager_setTransformRenderThread(
     Pointer<TTransformManager> tTransformManager,
@@ -3012,6 +3067,11 @@ double4x4 Camera_getCullingProjectionMatrix(Pointer<TCamera> camera) {
   return double4x4_out.toDart();
 }
 
+void Camera_getCullingProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16) {
+  final result = GeneratedBindings.instance._Camera_getCullingProjectionMatrixInto(camera.cast(), out16);
+  return result;
+}
+
 DartEntityId Camera_getEntity(Pointer<TCamera> camera) {
   final result = GeneratedBindings.instance._Camera_getEntity(camera.cast());
   return result;
@@ -3043,6 +3103,11 @@ double4x4 Camera_getModelMatrix(Pointer<TCamera> camera) {
   return double4x4_out.toDart();
 }
 
+void Camera_getModelMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16) {
+  final result = GeneratedBindings.instance._Camera_getModelMatrixInto(camera.cast(), out16);
+  return result;
+}
+
 double Camera_getNear(Pointer<TCamera> camera) {
   final result = GeneratedBindings.instance._Camera_getNear(camera.cast());
   return result;
@@ -3052,6 +3117,11 @@ double4x4 Camera_getProjectionMatrix(Pointer<TCamera> camera) {
   final double4x4_out = double4x4.stackAlloc();
   final result = GeneratedBindings.instance._Camera_getProjectionMatrix(double4x4_out.cast(), camera.cast());
   return double4x4_out.toDart();
+}
+
+void Camera_getProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16) {
+  final result = GeneratedBindings.instance._Camera_getProjectionMatrixInto(camera.cast(), out16);
+  return result;
 }
 
 double Camera_getSensitivity(Pointer<TCamera> camera) {
@@ -3068,6 +3138,11 @@ double4x4 Camera_getViewMatrix(Pointer<TCamera> camera) {
   final double4x4_out = double4x4.stackAlloc();
   final result = GeneratedBindings.instance._Camera_getViewMatrix(double4x4_out.cast(), camera.cast());
   return double4x4_out.toDart();
+}
+
+void Camera_getViewMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16) {
+  final result = GeneratedBindings.instance._Camera_getViewMatrixInto(camera.cast(), out16);
+  return result;
 }
 
 void Camera_lookAt(Pointer<TCamera> camera, double3 eye, double3 focus, double3 up) {
@@ -3094,6 +3169,36 @@ void Camera_setCustomProjectionWithCulling(
   return result;
 }
 
+void Camera_setCustomProjectionWithCullingFromBuffer(
+  Pointer<TCamera> camera,
+  Pointer<Float64> matrix16,
+  double near,
+  double far,
+) {
+  final result = GeneratedBindings.instance._Camera_setCustomProjectionWithCullingFromBuffer(
+    camera.cast(),
+    matrix16,
+    near,
+    far,
+  );
+  return result;
+}
+
+void Camera_setCustomProjectionWithCullingNative(
+  Pointer<TCamera> camera,
+  Pointer<TMat4> matrix,
+  double near,
+  double far,
+) {
+  final result = GeneratedBindings.instance._Camera_setCustomProjectionWithCullingNative(
+    camera.cast(),
+    matrix.cast(),
+    near,
+    far,
+  );
+  return result;
+}
+
 void Camera_setExposure(Pointer<TCamera> camera, double aperture, double shutterSpeed, double sensitivity) {
   final result = GeneratedBindings.instance._Camera_setExposure(camera.cast(), aperture, shutterSpeed, sensitivity);
   return result;
@@ -3111,6 +3216,16 @@ void Camera_setLensProjection(Pointer<TCamera> camera, double near, double far, 
 
 void Camera_setModelMatrix(Pointer<TCamera> camera, Pointer<Float64> tModelMatrix) {
   final result = GeneratedBindings.instance._Camera_setModelMatrix(camera.cast(), tModelMatrix);
+  return result;
+}
+
+void Camera_setModelMatrixFromBuffer(Pointer<TCamera> camera, Pointer<Float64> matrix16) {
+  final result = GeneratedBindings.instance._Camera_setModelMatrixFromBuffer(camera.cast(), matrix16);
+  return result;
+}
+
+void Camera_setModelMatrixNative(Pointer<TCamera> camera, Pointer<TMat4> matrix) {
+  final result = GeneratedBindings.instance._Camera_setModelMatrixNative(camera.cast(), matrix.cast());
   return result;
 }
 
@@ -5089,6 +5204,21 @@ void LightManager_setSunHaloFalloff(Pointer<TLightManager> tLightManager, DartEn
 void LightManager_setSunHaloSize(Pointer<TLightManager> tLightManager, DartEntityId entity, double haloSize) {
   final result = GeneratedBindings.instance._LightManager_setSunHaloSize(tLightManager.cast(), entity, haloSize);
   return result;
+}
+
+Pointer<TMat4> Mat4_create() {
+  final result = GeneratedBindings.instance._Mat4_create();
+  return Pointer<TMat4>(result);
+}
+
+void Mat4_destroy(Pointer<TMat4> matrix) {
+  final result = GeneratedBindings.instance._Mat4_destroy(matrix.cast());
+  return result;
+}
+
+Pointer<Float64> Mat4_getData(Pointer<TMat4> matrix) {
+  final result = GeneratedBindings.instance._Mat4_getData(matrix.cast());
+  return Pointer<Float64>(result);
 }
 
 int MaterialInstance_getTransparencyMode(Pointer<TMaterialInstance> materialInstance) {
@@ -8184,6 +8314,15 @@ double4x4 TransformManager_getLocalTransform(Pointer<TTransformManager> tTransfo
   return double4x4_out.toDart();
 }
 
+void TransformManager_getLocalTransformInto(
+  Pointer<TTransformManager> manager,
+  DartEntityId entity,
+  Pointer<Float64> out16,
+) {
+  final result = GeneratedBindings.instance._TransformManager_getLocalTransformInto(manager.cast(), entity, out16);
+  return result;
+}
+
 DartEntityId TransformManager_getParent(Pointer<TTransformManager> tTransformManager, DartEntityId child) {
   final result = GeneratedBindings.instance._TransformManager_getParent(tTransformManager.cast(), child);
   return result;
@@ -8197,6 +8336,15 @@ double4x4 TransformManager_getWorldTransform(Pointer<TTransformManager> tTransfo
     entityId,
   );
   return double4x4_out.toDart();
+}
+
+void TransformManager_getWorldTransformInto(
+  Pointer<TTransformManager> manager,
+  DartEntityId entity,
+  Pointer<Float64> out16,
+) {
+  final result = GeneratedBindings.instance._TransformManager_getWorldTransformInto(manager.cast(), entity, out16);
+  return result;
 }
 
 bool TransformManager_hasComponent(Pointer<TTransformManager> tTransformManager, DartEntityId entityId) {
@@ -8273,6 +8421,58 @@ void TransformManager_setTransform(
     tTransformManager.cast(),
     entityId,
     transformPtr.cast(),
+  );
+  return result;
+}
+
+void TransformManager_setTransformFromBuffer(
+  Pointer<TTransformManager> manager,
+  DartEntityId entity,
+  Pointer<Float64> matrix16,
+) {
+  final result = GeneratedBindings.instance._TransformManager_setTransformFromBuffer(manager.cast(), entity, matrix16);
+  return result;
+}
+
+void TransformManager_setTransformFromBufferRenderThread(
+  Pointer<TTransformManager> manager,
+  DartEntityId entity,
+  Pointer<Float64> matrix16,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._TransformManager_setTransformFromBufferRenderThread(
+    manager.cast(),
+    entity,
+    matrix16,
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
+  );
+  return result;
+}
+
+void TransformManager_setTransformNative(
+  Pointer<TTransformManager> manager,
+  DartEntityId entity,
+  Pointer<TMat4> matrix,
+) {
+  final result = GeneratedBindings.instance._TransformManager_setTransformNative(manager.cast(), entity, matrix.cast());
+  return result;
+}
+
+void TransformManager_setTransformNativeRenderThread(
+  Pointer<TTransformManager> manager,
+  DartEntityId entity,
+  Pointer<TMat4> matrix,
+  int requestId,
+  DartVoidCallback onComplete,
+) {
+  final result = GeneratedBindings.instance._TransformManager_setTransformNativeRenderThread(
+    manager.cast(),
+    entity,
+    matrix.cast(),
+    requestId,
+    onComplete as Pointer<NativeFunction<VoidCallbackFunction>>,
   );
   return result;
 }
@@ -10100,6 +10300,21 @@ sealed class TLutFormat {
   static const FLOAT = 1;
 }
 
+extension TMat4Ext on Pointer<TMat4> {
+  TMat4 toDart() {
+    return TMat4(this);
+  }
+}
+
+final class TMat4 extends Struct {
+  Pointer<TMat4> get address => super.address.cast();
+  TMat4(super.address);
+
+  static Pointer<TMat4> stackAlloc() {
+    return Pointer<TMat4>(NativeLibrary.instance.stackAlloc<TMat4>(0));
+  }
+}
+
 extension TMaterialExt on Pointer<TMaterial> {
   TMaterial toDart() {
     return TMaterial(this);
@@ -11693,6 +11908,9 @@ extension StructAllocator on Struct {
         return ptr.toDart() as T;
       case TLinearImage:
         final ptr = TLinearImage.stackAlloc();
+        return ptr.toDart() as T;
+      case TMat4:
+        final ptr = TMat4.stackAlloc();
         return ptr.toDart() as T;
       case TMaterial:
         final ptr = TMaterial.stackAlloc();
