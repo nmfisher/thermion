@@ -104,13 +104,13 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
     bindings.TransformManager_setTransformNative(transformManager, entity, transform.getNativeHandle());
   }
 
-  /// Borrows [transform] until completion; do not mutate or dispose it meanwhile.
+  /// Retains [transform] until completion. Do not access any escaped views meanwhile.
   Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) {
-    // Validate before registering a callback, so disposed inputs cannot leak it.
-    final handle = transform.getNativeHandle();
-    return withVoidCallback((id, cb) {
-      bindings.TransformManager_setTransformNativeRenderThread(transformManager, entity, handle, id, cb);
-    });
+    return transform.withQueuedUse(
+      (handle) => withVoidCallback((id, cb) {
+        bindings.TransformManager_setTransformNativeRenderThread(transformManager, entity, handle, id, cb);
+      }),
+    );
   }
 
   @override

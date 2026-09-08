@@ -4,6 +4,7 @@ import 'package:thermion_dart/src/filament/src/implementation/native_matrix4.dar
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/bindings/matrix_buffers.dart' as buffers;
 import 'package:thermion_dart/src/utils/src/matrix.dart';
+import 'native_matrix_lifetime_checks.dart' show rejectsStateError;
 
 void sameMatrix(Matrix4 actual, Matrix4 expected, String label, {double tolerance = 1e-6}) {
   for (var i = 0; i < 16; i++) {
@@ -161,6 +162,8 @@ Future<void> checkNativeMatrices() async {
       final submitted = NativeMatrix4.copy(Matrix4.translation(Vector3(i + 0.25, 2, 3)));
       submittedMatrices.add(submitted);
       pending.add(internalTm.setTransformNativeAsync(entities[i], submitted));
+      rejectsStateError(submitted.dispose);
+      rejectsStateError(() => submitted.matrix);
     }
     await Future.wait(pending);
     for (var i = 0; i < entities.length; i++) {

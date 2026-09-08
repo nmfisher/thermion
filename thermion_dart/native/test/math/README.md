@@ -82,9 +82,17 @@ allocation while an escaped view is still in use; forgetting to dispose leaks
 that allocation.
 
 Queued native setters borrow the raw `mat4` pointer. Internal callers must keep
-its allocation alive and its values unchanged until the returned Future completes,
-then may reuse or dispose it. There is no automatic retention and early disposal
-is invalid. Finish pending work before tearing down the render thread.
+its values unchanged until the returned Future completes, then may reuse or
+dispose it. The Dart owner is retained through completion and counts outstanding
+submissions: disposal and new requests for its mutable view throw while any use
+is pending. A completion or dispatch exception releases its use in `finally`.
+Previously returned views cannot be revoked; do not access them while queued or
+after disposal. Raw C callers remain responsible for their own pointer lifetimes.
+Finish pending work before tearing down the render thread.
+
+Allocation returns null on failure. The Dart factory releases the allocation if
+view creation or initialization throws, and transfers ownership only on success.
+The browser callback registry also removes entries when dispatch throws.
 
 The ordinary `setTransformAsync` still snapshots its input, including when given a
 shared matrix view. Use that path when immediate mutation is required.
@@ -98,6 +106,30 @@ They verify Dart writes observed by C++, camera precision, missing components,
 disposal checks, and caller-owned queued storage
 through completion, reuse and disposal after completion, and the ordinary setter's
 preserved snapshot semantics.
+
+Lifetime checks count 5,000 real allocations/frees across successful ownership
+transfer and injected initialization failures, exercise allocation failure and
+overlapping queued uses, verify dispatch/completion error cleanup, and repeat
+owner allocation/use/disposal 1,000 times. They run on native and web.
+
+The standalone C++ lifecycle test instruments allocations in the test executable,
+without production counters. It checks 100,000 create/view/edit/destroy cycles,
+allocation failure and null destruction. On macOS, with the downloaded Filament
+headers available, run from `thermion_dart`:
+
+```sh
+xcrun clang++ -std=c++17 -O1 -g -fsanitize=address,undefined \
+  -fno-omit-frame-pointer -Wall -Wextra -Werror -I native/include \
+  -I .dart_tool/thermion_dart/lib/v1.75.0/macos/release/include \
+  native/test/math/mat4_lifetime_test.cpp native/src/c_api/TMat4.cpp \
+  -o /tmp/mat4-lifetime-test
+/tmp/mat4-lifetime-test
+```
+
+This standalone test passed AddressSanitizer and UndefinedBehaviorSanitizer on
+macOS ARM64. The complete engine and Dart runtime were not sanitizer-instrumented,
+and these checks do not make escaped views safe after disposal or eliminate leaks
+from callers that never dispose their owners.
 
 ## Boundary microbenchmark
 

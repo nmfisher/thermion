@@ -2,6 +2,7 @@ import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart' show FilamentApp, Backend;
 import '../../../test/matrix_buffer_checks.dart';
+import '../../../test/native_matrix_lifetime_checks.dart';
 
 Future<void> main() async {
   try {
@@ -15,6 +16,7 @@ Future<void> main() async {
       ),
     );
     await checkMatrixBuffers();
+    await checkNativeMatrixLifetimes();
     await checkNativeMatrices();
     final benchmark = await benchmarkMatrixBuffers();
     await FilamentApp.instance!.destroy();
