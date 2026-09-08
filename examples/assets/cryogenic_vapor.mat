@@ -1,0 +1,42 @@
+material {
+    name : CryogenicVapor,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time }, { type : float, name : strength } ],
+    blending : transparent,
+    depthWrite : false,
+    culling : none
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs m) {
+        m.objectPos.xyz=getPosition().xyz;
+    }
+}
+fragment {
+    float hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33);
+        return fract((q.x+q.y)*q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p=variable_objectPos.xz;
+        float t=materialParams.time;
+        vec2 flow=p*3.0-vec2(t*.35,t*.22);
+        float n=noise(flow+noise(flow*1.7+t*.2)*1.4);
+        n=.65*n+.35*noise(flow*2.3-t*.4);
+        float shape=exp(-dot(p*vec2(.9,2.2),p*vec2(.9,2.2))*2.0);
+        // Reach zero before the card boundary; exponential tails alone
+        // leave visible rectangular cutoffs when several puffs overlap.
+        shape*=(1.0-smoothstep(.92,1.24,abs(p.x)))*
+               (1.0-smoothstep(.5,.79,abs(p.y)));
+        float alpha=shape*smoothstep(.2,.8,n)*materialParams.strength*.18;
+        // Analytic soft intersection with this scene's ground at y=0.
+        alpha*=smoothstep(.025,.3,getUserWorldPosition().y);
+        m.baseColor=vec4(vec3(.12,.23,.31)*alpha,alpha);
+    }
+}

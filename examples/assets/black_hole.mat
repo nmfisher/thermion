@@ -1,0 +1,80 @@
+material {
+    name : BlackHole,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time } ],
+    blending : opaque,
+    culling : none
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs m) {
+        m.objectPos.xyz = getPosition().xyz;
+    }
+}
+fragment {
+    float hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33);
+        return fract((q.x+q.y)*q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+    }
+    vec3 sky(vec2 p) {
+        float cloud=noise(p*1.6)+.5*noise(p*3.4)+.25*noise(p*7.1);
+        vec3 c=mix(vec3(.00008,.00012,.0003),vec3(.0006,.0003,.0015),cloud*.5);
+        for (int i=0;i<2;i++) {
+            float scale=45.0+float(i)*38.0;
+            vec2 cell=floor(p*scale),f=fract(p*scale);
+            vec2 center=vec2(hash(cell),hash(cell+17.0))*.7+.15;
+            float aa=max(length(fwidth(p))*scale,.025);
+            float star=exp(-pow(length(f-center)/aa,2.0));
+            c+=mix(vec3(.015,.035,.08),vec3(.1,.055,.02),hash(cell+31.0))*
+                star*step(.996,hash(cell+71.0));
+        }
+        return c;
+    }
+    vec3 disk(vec2 q,float t) {
+        float r=length(q), a=atan(q.y,q.x);
+        float mask=smoothstep(.77,.89,r)*(1.0-smoothstep(1.8,2.5,r));
+        // Periodic angular noise avoids a seam across atan's branch cut.
+        vec2 orbit=vec2(cos(a-t*.7/max(r,.7)),sin(a-t*.7/max(r,.7)));
+        float turbulence=noise(orbit*9.0+r*17.0);
+        float streaks=pow(.5+.5*sin(r*95.0+t*2.0+turbulence*12.0),2.0);
+        float wisps=.4+.6*noise(orbit*17.0+r*33.0);
+        float heat=exp(-(r-.85)*1.9);
+        float doppler=.55+.45*smoothstep(-1.0,1.0,q.x/max(r,.001));
+        vec3 c=mix(vec3(.55,.045,.004),vec3(.8,.47,.17),heat);
+        return c*mask*(.25+.75*streaks)*wisps*(.2+.8*heat)*doppler;
+    }
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p=variable_objectPos.xz;
+        p.y=-p.y;
+        float t=materialParams.time,r=length(p),aa=max(length(fwidth(p)),.001);
+        vec2 warped=p*(1.0+.28/max(r*r,.15));
+        vec3 c=sky(warped);
+        // Artistic lensing: a bent rear image of the disk wraps above and
+        // below the silhouette. This does not sample scene color/depth.
+        vec2 arc=vec2(p.x,p.y*1.06);
+        float ar=length(arc);
+        float upper=smoothstep(-.1,.2,p.y);
+        float lens=exp(-pow((ar-.85)/(.065+.05*upper),2.0));
+        float angle=atan(arc.y,arc.x);
+        float bands=.65+.35*sin(ar*210.0+sin(angle*13.0-t)*2.0);
+        c+=vec3(.7,.32,.075)*lens*bands*(.11+.3*upper);
+        vec3 back=disk(vec2(p.x,p.y/.25),t);
+        c+=back*smoothstep(-.025,.025,p.y);
+        float horizon=1.0-smoothstep(.695-aa,.695+aa,r);
+        c*=1.0-horizon;
+        float photon=exp(-pow((r-.714)/max(.008,aa),2.0));
+        c+=vec3(.75,.4,.16)*photon*.45;
+        // Foreground disk crosses in front of the otherwise black horizon.
+        c+=disk(vec2(p.x,p.y/.25),t)*(1.0-smoothstep(-.025,.025,p.y));
+        float halo=exp(-pow((r-.78)/.21,2.0))*(1.0-horizon);
+        c+=vec3(.13,.033,.007)*halo*.12;
+        m.baseColor=vec4(c,1.0);
+    }
+}

@@ -25,6 +25,10 @@ pubspec_overrides.yaml
 !examples/assets/electricity.filamat
 !examples/assets/invisibility_cloak.filamat
 !examples/assets/energy_weapon.filamat
+!examples/assets/thruster_exhaust.filamat
+!examples/assets/cryogenic_ground.filamat
+!examples/assets/cryogenic_vapor.filamat
+!examples/assets/black_hole.filamat
 **/*/*.g.dart
 **/*.BAK
 .wrangler

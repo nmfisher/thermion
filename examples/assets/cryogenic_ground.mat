@@ -1,0 +1,44 @@
+material {
+    name : CryogenicGround,
+    shadingModel : lit,
+    requires : [ position, tangents ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : radius }, { type : float, name : strength } ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs m) {
+        m.objectPos.xyz=getPosition().xyz;
+    }
+}
+fragment {
+    vec2 hash(highp vec2 p) {
+        highp vec3 q=fract(vec3(p.xyx)*vec3(.1031,.1030,.0973));
+        q+=dot(q,q.yzx+33.33); return fract((q.xx+q.yz)*q.zy);
+    }
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p=variable_objectPos.xz;
+        vec2 distorted=p+vec2(sin(p.y*9.0),sin(p.x*11.0))*.045;
+        vec2 x=distorted*5.7,cell=floor(x),f=fract(x);
+        float first=8.0,second=8.0;
+        for(int j=-1;j<=1;j++) for(int i=-1;i<=1;i++) {
+            vec2 g=vec2(float(i),float(j));
+            float d=length(g+hash(cell+g)-f);
+            if(d<first) { second=first; first=d; } else { second=min(second,d); }
+        }
+        float aa=max(length(fwidth(x)),.005);
+        float veins=1.0-smoothstep(.015,.035+aa,second-first);
+        float grain=mix(hash(floor(p*170.0)).x,.5,clamp(length(fwidth(p))*170.0,0.0,1.0));
+        float angle=atan(p.y,p.x);
+        float branch=pow(.5+.5*sin(angle*19.0+length(p)*3.5),18.0);
+        veins*=.2+.8*branch;
+        float edge=length(p)+(first-.4)*.2+sin(angle*13.0)*.09;
+        float frost=(1.0-smoothstep(materialParams.radius-.22,materialParams.radius,edge))*materialParams.strength;
+        float front=exp(-pow((edge-materialParams.radius+.1)/.085,2.0))*materialParams.strength;
+        vec3 ice=mix(vec3(.08,.2,.3),vec3(.48,.67,.76),first*.65+grain*.25);
+        m.baseColor=vec4(mix(vec3(.012,.02,.035),ice,frost),1.0);
+        m.roughness=mix(.75,.38+grain*.3,frost);
+        m.metallic=0.05;
+        m.emissive=vec4(vec3(.025,.18,.32)*(veins*frost*.12+front*.06),0.0);
+    }
+}

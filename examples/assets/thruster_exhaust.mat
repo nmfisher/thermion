@@ -1,0 +1,85 @@
+material {
+    name : ThrusterExhaust,
+    shadingModel : unlit,
+    requires : [ position ],
+    variables : [ objectPos ],
+    parameters : [ { type : float, name : time }, { type : float, name : throttle } ],
+    blending : add,
+    depthWrite : false,
+    culling : none
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs m) {
+        m.objectPos.xyz = getPosition().xyz;
+    }
+}
+fragment {
+    float hash(highp vec2 p) {
+        highp vec3 q = fract(vec3(p.xyx) * .1031);
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.x + q.y) * q.z);
+    }
+    float noise(vec2 p) {
+        vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);
+    }
+    void material(inout MaterialInputs m) {
+        prepareMaterial(m);
+        vec2 p = variable_objectPos.xz;
+        float t = materialParams.time, power = clamp(materialParams.throttle,0.0,1.0);
+        float x = p.x + 1.45;
+        float extent = 1.55 + power*2.0;
+        float u = clamp(x/extent,0.0,1.0);
+        float aa = max(length(fwidth(p)),.001);
+        // Longitudinally stretched noise convects away from the nozzle.
+        // The axis stays attached; turbulence builds in the outer shear layer.
+        vec2 flow=vec2(x*3.4-t*8.0,p.y*19.0);
+        float n=noise(flow);
+        float fine=noise(flow*2.13+vec2(-t*2.0,n*2.0));
+        float eddies=.65*n+.35*fine;
+        float bend=u*u*(.035*sin(x*9.0-t*9.0)+.02*sin(x*17.0-t*13.0));
+        float y=p.y-bend;
+        float taper=1.0-smoothstep(.48,1.0,u);
+        float envelope=(.23+.025*sin(x*7.0-t*5.0)*u)*mix(1.0,.35,u*u);
+        envelope+=(eddies-.5)*(.018+.12*u);
+        float body=1.0-smoothstep(envelope*.65,envelope+aa*2.0,abs(y));
+        float gate=smoothstep(-.015,.015,x)*(1.0-smoothstep(.78,1.0,u))*power;
+
+        // Projected conical shock sheets, with a finite-width interior.
+        // Analytic column thickness avoids the old depth-sample spikes.
+        float spacing=.6+.18*power;
+        float phase=fract(x/spacing);
+        float cone=abs(phase*2.0-1.0);
+        float shockRadius=(.055+.19*cone)*mix(1.0,.58,u);
+        shockRadius=mix(.275,shockRadius,smoothstep(0.0,.17,x));
+        float column=sqrt(max(0.0,1.0-pow(y/max(shockRadius,.01),2.0)));
+        float sheet=exp(-pow((abs(y)-shockRadius)/max(.012,aa*1.1),2.0));
+        float shockFade=exp(-x*.55)*taper;
+        float compression=exp(-pow((phase-.5)/.12,2.0))*
+                          exp(-pow(y/(.052+.018*u),4.0))*shockFade;
+        float throat=exp(-x*6.0)*exp(-pow(y/.23,6.0));
+        float inner=exp(-pow(y/(.1+.035*u),4.0))*exp(-x*.6);
+        vec3 color=vec3(.025,.11,.58)*body*(.3+.7*eddies)*.22;
+        color+=vec3(.055,.23,.75)*column*shockFade*.16;
+        color+=vec3(.12,.42,1.0)*sheet*shockFade*(.5+.5*fine)*.045;
+        color+=vec3(.55,.76,1.0)*(compression*.17+throat*.22);
+        color+=vec3(.13,.33,.85)*inner*.12;
+
+        // Broken, fast ribbons soften the regularity of the shock train.
+        // Filaments vanish at both ends, so no particles pop at a wrap.
+        for(int i=0;i<6;i++) {
+            float s=float(i), signY=mod(s,2.0)*2.0-1.0;
+            float offset=signY*(.12+s*.018)*mix(1.0,.45,u);
+            offset+=sin(x*(8.0+s*.8)-t*(9.0+s*.4)+s)*(.009+.025*u);
+            float strand=exp(-pow((y-offset)/max(.0035,aa*.7),2.0));
+            float broken=smoothstep(.34,.72,noise(vec2(x*6.0-t*12.0,s*17.0)));
+            color+=mix(vec3(.045,.2,.7),vec3(.28,.09,.36),u)*
+                strand*broken*smoothstep(.0,.2,x)*taper*.07;
+        }
+        // The dissipating tail is colored gas, never a second bright bulb.
+        float tail=smoothstep(.35,.7,u)*body*pow(eddies,2.0);
+        color+=vec3(.2,.055,.19)*tail*.09;
+        m.baseColor = vec4(color*gate,1.0);
+    }
+}
