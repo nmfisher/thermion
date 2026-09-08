@@ -143,6 +143,52 @@ void main() async {
       await fixture.dispose();
     }, viewportDimensions: (width: 33, height: 33));
   });
+
+  test('baked AO affects environment light, preserves direct light, and supports strength', () async {
+    await helper.withViewer((viewer) async {
+      final fixture = await _ParallaxFixture.create(helper, viewer);
+      await fixture.setView(0);
+      await fixture.setHeights(List.filled(512, 128), ambientVisibility: List.filled(512, 64));
+      final direct = await fixture.render(0.5, heightScale: 0.1);
+      await fixture.instance.setParameterFloat('aoStrength', 1);
+      _expectSameColor(await fixture.render(0.5, heightScale: 0.1), direct, 'direct light unchanged');
+
+      FilamentApp.instance!.lightManager.setIntensity(fixture.light, 0);
+      await viewer.loadIbl('file://${helper.assetsDir}/default_env_ibl.ktx', intensity: 30000);
+      final occluded = await fixture.render(0.5, heightScale: 0.1);
+      await fixture.instance.setParameterFloat('aoStrength', 0.5);
+      final partial = await fixture.render(0.5, heightScale: 0.1);
+      await fixture.instance.setParameterFloat('aoStrength', 0);
+      final clear = await fixture.render(0.5, heightScale: 0.1);
+      expect(clear[0], greaterThan(0.01));
+      expect(occluded[0], lessThan(clear[0] * 0.5));
+      expect(partial[0], greaterThan(occluded[0]));
+      expect(partial[0], lessThan(clear[0]));
+      await fixture.instance.setParameterFloat('aoStrength', 1);
+      _expectSameColor(await fixture.render(0.5), clear, 'zero displacement disables baked AO');
+      await fixture.dispose();
+    }, viewportDimensions: (width: 33, height: 33));
+  });
+
+  test('baked AO follows the displaced UV across a texture boundary', () async {
+    await helper.withViewer((viewer) async {
+      final fixture = await _ParallaxFixture.create(helper, viewer);
+      await fixture.setView(0.4);
+      await fixture.setHeights(List.filled(512, 128), ambientVisibility: List.filled(512, 255)..fillRange(0, 256, 64));
+      await fixture.instance.setParameterFloat('aoStrength', 1);
+      FilamentApp.instance!.lightManager.setIntensity(fixture.light, 0);
+      await viewer.loadIbl('file://${helper.assetsDir}/default_env_ibl.ktx', intensity: 30000);
+      // The view ray shifts 0.51 to ~0.4901, crossing into the dark AO half.
+      // Green albedo is constant across U, making this an AO-only comparison.
+      final crossing = await fixture.render(0.51, heightScale: 0.1);
+      final dark = await fixture.render(0.48, heightScale: 0.1);
+      final light = await fixture.render(0.55, heightScale: 0.1);
+      expect(light[1], greaterThan(0.01));
+      expect(crossing[1], closeTo(dark[1], 0.002));
+      expect(crossing[1], lessThan(light[1] * 0.5));
+      await fixture.dispose();
+    }, viewportDimensions: (width: 33, height: 33));
+  });
 }
 
 void _expectSameColor(List<double> actual, List<double> expected, String reason) {
@@ -208,6 +254,7 @@ class _ParallaxFixture {
     await instance.setParameterFloat('shadowStrength', 1);
     await instance.setParameterFloat('shadowSteps', 256);
     await instance.setParameterFloat('shadowBias', 0.005);
+    await instance.setParameterFloat('aoStrength', 0);
     await instance.setParameterFloat('roughnessFactor', 1);
     await instance.setParameterFloat('metallicFactor', 0);
     await instance.setParameterFloat4('tintColor', 1, 1, 1, 1);
@@ -224,10 +271,10 @@ class _ParallaxFixture {
     await camera.setProjection(Projection.Orthographic, -0.0001, 0.0001, -0.0001, 0.0001, 0.1, 100);
   }
 
-  Future<void> setHeights(List<int> values) async {
+  Future<void> setHeights(List<int> values, {List<int>? ambientVisibility}) async {
     final pixels = Uint8List(values.length * 4);
     for (var i = 0; i < values.length; i++) {
-      pixels.setRange(i * 4, i * 4 + 4, [values[i], 0, 0, 255]);
+      pixels.setRange(i * 4, i * 4 + 4, [values[i], ambientVisibility?[i] ?? 255, 0, 255]);
     }
     await height.setImage(0, pixels, values.length, 1, PixelDataFormat.RGBA, PixelDataType.UBYTE);
   }

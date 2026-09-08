@@ -1,0 +1,163 @@
+material {
+    name : InteriorMapping,
+    shadingModel : unlit,
+    requires : [ uv0, tangents ],
+    parameters : [
+        { type : float2, name : roomGrid, precision : high },
+        { type : float3, name : roomSize, precision : high },
+        { type : float, name : parallaxStrength, precision : high },
+        { type : float, name : frameWidth },
+        { type : float, name : interiorBrightness },
+        { type : samplerCubemap, name : reflectionMap, precision : high },
+        { type : float, name : glassStrength },
+        { type : float, name : glassReflectance },
+        { type : float3, name : glassTint },
+        { type : float, name : reflectionBrightness },
+        { type : int, name : debugView }
+    ],
+    culling : back,
+    depthWrite : true
+}
+
+fragment {
+    // Analytic interior mapping: one independent room per UV cell. Room sizes
+    // are in world tangent units; the facade's UV density must match roomGrid
+    // and roomSize.xy. This opaque facade keeps its actual depth/silhouette.
+    // Interior lighting is procedural, not evaluated by scene lights.
+
+    float rectangle(highp vec2 p, vec2 lo, vec2 hi, highp vec2 aa) {
+        vec2 mask = smoothstep(lo - aa, lo + aa, p) *
+                (1.0 - smoothstep(hi - aa, hi + aa, p));
+        return mask.x * mask.y;
+    }
+
+    void material(inout MaterialInputs material) {
+        // Request the full tangent frame even though the room lighting is
+        // unlit. Tangent vertex attributes alone do not enable its calculation.
+        material.normal = vec3(0.0, 0.0, 1.0);
+        prepareMaterial(material);
+        // Filament's default texture coordinates / bitangent point V down.
+        // Our procedural rooms use Y up (floor=0, ceiling=1), so convert both
+        // the UV origin and view direction into that room convention.
+        highp vec2 roomUV = vec2(getUV0().x, 1.0 - getUV0().y);
+        highp vec2 gridUV = roomUV * max(materialParams.roomGrid, vec2(1.0));
+        highp vec2 cell = floor(gridUV);
+        highp vec2 uv = fract(gridUV);
+        highp vec2 aa = max(fwidth(gridUV), vec2(1e-4));
+        highp vec3 roomSize = max(materialParams.roomSize, vec3(1e-4));
+        highp vec3 eye = normalize(transpose(getWorldTangentFrame()) * getWorldViewVector());
+        eye.y = -eye.y;
+        highp vec3 origin = vec3(uv * roomSize.xy, 0.0);
+        // +Z points INTO the virtual room; the tangent-frame +Z faces outside.
+        highp vec3 ray = vec3(-eye.xy * clamp(materialParams.parallaxStrength, 0.0, 1.0),
+                max(eye.z, 1e-6));
+
+        // Exit distances from a point on the front face of an axis-aligned
+        // box. Explicit parallel cases avoid 0*infinity / NaNs head-on.
+        highp float tx = 1e20;
+        highp float ty = 1e20;
+        if (abs(ray.x) > 1e-6) {
+            tx = ((ray.x > 0.0 ? roomSize.x : 0.0) - origin.x) / ray.x;
+        }
+        if (abs(ray.y) > 1e-6) {
+            ty = ((ray.y > 0.0 ? roomSize.y : 0.0) - origin.y) / ray.y;
+        }
+        highp float tz = roomSize.z / ray.z;
+        highp float distance = min(tz, min(tx, ty));
+        highp vec3 hit = clamp((origin + distance * ray) / roomSize, 0.0, 1.0);
+
+        if (materialParams.debugView == 1) {
+            // Normalized room hit position, useful for analytic GPU checks.
+            material.baseColor = vec4(hit, 1.0);
+            return;
+        }
+
+        highp float variation = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+        vec3 wall = mix(vec3(0.48, 0.34, 0.23), vec3(0.19, 0.34, 0.35), step(0.5, variation));
+        vec3 color;
+        // Derivatives are evaluated before any face-dependent branch.
+        highp vec3 hitAA = max(fwidth(hit), vec3(1e-4));
+        if (tz <= tx && tz <= ty) {
+            color = wall * 0.80;
+            // Framed abstract artwork on the rear wall.
+            float frame = rectangle(hit.xy, vec2(0.20, 0.48), vec2(0.80, 0.86), hitAA.xy);
+            float art = rectangle(hit.xy, vec2(0.22, 0.50), vec2(0.78, 0.84), hitAA.xy);
+            vec3 paint = mix(vec3(0.12, 0.30, 0.34), vec3(0.85, 0.52, 0.17),
+                    smoothstep(0.48, 0.52, hit.x + hit.y * 0.25 + variation * 0.12));
+            color = mix(color, vec3(0.06, 0.045, 0.025), frame);
+            color = mix(color, paint, art);
+        } else if (tx < ty) {
+            // Side walls: subtle vertical wallpaper and a darker back corner.
+            float stripe = smoothstep(0.43, 0.5, abs(fract(hit.z * 8.0) - 0.5));
+            color = wall * (0.72 + 0.045 * stripe) * (0.78 + 0.22 * (1.0 - hit.z));
+        } else if (ray.y < 0.0) {
+            // Wood floor, expressed in room coordinates so it has perspective.
+            highp vec2 planks = hit.xz * vec2(7.0, 10.0);
+            highp vec2 plankAA = hitAA.xz * vec2(7.0, 10.0);
+            float plank = rectangle(fract(planks), vec2(0.025), vec2(0.975), plankAA);
+            float tone = 0.85 + 0.15 * sin(floor(planks.x) * 9.0 + floor(planks.y) * 3.0);
+            color = mix(vec3(0.055, 0.035, 0.02), vec3(0.27, 0.15, 0.065) * tone, plank);
+            float rug = rectangle(hit.xz, vec2(0.13, 0.22), vec2(0.87, 0.72), hitAA.xz);
+            color = mix(color, vec3(0.11, 0.19, 0.21), rug);
+        } else {
+            color = vec3(0.52, 0.48, 0.38);
+            float fixture = rectangle(hit.xz, vec2(0.30, 0.35), vec2(0.70, 0.60), hitAA.xz);
+            color = mix(color, vec3(1.0, 0.87, 0.60), fixture);
+        }
+        if ((tz <= tx && tz <= ty) || tx < min(ty, tz)) {
+            // Baseboard and soft floor contact shading on vertical faces.
+            color *= 0.72 + 0.28 * smoothstep(0.0, 0.16, hit.y);
+            color = mix(color, vec3(0.12, 0.09, 0.06), 1.0 - smoothstep(0.035, 0.045, hit.y));
+        }
+
+        // A cutout furniture plane inside the box, clipped against the first
+        // wall intersection. Its empty pixels reveal the room behind it.
+        highp float furnitureDistance = roomSize.z * 0.62 / ray.z;
+        highp vec2 furnitureUV = (origin.xy + furnitureDistance * ray.xy) / roomSize.xy;
+        highp vec2 furnitureAA = max(fwidth(furnitureUV), vec2(1e-4));
+        if (furnitureDistance < distance) {
+            float sofa = rectangle(furnitureUV, vec2(0.17, 0.10), vec2(0.72, 0.36), furnitureAA);
+            float seat = rectangle(furnitureUV, vec2(0.20, 0.14), vec2(0.69, 0.22), furnitureAA);
+            float legs = rectangle(furnitureUV, vec2(0.20, 0.045), vec2(0.23, 0.12), furnitureAA) +
+                    rectangle(furnitureUV, vec2(0.66, 0.045), vec2(0.69, 0.12), furnitureAA);
+            vec3 fabric = mix(vec3(0.44, 0.13, 0.07), vec3(0.12, 0.25, 0.29), step(0.5, variation));
+            color = mix(color, vec3(0.055, 0.035, 0.018), clamp(legs, 0.0, 1.0));
+            color = mix(color, fabric, sofa);
+            color = mix(color, fabric * 0.68, seat);
+            float stem = rectangle(furnitureUV, vec2(0.82, 0.05), vec2(0.835, 0.60), furnitureAA);
+            float shade = rectangle(furnitureUV, vec2(0.75, 0.53), vec2(0.90, 0.68), furnitureAA);
+            color = mix(color, vec3(0.07, 0.055, 0.025), stem);
+            color = mix(color, vec3(0.95, 0.70, 0.33), shade);
+        }
+        color *= max(materialParams.interiorBrightness, 0.0) * (0.8 + 0.2 * variation);
+
+        // A smooth glass interface on the actual facade plane. Reflect the
+        // WORLD view direction, so the environment stays fixed as the facade
+        // rotates. Do not use the virtual room hit or its Y-up convention.
+        if (materialParams.glassStrength > 0.0) {
+            highp vec3 view = normalize(getWorldViewVector());
+            highp vec3 normal = normalize(getWorldGeometricNormalVector());
+            highp vec3 reflection = reflect(-view, normal);
+            float NoV = clamp(dot(normal, view), 0.0, 1.0);
+            float f0 = clamp(materialParams.glassReflectance, 0.0, 1.0);
+            float fresnel = f0 + (1.0 - f0) * pow5(1.0 - NoV);
+            // Smooth glass uses the sharp base level of the environment.
+            // Explicit LOD avoids implicit derivatives in divergent shading.
+            vec3 environment = textureLod(materialParams_reflectionMap, reflection, 0.0).rgb *
+                    max(materialParams.reflectionBrightness, 0.0);
+            vec3 throughGlass = color * clamp(materialParams.glassTint, 0.0, 1.0);
+            vec3 glass = throughGlass * (1.0 - fresnel) + environment * fresnel;
+            color = mix(color, glass, clamp(materialParams.glassStrength, 0.0, 1.0));
+        }
+
+        // Window opening and mullion stay fixed on the actual facade plane.
+        float border = clamp(materialParams.frameWidth, 0.0, 0.4);
+        float opening = rectangle(uv, vec2(border), vec2(1.0 - border), aa);
+        float outerTrim = rectangle(uv, vec2(max(border - 0.025, 0.0)),
+                vec2(1.0 - max(border - 0.025, 0.0)), aa);
+        vec3 facade = mix(vec3(0.055, 0.085, 0.10), vec3(0.32, 0.35, 0.34), outerTrim);
+        float mullion = 1.0 - smoothstep(0.006, 0.006 + aa.x, abs(uv.x - 0.5));
+        color = mix(color, vec3(0.08, 0.105, 0.11), mullion);
+        material.baseColor = vec4(mix(facade, color, opening), 1.0);
+    }
+}

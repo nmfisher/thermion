@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:thermion_dart/thermion_dart.dart';
 
+import 'parallax_ambient_occlusion.dart';
+
 // Displacement depth in UV units for the unit-square walls. Normal-map slopes
 // and POM must use the same reference depth.
 const _brickHeightScale = 0.10;
@@ -14,15 +16,17 @@ const _brickHeightScale = 0.10;
 ///
 ///   left   - flat baseline         (no height, no normal)
 ///   middle - normal map only       (heightScale = 0)
-///   right  - full POM + normal map + height-field self-shadowing
+///   right  - full POM + normal map + self-shadowing + baked ambient occlusion
 ///
 /// All three textures (albedo/height/normal) are generated procedurally in
 /// Dart - no binary assets, deterministic goldens. Set `debugView` on an
 /// instance for shader introspection (1=height, 2=|uv offset|, 3=ts view,
-/// 5=signed UV slide).
+/// 4=ambient visibility, 5=signed UV slide). [ambientOcclusionStrength] controls
+/// the right wall's baked occlusion (0 disables it, 1 applies the full bake).
 Future<void> setupParallax(
   ThermionViewer viewer, {
   required String assetsDir,
+  double ambientOcclusionStrength = 1.0,
 }) async {
   final app = FilamentApp.instance!;
 
@@ -123,6 +127,8 @@ Future<void> setupParallax(
     await instance.setParameterFloat('shadowStrength', 1.0);
     await instance.setParameterFloat('shadowSteps', 256.0);
     await instance.setParameterFloat('shadowBias', 0.005);
+    await instance.setParameterFloat(
+        'aoStrength', heightScale > 0 ? ambientOcclusionStrength : 0.0);
     await instance.setParameterFloat4('tintColor', 1.0, 1.0, 1.0, 1.0);
     await instance.setParameterFloat('roughnessFactor', 0.75);
     await instance.setParameterFloat('metallicFactor', 0.0);
@@ -221,15 +227,21 @@ class _BrickTextures {
     height = Uint8List(size * size * 4);
     albedo = Uint8List(size * size * 4);
     normal = Uint8List(size * size * 4);
+    final ambientVisibility = bakeHeightFieldAmbientOcclusion(
+      _heights,
+      size: size,
+      heightScale: heightScale,
+    );
 
     for (var y = 0; y < size; y++) {
       for (var x = 0; x < size; x++) {
         final i = y * size + x;
         final h = _heights[i];
 
-        // height in R (redundant RGBA for a single, simple upload path)
+        // Height in R, baked ambient visibility in G. Both use linear data
+        // and the same displaced UVs / mip chain. Re-bake if depth changes.
         height[i * 4 + 0] = _toByte(h);
-        height[i * 4 + 1] = _toByte(h);
+        height[i * 4 + 1] = _toByte(ambientVisibility[i]);
         height[i * 4 + 2] = _toByte(h);
         height[i * 4 + 3] = 255;
 

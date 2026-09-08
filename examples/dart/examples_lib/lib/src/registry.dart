@@ -8,6 +8,7 @@ import 'headless_capture.dart';
 import 'highlight_effects.dart';
 import 'input_handlers.dart';
 import 'instancing.dart';
+import 'interior_mapping.dart';
 import 'materials_and_lighting.dart';
 import 'materials_pbr.dart';
 import 'morph_targets.dart';
@@ -49,6 +50,7 @@ final Map<String, ExampleSetup> registry = {
   'highlight_effects': setupHighlightEffects,
   'input_handlers': setupInputHandlers,
   'instancing': setupInstancing,
+  'interior_mapping': setupInteriorMapping,
   'lighting_setup': setupLightingSetup,
   'load_gltf': setupLoadGltf,
   'load_via_assimp': setupLoadViaAssimp,
@@ -74,4 +76,5 @@ final Map<String, ExampleSetup> galleryScenes = {
   'materials_and_lighting': setupMaterialsAndLighting,
   'animation': setupAnimation,
   'effects': setupEffects,
+  'interior_mapping': setupInteriorMapping,
 };

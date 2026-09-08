@@ -41,7 +41,7 @@ MATERIAL_DIR="thermion_dart/native/include/material"
 MATERIALS=(image unlit_fixed_size grid linear_depth silhouette edge_outline wireframe translation_axis bone_overlay capture_uv)
 # capture_uv is now in the main list; gizmo handled separately below
 GIZMO_NAME="gizmo"
-EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad parallax)
+EXAMPLE_MATERIALS=(customattributes solidcolor viewspace proceduralquad parallax interior_mapping)
 
 # -------------------------------------------------------------------
 # build_variant <material> <variant_suffix> <matc_arch_flags...>

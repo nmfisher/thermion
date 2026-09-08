@@ -18,6 +18,7 @@ export 'src/headless_capture.dart';
 export 'src/highlight_effects.dart';
 export 'src/input_handlers.dart';
 export 'src/instancing.dart';
+export 'src/interior_mapping.dart';
 export 'src/lighting_setup.dart';
 export 'src/load_gltf.dart';
 export 'src/materials_pbr.dart';

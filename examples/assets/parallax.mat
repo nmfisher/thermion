@@ -45,6 +45,10 @@ material {
         },
         {
             type : float,
+            name : aoStrength
+        },
+        {
+            type : float,
             name : shadowSteps,
             precision : high
         },
@@ -192,6 +196,7 @@ fragment {
            (materialParams.debugView == 0 ||
             materialParams.debugView == 1 ||
             materialParams.debugView == 2 ||
+            materialParams.debugView == 4 ||
             materialParams.debugView == 5)) {
             highp float minLayers = clamp(ceil(min(materialParams.minSteps, materialParams.maxSteps)), 4.0, 512.0);
             highp float maxLayers = clamp(floor(max(materialParams.minSteps, materialParams.maxSteps)), minLayers, 512.0);
@@ -275,6 +280,21 @@ fragment {
         material.roughness = materialParams.roughnessFactor;
         material.metallic = materialParams.metallicFactor;
 
+        // G contains ambient visibility baked for this height field and
+        // displacement scale. Use the hit UV and original derivatives so AO
+        // stays registered with the relief, including at grazing angles.
+        float ambientVisibility = 1.0;
+        if (heightScale > 1e-6 &&
+                (materialParams.debugView == 4 ||
+                 (materialParams.debugView == 0 && materialParams.aoStrength > 0.0))) {
+            ambientVisibility = textureGrad(materialParams_heightMap, pomUV, uvDx, uvDy).g;
+        }
+        // Filament applies this to indirect diffuse light. The custom direct
+        // light hook above continues to use only light-directed visibility.
+        material.ambientOcclusion = materialParams.debugView == 0
+                ? mix(1.0, ambientVisibility, clamp(materialParams.aoStrength, 0.0, 1.0))
+                : 1.0;
+
         if (materialParams.debugView == 1) {
             // Height map at the parallaxed uv (display-remapped: the opaque
             // path lifts near-black values hard toward mid-gray).
@@ -288,6 +308,8 @@ fragment {
             // Tangent-space view vector: R/G = |x|/|y| (slide axes),
             // B = z (facing term; near 1 head-on, near 0 at grazing).
             material.baseColor = vec4(abs(tsView.x), abs(tsView.y), clamp(tsView.z, 0.0, 1.0), 1.0);
+        } else if (materialParams.debugView == 4) {
+            material.baseColor = vec4(vec3(ambientVisibility), 1.0);
         } else if (materialParams.debugView == 5) {
             // Signed uv slide for direction debugging: du in R, dv in G,
             // neutral 0.5. For a correct march the mean du sign must match
