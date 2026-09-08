@@ -373,16 +373,20 @@ class FFIAsset extends ThermionAsset<Pointer<TSceneAsset>> {
 
   //
   Future setCastShadows(bool castShadows) async {
-    await _app.renderableManager.setCastShadows(this.entity, castShadows);
-    for (final entity in await this.getChildEntities()) {
+    for (final entity in [this.entity, ...await this.getChildEntities()]) {
+      if (!_app.renderableManager.isRenderable(entity)) {
+        continue;
+      }
       await _app.renderableManager.setCastShadows(entity, castShadows);
     }
   }
 
   //
   Future setReceiveShadows(bool receiveShadows) async {
-    await _app.renderableManager.setReceiveShadows(this.entity, receiveShadows);
-    for (final entity in await this.getChildEntities()) {
+    for (final entity in [this.entity, ...await this.getChildEntities()]) {
+      if (!_app.renderableManager.isRenderable(entity)) {
+        continue;
+      }
       await _app.renderableManager.setReceiveShadows(entity, receiveShadows);
     }
   }

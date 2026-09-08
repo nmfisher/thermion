@@ -4,6 +4,9 @@
 
 ### Changes
 
+- `ThermionAsset.setCastShadows` / `setReceiveShadows` skip entities without a
+  renderable component (bones, empties, attachment nodes) instead of logging
+  `Error: invalid renderable` for each one.
 - `FilamentApp` exposes the native engine handle as a public
 - `TranslationAxisMaterial.createMaterialInstance` and `ToneMapper` factory methods
   now take the abstract `FilamentApp` instead of
