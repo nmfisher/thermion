@@ -132,6 +132,9 @@ from callers that never dispose their owners.
 
 ## Boundary microbenchmark
 
+For repeated asynchronous submissions alongside rendering, see the
+[matrix task queue workload](matrix_queue_benchmark.md).
+
 Example measurements on Apple M2 Pro (native Dart JIT and Chrome/dart2js `-O2`),
 in microseconds per operation, median of seven 20,000-call samples after warmup:
 

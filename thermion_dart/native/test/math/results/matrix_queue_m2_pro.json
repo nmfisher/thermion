@@ -1,0 +1,673 @@
+{
+  "hardware": "Apple M2 Pro",
+  "mode": "Dart JIT / Metal",
+  "baseline_commit": "8003403ca2851dd61d98ec46dd926da67ec653e0",
+  "runs": [
+    {
+      "revision": "packaged",
+      "sdk": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "backend": "Backend.DEFAULT",
+      "warmup_cycles_per_path": 30,
+      "measured_cycles_per_path": 150,
+      "results": {
+        "256": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.205167,
+                "p95": 0.30525,
+                "p99": 0.337708
+              },
+              "completion": {
+                "p50": 1.35225,
+                "p95": 1.627125,
+                "p99": 1.863125
+              },
+              "cpu_render_cycle": {
+                "p50": 1.390125,
+                "p95": 1.663708,
+                "p99": 1.909417
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.212042,
+                "p95": 0.314208,
+                "p99": 0.367792
+              },
+              "completion": {
+                "p50": 1.3525,
+                "p95": 1.712541,
+                "p99": 2.074959
+              },
+              "cpu_render_cycle": {
+                "p50": 1.389083,
+                "p95": 1.763208,
+                "p99": 2.1595
+              }
+            }
+          }
+        },
+        "1024": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.638292,
+                "p95": 1.019375,
+                "p99": 1.079167
+              },
+              "completion": {
+                "p50": 6.492542,
+                "p95": 8.006291,
+                "p99": 9.170083
+              },
+              "cpu_render_cycle": {
+                "p50": 6.531667,
+                "p95": 8.0625,
+                "p99": 9.232916
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.676041,
+                "p95": 1.03425,
+                "p99": 1.181084
+              },
+              "completion": {
+                "p50": 6.559167,
+                "p95": 7.840125,
+                "p99": 9.3995
+              },
+              "cpu_render_cycle": {
+                "p50": 6.600334,
+                "p95": 7.882833,
+                "p99": 9.45225
+              }
+            }
+          }
+        }
+      },
+      "stage": "before",
+      "trial": 1
+    },
+    {
+      "revision": "packaged",
+      "sdk": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "backend": "Backend.DEFAULT",
+      "warmup_cycles_per_path": 30,
+      "measured_cycles_per_path": 150,
+      "results": {
+        "256": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.216792,
+                "p95": 0.983292,
+                "p99": 2.336333
+              },
+              "completion": {
+                "p50": 1.438292,
+                "p95": 2.013417,
+                "p99": 3.085916
+              },
+              "cpu_render_cycle": {
+                "p50": 1.472708,
+                "p95": 2.056167,
+                "p99": 3.460166
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.23175,
+                "p95": 1.072375,
+                "p99": 4.498917
+              },
+              "completion": {
+                "p50": 1.432375,
+                "p95": 2.014,
+                "p99": 4.862833
+              },
+              "cpu_render_cycle": {
+                "p50": 1.47325,
+                "p95": 2.175417,
+                "p99": 5.100875
+              }
+            }
+          }
+        },
+        "1024": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.656792,
+                "p95": 1.145791,
+                "p99": 3.545125
+              },
+              "completion": {
+                "p50": 6.76875,
+                "p95": 8.0005,
+                "p99": 9.140125
+              },
+              "cpu_render_cycle": {
+                "p50": 6.818125,
+                "p95": 8.051583,
+                "p99": 9.223458
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.661083,
+                "p95": 1.123208,
+                "p99": 1.405541
+              },
+              "completion": {
+                "p50": 6.716959,
+                "p95": 8.153375,
+                "p99": 8.866458
+              },
+              "cpu_render_cycle": {
+                "p50": 6.766125,
+                "p95": 8.245542,
+                "p99": 8.938959
+              }
+            }
+          }
+        }
+      },
+      "stage": "before",
+      "trial": 2
+    },
+    {
+      "revision": "packaged",
+      "sdk": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "backend": "Backend.DEFAULT",
+      "warmup_cycles_per_path": 30,
+      "measured_cycles_per_path": 150,
+      "results": {
+        "256": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.198041,
+                "p95": 0.267417,
+                "p99": 0.308541
+              },
+              "completion": {
+                "p50": 1.327875,
+                "p95": 1.552333,
+                "p99": 1.755833
+              },
+              "cpu_render_cycle": {
+                "p50": 1.361125,
+                "p95": 1.590875,
+                "p99": 1.795416
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.2,
+                "p95": 0.305083,
+                "p99": 0.391417
+              },
+              "completion": {
+                "p50": 1.304667,
+                "p95": 1.509125,
+                "p99": 1.685167
+              },
+              "cpu_render_cycle": {
+                "p50": 1.341625,
+                "p95": 1.540708,
+                "p99": 1.731334
+              }
+            }
+          }
+        },
+        "1024": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.591583,
+                "p95": 0.900875,
+                "p99": 0.977875
+              },
+              "completion": {
+                "p50": 6.366959,
+                "p95": 7.444,
+                "p99": 7.653959
+              },
+              "cpu_render_cycle": {
+                "p50": 6.400375,
+                "p95": 7.486583,
+                "p99": 7.701292
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.617333,
+                "p95": 1.011416,
+                "p99": 1.044292
+              },
+              "completion": {
+                "p50": 6.243125,
+                "p95": 7.461625,
+                "p99": 8.489208
+              },
+              "cpu_render_cycle": {
+                "p50": 6.279542,
+                "p95": 7.499416,
+                "p99": 8.567125
+              }
+            }
+          }
+        }
+      },
+      "stage": "before",
+      "trial": 3
+    },
+    {
+      "revision": "detached",
+      "sdk": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "backend": "Backend.DEFAULT",
+      "warmup_cycles_per_path": 30,
+      "measured_cycles_per_path": 150,
+      "results": {
+        "256": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.135,
+                "p95": 0.206208,
+                "p99": 0.288958
+              },
+              "completion": {
+                "p50": 1.302375,
+                "p95": 1.520083,
+                "p99": 1.84575
+              },
+              "cpu_render_cycle": {
+                "p50": 1.338917,
+                "p95": 1.551125,
+                "p99": 1.887792
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.158375,
+                "p95": 0.268792,
+                "p99": 0.31525
+              },
+              "completion": {
+                "p50": 1.304375,
+                "p95": 1.537916,
+                "p99": 1.939458
+              },
+              "cpu_render_cycle": {
+                "p50": 1.336834,
+                "p95": 1.589875,
+                "p99": 1.996083
+              }
+            }
+          }
+        },
+        "1024": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.438,
+                "p95": 0.71675,
+                "p99": 1.437583
+              },
+              "completion": {
+                "p50": 5.200291,
+                "p95": 7.378,
+                "p99": 8.737875
+              },
+              "cpu_render_cycle": {
+                "p50": 5.232333,
+                "p95": 7.416625,
+                "p99": 8.807417
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.533792,
+                "p95": 0.925458,
+                "p99": 1.123833
+              },
+              "completion": {
+                "p50": 5.393291,
+                "p95": 7.678958,
+                "p99": 9.169292
+              },
+              "cpu_render_cycle": {
+                "p50": 5.438458,
+                "p95": 7.721041,
+                "p99": 9.250334
+              }
+            }
+          }
+        }
+      },
+      "stage": "after",
+      "trial": 1
+    },
+    {
+      "revision": "detached",
+      "sdk": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "backend": "Backend.DEFAULT",
+      "warmup_cycles_per_path": 30,
+      "measured_cycles_per_path": 150,
+      "results": {
+        "256": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.139916,
+                "p95": 0.250375,
+                "p99": 0.290208
+              },
+              "completion": {
+                "p50": 1.385458,
+                "p95": 1.591,
+                "p99": 1.799375
+              },
+              "cpu_render_cycle": {
+                "p50": 1.420875,
+                "p95": 1.635458,
+                "p99": 1.851666
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.144041,
+                "p95": 0.197166,
+                "p99": 0.307167
+              },
+              "completion": {
+                "p50": 1.376542,
+                "p95": 1.563958,
+                "p99": 1.709875
+              },
+              "cpu_render_cycle": {
+                "p50": 1.411375,
+                "p95": 1.608875,
+                "p99": 1.74675
+              }
+            }
+          }
+        },
+        "1024": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.413625,
+                "p95": 0.76575,
+                "p99": 0.840542
+              },
+              "completion": {
+                "p50": 6.597792,
+                "p95": 7.826792,
+                "p99": 9.643458
+              },
+              "cpu_render_cycle": {
+                "p50": 6.64625,
+                "p95": 7.869667,
+                "p99": 9.698708
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.452917,
+                "p95": 0.887375,
+                "p99": 0.9685
+              },
+              "completion": {
+                "p50": 6.455334,
+                "p95": 7.565208,
+                "p99": 7.94875
+              },
+              "cpu_render_cycle": {
+                "p50": 6.495292,
+                "p95": 7.635,
+                "p99": 8.009458
+              }
+            }
+          }
+        }
+      },
+      "stage": "after",
+      "trial": 2
+    },
+    {
+      "revision": "detached",
+      "sdk": "3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on \"macos_arm64\"",
+      "backend": "Backend.DEFAULT",
+      "warmup_cycles_per_path": 30,
+      "measured_cycles_per_path": 150,
+      "results": {
+        "256": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.137666,
+                "p95": 0.255792,
+                "p99": 0.306667
+              },
+              "completion": {
+                "p50": 1.4055,
+                "p95": 1.593083,
+                "p99": 1.663458
+              },
+              "cpu_render_cycle": {
+                "p50": 1.44225,
+                "p95": 1.626708,
+                "p99": 1.699625
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.157417,
+                "p95": 0.248,
+                "p99": 0.314917
+              },
+              "completion": {
+                "p50": 1.414667,
+                "p95": 1.61875,
+                "p99": 1.693792
+              },
+              "cpu_render_cycle": {
+                "p50": 1.451458,
+                "p95": 1.658708,
+                "p99": 1.725208
+              }
+            }
+          }
+        },
+        "1024": {
+          "snapshot": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.41,
+                "p95": 0.790208,
+                "p99": 1.062792
+              },
+              "completion": {
+                "p50": 6.568875,
+                "p95": 7.426042,
+                "p99": 7.860709
+              },
+              "cpu_render_cycle": {
+                "p50": 6.60175,
+                "p95": 7.474209,
+                "p99": 7.901417
+              }
+            }
+          },
+          "native": {
+            "columns_ms": [
+              "submission",
+              "completion",
+              "cpu_render_cycle"
+            ],
+            "summary_ms": {
+              "submission": {
+                "p50": 0.499083,
+                "p95": 0.888542,
+                "p99": 1.325542
+              },
+              "completion": {
+                "p50": 6.602709,
+                "p95": 7.813791,
+                "p99": 9.104459
+              },
+              "cpu_render_cycle": {
+                "p50": 6.641584,
+                "p95": 7.864083,
+                "p99": 9.164042
+              }
+            }
+          }
+        }
+      },
+      "stage": "after",
+      "trial": 3
+    }
+  ]
+}
