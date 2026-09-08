@@ -177,6 +177,16 @@ Future<void> checkNativeMatrices() async {
         'borrowed native queue $i',
       );
     }
+    // Preserve FIFO order for repeated writes to one entity, including when
+    // native tasks complete before their Dart futures are observed.
+    for (final submitted in submittedMatrices) {
+      pending.add(internalTm.setTransformNativeAsync(child, submitted));
+    }
+    await Future.wait(pending);
+    sameMatrix(tm.getLocalTransform(child), submittedMatrices.last.matrix, 'native queue FIFO');
+    // Missing components must still deliver completion and release the owner.
+    await internalTm.setTransformNativeAsync(missing, input);
+    await tm.setTransformAsync(missing, expected);
     // Completion returns control of the same matrix to the caller. Reuse it
     // for another queued write, then dispose it only after that write completes.
     final reused = submittedMatrices.first;

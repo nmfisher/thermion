@@ -1,7 +1,5 @@
 #include <atomic>
-#include <array>
 #include <math/mat4.h>
-#include <cstring>
 #include <functional>
 #include <mutex>
 #include <shared_mutex>
@@ -40,6 +38,7 @@
 #include "rendering/RenderThread.hpp"
 #include "rendering/RenderManager.hpp"
 #include "Log.hpp"
+#include "MathUtils.hpp"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/proxying.h>
@@ -2757,13 +2756,12 @@ extern "C"
     auto *rt = RT(manager);
     // The caller owns this matrix until the completion callback runs.
     const auto *transform = reinterpret_cast<const filament::math::mat4 *>(matrix);
-    std::packaged_task<void()> task([=] {
+    rt->addDetachedTask([=] {
       auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
       auto instance = tm->getInstance(utils::Entity::import(entity));
       if (instance) tm->setTransform(instance, *transform);
       PROXY(onComplete(requestId));
     });
-    rt->addTask(task);
   }
 
   EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformFromBufferRenderThread(
@@ -2771,13 +2769,15 @@ extern "C"
       uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(manager);
-    std::array<double, 16> snapshot;
-    std::memcpy(snapshot.data(), matrix16, sizeof(snapshot));
-    std::packaged_task<void()> task([=] {
-      TransformManager_setTransformFromBuffer(manager, entity, snapshot.data());
+    // Snapshot before returning to Dart; the queued task owns a real mat4 and
+    // can pass it directly to Filament without reconstructing it on execution.
+    const auto snapshot = load_mat4(matrix16);
+    rt->addDetachedTask([=] {
+      auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
+      auto instance = tm->getInstance(utils::Entity::import(entity));
+      if (instance) tm->setTransform(instance, snapshot);
       PROXY(onComplete(requestId));
     });
-    rt->addTask(task);
   }
 
   EMSCRIPTEN_KEEPALIVE void TransformManager_setParentRenderThread(
