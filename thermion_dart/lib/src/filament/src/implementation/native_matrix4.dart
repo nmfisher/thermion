@@ -11,7 +11,8 @@ import '../../../bindings/native_matrix_storage.dart';
 /// Call [dispose] when finished. The [matrix] view, its storage and any derived
 /// views must not be accessed after disposal. There is deliberately no GC
 /// finalizer: an escaped view must never silently become dangling because the
-/// owner wrapper was collected. Keep the owner until all views are finished.
+/// owner wrapper was collected. Keep the owner until all views and queued uses
+/// are finished.
 class NativeMatrix4 {
   Pointer<TNativeMatrix4>? _handle;
   final Matrix4 _matrix;
@@ -35,7 +36,7 @@ class NativeMatrix4 {
 
   /// A reusable view of the same values that C++ reads and writes.
   ///
-  /// Do not mutate any view while a native queued setter is pending. Cloning
+  /// Do not mutate or dispose while a native queued setter is pending. Cloning
   /// this Matrix4 produces an ordinary independent Dart-owned matrix.
   Matrix4 get matrix {
     getNativeHandle();
@@ -44,7 +45,7 @@ class NativeMatrix4 {
 
   Pointer<TNativeMatrix4> getNativeHandle() => _handle ?? (throw StateError('NativeMatrix4 has been disposed'));
 
-  /// Releases this owner. Pending native submissions retain their own owner.
+  /// Deletes the native matrix. All queued uses must have completed first.
   /// All Dart views become invalid immediately. Repeated disposal is harmless.
   void dispose() {
     final handle = _handle;

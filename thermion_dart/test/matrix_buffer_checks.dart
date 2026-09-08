@@ -125,6 +125,7 @@ Future<void> checkNativeMatrices() async {
   final parentMatrix = NativeMatrix4.copy(Matrix4.translation(Vector3(10, 20, 30)));
   final entities = <ThermionEntity>[];
   final pending = <Future<void>>[];
+  final submittedMatrices = <NativeMatrix4>[];
   try {
     final view = input.matrix;
     sameMatrix(view, Matrix4.identity(), 'native identity');
@@ -167,22 +168,31 @@ Future<void> checkNativeMatrices() async {
     for (var i = 0; i < 64; i++) {
       entities.add(await app.createEntity());
     }
-    // Each native submission retains its C++ matrix, including if the Dart
-    // owner is disposed immediately. No Dart/native buffer snapshot is needed.
+    // Queue entries borrow raw mat4 pointers. Keep each allocation alive and
+    // unchanged until all submissions have completed.
     for (var i = 0; i < entities.length; i++) {
       final submitted = NativeMatrix4.copy(Matrix4.translation(Vector3(i + 0.25, 2, 3)));
+      submittedMatrices.add(submitted);
       pending.add(internalTm.setTransformNativeAsync(entities[i], submitted));
-      submitted.dispose();
-      submitted.dispose();
-      if (!submitted.isDisposed) throw StateError('Native matrix disposal failed');
     }
     await Future.wait(pending);
     for (var i = 0; i < entities.length; i++) {
       sameMatrix(
         tm.getLocalTransform(entities[i]),
         Matrix4.translation(Vector3(i + 0.25, 2, 3)),
-        'retained native queue $i',
+        'borrowed native queue $i',
       );
+    }
+    // Completion returns control of the same matrix to the caller. Reuse it
+    // for another queued write, then dispose it only after that write completes.
+    final reused = submittedMatrices.first;
+    reused.matrix.setFrom(expected);
+    await internalTm.setTransformNativeAsync(child, reused);
+    sameMatrix(tm.getLocalTransform(child), expected, 'reuse after queued completion');
+    for (final submitted in submittedMatrices) {
+      submitted.dispose();
+      submitted.dispose();
+      if (!submitted.isDisposed) throw StateError('Native matrix disposal failed');
     }
     // Ordinary queued setters still snapshot even when passed a native view.
     view.setFrom(expected);
@@ -216,6 +226,9 @@ Future<void> checkNativeMatrices() async {
     if (rejected != 4) throw StateError('Disposed native matrix was accepted');
   } finally {
     await Future.wait(pending);
+    for (final submitted in submittedMatrices) {
+      submitted.dispose();
+    }
     input.dispose();
     out.dispose();
     parentMatrix.dispose();

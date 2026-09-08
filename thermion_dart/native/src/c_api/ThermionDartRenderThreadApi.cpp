@@ -1,6 +1,6 @@
 #include <atomic>
 #include <array>
-#include "NativeMatrix.hpp"
+#include <math/mat4.h>
 #include <cstring>
 #include <functional>
 #include <mutex>
@@ -2755,13 +2755,12 @@ extern "C"
       uint32_t requestId, VoidCallback onComplete)
   {
     auto *rt = RT(manager);
-    // Retain synchronously, before Dart can dispose its handle. Only ownership
-    // is copied. shared_ptr releases the matrix even if a queued task is dropped.
-    auto retained = thermion::nativeMatrixOwner(matrix);
-    std::packaged_task<void()> task([=]() mutable {
+    // The caller owns this matrix until the completion callback runs.
+    const auto *transform = reinterpret_cast<const filament::math::mat4 *>(matrix);
+    std::packaged_task<void()> task([=] {
       auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
       auto instance = tm->getInstance(utils::Entity::import(entity));
-      if (instance) tm->setTransform(instance, *retained);
+      if (instance) tm->setTransform(instance, *transform);
       PROXY(onComplete(requestId));
     });
     rt->addTask(task);

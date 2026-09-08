@@ -11,7 +11,6 @@
 
 #include "Log.hpp"
 #include "MathUtils.hpp"
-#include "NativeMatrix.hpp"
 
 using namespace thermion;
 
@@ -67,21 +66,21 @@ extern "C"
     {
         auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
         auto instance = tm->getInstance(utils::Entity::import(entity));
-        if (instance) tm->setTransform(instance, nativeMatrix(matrix));
+        if (instance) tm->setTransform(instance, *reinterpret_cast<const filament::math::mat4 *>(matrix));
     }
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformNativeInto(TTransformManager *manager, EntityId entity, TNativeMatrix4 *out)
     {
         auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
         auto instance = tm->getInstance(utils::Entity::import(entity));
-        nativeMatrix(out) = instance ? tm->getTransformAccurate(instance) : filament::math::mat4(0.0);
+        *reinterpret_cast<filament::math::mat4 *>(out) = instance ? tm->getTransformAccurate(instance) : filament::math::mat4(0.0);
     }
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_getWorldTransformNativeInto(TTransformManager *manager, EntityId entity, TNativeMatrix4 *out)
     {
         auto *tm = reinterpret_cast<filament::TransformManager *>(manager);
         auto instance = tm->getInstance(utils::Entity::import(entity));
-        nativeMatrix(out) = instance ? tm->getWorldTransformAccurate(instance) : filament::math::mat4(0.0);
+        *reinterpret_cast<filament::math::mat4 *>(out) = instance ? tm->getWorldTransformAccurate(instance) : filament::math::mat4(0.0);
     }
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_getLocalTransformInto(TTransformManager *manager, EntityId entity, double *out16)

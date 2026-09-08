@@ -1,3 +1,4 @@
+#include <math/mat4.h>
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
@@ -12,7 +13,6 @@
 
 #include "Log.hpp"
 #include "MathUtils.hpp"
-#include "NativeMatrix.hpp"
 
 #ifdef __cplusplus
 namespace thermion
@@ -78,22 +78,22 @@ namespace thermion
 
 
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixNative(TCamera *camera, TNativeMatrix4 *matrix) {
-            reinterpret_cast<Camera *>(camera)->setModelMatrix(nativeMatrix(matrix));
+            reinterpret_cast<Camera *>(camera)->setModelMatrix(*reinterpret_cast<const filament::math::mat4 *>(matrix));
         }
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingNative(TCamera *camera, TNativeMatrix4 *matrix, double near, double far) {
-            reinterpret_cast<Camera *>(camera)->setCustomProjection(nativeMatrix(matrix), near, far);
+            reinterpret_cast<Camera *>(camera)->setCustomProjection(*reinterpret_cast<const filament::math::mat4 *>(matrix), near, far);
         }
         EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
-            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getModelMatrix();
+            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getModelMatrix();
         }
         EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
-            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getViewMatrix();
+            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getViewMatrix();
         }
         EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
-            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getProjectionMatrix();
+            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getProjectionMatrix();
         }
         EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixNativeInto(TCamera *camera, TNativeMatrix4 *out) {
-            nativeMatrix(out) = reinterpret_cast<Camera *>(camera)->getCullingProjectionMatrix();
+            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getCullingProjectionMatrix();
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixFromBuffer(TCamera *camera, const double *matrix16) {

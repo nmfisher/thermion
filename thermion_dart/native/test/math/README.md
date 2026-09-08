@@ -57,11 +57,12 @@ second argument overrides the Chrome executable (the default is macOS Chrome).
 
 ## Internal shared native matrices
 
-`NativeMatrix4` owns a constructed Filament `mat4` and exposes a `Matrix4` view
+`NativeMatrix4` owns a directly allocated Filament `mat4` and exposes a `Matrix4` view
 of its component storage. Native Dart uses an external typed list; web uses a
 persistent view into WASM memory. Editing the view changes the same bytes that
 C++ reads, and native output getters update the same view. No boundary copy is
-needed by the `...Native` methods.
+needed by the `...Native` methods. The opaque C handle is the `mat4` pointer
+itself, with no C++ wrapper object, smart pointer or reference count.
 
 This storage owner lives in `src/filament/src/implementation/native_matrix4.dart`.
 It is an internal building block, with explicit lifetime management; it is not
@@ -81,11 +82,13 @@ and requests for its view. There is no automatic finalizer that could free the
 allocation while an escaped view is still in use; forgetting to dispose leaks
 that allocation.
 
-A queued native setter retains shared C++ ownership before returning, so its
-Dart owner may be disposed immediately after submission. Do not modify shared
-values while a submission is pending. The ordinary `setTransformAsync` still
-snapshots its input, including when given a shared matrix view. Use that path when
-immediate mutation is required.
+Queued native setters borrow the raw `mat4` pointer. Internal callers must keep
+its allocation alive and its values unchanged until the returned Future completes,
+then may reuse or dispose it. There is no automatic retention and early disposal
+is invalid. Finish pending work before tearing down the render thread.
+
+The ordinary `setTransformAsync` still snapshots its input, including when given a
+shared matrix view. Use that path when immediate mutation is required.
 
 Filament continues to store/convert transforms internally and compute getter
 results. This eliminates the Dart/C++ boundary copy, not Filament's own state
@@ -93,8 +96,9 @@ updates or work needed to produce a matrix.
 
 The shared native regressions run in the same native/browser fixtures above.
 They verify Dart writes observed by C++, C++ output observed through an existing
-Dart view, camera precision, missing components, disposal checks, queued ownership
-after immediate disposal, and the ordinary setter's preserved snapshot semantics.
+Dart view, camera precision, missing components, disposal checks, caller-owned queued storage
+through completion, reuse and disposal after completion, and the ordinary setter's
+preserved snapshot semantics.
 
 ## Boundary microbenchmark
 

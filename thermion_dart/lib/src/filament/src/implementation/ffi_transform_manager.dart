@@ -104,6 +104,7 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
     bindings.TransformManager_setTransformNative(transformManager, entity, transform.getNativeHandle());
   }
 
+  /// Borrows [transform] until completion; do not mutate or dispose it meanwhile.
   Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) {
     // Validate before registering a callback, so disposed inputs cannot leak it.
     final handle = transform.getNativeHandle();

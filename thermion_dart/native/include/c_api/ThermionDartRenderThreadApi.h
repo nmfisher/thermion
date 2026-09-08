@@ -28,8 +28,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderThread_destroy(void *renderThread);
         
         EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
-        // Retains the matrix object until the task completes or is discarded.
-        // The caller must not modify its values while the submission is pending.
+        // Borrows the matrix pointer without copying its values.
+        // The caller must keep it alive and unchanged until onComplete is called.
         EMSCRIPTEN_KEEPALIVE void TransformManager_setTransformNativeRenderThread(TTransformManager *manager, EntityId entity, TNativeMatrix4 *matrix, uint32_t requestId, VoidCallback onComplete);
         // Copies all 16 column-major doubles before returning. The caller may
         // immediately reuse/free matrix16 while the queued task is pending.
