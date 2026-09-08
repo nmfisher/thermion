@@ -2,9 +2,9 @@ import 'package:vector_math/vector_math_64.dart';
 import '../../../bindings/bindings.dart';
 import '../../../bindings/native_matrix_storage.dart';
 
-/// Owns a C++ `mat4` whose storage is shared with Dart (or WASM memory on web).
+/// Internal owner of a C++ `mat4` whose storage is shared with Dart (or WASM memory on web).
 ///
-/// Use [matrix] to edit the values, and the `...Native` camera/transform methods
+/// Use [matrix] to edit the values, and the internal FFI camera/transform methods
 /// to pass the constructed C++ object without a boundary copy. Ordinary matrix
 /// methods keep their existing snapshot semantics.
 ///

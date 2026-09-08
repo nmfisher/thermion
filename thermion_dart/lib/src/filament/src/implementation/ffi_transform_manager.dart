@@ -4,6 +4,7 @@ import '../../../bindings/matrix_buffers.dart' as matrixBuffers;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
+import 'native_matrix4.dart';
 
 /// FFI implementation of TransformManager for native platforms.
 ///
@@ -73,12 +74,10 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
     return result;
   }
 
-  @override
   void getLocalTransformInto(ThermionEntity entity, Matrix4 out) {
     matrixBuffers.TransformManager_getLocalTransformIntoTypedData(transformManager, entity, out.storage);
   }
 
-  @override
   void getWorldTransformInto(ThermionEntity entity, Matrix4 out) {
     matrixBuffers.TransformManager_getWorldTransformIntoTypedData(transformManager, entity, out.storage);
   }
@@ -101,12 +100,10 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
     });
   }
 
-  @override
   void setTransformNative(ThermionEntity entity, NativeMatrix4 transform) {
     bindings.TransformManager_setTransformNative(transformManager, entity, transform.getNativeHandle());
   }
 
-  @override
   Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) {
     // Validate before registering a callback, so disposed inputs cannot leak it.
     final handle = transform.getNativeHandle();
@@ -115,12 +112,10 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
     });
   }
 
-  @override
   void getLocalTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) {
     bindings.TransformManager_getLocalTransformNativeInto(transformManager, entity, out.getNativeHandle());
   }
 
-  @override
   void getWorldTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) {
     bindings.TransformManager_getWorldTransformNativeInto(transformManager, entity, out.getNativeHandle());
   }

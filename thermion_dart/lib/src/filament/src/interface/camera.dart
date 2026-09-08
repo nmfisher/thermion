@@ -88,30 +88,6 @@ abstract class Camera<T> extends NativeHandle {
   Future<Matrix4> getModelMatrix();
   Future<Matrix4> getProjectionMatrix();
   Future<Matrix4> getCullingProjectionMatrix();
-
-  /// Writes the model matrix into caller-owned [out], allowing storage reuse.
-  Future<void> getModelMatrixInto(Matrix4 out) async => out.setFrom(await getModelMatrix());
-
-  /// Writes the view matrix into caller-owned [out], allowing storage reuse.
-  Future<void> getViewMatrixInto(Matrix4 out) async => out.setFrom(await getViewMatrix());
-
-  /// Writes the projection matrix into caller-owned [out], allowing storage reuse.
-  Future<void> getProjectionMatrixInto(Matrix4 out) async => out.setFrom(await getProjectionMatrix());
-
-  /// Writes the culling projection into caller-owned [out], allowing storage reuse.
-  Future<void> getCullingProjectionMatrixInto(Matrix4 out) async => out.setFrom(await getCullingProjectionMatrix());
-
-  /// Passes shared matrix storage directly to Filament without a boundary copy.
-  Future<void> setModelMatrixNative(NativeMatrix4 matrix) async => await setModelMatrix(matrix.matrix);
-  Future<void> setProjectionMatrixWithCullingNative(NativeMatrix4 matrix, double near, double far) async =>
-      await setProjectionMatrixWithCulling(matrix.matrix, near, far);
-
-  Future<void> getModelMatrixNativeInto(NativeMatrix4 out) async => await getModelMatrixInto(out.matrix);
-  Future<void> getViewMatrixNativeInto(NativeMatrix4 out) async => await getViewMatrixInto(out.matrix);
-  Future<void> getProjectionMatrixNativeInto(NativeMatrix4 out) async => await getProjectionMatrixInto(out.matrix);
-  Future<void> getCullingProjectionMatrixNativeInto(NativeMatrix4 out) async =>
-      await getCullingProjectionMatrixInto(out.matrix);
-
   Future setModelMatrix(Matrix4 matrix);
 
   /// Get the entity that has the underlying Camera component attached.

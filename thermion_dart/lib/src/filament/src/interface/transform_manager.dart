@@ -55,17 +55,11 @@ abstract class TransformManager<T> extends NativeHandle<T> {
   /// Returns the local transform as a Matrix4
   Matrix4 getLocalTransform(ThermionEntity entity);
 
-  /// Writes the local transform into [out], allowing its storage to be reused.
-  void getLocalTransformInto(ThermionEntity entity, Matrix4 out) => out.setFrom(getLocalTransform(entity));
-
   /// Gets the world transform matrix of the entity (relative to world root).
   ///
   /// [entity] The entity containing the transform component
   /// Returns the world transform as a Matrix4
   Matrix4 getWorldTransform(ThermionEntity entity);
-
-  /// Writes the world transform into [out], allowing its storage to be reused.
-  void getWorldTransformInto(ThermionEntity entity, Matrix4 out) => out.setFrom(getWorldTransform(entity));
 
   /// Sets the local transform matrix of the entity.
   ///
@@ -84,25 +78,6 @@ abstract class TransformManager<T> extends NativeHandle<T> {
   /// [entity] The entity containing the transform component
   /// [transform] The local transform matrix (relative to parent)
   Future setTransformAsync(ThermionEntity entity, Matrix4 transform);
-
-  /// Passes the shared C++ matrix directly to Filament, without a boundary copy.
-  /// As with [setTransform], the caller must synchronize access to Filament.
-  void setTransformNative(ThermionEntity entity, NativeMatrix4 transform) => setTransform(entity, transform.matrix);
-
-  /// Queues a shared matrix without copying its values.
-  ///
-  /// Do not modify [transform.matrix] or any aliases until completion. The FFI
-  /// implementation retains native ownership during submission, so disposing
-  /// the Dart owner after submission is safe. Use [setTransformAsync] when an
-  /// independent snapshot is required instead.
-  Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) async =>
-      await setTransformAsync(entity, transform.matrix);
-
-  /// Fills shared storage directly; Filament still computes/stores its values.
-  void getLocalTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) =>
-      getLocalTransformInto(entity, out.matrix);
-  void getWorldTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) =>
-      getWorldTransformInto(entity, out.matrix);
 
   /// Scales the entity to fit within a unit cube while preserving aspect ratio.
   ///

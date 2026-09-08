@@ -1,3 +1,6 @@
+import 'package:thermion_dart/src/filament/src/implementation/ffi_camera.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_transform_manager.dart';
+import 'package:thermion_dart/src/filament/src/implementation/native_matrix4.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/bindings/matrix_buffers.dart' as buffers;
 import 'package:thermion_dart/src/utils/src/matrix.dart';
@@ -14,10 +17,12 @@ void sameMatrix(Matrix4 actual, Matrix4 expected, String label, {double toleranc
 Future<void> checkMatrixBuffers() async {
   final app = FilamentApp.instance!;
   final tm = app.transformManager;
+  final internalTm = tm as FFITransformManager;
   final parent = await app.createEntity();
   final child = await app.createEntity();
   final missing = await app.createEntity(createTransformComponent: false);
   final camera = await app.createCamera();
+  final internalCamera = camera as FFICamera;
   try {
     final backing = Float64List(20)..fillRange(0, 20, -9876);
     final input = Matrix4.fromFloat64List(Float64List.sublistView(backing, 2, 18))
@@ -30,7 +35,7 @@ Future<void> checkMatrixBuffers() async {
 
     final outputBacking = Float64List(20)..fillRange(0, 20, -1234);
     final out = Matrix4.fromFloat64List(Float64List.sublistView(outputBacking, 2, 18));
-    tm.getLocalTransformInto(child, out);
+    internalTm.getLocalTransformInto(child, out);
     sameMatrix(out, expected, 'offset output');
     if (outputBacking.take(2).any((v) => v != -1234) || outputBacking.skip(18).any((v) => v != -1234)) {
       throw StateError('Output overrun');
@@ -39,12 +44,12 @@ Future<void> checkMatrixBuffers() async {
     final parentMatrix = Matrix4.translation(Vector3(10, 20, 30));
     tm.setTransform(parent, parentMatrix);
     await tm.setParent(child, parent);
-    tm.getWorldTransformInto(child, out);
+    internalTm.getWorldTransformInto(child, out);
     sameMatrix(out, parentMatrix * expected, 'world transform');
     sameMatrix(snapshot, expected, 'getter snapshot remains independent');
-    tm.getLocalTransformInto(missing, out);
+    internalTm.getLocalTransformInto(missing, out);
     sameMatrix(out, Matrix4.zero(), 'missing local component');
-    tm.getWorldTransformInto(missing, out);
+    internalTm.getWorldTransformInto(missing, out);
     sameMatrix(out, Matrix4.zero(), 'missing world component');
 
     // Reuse one input across outstanding submissions; each entity must receive
@@ -70,9 +75,9 @@ Future<void> checkMatrixBuffers() async {
     }
 
     await camera.setModelMatrix(expected);
-    await camera.getModelMatrixInto(out);
+    await internalCamera.getModelMatrixInto(out);
     sameMatrix(out, expected, 'camera model');
-    await camera.getViewMatrixInto(out);
+    await internalCamera.getViewMatrixInto(out);
     sameMatrix(out, Matrix4.inverted(expected), 'camera view');
     // Projection matrices are stored in double precision by Filament.
     final projection = Matrix4.identity();
@@ -80,9 +85,9 @@ Future<void> checkMatrixBuffers() async {
       projection.storage[i] = i + 0.123456789012345;
     }
     await camera.setProjectionMatrixWithCulling(projection, 0.1, 1000);
-    await camera.getProjectionMatrixInto(out);
+    await internalCamera.getProjectionMatrixInto(out);
     sameMatrix(out, projection, 'precise projection', tolerance: 0);
-    await camera.getCullingProjectionMatrixInto(out);
+    await internalCamera.getCullingProjectionMatrixInto(out);
     sameMatrix(out, projection, 'precise culling projection', tolerance: 0);
     final cameraSnapshot = await camera.getProjectionMatrix();
     out.setZero();
@@ -93,11 +98,7 @@ Future<void> checkMatrixBuffers() async {
 
     var rejected = false;
     try {
-      buffers.TransformManager_setTransformFromBufferTypedData(
-        tm.getNativeHandle() as Pointer<TTransformManager>,
-        child,
-        Float64List(15),
-      );
+      buffers.TransformManager_setTransformFromBufferTypedData(internalTm.getNativeHandle(), child, Float64List(15));
     } on ArgumentError {
       rejected = true;
     }
@@ -113,10 +114,12 @@ Future<void> checkMatrixBuffers() async {
 Future<void> checkNativeMatrices() async {
   final app = FilamentApp.instance!;
   final tm = app.transformManager;
+  final internalTm = tm as FFITransformManager;
   final parent = await app.createEntity();
   final child = await app.createEntity();
   final missing = await app.createEntity(createTransformComponent: false);
   final camera = await app.createCamera();
+  final internalCamera = camera as FFICamera;
   final input = NativeMatrix4.identity();
   final out = NativeMatrix4.zero();
   final parentMatrix = NativeMatrix4.copy(Matrix4.translation(Vector3(10, 20, 30)));
@@ -128,37 +131,37 @@ Future<void> checkNativeMatrices() async {
     sameMatrix(out.matrix, Matrix4.zero(), 'native zero');
     final expected = Matrix4.translation(Vector3(3.25, -7.5, 9.75)) * Matrix4.rotationZ(0.47);
     view.setFrom(expected);
-    tm.setTransformNative(child, input);
-    tm.getLocalTransformNativeInto(child, out);
+    internalTm.setTransformNative(child, input);
+    internalTm.getLocalTransformNativeInto(child, out);
     sameMatrix(out.matrix, expected, 'Dart writes / native reads shared storage');
     // The same previously returned Matrix4 view observes native output writes.
     view.setZero();
-    tm.getLocalTransformNativeInto(child, input);
+    internalTm.getLocalTransformNativeInto(child, input);
     sameMatrix(view, expected, 'native writes / existing Dart view reads');
-    tm.setTransformNative(parent, parentMatrix);
+    internalTm.setTransformNative(parent, parentMatrix);
     await tm.setParent(child, parent);
-    tm.getWorldTransformNativeInto(child, out);
+    internalTm.getWorldTransformNativeInto(child, out);
     sameMatrix(out.matrix, parentMatrix.matrix * expected, 'native world matrix');
-    tm.getLocalTransformNativeInto(missing, out);
+    internalTm.getLocalTransformNativeInto(missing, out);
     sameMatrix(out.matrix, Matrix4.zero(), 'missing native local matrix');
-    tm.getWorldTransformNativeInto(missing, out);
+    internalTm.getWorldTransformNativeInto(missing, out);
     sameMatrix(out.matrix, Matrix4.zero(), 'missing native world matrix');
-    tm.setTransformNative(missing, input);
+    internalTm.setTransformNative(missing, input);
 
-    await camera.setModelMatrixNative(input);
-    await camera.getModelMatrixNativeInto(out);
+    await internalCamera.setModelMatrixNative(input);
+    await internalCamera.getModelMatrixNativeInto(out);
     sameMatrix(out.matrix, expected, 'native camera model');
-    await camera.getViewMatrixNativeInto(out);
+    await internalCamera.getViewMatrixNativeInto(out);
     sameMatrix(out.matrix, Matrix4.inverted(expected), 'native camera view');
     final projection = Matrix4.identity();
     for (var i = 0; i < 16; i++) {
       projection.storage[i] = i + 0.123456789012345;
     }
     view.setFrom(projection);
-    await camera.setProjectionMatrixWithCullingNative(input, 0.1, 1000);
-    await camera.getProjectionMatrixNativeInto(out);
+    await internalCamera.setProjectionMatrixWithCullingNative(input, 0.1, 1000);
+    await internalCamera.getProjectionMatrixNativeInto(out);
     sameMatrix(out.matrix, projection, 'native exact projection', tolerance: 0);
-    await camera.getCullingProjectionMatrixNativeInto(out);
+    await internalCamera.getCullingProjectionMatrixNativeInto(out);
     sameMatrix(out.matrix, projection, 'native exact culling projection', tolerance: 0);
 
     for (var i = 0; i < 64; i++) {
@@ -168,7 +171,7 @@ Future<void> checkNativeMatrices() async {
     // owner is disposed immediately. No Dart/native buffer snapshot is needed.
     for (var i = 0; i < entities.length; i++) {
       final submitted = NativeMatrix4.copy(Matrix4.translation(Vector3(i + 0.25, 2, 3)));
-      pending.add(tm.setTransformNativeAsync(entities[i], submitted));
+      pending.add(internalTm.setTransformNativeAsync(entities[i], submitted));
       submitted.dispose();
       submitted.dispose();
       if (!submitted.isDisposed) throw StateError('Native matrix disposal failed');
@@ -196,17 +199,17 @@ Future<void> checkNativeMatrices() async {
       rejected++;
     }
     try {
-      tm.setTransformNative(child, out);
+      internalTm.setTransformNative(child, out);
     } on StateError {
       rejected++;
     }
     try {
-      await tm.setTransformNativeAsync(child, out);
+      await internalTm.setTransformNativeAsync(child, out);
     } on StateError {
       rejected++;
     }
     try {
-      await camera.setModelMatrixNative(out);
+      await internalCamera.setModelMatrixNative(out);
     } on StateError {
       rejected++;
     }
@@ -232,7 +235,8 @@ Future<String> benchmarkMatrixBuffers() async {
   final app = FilamentApp.instance!;
   final entity = await app.createEntity();
   final tm = app.transformManager;
-  final handle = tm.getNativeHandle() as Pointer<TTransformManager>;
+  final internalTm = tm as FFITransformManager;
+  final handle = internalTm.getNativeHandle();
   final input = Matrix4.translation(Vector3(1, 2, 3));
   final out = Matrix4.zero();
   final nativeInput = NativeMatrix4.copy(input);
@@ -241,7 +245,7 @@ Future<String> benchmarkMatrixBuffers() async {
   final cases = <String, void Function()>{
     'struct setter': () => TransformManager_setTransform(handle, entity, matrix4ToDouble4x4(input)),
     'buffer setter': () => tm.setTransform(entity, input),
-    'native matrix setter': () => tm.setTransformNative(entity, nativeInput),
+    'native matrix setter': () => internalTm.setTransformNative(entity, nativeInput),
     'struct getter': () {
       sink += double4x4ToMatrix4(TransformManager_getLocalTransform(handle, entity)).storage[12];
     },
@@ -249,11 +253,11 @@ Future<String> benchmarkMatrixBuffers() async {
       sink += tm.getLocalTransform(entity).storage[12];
     },
     'native matrix reuse getter': () {
-      tm.getLocalTransformNativeInto(entity, nativeOut);
+      internalTm.getLocalTransformNativeInto(entity, nativeOut);
       sink += nativeOut.matrix.storage[12];
     },
     'buffer reuse getter': () {
-      tm.getLocalTransformInto(entity, out);
+      internalTm.getLocalTransformInto(entity, out);
       sink += out.storage[12];
     },
   };

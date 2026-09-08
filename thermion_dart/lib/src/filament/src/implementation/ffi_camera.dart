@@ -1,7 +1,9 @@
 import 'package:thermion_dart/thermion_dart.dart';
-import 'ffi_filament_app.dart';
 
+import '../../../bindings/bindings.dart';
 import '../../../bindings/matrix_buffers.dart' as matrixBuffers;
+import 'ffi_filament_app.dart';
+import 'native_matrix4.dart';
 
 class FFICamera extends Camera<Pointer<TCamera>> {
   final Pointer<TCamera> camera;
@@ -170,52 +172,42 @@ class FFICamera extends Camera<Pointer<TCamera>> {
   ///
   ///
   ///
-  @override
   Future<void> getModelMatrixInto(Matrix4 out) async {
     matrixBuffers.Camera_getModelMatrixIntoTypedData(camera, out.storage);
   }
 
-  @override
   Future<void> getViewMatrixInto(Matrix4 out) async {
     matrixBuffers.Camera_getViewMatrixIntoTypedData(camera, out.storage);
   }
 
-  @override
   Future<void> getProjectionMatrixInto(Matrix4 out) async {
     matrixBuffers.Camera_getProjectionMatrixIntoTypedData(camera, out.storage);
   }
 
-  @override
   Future<void> getCullingProjectionMatrixInto(Matrix4 out) async {
     matrixBuffers.Camera_getCullingProjectionMatrixIntoTypedData(camera, out.storage);
   }
 
-  @override
   Future<void> setModelMatrixNative(NativeMatrix4 matrix) async {
     Camera_setModelMatrixNative(camera, matrix.getNativeHandle());
   }
 
-  @override
   Future<void> setProjectionMatrixWithCullingNative(NativeMatrix4 matrix, double near, double far) async {
     Camera_setCustomProjectionWithCullingNative(camera, matrix.getNativeHandle(), near, far);
   }
 
-  @override
   Future<void> getModelMatrixNativeInto(NativeMatrix4 out) async {
     Camera_getModelMatrixNativeInto(camera, out.getNativeHandle());
   }
 
-  @override
   Future<void> getViewMatrixNativeInto(NativeMatrix4 out) async {
     Camera_getViewMatrixNativeInto(camera, out.getNativeHandle());
   }
 
-  @override
   Future<void> getProjectionMatrixNativeInto(NativeMatrix4 out) async {
     Camera_getProjectionMatrixNativeInto(camera, out.getNativeHandle());
   }
 
-  @override
   Future<void> getCullingProjectionMatrixNativeInto(NativeMatrix4 out) async {
     Camera_getCullingProjectionMatrixNativeInto(camera, out.getNativeHandle());
   }

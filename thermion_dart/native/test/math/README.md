@@ -9,13 +9,16 @@ bulk typed-array copies, with stack restoration before returning. Queued
 transform setters snapshot the values before returning, so the caller can
 immediately reuse its input. No pointer into Dart storage survives the call.
 
-`TransformManager.getLocalTransformInto(entity, out)` and
-`getWorldTransformInto(entity, out)` fill a reusable `Matrix4`. Camera provides
-`getModelMatrixInto`, `getViewMatrixInto`, `getProjectionMatrixInto`, and
-`getCullingProjectionMatrixInto`. Existing getters still return independent
-snapshots. These methods keep the existing threading requirements; the buffer
-API does not serialize synchronous access to Filament or change its internal
-transform precision.
+Public `Camera` and `TransformManager` keep their existing matrix APIs. Their
+getters use internal buffer calls and return independent snapshots. Reusable
+output methods (`...Into`), shared native methods (`...Native` / `...NativeInto`),
+and `NativeMatrix4` are confined to unexported FFI implementation libraries.
+The new low-level matrix binding symbols are also hidden from the package's
+main export. Tests explicitly import the implementation libraries to exercise
+these paths.
+
+The buffer paths keep the existing threading requirements; they do not serialize
+synchronous access to Filament or change its internal transform precision.
 
 All native declarations come from ffigen through `make bindings` and live in
 `thermion_dart_ffi.g.dart`. Handwritten Dart adapters in `matrix_buffers_native.dart`
@@ -52,7 +55,7 @@ dart run native/test/math/run_web_matrix_test.dart /tmp/thermion-matrix-web/buil
 The runner starts a local server with COOP/COEP and headless Chrome. Its optional
 second argument overrides the Chrome executable (the default is macOS Chrome).
 
-## Shared native matrices
+## Internal shared native matrices
 
 `NativeMatrix4` owns a constructed Filament `mat4` and exposes a `Matrix4` view
 of its component storage. Native Dart uses an external typed list; web uses a
@@ -60,24 +63,15 @@ persistent view into WASM memory. Editing the view changes the same bytes that
 C++ reads, and native output getters update the same view. No boundary copy is
 needed by the `...Native` methods.
 
-```dart
-final pose = NativeMatrix4.identity();
-try {
-  pose.matrix.setTranslationRaw(1, 2, 3);
-  app.transformManager.setTransformNative(entity, pose);
-  await camera.setModelMatrixNative(pose);
-
-  // Do not edit pose.matrix or any aliases until this Future completes.
-  await app.transformManager.setTransformNativeAsync(entity, pose);
-  app.transformManager.getWorldTransformNativeInto(entity, pose);
-} finally {
-  pose.dispose();
-}
-```
+This storage owner lives in `src/filament/src/implementation/native_matrix4.dart`.
+It is an internal building block, with explicit lifetime management; it is not
+part of the public `Camera` or `TransformManager` contract. The shared-storage
+regression fixture demonstrates its use through `FFICamera` and
+`FFITransformManager`.
 
 Allocation happens once when creating the owner. `NativeMatrix4.copy(other)`
 performs an explicit initial copy; subsequent edits through `.matrix` and native
-submissions share that storage. Camera has corresponding native projection
+submissions share that storage. `FFICamera` has corresponding native projection
 setters and model/view/projection output getters.
 
 Ownership is explicit: call `dispose()` when all Dart views are finished
@@ -90,7 +84,7 @@ that allocation.
 A queued native setter retains shared C++ ownership before returning, so its
 Dart owner may be disposed immediately after submission. Do not modify shared
 values while a submission is pending. The ordinary `setTransformAsync` still
-snapshots its input, including when given `pose.matrix`. Use that path when
+snapshots its input, including when given a shared matrix view. Use that path when
 immediate mutation is required.
 
 Filament continues to store/convert transforms internally and compute getter
