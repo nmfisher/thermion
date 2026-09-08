@@ -577,6 +577,53 @@ String _getLibraryUrl(String version, String platform, String mode) {
   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
 }
 
+const _maxRetries = 3;
+const _connectionTimeout = Duration(seconds: 30);
+const _responseTimeout = Duration(minutes: 5);
+
+/// Download [url] to [destination] with retry and exponential backoff.
+///
+/// Retries up to [_maxRetries] times on network errors, non-200 responses,
+/// and empty downloads. Waits 2^attempt seconds between attempts.
+Future<void> _downloadWithRetry(String url, File destination, Logger logger) async {
+  for (var attempt = 1; attempt <= _maxRetries; attempt++) {
+    try {
+      final client = HttpClient()..connectionTimeout = _connectionTimeout;
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close().timeout(_responseTimeout);
+
+      if (response.statusCode != 200) {
+        await response.drain<void>();
+        throw Exception("HTTP ${response.statusCode} downloading $url");
+      }
+
+      await response.pipe(destination.openWrite());
+
+      if (!destination.existsSync() || destination.lengthSync() == 0) {
+        throw Exception("Downloaded file is empty: ${destination.path}");
+      }
+
+      logger.info("Download succeeded on attempt $attempt");
+      return;
+    } catch (e) {
+      // Clean up partial download.
+      if (destination.existsSync()) {
+        destination.deleteSync();
+      }
+      if (attempt == _maxRetries) {
+        logger.severe("Download failed after $_maxRetries attempts: $e");
+        rethrow;
+      }
+      final delay = Duration(seconds: 1 << attempt); // 2s, 4s, 8s
+      logger.warning(
+        "Download attempt $attempt/$_maxRetries failed ($e), "
+        "retrying in ${delay.inSeconds}s...",
+      );
+      await Future<void>.delayed(delay);
+    }
+  }
+}
+
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
@@ -672,14 +719,8 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
     logger.info(
       "Downloading prebuilt libraries for $platform/$mode from $url to ${libraryZip}, files will be unzipped to ${unzipDir}",
     );
-    final request = await HttpClient().getUrl(Uri.parse(url));
-    final response = await request.close();
 
-    if (response.statusCode != 200) {
-      throw Exception("Libraries not found at $url");
-    }
-
-    await response.pipe(libraryZip.openWrite());
+    await _downloadWithRetry(url, libraryZip, logger);
 
     final downloadedBytes = await libraryZip.readAsBytes();
     final downloadedHash = md5.convert(downloadedBytes);

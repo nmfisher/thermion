@@ -1,9 +1,10 @@
 import 'dart:async';
+import '../../../bindings/matrix_buffers.dart' as matrixBuffers;
 
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
-import 'package:thermion_dart/src/utils/src/matrix.dart';
 import '../../../bindings/bindings.dart' as bindings;
 import 'package:thermion_dart/thermion_dart.dart';
+import 'native_matrix4.dart';
 
 /// FFI implementation of TransformManager for native platforms.
 ///
@@ -61,67 +62,55 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
 
   @override
   Matrix4 getLocalTransform(ThermionEntity entity) {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    final transform = double4x4ToMatrix4(bindings.TransformManager_getLocalTransform(transformManager, entity));
-
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
-    return transform;
+    final result = Matrix4.zero();
+    getLocalTransformInto(entity, result);
+    return result;
   }
 
   @override
   Matrix4 getWorldTransform(ThermionEntity entity) {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
+    final result = Matrix4.zero();
+    getWorldTransformInto(entity, result);
+    return result;
+  }
 
-    var transform = double4x4ToMatrix4(TransformManager_getWorldTransform(transformManager, entity));
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
+  void getLocalTransformInto(ThermionEntity entity, Matrix4 out) {
+    matrixBuffers.TransformManager_getLocalTransformIntoTypedData(transformManager, entity, out.storage);
+  }
 
-    return transform;
+  void getWorldTransformInto(ThermionEntity entity, Matrix4 out) {
+    matrixBuffers.TransformManager_getWorldTransformIntoTypedData(transformManager, entity, out.storage);
   }
 
   @override
   void setTransform(ThermionEntity entity, Matrix4 transform) {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    bindings.TransformManager_setTransform(transformManager, entity, matrix4ToDouble4x4(transform));
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
+    matrixBuffers.TransformManager_setTransformFromBufferTypedData(transformManager, entity, transform.storage);
   }
 
   @override
   Future setTransformAsync(ThermionEntity entity, Matrix4 transform) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    await withVoidCallback(
-      (requestId, cb) => bindings.TransformManager_setTransformRenderThread(
+    await withVoidCallback((requestId, cb) {
+      matrixBuffers.TransformManager_setTransformFromBufferRenderThreadTypedData(
         transformManager,
         entity,
-        matrix4ToDouble4x4(transform),
+        transform.storage,
         requestId,
         cb,
-      ),
-    );
+      );
+    });
+  }
 
-    if (FILAMENT_WASM) {
-      stackRestore(stackPtr);
-    }
+  void setTransformNative(ThermionEntity entity, NativeMatrix4 transform) {
+    bindings.TransformManager_setTransformNative(transformManager, entity, transform.getNativeHandle());
+  }
+
+  /// Retains [transform] until completion. Do not access any escaped views meanwhile.
+  Future<void> setTransformNativeAsync(ThermionEntity entity, NativeMatrix4 transform) {
+    return transform.withQueuedUse(
+      (handle) => withVoidCallback((id, cb) {
+        bindings.TransformManager_setTransformNativeRenderThread(transformManager, entity, handle, id, cb);
+      }),
+    );
   }
 
   @override

@@ -138,7 +138,7 @@ class TransformationGizmo {
 
     // Parent to root entity so it moves with the gizmo
     if (_rootEntity != null) {
-      viewer.app.transformManager.setParent(ringAsset.entity, _rootEntity!);
+      await viewer.app.transformManager.setParent(ringAsset.entity, _rootEntity!);
     }
 
     // Calculate rotation to align ring with the axis
@@ -188,10 +188,10 @@ class TransformationGizmo {
     await viewer.addToScene(headAsset);
     _assets.add(headAsset);
 
-    // Parent to root entity so they move with the gizmo
+    // Finish queued parenting before setting local transforms synchronously.
     if (_rootEntity != null) {
-      viewer.app.transformManager.setParent(shaftAsset.entity, _rootEntity!);
-      viewer.app.transformManager.setParent(headAsset.entity, _rootEntity!);
+      await viewer.app.transformManager.setParent(shaftAsset.entity, _rootEntity!);
+      await viewer.app.transformManager.setParent(headAsset.entity, _rootEntity!);
     }
 
     // Calculations
@@ -932,8 +932,8 @@ class TransformationGizmo {
 
     // Parent to root entity
     if (_rootEntity != null) {
-      viewer.app.transformManager.setParent(_startMarker!, _rootEntity!);
-      viewer.app.transformManager.setParent(_currentMarker!, _rootEntity!);
+      await viewer.app.transformManager.setParent(_startMarker!, _rootEntity!);
+      await viewer.app.transformManager.setParent(_currentMarker!, _rootEntity!);
     }
 
     // Initially hide markers

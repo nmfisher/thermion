@@ -20,13 +20,13 @@ dependencies:
   hooks: ^1.0.0
   logging: ^1.2.0
   web: ^1.0.0
-  objective_c: ^8.1.0
+  objective_c: ^9.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
-  ffigen: ^18.1.0
+  ffigen: ^20.0.0
 
 flutter:
   plugin:

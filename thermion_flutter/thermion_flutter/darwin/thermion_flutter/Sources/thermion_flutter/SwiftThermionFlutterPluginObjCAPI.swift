@@ -12,8 +12,14 @@ import FlutterMacOS
     // The Dart side holds this reference and calls registerTexture:/
     // textureFrameAvailable:/unregisterTexture: on it directly, owning the full
     // texture lifecycle.
-    @objc public static func textureRegistry() -> FlutterTextureRegistry {
-        return SwiftThermionFlutterPlugin.instance!.registry
+    private static var _textureRegistry: ThermionTextureRegistry?
+
+    @objc public static func textureRegistry() -> ThermionTextureRegistry {
+        if let existing = _textureRegistry { return existing }
+        let wrapper = ThermionTextureRegistry(
+            registry: SwiftThermionFlutterPlugin.instance!.registry)
+        _textureRegistry = wrapper
+        return wrapper
     }
 
     // MARK: - Frame Scheduler (Direct Callback Mode - Release)
