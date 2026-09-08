@@ -226,7 +226,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external double _Camera_getCullingFar(Pointer<TCamera> camera);
   external void _Camera_getCullingProjectionMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
   external void _Camera_getCullingProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
-  external void _Camera_getCullingProjectionMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out);
   external EntityId _Camera_getEntity(Pointer<TCamera> camera);
   external double _Camera_getFocalLength(Pointer<TCamera> camera);
   external double _Camera_getFocusDistance(Pointer<TCamera> camera);
@@ -234,16 +233,13 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
   external void _Camera_getFrustum(Pointer<TCamera> camera, Pointer<Float64> out);
   external void _Camera_getModelMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
   external void _Camera_getModelMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
-  external void _Camera_getModelMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out);
   external double _Camera_getNear(Pointer<TCamera> camera);
   external void _Camera_getProjectionMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
   external void _Camera_getProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
-  external void _Camera_getProjectionMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out);
   external double _Camera_getSensitivity(Pointer<TCamera> camera);
   external double _Camera_getShutterSpeed(Pointer<TCamera> camera);
   external void _Camera_getViewMatrix(Pointer<double4x4> double4x4_out, Pointer<TCamera> camera);
   external void _Camera_getViewMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16);
-  external void _Camera_getViewMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out);
   external void _Camera_lookAt(
     Pointer<TCamera> camera,
     Pointer<double3> eyePtr,
@@ -2184,11 +2180,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     EntityId entity,
     Pointer<Float64> out16,
   );
-  external void _TransformManager_getLocalTransformNativeInto(
-    Pointer<TTransformManager> manager,
-    EntityId entity,
-    Pointer<TMat4> out,
-  );
   external EntityId _TransformManager_getParent(Pointer<TTransformManager> tTransformManager, EntityId child);
   external void _TransformManager_getWorldTransform(
     Pointer<double4x4> double4x4_out,
@@ -2199,11 +2190,6 @@ extension type GeneratedBindings(NativeLibrary _) implements JSObject {
     Pointer<TTransformManager> manager,
     EntityId entity,
     Pointer<Float64> out16,
-  );
-  external void _TransformManager_getWorldTransformNativeInto(
-    Pointer<TTransformManager> manager,
-    EntityId entity,
-    Pointer<TMat4> out,
   );
   external int _TransformManager_hasComponent(Pointer<TTransformManager> tTransformManager, EntityId entityId);
   external void _TransformManager_openLocalTransformTransaction(Pointer<TTransformManager> tTransformManager);
@@ -3086,11 +3072,6 @@ void Camera_getCullingProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Floa
   return result;
 }
 
-void Camera_getCullingProjectionMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out) {
-  final result = GeneratedBindings.instance._Camera_getCullingProjectionMatrixNativeInto(camera.cast(), out.cast());
-  return result;
-}
-
 DartEntityId Camera_getEntity(Pointer<TCamera> camera) {
   final result = GeneratedBindings.instance._Camera_getEntity(camera.cast());
   return result;
@@ -3127,11 +3108,6 @@ void Camera_getModelMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16) 
   return result;
 }
 
-void Camera_getModelMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out) {
-  final result = GeneratedBindings.instance._Camera_getModelMatrixNativeInto(camera.cast(), out.cast());
-  return result;
-}
-
 double Camera_getNear(Pointer<TCamera> camera) {
   final result = GeneratedBindings.instance._Camera_getNear(camera.cast());
   return result;
@@ -3145,11 +3121,6 @@ double4x4 Camera_getProjectionMatrix(Pointer<TCamera> camera) {
 
 void Camera_getProjectionMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16) {
   final result = GeneratedBindings.instance._Camera_getProjectionMatrixInto(camera.cast(), out16);
-  return result;
-}
-
-void Camera_getProjectionMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out) {
-  final result = GeneratedBindings.instance._Camera_getProjectionMatrixNativeInto(camera.cast(), out.cast());
   return result;
 }
 
@@ -3171,11 +3142,6 @@ double4x4 Camera_getViewMatrix(Pointer<TCamera> camera) {
 
 void Camera_getViewMatrixInto(Pointer<TCamera> camera, Pointer<Float64> out16) {
   final result = GeneratedBindings.instance._Camera_getViewMatrixInto(camera.cast(), out16);
-  return result;
-}
-
-void Camera_getViewMatrixNativeInto(Pointer<TCamera> camera, Pointer<TMat4> out) {
-  final result = GeneratedBindings.instance._Camera_getViewMatrixNativeInto(camera.cast(), out.cast());
   return result;
 }
 
@@ -8357,19 +8323,6 @@ void TransformManager_getLocalTransformInto(
   return result;
 }
 
-void TransformManager_getLocalTransformNativeInto(
-  Pointer<TTransformManager> manager,
-  DartEntityId entity,
-  Pointer<TMat4> out,
-) {
-  final result = GeneratedBindings.instance._TransformManager_getLocalTransformNativeInto(
-    manager.cast(),
-    entity,
-    out.cast(),
-  );
-  return result;
-}
-
 DartEntityId TransformManager_getParent(Pointer<TTransformManager> tTransformManager, DartEntityId child) {
   final result = GeneratedBindings.instance._TransformManager_getParent(tTransformManager.cast(), child);
   return result;
@@ -8391,19 +8344,6 @@ void TransformManager_getWorldTransformInto(
   Pointer<Float64> out16,
 ) {
   final result = GeneratedBindings.instance._TransformManager_getWorldTransformInto(manager.cast(), entity, out16);
-  return result;
-}
-
-void TransformManager_getWorldTransformNativeInto(
-  Pointer<TTransformManager> manager,
-  DartEntityId entity,
-  Pointer<TMat4> out,
-) {
-  final result = GeneratedBindings.instance._TransformManager_getWorldTransformNativeInto(
-    manager.cast(),
-    entity,
-    out.cast(),
-  );
   return result;
 }
 

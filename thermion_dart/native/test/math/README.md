@@ -11,7 +11,7 @@ immediately reuse its input. No pointer into Dart storage survives the call.
 
 Public `Camera` and `TransformManager` keep their existing matrix APIs. Their
 getters use internal buffer calls and return independent snapshots. Reusable
-output methods (`...Into`), shared native methods (`...Native` / `...NativeInto`),
+output methods (`...Into`), shared native setters (`...Native`),
 and `NativeMatrix4` are confined to unexported FFI implementation libraries.
 The new low-level matrix binding symbols are also hidden from the package's
 main export. Tests explicitly import the implementation libraries to exercise
@@ -60,8 +60,7 @@ second argument overrides the Chrome executable (the default is macOS Chrome).
 `NativeMatrix4` owns a directly allocated Filament `mat4` and exposes a `Matrix4` view
 of its component storage. Native Dart uses an external typed list; web uses a
 persistent view into WASM memory. Editing the view changes the same bytes that
-C++ reads, and native output getters update the same view. No boundary copy is
-needed by the `...Native` methods. The opaque C handle `TMat4` is the `mat4` pointer
+C++ reads. No boundary copy is needed by the internal `...Native` setters. The opaque C handle `TMat4` is the `mat4` pointer
 itself, with no C++ wrapper object, smart pointer or reference count.
 
 This storage owner lives in `src/filament/src/implementation/native_matrix4.dart`.
@@ -72,8 +71,8 @@ regression fixture demonstrates its use through `FFICamera` and
 
 Allocation happens once when creating the owner. `NativeMatrix4.copy(other)`
 performs an explicit initial copy; subsequent edits through `.matrix` and native
-submissions share that storage. `FFICamera` has corresponding native projection
-setters and model/view/projection output getters.
+submissions share that storage. `FFICamera` has corresponding native model and
+projection setters. Reads continue through the ordinary buffer-based getters.
 
 Ownership is explicit: call `dispose()` when all Dart views are finished
 (repeated disposal is harmless). Accessing an escaped Matrix4, its storage, or a
@@ -95,8 +94,8 @@ results. This eliminates the Dart/C++ boundary copy, not Filament's own state
 updates or work needed to produce a matrix.
 
 The shared native regressions run in the same native/browser fixtures above.
-They verify Dart writes observed by C++, C++ output observed through an existing
-Dart view, camera precision, missing components, disposal checks, caller-owned queued storage
+They verify Dart writes observed by C++, camera precision, missing components,
+disposal checks, and caller-owned queued storage
 through completion, reuse and disposal after completion, and the ordinary setter's
 preserved snapshot semantics.
 
@@ -113,7 +112,6 @@ in microseconds per operation, median of seven 20,000-call samples after warmup:
 | Existing struct getter | 0.095 | 0.585 |
 | Buffer getter returning a snapshot | 0.020 | 0.506 |
 | Buffer getter reusing output | 0.014 | 0.174 |
-| Shared native matrix output getter | 0.033 | 0.026 |
 
 These timings measure one entity's boundary overhead, not frame time, task
 queue throughput, or a guarantee of smoother rendering. Browser snapshot
@@ -124,6 +122,5 @@ Allocation counts were not profiled, and JIT optimizations can eliminate some
 source-level allocations in the old path.
 
 Shared native setters were approximately equal to buffer setters on the native
-VM in this run, and the shared native output getter was slower there. The web
-path benefited substantially from avoiding the per-call WASM buffer and bulk
-copy. Zero boundary copies do not guarantee a faster call on every platform.
+VM in this run. The web setter benefited substantially from avoiding the per-call
+WASM buffer and bulk copy. Zero boundary copies do not guarantee a faster call on every platform.

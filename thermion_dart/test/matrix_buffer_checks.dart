@@ -121,7 +121,7 @@ Future<void> checkNativeMatrices() async {
   final camera = await app.createCamera();
   final internalCamera = camera as FFICamera;
   final input = NativeMatrix4.identity();
-  final out = NativeMatrix4.zero();
+  final disposable = NativeMatrix4.zero();
   final parentMatrix = NativeMatrix4.copy(Matrix4.translation(Vector3(10, 20, 30)));
   final entities = <ThermionEntity>[];
   final pending = <Future<void>>[];
@@ -129,41 +129,28 @@ Future<void> checkNativeMatrices() async {
   try {
     final view = input.matrix;
     sameMatrix(view, Matrix4.identity(), 'native identity');
-    sameMatrix(out.matrix, Matrix4.zero(), 'native zero');
+    sameMatrix(disposable.matrix, Matrix4.zero(), 'native zero');
     final expected = Matrix4.translation(Vector3(3.25, -7.5, 9.75)) * Matrix4.rotationZ(0.47);
     view.setFrom(expected);
     internalTm.setTransformNative(child, input);
-    internalTm.getLocalTransformNativeInto(child, out);
-    sameMatrix(out.matrix, expected, 'Dart writes / native reads shared storage');
-    // The same previously returned Matrix4 view observes native output writes.
-    view.setZero();
-    internalTm.getLocalTransformNativeInto(child, input);
-    sameMatrix(view, expected, 'native writes / existing Dart view reads');
+    sameMatrix(tm.getLocalTransform(child), expected, 'Dart writes / native reads shared storage');
     internalTm.setTransformNative(parent, parentMatrix);
     await tm.setParent(child, parent);
-    internalTm.getWorldTransformNativeInto(child, out);
-    sameMatrix(out.matrix, parentMatrix.matrix * expected, 'native world matrix');
-    internalTm.getLocalTransformNativeInto(missing, out);
-    sameMatrix(out.matrix, Matrix4.zero(), 'missing native local matrix');
-    internalTm.getWorldTransformNativeInto(missing, out);
-    sameMatrix(out.matrix, Matrix4.zero(), 'missing native world matrix');
+    sameMatrix(tm.getWorldTransform(child), parentMatrix.matrix * expected, 'native setter world matrix');
     internalTm.setTransformNative(missing, input);
+    sameMatrix(tm.getLocalTransform(missing), Matrix4.zero(), 'native setter ignores missing component');
 
     await internalCamera.setModelMatrixNative(input);
-    await internalCamera.getModelMatrixNativeInto(out);
-    sameMatrix(out.matrix, expected, 'native camera model');
-    await internalCamera.getViewMatrixNativeInto(out);
-    sameMatrix(out.matrix, Matrix4.inverted(expected), 'native camera view');
+    sameMatrix(await camera.getModelMatrix(), expected, 'native camera model');
+    sameMatrix(await camera.getViewMatrix(), Matrix4.inverted(expected), 'native camera view');
     final projection = Matrix4.identity();
     for (var i = 0; i < 16; i++) {
       projection.storage[i] = i + 0.123456789012345;
     }
     view.setFrom(projection);
     await internalCamera.setProjectionMatrixWithCullingNative(input, 0.1, 1000);
-    await internalCamera.getProjectionMatrixNativeInto(out);
-    sameMatrix(out.matrix, projection, 'native exact projection', tolerance: 0);
-    await internalCamera.getCullingProjectionMatrixNativeInto(out);
-    sameMatrix(out.matrix, projection, 'native exact culling projection', tolerance: 0);
+    sameMatrix(await camera.getProjectionMatrix(), projection, 'native exact projection', tolerance: 0);
+    sameMatrix(await camera.getCullingProjectionMatrix(), projection, 'native exact culling projection', tolerance: 0);
 
     for (var i = 0; i < 64; i++) {
       entities.add(await app.createEntity());
@@ -201,25 +188,25 @@ Future<void> checkNativeMatrices() async {
     await copied;
     sameMatrix(tm.getLocalTransform(child), expected, 'native view through snapshot API');
 
-    out.dispose();
+    disposable.dispose();
     var rejected = 0;
     try {
-      out.matrix;
+      disposable.matrix;
     } on StateError {
       rejected++;
     }
     try {
-      internalTm.setTransformNative(child, out);
+      internalTm.setTransformNative(child, disposable);
     } on StateError {
       rejected++;
     }
     try {
-      await internalTm.setTransformNativeAsync(child, out);
+      await internalTm.setTransformNativeAsync(child, disposable);
     } on StateError {
       rejected++;
     }
     try {
-      await internalCamera.setModelMatrixNative(out);
+      await internalCamera.setModelMatrixNative(disposable);
     } on StateError {
       rejected++;
     }
@@ -230,7 +217,7 @@ Future<void> checkNativeMatrices() async {
       submitted.dispose();
     }
     input.dispose();
-    out.dispose();
+    disposable.dispose();
     parentMatrix.dispose();
     await camera.destroy();
     for (final entity in entities) {
@@ -253,7 +240,6 @@ Future<String> benchmarkMatrixBuffers() async {
   final input = Matrix4.translation(Vector3(1, 2, 3));
   final out = Matrix4.zero();
   final nativeInput = NativeMatrix4.copy(input);
-  final nativeOut = NativeMatrix4.zero();
   var sink = 0.0;
   final cases = <String, void Function()>{
     'struct setter': () => TransformManager_setTransform(handle, entity, matrix4ToDouble4x4(input)),
@@ -264,10 +250,6 @@ Future<String> benchmarkMatrixBuffers() async {
     },
     'buffer snapshot getter': () {
       sink += tm.getLocalTransform(entity).storage[12];
-    },
-    'native matrix reuse getter': () {
-      internalTm.getLocalTransformNativeInto(entity, nativeOut);
-      sink += nativeOut.matrix.storage[12];
     },
     'buffer reuse getter': () {
       internalTm.getLocalTransformInto(entity, out);
@@ -304,7 +286,6 @@ Future<String> benchmarkMatrixBuffers() async {
     results.add('${entry.key}: ${samples[3].toStringAsFixed(3)} us/op');
   }
   nativeInput.dispose();
-  nativeOut.dispose();
   await app.destroyEntity(entity);
   if (sink == 0) throw StateError('Benchmark produced no output');
   return results.join('\n');

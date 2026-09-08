@@ -113,14 +113,6 @@ class FFITransformManager extends TransformManager<bindings.Pointer<bindings.TTr
     });
   }
 
-  void getLocalTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) {
-    bindings.TransformManager_getLocalTransformNativeInto(transformManager, entity, out.getNativeHandle());
-  }
-
-  void getWorldTransformNativeInto(ThermionEntity entity, NativeMatrix4 out) {
-    bindings.TransformManager_getWorldTransformNativeInto(transformManager, entity, out.getNativeHandle());
-  }
-
   @override
   bool transformToUnitCube(ThermionEntity entity, Aabb3 boundingBox) {
     // Convert Aabb3 to C struct format

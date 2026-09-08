@@ -83,19 +83,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCullingNative(TCamera *camera, TMat4 *matrix, double near, double far) {
             reinterpret_cast<Camera *>(camera)->setCustomProjection(*reinterpret_cast<const filament::math::mat4 *>(matrix), near, far);
         }
-        EMSCRIPTEN_KEEPALIVE void Camera_getModelMatrixNativeInto(TCamera *camera, TMat4 *out) {
-            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getModelMatrix();
-        }
-        EMSCRIPTEN_KEEPALIVE void Camera_getViewMatrixNativeInto(TCamera *camera, TMat4 *out) {
-            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getViewMatrix();
-        }
-        EMSCRIPTEN_KEEPALIVE void Camera_getProjectionMatrixNativeInto(TCamera *camera, TMat4 *out) {
-            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getProjectionMatrix();
-        }
-        EMSCRIPTEN_KEEPALIVE void Camera_getCullingProjectionMatrixNativeInto(TCamera *camera, TMat4 *out) {
-            *reinterpret_cast<filament::math::mat4 *>(out) = reinterpret_cast<Camera *>(camera)->getCullingProjectionMatrix();
-        }
-
         EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrixFromBuffer(TCamera *camera, const double *matrix16) {
             reinterpret_cast<Camera *>(camera)->setModelMatrix(load_mat4(matrix16));
         }
