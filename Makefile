@@ -35,7 +35,10 @@ dart-bindings:
 	cd thermion_dart/ && dart run ffigen_js --config ffigen/web.yaml
 flutter-bindings:
 	cd thermion_flutter/thermion_flutter && flutter pub get && flutter pub run ffigen --config ffigen/swift.yaml
-bindings: dart-bindings flutter-bindings
+bindings: dart-bindings flutter-bindings matrix-benchmark-bindings
+matrix-benchmark-bindings:
+	cd thermion_dart/native/test/math/ffi_boundary && dart pub get
+	cd thermion_dart/native/test/math/ffi_boundary && dart run ffigen --config ffigen.yaml
 shared:
 	cd thermion_dart/native && make
 

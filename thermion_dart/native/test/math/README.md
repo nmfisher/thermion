@@ -101,6 +101,10 @@ preserved snapshot semantics.
 
 ## Boundary microbenchmark
 
+For a native JIT/AOT comparison that removes Filament work and Dart matrix
+conversion, see the [isolated matrix getter benchmark](ffi_boundary/README.md).
+The figures below measure the complete engine getter/setter pathways.
+
 Example measurements on Apple M2 Pro (native Dart JIT and Chrome/dart2js `-O2`),
 in microseconds per operation, median of seven 20,000-call samples after warmup:
 
