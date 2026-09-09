@@ -376,7 +376,21 @@ abstract class View<T> extends NativeHandle<T> {
   Future<Viewport> getViewport();
   Future setViewport(int width, int height);
   Future<RenderTarget?> getRenderTarget();
+
+  /// Binds a render target directly to this Filament view.
+  ///
+  /// Presentation systems that can insert additional render passes should use
+  /// [setPresentationRenderTarget] for the platform-owned output target.
   Future setRenderTarget(covariant RenderTarget? renderTarget);
+
+  /// Sets the platform-owned target that should receive this view's final
+  /// presented image.
+  ///
+  /// Most views render directly into that target. Composite render pipelines
+  /// can override this method and route intermediate passes without changing
+  /// the low-level semantics of [setRenderTarget].
+  Future setPresentationRenderTarget(covariant RenderTarget? renderTarget) => setRenderTarget(renderTarget);
+
   Future setCamera(Camera? camera);
   Future<Camera> getCamera();
   Future setPostProcessing(bool enabled);
