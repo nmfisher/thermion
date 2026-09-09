@@ -376,14 +376,14 @@ if "!BUILD_DEBUG!"=="true" (
 REM Create zip files (using PowerShell)
 if "!BUILD_RELEASE!"=="true" (
   echo Creating release zip...
-  powershell -Command "Compress-Archive -Path '%TARGET_RELEASE_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release-no-exceptions.zip' -Force" 2>nul || (
+  powershell -Command "Compress-Archive -Path '%TARGET_RELEASE_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release.zip' -Force" 2>nul || (
     echo Warning: Failed to create release zip. PowerShell Compress-Archive not available.
   )
 )
 
 if "!BUILD_DEBUG!"=="true" (
   echo Creating debug zip...
-  powershell -Command "Compress-Archive -Path '%TARGET_DEBUG_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug-no-exceptions.zip' -Force" 2>nul || (
+  powershell -Command "Compress-Archive -Path '%TARGET_DEBUG_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip' -Force" 2>nul || (
     echo Warning: Failed to create debug zip. PowerShell Compress-Archive not available.
   )
 )
@@ -391,11 +391,11 @@ if "!BUILD_DEBUG!"=="true" (
 echo Build completed successfully!
 if "!BUILD_RELEASE!"=="true" (
   echo Release libraries: %TARGET_RELEASE_DIR%
-  echo Release zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release-no-exceptions.zip
+  echo Release zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release.zip
 )
 if "!BUILD_DEBUG!"=="true" (
   echo Debug libraries: %TARGET_DEBUG_DIR%
-  echo Debug zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug-no-exceptions.zip
+  echo Debug zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip
 )
 
 endlocal

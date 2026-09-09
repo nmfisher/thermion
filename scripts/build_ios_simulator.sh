@@ -276,13 +276,13 @@ fi
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release simulator zip..."
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-release-no-exceptions.zip" .
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-release.zip" .
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug simulator zip..."
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-debug-no-exceptions.zip" .
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-debug.zip" .
 fi
 
 echo "Simulator build completed successfully!"

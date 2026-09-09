@@ -55,6 +55,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check public Filament version
+        run: python3 scripts/generate-filament-version.py --check
+
       - name: Read Filament version
         id: read-version
         run: |
@@ -113,14 +116,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: filament-macos-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-release.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-macos-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-macos-debug.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -129,8 +132,8 @@ jobs:
           pip3 install --break-system-packages awscli
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}-no-exceptions.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}-no-exceptions.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-macos-${variant}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:
@@ -171,28 +174,28 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: filament-ios-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-release.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-ios-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-debug.zip
           retention-days: 7
 
       - name: Upload simulator release artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-ios-simulator-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-simulator-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-simulator-release.zip
           retention-days: 7
 
       - name: Upload simulator debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-ios-simulator-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-simulator-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-ios-simulator-debug.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -202,8 +205,8 @@ jobs:
           for platform in ios ios-simulator; do
             for variant in release debug; do
               aws s3 cp \
-                "output/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}-no-exceptions.zip" \
-                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}-no-exceptions.zip" \
+                "output/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}.zip" \
+                "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-${platform}-${variant}.zip" \
                 --endpoint-url "${{ env.R2_ENDPOINT }}"
             done
           done
@@ -247,14 +250,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: filament-android-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-android-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-android-release.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-android-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-android-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-android-debug.zip
           retention-days: 7
 
       - name: Upload full out directory
@@ -269,8 +272,8 @@ jobs:
         run: |
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-android-${variant}-no-exceptions.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-android-${variant}-no-exceptions.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-android-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-android-${variant}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:
@@ -345,7 +348,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf check && mkdir check && cd check
-          for z in ../output/filament-*-no-exceptions.zip; do
+          for z in ../output/filament-*.zip; do
             # Each zip gets its own subdir: the release and debug zips
             # contain same-named archives, and extracting both into one
             # directory makes unzip prompt "replace X?" interactively —
@@ -392,14 +395,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: filament-linux-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-release.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-linux-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-debug.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -407,8 +410,8 @@ jobs:
         run: |
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}-no-exceptions.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}-no-exceptions.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-${variant}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:
@@ -419,7 +422,7 @@ jobs:
   build-linux-arm64:
     name: Build Linux (arm64)
     # GitHub-hosted arm64 runner — build_linux.sh detects the host arch and
-    # produces filament-<version>-linux-arm64-{release,debug}-no-exceptions.zip.
+    # produces filament-<version>-linux-arm64-{release,debug}.zip.
     # ubuntu-22.04-arm for the same glibc 2.35 baseline as build-linux above.
     runs-on: ubuntu-22.04-arm
     needs: setup
@@ -475,7 +478,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf check && mkdir check && cd check
-          for z in ../output/filament-*-no-exceptions.zip; do
+          for z in ../output/filament-*.zip; do
             # Each zip gets its own subdir: the release and debug zips
             # contain same-named archives, and extracting both into one
             # directory makes unzip prompt "replace X?" interactively —
@@ -522,14 +525,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: filament-linux-arm64-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-release.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-linux-arm64-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-debug.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -537,8 +540,8 @@ jobs:
         run: |
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}-no-exceptions.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}-no-exceptions.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-linux-arm64-${variant}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:
@@ -600,14 +603,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: filament-windows-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-windows-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-windows-release.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-windows-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-windows-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-windows-debug.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -617,8 +620,8 @@ jobs:
           pip install awscli
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}-no-exceptions.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}-no-exceptions.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-windows-${variant}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:
@@ -661,14 +664,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: filament-web-release
-          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-release.zip
           retention-days: 7
 
       - name: Upload debug artifact
         uses: actions/upload-artifact@v4
         with:
           name: filament-web-debug
-          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug-no-exceptions.zip
+          path: output/filament-${{ env.FILAMENT_VERSION }}-web-debug.zip
           retention-days: 7
 
       - name: Upload to R2
@@ -676,8 +679,8 @@ jobs:
         run: |
           for variant in release debug; do
             aws s3 cp \
-              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}-no-exceptions.zip" \
-              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-web-${variant}-no-exceptions.zip" \
+              "output/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip" \
+              "s3://${{ env.R2_BUCKET_NAME }}/filament-${{ env.FILAMENT_VERSION }}-web-${variant}.zip" \
               --endpoint-url "${{ env.R2_ENDPOINT }}"
           done
         env:

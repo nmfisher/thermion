@@ -18,11 +18,11 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 # Set Filament version, library path, and headers (from the version-matched
 # R2 artifact extracted by thermion_dart's build hook under .dart_tool/).
-set(FILAMENT_VERSION "v1.75.0")
+set(FILAMENT_VERSION "v1.76.0")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/no-exceptions/linux/debug")
+  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/linux/debug")
 else()
-  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/no-exceptions/linux/release")
+  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/linux/release")
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE

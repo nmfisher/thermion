@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 016e5ec5d..5e69faec7 100644
+index 59058ee43..ac97f10ce 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -135,7 +135,18 @@ set(FILAMENT_OSMESA_PATH "" CACHE STRING
@@ -22,7 +22,7 @@ index 016e5ec5d..5e69faec7 100644
      set(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS ON)
  endif()
 
-@@ -994,7 +1005,7 @@ if (WASM)
+@@ -997,7 +1008,7 @@ if (WASM)
      add_subdirectory(web/examples)
  endif()
 
@@ -31,7 +31,7 @@ index 016e5ec5d..5e69faec7 100644
     add_subdirectory(${LIBRARIES}/filamentapp)
  endif()
 
-@@ -1002,16 +1013,18 @@ if (IS_HOST_PLATFORM)
+@@ -1005,16 +1016,18 @@ if (IS_HOST_PLATFORM)
      if (FILAMENT_SUPPORTS_OPENGL)
          add_subdirectory(${LIBRARIES}/bluegl)
      endif()
@@ -53,7 +53,7 @@ index 016e5ec5d..5e69faec7 100644
 
      add_subdirectory(${TOOLS}/cmgen)
      add_subdirectory(${TOOLS}/cso-lut)
-@@ -1033,6 +1046,12 @@ if (IS_HOST_PLATFORM)
+@@ -1036,6 +1049,12 @@ if (IS_HOST_PLATFORM)
      add_subdirectory(${TOOLS}/specgen)
  endif()
 
@@ -67,19 +67,20 @@ index 016e5ec5d..5e69faec7 100644
  if ((NOT CMAKE_CROSSCOMPILING AND NOT FILAMENT_IMPORT_PREBUILT_EXECUTABLES) OR FILAMENT_EXPORT_PREBUILT_EXECUTABLES)
      export(TARGETS matc cmgen filamesh mipgen resgen uberz glslminifier FILE ${IMPORT_EXECUTABLES})
 diff --git a/build.sh b/build.sh
-index b9f29ad11..3b983ebb6 100755
+index b9f29ad11..149c88aa4 100755
 --- a/build.sh
 +++ b/build.sh
-@@ -283,7 +283,7 @@ function build_tools_for_split_build {
+@@ -283,7 +283,8 @@ function build_tools_for_split_build {
          -DCMAKE_BUILD_TYPE="${build_type_arg}" \
          ${WEBGPU_OPTION} \
          ${architectures} \
 -        ${EXCEPTIONS_OPTION} \
 +        -DFILAMENT_ENABLE_EXCEPTIONS=ON \
++        ${FILAMENT_HOST_TOOLS_OPTIONS:-} \
          ${MUTEX_DEBUG_OPTION} \
          ../..
 
-@@ -534,7 +534,9 @@ function build_android {
+@@ -534,7 +535,9 @@ function build_android {
      local old_install_command=${INSTALL_COMMAND}
      INSTALL_COMMAND=
 
@@ -90,7 +91,7 @@ index b9f29ad11..3b983ebb6 100755
 
      # When building the samples, we need to partially "install" the host tools so Gradle can see
      # them.
-@@ -577,6 +579,11 @@ function build_android {
+@@ -577,6 +580,11 @@ function build_android {
          archive_android "Release"
      fi
 

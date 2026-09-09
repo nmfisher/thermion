@@ -101,7 +101,7 @@ for BUILD_TYPE in release debug; do
     cp "$UBERARCHIVE" "$STAGE_DIR/include/$BUILD_TYPE/gltfio/materials/" 2>/dev/null || true
   fi
 
-  ZIP_FILE="$OUTPUT_DIR/filament-${FILAMENT_VERSION}-android-${BUILD_TYPE}-no-exceptions.zip"
+  ZIP_FILE="$OUTPUT_DIR/filament-${FILAMENT_VERSION}-android-${BUILD_TYPE}.zip"
   cd "$STAGE_DIR"
   zip -r "$ZIP_FILE" . || {
     echo "Error: Failed to create $ZIP_FILE"

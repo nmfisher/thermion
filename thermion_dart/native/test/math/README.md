@@ -43,7 +43,7 @@ projection values, and queued submissions that reuse one input matrix. The
 engine tests require a working graphics backend.
 
 For the full-module browser test, with Emscripten activated and the Filament
-web libraries installed in `native/web/lib/no-exceptions/release`:
+web libraries installed in `native/web/lib/release`:
 
 ```sh
 emcmake cmake -S native/web -B /tmp/thermion-matrix-web -DCMAKE_BUILD_TYPE=Release

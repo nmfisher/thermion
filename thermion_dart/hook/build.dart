@@ -6,6 +6,7 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
+import '../lib/filament_version.dart';
 import '../lib/src/hooks/material_backend_resolution.dart';
 import '../lib/src/logging/log.dart';
 
@@ -558,26 +559,8 @@ outputDirectory : ${outputDirectory.path}
   });
 }
 
-// filament.version lives at the repo root (the parent of this package). We
-// can't derive that from `Platform.script`: when this hook runs as a *compiled
-// build hook* the script URI points at the consuming package's
-// `.dart_tool/hooks_runner/.../hook.dill`, not at this source file, so the old
-// `dirname(dirname(script))` computation landed inside the wrong package and
-// the file was never found (bare `throw Exception()`). Resolve it relative to
-// the package root that getLibDir already has instead.
-String _getFilamentVersion(Uri packageRoot) {
-  final pkgPath = packageRoot.toFilePath(windows: Platform.isWindows);
-  final versionFile = File(path.join(path.dirname(pkgPath), 'filament.version'));
-  if (versionFile.existsSync()) {
-    final parts = versionFile.readAsStringSync().trim().split(RegExp(r'\s+'));
-    // Format: "<repo> <version>" - return the version (second field)
-    return parts.length >= 2 ? parts[1] : parts[0];
-  }
-  throw Exception('filament.version not found at ${versionFile.path}');
-}
-
 String _getLibraryUrl(String version, String platform, String mode) {
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}-no-exceptions.zip";
+  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
 }
 
 const _maxRetries = 3;
@@ -645,7 +628,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
 }) async {
   var platform = targetOS.toString().toLowerCase();
 
-  final version = _getFilamentVersion(packageRoot);
+  final version = filamentVersion;
 
   // Use separate library directory for iOS simulator (arm64 simulator
   // libraries can't be lipo'd with arm64 device libraries).
@@ -662,7 +645,6 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       "thermion_dart",
       "lib",
       version,
-      "no-exceptions",
       platform,
       mode,
     ),

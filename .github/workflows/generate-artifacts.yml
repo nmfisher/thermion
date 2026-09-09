@@ -50,6 +50,9 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Check public Filament version
+        run: python3 scripts/generate-filament-version.py --check
+
       - name: Cache pub dependencies
         uses: actions/cache@v4
         with:
@@ -66,6 +69,7 @@ jobs:
           filters: |
             native-changed:
               - 'thermion_dart/native/**'
+              - 'filament.version'
             materials-changed:
               - 'materials/**'
               - 'examples/assets/*.mat'
@@ -192,10 +196,8 @@ jobs:
         if: steps.changes.outputs.native-changed == 'true'
         uses: actions/cache@v4
         with:
-          path: thermion_dart/native/web/lib/no-exceptions/release
-          key: filament-web-no-exceptions-${{ hashFiles('filament.version') }}
-          restore-keys: |
-            filament-web-no-exceptions-
+          path: thermion_dart/native/web/lib/release
+          key: filament-web-${{ hashFiles('filament.version') }}
 
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'

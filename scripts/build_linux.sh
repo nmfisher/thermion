@@ -120,6 +120,10 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
+# The material generator needs a matc that supports WGSL. Enable it only in
+# the separate host tools; runtime backends keep their existing configuration.
+export FILAMENT_HOST_TOOLS_OPTIONS="-DFILAMENT_SUPPORTS_WEBGPU=ON"
+
 # Keep host tools separate from the runtime archives built below.
 git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 
@@ -261,6 +265,20 @@ if [ "$BUILD_DEBUG" = true ]; then
   }
 fi
 
+# Include the version-matched shader tools used by regenerate-materials.sh.
+for mode in release debug; do
+  if [ "$mode" = release ] && [ "$BUILD_RELEASE" = true ]; then
+    tools_target="$TARGET_RELEASE_DIR/bin"
+  elif [ "$mode" = debug ] && [ "$BUILD_DEBUG" = true ]; then
+    tools_target="$TARGET_DEBUG_DIR/bin"
+  else
+    continue
+  fi
+  mkdir -p "$tools_target"
+  cp "out/prebuilt-tools-$mode/tools/matc/matc" "$tools_target/" || exit 1
+  cp "out/prebuilt-tools-$mode/tools/resgen/resgen" "$tools_target/" || exit 1
+done
+
 # Copy release libraries
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Copying release libraries..."
@@ -390,12 +408,12 @@ if [ "$BUILD_RELEASE" = true ]; then
   echo "Contents of release directory:"
   ls -la "$TARGET_RELEASE_DIR"
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release-no-exceptions.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
   echo "Release zip contents:"
-  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release-no-exceptions.zip"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip"
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
@@ -403,20 +421,20 @@ if [ "$BUILD_DEBUG" = true ]; then
   echo "Contents of debug directory:"
   ls -la "$TARGET_DEBUG_DIR"
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug-no-exceptions.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
   echo "Debug zip contents:"
-  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug-no-exceptions.zip"
+  unzip -l "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip"
 fi
 
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release-no-exceptions.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-release.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug-no-exceptions.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-linux${ARCH_TAG}-debug.zip"
 fi

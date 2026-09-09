@@ -24,7 +24,22 @@
 
 Uses the Filament PBR engine.
 
-### Custom material compatibility
+### Filament version and custom materials
+
+Use `filamentVersion` to select the matching Filament release when compiling
+custom materials with `matc`:
+
+```dart
+import 'package:thermion_dart/filament_version.dart';
+
+void main() {
+  print(filamentVersion); // v1.76.0
+}
+```
+
+It is also exported by `package:thermion_dart/thermion_dart.dart`. The constant
+works with hosted, Git and path dependencies, and is the version used by the
+native build hook. Recompile your custom materials when it changes.
 
 After initializing Filament, `FilamentApp.instance!.materialVersion` gives the
 material format number reported by `matc --version`. This number is distinct
