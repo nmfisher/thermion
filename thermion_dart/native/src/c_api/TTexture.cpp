@@ -103,8 +103,16 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TKtx1Bundle *Ktx1Bundle_create(uint8_t *ktxData, size_t length)
         {
-            auto *bundle = new image::Ktx1Bundle(ktxData, static_cast<uint32_t>(length));
-            return reinterpret_cast<TKtx1Bundle *>(bundle);
+            try {
+                return reinterpret_cast<TKtx1Bundle *>(
+                    new image::Ktx1Bundle(ktxData, static_cast<uint32_t>(length)));
+            } catch (const std::exception& error) {
+                Log("KTX bundle creation failed: %s", error.what());
+                return nullptr;
+            } catch (...) {
+                Log("KTX bundle creation failed");
+                return nullptr;
+            }
         }
 
         EMSCRIPTEN_KEEPALIVE bool Ktx1Bundle_isCubemap(TKtx1Bundle *tBundle)
@@ -202,21 +210,25 @@ namespace thermion
                 const auto& info = bundle->getInfo();
                 const auto mipCount = bundle->getNumMipLevels();
                 const uint32_t faces = bundle->isCubemap() ? 6 : 1;
+                if (mipCount == 0 || mipCount > 255 || info.pixelWidth == 0 || info.pixelHeight == 0) {
+                    throw std::runtime_error("Invalid KTX texture dimensions or mip count");
+                }
 
                 struct Level { uint8_t* data; uint32_t faceBytes; };
                 std::vector<Level> levels;
                 for (uint32_t mip = 0; mip < mipCount; ++mip) {
                     uint8_t* data = nullptr;
                     uint32_t bytes = 0;
-                    if (!bundle->getBlob({mip, 0, 0}, &data, &bytes)) {
+                    if (!bundle->getBlob({mip, 0, 0}, &data, &bytes) || !data || !bytes) {
                         throw std::runtime_error("Missing KTX mip data");
                     }
-                    // Preserve the reader's check that every face exists before
-                    // submitting buffers. Ktx1Bundle stores faces consecutively.
+                    // Ktx1Bundle stores cubemap faces consecutively. Validate every
+                    // face before submitting any buffer, including its byte size.
                     for (uint32_t face = 1; face < faces; ++face) {
                         uint8_t* faceData = nullptr;
                         uint32_t faceBytes = 0;
-                        if (!bundle->getBlob({mip, 0, face}, &faceData, &faceBytes)) {
+                        if (!bundle->getBlob({mip, 0, face}, &faceData, &faceBytes) ||
+                                faceBytes != bytes || reinterpret_cast<uintptr_t>(faceData) != reinterpret_cast<uintptr_t>(data) + size_t(face) * bytes) {
                             throw std::runtime_error("Invalid KTX cubemap face data");
                         }
                     }

@@ -150,3 +150,22 @@ The C++ suite above covers zero buffers, partial submission failure, and a buffe
 finishing before later buffers are submitted. The Dart upload suite covers real
 2D, cubemap, and mipmapped uploads. Native exception delivery to Dart additionally
 requires the task-error change; completion tracking itself does not deliver errors.
+
+## KTX input validation
+
+KTX preflight rejects zero dimensions, mip counts that do not fit the texture
+builder's 8-bit argument, empty mip data, and mismatched or noncontiguous cubemap
+faces before submitting pixel data. Bundle decoding catches native exceptions
+and returns null, which the Dart wrapper reports as a decode error. This is input
+validation, separate from upload completion and skybox/IBL cleanup.
+
+With the same GPU and task-error setup above, run:
+
+```sh
+THERMION_TASK_ERROR_FIXTURE=/tmp/thermion-scheduling/libtask_error_fixture.dylib \
+  dart test --concurrency=1 test/ktx_input_validation_test.dart test/ktx_task_errors_test.dart
+```
+
+These regressions cover a truncated header and zero width/height, including
+release before caller cleanup. They do not directly exercise the mip-count bound
+or malformed in-memory cubemap layout.
