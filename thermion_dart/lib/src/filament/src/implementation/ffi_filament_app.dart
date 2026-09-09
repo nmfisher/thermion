@@ -915,6 +915,26 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     PixelDataType pixelDataType = PixelDataType.FLOAT,
     Future Function(View)? beforeRender,
     bool render = true,
+  }) => (renderManager as FFIRenderManager).withExclusiveFrame(
+    () => _captureFrame(
+      swapChain,
+      view: view,
+      captureRenderTarget: captureRenderTarget,
+      pixelDataFormat: pixelDataFormat,
+      pixelDataType: pixelDataType,
+      beforeRender: beforeRender,
+      render: render,
+    ),
+  );
+
+  Future<List<(View, Uint8List)>> _captureFrame(
+    SwapChain? swapChain, {
+    View? view,
+    required bool captureRenderTarget,
+    required PixelDataFormat pixelDataFormat,
+    required PixelDataType pixelDataType,
+    Future Function(View)? beforeRender,
+    required bool render,
   }) async {
     // Web: the worker rAF loop (RenderManager::tick) drives begin/render/end on
     // the *shared* Renderer. If it fires between our beginFrame() and the
@@ -941,7 +961,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       swapChain = _swapChains.first;
     }
     var beginFrame = false;
-    const MAX_BEGIN_FRAME_RETRIES = 3;
+    const MAX_BEGIN_FRAME_RETRIES = 10;
 
     for (int i = 0; i < MAX_BEGIN_FRAME_RETRIES; i++) {
       beginFrame = await withBoolCallback((cb) {
@@ -950,6 +970,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       if (beginFrame) {
         break;
       }
+      // Frame admission can reject while the GPU drains prior live frames.
+      // Yield a display interval instead of exhausting retries immediately.
+      await Future<void>.delayed(const Duration(milliseconds: 16));
     }
 
     if (!beginFrame) {
@@ -959,185 +982,200 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to begin frame");
     }
 
-    final pixelBuffers = <(View, Uint8List)>[];
+    var frameOpen = true;
+    try {
+      final pixelBuffers = <(View, Uint8List)>[];
 
-    final views = <View>[];
-    if (view != null) {
-      views.add(view);
-      _logger.finest("Using provided view");
-    } else {
-      views.addAll(await renderManager.getAttachedViews(swapChain));
-    }
-
-    for (final view in views) {
-      final vp = await view.getViewport();
-      if (vp.width == 0 || vp.height == 0) {
-        throw Exception(
-          """Invalid viewport : ${vp.width}x${vp.height} """
-          """for ${view.getNativeHandle()}""",
-        );
-      }
-    }
-
-    _logger.finest("Starting capture for ${views.length} views");
-
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      stackPtr = stackSave();
-    }
-
-    // Per-view "was this read as UBYTE for a FLOAT request?" flags. The
-    // downgrade-on-web rule depends on the framebuffer being read from
-    // (RGBA8 swapchain/RT → must use UBYTE; FLOAT RT → must use FLOAT),
-    // so we compute it per-view and inflate back to FLOAT in the return.
-    final inflateFromUByte = <bool>[];
-
-    for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
-      final view = views[viewIndex];
-      final renderTarget = await view.getRenderTarget();
-      bool hasRenderTarget = renderTarget != null;
-      _logger.finest(
-        """Capturing view ${viewIndex} (renderTarget: """
-        """${hasRenderTarget ? 'yes' : 'no'})""",
-      );
-
-      // WebGL/ANGLE constrains the format/type combo for readPixels by the
-      // bound framebuffer's color format:
-      //   - RGBA8 (swapchain / RGBA8 RT)  → only UBYTE is allowed
-      //   - FLOAT RT (RGBA16F / RGBA32F)  → only FLOAT is allowed
-      // Read FLOAT requests from RGBA8 as UBYTE and inflate in the return so
-      // callers still get the FLOAT buffer they asked for. Keep FLOAT when
-      // the RT itself is FLOAT, otherwise WebGL throws INVALID_OPERATION.
-      var rtIsFloat = false;
-      if (renderTarget != null) {
-        final colorTex = await renderTarget.getColorTexture();
-        rtIsFloat = _isFloatTextureFormat(await colorTex.getFormat());
-      }
-      final readAsUByteForFloat = FILAMENT_SINGLE_THREADED && pixelDataType == PixelDataType.FLOAT && !rtIsFloat;
-      final readType = readAsUByteForFloat ? PixelDataType.UBYTE : pixelDataType;
-      inflateFromUByte.add(readAsUByteForFloat);
-
-      beforeRender?.call(view);
-
-      final viewport = await view.getViewport();
-
-      int numChannels = switch (pixelDataFormat) {
-        PixelDataFormat.RGBA => 4,
-        PixelDataFormat.RGB => 3,
-        PixelDataFormat.R => 1,
-        _ => throw UnsupportedError(pixelDataFormat.toString()),
-      };
-
-      int channelSizeInBytes = switch (readType) {
-        PixelDataType.FLOAT => sizeOf<Float>(),
-        PixelDataType.UBYTE || PixelDataType.BYTE => 1,
-        _ => throw UnsupportedError(readType.toString()),
-      };
-
-      if (viewport.width <= 0 || viewport.height <= 0) {
-        throw Exception(
-          "Invalid viewport dimensions: "
-          "${viewport.width}x${viewport.height}",
-        );
+      final views = <View>[];
+      if (view != null) {
+        views.add(view);
+        _logger.finest("Using provided view");
+      } else {
+        views.addAll(await renderManager.getAttachedViews(swapChain));
       }
 
-      final numBytes = viewport.width * viewport.height * numChannels * channelSizeInBytes;
-      final pixelBuffer = makeUint8List(numBytes);
-
-      if (render) {
-        await withVoidCallback((requestId, cb) {
-          Renderer_renderRenderThread(renderer, view.getNativeHandle(), requestId, cb);
-        });
-      }
-
-      if (captureRenderTarget && renderTarget == null) {
-        _logger.warning(
-          """captureRenderTarget is true but the specified view has no"""
-          """ render target. Falling back to swapchain capture""",
-        );
-      }
-
-      await withVoidCallback((requestId, cb) {
-        Renderer_readPixelsRenderThread(
-          renderer,
-          viewport.width,
-          viewport.height,
-          0,
-          0,
-          renderTarget == null ? nullptr : renderTarget.getNativeHandle(),
-          pixelDataFormat.value,
-          readType.value,
-          pixelBuffer.address,
-          pixelBuffer.length,
-          requestId,
-          cb,
-        );
-      });
-      pixelBuffers.add((view, pixelBuffer));
-    }
-
-    await withVoidCallback((requestId, cb) {
-      Renderer_endFrameRenderThread(renderer, requestId, cb);
-    });
-
-    await flush();
-
-    // on web/WebGL backend, the callback in readPixels isn't actually
-    // fired until a subsequent render call (and possibly the presentation to
-    // the canvas when the render thread yields).
-    // We need to wait at least one frame before the pixel buffer is populated;
-    // by this point, we've called setRendering(true), but this is actually
-    // synchronous, so we'll add a ~2 frame delay to wait for this to be
-    // available.
-    if (FILAMENT_SINGLE_THREADED) {
-      await withBoolCallback(
-        (cb) => Renderer_beginFrameRenderThread(renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
-      );
       for (final view in views) {
-        await withVoidCallback((requestId, cb) {
-          Renderer_renderRenderThread(renderer, view.getNativeHandle(), requestId, cb);
-        });
+        final vp = await view.getViewport();
+        if (vp.width == 0 || vp.height == 0) {
+          throw Exception(
+            """Invalid viewport : ${vp.width}x${vp.height} """
+            """for ${view.getNativeHandle()}""",
+          );
+        }
       }
+
+      _logger.finest("Starting capture for ${views.length} views");
+
+      late Pointer stackPtr;
+      if (FILAMENT_WASM) {
+        stackPtr = stackSave();
+      }
+
+      // Per-view "was this read as UBYTE for a FLOAT request?" flags. The
+      // downgrade-on-web rule depends on the framebuffer being read from
+      // (RGBA8 swapchain/RT → must use UBYTE; FLOAT RT → must use FLOAT),
+      // so we compute it per-view and inflate back to FLOAT in the return.
+      final inflateFromUByte = <bool>[];
+
+      for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
+        final view = views[viewIndex];
+        final renderTarget = await view.getRenderTarget();
+        bool hasRenderTarget = renderTarget != null;
+        _logger.finest(
+          """Capturing view ${viewIndex} (renderTarget: """
+          """${hasRenderTarget ? 'yes' : 'no'})""",
+        );
+
+        // WebGL/ANGLE constrains the format/type combo for readPixels by the
+        // bound framebuffer's color format:
+        //   - RGBA8 (swapchain / RGBA8 RT)  → only UBYTE is allowed
+        //   - FLOAT RT (RGBA16F / RGBA32F)  → only FLOAT is allowed
+        // Read FLOAT requests from RGBA8 as UBYTE and inflate in the return so
+        // callers still get the FLOAT buffer they asked for. Keep FLOAT when
+        // the RT itself is FLOAT, otherwise WebGL throws INVALID_OPERATION.
+        var rtIsFloat = false;
+        if (renderTarget != null) {
+          final colorTex = await renderTarget.getColorTexture();
+          rtIsFloat = _isFloatTextureFormat(await colorTex.getFormat());
+        }
+        final readAsUByteForFloat = FILAMENT_SINGLE_THREADED && pixelDataType == PixelDataType.FLOAT && !rtIsFloat;
+        final readType = readAsUByteForFloat ? PixelDataType.UBYTE : pixelDataType;
+        inflateFromUByte.add(readAsUByteForFloat);
+
+        await beforeRender?.call(view);
+
+        final viewport = await view.getViewport();
+
+        int numChannels = switch (pixelDataFormat) {
+          PixelDataFormat.RGBA => 4,
+          PixelDataFormat.RGB => 3,
+          PixelDataFormat.R => 1,
+          _ => throw UnsupportedError(pixelDataFormat.toString()),
+        };
+
+        int channelSizeInBytes = switch (readType) {
+          PixelDataType.FLOAT => sizeOf<Float>(),
+          PixelDataType.UBYTE || PixelDataType.BYTE => 1,
+          _ => throw UnsupportedError(readType.toString()),
+        };
+
+        if (viewport.width <= 0 || viewport.height <= 0) {
+          throw Exception(
+            "Invalid viewport dimensions: "
+            "${viewport.width}x${viewport.height}",
+          );
+        }
+
+        final numBytes = viewport.width * viewport.height * numChannels * channelSizeInBytes;
+        final pixelBuffer = makeUint8List(numBytes);
+
+        if (render) {
+          await withVoidCallback((requestId, cb) {
+            Renderer_renderRenderThread(renderer, view.getNativeHandle(), requestId, cb);
+          });
+        }
+
+        if (captureRenderTarget && renderTarget == null) {
+          _logger.warning(
+            """captureRenderTarget is true but the specified view has no"""
+            """ render target. Falling back to swapchain capture""",
+          );
+        }
+
+        await withVoidCallback((requestId, cb) {
+          Renderer_readPixelsRenderThread(
+            renderer,
+            viewport.width,
+            viewport.height,
+            0,
+            0,
+            renderTarget == null ? nullptr : renderTarget.getNativeHandle(),
+            pixelDataFormat.value,
+            readType.value,
+            pixelBuffer.address,
+            pixelBuffer.length,
+            requestId,
+            cb,
+          );
+        });
+        pixelBuffers.add((view, pixelBuffer));
+      }
+
       await withVoidCallback((requestId, cb) {
         Renderer_endFrameRenderThread(renderer, requestId, cb);
       });
+      frameOpen = false;
+
       await flush();
 
-      await Future.delayed(Duration(milliseconds: 33));
-
-      // now copy the pixel buffer into a GC'd Uint8List and destroy the
-      // manually allocated buffer so invokers don't have to worry about taking
-      // ownership of malloc memory
-      final result = <(View, Uint8List)>[];
-      for (var i = 0; i < pixelBuffers.length; i++) {
-        final (view, raw) = pixelBuffers[i];
-        final Uint8List out;
-        if (inflateFromUByte[i]) {
-          // Inflate the 8-bit readback to the float buffer callers expect:
-          // one float32 in [0,1] per source byte.
-          final floats = Float32List(raw.length);
-          for (var j = 0; j < raw.length; j++) {
-            floats[j] = raw[j] / 255.0;
-          }
-          out = floats.asUint8List();
-        } else {
-          out = Uint8List.fromList(raw);
+      // on web/WebGL backend, the callback in readPixels isn't actually
+      // fired until a subsequent render call (and possibly the presentation to
+      // the canvas when the render thread yields).
+      // We need to wait at least one frame before the pixel buffer is populated;
+      // by this point, we've called setRendering(true), but this is actually
+      // synchronous, so we'll add a ~2 frame delay to wait for this to be
+      // available.
+      if (FILAMENT_SINGLE_THREADED) {
+        await withBoolCallback(
+          (cb) => Renderer_beginFrameRenderThread(renderer, swapChain!.getNativeHandle(), 0.toBigInt, cb),
+        );
+        for (final view in views) {
+          await withVoidCallback((requestId, cb) {
+            Renderer_renderRenderThread(renderer, view.getNativeHandle(), requestId, cb);
+          });
         }
-        raw.free();
-        result.add((view, out));
+        await withVoidCallback((requestId, cb) {
+          Renderer_endFrameRenderThread(renderer, requestId, cb);
+        });
+        await flush();
+
+        await Future.delayed(Duration(milliseconds: 33));
+
+        // now copy the pixel buffer into a GC'd Uint8List and destroy the
+        // manually allocated buffer so invokers don't have to worry about taking
+        // ownership of malloc memory
+        final result = <(View, Uint8List)>[];
+        for (var i = 0; i < pixelBuffers.length; i++) {
+          final (view, raw) = pixelBuffers[i];
+          final Uint8List out;
+          if (inflateFromUByte[i]) {
+            // Inflate the 8-bit readback to the float buffer callers expect:
+            // one float32 in [0,1] per source byte.
+            final floats = Float32List(raw.length);
+            for (var j = 0; j < raw.length; j++) {
+              floats[j] = raw[j] / 255.0;
+            }
+            out = floats.asUint8List();
+          } else {
+            out = Uint8List.fromList(raw);
+          }
+          raw.free();
+          result.add((view, out));
+        }
+
+        if (FILAMENT_WASM) {
+          stackRestore(stackPtr);
+        }
+        return result;
       }
 
-      if (FILAMENT_WASM) {
-        stackRestore(stackPtr);
+      if (pauseTicking) {
+        RenderManager_setPaused(renderManager.getNativeHandle(), false);
       }
-      return result;
-    }
 
-    if (pauseTicking) {
-      RenderManager_setPaused(renderManager.getNativeHandle(), false);
+      return pixelBuffers;
+    } finally {
+      try {
+        if (frameOpen) {
+          await withVoidCallback((requestId, cb) {
+            Renderer_endFrameRenderThread(renderer, requestId, cb);
+          });
+          await flush();
+        }
+      } finally {
+        if (pauseTicking) RenderManager_setPaused(renderManager.getNativeHandle(), false);
+      }
     }
-
-    return pixelBuffers;
   }
 
   //
