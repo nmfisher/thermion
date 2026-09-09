@@ -214,7 +214,11 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
     RenderManager_destroy(pointer);
   }
 
-  Future render() async {
+  /// Runs a complete manual frame without interleaving scheduled frames or
+  /// attachment mutations. The operation must not call render/attach/detach.
+  Future<T> withExclusiveFrame<T>(Future<T> Function() operation) => _serialize(operation);
+
+  Future render() => _serialize(() async {
     if (FILAMENT_SINGLE_THREADED) {
       // Web: fire-and-forget. The render completes across the next N rAF
       // cycles (N = number of swapchains) driven by RenderThread::iter()
@@ -229,7 +233,7 @@ class FFIRenderManager extends RenderManager<Pointer<TRenderManager>> {
         RenderManager_renderRenderThread(pointer, frameTimeInNanos.toBigInt, requestId, cb);
       });
     }
-  }
+  });
 
   @override
   Iterable<View> getAttachedViews(SwapChain swapChain) {
