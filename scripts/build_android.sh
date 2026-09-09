@@ -107,6 +107,10 @@ git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
 echo "Patching Filament build.sh to skip samples..."
 sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
+# Android's cross-build CMake command has no ${architectures} argument, so
+# disable upstream tests there explicitly. Some debug tests require C++ exceptions.
+sed -i.bak 's|\${EXCEPTIONS_OPTION} \\$|\${EXCEPTIONS_OPTION} -DFILAMENT_BUILD_TESTING=OFF \\|g' build.sh
+
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
 # appended after the strict flags, so the -Wno-* wins). Idempotent, no-op on
