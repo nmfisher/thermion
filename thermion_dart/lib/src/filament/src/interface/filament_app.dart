@@ -272,12 +272,17 @@ abstract class FilamentApp<T> {
   // Returns all valid swapchains.
   Future<Iterable<SwapChain>> getSwapChains();
 
-  // Invokes one iteration of the full rendering pipeline for all
-  // registered swapchains/views. This will also advance animations
-  // by one timestep and call out to all plugins to perform their own updates.
-  //
-  // The returned [Future] will complete when the pipeline step is complete.
-  Future render();
+  /// Renders all registered swapchains/views and updates animations and plugins.
+  ///
+  /// On native platforms, [frameTimeInNanos] is a frame timestamp in nanoseconds
+  /// on the native steady clock, as supplied by Thermion's frame scheduler.
+  /// It is not a date, wall-clock time, or Flutter's adjusted animation time.
+  /// When omitted, uses the current native steady-clock time. The returned
+  /// [Future] completes when the render pipeline step has finished.
+  ///
+  /// On web, queues rendering for browser animation frames and returns without
+  /// waiting for completion. [frameTimeInNanos] is ignored on that path.
+  Future render({int? frameTimeInNanos});
 
   /// Caps the continuous-render framerate to [fps].
   ///
