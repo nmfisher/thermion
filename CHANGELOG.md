@@ -7,6 +7,9 @@
 - `ThermionAsset.setCastShadows` / `setReceiveShadows` skip entities without a
   renderable component (bones, empties, attachment nodes) instead of logging
   `Error: invalid renderable` for each one.
+- `thermion_flutter` (Android) migrates to Flutter's built-in Kotlin: the plugin
+  no longer applies the Kotlin Gradle Plugin itself. Minimum supported SDK is
+  now Flutter 3.44 / Dart 3.12.
 - `FilamentApp` exposes the native engine handle as a public
 - `TranslationAxisMaterial.createMaterialInstance` and `ToneMapper` factory methods
   now take the abstract `FilamentApp` instead of
