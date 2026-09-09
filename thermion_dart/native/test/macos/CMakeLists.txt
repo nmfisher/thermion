@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
 project(thermion_dart VERSION 1.0.0 LANGUAGES CXX C)
 
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+
 # Configuration variables
-set(FILAMENT_VERSION "v1.74.0")
+set(FILAMENT_VERSION "v1.75.0")
 set(PACKAGE_NAME "thermion_dart")
 set(PLATFORM "macos")
 
@@ -86,9 +88,9 @@ add_library(thermion_dart SHARED
 # Filament libraries path + headers, from the version-matched R2 artifact
 # extracted by thermion_dart's build hook under .dart_tool/.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/debug")
+  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/no-exceptions/macos/debug")
 else()
-  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/macos/release")
+  set(FILAMENT_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/${FILAMENT_VERSION}/no-exceptions/macos/release")
 endif()
 set(FILAMENT_INCLUDE_DIR "${FILAMENT_LIB_DIR}/include")
 
@@ -117,7 +119,6 @@ target_link_libraries(thermion_dart PRIVATE
     gltfio
     filament-iblprefilter
     image
-    imageio
     tinyexr
     filaflat
     dracodec

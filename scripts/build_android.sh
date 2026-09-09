@@ -100,9 +100,12 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
+# Keep host tools separate from the runtime archives built below.
+git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
+
+# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
@@ -123,7 +126,7 @@ export CXX=clang++
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for Android (release)..."
-  ./build.sh -i -f -p android release || {
+  ./build.sh -E -i -f -p android release || {
     echo "Error: Filament release build failed"
     exit 1
   }
@@ -132,7 +135,7 @@ fi
 # Run debug build
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Building Filament for Android (debug)..."
-  ./build.sh -i -f -t -d -p android debug || {
+  ./build.sh -E -i -f -t -d -p android debug || {
     echo "Error: Filament debug build failed"
     exit 1
   }
@@ -168,8 +171,8 @@ if [ ! -f "$NDK_TOOLCHAIN" ]; then
 fi
 echo "Using NDK toolchain: $NDK_TOOLCHAIN"
 
-# Build imageio and tinyexr for each Android architecture using cmake + NDK toolchain.
-# Filament's build.sh -p android only cross-compiles core libs, not imageio/tinyexr.
+# Build tinyexr for each Android architecture using cmake + NDK toolchain.
+# Filament's build.sh -p android only cross-compiles core libs, not tinyexr.
 build_third_party_for_arch() {
   local BUILD_TYPE=$1  # Release or Debug
   local BUILD_SUFFIX=$2  # release or debug
@@ -177,28 +180,7 @@ build_third_party_for_arch() {
   local CMAKE_ARCH=$(abi_to_cmake_arch "$ABI")
   local CMAKE_DIR="$FILAMENT_BASE_DIR/out/cmake-android-${BUILD_SUFFIX}-${CMAKE_ARCH}"
 
-  echo "Building imageio + tinyexr for $ABI ($BUILD_SUFFIX)..."
-
-  mkdir -p "$CMAKE_DIR/third_party/imageio" && cd "$CMAKE_DIR/third_party/imageio"
-  cmake -G Ninja \
-    -DCMAKE_TOOLCHAIN_FILE="$NDK_TOOLCHAIN" \
-    -DANDROID_ABI="$ABI" \
-    -DANDROID_PLATFORM=android-21 \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-    -DZ_HAVE_UNISTD_H=1 \
-    -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-    "$FILAMENT_BASE_DIR/libs/imageio" || {
-    echo "Error: imageio cmake failed for $ABI ($BUILD_SUFFIX)"
-    return 1
-  }
-  ninja || {
-    echo "Error: imageio build failed for $ABI ($BUILD_SUFFIX)"
-    return 1
-  }
+  echo "Building tinyexr for $ABI ($BUILD_SUFFIX)..."
 
   mkdir -p "$CMAKE_DIR/third_party/tinyexr" && cd "$CMAKE_DIR/third_party/tinyexr"
   cmake -G Ninja \
@@ -211,7 +193,7 @@ build_third_party_for_arch() {
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
     -DIMPORT_EXECUTABLES_DIR=out \
-    -DCMAKE_CXX_FLAGS="-Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-switch-default -Wno-reserved-identifier -Wno-sign-conversion -Wno-tautological-type-limit-compare -Wno-unsafe-buffer-usage -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
     "$FILAMENT_BASE_DIR/third_party/tinyexr" || {
     echo "Error: tinyexr cmake failed for $ABI ($BUILD_SUFFIX)"
     return 1
@@ -264,15 +246,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     # "unable to find library -lzstd".
     cp out/android-release/filament/lib/$ARCH/*.a "$TARGET_RELEASE_DIR/$ARCH/"
 
-    # Copy imageio (built per-arch by build_third_party_for_arch)
-    IMAGEIO_SRC="out/cmake-android-release-${CMAKE_ARCH}/third_party/imageio/libimageio.a"
-    if [ -f "$IMAGEIO_SRC" ]; then
-      echo "Found imageio at $IMAGEIO_SRC"
-      cp "$IMAGEIO_SRC" "$TARGET_RELEASE_DIR/$ARCH/"
-    else
-      echo "WARNING: libimageio.a not found for $ARCH at $IMAGEIO_SRC"
-    fi
-
     # Copy tinyexr (built per-arch by build_third_party_for_arch)
     TINYEXR_SRC="out/cmake-android-release-${CMAKE_ARCH}/third_party/tinyexr/libtinyexr.a"
     if [ -f "$TINYEXR_SRC" ]; then
@@ -297,15 +270,6 @@ if [ "$BUILD_DEBUG" = true ]; then
 
     # Copy main Filament libraries (libzstd.a included; see release note above)
     cp out/android-debug/filament/lib/$ARCH/*.a "$TARGET_DEBUG_DIR/$ARCH/"
-
-    # Copy imageio (built per-arch by build_third_party_for_arch)
-    IMAGEIO_SRC="out/cmake-android-debug-${CMAKE_ARCH}/third_party/imageio/libimageio.a"
-    if [ -f "$IMAGEIO_SRC" ]; then
-      echo "Found imageio at $IMAGEIO_SRC"
-      cp "$IMAGEIO_SRC" "$TARGET_DEBUG_DIR/$ARCH/"
-    else
-      echo "WARNING: libimageio.a not found for $ARCH at $IMAGEIO_SRC"
-    fi
 
     # Copy tinyexr (built per-arch by build_third_party_for_arch)
     TINYEXR_SRC="out/cmake-android-debug-${CMAKE_ARCH}/third_party/tinyexr/libtinyexr.a"
@@ -343,19 +307,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
-
-  # Copy stb_image.h
-  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
-  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
-    echo "Error: Failed to copy stb_image.h to target"
-    exit 1
-  }
 
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
@@ -391,19 +342,6 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
-
-  # Copy stb_image.h
-  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
-  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
-    echo "Error: Failed to copy stb_image.h to target"
-    exit 1
-  }
 
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
@@ -430,7 +368,7 @@ fi
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-release.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-release-no-exceptions.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
@@ -439,7 +377,7 @@ fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug zip..."
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-debug.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-debug-no-exceptions.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
@@ -448,9 +386,9 @@ fi
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-release.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-release-no-exceptions.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-debug.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-android-debug-no-exceptions.zip"
 fi

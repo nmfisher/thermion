@@ -104,9 +104,12 @@ git checkout "${FILAMENT_VERSION}" || {
   exit 1
 }
 
-# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON to cmake commands)
+# Keep host tools separate from the runtime archives built below.
+git apply "$SCRIPT_DIR/filament-no-exceptions.patch" || exit 1
+
+# Patch Filament's build.sh to skip samples (add -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF to cmake commands)
 echo "Patching Filament build.sh to skip samples..."
-sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
+sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_RTTI=ON \\|g' build.sh
 
 # Suppress warnings in the vendored tinyexr that trip its own -Weverything -Werror
 # (new in Filament v1.75.0; CLANG_COMPILE_FLAGS are per-source COMPILE_FLAGS,
@@ -137,7 +140,7 @@ echo 'target_compile_definitions(gltfio_core PRIVATE GLTFIO_USE_FILESYSTEM=0)' >
 # Run release build
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Building Filament for macOS (release)..."
-  ./build.sh -l -i -f -p desktop release || {
+  ./build.sh -E -l -i -f -p desktop release || {
     echo "Error: Filament release build failed"
     exit 1
   }
@@ -146,7 +149,7 @@ fi
 # Run debug build (with framegraph viewer/material debug server)
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Building Filament for macOS (debug)..."
-  ./build.sh -l -i -f -t -d -p desktop debug || {
+  ./build.sh -E -l -i -f -t -d -p desktop debug || {
     echo "Error: Filament debug build failed"
     exit 1
   }
@@ -165,22 +168,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
-  # Build imageio for release
-  echo "Building imageio (release)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-release/third_party"
-  mkdir -p imageio && cd imageio
-  cmake -G Ninja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-          -DZ_HAVE_UNISTD_H=1 \
-          -DUSE_ZLIB=1 \
-          -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-          "$FILAMENT_BASE_DIR/libs/imageio"
-  ninja
-
   # Build tinyexr for release
   echo "Building tinyexr (release)..."
   cd "$FILAMENT_BASE_DIR/out/cmake-release/third_party"
@@ -190,7 +177,7 @@ if [ "$BUILD_RELEASE" = true ]; then
           -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+          -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 fi
@@ -208,22 +195,6 @@ if [ "$BUILD_DEBUG" = true ]; then
     "$FILAMENT_BASE_DIR/third_party/libz"
   ninja
 
-  # Build imageio for debug
-  echo "Building imageio (debug)..."
-  cd "$FILAMENT_BASE_DIR/out/cmake-debug/third_party"
-  mkdir -p imageio && cd imageio
-  cmake -G Ninja \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-          -DZ_HAVE_UNISTD_H=1 \
-          -DUSE_ZLIB=1 \
-          -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-          "$FILAMENT_BASE_DIR/libs/imageio"
-  ninja
-
   # Build tinyexr for debug
   echo "Building tinyexr (debug)..."
   cd "$FILAMENT_BASE_DIR/out/cmake-debug/third_party"
@@ -233,7 +204,7 @@ if [ "$BUILD_DEBUG" = true ]; then
           -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
           -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
           -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
-          -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+          -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
           "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
 fi
@@ -269,10 +240,6 @@ if [ "$BUILD_RELEASE" = true ]; then
   echo "Copying release third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
   cp out/cmake-release/third_party/libz/*.a "$TARGET_RELEASE_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-release/third_party/imageio/*.a "$TARGET_RELEASE_DIR/" || {
-    echo "Error: Failed to copy imageio libraries"
-    exit 1
-  }
   cp out/cmake-release/third_party/tinyexr/*.a "$TARGET_RELEASE_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
@@ -292,10 +259,6 @@ if [ "$BUILD_DEBUG" = true ]; then
   echo "Copying debug third-party libraries..."
   cd "$FILAMENT_BASE_DIR"
   cp out/cmake-debug/third_party/libz/*.a "$TARGET_DEBUG_DIR/" || echo "Warning: No libz libraries found"
-  cp out/cmake-debug/third_party/imageio/*.a "$TARGET_DEBUG_DIR/" || {
-    echo "Error: Failed to copy imageio libraries"
-    exit 1
-  }
   cp out/cmake-debug/third_party/tinyexr/*.a "$TARGET_DEBUG_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
@@ -314,19 +277,6 @@ if [ "$BUILD_RELEASE" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_RELEASE_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_RELEASE_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
-
-  # Copy stb_image.h
-  mkdir -p "$TARGET_RELEASE_DIR/include/third_party/stb"
-  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_RELEASE_DIR/include/third_party/stb/" || {
-    echo "Error: Failed to copy stb_image.h to target"
-    exit 1
-  }
 
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_RELEASE_DIR/include/" || {
@@ -352,19 +302,6 @@ if [ "$BUILD_DEBUG" = true ]; then
     exit 1
   }
 
-  # Copy imageio headers
-  mkdir -p "$TARGET_DEBUG_DIR/include/imageio"
-  cp -R "$FILAMENT_BASE_DIR/libs/imageio/include"/* "$TARGET_DEBUG_DIR/include/" || {
-    echo "Error: Failed to copy imageio headers to target"
-    exit 1
-  }
-
-  # Copy stb_image.h
-  mkdir -p "$TARGET_DEBUG_DIR/include/third_party/stb"
-  cp "$FILAMENT_BASE_DIR/third_party/stb/stb_image.h" "$TARGET_DEBUG_DIR/include/third_party/stb/" || {
-    echo "Error: Failed to copy stb_image.h to target"
-    exit 1
-  }
 
   # Copy bluevk headers (includes bluevk/BlueVK.h, vulkan/vulkan.h, vk_video/)
   cp -R "$FILAMENT_BASE_DIR/libs/bluevk/include/"* "$TARGET_DEBUG_DIR/include/" || {
@@ -390,7 +327,7 @@ fi
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release zip..."
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release-no-exceptions.zip" . || {
     echo "Error: Failed to create release zip"
     exit 1
   }
@@ -399,7 +336,7 @@ fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug zip..."
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug.zip" . || {
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug-no-exceptions.zip" . || {
     echo "Error: Failed to create debug zip"
     exit 1
   }
@@ -408,9 +345,9 @@ fi
 echo "Build completed successfully!"
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Release libraries: $TARGET_RELEASE_DIR"
-  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release.zip"
+  echo "Release zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-release-no-exceptions.zip"
 fi
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Debug libraries: $TARGET_DEBUG_DIR"
-  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug.zip"
+  echo "Debug zip: ${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-macos-debug-no-exceptions.zip"
 fi

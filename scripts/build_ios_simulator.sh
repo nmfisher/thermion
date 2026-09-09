@@ -87,7 +87,7 @@ fi
 # Patch build.sh if not already patched
 if ! grep -q "DFILAMENT_SKIP_SAMPLES" build.sh; then
   echo "Patching Filament build.sh to skip samples..."
-  sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON \\|g' build.sh
+  sed -i.bak 's|\${architectures} \\$|\${architectures} -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF \\|g' build.sh
 fi
 
 # Also patch the build_ios function to add arm64 simulator support.
@@ -133,6 +133,7 @@ build_sim_target() {
 
   cmake \
     -G Ninja \
+    -DFILAMENT_ENABLE_EXCEPTIONS=OFF \
     -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/prebuilt-tools-release \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="../ios-${lc_type}-sim/filament" \
@@ -140,7 +141,7 @@ build_sim_target() {
     -DPLATFORM_NAME="iphonesimulator" \
     -DIOS=1 \
     -DCMAKE_TOOLCHAIN_FILE=../../third_party/clang/iOS.cmake \
-    -DFILAMENT_SKIP_SAMPLES=ON \
+    -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF \
     ../..
 
   ninja
@@ -175,22 +176,6 @@ build_sim_third_party() {
   ninja
   popd > /dev/null
 
-  # Build imageio
-  echo "Building imageio (${lc_type}, arm64 simulator)..."
-  mkdir -p "$BUILD_DIR/imageio" && pushd "$BUILD_DIR/imageio" > /dev/null
-  cmake -G Ninja \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DPLATFORM_NAME="iphonesimulator" \
-    -DZLIB_INCLUDE_DIR="$FILAMENT_BASE_DIR/third_party/libz" \
-    -DZ_HAVE_UNISTD_H=1 \
-    -DUSE_ZLIB=1 \
-    -DIMPORT_EXECUTABLES_DIR=out \
-    -DCMAKE_CXX_FLAGS="-I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
-    "$FILAMENT_BASE_DIR/libs/imageio"
-  ninja
-  popd > /dev/null
-
   # Build tinyexr
   echo "Building tinyexr (${lc_type}, arm64 simulator)..."
   mkdir -p "$BUILD_DIR/tinyexr" && pushd "$BUILD_DIR/tinyexr" > /dev/null
@@ -201,7 +186,7 @@ build_sim_third_party() {
     -DZ_HAVE_UNISTD_H=1 \
     -DUSE_ZLIB=1 \
     -DIMPORT_EXECUTABLES_DIR=out \
-    -DCMAKE_CXX_FLAGS="-Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
+    -DCMAKE_CXX_FLAGS="-fno-exceptions -Wno-poison-system-directories -Wno-switch-default -I$FILAMENT_BASE_DIR/libs/image/include -I$FILAMENT_BASE_DIR/libs/utils/include -I$FILAMENT_BASE_DIR/libs/math/include -I$FILAMENT_BASE_DIR/third_party/tinyexr -I$FILAMENT_BASE_DIR/third_party/libpng -I$FILAMENT_BASE_DIR/third_party/basisu/encoder" \
     "$FILAMENT_BASE_DIR/third_party/tinyexr"
   ninja
   popd > /dev/null
@@ -260,10 +245,6 @@ copy_sim_libs() {
   # Copy third-party libs
   local TP_DIR="out/cmake-ios-${lc_type}-arm64-sim/third_party"
   cp "$TP_DIR/libz/"*.a "$TARGET_DIR/" || echo "Warning: No libz libraries found"
-  cp "$TP_DIR/imageio/"*.a "$TARGET_DIR/" || {
-    echo "Error: Failed to copy imageio libraries"
-    exit 1
-  }
   cp "$TP_DIR/tinyexr/"*.a "$TARGET_DIR/" || {
     echo "Error: Failed to copy tinyexr libraries"
     exit 1
@@ -295,13 +276,13 @@ fi
 if [ "$BUILD_RELEASE" = true ]; then
   echo "Creating release simulator zip..."
   cd "$TARGET_RELEASE_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-release.zip" .
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-release-no-exceptions.zip" .
 fi
 
 if [ "$BUILD_DEBUG" = true ]; then
   echo "Creating debug simulator zip..."
   cd "$TARGET_DEBUG_DIR"
-  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-debug.zip" .
+  zip -r "${OUTPUT_BASE_DIR}/filament-${FILAMENT_VERSION}-ios-simulator-debug-no-exceptions.zip" .
 fi
 
 echo "Simulator build completed successfully!"

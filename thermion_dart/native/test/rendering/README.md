@@ -37,9 +37,8 @@ Native Android callbacks remain registered at display frequency even when the
 gate rejects rendering work. Device validation should check the cadence and
 wakeup cost at low target rates and during display refresh changes.
 
-The gate extraction is reused by the web worker in #301. Task-error propagation
-is in #318; forwarding scheduler timestamps through Flutter into rendering is
-in #319. Normalizing native scheduler output alone does not replace the existing
+The gate extraction is reused by the web worker in #301. Forwarding scheduler
+timestamps through Flutter into rendering is in #319. Normalizing native scheduler output alone does not replace the existing
 Dart wall-clock render timestamp. Browser dispatch/lifetime fixtures land in #301.
 
 ## KTX upload lifetime tests
@@ -54,7 +53,6 @@ Skybox and IBL loaders keep setup and buffer-release Futures separate. Setup
 errors reach the public Future; bundle cleanup waits for buffer release even
 when setup fails. Successful loads do not add a GPU-completion wait. Removal
 and disposal flush pending work and wait for bundle cleanup, as before.
-Native C++ exception delivery to Dart is handled separately in #318.
 
 Native partial-submission failure handling is a separate change. This PR does
 not guarantee release notification if Filament fails during submission.

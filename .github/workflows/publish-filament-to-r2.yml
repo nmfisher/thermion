@@ -2,8 +2,8 @@ name: Publish Filament to R2 (from artifacts)
 
 # One-off helper: copy already-built Filament zips (from the GitHub artifacts of
 # verified 'Build Filament' runs) into R2 without rebuilding. The zips are
-# named filament-<version>-<platform>-<release|debug>.zip, matching what the
-# thermion build hook downloads. Safe to delete once publishing is done.
+# uploaded with their existing names. Current runtime archive names end in
+# -no-exceptions.zip. Safe to delete once publishing is done.
 
 on:
   workflow_dispatch:

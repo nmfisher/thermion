@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.22)
 project(thermion_scheduling_tests LANGUAGES CXX)
 
+if(MSVC)
+  add_compile_options(/EHs-c-)
+  add_compile_definitions(_HAS_EXCEPTIONS=0)
+else()
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+endif()
+
 find_package(Threads REQUIRED)
 add_library(upload_lifetime_fixture SHARED upload_lifetime_fixture.cpp)
 target_compile_features(upload_lifetime_fixture PRIVATE cxx_std_17)

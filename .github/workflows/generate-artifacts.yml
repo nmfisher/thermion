@@ -192,10 +192,10 @@ jobs:
         if: steps.changes.outputs.native-changed == 'true'
         uses: actions/cache@v4
         with:
-          path: thermion_dart/native/web/lib/release
-          key: filament-web-${{ hashFiles('filament.version') }}
+          path: thermion_dart/native/web/lib/no-exceptions/release
+          key: filament-web-no-exceptions-${{ hashFiles('filament.version') }}
           restore-keys: |
-            filament-web-
+            filament-web-no-exceptions-
 
       - name: Compile web
         if: steps.changes.outputs.native-changed == 'true'

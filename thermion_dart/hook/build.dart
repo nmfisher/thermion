@@ -352,6 +352,7 @@ outputDirectory : ${outputDirectory.path}
     var frameworks = [];
 
     if (targetOS != OS.windows) {
+      flags.add('-fno-exceptions');
       flags.add('-stdlib=libc++');
       if (!flags.any((f) => f.contains("-std=c++"))) {
         flags.add('-std=c++17');
@@ -359,6 +360,7 @@ outputDirectory : ${outputDirectory.path}
     } else {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
+      defines["_HAS_EXCEPTIONS"] = "0";
       if (buildMode == BuildMode.debug) {
         defines["_DEBUG"] = "1";
       } else {
@@ -367,6 +369,7 @@ outputDirectory : ${outputDirectory.path}
       }
       flags.addAll([
         "/std:c++20",
+        "/EHs-c-",
         if (buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
         if (buildMode == BuildMode.release) "/MD",
         // /VERBOSE is a linker option, not a compiler one — cl.exe parses it
@@ -574,7 +577,7 @@ String _getFilamentVersion(Uri packageRoot) {
 }
 
 String _getLibraryUrl(String version, String platform, String mode) {
-  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}.zip";
+  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${version}-${platform}-${mode}-no-exceptions.zip";
 }
 
 const _maxRetries = 3;
@@ -659,6 +662,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       "thermion_dart",
       "lib",
       version,
+      "no-exceptions",
       platform,
       mode,
     ),
@@ -678,8 +682,7 @@ Future<({Directory libDir, Directory includeDir})> getLibDir(
       throw Exception("Unsupported architecture : ${targetArchitecture}");
     }
   } else if (platform == "linux") {
-    // Linux x64 keeps the legacy zip URL + cache dir. arm64 consumers fetch
-    // the arch-suffixed zip (filament-<v>-linux-arm64-<mode>.zip) and use an
+    // Linux arm64 consumers fetch their own archive and use an
     // arch-scoped cache dir so the two never collide.
     if (targetArchitecture == Architecture.arm64) {
       platform = "linux-arm64";

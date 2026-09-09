@@ -99,6 +99,11 @@ call git checkout %FILAMENT_VERSION% || (
   exit /b 1
 )
 
+REM Build host tools separately; only runtime libraries are packaged below.
+call git apply "%SCRIPT_DIR%filament-no-exceptions.patch" || exit /b 1
+cmake -S . -B out/host-tools -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=ON -DFILAMENT_EXPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools || exit /b 1
+cmake --build out/host-tools --config Release --target matc cmgen filamesh mipgen resgen uberz glslminifier || exit /b 1
+
 REM Patch FFilamentAsset.h to allow overriding GLTFIO_USE_FILESYSTEM at compile time
 echo Patching FFilamentAsset.h to disable GLTFIO_USE_FILESYSTEM...
 set "GLTFIO_HEADER=%FILAMENT_BASE_DIR%\libs\gltfio\src\FFilamentAsset.h"
@@ -109,12 +114,12 @@ echo target_compile_definitions(gltfio_core PRIVATE GLTFIO_USE_FILESYSTEM=0)>> "
 
 REM Create build directory
 echo Creating build directory...
-if not exist out mkdir out
-cd /d "%FILAMENT_BASE_DIR%\out" || exit /b 1
+if not exist out\runtime mkdir out\runtime
+cd /d "%FILAMENT_BASE_DIR%\out\runtime" || exit /b 1
 
 REM Run CMake configuration
 echo Configuring Filament for Windows...
-cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF .. || (
+cmake -G "Visual Studio 17 2022" -T v142 -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DFILAMENT_ENABLE_RTTI=ON -DFILAMENT_SHORTEN_MSVC_COMPILATION=OFF -DFILAMENT_BUILD_TESTING=OFF -DFILAMENT_ENABLE_EXCEPTIONS=OFF -DFILAMENT_IMPORT_PREBUILT_EXECUTABLES_DIR=out/host-tools -DCMAKE_MAP_IMPORTED_CONFIG_DEBUG=Release ../.. || (
   echo Error: CMake configuration failed
   exit /b 1
 )
@@ -131,9 +136,6 @@ if "!BUILD_RELEASE!"=="true" (
   echo Building third-party libraries for release...
   cmake --build . --target tinyexr --config Release || (
     echo Warning: tinyexr release build failed
-  )
-  cmake --build . --target imageio --config Release || (
-    echo Warning: imageio release build failed
   )
 
   REM Install release to get headers in a known location
@@ -156,9 +158,6 @@ if "!BUILD_DEBUG!"=="true" (
   echo Building third-party libraries for debug...
   cmake --build . --target tinyexr --config Debug || (
     echo Warning: tinyexr debug build failed
-  )
-  cmake --build . --target imageio --config Debug || (
-    echo Warning: imageio debug build failed
   )
 
   REM Install debug to get headers in a known location
@@ -192,7 +191,7 @@ REM Copy release libraries
 if "!BUILD_RELEASE!"=="true" (
   echo Copying release libraries...
   REM Copy .lib files from Release subdirectories
-  for /r "%FILAMENT_BASE_DIR%\out" %%f in (*.lib) do (
+  for /r "%FILAMENT_BASE_DIR%\out\runtime" %%f in (*.lib) do (
     echo %%f | findstr /i "\\Release\\" >nul && (
       copy /Y "%%f" "%TARGET_RELEASE_DIR%\" >nul 2>&1
     )
@@ -209,7 +208,7 @@ if "!BUILD_RELEASE!"=="true" (
 REM Copy debug libraries
 if "!BUILD_DEBUG!"=="true" (
   echo Copying debug libraries...
-  for /r "%FILAMENT_BASE_DIR%\out" %%f in (*.lib) do (
+  for /r "%FILAMENT_BASE_DIR%\out\runtime" %%f in (*.lib) do (
     echo %%f | findstr /i "\\Debug\\" >nul && (
       copy /Y "%%f" "%TARGET_DEBUG_DIR%\" >nul 2>&1
     )
@@ -236,11 +235,6 @@ if "!BUILD_RELEASE!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_RELEASE_DIR%\include\" || (
-    echo Error: Failed to copy imageio headers to target
-    exit /b 1
-  )
 
   REM Copy bluevk headers (Windows-specific)
   if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" (
@@ -282,11 +276,6 @@ if "!BUILD_DEBUG!"=="true" (
     exit /b 1
   )
 
-  REM Copy imageio headers (libs/imageio/include/ already has the imageio/ subdir)
-  xcopy /E /I /Y "%FILAMENT_BASE_DIR%\libs\imageio\include\*" "%TARGET_DEBUG_DIR%\include\" || (
-    echo Error: Failed to copy imageio headers to target
-    exit /b 1
-  )
 
   REM Copy bluevk headers (Windows-specific)
   if exist "%FILAMENT_BASE_DIR%\libs\bluevk\include\bluevk" (
@@ -387,14 +376,14 @@ if "!BUILD_DEBUG!"=="true" (
 REM Create zip files (using PowerShell)
 if "!BUILD_RELEASE!"=="true" (
   echo Creating release zip...
-  powershell -Command "Compress-Archive -Path '%TARGET_RELEASE_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release.zip' -Force" 2>nul || (
+  powershell -Command "Compress-Archive -Path '%TARGET_RELEASE_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release-no-exceptions.zip' -Force" 2>nul || (
     echo Warning: Failed to create release zip. PowerShell Compress-Archive not available.
   )
 )
 
 if "!BUILD_DEBUG!"=="true" (
   echo Creating debug zip...
-  powershell -Command "Compress-Archive -Path '%TARGET_DEBUG_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip' -Force" 2>nul || (
+  powershell -Command "Compress-Archive -Path '%TARGET_DEBUG_DIR%\*' -DestinationPath '%OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug-no-exceptions.zip' -Force" 2>nul || (
     echo Warning: Failed to create debug zip. PowerShell Compress-Archive not available.
   )
 )
@@ -402,11 +391,11 @@ if "!BUILD_DEBUG!"=="true" (
 echo Build completed successfully!
 if "!BUILD_RELEASE!"=="true" (
   echo Release libraries: %TARGET_RELEASE_DIR%
-  echo Release zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release.zip
+  echo Release zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-release-no-exceptions.zip
 )
 if "!BUILD_DEBUG!"=="true" (
   echo Debug libraries: %TARGET_DEBUG_DIR%
-  echo Debug zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug.zip
+  echo Debug zip: %OUTPUT_BASE_DIR%\filament-%FILAMENT_VERSION%-windows-debug-no-exceptions.zip
 )
 
 endlocal
